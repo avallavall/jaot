@@ -1,0 +1,640 @@
+---
+title: Models
+description: Browse and manage optimization model catalog
+order: 2
+---
+
+# Models
+
+The Models endpoints let you browse the public model marketplace, activate models for your organization, create private models, and execute models with custom input data.
+
+A **ModelCatalog** entry is a public marketplace model. An **OrganizationModel** is a model activated by your organization, which may be a catalog model or a privately created one.
+
+## GET /api/v2/models/catalog
+
+Browse the public model marketplace. This endpoint is public and does not require authentication.
+
+### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `category` | string | -- | Filter by category (e.g. `"logistics"`, `"finance"`, `"combinatorial"`) |
+| `search` | string | -- | Search in model name and description |
+| `page` | integer | 1 | Page number |
+| `page_size` | integer | 20 | Items per page (max 100) |
+
+### Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `items` | array | List of catalog model objects |
+| `items[].id` | string | Model ID (e.g. `"mdl_abc123"`) |
+| `items[].name` | string | Machine-readable model name |
+| `items[].display_name` | string | Human-readable display name |
+| `items[].description` | string | Model description |
+| `items[].category` | string | Model category |
+| `items[].credits_per_execution` | number | Credits consumed per execution |
+| `items[].tags` | array | Searchable tags |
+| `items[].status` | string | Publication status |
+| `items[].created_at` | string | ISO 8601 timestamp |
+| `total` | integer | Total matching models |
+| `page` | integer | Current page number |
+| `page_size` | integer | Page size |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+# List all logistics models
+response = httpx.get(
+    f"{API_URL}/models/catalog",
+    params={"category": "logistics", "page_size": 10},
+    headers=headers,
+)
+data = response.json()
+for model in data["items"]:
+    print(f"{model['display_name']}: {model['description']}")
+    print(f"  Cost: {model['credits_per_execution']} credits/run")
+```
+
+```bash
+curl "https://jaot.io/api/v2/models/catalog?category=logistics&page_size=10" \
+  -H "Authorization: Bearer ok_live_your_key_here"
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/models/catalog?category=logistics&page_size=10",
+  { headers: { "Authorization": "Bearer ok_live_your_key_here" } }
+);
+
+const { items, total } = await response.json();
+console.log(`Found ${total} logistics models`);
+```
+</CodeTabs>
+
+### Response
+
+```json
+{
+  "items": [
+    {
+      "id": "b9c1d2e3-abcd-1234-5678-f0a1b2c3d4e5",
+      "name": "warehouse_allocation",
+      "display_name": "Warehouse Allocation Optimizer",
+      "description": "Optimize product allocation across warehouse locations to minimize picking time",
+      "category": "logistics",
+      "credits_per_execution": 3,
+      "tags": ["warehouse", "allocation", "logistics"],
+      "status": "published",
+      "created_at": "2026-01-15T09:00:00Z"
+    }
+  ],
+  "total": 12,
+  "page": 1,
+  "page_size": 10
+}
+```
+
+---
+
+## POST /api/v2/models/catalog/\{catalog_id\}/activate
+
+Activate a marketplace model for your organization. Once activated, you can execute it with custom input data.
+
+**Authentication:** Requires API key or JWT token.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `catalog_id` | string | The catalog model ID to activate |
+
+### Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Organization model ID |
+| `catalog_id` | string | Original catalog model ID |
+| `organization_id` | string | Your organization ID |
+| `custom_name` | string | Custom name (null if not set) |
+| `is_active` | boolean | Whether the model is active |
+| `created_at` | string | ISO 8601 timestamp |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+response = httpx.post(
+    "https://jaot.io/api/v2/models/catalog/b9c1d2e3-abcd-1234-5678-f0a1b2c3d4e5/activate",
+    headers={"Authorization": "Bearer ok_live_your_key_here"},
+)
+org_model = response.json()
+print(f"Activated as: {org_model['id']}")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/models/catalog/b9c1d2e3-abcd-1234-5678-f0a1b2c3d4e5/activate \
+  -H "Authorization: Bearer ok_live_your_key_here"
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/models/catalog/b9c1d2e3-abcd-1234-5678-f0a1b2c3d4e5/activate",
+  {
+    method: "POST",
+    headers: { "Authorization": "Bearer ok_live_your_key_here" },
+  }
+);
+
+const orgModel = await response.json();
+console.log(`Activated: ${orgModel.id}`);
+```
+</CodeTabs>
+
+### Response
+
+```json
+{
+  "id": "a3f8b2c1-1234-5678-abcd-ef0123456789",
+  "catalog_id": "b9c1d2e3-abcd-1234-5678-f0a1b2c3d4e5",
+  "organization_id": "org_b7e4d1a0",
+  "custom_name": null,
+  "is_active": true,
+  "created_at": "2026-02-19T10:00:00Z"
+}
+```
+
+---
+
+## GET /api/v2/models
+
+List models activated by your organization.
+
+**Authentication:** Requires API key or JWT token.
+
+### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `category` | string | -- | Filter by category |
+| `search` | string | -- | Search in name/description |
+| `is_active` | boolean | -- | Filter by active status |
+| `is_favorite` | boolean | -- | Filter by favorite status |
+| `page` | integer | 1 | Page number |
+| `page_size` | integer | 20 | Items per page (max 100) |
+
+### Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `items` | array | List of organization model objects |
+| `total` | integer | Total matching models |
+| `page` | integer | Current page number |
+| `page_size` | integer | Page size |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+# List your activated models
+response = httpx.get(
+    f"{API_URL}/models",
+    params={"is_active": True},
+    headers=headers,
+)
+data = response.json()
+for model in data["items"]:
+    print(f"{model['name']} ({model['id']})")
+```
+
+```bash
+curl "https://jaot.io/api/v2/models?is_active=true" \
+  -H "Authorization: Bearer ok_live_your_key_here"
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/models?is_active=true",
+  { headers: { "Authorization": "Bearer ok_live_your_key_here" } }
+);
+
+const { items, total } = await response.json();
+```
+</CodeTabs>
+
+---
+
+## GET /api/v2/models/\{model_id\}
+
+Get details of a specific activated model.
+
+**Authentication:** Requires API key or JWT token.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `model_id` | string | The organization model ID |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+response = httpx.get(f"{API_URL}/models/a3f8b2c1-1234-5678-abcd-ef0123456789", headers=headers)
+model = response.json()
+print(f"Model: {model['display_name']}")
+print(f"Category: {model['category']}")
+```
+
+```bash
+curl "https://jaot.io/api/v2/models/a3f8b2c1-1234-5678-abcd-ef0123456789" \
+  -H "Authorization: Bearer ok_live_your_key_here"
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/models/a3f8b2c1-1234-5678-abcd-ef0123456789",
+  { headers: { "Authorization": "Bearer ok_live_your_key_here" } }
+);
+const model = await response.json();
+```
+</CodeTabs>
+
+---
+
+## GET /api/v2/models/\{model_id\}/schema
+
+Get the input schema and example input for a model. Useful for building dynamic forms or validating input before execution.
+
+**Authentication:** Requires API key or JWT token.
+
+### Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Organization model ID |
+| `name` | string | Model display name |
+| `generator_type` | string | Type of model generator |
+| `input_schema` | object | JSON schema for input validation |
+| `input_fields` | array | Field definitions for UI rendering |
+| `example_input` | object | Example input data |
+| `custom_config` | object | Custom configuration (null if not set) |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+response = httpx.get(
+    "https://jaot.io/api/v2/models/a3f8b2c1-1234-5678-abcd-ef0123456789/schema",
+    headers={"Authorization": "Bearer ok_live_your_key_here"},
+)
+schema = response.json()
+print(f"Model: {schema['name']}")
+print(f"Fields: {[f['name'] for f in schema['input_fields']]}")
+```
+
+```bash
+curl "https://jaot.io/api/v2/models/a3f8b2c1-1234-5678-abcd-ef0123456789/schema" \
+  -H "Authorization: Bearer ok_live_your_key_here"
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/models/a3f8b2c1-1234-5678-abcd-ef0123456789/schema",
+  { headers: { "Authorization": "Bearer ok_live_your_key_here" } }
+);
+const schema = await response.json();
+console.log(`Model: ${schema.name}`);
+```
+</CodeTabs>
+
+### Response
+
+```json
+{
+  "id": "a3f8b2c1-1234-5678-abcd-ef0123456789",
+  "name": "Warehouse Allocation Optimizer",
+  "generator_type": "template",
+  "input_schema": {},
+  "input_fields": [
+    {"name": "warehouses", "label": "Warehouses", "type": "array", "required": true},
+    {"name": "products", "label": "Products", "type": "array", "required": true}
+  ],
+  "example_input": {
+    "warehouses": [{"name": "East", "capacity": 500}, {"name": "West", "capacity": 300}],
+    "products": [{"name": "Widget A", "demand": 200}]
+  },
+  "custom_config": null
+}
+```
+
+---
+
+## POST /api/v2/models
+
+Create a private model for your organization (not from the marketplace).
+
+**Authentication:** Requires API key or JWT token.
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Machine-readable model name |
+| `description` | string | No | Model description |
+| `category` | string | No | Model category |
+| `generator_type` | string | Yes | Generator type (e.g. `"template"`) |
+| `input_schema` | object | No | JSON schema for input validation |
+| `input_fields` | array | No | Field definitions for UI |
+| `example_input` | object | No | Example input data |
+| `tags` | array | No | Searchable tags |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+response = httpx.post(
+    "https://jaot.io/api/v2/models",
+    headers={
+        "Authorization": "Bearer ok_live_your_key_here",
+        "Content-Type": "application/json",
+    },
+    json={
+        "name": "supply_chain_optimizer",
+        "description": "Internal supply chain routing optimizer",
+        "category": "supply_chain",
+        "generator_type": "template",
+        "tags": ["internal", "supply-chain"],
+    },
+)
+model = response.json()
+print(f"Created: {model['id']}")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/models \
+  -H "Authorization: Bearer ok_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "supply_chain_optimizer",
+    "description": "Internal supply chain routing optimizer",
+    "category": "supply_chain",
+    "generator_type": "template",
+    "tags": ["internal", "supply-chain"]
+  }'
+```
+
+```javascript
+const response = await fetch("https://jaot.io/api/v2/models", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer ok_live_your_key_here",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    name: "supply_chain_optimizer",
+    description: "Internal supply chain routing optimizer",
+    category: "supply_chain",
+    generator_type: "template",
+    tags: ["internal", "supply-chain"],
+  }),
+});
+const model = await response.json();
+```
+</CodeTabs>
+
+---
+
+## PATCH /api/v2/models/\{model_id\}
+
+Update a model's custom settings.
+
+**Authentication:** Requires API key or JWT token.
+
+### Request Body
+
+All fields are optional.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `custom_name` | string | Custom display name |
+| `custom_config` | object | Custom configuration overrides |
+| `is_active` | boolean | Active status |
+| `is_favorite` | boolean | Favorite status |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+response = httpx.patch(
+    "https://jaot.io/api/v2/models/a3f8b2c1-1234-5678-abcd-ef0123456789",
+    headers={
+        "Authorization": "Bearer ok_live_your_key_here",
+        "Content-Type": "application/json",
+    },
+    json={"custom_name": "My Warehouse Optimizer", "is_favorite": True},
+)
+print(response.json())
+```
+
+```bash
+curl -X PATCH https://jaot.io/api/v2/models/a3f8b2c1-1234-5678-abcd-ef0123456789 \
+  -H "Authorization: Bearer ok_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{"custom_name": "My Warehouse Optimizer", "is_favorite": true}'
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/models/a3f8b2c1-1234-5678-abcd-ef0123456789",
+  {
+    method: "PATCH",
+    headers: {
+      "Authorization": "Bearer ok_live_your_key_here",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ custom_name: "My Warehouse Optimizer", is_favorite: true }),
+  }
+);
+```
+</CodeTabs>
+
+### Response
+
+```json
+{"status": "updated"}
+```
+
+---
+
+## DELETE /api/v2/models/\{model_id\}
+
+Deactivate a model (soft delete). The model can be reactivated later.
+
+**Authentication:** Requires API key or JWT token.
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+response = httpx.delete(
+    "https://jaot.io/api/v2/models/a3f8b2c1-1234-5678-abcd-ef0123456789",
+    headers={"Authorization": "Bearer ok_live_your_key_here"},
+)
+print(response.json())
+```
+
+```bash
+curl -X DELETE https://jaot.io/api/v2/models/a3f8b2c1-1234-5678-abcd-ef0123456789 \
+  -H "Authorization: Bearer ok_live_your_key_here"
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/models/a3f8b2c1-1234-5678-abcd-ef0123456789",
+  {
+    method: "DELETE",
+    headers: { "Authorization": "Bearer ok_live_your_key_here" },
+  }
+);
+```
+</CodeTabs>
+
+### Response
+
+```json
+{"status": "deactivated"}
+```
+
+---
+
+## POST /api/v2/models/\{model_id\}/execute
+
+Execute an activated model with input data. Returns the optimization result.
+
+**Authentication:** Requires API key or JWT token.
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `input_data` | object | Yes | Input data matching the model's schema |
+
+### Response
+
+Same as `POST /api/v2/solve` -- returns the full optimization result.
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {
+    "Authorization": "Bearer ok_live_your_key_here",
+    "Content-Type": "application/json",
+}
+
+response = httpx.post(
+    f"{API_URL}/models/a3f8b2c1-1234-5678-abcd-ef0123456789/execute",
+    headers=headers,
+    json={
+        "input_data": {
+            "warehouses": [
+                {"name": "East Hub", "capacity": 500, "cost_per_unit": 2.50},
+                {"name": "West Hub", "capacity": 300, "cost_per_unit": 3.00},
+            ],
+            "products": [
+                {"name": "Widget A", "demand": 200, "weight": 1.5},
+                {"name": "Widget B", "demand": 150, "weight": 2.0},
+            ],
+        }
+    },
+)
+
+result = response.json()
+print(f"Status: {result['status']}")
+print(f"Optimal cost: ${result['objective_value']:.2f}")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/models/a3f8b2c1-1234-5678-abcd-ef0123456789/execute \
+  -H "Authorization: Bearer ok_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input_data": {
+      "warehouses": [
+        {"name": "East Hub", "capacity": 500, "cost_per_unit": 2.50},
+        {"name": "West Hub", "capacity": 300, "cost_per_unit": 3.00}
+      ],
+      "products": [
+        {"name": "Widget A", "demand": 200, "weight": 1.5},
+        {"name": "Widget B", "demand": 150, "weight": 2.0}
+      ]
+    }
+  }'
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/models/a3f8b2c1-1234-5678-abcd-ef0123456789/execute",
+  {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer ok_live_your_key_here",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      input_data: {
+        warehouses: [
+          { name: "East Hub", capacity: 500, cost_per_unit: 2.50 },
+          { name: "West Hub", capacity: 300, cost_per_unit: 3.00 },
+        ],
+        products: [
+          { name: "Widget A", demand: 200, weight: 1.5 },
+          { name: "Widget B", demand: 150, weight: 2.0 },
+        ],
+      },
+    }),
+  }
+);
+
+const result = await response.json();
+```
+</CodeTabs>
+
+### Errors
+
+| HTTP Code | Error | Description |
+|-----------|-------|-------------|
+| 400 | `bad_request` | Invalid input data for this model |
+| 401 | `unauthorized` | Missing or invalid API key |
+| 402 | `insufficient_credits` | Not enough credits |
+| 404 | `not_found` | Model not found or not activated |

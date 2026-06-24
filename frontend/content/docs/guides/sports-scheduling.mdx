@@ -1,0 +1,159 @@
+---
+title: "Sports League Scheduling"
+description: "Create balanced fixture lists with venue, travel, and broadcast constraints"
+order: 28
+category: "sports"
+difficulty: "beginner"
+domain: "Services"
+templateCount: 1
+---
+
+# Sports League Scheduling
+
+Optimize sports scheduling, team selection, and tournament design. Building a fair fixture list that minimizes travel, avoids scheduling conflicts, and satisfies broadcast windows is a classic optimization challenge that scales quickly as teams and venues increase.
+
+## When to Use This Guide
+
+Use this guide for sports scheduling and team assignment problems:
+
+- **League scheduling** -- create a round-robin or partial schedule for a set of teams with home/away balance
+- **Team or player selection** -- pick a squad from a larger pool subject to budget, skill, and position constraints
+- **Tournament bracket design** -- seed and schedule elimination rounds with venue and rest-day rules
+- **Venue allocation** -- assign games to venues considering capacity, availability, and geographic balance
+
+## Step-by-Step Walkthrough
+
+1. **List your teams and venues.** Record each team's home venue and any venue-sharing arrangements.
+
+2. **Define scheduling rules.** Common rules: no back-to-back away games, minimum rest days between matches, and broadcast window preferences.
+
+3. **Set constraints.** Every pair of teams must play the required number of times (e.g., home and away). Venue capacity and availability on each date must be respected.
+
+4. **Choose your objective.** Minimize total travel distance, maximize broadcast revenue, or maximize schedule fairness (balanced home/away streaks).
+
+5. **Run and review.** The solver produces a full fixture list. Check for practical issues like holidays or venue conflicts not captured in the model.
+
+## Example: Round-Robin League Schedule
+
+Schedule 8 teams in a round-robin league across 4 venues. Each pair plays once. No team should play more than one game per round. Minimize total travel distance.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+teams = ["alpha", "beta", "gamma", "delta", "echo", "foxtrot", "golf", "hotel"]
+rounds = list(range(1, 8))  # 7 rounds for 8 teams
+venues = ["venue_1", "venue_2", "venue_3", "venue_4"]
+
+# Travel cost between each team's home city and each venue
+travel_cost = {
+    (t, v): abs(hash(f"{t}_{v}")) % 50 + 10
+    for t in teams for v in venues
+}
+
+# Binary variable: does match (team_i vs team_j) happen in round r at venue v?
+variables = []
+matches = [(teams[i], teams[j]) for i in range(len(teams)) for j in range(i+1, len(teams))]
+
+for (t1, t2) in matches:
+    for r in rounds:
+        for v in venues:
+            variables.append({
+                "name": f"{t1}_v_{t2}_r{r}_{v}",
+                "type": "binary",
+            })
+
+# Minimize total travel
+objective = {
+    "sense": "minimize",
+    "coefficients": {
+        f"{t1}_v_{t2}_r{r}_{v}": travel_cost[(t1, v)] + travel_cost[(t2, v)]
+        for (t1, t2) in matches for r in rounds for v in venues
+    },
+}
+
+constraints = []
+
+# Every pair plays exactly once
+for (t1, t2) in matches:
+    constraints.append({
+        "name": f"play_{t1}_{t2}",
+        "coefficients": {
+            f"{t1}_v_{t2}_r{r}_{v}": 1
+            for r in rounds for v in venues
+        },
+        "sense": "==",
+        "rhs": 1,
+    })
+
+# Each team plays at most 1 game per round
+for t in teams:
+    for r in rounds:
+        involved = {}
+        for (t1, t2) in matches:
+            if t in (t1, t2):
+                for v in venues:
+                    involved[f"{t1}_v_{t2}_r{r}_{v}"] = 1
+        constraints.append({
+            "name": f"one_game_{t}_r{r}",
+            "coefficients": involved,
+            "sense": "<=",
+            "rhs": 1,
+        })
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Total travel cost: ${result['objective_value']:.2f}")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/solve \
+  -H "Authorization: Bearer ok_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variables": [
+      {"name": "alpha_v_beta_r1_venue_1", "type": "binary"},
+      {"name": "alpha_v_beta_r1_venue_2", "type": "binary"}
+    ],
+    "objective": {
+      "sense": "minimize",
+      "coefficients": {
+        "alpha_v_beta_r1_venue_1": 45,
+        "alpha_v_beta_r1_venue_2": 60
+      }
+    },
+    "constraints": [
+      {
+        "name": "play_alpha_beta",
+        "coefficients": {
+          "alpha_v_beta_r1_venue_1": 1,
+          "alpha_v_beta_r1_venue_2": 1
+        },
+        "sense": "==",
+        "rhs": 1
+      }
+    ]
+  }'
+```
+</CodeTabs>
+
+The solver assigns each match to the round and venue combination that minimizes total travel while ensuring every team plays at most once per round.
+
+## Recommended Templates
+
+- **[Assignment Optimizer](/builder/templates/team_roster_optimization)** -- adaptable to team-slot assignments with side constraints
+- **[Custom Optimization](/builder/templates/custom)** -- build a fully custom scheduling model for complex league rules
+
+## Next Steps
+
+- **[Workforce Scheduling](/docs/guides/workforce-scheduling)** (intermediate) -- apply similar assignment techniques to employee shift scheduling
+- **[Education Timetabling](/docs/guides/education-timetabling)** (intermediate) -- see how scheduling models extend to class and room assignments

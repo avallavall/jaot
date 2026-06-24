@@ -1,0 +1,241 @@
+category: forestry
+category_display_name: Forestry
+
+templates:
+  - id: harvest_scheduling
+    name: Forest Harvest Scheduling
+    display_name: Harvest Scheduling
+    short_description: Schedule timber harvesting across forest stands over multiple periods to maximize revenue while ensuring sustainability.
+    description: >
+      Plans which forest stands to harvest in each period of a multi-year horizon.
+      Each stand has a timber volume, species mix, age, and expected revenue at
+      harvest. The model maximizes total discounted revenue while respecting
+      sustainability constraints -- maximum area harvested per period, adjacency
+      rules (no two neighboring stands harvested in the same period), and minimum
+      ending forest inventory. Fundamental for forest management companies and
+      public land agencies.
+    category: forestry
+    tags: [forestry, timber, sustainability, land-management]
+    problem_type_tags: [MIP, scheduling]
+    generator_type: scheduling
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        stands:
+          type: array
+          description: Forest stands with timber volume and revenue
+        num_periods:
+          type: integer
+          description: Number of planning periods (years)
+        max_area_per_period:
+          type: number
+          description: Maximum harvestable area per period in hectares
+      required: [stands, num_periods, max_area_per_period]
+    input_fields:
+      - name: stands
+        label: Forest Stands
+        type: array
+        description: "Stands with name, area (ha), timber volume (m3), revenue per m3, and age"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            area_ha: {type: number}
+            timber_volume: {type: number}
+            revenue_per_m3: {type: number}
+            age_years: {type: integer}
+      - name: num_periods
+        label: Planning Periods
+        type: integer
+        description: "Number of years in the planning horizon"
+        required: true
+        minimum: 1
+      - name: max_area_per_period
+        label: Max Harvest Area (ha/period)
+        type: number
+        description: "Maximum area that can be harvested in any single period"
+        required: true
+        minimum: 0
+    example_input:
+      stands:
+        - {name: "Stand-A", area_ha: 25, timber_volume: 4500, revenue_per_m3: 65, age_years: 45}
+        - {name: "Stand-B", area_ha: 30, timber_volume: 5200, revenue_per_m3: 58, age_years: 50}
+        - {name: "Stand-C", area_ha: 18, timber_volume: 3100, revenue_per_m3: 72, age_years: 60}
+        - {name: "Stand-D", area_ha: 35, timber_volume: 6800, revenue_per_m3: 55, age_years: 40}
+        - {name: "Stand-E", area_ha: 22, timber_volume: 3900, revenue_per_m3: 68, age_years: 55}
+        - {name: "Stand-F", area_ha: 28, timber_volume: 4800, revenue_per_m3: 60, age_years: 48}
+      num_periods: 4
+      max_area_per_period: 40
+    scenario_description: >
+      A forestry company manages 158 hectares across six stands of Douglas fir
+      and spruce. Over a four-year plan, no more than 40 hectares may be harvested
+      per year to comply with sustainability regulations. Older stands yield
+      higher-value timber. The company wants to maximize total harvest revenue
+      while maintaining sustainable practices.
+    is_featured: false
+    estimated_variables: 24
+    estimated_constraints: 16
+
+  - id: timber_transportation
+    name: Timber Transportation Optimization
+    display_name: Timber Transport
+    short_description: Route timber shipments from forest depots to mills to minimize total transportation cost.
+    description: >
+      Determines how much timber to ship from each forest depot to each sawmill or
+      pulp mill. Each depot has a supply of logs and each mill has a demand.
+      Transportation costs vary by route distance and road quality. The model
+      minimizes total freight cost while ensuring every mill receives enough
+      timber and no depot ships more than it has available. A classic
+      transportation problem applied to the forestry supply chain.
+    category: forestry
+    tags: [forestry, transportation, supply-chain, logistics]
+    problem_type_tags: [LP, transportation]
+    generator_type: network_flow
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        depots:
+          type: array
+          description: Forest depots with timber supply
+        mills:
+          type: array
+          description: Mills with timber demand
+        routes:
+          type: array
+          description: Transport routes with costs
+      required: [depots, mills, routes]
+    input_fields:
+      - name: depots
+        label: Forest Depots
+        type: array
+        description: "Depots with name and available timber volume (m3)"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            supply: {type: number}
+      - name: mills
+        label: Sawmills / Pulp Mills
+        type: array
+        description: "Mills with name and timber demand (m3)"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            demand: {type: number}
+      - name: routes
+        label: Transport Routes
+        type: array
+        description: "Routes between depots and mills with cost per m3"
+        required: true
+        items:
+          type: object
+          properties:
+            from_depot: {type: string}
+            to_mill: {type: string}
+            cost_per_m3: {type: number}
+            capacity: {type: number}
+    example_input:
+      depots:
+        - {name: "Depot-Highland", supply: 3000}
+        - {name: "Depot-Valley", supply: 4500}
+        - {name: "Depot-Lakeside", supply: 2500}
+      mills:
+        - {name: "Sawmill-Central", demand: 3500}
+        - {name: "Pulp-Mill-North", demand: 2800}
+        - {name: "Sawmill-South", demand: 3200}
+      routes:
+        - {from_depot: "Depot-Highland", to_mill: "Sawmill-Central", cost_per_m3: 18, capacity: 2000}
+        - {from_depot: "Depot-Highland", to_mill: "Pulp-Mill-North", cost_per_m3: 22, capacity: 1500}
+        - {from_depot: "Depot-Highland", to_mill: "Sawmill-South", cost_per_m3: 28, capacity: 1200}
+        - {from_depot: "Depot-Valley", to_mill: "Sawmill-Central", cost_per_m3: 15, capacity: 2500}
+        - {from_depot: "Depot-Valley", to_mill: "Pulp-Mill-North", cost_per_m3: 25, capacity: 2000}
+        - {from_depot: "Depot-Valley", to_mill: "Sawmill-South", cost_per_m3: 12, capacity: 3000}
+        - {from_depot: "Depot-Lakeside", to_mill: "Sawmill-Central", cost_per_m3: 20, capacity: 1500}
+        - {from_depot: "Depot-Lakeside", to_mill: "Pulp-Mill-North", cost_per_m3: 14, capacity: 2000}
+        - {from_depot: "Depot-Lakeside", to_mill: "Sawmill-South", cost_per_m3: 24, capacity: 1000}
+    scenario_description: >
+      A logging company has three forest depots with harvested timber that needs
+      to reach three mills (two sawmills and one pulp mill). Each route has a
+      different cost per cubic meter depending on distance and road conditions.
+      The company must ship all demanded timber at minimum total freight cost.
+    is_featured: false
+    estimated_variables: 9
+    estimated_constraints: 6
+
+  - id: wildfire_resource_deployment
+    name: Wildfire Firefighting Resource Deployment
+    display_name: Wildfire Resources
+    short_description: Deploy firefighting crews and equipment to active wildfires to minimize total area burned.
+    description: >
+      Allocates firefighting resources (crews, helicopters, water tankers) to
+      active fire fronts across a region. Each fire has a growth rate, current
+      size, and suppression difficulty. Each resource has an effectiveness rating,
+      deployment cost, and travel time from its base. The model minimizes total
+      expected area burned (or total damage cost) by deciding which resources to
+      send where, subject to resource availability and deployment logistics.
+    category: forestry
+    tags: [forestry, wildfire, emergency, resource-allocation]
+    problem_type_tags: [MIP, assignment]
+    generator_type: assignment
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        fires:
+          type: array
+          description: Active fires with growth rates and difficulty
+        resources:
+          type: array
+          description: Available firefighting resources
+      required: [fires, resources]
+    input_fields:
+      - name: fires
+        label: Active Fires
+        type: array
+        description: "Fires with name, current hectares, hourly growth rate, and suppression difficulty"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            current_ha: {type: number}
+            growth_rate_ha_hr: {type: number}
+            difficulty: {type: number}
+      - name: resources
+        label: Resources
+        type: array
+        description: "Crews and equipment with name, type, effectiveness, and deployment cost"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            type: {type: string}
+            effectiveness: {type: number}
+            cost: {type: number}
+    example_input:
+      fires:
+        - {name: "Ridge-Fire", current_ha: 120, growth_rate_ha_hr: 15, difficulty: 8}
+        - {name: "Valley-Fire", current_ha: 45, growth_rate_ha_hr: 8, difficulty: 5}
+        - {name: "Lake-Fire", current_ha: 200, growth_rate_ha_hr: 5, difficulty: 3}
+      resources:
+        - {name: "Hotshot-Crew-1", type: "ground", effectiveness: 10, cost: 25000}
+        - {name: "Hotshot-Crew-2", type: "ground", effectiveness: 10, cost: 25000}
+        - {name: "Engine-Company-A", type: "ground", effectiveness: 6, cost: 15000}
+        - {name: "Helicopter-1", type: "air", effectiveness: 15, cost: 45000}
+        - {name: "Air-Tanker-1", type: "air", effectiveness: 20, cost: 60000}
+    scenario_description: >
+      A forestry agency is managing three active wildfires in a mountainous
+      region. Five firefighting resources are available: two hotshot crews, an
+      engine company, a helicopter, and an air tanker. Each fire has different
+      growth rates and terrain difficulty. The incident commander must deploy
+      resources to minimize the total area expected to burn over the next 24 hours.
+    is_featured: false
+    estimated_variables: 15
+    estimated_constraints: 8

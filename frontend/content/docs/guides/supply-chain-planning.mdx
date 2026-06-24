@@ -1,0 +1,244 @@
+---
+title: "Supply Chain Planning"
+description: "Coordinate procurement, production, and distribution across the value chain"
+order: 17
+category: "supply_chain"
+difficulty: "advanced"
+domain: "Supply Chain"
+templateCount: 3
+---
+
+# Supply Chain Planning
+
+Optimize end-to-end supply chain decisions from sourcing raw materials through production to final distribution. Supply chain optimization coordinates multiple echelons -- suppliers, plants, warehouses, and customers -- to minimize total cost while meeting demand and respecting capacity at every stage.
+
+## When to Use This Guide
+
+Supply chain planning applies to complex multi-stage distribution and production networks:
+
+- **Multi-echelon inventory** -- Decide how much inventory to hold at each stage of the supply chain
+- **Supplier selection** -- Choose which suppliers to source from based on cost, capacity, and reliability
+- **Production-distribution coordination** -- Align manufacturing output with warehouse capacity and customer demand
+- **Network flow optimization** -- Route goods through the cheapest paths across a multi-tier network
+- **Demand allocation** -- Decide which facilities serve which customers
+
+## Step-by-Step Walkthrough
+
+### 1. Map Your Supply Chain Network
+
+Define every node in your network: suppliers (with unit costs and capacity), production plants (with processing costs and throughput limits), warehouses (with storage costs and capacity), and customers (with demand requirements).
+
+### 2. Define Transportation Links
+
+Specify which nodes connect to which, along with per-unit shipping costs. Not every supplier can reach every plant, and not every warehouse serves every customer -- model only the feasible links.
+
+### 3. Set Capacity and Demand Constraints
+
+Each supplier has a maximum output. Each plant has a production capacity. Each warehouse has a storage limit. Every customer's demand must be fully satisfied. Add any minimum order quantities or contractual obligations.
+
+### 4. Solve and Optimize
+
+The optimizer determines how much to source from each supplier, how much each plant produces, how inventory flows through warehouses, and which customers each warehouse serves -- all at minimum total cost.
+
+## Example: 3 Suppliers, 2 Plants, 3 Warehouses, 5 Customers
+
+Route goods through a four-tier supply chain network. Minimize total cost (procurement + production + transportation) while meeting all customer demand.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+suppliers = 3
+plants = 2
+warehouses = 3
+customers = 5
+
+# Costs and capacities
+supplier_cost = [10, 12, 9]       # $/unit
+supplier_cap = [300, 250, 350]    # max units
+plant_cost = [5, 6]               # $/unit processing
+plant_cap = [400, 350]            # max throughput
+warehouse_cap = [250, 300, 200]   # storage limit
+customer_demand = [100, 80, 120, 90, 110]  # required units
+
+# Transport costs: supplier->plant, plant->warehouse, warehouse->customer
+sp_cost = [[3, 4], [5, 2], [4, 3]]             # 3x2
+pw_cost = [[2, 3, 4], [3, 2, 5]]               # 2x3
+wc_cost = [
+    [6, 4, 7, 5, 8],                           # 3x5
+    [5, 6, 3, 7, 4],
+    [7, 5, 6, 4, 3],
+]
+
+variables = []
+# Supplier -> Plant flows
+for s in range(suppliers):
+    for p in range(plants):
+        variables.append({
+            "name": f"sp_{s}_{p}", "type": "continuous", "lb": 0,
+        })
+# Plant -> Warehouse flows
+for p in range(plants):
+    for w in range(warehouses):
+        variables.append({
+            "name": f"pw_{p}_{w}", "type": "continuous", "lb": 0,
+        })
+# Warehouse -> Customer flows
+for w in range(warehouses):
+    for c in range(customers):
+        variables.append({
+            "name": f"wc_{w}_{c}", "type": "continuous", "lb": 0,
+        })
+
+# Total cost = procurement + processing + all transport
+coefficients = {}
+for s in range(suppliers):
+    for p in range(plants):
+        coefficients[f"sp_{s}_{p}"] = supplier_cost[s] + sp_cost[s][p]
+for p in range(plants):
+    for w in range(warehouses):
+        coefficients[f"pw_{p}_{w}"] = plant_cost[p] + pw_cost[p][w]
+for w in range(warehouses):
+    for c in range(customers):
+        coefficients[f"wc_{w}_{c}"] = wc_cost[w][c]
+
+objective = {"sense": "minimize", "coefficients": coefficients}
+
+constraints = []
+# Supplier capacity
+for s in range(suppliers):
+    constraints.append({
+        "name": f"sup_cap_{s}",
+        "coefficients": {f"sp_{s}_{p}": 1 for p in range(plants)},
+        "sense": "<=",
+        "rhs": supplier_cap[s],
+    })
+
+# Plant capacity
+for p in range(plants):
+    constraints.append({
+        "name": f"plant_cap_{p}",
+        "coefficients": {f"sp_{s}_{p}": 1 for s in range(suppliers)},
+        "sense": "<=",
+        "rhs": plant_cap[p],
+    })
+
+# Plant flow balance: inflow = outflow
+for p in range(plants):
+    coeff = {}
+    for s in range(suppliers):
+        coeff[f"sp_{s}_{p}"] = 1
+    for w in range(warehouses):
+        coeff[f"pw_{p}_{w}"] = -1
+    constraints.append({
+        "name": f"plant_balance_{p}",
+        "coefficients": coeff,
+        "sense": "==",
+        "rhs": 0,
+    })
+
+# Warehouse flow balance: inflow = outflow
+for w in range(warehouses):
+    coeff = {}
+    for p in range(plants):
+        coeff[f"pw_{p}_{w}"] = 1
+    for c in range(customers):
+        coeff[f"wc_{w}_{c}"] = -1
+    constraints.append({
+        "name": f"wh_balance_{w}",
+        "coefficients": coeff,
+        "sense": "==",
+        "rhs": 0,
+    })
+
+# Warehouse capacity
+for w in range(warehouses):
+    constraints.append({
+        "name": f"wh_cap_{w}",
+        "coefficients": {f"pw_{p}_{w}": 1 for p in range(plants)},
+        "sense": "<=",
+        "rhs": warehouse_cap[w],
+    })
+
+# Customer demand satisfaction
+for c in range(customers):
+    constraints.append({
+        "name": f"demand_{c}",
+        "coefficients": {f"wc_{w}_{c}": 1 for w in range(warehouses)},
+        "sense": ">=",
+        "rhs": customer_demand[c],
+    })
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Total supply chain cost: ${result['objective_value']:,.0f}")
+for s in range(suppliers):
+    total = sum(
+        result['solution'].get(f"sp_{s}_{p}", 0) for p in range(plants)
+    )
+    if total > 0:
+        print(f"  Supplier {s+1}: {total:.0f} units")
+```
+
+```json
+{
+  "variables": [
+    {"name": "sp_0_0", "type": "continuous", "lb": 0},
+    {"name": "sp_0_1", "type": "continuous", "lb": 0},
+    {"name": "pw_0_0", "type": "continuous", "lb": 0},
+    {"name": "wc_0_0", "type": "continuous", "lb": 0}
+  ],
+  "objective": {
+    "sense": "minimize",
+    "coefficients": {
+      "sp_0_0": 13, "sp_0_1": 14,
+      "pw_0_0": 7, "pw_0_1": 8,
+      "wc_0_0": 6, "wc_0_1": 4
+    }
+  },
+  "constraints": [
+    {
+      "name": "sup_cap_0",
+      "coefficients": {"sp_0_0": 1, "sp_0_1": 1},
+      "sense": "<=",
+      "rhs": 300
+    },
+    {
+      "name": "plant_balance_0",
+      "coefficients": {"sp_0_0": 1, "sp_1_0": 1, "sp_2_0": 1, "pw_0_0": -1, "pw_0_1": -1, "pw_0_2": -1},
+      "sense": "==",
+      "rhs": 0
+    },
+    {
+      "name": "demand_0",
+      "coefficients": {"wc_0_0": 1, "wc_1_0": 1, "wc_2_0": 1},
+      "sense": ">=",
+      "rhs": 100
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+Build supply chain models with these templates:
+
+- **[Custom Optimization](/builder/templates/custom)** -- Define your complete supply chain network with custom nodes and links
+- **[Production Planning Optimizer](/builder/templates/production_planning)** -- Focus on the manufacturing stage of your supply chain
+- **[Budget Allocation Optimizer](/builder/templates/budget_allocation)** -- Allocate procurement budgets across suppliers
+
+## Next Steps
+
+- **[Facility Location](/docs/guides/facility-location)** -- Optimize where to place warehouses and distribution centers in your network
+- **[Production Planning](/docs/guides/production-planning)** -- Dive deeper into manufacturing schedule optimization
+- **[API Reference](/docs/api/solve)** -- Full endpoint documentation for the solve API

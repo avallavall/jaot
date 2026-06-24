@@ -1,0 +1,146 @@
+---
+title: "Government Resource Allocation"
+description: "Distribute public budgets and resources across departments and regions"
+order: 33
+category: "government"
+difficulty: "beginner"
+domain: "Public Sector"
+templateCount: 1
+---
+
+# Government Resource Allocation
+
+Optimize public resource allocation, policy planning, and service delivery. Government agencies face the challenge of distributing limited budgets across competing programs, regions, and constituencies while meeting equity requirements and maximizing community impact.
+
+## When to Use This Guide
+
+Use this guide for public sector budget and resource allocation problems:
+
+- **Budget allocation across departments** -- distribute a fixed budget among programs to maximize total public benefit
+- **Public service location planning** -- decide where to place clinics, libraries, or fire stations to maximize population coverage
+- **Disaster response logistics** -- allocate emergency supplies, vehicles, and personnel across affected areas under time pressure
+- **Grant distribution** -- award funding to applicants subject to geographic balance, category minimums, and total budget caps
+
+## Step-by-Step Walkthrough
+
+1. **Identify programs or departments.** List each candidate for funding with its expected impact per dollar (e.g., community benefit score per $100K invested).
+
+2. **Define constraints.** Common constraints include total budget, minimum funding floors for each program (no program receives zero), equity requirements (geographic or demographic balance), and regulatory mandates.
+
+3. **Choose your objective.** Maximize total community impact score, maximize population served, or minimize disparity across regions.
+
+4. **Set up in the Builder.** Create a variable for each program's funding amount, add budget and floor constraints, and set the objective.
+
+5. **Run and interpret.** The solver returns the optimal funding level for each program. Review which programs hit their floor -- these may warrant discussion about whether the floor is too high.
+
+## Example: Municipal Budget Allocation
+
+Allocate a $10M budget across 6 public programs. Each program has a different impact score per dollar and a minimum funding floor. Equity requires that no single program receives more than 30% of the total budget.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+programs = {
+    "public_safety": {"impact_per_million": 85, "min_funding": 1.0},
+    "education": {"impact_per_million": 92, "min_funding": 1.5},
+    "healthcare": {"impact_per_million": 88, "min_funding": 1.2},
+    "infrastructure": {"impact_per_million": 70, "min_funding": 0.8},
+    "parks_recreation": {"impact_per_million": 65, "min_funding": 0.5},
+    "social_services": {"impact_per_million": 78, "min_funding": 1.0},
+}
+
+total_budget = 10.0  # $10M
+max_share = 0.30  # No program gets more than 30%
+
+# Continuous variable: funding in $M for each program
+variables = [
+    {
+        "name": p,
+        "type": "continuous",
+        "lb": programs[p]["min_funding"],
+        "ub": total_budget * max_share,
+    }
+    for p in programs
+]
+
+# Maximize total community impact
+objective = {
+    "sense": "maximize",
+    "coefficients": {p: programs[p]["impact_per_million"] for p in programs},
+}
+
+constraints = [
+    # Total budget constraint
+    {
+        "name": "total_budget",
+        "coefficients": {p: 1 for p in programs},
+        "sense": "<=",
+        "rhs": total_budget,
+    },
+]
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Total impact score: {result['objective_value']:.1f}")
+for p in programs:
+    funding = result["solution"][p]
+    print(f"  {p}: ${funding:.2f}M (impact: {funding * programs[p]['impact_per_million']:.1f})")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/solve \
+  -H "Authorization: Bearer ok_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variables": [
+      {"name": "public_safety", "type": "continuous", "lb": 1.0, "ub": 3.0},
+      {"name": "education", "type": "continuous", "lb": 1.5, "ub": 3.0},
+      {"name": "healthcare", "type": "continuous", "lb": 1.2, "ub": 3.0},
+      {"name": "infrastructure", "type": "continuous", "lb": 0.8, "ub": 3.0},
+      {"name": "parks_recreation", "type": "continuous", "lb": 0.5, "ub": 3.0},
+      {"name": "social_services", "type": "continuous", "lb": 1.0, "ub": 3.0}
+    ],
+    "objective": {
+      "sense": "maximize",
+      "coefficients": {
+        "public_safety": 85, "education": 92,
+        "healthcare": 88, "infrastructure": 70,
+        "parks_recreation": 65, "social_services": 78
+      }
+    },
+    "constraints": [
+      {
+        "name": "total_budget",
+        "coefficients": {
+          "public_safety": 1, "education": 1, "healthcare": 1,
+          "infrastructure": 1, "parks_recreation": 1, "social_services": 1
+        },
+        "sense": "<=",
+        "rhs": 10.0
+      }
+    ]
+  }'
+```
+</CodeTabs>
+
+The solver directs more funding to high-impact programs (education, healthcare) up to the 30% equity cap, while ensuring every program meets its minimum floor.
+
+## Recommended Templates
+
+- **[Budget Allocation Optimizer](/builder/templates/budget_allocation)** -- pre-built template for distributing budgets across categories with floor and ceiling constraints
+- **[Custom Optimization](/builder/templates/custom)** -- build a fully custom model for complex policy rules and multi-objective tradeoffs
+
+## Next Steps
+
+- **[Facility Location](/docs/guides/facility-location)** (intermediate) -- optimize where to place public facilities to maximize population coverage
+- **[Education Timetabling](/docs/guides/education-timetabling)** (intermediate) -- apply resource allocation to school and university scheduling

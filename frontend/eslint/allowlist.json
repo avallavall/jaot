@@ -1,0 +1,21 @@
+{
+  "$comment": "External mock allowlist. Single source of truth for both integration_proof.md §3 and the jaot/no-e2e-mock-jaot-boundary ESLint rule. Per D-07/D-08. Add entries here when a new paid-SaaS or LLM endpoint must be mockable in e2e/ specs. Each pattern is consumed via new RegExp(entry.pattern) — escape dots as \\. to avoid matching similarly-named hosts.",
+  "domains": [
+    {
+      "pattern": "api\\.stripe\\.com",
+      "reason": "Stripe payment API — charges per request; credentials not in CI"
+    },
+    {
+      "pattern": "\\.resend\\.com",
+      "reason": "Resend email API — charges per email; credentials not in CI"
+    },
+    {
+      "pattern": "api\\.anthropic\\.com",
+      "reason": "Claude LLM API — charges per token; not in CI budget"
+    },
+    {
+      "pattern": "api\\.openai\\.com",
+      "reason": "OpenAI API — charges per token; not in CI budget"
+    }
+  ]
+}

@@ -1,0 +1,148 @@
+# Linearization techniques for RAG knowledge base.
+# These patterns help the LLM reformulate nonlinear relationships
+# into linear constraints that MIP solvers can handle.
+
+techniques:
+  - id: product_of_binaries
+    name: Product of Binary Variables
+    form: "z = x * y  where x, y binary"
+    reformulation: |
+      z <= x
+      z <= y
+      z >= x + y - 1
+      z binary
+    description: >
+      Linearizes the product of two binary variables. The auxiliary variable
+      z equals 1 if and only if both x and y are 1. Generalizes to products
+      of n binaries with n+1 constraints.
+    when_to_use: >
+      Logical AND in selection problems: "select item only if both
+      conditions are met." Joint selection, conditional activation.
+    industry_examples:
+      - "Select a route only if both origin and destination warehouses are open"
+      - "Activate a discount only if customer buys product A AND product B"
+    pitfalls: "For products of 3+ binaries, chain pairwise: z12 = x1*x2, z123 = z12*x3."
+
+  - id: binary_times_continuous
+    name: Binary × Continuous Variable
+    form: "w = x * y  where y binary, 0 <= x <= M"
+    reformulation: |
+      w <= M * y
+      w >= x - M * (1 - y)
+      w <= x
+      w >= 0
+    description: >
+      Linearizes the product of a continuous variable x and a binary
+      variable y. When y=0, w is forced to 0. When y=1, w equals x.
+      M is the upper bound of x.
+    when_to_use: >
+      Fixed-charge problems, conditional flows, "produce only if factory
+      is open" patterns.
+    industry_examples:
+      - "Shipping cost applies only if route is active: cost_ij * use_ij"
+      - "Production amount at factory A only if factory A is open"
+    pitfalls: "M must be a tight upper bound on x. Loose M weakens LP relaxation. If x has known bounds [L, U], use M = U."
+
+  - id: piecewise_linear
+    name: Piecewise Linear Approximation
+    form: "f(x) approximated by breakpoints (x_k, y_k) with convex combination"
+    reformulation: |
+      x = sum(lambda_k * x_k)
+      f(x) = sum(lambda_k * y_k)
+      sum(lambda_k) = 1
+      lambda_k >= 0
+      At most 2 adjacent lambda_k nonzero (SOS2 or binary encoding)
+    description: >
+      Approximates a nonlinear function by connecting breakpoints with
+      straight-line segments. The SOS2 condition ensures only adjacent
+      breakpoints are active, maintaining linearity between consecutive
+      segments.
+    when_to_use: >
+      Nonlinear cost functions, economies of scale, diminishing returns,
+      any convex or concave function that needs LP/MIP treatment.
+    industry_examples:
+      - "Volume discount: cost per unit decreases at quantity thresholds"
+      - "Fuel consumption as a function of speed (nonlinear curve)"
+    pitfalls: "More breakpoints = better approximation but more variables. SOS2 requires solver support or binary reformulation."
+
+  - id: big_m_calibration
+    name: Big-M Calibration
+    form: "a * x <= b + M * (1 - y)"
+    reformulation: |
+      M should be the tightest valid upper bound:
+      M = max(a * x - b) over the feasible domain when y = 0
+      Ideally: M = UB(a*x) - b  using variable bounds
+    description: >
+      Big-M is a constant used to activate/deactivate constraints via
+      binary variables. Choosing M correctly is critical: too small makes
+      the formulation infeasible, too large weakens the LP relaxation
+      and causes numerical instability.
+    when_to_use: >
+      Any indicator, disjunctive, or conditional constraint. Always
+      compute M from variable bounds rather than using arbitrary large
+      numbers like 10^6.
+    industry_examples:
+      - "If warehouse is open (y=1), shipping <= capacity. M = max_capacity."
+      - "If machine processes job (y=1), start + duration <= deadline. M = max_deadline."
+    pitfalls: "M = 1e6 is almost always wrong. Compute per-constraint M from bounds. Large M causes: (1) weak LP relaxation → slow B&B, (2) numerical errors in LP solver, (3) false feasibility."
+
+  - id: fixed_charge
+    name: Fixed-Charge Modeling
+    form: "total_cost = f_i * y_i + c_i * x_i"
+    reformulation: |
+      x_i <= M_i * y_i         (produce only if open)
+      x_i >= L_i * y_i         (minimum production if open, optional)
+      y_i binary               (open/close decision)
+      x_i >= 0                 (production amount)
+      Objective: minimize sum(f_i * y_i + c_i * x_i)
+    description: >
+      Models situations with a fixed cost for activation plus a variable
+      cost proportional to usage. Opening a factory costs f_i regardless
+      of production, plus c_i per unit produced.
+    when_to_use: >
+      Facility location, warehouse selection, production planning with
+      setup costs, transportation with fixed route costs.
+    industry_examples:
+      - "Open warehouse: $10K fixed + $2/unit stored"
+      - "Activate production line: $5K setup + $15/unit produced"
+    pitfalls: "Linking constraint x_i <= M_i*y_i is essential. Without it, production can occur at a closed facility."
+
+  - id: minmax_linearization
+    name: Min/Max Linearization
+    form: "minimize z  where z >= expr_i for all i  (minimax)"
+    reformulation: |
+      Minimax: minimize z subject to z >= expr_i for all i
+      Maximin: maximize z subject to z <= expr_i for all i
+      z is a continuous auxiliary variable.
+    description: >
+      Converts min-of-max or max-of-min objectives into linear form.
+      The auxiliary variable z represents the worst case. Add one
+      constraint per expression.
+    when_to_use: >
+      Fairness objectives (minimize the maximum workload), worst-case
+      optimization, bottleneck problems, makespan minimization.
+    industry_examples:
+      - "Minimize makespan: z >= completion_time_j for all jobs j"
+      - "Maximize minimum coverage: z <= coverage_i for all regions i"
+    pitfalls: "Only works for minimax/maximin. For arbitrary min/max expressions inside constraints, use binary reformulation."
+
+  - id: absolute_value
+    name: Absolute Value Linearization
+    form: "|x| = x_plus + x_minus  where x = x_plus - x_minus"
+    reformulation: |
+      x = x_plus - x_minus
+      |x| = x_plus + x_minus
+      x_plus >= 0
+      x_minus >= 0
+    description: >
+      Splits a variable into positive and negative parts. The absolute
+      value equals their sum. Works directly in minimization objectives
+      (solver naturally sets one to zero). For constraints or maximization,
+      add a binary variable to prevent both being nonzero.
+    when_to_use: >
+      L1 norm minimization, deviation penalties, error minimization,
+      goal programming.
+    industry_examples:
+      - "Minimize total deviation from target: sum(|actual_i - target_i|)"
+      - "Penalty for over/under production: |produced - demand|"
+    pitfalls: "Without minimization pressure, both x_plus and x_minus can be positive simultaneously. In constraints, add: x_plus <= M*y, x_minus <= M*(1-y) with binary y."

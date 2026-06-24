@@ -1,0 +1,155 @@
+---
+title: "Retail Assortment & Pricing"
+description: "Optimize product mix, shelf placement, and pricing strategies"
+order: 26
+category: "retail"
+difficulty: "beginner"
+domain: "Services"
+templateCount: 2
+---
+
+# Retail Assortment & Pricing
+
+Optimize retail operations including inventory levels, shelf space allocation, markdown pricing, and store layout. Whether you run a single shop or a chain of hundreds, optimization helps you stock the right products in the right quantities to maximize revenue and minimize waste.
+
+## When to Use This Guide
+
+Use this guide for problems that distribute a fixed resource (budget, shelf space, labor hours) across competing product options to maximize a business outcome:
+
+- **Inventory management** -- decide how much of each product to stock given storage limits and demand forecasts
+- **Shelf space allocation** -- assign products to shelf sections to maximize revenue per square meter
+- **Markdown pricing** -- choose discount levels to clear seasonal inventory without leaving money on the table
+- **Store staffing** -- schedule cashiers and floor staff to match foot-traffic patterns
+
+## Step-by-Step Walkthrough
+
+1. **Identify your products.** List each product with its expected demand, profit margin, and any minimum display requirements (e.g., "must stock at least 2 facings of Product A").
+
+2. **Define your constraints.** Typical constraints include total shelf space, category minimums (at least one organic option), budget caps, and supplier agreements.
+
+3. **Choose your objective.** In most retail problems you want to maximize total expected profit or revenue. Occasionally you may minimize cost while meeting a service-level target.
+
+4. **Set up in the Builder.** Create variables for each product-location pair, add shelf and budget constraints, and set the objective to maximize profit.
+
+5. **Run and interpret results.** The solver returns the optimal allocation for each product. Review which items received zero allocation -- these are candidates for delisting.
+
+## Example: Shelf Space Allocation
+
+A convenience store has 3 sections (snacks, drinks, household) with 20, 15, and 10 shelf slots respectively. Eight products compete for space, each with a different daily revenue per slot and a minimum display requirement.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+# Products: (name, revenue_per_slot, min_facings, eligible_sections)
+products = [
+    ("chips", 12, 2, ["snacks"]),
+    ("cookies", 9, 1, ["snacks"]),
+    ("candy", 7, 1, ["snacks"]),
+    ("soda", 15, 3, ["drinks"]),
+    ("juice", 10, 2, ["drinks"]),
+    ("water", 6, 2, ["drinks"]),
+    ("detergent", 8, 1, ["household"]),
+    ("paper_towels", 5, 1, ["household"]),
+]
+
+sections = {"snacks": 20, "drinks": 15, "household": 10}
+
+# One variable per product: how many slots to allocate
+variables = [
+    {"name": p[0], "type": "integer", "lb": p[2], "ub": sum(
+        sections[s] for s in p[3]
+    )}
+    for p in products
+]
+
+# Maximize total daily revenue
+objective = {
+    "sense": "maximize",
+    "coefficients": {p[0]: p[1] for p in products},
+}
+
+# Section capacity constraints
+constraints = []
+for section, capacity in sections.items():
+    eligible = [p[0] for p in products if section in p[3]]
+    constraints.append({
+        "name": f"{section}_capacity",
+        "coefficients": {name: 1 for name in eligible},
+        "sense": "<=",
+        "rhs": capacity,
+    })
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Daily revenue: ${result['objective_value']:.2f}")
+for p in products:
+    print(f"  {p[0]}: {result['solution'][p[0]]:.0f} slots")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/solve \
+  -H "Authorization: Bearer ok_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variables": [
+      {"name": "chips", "type": "integer", "lb": 2, "ub": 20},
+      {"name": "cookies", "type": "integer", "lb": 1, "ub": 20},
+      {"name": "candy", "type": "integer", "lb": 1, "ub": 20},
+      {"name": "soda", "type": "integer", "lb": 3, "ub": 15},
+      {"name": "juice", "type": "integer", "lb": 2, "ub": 15},
+      {"name": "water", "type": "integer", "lb": 2, "ub": 15},
+      {"name": "detergent", "type": "integer", "lb": 1, "ub": 10},
+      {"name": "paper_towels", "type": "integer", "lb": 1, "ub": 10}
+    ],
+    "objective": {
+      "sense": "maximize",
+      "coefficients": {
+        "chips": 12, "cookies": 9, "candy": 7, "soda": 15,
+        "juice": 10, "water": 6, "detergent": 8, "paper_towels": 5
+      }
+    },
+    "constraints": [
+      {
+        "name": "snacks_capacity",
+        "coefficients": {"chips": 1, "cookies": 1, "candy": 1},
+        "sense": "<=",
+        "rhs": 20
+      },
+      {
+        "name": "drinks_capacity",
+        "coefficients": {"soda": 1, "juice": 1, "water": 1},
+        "sense": "<=",
+        "rhs": 15
+      },
+      {
+        "name": "household_capacity",
+        "coefficients": {"detergent": 1, "paper_towels": 1},
+        "sense": "<=",
+        "rhs": 10
+      }
+    ]
+  }'
+```
+</CodeTabs>
+
+The solver allocates more slots to high-revenue products (chips, soda) while respecting minimum-facing requirements for every item and staying within each section's capacity.
+
+## Recommended Templates
+
+- **[Budget Allocation Optimizer](/builder/templates/budget_allocation)** -- works well for distributing a fixed budget across product categories or marketing channels
+- **[Custom Optimization](/builder/templates/custom)** -- build a fully custom model when your shelf constraints have unique rules
+
+## Next Steps
+
+- **[Warehouse Layout & Operations](/docs/guides/warehouse-operations)** (intermediate) -- extend your retail optimization to the back-of-house with storage layout and picking route models
+- **[Supply Chain Planning](/docs/guides/supply-chain-planning)** (advanced) -- connect store-level decisions to upstream procurement and distribution

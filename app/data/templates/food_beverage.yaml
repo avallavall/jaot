@@ -1,0 +1,249 @@
+category: food_beverage
+category_display_name: Food & Beverage
+
+templates:
+  - id: recipe_optimization
+    name: Recipe Cost Optimization
+    display_name: Recipe Optimization
+    short_description: Optimize ingredient proportions in food recipes to minimize cost while meeting nutritional and taste specifications.
+    description: >
+      Determines the cheapest mix of ingredients for a food product that satisfies
+      nutritional requirements (calories, protein, fat, sodium, fiber), taste
+      constraints, and regulatory labeling rules. Each ingredient has a cost per
+      unit, nutritional profile, and availability limit. The model minimizes total
+      ingredient cost per batch while ensuring the final product meets all quality
+      specifications. Used by food manufacturers, bakeries, and pet food companies.
+    category: food_beverage
+    tags: [food, recipe, nutrition, cost-optimization]
+    problem_type_tags: [LP, blending]
+    generator_type: blending
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        ingredients:
+          type: array
+          description: Available ingredients with costs and nutritional data
+        specifications:
+          type: array
+          description: Nutritional and quality requirements
+        batch_size:
+          type: number
+          description: Target batch size in kg
+      required: [ingredients, specifications, batch_size]
+    input_fields:
+      - name: ingredients
+        label: Ingredients
+        type: array
+        description: "Ingredients with name, cost per kg, available quantity, and nutrient composition"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            cost_per_kg: {type: number}
+            available: {type: number}
+            nutrients: {type: object}
+      - name: specifications
+        label: Nutritional Specs
+        type: array
+        description: "Min/max values for each nutritional parameter per kg of product"
+        required: true
+        items:
+          type: object
+          properties:
+            nutrient: {type: string}
+            min_per_kg: {type: number}
+            max_per_kg: {type: number}
+      - name: batch_size
+        label: Batch Size (kg)
+        type: number
+        description: "Total weight of the batch to produce"
+        required: true
+        minimum: 1
+    example_input:
+      ingredients:
+        - {name: "Wheat Flour", cost_per_kg: 0.80, available: 500, nutrients: {protein: 10.5, fat: 1.2, fiber: 2.7, calories: 340}}
+        - {name: "Oat Flour", cost_per_kg: 1.20, available: 300, nutrients: {protein: 13.0, fat: 6.0, fiber: 10.0, calories: 380}}
+        - {name: "Sugar", cost_per_kg: 0.65, available: 200, nutrients: {protein: 0.0, fat: 0.0, fiber: 0.0, calories: 387}}
+        - {name: "Butter", cost_per_kg: 4.50, available: 100, nutrients: {protein: 0.8, fat: 81.0, fiber: 0.0, calories: 717}}
+        - {name: "Dried Fruit Mix", cost_per_kg: 3.80, available: 150, nutrients: {protein: 3.0, fat: 0.5, fiber: 7.5, calories: 280}}
+        - {name: "Whey Protein", cost_per_kg: 6.00, available: 80, nutrients: {protein: 80.0, fat: 2.0, fiber: 0.0, calories: 350}}
+      specifications:
+        - {nutrient: "protein", min_per_kg: 12.0, max_per_kg: 25.0}
+        - {nutrient: "fat", min_per_kg: 5.0, max_per_kg: 15.0}
+        - {nutrient: "fiber", min_per_kg: 3.0, max_per_kg: 100.0}
+        - {nutrient: "calories", min_per_kg: 300, max_per_kg: 420}
+      batch_size: 500
+    scenario_description: >
+      A granola bar manufacturer needs to produce a 500 kg batch. The product
+      must meet specific nutritional targets (minimum protein, controlled fat and
+      calories, minimum fiber). Six ingredients are available at different costs.
+      The food scientist wants the cheapest formulation that satisfies all
+      nutritional labeling requirements.
+    is_featured: true
+    estimated_variables: 6
+    estimated_constraints: 9
+
+  - id: production_line_scheduling
+    name: Food Production Line Scheduling
+    display_name: Production Line Scheduling
+    short_description: Schedule food products across production lines to minimize changeover times and meet daily order deadlines.
+    description: >
+      Assigns food product orders to production lines and sequences them to
+      minimize total changeover (cleaning) time. Changeover duration depends on
+      the product pair (allergen cleaning takes longer). Each order has a volume,
+      a production rate, and a delivery deadline. The model ensures all orders
+      are completed on time, lines do not exceed their daily capacity, and
+      allergen contamination rules are respected.
+    category: food_beverage
+    tags: [food, production, scheduling, changeover]
+    problem_type_tags: [MIP, scheduling]
+    generator_type: scheduling
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        orders:
+          type: array
+          description: Production orders with volumes and deadlines
+        lines:
+          type: array
+          description: Production lines with capacity
+        changeover_times:
+          type: array
+          description: Changeover times between product types
+      required: [orders, lines]
+    input_fields:
+      - name: orders
+        label: Production Orders
+        type: array
+        description: "Orders with product name, volume (units), production time (hours), and deadline (hour)"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            product: {type: string}
+            volume: {type: integer}
+            production_hours: {type: number}
+            deadline_hour: {type: integer}
+      - name: lines
+        label: Production Lines
+        type: array
+        description: "Lines with name and available hours per day"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            available_hours: {type: number}
+      - name: changeover_times
+        label: Changeover Times
+        type: array
+        description: "Hours needed to switch between product types on a line"
+        required: false
+        items:
+          type: object
+          properties:
+            from_product: {type: string}
+            to_product: {type: string}
+            hours: {type: number}
+    example_input:
+      orders:
+        - {name: "Milk-Chocolate-Batch", product: "chocolate", volume: 2000, production_hours: 4, deadline_hour: 16}
+        - {name: "Nut-Free-Cookies", product: "cookies_nf", volume: 1500, production_hours: 3, deadline_hour: 12}
+        - {name: "Peanut-Butter-Bars", product: "pb_bars", volume: 1000, production_hours: 2.5, deadline_hour: 18}
+        - {name: "Granola-Mix", product: "granola", volume: 3000, production_hours: 5, deadline_hour: 20}
+        - {name: "Dark-Chocolate-Batch", product: "chocolate", volume: 1800, production_hours: 3.5, deadline_hour: 18}
+        - {name: "Allergen-Free-Cereal", product: "cereal_af", volume: 2500, production_hours: 4, deadline_hour: 14}
+      lines:
+        - {name: "Line-A", available_hours: 16}
+        - {name: "Line-B", available_hours: 16}
+      changeover_times:
+        - {from_product: "pb_bars", to_product: "cookies_nf", hours: 2.0}
+        - {from_product: "pb_bars", to_product: "cereal_af", hours: 2.0}
+        - {from_product: "chocolate", to_product: "cookies_nf", hours: 1.0}
+        - {from_product: "granola", to_product: "cereal_af", hours: 1.5}
+    scenario_description: >
+      A snack factory runs two production lines for 16 hours each. Six orders for
+      different products must be completed by their deadlines. Switching between
+      certain products (especially those with allergen concerns like peanut butter)
+      requires lengthy cleaning. The scheduler needs to assign and sequence orders
+      to minimize total changeover time while meeting all deadlines.
+    is_featured: false
+    estimated_variables: 48
+    estimated_constraints: 35
+
+  - id: ingredient_sourcing
+    name: Ingredient Sourcing Optimization
+    display_name: Ingredient Sourcing
+    short_description: Select suppliers and order quantities for food ingredients to minimize procurement cost while ensuring quality and delivery reliability.
+    description: >
+      Decides how much of each ingredient to order from each supplier. Suppliers
+      offer different prices, minimum order quantities, lead times, and quality
+      certifications. The model minimizes total procurement cost (purchase plus
+      freight) while meeting demand for each ingredient, respecting supplier
+      capacity, and ensuring a minimum number of qualified backup suppliers per
+      critical ingredient for supply chain resilience.
+    category: food_beverage
+    tags: [food, procurement, supply-chain, sourcing]
+    problem_type_tags: [MIP, knapsack]
+    generator_type: knapsack
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        ingredients:
+          type: array
+          description: Required ingredients with demand quantities
+        suppliers:
+          type: array
+          description: Suppliers with prices and capacity
+      required: [ingredients, suppliers]
+    input_fields:
+      - name: ingredients
+        label: Required Ingredients
+        type: array
+        description: "Ingredients with name and required quantity (kg)"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            required_qty: {type: number}
+      - name: suppliers
+        label: Suppliers
+        type: array
+        description: "Suppliers with name, ingredient, price per kg, capacity, and min order"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            ingredient: {type: string}
+            price_per_kg: {type: number}
+            max_capacity: {type: number}
+            min_order: {type: number}
+    example_input:
+      ingredients:
+        - {name: "Cocoa Powder", required_qty: 2000}
+        - {name: "Vanilla Extract", required_qty: 500}
+        - {name: "Palm Oil", required_qty: 3000}
+      suppliers:
+        - {name: "Ghana Cocoa Co", ingredient: "Cocoa Powder", price_per_kg: 4.20, max_capacity: 1500, min_order: 200}
+        - {name: "Ecuador Cacao", ingredient: "Cocoa Powder", price_per_kg: 4.80, max_capacity: 1200, min_order: 300}
+        - {name: "Ivory Coast Supply", ingredient: "Cocoa Powder", price_per_kg: 3.90, max_capacity: 800, min_order: 500}
+        - {name: "Madagascar Vanilla", ingredient: "Vanilla Extract", price_per_kg: 85.00, max_capacity: 300, min_order: 50}
+        - {name: "Indonesia Vanilla", ingredient: "Vanilla Extract", price_per_kg: 72.00, max_capacity: 400, min_order: 100}
+        - {name: "Malaysia Palm", ingredient: "Palm Oil", price_per_kg: 1.10, max_capacity: 2000, min_order: 500}
+        - {name: "Colombia Palm", ingredient: "Palm Oil", price_per_kg: 1.25, max_capacity: 2500, min_order: 300}
+    scenario_description: >
+      A chocolate manufacturer needs to source three key ingredients for next
+      quarter's production. Multiple suppliers offer different prices and
+      capacities. Each supplier has minimum order requirements. The procurement
+      manager wants to find the cheapest sourcing plan that meets all ingredient
+      demands while respecting supplier constraints.
+    is_featured: false
+    estimated_variables: 14
+    estimated_constraints: 10

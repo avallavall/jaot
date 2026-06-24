@@ -1,0 +1,204 @@
+category: general
+category_display_name: General Purpose
+
+templates:
+  - id: custom
+    name: Custom Optimization Problem
+    display_name: Custom Problem
+    short_description: Define your own optimization problem with custom variables, constraints, and an objective function.
+    description: >
+      The fully flexible template for power users. Define any linear or mixed-integer
+      optimization problem by specifying variables (continuous, integer, or binary),
+      linear constraints, and an objective function to maximize or minimize. No domain
+      assumptions are made -- you have full control. Use this when none of the
+      specialized templates fit your problem, or when you want to experiment with
+      mathematical programming directly.
+    scenario_description: >
+      A data scientist wants to solve a custom resource allocation problem: maximize
+      5x + 3y + 2z subject to resource and production constraints, where x, y, and z
+      are integer decision variables bounded between 0 and 50.
+    category: general
+    tags: [general, custom, flexible, advanced]
+    problem_type_tags: [LP, MIP, MILP]
+    generator_type: generic
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [objective, variables]
+      properties:
+        name: {type: string}
+        objective: {type: object}
+        variables: {type: array}
+        constraints: {type: array}
+    input_fields:
+      - name: objective
+        label: Objective
+        type: object
+        description: "Objective function with 'sense' (maximize/minimize) and 'expression'"
+        required: true
+      - name: variables
+        label: Variables
+        type: array
+        description: Decision variables with name, type, and bounds
+        required: true
+      - name: constraints
+        label: Constraints
+        type: array
+        description: Linear constraints as name + expression pairs
+        required: false
+    example_input:
+      name: custom_problem
+      objective:
+        sense: maximize
+        expression: "5*x + 3*y + 2*z"
+      variables:
+        - {name: x, type: integer, lower_bound: 0, upper_bound: 50}
+        - {name: y, type: integer, lower_bound: 0, upper_bound: 50}
+        - {name: z, type: integer, lower_bound: 0, upper_bound: 50}
+      constraints:
+        - {name: resource_a, expression: "2*x + y + z <= 100"}
+        - {name: resource_b, expression: "x + 3*y + 2*z <= 150"}
+        - {name: min_production, expression: "x + y + z >= 20"}
+    is_featured: true
+    estimated_variables: 3
+    estimated_constraints: 3
+
+  - id: multi_objective_demo
+    name: Multi-Objective Demonstration
+    display_name: Multi-Objective Demo
+    short_description: Explore trade-offs between competing objectives using weighted-sum scalarization.
+    description: >
+      A teaching template that demonstrates how to handle multiple conflicting objectives
+      by combining them into a single weighted sum. Define two or more objectives, assign
+      weights, and the solver finds the Pareto-optimal solution for that weight combination.
+      Run with different weights to trace the Pareto frontier. Useful for learning about
+      multi-criteria decision-making and trade-off analysis.
+    scenario_description: >
+      A city planner must balance cost minimization and environmental impact minimization
+      when choosing infrastructure investments. Three projects are available, each with
+      different cost, environmental impact, and community benefit scores. Weights let
+      the planner explore the trade-off.
+    category: general
+    tags: [general, multi-objective, pareto, trade-off, teaching]
+    problem_type_tags: [LP]
+    generator_type: generic
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [objective, variables, constraints]
+      properties:
+        objective: {type: object}
+        variables: {type: array}
+        constraints: {type: array}
+    input_fields:
+      - name: objective
+        label: Weighted Objective
+        type: object
+        description: Combined weighted objective expression
+        required: true
+      - name: variables
+        label: Variables
+        type: array
+        description: Decision variables
+        required: true
+      - name: constraints
+        label: Constraints
+        type: array
+        description: Problem constraints
+        required: true
+    example_input:
+      name: multi_objective
+      objective:
+        sense: minimize
+        expression: "0.6*(50*proj_a + 80*proj_b + 30*proj_c) + 0.4*(40*proj_a + 20*proj_b + 60*proj_c)"
+      variables:
+        - {name: proj_a, type: continuous, lower_bound: 0, upper_bound: 1}
+        - {name: proj_b, type: continuous, lower_bound: 0, upper_bound: 1}
+        - {name: proj_c, type: continuous, lower_bound: 0, upper_bound: 1}
+      constraints:
+        - {name: budget, expression: "50*proj_a + 80*proj_b + 30*proj_c <= 120"}
+        - {name: min_projects, expression: "proj_a + proj_b + proj_c >= 1.5"}
+        - {name: community_benefit, expression: "30*proj_a + 50*proj_b + 20*proj_c >= 60"}
+    is_featured: false
+    estimated_variables: 3
+    estimated_constraints: 3
+
+  - id: constraint_satisfaction_demo
+    name: Constraint Satisfaction Demo
+    display_name: Constraint Satisfaction
+    short_description: Find any feasible solution that satisfies all constraints, with no optimization objective.
+    description: >
+      A pure feasibility problem -- the solver finds any assignment of variables that
+      satisfies all constraints, without trying to optimize anything. Useful for
+      timetabling, puzzle-solving (e.g., Sudoku), configuration problems, or verifying
+      that a set of business rules is satisfiable. If no feasible solution exists, the
+      solver reports infeasibility. Use this template to check whether your constraints
+      are consistent before adding an objective.
+    scenario_description: >
+      A conference organiser needs to assign 4 speakers to 4 time slots. Each speaker
+      has blackout times. The organiser does not care which slot each speaker gets --
+      only that every speaker is scheduled and no slot is double-booked.
+    category: general
+    tags: [general, feasibility, constraint-satisfaction, teaching]
+    problem_type_tags: [MIP]
+    generator_type: generic
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [objective, variables, constraints]
+      properties:
+        objective: {type: object}
+        variables: {type: array}
+        constraints: {type: array}
+    input_fields:
+      - name: objective
+        label: Objective (dummy)
+        type: object
+        description: "Use a constant objective (e.g., minimize 0) for pure feasibility"
+        required: true
+      - name: variables
+        label: Variables
+        type: array
+        description: Binary assignment variables
+        required: true
+      - name: constraints
+        label: Constraints
+        type: array
+        description: Feasibility constraints
+        required: true
+    example_input:
+      name: constraint_satisfaction
+      objective:
+        sense: minimize
+        expression: "0*s1_t1"
+      variables:
+        - {name: s1_t1, type: binary}
+        - {name: s1_t2, type: binary}
+        - {name: s1_t3, type: binary}
+        - {name: s1_t4, type: binary}
+        - {name: s2_t1, type: binary}
+        - {name: s2_t2, type: binary}
+        - {name: s2_t3, type: binary}
+        - {name: s2_t4, type: binary}
+        - {name: s3_t1, type: binary}
+        - {name: s3_t2, type: binary}
+        - {name: s3_t3, type: binary}
+        - {name: s3_t4, type: binary}
+        - {name: s4_t1, type: binary}
+        - {name: s4_t2, type: binary}
+        - {name: s4_t3, type: binary}
+        - {name: s4_t4, type: binary}
+      constraints:
+        - {name: speaker1_once, expression: "s1_t1 + s1_t2 + s1_t3 + s1_t4 = 1"}
+        - {name: speaker2_once, expression: "s2_t1 + s2_t2 + s2_t3 + s2_t4 = 1"}
+        - {name: speaker3_once, expression: "s3_t1 + s3_t2 + s3_t3 + s3_t4 = 1"}
+        - {name: speaker4_once, expression: "s4_t1 + s4_t2 + s4_t3 + s4_t4 = 1"}
+        - {name: slot1_once, expression: "s1_t1 + s2_t1 + s3_t1 + s4_t1 = 1"}
+        - {name: slot2_once, expression: "s1_t2 + s2_t2 + s3_t2 + s4_t2 = 1"}
+        - {name: slot3_once, expression: "s1_t3 + s2_t3 + s3_t3 + s4_t3 = 1"}
+        - {name: slot4_once, expression: "s1_t4 + s2_t4 + s3_t4 + s4_t4 = 1"}
+        - {name: s1_blackout, expression: "s1_t2 = 0"}
+        - {name: s3_blackout, expression: "s3_t4 = 0"}
+    is_featured: false
+    estimated_variables: 16
+    estimated_constraints: 10

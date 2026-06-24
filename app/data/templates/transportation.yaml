@@ -1,0 +1,224 @@
+category: transportation
+category_display_name: Transportation & Logistics
+
+templates:
+  - id: transportation_problem
+    name: Transportation Problem Optimizer
+    display_name: Transportation Problem
+    short_description: Ship goods from supply points to demand points at minimum total shipping cost.
+    description: >
+      The classic Hitchcock transportation problem. Given a set of supply nodes (factories,
+      warehouses) and demand nodes (stores, customers), determine how many units to ship
+      along each lane to minimize total transportation cost. Every supply node's output
+      must be fully shipped and every demand node's requirement must be fully met. The
+      output is a shipping plan showing flow on each lane.
+    scenario_description: >
+      Three factories produce 300, 400, and 500 units respectively. Four retail stores
+      need 250, 350, 200, and 400 units. Shipping cost per unit varies by factory-store
+      pair from EUR 2 to EUR 9. The distribution manager wants the cheapest shipping plan.
+    category: transportation
+    tags: [transportation, shipping, distribution, supply-demand]
+    problem_type_tags: [LP]
+    generator_type: network_flow
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [nodes, arcs]
+      properties:
+        nodes: {type: array}
+        arcs: {type: array}
+    input_fields:
+      - name: nodes
+        label: Supply & Demand Nodes
+        type: array
+        description: "Factories (positive supply) and stores (negative supply = demand)"
+        required: true
+        items:
+          type: object
+          properties:
+            id: {type: string}
+            supply: {type: number}
+      - name: arcs
+        label: Shipping Lanes
+        type: array
+        description: Lanes with per-unit cost and capacity
+        required: true
+        items:
+          type: object
+          properties:
+            from: {type: string}
+            to: {type: string}
+            cost: {type: number}
+            capacity: {type: number}
+    example_input:
+      nodes:
+        - {id: factory_A, supply: 300}
+        - {id: factory_B, supply: 400}
+        - {id: factory_C, supply: 500}
+        - {id: store_1, supply: -250}
+        - {id: store_2, supply: -350}
+        - {id: store_3, supply: -200}
+        - {id: store_4, supply: -400}
+      arcs:
+        - {from: factory_A, to: store_1, cost: 2, capacity: 300}
+        - {from: factory_A, to: store_2, cost: 4, capacity: 300}
+        - {from: factory_A, to: store_3, cost: 5, capacity: 300}
+        - {from: factory_A, to: store_4, cost: 7, capacity: 300}
+        - {from: factory_B, to: store_1, cost: 3, capacity: 400}
+        - {from: factory_B, to: store_2, cost: 2, capacity: 400}
+        - {from: factory_B, to: store_3, cost: 6, capacity: 400}
+        - {from: factory_B, to: store_4, cost: 4, capacity: 400}
+        - {from: factory_C, to: store_1, cost: 5, capacity: 500}
+        - {from: factory_C, to: store_2, cost: 6, capacity: 500}
+        - {from: factory_C, to: store_3, cost: 3, capacity: 500}
+        - {from: factory_C, to: store_4, cost: 2, capacity: 500}
+    is_featured: true
+    estimated_variables: 12
+    estimated_constraints: 7
+
+  - id: transshipment
+    name: Transshipment Problem Optimizer
+    display_name: Transshipment Problem
+    short_description: Route goods through intermediate hubs from origins to destinations at minimum cost.
+    description: >
+      An extension of the transportation problem that includes intermediate transshipment
+      nodes (hubs, cross-docks). Goods flow from supply nodes through zero or more
+      intermediate nodes to demand nodes, and the solver minimizes total transportation
+      cost. Each arc has a per-unit cost and capacity. The output shows optimal flows
+      on every arc in the multi-echelon network.
+    scenario_description: >
+      Two factories ship products to 4 retailers through 2 regional hubs. Direct factory-
+      to-retailer shipping is expensive. Using hubs for consolidation is cheaper per unit
+      but adds handling cost. The logistics planner wants the lowest-cost routing.
+    category: transportation
+    tags: [transportation, transshipment, hubs, consolidation, network]
+    problem_type_tags: [LP]
+    generator_type: network_flow
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [nodes, arcs]
+      properties:
+        nodes: {type: array}
+        arcs: {type: array}
+    input_fields:
+      - name: nodes
+        label: Network Nodes
+        type: array
+        description: Supply, transshipment (0), and demand nodes
+        required: true
+        items:
+          type: object
+          properties:
+            id: {type: string}
+            supply: {type: number}
+      - name: arcs
+        label: Arcs
+        type: array
+        description: Shipping arcs with cost and capacity
+        required: true
+        items:
+          type: object
+          properties:
+            from: {type: string}
+            to: {type: string}
+            cost: {type: number}
+            capacity: {type: number}
+    example_input:
+      nodes:
+        - {id: factory_1, supply: 500}
+        - {id: factory_2, supply: 400}
+        - {id: hub_north, supply: 0}
+        - {id: hub_south, supply: 0}
+        - {id: retailer_A, supply: -200}
+        - {id: retailer_B, supply: -250}
+        - {id: retailer_C, supply: -300}
+        - {id: retailer_D, supply: -150}
+      arcs:
+        - {from: factory_1, to: hub_north, cost: 3, capacity: 400}
+        - {from: factory_1, to: hub_south, cost: 5, capacity: 300}
+        - {from: factory_2, to: hub_north, cost: 4, capacity: 350}
+        - {from: factory_2, to: hub_south, cost: 2, capacity: 400}
+        - {from: hub_north, to: retailer_A, cost: 2, capacity: 300}
+        - {from: hub_north, to: retailer_B, cost: 4, capacity: 300}
+        - {from: hub_north, to: retailer_C, cost: 6, capacity: 200}
+        - {from: hub_south, to: retailer_B, cost: 3, capacity: 250}
+        - {from: hub_south, to: retailer_C, cost: 2, capacity: 350}
+        - {from: hub_south, to: retailer_D, cost: 4, capacity: 200}
+        - {from: hub_north, to: retailer_D, cost: 5, capacity: 150}
+        - {from: factory_1, to: retailer_A, cost: 8, capacity: 100}
+    is_featured: false
+    estimated_variables: 12
+    estimated_constraints: 8
+
+  - id: multi_modal_freight
+    name: Multi-Modal Freight Optimizer
+    display_name: Multi-Modal Freight
+    short_description: Choose the best combination of transport modes (road, rail, sea) for each shipment leg to minimize total cost and time.
+    description: >
+      Plan freight shipments across a network that offers multiple transport modes (truck,
+      rail, air, sea) on each leg. Each mode has a different cost per tonne-km, transit
+      time, capacity, and carbon footprint. The solver selects the optimal mode for
+      each leg and the volume to ship, minimizing total cost while meeting delivery
+      deadlines and capacity constraints. Useful for international logistics planning.
+    scenario_description: >
+      A manufacturer ships goods from a factory to 3 export ports, with 2 intermediate
+      hubs. Truck, rail, and barge options exist on each leg with varying cost, time,
+      and CO2. The total shipment is 500 tonnes with a 5-day deadline. The logistics
+      team wants the cheapest plan that meets the deadline.
+    category: transportation
+    tags: [transportation, multi-modal, freight, intermodal, logistics]
+    problem_type_tags: [LP]
+    generator_type: network_flow
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [nodes, arcs]
+      properties:
+        nodes: {type: array}
+        arcs: {type: array}
+    input_fields:
+      - name: nodes
+        label: Nodes
+        type: array
+        description: Origin, hubs, and destination nodes
+        required: true
+        items:
+          type: object
+          properties:
+            id: {type: string}
+            supply: {type: number}
+      - name: arcs
+        label: Transport Options
+        type: array
+        description: "Each arc = one mode on one leg (e.g., factory->hub_A by truck)"
+        required: true
+        items:
+          type: object
+          properties:
+            from: {type: string}
+            to: {type: string}
+            cost: {type: number}
+            capacity: {type: number}
+    example_input:
+      nodes:
+        - {id: factory, supply: 500}
+        - {id: hub_A, supply: 0}
+        - {id: hub_B, supply: 0}
+        - {id: port_1, supply: -200}
+        - {id: port_2, supply: -180}
+        - {id: port_3, supply: -120}
+      arcs:
+        - {from: factory, to: hub_A, cost: 12, capacity: 300}
+        - {from: factory, to: hub_A, cost: 8, capacity: 200}
+        - {from: factory, to: hub_B, cost: 15, capacity: 350}
+        - {from: factory, to: hub_B, cost: 6, capacity: 250}
+        - {from: hub_A, to: port_1, cost: 5, capacity: 250}
+        - {from: hub_A, to: port_2, cost: 7, capacity: 200}
+        - {from: hub_B, to: port_2, cost: 4, capacity: 250}
+        - {from: hub_B, to: port_3, cost: 6, capacity: 200}
+        - {from: hub_A, to: port_3, cost: 10, capacity: 150}
+        - {from: factory, to: port_1, cost: 20, capacity: 100}
+    is_featured: false
+    estimated_variables: 10
+    estimated_constraints: 6

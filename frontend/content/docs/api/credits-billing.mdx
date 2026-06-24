@@ -1,0 +1,526 @@
+---
+title: Credits & Billing
+description: Credit balance, transaction history, and billing management
+order: 4
+---
+
+# Credits & Billing
+
+The Credits and Billing endpoints let you check your credit balance, view transaction history, estimate costs, and manage Stripe-powered billing. Credits are the currency for running optimizations on JAOT.
+
+## GET /api/v2/credits/balance
+
+Get the current credit balance for your organization.
+
+**Authentication:** Requires API key or JWT token.
+
+### Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `credits_balance` | integer | Total credits available (purchased + earned) |
+| `credits_earned` | integer | Credits earned from marketplace model sales (withdrawable) |
+| `currency` | string | Organization's preferred currency |
+| `local_balance` | number | Balance converted to preferred currency |
+| `local_earned` | number | Earned credits converted to preferred currency |
+| `exchange_rate` | number | Current exchange rate to preferred currency |
+| `credits_per_eur` | integer | Credits per euro (currently 10) |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+response = httpx.get(f"{API_URL}/credits/balance", headers=headers)
+balance = response.json()
+print(f"Credits: {balance['credits_balance']}")
+print(f"Earned: {balance['credits_earned']}")
+print(f"Local balance: {balance['local_balance']} {balance['currency']}")
+```
+
+```bash
+curl "https://jaot.io/api/v2/credits/balance" \
+  -H "Authorization: Bearer ok_live_your_key_here"
+```
+
+```javascript
+const response = await fetch("https://jaot.io/api/v2/credits/balance", {
+  headers: { "Authorization": "Bearer ok_live_your_key_here" },
+});
+
+const balance = await response.json();
+console.log(`Credits: ${balance.credits_balance}`);
+console.log(`Balance: ${balance.local_balance} ${balance.currency}`);
+```
+</CodeTabs>
+
+### Response
+
+```json
+{
+  "credits_balance": 950,
+  "credits_earned": 200,
+  "currency": "EUR",
+  "local_balance": 95.0,
+  "local_earned": 20.0,
+  "exchange_rate": 1.0,
+  "credits_per_eur": 10
+}
+```
+
+---
+
+## GET /api/v2/credits/transactions
+
+Get credit transaction history for your organization.
+
+**Authentication:** Requires API key or JWT token.
+
+### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `transaction_type` | string | -- | Filter by type: `purchase`, `execution`, `sale_earning`, `withdrawal`, `refund`, `adjustment` |
+| `limit` | integer | 50 | Max results (1-100) |
+| `offset` | integer | 0 | Number of results to skip |
+
+### Response
+
+Returns an array of transaction objects.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Transaction ID (e.g. `"txn_a1b2c3d4"`) |
+| `transaction_type` | string | Type of transaction |
+| `credits_amount` | integer | Credits change (negative = deduction, positive = addition) |
+| `balance_after` | integer | Credit balance after this transaction |
+| `description` | string | Human-readable description |
+| `reference_type` | string | Related entity type (e.g. `"solve"`, `"topup"`) |
+| `reference_id` | string | Related entity ID |
+| `amount_eur` | number | Euro equivalent amount |
+| `created_at` | string | ISO 8601 timestamp |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+response = httpx.get(
+    "https://jaot.io/api/v2/credits/transactions",
+    params={"limit": 10},
+    headers={"Authorization": "Bearer ok_live_your_key_here"},
+)
+transactions = response.json()
+for tx in transactions:
+    print(f"{tx['created_at']}: {tx['credits_amount']:+d} credits - {tx['description']}")
+```
+
+```bash
+curl "https://jaot.io/api/v2/credits/transactions?limit=10&transaction_type=execution" \
+  -H "Authorization: Bearer ok_live_your_key_here"
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/credits/transactions?limit=10",
+  { headers: { "Authorization": "Bearer ok_live_your_key_here" } }
+);
+
+const transactions = await response.json();
+transactions.forEach((tx) => {
+  console.log(`${tx.transaction_type}: ${tx.credits_amount} credits`);
+});
+```
+</CodeTabs>
+
+### Response
+
+```json
+[
+  {
+    "id": "txn_a1b2c3d4",
+    "transaction_type": "execution",
+    "credits_amount": -3,
+    "balance_after": 947,
+    "description": "Solver execution",
+    "reference_type": "solve",
+    "reference_id": "exe_9a1b2c3d",
+    "amount_eur": 0.048,
+    "created_at": "2026-02-19T10:05:12Z"
+  }
+]
+```
+
+---
+
+## POST /api/v2/credits/calculator
+
+Estimate credits for an optimization problem. This endpoint is **public** and does not require authentication.
+
+> **Info:** The credit calculator is public -- no authentication required. Use it to estimate costs before signing up or committing credits.
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `num_variables` | integer | Yes | Total number of decision variables (0-100,000) |
+| `num_integer_vars` | integer | No | Number of integer variables (default: 0) |
+| `num_binary_vars` | integer | No | Number of binary variables (default: 0) |
+| `num_constraints` | integer | No | Number of constraints (0-100,000, default: 0) |
+| `time_limit_seconds` | number | No | Time limit in seconds (1-3600, default: 60) |
+
+### Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `credits_required` | integer | Estimated credits needed |
+| `breakdown` | object | Cost breakdown by component |
+| `breakdown.base_cost` | number | Base cost (always 1) |
+| `breakdown.variable_cost` | number | Cost from number of variables |
+| `breakdown.mip_penalty` | number | Additional cost for integer and binary variables combined (sqrt scaling) |
+| `breakdown.constraint_cost` | number | Cost from number of constraints |
+| `breakdown.time_bonus` | number | Extra cost for time limits above 60s |
+| `cost_eur` | number | Estimated cost in EUR |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+
+response = httpx.post(f"{API_URL}/credits/calculator", json={
+    "num_variables": 100,
+    "num_integer_vars": 50,
+    "num_binary_vars": 20,
+    "num_constraints": 80,
+    "time_limit_seconds": 60,
+})
+
+estimate = response.json()
+print(f"Estimated credits: {estimate['credits_required']}")
+print(f"Breakdown: {estimate['breakdown']}")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/credits/calculator \
+  -H "Content-Type: application/json" \
+  -d '{
+    "num_variables": 100,
+    "num_integer_vars": 50,
+    "num_binary_vars": 20,
+    "num_constraints": 80,
+    "time_limit_seconds": 60
+  }'
+```
+
+```javascript
+const response = await fetch("https://jaot.io/api/v2/credits/calculator", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    num_variables: 100,
+    num_integer_vars: 50,
+    num_binary_vars: 20,
+    num_constraints: 80,
+    time_limit_seconds: 60,
+  }),
+});
+
+const estimate = await response.json();
+console.log(`Estimated credits: ${estimate.credits_required}`);
+```
+</CodeTabs>
+
+### Response
+
+```json
+{
+  "credits_required": 32,
+  "breakdown": {
+    "base_cost": 1,
+    "variable_cost": 10.0,
+    "mip_penalty": 16.73,
+    "constraint_cost": 4.0,
+    "time_bonus": 0,
+    "raw_total": 31.73,
+    "cap_applied": false,
+    "max_credits_per_solve": 500
+  },
+  "cost_eur": 0.512
+}
+```
+
+For the full credit formula and pricing details, see [Rate Limits & Credits](/docs/reference/rate-limits-credits).
+
+---
+
+## POST /api/v2/billing/checkout/topup
+
+Create a Stripe Checkout session for a credit top-up purchase.
+
+**Authentication:** Requires API key or JWT token.
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `credits` | integer | Yes | Credit package: `500`, `2000`, `5000`, or `20000` |
+| `success_url` | string | No | Redirect URL after payment |
+| `cancel_url` | string | No | Redirect URL if cancelled |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+response = httpx.post(
+    "https://jaot.io/api/v2/billing/checkout/topup",
+    headers={"Authorization": "Bearer ok_live_your_key_here"},
+    json={"credits": 2000},
+)
+checkout = response.json()
+print(f"Top-up checkout: {checkout['checkout_url']}")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/billing/checkout/topup \
+  -H "Authorization: Bearer ok_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{"credits": 2000}'
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/billing/checkout/topup",
+  {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer ok_live_your_key_here",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ credits: 2000 }),
+  }
+);
+
+const { checkout_url } = await response.json();
+```
+</CodeTabs>
+
+---
+
+## GET /api/v2/billing/status
+
+Get the current billing and subscription status for your organization.
+
+**Authentication:** Requires API key or JWT token.
+
+### Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `stripe_configured` | boolean | Whether Stripe is configured on the server |
+| `has_subscription` | boolean | Whether the org has an active subscription |
+| `subscription` | object | Subscription details (null if none) |
+| `subscription.id` | string | Stripe subscription ID |
+| `subscription.status` | string | Subscription status |
+| `subscription.plan` | string | Plan name |
+| `subscription.current_period_start` | string | Current billing period start |
+| `subscription.current_period_end` | string | Current billing period end |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+response = httpx.get(
+    "https://jaot.io/api/v2/billing/status",
+    headers={"Authorization": "Bearer ok_live_your_key_here"},
+)
+status = response.json()
+if status["has_subscription"]:
+    print(f"Plan: {status['subscription']['plan']}")
+```
+
+```bash
+curl "https://jaot.io/api/v2/billing/status" \
+  -H "Authorization: Bearer ok_live_your_key_here"
+```
+
+```javascript
+const response = await fetch("https://jaot.io/api/v2/billing/status", {
+  headers: { "Authorization": "Bearer ok_live_your_key_here" },
+});
+const status = await response.json();
+```
+</CodeTabs>
+
+---
+
+## POST /api/v2/billing/portal
+
+Create a Stripe Billing Portal session for self-service subscription management, payment methods, and invoice history.
+
+**Authentication:** Requires API key or JWT token.
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `return_url` | string | No | URL to redirect back to after portal session |
+
+### Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `portal_url` | string | Stripe Billing Portal URL |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+response = httpx.post(
+    "https://jaot.io/api/v2/billing/portal",
+    headers={
+        "Authorization": "Bearer ok_live_your_key_here",
+        "Content-Type": "application/json",
+    },
+    json={"return_url": "https://jaot.io/workspace/credits"},
+)
+portal = response.json()
+print(f"Portal URL: {portal['portal_url']}")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/billing/portal \
+  -H "Authorization: Bearer ok_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{"return_url": "https://jaot.io/workspace/credits"}'
+```
+
+```javascript
+const response = await fetch("https://jaot.io/api/v2/billing/portal", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer ok_live_your_key_here",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ return_url: "https://jaot.io/workspace/credits" }),
+});
+const { portal_url } = await response.json();
+```
+</CodeTabs>
+
+### Response
+
+```json
+{
+  "portal_url": "https://billing.stripe.com/p/session/..."
+}
+```
+
+---
+
+## POST /api/v2/billing/webhook
+
+Stripe webhook endpoint. This endpoint is **public** -- it does not require API key authentication. Instead, Stripe signs each request using the webhook secret.
+
+Handles events: `checkout.session.completed`, `invoice.paid`, `customer.subscription.updated`, `customer.subscription.deleted`.
+
+Configure the webhook URL in your Stripe Dashboard: `https://your-domain.com/api/v2/billing/webhook`
+
+---
+
+## GET /api/v2/billing/invoices
+
+List invoices for your organization.
+
+**Authentication:** Requires API key or JWT token.
+
+### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | integer | 50 | Max results (1-100) |
+| `offset` | integer | 0 | Number of results to skip |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+response = httpx.get(
+    "https://jaot.io/api/v2/billing/invoices",
+    headers={"Authorization": "Bearer ok_live_your_key_here"},
+)
+invoices = response.json()
+for inv in invoices["items"]:
+    print(f"{inv['invoice_number']}: EUR {inv['total_eur']} ({inv['status']})")
+```
+
+```bash
+curl "https://jaot.io/api/v2/billing/invoices?limit=10" \
+  -H "Authorization: Bearer ok_live_your_key_here"
+```
+
+```javascript
+const response = await fetch("https://jaot.io/api/v2/billing/invoices", {
+  headers: { "Authorization": "Bearer ok_live_your_key_here" },
+});
+const { items } = await response.json();
+```
+</CodeTabs>
+
+### Response
+
+```json
+{
+  "items": [
+    {
+      "id": "inv_a1b2c3d4e5f67890",
+      "invoice_number": "INV-2026-00001",
+      "invoice_type": "topup",
+      "status": "paid",
+      "issued_at": "2026-02-19T15:00:00",
+      "paid_at": "2026-02-19T15:00:00",
+      "org_name": "Acme Corp",
+      "subtotal_eur": 48.0,
+      "tax_rate": 0.0,
+      "tax_amount_eur": 0.0,
+      "total_eur": 48.0,
+      "currency": "EUR",
+      "total_local": 48.0,
+      "credits_granted": 2000,
+      "line_items": [
+        {
+          "description": "Credit Top-Up: 2,000 credits",
+          "quantity": 2000,
+          "unit_price_eur": 0.024,
+          "total_eur": 48.0,
+          "credits": 2000
+        }
+      ],
+      "notes": "Credit top-up: 2,000 credits"
+    }
+  ],
+  "total": 1
+}
+```
+
+### Errors
+
+| HTTP Code | Error | Description |
+|-----------|-------|-------------|
+| 401 | `unauthorized` | Missing or invalid API key |
+| 503 | `service_unavailable` | Stripe is not configured on the server |

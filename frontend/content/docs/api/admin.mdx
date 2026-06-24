@@ -1,0 +1,304 @@
+---
+title: Admin
+description: Administrative endpoints for system management
+order: 11
+---
+
+# Admin
+
+Administrative endpoints for managing organizations, users, and credits at the system level. All admin endpoints are mounted at `/api/v2/admin`.
+
+> **Danger:** Admin endpoints modify system state. Use with caution in production. These endpoints require admin privileges -- requests from non-admin users receive a 403 Forbidden response.
+
+---
+
+## Dashboard statistics
+
+```
+GET /api/v2/admin/stats
+```
+
+Returns aggregate statistics for the admin dashboard.
+
+**Authentication:** API key (admin required)
+
+<CodeTabs>
+```python
+import requests
+
+response = requests.get(
+    "https://jaot.io/api/v2/admin/stats",
+    headers={"Authorization": "Bearer ok_live_admin_key..."}
+)
+
+stats = response.json()
+print(f"Organizations: {stats['total_organizations']}")
+print(f"Users: {stats['total_users']}")
+print(f"Executions: {stats['total_executions']}")
+print(f"Credits used: {stats['total_credits_used']}")
+print(f"Active orgs (7d): {stats['active_organizations_7d']}")
+```
+
+```bash
+curl https://jaot.io/api/v2/admin/stats \
+  -H "Authorization: Bearer ok_live_admin_key..."
+```
+
+```javascript
+const response = await fetch("https://jaot.io/api/v2/admin/stats", {
+  headers: { "Authorization": "Bearer ok_live_admin_key..." },
+});
+
+const stats = await response.json();
+console.log(`Total orgs: ${stats.total_organizations}`);
+console.log(`Active (7d): ${stats.active_organizations_7d}`);
+```
+</CodeTabs>
+
+### Response (200)
+
+```json
+{
+  "total_organizations": 42,
+  "total_users": 156,
+  "total_executions": 8920,
+  "total_credits_used": 15400,
+  "active_organizations_7d": 18
+}
+```
+
+### Response fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `total_organizations` | int | Total registered organizations |
+| `total_users` | int | Total registered users |
+| `total_executions` | int | Total solver executions across all orgs |
+| `total_credits_used` | int | Total credits consumed across all orgs |
+| `active_organizations_7d` | int | Organizations with activity in the last 7 days |
+
+---
+
+## List organizations
+
+```
+GET /api/v2/admin/organizations
+```
+
+List all organizations in the system with pagination.
+
+**Authentication:** API key (admin required)
+
+### Query parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | int | 1 | Page number |
+| `page_size` | int | 20 | Items per page |
+| `search` | string | -- | Search by organization name |
+
+<CodeTabs>
+```python
+response = requests.get(
+    "https://jaot.io/api/v2/admin/organizations",
+    headers={"Authorization": "Bearer ok_live_admin_key..."},
+    params={"search": "acme", "page_size": 10}
+)
+
+data = response.json()
+for org in data["items"]:
+    print(f"{org['name']} (plan={org['plan']}, credits={org['credits_balance']})")
+```
+
+```bash
+curl "https://jaot.io/api/v2/admin/organizations?search=acme&page_size=10" \
+  -H "Authorization: Bearer ok_live_admin_key..."
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/admin/organizations?search=acme&page_size=10",
+  { headers: { "Authorization": "Bearer ok_live_admin_key..." } }
+);
+
+const { items } = await response.json();
+items.forEach((org) => {
+  console.log(`${org.name} (plan=${org.plan}, credits=${org.credits_balance})`);
+});
+```
+</CodeTabs>
+
+---
+
+## List users
+
+```
+GET /api/v2/admin/users
+```
+
+List all users in the system with pagination.
+
+**Authentication:** API key (admin required)
+
+### Query parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | int | 1 | Page number |
+| `page_size` | int | 20 | Items per page |
+| `search` | string | -- | Search by name or email |
+
+<CodeTabs>
+```python
+response = requests.get(
+    "https://jaot.io/api/v2/admin/users",
+    headers={"Authorization": "Bearer ok_live_admin_key..."},
+    params={"search": "alice"}
+)
+
+data = response.json()
+for user in data["items"]:
+    print(f"{user['name']} ({user['email']}) - org: {user['organization_id']}")
+```
+
+```bash
+curl "https://jaot.io/api/v2/admin/users?search=alice" \
+  -H "Authorization: Bearer ok_live_admin_key..."
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/admin/users?search=alice",
+  { headers: { "Authorization": "Bearer ok_live_admin_key..." } }
+);
+
+const { items } = await response.json();
+items.forEach((user) => {
+  console.log(`${user.name} (${user.email}) - org: ${user.organization_id}`);
+});
+```
+</CodeTabs>
+
+---
+
+## List all credit transactions
+
+```
+GET /api/v2/admin/credits/transactions
+```
+
+List credit transactions across all organizations. Useful for auditing credit flow.
+
+**Authentication:** API key (admin required)
+
+### Query parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | int | 1 | Page number |
+| `page_size` | int | 20 | Items per page |
+| `organization_id` | string | -- | Filter by organization |
+| `transaction_type` | string | -- | Filter by type: `purchase`, `execution`, `sale_earning`, `withdrawal`, `refund`, `adjustment` |
+
+<CodeTabs>
+```python
+response = requests.get(
+    "https://jaot.io/api/v2/admin/credits/transactions",
+    headers={"Authorization": "Bearer ok_live_admin_key..."},
+    params={"organization_id": "org_b7e4d1a0", "transaction_type": "execution"}
+)
+
+data = response.json()
+for txn in data["items"]:
+    print(f"{txn['id']}: {txn['credits_amount']:+d} credits ({txn['transaction_type']})")
+```
+
+```bash
+curl "https://jaot.io/api/v2/admin/credits/transactions?organization_id=org_b7e4d1a0" \
+  -H "Authorization: Bearer ok_live_admin_key..."
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/admin/credits/transactions?organization_id=org_b7e4d1a0",
+  { headers: { "Authorization": "Bearer ok_live_admin_key..." } }
+);
+
+const { items } = await response.json();
+items.forEach((txn) => {
+  console.log(`${txn.id}: ${txn.credits_amount} credits (${txn.transaction_type})`);
+});
+```
+</CodeTabs>
+
+---
+
+## Adjust credits
+
+```
+POST /api/v2/admin/credits/adjust
+```
+
+Manually adjust an organization's credit balance. Use positive values to add credits (promotional, compensation) or negative values to deduct credits.
+
+**Authentication:** API key (admin required)
+
+### Request body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `organization_id` | string | Yes | Target organization |
+| `credits_amount` | int | Yes | Credits to add (positive) or deduct (negative) |
+| `description` | string | Yes | Reason for the adjustment |
+
+<CodeTabs>
+```python
+response = requests.post(
+    "https://jaot.io/api/v2/admin/credits/adjust",
+    headers={"Authorization": "Bearer ok_live_admin_key..."},
+    json={
+        "organization_id": "org_b7e4d1a0",
+        "credits_amount": 500,
+        "description": "Promotional credits for beta participation"
+    }
+)
+
+print(response.json())
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/admin/credits/adjust \
+  -H "Authorization: Bearer ok_live_admin_key..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "organization_id": "org_b7e4d1a0",
+    "credits_amount": 500,
+    "description": "Promotional credits for beta participation"
+  }'
+```
+
+```javascript
+const response = await fetch("https://jaot.io/api/v2/admin/credits/adjust", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer ok_live_admin_key...",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    organization_id: "org_b7e4d1a0",
+    credits_amount: 500,
+    description: "Promotional credits for beta participation",
+  }),
+});
+```
+</CodeTabs>
+
+---
+
+## Errors
+
+| Status | Description |
+|--------|-------------|
+| 401 | Missing or invalid API key |
+| 403 | User is not an admin (`is_admin` must be `true`) |
+| 404 | Organization or user not found |

@@ -1,0 +1,212 @@
+category: network_graph
+category_display_name: Network & Graph Optimization
+
+templates:
+  - id: shortest_path
+    name: Shortest Path Finder
+    display_name: Shortest Path
+    short_description: Find the least-cost path between two nodes in a network with weighted edges.
+    description: >
+      Find the minimum-cost path from a source node to a destination node in a directed
+      or undirected graph. Each edge has a cost (distance, time, or monetary). The solver
+      formulates this as a min-cost flow problem with unit flow and returns the optimal
+      path and its total cost. Useful for route planning, network routing, and logistics
+      path selection.
+    scenario_description: >
+      A delivery driver needs the cheapest route from the warehouse (node W) to
+      customer site F through a road network of 7 intersections. Each road segment
+      has a toll cost. The driver wants the route that minimises total toll.
+    category: network_graph
+    tags: [network, graph, shortest-path, routing]
+    problem_type_tags: [LP]
+    generator_type: network_flow
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [nodes, arcs]
+      properties:
+        nodes: {type: array}
+        arcs: {type: array}
+    input_fields:
+      - name: nodes
+        label: Nodes
+        type: array
+        description: "Network nodes (source has supply=1, sink has supply=-1, others 0)"
+        required: true
+        items:
+          type: object
+          properties:
+            id: {type: string}
+            supply: {type: number}
+      - name: arcs
+        label: Edges
+        type: array
+        description: Directed edges with cost and capacity
+        required: true
+        items:
+          type: object
+          properties:
+            from: {type: string}
+            to: {type: string}
+            cost: {type: number}
+            capacity: {type: number}
+    example_input:
+      nodes:
+        - {id: W, supply: 1}
+        - {id: A, supply: 0}
+        - {id: B, supply: 0}
+        - {id: C, supply: 0}
+        - {id: D, supply: 0}
+        - {id: E, supply: 0}
+        - {id: F, supply: -1}
+      arcs:
+        - {from: W, to: A, cost: 4, capacity: 1}
+        - {from: W, to: B, cost: 2, capacity: 1}
+        - {from: A, to: C, cost: 5, capacity: 1}
+        - {from: A, to: D, cost: 10, capacity: 1}
+        - {from: B, to: A, cost: 1, capacity: 1}
+        - {from: B, to: D, cost: 8, capacity: 1}
+        - {from: C, to: F, cost: 3, capacity: 1}
+        - {from: D, to: E, cost: 2, capacity: 1}
+        - {from: D, to: F, cost: 6, capacity: 1}
+        - {from: E, to: F, cost: 1, capacity: 1}
+    is_featured: true
+    estimated_variables: 10
+    estimated_constraints: 7
+
+  - id: minimum_spanning_tree
+    name: Minimum Spanning Tree
+    display_name: Minimum Spanning Tree
+    short_description: Connect all nodes in a network at minimum total edge cost without cycles.
+    description: >
+      Select edges to connect all nodes in a graph at minimum total cost, forming a
+      spanning tree (connected, acyclic subgraph). Each edge has a weight (cost, distance,
+      or time). The solver uses an IP formulation with connectivity constraints to find
+      the MST. Useful for designing cable networks, pipeline systems, and road networks
+      where every location must be connected.
+    scenario_description: >
+      A utility company needs to connect 6 villages with fibre-optic cable. Laying cable
+      between each pair has a different cost depending on terrain. The company wants
+      every village connected at minimum total cable cost.
+    category: network_graph
+    tags: [network, graph, spanning-tree, connectivity, infrastructure]
+    problem_type_tags: [MIP]
+    generator_type: spanning_tree
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [nodes, edges]
+      properties:
+        nodes: {type: array}
+        edges: {type: array}
+    input_fields:
+      - name: nodes
+        label: Nodes
+        type: array
+        description: "Network nodes (villages, sites, or locations to connect)"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: edges
+        label: Edges
+        type: array
+        description: "Candidate edges with connection cost (distance, cable length, etc.)"
+        required: true
+        items:
+          type: object
+          properties:
+            from: {type: string}
+            to: {type: string}
+            cost: {type: number}
+    example_input:
+      nodes:
+        - {name: A}
+        - {name: B}
+        - {name: C}
+        - {name: D}
+        - {name: E}
+      edges:
+        - {from: A, to: B, cost: 4}
+        - {from: A, to: C, cost: 8}
+        - {from: B, to: C, cost: 2}
+        - {from: B, to: D, cost: 5}
+        - {from: C, to: D, cost: 3}
+        - {from: C, to: E, cost: 9}
+        - {from: D, to: E, cost: 1}
+    is_featured: false
+    estimated_variables: 7
+    estimated_constraints: 11
+
+  - id: max_flow
+    name: Maximum Flow Optimizer
+    display_name: Maximum Flow
+    short_description: Push the maximum amount of flow from source to sink through a capacitated network.
+    description: >
+      Find the maximum flow that can be pushed from a source node to a sink node in a
+      directed network where each arc has a capacity limit. The solver determines how
+      much flow goes through each arc while respecting capacity constraints and flow
+      conservation at every intermediate node. Applications include network bandwidth
+      allocation, pipeline throughput, and evacuation planning.
+    scenario_description: >
+      A water utility must determine the maximum flow from a reservoir (source) to a
+      treatment plant (sink) through a pipe network with 5 intermediate junctions.
+      Each pipe has a maximum flow capacity in litres per second. The engineer wants
+      to know the network's bottleneck throughput.
+    category: network_graph
+    tags: [network, graph, max-flow, capacity, throughput]
+    problem_type_tags: [LP]
+    generator_type: network_flow
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [nodes, arcs]
+      properties:
+        nodes: {type: array}
+        arcs: {type: array}
+    input_fields:
+      - name: nodes
+        label: Nodes
+        type: array
+        description: "Network nodes (source supply=large positive, sink supply=large negative)"
+        required: true
+        items:
+          type: object
+          properties:
+            id: {type: string}
+            supply: {type: number}
+      - name: arcs
+        label: Arcs
+        type: array
+        description: Directed arcs with capacity (cost=0 for max-flow, cost=-1 on source arcs)
+        required: true
+        items:
+          type: object
+          properties:
+            from: {type: string}
+            to: {type: string}
+            cost: {type: number}
+            capacity: {type: number}
+    example_input:
+      nodes:
+        - {id: source, supply: 23}
+        - {id: A, supply: 0}
+        - {id: B, supply: 0}
+        - {id: C, supply: 0}
+        - {id: D, supply: 0}
+        - {id: sink, supply: -23}
+      arcs:
+        - {from: source, to: A, cost: 0, capacity: 16}
+        - {from: source, to: B, cost: 0, capacity: 13}
+        - {from: A, to: B, cost: 0, capacity: 4}
+        - {from: A, to: C, cost: 0, capacity: 12}
+        - {from: B, to: A, cost: 0, capacity: 10}
+        - {from: B, to: D, cost: 0, capacity: 14}
+        - {from: C, to: B, cost: 0, capacity: 9}
+        - {from: C, to: sink, cost: 0, capacity: 20}
+        - {from: D, to: C, cost: 0, capacity: 7}
+        - {from: D, to: sink, cost: 0, capacity: 4}
+    is_featured: false
+    estimated_variables: 10
+    estimated_constraints: 6

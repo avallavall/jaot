@@ -1,0 +1,246 @@
+---
+title: Rate Limits & Credits
+description: API rate limiting, credit pricing formula, and usage management
+order: 2
+---
+
+# Rate Limits & Credits
+
+Understand how API rate limiting works and how credits are calculated for optimization solves.
+
+## Rate Limits
+
+API requests are rate-limited per organization to ensure fair usage across all tenants.
+
+### Per-Endpoint Limits
+
+| Endpoint | Limit (per minute) | Limit (per day) |
+|----------|-------------------|-----------------|
+| `POST /api/v2/solve` | 60 | 10,000 |
+| `POST /api/v2/models/*/execute` | 60 | 10,000 |
+| `GET /api/v2/models/*` | 120 | 50,000 |
+| `POST /api/v2/credits/calculator` | 120 | 50,000 |
+| `POST /api/v2/auth/login` | 10 | 1,000 |
+| `POST /api/v2/auth/password-reset` | 3/hour | -- |
+| All other endpoints | 120 | 50,000 |
+
+### Rate Limit Headers
+
+Every API response includes rate limit headers:
+
+```http
+HTTP/1.1 200 OK
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 57
+X-RateLimit-Reset: 1709827200
+Content-Type: application/json
+```
+
+| Header | Description |
+|--------|-------------|
+| `X-RateLimit-Limit` | Maximum requests allowed in the current window |
+| `X-RateLimit-Remaining` | Number of requests remaining in the current window |
+| `X-RateLimit-Reset` | Unix timestamp when the current window resets |
+
+### When Rate Limited
+
+When you exceed the limit, the API returns a `429 Too Many Requests` response:
+
+```json
+{
+  "error": "rate_limit_exceeded",
+  "message": "You have exceeded your rate limit of 60 requests/minute",
+  "limit": 60,
+  "remaining": 0,
+  "reset_at": 1709827200,
+  "retry_after": 23
+}
+```
+
+---
+
+## Handling Rate Limits
+
+Check rate limit headers proactively and implement exponential backoff for retries.
+
+### Python
+
+```python
+import time
+import httpx
+
+API_KEY = "ok_live_..."
+BASE_URL = "https://jaot.io"
+
+def rate_aware_solve(payload, max_retries=3):
+    """Solve with rate limit awareness."""
+    for attempt in range(max_retries + 1):
+        response = httpx.post(
+            f"{BASE_URL}/api/v2/solve",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+            json=payload,
+        )
+        if response.status_code == 429:
+            if attempt == max_retries:
+                response.raise_for_status()
+            retry_after = response.json().get("retry_after", 2 ** attempt)
+            print(f"Rate limited. Retrying in {retry_after}s...")
+            time.sleep(retry_after)
+            continue
+        response.raise_for_status()
+        return response.json()
+
+result = rate_aware_solve({"variables": [...], "constraints": [...]})
+```
+
+### JavaScript
+
+```javascript
+async function rateLimitedFetch(url, options, maxRetries = 3) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const response = await fetch(url, options);
+
+    if (response.status === 429) {
+      if (attempt === maxRetries) throw new Error("Rate limit exceeded");
+      const retryAfter = parseInt(response.headers.get("retry-after") || "1");
+      const wait = retryAfter || Math.pow(2, attempt);
+      console.log(`Rate limited. Retrying in ${wait}s...`);
+      await new Promise((r) => setTimeout(r, wait * 1000));
+      continue;
+    }
+
+    return response;
+  }
+}
+```
+
+> **Tip:** Implement exponential backoff in your retry logic to avoid overwhelming the API during rate limit windows.
+
+---
+
+## Credit System Overview
+
+Credits are the unit of compute in JAOT. Each optimization solve consumes credits based on the problem's complexity. More variables, constraints, and solver time require more credits.
+
+---
+
+## Credit Pricing Formula
+
+The credit cost for each solve is calculated using this formula:
+
+```
+credits = max(1, min(round(base_cost + variable_cost + mip_penalty + constraint_cost + time_bonus), 500))
+```
+
+Where each component is:
+
+| Component | Formula | Description |
+|-----------|---------|-------------|
+| `base_cost` | `1` | Fixed cost per solve |
+| `variable_cost` | `num_variables * 0.1` if ≤ 100 vars, else `10 + sqrt(num_variables - 100) * 1.5` | Sublinear (sqrt) scaling above 100 variables |
+| `mip_penalty` | `sqrt(num_integer_or_binary_vars) * 2.0` | Combined penalty for integer and binary variables (sqrt scaling) |
+| `constraint_cost` | `num_constraints * 0.05` if ≤ 50 constraints, else `2.5 + sqrt(num_constraints - 50) * 0.5` | Sublinear (sqrt) scaling above 50 constraints |
+| `time_bonus` | `ceil((time_limit - 60) / 60)` if `time_limit > 60s`, else `0` | 1 extra credit per additional minute beyond 60 s |
+
+The minimum credit cost is always 1. A per-solve cap of 500 credits applies.
+
+---
+
+## Worked Example
+
+Consider a furniture production problem with:
+- 10 decision variables (5 integer, 0 binary)
+- 8 constraints
+- 120-second time limit
+
+Step-by-step calculation:
+
+| Component | Calculation | Value |
+|-----------|-------------|-------|
+| `base_cost` | Fixed | 1.00 |
+| `variable_cost` | 10 * 0.1 (≤ 100 vars) | 1.00 |
+| `mip_penalty` | sqrt(5) * 2.0 | 4.47 |
+| `constraint_cost` | 8 * 0.05 (≤ 50 constraints) | 0.40 |
+| `time_bonus` | ceil((120 - 60) / 60) = 1 | 1.00 |
+| **Total** | max(1, round(1 + 1 + 4.47 + 0.40 + 1)) | **8 credits** |
+
+The total raw value is 7.87, which rounds to **8 credits**.
+
+---
+
+## Credit Calculator API
+
+Use the public credit calculator endpoint to estimate costs before submitting problems. No authentication required.
+
+### Request
+
+```bash
+curl -X POST https://jaot.io/api/v2/credits/calculator \
+  -H "Content-Type: application/json" \
+  -d '{
+    "num_variables": 10,
+    "num_integer_vars": 5,
+    "num_binary_vars": 0,
+    "num_constraints": 8,
+    "time_limit_seconds": 120
+  }'
+```
+
+### Response
+
+```json
+{
+  "credits_required": 8,
+  "breakdown": {
+    "base_cost": 1,
+    "variable_cost": 1.0,
+    "mip_penalty": 4.47,
+    "constraint_cost": 0.4,
+    "time_bonus": 1.0,
+    "raw_total": 7.87,
+    "cap_applied": false,
+    "max_credits_per_solve": 500
+  },
+  "cost_eur": 0.128
+}
+```
+
+### Python
+
+```python
+import httpx
+
+response = httpx.post(
+    "https://jaot.io/api/v2/credits/calculator",
+    json={
+        "num_variables": 10,
+        "num_integer_vars": 5,
+        "num_binary_vars": 0,
+        "num_constraints": 8,
+        "time_limit_seconds": 120,
+    },
+)
+
+estimate = response.json()
+print(f"Credits needed: {estimate['credits_required']}")
+print(f"Breakdown: {estimate['breakdown']}")
+```
+
+> **Tip:** Use the credit calculator to estimate costs before submitting problems, especially for batch operations or sensitivity analyses.
+
+---
+
+## Checking Balance
+
+Check your current credit balance via the API:
+
+```bash
+curl -H "Authorization: Bearer ok_live_..." \
+  https://jaot.io/api/v2/credits/balance
+```
+
+---
+
+## Purchasing Credits
+
+Credits can be purchased through the billing portal or via the checkout API endpoints, when the instance operator has configured Stripe. See the [Credits & Billing API](/docs/api/credits-billing) for the available endpoints.

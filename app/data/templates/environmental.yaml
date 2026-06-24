@@ -1,0 +1,183 @@
+category: environmental
+category_display_name: Environmental & Sustainability
+
+templates:
+  - id: waste_collection_routing
+    name: Waste Collection Routing Optimizer
+    display_name: Waste Collection Routing
+    short_description: Plan garbage truck routes to collect waste from all sites at minimum total distance and fuel cost.
+    description: >
+      Design collection routes for a fleet of waste trucks that must visit all pickup
+      sites and return to the depot. Each truck has a weight capacity and each site has
+      a known waste volume. The solver minimizes total distance (and therefore fuel cost
+      and emissions) while ensuring every site is serviced. This is a specialized VRP
+      variant for municipal waste management and recycling logistics.
+    scenario_description: >
+      A city's waste department operates 3 trucks (capacity 8 tonnes each) from a central
+      depot. Fifteen neighbourhood pickup points generate 0.5 to 2.0 tonnes per
+      collection day. The route planner wants to minimise total kilometres driven while
+      visiting every point.
+    category: environmental
+    tags: [environmental, waste, routing, collection, municipal]
+    problem_type_tags: [MIP]
+    generator_type: routing
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [depot, locations, vehicles, distances]
+      properties:
+        depot: {type: object}
+        locations: {type: array}
+        vehicles: {type: array}
+        distances: {type: object}
+    input_fields:
+      - name: depot
+        label: Depot
+        type: object
+        description: Waste depot / transfer station
+        required: true
+      - name: locations
+        label: Pickup Sites
+        type: array
+        description: Collection points with waste volume (tonnes)
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            demand: {type: number}
+      - name: vehicles
+        label: Trucks
+        type: array
+        description: Waste trucks with capacity
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            capacity: {type: number}
+            cost_per_unit_distance: {type: number}
+      - name: distances
+        label: Distance Matrix
+        type: object
+        description: "Distances between all points as {from_to: km}"
+        required: true
+    example_input:
+      depot: {name: depot}
+      locations:
+        - {name: site_1, demand: 1.5}
+        - {name: site_2, demand: 2.0}
+        - {name: site_3, demand: 0.8}
+        - {name: site_4, demand: 1.2}
+        - {name: site_5, demand: 1.8}
+        - {name: site_6, demand: 0.5}
+      vehicles:
+        - {name: truck_1, capacity: 5, cost_per_unit_distance: 1.5}
+        - {name: truck_2, capacity: 5, cost_per_unit_distance: 1.5}
+      distances:
+        depot_site_1: 5
+        depot_site_2: 8
+        depot_site_3: 12
+        depot_site_4: 10
+        depot_site_5: 6
+        depot_site_6: 15
+        site_1_depot: 5
+        site_2_depot: 8
+        site_3_depot: 12
+        site_4_depot: 10
+        site_5_depot: 6
+        site_6_depot: 15
+        site_1_site_2: 4
+        site_1_site_3: 9
+        site_1_site_4: 7
+        site_1_site_5: 3
+        site_1_site_6: 11
+        site_2_site_1: 4
+        site_2_site_3: 6
+        site_2_site_4: 5
+        site_2_site_5: 7
+        site_2_site_6: 8
+        site_3_site_1: 9
+        site_3_site_2: 6
+        site_3_site_4: 3
+        site_3_site_5: 10
+        site_3_site_6: 4
+        site_4_site_1: 7
+        site_4_site_2: 5
+        site_4_site_3: 3
+        site_4_site_5: 8
+        site_4_site_6: 6
+        site_5_site_1: 3
+        site_5_site_2: 7
+        site_5_site_3: 10
+        site_5_site_4: 8
+        site_5_site_6: 13
+        site_6_site_1: 11
+        site_6_site_2: 8
+        site_6_site_3: 4
+        site_6_site_4: 6
+        site_6_site_5: 13
+    is_featured: true
+    estimated_variables: 112
+    estimated_constraints: 40
+
+  - id: emission_reduction_planning
+    name: Emission Reduction Planning Optimizer
+    display_name: Emission Reduction Planning
+    short_description: Select emission reduction projects to meet a CO2 target at minimum total investment cost.
+    description: >
+      Choose from a portfolio of emission reduction initiatives (energy efficiency,
+      renewable installations, process changes) to meet a corporate or regulatory CO2
+      reduction target at minimum total cost. Each initiative has an implementation cost,
+      an annual CO2 reduction, and optional dependencies. The solver picks the cheapest
+      combination that achieves the target. Useful for corporate sustainability planning
+      and government climate policy.
+    scenario_description: >
+      A manufacturing company must reduce annual CO2 emissions by 500 tonnes to meet
+      new regulations. Eight candidate projects range from LED lighting (EUR 5k, 30t
+      reduction) to a solar installation (EUR 80k, 200t reduction). The sustainability
+      officer wants the cheapest plan that hits the target.
+    category: environmental
+    tags: [environmental, emissions, carbon, sustainability, climate]
+    problem_type_tags: [MIP]
+    generator_type: knapsack
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [capacity, items]
+      properties:
+        capacity: {type: number}
+        items: {type: array}
+    input_fields:
+      - name: capacity
+        label: Budget
+        type: number
+        description: Total available investment budget
+        required: true
+        minimum: 1
+        default: 200000
+      - name: items
+        label: Reduction Projects
+        type: array
+        description: Projects with CO2 reduction value and implementation cost
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            value: {type: number}
+            weight: {type: number}
+    example_input:
+      capacity: 200000
+      items:
+        - {name: led_lighting, value: 30, weight: 5000}
+        - {name: hvac_upgrade, value: 80, weight: 25000}
+        - {name: solar_panels, value: 200, weight: 80000}
+        - {name: insulation, value: 50, weight: 15000}
+        - {name: electric_fleet, value: 120, weight: 60000}
+        - {name: heat_recovery, value: 70, weight: 20000}
+        - {name: process_optimization, value: 40, weight: 10000}
+        - {name: green_hydrogen, value: 150, weight: 90000}
+    is_featured: false
+    estimated_variables: 8
+    estimated_constraints: 1

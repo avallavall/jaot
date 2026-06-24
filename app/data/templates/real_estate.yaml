@@ -1,0 +1,214 @@
+category: real_estate
+category_display_name: Real Estate
+
+templates:
+  - id: property_portfolio
+    name: Real Estate Portfolio Optimization
+    display_name: Property Portfolio
+    short_description: Select the best mix of properties to maximize risk-adjusted returns within a capital budget.
+    description: >
+      Builds an optimal real estate investment portfolio by choosing which properties
+      to acquire from a list of candidates. Each property has an expected annual
+      return, a risk score, and a purchase price. The model maximizes total
+      expected return while staying within the investment budget and respecting
+      diversification constraints across property types (residential, commercial,
+      industrial). Ideal for REITs and institutional investors.
+    category: real_estate
+    tags: [real-estate, investment, portfolio, REIT]
+    problem_type_tags: [MIP, portfolio]
+    generator_type: portfolio
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        properties:
+          type: array
+          description: Available properties with returns and costs
+        budget:
+          type: number
+          description: Total investment budget
+      required: [properties, budget]
+    input_fields:
+      - name: properties
+        label: Available Properties
+        type: array
+        description: "Properties with name, expected return, risk, price, and type"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            expected_return: {type: number}
+            risk: {type: number}
+            price: {type: number}
+            property_type: {type: string}
+      - name: budget
+        label: Investment Budget
+        type: number
+        description: "Total capital available for property acquisition"
+        required: true
+        minimum: 0
+    example_input:
+      properties:
+        - {name: "Downtown Loft Complex", expected_return: 0.072, risk: 0.15, price: 2400000, property_type: "residential"}
+        - {name: "Suburban Office Park", expected_return: 0.065, risk: 0.12, price: 3100000, property_type: "commercial"}
+        - {name: "Industrial Warehouse", expected_return: 0.058, risk: 0.08, price: 1800000, property_type: "industrial"}
+        - {name: "Retail Strip Mall", expected_return: 0.081, risk: 0.20, price: 2700000, property_type: "commercial"}
+        - {name: "Student Housing Block", expected_return: 0.069, risk: 0.14, price: 1500000, property_type: "residential"}
+        - {name: "Medical Office Building", expected_return: 0.060, risk: 0.10, price: 4200000, property_type: "commercial"}
+        - {name: "Cold Storage Facility", expected_return: 0.054, risk: 0.07, price: 2100000, property_type: "industrial"}
+        - {name: "Beachfront Condos", expected_return: 0.090, risk: 0.25, price: 3800000, property_type: "residential"}
+      budget: 8000000
+    scenario_description: >
+      A real estate investment trust has $8M to deploy across eight candidate
+      properties spanning residential, commercial, and industrial segments. Each
+      property has a different yield, risk profile, and acquisition cost. The fund
+      manager wants to maximize expected returns while keeping overall portfolio
+      risk manageable.
+    is_featured: false
+    estimated_variables: 8
+    estimated_constraints: 5
+
+  - id: renovation_scheduling
+    name: Renovation Project Scheduling
+    display_name: Renovation Scheduling
+    short_description: Schedule renovation tasks across multiple properties to minimize total project duration and contractor costs.
+    description: >
+      Plans the sequence and timing of renovation activities across a portfolio of
+      properties. Tasks have durations, precedence constraints, and share a limited
+      pool of contractor crews. The model minimizes the total make-span (time to
+      complete all renovations) or total cost, ensuring no crew is double-booked
+      and all dependencies are respected. Helps property managers coordinate
+      multi-site refurbishment programs efficiently.
+    category: real_estate
+    tags: [real-estate, renovation, project-management, scheduling]
+    problem_type_tags: [MIP, scheduling]
+    generator_type: scheduling
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        tasks:
+          type: array
+          description: Renovation tasks with durations and dependencies
+        num_crews:
+          type: integer
+          description: Number of available contractor crews
+        time_horizon:
+          type: integer
+          description: Planning horizon in days
+      required: [tasks, num_crews, time_horizon]
+    input_fields:
+      - name: tasks
+        label: Renovation Tasks
+        type: array
+        description: "Tasks with name, duration in days, property, and prerequisite task IDs"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            duration: {type: integer}
+            property: {type: string}
+            prerequisites: {type: array, items: {type: string}}
+      - name: num_crews
+        label: Contractor Crews
+        type: integer
+        description: "Number of contractor crews available"
+        required: true
+        minimum: 1
+      - name: time_horizon
+        label: Time Horizon (days)
+        type: integer
+        description: "Maximum number of days for the planning window"
+        required: true
+        minimum: 1
+    example_input:
+      tasks:
+        - {name: "Demo-Unit-A1", duration: 3, property: "Building A", prerequisites: []}
+        - {name: "Plumbing-A1", duration: 4, property: "Building A", prerequisites: ["Demo-Unit-A1"]}
+        - {name: "Electrical-A1", duration: 3, property: "Building A", prerequisites: ["Demo-Unit-A1"]}
+        - {name: "Painting-A1", duration: 2, property: "Building A", prerequisites: ["Plumbing-A1", "Electrical-A1"]}
+        - {name: "Demo-Unit-B1", duration: 2, property: "Building B", prerequisites: []}
+        - {name: "Plumbing-B1", duration: 5, property: "Building B", prerequisites: ["Demo-Unit-B1"]}
+        - {name: "Flooring-B1", duration: 3, property: "Building B", prerequisites: ["Demo-Unit-B1"]}
+        - {name: "Painting-B1", duration: 2, property: "Building B", prerequisites: ["Plumbing-B1", "Flooring-B1"]}
+      num_crews: 3
+      time_horizon: 15
+    scenario_description: >
+      A property management company is renovating units in two apartment buildings
+      simultaneously. Eight tasks must be completed across the two buildings, each
+      with specific durations and dependencies (e.g., plumbing before painting).
+      Only three contractor crews are available. The company wants to finish all
+      renovations within 15 days.
+    is_featured: false
+    estimated_variables: 120
+    estimated_constraints: 80
+
+  - id: tenant_mix_optimization
+    name: Commercial Tenant Mix Optimization
+    display_name: Tenant Mix
+    short_description: Select tenants for a commercial property to maximize rental income and foot traffic synergy.
+    description: >
+      Decides which tenant applicants to accept for available retail or office
+      spaces in a commercial property. Each applicant offers a monthly rent, has
+      a space requirement, a customer draw factor, and a category (food, fashion,
+      services). The model maximizes total rental income plus synergy bonuses
+      (complementary tenants attract more foot traffic) while avoiding category
+      conflicts (no two direct competitors) and filling the available square
+      footage optimally.
+    category: real_estate
+    tags: [real-estate, commercial, tenant-mix, retail]
+    problem_type_tags: [MIP, knapsack]
+    generator_type: knapsack
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        applicants:
+          type: array
+          description: Tenant applicants with rent and space needs
+        total_space:
+          type: number
+          description: Total available leasable area in sqm
+      required: [applicants, total_space]
+    input_fields:
+      - name: applicants
+        label: Tenant Applicants
+        type: array
+        description: "Applicants with name, monthly rent, space needed (sqm), and category"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            monthly_rent: {type: number}
+            space_sqm: {type: number}
+            category: {type: string}
+            foot_traffic_score: {type: number}
+      - name: total_space
+        label: Total Space (sqm)
+        type: number
+        description: "Total leasable area"
+        required: true
+        minimum: 1
+    example_input:
+      applicants:
+        - {name: "Artisan Coffee Co", monthly_rent: 4500, space_sqm: 80, category: "food", foot_traffic_score: 9}
+        - {name: "Fast Fashion Store", monthly_rent: 8000, space_sqm: 200, category: "fashion", foot_traffic_score: 8}
+        - {name: "Organic Grocer", monthly_rent: 6000, space_sqm: 150, category: "food", foot_traffic_score: 7}
+        - {name: "Yoga Studio", monthly_rent: 3000, space_sqm: 100, category: "fitness", foot_traffic_score: 5}
+        - {name: "Electronics Boutique", monthly_rent: 5500, space_sqm: 120, category: "electronics", foot_traffic_score: 6}
+        - {name: "Dentist Office", monthly_rent: 4000, space_sqm: 90, category: "services", foot_traffic_score: 3}
+        - {name: "Bookstore Cafe", monthly_rent: 3500, space_sqm: 110, category: "entertainment", foot_traffic_score: 7}
+        - {name: "Pharmacy", monthly_rent: 5000, space_sqm: 100, category: "health", foot_traffic_score: 6}
+      total_space: 500
+    scenario_description: >
+      A shopping center has 500 sqm of leasable space across ground-floor units.
+      Eight tenant applicants want to move in, each with different rent offers,
+      space requirements, and customer draw potential. The property manager wants
+      to select tenants that maximize rental income and create a vibrant, high-
+      traffic tenant mix.
+    is_featured: false
+    estimated_variables: 8
+    estimated_constraints: 3

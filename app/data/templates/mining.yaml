@@ -1,0 +1,232 @@
+category: mining
+category_display_name: Mining
+
+templates:
+  - id: mine_production_scheduling
+    name: Mine Production Scheduling
+    display_name: Mine Production Schedule
+    short_description: Schedule extraction blocks across time periods to maximize net present value while meeting blending and capacity constraints.
+    description: >
+      Determines when to extract each ore block from an open-pit mine over a
+      multi-period horizon. Each block has a tonnage, grade, and extraction cost.
+      The model maximizes the net present value of the extracted ore while
+      respecting mining precedence (upper blocks before lower), processing plant
+      capacity, and minimum ore grade requirements per period. A fundamental
+      problem in strategic mine planning.
+    category: mining
+    tags: [mining, extraction, scheduling, strategic-planning]
+    problem_type_tags: [MIP, scheduling]
+    generator_type: scheduling
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        blocks:
+          type: array
+          description: Ore blocks with tonnage, grade, and value
+        num_periods:
+          type: integer
+          description: Number of time periods in the horizon
+        plant_capacity:
+          type: number
+          description: Processing plant capacity per period in tonnes
+      required: [blocks, num_periods, plant_capacity]
+    input_fields:
+      - name: blocks
+        label: Ore Blocks
+        type: array
+        description: "Blocks with name, tonnage, ore grade (%), extraction cost, and value"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            tonnage: {type: number}
+            grade: {type: number}
+            cost: {type: number}
+            value: {type: number}
+      - name: num_periods
+        label: Time Periods
+        type: integer
+        description: "Number of scheduling periods (e.g., years)"
+        required: true
+        minimum: 1
+      - name: plant_capacity
+        label: Plant Capacity (tonnes/period)
+        type: number
+        description: "Maximum tonnes the processing plant can handle per period"
+        required: true
+        minimum: 1
+    example_input:
+      blocks:
+        - {name: "Block-L1-A", tonnage: 5000, grade: 2.1, cost: 45000, value: 120000}
+        - {name: "Block-L1-B", tonnage: 4200, grade: 1.8, cost: 38000, value: 95000}
+        - {name: "Block-L2-A", tonnage: 6000, grade: 3.2, cost: 52000, value: 210000}
+        - {name: "Block-L2-B", tonnage: 3800, grade: 1.5, cost: 35000, value: 70000}
+        - {name: "Block-L3-A", tonnage: 7000, grade: 4.0, cost: 65000, value: 340000}
+        - {name: "Block-L3-B", tonnage: 4500, grade: 2.5, cost: 42000, value: 145000}
+      num_periods: 3
+      plant_capacity: 10000
+    scenario_description: >
+      A copper mine has six ore blocks across three bench levels. The processing
+      plant can handle 10,000 tonnes per year. Upper-level blocks must be extracted
+      before lower ones. The mine planner needs to decide which blocks to extract
+      in each of three years to maximize the total net present value of the
+      extracted copper ore.
+    is_featured: false
+    estimated_variables: 18
+    estimated_constraints: 24
+
+  - id: ore_blending
+    name: Ore Blending Optimization
+    display_name: Ore Blending
+    short_description: Blend ore from multiple sources to meet quality specifications at minimum cost.
+    description: >
+      Determines the optimal blend of ore from different stockpiles or mine faces
+      to produce a product that meets customer quality specifications. Each source
+      has known concentrations of valuable minerals and impurities. The model
+      minimizes blending and processing cost while ensuring the final product
+      stays within acceptable ranges for all quality parameters (e.g., iron
+      content, silica, moisture). Used daily at processing plants and ports.
+    category: mining
+    tags: [mining, blending, quality-control, mineral-processing]
+    problem_type_tags: [LP, blending]
+    generator_type: blending
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        sources:
+          type: array
+          description: Ore sources with compositions and costs
+        quality_specs:
+          type: array
+          description: Quality specifications for the blended product
+        target_tonnage:
+          type: number
+          description: Required output tonnage
+      required: [sources, quality_specs, target_tonnage]
+    input_fields:
+      - name: sources
+        label: Ore Sources
+        type: array
+        description: "Stockpiles or mine faces with name, available tonnage, cost, and quality attributes"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            available: {type: number}
+            cost_per_tonne: {type: number}
+            composition: {type: object}
+      - name: quality_specs
+        label: Quality Specifications
+        type: array
+        description: "Min/max acceptable values for each quality parameter"
+        required: true
+        items:
+          type: object
+          properties:
+            parameter: {type: string}
+            min_value: {type: number}
+            max_value: {type: number}
+      - name: target_tonnage
+        label: Target Tonnage
+        type: number
+        description: "Total blended output required in tonnes"
+        required: true
+        minimum: 1
+    example_input:
+      sources:
+        - {name: "Stockpile-North", available: 8000, cost_per_tonne: 12, composition: {iron: 62.5, silica: 4.2, moisture: 8.0}}
+        - {name: "Stockpile-South", available: 6000, cost_per_tonne: 15, composition: {iron: 65.0, silica: 3.1, moisture: 6.5}}
+        - {name: "Stockpile-East", available: 10000, cost_per_tonne: 10, composition: {iron: 58.0, silica: 6.8, moisture: 9.5}}
+        - {name: "ROM-Crusher", available: 5000, cost_per_tonne: 18, composition: {iron: 67.0, silica: 2.5, moisture: 5.0}}
+      quality_specs:
+        - {parameter: "iron", min_value: 62.0, max_value: 100.0}
+        - {parameter: "silica", min_value: 0.0, max_value: 5.0}
+        - {parameter: "moisture", min_value: 0.0, max_value: 8.5}
+      target_tonnage: 15000
+    scenario_description: >
+      An iron ore mine ships 15,000 tonnes per week to a port customer who requires
+      at least 62% iron, no more than 5% silica, and maximum 8.5% moisture. The
+      mine has four ore sources with different qualities and handling costs. The
+      blend planner needs to find the cheapest mix that meets all specifications.
+    is_featured: false
+    estimated_variables: 4
+    estimated_constraints: 7
+
+  - id: fleet_dispatch_mining
+    name: Mining Fleet Dispatch Optimization
+    display_name: Fleet Dispatch
+    short_description: Dispatch haul trucks between shovels and dumps to maximize production throughput.
+    description: >
+      Assigns haul trucks to shovel-dump routes in an open-pit mine to maximize
+      total tonnes moved per shift. Each shovel has a loading rate, each dump has
+      a receiving capacity, and each truck has a payload and cycle time that
+      depends on the route. The model decides how many truck trips to allocate
+      to each shovel-dump pair to maximize production while balancing shovel
+      utilization and avoiding truck queuing at any point.
+    category: mining
+    tags: [mining, fleet, dispatch, operations]
+    problem_type_tags: [LP, network-flow]
+    generator_type: network_flow
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        shovels:
+          type: array
+          description: Shovels with loading rates
+        dumps:
+          type: array
+          description: Dump sites with capacity
+        trucks:
+          type: integer
+          description: Number of available trucks
+      required: [shovels, dumps, trucks]
+    input_fields:
+      - name: shovels
+        label: Shovels
+        type: array
+        description: "Shovels with name and tonnes per hour loading rate"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            loading_rate_tph: {type: number}
+      - name: dumps
+        label: Dump Sites
+        type: array
+        description: "Dumps with name and hourly receiving capacity"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            capacity_tph: {type: number}
+      - name: trucks
+        label: Number of Trucks
+        type: integer
+        description: "Available haul trucks"
+        required: true
+        minimum: 1
+    example_input:
+      shovels:
+        - {name: "Shovel-1-Pit-North", loading_rate_tph: 800}
+        - {name: "Shovel-2-Pit-South", loading_rate_tph: 650}
+        - {name: "Shovel-3-Pit-East", loading_rate_tph: 900}
+      dumps:
+        - {name: "Crusher", capacity_tph: 1200}
+        - {name: "Waste-Dump", capacity_tph: 1150}
+      trucks: 12
+    scenario_description: >
+      An open-pit copper mine operates three shovels and dispatches material to
+      a crusher and a waste dump. Twelve haul trucks are available for the shift.
+      The dispatch optimizer determines how to route trucks between shovels and
+      dumps to move the maximum tonnage while keeping shovels busy and avoiding
+      bottlenecks at the crusher.
+    is_featured: false
+    estimated_variables: 6
+    estimated_constraints: 5

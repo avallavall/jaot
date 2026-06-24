@@ -1,0 +1,251 @@
+category: warehouse
+category_display_name: Warehouse
+
+templates:
+  - id: warehouse_slotting
+    name: Warehouse Slotting Optimization
+    display_name: Warehouse Slotting
+    short_description: Assign SKUs to warehouse storage locations to minimize picking travel distance and maximize throughput.
+    description: >
+      Assigns product SKUs to storage locations (slots) in a warehouse to minimize
+      total daily picker travel distance. High-velocity items should be placed
+      near packing stations; heavy items go on lower shelves. Each slot has a
+      size class (pallet, case, each) and a proximity score to the dock. The
+      model matches SKU characteristics (pick frequency, size, weight) to slot
+      attributes while respecting slot capacity and product family adjacency
+      preferences.
+    category: warehouse
+    tags: [warehouse, slotting, logistics, fulfillment]
+    problem_type_tags: [MIP, assignment]
+    generator_type: assignment
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        skus:
+          type: array
+          description: Products to assign to slots
+        slots:
+          type: array
+          description: Available warehouse slots
+      required: [skus, slots]
+    input_fields:
+      - name: skus
+        label: SKUs
+        type: array
+        description: "Products with name, daily picks, size class, and weight category"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            daily_picks: {type: integer}
+            size_class: {type: string}
+            weight_kg: {type: number}
+      - name: slots
+        label: Warehouse Slots
+        type: array
+        description: "Slots with name, size class, distance to dock (meters), and level (floor/mid/high)"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            size_class: {type: string}
+            distance_to_dock: {type: number}
+            level: {type: string}
+    example_input:
+      skus:
+        - {name: "Widget-A (bestseller)", daily_picks: 85, size_class: "case", weight_kg: 5}
+        - {name: "Widget-B", daily_picks: 45, size_class: "case", weight_kg: 8}
+        - {name: "Gadget-X (heavy)", daily_picks: 30, size_class: "pallet", weight_kg: 25}
+        - {name: "Gadget-Y", daily_picks: 60, size_class: "each", weight_kg: 0.5}
+        - {name: "Accessory-P", daily_picks: 20, size_class: "each", weight_kg: 0.3}
+        - {name: "Accessory-Q (seasonal)", daily_picks: 10, size_class: "case", weight_kg: 3}
+        - {name: "Bulk-Material-Z", daily_picks: 5, size_class: "pallet", weight_kg: 40}
+      slots:
+        - {name: "A-01-Floor", size_class: "pallet", distance_to_dock: 5, level: "floor"}
+        - {name: "A-02-Floor", size_class: "pallet", distance_to_dock: 8, level: "floor"}
+        - {name: "B-01-Mid", size_class: "case", distance_to_dock: 10, level: "mid"}
+        - {name: "B-02-Mid", size_class: "case", distance_to_dock: 15, level: "mid"}
+        - {name: "B-03-Mid", size_class: "case", distance_to_dock: 20, level: "mid"}
+        - {name: "C-01-High", size_class: "each", distance_to_dock: 12, level: "high"}
+        - {name: "C-02-High", size_class: "each", distance_to_dock: 18, level: "high"}
+    scenario_description: >
+      An e-commerce fulfillment center has seven SKUs that need slot assignments
+      across seven warehouse locations. High-pick-frequency items should be closest
+      to the dock. Heavy palletized items must go on floor-level slots. The
+      warehouse manager wants to minimize total daily picker walking distance.
+    is_featured: true
+    estimated_variables: 49
+    estimated_constraints: 14
+
+  - id: pick_route_optimization
+    name: Warehouse Pick Route Optimization
+    display_name: Pick Route
+    short_description: Optimize the sequence of picks in a warehouse order to minimize total travel distance.
+    description: >
+      Determines the shortest route for a warehouse picker to visit all required
+      storage locations for an order and return to the packing station. Each
+      location has coordinates in the warehouse grid and an aisle/level. The
+      model finds the visit sequence that minimizes total walking distance,
+      considering aisle layout and one-way travel restrictions. Applies to
+      any order-picking warehouse operation, especially for large multi-item
+      orders.
+    category: warehouse
+    tags: [warehouse, picking, routing, order-fulfillment]
+    problem_type_tags: [MIP, routing]
+    generator_type: routing
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        locations:
+          type: array
+          description: Pick locations to visit
+        distances:
+          type: array
+          description: Distance matrix between locations
+      required: [locations, distances]
+    input_fields:
+      - name: locations
+        label: Pick Locations
+        type: array
+        description: "Locations with name and aisle/bay position"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            aisle: {type: integer}
+            bay: {type: integer}
+      - name: distances
+        label: Distance Matrix
+        type: array
+        description: "Distance between each pair of locations in meters"
+        required: true
+        items:
+          type: object
+          properties:
+            from_location: {type: string}
+            to_location: {type: string}
+            distance: {type: number}
+    example_input:
+      locations:
+        - {name: "Packing-Station", aisle: 0, bay: 0}
+        - {name: "Aisle-1-Bay-3", aisle: 1, bay: 3}
+        - {name: "Aisle-2-Bay-7", aisle: 2, bay: 7}
+        - {name: "Aisle-3-Bay-1", aisle: 3, bay: 1}
+        - {name: "Aisle-1-Bay-9", aisle: 1, bay: 9}
+        - {name: "Aisle-4-Bay-5", aisle: 4, bay: 5}
+        - {name: "Aisle-2-Bay-2", aisle: 2, bay: 2}
+      distances:
+        - {from_location: "Packing-Station", to_location: "Aisle-1-Bay-3", distance: 15}
+        - {from_location: "Packing-Station", to_location: "Aisle-2-Bay-7", distance: 28}
+        - {from_location: "Packing-Station", to_location: "Aisle-3-Bay-1", distance: 22}
+        - {from_location: "Packing-Station", to_location: "Aisle-1-Bay-9", distance: 24}
+        - {from_location: "Packing-Station", to_location: "Aisle-4-Bay-5", distance: 35}
+        - {from_location: "Packing-Station", to_location: "Aisle-2-Bay-2", distance: 18}
+        - {from_location: "Aisle-1-Bay-3", to_location: "Aisle-2-Bay-7", distance: 20}
+        - {from_location: "Aisle-1-Bay-3", to_location: "Aisle-3-Bay-1", distance: 16}
+        - {from_location: "Aisle-1-Bay-3", to_location: "Aisle-1-Bay-9", distance: 12}
+        - {from_location: "Aisle-1-Bay-3", to_location: "Aisle-4-Bay-5", distance: 25}
+        - {from_location: "Aisle-1-Bay-3", to_location: "Aisle-2-Bay-2", distance: 10}
+        - {from_location: "Aisle-2-Bay-7", to_location: "Aisle-3-Bay-1", distance: 18}
+        - {from_location: "Aisle-2-Bay-7", to_location: "Aisle-1-Bay-9", distance: 14}
+        - {from_location: "Aisle-2-Bay-7", to_location: "Aisle-4-Bay-5", distance: 16}
+        - {from_location: "Aisle-2-Bay-7", to_location: "Aisle-2-Bay-2", distance: 15}
+        - {from_location: "Aisle-3-Bay-1", to_location: "Aisle-1-Bay-9", distance: 22}
+        - {from_location: "Aisle-3-Bay-1", to_location: "Aisle-4-Bay-5", distance: 14}
+        - {from_location: "Aisle-3-Bay-1", to_location: "Aisle-2-Bay-2", distance: 11}
+        - {from_location: "Aisle-1-Bay-9", to_location: "Aisle-4-Bay-5", distance: 20}
+        - {from_location: "Aisle-1-Bay-9", to_location: "Aisle-2-Bay-2", distance: 17}
+        - {from_location: "Aisle-4-Bay-5", to_location: "Aisle-2-Bay-2", distance: 19}
+    scenario_description: >
+      A picker in an e-commerce warehouse needs to collect items from six
+      different locations across four aisles and return to the packing station.
+      The warehouse layout creates varying distances between locations. The
+      pick route optimizer finds the shortest sequence of visits to minimize
+      total walking distance for this order.
+    is_featured: false
+    estimated_variables: 49
+    estimated_constraints: 20
+
+  - id: inventory_replenishment
+    name: Inventory Replenishment Planning
+    display_name: Inventory Replenishment
+    short_description: Plan when and how much to reorder for each SKU to minimize total holding and ordering costs.
+    description: >
+      Determines the optimal reorder quantities and timing for warehouse SKUs
+      over a planning horizon. Each SKU has a forecasted demand, holding cost
+      per unit per period, fixed ordering cost, and lead time. The model
+      minimizes total cost (ordering + holding + potential stockout penalties)
+      while ensuring service level targets are met. A multi-item lot-sizing
+      problem that warehouse managers solve weekly or monthly.
+    category: warehouse
+    tags: [warehouse, inventory, replenishment, supply-chain]
+    problem_type_tags: [MIP, lot-sizing]
+    generator_type: lot_sizing
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        skus:
+          type: array
+          description: SKUs with demand forecasts and cost parameters
+        num_periods:
+          type: integer
+          description: Planning horizon in periods
+      required: [skus, num_periods]
+    input_fields:
+      - name: skus
+        label: SKUs
+        type: array
+        description: "SKUs with name, demand per period, holding cost, ordering cost, and lead time"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            demand: {type: array, items: {type: number}}
+            holding_cost: {type: number}
+            ordering_cost: {type: number}
+            unit_cost: {type: number}
+      - name: num_periods
+        label: Planning Periods
+        type: integer
+        description: "Number of periods (weeks or months) to plan"
+        required: true
+        minimum: 1
+    example_input:
+      skus:
+        - name: "Laptop-Stand"
+          demand: [120, 150, 130, 180, 160, 140]
+          holding_cost: 2.5
+          ordering_cost: 150
+          unit_cost: 35
+        - name: "USB-Hub"
+          demand: [200, 220, 180, 250, 230, 210]
+          holding_cost: 1.0
+          ordering_cost: 100
+          unit_cost: 12
+        - name: "Monitor-Arm"
+          demand: [80, 90, 70, 100, 95, 85]
+          holding_cost: 3.0
+          ordering_cost: 200
+          unit_cost: 55
+        - name: "Desk-Pad"
+          demand: [300, 280, 320, 350, 310, 290]
+          holding_cost: 0.5
+          ordering_cost: 80
+          unit_cost: 8
+      num_periods: 6
+    scenario_description: >
+      An office supplies warehouse manages four SKU categories over a six-week
+      horizon. Each SKU has weekly demand forecasts that vary. Placing an order
+      incurs a fixed cost regardless of quantity, and holding inventory costs
+      money each week. The inventory planner wants to decide when to place orders
+      and how much to order to minimize total costs while meeting all demand.
+    is_featured: false
+    estimated_variables: 48
+    estimated_constraints: 28

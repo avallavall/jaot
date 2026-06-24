@@ -1,0 +1,279 @@
+---
+title: Notifications
+description: In-app notification management and preferences
+order: 6
+---
+
+# Notifications
+
+The Notifications endpoints let you manage in-app notifications for the authenticated user. Notifications are created automatically by the system when events occur, such as completed solves, credit purchases, or model updates.
+
+## GET /api/v2/notifications
+
+List notifications for the current user.
+
+**Authentication:** Requires API key or JWT token.
+
+### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `unread_only` | boolean | `false` | Only return unread notifications |
+| `limit` | integer | 50 | Maximum notifications to return (1-100) |
+
+### Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `items` | array | List of notification objects |
+| `items[].id` | string | Notification ID (e.g. `"ntf_a1b2c3d4"`) |
+| `items[].type` | string | Notification type (see table below) |
+| `items[].title` | string | Notification title |
+| `items[].message` | string | Full notification message |
+| `items[].data` | object | Additional structured data (e.g. execution_id, objective_value) |
+| `items[].link` | string | Deep link to related page (e.g. `"/executions/exe_9a1b2c3d"`) |
+| `items[].is_read` | boolean | Whether the notification has been read |
+| `items[].created_at` | string | ISO 8601 timestamp |
+| `total` | integer | Total notifications returned |
+| `unread_count` | integer | Total unread notifications |
+
+**Notification types:**
+
+| Type | Description |
+|------|-------------|
+| `execution_complete` | An optimization execution finished |
+| `execution_failed` | An optimization execution failed |
+| `credits_low` | Credit balance is running low |
+| `credits_purchased` | Credits were purchased |
+| `subscription_updated` | Subscription plan changed |
+| `system` | System announcement |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+response = httpx.get(
+    "https://jaot.io/api/v2/notifications",
+    params={"unread_only": True, "limit": 10},
+    headers={"Authorization": "Bearer ok_live_your_key_here"},
+)
+
+notifications = response.json()
+print(f"Unread: {notifications['unread_count']}")
+for n in notifications["items"]:
+    icon = "[*]" if not n["is_read"] else "[ ]"
+    print(f"  {icon} {n['title']}: {n['message']}")
+```
+
+```bash
+curl "https://jaot.io/api/v2/notifications?unread_only=true&limit=10" \
+  -H "Authorization: Bearer ok_live_your_key_here"
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/notifications?unread_only=true&limit=10",
+  { headers: { "Authorization": "Bearer ok_live_your_key_here" } }
+);
+
+const { items, unread_count } = await response.json();
+console.log(`${unread_count} unread notifications`);
+items.forEach((n) => {
+  console.log(`${n.is_read ? "Read" : "Unread"}: ${n.title}`);
+});
+```
+</CodeTabs>
+
+### Response
+
+```json
+{
+  "items": [
+    {
+      "id": "ntf_a1b2c3d4",
+      "type": "execution_complete",
+      "title": "Solve completed",
+      "message": "Your warehouse allocation optimization finished with status: optimal",
+      "data": {"execution_id": "exe_9a1b2c3d", "objective_value": 1250.50},
+      "link": "/executions/exe_9a1b2c3d",
+      "is_read": false,
+      "created_at": "2026-02-19T10:05:12Z"
+    },
+    {
+      "id": "ntf_e5f6g7h8",
+      "type": "credits_low",
+      "title": "Low credit balance",
+      "message": "Your organization has 15 credits remaining. Consider purchasing more.",
+      "data": {"credits_remaining": 15},
+      "link": "/workspace/credits",
+      "is_read": false,
+      "created_at": "2026-02-18T14:30:00Z"
+    }
+  ],
+  "total": 2,
+  "unread_count": 2
+}
+```
+
+---
+
+## GET /api/v2/notifications/unread-count
+
+Get the count of unread notifications. This is a lightweight endpoint for polling or badge display.
+
+**Authentication:** Requires API key or JWT token.
+
+### Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `unread_count` | integer | Number of unread notifications |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+response = httpx.get(
+    "https://jaot.io/api/v2/notifications/unread-count",
+    headers={"Authorization": "Bearer ok_live_your_key_here"},
+)
+count = response.json()["unread_count"]
+print(f"Unread: {count}")
+```
+
+```bash
+curl "https://jaot.io/api/v2/notifications/unread-count" \
+  -H "Authorization: Bearer ok_live_your_key_here"
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/notifications/unread-count",
+  { headers: { "Authorization": "Bearer ok_live_your_key_here" } }
+);
+const { unread_count } = await response.json();
+```
+</CodeTabs>
+
+### Response
+
+```json
+{"unread_count": 5}
+```
+
+---
+
+## POST /api/v2/notifications/\{notification_id\}/read
+
+Mark a specific notification as read.
+
+**Authentication:** Requires API key or JWT token.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `notification_id` | string | The notification ID to mark as read |
+
+### Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | boolean | Whether the operation succeeded |
+| `marked_count` | integer | Number of notifications marked (always 1) |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+response = httpx.post(
+    "https://jaot.io/api/v2/notifications/ntf_a1b2c3d4/read",
+    headers={"Authorization": "Bearer ok_live_your_key_here"},
+)
+print(response.json())  # {"success": true, "marked_count": 1}
+```
+
+```bash
+curl -X POST "https://jaot.io/api/v2/notifications/ntf_a1b2c3d4/read" \
+  -H "Authorization: Bearer ok_live_your_key_here"
+```
+
+```javascript
+await fetch("https://jaot.io/api/v2/notifications/ntf_a1b2c3d4/read", {
+  method: "POST",
+  headers: { "Authorization": "Bearer ok_live_your_key_here" },
+});
+```
+</CodeTabs>
+
+### Response
+
+```json
+{"success": true, "marked_count": 1}
+```
+
+---
+
+## POST /api/v2/notifications/read-all
+
+Mark all notifications as read for the current user.
+
+**Authentication:** Requires API key or JWT token.
+
+### Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | boolean | Whether the operation succeeded |
+| `marked_count` | integer | Number of notifications marked as read |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+response = httpx.post(
+    "https://jaot.io/api/v2/notifications/read-all",
+    headers={"Authorization": "Bearer ok_live_your_key_here"},
+)
+result = response.json()
+print(f"Marked {result['marked_count']} notifications as read")
+```
+
+```bash
+curl -X POST "https://jaot.io/api/v2/notifications/read-all" \
+  -H "Authorization: Bearer ok_live_your_key_here"
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/notifications/read-all",
+  {
+    method: "POST",
+    headers: { "Authorization": "Bearer ok_live_your_key_here" },
+  }
+);
+const { marked_count } = await response.json();
+console.log(`Marked ${marked_count} notifications as read`);
+```
+</CodeTabs>
+
+### Response
+
+```json
+{"success": true, "marked_count": 5}
+```
+
+### Errors
+
+| HTTP Code | Error | Description |
+|-----------|-------|-------------|
+| 401 | `unauthorized` | Missing or invalid API key |
+| 404 | `not_found` | Notification not found (for single mark-read) |

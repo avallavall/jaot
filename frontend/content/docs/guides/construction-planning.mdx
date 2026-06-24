@@ -1,0 +1,189 @@
+---
+title: "Construction Project Planning"
+description: "Schedule tasks, allocate crews, and manage resources across job sites"
+order: 7
+category: "construction"
+difficulty: "intermediate"
+domain: "Manufacturing"
+templateCount: 1
+---
+
+# Construction Project Planning
+
+Construction project optimization **schedules tasks, allocates crews, and sequences activities** to finish projects on time and within budget. Construction projects involve interdependent tasks where delays cascade through the entire schedule -- the optimizer finds the fastest or cheapest completion order while respecting task dependencies and resource limits.
+
+## Step-by-Step Walkthrough
+
+**1. Define project tasks**
+
+List every task with its estimated duration (in days or weeks). Examples: excavation (5 days), foundation (10 days), framing (15 days), electrical (8 days), plumbing (6 days), finishing (12 days).
+
+**2. Establish task dependencies**
+
+Specify which tasks must finish before others can start. Foundation cannot begin until excavation is complete. Electrical and plumbing can run in parallel after framing, but finishing requires both to be done.
+
+**3. Define available resources**
+
+List crews and equipment with their daily availability. You might have 3 general crews, 1 electrical crew, and 1 plumbing crew. Each task requires specific crew types.
+
+**4. Set the objective**
+
+Choose your goal:
+- **Minimize total project duration** (most common)
+- **Minimize total project cost** (when overtime and crew costs vary)
+- **Level resource usage** to avoid peak-and-valley crew scheduling
+
+![Construction Planning in JAOT Builder](/guides/manufacturing/construction-builder.png)
+
+**5. Review the optimized schedule**
+
+The solver returns the start and end date for each task, which crews are assigned when, and the critical path (the sequence of tasks that determines the minimum project duration). Focus attention on critical path tasks -- any delay there delays the entire project.
+
+## Example Parameters
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+# Minimize project makespan for 6 tasks with 3 crews
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": [
+        # start_X = start day of task X
+        {"name": "start_excavation", "type": "continuous", "lb": 0},
+        {"name": "start_foundation", "type": "continuous", "lb": 0},
+        {"name": "start_framing", "type": "continuous", "lb": 0},
+        {"name": "start_electrical", "type": "continuous", "lb": 0},
+        {"name": "start_plumbing", "type": "continuous", "lb": 0},
+        {"name": "start_finishing", "type": "continuous", "lb": 0},
+        {"name": "project_end", "type": "continuous", "lb": 0},
+    ],
+    "objective": {
+        "sense": "minimize",
+        "coefficients": {"project_end": 1},
+    },
+    "constraints": [
+        {
+            "name": "foundation_after_excavation",
+            "coefficients": {"start_foundation": 1, "start_excavation": -1},
+            "sense": ">=",
+            "rhs": 5,
+        },
+        {
+            "name": "framing_after_foundation",
+            "coefficients": {"start_framing": 1, "start_foundation": -1},
+            "sense": ">=",
+            "rhs": 10,
+        },
+        {
+            "name": "electrical_after_framing",
+            "coefficients": {"start_electrical": 1, "start_framing": -1},
+            "sense": ">=",
+            "rhs": 15,
+        },
+        {
+            "name": "plumbing_after_framing",
+            "coefficients": {"start_plumbing": 1, "start_framing": -1},
+            "sense": ">=",
+            "rhs": 15,
+        },
+        {
+            "name": "finishing_after_electrical",
+            "coefficients": {"start_finishing": 1, "start_electrical": -1},
+            "sense": ">=",
+            "rhs": 8,
+        },
+        {
+            "name": "finishing_after_plumbing",
+            "coefficients": {"start_finishing": 1, "start_plumbing": -1},
+            "sense": ">=",
+            "rhs": 6,
+        },
+        {
+            "name": "end_after_finishing",
+            "coefficients": {"project_end": 1, "start_finishing": -1},
+            "sense": ">=",
+            "rhs": 12,
+        },
+    ],
+})
+result = response.json()
+
+print(f"Minimum project duration: {result['objective_value']:.0f} days")
+for var in result["variables"]:
+    print(f"  {var['name']}: day {var['value']:.0f}")
+```
+```json
+{
+  "variables": [
+    {"name": "start_excavation", "type": "continuous", "lb": 0},
+    {"name": "start_foundation", "type": "continuous", "lb": 0},
+    {"name": "start_framing", "type": "continuous", "lb": 0},
+    {"name": "start_electrical", "type": "continuous", "lb": 0},
+    {"name": "start_plumbing", "type": "continuous", "lb": 0},
+    {"name": "start_finishing", "type": "continuous", "lb": 0},
+    {"name": "project_end", "type": "continuous", "lb": 0}
+  ],
+  "objective": {
+    "sense": "minimize",
+    "coefficients": {"project_end": 1}
+  },
+  "constraints": [
+    {
+      "name": "foundation_after_excavation",
+      "coefficients": {"start_foundation": 1, "start_excavation": -1},
+      "sense": ">=",
+      "rhs": 5
+    },
+    {
+      "name": "framing_after_foundation",
+      "coefficients": {"start_framing": 1, "start_foundation": -1},
+      "sense": ">=",
+      "rhs": 10
+    },
+    {
+      "name": "electrical_after_framing",
+      "coefficients": {"start_electrical": 1, "start_framing": -1},
+      "sense": ">=",
+      "rhs": 15
+    },
+    {
+      "name": "plumbing_after_framing",
+      "coefficients": {"start_plumbing": 1, "start_framing": -1},
+      "sense": ">=",
+      "rhs": 15
+    },
+    {
+      "name": "finishing_after_electrical",
+      "coefficients": {"start_finishing": 1, "start_electrical": -1},
+      "sense": ">=",
+      "rhs": 8
+    },
+    {
+      "name": "finishing_after_plumbing",
+      "coefficients": {"start_finishing": 1, "start_plumbing": -1},
+      "sense": ">=",
+      "rhs": 6
+    },
+    {
+      "name": "end_after_finishing",
+      "coefficients": {"project_end": 1, "start_finishing": -1},
+      "sense": ">=",
+      "rhs": 12
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+- **[Custom Optimization](/builder/templates/custom)** -- build a project scheduling model with task dependencies, crew assignments, and deadline constraints
+
+## Next Steps
+
+- **[Facility Location](/docs/guides/facility-location)** -- Optimize where to place warehouses, plants, or service centers `intermediate`
+- **[Real Estate Investment](/docs/guides/real-estate-investment)** -- Evaluate property development portfolios and acquisition strategies `intermediate`
+- **[Workforce Scheduling](/docs/guides/workforce-scheduling)** -- Optimize crew shifts and assignments across job sites `intermediate`

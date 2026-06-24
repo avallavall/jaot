@@ -1,0 +1,13 @@
+declare module "*.mdx" {
+  import type { ComponentType } from "react";
+  const Component: ComponentType;
+  export default Component;
+  export const frontmatter: Record<string, string>;
+}
+
+declare module "@content/docs/*" {
+  import type { ComponentType } from "react";
+  const Component: ComponentType;
+  export default Component;
+  export const frontmatter: Record<string, string>;
+}

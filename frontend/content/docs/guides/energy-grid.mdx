@@ -1,0 +1,213 @@
+---
+title: "Energy Grid Optimization"
+description: "Balance power generation, storage, and distribution for efficiency"
+order: 18
+category: "energy"
+difficulty: "advanced"
+domain: "Energy & Environment"
+templateCount: 2
+---
+
+# Energy Grid Optimization
+
+Optimize the energy generation mix, dispatch scheduling, and renewable integration across your power grid. Energy optimization determines which generators to run at each time period to meet demand at minimum cost while respecting emission targets and renewable energy requirements.
+
+## When to Use This Guide
+
+Energy grid optimization applies to power generation and distribution planning:
+
+- **Power generation scheduling** -- Decide which generators to activate each hour to meet demand
+- **Renewable energy planning** -- Integrate solar and wind into the generation mix with intermittency constraints
+- **Grid load balancing** -- Distribute load across generators to avoid overloading any single unit
+- **Economic dispatch** -- Minimize fuel costs while meeting reliability standards
+- **Peak shaving** -- Reduce expensive peak-hour generation through optimal scheduling
+
+## Step-by-Step Walkthrough
+
+### 1. Define Your Generators
+
+List every generation source with its cost per MWh, minimum and maximum output capacity, and ramp-up/ramp-down limits. Renewable sources (solar, wind) have time-varying availability profiles.
+
+### 2. Set the Demand Profile
+
+Specify electricity demand for each time period (typically hourly over 24 hours). Demand must be met exactly -- no shortfalls allowed. Include reserve margin requirements if applicable.
+
+### 3. Add Policy Constraints
+
+Set renewable energy targets (e.g., at least 30% from renewables), emission caps, and any must-run requirements for baseload generators. Add minimum uptime/downtime constraints for thermal plants.
+
+### 4. Solve and Review
+
+The optimizer produces an hourly dispatch schedule showing which generators run and at what output level. Review the generation mix, total cost, and emission levels. Adjust renewable targets to explore cost-emission tradeoffs.
+
+## Example: 4-Generator 24-Hour Dispatch
+
+Dispatch 4 generators (coal, gas, solar, wind) across a 24-hour demand curve. Minimize total generation cost while meeting a 30% renewable energy target.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+hours = 24
+generators = ["coal", "gas", "solar", "wind"]
+gen_cost = [30, 50, 0, 0]         # $/MWh
+gen_min = [100, 0, 0, 0]          # MW minimum when on
+gen_max = [500, 300, 200, 150]    # MW maximum capacity
+
+# Hourly demand (MW)
+demand = [
+    320, 300, 280, 270, 260, 280, 350, 420,
+    480, 500, 510, 520, 530, 520, 510, 490,
+    470, 460, 440, 420, 400, 380, 360, 340,
+]
+
+# Solar availability factor by hour (0-1)
+solar_avail = [
+    0, 0, 0, 0, 0, 0.1, 0.3, 0.5,
+    0.7, 0.85, 0.95, 1.0, 1.0, 0.95, 0.85, 0.7,
+    0.5, 0.3, 0.1, 0, 0, 0, 0, 0,
+]
+# Wind availability factor by hour (0-1)
+wind_avail = [
+    0.6, 0.65, 0.7, 0.75, 0.7, 0.6, 0.5, 0.4,
+    0.35, 0.3, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55,
+    0.6, 0.65, 0.7, 0.75, 0.8, 0.75, 0.7, 0.65,
+]
+
+variables = []
+for h in range(hours):
+    for g, name in enumerate(generators):
+        variables.append({
+            "name": f"{name}_{h}",
+            "type": "continuous",
+            "lb": 0,
+            "ub": gen_max[g],
+        })
+
+# Minimize total generation cost
+coefficients = {}
+for h in range(hours):
+    for g, name in enumerate(generators):
+        coefficients[f"{name}_{h}"] = gen_cost[g]
+
+objective = {"sense": "minimize", "coefficients": coefficients}
+
+constraints = []
+# Meet demand each hour
+for h in range(hours):
+    constraints.append({
+        "name": f"demand_{h}",
+        "coefficients": {
+            f"{name}_{h}": 1 for name in generators
+        },
+        "sense": ">=",
+        "rhs": demand[h],
+    })
+
+# Solar availability limits
+for h in range(hours):
+    constraints.append({
+        "name": f"solar_cap_{h}",
+        "coefficients": {f"solar_{h}": 1},
+        "sense": "<=",
+        "rhs": gen_max[2] * solar_avail[h],
+    })
+
+# Wind availability limits
+for h in range(hours):
+    constraints.append({
+        "name": f"wind_cap_{h}",
+        "coefficients": {f"wind_{h}": 1},
+        "sense": "<=",
+        "rhs": gen_max[3] * wind_avail[h],
+    })
+
+# Renewable target: at least 30% of total generation
+total_demand = sum(demand)
+coeff_renew = {}
+for h in range(hours):
+    coeff_renew[f"solar_{h}"] = 1
+    coeff_renew[f"wind_{h}"] = 1
+constraints.append({
+    "name": "renewable_target",
+    "coefficients": coeff_renew,
+    "sense": ">=",
+    "rhs": total_demand * 0.30,
+})
+
+# Coal minimum output (baseload)
+for h in range(hours):
+    constraints.append({
+        "name": f"coal_min_{h}",
+        "coefficients": {f"coal_{h}": 1},
+        "sense": ">=",
+        "rhs": gen_min[0],
+    })
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Total daily cost: ${result['objective_value']:,.0f}")
+for name in generators:
+    total = sum(result['solution'].get(f"{name}_{h}", 0) for h in range(hours))
+    print(f"  {name.capitalize()}: {total:,.0f} MWh")
+```
+
+```json
+{
+  "variables": [
+    {"name": "coal_0", "type": "continuous", "lb": 0, "ub": 500},
+    {"name": "gas_0", "type": "continuous", "lb": 0, "ub": 300},
+    {"name": "solar_0", "type": "continuous", "lb": 0, "ub": 200},
+    {"name": "wind_0", "type": "continuous", "lb": 0, "ub": 150}
+  ],
+  "objective": {
+    "sense": "minimize",
+    "coefficients": {
+      "coal_0": 30, "gas_0": 50, "solar_0": 0, "wind_0": 0
+    }
+  },
+  "constraints": [
+    {
+      "name": "demand_0",
+      "coefficients": {"coal_0": 1, "gas_0": 1, "solar_0": 1, "wind_0": 1},
+      "sense": ">=",
+      "rhs": 320
+    },
+    {
+      "name": "solar_cap_0",
+      "coefficients": {"solar_0": 1},
+      "sense": "<=",
+      "rhs": 0
+    },
+    {
+      "name": "renewable_target",
+      "coefficients": {"solar_0": 1, "wind_0": 1, "solar_1": 1, "wind_1": 1},
+      "sense": ">=",
+      "rhs": 3024
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+Build energy optimization models with these templates:
+
+- **[Custom Optimization](/builder/templates/custom)** -- Define your full generator fleet and demand profile
+- **[Production Planning Optimizer](/builder/templates/production_planning)** -- Adapt production scheduling for power generation dispatch
+
+## Next Steps
+
+- **[Environmental Resource Management](/docs/guides/environmental-management)** -- Optimize emission reduction and sustainability targets
+- **[Water Distribution Networks](/docs/guides/water-distribution)** -- Apply network optimization to water infrastructure
+- **[API Reference](/docs/api/solve)** -- Full endpoint documentation for the solve API

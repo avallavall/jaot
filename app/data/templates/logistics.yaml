@@ -1,0 +1,409 @@
+category: logistics
+category_display_name: Logistics & Distribution
+
+templates:
+  - id: knapsack
+    name: Knapsack Optimizer
+    display_name: Item Selection (Knapsack)
+    short_description: Select the best combination of items to maximize value while staying within a single capacity limit.
+    description: >
+      The classic 0-1 knapsack problem: given a set of items each with a value and a
+      weight, choose which items to pack so that total value is maximized without
+      exceeding the container's weight capacity. Every item is either fully included or
+      excluded. Use this for cargo loading, project selection, or any scenario where
+      you pick from a list of indivisible options under a single resource constraint.
+    scenario_description: >
+      A traveller is packing a 50 kg suitcase for an international trip. Eight items
+      compete for space -- a laptop, camera, headphones, book, tablet, charger, clothes,
+      and shoes. Each item has a subjective value score and a weight. The goal is to
+      maximise total value within the weight limit.
+    category: logistics
+    tags: [logistics, selection, packing, capacity]
+    problem_type_tags: [MIP]
+    generator_type: knapsack
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [capacity, items]
+      properties:
+        capacity: {type: number, minimum: 1}
+        items: {type: array, items: {type: object}}
+    input_fields:
+      - name: capacity
+        label: Capacity
+        type: number
+        description: Maximum capacity (weight, volume, etc.)
+        required: true
+        minimum: 1
+        default: 100
+      - name: items
+        label: Items
+        type: array
+        description: Items to choose from
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            value: {type: number}
+            weight: {type: number}
+    example_input:
+      capacity: 50
+      items:
+        - {name: laptop, value: 600, weight: 10}
+        - {name: camera, value: 500, weight: 5}
+        - {name: headphones, value: 150, weight: 2}
+        - {name: book, value: 30, weight: 3}
+        - {name: tablet, value: 400, weight: 8}
+        - {name: charger, value: 50, weight: 1}
+        - {name: clothes, value: 100, weight: 15}
+        - {name: shoes, value: 80, weight: 12}
+    is_featured: true
+    estimated_variables: 8
+    estimated_constraints: 1
+
+  - id: vehicle_routing
+    name: Vehicle Routing Optimizer
+    display_name: Vehicle Routing (VRP)
+    short_description: Plan delivery routes for a fleet of vehicles to minimize total distance while meeting every customer's demand.
+    description: >
+      Solve the Capacitated Vehicle Routing Problem (CVRP). A fleet of vehicles departs
+      from a central depot, visits a set of customer locations with known demands, and
+      returns to the depot. Each vehicle has a maximum load capacity. The solver finds
+      routes that minimize total travel distance (or cost) while ensuring every customer
+      is served exactly once and no vehicle is overloaded.
+    scenario_description: >
+      A food distributor operates 2 trucks (capacity 10 pallets each) from a central
+      warehouse. Five restaurants need deliveries of 2-6 pallets today. The dispatcher
+      needs routes that minimize total kilometres driven.
+    category: logistics
+    tags: [logistics, routing, vrp, delivery, fleet, transportation]
+    problem_type_tags: [MIP]
+    generator_type: routing
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [depot, locations, vehicles, distances]
+      properties:
+        depot: {type: object}
+        locations: {type: array}
+        vehicles: {type: array}
+        distances: {type: object}
+    input_fields:
+      - name: depot
+        label: Depot
+        type: object
+        description: Starting/ending location for all vehicles
+        required: true
+      - name: locations
+        label: Delivery Locations
+        type: array
+        description: Locations to visit with demand
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            demand: {type: number, default: 1}
+      - name: vehicles
+        label: Vehicles
+        type: array
+        description: Available vehicles with capacity
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            capacity: {type: number}
+            cost_per_unit_distance: {type: number, default: 1.0}
+      - name: distances
+        label: Distance Matrix
+        type: object
+        description: "Distances between locations as {from_to: distance}"
+        required: true
+    example_input:
+      depot: {name: depot}
+      locations:
+        - {name: A, demand: 3}
+        - {name: B, demand: 5}
+        - {name: C, demand: 2}
+        - {name: D, demand: 4}
+        - {name: E, demand: 6}
+      vehicles:
+        - {name: truck1, capacity: 10, cost_per_unit_distance: 1.0}
+        - {name: truck2, capacity: 10, cost_per_unit_distance: 1.2}
+      distances:
+        depot_A: 10
+        depot_B: 20
+        depot_C: 15
+        depot_D: 25
+        depot_E: 30
+        A_depot: 10
+        B_depot: 20
+        C_depot: 15
+        D_depot: 25
+        E_depot: 30
+        A_B: 12
+        A_C: 8
+        A_D: 22
+        A_E: 18
+        B_A: 12
+        B_C: 14
+        B_D: 10
+        B_E: 16
+        C_A: 8
+        C_B: 14
+        C_D: 20
+        C_E: 12
+        D_A: 22
+        D_B: 10
+        D_C: 20
+        D_E: 8
+        E_A: 18
+        E_B: 16
+        E_C: 12
+        E_D: 8
+    is_featured: true
+    estimated_variables: 84
+    estimated_constraints: 50
+
+  - id: bin_packing
+    name: Bin Packing Optimizer
+    display_name: Bin Packing
+    short_description: Pack items into the fewest bins possible, each with a fixed capacity, ensuring every item is assigned exactly once.
+    description: >
+      Minimize the number of bins (containers, trucks, boxes) needed to pack a set of
+      items. Each bin has the same capacity and each item has a known size. The solver
+      assigns every item to exactly one bin without exceeding any bin's capacity. Includes
+      symmetry-breaking constraints for faster solving. Useful for container loading,
+      order batching, and warehouse slotting.
+    scenario_description: >
+      A warehouse manager must pack 12 orders of varying sizes (10-50 units) into
+      shipping containers that each hold 100 units. The goal is to use the fewest
+      containers to reduce shipping costs.
+    category: logistics
+    tags: [logistics, packing, bins, containers, warehouse]
+    problem_type_tags: [MIP]
+    generator_type: bin_packing
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [items, bin_capacity]
+      properties:
+        items: {type: array}
+        bin_capacity: {type: number, minimum: 1}
+        max_bins: {type: integer}
+    input_fields:
+      - name: items
+        label: Items
+        type: array
+        description: Items to pack with their sizes
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            size: {type: number}
+      - name: bin_capacity
+        label: Bin Capacity
+        type: number
+        description: Capacity of each bin
+        required: true
+        minimum: 1
+        default: 100
+      - name: max_bins
+        label: Maximum Bins Available
+        type: integer
+        description: Maximum number of bins (0 = auto)
+        required: false
+        default: 0
+    example_input:
+      items:
+        - {name: item_1, size: 42}
+        - {name: item_2, size: 25}
+        - {name: item_3, size: 30}
+        - {name: item_4, size: 35}
+        - {name: item_5, size: 18}
+        - {name: item_6, size: 10}
+        - {name: item_7, size: 45}
+        - {name: item_8, size: 22}
+        - {name: item_9, size: 38}
+        - {name: item_10, size: 15}
+        - {name: item_11, size: 28}
+        - {name: item_12, size: 50}
+      bin_capacity: 100
+      max_bins: 0
+    is_featured: false
+    estimated_variables: 156
+    estimated_constraints: 25
+
+  - id: warehouse_layout
+    name: Warehouse Layout Optimizer
+    display_name: Warehouse Layout
+    short_description: Assign product categories to warehouse zones to minimize total picking travel distance.
+    description: >
+      Decide which product category goes into which warehouse zone to minimize the
+      average distance pickers travel. High-frequency items should be near the dispatch
+      area, heavy items near loading docks. The solver considers pick frequency, zone
+      capacities, and inter-zone distances to produce an assignment that cuts daily
+      picker travel. Use this before a warehouse reorganisation or when adding new
+      product lines.
+    scenario_description: >
+      A distribution centre has 6 zones at varying distances from the dispatch dock.
+      Eight product categories have different weekly pick frequencies. Zone capacities
+      differ. The operations manager wants to re-slot categories to cut average pick
+      travel by at least 20%.
+    category: logistics
+    tags: [logistics, warehouse, layout, slotting, picking]
+    problem_type_tags: [MIP]
+    generator_type: assignment
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [workers, tasks, costs]
+      properties:
+        workers: {type: array}
+        tasks: {type: array}
+        costs: {type: object}
+    input_fields:
+      - name: workers
+        label: Product Categories
+        type: array
+        description: Product categories to assign
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: tasks
+        label: Warehouse Zones
+        type: array
+        description: Available warehouse zones
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: costs
+        label: Travel Cost Matrix
+        type: object
+        description: "Travel cost for each category-zone pair as {category_zone: cost}"
+        required: true
+    example_input:
+      workers:
+        - {name: electronics}
+        - {name: clothing}
+        - {name: food}
+        - {name: furniture}
+        - {name: books}
+        - {name: toys}
+      tasks:
+        - {name: zone_A}
+        - {name: zone_B}
+        - {name: zone_C}
+        - {name: zone_D}
+        - {name: zone_E}
+        - {name: zone_F}
+      costs:
+        electronics_zone_A: 5
+        electronics_zone_B: 12
+        electronics_zone_C: 18
+        electronics_zone_D: 25
+        electronics_zone_E: 30
+        electronics_zone_F: 35
+        clothing_zone_A: 8
+        clothing_zone_B: 6
+        clothing_zone_C: 14
+        clothing_zone_D: 20
+        clothing_zone_E: 26
+        clothing_zone_F: 32
+        food_zone_A: 3
+        food_zone_B: 10
+        food_zone_C: 16
+        food_zone_D: 22
+        food_zone_E: 28
+        food_zone_F: 34
+        furniture_zone_A: 20
+        furniture_zone_B: 15
+        furniture_zone_C: 10
+        furniture_zone_D: 8
+        furniture_zone_E: 12
+        furniture_zone_F: 18
+        books_zone_A: 10
+        books_zone_B: 8
+        books_zone_C: 12
+        books_zone_D: 18
+        books_zone_E: 14
+        books_zone_F: 22
+        toys_zone_A: 12
+        toys_zone_B: 9
+        toys_zone_C: 7
+        toys_zone_D: 15
+        toys_zone_E: 20
+        toys_zone_F: 25
+    is_featured: false
+    estimated_variables: 36
+    estimated_constraints: 12
+
+  - id: fleet_sizing
+    name: Fleet Sizing Optimizer
+    display_name: Fleet Sizing
+    short_description: Determine the optimal number and type of vehicles to operate for a set of delivery routes and demand levels.
+    description: >
+      Decide how many vehicles of each type (small van, medium truck, large truck) to
+      deploy to cover a set of demand segments at minimum total cost. Each vehicle type
+      has a capacity, a fixed daily cost, and a variable cost per unit delivered. The
+      solver ensures total fleet capacity meets demand while minimizing the sum of fixed
+      and variable costs. The result tells you the fleet mix and which segments each
+      vehicle type covers.
+    scenario_description: >
+      A courier company serves 5 city zones with daily parcel volumes of 50-300 parcels.
+      Three vehicle types are available: bikes (20 parcels, EUR 30/day), vans (80 parcels,
+      EUR 90/day), and trucks (200 parcels, EUR 180/day). The logistics manager wants the
+      cheapest fleet that handles peak demand.
+    category: logistics
+    tags: [logistics, fleet, capacity-planning, vehicles]
+    problem_type_tags: [MIP]
+    generator_type: fleet_sizing
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [vehicle_types, total_demand]
+      properties:
+        vehicle_types: {type: array}
+        total_demand: {type: number}
+        min_vehicles_by_type: {type: object}
+    input_fields:
+      - name: vehicle_types
+        label: Vehicle Types
+        type: array
+        description: Available vehicle types with capacity and cost
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            capacity_parcels: {type: number}
+            daily_fixed_cost: {type: number}
+            max_available: {type: integer}
+      - name: total_demand
+        label: Total Daily Demand
+        type: number
+        description: Total parcels/units to deliver per day
+        required: true
+      - name: min_vehicles_by_type
+        label: Minimum Vehicles
+        type: object
+        description: "Minimum count per type, e.g. {Truck: 1}"
+        required: false
+    example_input:
+      vehicle_types:
+        - {name: Bike, capacity_parcels: 20, daily_fixed_cost: 30, max_available: 30}
+        - {name: Van, capacity_parcels: 80, daily_fixed_cost: 90, max_available: 15}
+        - {name: Truck, capacity_parcels: 200, daily_fixed_cost: 180, max_available: 8}
+      total_demand: 850
+      min_vehicles_by_type:
+        Truck: 1
+    is_featured: false
+    estimated_variables: 3
+    estimated_constraints: 1

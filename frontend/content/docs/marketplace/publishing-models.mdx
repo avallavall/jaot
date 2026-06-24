@@ -1,0 +1,147 @@
+---
+title: Publishing Models
+description: Publish your optimization models to the JAOT marketplace and earn revenue from activations
+order: 2
+---
+
+# Publishing Models
+
+Any organization on JAOT can publish their private optimization models to the marketplace, making them available for other organizations to discover, activate, and execute. Publishing lets you monetize your domain expertise and reach users who need optimization solutions but may not have the skills to formulate them.
+
+## Who Can Publish
+
+Model publishing is available to any authenticated user who owns a private model within their organization. The model must have a valid definition (variables, constraints, and objective) before it can be published.
+
+> **Note:** Only private models can be published. Models that were activated from the catalog (i.e., models originally published by another organization) cannot be republished.
+
+## Preparing Your Model
+
+Before publishing, ensure your model:
+
+1. **Has a valid definition** -- The model must solve correctly with sample input data
+2. **Has a clear input schema** -- Define what data users need to provide, with descriptive field names and types
+3. **Includes example input** -- Provide a working example so potential users can understand the expected data format
+4. **Has been tested** -- Run multiple solves with different inputs to verify it handles edge cases
+
+## Publishing Process
+
+### Step 1: Navigate to Your Model
+
+Go to **My Models**, select the private model you want to publish, and click **Publish to Marketplace**.
+
+### Step 2: Fill in the Publishing Form
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| **Display name** | Yes | The public-facing name shown in the marketplace (e.g., "Warehouse Location Optimizer") |
+| **Description** | Yes | A detailed explanation of what the model solves and how it works |
+| **Short description** | Yes | A one-line summary for the model card in search results |
+| **Category** | Yes | The industry category (manufacturing, finance, logistics, etc.) |
+| **Tags** | No | Keywords to improve discoverability (e.g., "routing", "scheduling", "mixed-integer") |
+| **Price (EUR)** | Yes | The activation price. Set to 0 for free models |
+| **Overview section** | No | Extended description with use cases and benefits |
+| **Features section** | No | Key capabilities and model characteristics |
+| **How it works** | No | Walkthrough of the model's optimization approach |
+| **Example I/O** | No | Sample input and output for the documentation |
+| **Changelog** | No | Version history and changes |
+
+### Step 3: Submit for Publication
+
+Click **Publish** to make your model available in the marketplace. The model status changes to **published** and it appears in the public catalog immediately.
+
+## Managing Published Models
+
+After publishing, you can manage your model from the **My Models** section:
+
+### Updating a Published Model
+
+You can update the description, pricing, and metadata of a published model at any time. Changes take effect immediately in the marketplace. The underlying model definition is versioned, so existing users continue to see consistent behavior.
+
+### Unpublishing
+
+To remove a model from the marketplace, click **Unpublish**. The model remains available to organizations that have already activated it, but new activations are no longer possible. The model reverts to a private model in your organization.
+
+### Version Management
+
+When you update a published model's definition, a new version is created. The marketplace displays the latest version, and the version history is tracked:
+
+- **Version numbering** follows semantic versioning (e.g., `1.0.0`, `1.1.0`, `2.0.0`)
+- **Existing activations** continue to work with the version they activated
+- **Changelog section** lets you document what changed in each version
+
+## Pricing Strategy
+
+Set your model's activation price considering:
+
+- **Free models** attract more activations and reviews, building your reputation on the platform
+- **Paid models** generate direct revenue from each organization that activates them
+- Execution credits are charged separately (paid by the executing organization based on problem complexity), so activation price reflects the value of your formulation and domain expertise
+
+> **Tip:** Consider publishing a simplified version for free and a full-featured version as a paid model. This lets users try your approach before committing.
+
+## Revenue and Analytics
+
+### Revenue Split
+
+JAOT operates a **70/30 revenue model** for paid marketplace models:
+
+| Party | Share |
+|-------|-------|
+| **Model author** | 70% of the activation price |
+| **JAOT platform** | 30% of the activation price |
+
+Revenue from activations is tracked in your seller dashboard and settled according to the platform's payout schedule.
+
+### Seller Analytics
+
+The seller dashboard provides visibility into your published models' performance:
+
+| Metric | Description |
+|--------|-------------|
+| **Views** | How many times your model detail page was visited |
+| **Activations** | Total number of organizations that activated your model |
+| **Executions** | Total number of times your model was executed across all activators |
+| **Revenue** | Total and per-model earnings from paid activations |
+| **Rating** | Average user rating and individual reviews |
+
+Use these metrics to understand demand, identify opportunities for new models, and optimize your pricing.
+
+## Publishing via API
+
+You can also publish models programmatically:
+
+```python
+import httpx
+
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+response = httpx.post(
+    "https://jaot.io/api/v2/models/a3f8b2c1-1234-5678-abcd-ef0123456789/publish",
+    headers=headers,
+    json={
+        "display_name": "Warehouse Location Optimizer",
+        "description": "Finds optimal warehouse locations to minimize total shipping cost...",
+        "short_description": "Optimize warehouse placement for minimum logistics cost",
+        "category": "logistics",
+        "tags": ["warehouse", "facility-location", "logistics"],
+        "price_eur": 29.00,
+    },
+)
+
+published = response.json()
+print(f"Published: {published['display_name']} (catalog ID: {published['id']})")
+```
+
+See the [Models API reference](/docs/api/models) for the full publishing endpoint specification.
+
+## Best Practices
+
+1. **Write a thorough description.** Users decide whether to activate based on the detail page. Explain the problem, the approach, expected inputs, and what kind of results to expect.
+
+2. **Provide realistic example input.** An example that uses real-world-scale values helps users understand if the model fits their needs.
+
+3. **Choose the right category.** Accurate categorization helps users find your model through filters and improves marketplace discovery.
+
+4. **Respond to reviews.** Engage with users who leave feedback. Address issues promptly and update your model based on common requests.
+
+5. **Keep the changelog updated.** When you publish a new version, document the changes so existing users know what improved.

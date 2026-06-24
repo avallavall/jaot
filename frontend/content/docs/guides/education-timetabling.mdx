@@ -1,0 +1,186 @@
+---
+title: "Education Timetabling"
+description: "Schedule classes, rooms, and instructors to avoid conflicts"
+order: 29
+category: "education"
+difficulty: "intermediate"
+domain: "Services"
+templateCount: 1
+---
+
+# Education Timetabling
+
+Optimize class scheduling, resource allocation, and student assignment for schools and universities. A well-built timetable avoids room conflicts, respects teacher availability, and minimizes gaps in student schedules -- all while fitting within limited time slots and classrooms.
+
+## When to Use This Guide
+
+Use this guide for school and university scheduling problems:
+
+- **Course timetabling** -- assign courses to time slots so that no student or teacher has overlapping classes
+- **Room assignment** -- match courses to rooms with the right capacity and equipment (e.g., lab, lecture hall)
+- **Teacher scheduling** -- respect instructor availability windows and maximum teaching loads
+- **Student-course matching** -- assign students to course sections while balancing section sizes
+
+## Step-by-Step Walkthrough
+
+1. **List your courses.** For each course, note the number of enrolled students, required room type, and how many sessions per week it needs.
+
+2. **Define your resources.** List available rooms with capacities and time slots across the week.
+
+3. **Identify conflicts.** Courses sharing students or the same instructor cannot be scheduled at the same time. Build a conflict list.
+
+4. **Set constraints.** Room capacity must be sufficient. Each room can host at most one course per time slot. Teacher availability must be respected.
+
+5. **Choose your objective.** Minimize the total number of student schedule gaps, minimize room changes for instructors, or simply find any feasible schedule.
+
+6. **Run and interpret.** The solver returns a course-to-(room, time slot) assignment. Review for practical adjustments.
+
+## Example: University Course Scheduling
+
+Schedule 12 courses across 5 rooms and 4 daily time slots (8am, 10am, 1pm, 3pm). Each course needs exactly one slot. Rooms have different capacities. Several course pairs conflict because they share students.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+courses = [f"course_{i}" for i in range(1, 13)]
+rooms = {"room_A": 120, "room_B": 80, "room_C": 60, "room_D": 40, "room_E": 30}
+slots = ["8am", "10am", "1pm", "3pm"]
+
+# Enrollment per course
+enrollment = {f"course_{i}": 20 + i * 8 for i in range(1, 13)}
+
+# Conflicting course pairs (share students)
+conflicts = [
+    ("course_1", "course_3"), ("course_2", "course_5"),
+    ("course_4", "course_7"), ("course_6", "course_9"),
+    ("course_8", "course_10"), ("course_11", "course_12"),
+]
+
+# Binary: assign course c to room r at time slot s
+variables = [
+    {"name": f"{c}_{r}_{s}", "type": "binary"}
+    for c in courses for r in rooms for s in slots
+]
+
+# Objective: minimize unused capacity (pack courses into right-sized rooms)
+objective = {
+    "sense": "minimize",
+    "coefficients": {
+        f"{c}_{r}_{s}": max(0, rooms[r] - enrollment[c])
+        for c in courses for r in rooms for s in slots
+    },
+}
+
+constraints = []
+
+# Each course assigned to exactly one room-slot
+for c in courses:
+    constraints.append({
+        "name": f"assign_{c}",
+        "coefficients": {
+            f"{c}_{r}_{s}": 1 for r in rooms for s in slots
+        },
+        "sense": "==",
+        "rhs": 1,
+    })
+
+# Room capacity: only assign if room fits enrollment
+for c in courses:
+    for r in rooms:
+        if rooms[r] < enrollment[c]:
+            for s in slots:
+                constraints.append({
+                    "name": f"capacity_{c}_{r}_{s}",
+                    "coefficients": {f"{c}_{r}_{s}": 1},
+                    "sense": "==",
+                    "rhs": 0,
+                })
+
+# No two courses in the same room at the same time
+for r in rooms:
+    for s in slots:
+        constraints.append({
+            "name": f"room_{r}_{s}",
+            "coefficients": {f"{c}_{r}_{s}": 1 for c in courses},
+            "sense": "<=",
+            "rhs": 1,
+        })
+
+# Conflicting courses cannot share a time slot
+for (c1, c2) in conflicts:
+    for s in slots:
+        constraints.append({
+            "name": f"conflict_{c1}_{c2}_{s}",
+            "coefficients": {
+                **{f"{c1}_{r}_{s}": 1 for r in rooms},
+                **{f"{c2}_{r}_{s}": 1 for r in rooms},
+            },
+            "sense": "<=",
+            "rhs": 1,
+        })
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Total wasted capacity: {result['objective_value']:.0f} seats")
+for c in courses:
+    for r in rooms:
+        for s in slots:
+            if result['solution'][f"{c}_{r}_{s}"] > 0.5:
+                print(f"  {c} -> {r} at {s} (enrolled: {enrollment[c]}, capacity: {rooms[r]})")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/solve \
+  -H "Authorization: Bearer ok_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variables": [
+      {"name": "course_1_room_A_8am", "type": "binary"},
+      {"name": "course_1_room_A_10am", "type": "binary"},
+      {"name": "course_1_room_B_8am", "type": "binary"}
+    ],
+    "objective": {
+      "sense": "minimize",
+      "coefficients": {
+        "course_1_room_A_8am": 92,
+        "course_1_room_A_10am": 92,
+        "course_1_room_B_8am": 52
+      }
+    },
+    "constraints": [
+      {
+        "name": "assign_course_1",
+        "coefficients": {
+          "course_1_room_A_8am": 1,
+          "course_1_room_A_10am": 1,
+          "course_1_room_B_8am": 1
+        },
+        "sense": "==",
+        "rhs": 1
+      }
+    ]
+  }'
+```
+</CodeTabs>
+
+The solver places each course in the smallest room that fits its enrollment and avoids time conflicts between courses that share students.
+
+## Recommended Templates
+
+- **[Assignment Optimizer](/builder/templates/student_assignment)** -- general-purpose assignment model adaptable to course-room-slot allocation
+- **[Custom Optimization](/builder/templates/custom)** -- build a fully custom timetabling model for complex university rules
+
+## Next Steps
+
+- **[Workforce Scheduling](/docs/guides/workforce-scheduling)** (intermediate) -- apply similar assignment techniques to employee shift scheduling
+- **[Government Resource Allocation](/docs/guides/government-resources)** (beginner) -- see how resource allocation models apply to public sector budgeting

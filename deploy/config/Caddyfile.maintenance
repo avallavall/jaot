@@ -1,0 +1,17 @@
+# Phase 7.4 / D-14 — Caddy maintenance config swapped in by deploy.sh standard-rotate.
+#
+# Forces all jaot.io traffic to a 503 with Retry-After: 300. Restored to the
+# normal Caddyfile after compose up + wait_healthy + smoke tests pass. The
+# www.jaot.io redirect is preserved so browsers hitting `www.` see the same
+# 503 (after redirect) instead of a cert error during the maintenance window.
+
+jaot.io {
+    handle {
+        header Retry-After 300
+        respond "Maintenance in progress — back shortly." 503
+    }
+}
+
+www.jaot.io {
+    redir https://jaot.io{uri} permanent
+}

@@ -1,0 +1,182 @@
+category: cutting_packing
+category_display_name: Cutting & Packing
+
+templates:
+  - id: one_d_cutting_stock
+    name: 1D Cutting Stock Optimizer
+    display_name: 1D Cutting Stock
+    short_description: Cut standard-length stock material into customer orders to minimize total waste.
+    description: >
+      Determine how to cut standard-length rolls, bars, or boards into customer-ordered
+      lengths to minimize total material waste. The solver enumerates feasible cutting
+      patterns (combinations of ordered lengths that fit in one stock unit) and decides
+      how many times to use each pattern. The output shows which patterns to cut and
+      how many stock units are needed. Classic application for paper mills, steel bars,
+      and lumber.
+    scenario_description: >
+      A steel supplier cuts 12-metre standard bars into 5 customer order lengths (2m,
+      3m, 4m, 5m, 7m) with varying quantities needed. Scrap from each bar is waste.
+      The production manager wants to minimize the number of bars used.
+    category: cutting_packing
+    tags: [cutting, packing, waste, manufacturing, stock]
+    problem_type_tags: [MIP]
+    generator_type: cutting_stock
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [stock_length, orders]
+      properties:
+        stock_length: {type: number}
+        orders: {type: array}
+    input_fields:
+      - name: stock_length
+        label: Stock Length
+        type: number
+        description: Length of standard stock material
+        required: true
+        minimum: 1
+        default: 12
+      - name: orders
+        label: Customer Orders
+        type: array
+        description: Required pieces with length and quantity
+        required: true
+        items:
+          type: object
+          properties:
+            length: {type: number}
+            quantity: {type: integer}
+    example_input:
+      stock_length: 12
+      orders:
+        - {length: 2, quantity: 10}
+        - {length: 3, quantity: 8}
+        - {length: 4, quantity: 6}
+        - {length: 5, quantity: 4}
+        - {length: 7, quantity: 3}
+    is_featured: true
+    estimated_variables: 20
+    estimated_constraints: 5
+
+  - id: two_d_cutting
+    name: 2D Panel Cutting Optimizer
+    display_name: 2D Panel Cutting
+    short_description: Cut rectangular pieces from standard sheets to minimize the number of sheets used.
+    description: >
+      Plan how to cut rectangular pieces from standard-size panels (plywood, glass, sheet
+      metal) to fulfill orders while minimizing material waste. This simplified version
+      uses a bin-packing approach where each piece's area is treated as its "size" and
+      the sheet's area is the "bin capacity". For exact 2D layouts, a post-processing
+      step would generate guillotine cuts.
+    scenario_description: >
+      A glass cutting workshop receives orders for 10 rectangular glass pieces of various
+      sizes. Standard sheets are 2m x 3m (6 sqm each). The foreman wants to know the
+      minimum number of sheets to cut.
+    category: cutting_packing
+    tags: [cutting, 2d, panels, glass, waste]
+    problem_type_tags: [MIP]
+    generator_type: bin_packing
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [items, bin_capacity]
+      properties:
+        items: {type: array}
+        bin_capacity: {type: number}
+        max_bins: {type: integer}
+    input_fields:
+      - name: items
+        label: Pieces
+        type: array
+        description: Pieces to cut (size = area in sqm)
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            size: {type: number}
+      - name: bin_capacity
+        label: Sheet Area (sqm)
+        type: number
+        description: Area of each standard sheet
+        required: true
+        minimum: 1
+        default: 6
+      - name: max_bins
+        label: Maximum Sheets
+        type: integer
+        description: Maximum sheets available (0 = auto)
+        required: false
+        default: 0
+    example_input:
+      items:
+        - {name: piece_1, size: 1.5}
+        - {name: piece_2, size: 2.0}
+        - {name: piece_3, size: 0.8}
+        - {name: piece_4, size: 3.2}
+        - {name: piece_5, size: 1.2}
+        - {name: piece_6, size: 0.5}
+        - {name: piece_7, size: 2.4}
+        - {name: piece_8, size: 1.8}
+        - {name: piece_9, size: 0.9}
+        - {name: piece_10, size: 1.6}
+      bin_capacity: 6
+      max_bins: 0
+    is_featured: false
+    estimated_variables: 110
+    estimated_constraints: 20
+
+  - id: strip_packing
+    name: Strip Packing Optimizer
+    display_name: Strip Packing
+    short_description: Pack rectangular items into a strip of fixed width to minimize the total height used.
+    description: >
+      Pack a set of rectangular items into a strip of fixed width, minimizing the total
+      height (length) of material used. Items cannot overlap and cannot be rotated
+      (or optionally can). This is modelled as a resource-constrained packing problem.
+      Common in textile cutting, circuit board layout, and newspaper page design.
+    scenario_description: >
+      A fabric cutting machine has a 150 cm wide roll. Eight pattern pieces of varying
+      widths (20-60 cm) and heights (10-40 cm) must be laid out. The goal is to minimize
+      the total length of fabric consumed.
+    category: cutting_packing
+    tags: [cutting, packing, strip, layout, textile]
+    problem_type_tags: [MIP]
+    generator_type: strip_packing
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [items, strip_width]
+      properties:
+        items: {type: array}
+        strip_width: {type: number}
+    input_fields:
+      - name: items
+        label: Items
+        type: array
+        description: "Rectangular items to pack, each with a width and height"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            width: {type: number}
+            height: {type: number}
+      - name: strip_width
+        label: Strip Width
+        type: number
+        description: "Fixed width of the strip (items must fit within this width)"
+        required: true
+        default: 10
+    example_input:
+      items:
+        - {name: piece_A, width: 4, height: 3}
+        - {name: piece_B, width: 3, height: 5}
+        - {name: piece_C, width: 6, height: 2}
+        - {name: piece_D, width: 2, height: 4}
+        - {name: piece_E, width: 5, height: 3}
+        - {name: piece_F, width: 3, height: 2}
+      strip_width: 10
+    is_featured: false
+    estimated_variables: 30
+    estimated_constraints: 36

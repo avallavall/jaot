@@ -1,0 +1,139 @@
+category: textile
+category_display_name: Textile
+
+templates:
+  - id: fabric_cutting
+    name: Fabric Cutting Optimization
+    display_name: Fabric Cutting
+    short_description: Minimize fabric waste by optimizing cutting patterns for garment pieces across fabric rolls.
+    description: >
+      Determines how to cut garment pattern pieces from fabric rolls to minimize
+      total waste (trim loss). Each roll has a fixed width and length. Each garment
+      order requires specific pattern pieces in certain quantities. The model
+      selects cutting patterns and their repetition counts to fulfill all orders
+      using the fewest rolls possible. A direct application of the cutting stock
+      problem used by textile and garment manufacturers worldwide.
+    category: textile
+    tags: [textile, cutting, garment, manufacturing]
+    problem_type_tags: [MIP, cutting-stock]
+    generator_type: cutting_stock
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        roll_width:
+          type: number
+          description: Width of fabric rolls in cm
+        pieces:
+          type: array
+          description: Required pattern pieces with widths and quantities
+      required: [roll_width, pieces]
+    input_fields:
+      - name: roll_width
+        label: Roll Width (cm)
+        type: number
+        description: "Standard width of fabric rolls"
+        required: true
+        minimum: 1
+      - name: pieces
+        label: Pattern Pieces
+        type: array
+        description: "Garment pattern pieces with width (cm) and required quantity"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            width: {type: number}
+            quantity: {type: integer}
+    example_input:
+      roll_width: 150
+      pieces:
+        - {name: "Front-Panel-S", width: 45, quantity: 200}
+        - {name: "Front-Panel-M", width: 50, quantity: 350}
+        - {name: "Front-Panel-L", width: 55, quantity: 250}
+        - {name: "Sleeve-S", width: 25, quantity: 400}
+        - {name: "Sleeve-M", width: 28, quantity: 700}
+        - {name: "Sleeve-L", width: 32, quantity: 500}
+        - {name: "Collar", width: 15, quantity: 800}
+    scenario_description: >
+      A garment factory is cutting fabric for a shirt production run. The fabric
+      comes in 150 cm wide rolls. Seven different pattern pieces (front panels in
+      S/M/L, sleeves in S/M/L, and collars) must be cut in specific quantities.
+      The cutting room supervisor wants to minimize the number of fabric rolls
+      used by finding the best combination of cutting patterns.
+    is_featured: true
+    estimated_variables: 50
+    estimated_constraints: 15
+
+  - id: dye_batch_scheduling
+    name: Dye Batch Scheduling
+    display_name: Dye Batch Scheduling
+    short_description: Schedule fabric dyeing batches to minimize color changeover costs and water usage while meeting delivery deadlines.
+    description: >
+      Sequences dyeing jobs on dye machines to minimize total changeover cost.
+      Changing from a dark color to a light one requires extensive machine
+      cleaning, while light-to-dark transitions are cheaper. Each job has a
+      fabric volume, color, processing time, and delivery deadline. The model
+      assigns jobs to machines and determines their sequence to minimize
+      changeover and cleaning costs while completing all jobs on time.
+    category: textile
+    tags: [textile, dyeing, scheduling, manufacturing]
+    problem_type_tags: [MIP, scheduling]
+    generator_type: scheduling
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        jobs:
+          type: array
+          description: Dyeing jobs with colors and deadlines
+        machines:
+          type: array
+          description: Dye machines with capacity
+      required: [jobs, machines]
+    input_fields:
+      - name: jobs
+        label: Dyeing Jobs
+        type: array
+        description: "Jobs with fabric type, color, volume (kg), processing time (hours), and deadline"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            color: {type: string}
+            volume_kg: {type: number}
+            processing_hours: {type: number}
+            deadline_hour: {type: integer}
+      - name: machines
+        label: Dye Machines
+        type: array
+        description: "Machines with name and available hours"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            available_hours: {type: number}
+            capacity_kg: {type: number}
+    example_input:
+      jobs:
+        - {name: "White-Cotton-Batch", color: "white", volume_kg: 500, processing_hours: 3, deadline_hour: 24}
+        - {name: "Light-Blue-Polyester", color: "light_blue", volume_kg: 300, processing_hours: 2.5, deadline_hour: 16}
+        - {name: "Navy-Denim", color: "navy", volume_kg: 800, processing_hours: 4, deadline_hour: 24}
+        - {name: "Red-Silk", color: "red", volume_kg: 200, processing_hours: 2, deadline_hour: 12}
+        - {name: "Black-Cotton", color: "black", volume_kg: 600, processing_hours: 3.5, deadline_hour: 20}
+        - {name: "Yellow-Linen", color: "yellow", volume_kg: 250, processing_hours: 2, deadline_hour: 18}
+      machines:
+        - {name: "Jet-Dye-1", available_hours: 16, capacity_kg: 1000}
+        - {name: "Jet-Dye-2", available_hours: 16, capacity_kg: 800}
+    scenario_description: >
+      A textile dyeing plant has two jet-dye machines running 16-hour shifts. Six
+      dyeing jobs in different colors must be completed by their deadlines. The
+      plant wants to sequence jobs to minimize changeover cost -- switching from
+      dark to light colors requires a 90-minute cleaning cycle, while light-to-dark
+      needs only 30 minutes.
+    is_featured: false
+    estimated_variables: 36
+    estimated_constraints: 25

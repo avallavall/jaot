@@ -1,0 +1,237 @@
+category: maritime
+category_display_name: Maritime
+
+templates:
+  - id: vessel_scheduling
+    name: Vessel Scheduling Optimization
+    display_name: Vessel Scheduling
+    short_description: Schedule cargo vessels across ports and time windows to maximize utilization and minimize voyage costs.
+    description: >
+      Assigns cargo shipments to vessels and determines sailing schedules across
+      a set of ports. Each vessel has a capacity, speed, and daily operating cost.
+      Each shipment has an origin port, destination port, deadline, and revenue.
+      The model maximizes total profit (revenue minus operating and fuel costs)
+      while ensuring every accepted shipment is delivered on time and no vessel
+      exceeds its cargo capacity. Used by tramp shipping companies and freight
+      brokers.
+    category: maritime
+    tags: [maritime, shipping, vessel-scheduling, logistics]
+    problem_type_tags: [MIP, scheduling]
+    generator_type: scheduling
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        vessels:
+          type: array
+          description: Available vessels with capacity and costs
+        shipments:
+          type: array
+          description: Cargo shipments with origins, destinations, and deadlines
+        time_horizon:
+          type: integer
+          description: Planning horizon in days
+      required: [vessels, shipments, time_horizon]
+    input_fields:
+      - name: vessels
+        label: Vessels
+        type: array
+        description: "Vessels with name, capacity (TEU), daily operating cost, and home port"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            capacity_teu: {type: integer}
+            daily_cost: {type: number}
+            home_port: {type: string}
+      - name: shipments
+        label: Cargo Shipments
+        type: array
+        description: "Shipments with origin, destination, volume (TEU), revenue, and deadline (day)"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            origin: {type: string}
+            destination: {type: string}
+            volume_teu: {type: integer}
+            revenue: {type: number}
+            deadline_day: {type: integer}
+      - name: time_horizon
+        label: Time Horizon (days)
+        type: integer
+        description: "Number of days in the planning window"
+        required: true
+        minimum: 1
+    example_input:
+      vessels:
+        - {name: "MV Pacific Star", capacity_teu: 500, daily_cost: 15000, home_port: "Singapore"}
+        - {name: "MV Atlantic Dawn", capacity_teu: 400, daily_cost: 12000, home_port: "Rotterdam"}
+        - {name: "MV Indian Ocean", capacity_teu: 350, daily_cost: 11000, home_port: "Dubai"}
+      shipments:
+        - {name: "Electronics-SG-RT", origin: "Singapore", destination: "Rotterdam", volume_teu: 200, revenue: 180000, deadline_day: 25}
+        - {name: "Machinery-RT-DB", origin: "Rotterdam", destination: "Dubai", volume_teu: 150, revenue: 95000, deadline_day: 15}
+        - {name: "Textiles-DB-SG", origin: "Dubai", destination: "Singapore", volume_teu: 180, revenue: 110000, deadline_day: 20}
+        - {name: "Auto-Parts-SG-DB", origin: "Singapore", destination: "Dubai", volume_teu: 120, revenue: 85000, deadline_day: 12}
+        - {name: "Chemicals-RT-SG", origin: "Rotterdam", destination: "Singapore", volume_teu: 250, revenue: 200000, deadline_day: 30}
+        - {name: "Food-DB-RT", origin: "Dubai", destination: "Rotterdam", volume_teu: 100, revenue: 70000, deadline_day: 18}
+      time_horizon: 30
+    scenario_description: >
+      A tramp shipping company operates three cargo vessels positioned at
+      Singapore, Rotterdam, and Dubai. Six cargo shipments need to be moved
+      between these ports within a 30-day window. Each shipment has a deadline
+      and revenue value. The company must decide which shipments to accept and
+      assign to which vessel to maximize profit after operating costs.
+    is_featured: false
+    estimated_variables: 18
+    estimated_constraints: 25
+
+  - id: container_loading
+    name: Container Loading Optimization
+    display_name: Container Loading
+    short_description: Pack cargo items into shipping containers to maximize space utilization while respecting weight limits and stacking rules.
+    description: >
+      Decides which cargo items to load into a set of shipping containers. Each
+      item has dimensions, weight, a value (priority or revenue), and stacking
+      constraints. Each container has volume and weight limits. The model maximizes
+      total loaded value while ensuring no container exceeds its weight or volume
+      capacity. Helps freight forwarders and terminal operators reduce the number
+      of containers needed and improve loading efficiency.
+    category: maritime
+    tags: [maritime, container, loading, bin-packing]
+    problem_type_tags: [MIP, bin-packing]
+    generator_type: bin_packing
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        items:
+          type: array
+          description: Cargo items to load
+        containers:
+          type: array
+          description: Available containers with capacity
+      required: [items, containers]
+    input_fields:
+      - name: items
+        label: Cargo Items
+        type: array
+        description: "Items with name, volume (m3), weight (kg), and value"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            volume: {type: number}
+            weight: {type: number}
+            value: {type: number}
+      - name: containers
+        label: Containers
+        type: array
+        description: "Containers with name, max volume (m3), and max weight (kg)"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            max_volume: {type: number}
+            max_weight: {type: number}
+    example_input:
+      items:
+        - {name: "Pallet-Electronics-A", volume: 3.2, weight: 450, value: 8500}
+        - {name: "Pallet-Electronics-B", volume: 2.8, weight: 380, value: 7200}
+        - {name: "Crate-Machinery", volume: 8.5, weight: 2200, value: 12000}
+        - {name: "Drums-Chemicals", volume: 4.0, weight: 1800, value: 5500}
+        - {name: "Bags-Textiles-A", volume: 6.0, weight: 350, value: 3200}
+        - {name: "Bags-Textiles-B", volume: 5.5, weight: 320, value: 2900}
+        - {name: "Cartons-Food", volume: 7.2, weight: 900, value: 4100}
+        - {name: "Pallet-Auto-Parts", volume: 4.5, weight: 1500, value: 6800}
+        - {name: "Rolls-Paper", volume: 5.0, weight: 1100, value: 2500}
+        - {name: "Boxes-Pharmaceuticals", volume: 1.5, weight: 200, value: 15000}
+      containers:
+        - {name: "40ft-Standard-1", max_volume: 67.5, max_weight: 26500}
+        - {name: "40ft-Standard-2", max_volume: 67.5, max_weight: 26500}
+        - {name: "20ft-Standard-1", max_volume: 33.0, max_weight: 21500}
+    scenario_description: >
+      A freight forwarder needs to load ten cargo consignments into three
+      available containers (two 40-foot and one 20-foot) at a port terminal.
+      Items range from lightweight textiles to heavy machinery. The forwarder
+      wants to maximize the total value of loaded cargo while respecting each
+      container's volume and weight limits.
+    is_featured: false
+    estimated_variables: 30
+    estimated_constraints: 16
+
+  - id: port_berth_allocation
+    name: Port Berth Allocation
+    display_name: Berth Allocation
+    short_description: Assign arriving vessels to port berths to minimize total waiting and handling time.
+    description: >
+      Schedules vessel arrivals to available berths at a container port. Each
+      vessel has an expected arrival time, a handling duration (based on cargo
+      volume), a draft requirement, and a preferred berth. Each berth has a
+      depth limit and crane availability. The model minimizes total vessel
+      turnaround time (waiting + handling) while preventing berth conflicts
+      and ensuring draft compatibility. A key operational planning problem
+      for port authorities.
+    category: maritime
+    tags: [maritime, port, berth-allocation, operations]
+    problem_type_tags: [MIP, scheduling]
+    generator_type: scheduling
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        vessels:
+          type: array
+          description: Arriving vessels with timing and requirements
+        berths:
+          type: array
+          description: Available berths with characteristics
+      required: [vessels, berths]
+    input_fields:
+      - name: vessels
+        label: Vessels
+        type: array
+        description: "Vessels with name, arrival time, handling hours, and draft"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            arrival_hour: {type: integer}
+            handling_hours: {type: integer}
+            draft_m: {type: number}
+      - name: berths
+        label: Berths
+        type: array
+        description: "Berths with name, max draft, and crane count"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            max_draft_m: {type: number}
+            cranes: {type: integer}
+    example_input:
+      vessels:
+        - {name: "MSC Harmony", arrival_hour: 0, handling_hours: 12, draft_m: 14.5}
+        - {name: "Maersk Line", arrival_hour: 2, handling_hours: 18, draft_m: 15.0}
+        - {name: "CMA CGM Atlas", arrival_hour: 5, handling_hours: 10, draft_m: 12.0}
+        - {name: "Evergreen Star", arrival_hour: 8, handling_hours: 14, draft_m: 13.5}
+        - {name: "COSCO Beijing", arrival_hour: 10, handling_hours: 16, draft_m: 14.0}
+      berths:
+        - {name: "Berth-A (Deep)", max_draft_m: 16.0, cranes: 4}
+        - {name: "Berth-B (Medium)", max_draft_m: 14.0, cranes: 3}
+        - {name: "Berth-C (Shallow)", max_draft_m: 13.0, cranes: 2}
+    scenario_description: >
+      A container terminal has three berths of varying depth and crane
+      availability. Five container vessels are expected to arrive over a 10-hour
+      window, each with different draft requirements and cargo volumes. The port
+      planner needs to assign vessels to berths and schedule service times to
+      minimize total vessel turnaround time.
+    is_featured: false
+    estimated_variables: 15
+    estimated_constraints: 12

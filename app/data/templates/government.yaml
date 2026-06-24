@@ -1,0 +1,258 @@
+category: government
+category_display_name: Government
+
+templates:
+  - id: public_facility_location
+    name: Public Facility Location Planning
+    display_name: Facility Location
+    short_description: Determine optimal locations for public facilities (schools, hospitals, fire stations) to maximize population coverage equity.
+    description: >
+      Selects sites for new public facilities from candidate locations to ensure
+      equitable access for all communities. Each candidate site has a construction
+      cost and serves surrounding population zones within a distance threshold.
+      The model minimizes total cost (or maximizes coverage) while ensuring no
+      community is farther than a maximum acceptable distance from at least one
+      facility. Incorporates equity constraints so that underserved areas are
+      prioritized. Used by municipal planners for schools, clinics, fire stations,
+      and libraries.
+    category: government
+    tags: [government, urban-planning, facility-location, public-services]
+    problem_type_tags: [MIP, facility-location]
+    generator_type: facility_location
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        candidate_sites:
+          type: array
+          description: Potential facility locations with costs
+        communities:
+          type: array
+          description: Population zones needing service
+        coverage_radius:
+          type: number
+          description: Maximum acceptable service distance
+      required: [candidate_sites, communities]
+    input_fields:
+      - name: candidate_sites
+        label: Candidate Sites
+        type: array
+        description: "Sites with name, construction cost, and capacity"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            cost: {type: number}
+            capacity: {type: integer}
+      - name: communities
+        label: Communities
+        type: array
+        description: "Population zones with name and population count"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            population: {type: integer}
+            underserved: {type: boolean}
+      - name: max_facilities
+        label: Maximum Facilities
+        type: integer
+        description: "Budget constraint on number of facilities to open"
+        required: false
+        minimum: 1
+    example_input:
+      candidate_sites:
+        - {name: "Central Park Site", cost: 2500000, capacity: 800}
+        - {name: "Eastside Lot", cost: 1800000, capacity: 600}
+        - {name: "Northgate Mall (retrofit)", cost: 1200000, capacity: 500}
+        - {name: "Riverside Plot", cost: 2100000, capacity: 700}
+        - {name: "Southend Vacant Land", cost: 1500000, capacity: 650}
+      communities:
+        - {name: "Downtown Core", population: 15000, underserved: false}
+        - {name: "East District", population: 22000, underserved: true}
+        - {name: "North Hills", population: 18000, underserved: false}
+        - {name: "Riverside Ward", population: 12000, underserved: true}
+        - {name: "South Flats", population: 20000, underserved: true}
+        - {name: "West End", population: 9000, underserved: false}
+      max_facilities: 3
+    scenario_description: >
+      A city council has budget to build three new community health clinics. Five
+      candidate sites have been identified across the city, each with different
+      construction costs and capacities. Six residential communities need service,
+      with three currently designated as underserved. The planning department wants
+      to choose three sites that maximize population coverage, prioritizing
+      underserved communities.
+    is_featured: true
+    estimated_variables: 5
+    estimated_constraints: 8
+
+  - id: emergency_response_allocation
+    name: Emergency Response Resource Allocation
+    display_name: Emergency Response
+    short_description: Allocate emergency response units to zones to ensure every area is covered within response time targets.
+    description: >
+      Positions emergency response units (ambulances, fire engines, police cars)
+      across stations to ensure every zone in the jurisdiction can be reached
+      within a target response time. Each station has a capacity for units, and
+      each zone has a demand rate for emergencies. The model minimizes total
+      deployment cost while ensuring coverage requirements are met -- every zone
+      must be reachable by at least one unit within the response time, and
+      high-demand zones need backup coverage. A set-covering formulation used
+      by emergency management agencies.
+    category: government
+    tags: [government, emergency, public-safety, resource-allocation]
+    problem_type_tags: [MIP, covering]
+    generator_type: covering
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        stations:
+          type: array
+          description: Emergency stations with capacity and costs
+        zones:
+          type: array
+          description: Response zones with demand rates
+        coverage_matrix:
+          type: array
+          description: Which stations can reach which zones in time
+      required: [stations, zones, coverage_matrix]
+    input_fields:
+      - name: stations
+        label: Stations
+        type: array
+        description: "Stations with name, unit capacity, and annual operating cost per unit"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            capacity: {type: integer}
+            cost_per_unit: {type: number}
+      - name: zones
+        label: Response Zones
+        type: array
+        description: "Zones with name, daily emergency calls, and required coverage level"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            daily_calls: {type: number}
+            min_coverage: {type: integer}
+      - name: coverage_matrix
+        label: Coverage Matrix
+        type: array
+        description: "Station-zone pairs where response time is within target"
+        required: true
+        items:
+          type: object
+          properties:
+            station: {type: string}
+            zone: {type: string}
+            response_minutes: {type: number}
+    example_input:
+      stations:
+        - {name: "Station-Central", capacity: 3, cost_per_unit: 180000}
+        - {name: "Station-North", capacity: 2, cost_per_unit: 160000}
+        - {name: "Station-South", capacity: 2, cost_per_unit: 160000}
+        - {name: "Station-East", capacity: 2, cost_per_unit: 170000}
+        - {name: "Station-West", capacity: 2, cost_per_unit: 155000}
+      zones:
+        - {name: "Zone-A (CBD)", daily_calls: 12, min_coverage: 2}
+        - {name: "Zone-B (Industrial)", daily_calls: 5, min_coverage: 1}
+        - {name: "Zone-C (Residential-N)", daily_calls: 8, min_coverage: 1}
+        - {name: "Zone-D (Residential-S)", daily_calls: 7, min_coverage: 1}
+        - {name: "Zone-E (Suburbs-E)", daily_calls: 4, min_coverage: 1}
+        - {name: "Zone-F (Suburbs-W)", daily_calls: 3, min_coverage: 1}
+      coverage_matrix:
+        - {station: "Station-Central", zone: "Zone-A (CBD)", response_minutes: 4}
+        - {station: "Station-Central", zone: "Zone-B (Industrial)", response_minutes: 7}
+        - {station: "Station-North", zone: "Zone-A (CBD)", response_minutes: 8}
+        - {station: "Station-North", zone: "Zone-C (Residential-N)", response_minutes: 5}
+        - {station: "Station-South", zone: "Zone-A (CBD)", response_minutes: 9}
+        - {station: "Station-South", zone: "Zone-D (Residential-S)", response_minutes: 5}
+        - {station: "Station-East", zone: "Zone-B (Industrial)", response_minutes: 6}
+        - {station: "Station-East", zone: "Zone-E (Suburbs-E)", response_minutes: 7}
+        - {station: "Station-West", zone: "Zone-C (Residential-N)", response_minutes: 8}
+        - {station: "Station-West", zone: "Zone-F (Suburbs-W)", response_minutes: 5}
+        - {station: "Station-Central", zone: "Zone-D (Residential-S)", response_minutes: 9}
+        - {station: "Station-East", zone: "Zone-A (CBD)", response_minutes: 10}
+    scenario_description: >
+      A city emergency services department has five stations and needs to deploy
+      ambulance units across six response zones. The CBD zone (Zone A) has the
+      highest call volume and requires two-unit coverage. Suburban zones need at
+      least one unit within ten minutes. The department wants to position the
+      minimum number of units across stations to meet all coverage requirements
+      at the lowest annual cost.
+    is_featured: false
+    estimated_variables: 10
+    estimated_constraints: 11
+
+  - id: public_budget_allocation
+    name: Government Budget Allocation
+    display_name: Budget Allocation
+    short_description: Allocate a government budget across programs and departments to maximize public benefit within fiscal constraints.
+    description: >
+      Distributes a fixed annual budget across government programs (education,
+      healthcare, infrastructure, public safety, social services). Each program
+      has an estimated benefit score per dollar spent, a minimum funding floor,
+      and a maximum absorption capacity. The model maximizes total weighted
+      public benefit while meeting minimum funding requirements for all programs
+      and staying within the total budget. Supports participatory budgeting and
+      evidence-based fiscal planning.
+    category: government
+    tags: [government, budgeting, public-policy, fiscal-planning]
+    problem_type_tags: [LP, knapsack]
+    generator_type: knapsack
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        programs:
+          type: array
+          description: Government programs with benefit scores and funding ranges
+        total_budget:
+          type: number
+          description: Total available budget
+      required: [programs, total_budget]
+    input_fields:
+      - name: programs
+        label: Programs
+        type: array
+        description: "Programs with name, benefit per dollar, min funding, and max funding"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            benefit_per_dollar: {type: number}
+            min_funding: {type: number}
+            max_funding: {type: number}
+      - name: total_budget
+        label: Total Budget
+        type: number
+        description: "Available annual budget"
+        required: true
+        minimum: 0
+    example_input:
+      programs:
+        - {name: "Public Education", benefit_per_dollar: 3.2, min_funding: 5000000, max_funding: 15000000}
+        - {name: "Healthcare Services", benefit_per_dollar: 2.8, min_funding: 4000000, max_funding: 12000000}
+        - {name: "Road Infrastructure", benefit_per_dollar: 2.1, min_funding: 3000000, max_funding: 10000000}
+        - {name: "Public Safety", benefit_per_dollar: 2.5, min_funding: 3000000, max_funding: 8000000}
+        - {name: "Social Services", benefit_per_dollar: 3.5, min_funding: 2000000, max_funding: 7000000}
+        - {name: "Parks & Recreation", benefit_per_dollar: 1.8, min_funding: 1000000, max_funding: 4000000}
+        - {name: "Technology & Innovation", benefit_per_dollar: 2.9, min_funding: 500000, max_funding: 5000000}
+      total_budget: 40000000
+    scenario_description: >
+      A city government has a $40 million annual budget to allocate across seven
+      departments. Each department has a minimum funding requirement and a maximum
+      it can absorb. Independent evaluations have estimated the social benefit
+      per dollar for each program. The city council wants an allocation that
+      maximizes total public benefit within the budget.
+    is_featured: false
+    estimated_variables: 7
+    estimated_constraints: 15

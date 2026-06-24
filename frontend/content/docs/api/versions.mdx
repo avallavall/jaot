@@ -1,0 +1,397 @@
+---
+title: Versions
+description: Model version history, checkpoints, and restore
+order: 8
+---
+
+# Versions
+
+Every builder document maintains a version history. Versions are snapshots of the model canvas at a point in time. Use versions to track changes, restore previous states, and pin triggers to specific model definitions for reproducibility.
+
+## Overview
+
+Versions come in two types:
+
+- **Unnamed checkpoints** -- automatic snapshots created as you work. Subject to retention pruning.
+- **Named versions** -- promoted checkpoints with a name and description. Never pruned.
+
+When you pin a trigger to a version, that version is automatically promoted to named status to prevent it from being pruned.
+
+> **Info:** Each execution records the model version used, enabling audit trails. You can always trace a solve result back to the exact model definition that produced it.
+
+---
+
+## List versions
+
+```
+GET /api/v2/builder/{document_id}/versions
+```
+
+Returns the version history for a builder document, newest first. Response omits the full `canvas_json` for performance -- use the single-version endpoint to retrieve it.
+
+**Authentication:** API key (organization scope)
+
+### Query parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `skip` | int | 0 | Number of versions to skip |
+| `limit` | int | 50 | Maximum versions to return |
+
+<CodeTabs>
+```python
+import requests
+
+response = requests.get(
+    "https://jaot.io/api/v2/builder/doc_abc123/versions",
+    headers={"Authorization": "Bearer ok_live_..."},
+    params={"limit": 10}
+)
+
+versions = response.json()
+for v in versions:
+    label = v.get("version_name") or f"Checkpoint #{v['sequence']}"
+    print(f"{label} -- {v['created_at']}")
+```
+
+```bash
+curl "https://jaot.io/api/v2/builder/doc_abc123/versions?limit=10" \
+  -H "Authorization: Bearer ok_live_..."
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/builder/doc_abc123/versions?limit=10",
+  { headers: { "Authorization": "Bearer ok_live_..." } }
+);
+
+const versions = await response.json();
+versions.forEach((v) => {
+  console.log(`${v.version_name || `Checkpoint #${v.sequence}`} -- ${v.created_at}`);
+});
+```
+</CodeTabs>
+
+### Response (200)
+
+```json
+[
+  {
+    "id": "ver_def456",
+    "document_id": "doc_abc123",
+    "organization_id": "org_b7e4d1a0",
+    "sequence": 12,
+    "is_named": true,
+    "version_name": "Production v2.1",
+    "version_description": "Added capacity constraint for warehouse B",
+    "change_summary": "Modified 2 constraints, added 1 variable",
+    "created_at": "2026-02-18T14:30:00Z"
+  },
+  {
+    "id": "ver_ghi789",
+    "document_id": "doc_abc123",
+    "organization_id": "org_b7e4d1a0",
+    "sequence": 11,
+    "is_named": false,
+    "version_name": null,
+    "version_description": null,
+    "change_summary": "Added 1 constraint",
+    "created_at": "2026-02-18T14:25:00Z"
+  }
+]
+```
+
+### Response fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Version ID (e.g., `ver_def456`) |
+| `document_id` | string | Parent builder document |
+| `sequence` | int | Auto-incrementing sequence number |
+| `is_named` | boolean | Whether this is a named (permanent) version |
+| `version_name` | string | Name (null for unnamed checkpoints) |
+| `version_description` | string | Optional description |
+| `change_summary` | string | Auto-generated summary of changes from previous version |
+| `created_at` | string | ISO 8601 timestamp |
+
+---
+
+## Get a version
+
+```
+GET /api/v2/builder/{document_id}/versions/{version_id}
+```
+
+Returns a single version including the full `canvas_json` snapshot.
+
+**Authentication:** API key (organization scope)
+
+<CodeTabs>
+```python
+response = requests.get(
+    "https://jaot.io/api/v2/builder/doc_abc123/versions/ver_def456",
+    headers={"Authorization": "Bearer ok_live_..."},
+)
+version = response.json()
+print(f"{version['version_name']}: {version['change_summary']}")
+```
+
+```bash
+curl https://jaot.io/api/v2/builder/doc_abc123/versions/ver_def456 \
+  -H "Authorization: Bearer ok_live_..."
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/builder/doc_abc123/versions/ver_def456",
+  { headers: { "Authorization": "Bearer ok_live_..." } }
+);
+const version = await response.json();
+console.log(`${version.version_name}: ${version.change_summary}`);
+```
+</CodeTabs>
+
+### Response (200)
+
+```json
+{
+  "id": "ver_def456",
+  "document_id": "doc_abc123",
+  "organization_id": "org_b7e4d1a0",
+  "sequence": 12,
+  "is_named": true,
+  "version_name": "Production v2.1",
+  "version_description": "Added capacity constraint for warehouse B",
+  "canvas_json": { "nodes": [...], "edges": [...] },
+  "model_json": { "variables": [...], "constraints": [...], "objective": {...} },
+  "change_summary": "Modified 2 constraints, added 1 variable",
+  "created_at": "2026-02-18T14:30:00Z"
+}
+```
+
+---
+
+## Create a checkpoint
+
+```
+POST /api/v2/builder/{document_id}/versions
+```
+
+Snapshot the current canvas state as an unnamed checkpoint. If the canvas is unchanged since the last checkpoint, the existing version is returned without creating a duplicate.
+
+**Authentication:** API key (organization scope)
+
+### Request body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `canvas_json` | object | Yes | Current canvas state to snapshot |
+
+<CodeTabs>
+```python
+response = requests.post(
+    "https://jaot.io/api/v2/builder/doc_abc123/versions",
+    headers={"Authorization": "Bearer ok_live_..."},
+    json={
+        "canvas_json": {
+            "nodes": [
+                {"id": "n1", "type": "variable", "data": {"name": "widgets"}}
+            ],
+            "edges": []
+        }
+    }
+)
+
+version = response.json()
+print(f"Checkpoint created: {version['id']} (sequence #{version['sequence']})")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/builder/doc_abc123/versions \
+  -H "Authorization: Bearer ok_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"canvas_json": {"nodes": [], "edges": []}}'
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/builder/doc_abc123/versions",
+  {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer ok_live_...",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      canvas_json: {
+        nodes: [{ id: "n1", type: "variable", data: { name: "widgets" } }],
+        edges: [],
+      },
+    }),
+  }
+);
+const version = await response.json();
+console.log(`Checkpoint: ${version.id} (sequence #${version.sequence})`);
+```
+</CodeTabs>
+
+### Response (201 Created)
+
+```json
+{
+  "id": "ver_new123",
+  "document_id": "doc_abc123",
+  "sequence": 13,
+  "is_named": false,
+  "version_name": null,
+  "canvas_json": { "nodes": [...], "edges": [...] },
+  "change_summary": "Added 1 node",
+  "created_at": "2026-02-19T09:00:00Z"
+}
+```
+
+---
+
+## Promote to named version
+
+```
+PATCH /api/v2/builder/{document_id}/versions/{version_id}
+```
+
+Assign a name and optional description to an existing checkpoint. Named versions are never pruned by the retention policy.
+
+**Authentication:** API key (organization scope)
+
+### Request body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `version_name` | string | Yes | Name for the version |
+| `version_description` | string | No | Optional description |
+
+<CodeTabs>
+```python
+response = requests.patch(
+    "https://jaot.io/api/v2/builder/doc_abc123/versions/ver_ghi789",
+    headers={"Authorization": "Bearer ok_live_..."},
+    json={
+        "version_name": "Before Q1 changes",
+        "version_description": "Stable version before adding seasonal constraints"
+    }
+)
+
+version = response.json()
+print(f"Promoted: {version['version_name']} (is_named={version['is_named']})")
+```
+
+```bash
+curl -X PATCH \
+  https://jaot.io/api/v2/builder/doc_abc123/versions/ver_ghi789 \
+  -H "Authorization: Bearer ok_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"version_name": "Before Q1 changes"}'
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/builder/doc_abc123/versions/ver_ghi789",
+  {
+    method: "PATCH",
+    headers: {
+      "Authorization": "Bearer ok_live_...",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      version_name: "Before Q1 changes",
+      version_description: "Stable version before adding seasonal constraints",
+    }),
+  }
+);
+const version = await response.json();
+console.log(`Promoted: ${version.version_name} (is_named=${version.is_named})`);
+```
+</CodeTabs>
+
+---
+
+## Restore a version
+
+```
+POST /api/v2/builder/{document_id}/versions/{version_id}/restore
+```
+
+Restore the document canvas to a previous version. Before applying the restore, a safety checkpoint of the current canvas is automatically created so you can undo the restore if needed.
+
+**Authentication:** API key (organization scope)
+
+### Request body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `current_canvas_json` | object | Yes | Current canvas state (used for safety checkpoint) |
+
+<CodeTabs>
+```python
+response = requests.post(
+    "https://jaot.io/api/v2/builder/doc_abc123/versions/ver_def456/restore",
+    headers={"Authorization": "Bearer ok_live_..."},
+    json={
+        "current_canvas_json": current_canvas  # your current canvas state
+    }
+)
+
+result = response.json()
+print(f"Restored! Safety checkpoint: {result['checkpoint_id']}")
+print(f"Document updated: {result['document']['id']}")
+```
+
+```bash
+curl -X POST \
+  https://jaot.io/api/v2/builder/doc_abc123/versions/ver_def456/restore \
+  -H "Authorization: Bearer ok_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"current_canvas_json": {"nodes": [], "edges": []}}'
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/builder/doc_abc123/versions/ver_def456/restore",
+  {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer ok_live_...",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      current_canvas_json: { nodes: [], edges: [] },
+    }),
+  }
+);
+const result = await response.json();
+console.log(`Restored! Safety checkpoint: ${result.checkpoint_id}`);
+```
+</CodeTabs>
+
+### Response (200)
+
+```json
+{
+  "checkpoint_id": "ver_safety_abc",
+  "document": {
+    "id": "doc_abc123",
+    "organization_id": "org_b7e4d1a0",
+    "name": "Warehouse Optimizer",
+    "canvas_json": { "nodes": [...], "edges": [...] },
+    "model_json": { "variables": [...], "constraints": [...] },
+    "is_active": true,
+    "created_at": "2026-01-10T09:00:00Z",
+    "updated_at": "2026-02-19T09:15:00Z"
+  }
+}
+```
+
+### Errors
+
+| Status | Description |
+|--------|-------------|
+| 404 | Document or version not found |

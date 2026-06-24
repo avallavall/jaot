@@ -1,0 +1,277 @@
+---
+title: MCP Overview
+description: Connect AI agents to JAOT's optimization tools using the Model Context Protocol
+order: 1
+---
+
+# MCP Integration
+
+JAOT exposes its optimization capabilities through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/), allowing AI agents and LLM-powered applications to discover and use optimization tools without custom integration code.
+
+## What is MCP?
+
+The Model Context Protocol is an open standard that lets AI applications discover and call external tools. Instead of writing bespoke API integrations, an MCP client (such as Claude Desktop, Cursor, or any compatible agent) connects to an MCP server and automatically discovers the tools it provides.
+
+For JAOT, this means any MCP-compatible AI assistant can:
+
+- Solve optimization problems by describing them in conversation
+- Browse the template library and marketplace
+- Execute activated models with user data
+- Check credit balances and execution results
+
+## Connecting to JAOT via MCP
+
+JAOT runs an MCP server at the `/mcp` endpoint using HTTP (Streamable HTTP) transport.
+
+**Endpoint:**
+
+```
+https://jaot.io/mcp
+```
+
+The MCP endpoint is publicly accessible — no authentication is needed to connect and discover tools. Individual tools that modify data or consume credits require a Bearer API key, which is passed as a header on tool invocations.
+
+> **Self-hosters:** replace `https://jaot.io/mcp` with `http://localhost:8001/mcp` or your own domain.
+
+## Client setup
+
+### Claude Code (CLI)
+
+Use `claude mcp add` with the `--transport http` flag:
+
+```bash
+claude mcp add --transport http jaot https://jaot.io/mcp \
+  --header "Authorization: Bearer ok_live_your_key_here"
+```
+
+To browse templates and the marketplace without authenticating, omit the `--header` flag — those tools work without a key.
+
+### Claude Desktop
+
+Claude Desktop does not support remote HTTP servers via `claude_desktop_config.json` directly. Add JAOT through the **Settings → Connectors** UI at [claude.ai/settings/connectors](https://claude.ai/settings/connectors):
+
+1. Click **Add custom connector**
+2. Enter `https://jaot.io/mcp`
+3. Complete any authentication prompts
+
+If you prefer to use the config file with the `mcp-remote` bridge (requires Node.js):
+
+```json
+{
+  "mcpServers": {
+    "jaot": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://jaot.io/mcp",
+        "--header",
+        "Authorization: Bearer ok_live_your_key_here"
+      ]
+    }
+  }
+}
+```
+
+After saving, restart Claude Desktop.
+
+### opencode
+
+Add JAOT to your `opencode.json` (or `opencode.jsonc`) config file:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "jaot": {
+      "type": "remote",
+      "url": "https://jaot.io/mcp",
+      "enabled": true,
+      "headers": {
+        "Authorization": "Bearer ok_live_your_key_here"
+      }
+    }
+  }
+}
+```
+
+### OpenAI (Responses API)
+
+Pass JAOT as an MCP tool in the `tools` array of a Responses API request:
+
+```json
+{
+  "model": "gpt-4o",
+  "tools": [
+    {
+      "type": "mcp",
+      "server_label": "jaot",
+      "server_url": "https://jaot.io/mcp",
+      "headers": {
+        "Authorization": "Bearer ok_live_your_key_here"
+      },
+      "require_approval": "never"
+    }
+  ],
+  "input": "List the available optimization templates."
+}
+```
+
+Omit `headers` (or the `Authorization` entry) to use only the public catalog and marketplace browse tools.
+
+### Cursor
+
+Create or edit `.cursor/mcp.json` in your project (or `~/.cursor/mcp.json` for global):
+
+```json
+{
+  "mcpServers": {
+    "jaot": {
+      "url": "https://jaot.io/mcp",
+      "headers": {
+        "Authorization": "Bearer ok_live_your_key_here"
+      }
+    }
+  }
+}
+```
+
+### VS Code (GitHub Copilot)
+
+Create or edit `.vscode/mcp.json` in your workspace. VS Code uses a `"servers"` root key (not `"mcpServers"`) and requires `"type": "http"` for remote servers:
+
+```json
+{
+  "servers": {
+    "jaot": {
+      "type": "http",
+      "url": "https://jaot.io/mcp",
+      "headers": {
+        "Authorization": "Bearer ok_live_your_key_here"
+      }
+    }
+  }
+}
+```
+
+## Available Tools
+
+JAOT exposes **17 MCP tools** organized into six categories:
+
+### Solve Tools
+
+| Tool | Auth | Description |
+|------|------|-------------|
+| `solve_problem` | Yes | Solve an optimization problem defined as variables, constraints, and an objective. Optionally choose a solver (`scip`, `highs`, `hexaly`) or `auto` routing |
+| `validate_problem` | Yes | Validate a problem definition without solving (no credits charged) |
+| `solve_multi_objective` | Yes | Solve a multi-objective problem and return a Pareto front |
+| `list_available_solvers` | Yes | List the solvers available to your organization and their credit multipliers |
+
+### Catalog Tools
+
+| Tool | Auth | Description |
+|------|------|-------------|
+| `list_templates` | No | List available problem templates with names, categories, and descriptions |
+| `get_template` | No | Get a specific template's details, input schema, and example input |
+| `solve_with_template` | Yes | Solve a problem using a template and user-provided input data. Optionally choose a solver or `auto` routing |
+
+### File I/O Tools
+
+| Tool | Auth | Description |
+|------|------|-------------|
+| `import_preview` | Yes | Preview how a CSV file is parsed into an optimization problem before solving |
+| `import_and_solve` | Yes | Import data from a CSV file and solve it in one step |
+
+### Marketplace Tools
+
+| Tool | Auth | Description |
+|------|------|-------------|
+| `list_catalog_models` | No | Browse published models in the marketplace |
+| `get_catalog_model` | No | Get a specific marketplace model's details |
+| `get_catalog_model_schema` | No | Get the input schema for a marketplace model |
+| `activate_catalog_model` | Yes | Activate (purchase) a marketplace model for your organization |
+
+### Execution Tools
+
+| Tool | Auth | Description |
+|------|------|-------------|
+| `execute_model` | Yes | Execute an activated model with input data |
+| `get_execution` | Yes | Retrieve execution results and status |
+| `get_execution_insights` | Yes | Get auto-generated insights (gap, solve time, quality flags) for a completed execution |
+
+### Credits Tools
+
+| Tool | Auth | Description |
+|------|------|-------------|
+| `get_credit_balance` | Yes | Check your organization's current credit balance |
+
+## Example Workflows
+
+### Solving a Problem from Scratch
+
+An AI agent using JAOT's MCP tools might follow this flow:
+
+1. **User:** "I need to optimize my delivery routes for 5 warehouses and 20 customers."
+2. **Agent** calls `solve_problem` with a vehicle routing formulation:
+
+```json
+{
+  "name": "delivery_routing",
+  "variables": [
+    {"name": "route_1_2", "type": "binary"},
+    {"name": "route_1_3", "type": "binary"}
+  ],
+  "objective": {
+    "sense": "minimize",
+    "expression": "12*route_1_2 + 8*route_1_3 + ..."
+  },
+  "constraints": [
+    {"name": "visit_customer_2", "expression": "route_1_2 + route_3_2 + route_4_2 = 1"}
+  ],
+  "options": {"time_limit_seconds": 60}
+}
+```
+
+3. The solver returns the optimal routes with the minimum total distance.
+
+### Using a Template
+
+A simpler path for well-known problem types:
+
+1. **Agent** calls `list_templates` to see what is available
+2. **Agent** calls `get_template("knapsack")` to get the input schema
+3. **User** provides item data
+4. **Agent** calls `solve_with_template("knapsack", {"capacity": 50, "items": [...]})` to get the solution
+
+### Marketplace Path
+
+For pre-built domain-specific models:
+
+1. **Agent** calls `list_catalog_models` to browse the marketplace
+2. **Agent** calls `get_catalog_model("cat_abc123")` to check model details
+3. **Agent** calls `get_catalog_model_schema("cat_abc123")` to see required inputs
+4. **Agent** calls `activate_catalog_model("cat_abc123")` to activate for the organization
+5. **Agent** calls `execute_model("orgmdl_xyz789", {"input_data": {...}})` to run it
+6. **Agent** calls `get_execution` to retrieve results
+
+## Authentication for MCP Tools
+
+Tools marked "Auth: Yes" require a valid API key. Pass your key in the MCP connection headers as shown in the configuration section above. If a tool requiring auth is called without credentials, it returns an error message explaining how to authenticate.
+
+Tools marked "Auth: No" are publicly accessible and can be used without any API key. This allows agents to browse templates and the marketplace catalog before the user decides to authenticate.
+
+## AI Discovery: llms.txt
+
+JAOT also provides standardized discovery documents for AI agents at well-known URLs:
+
+| URL | Content |
+|-----|---------|
+| `/.well-known/llms.txt` | Concise discovery document with endpoint list and MCP tool names |
+| `/.well-known/llms-full.txt` | Comprehensive documentation including authentication guide, full API reference, problem JSON schema, and optimization concepts |
+
+These documents follow the [llms.txt specification](https://llmstxt.org/) and allow AI agents to understand JAOT's capabilities without parsing HTML documentation.
+
+## Credit Consumption
+
+MCP tool calls that trigger optimization solves consume credits from your organization's balance, following the same pricing formula as direct API calls. Use `get_credit_balance` to check your balance, and the `validate_problem` tool to estimate credit cost before solving.
+
+See [Rate Limits and Credits](/docs/reference/rate-limits-credits) for the complete credit pricing formula and plan details.

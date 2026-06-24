@@ -1,0 +1,181 @@
+---
+title: "Agricultural Planning"
+description: "Optimize crop rotation, planting schedules, and resource allocation"
+order: 30
+category: "agriculture"
+difficulty: "beginner"
+domain: "Natural Resources"
+templateCount: 2
+---
+
+# Agricultural Planning
+
+Optimize crop planning, fertilizer application, and harvest scheduling to maximize yield and minimize input costs. Agricultural operations involve balancing land, water, nutrients, and labor across multiple fields and seasons -- a natural fit for optimization.
+
+## When to Use This Guide
+
+Use this guide for agricultural planning and resource allocation problems:
+
+- **Crop rotation planning** -- decide which crops to plant in each field across seasons to maintain soil health and maximize revenue
+- **Fertilizer blending** -- mix raw nutrients into a least-cost blend that meets crop-specific NPK requirements
+- **Irrigation scheduling** -- allocate limited water resources across fields based on crop needs and weather forecasts
+- **Harvest logistics** -- schedule harvesting crews and equipment across fields to minimize spoilage and transport costs
+
+## Step-by-Step Walkthrough
+
+1. **Map your fields.** Record each field's area, soil type, and current nutrient levels.
+
+2. **List candidate crops.** For each crop, note its water needs, nutrient requirements, expected yield, and market price.
+
+3. **Define constraints.** Typical constraints include total water supply, crop rotation rules (no wheat after wheat), minimum production targets for contracts, and labor availability.
+
+4. **Choose your objective.** Maximize total revenue from crop sales, minimize total fertilizer cost, or maximize yield subject to a budget cap.
+
+5. **Run and interpret.** The solver returns the optimal crop-to-field assignment for each season. Review for practical considerations like equipment compatibility.
+
+## Example: Seasonal Crop Rotation
+
+Plan crop rotation for 6 fields over 3 seasons. Each field can grow one crop per season. Three crops are available (wheat, corn, soybeans) with different revenue, water needs, and rotation rules. Total water per season is limited.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+fields = [f"field_{i}" for i in range(1, 7)]
+seasons = ["spring", "summer", "fall"]
+crops = ["wheat", "corn", "soybeans"]
+
+# Revenue per field per season for each crop
+revenue = {"wheat": 800, "corn": 1200, "soybeans": 900}
+
+# Water units needed per field per season
+water_need = {"wheat": 3, "corn": 5, "soybeans": 2}
+water_supply = 20  # Total water units per season
+
+# Binary: plant crop c in field f during season s
+variables = [
+    {"name": f"{f}_{s}_{c}", "type": "binary"}
+    for f in fields for s in seasons for c in crops
+]
+
+# Maximize total revenue
+objective = {
+    "sense": "maximize",
+    "coefficients": {
+        f"{f}_{s}_{c}": revenue[c]
+        for f in fields for s in seasons for c in crops
+    },
+}
+
+constraints = []
+
+# Each field grows exactly one crop per season
+for f in fields:
+    for s in seasons:
+        constraints.append({
+            "name": f"one_crop_{f}_{s}",
+            "coefficients": {f"{f}_{s}_{c}": 1 for c in crops},
+            "sense": "==",
+            "rhs": 1,
+        })
+
+# Water supply limit per season
+for s in seasons:
+    constraints.append({
+        "name": f"water_{s}",
+        "coefficients": {
+            f"{f}_{s}_{c}": water_need[c]
+            for f in fields for c in crops
+        },
+        "sense": "<=",
+        "rhs": water_supply,
+    })
+
+# Rotation: no wheat after wheat in the same field
+for f in fields:
+    for i in range(len(seasons) - 1):
+        s1, s2 = seasons[i], seasons[i + 1]
+        constraints.append({
+            "name": f"rotation_{f}_{s1}_{s2}",
+            "coefficients": {
+                f"{f}_{s1}_wheat": 1,
+                f"{f}_{s2}_wheat": 1,
+            },
+            "sense": "<=",
+            "rhs": 1,
+        })
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Total revenue: ${result['objective_value']:.2f}")
+for f in fields:
+    for s in seasons:
+        for c in crops:
+            if result['solution'][f"{f}_{s}_{c}"] > 0.5:
+                print(f"  {f} / {s}: {c}")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/solve \
+  -H "Authorization: Bearer ok_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variables": [
+      {"name": "field_1_spring_wheat", "type": "binary"},
+      {"name": "field_1_spring_corn", "type": "binary"},
+      {"name": "field_1_spring_soybeans", "type": "binary"}
+    ],
+    "objective": {
+      "sense": "maximize",
+      "coefficients": {
+        "field_1_spring_wheat": 800,
+        "field_1_spring_corn": 1200,
+        "field_1_spring_soybeans": 900
+      }
+    },
+    "constraints": [
+      {
+        "name": "one_crop_field_1_spring",
+        "coefficients": {
+          "field_1_spring_wheat": 1,
+          "field_1_spring_corn": 1,
+          "field_1_spring_soybeans": 1
+        },
+        "sense": "==",
+        "rhs": 1
+      },
+      {
+        "name": "water_spring",
+        "coefficients": {
+          "field_1_spring_wheat": 3,
+          "field_1_spring_corn": 5,
+          "field_1_spring_soybeans": 2
+        },
+        "sense": "<=",
+        "rhs": 20
+      }
+    ]
+  }'
+```
+</CodeTabs>
+
+The solver assigns high-revenue corn where water permits, fills the rest with soybeans or wheat, and avoids back-to-back wheat plantings in any field.
+
+## Recommended Templates
+
+- **[Fertilizer Mix Optimizer](/builder/templates/fertilizer_mixing)** -- find the least-cost fertilizer blend that meets crop nutrient requirements
+- **[Custom Optimization](/builder/templates/custom)** -- build a fully custom model for complex agronomic rules
+
+## Next Steps
+
+- **[Food & Beverage Production](/docs/guides/food-and-beverage)** (intermediate) -- connect farm output to downstream food manufacturing optimization
+- **[Water Distribution Networks](/docs/guides/water-distribution)** (intermediate) -- optimize the irrigation infrastructure that feeds your fields

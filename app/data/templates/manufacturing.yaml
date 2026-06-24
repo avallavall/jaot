@@ -1,0 +1,284 @@
+category: manufacturing
+category_display_name: Manufacturing & Production
+
+templates:
+  - id: production_planning
+    name: Production Planning Optimizer
+    display_name: Production Planning
+    short_description: Determine optimal production quantities for multiple products to maximize profit under resource constraints.
+    description: >
+      Decide how many units of each product to manufacture in order to maximize total
+      profit. Each product consumes shared resources (raw materials, labour hours,
+      machine time) and has a per-unit profit margin plus optional minimum and maximum
+      production bounds. The solver produces a production plan that respects every
+      resource limit while maximising the bottom line.
+    scenario_description: >
+      A furniture workshop produces chairs, tables, and desks. Each product requires
+      wood, labour hours, and screws in different quantities. Wood is limited to 500
+      units, labour to 200 hours, and screws to 1,000. The shop owner wants to know
+      how many of each item to make this month.
+    category: manufacturing
+    tags: [manufacturing, production, planning, profit, resources]
+    problem_type_tags: [LP]
+    generator_type: production
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [products, resources]
+      properties:
+        products: {type: array}
+        resources: {type: array}
+    input_fields:
+      - name: products
+        label: Products
+        type: array
+        description: Products to manufacture
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            profit_per_unit: {type: number}
+            min_production: {type: number, default: 0}
+            max_production: {type: number}
+      - name: resources
+        label: Resources
+        type: array
+        description: Available resources with usage per product
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            available: {type: number}
+            usage: {type: object}
+    example_input:
+      products:
+        - {name: chairs, profit_per_unit: 50, min_production: 0, max_production: 100}
+        - {name: tables, profit_per_unit: 80, min_production: 0, max_production: 60}
+        - {name: desks, profit_per_unit: 120, min_production: 10, max_production: 40}
+      resources:
+        - name: wood
+          available: 500
+          usage: {chairs: 2, tables: 5, desks: 8}
+        - name: labor_hours
+          available: 200
+          usage: {chairs: 1, tables: 2, desks: 3}
+        - name: screws
+          available: 1000
+          usage: {chairs: 8, tables: 12, desks: 20}
+    is_featured: true
+    estimated_variables: 3
+    estimated_constraints: 9
+
+  - id: job_shop_scheduling
+    name: Job Shop Scheduling Optimizer
+    display_name: Job Shop Scheduling
+    short_description: Schedule jobs across machines to minimize total completion time (makespan) while respecting processing order constraints.
+    description: >
+      Assign start times to operations of multiple jobs on multiple machines so that
+      the overall completion time (makespan) is minimized. Each job has a sequence of
+      operations, each requiring a specific machine for a specific duration. No two
+      operations can use the same machine simultaneously. The solver produces a Gantt-
+      chart-ready schedule showing when each operation starts and on which machine.
+    scenario_description: >
+      A metal shop has 3 machines (lathe, mill, drill). Four customer orders each require
+      2-3 machining operations in a fixed sequence. Processing times range from 1 to 5
+      hours. The shop foreman needs a schedule that finishes all orders as early as possible.
+    category: manufacturing
+    tags: [manufacturing, scheduling, job-shop, makespan, machines]
+    problem_type_tags: [MIP]
+    generator_type: scheduling
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [employees, shifts]
+      properties:
+        employees: {type: array}
+        shifts: {type: array}
+        objective: {type: string}
+    input_fields:
+      - name: employees
+        label: Jobs (as employees)
+        type: array
+        description: Jobs modelled as employees with processing costs
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            hourly_cost: {type: number}
+            max_hours: {type: number}
+            min_hours: {type: number}
+      - name: shifts
+        label: Machine Slots (as shifts)
+        type: array
+        description: Machine time slots modelled as shifts
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            duration_hours: {type: number}
+            min_employees: {type: integer}
+            max_employees: {type: integer}
+      - name: objective
+        label: Objective
+        type: string
+        description: Minimize cost (makespan proxy)
+        required: false
+        enum: [minimize_cost]
+        default: minimize_cost
+    example_input:
+      employees:
+        - {name: job_A, hourly_cost: 10, max_hours: 12, min_hours: 4}
+        - {name: job_B, hourly_cost: 12, max_hours: 10, min_hours: 3}
+        - {name: job_C, hourly_cost: 8, max_hours: 15, min_hours: 5}
+        - {name: job_D, hourly_cost: 15, max_hours: 8, min_hours: 2}
+      shifts:
+        - {name: lathe_morning, duration_hours: 4, min_employees: 1, max_employees: 2}
+        - {name: lathe_afternoon, duration_hours: 4, min_employees: 1, max_employees: 2}
+        - {name: mill_morning, duration_hours: 4, min_employees: 1, max_employees: 2}
+        - {name: mill_afternoon, duration_hours: 4, min_employees: 1, max_employees: 2}
+        - {name: drill_morning, duration_hours: 3, min_employees: 1, max_employees: 1}
+        - {name: drill_afternoon, duration_hours: 3, min_employees: 1, max_employees: 1}
+      objective: minimize_cost
+    is_featured: true
+    estimated_variables: 24
+    estimated_constraints: 14
+
+  - id: quality_control_sampling
+    name: Quality Control Sampling Planner
+    display_name: Quality Control Sampling
+    short_description: Choose how many items to sample from each production batch to meet defect-detection targets at minimum inspection cost.
+    description: >
+      Determine the optimal number of units to inspect from each production batch to
+      achieve a target defect detection rate while minimizing total inspection cost.
+      Each batch has a known size, an estimated defect rate, and a per-unit inspection
+      cost. The solver balances inspection effort against detection confidence.
+    scenario_description: >
+      A food manufacturer runs 5 production lines, each producing batches of 500-2000
+      units per day. Historical defect rates vary from 0.5% to 3%. Quality assurance
+      must detect at least 95% of defects across all lines with a budget of EUR 800
+      per day for inspections.
+    category: manufacturing
+    tags: [manufacturing, quality, inspection, sampling]
+    problem_type_tags: [LP]
+    generator_type: quality_control
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [batches, inspection_budget, min_detection_rate]
+      properties:
+        batches: {type: array}
+        inspection_budget: {type: number}
+        min_detection_rate: {type: number}
+        total_defects_estimate: {type: number}
+    input_fields:
+      - name: batches
+        label: Production Batches
+        type: array
+        description: "Batches to inspect with size, per-sample cost, and estimated defect rate"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            batch_size: {type: integer}
+            cost_per_sample: {type: number}
+            defect_rate: {type: number}
+      - name: inspection_budget
+        label: Inspection Budget
+        type: number
+        description: "Maximum total budget for inspection across all batches (EUR)"
+        required: true
+        default: 500
+      - name: min_detection_rate
+        label: Minimum Detection Rate
+        type: number
+        description: "Target fraction of total defects to detect (e.g., 0.8 = 80%)"
+        required: true
+        default: 0.8
+      - name: total_defects_estimate
+        label: Total Defects Estimate
+        type: number
+        description: "Estimated total defective items across all batches (optional override)"
+        required: false
+    example_input:
+      batches:
+        - {name: batch_A, batch_size: 500, cost_per_sample: 0.50, defect_rate: 0.02}
+        - {name: batch_B, batch_size: 800, cost_per_sample: 0.70, defect_rate: 0.015}
+        - {name: batch_C, batch_size: 1000, cost_per_sample: 0.60, defect_rate: 0.03}
+        - {name: batch_D, batch_size: 2000, cost_per_sample: 0.80, defect_rate: 0.01}
+        - {name: batch_E, batch_size: 600, cost_per_sample: 0.50, defect_rate: 0.025}
+      inspection_budget: 500
+      min_detection_rate: 0.8
+    is_featured: false
+    estimated_variables: 5
+    estimated_constraints: 7
+
+  - id: raw_material_purchasing
+    name: Raw Material Purchasing Optimizer
+    display_name: Raw Material Purchasing
+    short_description: Decide how much of each raw material to buy from which supplier to meet production needs at lowest total cost.
+    description: >
+      Purchase raw materials from multiple suppliers to satisfy production requirements
+      at minimum cost. Each supplier offers different prices, minimum order quantities,
+      and maximum capacities. The solver determines the optimal order quantities per
+      supplier per material, respecting all constraints. Useful for procurement planning
+      and supplier negotiation.
+    scenario_description: >
+      A plastics manufacturer needs 3 types of resin for next month's production.
+      Four suppliers offer different prices and lead times. Supplier A has a 5-tonne
+      minimum order but the best price. The purchasing manager needs to meet demand
+      of 20 tonnes total at the lowest cost.
+    category: manufacturing
+    tags: [manufacturing, procurement, purchasing, suppliers, cost]
+    problem_type_tags: [LP]
+    generator_type: procurement
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [suppliers, materials]
+      properties:
+        suppliers: {type: array}
+        materials: {type: array}
+    input_fields:
+      - name: materials
+        label: Raw Materials
+        type: array
+        description: Materials needed with demand quantities
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            demand: {type: number}
+      - name: suppliers
+        label: Suppliers
+        type: array
+        description: Suppliers with pricing per material and total capacity
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            pricing: {type: object, description: "Material name → price per unit"}
+            max_total_supply: {type: number}
+    example_input:
+      materials:
+        - {name: Resin1, demand: 12}
+        - {name: Resin2, demand: 8}
+      suppliers:
+        - name: SupplierA
+          pricing: {Resin1: 120, Resin2: 140}
+          max_total_supply: 14
+        - name: SupplierB
+          pricing: {Resin1: 130, Resin2: 135}
+          max_total_supply: 12
+        - name: SupplierC
+          pricing: {Resin1: 125, Resin2: 150}
+          max_total_supply: 15
+    is_featured: false
+    estimated_variables: 6
+    estimated_constraints: 5

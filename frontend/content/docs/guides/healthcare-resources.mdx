@@ -1,0 +1,208 @@
+---
+title: "Healthcare Resource Allocation"
+description: "Schedule staff, beds, and equipment to improve patient outcomes"
+order: 21
+category: "healthcare"
+difficulty: "intermediate"
+domain: "Healthcare & Pharma"
+templateCount: 2
+---
+
+# Healthcare Resource Allocation
+
+Optimize hospital operations including staff scheduling, patient flow, and resource allocation. Healthcare optimization builds shift rosters that satisfy skill requirements, coverage minimums, and labor fairness rules while minimizing costs or maximizing patient throughput.
+
+## When to Use This Guide
+
+Healthcare optimization applies to any medical facility managing limited resources:
+
+- **Operating room scheduling** -- Assign surgeries to rooms and time slots to maximize utilization
+- **Nurse rostering** -- Create shift schedules meeting skill mix requirements and labor regulations
+- **Ambulance routing** -- Position and dispatch ambulances to minimize response times
+- **Bed allocation** -- Assign patients to wards and beds based on acuity and availability
+- **Equipment scheduling** -- Share expensive diagnostic equipment across departments
+
+## Step-by-Step Walkthrough
+
+### 1. Define Staff and Resources
+
+List all staff members with their qualifications, availability, and shift preferences. Define rooms, beds, or equipment with their capabilities and operating hours.
+
+### 2. Set Coverage Requirements
+
+Specify minimum staffing levels per shift, per department, and per skill type. Add patient demand forecasts or surgical case lists. Define any mandatory rest periods between shifts.
+
+### 3. Add Fairness and Regulation Constraints
+
+Include maximum consecutive working days, minimum rest between shifts (e.g., 11 hours), weekend rotation fairness, and any union or regulatory requirements.
+
+### 4. Solve and Review
+
+The optimizer produces a schedule that covers all requirements while respecting constraints. Review for practical feasibility, staff satisfaction, and identify any coverage gaps that need manual adjustment.
+
+## Example: Schedule 8 Nurses Across 3 Shifts Over 7 Days
+
+Create a weekly nurse roster for 8 nurses across morning, afternoon, and night shifts. Each shift needs at least 2 nurses, and each nurse works at most 5 days per week with no consecutive night shifts.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+nurses = 8
+days = 7
+shifts = 3  # 0=morning, 1=afternoon, 2=night
+shift_names = ["morning", "afternoon", "night"]
+
+# Minimum nurses per shift
+min_coverage = [3, 2, 2]  # morning needs more staff
+# Cost per shift type (night shift premium)
+shift_cost = [100, 100, 140]
+# Max days per nurse per week
+max_days = 5
+
+variables = []
+for n in range(nurses):
+    for d in range(days):
+        for s in range(shifts):
+            variables.append({
+                "name": f"n{n}_d{d}_s{s}",
+                "type": "binary",
+            })
+
+# Minimize total staffing cost
+coefficients = {}
+for n in range(nurses):
+    for d in range(days):
+        for s in range(shifts):
+            coefficients[f"n{n}_d{d}_s{s}"] = shift_cost[s]
+
+objective = {"sense": "minimize", "coefficients": coefficients}
+
+constraints = []
+
+# Minimum coverage per shift per day
+for d in range(days):
+    for s in range(shifts):
+        constraints.append({
+            "name": f"cover_d{d}_s{s}",
+            "coefficients": {
+                f"n{n}_d{d}_s{s}": 1 for n in range(nurses)
+            },
+            "sense": ">=",
+            "rhs": min_coverage[s],
+        })
+
+# Each nurse works at most one shift per day
+for n in range(nurses):
+    for d in range(days):
+        constraints.append({
+            "name": f"one_shift_n{n}_d{d}",
+            "coefficients": {
+                f"n{n}_d{d}_s{s}": 1 for s in range(shifts)
+            },
+            "sense": "<=",
+            "rhs": 1,
+        })
+
+# Max working days per week
+for n in range(nurses):
+    constraints.append({
+        "name": f"max_days_n{n}",
+        "coefficients": {
+            f"n{n}_d{d}_s{s}": 1
+            for d in range(days)
+            for s in range(shifts)
+        },
+        "sense": "<=",
+        "rhs": max_days,
+    })
+
+# No consecutive night shifts
+for n in range(nurses):
+    for d in range(days - 1):
+        constraints.append({
+            "name": f"no_consec_night_n{n}_d{d}",
+            "coefficients": {
+                f"n{n}_d{d}_s2": 1,
+                f"n{n}_d{d+1}_s2": 1,
+            },
+            "sense": "<=",
+            "rhs": 1,
+        })
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Weekly cost: ${result['objective_value']:,.0f}")
+for d in range(days):
+    for s in range(shifts):
+        assigned = [
+            n + 1 for n in range(nurses)
+            if result['solution'].get(f"n{n}_d{d}_s{s}", 0) > 0.5
+        ]
+        print(f"  Day {d+1} {shift_names[s]}: Nurses {assigned}")
+```
+
+```json
+{
+  "variables": [
+    {"name": "n0_d0_s0", "type": "binary"},
+    {"name": "n0_d0_s1", "type": "binary"},
+    {"name": "n0_d0_s2", "type": "binary"},
+    {"name": "n1_d0_s0", "type": "binary"}
+  ],
+  "objective": {
+    "sense": "minimize",
+    "coefficients": {
+      "n0_d0_s0": 100, "n0_d0_s1": 100, "n0_d0_s2": 140,
+      "n1_d0_s0": 100
+    }
+  },
+  "constraints": [
+    {
+      "name": "cover_d0_s0",
+      "coefficients": {
+        "n0_d0_s0": 1, "n1_d0_s0": 1, "n2_d0_s0": 1,
+        "n3_d0_s0": 1, "n4_d0_s0": 1, "n5_d0_s0": 1,
+        "n6_d0_s0": 1, "n7_d0_s0": 1
+      },
+      "sense": ">=",
+      "rhs": 3
+    },
+    {
+      "name": "one_shift_n0_d0",
+      "coefficients": {"n0_d0_s0": 1, "n0_d0_s1": 1, "n0_d0_s2": 1},
+      "sense": "<=",
+      "rhs": 1
+    },
+    {
+      "name": "no_consec_night_n0_d0",
+      "coefficients": {"n0_d0_s2": 1, "n0_d1_s2": 1},
+      "sense": "<=",
+      "rhs": 1
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+Build healthcare scheduling models with these templates:
+
+- **[Employee Scheduling Optimizer](/builder/templates/employee_scheduling)** -- Pre-built shift scheduling with coverage and fairness constraints
+- **[Custom Optimization](/builder/templates/custom)** -- Full flexibility for complex healthcare resource models
+
+## Next Steps
+
+- **[Pharmaceutical Production](/docs/guides/pharmaceutical-production)** -- Optimize drug manufacturing and batch scheduling
+- **[Workforce Scheduling](/docs/guides/workforce-scheduling)** -- General-purpose employee scheduling for any industry
+- **[API Reference](/docs/api/solve)** -- Full endpoint documentation for the solve API

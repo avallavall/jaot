@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JAOT - Customer Dashboard</title>
+    <link rel="stylesheet" href="/static/css/vintage-theme.css">
+    <link rel="stylesheet" href="/static/css/dashboard.css?v=20241123">
+    <link rel="stylesheet" href="/static/css/ai-builder.css">
+    <link rel="stylesheet" href="/static/css/ai-builder-tour.css">
+    <link rel="stylesheet" href="/static/css/ai-realtime-analyzer.css">
+    <link rel="stylesheet" href="/static/css/ai-nl-input.css">
+</head>
+
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="screen">
+        <div class="login-container">
+            <h1>JAOT</h1>
+            <h2>Optimization Platform</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="apiKey">API Key</label>
+                    <input type="password" id="apiKey" placeholder="ok_test_..." required>
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+            </form>
+            <p class="help-text">
+                Don't have an API key? Contact support@jaot.io
+            </p>
+        </div>
+    </div>
+
+    <!-- Dashboard Screen -->
+    <div id="dashboardScreen" class="screen hidden">
+        <header class="app-header app-header--client">
+            <div class="app-header__top">
+                <div class="app-header__brand">
+                    <h1>JAOT</h1>
+                    <p class="app-header__subtitle">Optimization Platform</p>
+                </div>
+                <div class="app-header__actions">
+                    <button class="btn btn-logout" id="logoutBtn">Logout</button>
+                </div>
+            </div>
+            <div class="app-header__tabs">
+                <nav class="app-tabs" aria-label="Main navigation">
+                    <a href="#" class="nav-link active" data-page="overview">Overview</a>
+                    <a href="#" class="nav-link" data-page="keys">API Keys</a>
+                    <a href="#" class="nav-link" data-page="usage">Usage</a>
+                    <a href="#" class="nav-link" data-page="solver">Solve</a>
+                    <a href="#" class="nav-link" data-page="builder">AI Builder</a>
+                </nav>
+            </div>
+        </header>
+
+        <div class="container">
+            <div class="toast-container"></div>
+            <!-- Overview Page -->
+            <div id="overviewPage" class="page active">
+                <section class="hero-panel">
+                    <div class="hero-info">
+                        <h2>Welcome back!</h2>
+                        <p class="hero-lead text-small">Monitor cómo tu organización aprovecha los créditos de JAOT con un
+                            vistazo elegante.</p>
+                        <div class="hero-filters">
+                            <div class="filter-group">
+                                <label for="usageRangeStart" class="text-label">Start</label>
+                                <input type="date" id="usageRangeStart" class="filter-input vintage-select">
+                            </div>
+                            <div class="filter-group">
+                                <label for="usageRangeEnd" class="text-label">End</label>
+                                <input type="date" id="usageRangeEnd" class="filter-input vintage-select">
+                            </div>
+                            <div class="filter-buttons">
+                                <button class="btn btn-secondary" id="applyChartFiltersBtn">Apply</button>
+                                <button class="btn btn-outline" id="resetChartFiltersBtn">Reset</button>
+                            </div>
+                        </div>
+                    </div>
+                    <aside class="hero-summary">
+                        <div class="summary-row">
+                            <span class="summary-label text-label">Organization</span>
+                            <span class="summary-value" id="orgName">-</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="summary-label text-label">Plan</span>
+                            <span class="summary-value" id="orgPlan">-</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="summary-label text-label">Monthly Quota</span>
+                            <span class="summary-value" id="monthlyQuota">-</span>
+                        </div>
+                        <div class="summary-note text-small">Range: <span id="heroRangeLabel">Full history</span></div>
+                    </aside>
+                </section>
+
+                <section class="metric-deck">
+                    <article class="metric-card">
+                        <header>Credits balance</header>
+                        <div class="metric-value" id="creditsBalance">-</div>
+                        <footer><span class="metric-caption">Current balance</span></footer>
+                    </article>
+                    <article class="metric-card">
+                        <header>Total usage</header>
+                        <div class="metric-value" id="totalUsage">-</div>
+                        <footer><span class="metric-caption">Cumulative credits</span></footer>
+                    </article>
+                    <article class="metric-card">
+                        <header>Active API keys</header>
+                        <div class="metric-value" id="activeKeys">-</div>
+                        <footer><span class="metric-caption">Keys enabled</span></footer>
+                    </article>
+                    <article class="metric-card">
+                        <header>Credits used this month</header>
+                        <div class="metric-value" id="monthlyUsage">-</div>
+                        <footer><span class="metric-caption">Usage month-to-date</span></footer>
+                    </article>
+                </section>
+
+                <section class="app-section info-section">
+                    <div class="section-toolbar">
+                        <h3>Usage Breakdown by Problem Type</h3>
+                        <span class="section-subtitle text-small">Focus your optimizations where impact is higher</span>
+                    </div>
+                    <div id="usageBreakdown" class="breakdown-grid">
+                        <div class="loading-card">Loading...</div>
+                    </div>
+                </section>
+
+                <section class="app-section info-section chart-section">
+                    <div class="section-toolbar">
+                        <div>
+                            <h3>Credits Usage</h3>
+                            <p id="usageChartSubtitle" class="chart-subtitle text-small">Aggregated by day</p>
+                        </div>
+                        <div class="chart-controls">
+                            <div class="chart-control-group">
+                                <label for="usageChartGroupBy" class="text-label">Group by</label>
+                                <select id="usageChartGroupBy" class="filter-input chart-group-select vintage-select">
+                                    <option value="minute">Minute</option>
+                                    <option value="hour">Hour</option>
+                                    <option value="day" selected>Day</option>
+                                    <option value="week">Week</option>
+                                    <option value="month">Month</option>
+                                </select>
+                            </div>
+                            <div class="chart-control-group">
+                                <span class="toggle-label text-label">Problem view</span>
+                                <div id="usageChartProblemToggle" class="segmented-control" role="group"
+                                    aria-label="Usage problem grouping">
+                                    <button type="button" class="segment active" data-mode="aggregate">Combined</button>
+                                    <button type="button" class="segment" data-mode="by-problem">By Type</button>
+                                </div>
+                            </div>
+                            <div class="chart-control-group">
+                                <label for="usageChartRefreshInterval" class="text-label">Auto-refresh</label>
+                                <select id="usageChartRefreshInterval"
+                                    class="filter-input chart-refresh-select vintage-select" data-chart="usage">
+                                    <option value="off" selected>Off</option>
+                                    <option value="5s">Every 5s</option>
+                                    <option value="60s">Every 1m</option>
+                                    <option value="300s">Every 5m</option>
+                                    <option value="1800s">Every 30m</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper" style="height: 320px;">
+                        <canvas id="usageChart"></canvas>
+                    </div>
+                </section>
+
+                <section class="app-section info-section chart-section">
+                    <div class="section-toolbar">
+                        <div>
+                            <h3>Problem Type Distribution</h3>
+                            <p id="problemTypeChartSubtitle" class="chart-subtitle text-small">Request counts within selected range
+                            </p>
+                        </div>
+                        <div class="chart-controls">
+                            <div class="chart-control-group">
+                                <label for="problemTypeRefreshInterval" class="text-label">Auto-refresh</label>
+                                <select id="problemTypeRefreshInterval"
+                                    class="filter-input chart-refresh-select vintage-select" data-chart="problemType">
+                                    <option value="off" selected>Off</option>
+                                    <option value="5s">Every 5s</option>
+                                    <option value="60s">Every 1m</option>
+                                    <option value="300s">Every 5m</option>
+                                    <option value="1800s">Every 30m</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper" style="height: 300px;">
+                        <canvas id="problemTypeChart"></canvas>
+                    </div>
+                </section>
+
+                <section class="app-section info-section">
+                    <div class="section-toolbar">
+                        <h3>Recent Requests</h3>
+                        <span class="section-subtitle text-small">Latest activity up to 10 entries</span>
+                    </div>
+                    <div id="recentRequests">
+                        <p class="loading">Loading...</p>
+                    </div>
+                    <div id="recent-requests-pagination"></div>
+                </section>
+            </div>
+
+            <!-- API Keys Page -->
+            <div id="keysPage" class="page">
+                <section class="keys-hero">
+                    <div>
+                        <h2>API Keys</h2>
+                        <p class="keys-subhead text-small">Controla las credenciales con el mismo rigor que tus métricas
+                            financieras.</p>
+                        <p class="keys-note text-small">Cada llave respalda integraciones críticas y puede revocarse inmediatamente
+                            desde este panel.</p>
+                    </div>
+                    <div class="keys-stats">
+                        <div class="key-stat">
+                            <span class="label text-label">Active</span>
+                            <span class="value display-value" id="keysActiveCount">0</span>
+                        </div>
+                        <div class="key-stat">
+                            <span class="label text-label">Total</span>
+                            <span class="value display-value" id="keysTotalCount">0</span>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="keys-toolbar">
+                    <div>
+                        <p class="keys-hint text-small">Rota las llaves periódicamente y mantiene inactivas las que no necesitas.
+                        </p>
+                        <span class="keys-refresh-label text-label" id="keysRefreshedAt">Esperando actualización</span>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-outline" onclick="exportApiKeys()" title="Export to CSV">📥
+                            Export</button>
+                        <button class="btn btn-primary" id="createKeyBtn">+ Create New Key</button>
+                        <button class="btn btn-outline" id="refreshKeysBtn">Refresh List</button>
+                    </div>
+                </div>
+                <div class="filter-row" style="margin-bottom: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <div class="filter-group" style="flex: 1; min-width: 200px;">
+                        <input type="text" id="keySearch" class="form-control" placeholder="Search keys...">
+                    </div>
+                    <div class="filter-group">
+                        <label for="keyStatusFilter" class="text-label">Status</label>
+                        <select id="keyStatusFilter" class="form-control">
+                            <option value="">All Statuses</option>
+                            <option value="true">Active</option>
+                            <option value="false">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="apiKeysList" class="keys-table-wrapper">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+                <div id="api-keys-pagination"></div>
+            </div>
+
+            <!-- Usage Page -->
+            <div id="usagePage" class="page">
+                <section class="usage-hero">
+                    <div>
+                        <h2>Usage History</h2>
+                        <p class="usage-subhead text-small">Track every request with a clear snapshot of credits and outcomes.</p>
+                    </div>
+                    <div class="usage-summary-cards">
+                        <article class="usage-summary-card">
+                            <header class="text-label">Total Requests</header>
+                            <div class="summary-value display-value" id="usageTotalRequests">-</div>
+                        </article>
+                        <article class="usage-summary-card">
+                            <header class="text-label">Total Credits</header>
+                            <div class="summary-value display-value" id="usageTotalCredits">-</div>
+                        </article>
+                        <article class="usage-summary-card">
+                            <header class="text-label">Success Rate</header>
+                            <div class="summary-value display-value" id="usageSuccessRate">-</div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="usage-feed-wrapper">
+                    <header class="usage-feed-header">
+                        <h3>Recent Activity</h3>
+                        <span id="usageActivityRange" class="usage-range text-small">Latest 10 entries</span>
+                    </header>
+                    <div id="usageList" class="usage-feed">
+                        <div class="loading-card">Loading...</div>
+                    </div>
+                    <div id="usage-history-pagination"></div>
+                </section>
+            </div>
+
+            <!-- Solver Page -->
+            <div id="solverPage" class="page">
+                <section class="solver-hero">
+                    <div>
+                        <h2>Problem Solver</h2>
+                        <p class="solver-subhead text-small">Pick a vintage plugin, review the suggested payload and launch a run.
+                        </p>
+                    </div>
+                    <div class="solver-meta">
+                        <span class="solver-tag text-label">Real-time execution</span>
+                        <span class="solver-tag text-label">Credits will apply</span>
+                    </div>
+                </section>
+
+                <section class="solver-board">
+                    <aside class="solver-sidebar">
+                        <h3>Problem Types</h3>
+                        <div class="solver-type-selector">
+                            <p class="loading text-small">Loading problem types...</p>
+                        </div>
+                    </aside>
+                    <div class="solver-workspace">
+                        <div id="dynamicSolverForm"></div>
+                        <div id="solverResults" class="solver-results hidden">
+                            <h3>Results</h3>
+                            <div id="resultsContent"></div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- AI Builder Page -->
+            <div id="builderPage" class="page">
+                <section class="hero-panel">
+                    <div class="section-toolbar">
+                        <h3 class="text-serif">AI Plugin Builder</h3>
+                        <p class="hero-lead text-small">Create custom optimization plugins using our interactive wizard or choose
+                            from pre-built templates.</p>
+                    </div>
+                </section>
+
+                <section class="app-section info-section" id="nlInputSection">
+                    <div class="section-toolbar">
+                        <div>
+                            <h3>Natural Language Input (beta)</h3>
+                            <span class="section-subtitle text-small">Describe tu problema en lenguaje natural y deja que la IA extraiga objetivos, restricciones y datos clave.</span>
+                        </div>
+                        <span class="text-small" id="nlPanelTimestamp">Último análisis: ninguno</span>
+                    </div>
+
+                    <div class="nl-input-wrapper" id="nlInputPanel">
+                        <div class="nl-input-card">
+                            <div class="nl-status">
+                                <span class="nl-status-dot" id="nlStatusDot"></span>
+                                <span id="nlStatusText">Esperando una descripción detallada...</span>
+                            </div>
+                            <textarea id="nlInputTextarea" class="nl-textarea" placeholder="Ej: Necesitamos optimizar las rutas de 35 camiones que entregan en 120 tiendas. Cada camión solo puede transportar 18 pallets y todas las entregas deben completarse en 36 horas."></textarea>
+                            <div class="nl-toolbar">
+                                <button class="btn btn-primary" id="nlAnalyzeBtn">Analizar texto</button>
+                                <button class="btn btn-secondary" id="nlApplyToWizardBtn">Aplicar al wizard</button>
+                                <button class="btn btn-outline" id="nlClearBtn">Limpiar</button>
+                                <button class="btn btn-outline" id="nlDictateBtn">🎙 Dictado</button>
+                            </div>
+                            <div class="nl-alert" id="nlHintBox">
+                                Esta herramienta crea un borrador para el wizard: objetivos, categoría sugerida y datos que no debes olvidar.
+                            </div>
+                            <div class="nl-examples">
+                                <button class="nl-example-btn" data-example="Gestionamos 12 centros de distribución y 280 tiendas. Queremos minimizar el coste logístico semanal asignando rutas a 45 camiones respetando su capacidad máxima de 22 pallets y ventanas de entrega de 8 horas.">
+                                    📦 Optimización logística con camiones, ventanas y costes
+                                </button>
+                                <button class="nl-example-btn" data-example="Necesito decidir el turno óptimo de 80 operarios en tres plantas. Cada planta debe producir 1.500 unidades diarias y cumplir con descansos legales de 12 horas entre turnos.">
+                                    🏭 Planificación de turnos y capacidad
+                                </button>
+                                <button class="nl-example-btn" data-example="Distribuimos presupuesto entre 15 campañas digitales. El ROI mínimo esperado es del 18% y ningún canal puede superar el 25% del gasto total.">
+                                    💸 Asignación presupuestaria inteligente
+                                </button>
+                            </div>
+                        </div>
+                        <div class="nl-results-panel" id="nlResultsPanel">
+                            <div class="nl-results-summary">
+                                <div class="nl-tag" id="nlCategoryTag">Categoría: -</div>
+                                <div class="nl-tag" id="nlConfidenceTag">Confianza: -</div>
+                            </div>
+                            <div class="nl-section">
+                                <h5>Resumen sugerido</h5>
+                                <p id="nlSummaryText">Describe tu problema y verás aquí un resumen estructurado listo para copiar al wizard.</p>
+                            </div>
+                            <div class="nl-section">
+                                <h5>Objetivos detectados</h5>
+                                <div class="nl-pill-list" id="nlObjectivesList"></div>
+                            </div>
+                            <div class="nl-section">
+                                <h5>Restricciones</h5>
+                                <div class="nl-pill-list" id="nlConstraintsList"></div>
+                            </div>
+                            <div class="nl-section">
+                                <h5>Variables / Datos clave</h5>
+                                <div class="nl-pill-list" id="nlDataPointsList"></div>
+                            </div>
+                            <div class="nl-section">
+                                <h5>Siguientes pasos sugeridos</h5>
+                                <ul id="nlRecommendationsList" class="text-small" style="margin:0; padding-left: 1.25rem;"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Builder Tabs -->
+                <div class="tabs" style="margin: 2rem 0;">
+                    <button class="tab active" data-builder-tab="wizard">Wizard</button>
+                    <button class="tab" data-builder-tab="templates">Templates</button>
+                    <button class="tab" data-builder-tab="drafts">Drafts</button>
+                    <button class="tab" data-builder-tab="faq">FAQ</button>
+                </div>
+
+                <!-- Wizard Tab -->
+                <div id="wizardTab" class="builder-tab active">
+                    <div id="wizardContainer"></div>
+                </div>
+
+                <!-- Templates Tab -->
+                <div id="templatesTab" class="builder-tab" style="display:none;">
+                    <section class="app-section info-section">
+                        <div class="section-toolbar">
+                            <h3>Available Templates</h3>
+                            <span class="section-subtitle text-small">Start faster with pre-built optimization plugins</span>
+                        </div>
+                        <div id="templatesGallery" class="templates-grid">
+                            <p class="loading">Loading templates...</p>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Drafts Tab -->
+                <div id="draftsTab" class="builder-tab" style="display:none;">
+                    <section class="app-section info-section">
+                        <div class="section-toolbar">
+                            <h3>Your Drafts</h3>
+                            <span class="section-subtitle text-small">Review, refine, and test generated plugins</span>
+                        </div>
+
+                        <!-- Filters Section -->
+                        <div class="drafts-filters">
+                            <div class="filter-row">
+                                <div class="filter-group">
+                                    <label for="draftSearchInput" class="text-label">Search</label>
+                                    <input type="text" id="draftSearchInput"
+                                        placeholder="Search by name or description..." class="form-control" />
+                                </div>
+
+                                <div class="filter-group">
+                                    <label for="draftStatusFilter" class="text-label">Status</label>
+                                    <select id="draftStatusFilter" class="form-control">
+                                        <option value="">All Statuses</option>
+                                        <option value="draft">Draft</option>
+                                        <option value="tested">Tested</option>
+                                        <option value="validated">Validated</option>
+                                        <option value="published">Published</option>
+                                        <option value="failed">Failed</option>
+                                    </select>
+                                </div>
+
+                                <div class="filter-group">
+                                    <label for="draftCategoryFilter" class="text-label">Category</label>
+                                    <select id="draftCategoryFilter" class="form-control">
+                                        <option value="">All Categories</option>
+                                        <option value="cost">Cost Optimization</option>
+                                        <option value="performance">Performance</option>
+                                        <option value="security">Security</option>
+                                        <option value="compliance">Compliance</option>
+                                        <option value="resource">Resource Management</option>
+                                        <option value="custom">Custom</option>
+                                    </select>
+                                </div>
+
+                                <div class="filter-group">
+                                    <button id="clearFiltersBtn" class="btn btn-outline" style="margin-top: 1.5rem;">
+                                        Clear Filters
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="draftsList" class="drafts-container">
+                            <p class="loading">Loading drafts...</p>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- FAQ Tab -->
+                <div id="faqTab" class="builder-tab" style="display:none;">
+                    <section class="app-section info-section">
+                        <div class="section-toolbar">
+                            <h3>Frequently Asked Questions</h3>
+                            <span class="section-subtitle text-small">Get help building your custom plugins</span>
+                        </div>
+                        <div id="faqList" class="faq-container">
+                            <p class="loading">Loading FAQs...</p>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+
+    <!-- Create API Key Modal -->
+    <div id="createKeyModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-serif">Create New API Key
+                <button type="button" class="modal-close" onclick="closeKeyModal()">&times;</button>
+            </h2>
+            <form id="createKeyForm">
+                <div class="form-group">
+                    <label for="keyName" class="text-label">Key Name *</label>
+                    <input type="text" id="keyName" name="name" required placeholder="e.g., Production Server">
+                </div>
+                <div class="form-group">
+                    <label for="keyDescription" class="text-label">Description (Optional)</label>
+                    <textarea id="keyDescription" name="description" rows="3"
+                        placeholder="What is this key used for?"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeKeyModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Key</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Display New API Key Modal -->
+    <div id="newKeyModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-serif">API Key Created Successfully!</h2>
+            <div class="alert alert-warning" style="margin: 1rem 0;">
+                <strong>⚠️ Important:</strong> Save this API key now. You won't be able to see it again!
+            </div>
+            <div
+                style="background:#f5f5f5;padding:1rem;border-radius:8px;word-break:break-all;font-family:monospace;margin:1rem 0;">
+                <code id="newKeyDisplay" class="text-small"></code>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-secondary" onclick="copyKeyToClipboard()">Copy to Clipboard</button>
+                <button class="btn btn-primary" onclick="closeNewKeyModal()">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <script src="/static/js/shared.js?v=2"></script>
+    <script src="/static/js/core.js?v=1"></script>
+    <script src="/static/js/router.js?v=1"></script>
+    <script src="/static/js/dashboard.js?v=12"></script>
+    <script src="/static/js/dynamic-solver.js?v=8"></script>
+    <script src="/static/js/charts.js?v=6"></script>
+    <link rel="stylesheet" href="/static/css/variable-editor.css?v=1">
+    <script src="/static/js/ai-builder-utils.js"></script>
+    <script src="/static/js/variable-templates.js?v=1"></script>
+    <script src="/static/js/variable-editor.js?v=1"></script>
+    <script src="/static/js/ai-builder.js?v=3"></script>
+    <script src="/static/js/ai-builder-nl-input.js"></script>
+    <script src="/static/js/ai-builder-tour.js"></script>
+    <script src="/static/js/ai-realtime-analyzer.js"></script>
+    <script src="/static/js/router-init.js?v=2"></script>
+    <script src="/static/js/dashboard-init.js?v=1"></script>
+    
+    <!-- Tour Help Button -->
+    <button class="tour-help-button" onclick="aiBuilderTour.start()" title="Restart AI Builder Tour"></button>
+</body>
+
+</html>

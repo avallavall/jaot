@@ -1,0 +1,179 @@
+---
+title: "Real Estate Investment"
+description: "Evaluate property portfolios and optimize acquisition strategies"
+order: 10
+category: "real_estate"
+difficulty: "intermediate"
+domain: "Finance"
+templateCount: 1
+---
+
+# Real Estate Investment
+
+Real estate investment optimization **selects the best portfolio of properties** from a candidate set, balancing expected annual yield against a fixed budget and property-type diversification constraints. The example below models binary property selection: given 7 candidates with known acquisition costs and expected yields, find the subset that maximizes total annual income within a $10M budget.
+
+## Step-by-Step Walkthrough
+
+**1. Define candidate properties**
+
+List each potential investment with its acquisition cost, expected annual yield (rental income / cost), risk rating, location, and property type (residential, office, retail, industrial).
+
+**2. Set budget and financing constraints**
+
+Define your total investment budget, maximum leverage ratio, and any financing restrictions. Include transaction costs and capital improvement requirements in each property's total cost.
+
+**3. Add diversification rules**
+
+Specify portfolio constraints:
+- Maximum allocation to any single market or city
+- Minimum number of property types in the portfolio
+- Maximum concentration in any single property
+- Geographic spread requirements
+
+**4. Set the objective**
+
+Typically **maximize expected annual yield** or **maximize total portfolio value** subject to budget and diversification constraints.
+
+![Real Estate Investment in JAOT Builder](/guides/finance/real-estate-builder.png)
+
+**5. Review the recommended portfolio**
+
+The solver identifies which properties to acquire. Compare the optimized portfolio against your team's shortlist. Adjust constraints (e.g., require at least one property in a target market) and re-run to explore alternatives.
+
+## Example Parameters
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+# Select from 7 properties with a $10M budget
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": [
+        {"name": "downtown_office", "type": "binary"},
+        {"name": "suburban_apartments", "type": "binary"},
+        {"name": "retail_plaza", "type": "binary"},
+        {"name": "industrial_warehouse", "type": "binary"},
+        {"name": "mixed_use_tower", "type": "binary"},
+        {"name": "student_housing", "type": "binary"},
+        {"name": "medical_office", "type": "binary"},
+    ],
+    "objective": {
+        "sense": "maximize",
+        "coefficients": {
+            "downtown_office": 180000,
+            "suburban_apartments": 155000,
+            "retail_plaza": 120000,
+            "industrial_warehouse": 95000,
+            "mixed_use_tower": 250000,
+            "student_housing": 110000,
+            "medical_office": 140000,
+        },
+    },
+    "constraints": [
+        {
+            "name": "total_budget",
+            "coefficients": {
+                "downtown_office": 2800000, "suburban_apartments": 2200000,
+                "retail_plaza": 1500000, "industrial_warehouse": 900000,
+                "mixed_use_tower": 4500000, "student_housing": 1800000,
+                "medical_office": 2100000
+            },
+            "sense": "<=",
+            "rhs": 10000000,
+        },
+        {
+            "name": "max_office_exposure",
+            "coefficients": {"downtown_office": 1, "medical_office": 1},
+            "sense": "<=",
+            "rhs": 1,
+        },
+        {
+            "name": "min_properties",
+            "coefficients": {
+                "downtown_office": 1, "suburban_apartments": 1,
+                "retail_plaza": 1, "industrial_warehouse": 1,
+                "mixed_use_tower": 1, "student_housing": 1,
+                "medical_office": 1
+            },
+            "sense": ">=",
+            "rhs": 3,
+        },
+    ],
+})
+result = response.json()
+
+print(f"Maximum annual yield: ${result['objective_value']:,.0f}")
+for var in result["variables"]:
+    if var["value"] > 0.5:
+        print(f"  Acquire: {var['name']}")
+```
+```json
+{
+  "variables": [
+    {"name": "downtown_office", "type": "binary"},
+    {"name": "suburban_apartments", "type": "binary"},
+    {"name": "retail_plaza", "type": "binary"},
+    {"name": "industrial_warehouse", "type": "binary"},
+    {"name": "mixed_use_tower", "type": "binary"},
+    {"name": "student_housing", "type": "binary"},
+    {"name": "medical_office", "type": "binary"}
+  ],
+  "objective": {
+    "sense": "maximize",
+    "coefficients": {
+      "downtown_office": 180000,
+      "suburban_apartments": 155000,
+      "retail_plaza": 120000,
+      "industrial_warehouse": 95000,
+      "mixed_use_tower": 250000,
+      "student_housing": 110000,
+      "medical_office": 140000
+    }
+  },
+  "constraints": [
+    {
+      "name": "total_budget",
+      "coefficients": {
+        "downtown_office": 2800000, "suburban_apartments": 2200000,
+        "retail_plaza": 1500000, "industrial_warehouse": 900000,
+        "mixed_use_tower": 4500000, "student_housing": 1800000,
+        "medical_office": 2100000
+      },
+      "sense": "<=",
+      "rhs": 10000000
+    },
+    {
+      "name": "max_office_exposure",
+      "coefficients": {"downtown_office": 1, "medical_office": 1},
+      "sense": "<=",
+      "rhs": 1
+    },
+    {
+      "name": "min_properties",
+      "coefficients": {
+        "downtown_office": 1, "suburban_apartments": 1,
+        "retail_plaza": 1, "industrial_warehouse": 1,
+        "mixed_use_tower": 1, "student_housing": 1,
+        "medical_office": 1
+      },
+      "sense": ">=",
+      "rhs": 3
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+- **[Budget Allocation Optimizer](/builder/templates/budget_allocation)** -- adapt budget allocation to property investment selection with diversification constraints
+- **[Custom Optimization](/builder/templates/custom)** -- build a real estate portfolio model with your specific properties, markets, and investment criteria
+
+## Next Steps
+
+- **[Facility Location](/docs/guides/facility-location)** -- Optimize site selection for commercial and industrial properties `intermediate`
+- **[Construction Project Planning](/docs/guides/construction-planning)** -- Plan development projects with task scheduling and crew allocation `intermediate`
+- **[Portfolio Optimization](/docs/guides/portfolio-optimization)** -- Apply similar portfolio techniques to financial asset allocation `intermediate`

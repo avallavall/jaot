@@ -1,0 +1,149 @@
+# Constraint archetypes for RAG knowledge base.
+# Each pattern is a reusable building block that the LLM can use
+# when formulating optimization problems.
+
+patterns:
+  # --- Original patterns (from research) ---
+  - id: capacity
+    name: Capacity Constraint
+    form: "sum(weight_i * x_i) <= capacity"
+    description: >
+      Ensures total resource usage does not exceed available capacity.
+      Common resource types: weight, volume, budget, time, bandwidth.
+    used_in: [knapsack, bin_packing, routing, scheduling]
+    variables: [binary, integer]
+    example: "2*workers_a + 3*workers_b <= 100"
+    pitfalls: "Ensure units are consistent across all terms."
+
+  - id: assignment_one_to_one
+    name: Assignment (One-to-One)
+    form: "sum(x_ij) == 1 for each j; sum(x_ij) <= 1 for each i"
+    description: >
+      Each task is assigned to exactly one worker, and each worker handles
+      at most one task. Foundation of assignment and matching problems.
+    used_in: [assignment, scheduling, facility_location]
+    variables: [binary]
+    example: "x_a1 + x_a2 + x_a3 == 1  (task a assigned to exactly one worker)"
+    pitfalls: "Use == for tasks (must be assigned), <= for workers (may be idle)."
+
+  # --- 10 new archetypes from expert review ---
+  - id: flow_conservation
+    name: Flow Conservation
+    form: "sum(flow_in_i) - sum(flow_out_i) = supply_or_demand_i"
+    description: >
+      At every node in a network, inflow minus outflow equals the node's
+      supply (+), demand (-), or zero (transshipment). The fundamental
+      constraint of all network flow models.
+    used_in: [network_flow, routing, transportation, supply_chain]
+    variables: [continuous, integer]
+    example: "flow_AB + flow_CB - flow_BD - flow_BE = 0  (node B is transshipment)"
+    pitfalls: "Sign convention: supply is positive, demand is negative. Source and sink nodes break the balance."
+
+  - id: precedence
+    name: Precedence / Sequencing
+    form: "start_j >= start_i + duration_i"
+    description: >
+      Task j cannot begin until task i has finished. Used in scheduling
+      and project planning to enforce temporal dependencies. Can be
+      extended with minimum/maximum lag times.
+    used_in: [scheduling, production, project_planning]
+    variables: [continuous, integer]
+    example: "start_assembly >= start_welding + 4  (assembly starts after 4h welding)"
+    pitfalls: "Ensure duration is not decision-variable-dependent unless using Big-M or indicator constraints."
+
+  - id: subtour_elimination_mtz
+    name: Subtour Elimination (MTZ)
+    form: "u_i - u_j + n * x_ij <= n - 1  for all i,j != depot"
+    description: >
+      Miller-Tucker-Zemlin formulation prevents disconnected subtours in
+      routing and TSP problems. Auxiliary variables u_i represent visit
+      order. Compact but produces weak LP relaxations.
+    used_in: [routing, tsp]
+    variables: [binary, continuous]
+    example: "u_3 - u_5 + 6 * x_35 <= 5  (6 cities, arc 3->5)"
+    pitfalls: "Weak LP relaxation — consider lazy subtour elimination cuts for large instances. u variables need bounds: 1 <= u_i <= n-1."
+
+  - id: linking_indicator
+    name: Linking / Indicator
+    form: "x_i <= M * y_i  (if y_i = 0 then x_i = 0)"
+    description: >
+      Links a continuous variable to a binary activation variable. If the
+      binary is off, the continuous is forced to zero. Foundation of
+      fixed-charge network design and facility location models.
+    used_in: [facility_location, lot_sizing, network_design]
+    variables: [binary, continuous]
+    example: "production_A <= 10000 * open_A  (produce at A only if factory is open)"
+    pitfalls: "M must be a tight upper bound on x_i. Too large M weakens the LP relaxation and causes numerical issues."
+
+  - id: disjunctive
+    name: Disjunctive (Either-Or)
+    form: "A*x <= b + M*(1-y); C*x <= d + M*y"
+    description: >
+      Exactly one of two constraints must hold. Modeled with a binary
+      variable y and Big-M. If y=1 the first constraint is active; if y=0
+      the second is active. Essential for machine non-overlap in job shop
+      scheduling.
+    used_in: [scheduling, job_shop, resource_allocation]
+    variables: [binary, continuous]
+    example: "start_A + dur_A <= start_B + M*(1-y); start_B + dur_B <= start_A + M*y"
+    pitfalls: "Requires two Big-M constraints per pair. For n jobs on one machine, O(n^2) pairs. Use time-indexed formulation for large instances."
+
+  - id: symmetry_breaking
+    name: Symmetry Breaking
+    form: "x_1 <= x_2 <= ... <= x_n  (lexicographic ordering)"
+    description: >
+      Eliminates factorial symmetric solutions where interchangeable
+      resources (vehicles, machines, bins) produce equivalent solutions
+      with different labels. Dramatically reduces branch-and-bound tree.
+    used_in: [routing, bin_packing, assignment, scheduling]
+    variables: [binary, integer]
+    example: "load_vehicle_1 >= load_vehicle_2 >= load_vehicle_3"
+    pitfalls: "Only apply to truly interchangeable resources. Asymmetric costs break the symmetry naturally."
+
+  - id: sos_reformulation
+    name: SOS1/SOS2 Reformulation
+    form: "At most k of {x_1,...,x_n} are nonzero (SOS1: k=1; SOS2: k=2 adjacent)"
+    description: >
+      Special Ordered Sets model mutual exclusivity (SOS1) or piecewise
+      linear functions (SOS2). When native SOS support is unavailable,
+      reformulate with binary variables: x_i <= M * y_i, sum(y_i) <= k.
+    used_in: [piecewise_linear, facility_location, portfolio]
+    variables: [binary, continuous]
+    example: "lambda_1 + lambda_2 + lambda_3 = 1; only two adjacent lambdas nonzero (SOS2)"
+    pitfalls: "SOS2 requires adjacency — order of variables matters. Binary reformulation adds n binary variables."
+
+  - id: semi_continuous
+    name: Semi-Continuous Variable
+    form: "x = 0  OR  L <= x <= U"
+    description: >
+      Variable is either zero or within a range [L, U]. Models minimum
+      production quantities, generator dispatch, portfolio lot sizes.
+      Reformulate as: x <= U*y, x >= L*y where y is binary.
+    used_in: [production, energy, portfolio, unit_commitment]
+    variables: [binary, continuous]
+    example: "power_gen1 = 0 OR 100 <= power_gen1 <= 500 (min output if on)"
+    pitfalls: "Some solvers (SCIP, Gurobi) support native semi-continuous variables. Check solver capabilities before reformulating."
+
+  - id: cardinality
+    name: Cardinality Constraint
+    form: "sum(y_i) <= K  where y_i = 1 if x_i > 0"
+    description: >
+      Limits the number of active choices to at most K. Used for portfolio
+      diversification, facility location (open at most K sites), and
+      feature selection.
+    used_in: [portfolio, facility_location, feature_selection]
+    variables: [binary]
+    example: "y_stock_A + y_stock_B + y_stock_C + y_stock_D <= 3 (invest in at most 3)"
+    pitfalls: "Requires linking constraints to connect y_i to x_i. See linking/indicator pattern."
+
+  - id: balancing_equity
+    name: Balancing / Equity
+    form: "max(load_i) - min(load_i) <= tolerance"
+    description: >
+      Ensures fair distribution of workload across resources. Linearize
+      by introducing auxiliary variables z_max and z_min: load_i <= z_max
+      for all i, load_i >= z_min for all i, z_max - z_min <= tolerance.
+    used_in: [scheduling, assignment, workload_distribution]
+    variables: [continuous]
+    example: "z_max - z_min <= 2  (shift hours differ by at most 2)"
+    pitfalls: "Linearized form adds 2n+1 constraints for n resources. Alternative: minimize z_max - z_min as part of the objective."

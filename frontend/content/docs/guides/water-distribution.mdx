@@ -1,0 +1,215 @@
+---
+title: "Water Distribution Networks"
+description: "Design and manage water supply, treatment, and distribution systems"
+order: 20
+category: "water_management"
+difficulty: "intermediate"
+domain: "Energy & Environment"
+templateCount: 1
+---
+
+# Water Distribution Networks
+
+Optimize water distribution networks, treatment scheduling, and resource allocation across supply systems. Water network optimization routes water from sources through treatment plants to consumption zones at minimum pumping and treatment cost while meeting quality and flow requirements.
+
+## When to Use This Guide
+
+Water optimization applies to any system that moves, treats, or distributes water:
+
+- **Water distribution** -- Route water from reservoirs and wells to neighborhoods and industrial zones
+- **Treatment plant scheduling** -- Allocate flow across treatment facilities based on capacity and cost
+- **Irrigation planning** -- Distribute water across agricultural zones based on crop needs and availability
+- **Wastewater management** -- Route wastewater to treatment plants with capacity and quality constraints
+- **Network expansion** -- Decide which pipes or pumping stations to add or upgrade
+
+## Step-by-Step Walkthrough
+
+### 1. Define the Network
+
+Map your water system as a network: sources (reservoirs, wells) connect to treatment plants, which connect to distribution zones. Each link has a flow capacity and pumping cost per unit volume.
+
+### 2. Set Quality and Flow Requirements
+
+Each distribution zone has a minimum daily water demand. Treatment plants have capacity limits and operating costs. Some zones may require higher water quality (e.g., hospital supply), adding treatment cost premiums.
+
+### 3. Add Operational Constraints
+
+Include minimum pressure requirements, pipe capacity limits, treatment plant minimum throughput (to avoid startup/shutdown cycling), and any seasonal availability restrictions on sources.
+
+### 4. Solve and Implement
+
+The optimizer determines how much water flows along each route, which treatment plants operate, and how demand is satisfied across zones. Review the solution for infrastructure bottlenecks and plan upgrades accordingly.
+
+## Example: 2 Sources, 3 Treatment Plants, 6 Distribution Zones
+
+Route water from 2 sources through 3 treatment plants to 6 zones. Minimize total pumping and treatment cost while meeting all zone demands and respecting plant capacities.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+sources = 2
+plants = 3
+zones = 6
+
+# Source capacity (million liters/day)
+source_cap = [50, 40]
+# Treatment plant capacity and cost ($/ML)
+plant_cap = [30, 25, 20]
+plant_cost = [8, 10, 12]
+# Zone demand (ML/day)
+zone_demand = [12, 8, 15, 10, 9, 11]
+
+# Pumping cost: source->plant ($/ML)
+sp_pump = [[3, 5, 4], [4, 3, 6]]
+# Pumping cost: plant->zone ($/ML)
+pz_pump = [
+    [2, 4, 3, 5, 6, 3],
+    [4, 2, 5, 3, 4, 5],
+    [3, 5, 2, 4, 3, 4],
+]
+
+variables = []
+# Source -> Plant flows
+for s in range(sources):
+    for p in range(plants):
+        variables.append({
+            "name": f"sp_{s}_{p}", "type": "continuous", "lb": 0,
+        })
+# Plant -> Zone flows
+for p in range(plants):
+    for z in range(zones):
+        variables.append({
+            "name": f"pz_{p}_{z}", "type": "continuous", "lb": 0,
+        })
+
+# Total cost = pumping (source->plant) + treatment + pumping (plant->zone)
+coefficients = {}
+for s in range(sources):
+    for p in range(plants):
+        coefficients[f"sp_{s}_{p}"] = sp_pump[s][p]
+for p in range(plants):
+    for z in range(zones):
+        coefficients[f"pz_{p}_{z}"] = plant_cost[p] + pz_pump[p][z]
+
+objective = {"sense": "minimize", "coefficients": coefficients}
+
+constraints = []
+# Source capacity
+for s in range(sources):
+    constraints.append({
+        "name": f"source_cap_{s}",
+        "coefficients": {f"sp_{s}_{p}": 1 for p in range(plants)},
+        "sense": "<=",
+        "rhs": source_cap[s],
+    })
+
+# Plant capacity
+for p in range(plants):
+    constraints.append({
+        "name": f"plant_cap_{p}",
+        "coefficients": {f"sp_{s}_{p}": 1 for s in range(sources)},
+        "sense": "<=",
+        "rhs": plant_cap[p],
+    })
+
+# Plant flow balance: inflow = outflow
+for p in range(plants):
+    coeff = {}
+    for s in range(sources):
+        coeff[f"sp_{s}_{p}"] = 1
+    for z in range(zones):
+        coeff[f"pz_{p}_{z}"] = -1
+    constraints.append({
+        "name": f"plant_balance_{p}",
+        "coefficients": coeff,
+        "sense": "==",
+        "rhs": 0,
+    })
+
+# Zone demand satisfaction
+for z in range(zones):
+    constraints.append({
+        "name": f"demand_{z}",
+        "coefficients": {f"pz_{p}_{z}": 1 for p in range(plants)},
+        "sense": ">=",
+        "rhs": zone_demand[z],
+    })
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Total daily cost: ${result['objective_value']:,.0f}")
+for p in range(plants):
+    throughput = sum(
+        result['solution'].get(f"pz_{p}_{z}", 0) for z in range(zones)
+    )
+    if throughput > 0:
+        print(f"  Plant {p+1}: {throughput:.1f} ML/day")
+for z in range(zones):
+    served = sum(
+        result['solution'].get(f"pz_{p}_{z}", 0) for p in range(plants)
+    )
+    print(f"  Zone {z+1}: {served:.1f} ML (demand: {zone_demand[z]})")
+```
+
+```json
+{
+  "variables": [
+    {"name": "sp_0_0", "type": "continuous", "lb": 0},
+    {"name": "sp_0_1", "type": "continuous", "lb": 0},
+    {"name": "pz_0_0", "type": "continuous", "lb": 0},
+    {"name": "pz_0_1", "type": "continuous", "lb": 0}
+  ],
+  "objective": {
+    "sense": "minimize",
+    "coefficients": {
+      "sp_0_0": 3, "sp_0_1": 5,
+      "pz_0_0": 10, "pz_0_1": 12
+    }
+  },
+  "constraints": [
+    {
+      "name": "source_cap_0",
+      "coefficients": {"sp_0_0": 1, "sp_0_1": 1, "sp_0_2": 1},
+      "sense": "<=",
+      "rhs": 50
+    },
+    {
+      "name": "plant_balance_0",
+      "coefficients": {
+        "sp_0_0": 1, "sp_1_0": 1,
+        "pz_0_0": -1, "pz_0_1": -1, "pz_0_2": -1,
+        "pz_0_3": -1, "pz_0_4": -1, "pz_0_5": -1
+      },
+      "sense": "==",
+      "rhs": 0
+    },
+    {
+      "name": "demand_0",
+      "coefficients": {"pz_0_0": 1, "pz_1_0": 1, "pz_2_0": 1},
+      "sense": ">=",
+      "rhs": 12
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+Build water network models with the **[Custom Optimization](/builder/templates/custom)** template. Define your sources, treatment plants, and distribution zones to create an optimal flow plan.
+
+## Next Steps
+
+- **[Environmental Resource Management](/docs/guides/environmental-management)** -- Optimize emission reduction alongside water management
+- **[Energy Grid Optimization](/docs/guides/energy-grid)** -- Apply similar network optimization to power systems
+- **[API Reference](/docs/api/solve)** -- Full endpoint documentation for the solve API

@@ -1,0 +1,241 @@
+category: retail
+category_display_name: Retail & Commerce
+
+templates:
+  - id: store_layout
+    name: Store Layout Optimizer
+    display_name: Store Layout
+    short_description: Assign product departments to store zones to maximize customer flow and impulse purchases.
+    description: >
+      Place product departments into store zones to maximize a weighted customer-flow
+      score. High-affinity departments (e.g., bakery and dairy) should be near each
+      other to encourage cross-shopping. The solver considers zone sizes, department
+      space requirements, and a pairwise affinity matrix. The result is an assignment
+      map that maximizes expected revenue from impulse buys and logical adjacency.
+    scenario_description: >
+      A supermarket is renovating and has 6 zones of varying sizes. Eight departments
+      (produce, bakery, dairy, meat, frozen, beverages, snacks, household) need
+      placement. The marketing team has a cross-shopping affinity matrix from loyalty
+      card data. The store manager wants a layout that maximizes adjacent high-affinity
+      pairs.
+    category: retail
+    tags: [retail, layout, store, merchandising, customer-flow]
+    problem_type_tags: [MIP]
+    generator_type: assignment
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [workers, tasks, costs]
+      properties:
+        workers: {type: array}
+        tasks: {type: array}
+        costs: {type: object}
+    input_fields:
+      - name: workers
+        label: Departments
+        type: array
+        description: Store departments to place
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: tasks
+        label: Store Zones
+        type: array
+        description: Available zones in the store
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: costs
+        label: Placement Score Matrix
+        type: object
+        description: "Negative affinity score for each dept-zone pair (lower = better placement)"
+        required: true
+    example_input:
+      workers:
+        - {name: produce}
+        - {name: bakery}
+        - {name: dairy}
+        - {name: meat}
+        - {name: frozen}
+        - {name: beverages}
+      tasks:
+        - {name: entrance_zone}
+        - {name: center_aisle}
+        - {name: back_wall}
+        - {name: left_wing}
+        - {name: right_wing}
+        - {name: checkout_zone}
+      costs:
+        produce_entrance_zone: 1
+        produce_center_aisle: 5
+        produce_back_wall: 8
+        produce_left_wing: 4
+        produce_right_wing: 6
+        produce_checkout_zone: 10
+        bakery_entrance_zone: 2
+        bakery_center_aisle: 3
+        bakery_back_wall: 7
+        bakery_left_wing: 5
+        bakery_right_wing: 4
+        bakery_checkout_zone: 9
+        dairy_entrance_zone: 6
+        dairy_center_aisle: 4
+        dairy_back_wall: 2
+        dairy_left_wing: 3
+        dairy_right_wing: 5
+        dairy_checkout_zone: 8
+        meat_entrance_zone: 7
+        meat_center_aisle: 5
+        meat_back_wall: 1
+        meat_left_wing: 4
+        meat_right_wing: 3
+        meat_checkout_zone: 9
+        frozen_entrance_zone: 9
+        frozen_center_aisle: 6
+        frozen_back_wall: 3
+        frozen_left_wing: 2
+        frozen_right_wing: 4
+        frozen_checkout_zone: 7
+        beverages_entrance_zone: 8
+        beverages_center_aisle: 3
+        beverages_back_wall: 5
+        beverages_left_wing: 6
+        beverages_right_wing: 2
+        beverages_checkout_zone: 4
+    is_featured: true
+    estimated_variables: 36
+    estimated_constraints: 12
+
+  - id: markdown_pricing
+    name: Markdown Pricing Optimizer
+    display_name: Markdown Pricing
+    short_description: Set optimal clearance prices for end-of-season inventory to maximize total revenue while clearing stock.
+    description: >
+      Determine the markdown percentage for each product in an end-of-season clearance
+      to maximize total revenue. Each product has remaining inventory, a base price,
+      and a demand elasticity estimate (how many more units sell per percentage discount).
+      The solver balances deep discounts that move volume against shallow discounts that
+      preserve margin. Useful for seasonal retail, fashion, and perishable goods.
+    scenario_description: >
+      A fashion retailer has 8 end-of-season items with 20-200 units remaining. Base
+      prices range from EUR 25 to EUR 150. The merchandiser estimates demand elasticity
+      from past sales. The goal is to clear at least 80% of inventory while maximising
+      total clearance revenue.
+    category: retail
+    tags: [retail, pricing, markdown, clearance, revenue]
+    problem_type_tags: [LP]
+    generator_type: markdown_pricing
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [products]
+      properties:
+        products: {type: array}
+        discount_levels: {type: array}
+        min_clearance_fraction: {type: number}
+    input_fields:
+      - name: products
+        label: Products
+        type: array
+        description: "Products with base price, remaining inventory, demand elasticity, and base demand"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            base_price: {type: number}
+            inventory: {type: integer}
+            elasticity: {type: number}
+            base_demand: {type: number}
+      - name: discount_levels
+        label: Discount Levels
+        type: array
+        description: "Allowed discount percentages (e.g., [10, 20, 30, 50]). If omitted, continuous 0-70% is used."
+        required: false
+        items:
+          type: number
+      - name: min_clearance_fraction
+        label: Minimum Clearance Fraction
+        type: number
+        description: "Minimum fraction of total inventory that must be sold (e.g., 0.8 = 80%)"
+        required: false
+        default: 0.8
+    example_input:
+      products:
+        - {name: jacket, base_price: 150, inventory: 50, elasticity: 0.6, base_demand: 10}
+        - {name: dress, base_price: 80, inventory: 80, elasticity: 1.0, base_demand: 15}
+        - {name: shirt, base_price: 45, inventory: 200, elasticity: 2.5, base_demand: 40}
+        - {name: hat, base_price: 25, inventory: 120, elasticity: 1.2, base_demand: 30}
+    is_featured: false
+    estimated_variables: 8
+    estimated_constraints: 8
+
+  - id: assortment_planning
+    name: Assortment Planning Optimizer
+    display_name: Assortment Planning
+    short_description: Select which products to stock in a store with limited shelf space to maximize expected profit.
+    description: >
+      Choose which products from a large catalog to carry in a store with limited shelf
+      space. Each product has an expected margin, a space requirement, and a demand
+      forecast. The solver picks the assortment that maximizes total expected profit
+      while respecting shelf-space limits and minimum category representation rules.
+      The result is a yes/no stocking decision for each candidate product.
+    scenario_description: >
+      A convenience store has 50 linear metres of shelf space and 15 candidate products
+      across 4 categories. Each product needs 1-5 metres. The store must carry at least
+      2 products per category. The manager wants the profit-maximizing assortment.
+    category: retail
+    tags: [retail, assortment, merchandising, shelf-space, product-mix]
+    problem_type_tags: [MIP]
+    generator_type: knapsack
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [capacity, items]
+      properties:
+        capacity: {type: number}
+        items: {type: array}
+    input_fields:
+      - name: capacity
+        label: Total Shelf Space
+        type: number
+        description: Total available shelf space (linear metres)
+        required: true
+        minimum: 1
+        default: 50
+      - name: items
+        label: Candidate Products
+        type: array
+        description: Products with expected weekly margin and shelf space needed
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            value: {type: number}
+            weight: {type: number}
+    example_input:
+      capacity: 50
+      items:
+        - {name: premium_coffee, value: 85, weight: 3}
+        - {name: organic_milk, value: 45, weight: 4}
+        - {name: energy_drinks, value: 120, weight: 5}
+        - {name: craft_beer, value: 95, weight: 5}
+        - {name: fresh_juice, value: 60, weight: 3}
+        - {name: artisan_bread, value: 55, weight: 4}
+        - {name: deli_meats, value: 70, weight: 3}
+        - {name: cheese_selection, value: 80, weight: 4}
+        - {name: frozen_meals, value: 65, weight: 5}
+        - {name: ice_cream, value: 50, weight: 3}
+        - {name: snack_bars, value: 40, weight: 2}
+        - {name: chips, value: 55, weight: 3}
+        - {name: toiletries, value: 35, weight: 2}
+        - {name: batteries, value: 25, weight: 1}
+        - {name: magazines, value: 15, weight: 2}
+    is_featured: false
+    estimated_variables: 15
+    estimated_constraints: 1

@@ -1,0 +1,55 @@
+# Override self-hosting en casa: build local (sin GHCR) + Cloudflare Tunnel.
+# Uso: docker compose -f deploy/docker-compose.prod.yml -f deploy/docker-compose.home.yml --env-file .env.production <cmd>
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile
+  celery_worker_default:
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile.worker
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        API_PROXY_URL: http://api:8001
+    ports:
+      - "3000:3000"
+
+  # Caddy de casa: HTTP plano en :80 (TLS lo pone Cloudflare en el edge).
+  # Sustituye el Caddyfile de producción (Let's Encrypt) por el catch-all sin TLS.
+  caddy:
+    volumes:
+      - ./config/Caddyfile.home:/etc/caddy/Caddyfile:ro
+
+  # Cloudflare Tunnel (saliente desde casa). Alcanza a Caddy por la red interna
+  # de Docker (caddy:80); no expone puertos al host ni al router.
+  # TUNNEL_TOKEN se inyecta vía --env-file .env.production (VM, gitignored — NUNCA al repo).
+  cloudflared:
+    image: cloudflare/cloudflared:latest@sha256:6d91c121b803126f7a5344005d17a9324788fc09d305b6e2560ec6040a7ae283
+    container_name: jaot_home_cloudflared
+    # ENTRYPOINT de la imagen ya es ["cloudflared","--no-autoupdate"].
+    command: tunnel run --token ${TUNNEL_TOKEN}
+    depends_on:
+      caddy:
+        condition: service_healthy
+    networks:
+      - frontend
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.5'
+          pids: 100
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"

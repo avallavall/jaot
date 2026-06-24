@@ -1,0 +1,44 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Next.js
+.next
+out
+
+# Production
+build
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+
+# Local env files
+.env*.local
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Testing — never enter build context (may contain screenshots with user data)
+e2e/
+playwright-report/
+test-results/
+screenshots/
+playwright.config.ts
+vitest.config.ts
+coverage/
+.playwright/
+
+# Git
+.git/
+.gitignore
+
+# Documentation (keep content/ — needed for MDX docs build)
+README.md

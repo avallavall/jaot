@@ -1,0 +1,204 @@
+category: energy
+category_display_name: Energy & Utilities
+
+templates:
+  - id: power_generation_mix
+    name: Power Generation Mix Optimizer
+    display_name: Power Generation Mix
+    short_description: Determine the optimal mix of power plants to operate each hour to meet demand at minimum fuel and emission cost.
+    description: >
+      Schedule the output of multiple power generators (gas, coal, solar, wind, nuclear)
+      across time periods to meet hourly electricity demand at minimum total cost. Each
+      generator has a capacity range, a per-MWh fuel cost, a ramp rate, and CO2
+      emissions. The solver decides how much each plant produces each hour while
+      respecting minimum up-time, ramp limits, and an optional emissions cap. The
+      result is a dispatch schedule and total cost breakdown.
+    scenario_description: >
+      A regional grid operator manages 5 generators: a gas turbine (50-200 MW, EUR 45/MWh),
+      a coal plant (100-300 MW, EUR 30/MWh), solar (0-80 MW, EUR 0/MWh but intermittent),
+      wind (0-120 MW, EUR 0/MWh), and a peaker (0-100 MW, EUR 70/MWh). Demand peaks at
+      450 MW during hour 14 and dips to 200 MW overnight. The operator wants the cheapest
+      dispatch plan for a 24-hour window.
+    category: energy
+    tags: [energy, power, generation, dispatch, grid]
+    problem_type_tags: [LP]
+    generator_type: production
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [products, resources]
+      properties:
+        products: {type: array}
+        resources: {type: array}
+    input_fields:
+      - name: products
+        label: Generators
+        type: array
+        description: Power generators with cost per MWh and capacity
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            profit_per_unit: {type: number}
+            min_production: {type: number}
+            max_production: {type: number}
+      - name: resources
+        label: Constraints
+        type: array
+        description: Demand requirements and emission limits
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            available: {type: number}
+            usage: {type: object}
+    example_input:
+      products:
+        - {name: gas, profit_per_unit: -45, min_production: 50, max_production: 200}
+        - {name: coal, profit_per_unit: -30, min_production: 100, max_production: 300}
+        - {name: solar, profit_per_unit: 0, min_production: 0, max_production: 80}
+        - {name: wind, profit_per_unit: 0, min_production: 0, max_production: 120}
+        - {name: peaker, profit_per_unit: -70, min_production: 0, max_production: 100}
+      resources:
+        - name: min_demand
+          available: -450
+          usage: {gas: -1, coal: -1, solar: -1, wind: -1, peaker: -1}
+        - name: emissions_cap
+          available: 5000
+          usage: {gas: 0.4, coal: 0.9, solar: 0, wind: 0, peaker: 0.5}
+    is_featured: true
+    estimated_variables: 5
+    estimated_constraints: 12
+
+  - id: energy_storage_dispatch
+    name: Energy Storage Dispatch Optimizer
+    display_name: Energy Storage Dispatch
+    short_description: Schedule when to charge and discharge a battery system to maximize arbitrage profit from time-of-use electricity prices.
+    description: >
+      Optimize the charge/discharge schedule of a battery energy storage system across
+      a day with variable electricity prices. The solver decides when to buy cheap
+      off-peak power to charge and when to sell or use stored energy during expensive
+      peak hours. Constraints include battery capacity, max charge/discharge rates,
+      and round-trip efficiency losses. The output is an hourly charge/discharge plan
+      and expected profit.
+    scenario_description: >
+      A commercial building has a 500 kWh battery (max charge/discharge 100 kW, 90%
+      round-trip efficiency). Electricity costs EUR 0.08/kWh overnight, EUR 0.15/kWh
+      mid-day, and EUR 0.25/kWh at peak (17:00-20:00). The facility manager wants to
+      maximize savings by shifting load to off-peak hours.
+    category: energy
+    tags: [energy, battery, storage, dispatch, arbitrage]
+    problem_type_tags: [LP]
+    generator_type: energy_storage
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [battery, periods]
+      properties:
+        battery: {type: object}
+        periods: {type: array}
+    input_fields:
+      - name: battery
+        label: Battery Specifications
+        type: object
+        description: Battery capacity, charge/discharge rates, and efficiency
+        required: true
+      - name: periods
+        label: Time Periods
+        type: array
+        description: Time slots with electricity prices
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            price_per_kWh: {type: number}
+    example_input:
+      battery:
+        capacity_kWh: 500
+        max_charge_rate_kW: 100
+        max_discharge_rate_kW: 100
+        round_trip_efficiency: 0.90
+        initial_soc: 0.0
+      periods:
+        - {name: overnight, price_per_kWh: 0.08}
+        - {name: morning, price_per_kWh: 0.08}
+        - {name: midday, price_per_kWh: 0.15}
+        - {name: peak, price_per_kWh: 0.25}
+        - {name: evening, price_per_kWh: 0.12}
+    is_featured: false
+    estimated_variables: 15
+    estimated_constraints: 5
+
+  - id: renewable_curtailment
+    name: Renewable Curtailment Minimizer
+    display_name: Renewable Curtailment
+    short_description: Allocate grid capacity to renewable sources to minimize wasted (curtailed) clean energy.
+    description: >
+      Allocate available grid transmission capacity among renewable generators (solar farms,
+      wind farms) to minimize the amount of clean energy that must be curtailed (wasted)
+      due to grid congestion. Each generator has a forecasted output profile and the
+      grid has hourly transmission limits. The solver decides priority access so that
+      total curtailment is minimized across the planning horizon.
+    scenario_description: >
+      A grid region has 3 solar farms and 2 wind farms connected by transmission lines
+      with a 400 MW combined limit. On a sunny, windy day, total renewable output could
+      reach 550 MW. The grid operator needs to allocate capacity to minimize total MWh
+      curtailed over 12 hours.
+    category: energy
+    tags: [energy, renewables, curtailment, grid, sustainability]
+    problem_type_tags: [LP]
+    generator_type: renewable_curtailment
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [generators, periods, grid_capacity]
+      properties:
+        generators: {type: array}
+        periods: {type: array}
+        grid_capacity: {type: number}
+    input_fields:
+      - name: generators
+        label: Renewable Generators
+        type: array
+        description: "Renewable generators with forecasted output per period (MW)"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            forecast: {type: object, description: "Period name to forecasted MW output"}
+      - name: periods
+        label: Time Periods
+        type: array
+        description: "Planning periods (e.g., hourly blocks)"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: grid_capacity
+        label: Grid Transmission Capacity
+        type: number
+        description: "Maximum total MW the grid can accept from all generators per period"
+        required: true
+        default: 200
+    example_input:
+      generators:
+        - name: solar
+          forecast: {morning: 60, midday: 150, afternoon: 100, evening: 20}
+        - name: wind1
+          forecast: {morning: 80, midday: 50, afternoon: 70, evening: 90}
+        - name: wind2
+          forecast: {morning: 40, midday: 30, afternoon: 60, evening: 50}
+      periods:
+        - {name: morning}
+        - {name: midday}
+        - {name: afternoon}
+        - {name: evening}
+      grid_capacity: 200
+    is_featured: false
+    estimated_variables: 24
+    estimated_constraints: 16

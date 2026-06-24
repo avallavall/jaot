@@ -1,0 +1,173 @@
+---
+title: "Insurance Risk Modeling"
+description: "Optimize policy pricing and claims reserve allocation"
+order: 9
+category: "insurance"
+difficulty: "advanced"
+domain: "Finance"
+templateCount: 1
+---
+
+# Insurance Risk Modeling
+
+Insurance risk optimization **allocates claims reserves across insurance lines** to maximize risk-adjusted returns while meeting regulatory minimums and catastrophe exposure limits. The example below models reserve allocation: distribute a fixed capital pool across auto, property, liability, health, and specialty lines subject to per-line bounds and concentration limits.
+
+## Step-by-Step Walkthrough
+
+**1. Define risk categories**
+
+List each insurance line or risk pool with its expected claims ratio, historical volatility, and current premium volume. Include correlations between risk categories where relevant (e.g., natural disaster exposure affects both property and auto claims).
+
+**2. Set solvency constraints**
+
+Define regulatory minimums:
+- Minimum capital adequacy ratio (e.g., 150% of SCR under Solvency II)
+- Maximum exposure per risk category
+- Reinsurance coverage requirements
+- Liquidity requirements for claims payment
+
+**3. Model reinsurance options**
+
+Include reinsurance contracts as decision variables:
+- Quota share percentages per line
+- Excess-of-loss thresholds
+- Cost of reinsurance premiums vs. capital relief
+
+**4. Set the objective**
+
+Typically **maximize risk-adjusted underwriting profit** or **minimize total cost of capital** while maintaining solvency constraints.
+
+![Insurance Risk Modeling in JAOT Builder](/guides/finance/insurance-risk-builder.png)
+
+**5. Analyze the optimal allocation**
+
+Review reserve allocations by line, reinsurance utilization, and resulting solvency metrics. Run stress tests by adjusting claims scenarios to verify the portfolio remains solvent under adverse conditions.
+
+## Example Parameters
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+# Allocate $50M in reserves across 5 insurance lines
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": [
+        {"name": "auto_reserve_M", "type": "continuous", "lb": 5, "ub": 20},
+        {"name": "property_reserve_M", "type": "continuous", "lb": 5, "ub": 25},
+        {"name": "liability_reserve_M", "type": "continuous", "lb": 3, "ub": 15},
+        {"name": "health_reserve_M", "type": "continuous", "lb": 4, "ub": 18},
+        {"name": "specialty_reserve_M", "type": "continuous", "lb": 1, "ub": 10},
+    ],
+    "objective": {
+        "sense": "maximize",
+        "coefficients": {
+            "auto_reserve_M": 0.12,
+            "property_reserve_M": 0.08,
+            "liability_reserve_M": 0.15,
+            "health_reserve_M": 0.10,
+            "specialty_reserve_M": 0.18,
+        },
+    },
+    "constraints": [
+        {
+            "name": "total_reserves",
+            "coefficients": {
+                "auto_reserve_M": 1, "property_reserve_M": 1,
+                "liability_reserve_M": 1, "health_reserve_M": 1,
+                "specialty_reserve_M": 1
+            },
+            "sense": "==",
+            "rhs": 50,
+        },
+        {
+            "name": "catastrophe_exposure_limit",
+            "coefficients": {"property_reserve_M": 1, "auto_reserve_M": 0.3},
+            "sense": "<=",
+            "rhs": 28,
+        },
+        {
+            "name": "regulatory_min_property",
+            "coefficients": {"property_reserve_M": 1},
+            "sense": ">=",
+            "rhs": 8,
+        },
+        {
+            "name": "regulatory_min_health",
+            "coefficients": {"health_reserve_M": 1},
+            "sense": ">=",
+            "rhs": 6,
+        },
+    ],
+})
+result = response.json()
+
+print(f"Maximum risk-adjusted return: {result['objective_value']:.2f}M")
+for var in result["variables"]:
+    print(f"  {var['name']}: ${var['value']:.1f}M")
+```
+```json
+{
+  "variables": [
+    {"name": "auto_reserve_M", "type": "continuous", "lb": 5, "ub": 20},
+    {"name": "property_reserve_M", "type": "continuous", "lb": 5, "ub": 25},
+    {"name": "liability_reserve_M", "type": "continuous", "lb": 3, "ub": 15},
+    {"name": "health_reserve_M", "type": "continuous", "lb": 4, "ub": 18},
+    {"name": "specialty_reserve_M", "type": "continuous", "lb": 1, "ub": 10}
+  ],
+  "objective": {
+    "sense": "maximize",
+    "coefficients": {
+      "auto_reserve_M": 0.12,
+      "property_reserve_M": 0.08,
+      "liability_reserve_M": 0.15,
+      "health_reserve_M": 0.10,
+      "specialty_reserve_M": 0.18
+    }
+  },
+  "constraints": [
+    {
+      "name": "total_reserves",
+      "coefficients": {
+        "auto_reserve_M": 1, "property_reserve_M": 1,
+        "liability_reserve_M": 1, "health_reserve_M": 1,
+        "specialty_reserve_M": 1
+      },
+      "sense": "==",
+      "rhs": 50
+    },
+    {
+      "name": "catastrophe_exposure_limit",
+      "coefficients": {"property_reserve_M": 1, "auto_reserve_M": 0.3},
+      "sense": "<=",
+      "rhs": 28
+    },
+    {
+      "name": "regulatory_min_property",
+      "coefficients": {"property_reserve_M": 1},
+      "sense": ">=",
+      "rhs": 8
+    },
+    {
+      "name": "regulatory_min_health",
+      "coefficients": {"health_reserve_M": 1},
+      "sense": ">=",
+      "rhs": 6
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+- **[Budget Allocation Optimizer](/builder/templates/budget_allocation)** -- adapt budget allocation to insurance reserve distribution with regulatory constraints
+- **[Custom Optimization](/builder/templates/custom)** -- build a risk allocation model for your specific portfolio and regulatory environment
+
+## Next Steps
+
+- **[Portfolio Optimization](/docs/guides/portfolio-optimization)** -- Apply similar allocation techniques to investment portfolios `intermediate`
+- **[Healthcare Resource Allocation](/docs/guides/healthcare-resources)** -- Resource allocation optimization in healthcare settings `intermediate`
+- **[Government Resource Allocation](/docs/guides/government-resources)** -- Public sector budget allocation with policy constraints `beginner`

@@ -1,0 +1,17 @@
+# msmtp configuration for JAOT deploy/backup notifications
+# Deployed to /etc/msmtprc on the server.
+
+defaults
+auth           on
+tls            on
+tls_trust_file /etc/ssl/certs/ca-certificates.crt
+logfile        /var/log/msmtp.log
+
+account        jaot
+host           {{SMTP_HOST}}
+port           {{SMTP_PORT}}
+from           {{EMAIL_FROM}}
+user           {{SMTP_USER}}
+passwordeval   cat /etc/msmtp-password
+
+account default : jaot

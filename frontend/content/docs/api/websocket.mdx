@@ -1,0 +1,534 @@
+---
+title: WebSocket Protocol
+description: Real-time execution monitoring via WebSocket
+order: 12
+---
+
+# WebSocket Protocol
+
+JAOT provides a WebSocket endpoint for real-time execution monitoring. Connect to receive live progress updates -- iteration count, objective value, MIP gap -- as the solver works on your problem. This is ideal for building progress bars, live dashboards, and responsive UIs.
+
+> **Info:** WebSocket monitoring is optional. If your environment does not support WebSockets, use `GET /api/v2/solve/async/{task_id}` for simple HTTP polling instead. See the [Executions](/docs/api/executions) page for polling details.
+
+---
+
+## Connection URL
+
+```
+wss://jaot.io/api/v2/ws/executions/{execution_id}
+```
+
+For local development, use the plain (non-TLS) variant:
+
+```
+ws://localhost:8001/api/v2/ws/executions/{execution_id}
+```
+
+The `execution_id` can be either:
+- A Celery task ID returned from `POST /api/v2/solve/async`
+- A `ModelExecution` database ID (e.g., `exe_abc123`)
+
+---
+
+## Connection flow
+
+1. **Start an async solve** -- `POST /api/v2/solve/async` returns a `task_id` and `ws_url`
+2. **Connect WebSocket** -- open a connection to the `ws_url`
+3. **Receive initial status** -- server sends the current execution state immediately
+4. **Receive progress updates** -- server pushes updates every ~5 seconds while the solver runs
+5. **Receive final result** -- server sends `completed`, `failed`, or `cancelled` and closes the connection
+
+```
+Client                                Server
+  |                                     |
+  |  POST /api/v2/solve/async           |
+  |------------------------------------>|
+  |  {"task_id": "abc-123", "ws_url":   |
+  |   "/api/v2/ws/executions/abc-123"}  |
+  |<------------------------------------|
+  |                                     |
+  |  WebSocket connect                  |
+  |------------------------------------>|
+  |  {"type":"status","status":"pending"}|
+  |<------------------------------------|
+  |  {"type":"progress","progress":0.2} |
+  |<------------------------------------|
+  |  {"type":"progress","progress":0.6} |
+  |<------------------------------------|
+  |  {"type":"completed","result":{...}}|
+  |<------------------------------------|
+  |  Connection closed                  |
+```
+
+---
+
+## Message types
+
+All messages are JSON objects with a `type` field.
+
+### Server-to-client messages
+
+| Type | Description | Terminal |
+|------|-------------|----------|
+| `status` | Initial status on connection | No |
+| `progress` | Periodic solve progress update | No |
+| `completed` | Solve finished successfully | Yes |
+| `failed` | Solve encountered an error | Yes |
+| `cancelled` | Solve was cancelled | Yes |
+| `error` | Connection error (e.g., invalid execution ID) | Yes |
+
+### Client-to-server messages
+
+| Message | Description |
+|---------|-------------|
+| `"ping"` | Keepalive. Server responds with `"pong"` |
+
+Send ping messages every 30 seconds to prevent connection timeout on long-running solves.
+
+---
+
+## Status message
+
+Sent immediately after connection. Provides the current state of the execution.
+
+```json
+{
+  "type": "status",
+  "execution_id": "abc-123",
+  "status": "pending",
+  "progress_data": null
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | string | Always `"status"` |
+| `execution_id` | string | The execution being monitored |
+| `status` | string | Current status: `pending`, `running`, `completed`, `failed` |
+| `progress_data` | object | Latest progress data (null if not yet running) |
+
+---
+
+## Progress message
+
+Sent approximately every 5 seconds while the solver is running. Contains real-time solver metrics.
+
+```json
+{
+  "type": "progress",
+  "execution_id": "abc-123",
+  "status": "running",
+  "progress": 0.45,
+  "message": "Iteration 234: obj=1234.56, gap=2.3%",
+  "iteration": 234,
+  "objective_value": 1234.56,
+  "gap": 0.023,
+  "timestamp": "2026-02-19T10:05:30Z"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `progress` | float | Estimated completion (0.0 to 1.0) |
+| `message` | string | Human-readable status message |
+| `iteration` | int | Current solver iteration count |
+| `objective_value` | float | Best objective value found so far |
+| `gap` | float | Current MIP gap (0 = proven optimal) |
+| `timestamp` | string | ISO 8601 timestamp of this update |
+
+---
+
+## Completed message
+
+Sent when the solve finishes successfully. Contains the full solution. The server closes the connection after sending this message.
+
+```json
+{
+  "type": "completed",
+  "execution_id": "abc-123",
+  "status": "completed",
+  "result": {
+    "status": "optimal",
+    "objective_value": 3500.0,
+    "solution": {"widgets": 30, "gadgets": 60},
+    "solve_time_seconds": 12.3,
+    "credits_used": 3,
+    "credits_remaining": 97
+  }
+}
+```
+
+---
+
+## Failed message
+
+Sent when the solve encounters an error. The server closes the connection after sending this message.
+
+```json
+{
+  "type": "failed",
+  "execution_id": "abc-123",
+  "status": "failed",
+  "error": "Solver error: problem is infeasible"
+}
+```
+
+---
+
+## Cancelled message
+
+Sent when the task is cancelled via `POST /api/v2/solve/async/{task_id}/cancel`.
+
+```json
+{
+  "type": "cancelled",
+  "execution_id": "abc-123",
+  "status": "cancelled",
+  "result": null
+}
+```
+
+---
+
+## Error message
+
+Sent when the execution ID is not found. The server closes the connection immediately.
+
+```json
+{
+  "type": "error",
+  "message": "Execution abc-123 not found"
+}
+```
+
+---
+
+## Complete examples
+
+Full working examples showing how to start an async solve, connect via WebSocket, and receive real-time progress updates.
+
+<CodeTabs>
+```python
+import asyncio
+import json
+import aiohttp
+
+API_KEY = "ok_live_..."
+BASE_URL = "https://jaot.io"
+WS_BASE = "wss://jaot.io"
+
+async def solve_with_realtime_progress(problem: dict):
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    async with aiohttp.ClientSession() as session:
+        # 1. Start async solve
+        async with session.post(
+            f"{BASE_URL}/api/v2/solve/async",
+            headers=headers,
+            json=problem,
+        ) as resp:
+            data = await resp.json()
+            task_id = data["task_id"]
+            print(f"Solve started: {task_id}")
+
+        # 2. Connect WebSocket for real-time updates
+        ws_url = f"{WS_BASE}/api/v2/ws/executions/{task_id}"
+        async with session.ws_connect(ws_url) as ws:
+            async for msg in ws:
+                if msg.type == aiohttp.WSMsgType.TEXT:
+                    data = json.loads(msg.data)
+                    msg_type = data.get("type")
+
+                    if msg_type == "status":
+                        print(f"Initial status: {data['status']}")
+
+                    elif msg_type == "progress":
+                        pct = data.get("progress", 0) * 100
+                        obj = data.get("objective_value", "?")
+                        gap = data.get("gap", "?")
+                        print(f"Progress: {pct:.0f}% | Objective: {obj} | Gap: {gap}")
+
+                    elif msg_type == "completed":
+                        result = data["result"]
+                        print(f"\nSolve completed!")
+                        print(f"Status: {result['status']}")
+                        print(f"Objective: {result['objective_value']}")
+                        print(f"Solution: {result['solution']}")
+                        print(f"Time: {result['solve_time_seconds']}s")
+                        print(f"Credits used: {result['credits_used']}")
+                        break
+
+                    elif msg_type == "failed":
+                        print(f"Solve failed: {data['error']}")
+                        break
+
+                elif msg.type == aiohttp.WSMsgType.ERROR:
+                    print(f"WebSocket error: {ws.exception()}")
+                    break
+
+# Example usage
+problem = {
+    "name": "production_planning",
+    "objective": {
+        "sense": "maximize",
+        "expression": "50*widgets + 40*gadgets",
+    },
+    "variables": [
+        {"name": "widgets", "type": "integer", "lower_bound": 0, "upper_bound": 100},
+        {"name": "gadgets", "type": "integer", "lower_bound": 0, "upper_bound": 80},
+    ],
+    "constraints": [
+        {"name": "machine_hours", "expression": "2*widgets + 3*gadgets <= 240"},
+        {"name": "labor_hours", "expression": "4*widgets + 2*gadgets <= 200"},
+    ],
+}
+
+asyncio.run(solve_with_realtime_progress(problem))
+```
+
+```bash
+# 1. Start async solve
+TASK_ID=$(curl -s -X POST https://jaot.io/api/v2/solve/async \
+  -H "Authorization: Bearer ok_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"name":"test","objective":{"sense":"minimize","expression":"x+y"},"variables":[{"name":"x","type":"continuous","lower_bound":0},{"name":"y","type":"continuous","lower_bound":0}],"constraints":[{"name":"c1","expression":"x+y>=10"}]}' \
+  | jq -r '.task_id')
+
+# 2. Connect WebSocket (requires wscat: npm install -g wscat)
+# Note: cURL cannot maintain WebSocket connections.
+# Use wscat for command-line WebSocket testing.
+wscat -c "wss://jaot.io/api/v2/ws/executions/$TASK_ID"
+```
+
+```javascript
+async function solveAndStream(problem) {
+  // 1. Start async solve
+  const response = await fetch("/api/v2/solve/async", {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer ok_live_...",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(problem),
+  });
+  const { task_id, ws_url } = await response.json();
+
+  // 2. Connect WebSocket
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const ws = new WebSocket(`${protocol}//${window.location.host}${ws_url}`);
+
+  // 3. Handle messages
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+
+    switch (msg.type) {
+      case "status":
+        console.log("Initial status:", msg.status);
+        break;
+
+      case "progress":
+        const pct = (msg.progress * 100).toFixed(0);
+        console.log(`Progress: ${pct}% | Objective: ${msg.objective_value}`);
+        // Update your UI progress bar
+        updateProgressBar(msg.progress);
+        updateObjectiveDisplay(msg.objective_value, msg.gap);
+        break;
+
+      case "completed":
+        console.log("Solution:", msg.result.solution);
+        console.log("Objective:", msg.result.objective_value);
+        displayResults(msg.result);
+        ws.close();
+        break;
+
+      case "failed":
+        console.error("Solve failed:", msg.error);
+        displayError(msg.error);
+        ws.close();
+        break;
+    }
+  };
+
+  // 4. Send keepalive ping every 30 seconds
+  const pingInterval = setInterval(() => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send("ping");
+    }
+  }, 30000);
+
+  ws.onclose = () => {
+    clearInterval(pingInterval);
+    console.log("WebSocket closed");
+  };
+
+  ws.onerror = (error) => {
+    console.error("WebSocket error:", error);
+  };
+}
+```
+</CodeTabs>
+
+---
+
+## Error handling and reconnection
+
+### Connection drops
+
+WebSocket connections can drop due to network issues, server restarts, or timeouts. Handle disconnections gracefully:
+
+<CodeTabs>
+```python
+import asyncio
+import aiohttp
+import json
+
+async def resilient_monitor(task_id: str, max_retries: int = 3):
+    ws_url = f"wss://jaot.io/api/v2/ws/executions/{task_id}"
+    retries = 0
+
+    while retries < max_retries:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.ws_connect(ws_url) as ws:
+                    retries = 0  # Reset on successful connect
+                    async for msg in ws:
+                        if msg.type == aiohttp.WSMsgType.TEXT:
+                            data = json.loads(msg.data)
+                            if data["type"] in ("completed", "failed", "cancelled"):
+                                return data  # Terminal state -- done
+                            print(f"Progress: {data.get('progress', 0):.0%}")
+        except (aiohttp.ClientError, ConnectionError) as e:
+            retries += 1
+            wait = min(2 ** retries, 30)  # Exponential backoff, max 30s
+            print(f"Connection lost ({e}). Reconnecting in {wait}s...")
+            await asyncio.sleep(wait)
+
+    # Fallback to HTTP polling
+    print("WebSocket reconnection failed. Falling back to HTTP polling.")
+    return await poll_for_result(task_id)
+```
+
+```javascript
+function resilientMonitor(taskId, maxRetries = 3) {
+  let retries = 0;
+
+  function connect() {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const ws = new WebSocket(
+      `${protocol}//${window.location.host}/api/v2/ws/executions/${taskId}`
+    );
+
+    ws.onopen = () => {
+      retries = 0; // Reset on successful connect
+    };
+
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (["completed", "failed", "cancelled"].includes(msg.type)) {
+        console.log("Terminal state:", msg);
+        return;
+      }
+      console.log(`Progress: ${(msg.progress * 100).toFixed(0)}%`);
+    };
+
+    ws.onclose = () => {
+      if (retries < maxRetries) {
+        retries++;
+        const wait = Math.min(2 ** retries, 30) * 1000;
+        console.log(`Connection lost. Reconnecting in ${wait / 1000}s...`);
+        setTimeout(connect, wait);
+      } else {
+        console.log("Reconnection failed. Falling back to HTTP polling.");
+        pollForResult(taskId);
+      }
+    };
+  }
+
+  connect();
+}
+```
+</CodeTabs>
+
+### Timeout behavior
+
+- The server keeps the connection open as long as the solve is running
+- Send `"ping"` messages every 30 seconds to prevent proxy/load balancer timeouts
+- The server responds to `"ping"` with `"pong"`
+- If no messages are received for 60+ seconds, the connection may be closed by intermediate proxies
+
+### Multiple clients
+
+Multiple clients can connect to the same `execution_id` simultaneously. All connected clients receive the same progress broadcasts.
+
+---
+
+## Fallback: HTTP polling
+
+If WebSockets are unavailable in your environment, poll the async status endpoint instead:
+
+<CodeTabs>
+```python
+import time
+import requests
+
+def poll_for_result(task_id: str, api_key: str, interval: float = 3.0):
+    """Poll for solve result via HTTP (WebSocket fallback)."""
+    url = f"https://jaot.io/api/v2/solve/async/{task_id}"
+    headers = {"Authorization": f"Bearer {api_key}"}
+
+    while True:
+        response = requests.get(url, headers=headers)
+        data = response.json()
+        status = data["status"]
+
+        if status == "completed":
+            return data["result"]
+        elif status == "failed":
+            raise Exception(f"Solve failed: {data.get('error')}")
+        elif status == "running":
+            progress = data.get("progress", 0)
+            print(f"Running... {progress:.0%}")
+
+        time.sleep(interval)
+```
+
+```bash
+# Poll with a loop (replace TASK_ID with your task ID)
+while true; do
+  RESULT=$(curl -s "https://jaot.io/api/v2/solve/async/$TASK_ID" \
+    -H "Authorization: Bearer ok_live_...")
+  STATUS=$(echo "$RESULT" | jq -r '.status')
+  echo "Status: $STATUS"
+  if [ "$STATUS" = "completed" ] || [ "$STATUS" = "failed" ]; then
+    echo "$RESULT" | jq '.result'
+    break
+  fi
+  sleep 3
+done
+```
+
+```javascript
+async function pollForResult(taskId, apiKey, interval = 3000) {
+  const url = `https://jaot.io/api/v2/solve/async/${taskId}`;
+  const headers = { "Authorization": `Bearer ${apiKey}` };
+
+  while (true) {
+    const response = await fetch(url, { headers });
+    const data = await response.json();
+
+    if (data.status === "completed") return data.result;
+    if (data.status === "failed") throw new Error(`Solve failed: ${data.error}`);
+    if (data.status === "running") {
+      console.log(`Running... ${(data.progress * 100).toFixed(0)}%`);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+}
+```
+</CodeTabs>
+
+Recommended polling interval: 2--5 seconds.

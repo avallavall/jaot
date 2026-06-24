@@ -1,0 +1,163 @@
+---
+title: "Cutting & Packing"
+description: "Minimize material waste with optimal cutting patterns and bin packing"
+order: 3
+category: "cutting_packing"
+difficulty: "advanced"
+domain: "Manufacturing"
+templateCount: 2
+---
+
+# Cutting & Packing
+
+Cutting and packing optimization determines **how to cut raw materials or pack items into containers** while minimizing waste. Whether you are cutting steel sheets, slicing glass panels, loading pallets into trucks, or arranging products in warehouse bins, the core challenge is the same: fit as many items as possible into limited space with minimal leftover material.
+
+## Step-by-Step Walkthrough
+
+**1. Define item dimensions**
+
+List all items to be cut or packed, including their sizes (length, width, or volume depending on the problem). Specify quantities needed for each item type.
+
+**2. Specify stock material or container sizes**
+
+Define the raw material dimensions (sheet size, roll width) or container capacities (bin volume, truck payload). Note any orientation constraints -- can items be rotated?
+
+**3. Set the objective**
+
+Choose your goal:
+- **Minimize bins used** -- pack all items into the fewest containers
+- **Minimize waste** -- cut all pieces from the least amount of raw material
+- **Maximize utilization** -- fit as much value as possible into a single container
+
+**4. Add problem-specific constraints**
+
+Include rules such as:
+- No overlapping items
+- Weight limits per container
+- Fragile items cannot be stacked
+- Certain items must stay together or apart
+
+![Cutting & Packing in JAOT Builder](/guides/manufacturing/cutting-packing-builder.png)
+
+**5. Analyze the cutting or packing plan**
+
+Review which items go into which bins or cutting patterns. Look for patterns you can reuse across production runs. Identify items that consistently cause waste -- these may benefit from design changes.
+
+## Example Parameters
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+# Bin packing: assign 6 items to bins of capacity 100
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": [
+        # x_i_j = 1 if item i is in bin j
+        {"name": "item1_bin1", "type": "binary"},
+        {"name": "item1_bin2", "type": "binary"},
+        {"name": "item2_bin1", "type": "binary"},
+        {"name": "item2_bin2", "type": "binary"},
+        {"name": "item3_bin1", "type": "binary"},
+        {"name": "item3_bin2", "type": "binary"},
+        {"name": "item4_bin1", "type": "binary"},
+        {"name": "item4_bin2", "type": "binary"},
+        {"name": "item5_bin1", "type": "binary"},
+        {"name": "item5_bin2", "type": "binary"},
+        # y_j = 1 if bin j is used
+        {"name": "use_bin1", "type": "binary"},
+        {"name": "use_bin2", "type": "binary"},
+    ],
+    "objective": {
+        "sense": "minimize",
+        "coefficients": {"use_bin1": 1, "use_bin2": 1},
+    },
+    "constraints": [
+        {
+            "name": "item1_assigned",
+            "coefficients": {"item1_bin1": 1, "item1_bin2": 1},
+            "sense": "==",
+            "rhs": 1,
+        },
+        {
+            "name": "item2_assigned",
+            "coefficients": {"item2_bin1": 1, "item2_bin2": 1},
+            "sense": "==",
+            "rhs": 1,
+        },
+        {
+            "name": "bin1_capacity",
+            "coefficients": {
+                "item1_bin1": 35, "item2_bin1": 25,
+                "item3_bin1": 40, "item4_bin1": 20,
+                "item5_bin1": 30, "use_bin1": -100
+            },
+            "sense": "<=",
+            "rhs": 0,
+        },
+    ],
+})
+result = response.json()
+
+print(f"Bins used: {result['objective_value']:.0f}")
+```
+```json
+{
+  "variables": [
+    {"name": "item1_bin1", "type": "binary"},
+    {"name": "item1_bin2", "type": "binary"},
+    {"name": "item2_bin1", "type": "binary"},
+    {"name": "item2_bin2", "type": "binary"},
+    {"name": "item3_bin1", "type": "binary"},
+    {"name": "item3_bin2", "type": "binary"},
+    {"name": "item4_bin1", "type": "binary"},
+    {"name": "item4_bin2", "type": "binary"},
+    {"name": "item5_bin1", "type": "binary"},
+    {"name": "item5_bin2", "type": "binary"},
+    {"name": "use_bin1", "type": "binary"},
+    {"name": "use_bin2", "type": "binary"}
+  ],
+  "objective": {
+    "sense": "minimize",
+    "coefficients": {"use_bin1": 1, "use_bin2": 1}
+  },
+  "constraints": [
+    {
+      "name": "item1_assigned",
+      "coefficients": {"item1_bin1": 1, "item1_bin2": 1},
+      "sense": "==",
+      "rhs": 1
+    },
+    {
+      "name": "item2_assigned",
+      "coefficients": {"item2_bin1": 1, "item2_bin2": 1},
+      "sense": "==",
+      "rhs": 1
+    },
+    {
+      "name": "bin1_capacity",
+      "coefficients": {
+        "item1_bin1": 35, "item2_bin1": 25,
+        "item3_bin1": 40, "item4_bin1": 20,
+        "item5_bin1": 30, "use_bin1": -100
+      },
+      "sense": "<=",
+      "rhs": 0
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+- **[Bin Packing Optimizer](/builder/templates/bin_packing)** -- pack items into the fewest containers while respecting capacity and compatibility constraints
+- **[Custom Optimization](/builder/templates/custom)** -- build a cutting or packing model customized to your material and dimension requirements
+
+## Next Steps
+
+- **[Warehouse Layout & Operations](/docs/guides/warehouse-operations)** -- Optimize storage layouts and picking routes `intermediate`
+- **[Construction Project Planning](/docs/guides/construction-planning)** -- Apply resource optimization to construction scheduling `intermediate`
+- **[Textile Manufacturing](/docs/guides/textile-manufacturing)** -- Minimize fabric waste with optimized cutting patterns `intermediate`

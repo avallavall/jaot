@@ -1,0 +1,199 @@
+---
+title: "Telecom Network Planning"
+description: "Optimize tower placement, bandwidth allocation, and coverage areas"
+order: 23
+category: "telecom"
+difficulty: "advanced"
+domain: "Technology"
+templateCount: 1
+---
+
+# Telecom Network Planning
+
+Optimize network capacity planning, cell tower placement, and bandwidth allocation for telecommunications infrastructure. Telecom optimization selects tower locations from candidate sites, assigns frequencies, and allocates bandwidth to maximize coverage while staying within budget.
+
+## When to Use This Guide
+
+Telecom optimization applies to network infrastructure planning and resource allocation:
+
+- **Cell tower placement** -- Choose where to build towers to maximize population coverage
+- **Bandwidth allocation** -- Distribute available spectrum across base stations and users
+- **Network expansion planning** -- Prioritize infrastructure investments for new coverage areas
+- **Frequency assignment** -- Assign channels to towers to minimize interference
+- **Capacity planning** -- Size network elements to handle projected traffic growth
+
+## Step-by-Step Walkthrough
+
+### 1. Define Candidate Locations and Demand
+
+List all candidate tower sites with their construction and operating costs. Map demand zones with population density or traffic projections. Calculate which candidate locations can cover which demand zones (based on signal range and terrain).
+
+### 2. Set Coverage and Budget Constraints
+
+Define the minimum coverage target (e.g., 95% of demand zones must be served). Set a total budget for tower construction. Add any regulatory requirements like maximum tower density in residential areas.
+
+### 3. Model Signal and Capacity
+
+Each tower has a maximum number of simultaneous connections. Demand zones within range of multiple towers can load-balance. Zones at the edge of coverage may need signal quality constraints.
+
+### 4. Solve and Deploy
+
+The optimizer selects which towers to build (binary decisions) and how to allocate capacity. Review the solution for coverage gaps, redundancy, and cost efficiency before committing to construction.
+
+## Example: Place 5 Towers from 10 Candidates
+
+Select 5 tower locations from 10 candidates to cover 20 demand zones. Maximize total coverage (population served) within a construction budget of $500K.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+candidates = 10
+zones = 20
+max_towers = 5
+budget = 500  # $K
+
+# Construction cost per candidate ($K)
+tower_cost = [60, 80, 45, 70, 55, 90, 50, 65, 75, 40]
+# Population per demand zone (thousands)
+population = [
+    12, 8, 15, 5, 20, 10, 7, 18, 3, 14,
+    9, 11, 6, 16, 4, 13, 8, 17, 2, 10,
+]
+
+# Coverage matrix: 1 if candidate i covers zone j, 0 otherwise
+coverage = [
+    [1,1,0,0,0,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0],
+    [0,1,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],
+    [0,0,1,0,1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0],
+    [0,0,0,1,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,0],
+    [0,0,0,0,1,1,0,0,0,0,0,0,0,1,1,0,0,0,0,0],
+    [0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,1,1,0,0,0],
+    [0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,1,0],
+    [0,0,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1],
+]
+
+variables = []
+# Binary: build tower at candidate i
+for i in range(candidates):
+    variables.append({"name": f"tower_{i}", "type": "binary"})
+# Binary: zone j is covered
+for j in range(zones):
+    variables.append({"name": f"covered_{j}", "type": "binary"})
+
+# Maximize population covered
+objective = {
+    "sense": "maximize",
+    "coefficients": {f"covered_{j}": population[j] for j in range(zones)},
+}
+
+constraints = []
+# Budget constraint
+constraints.append({
+    "name": "budget",
+    "coefficients": {f"tower_{i}": tower_cost[i] for i in range(candidates)},
+    "sense": "<=",
+    "rhs": budget,
+})
+
+# Max towers
+constraints.append({
+    "name": "max_towers",
+    "coefficients": {f"tower_{i}": 1 for i in range(candidates)},
+    "sense": "<=",
+    "rhs": max_towers,
+})
+
+# Zone coverage: covered_j <= sum of towers that can reach zone j
+for j in range(zones):
+    covering_towers = [i for i in range(candidates) if coverage[i][j] == 1]
+    if covering_towers:
+        coeff = {f"tower_{i}": 1 for i in covering_towers}
+        coeff[f"covered_{j}"] = -1
+        constraints.append({
+            "name": f"coverage_{j}",
+            "coefficients": coeff,
+            "sense": ">=",
+            "rhs": 0,
+        })
+    else:
+        # No tower can cover this zone
+        constraints.append({
+            "name": f"coverage_{j}",
+            "coefficients": {f"covered_{j}": 1},
+            "sense": "==",
+            "rhs": 0,
+        })
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+total_pop = sum(population)
+covered_pop = result["objective_value"]
+print(f"Population covered: {covered_pop:.0f}K / {total_pop}K "
+      f"({covered_pop/total_pop*100:.1f}%)")
+total_cost = sum(
+    tower_cost[i] for i in range(candidates)
+    if result['solution'].get(f"tower_{i}", 0) > 0.5
+)
+print(f"Total cost: ${total_cost}K")
+for i in range(candidates):
+    if result['solution'].get(f"tower_{i}", 0) > 0.5:
+        print(f"  Build tower at site {i+1} (${tower_cost[i]}K)")
+```
+
+```json
+{
+  "variables": [
+    {"name": "tower_0", "type": "binary"},
+    {"name": "tower_1", "type": "binary"},
+    {"name": "covered_0", "type": "binary"},
+    {"name": "covered_1", "type": "binary"}
+  ],
+  "objective": {
+    "sense": "maximize",
+    "coefficients": {"covered_0": 12, "covered_1": 8}
+  },
+  "constraints": [
+    {
+      "name": "budget",
+      "coefficients": {"tower_0": 60, "tower_1": 80},
+      "sense": "<=",
+      "rhs": 500
+    },
+    {
+      "name": "max_towers",
+      "coefficients": {"tower_0": 1, "tower_1": 1},
+      "sense": "<=",
+      "rhs": 5
+    },
+    {
+      "name": "coverage_0",
+      "coefficients": {"tower_0": 1, "tower_8": 1, "covered_0": -1},
+      "sense": ">=",
+      "rhs": 0
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+Build telecom network models with the **[Custom Optimization](/builder/templates/custom)** template. Define your candidate sites, coverage zones, and budget to find the optimal tower placement strategy.
+
+## Next Steps
+
+- **[Network & Graph Optimization](/docs/guides/network-graph)** -- Solve network flow and connectivity problems on graph structures
+- **[Facility Location](/docs/guides/facility-location)** -- Apply location optimization to non-telecom infrastructure
+- **[API Reference](/docs/api/solve)** -- Full endpoint documentation for the solve API

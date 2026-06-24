@@ -1,0 +1,484 @@
+# Prometheus Alert Rules for JAOT Production
+# 24 rules across 7 groups: api, infrastructure, postgres, rabbitmq, redis, celery, containers
+# Referenced by prometheus.yml via rule_files directive
+
+groups:
+  - name: jaot-api
+    rules:
+      - alert: HighApiErrorRate
+        expr: |
+          sum(rate(http_request_duration_seconds_count{status=~"5.."}[5m]))
+          /
+          sum(rate(http_request_duration_seconds_count[5m]))
+          > 0.10
+          and sum(rate(http_request_duration_seconds_count[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API 5xx error rate above 10%"
+          description: "{{ $value | humanizePercentage }} of API requests returning 5xx errors"
+
+      - alert: HighApiLatencyP99
+        expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{handler!~".*/solve|.*/health.*"}[5m])) by (le)) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API P99 latency above 5 seconds"
+          description: "P99 latency is {{ $value }}s"
+
+      - alert: ApiDown
+        expr: up{job="jaot-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "JAOT API is unreachable"
+          description: "Prometheus cannot scrape the API metrics endpoint"
+
+  - name: jaot-infrastructure
+    rules:
+      - alert: ContainerOomKilled
+        expr: increase(node_vmstat_oom_kill[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "OOM kill detected on host"
+          description: "{{ $value }} OOM kills in the last 5 minutes"
+
+      - alert: HighDiskUsage
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes) < 0.15
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk usage above 85%"
+          description: "{{ $labels.mountpoint }} has {{ $value | humanizePercentage }} available"
+
+      - alert: HostHighMemoryUsage
+        expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Host memory usage above 90%"
+          description: "Available memory: {{ $value | humanizePercentage }}"
+
+      - alert: HostHighCpuUsage
+        expr: 100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Host CPU usage above 85%"
+          description: "CPU usage at {{ $value | humanize }}% -- SCIP solver or API may be saturating"
+
+  - name: jaot-postgres
+    rules:
+      - alert: DbConnectionPoolExhausted
+        expr: pg_stat_activity_count / pg_settings_max_connections > 0.90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL connection pool above 90%"
+          description: "{{ $value | humanizePercentage }} of max connections in use"
+
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is unreachable"
+          description: "postgres-exporter cannot connect to the database"
+
+      - alert: PostgresHighConnectionCount
+        expr: pg_stat_activity_count / pg_settings_max_connections > 0.80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL connections above 80%"
+          description: "{{ $value | humanizePercentage }} of max connections in use"
+
+      - alert: PostgresDeadlocks
+        expr: rate(pg_stat_database_deadlocks{datname="jaot"}[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL deadlocks detected"
+          description: "Deadlocks occurring in jaot database -- check credit locking contention"
+
+  - name: jaot-rabbitmq
+    rules:
+      - alert: CeleryQueueBacklog
+        expr: rabbitmq_queue_messages_ready > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Celery queue backlog above 100 messages"
+          description: "{{ $value }} messages waiting in queue {{ $labels.queue }}"
+
+      - alert: RabbitmqDown
+        expr: rabbitmq_identity_info != 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "RabbitMQ is unreachable"
+          description: "RabbitMQ node is not responding"
+
+      - alert: RabbitmqHighMemoryUsage
+        expr: rabbitmq_process_resident_memory_bytes / rabbitmq_resident_memory_limit_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RabbitMQ memory usage above 85%"
+          description: "RabbitMQ process memory at 85% of its detected limit"
+
+      - alert: RabbitmqUnackedMessages
+        expr: rabbitmq_queue_messages_unacked > 50
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RabbitMQ unacknowledged messages above 50"
+          description: "{{ $value }} unacked messages in queue {{ $labels.queue }} -- possible stuck consumers"
+
+  - name: jaot-redis
+    rules:
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is unreachable"
+          description: "Rate limiting fails open when Redis is down"
+
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory usage above 85%"
+          description: "Approaching 256MB container memory limit"
+
+  - name: jaot-celery
+    rules:
+      - alert: CeleryExporterDown
+        expr: up{job="celery"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Celery exporter is unreachable"
+          description: "No metrics from celery-exporter for 5 minutes -- worker may be down"
+
+      - alert: CeleryTaskFailureRateHigh
+        expr: |
+          (
+            sum(rate(celery_task_failed_total[5m])) /
+            clamp_min(sum(rate(celery_task_sent_total[5m])), 1)
+          ) > 0.10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Celery task failure rate above 10%"
+          description: "{{ $value | humanizePercentage }} of tasks failing over the last 5 minutes"
+
+      - alert: CeleryQueueDepthHigh
+        expr: celery_queue_length > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Celery queue depth above 50"
+          description: "{{ $value }} tasks waiting in queue {{ $labels.queue }}"
+
+      # Label fix (Phase 6.1 Plan 07 / 06-REVIEW WR-02 resolution):
+      # celery-exporter 0.12.2 emits `queue_name=...` for celery_queue_length,
+      # not `queue=...`. The original Phase 6 rules assumed `queue=`, so they
+      # would never fire. Verified on live Prometheus on 2026-04-18:
+      #   celery_queue_length{queue_name="solve_scip"} = 0
+      #   celery_queue_length{queue_name="solve_highs"} = 0
+      - alert: SolverQueueBacklogWarn
+        expr: celery_queue_length{queue_name=~"solve_.*"} > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Solver queue backlog above 50"
+          description: "{{ $value }} tasks waiting in solver queue {{ $labels.queue_name }} -- per-solver worker saturated, consider scaling concurrency or adding replicas"
+
+      - alert: SolverQueueBacklogCritical
+        expr: celery_queue_length{queue_name=~"solve_.*"} > 200
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Solver queue backlog above 200 -- user-visible degradation"
+          description: "{{ $value }} tasks waiting in solver queue {{ $labels.queue_name }} -- solves queued longer than typical Business-plan time budget (600s); investigate stuck worker or scale out"
+
+      - alert: DefaultQueueOOMRisk
+        expr: |
+          (container_memory_working_set_bytes{name="jaot_prod_celery_default"}
+          / container_spec_memory_limit_bytes{name="jaot_prod_celery_default"}) > 0.90
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Default Celery worker memory above 90% -- OOM imminent"
+          description: "jaot_prod_celery_default at {{ $value | humanizePercentage }} of its 256M memory limit; financial batch jobs at 2-3am UTC are highest OOM risk (see D-14, D-28). Upgrade to 512M if sustained"
+
+  - name: jaot-hexaly-platform-license
+    rules:
+      # Phase 7.4 / D-07 / HEX-09 — the daily Celery Beat task
+      # `hexaly_platform_license_expiry_sweep` reads /etc/jaot/hexaly.lic and
+      # updates jaot_hexaly_platform_license_days_remaining{license_fingerprint=...}.
+      # Clear() is called at the start of every sweep so rotated licenses drop
+      # their old fingerprint label, preventing stale alerts.
+      # Severity is warning — pages ops email before expiry so the .lic can be
+      # rotated without a production outage. Threshold 30 days matches the
+      # Hexaly renewal lead-time recommendation (D-07).
+      - alert: HexalyPlatformLicenseExpiringSoon
+        expr: jaot_hexaly_platform_license_days_remaining < 30
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Platform Hexaly license expires within 30 days"
+          description: "License fingerprint {{ $labels.license_fingerprint }} expires in {{ $value }} days. Contact Hexaly to renew the .lic file at /etc/jaot/hexaly.lic on the production host."
+          runbook: "https://github.com/avallavall/jaot/blob/main/docs/operations/DISASTER-RECOVERY.md#hexaly-license-expiry"
+
+  - name: jaot-qdrant
+    rules:
+      - alert: QdrantDown
+        expr: up{job="qdrant"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Qdrant vector database is unreachable"
+          description: "RAG knowledge base unavailable -- LLM formulation assistant will degrade"
+
+  - name: jaot-llm
+    rules:
+      - alert: AnthropicQuotaExhausted
+        expr: increase(jaot_llm_upstream_errors_total{provider="anthropic",kind="quota_exhausted"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Anthropic API quota exhausted -- billing action required"
+          description: "{{ $value }} quota_exhausted error(s) in the last 5 minutes -- top up the Anthropic account or the AI assistant will keep failing for all users"
+
+      - alert: AnthropicAuthFailed
+        expr: increase(jaot_llm_upstream_errors_total{provider="anthropic",kind="auth_failed"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Anthropic API authentication failed"
+          description: "{{ $value }} auth_failed error(s) in the last 5 minutes -- ANTHROPIC_API_KEY likely rotated or revoked, update via admin settings"
+
+      - alert: LLMHighUpstreamErrorRate
+        expr: |
+          sum(rate(jaot_llm_upstream_errors_total{kind!~"quota_exhausted|auth_failed"}[5m]))
+          > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "LLM upstream error rate elevated"
+          description: "{{ $value | humanize }} upstream errors/sec over 10 minutes -- check Anthropic status page and retry/backoff config"
+
+      - alert: LLMUnexpectedErrors
+        expr: increase(jaot_llm_upstream_errors_total{kind="unexpected"}[15m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Unexpected LLM errors detected"
+          description: "{{ $value }} unexpected error(s) in the last 15 minutes -- check application logs for event_code=llm.unexpected"
+
+      # W17 — monthly Anthropic budget guardrail. Gauges come from
+      # app/shared/core/llm_budget_metrics.py: cost = SUM(llm_messages.cost_eur)
+      # for the current calendar month (~60s in-process cache); budget = the
+      # LLM_MONTHLY_BUDGET_EUR platform setting (default 20 EUR; 0 disables, and
+      # the `and jaot_llm_budget_eur > 0` guard keeps these rules silent then).
+      # The backend auto-pauses the assistant at >= 100% (app/api/v2/llm.py),
+      # so the critical alert means "users are now seeing the assistant paused".
+      - alert: LLMMonthlyBudgetNearlyExhausted
+        expr: |
+          jaot_llm_cost_eur_month > 0.8 * jaot_llm_budget_eur
+          and jaot_llm_budget_eur > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "LLM spend above 80% of the monthly budget"
+          description: "Current-month Anthropic spend is {{ $value | humanize }} EUR -- above 80% of LLM_MONTHLY_BUDGET_EUR. The assistant auto-pauses at 100%; raise the budget in admin settings or review usage."
+
+      - alert: LLMMonthlyBudgetExceeded
+        expr: |
+          jaot_llm_cost_eur_month >= jaot_llm_budget_eur
+          and jaot_llm_budget_eur > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "LLM monthly budget exceeded -- assistant auto-paused"
+          description: "Current-month Anthropic spend ({{ $value | humanize }} EUR) has reached LLM_MONTHLY_BUDGET_EUR. The AI assistant now returns a friendly paused notice until the new month or a budget increase via admin settings."
+
+  - name: jaot-security
+    rules:
+      - alert: HighAuthFailureRate
+        expr: sum(rate(http_request_duration_seconds_count{status="401"}[5m])) > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High rate of 401 authentication failures"
+          description: "{{ $value | humanize }} auth failures/sec -- possible credential stuffing"
+
+      - alert: HighRateLimitHitRate
+        expr: sum(rate(http_request_duration_seconds_count{status="429"}[5m])) > 20
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High rate of 429 rate limit responses"
+          description: "{{ $value | humanize }} rate-limited requests/sec -- possible brute force or scraper"
+
+      - alert: HttpEndpointDown
+        expr: probe_success{job="blackbox-http"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "JAOT public endpoint is down"
+          description: "HTTP probe to {{ $labels.instance }} is failing"
+
+  - name: jaot-containers
+    rules:
+      - alert: TlsCertExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 86400 * 7
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "TLS certificate expires within 7 days"
+          description: "Certificate for {{ $labels.instance }} expires in {{ $value | humanizeDuration }}"
+
+      - alert: CeleryWorkerDown
+        # WR-02 (Phase 6): after the multi-solver rotation the legacy
+        # jaot_prod_celery container is removed, so the previous expression
+        # `container_last_seen{name="jaot_prod_celery"}` produced no series
+        # and the alert silently stopped firing. Match the three per-solver
+        # workers introduced by plan 06-04: default, scip, highs.
+        expr: |
+          time() - container_last_seen{
+            name=~"jaot_prod_celery_(default|scip|highs|hexaly)"
+          } > 120
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Celery worker {{ $labels.name }} is unhealthy"
+          description: "Container {{ $labels.name }} not seen by cAdvisor for over 2 minutes"
+
+      - alert: ContainerHighMemoryUsage
+        expr: |
+          (container_memory_working_set_bytes{name=~"jaot_prod_.*"}
+          / container_spec_memory_limit_bytes{name=~"jaot_prod_.*"}) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} memory above 85%"
+          description: "Container {{ $labels.name }} is nearing its memory limit"
+
+      - alert: ContainerRestarting
+        expr: changes(container_start_time_seconds{name=~"jaot_prod_.*"}[15m]) > 2
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} restart loop"
+          description: "{{ $value }} restarts in the last 15 minutes"
+
+  - name: contact_form
+    rules:
+      - alert: ContactFormDeliveryFailing
+        expr: increase(jaot_contact_message_send_attempts_total{result="failed"}[1h]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Contact-form delivery failed (exhausted retries) in the last hour"
+          description: "{{ $value }} contact_messages rows reached terminal status=failed in the last 1h."
+          runbook_url: "/opt/jaot/deploy/RUNBOOK-contact-form.md#3-alert-response"
+
+      # clamp_min(..., 1) keeps the ratio well-defined when total inbound < 1 req/h.
+      - alert: ContactFormSpamSurge
+        expr: (sum(rate(jaot_contact_spam_blocked_total[1h])) / clamp_min(sum(rate(jaot_contact_message_send_attempts_total[1h])) + sum(rate(jaot_contact_spam_blocked_total[1h])), 1)) > 0.05
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Contact-form spam rate exceeded 5% over the last hour"
+          description: "Spam-blocked submissions are >5% of total inbound — escalation criterion for promoting CAPTCHA per CONTEXT D-01."
+          runbook_url: "/opt/jaot/deploy/RUNBOOK-contact-form.md#4-spam-surge-response"
+
+  # Phase 10 / D-08 layer 2 — second-line defense for the producer/consumer
+  # queue-name coherence invariant.
+  #
+  # Provenance: Phase 9 discovered (~37 days late, on 2026-05-18 during the
+  # ops walk-through — see 09-02-OPERATOR-CHECKPOINT.md row F1) that the
+  # generic `default` queue had accumulated 112+ unconsumed scheduled tasks
+  # because celery_worker_default's `-Q celery` flag did not match the
+  # producer-side `task_default_queue="default"`. The broker happily
+  # accepted producer messages with no consumer; no signal fired because
+  # Celery's default behavior is to log-and-continue at the producer side.
+  #
+  # Layer 1 (boot-time audit, app/shared/core/celery_queue_audit.py) catches
+  # the misconfiguration on worker boot by refusing to start the worker.
+  # This Prometheus alert (layer 2) catches the residual case where the
+  # boot audit is bypassed (e.g. the audit module is mutated to log-only,
+  # or a future worker service is added without -Q and the audit's argv
+  # fallback yields a stale value): if jaot_default accumulates >50 messages
+  # for 30 minutes sustained, the operator is paged before the backlog
+  # becomes operationally damaging.
+  #
+  # Threshold rationale (D-08 placeholder): legitimate burst rate of
+  # jaot_default is well under 50 msgs/30min — 3 daily beat tasks +
+  # occasional contact-form + onboarding bursts, all consumed in seconds by
+  # the worker. Any sustained 50+ depth indicates the worker is down
+  # (already covered by CeleryWorkerDown) or a routing config drift the
+  # boot guard missed.
+  - name: jaot-queue-routing
+    rules:
+      - alert: JaotDefaultQueueOrphaned
+        # Metric source: celery-exporter (deployed in Phase 6.1; exposes
+        # celery_queue_length{queue_name="..."} per-queue). The RabbitMQ
+        # Prometheus exporter built into the management plugin only exposes
+        # aggregate rabbitmq_queue_messages without per-queue labels, so it
+        # cannot satisfy this alert. Verified against live production Prometheus
+        # 2026-05-19 during Phase 10 deploy.
+        expr: celery_queue_length{queue_name="jaot_default"} > 50
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "jaot_default queue accumulating — possible producer/consumer routing drift"
+          description: "{{ $value }} messages waiting on jaot_default for 30 minutes sustained. The boot-time audit in worker_process_init (see app/shared/core/celery_queue_audit.py) should have prevented this — check it was not bypassed and review recent changes to app/shared/core/celery_app.py task_routes / beat_schedule / task_default_queue and deploy/docker-compose.prod.yml celery_worker_default -Q flag. Phase 10 D-08 layer 2."
+          runbook_url: "/opt/jaot/deploy/RUNBOOK-queue-routing-fix.md"

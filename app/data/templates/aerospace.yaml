@@ -1,0 +1,241 @@
+category: aerospace
+category_display_name: Aerospace
+
+templates:
+  - id: satellite_scheduling
+    name: Satellite Task Scheduling
+    display_name: Satellite Scheduling
+    short_description: Schedule observation tasks across a satellite constellation to maximize completed requests within visibility windows.
+    description: >
+      Assigns observation or communication tasks to satellites in a constellation
+      during their visibility windows over target areas. Each task has a time
+      window, a priority value, a duration, and specific satellite capability
+      requirements. The model maximizes total priority-weighted task completion
+      while respecting each satellite's energy budget, slew-time between targets,
+      and memory/downlink constraints. Critical for Earth-observation and
+      communications satellite operators.
+    category: aerospace
+    tags: [aerospace, satellite, scheduling, earth-observation]
+    problem_type_tags: [MIP, scheduling]
+    generator_type: scheduling
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        tasks:
+          type: array
+          description: Observation tasks with windows and priorities
+        satellites:
+          type: array
+          description: Available satellites with capabilities
+        time_horizon:
+          type: integer
+          description: Planning horizon in minutes
+      required: [tasks, satellites, time_horizon]
+    input_fields:
+      - name: tasks
+        label: Observation Tasks
+        type: array
+        description: "Tasks with target name, duration, priority, and visibility window"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            duration: {type: integer}
+            priority: {type: number}
+            window_start: {type: integer}
+            window_end: {type: integer}
+      - name: satellites
+        label: Satellites
+        type: array
+        description: "Satellites with name and available observation minutes per orbit"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            capacity_minutes: {type: integer}
+      - name: time_horizon
+        label: Time Horizon (minutes)
+        type: integer
+        description: "Total scheduling horizon in minutes"
+        required: true
+        minimum: 1
+    example_input:
+      tasks:
+        - {name: "Wildfire-Monitor-CA", duration: 8, priority: 95, window_start: 0, window_end: 45}
+        - {name: "Crop-Survey-Midwest", duration: 12, priority: 60, window_start: 30, window_end: 90}
+        - {name: "Port-Traffic-Shanghai", duration: 6, priority: 70, window_start: 60, window_end: 120}
+        - {name: "Flood-Assess-Bangladesh", duration: 10, priority: 90, window_start: 45, window_end: 100}
+        - {name: "Urban-Growth-Lagos", duration: 8, priority: 50, window_start: 80, window_end: 150}
+        - {name: "Ice-Sheet-Monitor-Arctic", duration: 15, priority: 85, window_start: 10, window_end: 60}
+        - {name: "Pipeline-Inspect-Alaska", duration: 5, priority: 65, window_start: 100, window_end: 160}
+        - {name: "Deforestation-Amazon", duration: 10, priority: 80, window_start: 50, window_end: 130}
+      satellites:
+        - {name: "SAT-Alpha", capacity_minutes: 30}
+        - {name: "SAT-Beta", capacity_minutes: 25}
+        - {name: "SAT-Gamma", capacity_minutes: 35}
+      time_horizon: 180
+    scenario_description: >
+      An Earth-observation company operates three satellites and has eight imaging
+      requests for the next three-hour window. Requests range from emergency
+      wildfire monitoring (high priority) to routine urban growth surveys. Each
+      satellite has limited energy for imaging per orbit. The scheduler must
+      assign tasks to satellites within their visibility windows to maximize the
+      total priority score of completed observations.
+    is_featured: false
+    estimated_variables: 24
+    estimated_constraints: 35
+
+  - id: flight_crew_pairing
+    name: Flight Crew Pairing Optimization
+    display_name: Crew Pairing
+    short_description: Construct minimum-cost crew pairings that cover all scheduled flight legs while respecting duty-time regulations.
+    description: >
+      Builds crew duty pairings (sequences of flight legs starting and ending at
+      a crew base) that cover every scheduled flight at minimum cost. Each pairing
+      must comply with maximum duty hours, minimum rest periods, and connection
+      time limits. The model selects a set of pairings from candidates so that
+      every flight leg is covered exactly once. A classic set-covering problem
+      that airlines solve monthly for schedule planning.
+    category: aerospace
+    tags: [aerospace, airline, crew-scheduling, operations]
+    problem_type_tags: [MIP, set-covering]
+    generator_type: covering
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        flight_legs:
+          type: array
+          description: Scheduled flight legs to cover
+        candidate_pairings:
+          type: array
+          description: Valid crew pairings with costs and covered legs
+      required: [flight_legs, candidate_pairings]
+    input_fields:
+      - name: flight_legs
+        label: Flight Legs
+        type: array
+        description: "Scheduled flights with departure/arrival cities and times"
+        required: true
+        items:
+          type: object
+          properties:
+            id: {type: string}
+            from_city: {type: string}
+            to_city: {type: string}
+      - name: candidate_pairings
+        label: Candidate Pairings
+        type: array
+        description: "Valid crew pairings with total cost and list of covered flight leg IDs"
+        required: true
+        items:
+          type: object
+          properties:
+            id: {type: string}
+            cost: {type: number}
+            covers: {type: array, items: {type: string}}
+    example_input:
+      flight_legs:
+        - {id: "FL101", from_city: "JFK", to_city: "ORD"}
+        - {id: "FL102", from_city: "ORD", to_city: "DFW"}
+        - {id: "FL103", from_city: "DFW", to_city: "JFK"}
+        - {id: "FL201", from_city: "JFK", to_city: "LAX"}
+        - {id: "FL202", from_city: "LAX", to_city: "SFO"}
+        - {id: "FL203", from_city: "SFO", to_city: "JFK"}
+        - {id: "FL301", from_city: "ORD", to_city: "MIA"}
+        - {id: "FL302", from_city: "MIA", to_city: "JFK"}
+      candidate_pairings:
+        - {name: "P1", cost: 2800, covers: [0, 1, 2]}
+        - {name: "P2", cost: 3200, covers: [3, 4, 5]}
+        - {name: "P3", cost: 1900, covers: [0, 6, 7]}
+        - {name: "P4", cost: 2100, covers: [1, 6]}
+        - {name: "P5", cost: 1500, covers: [2]}
+        - {name: "P6", cost: 3500, covers: [3, 5]}
+        - {name: "P7", cost: 1800, covers: [4]}
+        - {name: "P8", cost: 2400, covers: [6, 7]}
+    scenario_description: >
+      A regional airline needs to build crew pairings for next month's schedule
+      of eight flight legs across six cities. Eight candidate pairings have been
+      enumerated, each with different costs (driven by hotel, per-diem, and
+      positioning expenses). Every flight leg must be covered by exactly one
+      pairing while minimizing total crew cost.
+    is_featured: false
+    estimated_variables: 8
+    estimated_constraints: 8
+
+  - id: launch_vehicle_payload
+    name: Launch Vehicle Payload Optimization
+    display_name: Payload Optimization
+    short_description: Select and arrange satellite payloads for a launch vehicle to maximize total mission value within mass and volume limits.
+    description: >
+      Decides which satellite payloads to include on a rideshare launch mission.
+      Each payload has a mass, volume, an orbital destination preference, and a
+      revenue value. The launch vehicle has a maximum payload mass and fairing
+      volume. The model maximizes total mission revenue while respecting mass and
+      volume constraints and ensuring orbital compatibility between co-manifested
+      payloads. Used by launch service providers for rideshare mission planning.
+    category: aerospace
+    tags: [aerospace, launch, payload, rideshare]
+    problem_type_tags: [MIP, knapsack]
+    generator_type: knapsack
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        payloads:
+          type: array
+          description: Candidate payloads with mass, volume, and value
+        max_mass:
+          type: number
+          description: Maximum payload mass in kg
+        max_volume:
+          type: number
+          description: Maximum fairing volume in m3
+      required: [payloads, max_mass, max_volume]
+    input_fields:
+      - name: payloads
+        label: Candidate Payloads
+        type: array
+        description: "Payloads with name, mass (kg), volume (m3), revenue, and orbit type"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            mass_kg: {type: number}
+            volume_m3: {type: number}
+            revenue: {type: number}
+            orbit: {type: string}
+      - name: max_mass
+        label: Max Payload Mass (kg)
+        type: number
+        description: "Launch vehicle payload capacity"
+        required: true
+        minimum: 1
+      - name: max_volume
+        label: Max Fairing Volume (m3)
+        type: number
+        description: "Fairing usable volume"
+        required: true
+        minimum: 1
+    example_input:
+      payloads:
+        - {name: "CubeSat-Constellation-A", mass_kg: 120, volume_m3: 0.8, revenue: 2500000, orbit: "LEO-SSO"}
+        - {name: "Earth-Obs-Satellite", mass_kg: 350, volume_m3: 2.5, revenue: 8000000, orbit: "LEO-SSO"}
+        - {name: "IoT-Relay-Sat", mass_kg: 80, volume_m3: 0.5, revenue: 1800000, orbit: "LEO-SSO"}
+        - {name: "Weather-Monitor", mass_kg: 200, volume_m3: 1.5, revenue: 5000000, orbit: "LEO-SSO"}
+        - {name: "Tech-Demo-Craft", mass_kg: 45, volume_m3: 0.3, revenue: 900000, orbit: "LEO"}
+        - {name: "University-CubeSat", mass_kg: 15, volume_m3: 0.1, revenue: 350000, orbit: "LEO"}
+      max_mass: 500
+      max_volume: 4.0
+    scenario_description: >
+      A launch provider is planning a rideshare mission to Sun-synchronous orbit.
+      Six payloads have requested manifest slots. The rocket can carry 500 kg and
+      the fairing has 4.0 m3 of usable volume. The mission planner needs to select
+      payloads that maximize total launch revenue within mass and volume limits.
+    is_featured: false
+    estimated_variables: 6
+    estimated_constraints: 2

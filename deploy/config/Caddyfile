@@ -1,0 +1,114 @@
+# Caddyfile for jaot.io production deployment
+# Caddy handles TLS automatically via Let's Encrypt
+# Security headers handled by FastAPI middleware (Phase 3) -- not duplicated here
+#
+# Rate limiting requires caddy-ratelimit plugin (see deploy/docker/Dockerfile.caddy).
+# Limits are per-IP via {remote_host} key. Backend also enforces Redis-based
+# rate limits per user/plan -- this is a layered defense at the reverse proxy level.
+
+jaot.io {
+    # ----- Rate limiting (caddy-ratelimit plugin) -----
+    # Returns 429 Too Many Requests when thresholds are exceeded.
+    # Each zone is independent; the most specific match applies first
+    # because Caddy evaluates handle blocks top-to-bottom.
+    rate_limit {
+        zone auth_rl {
+            match {
+                path /api/v2/auth/*
+            }
+            key    {remote_host}
+            events 10
+            window 1m
+        }
+        zone solve_rl {
+            match {
+                path /api/v2/solve
+            }
+            key    {remote_host}
+            events 30
+            window 1m
+        }
+        zone llm_rl {
+            match {
+                path /api/v2/llm/*
+            }
+            key    {remote_host}
+            events 20
+            window 1m
+        }
+        zone api_rl {
+            match {
+                path /api/*
+            }
+            key    {remote_host}
+            events 100
+            window 1m
+        }
+    }
+
+    # Block /metrics from public access — Prometheus scrapes internally via Docker network
+    handle /metrics* {
+        respond 403
+    }
+
+    # Backend API routes
+    handle /api/* {
+        reverse_proxy api:8001
+    }
+
+    # API docs disabled in production (FastAPI returns 404 when DEBUG=False)
+
+    # AI discovery and MCP protocol
+    handle /.well-known/* {
+        reverse_proxy api:8001
+    }
+    # Match BOTH the bare /mcp (the MCP handshake endpoint clients connect to)
+    # and /mcp/*. Caddy's /mcp/* matcher does NOT cover the exact /mcp path, so
+    # without /mcp here the handshake falls through to the frontend catch-all
+    # and returns 401 — even though discovery is meant to be public.
+    # NOTE: `handle` takes a single matcher, so covering both paths needs a
+    # named matcher (`handle /mcp /mcp/*` is a Caddyfile syntax error).
+    @mcp path /mcp /mcp/*
+    handle @mcp {
+        reverse_proxy api:8001
+    }
+
+    # Everything else -> frontend (Next.js)
+    handle {
+        reverse_proxy frontend:3000
+    }
+
+    # Maintenance page when backend/frontend is unreachable (502/503/504)
+    # Auto-refreshes every 5 seconds so users see the app when it comes back
+    handle_errors 502 503 504 {
+        root * /srv
+        rewrite * /maintenance.html
+        file_server
+    }
+}
+
+# Permanent redirect www -> bare domain
+www.jaot.io {
+    redir https://jaot.io{uri} permanent
+}
+
+
+# Plausible self-hosted analytics — Phase 8.
+# DNS: plausible.jaot.io CNAME jaot.io (provisioned in 08-02, deferred to operator).
+# Allow-list: ONLY /js/script.js + /api/event public. Dashboard reached
+# via `ssh -L 8000:plausible:8000 jaot@<server>` (D-08, mirrors Grafana port 3001).
+# TLS auto-provisioned by Caddy/Let's Encrypt once DNS resolves.
+plausible.jaot.io {
+    handle /js/script.js {
+        reverse_proxy plausible:8000
+    }
+    handle /api/event {
+        reverse_proxy plausible:8000
+    }
+    handle {
+        respond 404
+    }
+}
+
+# Grafana: access via SSH tunnel (ssh -L 3001:localhost:3001 <server>)
+# Not exposed publicly to avoid Grafana auth CVE attack surface

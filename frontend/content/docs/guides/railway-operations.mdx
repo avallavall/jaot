@@ -1,0 +1,171 @@
+---
+title: "Railway Operations"
+description: "Schedule trains, allocate rolling stock, and manage track capacity"
+order: 14
+category: "railway"
+difficulty: "advanced"
+domain: "Logistics"
+templateCount: 1
+---
+
+# Railway Operations
+
+Optimize train scheduling, crew rostering, and network capacity to keep rail operations running on time and on budget. Railway optimization balances complex track-sharing constraints, crew labor rules, and rolling stock availability to minimize delays while maximizing throughput across the network.
+
+## When to Use This Guide
+
+Railway optimization applies whenever you need to coordinate trains, crews, or infrastructure across a rail network:
+
+- **Timetable optimization** -- Create conflict-free schedules across shared track segments
+- **Crew scheduling** -- Assign drivers and conductors to trains while respecting shift limits and rest requirements
+- **Rolling stock allocation** -- Distribute locomotives and wagons efficiently across routes
+- **Track maintenance windows** -- Schedule maintenance without disrupting service
+- **Platform assignment** -- Assign arrival/departure platforms at busy stations
+
+## Step-by-Step Walkthrough
+
+### 1. Define Your Trains and Routes
+
+Start by listing every train service with its origin, destination, and required track segments. Each train needs a departure window and estimated travel time per segment.
+
+### 2. Set Track and Crew Constraints
+
+Add constraints for single-track segments (only one train at a time), minimum headway between trains on shared tracks, crew shift duration limits, and mandatory rest periods between shifts.
+
+### 3. Choose Your Objective
+
+Common objectives include minimizing total delay across all services, maximizing the number of trains scheduled, or minimizing crew costs while maintaining service levels.
+
+### 4. Solve and Interpret
+
+Run the optimizer to get a conflict-free timetable with crew assignments. Review the schedule for bottleneck segments and consider adding buffer time at congestion points.
+
+## Example: 5-Train Scheduling with Crew Constraints
+
+Schedule 5 trains across 4 track segments, each with crew shift constraints. Minimize total delay while ensuring no two trains occupy the same single-track segment simultaneously.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+# 5 trains x 4 segments = 20 departure-time variables
+# Plus 5 crew assignment binary variables
+variables = []
+for t in range(1, 6):
+    for s in range(1, 5):
+        variables.append({
+            "name": f"depart_t{t}_s{s}",
+            "type": "continuous",
+            "lb": 0,
+            "ub": 1440,  # minutes in a day
+        })
+    # Binary: 1 if train t uses crew shift A, 0 for shift B
+    variables.append({
+        "name": f"crew_shift_t{t}",
+        "type": "binary",
+    })
+
+# Delay variables for each train
+for t in range(1, 6):
+    variables.append({
+        "name": f"delay_t{t}",
+        "type": "continuous",
+        "lb": 0,
+    })
+
+# Minimize total delay
+objective = {
+    "sense": "minimize",
+    "coefficients": {f"delay_t{t}": 1 for t in range(1, 6)},
+}
+
+constraints = []
+# Segment travel times (minutes)
+travel_time = {1: 30, 2: 45, 3: 20, 4: 35}
+
+for t in range(1, 6):
+    # Sequential segment ordering
+    for s in range(1, 4):
+        constraints.append({
+            "name": f"sequence_t{t}_s{s}",
+            "coefficients": {
+                f"depart_t{t}_s{s+1}": 1,
+                f"depart_t{t}_s{s}": -1,
+            },
+            "sense": ">=",
+            "rhs": travel_time[s],
+        })
+
+# Crew shift duration limit (max 480 min = 8 hours)
+for t in range(1, 6):
+    constraints.append({
+        "name": f"crew_duration_t{t}",
+        "coefficients": {
+            f"depart_t{t}_s4": 1,
+            f"depart_t{t}_s1": -1,
+        },
+        "sense": "<=",
+        "rhs": 480,
+    })
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Total delay: {result['objective_value']:.0f} minutes")
+for t in range(1, 6):
+    dep = result['solution'][f"depart_t{t}_s1"]
+    print(f"Train {t} departs segment 1 at minute {dep:.0f}")
+```
+
+```json
+{
+  "variables": [
+    {"name": "depart_t1_s1", "type": "continuous", "lb": 0, "ub": 1440},
+    {"name": "depart_t1_s2", "type": "continuous", "lb": 0, "ub": 1440},
+    {"name": "depart_t1_s3", "type": "continuous", "lb": 0, "ub": 1440},
+    {"name": "depart_t1_s4", "type": "continuous", "lb": 0, "ub": 1440},
+    {"name": "crew_shift_t1", "type": "binary"},
+    {"name": "delay_t1", "type": "continuous", "lb": 0}
+  ],
+  "objective": {
+    "sense": "minimize",
+    "coefficients": {
+      "delay_t1": 1, "delay_t2": 1, "delay_t3": 1,
+      "delay_t4": 1, "delay_t5": 1
+    }
+  },
+  "constraints": [
+    {
+      "name": "sequence_t1_s1",
+      "coefficients": {"depart_t1_s2": 1, "depart_t1_s1": -1},
+      "sense": ">=",
+      "rhs": 30
+    },
+    {
+      "name": "crew_duration_t1",
+      "coefficients": {"depart_t1_s4": 1, "depart_t1_s1": -1},
+      "sense": "<=",
+      "rhs": 480
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+Build railway scheduling models using the **[Custom Optimization](/builder/templates/custom)** template. Start with your train network parameters -- routes, segment travel times, and crew availability -- and customize constraints for your specific rail operations.
+
+## Next Steps
+
+- **[Maritime Shipping](/docs/guides/maritime-shipping)** -- Explore vessel routing and port scheduling for maritime logistics
+- **[Transportation Network Design](/docs/guides/transportation-network)** -- Design multimodal freight networks across road, rail, and sea
+- **[API Reference](/docs/api/solve)** -- Full endpoint documentation for the solve API

@@ -1,0 +1,197 @@
+---
+title: "Network & Graph Optimization"
+description: "Solve shortest path, flow, and connectivity problems on graphs"
+order: 24
+category: "network_graph"
+difficulty: "intermediate"
+domain: "Technology"
+templateCount: 2
+---
+
+# Network & Graph Optimization
+
+Optimize network topology, flow routing, and capacity allocation across graph structures. Network optimization models nodes and edges with capacities and costs, then routes flow from sources to sinks at minimum cost while respecting capacity constraints.
+
+## When to Use This Guide
+
+Network and graph optimization applies to any problem involving connected nodes and flows:
+
+- **Network design** -- Select which edges (links, pipes, cables) to build in a new network
+- **Minimum cost flow** -- Route goods, data, or resources through a network at lowest cost
+- **Shortest path problems** -- Find optimal routes between locations considering multiple criteria
+- **Minimum spanning trees** -- Connect all nodes with minimum total edge cost
+- **Maximum flow** -- Push maximum volume through a capacitated network
+
+## Step-by-Step Walkthrough
+
+### 1. Define Nodes and Edges
+
+Model your problem as a directed graph. Define source nodes (where flow originates), sink nodes (where flow terminates), and intermediate transit nodes. Each edge has a capacity limit and a per-unit flow cost.
+
+### 2. Set Flow Requirements
+
+Specify how much flow must leave each source and how much must arrive at each sink. Transit nodes must balance: total inflow equals total outflow (flow conservation).
+
+### 3. Add Capacity and Budget Constraints
+
+Each edge cannot carry more than its capacity. Add any budget constraints on total flow cost or limits on the number of active edges. Some edges may be optional (binary decision to build or not).
+
+### 4. Solve and Analyze
+
+The optimizer determines flow quantities on every edge. Review the solution for bottleneck edges (at capacity), unused edges (candidates for removal), and alternative routes for resilience.
+
+## Example: 8-Node Network Flow
+
+Route flow through an 8-node network from 2 source nodes to 3 sink nodes with edge capacities. Minimize total transportation cost.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+# Network: 8 nodes (0-1 sources, 5-6-7 sinks, 2-3-4 transit)
+edges = [
+    (0, 2, 20, 4),   # (from, to, capacity, cost)
+    (0, 3, 15, 6),
+    (1, 2, 10, 5),
+    (1, 3, 25, 3),
+    (1, 4, 15, 7),
+    (2, 5, 18, 3),
+    (2, 6, 12, 5),
+    (3, 5, 10, 4),
+    (3, 6, 20, 2),
+    (3, 7, 15, 6),
+    (4, 6, 8, 4),
+    (4, 7, 20, 3),
+]
+
+# Supply at sources, demand at sinks
+supply = {0: 30, 1: 40}        # total supply = 70
+demand = {5: 25, 6: 25, 7: 20} # total demand = 70
+
+variables = []
+for idx, (fr, to, cap, cost) in enumerate(edges):
+    variables.append({
+        "name": f"flow_{fr}_{to}",
+        "type": "continuous",
+        "lb": 0,
+        "ub": cap,
+    })
+
+# Minimize total cost
+objective = {
+    "sense": "minimize",
+    "coefficients": {
+        f"flow_{fr}_{to}": cost
+        for fr, to, cap, cost in edges
+    },
+}
+
+constraints = []
+
+# Flow conservation at every node
+all_nodes = set()
+for fr, to, _, _ in edges:
+    all_nodes.add(fr)
+    all_nodes.add(to)
+
+for node in all_nodes:
+    outflow = {
+        f"flow_{fr}_{to}": 1
+        for fr, to, _, _ in edges if fr == node
+    }
+    inflow = {
+        f"flow_{fr}_{to}": -1
+        for fr, to, _, _ in edges if to == node
+    }
+    coeff = {**outflow, **inflow}
+
+    if node in supply:
+        # Source: outflow - inflow = supply
+        rhs = supply[node]
+    elif node in demand:
+        # Sink: outflow - inflow = -demand (inflow exceeds outflow)
+        rhs = -demand[node]
+    else:
+        # Transit: outflow - inflow = 0
+        rhs = 0
+
+    constraints.append({
+        "name": f"balance_{node}",
+        "coefficients": coeff,
+        "sense": "==",
+        "rhs": rhs,
+    })
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Total cost: ${result['objective_value']:,.0f}")
+print("Flows:")
+for fr, to, cap, cost in edges:
+    flow = result['solution'].get(f"flow_{fr}_{to}", 0)
+    if flow > 0.01:
+        print(f"  {fr} -> {to}: {flow:.1f} / {cap} units (${flow * cost:.0f})")
+```
+
+```json
+{
+  "variables": [
+    {"name": "flow_0_2", "type": "continuous", "lb": 0, "ub": 20},
+    {"name": "flow_0_3", "type": "continuous", "lb": 0, "ub": 15},
+    {"name": "flow_1_2", "type": "continuous", "lb": 0, "ub": 10},
+    {"name": "flow_1_3", "type": "continuous", "lb": 0, "ub": 25}
+  ],
+  "objective": {
+    "sense": "minimize",
+    "coefficients": {
+      "flow_0_2": 4, "flow_0_3": 6,
+      "flow_1_3": 3, "flow_2_5": 3
+    }
+  },
+  "constraints": [
+    {
+      "name": "balance_0",
+      "coefficients": {"flow_0_2": 1, "flow_0_3": 1},
+      "sense": "==",
+      "rhs": 30
+    },
+    {
+      "name": "balance_2",
+      "coefficients": {
+        "flow_0_2": -1, "flow_1_2": -1,
+        "flow_2_5": 1, "flow_2_6": 1
+      },
+      "sense": "==",
+      "rhs": 0
+    },
+    {
+      "name": "balance_5",
+      "coefficients": {"flow_2_5": -1, "flow_3_5": -1},
+      "sense": "==",
+      "rhs": -25
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+Build network optimization models with these templates:
+
+- **[Custom Optimization](/builder/templates/custom)** -- Define any graph structure with custom nodes, edges, and flow requirements
+- **[Transportation Optimizer](/builder/templates/transportation_problem)** -- Pre-configured for transportation network flows
+
+## Next Steps
+
+- **[Telecom Network Planning](/docs/guides/telecom-network)** -- Apply graph optimization to telecommunications infrastructure
+- **[Supply Chain Planning](/docs/guides/supply-chain-planning)** -- Model multi-tier supply chains as network flow problems
+- **[API Reference](/docs/api/solve)** -- Full endpoint documentation for the solve API

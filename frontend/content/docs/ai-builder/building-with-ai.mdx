@@ -1,0 +1,120 @@
+---
+title: Building with AI
+description: Use the AI formulation assistant to describe optimization problems in natural language and generate mathematical models
+order: 1
+---
+
+# Building with AI
+
+The AI formulation assistant translates natural language problem descriptions into mathematical optimization models. Describe what you want to optimize, and the assistant generates variables, constraints, and an objective function ready to solve with the SCIP solver.
+
+## Accessing the AI Assistant
+
+Navigate to the builder from the sidebar: **Builder > AI Assistant**. This creates a new builder document and opens the chat interface where you can start describing your optimization problem.
+
+You can also access the assistant from an existing builder document by clicking the **Chat** tab.
+
+## Describing Your Problem
+
+Type a natural language description of the optimization problem you want to solve. The assistant works best when you include:
+
+- **What you are deciding** -- the quantities or assignments you need to determine
+- **What you want to optimize** -- whether to minimize cost, maximize profit, etc.
+- **What limits apply** -- resource constraints, capacity limits, budget caps, requirements
+
+### Example Prompt
+
+```
+I run a furniture workshop that makes chairs and tables.
+Each chair uses 2 hours of assembly and 4 hours of finishing.
+Each table uses 3 hours of assembly and 2 hours of finishing.
+I have 240 assembly hours and 200 finishing hours available per week.
+Chairs sell for EUR 50 profit and tables for EUR 40.
+How many of each should I produce to maximize weekly profit?
+```
+
+The assistant analyzes this description and produces a structured mathematical formulation.
+
+## Understanding the Response
+
+The AI streams its response in real time using Server-Sent Events (SSE), so you see the formulation build incrementally rather than waiting for a complete answer.
+
+Once complete, the formulation is presented in three views:
+
+### Text View
+
+A plain-language summary of the model: what each variable represents, what each constraint enforces, and what the objective function optimizes. This view is useful for verifying the assistant understood your intent.
+
+### Visual View
+
+A structured card layout showing variables with their types and bounds, constraints with their expressions, and the objective function. This view makes it easy to scan the model structure at a glance.
+
+### Math View
+
+The formulation rendered in LaTeX notation, showing the model in standard mathematical form:
+
+```
+maximize    50x₁ + 40x₂
+subject to  2x₁ + 3x₂ ≤ 240
+            4x₁ + 2x₂ ≤ 200
+            x₁, x₂ ≥ 0, integer
+```
+
+This view is useful for verification against textbook formulations or academic references.
+
+## Attaching Files
+
+You can upload files to provide additional context for your problem. Supported formats:
+
+| Format | Use Case |
+|--------|----------|
+| **PDF** | Reports, specifications, academic papers |
+| **CSV** | Data tables, parameters, demand forecasts |
+| **TXT** | Plain text descriptions, notes |
+
+The maximum file size is **10 MB**. Uploaded files are parsed and their content is included as context for the AI, allowing it to extract parameters, understand data structures, and reference specific values from your documents.
+
+To attach a file, click the attachment icon in the chat input area and select your file.
+
+## Iterating on the Formulation
+
+The assistant maintains conversation context, so you can refine the formulation through follow-up messages:
+
+- "Add a constraint that we must produce at least 10 chairs"
+- "Change the assembly time for tables to 4 hours"
+- "Make the variables binary instead of integer"
+- "Add a new product: stools with 1 hour assembly, 2 hours finishing, EUR 25 profit"
+
+Each refinement produces an updated formulation while preserving the rest of the model.
+
+## Applying to Canvas
+
+Once you are satisfied with the formulation, click **Apply to Canvas** to transfer the mathematical model to the visual builder. This populates:
+
+- All decision variables with their types and bounds
+- All constraints with their expressions
+- The objective function with its sense (minimize/maximize)
+
+From the canvas, you can further edit the model visually, add or remove components, adjust bounds, and run solves directly.
+
+## Tips for Better Results
+
+1. **Be specific about units.** State whether values are in hours, kilograms, euros, or percentages. Ambiguous units lead to incorrect bounds and coefficients.
+
+2. **Include numeric data.** The assistant generates better formulations when you provide concrete numbers rather than vague descriptions like "limited resources."
+
+3. **Name your entities.** Instead of "product A and product B," use descriptive names like "steel beams and aluminum panels." This improves variable naming in the formulation.
+
+4. **State the objective clearly.** Explicitly say whether you want to minimize or maximize, and what metric matters (cost, profit, time, distance, utilization).
+
+5. **Mention variable types when relevant.** If decisions must be whole numbers (e.g., number of trucks) or yes/no choices (e.g., open a warehouse or not), say so. This ensures the assistant uses integer or binary variable types.
+
+6. **Provide constraints one at a time** if the problem is complex. You can always add more in follow-up messages.
+
+## Credit Usage
+
+AI formulation requests consume credits from your organization's balance. The cost depends on the complexity of the request and the length of the conversation. You can see the estimated credit cost before sending a message.
+
+Check your current balance at any time from the organization dashboard or via the [Credits API](/docs/api/credits-billing).
+
+> **Tip:** Use the [Templates Gallery](/docs/ai-builder/templates-gallery) for common problem types. Templates are pre-built and do not consume AI credits for the formulation step.

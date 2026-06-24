@@ -1,0 +1,246 @@
+category: chemical_engineering
+category_display_name: Chemical Engineering
+
+templates:
+  - id: reactor_optimization
+    name: Chemical Reactor Network Optimization
+    display_name: Reactor Optimization
+    short_description: Optimize feed rates and operating conditions across a reactor network to maximize product yield at minimum cost.
+    description: >
+      Determines optimal feed rates, temperatures, and residence times for a
+      network of chemical reactors producing a target product. Each reactor has
+      conversion rate parameters, capacity limits, and operating cost curves.
+      The model maximizes net product output (or profit) while staying within
+      safety limits on temperature and pressure. Raw material availability and
+      product demand constraints complete the picture. Applicable to refineries,
+      petrochemical plants, and specialty chemical producers.
+    category: chemical_engineering
+    tags: [chemical, reactor, process-optimization, manufacturing]
+    problem_type_tags: [LP, production-planning]
+    generator_type: production
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        reactors:
+          type: array
+          description: Reactors with capacity and cost parameters
+        raw_materials:
+          type: array
+          description: Available raw materials
+        products:
+          type: array
+          description: Target products with prices
+      required: [reactors, raw_materials, products]
+    input_fields:
+      - name: reactors
+        label: Reactors
+        type: array
+        description: "Reactors with name, max throughput, conversion rate, and operating cost per unit"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            max_throughput: {type: number}
+            conversion_rate: {type: number}
+            operating_cost: {type: number}
+      - name: raw_materials
+        label: Raw Materials
+        type: array
+        description: "Available raw materials with name, available quantity, and cost"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            available: {type: number}
+            cost_per_unit: {type: number}
+      - name: products
+        label: Products
+        type: array
+        description: "Target products with selling price per unit"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            price_per_unit: {type: number}
+            min_production: {type: number}
+    example_input:
+      reactors:
+        - {name: "CSTR-1", max_throughput: 500, conversion_rate: 0.85, operating_cost: 12}
+        - {name: "CSTR-2", max_throughput: 400, conversion_rate: 0.90, operating_cost: 15}
+        - {name: "PFR-1", max_throughput: 300, conversion_rate: 0.95, operating_cost: 20}
+      raw_materials:
+        - {name: "Ethylene", available: 800, cost_per_unit: 8, usage: {polyethylene: 2.5, polypropylene: 0}}
+        - {name: "Propylene", available: 600, cost_per_unit: 10, usage: {polyethylene: 0, polypropylene: 3.0}}
+      products:
+        - {name: "Polyethylene", price_per_unit: 45, min_production: 200, max_production: 600}
+        - {name: "Polypropylene", price_per_unit: 52, min_production: 150, max_production: 500}
+    scenario_description: >
+      A polymer plant operates three reactors (two CSTRs and one PFR) to convert
+      ethylene and propylene into polyethylene and polypropylene. Each reactor has
+      different throughput capacities and conversion efficiencies. Raw material
+      supply is limited this quarter. The plant manager needs to allocate feeds
+      across reactors to maximize profit while meeting minimum production targets.
+    is_featured: false
+    estimated_variables: 12
+    estimated_constraints: 10
+
+  - id: chemical_blending
+    name: Chemical Product Blending
+    display_name: Chemical Blending
+    short_description: Blend raw chemicals to produce products meeting strict purity and composition specifications at minimum cost.
+    description: >
+      Finds the minimum-cost blend of chemical feedstocks to produce a product
+      that meets precise composition specifications. Each feedstock has known
+      concentrations of active ingredients and impurities, along with a unit cost
+      and available quantity. Quality constraints enforce upper and lower bounds
+      on each component in the final blend. Used in paint manufacturing, cleaning
+      products, adhesives, and specialty chemicals.
+    category: chemical_engineering
+    tags: [chemical, blending, quality-control, formulation]
+    problem_type_tags: [LP, blending]
+    generator_type: blending
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        feedstocks:
+          type: array
+          description: Available chemical feedstocks
+        specifications:
+          type: array
+          description: Product composition requirements
+        batch_size:
+          type: number
+          description: Required batch output volume
+      required: [feedstocks, specifications, batch_size]
+    input_fields:
+      - name: feedstocks
+        label: Chemical Feedstocks
+        type: array
+        description: "Feedstocks with name, cost, availability, and composition percentages"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            cost_per_liter: {type: number}
+            available: {type: number}
+            composition: {type: object}
+      - name: specifications
+        label: Product Specifications
+        type: array
+        description: "Min/max percentage for each component in the final blend"
+        required: true
+        items:
+          type: object
+          properties:
+            component: {type: string}
+            min_pct: {type: number}
+            max_pct: {type: number}
+      - name: batch_size
+        label: Batch Size (liters)
+        type: number
+        description: "Total liters to produce"
+        required: true
+        minimum: 1
+    example_input:
+      feedstocks:
+        - {name: "Solvent-A", cost_per_liter: 3.20, available: 2000, composition: {active_ingredient: 40, solvent: 55, stabilizer: 5}}
+        - {name: "Solvent-B", cost_per_liter: 4.50, available: 1500, composition: {active_ingredient: 60, solvent: 35, stabilizer: 5}}
+        - {name: "Concentrate-C", cost_per_liter: 8.00, available: 500, composition: {active_ingredient: 85, solvent: 10, stabilizer: 5}}
+        - {name: "Stabilizer-D", cost_per_liter: 12.00, available: 300, composition: {active_ingredient: 5, solvent: 10, stabilizer: 85}}
+      specifications:
+        - {component: "active_ingredient", min_pct: 50, max_pct: 65}
+        - {component: "stabilizer", min_pct: 8, max_pct: 15}
+      batch_size: 3000
+    scenario_description: >
+      A specialty chemical manufacturer needs to produce 3,000 liters of an
+      industrial cleaning solution. The product must contain 50-65% active
+      ingredient and 8-15% stabilizer. Four feedstocks are available in limited
+      quantities at different costs. The formulation chemist wants the cheapest
+      blend that meets all specifications.
+    is_featured: false
+    estimated_variables: 4
+    estimated_constraints: 5
+
+  - id: pipeline_network_flow
+    name: Pipeline Network Flow Optimization
+    display_name: Pipeline Network
+    short_description: Route chemical products through a pipeline network to minimize pumping costs while meeting delivery requirements.
+    description: >
+      Determines flow rates through a chemical pipeline network connecting
+      production plants to storage terminals and customers. Each pipeline segment
+      has a capacity and a pumping cost per unit flow. The model minimizes total
+      transport cost while ensuring every customer node receives its contracted
+      volume and no pipeline exceeds its rated capacity. Applicable to petrochemical
+      distribution, natural gas networks, and water treatment systems.
+    category: chemical_engineering
+    tags: [chemical, pipeline, distribution, network-flow]
+    problem_type_tags: [LP, network-flow]
+    generator_type: network_flow
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        nodes:
+          type: array
+          description: Plants, terminals, and customers
+        pipelines:
+          type: array
+          description: Pipeline segments with capacity and cost
+      required: [nodes, pipelines]
+    input_fields:
+      - name: nodes
+        label: Network Nodes
+        type: array
+        description: "Nodes with name, type (plant/terminal/customer), and supply/demand"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            node_type: {type: string}
+            supply: {type: number}
+            demand: {type: number}
+      - name: pipelines
+        label: Pipelines
+        type: array
+        description: "Pipeline segments with from/to nodes, capacity, and cost per unit"
+        required: true
+        items:
+          type: object
+          properties:
+            from_node: {type: string}
+            to_node: {type: string}
+            capacity: {type: number}
+            cost_per_unit: {type: number}
+    example_input:
+      nodes:
+        - {name: "Refinery-A", node_type: "plant", supply: 4500, demand: 0}
+        - {name: "Refinery-B", node_type: "plant", supply: 3000, demand: 0}
+        - {name: "Tank-Farm-1", node_type: "terminal", supply: 0, demand: 0}
+        - {name: "Tank-Farm-2", node_type: "terminal", supply: 0, demand: 0}
+        - {name: "Customer-X", node_type: "customer", supply: 0, demand: 2800}
+        - {name: "Customer-Y", node_type: "customer", supply: 0, demand: 2500}
+        - {name: "Customer-Z", node_type: "customer", supply: 0, demand: 2200}
+      pipelines:
+        - {from_node: "Refinery-A", to_node: "Tank-Farm-1", capacity: 4000, cost_per_unit: 1.2}
+        - {from_node: "Refinery-A", to_node: "Tank-Farm-2", capacity: 2500, cost_per_unit: 1.5}
+        - {from_node: "Refinery-B", to_node: "Tank-Farm-1", capacity: 1500, cost_per_unit: 1.3}
+        - {from_node: "Refinery-B", to_node: "Tank-Farm-2", capacity: 3000, cost_per_unit: 1.0}
+        - {from_node: "Tank-Farm-1", to_node: "Customer-X", capacity: 3500, cost_per_unit: 0.8}
+        - {from_node: "Tank-Farm-1", to_node: "Customer-Y", capacity: 2500, cost_per_unit: 1.1}
+        - {from_node: "Tank-Farm-2", to_node: "Customer-Y", capacity: 2500, cost_per_unit: 0.9}
+        - {from_node: "Tank-Farm-2", to_node: "Customer-Z", capacity: 3000, cost_per_unit: 0.7}
+    scenario_description: >
+      A petrochemical company distributes products from two refineries to three
+      industrial customers through a pipeline network with two tank farm
+      junctions. Pumping costs vary by segment. The distribution planner needs
+      to route 8,000 barrels per day through the network at minimum cost.
+    is_featured: false
+    estimated_variables: 7
+    estimated_constraints: 7

@@ -1,0 +1,178 @@
+---
+title: "Forestry Management"
+description: "Schedule harvesting, replanting, and sustainable yield planning"
+order: 32
+category: "forestry"
+difficulty: "intermediate"
+domain: "Natural Resources"
+templateCount: 1
+---
+
+# Forestry Management
+
+Optimize harvest scheduling, reforestation planning, and timber supply chain operations. Forestry problems balance economic returns from timber sales against sustainability requirements, adjacency restrictions, and road access constraints across a landscape of forest stands.
+
+## When to Use This Guide
+
+Use this guide for forestry scheduling and resource management problems:
+
+- **Harvest planning** -- decide which forest stands to harvest in each period to maximize timber value while maintaining sustainability
+- **Log allocation** -- assign harvested logs to mills based on species, grade, and transport cost
+- **Road network design** -- determine which forest roads to build or maintain to access harvest areas cost-effectively
+- **Sustainable yield management** -- ensure annual harvest volume stays within long-term growth capacity
+
+## Step-by-Step Walkthrough
+
+1. **Inventory your stands.** For each forest stand, record its area, timber volume, age, species mix, and access status (road or no road).
+
+2. **Set sustainability rules.** Common rules include a maximum percentage of total forest area harvested per year, minimum rotation age, and adjacency restrictions (two neighboring stands cannot both be harvested in the same period).
+
+3. **Define road access.** A stand can only be harvested if a road connects it to the mill. Include road construction costs if new roads are needed.
+
+4. **Choose your objective.** Maximize total net timber revenue (sale value minus harvest and transport cost) over the planning horizon, or maximize even-flow (consistent volume each year).
+
+5. **Run and interpret.** The solver returns a harvest schedule showing which stands to cut in each period. Verify that adjacency and road constraints are satisfied.
+
+## Example: Multi-Year Harvest Schedule
+
+Schedule harvest of 8 forest stands over 5 years. Each stand has a timber volume and value. Sustainability requires harvesting no more than 20% of total area per year. Adjacent stands cannot both be harvested in the same year.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+stands = {
+    "S1": {"area": 50, "volume": 3000, "value": 45000},
+    "S2": {"area": 40, "volume": 2200, "value": 33000},
+    "S3": {"area": 60, "volume": 4000, "value": 60000},
+    "S4": {"area": 35, "volume": 1800, "value": 27000},
+    "S5": {"area": 55, "volume": 3500, "value": 52500},
+    "S6": {"area": 45, "volume": 2800, "value": 42000},
+    "S7": {"area": 30, "volume": 1500, "value": 22500},
+    "S8": {"area": 65, "volume": 4200, "value": 63000},
+}
+
+years = [1, 2, 3, 4, 5]
+total_area = sum(s["area"] for s in stands.values())
+max_annual_area = total_area * 0.20  # 20% sustainability limit
+
+# Adjacent stand pairs (cannot harvest both in same year)
+adjacency = [("S1", "S2"), ("S2", "S3"), ("S3", "S4"), ("S5", "S6"), ("S7", "S8")]
+
+# Binary: harvest stand s in year y
+variables = [
+    {"name": f"{s}_y{y}", "type": "binary"}
+    for s in stands for y in years
+]
+
+# Maximize total timber value
+objective = {
+    "sense": "maximize",
+    "coefficients": {
+        f"{s}_y{y}": stands[s]['value']
+        for s in stands for y in years
+    },
+}
+
+constraints = []
+
+# Each stand harvested at most once
+for s in stands:
+    constraints.append({
+        "name": f"once_{s}",
+        "coefficients": {f"{s}_y{y}": 1 for y in years},
+        "sense": "<=",
+        "rhs": 1,
+    })
+
+# Annual area limit (20% sustainability)
+for y in years:
+    constraints.append({
+        "name": f"area_limit_y{y}",
+        "coefficients": {
+            f"{s}_y{y}": stands[s]['area'] for s in stands
+        },
+        "sense": "<=",
+        "rhs": max_annual_area,
+    })
+
+# Adjacency: neighboring stands not in same year
+for (s1, s2) in adjacency:
+    for y in years:
+        constraints.append({
+            "name": f"adjacent_{s1}_{s2}_y{y}",
+            "coefficients": {f"{s1}_y{y}": 1, f"{s2}_y{y}": 1},
+            "sense": "<=",
+            "rhs": 1,
+        })
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Total timber value: ${result['objective_value']:,.2f}")
+for y in years:
+    harvested = [s for s in stands if result['solution'].get(f"{s}_y{y}", 0) > 0.5]
+    area = sum(stands[s]["area"] for s in harvested)
+    print(f"  Year {y}: {', '.join(harvested) or 'none'} ({area} ha)")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/solve \
+  -H "Authorization: Bearer ok_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variables": [
+      {"name": "S1_y1", "type": "binary"},
+      {"name": "S1_y2", "type": "binary"},
+      {"name": "S2_y1", "type": "binary"},
+      {"name": "S3_y2", "type": "binary"}
+    ],
+    "objective": {
+      "sense": "maximize",
+      "coefficients": {
+        "S1_y1": 45000, "S1_y2": 45000,
+        "S2_y1": 33000, "S3_y2": 60000
+      }
+    },
+    "constraints": [
+      {
+        "name": "once_S1",
+        "coefficients": {"S1_y1": 1, "S1_y2": 1},
+        "sense": "<=",
+        "rhs": 1
+      },
+      {
+        "name": "area_limit_y1",
+        "coefficients": {"S1_y1": 50, "S2_y1": 40},
+        "sense": "<=",
+        "rhs": 76
+      },
+      {
+        "name": "adjacent_S1_S2_y1",
+        "coefficients": {"S1_y1": 1, "S2_y1": 1},
+        "sense": "<=",
+        "rhs": 1
+      }
+    ]
+  }'
+```
+</CodeTabs>
+
+The solver spreads harvests across years to stay within the 20% annual area cap and avoids cutting neighboring stands in the same period, maximizing total timber value.
+
+## Recommended Templates
+
+- **[Custom Optimization](/builder/templates/custom)** -- build a fully custom harvest scheduling model with adjacency, road, and sustainability constraints
+
+## Next Steps
+
+- **[Agricultural Planning](/docs/guides/agricultural-planning)** (beginner) -- apply similar seasonal planning techniques to crop rotation and farm resource allocation
+- **[Environmental Resource Management](/docs/guides/environmental-management)** (intermediate) -- explore sustainability-focused optimization for emissions and waste

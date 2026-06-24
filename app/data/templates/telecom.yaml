@@ -1,0 +1,241 @@
+category: telecom
+category_display_name: Telecommunications
+
+templates:
+  - id: cell_tower_placement
+    name: Cell Tower Placement Optimization
+    display_name: Cell Tower Placement
+    short_description: Determine optimal locations for cell towers to maximize population coverage while minimizing infrastructure costs.
+    description: >
+      Decides which candidate sites should host cell towers to provide adequate signal
+      coverage to a target population. Each site has a fixed installation cost and a
+      coverage radius that reaches certain demand zones. The model minimizes total
+      deployment cost while ensuring every zone is covered by at least one tower.
+      Useful for telecom operators planning network rollouts in new regions or
+      upgrading legacy infrastructure.
+    category: telecom
+    tags: [telecom, infrastructure, wireless, network-planning]
+    problem_type_tags: [MIP, facility-location]
+    generator_type: facility_location
+    generator_params:
+      capacity_constrained: false
+    input_schema:
+      type: object
+      properties:
+        candidate_sites:
+          type: array
+          description: Potential tower locations with costs
+        demand_zones:
+          type: array
+          description: Population zones requiring coverage
+        coverage_matrix:
+          type: array
+          description: Which sites cover which zones
+      required: [candidate_sites, demand_zones, coverage_matrix]
+    input_fields:
+      - name: candidate_sites
+        label: Candidate Sites
+        type: array
+        description: "List of candidate tower sites with name and fixed cost"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            fixed_cost: {type: number}
+      - name: demand_zones
+        label: Demand Zones
+        type: array
+        description: "Population zones that need coverage"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            population: {type: integer}
+      - name: coverage_matrix
+        label: Coverage Matrix
+        type: array
+        description: "Which sites cover which zones (list of [site_index, zone_index] pairs)"
+        required: true
+    example_input:
+      candidate_sites:
+        - {name: "Hilltop-A", fixed_cost: 120000}
+        - {name: "Downtown-B", fixed_cost: 95000}
+        - {name: "Industrial-C", fixed_cost: 80000}
+        - {name: "Suburb-D", fixed_cost: 110000}
+        - {name: "Mall-E", fixed_cost: 70000}
+      demand_zones:
+        - {name: "Zone-North", population: 15000}
+        - {name: "Zone-Central", population: 32000}
+        - {name: "Zone-South", population: 21000}
+        - {name: "Zone-East", population: 18000}
+        - {name: "Zone-West", population: 12000}
+      coverage_matrix:
+        - [0, 0]
+        - [0, 1]
+        - [1, 1]
+        - [1, 2]
+        - [2, 2]
+        - [2, 3]
+        - [3, 0]
+        - [3, 4]
+        - [4, 1]
+        - [4, 2]
+        - [4, 3]
+    scenario_description: >
+      A regional telecom operator is expanding 5G coverage across a mid-size city
+      divided into five demand zones. Five candidate sites have been surveyed;
+      each has a different installation cost depending on land lease and power
+      availability. The operator needs every zone covered by at least one tower
+      while spending as little as possible on infrastructure.
+    is_featured: false
+    estimated_variables: 5
+    estimated_constraints: 5
+
+  - id: bandwidth_allocation
+    name: Network Bandwidth Allocation
+    display_name: Bandwidth Allocation
+    short_description: Allocate limited bandwidth across services and customers to maximize network utilization and revenue.
+    description: >
+      Given a set of network links with finite capacity, allocate bandwidth to
+      competing service requests (video streaming, VoIP, data) so that total
+      revenue or quality-of-service score is maximized. Each request has a
+      bandwidth requirement and a priority value. The model ensures no link
+      is oversubscribed while maximizing the value of accepted requests.
+    category: telecom
+    tags: [telecom, networking, bandwidth, capacity-planning]
+    problem_type_tags: [MIP, knapsack]
+    generator_type: knapsack
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        requests:
+          type: array
+          description: Service requests with bandwidth needs and value
+        link_capacity:
+          type: number
+          description: Total available bandwidth in Mbps
+      required: [requests, link_capacity]
+    input_fields:
+      - name: requests
+        label: Service Requests
+        type: array
+        description: "Each request has a name, bandwidth requirement (Mbps), and revenue value"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            bandwidth: {type: number}
+            value: {type: number}
+      - name: link_capacity
+        label: Link Capacity (Mbps)
+        type: number
+        description: "Total bandwidth available on the bottleneck link"
+        required: true
+        minimum: 1
+    example_input:
+      requests:
+        - {name: "4K-Stream-Premium", bandwidth: 25, value: 50}
+        - {name: "VoIP-Enterprise", bandwidth: 5, value: 40}
+        - {name: "Cloud-Backup-Corp", bandwidth: 40, value: 35}
+        - {name: "Gaming-Server", bandwidth: 15, value: 30}
+        - {name: "IoT-Sensors", bandwidth: 2, value: 20}
+        - {name: "Video-Conference", bandwidth: 10, value: 45}
+        - {name: "Web-Hosting", bandwidth: 20, value: 25}
+        - {name: "Email-Relay", bandwidth: 3, value: 15}
+      link_capacity: 60
+    scenario_description: >
+      A telecom carrier has 60 Mbps of available backbone capacity on a congested
+      link during peak hours. Eight service requests are queued, each with different
+      bandwidth needs and revenue contributions. The carrier must decide which
+      requests to accept to maximize revenue without exceeding link capacity.
+    is_featured: false
+    estimated_variables: 8
+    estimated_constraints: 1
+
+  - id: network_redundancy
+    name: Network Redundancy Design
+    display_name: Network Redundancy
+    short_description: Design a minimum-cost redundant network ensuring every node has at least two independent paths.
+    description: >
+      Select edges from a candidate set to build a communication network where
+      every pair of critical nodes is connected by at least two edge-disjoint
+      paths. Each candidate edge has an installation cost. The model minimizes
+      total cost while guaranteeing fault tolerance -- if any single link fails,
+      all nodes remain reachable. Essential for designing resilient fiber-optic
+      or microwave backhaul networks.
+    category: telecom
+    tags: [telecom, network-design, reliability, fault-tolerance]
+    problem_type_tags: [MIP, network-design]
+    generator_type: network_flow
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        nodes:
+          type: array
+          description: Network nodes
+        candidate_edges:
+          type: array
+          description: Possible connections with costs
+      required: [nodes, candidate_edges]
+    input_fields:
+      - name: nodes
+        label: Network Nodes
+        type: array
+        description: "List of network node names"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: candidate_edges
+        label: Candidate Edges
+        type: array
+        description: "Possible links between nodes with installation cost and capacity"
+        required: true
+        items:
+          type: object
+          properties:
+            from_node: {type: string}
+            to_node: {type: string}
+            cost: {type: number}
+            capacity: {type: number}
+      - name: min_paths
+        label: Minimum Redundant Paths
+        type: integer
+        description: "Minimum number of independent paths between critical nodes"
+        required: false
+        default: 2
+        minimum: 1
+        maximum: 4
+    example_input:
+      nodes:
+        - {name: "DataCenter-HQ"}
+        - {name: "Hub-North"}
+        - {name: "Hub-South"}
+        - {name: "Hub-East"}
+        - {name: "Hub-West"}
+        - {name: "Exchange-Central"}
+      candidate_edges:
+        - {from_node: "DataCenter-HQ", to_node: "Hub-North", cost: 50000, capacity: 100}
+        - {from_node: "DataCenter-HQ", to_node: "Hub-South", cost: 45000, capacity: 100}
+        - {from_node: "DataCenter-HQ", to_node: "Exchange-Central", cost: 30000, capacity: 200}
+        - {from_node: "Hub-North", to_node: "Hub-East", cost: 35000, capacity: 100}
+        - {from_node: "Hub-South", to_node: "Hub-West", cost: 40000, capacity: 100}
+        - {from_node: "Hub-East", to_node: "Exchange-Central", cost: 25000, capacity: 100}
+        - {from_node: "Hub-West", to_node: "Exchange-Central", cost: 28000, capacity: 100}
+        - {from_node: "Hub-North", to_node: "Hub-South", cost: 32000, capacity: 100}
+        - {from_node: "Hub-East", to_node: "Hub-West", cost: 38000, capacity: 100}
+      min_paths: 2
+    scenario_description: >
+      A regional ISP is building a fiber backbone connecting its data center to
+      five hub sites through a central exchange. Nine candidate fiber routes have
+      been surveyed. The ISP requires that every hub has at least two independent
+      paths to the data center so that a single fiber cut does not cause an outage.
+    is_featured: false
+    estimated_variables: 18
+    estimated_constraints: 20

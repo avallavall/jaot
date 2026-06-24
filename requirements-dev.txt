@@ -1,0 +1,13 @@
+# Development dependencies
+pytest>=9.0.0
+pytest-asyncio>=1.3.0
+pytest-cov>=7.0.0
+pytest-randomly>=4.1.0
+pytest-xdist>=3.8.0
+ruff>=0.14.0
+mypy>=1.8.0
+pre-commit>=4.0.0
+# Mutation testing — Phase 12.3 scoped pre-pilot (CONTEXT D-03), Phase 12.5
+# expansion to 5 critical modules. Lower-bound pin against the 3.x config-key
+# rename in unreleased master (paths_to_mutate -> source_paths).
+mutmut>=3.5.0,<4.0.0

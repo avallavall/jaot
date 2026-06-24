@@ -1,0 +1,166 @@
+---
+title: "Warehouse Layout & Operations"
+description: "Optimize storage layouts, picking routes, and inventory placement"
+order: 16
+category: "warehouse"
+difficulty: "intermediate"
+domain: "Logistics"
+templateCount: 1
+---
+
+# Warehouse Layout & Operations
+
+Optimize how products are stored, organized, and picked inside your warehouse. Warehouse optimization assigns high-demand items to accessible locations, minimizes picker travel distance, and balances workload across zones to speed up order fulfillment.
+
+## When to Use This Guide
+
+Warehouse optimization helps whenever fulfillment speed, accuracy, or labor costs matter:
+
+- **Warehouse slotting** -- Assign SKUs to storage locations based on pick frequency
+- **Pick path optimization** -- Sequence pick lists to minimize travel distance
+- **Inventory allocation** -- Distribute stock across zones or buildings to balance workload
+- **Zone configuration** -- Decide how many zones to create and what to store in each
+- **Replenishment planning** -- Schedule restocking to avoid stockouts in forward-pick areas
+
+## Step-by-Step Walkthrough
+
+### 1. Define Products and Demand
+
+List every product (SKU) with its daily pick frequency, physical dimensions, and storage requirements (e.g., temperature, hazmat). High-frequency items should end up closest to packing stations.
+
+### 2. Define Warehouse Zones
+
+Map your warehouse into zones with known distances to the packing area. Each zone has a capacity limit (number of slots or cubic meters). Some zones may have special capabilities like refrigeration.
+
+### 3. Set Assignment Constraints
+
+Each product must be assigned to exactly one zone. Zone capacities cannot be exceeded. Compatible storage requirements must be respected (no chemicals next to food products).
+
+### 4. Solve and Implement
+
+The optimizer assigns products to zones to minimize total weighted travel distance. Review the solution to ensure practical feasibility, then update your warehouse management system with new slot assignments.
+
+## Example: Assign 15 Products to 5 Zones
+
+Assign 15 products to 5 warehouse zones based on pick frequency. Minimize total travel distance, weighted by how often each product is picked.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+products = 15
+zones = 5
+
+# Daily pick frequency per product
+frequency = [50, 30, 80, 15, 45, 25, 60, 35, 20, 70, 40, 10, 55, 28, 65]
+# Distance from each zone to packing area (meters)
+zone_distance = [10, 25, 40, 55, 70]
+# Slots available per zone
+zone_capacity = [3, 4, 3, 3, 2]
+
+variables = []
+for p in range(products):
+    for z in range(zones):
+        variables.append({
+            "name": f"assign_{p}_{z}",
+            "type": "binary",
+        })
+
+# Minimize total travel distance weighted by pick frequency
+coefficients = {}
+for p in range(products):
+    for z in range(zones):
+        # Round trip distance x picks per day
+        coefficients[f"assign_{p}_{z}"] = frequency[p] * zone_distance[z] * 2
+
+objective = {"sense": "minimize", "coefficients": coefficients}
+
+constraints = []
+# Each product assigned to exactly one zone
+for p in range(products):
+    constraints.append({
+        "name": f"assign_once_{p}",
+        "coefficients": {f"assign_{p}_{z}": 1 for z in range(zones)},
+        "sense": "==",
+        "rhs": 1,
+    })
+
+# Zone capacity limits
+for z in range(zones):
+    constraints.append({
+        "name": f"capacity_{z}",
+        "coefficients": {f"assign_{p}_{z}": 1 for p in range(products)},
+        "sense": "<=",
+        "rhs": zone_capacity[z],
+    })
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Total daily travel: {result['objective_value']:,.0f} meters")
+for z in range(zones):
+    assigned = [
+        p + 1 for p in range(products)
+        if result['solution'].get(f"assign_{p}_{z}", 0) > 0.5
+    ]
+    if assigned:
+        print(f"  Zone {z+1} ({zone_distance[z]}m): Products {assigned}")
+```
+
+```json
+{
+  "variables": [
+    {"name": "assign_0_0", "type": "binary"},
+    {"name": "assign_0_1", "type": "binary"},
+    {"name": "assign_0_2", "type": "binary"},
+    {"name": "assign_0_3", "type": "binary"},
+    {"name": "assign_0_4", "type": "binary"}
+  ],
+  "objective": {
+    "sense": "minimize",
+    "coefficients": {
+      "assign_0_0": 1000, "assign_0_1": 2500,
+      "assign_0_2": 4000, "assign_0_3": 5500,
+      "assign_0_4": 7000
+    }
+  },
+  "constraints": [
+    {
+      "name": "assign_once_0",
+      "coefficients": {
+        "assign_0_0": 1, "assign_0_1": 1, "assign_0_2": 1,
+        "assign_0_3": 1, "assign_0_4": 1
+      },
+      "sense": "==",
+      "rhs": 1
+    },
+    {
+      "name": "capacity_0",
+      "coefficients": {
+        "assign_0_0": 1, "assign_1_0": 1, "assign_2_0": 1
+      },
+      "sense": "<=",
+      "rhs": 3
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+Build warehouse optimization models with the **[Custom Optimization](/builder/templates/custom)** template. Define your product catalog, zone layout, and pick frequency data to generate an optimal slotting plan.
+
+## Next Steps
+
+- **[Facility Location](/docs/guides/facility-location)** -- Decide where to build or lease warehouse facilities
+- **[Supply Chain Planning](/docs/guides/supply-chain-planning)** -- Integrate warehouse operations into broader supply chain decisions
+- **[API Reference](/docs/api/solve)** -- Full endpoint documentation for the solve API

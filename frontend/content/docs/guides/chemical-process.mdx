@@ -1,0 +1,186 @@
+---
+title: "Chemical Process Optimization"
+description: "Balance reactor yields, blending ratios, and process constraints"
+order: 6
+category: "chemical_engineering"
+difficulty: "advanced"
+domain: "Manufacturing"
+templateCount: 1
+---
+
+# Chemical Process Optimization
+
+Chemical process optimization helps engineers **formulate blends and maximize reactor yields** under strict purity and safety specifications. The example below shows feedstock blending: given multiple raw materials with different costs and quality properties, find the least expensive combination that meets product specifications.
+
+## Step-by-Step Walkthrough
+
+**1. Define feedstocks and their properties**
+
+List each raw material or intermediate chemical with its cost, availability, and relevant quality properties (purity, density, viscosity, sulfur content, etc.).
+
+**2. Specify product quality requirements**
+
+Define the target product specifications with minimum and maximum bounds. For example, a gasoline blend must have an octane rating of at least 87 and a sulfur content below 30 ppm.
+
+**3. Model process constraints**
+
+Include physical and operational limits:
+- Reactor temperature and pressure ranges
+- Throughput capacity limits
+- Storage tank capacities
+- Environmental emission limits
+- Safety margins on hazardous material concentrations
+
+**4. Set the optimization objective**
+
+Common objectives include:
+- **Minimize feedstock cost** per unit of product
+- **Maximize yield** from a given set of inputs
+- **Minimize energy consumption** while maintaining throughput
+
+![Chemical Process in JAOT Builder](/guides/manufacturing/chemical-process-builder.png)
+
+**5. Validate and implement**
+
+Review the optimal blend ratios or operating parameters. Verify they respect all safety constraints. Run the solution against historical data to confirm expected improvements before implementing on the plant floor.
+
+## Example Parameters
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+# Minimize cost of blending 4 feedstocks to meet product specs
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": [
+        {"name": "feedstock_a_liters", "type": "continuous", "lb": 0, "ub": 5000},
+        {"name": "feedstock_b_liters", "type": "continuous", "lb": 0, "ub": 3000},
+        {"name": "feedstock_c_liters", "type": "continuous", "lb": 0, "ub": 4000},
+        {"name": "feedstock_d_liters", "type": "continuous", "lb": 0, "ub": 2000},
+    ],
+    "objective": {
+        "sense": "minimize",
+        "coefficients": {
+            "feedstock_a_liters": 0.85,
+            "feedstock_b_liters": 1.20,
+            "feedstock_c_liters": 0.95,
+            "feedstock_d_liters": 1.50,
+        },
+    },
+    "constraints": [
+        {
+            "name": "total_batch_volume",
+            "coefficients": {
+                "feedstock_a_liters": 1, "feedstock_b_liters": 1,
+                "feedstock_c_liters": 1, "feedstock_d_liters": 1
+            },
+            "sense": "==",
+            "rhs": 10000,
+        },
+        {
+            "name": "min_purity",
+            "coefficients": {
+                "feedstock_a_liters": 0.92, "feedstock_b_liters": 0.98,
+                "feedstock_c_liters": 0.88, "feedstock_d_liters": 0.99
+            },
+            "sense": ">=",
+            "rhs": 9300,
+        },
+        {
+            "name": "max_sulfur_content",
+            "coefficients": {
+                "feedstock_a_liters": 0.005, "feedstock_b_liters": 0.001,
+                "feedstock_c_liters": 0.008, "feedstock_d_liters": 0.0005
+            },
+            "sense": "<=",
+            "rhs": 30,
+        },
+        {
+            "name": "min_viscosity",
+            "coefficients": {
+                "feedstock_a_liters": 4.2, "feedstock_b_liters": 6.1,
+                "feedstock_c_liters": 3.8, "feedstock_d_liters": 7.5
+            },
+            "sense": ">=",
+            "rhs": 45000,
+        },
+    ],
+})
+result = response.json()
+
+print(f"Minimum blend cost: ${result['objective_value']:.2f}")
+for var in result["variables"]:
+    if var["value"] > 0:
+        print(f"  {var['name']}: {var['value']:.0f} liters")
+```
+```json
+{
+  "variables": [
+    {"name": "feedstock_a_liters", "type": "continuous", "lb": 0, "ub": 5000},
+    {"name": "feedstock_b_liters", "type": "continuous", "lb": 0, "ub": 3000},
+    {"name": "feedstock_c_liters", "type": "continuous", "lb": 0, "ub": 4000},
+    {"name": "feedstock_d_liters", "type": "continuous", "lb": 0, "ub": 2000}
+  ],
+  "objective": {
+    "sense": "minimize",
+    "coefficients": {
+      "feedstock_a_liters": 0.85,
+      "feedstock_b_liters": 1.20,
+      "feedstock_c_liters": 0.95,
+      "feedstock_d_liters": 1.50
+    }
+  },
+  "constraints": [
+    {
+      "name": "total_batch_volume",
+      "coefficients": {
+        "feedstock_a_liters": 1, "feedstock_b_liters": 1,
+        "feedstock_c_liters": 1, "feedstock_d_liters": 1
+      },
+      "sense": "==",
+      "rhs": 10000
+    },
+    {
+      "name": "min_purity",
+      "coefficients": {
+        "feedstock_a_liters": 0.92, "feedstock_b_liters": 0.98,
+        "feedstock_c_liters": 0.88, "feedstock_d_liters": 0.99
+      },
+      "sense": ">=",
+      "rhs": 9300
+    },
+    {
+      "name": "max_sulfur_content",
+      "coefficients": {
+        "feedstock_a_liters": 0.005, "feedstock_b_liters": 0.001,
+        "feedstock_c_liters": 0.008, "feedstock_d_liters": 0.0005
+      },
+      "sense": "<=",
+      "rhs": 30
+    },
+    {
+      "name": "min_viscosity",
+      "coefficients": {
+        "feedstock_a_liters": 4.2, "feedstock_b_liters": 6.1,
+        "feedstock_c_liters": 3.8, "feedstock_d_liters": 7.5
+      },
+      "sense": ">=",
+      "rhs": 45000
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+- **[Custom Optimization](/builder/templates/custom)** -- build a blending or process optimization model tailored to your chemical engineering requirements
+
+## Next Steps
+
+- **[Pharmaceutical Production](/docs/guides/pharmaceutical-production)** -- Apply process optimization to drug manufacturing and batch compliance `advanced`
+- **[Energy Grid Optimization](/docs/guides/energy-grid)** -- Optimize energy-intensive processes with power generation and distribution models `advanced`
+- **[Food & Beverage Production](/docs/guides/food-and-beverage)** -- Similar blending techniques applied to food recipe formulation `intermediate`

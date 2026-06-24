@@ -1,0 +1,67 @@
+# Production dependencies
+
+fastapi>=0.135.0,<0.137.0,!=0.136.3  # <0.137: 0.138.0 broke router mounting (create_app() built an 8-route skeleton). CVE-2025-62727 (Starlette Range DoS, fixed 0.135.0+); !=0.136.3 avoids MAL-2026-4750 (0.136.3 ships an undocumented fastar dep in [standard]; we install plain fastapi)
+uvicorn[standard]>=0.42.0
+python-multipart>=0.0.22           # CVE-2026-24486: path traversal, CVE-2026-28356: ReDoS
+pydantic>=2.12.0
+pydantic-settings>=2.12.0
+python-dotenv>=1.2.0
+sqlalchemy>=2.0.48
+email-validator>=2.3.0
+PySCIPOpt>=5.6.0
+psutil>=7.1.0
+requests>=2.33.0                   # CVE-2026-25645: insecure temp file
+httpx>=0.28.0
+psycopg2-binary>=2.9.11
+
+# Migrations
+alembic>=1.18.0
+
+# Payments
+stripe>=15.0.0                     # v13: stripe.error.X → stripe.X; v15: StripeObject not dict
+
+# Redis (rate limiting, Celery result backend)
+redis>=7.0.0                       # 2 major versions behind at >=5.0.0; server compat + patches
+
+# Async task processing
+celery>=5.4.0
+sqlalchemy-celery-beat>=0.8.0
+cronsim>=2.7
+websockets>=14.0
+
+# Monitoring
+prometheus-fastapi-instrumentator>=7.0.0
+
+# LLM (Anthropic Claude)
+anthropic>=0.87.0                  # CVE-2026-34450: file perms, CVE-2026-34452: race condition
+sse-starlette>=2.0.0
+
+# JWT (email/password auth)
+PyJWT>=2.12.0                      # CVE-2026-32597: crit header bypass (CVSS 7.5)
+
+# Password hashing (email/password auth)
+argon2-cffi>=23.1.0
+
+# Document extraction (PDF text)
+pypdf>=5.1.0                       # Pure-Python, BSD-licensed. Used in app/services/document_extraction.py
+
+# Image processing & object storage (Phase 72)
+Pillow>=12.1.1                     # CVE-2026-25990: OOB write in PSD handler (potential RCE)
+boto3>=1.42.0
+
+# MCP server (Phase 73)
+fastapi-mcp==0.4.0
+
+# GeoIP lookup for analytics (Phase 78)
+geoip2fast>=1.0.0
+
+# RAG — vector search and embeddings (Pilar 1)
+qdrant-client>=1.13.0
+sentence-transformers>=5.0.0
+
+# Solver backends
+highspy>=1.12.0                    # HiGHS LP/MIP solver Python bindings (Phase 5 / HIGH-01)
+# Hexaly (proprietary, BYOL) is an optional extra — see requirements-hexaly.txt
+
+# YAML — direct import for template schema and RAG document types
+PyYAML>=6.0                        # Transitive of multiple deps; pinned because we import it directly

@@ -1,0 +1,257 @@
+---
+title: API Keys
+description: Create, manage, and rotate API keys for authentication
+order: 5
+---
+
+# API Keys
+
+The API Keys endpoints let you create, list, and revoke API keys for programmatic access to the JAOT API. Each key is scoped to a user and organization.
+
+## POST /api/v2/keys
+
+Create a new API key for the authenticated user.
+
+**Authentication:** Requires API key or JWT token.
+
+> **Warning:** The API key value is only returned once at creation time. Store it immediately in a secure location. You will not be able to retrieve it again.
+
+### Request Body
+
+All fields are optional.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | No | A descriptive name for the key (e.g. `"Production"`, `"CI/CD"`) |
+| `description` | string | No | Detailed description of the key's purpose |
+| `expires_days` | integer | No | Number of days until expiration (null = never expires) |
+
+### Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `api_key` | string | The full API key (shown only once) |
+| `id` | string | Key ID for management operations |
+| `name` | string | Key name |
+| `description` | string | Key description |
+| `is_active` | boolean | Whether the key is active |
+| `created_at` | string | ISO 8601 timestamp |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+response = httpx.post(
+    "https://jaot.io/api/v2/keys",
+    headers={"Authorization": "Bearer ok_live_your_key_here"},
+    json={
+        "name": "Production Server",
+        "description": "Used by the production API server",
+        "expires_days": 365,
+    },
+)
+
+key_data = response.json()
+print(f"Key ID: {key_data['id']}")
+print(f"API Key: {key_data['api_key']}")
+print("Store this key securely -- it will not be shown again!")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/keys \
+  -H "Authorization: Bearer ok_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Production Server",
+    "description": "Used by the production API server",
+    "expires_days": 365
+  }'
+```
+
+```javascript
+const response = await fetch("https://jaot.io/api/v2/keys", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer ok_live_your_key_here",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    name: "Production Server",
+    description: "Used by the production API server",
+    expires_days: 365,
+  }),
+});
+
+const keyData = await response.json();
+// Store keyData.api_key securely -- it will not be shown again
+console.log(`Key created: ${keyData.id}`);
+```
+</CodeTabs>
+
+### Response
+
+```json
+{
+  "api_key": "ok_live_a1b2c3d4e5f6789012345678901234567890abcdef",
+  "id": "key_f3a9b2c1",
+  "name": "Production Server",
+  "description": "Used by the production API server",
+  "is_active": true,
+  "created_at": "2026-02-19T10:00:00Z"
+}
+```
+
+**Key prefixes:**
+
+| Prefix | Environment |
+|--------|-------------|
+| `ok_live_` | Production keys |
+| `ok_test_` | Test/sandbox keys |
+
+---
+
+## GET /api/v2/keys
+
+List all API keys for the authenticated user. The full key value is never returned -- only the prefix is shown.
+
+**Authentication:** Requires API key or JWT token.
+
+### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | integer | 1 | Page number |
+| `page_size` | integer | 20 | Items per page (max 100) |
+| `search` | string | -- | Search in key name and prefix |
+| `is_active` | boolean | -- | Filter by active status |
+
+### Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `items` | array | List of API key info objects |
+| `items[].id` | string | Key ID |
+| `items[].name` | string | Key name |
+| `items[].key_prefix` | string | Key prefix (e.g. `"ok_live_"`) |
+| `items[].description` | string | Key description |
+| `items[].is_active` | boolean | Whether the key is active |
+| `items[].created_at` | string | Creation timestamp |
+| `items[].last_used_at` | string | Last usage timestamp (null if never used) |
+| `items[].expires_at` | string | Expiration timestamp (null if no expiry) |
+| `total` | integer | Total matching keys |
+| `page` | integer | Current page |
+| `page_size` | integer | Page size |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+response = httpx.get(
+    "https://jaot.io/api/v2/keys",
+    headers={"Authorization": "Bearer ok_live_your_key_here"},
+)
+
+keys = response.json()
+for key in keys["items"]:
+    status = "active" if key["is_active"] else "revoked"
+    print(f"{key['name']} ({key['key_prefix']}...): {status}")
+    if key["last_used_at"]:
+        print(f"  Last used: {key['last_used_at']}")
+```
+
+```bash
+curl "https://jaot.io/api/v2/keys?is_active=true" \
+  -H "Authorization: Bearer ok_live_your_key_here"
+```
+
+```javascript
+const response = await fetch("https://jaot.io/api/v2/keys?is_active=true", {
+  headers: { "Authorization": "Bearer ok_live_your_key_here" },
+});
+
+const { items, total } = await response.json();
+console.log(`${total} active keys`);
+```
+</CodeTabs>
+
+### Response
+
+```json
+{
+  "items": [
+    {
+      "id": "key_f3a9b2c1",
+      "name": "Production Server",
+      "key_prefix": "ok_live_",
+      "description": "Used by the production API server",
+      "is_active": true,
+      "created_at": "2026-02-01T10:00:00Z",
+      "last_used_at": "2026-02-19T11:30:00Z",
+      "expires_at": "2027-02-01T10:00:00Z"
+    }
+  ],
+  "total": 2,
+  "page": 1,
+  "page_size": 20
+}
+```
+
+---
+
+## DELETE /api/v2/keys/\{key_id\}
+
+Revoke an API key immediately. Any requests using this key will be rejected after revocation. This action cannot be undone.
+
+**Authentication:** Requires API key or JWT token.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `key_id` | string | The key ID to revoke |
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+response = httpx.delete(
+    "https://jaot.io/api/v2/keys/key_f3a9b2c1",
+    headers={"Authorization": "Bearer ok_live_your_key_here"},
+)
+print(response.json())  # {"message": "API key revoked successfully", "key_id": "key_f3a9b2c1"}
+```
+
+```bash
+curl -X DELETE "https://jaot.io/api/v2/keys/key_f3a9b2c1" \
+  -H "Authorization: Bearer ok_live_your_key_here"
+```
+
+```javascript
+const response = await fetch("https://jaot.io/api/v2/keys/key_f3a9b2c1", {
+  method: "DELETE",
+  headers: { "Authorization": "Bearer ok_live_your_key_here" },
+});
+
+const result = await response.json();
+console.log(result.message);
+```
+</CodeTabs>
+
+### Response
+
+```json
+{"message": "API key revoked successfully", "key_id": "key_f3a9b2c1"}
+```
+
+### Errors
+
+| HTTP Code | Error | Description |
+|-----------|-------|-------------|
+| 401 | `unauthorized` | Missing or invalid API key |
+| 404 | `not_found` | Key not found or does not belong to you |

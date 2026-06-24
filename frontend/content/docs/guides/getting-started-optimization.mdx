@@ -1,0 +1,159 @@
+---
+title: "Getting Started with Optimization"
+description: "Learn the fundamentals of mathematical optimization with simple examples"
+order: 35
+category: "general"
+difficulty: "beginner"
+domain: "General"
+templateCount: 5
+---
+
+# Getting Started with Optimization
+
+A general-purpose guide for optimization problems that do not fit a specific industry domain. Whether you are allocating a budget, scheduling tasks, or assigning resources, the core concepts are the same: define what you can control (variables), what limits your choices (constraints), and what you want to achieve (objective).
+
+## When to Use This Guide
+
+Use this guide for problems in any of these categories:
+
+- **Resource allocation** -- distribute a limited budget, workforce, or inventory across competing uses to maximize return
+- **Scheduling** -- assign tasks, shifts, or events to time slots while respecting availability and capacity
+- **Assignment** -- match people, machines, or items to roles or locations based on fitness and constraints
+- **Constrained optimization** -- any problem where you want to find the best outcome under a set of rules
+
+## Step-by-Step Walkthrough
+
+1. **Identify your decision variables.** What can you control? Examples: how much budget to allocate to each project, how many units to produce, which employee works which shift.
+
+2. **Define your constraints.** What rules must be satisfied? Examples: total budget cannot exceed $1M, each employee works at most 40 hours per week, warehouse capacity is 500 pallets.
+
+3. **Choose your objective.** What do you want to optimize? Minimize cost, maximize profit, maximize coverage, or minimize waste. Pick one primary objective.
+
+4. **Set up in the Builder.** Go to the JAOT Builder, select a template or start from scratch. Enter your variables, constraints, and objective. The Builder validates your model before solving.
+
+5. **Run the solver.** Click Solve. The engine finds the mathematically optimal solution -- the best possible outcome given your constraints.
+
+6. **Interpret the results.** Review the variable values (your decisions), the objective value (your outcome), and constraint utilization (which limits are binding). Binding constraints indicate where adding capacity would improve results.
+
+## Example: Project Budget Allocation
+
+A company has $500K to invest across 4 projects. Each project has a different expected return rate and requires a minimum investment. The goal: maximize total expected return.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+projects = {
+    "project_alpha": {"return_rate": 0.12, "min_invest": 50},
+    "project_beta": {"return_rate": 0.08, "min_invest": 75},
+    "project_gamma": {"return_rate": 0.15, "min_invest": 40},
+    "project_delta": {"return_rate": 0.10, "min_invest": 60},
+}
+
+total_budget = 500  # $500K
+
+# Continuous variable: investment amount ($K) per project
+variables = [
+    {
+        "name": p,
+        "type": "continuous",
+        "lb": projects[p]["min_invest"],
+        "ub": total_budget,
+    }
+    for p in projects
+]
+
+# Maximize total expected return
+objective = {
+    "sense": "maximize",
+    "coefficients": {p: projects[p]["return_rate"] for p in projects},
+}
+
+constraints = [
+    {
+        "name": "total_budget",
+        "coefficients": {p: 1 for p in projects},
+        "sense": "<=",
+        "rhs": total_budget,
+    },
+]
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Total expected return: ${result['objective_value']:.2f}K")
+for p in projects:
+    invest = result["solution"][p]
+    ret = invest * projects[p]["return_rate"]
+    print(f"  {p}: invest ${invest:.0f}K -> return ${ret:.2f}K")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/solve \
+  -H "Authorization: Bearer ok_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variables": [
+      {"name": "project_alpha", "type": "continuous", "lb": 50, "ub": 500},
+      {"name": "project_beta", "type": "continuous", "lb": 75, "ub": 500},
+      {"name": "project_gamma", "type": "continuous", "lb": 40, "ub": 500},
+      {"name": "project_delta", "type": "continuous", "lb": 60, "ub": 500}
+    ],
+    "objective": {
+      "sense": "maximize",
+      "coefficients": {
+        "project_alpha": 0.12,
+        "project_beta": 0.08,
+        "project_gamma": 0.15,
+        "project_delta": 0.10
+      }
+    },
+    "constraints": [
+      {
+        "name": "total_budget",
+        "coefficients": {
+          "project_alpha": 1,
+          "project_beta": 1,
+          "project_gamma": 1,
+          "project_delta": 1
+        },
+        "sense": "<=",
+        "rhs": 500
+      }
+    ]
+  }'
+```
+</CodeTabs>
+
+The solver allocates the most capital to the highest-return project (gamma at 15%) while satisfying minimum investment requirements for all four projects. The remaining budget flows to the next-best returns.
+
+## Recommended Templates
+
+- **[Custom Optimization](/builder/templates/custom)** -- start from scratch with full control over variables, constraints, and objectives
+- **[Custom Optimization](/builder/templates/custom)** -- start from a blank model and define your own variables, constraints, and objective
+
+## Next Steps
+
+Explore domain-specific guides based on your area of interest:
+
+- **New to optimization?** Start with [Production Planning](/docs/guides/production-planning) (Manufacturing) or [Workforce Scheduling](/docs/guides/workforce-scheduling) (Services) for beginner-friendly examples with real-world context.
+
+- **Finance?** Try [Portfolio Optimization](/docs/guides/portfolio-optimization) for investment allocation under risk constraints.
+
+- **Logistics?** Try [Route & Fleet Optimization](/docs/guides/route-and-fleet) for delivery routing and fleet assignment.
+
+- **Energy?** Try [Energy Grid Optimization](/docs/guides/energy-grid) for power generation and distribution.
+
+- **Healthcare?** Try [Healthcare Resource Allocation](/docs/guides/healthcare-resources) for staff and equipment scheduling.
+
+- **Natural resources?** Try [Agricultural Planning](/docs/guides/agricultural-planning) for crop rotation and farm resource management.
+
+All guides follow the same 6-section structure, so the concepts you learned here transfer directly to any domain.

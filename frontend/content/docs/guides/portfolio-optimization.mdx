@@ -1,0 +1,175 @@
+---
+title: "Portfolio Optimization"
+description: "Allocate investments to maximize returns under risk constraints"
+order: 8
+category: "finance"
+difficulty: "intermediate"
+domain: "Finance"
+templateCount: 3
+---
+
+# Portfolio Optimization
+
+Portfolio optimization **allocates capital across assets** to maximize expected return for a given level of risk. Define your investment universe, expected returns, and diversification rules -- the solver finds the allocation that maximizes your risk-adjusted returns within those bounds.
+
+## Step-by-Step Walkthrough
+
+**1. Define your investment universe**
+
+List available assets with their expected annual returns, historical volatility, and any asset-class labels. For example: US Large Cap (8.5% return, 15% volatility), Investment Grade Bonds (3.5% return, 5% volatility).
+
+**2. Set risk and allocation constraints**
+
+Define your risk tolerance and regulatory or policy constraints:
+- Maximum portfolio volatility or Value-at-Risk
+- Minimum and maximum allocation per asset class
+- Sector or geographic diversification requirements
+- Liquidity constraints (minimum allocation to liquid assets)
+
+**3. Configure the objective**
+
+Common approaches:
+- **Maximize expected return** subject to a risk budget
+- **Minimize risk** (volatility) for a target return level
+- **Maximize Sharpe ratio** (return per unit of risk)
+
+**4. Run the optimization**
+
+![Portfolio Optimization in JAOT Builder](/guides/finance/portfolio-optimization-builder.png)
+
+**5. Interpret the efficient allocation**
+
+The solver returns the optimal percentage allocation per asset. Review the results against your investment committee's guidelines. Run multiple scenarios with different risk budgets to map out the efficient frontier.
+
+## Example Parameters
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+# Maximize expected return for a $1M portfolio with diversification rules
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": [
+        {"name": "us_large_cap_pct", "type": "continuous", "lb": 0, "ub": 0.40},
+        {"name": "us_small_cap_pct", "type": "continuous", "lb": 0, "ub": 0.20},
+        {"name": "intl_developed_pct", "type": "continuous", "lb": 0, "ub": 0.25},
+        {"name": "emerging_markets_pct", "type": "continuous", "lb": 0, "ub": 0.15},
+        {"name": "investment_grade_bonds_pct", "type": "continuous", "lb": 0.10, "ub": 0.50},
+        {"name": "real_estate_pct", "type": "continuous", "lb": 0, "ub": 0.15},
+    ],
+    "objective": {
+        "sense": "maximize",
+        "coefficients": {
+            "us_large_cap_pct": 8.5,
+            "us_small_cap_pct": 10.2,
+            "intl_developed_pct": 7.0,
+            "emerging_markets_pct": 11.5,
+            "investment_grade_bonds_pct": 3.5,
+            "real_estate_pct": 6.8,
+        },
+    },
+    "constraints": [
+        {
+            "name": "fully_invested",
+            "coefficients": {
+                "us_large_cap_pct": 1, "us_small_cap_pct": 1,
+                "intl_developed_pct": 1, "emerging_markets_pct": 1,
+                "investment_grade_bonds_pct": 1, "real_estate_pct": 1
+            },
+            "sense": "==",
+            "rhs": 1.0,
+        },
+        {
+            "name": "max_equity_exposure",
+            "coefficients": {
+                "us_large_cap_pct": 1, "us_small_cap_pct": 1,
+                "intl_developed_pct": 1, "emerging_markets_pct": 1
+            },
+            "sense": "<=",
+            "rhs": 0.70,
+        },
+        {
+            "name": "min_domestic_allocation",
+            "coefficients": {
+                "us_large_cap_pct": 1, "us_small_cap_pct": 1,
+                "investment_grade_bonds_pct": 1
+            },
+            "sense": ">=",
+            "rhs": 0.40,
+        },
+    ],
+})
+result = response.json()
+
+print(f"Expected portfolio return: {result['objective_value']:.2f}%")
+for var in result["variables"]:
+    print(f"  {var['name']}: {var['value'] * 100:.1f}%")
+```
+```json
+{
+  "variables": [
+    {"name": "us_large_cap_pct", "type": "continuous", "lb": 0, "ub": 0.40},
+    {"name": "us_small_cap_pct", "type": "continuous", "lb": 0, "ub": 0.20},
+    {"name": "intl_developed_pct", "type": "continuous", "lb": 0, "ub": 0.25},
+    {"name": "emerging_markets_pct", "type": "continuous", "lb": 0, "ub": 0.15},
+    {"name": "investment_grade_bonds_pct", "type": "continuous", "lb": 0.10, "ub": 0.50},
+    {"name": "real_estate_pct", "type": "continuous", "lb": 0, "ub": 0.15}
+  ],
+  "objective": {
+    "sense": "maximize",
+    "coefficients": {
+      "us_large_cap_pct": 8.5,
+      "us_small_cap_pct": 10.2,
+      "intl_developed_pct": 7.0,
+      "emerging_markets_pct": 11.5,
+      "investment_grade_bonds_pct": 3.5,
+      "real_estate_pct": 6.8
+    }
+  },
+  "constraints": [
+    {
+      "name": "fully_invested",
+      "coefficients": {
+        "us_large_cap_pct": 1, "us_small_cap_pct": 1,
+        "intl_developed_pct": 1, "emerging_markets_pct": 1,
+        "investment_grade_bonds_pct": 1, "real_estate_pct": 1
+      },
+      "sense": "==",
+      "rhs": 1.0
+    },
+    {
+      "name": "max_equity_exposure",
+      "coefficients": {
+        "us_large_cap_pct": 1, "us_small_cap_pct": 1,
+        "intl_developed_pct": 1, "emerging_markets_pct": 1
+      },
+      "sense": "<=",
+      "rhs": 0.70
+    },
+    {
+      "name": "min_domestic_allocation",
+      "coefficients": {
+        "us_large_cap_pct": 1, "us_small_cap_pct": 1,
+        "investment_grade_bonds_pct": 1
+      },
+      "sense": ">=",
+      "rhs": 0.40
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+- **[Portfolio Optimization](/builder/templates/portfolio_optimization)** -- pre-configured model for multi-asset allocation with risk and diversification constraints
+- **[Budget Allocation Optimizer](/builder/templates/budget_allocation)** -- general-purpose allocation model adaptable to investment fund distribution
+
+## Next Steps
+
+- **[Insurance Risk Modeling](/docs/guides/insurance-risk)** -- Apply portfolio allocation principles to insurance risk pools `advanced`
+- **[Real Estate Investment](/docs/guides/real-estate-investment)** -- Optimize property investment portfolios with location and budget constraints `intermediate`
+- **[Budget Allocation](/docs/guides/advertising-media)** -- Extend allocation optimization to marketing and advertising budgets `beginner`

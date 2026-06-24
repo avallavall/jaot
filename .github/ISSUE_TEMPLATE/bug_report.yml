@@ -1,0 +1,36 @@
+name: Bug report
+description: Something is broken
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what happened instead.
+      placeholder: |
+        1. Created a model from the knapsack template
+        2. Clicked Solve
+        3. Expected a solution, got a 500
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: How are you running JAOT?
+      placeholder: |
+        - Deployment: docker-compose dev / self-hosted prod / jaot.io demo
+        - Browser or API client:
+        - Commit / version:
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: |
+        Backend: `docker-compose logs api worker`. Frontend: browser console.
+        Please redact API keys and personal data.
+      render: shell
+    validations:
+      required: false

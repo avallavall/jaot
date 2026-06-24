@@ -1,0 +1,291 @@
+category: hr
+category_display_name: Human Resources & Workforce
+
+templates:
+  - id: employee_scheduling
+    name: Employee Scheduling Optimizer
+    display_name: Employee Scheduling
+    short_description: Create optimal shift schedules that meet coverage requirements while minimizing labour cost and respecting availability.
+    description: >
+      Build weekly shift rosters for a team of employees. The solver assigns employees
+      to shifts to minimize total cost while ensuring every shift has adequate staffing.
+      It respects maximum and minimum working hours per employee, unavailability windows,
+      and shift-capacity limits. The output is a ready-to-post schedule showing who
+      works which shift.
+    scenario_description: >
+      A bakery has 5 employees covering 7 shifts across the week. Each shift needs 1-3
+      staff. Alice earns EUR 25/h but cannot work Saturday night. Bob is cheaper at
+      EUR 22/h. The manager wants the cheapest schedule that covers every shift.
+    category: hr
+    tags: [hr, scheduling, shifts, workforce, labour]
+    problem_type_tags: [MIP]
+    generator_type: scheduling
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [employees, shifts]
+      properties:
+        employees: {type: array}
+        shifts: {type: array}
+        objective: {type: string}
+    input_fields:
+      - name: employees
+        label: Employees
+        type: array
+        description: Employees with hourly cost, max/min hours, and unavailability
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            hourly_cost: {type: number}
+            max_hours: {type: number, default: 40}
+            min_hours: {type: number, default: 0}
+            unavailable_shifts: {type: array, items: {type: string}}
+      - name: shifts
+        label: Shifts
+        type: array
+        description: Shifts with duration and staffing requirements
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            duration_hours: {type: number}
+            min_employees: {type: integer, default: 1}
+            max_employees: {type: integer}
+      - name: objective
+        label: Objective
+        type: string
+        description: Optimization objective
+        required: false
+        enum: [minimize_cost, minimize_shifts]
+        default: minimize_cost
+    example_input:
+      employees:
+        - {name: Alice, hourly_cost: 25, max_hours: 40, min_hours: 8, unavailable_shifts: [night_sat]}
+        - {name: Bob, hourly_cost: 22, max_hours: 40, min_hours: 8}
+        - {name: Charlie, hourly_cost: 28, max_hours: 32, min_hours: 0}
+        - {name: Diana, hourly_cost: 24, max_hours: 40, min_hours: 16}
+        - {name: Eve, hourly_cost: 30, max_hours: 24, min_hours: 0, unavailable_shifts: [morning_mon, morning_tue]}
+      shifts:
+        - {name: morning_mon, duration_hours: 8, min_employees: 2, max_employees: 3}
+        - {name: afternoon_mon, duration_hours: 8, min_employees: 2, max_employees: 3}
+        - {name: morning_tue, duration_hours: 8, min_employees: 2, max_employees: 3}
+        - {name: afternoon_tue, duration_hours: 8, min_employees: 2, max_employees: 3}
+        - {name: morning_wed, duration_hours: 8, min_employees: 1, max_employees: 3}
+        - {name: afternoon_wed, duration_hours: 8, min_employees: 1, max_employees: 3}
+        - {name: night_sat, duration_hours: 10, min_employees: 1, max_employees: 2}
+      objective: minimize_cost
+    is_featured: true
+    estimated_variables: 35
+    estimated_constraints: 21
+
+  - id: assignment
+    name: Task Assignment Optimizer
+    display_name: Task Assignment
+    short_description: Assign workers to tasks one-to-one to minimize total cost while ensuring every task is covered.
+    description: >
+      Backward-compatible alias for the workforce_assignment template. Solve the
+      classic assignment problem: given a set of workers and a set of tasks, assign
+      each worker to at most one task so that every task is covered and total cost is
+      minimized. The cost matrix encodes how expensive each worker-task pairing is.
+      Prefer workforce_assignment for new integrations.
+    scenario_description: >
+      A small team of 3 developers (Alice, Bob, Charlie) must be assigned to 3 project
+      modules (Frontend, Backend, Testing). Each developer has a different estimated
+      cost for each module based on experience and skill fit. The tech lead wants the
+      cheapest assignment that covers all three modules.
+    category: hr
+    tags: [hr, assignment, scheduling, workforce, cost, compat]
+    problem_type_tags: [MIP]
+    generator_type: assignment
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [workers, tasks, costs]
+      properties:
+        workers: {type: array}
+        tasks: {type: array}
+        costs: {type: object}
+    input_fields:
+      - name: workers
+        label: Workers
+        type: array
+        description: Available workers
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: tasks
+        label: Tasks
+        type: array
+        description: Tasks to be assigned
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: costs
+        label: Costs
+        type: object
+        description: "Cost matrix as {worker_task: cost}"
+        required: true
+    example_input:
+      workers:
+        - {name: Alice}
+        - {name: Bob}
+        - {name: Charlie}
+      tasks:
+        - {name: Frontend}
+        - {name: Backend}
+        - {name: Testing}
+      costs:
+        alice_frontend: 5
+        alice_backend: 8
+        alice_testing: 6
+        bob_frontend: 7
+        bob_backend: 4
+        bob_testing: 9
+        charlie_frontend: 6
+        charlie_backend: 7
+        charlie_testing: 3
+    is_featured: false
+    estimated_variables: 9
+    estimated_constraints: 6
+
+  - id: workforce_assignment
+    name: Workforce Assignment Optimizer
+    display_name: Workforce Assignment
+    short_description: Assign workers to tasks one-to-one to minimize total cost or maximize team efficiency.
+    description: >
+      Solve the classic assignment problem: given N workers and M tasks, assign each
+      worker to exactly one task (or leave unassigned if there are more workers than
+      tasks) such that total cost is minimized. Each worker-task pair has a known cost
+      reflecting skill match, travel time, or hourly rate. The output is a complete
+      assignment map with total cost.
+    scenario_description: >
+      A software agency must assign 3 developers (Alice, Bob, Charlie) to 3 project
+      modules (Frontend, Backend, Testing). Each developer has different cost estimates
+      per module based on skill fit. The project lead wants the cheapest staffing plan.
+    category: hr
+    tags: [hr, assignment, workforce, efficiency, staffing]
+    problem_type_tags: [MIP]
+    generator_type: assignment
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [workers, tasks, costs]
+      properties:
+        workers: {type: array}
+        tasks: {type: array}
+        costs: {type: object}
+    input_fields:
+      - name: workers
+        label: Workers
+        type: array
+        description: Available workers
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: tasks
+        label: Tasks
+        type: array
+        description: Tasks to be assigned
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: costs
+        label: Costs
+        type: object
+        description: "Cost matrix as {worker_task: cost}"
+        required: true
+    example_input:
+      workers:
+        - {name: Alice}
+        - {name: Bob}
+        - {name: Charlie}
+      tasks:
+        - {name: Frontend}
+        - {name: Backend}
+        - {name: Testing}
+      costs:
+        alice_frontend: 5
+        alice_backend: 8
+        alice_testing: 6
+        bob_frontend: 7
+        bob_backend: 4
+        bob_testing: 9
+        charlie_frontend: 6
+        charlie_backend: 7
+        charlie_testing: 3
+    is_featured: true
+    estimated_variables: 9
+    estimated_constraints: 6
+
+  - id: training_program_selection
+    name: Training Program Selection Optimizer
+    display_name: Training Program Selection
+    short_description: Choose which training courses to offer employees to maximize skill coverage within a limited training budget.
+    description: >
+      Select training programs from a catalog to maximize the number of skill gaps
+      closed across the workforce within a fixed budget. Each program has a cost, a
+      duration, and a set of skills it teaches. The solver picks the combination of
+      programs that delivers the most skill improvement per euro spent while ensuring
+      no employee exceeds their maximum training hours.
+    scenario_description: >
+      An HR department has EUR 15,000 and 10 candidate training courses costing
+      EUR 800 to EUR 3,000 each. The company needs to close gaps in 8 skill areas
+      across 20 employees. Each course covers 1-4 skills. The HR manager wants the
+      best-value training plan.
+    category: hr
+    tags: [hr, training, skills, development, budget]
+    problem_type_tags: [MIP]
+    generator_type: knapsack
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [capacity, items]
+      properties:
+        capacity: {type: number}
+        items: {type: array}
+    input_fields:
+      - name: capacity
+        label: Training Budget
+        type: number
+        description: Total budget for training programs
+        required: true
+        minimum: 1
+        default: 15000
+      - name: items
+        label: Training Programs
+        type: array
+        description: Available programs with skill value and cost
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            value: {type: number}
+            weight: {type: number}
+    example_input:
+      capacity: 15000
+      items:
+        - {name: python_fundamentals, value: 25, weight: 1200}
+        - {name: cloud_architecture, value: 40, weight: 2500}
+        - {name: project_management, value: 30, weight: 1800}
+        - {name: data_analytics, value: 35, weight: 2200}
+        - {name: leadership_skills, value: 20, weight: 1500}
+        - {name: cybersecurity_basics, value: 28, weight: 1000}
+        - {name: agile_methodology, value: 22, weight: 800}
+        - {name: machine_learning, value: 45, weight: 3000}
+        - {name: communication_skills, value: 18, weight: 900}
+        - {name: devops_practices, value: 32, weight: 2000}
+    is_featured: false
+    estimated_variables: 10
+    estimated_constraints: 1

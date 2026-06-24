@@ -1,0 +1,54 @@
+# Deploy to the self-hosted server. Runs on a self-hosted runner that lives on
+# the deploy host, so it deploys in place against /opt/jaot (canonical project
+# dir with .env.production + named volumes). Builds locally (no GHCR).
+name: Deploy (home)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-home
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, home]
+    steps:
+      # No actions/checkout: we operate on the canonical /opt/jaot tree
+      # (where .env.production, secrets/ and the docker volumes live), not the
+      # runner workspace. Secrets are gitignored so reset --hard never wipes them.
+      - name: Sync /opt/jaot to origin/main
+        run: |
+          cd /opt/jaot
+          git fetch --prune origin
+          git checkout main
+          git reset --hard origin/main
+
+      - name: Run DB migrations (additive-only)
+        run: |
+          cd /opt/jaot
+          docker compose -f deploy/docker-compose.prod.yml -f deploy/docker-compose.home.yml \
+            --env-file .env.production --profile migrate run --rm migrate
+
+      - name: Build + restart stack
+        run: |
+          cd /opt/jaot
+          docker compose -f deploy/docker-compose.prod.yml -f deploy/docker-compose.home.yml \
+            --env-file .env.production up -d --build
+
+      # `up -d` does NOT recreate caddy when only the bind-mounted Caddyfile
+      # content changed (Compose keys recreation off the service definition, not
+      # file contents) and the deploy-caddy image is unchanged. Reload Caddy so
+      # Caddyfile edits actually take effect — zero-downtime via the admin API,
+      # and a bad config keeps the previous one running instead of crashing.
+      - name: Reload Caddy config
+        run: |
+          cd /opt/jaot
+          docker compose -f deploy/docker-compose.prod.yml -f deploy/docker-compose.home.yml \
+            --env-file .env.production exec -T caddy \
+            caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+
+      - name: Prune dangling images
+        run: docker image prune -f

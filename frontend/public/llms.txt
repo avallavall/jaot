@@ -1,0 +1,30 @@
+# JAOT
+
+> JAOT is an AI-powered optimization platform and model marketplace where businesses,
+> developers, and students can formulate, solve, and analyze optimization problems
+> without deep mathematical expertise. Build optimization models with AI assistance,
+> browse solver-agnostic marketplace models, or connect AI agents via the Model
+> Context Protocol (MCP).
+
+## Getting Started
+
+- [Introduction](/docs/getting-started/introduction): Platform overview and first steps
+- [Quick Start](/docs/getting-started/quick-start): Solve your first optimization problem
+
+## API Reference
+
+- [Solve API](/docs/api/solve): Submit and retrieve optimization problems programmatically
+- [Models API](/docs/api/models): Browse and activate marketplace models
+
+## MCP Integration
+
+- [MCP Overview](/docs/mcp/overview): Connect AI agents (Claude, GPT-4) to the solver via MCP
+
+## Marketplace
+
+- [Browse Models](/marketplace): Ready-made optimization models across 10 problem categories
+- [Publishing Models](/docs/marketplace/publishing-models): List your optimization model in the marketplace
+
+## Pricing
+
+- [Plans](/pricing): Free to start with 20,000 credits; buy more credits as needed

@@ -1,0 +1,144 @@
+category: insurance
+category_display_name: Insurance
+
+templates:
+  - id: risk_pool_optimization
+    name: Insurance Risk Pool Optimization
+    display_name: Risk Pool Optimization
+    short_description: Construct an optimal insurance portfolio by selecting policies that maximize premium income while controlling aggregate risk exposure.
+    description: >
+      Selects which insurance policies to underwrite from a pool of applicants to
+      maximize expected profit (premiums minus expected claims). Each policy has a
+      premium, an expected loss ratio, a risk class, and a correlation factor with
+      other policies. The model maximizes total expected profit while keeping
+      aggregate Value-at-Risk below the company's risk tolerance and maintaining
+      diversification across risk classes. Used by underwriters and reinsurance
+      companies for portfolio construction.
+    category: insurance
+    tags: [insurance, underwriting, risk-management, portfolio]
+    problem_type_tags: [MIP, portfolio]
+    generator_type: portfolio
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        policies:
+          type: array
+          description: Candidate policies with premiums and risk metrics
+        risk_budget:
+          type: number
+          description: Maximum aggregate risk exposure
+      required: [policies, risk_budget]
+    input_fields:
+      - name: policies
+        label: Candidate Policies
+        type: array
+        description: "Policies with name, annual premium, expected loss ratio, and risk class"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            premium: {type: number}
+            expected_loss_ratio: {type: number}
+            risk_class: {type: string}
+            sum_insured: {type: number}
+      - name: risk_budget
+        label: Risk Budget
+        type: number
+        description: "Maximum total sum insured the company is willing to carry"
+        required: true
+        minimum: 0
+    example_input:
+      policies:
+        - {name: "Commercial-Property-A", premium: 45000, expected_loss_ratio: 0.55, risk_class: "property", sum_insured: 5000000}
+        - {name: "Commercial-Property-B", premium: 32000, expected_loss_ratio: 0.60, risk_class: "property", sum_insured: 3500000}
+        - {name: "Auto-Fleet-C", premium: 28000, expected_loss_ratio: 0.65, risk_class: "auto", sum_insured: 2000000}
+        - {name: "Professional-Liability-D", premium: 18000, expected_loss_ratio: 0.45, risk_class: "liability", sum_insured: 4000000}
+        - {name: "Workers-Comp-E", premium: 52000, expected_loss_ratio: 0.70, risk_class: "workers_comp", sum_insured: 3000000}
+        - {name: "Cyber-Risk-F", premium: 35000, expected_loss_ratio: 0.50, risk_class: "cyber", sum_insured: 6000000}
+        - {name: "Marine-Cargo-G", premium: 22000, expected_loss_ratio: 0.58, risk_class: "marine", sum_insured: 2500000}
+        - {name: "Event-Cancellation-H", premium: 15000, expected_loss_ratio: 0.40, risk_class: "specialty", sum_insured: 1500000}
+      risk_budget: 18000000
+    scenario_description: >
+      A mid-size insurer is reviewing eight policy applications for the upcoming
+      year. Each policy has a different premium, expected loss ratio, and risk
+      class. The company's risk appetite limits total sum insured to $18 million.
+      The underwriting team wants to select the most profitable mix of policies
+      while staying within the aggregate risk budget.
+    is_featured: true
+    estimated_variables: 8
+    estimated_constraints: 6
+
+  - id: claims_adjuster_assignment
+    name: Claims Adjuster Assignment
+    display_name: Adjuster Assignment
+    short_description: Assign insurance claims to adjusters based on expertise, workload, and geography to minimize processing time.
+    description: >
+      Assigns incoming insurance claims to available claims adjusters. Each claim
+      has a type (auto, property, liability), complexity, location, and urgency.
+      Each adjuster has specialization certifications, current workload, and a
+      service territory. The model minimizes total weighted processing time while
+      ensuring workload balance across adjusters, matching claim types to adjuster
+      expertise, and respecting geographic territory constraints.
+    category: insurance
+    tags: [insurance, claims, assignment, workforce]
+    problem_type_tags: [MIP, assignment]
+    generator_type: assignment
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        claims:
+          type: array
+          description: Pending insurance claims
+        adjusters:
+          type: array
+          description: Available claims adjusters
+      required: [claims, adjusters]
+    input_fields:
+      - name: claims
+        label: Claims
+        type: array
+        description: "Claims with type, complexity score, region, and urgency"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            type: {type: string}
+            complexity: {type: integer}
+            region: {type: string}
+            urgency: {type: number}
+      - name: adjusters
+        label: Adjusters
+        type: array
+        description: "Adjusters with name, specialization, region, and max caseload"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            specialization: {type: array, items: {type: string}}
+            region: {type: string}
+            max_cases: {type: integer}
+    example_input:
+      claims:
+        - {name: "CLM-001-Auto-Collision", type: "auto", complexity: 3, region: "North", urgency: 8}
+        - {name: "CLM-002-Property-Fire", type: "property", complexity: 5, region: "South", urgency: 10}
+        - {name: "CLM-003-Cyber-Breach", type: "cyber", complexity: 4, region: "West", urgency: 9}
+        - {name: "CLM-004-Liability-Prof", type: "liability", complexity: 4, region: "East", urgency: 6}
+      adjusters:
+        - {name: "Alice Chen", specialization: ["auto", "property"], region: "North", max_cases: 3}
+        - {name: "Bob Torres", specialization: ["property", "liability"], region: "South", max_cases: 3}
+        - {name: "Carol Wu", specialization: ["auto", "cyber"], region: "West", max_cases: 3}
+        - {name: "Dan Patel", specialization: ["liability", "auto"], region: "East", max_cases: 3}
+    scenario_description: >
+      An insurance company has eight pending claims across four regions and four
+      claim types. Four adjusters are available, each with different
+      specializations and geographic territories, handling up to three cases each.
+      The claims manager wants to assign claims to adjusters to minimize total
+      processing time, prioritizing urgent claims and matching expertise.
+    is_featured: false
+    estimated_variables: 32
+    estimated_constraints: 12

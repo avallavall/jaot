@@ -1,0 +1,358 @@
+---
+title: Webhooks
+description: Receive real-time notifications for execution events via HTTP callbacks
+order: 9
+---
+
+# Webhooks
+
+Webhooks deliver real-time notifications to your server when events occur in JAOT. Instead of polling for execution results, register a webhook URL and receive HTTP POST callbacks when solves complete or fail.
+
+## Overview
+
+JAOT supports webhooks through the trigger system. When you create a trigger with a `webhook_url`, solve results are automatically delivered to that URL when the run completes.
+
+**Webhook flow:**
+1. Create a trigger with a `webhook_url` and `webhook_secret`
+2. Fire the trigger (manually or via automation)
+3. When the solve completes, JAOT POSTs the result to your webhook URL
+4. Your server verifies the signature and processes the result
+
+> **Warning:** Always verify webhook signatures to prevent spoofed requests. Use the `webhook_secret` you provided during trigger creation to validate the HMAC-SHA256 signature.
+
+---
+
+## Register a webhook
+
+Webhooks are configured per-trigger. Set `webhook_url` and `webhook_secret` when creating or updating a trigger.
+
+```
+POST /api/v2/triggers
+```
+
+<CodeTabs>
+```python
+import requests
+
+response = requests.post(
+    "https://jaot.io/api/v2/triggers",
+    headers={"Authorization": "Bearer ok_live_..."},
+    json={
+        "name": "Inventory optimizer with webhook",
+        "document_id": "doc_abc123",
+        "version_id": "ver_def456",
+        "webhook_url": "https://your-app.com/webhooks/jaot",
+        "webhook_secret": "whsec_your_signing_secret_here"
+    }
+)
+
+trigger = response.json()
+print(f"Trigger created: {trigger['id']}")
+print(f"Webhook URL: {trigger['webhook_url']}")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/triggers \
+  -H "Authorization: Bearer ok_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Inventory optimizer with webhook",
+    "document_id": "doc_abc123",
+    "version_id": "ver_def456",
+    "webhook_url": "https://your-app.com/webhooks/jaot",
+    "webhook_secret": "whsec_your_signing_secret_here"
+  }'
+```
+
+```javascript
+const response = await fetch("https://jaot.io/api/v2/triggers", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer ok_live_...",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    name: "Inventory optimizer with webhook",
+    document_id: "doc_abc123",
+    version_id: "ver_def456",
+    webhook_url: "https://your-app.com/webhooks/jaot",
+    webhook_secret: "whsec_your_signing_secret_here",
+  }),
+});
+```
+</CodeTabs>
+
+---
+
+## Update a webhook URL
+
+Update the webhook configuration on an existing trigger.
+
+```
+PATCH /api/v2/triggers/{trigger_id}
+```
+
+<CodeTabs>
+```python
+response = requests.patch(
+    "https://jaot.io/api/v2/triggers/trg_a1b2c3d4",
+    headers={"Authorization": "Bearer ok_live_...", "Content-Type": "application/json"},
+    json={
+        "webhook_url": "https://new-endpoint.com/webhooks/jaot",
+        "webhook_secret": "whsec_new_signing_secret",
+    },
+)
+```
+
+```bash
+curl -X PATCH https://jaot.io/api/v2/triggers/trg_a1b2c3d4 \
+  -H "Authorization: Bearer ok_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "webhook_url": "https://new-endpoint.com/webhooks/jaot",
+    "webhook_secret": "whsec_new_signing_secret"
+  }'
+```
+
+```javascript
+await fetch("https://jaot.io/api/v2/triggers/trg_a1b2c3d4", {
+  method: "PATCH",
+  headers: {
+    "Authorization": "Bearer ok_live_...",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    webhook_url: "https://new-endpoint.com/webhooks/jaot",
+    webhook_secret: "whsec_new_signing_secret",
+  }),
+});
+```
+</CodeTabs>
+
+---
+
+## Webhook payload
+
+When a trigger run completes, JAOT sends an HTTP POST to your `webhook_url` with the solve result.
+
+### Payload structure
+
+```json
+{
+  "event": "trigger.run.completed",
+  "trigger_id": "trg_a1b2c3d4",
+  "run_id": "run_x1y2z3w4",
+  "timestamp": "2026-02-19T06:00:15Z",
+  "data": {
+    "status": "completed",
+    "result": {
+      "status": "optimal",
+      "objective_value": 4250.0,
+      "solution": {
+        "warehouse_a_units": 120,
+        "warehouse_b_units": 85,
+        "warehouse_c_units": 200
+      },
+      "solve_time_seconds": 2.3,
+      "credits_used": 3,
+      "credits_remaining": 847
+    },
+    "override_data": {
+      "demand_forecast": [120, 85, 200, 150, 90]
+    }
+  }
+}
+```
+
+### Payload fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `event` | string | Event type (e.g., `trigger.run.completed`, `trigger.run.failed`) |
+| `trigger_id` | string | Trigger that was fired |
+| `run_id` | string | Unique run identifier |
+| `timestamp` | string | ISO 8601 event timestamp |
+| `data.status` | string | Run status: `completed` or `failed` |
+| `data.result` | object | Solve result (same structure as `POST /solve` response) |
+| `data.override_data` | object | Override values used for this run |
+
+### Failed run payload
+
+```json
+{
+  "event": "trigger.run.failed",
+  "trigger_id": "trg_a1b2c3d4",
+  "run_id": "run_x1y2z3w4",
+  "timestamp": "2026-02-19T06:00:15Z",
+  "data": {
+    "status": "failed",
+    "error": "Solver error: problem is infeasible with the given constraints",
+    "override_data": {
+      "demand_forecast": [120, 85, 200, 150, 90]
+    }
+  }
+}
+```
+
+---
+
+## Signature verification
+
+Every webhook request includes an `X-JAOT-Signature` header containing an HMAC-SHA256 signature of the request body, signed with your `webhook_secret`.
+
+### Verification algorithm
+
+1. Read the raw request body (before JSON parsing)
+2. Compute HMAC-SHA256 using your `webhook_secret` as the key
+3. Compare the computed signature with the `X-JAOT-Signature` header
+4. Use constant-time comparison to prevent timing attacks
+
+<CodeTabs>
+```python
+import hashlib
+import hmac
+from flask import Flask, request, abort
+
+app = Flask(__name__)
+WEBHOOK_SECRET = "whsec_your_signing_secret_here"
+
+@app.route("/webhooks/jaot", methods=["POST"])
+def handle_webhook():
+    # 1. Get the signature from the header
+    signature = request.headers.get("X-JAOT-Signature")
+    if not signature:
+        abort(401, "Missing signature")
+
+    # 2. Compute expected signature
+    raw_body = request.get_data()
+    expected = hmac.new(
+        WEBHOOK_SECRET.encode(),
+        raw_body,
+        hashlib.sha256
+    ).hexdigest()
+
+    # 3. Constant-time comparison
+    if not hmac.compare_digest(signature, expected):
+        abort(401, "Invalid signature")
+
+    # 4. Process the event
+    payload = request.get_json()
+    event = payload["event"]
+    run_id = payload["run_id"]
+
+    if event == "trigger.run.completed":
+        result = payload["data"]["result"]
+        print(f"Run {run_id} completed: objective={result['objective_value']}")
+        # Update your database, send notifications, etc.
+
+    elif event == "trigger.run.failed":
+        error = payload["data"]["error"]
+        print(f"Run {run_id} failed: {error}")
+        # Alert your team
+
+    return {"received": True}, 200
+```
+
+```javascript
+import crypto from "crypto";
+import express from "express";
+
+const app = express();
+const WEBHOOK_SECRET = "whsec_your_signing_secret_here";
+
+app.post("/webhooks/jaot", express.raw({ type: "application/json" }), (req, res) => {
+  const signature = req.headers["x-jaot-signature"];
+  if (!signature) return res.status(401).send("Missing signature");
+
+  const expected = crypto
+    .createHmac("sha256", WEBHOOK_SECRET)
+    .update(req.body)
+    .digest("hex");
+
+  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+    return res.status(401).send("Invalid signature");
+  }
+
+  const payload = JSON.parse(req.body);
+
+  if (payload.event === "trigger.run.completed") {
+    const { objective_value, solution } = payload.data.result;
+    console.log(`Optimal solution found: ${objective_value}`);
+    console.log("Solution:", solution);
+  }
+
+  res.json({ received: true });
+});
+```
+</CodeTabs>
+
+---
+
+## Delivery and retries
+
+| Behavior | Details |
+|----------|---------|
+| **Timeout** | 30 seconds per delivery attempt |
+| **Success** | Any 2xx status code is treated as successful delivery |
+| **Content-Type** | `application/json` |
+
+> **Tip:** Respond to webhook deliveries quickly (within a few seconds). If your processing is slow, acknowledge receipt with a 200 response and process the payload asynchronously in a background job.
+
+---
+
+## Removing a webhook
+
+To stop receiving webhooks, update the trigger to clear the webhook URL or delete the trigger entirely.
+
+### Clear webhook URL
+
+<CodeTabs>
+```python
+response = requests.patch(
+    "https://jaot.io/api/v2/triggers/trg_a1b2c3d4",
+    headers={"Authorization": "Bearer ok_live_...", "Content-Type": "application/json"},
+    json={"webhook_url": None},
+)
+```
+
+```bash
+curl -X PATCH https://jaot.io/api/v2/triggers/trg_a1b2c3d4 \
+  -H "Authorization: Bearer ok_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"webhook_url": null}'
+```
+
+```javascript
+await fetch("https://jaot.io/api/v2/triggers/trg_a1b2c3d4", {
+  method: "PATCH",
+  headers: {
+    "Authorization": "Bearer ok_live_...",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ webhook_url: null }),
+});
+```
+</CodeTabs>
+
+### Delete the trigger
+
+<CodeTabs>
+```python
+response = requests.delete(
+    "https://jaot.io/api/v2/triggers/trg_a1b2c3d4",
+    headers={"Authorization": "Bearer ok_live_..."},
+)
+```
+
+```bash
+curl -X DELETE https://jaot.io/api/v2/triggers/trg_a1b2c3d4 \
+  -H "Authorization: Bearer ok_live_..."
+```
+
+```javascript
+await fetch("https://jaot.io/api/v2/triggers/trg_a1b2c3d4", {
+  method: "DELETE",
+  headers: { "Authorization": "Bearer ok_live_..." },
+});
+```
+</CodeTabs>

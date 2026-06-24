@@ -1,0 +1,284 @@
+[project]
+name = "jaot"
+version = "1.0.0"
+description = "JAOT — optimization platform and marketplace: build, share, and automate optimization models (SCIP/HiGHS, LLM formulation assistant, MCP server)"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_LICENSES"]
+requires-python = ">=3.12"
+readme = "README.md"
+# Source of truth for runtime deps stays requirements.txt (Docker installs it
+# directly); declared dynamic so tooling (e.g. deptry) resolves the same list.
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = [
+    "venv",
+    "tests/__pycache__",
+    "scripts",  # Scripts need sys.path manipulation before imports
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP006", "UP007", "UP035", "UP045"]
+ignore = [
+    "E203",  # Compatible con Black si se adopta en el futuro
+    "E501",  # Line too long — defer cleanup to avoid 150+ cosmetic changes
+    "B008",  # FastAPI Depends() in defaults is safe and idiomatic
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+combine-as-imports = true
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+allow_redefinition = false
+plugins = []
+files = ["app"]
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_missing_imports = true
+allow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "old_tests.*"
+ignore_missing_imports = true
+allow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "app.tests.*"
+allow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "alembic.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "pyscipopt.*"
+ignore_missing_imports = true
+disallow_untyped_calls = false
+
+[tool.bandit]
+exclude_dirs = ["tests", "alembic", "sdk"]
+
+[tool.importlinter]
+root_packages = ["app", "tests"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+id = "app-not-import-tests"
+name = "app/ never imports from tests/"
+type = "forbidden"
+source_modules = ["app"]
+forbidden_modules = ["tests"]
+
+[[tool.importlinter.contracts]]
+id = "tests-no-circular-imports"
+name = "test subdirectories are independent of each other"
+type = "independence"
+modules = [
+    "tests.api",
+    "tests.auth",
+    # tests.core excluded: tests/core/ has no __init__.py, not a Python package
+    "tests.unit",
+    "tests.integration",
+]
+
+[[tool.importlinter.contracts]]
+# Contract 3 — MERGED: shared-no-import-domains + the shim-path enforcement that
+# previously lived in a separate contract. import-linter's `forbidden` type cannot
+# union source_modules that are parent/child (shared descendants error), so the
+# merge is expressed as a single `app.shared` source with a superset forbidden list.
+# Original contracts 3 and 5 are collapsed here. This gives 5 contracts total:
+# 1, 2, 3(this), 4(domains-independent), 5(pyscipopt) — same enforcement surface.
+# Per RESEARCH A2 / Open Question 2: the `independence` type does not accept
+# `forbidden_modules`, so the pyscipopt contract must stay standalone (cannot merge
+# into contract 4). 6→5 is the enforcement-preserving floor. CONTEXT D-16 approved.
+id = "shared-and-solver-domain-no-shim-imports"
+name = "app/shared/ never imports from app/domains/, app/api/, or legacy shim paths"
+type = "forbidden"
+source_modules = ["app.shared"]
+forbidden_modules = [
+    "app.domains",
+    "app.api",
+    "app.services.solver",
+    "app.api.v2.routes.solve",
+]
+
+[[tool.importlinter.contracts]]
+# Contract 4 — unchanged: independence contracts do not accept forbidden_modules
+id = "domains-independent"
+name = "domain modules are independent of each other"
+type = "independence"
+modules = [
+    "app.domains",
+]
+
+[[tool.importlinter.contracts]]
+# Contract 5 — KEPT as a standalone `forbidden` contract.
+# Per RESEARCH A2 + Open Question 2: import-linter's `independence` contract type
+# does not support `forbidden_modules`, so we cannot merge Contract 6 into Contract 4.
+# Reducing 6→5 is the floor that preserves enforcement surface;
+# CONTEXT D-16 allows "4 or 5, whichever preserves enforcement surface".
+id = "solver-services-no-pyscipopt"
+name = "Solver services must not import pyscipopt directly (adapters only)"
+type = "forbidden"
+source_modules = [
+    "app.domains.solver.services",
+]
+forbidden_modules = [
+    "pyscipopt",
+]
+ignore_imports = [
+    # file_export.py imports build_scip_model from the adapter (Pitfall 1 resolution).
+    # The transitive chain services.file_export -> adapters._scip_model_builder -> pyscipopt
+    # is legitimate: the adapter module IS allowed to use pyscipopt.
+    "app.domains.solver.services.file_export -> app.domains.solver.adapters._scip_model_builder",
+    # model_builder.py and file_import.py are sys.modules shims that redirect to
+    # adapter modules. Static analysis sees the transitive chain; at runtime the
+    # shim body is never executed (replaced in sys.modules). Permitted: the only
+    # code that uses pyscipopt is inside adapters/, which is the correct boundary.
+    "app.domains.solver.services.model_builder -> app.domains.solver.adapters._scip_model_builder",
+    "app.domains.solver.services.file_import -> app.domains.solver.adapters._scip_import",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+asyncio_mode = "auto"
+# Suppress SQLAlchemy internal deprecation warnings
+# Our code uses datetime.now(timezone.utc) correctly
+# SQLAlchemy hasn't updated yet - see docs/development/WARNINGS_ANALYSIS.md
+filterwarnings = [
+    "ignore::DeprecationWarning:sqlalchemy.*",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks integration tests requiring external services",
+    "load: marks load/stress tests (deselect with '-m \"not load\"')",
+    "unit: marks pure-unit tests with no I/O or external dependencies",
+]
+addopts = "-m 'not slow and not load'"
+
+[tool.deptry]
+# Dependencies present in requirements.txt but never imported as a module
+# in app/. Each one was audited (2026-05-20) and is required at runtime
+# even though static analysis can't see it:
+#   uvicorn          — invoked by run.py (uvicorn[standard] also enables WS)
+#   python-multipart — FastAPI uses it to parse UploadFile/Form
+#   email-validator  — pydantic.EmailStr requires it
+#   requests         — used directly in app/services/onboarding_emails.py
+#                      (NB: deptry can't see it because the import is gated
+#                      inside a function body; still a legitimate dep)
+#   psycopg2-binary  — PostgreSQL driver loaded by SQLAlchemy
+#   alembic          — invoked as a CLI tool (`alembic upgrade head`)
+#   websockets       — needed for FastAPI WebSocket endpoints (app/api/v2/ws.py)
+# The PEP 621 project name is "jaot" but the importable package is "app" —
+# without known_first_party, every `from app...` import is misread as transitive.
+known_first_party = ["app"]
+
+[tool.deptry.per_rule_ignores]
+DEP002 = [
+    "uvicorn",
+    "python-multipart",
+    "email-validator",
+    "requests",
+    "psycopg2-binary",
+    "alembic",
+    "websockets",
+]
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+# Entry-point shims with no testable logic — see CONTEXT.md D-09
+omit = [
+    "app/main.py",
+    "app/db/init.py",
+    "app/tasks/scheduler.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+precision = 1
+# NOTE: fail_under is INTENTIONALLY OMITTED here — the CI gate is set via
+# the --cov-fail-under CLI flag in the CI workflow. Single source of truth.
+
+# Phase 12.3 scoped pre-pilot (CONTEXT D-03). Expanded in Phase 12.5 Plan 01
+# (D-01b) to all 5 critical module groups (idempotency, credits, billing, auth,
+# solver core — 11 files total). Tolerance: 2pp absolute drop per-module (Plan
+# 05 delta gate; stricter would false-REVERT on randomization noise).
+#
+# Config keys use mutmut 3.5.0 syntax. The full recognized set in 3.5.0 is:
+# do_not_mutate, also_copy, max_stack_depth, debug, mutate_only_covered_lines,
+# paths_to_mutate, tests_dir, pytest_add_cli_args,
+# pytest_add_cli_args_test_selection, type_check_command. Any other key is a
+# SILENT no-op (mutmut ignores unknown keys). Unreleased master renames
+# paths_to_mutate -> source_paths; do NOT bump mutmut to a >3.x version without
+# revising this section.
+#
+# NOTE: per-module runs in later plans override paths_to_mutate + test-selection
+# via CLI. This block holds shared settings + the full target list. A bare
+# `mutmut run` would mutate all 11 files (slow); per-module CLI runs are the
+# working path (see Plans 02-06).
+[tool.mutmut]
+paths_to_mutate = [
+    # idempotency (D-01 extracted from app/api/v2/solve.py)
+    "app/services/idempotency.py",
+    # credits
+    "app/services/credits_service.py",
+    # billing (excludes app/api/v2/billing.py route layer — D-01 decision)
+    "app/services/stripe_service.py",
+    "app/services/invoice_service.py",
+    # auth
+    "app/services/auth/api_key_service.py",
+    "app/services/auth/jwt_service.py",
+    "app/services/auth/password_service.py",
+    # solver core (excludes parsers + analytics — D-02 decision, deferred to v2.4)
+    "app/domains/solver/services/solver_service.py",
+    "app/domains/solver/services/auto_router.py",
+    "app/domains/solver/services/availability_gate.py",
+    "app/domains/solver/services/pool.py",
+]
+# Flags appended to mutmut's internal pytest invocation. mutmut 3.5.0 has NO
+# `runner_command` key (it was a silent no-op here); the intended pytest flags
+# are folded into `pytest_add_cli_args`, the real key (consumed as list[str]
+# and concatenated onto pytest's argv). Do NOT include the `pytest` executable
+# itself — mutmut runs pytest in-process. Flags: disable xdist + randomly so
+# each mutant runs deterministically, stop on first failure, quiet output.
+pytest_add_cli_args = ["-p", "no:xdist", "-p", "no:randomly", "-x", "--no-header", "-q"]
+# Restrict pytest collection to the 11 test files that exercise the 2 target
+# modules — biggest wall-clock win versus running the full 3000-test suite per
+# mutant. See RESEARCH § 3.2.
+pytest_add_cli_args_test_selection = [
+    "tests/test_credits.py",
+    "tests/test_credits_service_consolidated.py",
+    "tests/test_credit_race_conditions.py",
+    "tests/test_billing.py",
+    "tests/test_stripe_refund_chargeback.py",
+    "tests/test_stripe_refund_chargeback_extended.py",
+    "tests/test_stripe_webhook_processing.py",
+    "tests/test_stripe_connect.py",
+    "tests/test_credit_calculator.py",
+    "tests/test_financial_bugs.py",
+    "tests/test_cancel_refund_idempotency.py",
+]
+# Only mutate lines actually covered — drops tautologically unreachable mutants.
+mutate_only_covered_lines = true
+# NOTE: mutmut 3.5.0 has NO configurable timeout keys. `timeout_constant` and
+# `timeout_multiplier` were removed here — they are NOT in mutmut's recognized
+# key set and were silently ignored. mutmut 3.x derives each mutant's timeout
+# internally from the baseline (clean-run) duration; there is no multiplier to
+# tune. Credits/stripe tests with conftest setup run ~30-60s and are handled by
+# that internal baseline timing, not by config.

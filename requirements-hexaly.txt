@@ -1,0 +1,12 @@
+# Optional extra: Hexaly solver SDK (proprietary, bring-your-own-license).
+#
+# Hexaly is commercial software distributed from Hexaly's own package index and
+# is NOT part of the default install. The platform runs fine without it — the
+# Hexaly adapter is registered only when this SDK is importable.
+#
+# To enable:
+#   pip install -r requirements-hexaly.txt
+# plus a valid license file (see the `hexaly` profile in
+# deploy/docker-compose.prod.yml and deploy/docker/Dockerfile.worker.hexaly).
+--extra-index-url https://pip.hexaly.com
+hexaly==14.5.20260417

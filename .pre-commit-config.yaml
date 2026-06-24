@@ -1,0 +1,46 @@
+# JAOT pre-commit hooks — HARD-BLOCKING per CONTEXT D-18.
+# Emergency bypass: `git commit --no-verify` (see docs/operations/pre-commit-guide.md).
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.5   # Pinned to match CI installed version
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^(app|scripts|deploy|tests)/.*\.py$
+      - id: ruff-format
+        files: ^(app|scripts|deploy|tests)/.*\.py$
+
+  - repo: local
+    hooks:
+      - id: lint-imports
+        name: lint-imports (import-linter)
+        language: python
+        # language: python runs the hook in its own venv with the pinned
+        # additional_dependencies below, avoiding Pitfall 4 "lint-imports:
+        # command not found" when developers have not activated the project venv.
+        entry: lint-imports
+        additional_dependencies:
+          - import-linter>=2.1
+        pass_filenames: false
+        always_run: true
+        types: [python]
+      - id: lint-e2e-no-mock-boundary
+        name: "ESLint jaot/no-e2e-mock-jaot-boundary (e2e boundary check)"
+        language: system
+        # pre-commit hands us repo-root-relative paths; ESLint resolves them
+        # against its CWD, so we strip the frontend/ prefix after `cd frontend`.
+        entry: bash -c 'paths=(); for p in "$@"; do paths+=("${p#frontend/}"); done; cd frontend && exec node_modules/.bin/eslint --no-error-on-unmatched-pattern "${paths[@]}"' --
+        files: ^frontend/e2e/.*\.tsx?$
+        pass_filenames: true
+      - id: check-test-quality-tier-1
+        name: "Backend test-quality Tier-1 anti-patterns (test_quality_proof.md S2)"
+        language: system
+        # `entry: python` (not `python3`) for cross-platform compatibility:
+        # `python:3.12-slim` (CI) ships both names symlinked, so the lint-backend
+        # CI step uses `python3` directly; Windows venvs only expose `python`
+        # (the `python3` shim resolves to the Microsoft Store launcher), so the
+        # pre-commit hook must use `python`. The script is pure stdlib.
+        entry: python scripts/check_test_quality_tier1.py
+        files: ^tests/.*\.py$
+        exclude: '(^|/)conftest\.py$'
+        pass_filenames: true

@@ -1,0 +1,68 @@
+services:
+  prometheus:
+    image: prom/prometheus:v3.9.1
+    container_name: jaot_dev_prometheus
+    volumes:
+      - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - jaot_dev_prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+    restart: unless-stopped
+    networks:
+      - default
+
+  grafana:
+    image: grafana/grafana:12.4.0
+    container_name: jaot_dev_grafana
+    volumes:
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - jaot_dev_grafana_data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - default
+
+  # Celery exporter — dev mirror of the prod sidecar (D-26). Same sha256 pin as prod for parity.
+  # Requires the dev Celery worker running in `jaot_network`. Defaults to dev RabbitMQ creds (jaot/jaot).
+  celery-exporter:
+    image: danihodovic/celery-exporter:0.12.2@sha256:91e0b314cb5d62f0b2cd0ccdd059178d2d26f816ae0df2a4eeeb6b3c6feb5937
+    container_name: jaot_dev_celery_exporter
+    environment:
+      CE_BROKER_URL: "amqp://${RABBITMQ_USER:-jaot}:${RABBITMQ_PASS:-jaot}@rabbitmq:5672//"
+    ports:
+      - "127.0.0.1:9808:9808"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - default
+      - jaot_network
+
+volumes:
+  jaot_dev_prometheus_data:
+    labels:
+      com.jaot.service: prometheus
+  jaot_dev_grafana_data:
+    labels:
+      com.jaot.service: grafana
+
+networks:
+  # Re-use the dev network from root docker-compose.yml so the exporter can reach rabbitmq.
+  # `external: true` makes `docker compose up` on this file alone fail clearly if the dev stack isn't running.
+  jaot_network:
+    external: true

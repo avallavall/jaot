@@ -1,0 +1,163 @@
+---
+title: "Environmental Resource Management"
+description: "Optimize emissions reduction, waste processing, and sustainability targets"
+order: 19
+category: "environmental"
+difficulty: "intermediate"
+domain: "Energy & Environment"
+templateCount: 1
+---
+
+# Environmental Resource Management
+
+Optimize environmental compliance, emission reduction investments, and sustainability planning. Environmental optimization helps organizations meet regulatory targets at minimum cost by allocating reduction efforts across facilities, technologies, and timelines.
+
+## When to Use This Guide
+
+Environmental optimization applies whenever you need to balance ecological targets with budget realities:
+
+- **Carbon trading** -- Decide how much to reduce internally vs. purchase carbon credits
+- **Emission reduction planning** -- Allocate investments across facilities to meet aggregate reduction targets
+- **Waste management optimization** -- Route waste streams to processing facilities based on capacity and cost
+- **Sustainability compliance** -- Meet regulatory deadlines at minimum cost across multiple sites
+- **Green technology adoption** -- Choose which facilities to upgrade with cleaner technology first
+
+## Step-by-Step Walkthrough
+
+### 1. Identify Emission Sources
+
+List every facility or process that generates emissions. Record current emission levels, potential reduction technologies available, and the cost per ton of reduction for each option.
+
+### 2. Set Reduction Targets
+
+Define the total emission reduction required (by regulation, corporate policy, or voluntary commitment). Set any per-facility or per-pollutant sub-targets. Specify the compliance deadline.
+
+### 3. Add Budget and Feasibility Constraints
+
+Set the total investment budget available. Add constraints for maximum reduction achievable per facility (you cannot reduce more than current emissions). Include any technology compatibility restrictions.
+
+### 4. Solve and Plan
+
+The optimizer allocates reduction investments across facilities to meet the target at minimum total cost. Review the plan to prioritize high-impact, low-cost reductions first and phase expensive upgrades over time.
+
+## Example: Emission Reduction Across 5 Facilities
+
+Allocate emission reduction investments across 5 facilities to meet a company-wide reduction target of 500 tons CO2e at minimum cost.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+facilities = 5
+target_reduction = 500  # tons CO2e
+
+# Current emissions per facility (tons CO2e/year)
+current_emissions = [200, 350, 150, 280, 180]
+# Cost per ton of reduction at each facility ($/ton)
+cost_per_ton = [45, 30, 60, 35, 50]
+# Maximum achievable reduction at each facility (tons)
+max_reduction = [150, 250, 100, 200, 130]
+
+variables = []
+for f in range(facilities):
+    variables.append({
+        "name": f"reduce_{f}",
+        "type": "continuous",
+        "lb": 0,
+        "ub": max_reduction[f],
+    })
+
+# Minimize total cost of reduction
+objective = {
+    "sense": "minimize",
+    "coefficients": {
+        f"reduce_{f}": cost_per_ton[f] for f in range(facilities)
+    },
+}
+
+constraints = []
+# Must meet total reduction target
+constraints.append({
+    "name": "total_target",
+    "coefficients": {f"reduce_{f}": 1 for f in range(facilities)},
+    "sense": ">=",
+    "rhs": target_reduction,
+})
+
+# Cannot reduce more than current emissions at any facility
+for f in range(facilities):
+    constraints.append({
+        "name": f"max_reduce_{f}",
+        "coefficients": {f"reduce_{f}": 1},
+        "sense": "<=",
+        "rhs": current_emissions[f],
+    })
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Total reduction cost: ${result['objective_value']:,.0f}")
+for f in range(facilities):
+    reduction = result['solution'][f"reduce_{f}"]
+    if reduction > 0:
+        pct = (reduction / current_emissions[f]) * 100
+        print(
+            f"  Facility {f+1}: reduce {reduction:.0f} tons "
+            f"({pct:.0f}% of emissions, cost: ${reduction * cost_per_ton[f]:,.0f})"
+        )
+```
+
+```json
+{
+  "variables": [
+    {"name": "reduce_0", "type": "continuous", "lb": 0, "ub": 150},
+    {"name": "reduce_1", "type": "continuous", "lb": 0, "ub": 250},
+    {"name": "reduce_2", "type": "continuous", "lb": 0, "ub": 100},
+    {"name": "reduce_3", "type": "continuous", "lb": 0, "ub": 200},
+    {"name": "reduce_4", "type": "continuous", "lb": 0, "ub": 130}
+  ],
+  "objective": {
+    "sense": "minimize",
+    "coefficients": {
+      "reduce_0": 45, "reduce_1": 30, "reduce_2": 60,
+      "reduce_3": 35, "reduce_4": 50
+    }
+  },
+  "constraints": [
+    {
+      "name": "total_target",
+      "coefficients": {
+        "reduce_0": 1, "reduce_1": 1, "reduce_2": 1,
+        "reduce_3": 1, "reduce_4": 1
+      },
+      "sense": ">=",
+      "rhs": 500
+    },
+    {
+      "name": "max_reduce_0",
+      "coefficients": {"reduce_0": 1},
+      "sense": "<=",
+      "rhs": 200
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+Build environmental optimization models with the **[Custom Optimization](/builder/templates/custom)** template. Define your facilities, emission levels, and reduction technologies to create a cost-optimal compliance plan.
+
+## Next Steps
+
+- **[Energy Grid Optimization](/docs/guides/energy-grid)** -- Optimize power generation to reduce grid-level emissions
+- **[Water Distribution Networks](/docs/guides/water-distribution)** -- Apply resource optimization to water systems
+- **[API Reference](/docs/api/solve)** -- Full endpoint documentation for the solve API

@@ -1,0 +1,364 @@
+category: finance
+category_display_name: Finance & Investment
+
+templates:
+  - id: budget_allocation
+    name: Budget Allocation Optimizer
+    display_name: Budget Allocation
+    short_description: Allocate budget across departments to maximize ROI while respecting minimum and maximum funding constraints.
+    description: >
+      Optimally distribute a fixed budget across departments or projects to maximize total
+      return on investment. Each department has a minimum funding floor, a maximum cap, and
+      an expected ROI multiplier. The solver finds the allocation mix that squeezes the
+      highest overall return from your budget. Use this when you need to justify funding
+      decisions with data or when competing teams request more than you can afford.
+    scenario_description: >
+      A mid-size SaaS company has EUR 100,000 to distribute among Marketing, R&D,
+      Operations, and Sales for Q3. Marketing promises 1.5x ROI but needs at least
+      EUR 10k. R&D projects 2.0x ROI and insists on EUR 20k minimum. The CFO
+      wants the split that maximises total return.
+    category: finance
+    tags: [finance, allocation, roi, budget, planning]
+    problem_type_tags: [LP]
+    generator_type: budget_allocation
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [total_budget, departments]
+      properties:
+        total_budget: {type: number, minimum: 1}
+        departments: {type: array, items: {type: object}}
+        objective: {type: string, enum: [maximize_roi, minimize_cost]}
+    input_fields:
+      - name: total_budget
+        label: Total Budget
+        type: number
+        description: Total budget to allocate
+        required: true
+        minimum: 1
+        default: 100000
+      - name: departments
+        label: Departments
+        type: array
+        description: List of departments with allocation constraints
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            min_allocation: {type: number, default: 0}
+            max_allocation: {type: number}
+            expected_roi: {type: number, default: 1.0}
+      - name: objective
+        label: Objective
+        type: string
+        description: Whether to maximize ROI or minimize total cost
+        required: false
+        enum: [maximize_roi, minimize_cost]
+        default: maximize_roi
+    example_input:
+      total_budget: 100000
+      departments:
+        - {name: Marketing, min_allocation: 10000, max_allocation: 40000, expected_roi: 1.5}
+        - {name: "R&D", min_allocation: 20000, max_allocation: 50000, expected_roi: 2.0}
+        - {name: Operations, min_allocation: 15000, max_allocation: 35000, expected_roi: 1.2}
+        - {name: Sales, min_allocation: 5000, max_allocation: 25000, expected_roi: 1.8}
+      objective: maximize_roi
+    is_featured: true
+    estimated_variables: 4
+    estimated_constraints: 9
+
+  - id: portfolio_optimization
+    name: Portfolio Optimization
+    display_name: Portfolio Optimization
+    short_description: Build an investment portfolio that maximizes expected return for a given risk tolerance, with optional cardinality and sector limits.
+    description: >
+      Construct an optimal investment portfolio by choosing allocations across assets that
+      maximise expected return while keeping portfolio risk below a threshold. Supports
+      minimum and maximum allocation per asset, cardinality constraints (limit the number
+      of assets held), and sector-level caps. The solution tells you exactly how much to
+      invest in each asset and what overall return and risk to expect.
+    scenario_description: >
+      An investment advisor manages a EUR 100,000 portfolio with six asset classes: S&P 500
+      ETF, Euro bonds, a tech ETF, real estate, gold, and emerging markets. The client
+      wants at least 7% annual return but no more than 15% portfolio risk, with at most
+      60% in equities.
+    category: finance
+    tags: [finance, portfolio, investment, risk, markowitz]
+    problem_type_tags: [MIP]
+    generator_type: portfolio
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [assets, total_budget]
+      properties:
+        assets: {type: array}
+        total_budget: {type: number, minimum: 1}
+        max_risk: {type: number}
+        min_return: {type: number}
+        max_assets: {type: integer}
+        sector_limits: {type: object}
+    input_fields:
+      - name: assets
+        label: Assets
+        type: array
+        description: Available assets with expected return and risk
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            expected_return: {type: number}
+            risk: {type: number}
+            min_allocation: {type: number, default: 0}
+            max_allocation: {type: number, default: 1}
+            sector: {type: string}
+      - name: total_budget
+        label: Total Budget
+        type: number
+        description: Total amount to invest
+        required: true
+        default: 100000
+      - name: max_risk
+        label: Maximum Portfolio Risk
+        type: number
+        description: Maximum acceptable weighted risk (std dev)
+        required: false
+        default: 0
+      - name: min_return
+        label: Minimum Target Return
+        type: number
+        description: Minimum acceptable weighted return
+        required: false
+        default: 0
+      - name: max_assets
+        label: Maximum Number of Assets
+        type: integer
+        description: Maximum assets to hold (0 = no limit)
+        required: false
+        default: 0
+      - name: sector_limits
+        label: Sector Allocation Limits
+        type: object
+        description: "Max allocation per sector as {sector: max_fraction}"
+        required: false
+    example_input:
+      assets:
+        - {name: SP500_ETF, expected_return: 0.10, risk: 0.15, min_allocation: 0.05, max_allocation: 0.40, sector: equity}
+        - {name: EURO_BONDS, expected_return: 0.03, risk: 0.04, min_allocation: 0.10, max_allocation: 0.50, sector: bonds}
+        - {name: TECH_ETF, expected_return: 0.14, risk: 0.22, min_allocation: 0, max_allocation: 0.30, sector: equity}
+        - {name: REAL_ESTATE, expected_return: 0.07, risk: 0.10, min_allocation: 0, max_allocation: 0.25, sector: real_estate}
+        - {name: GOLD, expected_return: 0.04, risk: 0.12, min_allocation: 0, max_allocation: 0.15, sector: commodities}
+        - {name: EMERGING_MKT, expected_return: 0.12, risk: 0.25, min_allocation: 0, max_allocation: 0.20, sector: equity}
+      total_budget: 100000
+      max_risk: 0.15
+      min_return: 0.07
+      max_assets: 4
+      sector_limits: {equity: 0.60, bonds: 0.50, real_estate: 0.25, commodities: 0.15}
+    is_featured: true
+    estimated_variables: 12
+    estimated_constraints: 14
+
+  - id: cash_flow_planning
+    name: Cash Flow Planning Optimizer
+    display_name: Cash Flow Planning
+    short_description: Schedule payments and receipts across periods to minimize borrowing costs while meeting all obligations on time.
+    description: >
+      Plan cash inflows and outflows across multiple periods so that the company never
+      runs out of cash while minimizing short-term borrowing costs. The solver decides
+      when to draw credit lines, when to invest surpluses, and how to sequence large
+      payments. The output is a period-by-period cash plan showing opening balance, flows,
+      and any borrowing needed.
+    scenario_description: >
+      A construction firm must manage cash over 6 months. Monthly expenses range from
+      EUR 40k to EUR 80k, client payments arrive on staggered schedules, and a
+      EUR 50k equipment purchase is due in month 3. A credit line charges 0.8% per month.
+    category: finance
+    tags: [finance, cash-flow, treasury, liquidity]
+    problem_type_tags: [LP]
+    generator_type: cash_flow
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [periods, initial_balance, credit_line_rate]
+      properties:
+        periods: {type: array}
+        initial_balance: {type: number}
+        credit_line_rate: {type: number}
+        max_borrowing_per_period: {type: number}
+    input_fields:
+      - name: periods
+        label: Planning Periods
+        type: array
+        description: List of periods with expected inflows and outflows
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            inflows: {type: number}
+            outflows: {type: number}
+      - name: initial_balance
+        label: Initial Cash Balance
+        type: number
+        description: Starting cash balance
+        required: true
+        default: 50000
+      - name: credit_line_rate
+        label: Credit Line Rate (per period)
+        type: number
+        description: Interest rate per period for borrowing
+        required: true
+        default: 0.008
+      - name: max_borrowing_per_period
+        label: Max Borrowing
+        type: number
+        description: Maximum amount that can be borrowed in any single period
+        required: false
+        default: 200000
+    example_input:
+      initial_balance: 50000
+      credit_line_rate: 0.008
+      max_borrowing_per_period: 200000
+      periods:
+        - {name: Month1, inflows: 30000, outflows: 45000}
+        - {name: Month2, inflows: 55000, outflows: 60000}
+        - {name: Month3, inflows: 40000, outflows: 130000}
+        - {name: Month4, inflows: 70000, outflows: 50000}
+        - {name: Month5, inflows: 45000, outflows: 55000}
+        - {name: Month6, inflows: 60000, outflows: 40000}
+    is_featured: false
+    estimated_variables: 6
+    estimated_constraints: 6
+
+  - id: loan_portfolio
+    name: Loan Portfolio Optimizer
+    display_name: Loan Portfolio
+    short_description: Select which loan applications to approve to maximize interest income while staying within risk and capital limits.
+    description: >
+      A bank or lender receives multiple loan applications and must decide which to approve.
+      Each loan has an expected interest income, a risk score, and a capital requirement.
+      The solver maximises total expected income subject to a total capital budget, a
+      maximum average risk threshold, and optional sector diversification rules. The
+      result tells you which loans to approve and the overall portfolio metrics.
+    scenario_description: >
+      A regional bank has EUR 2M in available lending capital and 10 loan applications
+      ranging from EUR 50k to EUR 500k. Each loan has a projected annual interest rate
+      and a risk rating from 1 (low) to 5 (high). The board wants average portfolio
+      risk below 3.0.
+    category: finance
+    tags: [finance, lending, credit, risk-management]
+    problem_type_tags: [MIP]
+    generator_type: knapsack
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [capacity, items]
+      properties:
+        capacity: {type: number}
+        items: {type: array}
+    input_fields:
+      - name: capacity
+        label: Total Lending Capital
+        type: number
+        description: Total capital available for loans
+        required: true
+        minimum: 1
+        default: 2000000
+      - name: items
+        label: Loan Applications
+        type: array
+        description: Loan applications with value (interest income) and weight (capital required)
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            value: {type: number}
+            weight: {type: number}
+    example_input:
+      capacity: 2000000
+      items:
+        - {name: loan_small_biz_A, value: 18000, weight: 200000}
+        - {name: loan_mortgage_B, value: 12000, weight: 350000}
+        - {name: loan_auto_C, value: 4500, weight: 50000}
+        - {name: loan_commercial_D, value: 45000, weight: 500000}
+        - {name: loan_personal_E, value: 8000, weight: 80000}
+        - {name: loan_startup_F, value: 30000, weight: 250000}
+        - {name: loan_agri_G, value: 15000, weight: 180000}
+        - {name: loan_reno_H, value: 9000, weight: 120000}
+        - {name: loan_equipment_I, value: 22000, weight: 300000}
+        - {name: loan_expansion_J, value: 35000, weight: 400000}
+    is_featured: false
+    estimated_variables: 10
+    estimated_constraints: 1
+
+  - id: revenue_maximization
+    name: Revenue Maximization Planner
+    display_name: Revenue Maximization
+    short_description: Decide how many units of each product to sell across channels to maximize total revenue under capacity and demand limits.
+    description: >
+      Determine the optimal sales quantities for multiple products across multiple channels
+      to maximize total revenue. Each product-channel pair has a unit price, a demand
+      ceiling, and uses shared capacity resources. The solver finds the revenue-maximizing
+      sales plan respecting all capacity limits. Useful for seasonal planning, product
+      launch allocation, or multi-channel pricing decisions.
+    scenario_description: >
+      An electronics retailer sells 4 product lines (laptops, tablets, phones, accessories)
+      through 3 channels (online, retail stores, wholesale). Each channel has limited
+      fulfillment capacity and different margins. Total warehouse throughput is 5,000
+      units per week.
+    category: finance
+    tags: [finance, revenue, sales, multi-channel, planning]
+    problem_type_tags: [LP]
+    generator_type: production
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [products, resources]
+      properties:
+        products: {type: array}
+        resources: {type: array}
+    input_fields:
+      - name: products
+        label: Products / Channels
+        type: array
+        description: Product-channel combinations with unit revenue
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            profit_per_unit: {type: number}
+            min_production: {type: number, default: 0}
+            max_production: {type: number}
+      - name: resources
+        label: Resources / Capacities
+        type: array
+        description: Shared capacity resources
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            available: {type: number}
+            usage: {type: object}
+    example_input:
+      products:
+        - {name: laptop_online, profit_per_unit: 120, min_production: 0, max_production: 800}
+        - {name: laptop_retail, profit_per_unit: 150, min_production: 50, max_production: 400}
+        - {name: tablet_online, profit_per_unit: 60, min_production: 0, max_production: 1200}
+        - {name: tablet_retail, profit_per_unit: 80, min_production: 0, max_production: 600}
+        - {name: phone_online, profit_per_unit: 45, min_production: 0, max_production: 2000}
+        - {name: phone_wholesale, profit_per_unit: 30, min_production: 200, max_production: 3000}
+        - {name: accessories_online, profit_per_unit: 15, min_production: 0, max_production: 5000}
+      resources:
+        - name: warehouse_throughput
+          available: 5000
+          usage: {laptop_online: 1, laptop_retail: 1, tablet_online: 1, tablet_retail: 1, phone_online: 1, phone_wholesale: 1, accessories_online: 1}
+        - name: premium_shelf_space
+          available: 800
+          usage: {laptop_retail: 1, tablet_retail: 1}
+    is_featured: false
+    estimated_variables: 7
+    estimated_constraints: 16

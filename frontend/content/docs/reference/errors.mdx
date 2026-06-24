@@ -1,0 +1,143 @@
+---
+title: Error Reference
+description: HTTP error codes, error schema, and troubleshooting
+order: 1
+---
+
+# Error Reference
+
+Complete reference for all error responses returned by the JAOT API.
+
+## Error Response Schema
+
+All API errors return a consistent JSON structure:
+
+```json
+{
+  "detail": "Human-readable error message",
+  "error_code": "ERROR_CODE",
+  "status_code": 400
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `detail` | `string` | Human-readable description of the error |
+| `error_code` | `string` | Machine-readable error code for programmatic handling |
+| `status_code` | `int` | HTTP status code |
+
+Validation errors (422) include additional detail about which fields failed:
+
+```json
+{
+  "detail": [
+    {
+      "loc": ["body", "num_variables"],
+      "msg": "value is not a valid integer",
+      "type": "type_error.integer"
+    }
+  ],
+  "status_code": 422
+}
+```
+
+---
+
+## HTTP Status Codes
+
+| Code | Name | Description |
+|------|------|-------------|
+| **400** | Bad Request | Invalid input, missing required fields, or malformed request body |
+| **401** | Unauthorized | API key is invalid, expired, or missing from the request |
+| **402** | Payment Required | Insufficient credits to perform the operation |
+| **403** | Forbidden | Valid credentials but insufficient permissions (not admin, wrong organization) |
+| **404** | Not Found | The requested resource does not exist |
+| **409** | Conflict | Resource already exists (e.g., duplicate API key name) |
+| **422** | Unprocessable Entity | Request body fails validation (Pydantic schema errors) |
+| **429** | Too Many Requests | Rate limit exceeded -- wait and retry |
+| **500** | Internal Server Error | Unexpected server failure |
+| **503** | Service Unavailable | Solver or worker is temporarily unavailable |
+
+---
+
+## Common Errors with Fixes
+
+| Error Message | Cause | Fix |
+|---------------|-------|-----|
+| "Invalid API key" | API key has been revoked or is mistyped | Create a new API key in the dashboard |
+| "Not authenticated" | No Authorization header in request | Add `Authorization: Bearer <api_key>` header |
+| "Insufficient credits" | Organization credit balance is too low | Purchase credits or use the credit calculator to estimate costs |
+| "Model not found" | Wrong model ID or model not activated for your org | Verify the model ID with `list_models()` and activate it first |
+| "Infeasible problem" | The constraints have no valid solution | Review constraints for conflicts -- try relaxing bounds |
+| "Solver timeout" | `time_limit` is too short for problem complexity | Increase `time_limit` or simplify the problem |
+| "Rate limit exceeded" | Too many requests in the current window | Wait for `retry_after` seconds, then retry |
+| "Validation error" | Request payload does not match expected schema | Check field names, types, and required parameters |
+| "Server at capacity" | All solver workers are busy | Use the async solve endpoint (`POST /api/v2/solve/async`) |
+
+---
+
+## Retry Strategy
+
+Some errors are transient and can be resolved by retrying. Others indicate problems with the request itself and should not be retried.
+
+### Retryable Errors
+
+| Code | When to Retry |
+|------|--------------|
+| **429** | After the `retry_after` duration from the response |
+| **503** | After a short delay (solver temporarily at capacity) |
+| **500** | After a short delay (may be a transient server issue) |
+
+### Non-Retryable Errors
+
+| Code | Action Required |
+|------|----------------|
+| **400** | Fix the request payload |
+| **401** | Check your API key |
+| **402** | Purchase more credits |
+| **403** | Check your permissions |
+| **404** | Verify the resource ID |
+| **422** | Fix the validation errors |
+
+> **Warning:** Never retry 400, 401, 403, or 422 errors. These indicate problems with the request that will not resolve on their own.
+
+### Exponential Backoff Example
+
+```python
+import time
+import httpx
+
+API_KEY = "ok_live_..."
+BASE_URL = "https://jaot.io"
+
+def solve_with_retry(payload, max_retries=3):
+    """Solve with retry logic and exponential backoff."""
+    for attempt in range(max_retries + 1):
+        response = httpx.post(
+            f"{BASE_URL}/api/v2/solve",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+            json=payload,
+        )
+        if response.status_code == 429:
+            if attempt == max_retries:
+                response.raise_for_status()
+            retry_after = response.json().get("retry_after", 2 ** attempt)
+            print(f"Rate limited, waiting {retry_after}s...")
+            time.sleep(retry_after)
+            continue
+        if response.status_code >= 500:
+            if attempt == max_retries:
+                response.raise_for_status()
+            wait = 2 ** attempt
+            print(f"Server error, retrying in {wait}s...")
+            time.sleep(wait)
+            continue
+        response.raise_for_status()
+        return response.json()
+
+
+# Usage
+result = solve_with_retry({"variables": [...], "constraints": [...]})
+```
+
+> **Tip:** Implement exponential backoff for 429 and 5xx errors. Non-retryable errors (400, 401, 403, 422) indicate problems with the request itself.

@@ -1,0 +1,182 @@
+category: education
+category_display_name: Education & Academic
+
+templates:
+  - id: course_scheduling
+    name: Course Scheduling Optimizer
+    display_name: Course Scheduling
+    short_description: Assign courses to rooms and time slots to avoid conflicts and maximize room utilization.
+    description: >
+      Create a university or school timetable by assigning courses to rooms and time
+      slots. The solver ensures no room is double-booked, no instructor teaches two
+      courses simultaneously, and room capacities match enrolment sizes. Optional
+      preferences (e.g., "Prof. Smith prefers mornings") can be included as soft
+      constraints. The output is a complete, conflict-free timetable.
+    scenario_description: >
+      A university department must schedule 8 courses across 4 classrooms and 5 daily
+      time slots for the semester. Three instructors each teach 2-3 courses. Room
+      capacities range from 30 to 120 seats. The registrar wants a conflict-free
+      schedule that fits all courses.
+    category: education
+    tags: [education, scheduling, timetable, university, courses]
+    problem_type_tags: [MIP]
+    generator_type: assignment
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [workers, tasks, costs]
+      properties:
+        workers: {type: array}
+        tasks: {type: array}
+        costs: {type: object}
+    input_fields:
+      - name: workers
+        label: Courses
+        type: array
+        description: Courses to schedule
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: tasks
+        label: Room-Time Slots
+        type: array
+        description: Available room and time slot combinations
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: costs
+        label: Preference Matrix
+        type: object
+        description: "Scheduling cost (lower = better fit) for each course-slot pair"
+        required: true
+    example_input:
+      workers:
+        - {name: calculus_101}
+        - {name: physics_201}
+        - {name: chemistry_101}
+        - {name: english_301}
+        - {name: history_201}
+      tasks:
+        - {name: roomA_slot1}
+        - {name: roomA_slot2}
+        - {name: roomB_slot1}
+        - {name: roomB_slot2}
+        - {name: roomC_slot1}
+      costs:
+        calculus_101_roomA_slot1: 1
+        calculus_101_roomA_slot2: 3
+        calculus_101_roomB_slot1: 2
+        calculus_101_roomB_slot2: 4
+        calculus_101_roomC_slot1: 5
+        physics_201_roomA_slot1: 3
+        physics_201_roomA_slot2: 1
+        physics_201_roomB_slot1: 4
+        physics_201_roomB_slot2: 2
+        physics_201_roomC_slot1: 3
+        chemistry_101_roomA_slot1: 5
+        chemistry_101_roomA_slot2: 4
+        chemistry_101_roomB_slot1: 1
+        chemistry_101_roomB_slot2: 2
+        chemistry_101_roomC_slot1: 3
+        english_301_roomA_slot1: 2
+        english_301_roomA_slot2: 5
+        english_301_roomB_slot1: 3
+        english_301_roomB_slot2: 1
+        english_301_roomC_slot1: 4
+        history_201_roomA_slot1: 4
+        history_201_roomA_slot2: 2
+        history_201_roomB_slot1: 5
+        history_201_roomB_slot2: 3
+        history_201_roomC_slot1: 1
+    is_featured: true
+    estimated_variables: 25
+    estimated_constraints: 10
+
+  - id: student_assignment
+    name: Student-to-Section Assignment
+    display_name: Student Assignment
+    short_description: Assign students to course sections to maximize preference satisfaction while respecting section capacities.
+    description: >
+      Assign students to course sections when multiple sections of the same course are
+      offered at different times. Each student ranks their preferred time slots. The
+      solver maximizes total preference satisfaction (or minimizes dissatisfaction) while
+      ensuring no section exceeds its capacity and every student gets exactly one section.
+      Used by university registrars and training coordinators.
+    scenario_description: >
+      Forty students must be assigned to 4 sections of an introductory programming
+      course (10 seats each). Each student has ranked the sections 1-4 by preference.
+      The registrar wants an assignment that maximizes overall student satisfaction.
+    category: education
+    tags: [education, assignment, students, sections, preferences]
+    problem_type_tags: [MIP]
+    generator_type: assignment
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [workers, tasks, costs]
+      properties:
+        workers: {type: array}
+        tasks: {type: array}
+        costs: {type: object}
+    input_fields:
+      - name: workers
+        label: Students
+        type: array
+        description: Students to assign
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: tasks
+        label: Sections
+        type: array
+        description: Available course sections
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: costs
+        label: Preference Scores
+        type: object
+        description: "Dissatisfaction score for each student-section pair (lower = more preferred)"
+        required: true
+    example_input:
+      workers:
+        - {name: student_1}
+        - {name: student_2}
+        - {name: student_3}
+        - {name: student_4}
+        - {name: student_5}
+        - {name: student_6}
+      tasks:
+        - {name: section_morning}
+        - {name: section_midday}
+        - {name: section_afternoon}
+      costs:
+        student_1_section_morning: 1
+        student_1_section_midday: 2
+        student_1_section_afternoon: 3
+        student_2_section_morning: 3
+        student_2_section_midday: 1
+        student_2_section_afternoon: 2
+        student_3_section_morning: 2
+        student_3_section_midday: 3
+        student_3_section_afternoon: 1
+        student_4_section_morning: 1
+        student_4_section_midday: 3
+        student_4_section_afternoon: 2
+        student_5_section_morning: 2
+        student_5_section_midday: 1
+        student_5_section_afternoon: 3
+        student_6_section_morning: 3
+        student_6_section_midday: 2
+        student_6_section_afternoon: 1
+    is_featured: false
+    estimated_variables: 18
+    estimated_constraints: 9

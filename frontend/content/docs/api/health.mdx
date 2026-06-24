@@ -1,0 +1,267 @@
+---
+title: Health
+description: Service health checks and status monitoring
+order: 10
+---
+
+# Health
+
+The health endpoints provide service status information for monitoring, load balancers, and SLA tracking. All health endpoints are public -- no authentication required.
+
+> **Tip:** Use the basic `/health` endpoint for load balancer health checks and `/health/status` for detailed component-level monitoring.
+
+---
+
+## Basic health check
+
+```
+GET /api/v2/health
+```
+
+Returns the overall service status with system metrics. Use this as your load balancer health check endpoint.
+
+**Authentication:** None (public)
+
+<CodeTabs>
+```python
+import requests
+
+response = requests.get("https://jaot.io/api/v2/health")
+health = response.json()
+
+print(f"Status: {health['status']}")
+print(f"Solver: {health['solver']}")
+print(f"CPU: {health['system']['cpu_percent']}%")
+print(f"Memory: {health['system']['memory_percent']}%")
+```
+
+```bash
+curl https://jaot.io/api/v2/health
+```
+
+```javascript
+const response = await fetch("https://jaot.io/api/v2/health");
+const health = await response.json();
+
+console.log(`Status: ${health.status}`);
+console.log(`Uptime: ${Math.round(health.uptime_seconds / 3600)}h`);
+```
+</CodeTabs>
+
+### Response (200)
+
+```json
+{
+  "status": "ok",
+  "version": "2.0.0",
+  "solver": "SCIP (universal)",
+  "system": {
+    "cpu_percent": 12.5,
+    "memory_percent": 45.2,
+    "memory_available_mb": 8192.0,
+    "disk_usage_percent": 38.7
+  },
+  "uptime_seconds": 86400.0,
+  "python_version": "3.12.4"
+}
+```
+
+### Response fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | string | Service status: `ok` |
+| `version` | string | API version |
+| `solver` | string | Solver engine identifier |
+| `system.cpu_percent` | float | Current CPU utilization |
+| `system.memory_percent` | float | Current memory utilization |
+| `system.memory_available_mb` | float | Available memory in megabytes |
+| `system.disk_usage_percent` | float | Disk usage percentage |
+| `uptime_seconds` | float | Seconds since application start |
+| `python_version` | string | Python runtime version |
+
+---
+
+## Detailed status
+
+```
+GET /api/v2/health/status
+```
+
+Returns detailed component-level health status for SLA monitoring. Checks database connectivity, solver availability, memory, and disk.
+
+**Authentication:** None (public)
+
+<CodeTabs>
+```python
+response = requests.get("https://jaot.io/api/v2/health/status")
+status = response.json()
+
+print(f"Overall: {status['status']}")
+print(f"SLA Target: {status['sla_target']}")
+print(f"Checks: {status['checks_passed']}/{status['checks_total']} passed")
+
+for component in status["components"]:
+    latency = f" ({component['latency_ms']}ms)" if component.get("latency_ms") else ""
+    print(f"  {component['name']}: {component['status']}{latency}")
+```
+
+```bash
+curl https://jaot.io/api/v2/health/status
+```
+
+```javascript
+const response = await fetch("https://jaot.io/api/v2/health/status");
+const status = await response.json();
+
+if (status.status !== "healthy") {
+  const failing = status.components
+    .filter((c) => c.status !== "healthy")
+    .map((c) => `${c.name}: ${c.status}`);
+  console.warn("Degraded components:", failing.join(", "));
+}
+```
+</CodeTabs>
+
+### Response (200)
+
+```json
+{
+  "status": "healthy",
+  "version": "2.0.0",
+  "uptime_seconds": 86400.0,
+  "components": [
+    {
+      "name": "database",
+      "status": "healthy",
+      "latency_ms": 1.23,
+      "message": null
+    },
+    {
+      "name": "solver",
+      "status": "healthy",
+      "latency_ms": 45.6,
+      "message": null
+    },
+    {
+      "name": "memory",
+      "status": "healthy",
+      "latency_ms": null,
+      "message": null
+    },
+    {
+      "name": "disk",
+      "status": "healthy",
+      "latency_ms": null,
+      "message": null
+    }
+  ],
+  "sla_target": "99.9%",
+  "checks_passed": 4,
+  "checks_total": 4
+}
+```
+
+### Overall status values
+
+| Status | Meaning |
+|--------|---------|
+| `healthy` | All components operational |
+| `degraded` | One or more components under stress (memory above 85%, disk above 85%) |
+| `down` | Critical component failed (database unreachable, solver unavailable, memory above 95%) |
+
+### Component checks
+
+| Component | Healthy | Degraded | Down |
+|-----------|---------|----------|------|
+| `database` | Query succeeds | -- | Connection failed |
+| `solver` | Test solve succeeds | -- | Solver unavailable |
+| `memory` | Usage below 85% | Usage 85--95% | Usage above 95% |
+| `disk` | Usage below 85% | Usage 85--95% | Usage above 95% |
+
+---
+
+## Application metrics
+
+```
+GET /api/v2/health/metrics
+```
+
+Returns application performance metrics including request counts and problem statistics.
+
+**Authentication:** None (public)
+
+<CodeTabs>
+```python
+response = requests.get("https://jaot.io/api/v2/health/metrics")
+metrics = response.json()
+print(f"Total requests: {metrics['total_requests']}")
+print(f"Problems solved: {metrics['problem_stats']['total_solved']}")
+```
+
+```bash
+curl https://jaot.io/api/v2/health/metrics
+```
+
+```javascript
+const response = await fetch("https://jaot.io/api/v2/health/metrics");
+const metrics = await response.json();
+console.log(`Uptime: ${Math.round(metrics.uptime_seconds / 3600)}h`);
+console.log(`Total solved: ${metrics.problem_stats.total_solved}`);
+```
+</CodeTabs>
+
+### Response (200)
+
+```json
+{
+  "uptime_seconds": 86400.0,
+  "start_time": "2026-02-18T00:00:00Z",
+  "total_requests": 12450,
+  "total_successful": 12380,
+  "total_failed": 70,
+  "problem_stats": {
+    "total_solved": 3200,
+    "avg_solve_time_ms": 234
+  }
+}
+```
+
+---
+
+## Recent requests
+
+```
+GET /api/v2/health/metrics/recent
+```
+
+Returns recent request history for debugging.
+
+**Authentication:** None (public)
+
+### Query parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | int | 10 | Number of recent requests (1--100) |
+
+<CodeTabs>
+```python
+response = requests.get(
+    "https://jaot.io/api/v2/health/metrics/recent",
+    params={"limit": 5},
+)
+recent = response.json()
+```
+
+```bash
+curl "https://jaot.io/api/v2/health/metrics/recent?limit=5"
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/health/metrics/recent?limit=5"
+);
+const recent = await response.json();
+```
+</CodeTabs>

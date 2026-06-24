@@ -1,0 +1,256 @@
+category: pharmaceutical
+category_display_name: Pharmaceutical
+
+templates:
+  - id: drug_trial_scheduling
+    name: Clinical Trial Scheduling
+    display_name: Trial Scheduling
+    short_description: Schedule clinical trial phases across sites and time periods to minimize time-to-market while respecting regulatory and resource constraints.
+    description: >
+      Plans the execution of clinical trial phases across multiple hospital sites
+      and time periods. Each trial phase has patient enrollment requirements,
+      duration, prerequisite phases, and site qualification constraints. The model
+      minimizes total trial duration (time-to-market) while ensuring each site
+      does not exceed its patient enrollment capacity and all regulatory sequencing
+      requirements are met. Helps pharmaceutical companies accelerate drug
+      development pipelines.
+    category: pharmaceutical
+    tags: [pharmaceutical, clinical-trials, drug-development, scheduling]
+    problem_type_tags: [MIP, scheduling]
+    generator_type: scheduling
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        trial_phases:
+          type: array
+          description: Trial phases with durations and dependencies
+        sites:
+          type: array
+          description: Hospital sites with enrollment capacity
+        time_horizon:
+          type: integer
+          description: Maximum months available
+      required: [trial_phases, sites, time_horizon]
+    input_fields:
+      - name: trial_phases
+        label: Trial Phases
+        type: array
+        description: "Phases with name, required patients, duration in months, and prerequisites"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            patients_needed: {type: integer}
+            duration_months: {type: integer}
+            prerequisites: {type: array, items: {type: string}}
+      - name: sites
+        label: Hospital Sites
+        type: array
+        description: "Sites with name and monthly patient enrollment capacity"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            monthly_capacity: {type: integer}
+      - name: time_horizon
+        label: Time Horizon (months)
+        type: integer
+        description: "Maximum months for the full trial program"
+        required: true
+        minimum: 1
+    example_input:
+      trial_phases:
+        - {name: "Phase-I-Safety", patients_needed: 30, duration_months: 6, prerequisites: []}
+        - {name: "Phase-II-Efficacy", patients_needed: 120, duration_months: 12, prerequisites: ["Phase-I-Safety"]}
+        - {name: "Phase-III-Pivotal-A", patients_needed: 500, duration_months: 18, prerequisites: ["Phase-II-Efficacy"]}
+        - {name: "Phase-III-Pivotal-B", patients_needed: 500, duration_months: 18, prerequisites: ["Phase-II-Efficacy"]}
+      sites:
+        - {name: "Johns Hopkins", monthly_capacity: 40}
+        - {name: "Mayo Clinic", monthly_capacity: 35}
+        - {name: "Cleveland Clinic", monthly_capacity: 30}
+        - {name: "Mass General", monthly_capacity: 45}
+        - {name: "UCLA Medical", monthly_capacity: 25}
+      time_horizon: 48
+    scenario_description: >
+      A biotech company is planning a new oncology drug through four trial phases.
+      Phase I (safety) must complete before Phase II (efficacy), which must finish
+      before two parallel Phase III pivotal studies. Five qualified hospital sites
+      each have limited monthly patient enrollment capacity. The company wants to
+      reach FDA submission as quickly as possible within a four-year window.
+    is_featured: false
+    estimated_variables: 80
+    estimated_constraints: 60
+
+  - id: production_batch_planning
+    name: Pharmaceutical Batch Production Planning
+    display_name: Batch Planning
+    short_description: Plan production batches of multiple drug products to meet demand while minimizing setup costs and waste.
+    description: >
+      Schedules production batches of pharmaceutical products across reactors and
+      time periods. Each product has a demand forecast, batch size, production
+      time, and shelf life. Reactor changeovers between different products incur
+      cleaning validation costs and downtime. The model minimizes total production
+      plus setup cost while meeting all demand and ensuring no batch expires before
+      delivery. Applies to any GMP manufacturing facility.
+    category: pharmaceutical
+    tags: [pharmaceutical, manufacturing, batch-production, GMP]
+    problem_type_tags: [MIP, lot-sizing]
+    generator_type: lot_sizing
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        products:
+          type: array
+          description: Drug products with demand and batch specifications
+        num_periods:
+          type: integer
+          description: Number of planning periods
+        num_reactors:
+          type: integer
+          description: Number of available reactors
+      required: [products, num_periods, num_reactors]
+    input_fields:
+      - name: products
+        label: Drug Products
+        type: array
+        description: "Products with name, demand per period, batch size, production cost, and setup cost"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            demand: {type: array, items: {type: number}}
+            batch_size: {type: number}
+            production_cost: {type: number}
+            setup_cost: {type: number}
+            holding_cost: {type: number}
+      - name: num_periods
+        label: Planning Periods
+        type: integer
+        description: "Number of weeks or months in the planning horizon"
+        required: true
+        minimum: 1
+      - name: num_reactors
+        label: Available Reactors
+        type: integer
+        description: "Number of production reactors"
+        required: true
+        minimum: 1
+    example_input:
+      products:
+        - name: "Aspirin-500mg"
+          demand: [800, 900, 1000, 850]
+          batch_size: 500
+          production_cost: 1200
+          setup_cost: 3500
+          holding_cost: 50
+        - name: "Ibuprofen-200mg"
+          demand: [600, 700, 650, 750]
+          batch_size: 400
+          production_cost: 1500
+          setup_cost: 4000
+          holding_cost: 60
+        - name: "Metformin-850mg"
+          demand: [400, 450, 500, 420]
+          batch_size: 300
+          production_cost: 2000
+          setup_cost: 5000
+          holding_cost: 80
+      num_periods: 4
+      num_reactors: 2
+    scenario_description: >
+      A pharmaceutical plant operates two reactors to produce three drug products
+      over a four-week horizon. Each product has weekly demand that must be met
+      from production or inventory. Switching a reactor between products requires
+      expensive cleaning validation. The production planner needs to decide how
+      many batches of each product to produce each week to minimize total cost.
+    is_featured: false
+    estimated_variables: 36
+    estimated_constraints: 40
+
+  - id: drug_distribution
+    name: Pharmaceutical Distribution Network
+    display_name: Drug Distribution
+    short_description: Route pharmaceutical shipments from warehouses to pharmacies and hospitals to minimize logistics cost with temperature constraints.
+    description: >
+      Plans the distribution of pharmaceutical products from regional warehouses
+      to pharmacies and hospital dispensaries. Each product has temperature
+      requirements (cold-chain, ambient) that restrict which vehicles and routes
+      can carry it. The model minimizes total transportation cost while ensuring
+      each destination receives its required quantities on time and cold-chain
+      integrity is maintained throughout. Helps pharma distributors plan daily
+      delivery routes.
+    category: pharmaceutical
+    tags: [pharmaceutical, distribution, cold-chain, logistics]
+    problem_type_tags: [MIP, routing]
+    generator_type: routing
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        warehouses:
+          type: array
+          description: Distribution warehouses with inventory
+        destinations:
+          type: array
+          description: Pharmacies and hospitals with demand
+        vehicles:
+          type: array
+          description: Delivery vehicles with capacity
+      required: [warehouses, destinations, vehicles]
+    input_fields:
+      - name: warehouses
+        label: Warehouses
+        type: array
+        description: "Warehouses with name and product inventory"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            inventory: {type: object}
+      - name: destinations
+        label: Destinations
+        type: array
+        description: "Delivery points with name and product demand"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            demand: {type: object}
+      - name: vehicles
+        label: Vehicles
+        type: array
+        description: "Vehicles with capacity and cold-chain capability"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            capacity: {type: number}
+            cold_chain: {type: boolean}
+    example_input:
+      depot: {name: "DC-Central", x: 0, y: 0}
+      locations:
+        - {name: "City-Hospital", x: 5, y: 8, demand: 120}
+        - {name: "Pharmacy-Chain-A", x: -3, y: 6, demand: 90}
+        - {name: "Pharmacy-Chain-B", x: 7, y: -2, demand: 80}
+        - {name: "Rural-Clinic", x: -8, y: -5, demand: 60}
+        - {name: "Pharmacy-Independent", x: 2, y: -7, demand: 50}
+      vehicles:
+        - {name: "Van-1", capacity: 250}
+        - {name: "Van-2", capacity: 200}
+    scenario_description: >
+      A pharmaceutical distributor operates two warehouses and must deliver
+      vaccines (cold-chain), tablets, and insulin (cold-chain) to five
+      destinations. Two refrigerated vans and one standard van are available.
+      Vaccines and insulin require cold-chain vehicles. The logistics manager
+      wants to plan routes that deliver everything on time at minimum cost.
+    is_featured: false
+    estimated_variables: 30
+    estimated_constraints: 20

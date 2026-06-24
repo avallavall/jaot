@@ -1,0 +1,141 @@
+---
+title: Templates Gallery
+description: Browse and use pre-built optimization templates across 11 industry categories
+order: 2
+---
+
+# Templates Gallery
+
+JAOT provides a library of pre-built optimization templates covering common problem types across multiple industries. Templates give you a working model structure that you can customize with your own data, skipping the formulation step entirely.
+
+## Overview
+
+The template library includes models organized into **11 categories** spanning manufacturing, finance, logistics, energy, healthcare, and more. Each template defines a complete optimization model with variables, constraints, an objective function, and an input schema for your data.
+
+## Browsing Templates
+
+Navigate to **Builder > Templates** to open the gallery. Templates are displayed as cards grouped by category, each showing:
+
+- **Template name** -- a descriptive title (e.g., "Knapsack Problem," "Vehicle Routing")
+- **Category** -- the industry or domain
+- **Description** -- a brief summary of what the template optimizes
+- **Input schema** -- what data you need to provide
+
+You can filter by category or search by name to find a specific template.
+
+## Template Categories
+
+| Category | Example Templates |
+|----------|-------------------|
+| **Manufacturing** | Production planning, cutting and packing, food and beverage, textile, chemical process, construction |
+| **Finance** | Portfolio optimization, budget allocation, insurance risk |
+| **Logistics** | Vehicle routing, facility location, warehouse operations |
+| **Supply Chain** | Multi-echelon planning, inventory optimization |
+| **Energy** | Grid optimization, power generation scheduling |
+| **Healthcare** | Resource allocation, staff scheduling, pharmaceutical production |
+| **Technology** | Telecom network planning, graph optimization, advertising media |
+| **Services** | Retail assortment, workforce scheduling, sports scheduling, education timetabling |
+| **Natural Resources** | Agricultural planning, mining operations, forestry management |
+| **Public Sector** | Government resource allocation, aerospace mission planning |
+| **General** | Knapsack, assignment, set cover, and other classic combinatorial problems |
+
+## Using a Template
+
+1. **Select a template** -- Click on a template card to view its details, including the full description, input schema, and example input data.
+
+2. **Review the input schema** -- Each template defines what data it expects. For example, a knapsack template requires items with names, values, and weights, plus a capacity limit.
+
+3. **Load into builder** -- Click **Use Template** to populate the builder canvas with the template's model structure. Variables, constraints, and the objective function are pre-configured.
+
+4. **Provide your data** -- Fill in the input fields with your specific values. The template's input schema tells you exactly what is needed.
+
+5. **Solve** -- Run the optimization with your data. The SCIP solver processes the model and returns the optimal solution.
+
+### Example: Knapsack Problem
+
+The knapsack template models the classic problem of selecting items to maximize total value within a weight capacity:
+
+**Input schema:**
+
+```json
+{
+  "capacity": 50,
+  "items": [
+    { "name": "laptop", "value": 600, "weight": 10 },
+    { "name": "camera", "value": 500, "weight": 5 },
+    { "name": "tent", "value": 300, "weight": 15 },
+    { "name": "food", "value": 200, "weight": 20 },
+    { "name": "binoculars", "value": 150, "weight": 3 }
+  ]
+}
+```
+
+**What the template generates:**
+- One binary variable per item (include or exclude)
+- A weight capacity constraint
+- An objective to maximize total value of selected items
+
+**Solving via API:**
+
+```python
+import httpx
+
+response = httpx.post(
+    "https://jaot.io/api/v2/solve/templates/knapsack/solve",
+    headers={"Authorization": "Bearer ok_live_your_key_here"},
+    json={
+        "capacity": 50,
+        "items": [
+            {"name": "laptop", "value": 600, "weight": 10},
+            {"name": "camera", "value": 500, "weight": 5},
+            {"name": "tent", "value": 300, "weight": 15},
+            {"name": "food", "value": 200, "weight": 20},
+        ],
+    },
+)
+result = response.json()
+print(f"Selected items: {result['solution']}")
+```
+
+## Customizing Templates
+
+After loading a template into the builder, you have full control to modify it:
+
+- **Add variables** -- Introduce new decision variables with custom types and bounds
+- **Edit constraints** -- Modify expressions, change inequality directions, or adjust right-hand-side values
+- **Change bounds** -- Update variable lower and upper bounds to match your scenario
+- **Modify the objective** -- Change coefficients, add terms, or switch between minimize and maximize
+- **Remove components** -- Delete variables or constraints that do not apply to your use case
+
+All modifications are reflected in real time on the visual canvas.
+
+## Templates via API
+
+Templates are also available through the REST API and MCP, so you can integrate them into automated workflows:
+
+```bash
+# List all available templates (no auth required)
+curl https://jaot.io/api/v2/solve/templates
+
+# Get details for a specific template
+curl https://jaot.io/api/v2/solve/templates/knapsack
+
+# Solve with a template
+curl -X POST https://jaot.io/api/v2/solve/templates/knapsack/solve \
+  -H "Authorization: Bearer ok_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{"capacity": 50, "items": [...]}'
+```
+
+See the [Solve API reference](/docs/api/solve) for full request and response schemas.
+
+## Templates vs. AI Assistant
+
+| Aspect | Templates | AI Assistant |
+|--------|-----------|--------------|
+| **Speed** | Instant -- model is pre-built | Requires a conversation to generate |
+| **Customization** | Modify after loading | Fully custom from the start |
+| **Credit cost** | No AI credits for formulation | AI credits for each message |
+| **Best for** | Standard problem types with known structure | Novel problems, unique constraints, domain-specific requirements |
+
+> **Tip:** Start with a template when your problem matches a known type, then use the AI assistant to add custom constraints or modify the formulation for your specific needs.

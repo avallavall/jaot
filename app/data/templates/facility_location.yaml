@@ -1,0 +1,201 @@
+category: facility_location
+category_display_name: Facility Location
+
+templates:
+  - id: warehouse_location
+    name: Warehouse Location Optimizer
+    display_name: Warehouse Location
+    short_description: Choose which candidate warehouse sites to open to minimize total fixed plus shipping cost while covering all customers.
+    description: >
+      Decide which warehouse locations to open from a set of candidates, and assign
+      each customer to an open warehouse, minimizing the sum of facility opening costs
+      and transportation costs. Each warehouse has a capacity and each customer has a
+      demand. The solver selects the cost-optimal network design. The output tells you
+      which sites to open and the customer-warehouse assignment.
+    scenario_description: >
+      A logistics company evaluates 5 candidate warehouse sites to serve 8 customer
+      regions. Opening costs range from EUR 50k to EUR 120k per year. Shipping costs
+      depend on distance. Total demand is 10,000 pallets per year. The VP of operations
+      wants the network with the lowest total annual cost.
+    category: facility_location
+    tags: [facility-location, warehouse, network-design, logistics]
+    problem_type_tags: [MIP]
+    generator_type: facility_location
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [facilities, customers]
+      properties:
+        facilities: {type: array}
+        customers: {type: array}
+    input_fields:
+      - name: facilities
+        label: Candidate Facilities
+        type: array
+        description: Candidate sites with opening cost and capacity
+        required: true
+        items:
+          type: object
+          properties:
+            id: {type: string}
+            fixed_cost: {type: number}
+            capacity: {type: number}
+      - name: customers
+        label: Customers
+        type: array
+        description: Customers with demand and per-facility shipping cost
+        required: true
+        items:
+          type: object
+          properties:
+            id: {type: string}
+            demand: {type: number}
+            costs: {type: object}
+    example_input:
+      facilities:
+        - {id: site_madrid, fixed_cost: 80000, capacity: 4000}
+        - {id: site_barcelona, fixed_cost: 90000, capacity: 3500}
+        - {id: site_valencia, fixed_cost: 60000, capacity: 2500}
+        - {id: site_seville, fixed_cost: 70000, capacity: 3000}
+        - {id: site_bilbao, fixed_cost: 50000, capacity: 2000}
+      customers:
+        - {id: region_north, demand: 1500, costs: {site_madrid: 8, site_barcelona: 12, site_valencia: 15, site_seville: 18, site_bilbao: 3}}
+        - {id: region_east, demand: 2000, costs: {site_madrid: 10, site_barcelona: 4, site_valencia: 3, site_seville: 14, site_bilbao: 16}}
+        - {id: region_south, demand: 1800, costs: {site_madrid: 7, site_barcelona: 13, site_valencia: 10, site_seville: 4, site_bilbao: 20}}
+        - {id: region_center, demand: 2200, costs: {site_madrid: 2, site_barcelona: 9, site_valencia: 8, site_seville: 9, site_bilbao: 11}}
+        - {id: region_west, demand: 1200, costs: {site_madrid: 6, site_barcelona: 15, site_valencia: 12, site_seville: 5, site_bilbao: 14}}
+        - {id: region_northwest, demand: 800, costs: {site_madrid: 12, site_barcelona: 18, site_valencia: 16, site_seville: 15, site_bilbao: 4}}
+    is_featured: true
+    estimated_variables: 35
+    estimated_constraints: 11
+
+  - id: service_center_placement
+    name: Service Center Placement Optimizer
+    display_name: Service Center Placement
+    short_description: Select service center locations to minimize average customer travel time while staying within a budget for new openings.
+    description: >
+      Choose which service centers to open (or keep open) from candidate locations so
+      that the average travel time for customers is minimized. Each center has an
+      opening/operating cost and each customer-center pair has a travel time. The solver
+      respects a total budget constraint and ensures every customer is reachable. Useful
+      for healthcare facility planning, government offices, and field service networks.
+    scenario_description: >
+      A telecom company plans its field-service network. Six candidate locations are
+      under consideration. Each has different lease costs and proximity to the 10
+      customer clusters. Budget allows opening at most 3 centers. The goal is to
+      minimize average response time.
+    category: facility_location
+    tags: [facility-location, service-center, coverage, travel-time]
+    problem_type_tags: [MIP]
+    generator_type: facility_location
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [facilities, customers]
+      properties:
+        facilities: {type: array}
+        customers: {type: array}
+    input_fields:
+      - name: facilities
+        label: Candidate Centers
+        type: array
+        description: Candidate locations with cost and capacity
+        required: true
+        items:
+          type: object
+          properties:
+            id: {type: string}
+            fixed_cost: {type: number}
+            capacity: {type: number}
+      - name: customers
+        label: Customer Clusters
+        type: array
+        description: Customer groups with demand and travel times
+        required: true
+        items:
+          type: object
+          properties:
+            id: {type: string}
+            demand: {type: number}
+            costs: {type: object}
+    example_input:
+      facilities:
+        - {id: center_A, fixed_cost: 5000, capacity: 50}
+        - {id: center_B, fixed_cost: 7000, capacity: 60}
+        - {id: center_C, fixed_cost: 4500, capacity: 40}
+        - {id: center_D, fixed_cost: 6000, capacity: 55}
+      customers:
+        - {id: cluster_1, demand: 15, costs: {center_A: 10, center_B: 25, center_C: 30, center_D: 15}}
+        - {id: cluster_2, demand: 20, costs: {center_A: 20, center_B: 10, center_C: 35, center_D: 25}}
+        - {id: cluster_3, demand: 10, costs: {center_A: 30, center_B: 15, center_C: 10, center_D: 20}}
+        - {id: cluster_4, demand: 25, costs: {center_A: 15, center_B: 30, center_C: 20, center_D: 10}}
+        - {id: cluster_5, demand: 18, costs: {center_A: 25, center_B: 20, center_C: 15, center_D: 30}}
+    is_featured: false
+    estimated_variables: 24
+    estimated_constraints: 9
+
+  - id: capacitated_facility_location
+    name: Capacitated Facility Location
+    display_name: Capacitated Facility Location
+    short_description: Open facilities and assign customers under strict capacity limits to minimize total network cost.
+    description: >
+      The classic capacitated facility location problem (CFLP). Decide which facilities
+      to open and how to assign each customer to an open facility, minimizing the sum
+      of fixed opening costs and variable assignment costs. Each facility has a hard
+      capacity constraint. This is the foundational model for supply chain network
+      design, used across industries from retail to healthcare.
+    scenario_description: >
+      A pharmaceutical distributor must open regional hubs from 4 candidates to serve
+      6 hospital groups. Each hub has a setup cost and a storage capacity. Each hospital
+      group has a monthly demand. The goal is to minimize total cost while meeting all
+      demand without exceeding any hub's capacity.
+    category: facility_location
+    tags: [facility-location, cflp, network-design, capacity]
+    problem_type_tags: [MIP]
+    generator_type: facility_location
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [facilities, customers]
+      properties:
+        facilities: {type: array}
+        customers: {type: array}
+    input_fields:
+      - name: facilities
+        label: Candidate Facilities
+        type: array
+        description: Candidate facilities with cost and capacity
+        required: true
+        items:
+          type: object
+          properties:
+            id: {type: string}
+            fixed_cost: {type: number}
+            capacity: {type: number}
+      - name: customers
+        label: Customers
+        type: array
+        description: Customers with demand and per-facility cost
+        required: true
+        items:
+          type: object
+          properties:
+            id: {type: string}
+            demand: {type: number}
+            costs: {type: object}
+    example_input:
+      facilities:
+        - {id: hub_north, fixed_cost: 40000, capacity: 500}
+        - {id: hub_south, fixed_cost: 35000, capacity: 400}
+        - {id: hub_east, fixed_cost: 45000, capacity: 600}
+        - {id: hub_west, fixed_cost: 30000, capacity: 350}
+      customers:
+        - {id: hospital_A, demand: 150, costs: {hub_north: 5, hub_south: 12, hub_east: 8, hub_west: 15}}
+        - {id: hospital_B, demand: 200, costs: {hub_north: 10, hub_south: 6, hub_east: 14, hub_west: 8}}
+        - {id: hospital_C, demand: 120, costs: {hub_north: 15, hub_south: 8, hub_east: 4, hub_west: 12}}
+        - {id: hospital_D, demand: 180, costs: {hub_north: 7, hub_south: 14, hub_east: 10, hub_west: 5}}
+        - {id: hospital_E, demand: 250, costs: {hub_north: 12, hub_south: 5, hub_east: 9, hub_west: 11}}
+        - {id: hospital_F, demand: 100, costs: {hub_north: 8, hub_south: 10, hub_east: 6, hub_west: 14}}
+    is_featured: false
+    estimated_variables: 28
+    estimated_constraints: 10

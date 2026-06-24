@@ -1,0 +1,396 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "../styles/i18n-fallback.css";
+
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  /* Explicit system stacks (audit F-12). The previous values referenced
+     --font-geist-sans/--font-geist-mono, which were never defined anywhere
+     (no next/font, no geist package) — shadcn boilerplate residue. That made
+     every font-family resolve to an invalid var: sans fell back to the UA
+     default by luck, and the 100+ font-mono call sites silently rendered
+     sans. If a brand font ships later, wire it via next/font and reference
+     its variable here. */
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  /* Fluid type scale — smooth from 1024px to 3840px viewport */
+  --fluid-base: clamp(0.875rem, 0.8rem + 0.2vw, 1.125rem);
+
+  /* Vintage Theme - JAOT */
+  --radius: 0;
+  
+  /* Vintage Palette */
+  --vintage-burgundy: #5D4E47;
+  --vintage-turquoise: #8AA499;
+  --vintage-cream: #E8D9C5;
+  --vintage-peach: #E8A088;
+  --vintage-dark: #3A3230;
+  --vintage-light: #F5F1ED;
+  --vintage-gray: #9B8E88;
+  
+  /* Surfaces */
+  --background: #F6F0EA;
+  --foreground: #3A3230;
+  --card: #FFFDF8;
+  --card-foreground: #3A3230;
+  --popover: #FFFDF8;
+  --popover-foreground: #3A3230;
+  
+  /* Primary - Burgundy */
+  --primary: #5D4E47;
+  --primary-foreground: #FFFFFF;
+  
+  /* Secondary - Cream */
+  --secondary: #E8D9C5;
+  --secondary-foreground: #3A3230;
+  
+  /* Muted */
+  --muted: #F1E6D8;
+  --muted-foreground: #6B5F59;
+  
+  /* Accent - Turquoise */
+  --accent: #8AA499;
+  --accent-foreground: #3A3230;
+  
+  /* Destructive - Muted red */
+  --destructive: #8B3A3A;
+  
+  /* Borders */
+  --border: rgba(93, 78, 71, 0.18);
+  --input: rgba(93, 78, 71, 0.18);
+  --ring: #8AA499;
+  
+  /* Charts - Vintage colors */
+  --chart-1: #5D4E47;
+  --chart-2: #8AA499;
+  --chart-3: #E8A088;
+  --chart-4: #E8D9C5;
+  --chart-5: #9B8E88;
+  
+  /* Sidebar */
+  --sidebar: #FFFDF8;
+  --sidebar-foreground: #3A3230;
+  --sidebar-primary: #5D4E47;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F1E6D8;
+  --sidebar-accent-foreground: #3A3230;
+  --sidebar-border: rgba(93, 78, 71, 0.18);
+  --sidebar-ring: #8AA499;
+  
+  /* Semantic Colors */
+  --success: #2D6A4F;
+  --success-foreground: #D8F3DC;
+  --warning: #9B6B29;
+  --warning-foreground: #FFE8CC;
+  --info: #5D4E47;
+  --info-foreground: #E8D9C5;
+
+  /* Node Editor — Variable (sepia/brown family) */
+  --node-variable: #8B7D75;
+  --node-variable-selected: #5D4E47;
+  --node-variable-badge-continuous-bg: #E8D9C5;
+  --node-variable-badge-continuous-text: #5D4E47;
+  --node-variable-badge-integer-bg: #D5E4DA;
+  --node-variable-badge-integer-text: #3D6B53;
+  --node-variable-badge-binary-bg: #F0D8D0;
+  --node-variable-badge-binary-text: #8B5A4A;
+
+  /* Node Editor — Constraint (sage family) */
+  --node-constraint: #8AA499;
+  --node-constraint-selected: #5E8A73;
+
+  /* Node Editor — Objective (terracotta family) */
+  --node-objective: #C27A5E;
+  --node-objective-selected: #A0563C;
+  --node-objective-bg: #FFF5F0;
+  --node-objective-header: #A0563C;
+  --node-objective-sense-min-bg: #D5E4DA;
+  --node-objective-sense-min-text: #3D6B53;
+  --node-objective-sense-max-bg: #F0D8D0;
+  --node-objective-sense-max-text: #8B5A4A;
+
+  /* Node Editor — Edges */
+  --edge-default: #9B8E88;
+  --edge-selected: #5D4E47;
+
+  /* Node Editor — Solver status badges */
+  --status-optimal-bg: #D8F3DC;
+  --status-optimal-text: #2D6A4F;
+  --status-optimal-border: #B7E4C7;
+  --status-feasible-bg: #D5E4DA;
+  --status-feasible-text: #3D6B53;
+  --status-feasible-border: #B8CFC4;
+  --status-infeasible-bg: #F0D0D0;
+  --status-infeasible-text: #8B3A3A;
+  --status-infeasible-border: #E0B0B0;
+  --status-unbounded-bg: #F0D8D0;
+  --status-unbounded-text: #8B5A4A;
+  --status-unbounded-border: #E0C0B0;
+  --status-timelimit-bg: #F5E6C8;
+  --status-timelimit-text: #9B6B29;
+  --status-timelimit-border: #E8D4A8;
+  --status-error-bg: #F0D0D0;
+  --status-error-text: #8B3A3A;
+  --status-error-border: #E0B0B0;
+
+  /* Node Editor — Health indicators */
+  --health-valid: #2D6A4F;
+  --health-warning: #9B6B29;
+  --health-error: #8B3A3A;
+}
+
+html {
+  font-size: var(--fluid-base);
+}
+
+.dark {
+  /* Vintage Dark Palette */
+  --background: #1E1A18;
+  --foreground: #E8D9C5;
+  --card: #2A2421;
+  --card-foreground: #E8D9C5;
+  --popover: #2A2421;
+  --popover-foreground: #E8D9C5;
+  --primary: #E8D9C5;
+  --primary-foreground: #1E1A18;
+  --secondary: #3A3230;
+  --secondary-foreground: #E8D9C5;
+  --muted: #3A3230;
+  --muted-foreground: #B8ADA8;
+  --accent: #8AA499;
+  --accent-foreground: #1E1A18;
+  --destructive: #C45B5B;
+  --border: rgba(232, 217, 197, 0.12);
+  --input: rgba(232, 217, 197, 0.15);
+  --ring: #8AA499;
+  --chart-1: #8AA499;
+  --chart-2: #E8A088;
+  --chart-3: #E8D9C5;
+  --chart-4: #9B8E88;
+  --chart-5: #5D4E47;
+  --sidebar: #2A2421;
+  --sidebar-foreground: #E8D9C5;
+  --sidebar-primary: #E8D9C5;
+  --sidebar-primary-foreground: #1E1A18;
+  --sidebar-accent: #3A3230;
+  --sidebar-accent-foreground: #E8D9C5;
+  --sidebar-border: rgba(232, 217, 197, 0.12);
+  --sidebar-ring: #8AA499;
+
+  --success: #6BBF8A;
+  --success-foreground: #1E1A18;
+  --warning: #D4A04A;
+  --warning-foreground: #1E1A18;
+  --info: #E8D9C5;
+  --info-foreground: #3A3230;
+
+  /* Node Editor — Variable */
+  --node-variable: #A89990;
+  --node-variable-selected: #E8D9C5;
+  --node-variable-badge-continuous-bg: rgba(232, 217, 197, 0.15);
+  --node-variable-badge-continuous-text: #E8D9C5;
+  --node-variable-badge-integer-bg: rgba(138, 164, 153, 0.15);
+  --node-variable-badge-integer-text: #8AA499;
+  --node-variable-badge-binary-bg: rgba(232, 160, 136, 0.15);
+  --node-variable-badge-binary-text: #E8A088;
+
+  /* Node Editor — Constraint */
+  --node-constraint: #8AA499;
+  --node-constraint-selected: #A8C4B8;
+
+  /* Node Editor — Objective */
+  --node-objective: #D4936F;
+  --node-objective-selected: #E8A088;
+  --node-objective-bg: rgba(232, 160, 136, 0.08);
+  --node-objective-header: #E8A088;
+  --node-objective-sense-min-bg: rgba(138, 164, 153, 0.15);
+  --node-objective-sense-min-text: #8AA499;
+  --node-objective-sense-max-bg: rgba(232, 160, 136, 0.15);
+  --node-objective-sense-max-text: #E8A088;
+
+  /* Node Editor — Edges */
+  --edge-default: #6B5F59;
+  --edge-selected: #E8D9C5;
+
+  /* Node Editor — Solver status badges */
+  --status-optimal-bg: rgba(45, 106, 79, 0.15);
+  --status-optimal-text: #6BBF8A;
+  --status-optimal-border: rgba(45, 106, 79, 0.3);
+  --status-feasible-bg: rgba(138, 164, 153, 0.15);
+  --status-feasible-text: #8AA499;
+  --status-feasible-border: rgba(138, 164, 153, 0.3);
+  --status-infeasible-bg: rgba(139, 58, 58, 0.15);
+  --status-infeasible-text: #C45B5B;
+  --status-infeasible-border: rgba(139, 58, 58, 0.3);
+  --status-unbounded-bg: rgba(232, 160, 136, 0.15);
+  --status-unbounded-text: #E8A088;
+  --status-unbounded-border: rgba(232, 160, 136, 0.3);
+  --status-timelimit-bg: rgba(155, 107, 41, 0.15);
+  --status-timelimit-text: #D4A04A;
+  --status-timelimit-border: rgba(155, 107, 41, 0.3);
+  --status-error-bg: rgba(139, 58, 58, 0.15);
+  --status-error-text: #C45B5B;
+  --status-error-border: rgba(139, 58, 58, 0.3);
+
+  /* Node Editor — Health indicators */
+  --health-valid: #6BBF8A;
+  --health-warning: #D4A04A;
+  --health-error: #C45B5B;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Prevent Radix Dialog modal scroll-lock from injecting padding-right on
+     body, which shifts the entire flex layout and decenters page content. */
+  body[data-scroll-locked] {
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* Consistent focus-visible for all interactive elements.
+     Uses focus-visible (not focus) so mouse clicks do not show rings.
+     Serves as a fallback for non-shadcn elements; shadcn/ui Button and Input
+     already have compatible focus-visible:ring-ring/50 styles. */
+  a:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 0.125rem solid var(--ring);
+    outline-offset: 0.125rem;
+  }
+
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 0.125rem solid var(--ring);
+    outline-offset: 0.125rem;
+  }
+}
+
+/* rehype-pretty-code / shiki dual-theme: map CSS variables to color.
+   rehype-pretty-code v0.14 strips the .shiki class and inline --shiki-light/dark
+   from <pre>, so we set fallback variables on <pre> for inheritance and target
+   spans via [data-rehype-pretty-code-figure].
+   .shiki selectors remain for client-side CodeTabs (raw shiki retains the class). */
+[data-rehype-pretty-code-figure] pre {
+  --shiki-light: var(--foreground);
+  --shiki-dark: var(--foreground);
+  overflow-x: auto;
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--border);
+  background-color: var(--muted);
+}
+
+[data-rehype-pretty-code-figure] code span,
+.shiki,
+.shiki span {
+  color: var(--shiki-light);
+}
+
+.dark [data-rehype-pretty-code-figure] code span,
+.dark .shiki,
+.dark .shiki span {
+  color: var(--shiki-dark) !important;
+}
+
+[data-rehype-pretty-code-figure] code {
+  display: grid;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+[data-rehype-pretty-code-figure] [data-line] {
+  padding: 0 0.25rem;
+}
+
+[data-rehype-pretty-code-figure] [data-highlighted-line] {
+  background-color: rgba(138, 164, 153, 0.15);
+  border-left: 2px solid var(--accent);
+}
+
+/* Contrast rationale:
+   - Borders use rgba(93,78,71,0.18) (light) and rgba(232,217,197,0.12) (dark).
+     These are decorative/supplementary -- cards have background differences,
+     inputs have labels -- so the 3:1 "graphical objects" requirement does not
+     apply (borders are not the sole visual cue). No change needed.
+   - Focus ring --ring (#8AA499) on dark background (#1E1A18) = 6.46:1,
+     well above the 3:1 minimum for UI components. No separate dark value needed.
+   - Light --muted-foreground (#6B5F59) on --muted (#F1E6D8) = 5.01:1,
+     on --background (#F6F0EA) = 5.45:1 — both above 4.5:1 AA minimum.
+   - Dark --accent-foreground (#1E1A18) on --accent (#8AA499) = 6.46:1,
+     well above 4.5:1 AA minimum.
+   - Links within muted text use persistent underline for WCAG 1.4.1 (Use of Color)
+     since primary/muted-foreground color contrast is below 3:1. */
+
+/* XYFlow / ReactFlow — override defaults to match vintage palette */
+.react-flow {
+  --xy-edge-stroke-default: var(--edge-default);
+  --xy-edge-stroke-width-default: 2;
+  --xy-node-background-color-default: var(--card);
+  --xy-node-border-default: 1px solid var(--border);
+  --xy-node-border-radius-default: 0;
+  --xy-handle-background-color-default: var(--node-variable);
+  --xy-handle-border-color-default: var(--border);
+  --xy-minimap-background-color-default: var(--background);
+  --xy-minimap-mask-background-color-default: rgba(246, 240, 234, 0.6);
+  --xy-controls-button-background-color-default: var(--card);
+  --xy-controls-button-background-color-hover-default: var(--muted);
+  --xy-controls-button-border-color-default: var(--border);
+  --xy-controls-button-color-default: var(--foreground);
+  --xy-background-pattern-color-default: var(--border);
+  --xy-selection-background-color-default: rgba(138, 164, 153, 0.15);
+  --xy-selection-border-default: 1px solid var(--accent);
+}
+
+.dark .react-flow {
+  --xy-minimap-mask-background-color-default: rgba(30, 26, 24, 0.6);
+}

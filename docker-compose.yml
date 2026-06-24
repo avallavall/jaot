@@ -1,0 +1,419 @@
+# Dev Docker Compose: postgres, rabbitmq, redis, qdrant, api, celery, frontend.
+# Migrations: `docker-compose --profile migrate run --rm migrate`.
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "10"
+
+services:
+  postgres:
+    # postgres:18-alpine
+    image: postgres:18-alpine@sha256:035b9ab53cfa147d7202b61f5f7782b939ae815b7d6bc81c96b7b42ff1fca950
+    container_name: jaot_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-jaot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jaot}
+      POSTGRES_DB: ${POSTGRES_DB:-jaot}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - jaot_postgres_data:/var/lib/postgresql
+    restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-jaot}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    # rabbitmq:3-management-alpine
+    image: rabbitmq:3-management-alpine@sha256:606d8c0d6b3c18d1da9afc53bc7cdb2a8d5486df91b5a9830e9e07626c9ae281
+    container_name: jaot_rabbitmq
+    ports:
+      - "127.0.0.1:${RABBITMQ_PORT:-5672}:5672"
+      - "127.0.0.1:${RABBITMQ_MGMT_PORT:-15672}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-jaot}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-jaot}
+    volumes:
+      - jaot_rabbitmq_data:/var/lib/rabbitmq
+    restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    # redis:7-alpine
+    image: redis:7-alpine@sha256:8b81dd37ff027bec4e516d41acfbe9fe2460070dc6d4a4570a2ac5b9d59df065
+    container_name: jaot_redis
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - jaot_redis_data:/data
+    restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:v1.13.4
+    container_name: jaot_qdrant
+    ports:
+      - "127.0.0.1:${QDRANT_PORT:-6333}:6333"
+      - "127.0.0.1:${QDRANT_GRPC_PORT:-6334}:6334"
+    volumes:
+      - jaot_qdrant_data:/qdrant/storage
+    restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/6333'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  api:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile
+    container_name: jaot_api
+    ports:
+      - "127.0.0.1:${API_PORT:-8001}:8001"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8001
+      - WORKERS=${WORKERS:-1}
+      - RELOAD=${RELOAD:-True}
+      - DEBUG=${DEBUG:-True}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-jaot}:${POSTGRES_PASSWORD:-jaot}@postgres:5432/${POSTGRES_DB:-jaot}
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-jaot}:${RABBITMQ_PASS:-jaot}@rabbitmq:5672//
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-["http://localhost:3000"]}
+      - REDIS_URL=redis://redis:6379/0
+      # Override .env localhost:6333 — inside the container that points at itself, silently degrading RAG.
+      - QDRANT_URL=http://qdrant:6333
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/api/v2/health/status')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.worker
+    container_name: jaot_celery
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-jaot}:${POSTGRES_PASSWORD:-jaot}@postgres:5432/${POSTGRES_DB:-jaot}
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-jaot}:${RABBITMQ_PASS:-jaot}@rabbitmq:5672//
+      - REDIS_URL=redis://redis:6379/0
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    # Explicit command — Dockerfile default CMD broke at cold-start after SHIM-01 cleanup (WR-06).
+    # `-Q jaot_default` (Phase 10/CR-01) so the boot-time queue audit finds a consumer set.
+    command: ["celery", "-A", "app.shared.core.celery_app", "worker", "--loglevel=info", "--concurrency=2", "-Q", "jaot_default"]
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app.shared.core.celery_app", "inspect", "ping", "--timeout", "5"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.worker
+    container_name: jaot_beat
+    command: ["celery", "-A", "app.shared.core.celery_app", "beat", "--loglevel=info",
+              "--scheduler", "sqlalchemy_celery_beat.schedulers:DatabaseScheduler",
+              "--pidfile=/tmp/celery-beat.pid"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-jaot}:${POSTGRES_PASSWORD:-jaot}@postgres:5432/${POSTGRES_DB:-jaot}
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-jaot}:${RABBITMQ_PASS:-jaot}@rabbitmq:5672//
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 $(cat /tmp/celery-beat.pid 2>/dev/null) 2>/dev/null || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      # "runner" = pre-compiled prod build (E2E, demos). "dev" = hot-reload (default).
+      target: ${FRONTEND_TARGET:-dev}
+      args:
+        - API_PROXY_URL=http://api:8001
+    container_name: jaot_frontend
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:3000"
+      - "[::1]:${FRONTEND_PORT:-3000}:3000"
+    environment:
+      # NEXT_PUBLIC_API_URL intentionally unset — browser uses same-origin proxied via Next.js rewrites (cross-origin SameSite cookies).
+      - API_PROXY_URL=http://api:8001
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=64m
+      # /app/.next tmpfs only for dev target; runner target bakes .next into the image.
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/en"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  migrate:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.migrate
+    container_name: jaot_migrate
+    profiles: ["migrate"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-jaot}:${POSTGRES_PASSWORD:-jaot}@postgres:5432/${POSTGRES_DB:-jaot}
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+
+  seed:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.seed
+    container_name: jaot_seed
+    profiles: ["seed"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-jaot}:${POSTGRES_PASSWORD:-jaot}@postgres:5432/${POSTGRES_DB:-jaot}
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=64m
+
+  # Test profile (per-solver split mirroring prod) — Phase 6 INF-01/INF-02:
+  # test_queue_routing.py and 06-08 smoke tests expect 3 dedicated queue-bound workers.
+  # No resource limits — Docker Desktop ignores cgroups anyway.
+  celery-worker-test-default:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.worker
+    container_name: jaot_celery_test_default
+    profiles: ["test"]
+    # `-Q jaot_default` aligns with prod (Phase 10/CR-01) — legacy `-Q celery` fails the queue audit.
+    command: ["celery", "-A", "app.shared.core.celery_app", "worker", "--loglevel=info", "--concurrency=2", "-Q", "jaot_default"]
+    environment:
+      - DATABASE_URL=postgresql://jaot:jaot@postgres:5432/jaot_test
+      - CELERY_BROKER_URL=amqp://jaot:jaot@rabbitmq:5672//
+      - REDIS_URL=redis://redis:6379/0
+      - SOLVER_QUEUE=jaot_default
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+
+  celery-worker-test-scip:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.worker
+    container_name: jaot_celery_test_scip
+    profiles: ["test"]
+    command: ["celery", "-A", "app.shared.core.celery_app", "worker", "--loglevel=info", "--concurrency=2", "-Q", "solve_scip"]
+    environment:
+      - DATABASE_URL=postgresql://jaot:jaot@postgres:5432/jaot_test
+      - CELERY_BROKER_URL=amqp://jaot:jaot@rabbitmq:5672//
+      - REDIS_URL=redis://redis:6379/0
+      - SOLVER_QUEUE=solve_scip
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+
+  celery-worker-test-highs:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.worker
+    container_name: jaot_celery_test_highs
+    profiles: ["test"]
+    command: ["celery", "-A", "app.shared.core.celery_app", "worker", "--loglevel=info", "--concurrency=1", "-Q", "solve_highs"]
+    environment:
+      - DATABASE_URL=postgresql://jaot:jaot@postgres:5432/jaot_test
+      - CELERY_BROKER_URL=amqp://jaot:jaot@rabbitmq:5672//
+      - REDIS_URL=redis://redis:6379/0
+      - SOLVER_QUEUE=solve_highs
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+
+volumes:
+  jaot_postgres_data:
+    labels:
+      com.jaot.service: "postgres"
+      com.jaot.backup: "daily"
+  jaot_rabbitmq_data:
+    labels:
+      com.jaot.service: "rabbitmq"
+  jaot_redis_data:
+    labels:
+      com.jaot.service: "redis"
+  jaot_qdrant_data:
+    labels:
+      com.jaot.service: "qdrant"
+networks:
+  default:
+    name: jaot_network

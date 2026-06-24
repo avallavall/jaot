@@ -1,0 +1,192 @@
+---
+title: "Facility Location"
+description: "Choose optimal locations for warehouses, plants, and service centers"
+order: 15
+category: "facility_location"
+difficulty: "intermediate"
+domain: "Logistics"
+templateCount: 2
+---
+
+# Facility Location
+
+Determine the best places to open warehouses, stores, distribution centers, or service facilities. Facility location optimization balances fixed opening costs against transportation expenses to serve all demand at minimum total cost.
+
+## When to Use This Guide
+
+Facility location models help whenever you face decisions about where to place infrastructure:
+
+- **Opening new facilities** -- Decide which candidate sites to activate from a shortlist
+- **Consolidating locations** -- Identify which existing facilities to keep or close
+- **Distribution network design** -- Place warehouses to minimize delivery distances to customers
+- **Service center placement** -- Position repair centers or clinics to maximize coverage
+- **Retail site selection** -- Choose store locations based on demand density and competition
+
+## Step-by-Step Walkthrough
+
+### 1. Define Candidate Locations
+
+List every potential facility site with its fixed opening cost (rent, setup, staffing) and maximum capacity. Include geographic coordinates or distances to demand zones.
+
+### 2. Define Demand Zones
+
+Specify each customer cluster or demand zone with its required volume. Calculate the per-unit transportation cost from each candidate location to each demand zone.
+
+### 3. Set Capacity and Budget Constraints
+
+Add constraints for maximum facilities to open (budget limit), minimum demand coverage requirements, and any regional balance rules (e.g., at least one facility per region).
+
+### 4. Solve and Analyze
+
+The optimizer selects which facilities to open (binary decisions) and how much to ship from each open facility to each demand zone (continuous flow). Review total cost breakdown between fixed and transport costs.
+
+## Example: Select 3 Locations from 8 Candidates
+
+Choose 3 facility locations from 8 candidates to serve 10 demand zones. Each candidate has a fixed opening cost and capacity limit. Minimize total cost (fixed costs plus transportation).
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+candidates = 8
+zones = 10
+max_open = 3
+
+# Fixed costs per candidate ($K)
+fixed_cost = [120, 150, 90, 200, 110, 130, 170, 100]
+# Capacity per candidate (units)
+capacity = [500, 600, 400, 700, 450, 550, 650, 500]
+# Demand per zone (units)
+demand = [80, 120, 60, 90, 110, 70, 100, 85, 95, 75]
+# Transport cost per unit from candidate i to zone j
+transport = [
+    [4, 8, 6, 5, 9, 3, 7, 6, 4, 8],
+    [7, 3, 5, 8, 4, 6, 3, 7, 5, 4],
+    [5, 6, 3, 7, 5, 8, 6, 4, 7, 5],
+    [8, 4, 7, 3, 6, 5, 4, 8, 3, 6],
+    [3, 7, 8, 6, 3, 7, 5, 3, 6, 7],
+    [6, 5, 4, 4, 7, 4, 8, 5, 8, 3],
+    [4, 6, 5, 7, 8, 6, 3, 4, 5, 6],
+    [7, 4, 6, 5, 5, 3, 6, 7, 4, 8],
+]
+
+variables = []
+# Binary: open facility i?
+for i in range(candidates):
+    variables.append({"name": f"open_{i}", "type": "binary"})
+# Continuous: flow from facility i to zone j
+for i in range(candidates):
+    for j in range(zones):
+        variables.append({
+            "name": f"flow_{i}_{j}",
+            "type": "continuous",
+            "lb": 0,
+        })
+
+# Objective: minimize fixed + transport costs
+coefficients = {}
+for i in range(candidates):
+    coefficients[f"open_{i}"] = fixed_cost[i]
+    for j in range(zones):
+        coefficients[f"flow_{i}_{j}"] = transport[i][j]
+
+objective = {"sense": "minimize", "coefficients": coefficients}
+
+constraints = []
+# Each zone's demand must be met
+for j in range(zones):
+    constraints.append({
+        "name": f"demand_{j}",
+        "coefficients": {f"flow_{i}_{j}": 1 for i in range(candidates)},
+        "sense": ">=",
+        "rhs": demand[j],
+    })
+
+# Capacity: flow from facility i cannot exceed capacity if open
+for i in range(candidates):
+    coeff = {f"flow_{i}_{j}": 1 for j in range(zones)}
+    coeff[f"open_{i}"] = -capacity[i]
+    constraints.append({
+        "name": f"capacity_{i}",
+        "coefficients": coeff,
+        "sense": "<=",
+        "rhs": 0,
+    })
+
+# At most max_open facilities
+constraints.append({
+    "name": "max_facilities",
+    "coefficients": {f"open_{i}": 1 for i in range(candidates)},
+    "sense": "<=",
+    "rhs": max_open,
+})
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Total cost: ${result['objective_value']:,.0f}K")
+for i in range(candidates):
+    if result['solution'][f"open_{i}"] > 0.5:
+        print(f"  Open facility {i+1} (fixed cost: ${fixed_cost[i]}K)")
+```
+
+```json
+{
+  "variables": [
+    {"name": "open_0", "type": "binary"},
+    {"name": "open_1", "type": "binary"},
+    {"name": "flow_0_0", "type": "continuous", "lb": 0},
+    {"name": "flow_0_1", "type": "continuous", "lb": 0}
+  ],
+  "objective": {
+    "sense": "minimize",
+    "coefficients": {
+      "open_0": 120, "open_1": 150,
+      "flow_0_0": 4, "flow_0_1": 8,
+      "flow_1_0": 7, "flow_1_1": 3
+    }
+  },
+  "constraints": [
+    {
+      "name": "demand_0",
+      "coefficients": {"flow_0_0": 1, "flow_1_0": 1},
+      "sense": ">=",
+      "rhs": 80
+    },
+    {
+      "name": "capacity_0",
+      "coefficients": {"flow_0_0": 1, "flow_0_1": 1, "open_0": -500},
+      "sense": "<=",
+      "rhs": 0
+    },
+    {
+      "name": "max_facilities",
+      "coefficients": {"open_0": 1, "open_1": 1},
+      "sense": "<=",
+      "rhs": 3
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+Get started with facility location models using these templates:
+
+- **[Custom Optimization](/builder/templates/custom)** -- Build a facility location model with your own candidate sites and demand data
+- **[Budget Allocation Optimizer](/builder/templates/budget_allocation)** -- Adapt budget allocation for facility investment decisions
+
+## Next Steps
+
+- **[Warehouse Layout & Operations](/docs/guides/warehouse-operations)** -- Optimize operations inside your chosen facility locations
+- **[Supply Chain Planning](/docs/guides/supply-chain-planning)** -- Integrate facility decisions into end-to-end supply chain optimization
+- **[API Reference](/docs/api/solve)** -- Full endpoint documentation for the solve API

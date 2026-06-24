@@ -1,0 +1,16 @@
+# E2E override — prod frontend (runner stage) for Playwright tests.
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runner
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://api:8001
+    # !reset clears base tmpfs (/app/.next:size=512m); only /tmp here so runner's baked .next is preserved.
+    tmpfs: !reset
+      - /tmp:size=64m
+    depends_on:
+      api:
+        condition: service_healthy

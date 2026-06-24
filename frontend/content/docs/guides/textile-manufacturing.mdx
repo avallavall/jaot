@@ -1,0 +1,155 @@
+---
+title: "Textile Manufacturing"
+description: "Optimize fabric cutting, dyeing schedules, and production lines"
+order: 5
+category: "textile"
+difficulty: "intermediate"
+domain: "Manufacturing"
+templateCount: 1
+---
+
+# Textile Manufacturing
+
+Textile manufacturing optimization helps garment and fabric producers **minimize waste from cutting patterns and schedule production runs** across complex product lines. The example below models cutting stock optimization: given demand for multiple garment sizes, find the fewest fabric rolls needed by choosing the right combination of cutting patterns.
+
+## Step-by-Step Walkthrough
+
+**1. Define garment patterns and sizes**
+
+List each garment style and size combination with its fabric requirement. A medium t-shirt might need 1.2 meters of fabric, while an XL needs 1.5 meters. Include the demand quantity for each.
+
+**2. Specify fabric roll characteristics**
+
+Define roll width, usable length (accounting for defects), and cost per roll. Different fabric types (cotton jersey, denim, polyester blend) have different properties and costs.
+
+**3. Create cutting patterns**
+
+Each cutting pattern defines how garment pieces are laid out on a fabric roll. A single roll might yield 8 medium shirts or 6 large shirts or a mix. The optimizer finds the best combination of patterns to minimize rolls used.
+
+**4. Add production constraints**
+
+- Minimum order quantities per style/size
+- Color batch requirements (all garments of one color cut together)
+- Machine capacity per shift
+- Delivery deadlines by customer order
+
+![Textile Optimization in JAOT Builder](/guides/manufacturing/textile-builder.png)
+
+**5. Execute and review the cutting plan**
+
+The solution tells you how many times to use each cutting pattern and which fabric rolls to cut. Verify that total output meets demand and review waste percentage per pattern.
+
+## Example Parameters
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+# Minimize fabric rolls used to cut 4 garment types
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": [
+        # pattern_X = number of times to use cutting pattern X
+        {"name": "pattern_a", "type": "integer", "lb": 0},
+        {"name": "pattern_b", "type": "integer", "lb": 0},
+        {"name": "pattern_c", "type": "integer", "lb": 0},
+        {"name": "pattern_d", "type": "integer", "lb": 0},
+    ],
+    "objective": {
+        "sense": "minimize",
+        "coefficients": {
+            "pattern_a": 1, "pattern_b": 1,
+            "pattern_c": 1, "pattern_d": 1,
+        },
+    },
+    "constraints": [
+        {
+            "name": "small_shirts_demand",
+            "coefficients": {"pattern_a": 4, "pattern_b": 2, "pattern_c": 0, "pattern_d": 1},
+            "sense": ">=",
+            "rhs": 200,
+        },
+        {
+            "name": "medium_shirts_demand",
+            "coefficients": {"pattern_a": 3, "pattern_b": 0, "pattern_c": 4, "pattern_d": 2},
+            "sense": ">=",
+            "rhs": 350,
+        },
+        {
+            "name": "large_shirts_demand",
+            "coefficients": {"pattern_a": 0, "pattern_b": 3, "pattern_c": 2, "pattern_d": 3},
+            "sense": ">=",
+            "rhs": 250,
+        },
+        {
+            "name": "xl_shirts_demand",
+            "coefficients": {"pattern_a": 1, "pattern_b": 2, "pattern_c": 1, "pattern_d": 1},
+            "sense": ">=",
+            "rhs": 150,
+        },
+    ],
+})
+result = response.json()
+
+print(f"Minimum rolls needed: {result['objective_value']:.0f}")
+for var in result["variables"]:
+    if var["value"] > 0:
+        print(f"  Use {var['name']} {var['value']:.0f} times")
+```
+```json
+{
+  "variables": [
+    {"name": "pattern_a", "type": "integer", "lb": 0},
+    {"name": "pattern_b", "type": "integer", "lb": 0},
+    {"name": "pattern_c", "type": "integer", "lb": 0},
+    {"name": "pattern_d", "type": "integer", "lb": 0}
+  ],
+  "objective": {
+    "sense": "minimize",
+    "coefficients": {
+      "pattern_a": 1, "pattern_b": 1,
+      "pattern_c": 1, "pattern_d": 1
+    }
+  },
+  "constraints": [
+    {
+      "name": "small_shirts_demand",
+      "coefficients": {"pattern_a": 4, "pattern_b": 2, "pattern_c": 0, "pattern_d": 1},
+      "sense": ">=",
+      "rhs": 200
+    },
+    {
+      "name": "medium_shirts_demand",
+      "coefficients": {"pattern_a": 3, "pattern_b": 0, "pattern_c": 4, "pattern_d": 2},
+      "sense": ">=",
+      "rhs": 350
+    },
+    {
+      "name": "large_shirts_demand",
+      "coefficients": {"pattern_a": 0, "pattern_b": 3, "pattern_c": 2, "pattern_d": 3},
+      "sense": ">=",
+      "rhs": 250
+    },
+    {
+      "name": "xl_shirts_demand",
+      "coefficients": {"pattern_a": 1, "pattern_b": 2, "pattern_c": 1, "pattern_d": 1},
+      "sense": ">=",
+      "rhs": 150
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+- **[Bin Packing Optimizer](/builder/templates/bin_packing)** -- apply cutting stock optimization to minimize fabric waste across patterns
+- **[Production Planning Optimizer](/builder/templates/production_planning)** -- schedule garment production runs across sewing lines and shifts
+
+## Next Steps
+
+- **[Cutting & Packing](/docs/guides/cutting-and-packing)** -- Dive deeper into cutting stock and bin packing algorithms `advanced`
+- **[Production Planning](/docs/guides/production-planning)** -- Broader multi-product scheduling across manufacturing lines `intermediate`
+- **[Retail Assortment & Pricing](/docs/guides/retail-assortment)** -- Optimize the downstream retail side of fashion production `beginner`

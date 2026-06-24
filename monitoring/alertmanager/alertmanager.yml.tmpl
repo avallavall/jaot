@@ -1,0 +1,50 @@
+# Alertmanager configuration for JAOT Production
+# SMTP via Resend -- password loaded from mounted file (not committed to git)
+# See .env.production.example for RESEND_API_KEY
+#
+# This is a TEMPLATE file. The entrypoint script substitutes ${ALERT_EMAIL_RECIPIENT}
+# at container start. Do NOT mount this file directly -- use entrypoint.sh.
+
+global:
+  smtp_smarthost: 'smtp.resend.com:587'
+  smtp_from: 'JAOT Alerts <noreply@jaot.io>'
+  smtp_auth_username: 'resend'
+  smtp_auth_password_file: '/run/secrets/resend_api_key'
+  smtp_require_tls: true
+
+route:
+  receiver: 'email-alerts'
+  group_by: ['alertname', 'job']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - match:
+        severity: critical
+      receiver: 'email-alerts'
+      repeat_interval: 1h
+
+receivers:
+  - name: 'email-alerts'
+    email_configs:
+      - to: '${ALERT_EMAIL_RECIPIENT}'
+        send_resolved: true
+
+inhibit_rules:
+  - source_matchers:
+      - alertname = PostgresDown
+    target_matchers:
+      - alertname =~ "DbConnection.*|PostgresHigh.*|PostgresDeadlocks"
+  - source_matchers:
+      - alertname = RabbitmqDown
+    target_matchers:
+      - alertname =~ "CeleryQueue.*|RabbitmqHigh.*|RabbitmqUnacked.*"
+  - source_matchers:
+      - alertname = RedisDown
+    target_matchers:
+      - alertname = RedisHighMemoryUsage
+  - source_matchers:
+      - severity = critical
+    target_matchers:
+      - severity = warning
+    equal: [alertname]

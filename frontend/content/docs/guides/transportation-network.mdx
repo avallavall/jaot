@@ -1,0 +1,240 @@
+---
+title: "Transportation Network Design"
+description: "Design freight networks balancing speed, cost, and capacity"
+order: 12
+category: "transportation"
+difficulty: "advanced"
+domain: "Logistics"
+templateCount: 2
+---
+
+# Transportation Network Design
+
+Transportation network optimization decides **how to ship goods from multiple origins to multiple destinations** across different modes (truck, rail, sea) to minimize total freight cost while meeting demand at each destination. The example below models a multi-warehouse, multi-city flow: choose how many units to route on each origin-destination-mode combination, subject to supply limits and demand requirements.
+
+## Step-by-Step Walkthrough
+
+**1. Define the network**
+
+Map your origins (factories, warehouses), intermediate hubs (distribution centers, rail yards), and destinations (stores, customers). Specify the demand at each destination and supply available at each origin.
+
+**2. Define transportation modes**
+
+For each route segment, specify the available modes with their cost per unit, capacity, transit time, and frequency. For example, Chicago to New York might have truck ($2.10/unit, 2-day transit) and rail ($0.85/unit, 5-day transit) options.
+
+**3. Add operational constraints**
+
+- Capacity limits on each route and mode
+- Delivery deadline requirements by destination
+- Minimum shipment sizes for rail or container loads
+- Hub throughput capacities
+- Modal compatibility (some products cannot go by certain modes)
+
+**4. Set the objective**
+
+Typically **minimize total transportation cost** while meeting all demand and delivery requirements. Alternatively, minimize total transit time or balance cost against service level.
+
+![Transportation Network in JAOT Builder](/guides/logistics/transportation-network-builder.png)
+
+**5. Analyze the optimal network flow**
+
+Review the shipping plan: how much flows through each route, which modes are selected, and where hubs are congested. Identify opportunities to consolidate shipments or shift modes on high-volume lanes.
+
+## Example Parameters
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+# Ship from 3 warehouses to 4 stores via truck or rail
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": [
+        # truck_WH_Store = units shipped by truck from warehouse to store
+        {"name": "truck_chicago_nyc", "type": "continuous", "lb": 0},
+        {"name": "rail_chicago_nyc", "type": "continuous", "lb": 0},
+        {"name": "truck_chicago_atlanta", "type": "continuous", "lb": 0},
+        {"name": "rail_chicago_atlanta", "type": "continuous", "lb": 0},
+        {"name": "truck_dallas_nyc", "type": "continuous", "lb": 0},
+        {"name": "truck_dallas_atlanta", "type": "continuous", "lb": 0},
+        {"name": "truck_dallas_miami", "type": "continuous", "lb": 0},
+        {"name": "truck_la_seattle", "type": "continuous", "lb": 0},
+        {"name": "rail_la_seattle", "type": "continuous", "lb": 0},
+        {"name": "truck_la_miami", "type": "continuous", "lb": 0},
+    ],
+    "objective": {
+        "sense": "minimize",
+        "coefficients": {
+            "truck_chicago_nyc": 2.10, "rail_chicago_nyc": 0.85,
+            "truck_chicago_atlanta": 1.80, "rail_chicago_atlanta": 0.75,
+            "truck_dallas_nyc": 2.50, "truck_dallas_atlanta": 1.40,
+            "truck_dallas_miami": 1.90, "truck_la_seattle": 1.60,
+            "rail_la_seattle": 0.65, "truck_la_miami": 3.20,
+        },
+    },
+    "constraints": [
+        {
+            "name": "nyc_demand",
+            "coefficients": {
+                "truck_chicago_nyc": 1, "rail_chicago_nyc": 1,
+                "truck_dallas_nyc": 1
+            },
+            "sense": ">=",
+            "rhs": 500,
+        },
+        {
+            "name": "atlanta_demand",
+            "coefficients": {
+                "truck_chicago_atlanta": 1, "rail_chicago_atlanta": 1,
+                "truck_dallas_atlanta": 1
+            },
+            "sense": ">=",
+            "rhs": 300,
+        },
+        {
+            "name": "seattle_demand",
+            "coefficients": {"truck_la_seattle": 1, "rail_la_seattle": 1},
+            "sense": ">=",
+            "rhs": 200,
+        },
+        {
+            "name": "miami_demand",
+            "coefficients": {"truck_dallas_miami": 1, "truck_la_miami": 1},
+            "sense": ">=",
+            "rhs": 250,
+        },
+        {
+            "name": "chicago_supply",
+            "coefficients": {
+                "truck_chicago_nyc": 1, "rail_chicago_nyc": 1,
+                "truck_chicago_atlanta": 1, "rail_chicago_atlanta": 1
+            },
+            "sense": "<=",
+            "rhs": 600,
+        },
+        {
+            "name": "dallas_supply",
+            "coefficients": {
+                "truck_dallas_nyc": 1, "truck_dallas_atlanta": 1,
+                "truck_dallas_miami": 1
+            },
+            "sense": "<=",
+            "rhs": 450,
+        },
+        {
+            "name": "la_supply",
+            "coefficients": {
+                "truck_la_seattle": 1, "rail_la_seattle": 1,
+                "truck_la_miami": 1
+            },
+            "sense": "<=",
+            "rhs": 400,
+        },
+    ],
+})
+result = response.json()
+
+print(f"Minimum freight cost: ${result['objective_value']:,.2f}")
+for var in result["variables"]:
+    if var["value"] > 0:
+        print(f"  {var['name']}: {var['value']:.0f} units")
+```
+```json
+{
+  "variables": [
+    {"name": "truck_chicago_nyc", "type": "continuous", "lb": 0},
+    {"name": "rail_chicago_nyc", "type": "continuous", "lb": 0},
+    {"name": "truck_chicago_atlanta", "type": "continuous", "lb": 0},
+    {"name": "rail_chicago_atlanta", "type": "continuous", "lb": 0},
+    {"name": "truck_dallas_nyc", "type": "continuous", "lb": 0},
+    {"name": "truck_dallas_atlanta", "type": "continuous", "lb": 0},
+    {"name": "truck_dallas_miami", "type": "continuous", "lb": 0},
+    {"name": "truck_la_seattle", "type": "continuous", "lb": 0},
+    {"name": "rail_la_seattle", "type": "continuous", "lb": 0},
+    {"name": "truck_la_miami", "type": "continuous", "lb": 0}
+  ],
+  "objective": {
+    "sense": "minimize",
+    "coefficients": {
+      "truck_chicago_nyc": 2.10, "rail_chicago_nyc": 0.85,
+      "truck_chicago_atlanta": 1.80, "rail_chicago_atlanta": 0.75,
+      "truck_dallas_nyc": 2.50, "truck_dallas_atlanta": 1.40,
+      "truck_dallas_miami": 1.90, "truck_la_seattle": 1.60,
+      "rail_la_seattle": 0.65, "truck_la_miami": 3.20
+    }
+  },
+  "constraints": [
+    {
+      "name": "nyc_demand",
+      "coefficients": {
+        "truck_chicago_nyc": 1, "rail_chicago_nyc": 1,
+        "truck_dallas_nyc": 1
+      },
+      "sense": ">=",
+      "rhs": 500
+    },
+    {
+      "name": "atlanta_demand",
+      "coefficients": {
+        "truck_chicago_atlanta": 1, "rail_chicago_atlanta": 1,
+        "truck_dallas_atlanta": 1
+      },
+      "sense": ">=",
+      "rhs": 300
+    },
+    {
+      "name": "seattle_demand",
+      "coefficients": {"truck_la_seattle": 1, "rail_la_seattle": 1},
+      "sense": ">=",
+      "rhs": 200
+    },
+    {
+      "name": "miami_demand",
+      "coefficients": {"truck_dallas_miami": 1, "truck_la_miami": 1},
+      "sense": ">=",
+      "rhs": 250
+    },
+    {
+      "name": "chicago_supply",
+      "coefficients": {
+        "truck_chicago_nyc": 1, "rail_chicago_nyc": 1,
+        "truck_chicago_atlanta": 1, "rail_chicago_atlanta": 1
+      },
+      "sense": "<=",
+      "rhs": 600
+    },
+    {
+      "name": "dallas_supply",
+      "coefficients": {
+        "truck_dallas_nyc": 1, "truck_dallas_atlanta": 1,
+        "truck_dallas_miami": 1
+      },
+      "sense": "<=",
+      "rhs": 450
+    },
+    {
+      "name": "la_supply",
+      "coefficients": {
+        "truck_la_seattle": 1, "rail_la_seattle": 1,
+        "truck_la_miami": 1
+      },
+      "sense": "<=",
+      "rhs": 400
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+- **[Vehicle Routing Optimizer](/builder/templates/vehicle_routing)** -- single-depot routing; extend to multi-modal flows with a custom model
+- **[Custom Optimization](/builder/templates/custom)** -- build a network flow model with your specific routes, modes, and capacity data
+
+## Next Steps
+
+- **[Supply Chain Planning](/docs/guides/supply-chain-planning)** -- Extend network optimization to include procurement and inventory decisions `advanced`
+- **[Railway Operations](/docs/guides/railway-operations)** -- Optimize rail-specific scheduling and rolling stock allocation `advanced`
+- **[Route & Fleet Optimization](/docs/guides/route-and-fleet)** -- Focus on individual vehicle routing within a single depot `intermediate`

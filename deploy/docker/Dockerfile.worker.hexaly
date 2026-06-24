@@ -1,0 +1,30 @@
+# syntax=docker/dockerfile:1
+# Hexaly worker image (optional extra) — extends the base worker with the proprietary
+# Hexaly Python SDK. The default api/worker images ship WITHOUT the SDK; deployments
+# without Hexaly run the default worker image unchanged. No license baked in (BYOL);
+# mount your .lic file or pass HX_LICENSE_CONTENT (see hexaly_license_scope in hexaly.py).
+
+# Default to :latest base-worker; override with --build-arg BASE_IMAGE=...SHA for pin-by-digest flows.
+ARG BASE_IMAGE=ghcr.io/avallavall/jaot-worker:latest
+FROM ${BASE_IMAGE}
+
+USER root
+
+# The SDK version is pinned in requirements-hexaly.txt (wheel from pip.hexaly.com).
+# Bump the pin deliberately — version drift can change enum ordinals.
+COPY requirements-hexaly.txt /tmp/requirements-hexaly.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-hexaly.txt \
+    && rm /tmp/requirements-hexaly.txt
+
+# Reserved for future switch to private installer tarball. Today the wheel comes from
+# public pip.hexaly.com; these ARGs let a CI step gate on secret presence without a Dockerfile change.
+ARG HEXALY_INSTALLER_URL=""
+ARG HEXALY_INSTALLER_TOKEN=""
+
+# Fail the build early if the SDK did not land.
+RUN python -c "import hexaly.optimizer; print('hexaly SDK import OK')"
+
+# Same `jaot` user (UID 1001) as the base image — pycache/ownership stays consistent.
+USER jaot
+
+# CMD / HEALTHCHECK / ENV inherited from base. Compose overrides CMD with `-Q solve_hexaly -n hexaly@%h`.

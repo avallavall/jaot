@@ -1,0 +1,234 @@
+category: railway
+category_display_name: Railway
+
+templates:
+  - id: train_timetabling
+    name: Train Timetable Optimization
+    display_name: Train Timetabling
+    short_description: Create conflict-free train timetables that minimize total travel time and maximize line capacity.
+    description: >
+      Assigns departure times and track segments to trains on a rail network so
+      that no two trains occupy the same block at the same time. Each train has
+      an origin, destination, desired departure window, and speed class. The
+      model minimizes total delay (deviation from preferred schedule) while
+      ensuring headway safety constraints between consecutive trains on shared
+      tracks. Used by national rail operators and urban transit authorities for
+      strategic and operational scheduling.
+    category: railway
+    tags: [railway, timetabling, public-transport, scheduling]
+    problem_type_tags: [MIP, scheduling]
+    generator_type: scheduling
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        trains:
+          type: array
+          description: Trains with routes and time preferences
+        track_segments:
+          type: array
+          description: Track segments with capacity
+        time_horizon:
+          type: integer
+          description: Scheduling horizon in minutes
+      required: [trains, track_segments, time_horizon]
+    input_fields:
+      - name: trains
+        label: Trains
+        type: array
+        description: "Trains with name, origin, destination, preferred departure, and travel time"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            origin: {type: string}
+            destination: {type: string}
+            preferred_departure: {type: integer}
+            travel_time: {type: integer}
+            priority: {type: number}
+      - name: track_segments
+        label: Track Segments
+        type: array
+        description: "Segments with name, capacity (trains per hour), and headway (minutes)"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            capacity_per_hour: {type: integer}
+            min_headway: {type: integer}
+      - name: time_horizon
+        label: Time Horizon (minutes)
+        type: integer
+        description: "Total scheduling window"
+        required: true
+        minimum: 1
+    example_input:
+      trains:
+        - {name: "IC-201 Express", origin: "Amsterdam", destination: "Rotterdam", preferred_departure: 0, travel_time: 40, priority: 9}
+        - {name: "IC-203 Express", origin: "Amsterdam", destination: "Rotterdam", preferred_departure: 30, travel_time: 40, priority: 9}
+        - {name: "RE-501 Regional", origin: "Amsterdam", destination: "Leiden", preferred_departure: 10, travel_time: 25, priority: 6}
+        - {name: "RE-503 Regional", origin: "Leiden", destination: "Rotterdam", preferred_departure: 40, travel_time: 20, priority: 6}
+        - {name: "FR-801 Freight", origin: "Amsterdam", destination: "Rotterdam", preferred_departure: 15, travel_time: 55, priority: 3}
+        - {name: "IC-205 Express", origin: "Rotterdam", destination: "Amsterdam", preferred_departure: 20, travel_time: 40, priority: 9}
+      track_segments:
+        - {name: "Amsterdam-Leiden", capacity_per_hour: 8, min_headway: 5}
+        - {name: "Leiden-Rotterdam", capacity_per_hour: 8, min_headway: 5}
+      time_horizon: 90
+    scenario_description: >
+      Dutch Railways needs to schedule six trains (three express, two regional,
+      one freight) on the Amsterdam-Rotterdam corridor over a 90-minute window.
+      The two-segment corridor has a minimum headway of 5 minutes between trains.
+      Express services have high priority and should depart close to their
+      preferred times, while the freight train can be shifted if needed.
+    is_featured: true
+    estimated_variables: 36
+    estimated_constraints: 30
+
+  - id: rolling_stock_assignment
+    name: Rolling Stock Assignment
+    display_name: Rolling Stock Assignment
+    short_description: Assign train units to scheduled services to minimize empty repositioning while matching capacity to demand.
+    description: >
+      Assigns available train units (rolling stock) to a set of scheduled services
+      over a day or week. Each service has a passenger demand that determines the
+      required train capacity. Train units can be coupled or split at certain
+      stations. The model minimizes total deadheading (empty repositioning) cost
+      and unmet demand while ensuring maintenance requirements are met and
+      overnight parking capacity at depots is respected.
+    category: railway
+    tags: [railway, rolling-stock, fleet-management, assignment]
+    problem_type_tags: [MIP, assignment]
+    generator_type: assignment
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        train_units:
+          type: array
+          description: Available train units with capacity and location
+        services:
+          type: array
+          description: Scheduled services requiring rolling stock
+      required: [train_units, services]
+    input_fields:
+      - name: train_units
+        label: Train Units
+        type: array
+        description: "Units with name, seat capacity, current location, and type"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            seats: {type: integer}
+            location: {type: string}
+            type: {type: string}
+      - name: services
+        label: Scheduled Services
+        type: array
+        description: "Services with route, departure time, and expected passengers"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            origin: {type: string}
+            destination: {type: string}
+            expected_passengers: {type: integer}
+    example_input:
+      train_units:
+        - {name: "EMU-101", seats: 300, location: "Berlin", type: "ICE"}
+        - {name: "EMU-102", seats: 300, location: "Berlin", type: "ICE"}
+        - {name: "EMU-201", seats: 200, location: "Munich", type: "ICE"}
+        - {name: "EMU-301", seats: 150, location: "Hamburg", type: "Regional"}
+        - {name: "EMU-302", seats: 150, location: "Frankfurt", type: "Regional"}
+      services:
+        - {name: "ICE-Berlin-Munich-AM", origin: "Berlin", destination: "Munich", expected_passengers: 280}
+        - {name: "ICE-Munich-Berlin-AM", origin: "Munich", destination: "Berlin", expected_passengers: 250}
+        - {name: "ICE-Berlin-Hamburg-AM", origin: "Berlin", destination: "Hamburg", expected_passengers: 180}
+        - {name: "RE-Frankfurt-Munich-AM", origin: "Frankfurt", destination: "Munich", expected_passengers: 120}
+        - {name: "ICE-Hamburg-Berlin-PM", origin: "Hamburg", destination: "Berlin", expected_passengers: 200}
+    scenario_description: >
+      Deutsche Bahn has five train units parked overnight at four stations and
+      needs to assign them to five morning and afternoon services. Each service
+      has an expected passenger count that determines the required seating
+      capacity. The planner wants to minimize empty repositioning while ensuring
+      no service runs with insufficient seats.
+    is_featured: false
+    estimated_variables: 25
+    estimated_constraints: 10
+
+  - id: track_maintenance_scheduling
+    name: Track Maintenance Scheduling
+    display_name: Track Maintenance
+    short_description: Schedule track maintenance windows to minimize service disruption while keeping infrastructure safe.
+    description: >
+      Plans when to perform maintenance on track sections over a planning horizon.
+      Each section has a degradation state and a maintenance deadline. Maintenance
+      requires a track possession (closure) window during which no trains can run.
+      The model minimizes total service disruption (cancelled or rerouted trains)
+      while ensuring every section is maintained before its safety deadline. Helps
+      infrastructure managers coordinate maintenance with timetable planners.
+    category: railway
+    tags: [railway, maintenance, infrastructure, planning]
+    problem_type_tags: [MIP, scheduling]
+    generator_type: scheduling
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        sections:
+          type: array
+          description: Track sections needing maintenance
+        maintenance_windows:
+          type: array
+          description: Available maintenance windows
+      required: [sections, maintenance_windows]
+    input_fields:
+      - name: sections
+        label: Track Sections
+        type: array
+        description: "Sections with name, maintenance duration (hours), and deadline (day)"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            duration_hours: {type: integer}
+            deadline_day: {type: integer}
+            trains_affected: {type: integer}
+      - name: maintenance_windows
+        label: Available Windows
+        type: array
+        description: "Time slots when maintenance can be performed"
+        required: true
+        items:
+          type: object
+          properties:
+            day: {type: integer}
+            start_hour: {type: integer}
+            duration_hours: {type: integer}
+    example_input:
+      sections:
+        - {name: "Section-A (Main Line)", duration_hours: 6, deadline_day: 14, trains_affected: 24}
+        - {name: "Section-B (Junction)", duration_hours: 4, deadline_day: 10, trains_affected: 18}
+        - {name: "Section-C (Branch)", duration_hours: 8, deadline_day: 21, trains_affected: 8}
+        - {name: "Section-D (Tunnel)", duration_hours: 10, deadline_day: 7, trains_affected: 20}
+      maintenance_windows:
+        - {day: 3, start_hour: 0, duration_hours: 8}
+        - {day: 5, start_hour: 22, duration_hours: 6}
+        - {day: 7, start_hour: 0, duration_hours: 10}
+        - {day: 10, start_hour: 0, duration_hours: 8}
+        - {day: 14, start_hour: 22, duration_hours: 8}
+        - {day: 18, start_hour: 0, duration_hours: 10}
+    scenario_description: >
+      A rail infrastructure company has four track sections requiring scheduled
+      maintenance. Six overnight and weekend windows are available over the next
+      three weeks. Each maintenance closure disrupts a different number of train
+      services. The planner must schedule all maintenance before safety deadlines
+      while minimizing total service disruptions.
+    is_featured: false
+    estimated_variables: 24
+    estimated_constraints: 10

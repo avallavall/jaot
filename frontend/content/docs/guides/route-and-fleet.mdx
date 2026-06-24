@@ -1,0 +1,248 @@
+---
+title: "Route & Fleet Optimization"
+description: "Plan delivery routes and fleet assignments to reduce costs and time"
+order: 11
+category: "logistics"
+difficulty: "intermediate"
+domain: "Logistics"
+templateCount: 3
+---
+
+# Route & Fleet Optimization
+
+Route and fleet optimization finds the **best set of routes for delivery vehicles** to visit all required locations while minimizing total distance, time, or cost. Known in operations research as the Vehicle Routing Problem (VRP), it applies whenever a fleet at one or more depots must deliver to multiple customers subject to capacity and time constraints.
+
+## Step-by-Step Walkthrough
+
+**1. Define delivery locations**
+
+List each customer or delivery point with its address (or coordinates), demand quantity (packages, weight, volume), and any time window requirements (e.g., deliver between 9 AM and 12 PM).
+
+**2. Configure your fleet**
+
+Define each vehicle's capacity (weight or volume), operating cost per mile, maximum route duration, and starting depot location. Different vehicle types may have different capacities and costs.
+
+**3. Set routing constraints**
+
+Include practical rules:
+- Vehicle capacity limits
+- Customer time windows
+- Maximum driving hours per driver
+- Lunch break requirements
+- Priority customers that must be served first
+
+**4. Choose the objective**
+
+Common goals:
+- **Minimize total distance** across all routes
+- **Minimize total cost** (fuel + driver time + vehicle depreciation)
+- **Minimize the number of vehicles** used
+
+![Route Optimization in JAOT Builder](/guides/logistics/route-fleet-builder.png)
+
+**5. Review and dispatch routes**
+
+The solver assigns customers to vehicles and determines visit order. Review each route for practicality, check that all time windows are met, and verify total capacity utilization. Export routes to your dispatch system or navigation tools.
+
+## Example Parameters
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+# Route 3 vehicles to 8 delivery locations (simplified assignment)
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": [
+        # assign_location_to_vehicle (1 = assigned)
+        {"name": "loc1_vehicle_a", "type": "binary"},
+        {"name": "loc1_vehicle_b", "type": "binary"},
+        {"name": "loc2_vehicle_a", "type": "binary"},
+        {"name": "loc2_vehicle_b", "type": "binary"},
+        {"name": "loc3_vehicle_a", "type": "binary"},
+        {"name": "loc3_vehicle_b", "type": "binary"},
+        {"name": "loc4_vehicle_a", "type": "binary"},
+        {"name": "loc4_vehicle_b", "type": "binary"},
+        {"name": "loc5_vehicle_a", "type": "binary"},
+        {"name": "loc5_vehicle_b", "type": "binary"},
+        {"name": "loc6_vehicle_a", "type": "binary"},
+        {"name": "loc6_vehicle_b", "type": "binary"},
+    ],
+    "objective": {
+        "sense": "minimize",
+        "coefficients": {
+            "loc1_vehicle_a": 12, "loc1_vehicle_b": 18,
+            "loc2_vehicle_a": 15, "loc2_vehicle_b": 8,
+            "loc3_vehicle_a": 20, "loc3_vehicle_b": 14,
+            "loc4_vehicle_a": 9, "loc4_vehicle_b": 22,
+            "loc5_vehicle_a": 16, "loc5_vehicle_b": 11,
+            "loc6_vehicle_a": 25, "loc6_vehicle_b": 13,
+        },
+    },
+    "constraints": [
+        {
+            "name": "loc1_assigned",
+            "coefficients": {"loc1_vehicle_a": 1, "loc1_vehicle_b": 1},
+            "sense": "==",
+            "rhs": 1,
+        },
+        {
+            "name": "loc2_assigned",
+            "coefficients": {"loc2_vehicle_a": 1, "loc2_vehicle_b": 1},
+            "sense": "==",
+            "rhs": 1,
+        },
+        {
+            "name": "loc3_assigned",
+            "coefficients": {"loc3_vehicle_a": 1, "loc3_vehicle_b": 1},
+            "sense": "==",
+            "rhs": 1,
+        },
+        {
+            "name": "loc4_assigned",
+            "coefficients": {"loc4_vehicle_a": 1, "loc4_vehicle_b": 1},
+            "sense": "==",
+            "rhs": 1,
+        },
+        {
+            "name": "loc5_assigned",
+            "coefficients": {"loc5_vehicle_a": 1, "loc5_vehicle_b": 1},
+            "sense": "==",
+            "rhs": 1,
+        },
+        {
+            "name": "loc6_assigned",
+            "coefficients": {"loc6_vehicle_a": 1, "loc6_vehicle_b": 1},
+            "sense": "==",
+            "rhs": 1,
+        },
+        {
+            "name": "vehicle_a_capacity",
+            "coefficients": {
+                "loc1_vehicle_a": 15, "loc2_vehicle_a": 20,
+                "loc3_vehicle_a": 10, "loc4_vehicle_a": 25,
+                "loc5_vehicle_a": 12, "loc6_vehicle_a": 18
+            },
+            "sense": "<=",
+            "rhs": 60,
+        },
+        {
+            "name": "vehicle_b_capacity",
+            "coefficients": {
+                "loc1_vehicle_b": 15, "loc2_vehicle_b": 20,
+                "loc3_vehicle_b": 10, "loc4_vehicle_b": 25,
+                "loc5_vehicle_b": 12, "loc6_vehicle_b": 18
+            },
+            "sense": "<=",
+            "rhs": 60,
+        },
+    ],
+})
+result = response.json()
+
+print(f"Minimum total delivery cost: ${result['objective_value']:.0f}")
+for var in result["variables"]:
+    if var["value"] > 0.5:
+        print(f"  {var['name']}: assigned")
+```
+```json
+{
+  "variables": [
+    {"name": "loc1_vehicle_a", "type": "binary"},
+    {"name": "loc1_vehicle_b", "type": "binary"},
+    {"name": "loc2_vehicle_a", "type": "binary"},
+    {"name": "loc2_vehicle_b", "type": "binary"},
+    {"name": "loc3_vehicle_a", "type": "binary"},
+    {"name": "loc3_vehicle_b", "type": "binary"},
+    {"name": "loc4_vehicle_a", "type": "binary"},
+    {"name": "loc4_vehicle_b", "type": "binary"},
+    {"name": "loc5_vehicle_a", "type": "binary"},
+    {"name": "loc5_vehicle_b", "type": "binary"},
+    {"name": "loc6_vehicle_a", "type": "binary"},
+    {"name": "loc6_vehicle_b", "type": "binary"}
+  ],
+  "objective": {
+    "sense": "minimize",
+    "coefficients": {
+      "loc1_vehicle_a": 12, "loc1_vehicle_b": 18,
+      "loc2_vehicle_a": 15, "loc2_vehicle_b": 8,
+      "loc3_vehicle_a": 20, "loc3_vehicle_b": 14,
+      "loc4_vehicle_a": 9, "loc4_vehicle_b": 22,
+      "loc5_vehicle_a": 16, "loc5_vehicle_b": 11,
+      "loc6_vehicle_a": 25, "loc6_vehicle_b": 13
+    }
+  },
+  "constraints": [
+    {
+      "name": "loc1_assigned",
+      "coefficients": {"loc1_vehicle_a": 1, "loc1_vehicle_b": 1},
+      "sense": "==",
+      "rhs": 1
+    },
+    {
+      "name": "loc2_assigned",
+      "coefficients": {"loc2_vehicle_a": 1, "loc2_vehicle_b": 1},
+      "sense": "==",
+      "rhs": 1
+    },
+    {
+      "name": "loc3_assigned",
+      "coefficients": {"loc3_vehicle_a": 1, "loc3_vehicle_b": 1},
+      "sense": "==",
+      "rhs": 1
+    },
+    {
+      "name": "loc4_assigned",
+      "coefficients": {"loc4_vehicle_a": 1, "loc4_vehicle_b": 1},
+      "sense": "==",
+      "rhs": 1
+    },
+    {
+      "name": "loc5_assigned",
+      "coefficients": {"loc5_vehicle_a": 1, "loc5_vehicle_b": 1},
+      "sense": "==",
+      "rhs": 1
+    },
+    {
+      "name": "loc6_assigned",
+      "coefficients": {"loc6_vehicle_a": 1, "loc6_vehicle_b": 1},
+      "sense": "==",
+      "rhs": 1
+    },
+    {
+      "name": "vehicle_a_capacity",
+      "coefficients": {
+        "loc1_vehicle_a": 15, "loc2_vehicle_a": 20,
+        "loc3_vehicle_a": 10, "loc4_vehicle_a": 25,
+        "loc5_vehicle_a": 12, "loc6_vehicle_a": 18
+      },
+      "sense": "<=",
+      "rhs": 60
+    },
+    {
+      "name": "vehicle_b_capacity",
+      "coefficients": {
+        "loc1_vehicle_b": 15, "loc2_vehicle_b": 20,
+        "loc3_vehicle_b": 10, "loc4_vehicle_b": 25,
+        "loc5_vehicle_b": 12, "loc6_vehicle_b": 18
+      },
+      "sense": "<=",
+      "rhs": 60
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+- **[Vehicle Routing Optimizer](/builder/templates/vehicle_routing)** -- pre-configured VRP model with capacity constraints, time windows, and multi-depot support
+- **[Custom Optimization](/builder/templates/custom)** -- build a model when your routing constraints don't fit the standard VRP template
+
+## Next Steps
+
+- **[Transportation Network Design](/docs/guides/transportation-network)** -- Scale up from single-depot routing to multi-modal freight networks `advanced`
+- **[Maritime Shipping](/docs/guides/maritime-shipping)** -- Apply routing optimization to vessel scheduling and port operations `advanced`
+- **[Warehouse Layout & Operations](/docs/guides/warehouse-operations)** -- Optimize the warehouse side of your delivery operations `intermediate`

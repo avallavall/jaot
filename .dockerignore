@@ -1,0 +1,77 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+venv/
+env/
+
+# Tests
+tests/
+old_tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Documentation (not needed in images)
+docs/
+*.md
+
+# Scripts — kept in build context for Dockerfile.seed
+
+# SDK
+sdk/
+
+# Production secrets (never bake into images)
+secrets/
+
+# Planning & Claude
+.planning/
+.agents/
+.claude/
+
+# Node modules at project root (if present)
+node_modules/
+
+# CI/CD config
+.woodpecker.yml
+
+# Monitoring (not needed in backend images)
+monitoring/
+
+# Screenshots & test artifacts
+screenshots/
+test-results/
+
+# Misc build artifacts
+.ruff_cache/
+pyproject.toml
+run_tests.py
+THIRD_PARTY_LICENSES
+
+# Frontend (has its own Dockerfile)
+frontend/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Misc
+*.log
+.DS_Store
+docker-compose*.yml

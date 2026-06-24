@@ -1,0 +1,133 @@
+---
+title: "Production Planning"
+description: "Optimize manufacturing schedules to maximize throughput and minimize costs"
+order: 2
+category: "manufacturing"
+difficulty: "intermediate"
+domain: "Manufacturing"
+templateCount: 3
+---
+
+# Production Planning
+
+Production planning optimization decides **how much of each product to make** given limited resources like machine hours, labor, and raw materials. Define your products, constraints, and profit margins -- the solver finds the mix that maximizes your bottom line.
+
+## Step-by-Step Walkthrough
+
+**1. Define your products**
+
+List each product you manufacture along with its unit profit (or contribution margin). For example, you might produce desks, chairs, and bookshelves with different profit margins.
+
+**2. Identify resource constraints**
+
+Determine the shared resources that limit production. Common constraints include:
+- Machine hours per shift (e.g., CNC machine, assembly line)
+- Labor hours available per week
+- Raw material inventory (wood, steel, fabric)
+- Storage or warehouse capacity
+
+**3. Set resource consumption rates**
+
+For each product, define how much of each resource it consumes per unit. A desk might require 4 hours of CNC time and 8 board-feet of lumber, while a chair needs 2 hours and 3 board-feet.
+
+**4. Configure the optimization**
+
+Set the objective to **maximize total profit**. Add constraints for each resource, ensuring total consumption does not exceed availability.
+
+![Production Planning in JAOT Builder](/guides/manufacturing/production-planning-builder.png)
+
+**5. Run and interpret results**
+
+The solver returns the optimal quantity of each product. Check which resources are fully utilized (binding constraints) and where slack exists -- binding constraints indicate where adding capacity would improve results.
+
+## Example Parameters
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": [
+        {"name": "desks", "type": "integer", "lb": 0},
+        {"name": "chairs", "type": "integer", "lb": 0},
+        {"name": "bookshelves", "type": "integer", "lb": 0},
+    ],
+    "objective": {
+        "sense": "maximize",
+        "coefficients": {"desks": 120, "chairs": 55, "bookshelves": 85},
+    },
+    "constraints": [
+        {
+            "name": "cnc_machine_hours",
+            "coefficients": {"desks": 4, "chairs": 2, "bookshelves": 3},
+            "sense": "<=",
+            "rhs": 160,
+        },
+        {
+            "name": "assembly_labor_hours",
+            "coefficients": {"desks": 3, "chairs": 1.5, "bookshelves": 2},
+            "sense": "<=",
+            "rhs": 120,
+        },
+        {
+            "name": "lumber_board_feet",
+            "coefficients": {"desks": 8, "chairs": 3, "bookshelves": 6},
+            "sense": "<=",
+            "rhs": 500,
+        },
+    ],
+})
+result = response.json()
+
+print(f"Optimal profit: ${result['objective_value']:.2f}")
+for var in result["variables"]:
+    print(f"  Produce {var['value']:.0f} {var['name']}")
+```
+```json
+{
+  "variables": [
+    {"name": "desks", "type": "integer", "lb": 0},
+    {"name": "chairs", "type": "integer", "lb": 0},
+    {"name": "bookshelves", "type": "integer", "lb": 0}
+  ],
+  "objective": {
+    "sense": "maximize",
+    "coefficients": {"desks": 120, "chairs": 55, "bookshelves": 85}
+  },
+  "constraints": [
+    {
+      "name": "cnc_machine_hours",
+      "coefficients": {"desks": 4, "chairs": 2, "bookshelves": 3},
+      "sense": "<=",
+      "rhs": 160
+    },
+    {
+      "name": "assembly_labor_hours",
+      "coefficients": {"desks": 3, "chairs": 1.5, "bookshelves": 2},
+      "sense": "<=",
+      "rhs": 120
+    },
+    {
+      "name": "lumber_board_feet",
+      "coefficients": {"desks": 8, "chairs": 3, "bookshelves": 6},
+      "sense": "<=",
+      "rhs": 500
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+- **[Production Planning Optimizer](/builder/templates/production_planning)** -- pre-configured model for multi-product scheduling with resource constraints
+- **[Custom Optimization](/builder/templates/custom)** -- build a model tailored to your specific production environment
+
+## Next Steps
+
+- **[Cutting & Packing](/docs/guides/cutting-and-packing)** -- Minimize material waste in cutting and packing operations `intermediate`
+- **[Supply Chain Planning](/docs/guides/supply-chain-planning)** -- Coordinate procurement, production, and distribution across your value chain `advanced`
+- **[Food & Beverage Production](/docs/guides/food-and-beverage)** -- Apply production planning principles to recipe formulation and batch scheduling `intermediate`

@@ -1,0 +1,220 @@
+category: supply_chain
+category_display_name: Supply Chain Management
+
+templates:
+  - id: inventory_optimization
+    name: Inventory Optimization Planner
+    display_name: Inventory Optimization
+    short_description: Determine optimal reorder quantities and safety stock levels to minimize holding and shortage costs.
+    description: >
+      Decide how much of each product to order and when, balancing inventory holding
+      costs against stockout penalties. The solver considers demand forecasts, lead
+      times, storage capacity, and supplier minimum order quantities to produce an
+      ordering plan that minimizes total supply chain cost. The output tells you order
+      quantities per period and expected inventory levels.
+    scenario_description: >
+      A consumer electronics distributor manages 5 product lines with weekly demand
+      between 50 and 300 units. Warehouse capacity is 2,000 units total. Holding cost
+      is EUR 0.50/unit/week and stockout penalty is EUR 5/unit. Lead time is 2 weeks.
+      The supply chain manager wants a 6-week ordering plan.
+    category: supply_chain
+    tags: [supply-chain, inventory, reorder, safety-stock, holding-cost]
+    problem_type_tags: [MIP]
+    generator_type: lot_sizing
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [periods, products, holding_cost, setup_cost, demand]
+      properties:
+        periods: {type: integer}
+        products: {type: array}
+        holding_cost: {type: number}
+        setup_cost: {type: number}
+        demand: {type: array}
+    input_fields:
+      - name: periods
+        label: Planning Periods
+        type: integer
+        description: Number of periods to plan
+        required: true
+        default: 6
+      - name: products
+        label: Products
+        type: array
+        description: Products with demand and cost data
+        required: true
+      - name: holding_cost
+        label: Holding Cost per Unit per Period
+        type: number
+        description: Cost of storing one unit for one period
+        required: true
+        default: 0.5
+      - name: setup_cost
+        label: Order Setup Cost
+        type: number
+        description: Fixed cost per order placed
+        required: true
+        default: 100
+      - name: demand
+        label: Demand per Period
+        type: array
+        description: Expected demand in each period
+        required: true
+    example_input:
+      periods: 6
+      demand: [120, 150, 180, 130, 160, 140]
+      holding_cost: 0.5
+      setup_cost: 100
+      capacity: 500
+      initial_inventory: 50
+    is_featured: true
+    estimated_variables: 18
+    estimated_constraints: 12
+
+  - id: supplier_selection
+    name: Supplier Selection Optimizer
+    display_name: Supplier Selection
+    short_description: Choose suppliers and allocate order quantities to minimize total procurement cost while meeting quality and delivery requirements.
+    description: >
+      Select from a pool of suppliers and decide how much to order from each, minimizing
+      total cost (unit price + shipping + quality-failure cost). Each supplier has
+      capacity limits, minimum order sizes, quality ratings, and lead times. The solver
+      ensures total demand is met while respecting diversification rules (e.g., no more
+      than 60% from a single supplier). The output is an allocation plan per supplier.
+    scenario_description: >
+      A bicycle manufacturer needs 10,000 frames per quarter from 5 candidate suppliers.
+      Prices range from EUR 35-48 per frame. Supplier A is cheapest but has a 3% defect
+      rate and 4-week lead time. Supplier D is most expensive but offers 0.5% defects
+      and 1-week delivery. The procurement team wants the cost-optimal mix with less
+      than 2% average defect rate.
+    category: supply_chain
+    tags: [supply-chain, procurement, supplier, sourcing, cost]
+    problem_type_tags: [LP]
+    generator_type: procurement
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [suppliers, demand]
+      properties:
+        suppliers: {type: array}
+        demand: {type: number}
+        max_average_defect_rate: {type: number}
+        max_single_supplier_fraction: {type: number}
+    input_fields:
+      - name: suppliers
+        label: Suppliers
+        type: array
+        description: Candidate suppliers with pricing and capacity
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            unit_price: {type: number}
+            max_capacity: {type: number}
+            defect_rate: {type: number}
+      - name: demand
+        label: Total Demand
+        type: number
+        description: Total units to procure
+        required: true
+      - name: max_average_defect_rate
+        label: Max Avg Defect Rate
+        type: number
+        description: Maximum weighted average defect rate across suppliers
+        required: false
+      - name: max_single_supplier_fraction
+        label: Max Supplier Share
+        type: number
+        description: "Max fraction of demand from any single supplier (e.g. 0.6 = 60%)"
+        required: false
+    example_input:
+      demand: 10000
+      suppliers:
+        - {name: SupplierA, unit_price: 35, max_capacity: 5000, defect_rate: 0.03}
+        - {name: SupplierB, unit_price: 38, max_capacity: 4000, defect_rate: 0.02}
+        - {name: SupplierC, unit_price: 42, max_capacity: 6000, defect_rate: 0.015}
+        - {name: SupplierD, unit_price: 45, max_capacity: 3000, defect_rate: 0.005}
+        - {name: SupplierE, unit_price: 48, max_capacity: 4000, defect_rate: 0.01}
+      max_average_defect_rate: 0.02
+      max_single_supplier_fraction: 0.60
+    is_featured: false
+    estimated_variables: 5
+    estimated_constraints: 7
+
+  - id: demand_allocation
+    name: Demand Allocation Optimizer
+    display_name: Demand Allocation
+    short_description: Allocate customer demand across warehouses and plants to minimize total fulfillment and shipping cost.
+    description: >
+      Assign customer demand to fulfillment centres (warehouses, factories) to minimize
+      total shipping and handling cost. Each centre has a capacity and each customer-
+      centre pair has a shipping cost per unit. The solver ensures every customer's
+      demand is fully met while no centre exceeds its capacity. Useful for distribution
+      network planning and order routing.
+    scenario_description: >
+      A beverage company has 3 bottling plants and 6 regional distributors. Each plant
+      has weekly output capacity and each plant-distributor lane has a per-case shipping
+      cost. Total distributor demand is 15,000 cases. The logistics team needs the
+      cheapest allocation plan.
+    category: supply_chain
+    tags: [supply-chain, distribution, demand-allocation, shipping]
+    problem_type_tags: [LP]
+    generator_type: network_flow
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [nodes, arcs]
+      properties:
+        nodes: {type: array}
+        arcs: {type: array}
+    input_fields:
+      - name: nodes
+        label: Nodes (Plants + Distributors)
+        type: array
+        description: Supply nodes (positive supply) and demand nodes (negative supply)
+        required: true
+        items:
+          type: object
+          properties:
+            id: {type: string}
+            supply: {type: number}
+      - name: arcs
+        label: Shipping Lanes
+        type: array
+        description: Lanes with cost and capacity
+        required: true
+        items:
+          type: object
+          properties:
+            from: {type: string}
+            to: {type: string}
+            cost: {type: number}
+            capacity: {type: number}
+    example_input:
+      nodes:
+        - {id: plant_north, supply: 6000}
+        - {id: plant_south, supply: 5000}
+        - {id: plant_east, supply: 4000}
+        - {id: dist_A, supply: -2500}
+        - {id: dist_B, supply: -3000}
+        - {id: dist_C, supply: -2000}
+        - {id: dist_D, supply: -3500}
+        - {id: dist_E, supply: -2500}
+        - {id: dist_F, supply: -1500}
+      arcs:
+        - {from: plant_north, to: dist_A, cost: 4, capacity: 3000}
+        - {from: plant_north, to: dist_B, cost: 6, capacity: 3000}
+        - {from: plant_north, to: dist_C, cost: 8, capacity: 2000}
+        - {from: plant_south, to: dist_C, cost: 3, capacity: 2500}
+        - {from: plant_south, to: dist_D, cost: 5, capacity: 3000}
+        - {from: plant_south, to: dist_E, cost: 7, capacity: 2000}
+        - {from: plant_east, to: dist_D, cost: 4, capacity: 2000}
+        - {from: plant_east, to: dist_E, cost: 3, capacity: 2500}
+        - {from: plant_east, to: dist_F, cost: 5, capacity: 2000}
+        - {from: plant_north, to: dist_D, cost: 9, capacity: 1500}
+        - {from: plant_south, to: dist_F, cost: 6, capacity: 1500}
+        - {from: plant_east, to: dist_A, cost: 10, capacity: 1000}
+    is_featured: true
+    estimated_variables: 12
+    estimated_constraints: 9

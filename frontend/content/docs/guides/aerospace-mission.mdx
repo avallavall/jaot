@@ -1,0 +1,169 @@
+---
+title: "Aerospace Mission Planning"
+description: "Optimize flight paths, payload distribution, and mission scheduling"
+order: 34
+category: "aerospace"
+difficulty: "advanced"
+domain: "Public Sector"
+templateCount: 1
+---
+
+# Aerospace Mission Planning
+
+Optimize satellite scheduling, mission planning, and component assembly sequencing. Aerospace operations involve coordinating communication windows, ground station coverage, and payload resources under tight time constraints -- problems where even small scheduling improvements yield significant operational gains.
+
+## When to Use This Guide
+
+Use this guide for aerospace scheduling and resource allocation problems:
+
+- **Satellite communication scheduling** -- assign communication windows to satellites and ground stations to maximize data throughput
+- **Launch window optimization** -- select optimal launch times considering orbital mechanics, weather, and payload readiness
+- **Assembly line sequencing** -- order component assembly tasks to minimize total production time (makespan) for spacecraft or aircraft
+- **Ground station allocation** -- distribute satellite contacts across a network of ground stations to ensure coverage continuity
+
+## Step-by-Step Walkthrough
+
+1. **Define your tasks or windows.** For each communication window, record the satellite, eligible ground stations, time window (start/end), and data volume.
+
+2. **Set resource constraints.** Each ground station can handle at most one satellite contact at a time. Minimum handoff time between contacts must be respected.
+
+3. **Add coverage requirements.** Each satellite may need a minimum number of contacts per orbit or per day for health monitoring and data downlink.
+
+4. **Choose your objective.** Maximize total data downloaded, maximize coverage (number of successful contacts), or minimize the longest gap between contacts for any satellite.
+
+5. **Run and interpret.** The solver returns a contact schedule assigning each window to a ground station and time slot. Verify handoff gaps and antenna slew times are feasible.
+
+## Example: Satellite Ground Station Scheduling
+
+Schedule 8 satellite communication windows across 4 ground stations over a 24-hour period. Each window has a duration, data volume, and set of eligible stations. Stations need at least 30 minutes between contacts for antenna repositioning.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+windows = {
+    "W1": {"satellite": "SAT_A", "start": 0, "end": 4, "data": 120, "stations": ["GS1", "GS2"]},
+    "W2": {"satellite": "SAT_A", "start": 8, "end": 12, "data": 150, "stations": ["GS2", "GS3"]},
+    "W3": {"satellite": "SAT_B", "start": 2, "end": 6, "data": 100, "stations": ["GS1", "GS4"]},
+    "W4": {"satellite": "SAT_B", "start": 14, "end": 18, "data": 130, "stations": ["GS3", "GS4"]},
+    "W5": {"satellite": "SAT_C", "start": 1, "end": 5, "data": 110, "stations": ["GS1", "GS2"]},
+    "W6": {"satellite": "SAT_C", "start": 10, "end": 14, "data": 140, "stations": ["GS2", "GS3"]},
+    "W7": {"satellite": "SAT_D", "start": 6, "end": 10, "data": 160, "stations": ["GS3", "GS4"]},
+    "W8": {"satellite": "SAT_D", "start": 18, "end": 22, "data": 170, "stations": ["GS1", "GS4"]},
+}
+
+stations = ["GS1", "GS2", "GS3", "GS4"]
+handoff_gap = 0.5  # 30 min = 0.5 hours
+
+# Binary: assign window w to station s
+variables = [
+    {"name": f"{w}_{s}", "type": "binary"}
+    for w in windows
+    for s in windows[w]["stations"]
+]
+
+# Maximize total data downloaded
+objective = {
+    "sense": "maximize",
+    "coefficients": {
+        f"{w}_{s}": windows[w]['data']
+        for w in windows
+        for s in windows[w]["stations"]
+    },
+}
+
+constraints = []
+
+# Each window assigned to at most one station
+for w in windows:
+    constraints.append({
+        "name": f"assign_{w}",
+        "coefficients": {
+            f"{w}_{s}": 1 for s in windows[w]['stations']
+        },
+        "sense": "<=",
+        "rhs": 1,
+    })
+
+# No two overlapping windows on the same station
+# (check all pairs of windows sharing a station with overlapping times)
+for s in stations:
+    eligible = [w for w in windows if s in windows[w]["stations"]]
+    for i in range(len(eligible)):
+        for j in range(i + 1, len(eligible)):
+            w1, w2 = eligible[i], eligible[j]
+            # Check if time windows overlap (including handoff gap)
+            if windows[w1]["end"] + handoff_gap > windows[w2]["start"] and \
+               windows[w2]["end"] + handoff_gap > windows[w1]["start"]:
+                constraints.append({
+                    "name": f"conflict_{w1}_{w2}_{s}",
+                    "coefficients": {f"{w1}_{s}": 1, f"{w2}_{s}": 1},
+                    "sense": "<=",
+                    "rhs": 1,
+                })
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Total data downloaded: {result['objective_value']:.0f} MB")
+for w in windows:
+    for s in windows[w]["stations"]:
+        if result['solution'].get(f"{w}_{s}", 0) > 0.5:
+            print(f"  {w} ({windows[w]['satellite']}) -> {s} "
+                  f"[{windows[w]['start']}h-{windows[w]['end']}h, {windows[w]['data']}MB]")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/solve \
+  -H "Authorization: Bearer ok_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variables": [
+      {"name": "W1_GS1", "type": "binary"},
+      {"name": "W1_GS2", "type": "binary"},
+      {"name": "W3_GS1", "type": "binary"},
+      {"name": "W5_GS1", "type": "binary"}
+    ],
+    "objective": {
+      "sense": "maximize",
+      "coefficients": {
+        "W1_GS1": 120, "W1_GS2": 120,
+        "W3_GS1": 100, "W5_GS1": 110
+      }
+    },
+    "constraints": [
+      {
+        "name": "assign_W1",
+        "coefficients": {"W1_GS1": 1, "W1_GS2": 1},
+        "sense": "<=",
+        "rhs": 1
+      },
+      {
+        "name": "conflict_W1_W3_GS1",
+        "coefficients": {"W1_GS1": 1, "W3_GS1": 1},
+        "sense": "<=",
+        "rhs": 1
+      }
+    ]
+  }'
+```
+</CodeTabs>
+
+The solver maximizes total data throughput by assigning each communication window to the best available ground station while respecting handoff gaps and antenna conflicts.
+
+## Recommended Templates
+
+- **[Custom Optimization](/builder/templates/custom)** -- build a fully custom mission scheduling model with time windows, precedence, and resource constraints
+
+## Next Steps
+
+- **[Telecom Network Planning](/docs/guides/telecom-network)** (advanced) -- apply similar scheduling techniques to communication network design
+- **[Transportation Network Design](/docs/guides/transportation-network)** (advanced) -- explore network optimization for logistics and routing problems

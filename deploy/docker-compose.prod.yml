@@ -1,0 +1,1061 @@
+# Production Docker Compose.
+# Prereqs: .env.production with all secrets, jaot.io DNS, ports 80/443 open, `docker login ghcr.io`.
+# Migrations: `docker compose -f deploy/docker-compose.prod.yml --profile migrate run --rm migrate`.
+#
+# Celery split (Phase 6 INF-01/02, Phase 10 default renamed to jaot_default, Phase 7 hexaly HEX-01):
+#   celery_worker_default -> jaot_default (256M / 0.25 CPU)
+#   celery_worker_scip    -> solve_scip   (3G   / 2.0 CPU)
+#   celery_worker_highs   -> solve_highs  (1G   / 1.0 CPU)
+#   celery_worker_hexaly  -> solve_hexaly (2G   / 1.0 CPU) — platform license, see hexaly block
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "10"
+
+services:
+  postgres:
+    # postgres:18-alpine
+    image: postgres:18-alpine@sha256:035b9ab53cfa147d7202b61f5f7782b939ae815b7d6bc81c96b7b42ff1fca950
+    container_name: jaot_prod_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    volumes:
+      - jaot_postgres_data:/var/lib/postgresql
+      - jaot_wal_archive:/var/lib/postgresql/wal_archive
+      - ./config/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    networks:
+      - backend
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+          cpus: '2.0'
+          pids: 200
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging: *default-logging
+
+  redis:
+    # redis:7-alpine
+    image: redis:7-alpine@sha256:8b81dd37ff027bec4e516d41acfbe9fe2460070dc6d4a4570a2ac5b9d59df065
+    container_name: jaot_prod_redis
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - jaot_redis_data:/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - backend
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+          pids: 100
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    logging: *default-logging
+
+  rabbitmq:
+    # rabbitmq:3-management-alpine
+    image: rabbitmq:3-management-alpine@sha256:606d8c0d6b3c18d1da9afc53bc7cdb2a8d5486df91b5a9830e9e07626c9ae281
+    container_name: jaot_prod_rabbitmq
+    ports:
+      - "127.0.0.1:15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    volumes:
+      - jaot_rabbitmq_data:/var/lib/rabbitmq
+      - ./config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./config/rabbitmq-enabled-plugins:/etc/rabbitmq/enabled_plugins:ro
+    networks:
+      - backend
+      - monitoring
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+          pids: 200
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+
+  qdrant:
+    image: qdrant/qdrant:v1.13.4
+    container_name: jaot_prod_qdrant
+    volumes:
+      - jaot_qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY:-}
+    networks:
+      - backend
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+          pids: 100
+          cpus: '1.0'
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/6333'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    logging: *default-logging
+
+  api:
+    image: ghcr.io/${GHCR_OWNER:-avallavall}/jaot-api:latest
+    container_name: jaot_prod_api
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8001
+      - WORKERS=4
+      - RELOAD=False
+      - DEBUG=False
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672//
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - ALLOWED_ORIGINS=["https://jaot.io"]
+      - FRONTEND_URL=https://jaot.io
+      - DB_POOL_SIZE=5
+      - DB_MAX_OVERFLOW=5
+    env_file:
+      - ../.env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    networks:
+      - frontend
+      - backend
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    deploy:
+      resources:
+        limits:
+          # 4 uvicorn workers + SCIP sync solves on large models.
+          memory: 4G
+          cpus: '4.0'
+          pids: 256
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/api/v2/health/status')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging: *default-logging
+
+  # Default worker — email/webhooks/triggers/financial/cron. Isolated from solver workloads
+  # (D-04/D-14). 256M/0.25 CPU is aggressive — bump to 512M if financial batch (2-3am UTC) OOMs
+  # (DefaultQueueOOMRisk alert in 06-07 surfaces it).
+  celery_worker_default:
+    image: ghcr.io/${GHCR_OWNER:-avallavall}/jaot-worker:latest
+    container_name: jaot_prod_celery_default
+    command: ["celery", "-A", "app.shared.core.celery_app", "worker", "--loglevel=info", "--concurrency=2", "-Q", "jaot_default"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672//
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - DB_POOL_SIZE=5
+      - DB_MAX_OVERFLOW=5
+      # Consumer-side runtime guard (D-06) — asserts worker subscribed to expected queue before accepting a task.
+      - SOLVER_QUEUE=jaot_default
+    env_file:
+      - ../.env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    deploy:
+      resources:
+        limits:
+          # D-14: aggressive 256M/0.25 CPU — I/O-bound tasks only.
+          memory: 256M
+          cpus: '0.25'
+          pids: 64
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app.shared.core.celery_app", "inspect", "ping", "--timeout", "5"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging: *default-logging
+
+  # SCIP solver worker — 3G/2.0 CPU/256 pids (D-12, large MIP solves consume 1-2G each).
+  # Strict `-Q solve_scip` (D-05) — routing bug can't land a HiGHS job here.
+  celery_worker_scip:
+    image: ghcr.io/${GHCR_OWNER:-avallavall}/jaot-worker:latest
+    container_name: jaot_prod_celery_scip
+    command: ["celery", "-A", "app.shared.core.celery_app", "worker", "--loglevel=info", "--concurrency=2", "-Q", "solve_scip"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672//
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - DB_POOL_SIZE=5
+      - DB_MAX_OVERFLOW=5
+      - SOLVER_QUEUE=solve_scip
+    env_file:
+      - ../.env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+          cpus: '2.0'
+          pids: 256
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app.shared.core.celery_app", "inspect", "ping", "--timeout", "5"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging: *default-logging
+
+  # HiGHS solver worker — 1G/1.0 CPU/128 pids (D-13). Headroom for LP imports + multi-obj.
+  celery_worker_highs:
+    image: ghcr.io/${GHCR_OWNER:-avallavall}/jaot-worker:latest
+    container_name: jaot_prod_celery_highs
+    command: ["celery", "-A", "app.shared.core.celery_app", "worker", "--loglevel=info", "--concurrency=1", "-Q", "solve_highs"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672//
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - DB_POOL_SIZE=5
+      - DB_MAX_OVERFLOW=5
+      - SOLVER_QUEUE=solve_highs
+    env_file:
+      - ../.env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+          pids: 128
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app.shared.core.celery_app", "inspect", "ping", "--timeout", "5"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging: *default-logging
+
+  # OPTIONAL: Hexaly solver worker — dedicated image with the proprietary Hexaly SDK
+  # preinstalled (see requirements-hexaly.txt + deploy/docker/Dockerfile.worker.hexaly).
+  # Bring-your-own-license: /etc/jaot/hexaly.lic mounted read-only.
+  # HexalyAdapter.__init__ fail-fasts on missing/expired license. Per-solve activation via
+  # hexaly_license_scope context manager — sets HX_LICENSE_CONTENT on enter, unsets on exit
+  # (never persisted/logged). concurrency=1 — Hexaly metaheuristic is single-thread today and
+  # sequential exec narrows the license-leak surface to one task-frame.
+  celery_worker_hexaly:
+    # Gated behind `hexaly` profile — default `compose pull` skips this image. Activate with:
+    #   docker compose --profile hexaly -f deploy/docker-compose.prod.yml --env-file .env.production up -d celery_worker_hexaly
+    # Prereqs: (1) /etc/jaot/hexaly.lic on host (root:root 0600), (2) jaot-worker-hexaly image
+    # built from deploy/docker/Dockerfile.worker.hexaly and available to this host.
+    profiles: ["hexaly"]
+    image: ghcr.io/${GHCR_OWNER:-avallavall}/jaot-worker-hexaly:latest
+    container_name: jaot_prod_celery_hexaly
+    command: ["celery", "-A", "app.shared.core.celery_app", "worker", "--loglevel=info", "--concurrency=1", "-Q", "solve_hexaly", "-n", "hexaly@%h"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672//
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - DB_POOL_SIZE=5
+      - DB_MAX_OVERFLOW=5
+      - SOLVER_QUEUE=solve_hexaly
+      - CELERY_WORKER_NAME=hexaly
+    env_file:
+      - ../.env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      # Your Hexaly license — operator places on host before `deploy.sh standard-rotate`.
+      # HexalyAdapter.__init__ crash-loops on missing/expired (fail-fast, this worker only).
+      - /etc/jaot/hexaly.lic:/etc/jaot/hexaly.lic:ro
+    networks:
+      - backend
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+          pids: 128
+    healthcheck:
+      # Verifies worker consumes solve_hexaly (not just any celery worker). On bad/missing .lic,
+      # HexalyAdapter crashes → container unhealthy → CeleryWorkerDown alert fires.
+      test: ["CMD-SHELL", "celery -A app.shared.core.celery_app inspect active_queues --destination hexaly@* --timeout 5 | grep solve_hexaly || exit 1"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+    logging: *default-logging
+
+  celery_beat:
+    image: ghcr.io/${GHCR_OWNER:-avallavall}/jaot-worker:latest
+    container_name: jaot_prod_beat
+    command: ["celery", "-A", "app.shared.core.celery_app", "beat", "--loglevel=info",
+              "--scheduler", "sqlalchemy_celery_beat.schedulers:DatabaseScheduler",
+              "--pidfile=/tmp/celery-beat.pid"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672//
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - DB_POOL_SIZE=5
+      - DB_MAX_OVERFLOW=5
+    env_file:
+      - ../.env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.5'
+          pids: 100
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 $(cat /tmp/celery-beat.pid 2>/dev/null) 2>/dev/null || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+
+  frontend:
+    image: ghcr.io/${GHCR_OWNER:-avallavall}/jaot-frontend:latest
+    container_name: jaot_prod_frontend
+    environment:
+      # NEXT_PUBLIC_API_URL intentionally unset — browser uses same-origin via Caddy (cross-origin SameSite cookies).
+      - API_PROXY_URL=http://api:8001
+      - NODE_ENV=production
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - frontend
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+      # Next.js ISR / fetch cache. Without a writable path here the container's
+      # read_only:true makes `next: { revalidate }` a silent no-op (EROFS on
+      # /app/.next/cache), so every SSR render re-fetches the backend and the
+      # marketplace pages share one per-IP rate-limit bucket → 429s. A small
+      # tmpfs restores caching (lost on restart, which is fine for a cache).
+      # mode=1777 so the non-root container user (uid 1001) can write it.
+      - /app/.next/cache:size=128m,mode=1777
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+          pids: 100
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/en"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging: *default-logging
+
+  # Custom Caddy build with caddy-ratelimit plugin (see Dockerfile.caddy).
+  caddy:
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile.caddy
+    container_name: jaot_prod_caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./maintenance.html:/srv/maintenance.html:ro
+      - jaot_caddy_data:/data
+      - jaot_caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    networks:
+      - frontend
+      - monitoring
+    restart: unless-stopped
+    # Caddy is not an init: healthcheck wget follows the 80->https redirect and spawns a
+    # busybox ssl_client child per probe; unreaped zombies accumulated to the pids ceiling
+    # (~1 per 30s probe), eventually starving real request threads. tini reaps them.
+    init: true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '1.0'
+          # Caddy (Go runtime + rate-limit plugin) sits at ~99 threads; pids:100 starved the
+          # healthcheck fork (wget: fork: Resource temporarily unavailable) → 3 weeks unhealthy.
+          pids: 256
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "--header=Host: jaot.io", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
+
+  migrate:
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile.migrate
+    container_name: jaot_prod_migrate
+    profiles: ["migrate"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    env_file:
+      - ../.env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    restart: "no"
+    logging: *default-logging
+
+  prometheus:
+    # prom/prometheus:v3
+    image: prom/prometheus:v3@sha256:4a61322ac1103a0e3aea2a61ef1718422a48fa046441f299d71e660a3bc71ae9
+    container_name: jaot_prod_prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      # Qdrant scrape auth: key file read via http_headers `files:` (never inline in prometheus.yml).
+      - /opt/jaot/secrets/qdrant_metrics_key:/etc/prometheus/secrets/qdrant_api_key:ro
+      - jaot_prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+    depends_on:
+      alertmanager:
+        condition: service_started
+    networks:
+      - monitoring
+      - backend
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+          pids: 100
+    logging: *default-logging
+
+  node-exporter:
+    # prom/node-exporter:v1.9.1
+    image: prom/node-exporter:v1.9.1@sha256:d00a542e409ee618a4edc67da14dd48c5da66726bbd5537ab2af9c1dfc442c8a
+    container_name: jaot_prod_node_exporter
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+    # Exposes host PID namespace — required for accurate per-CPU + process metrics.
+    pid: host
+    networks:
+      - monitoring
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9100/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging: *default-logging
+
+  cadvisor:
+    # gcr.io/cadvisor/cadvisor:v0.52.1
+    image: gcr.io/cadvisor/cadvisor:v0.52.1@sha256:f40e65878e25c2e78ea037f73a449527a0fb994e303dc3e34cb6b187b4b91435
+    container_name: jaot_prod_cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    networks:
+      - monitoring
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging: *default-logging
+
+  grafana:
+    # grafana/grafana:12.4.0
+    image: grafana/grafana:12.4.0@sha256:b0ae311af06228bcfd4a620504b653db80f5b91e94dc3dc2a5b7dab202bcde20
+    container_name: jaot_prod_grafana
+    ports:
+      - "127.0.0.1:3001:3000"
+    volumes:
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - jaot_grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-jaot_admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3001
+      - GF_SERVER_DOMAIN=localhost
+      - GF_SECURITY_DISABLE_GRAVATAR=true
+      - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_STRICT_TRANSPORT_SECURITY=true
+      - GF_SECURITY_CONTENT_SECURITY_POLICY=true
+      - GF_SNAPSHOTS_EXTERNAL_ENABLED=false
+    depends_on:
+      prometheus:
+        condition: service_started
+    networks:
+      - monitoring
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+          pids: 100
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging: *default-logging
+
+  alertmanager:
+    # prom/alertmanager:v0.28.1
+    image: prom/alertmanager:v0.28.1@sha256:27c475db5fb156cab31d5c18a4251ac7ed567746a2483ff264516437a39b15ba
+    container_name: jaot_prod_alertmanager
+    entrypoint: ["/bin/sh", "/etc/alertmanager/entrypoint.sh"]
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    environment:
+      - ALERT_EMAIL_RECIPIENT=${ALERT_EMAIL_RECIPIENT:?ALERT_EMAIL_RECIPIENT must be set}
+    volumes:
+      - ../monitoring/alertmanager/alertmanager.yml.tmpl:/etc/alertmanager/alertmanager.yml.tmpl:ro
+      - ../monitoring/alertmanager/entrypoint.sh:/etc/alertmanager/entrypoint.sh:ro
+      - ../secrets/resend_api_key:/run/secrets/resend_api_key:ro
+      - jaot_alertmanager_data:/alertmanager
+    networks:
+      - monitoring
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging: *default-logging
+
+  postgres-exporter:
+    # prometheuscommunity/postgres-exporter:v0.16.0
+    image: prometheuscommunity/postgres-exporter:v0.16.0@sha256:6999a7657e2f2fb0ca6ebf417213eebf6dc7d21b30708c622f6fcb11183a2bb0
+    container_name: jaot_prod_postgres_exporter
+    environment:
+      DATA_SOURCE_URI: "postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      DATA_SOURCE_USER: ${POSTGRES_USER}
+      DATA_SOURCE_PASS: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend
+      - monitoring
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.25'
+          pids: 100
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9187/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging: *default-logging
+
+  redis-exporter:
+    # oliver006/redis_exporter:v1.67.0
+    image: oliver006/redis_exporter:v1.67.0@sha256:120f7ec77293459ccfdad66bb1db75ab72e8bfeab99f58b1cc2564cadcd7a9e7
+    container_name: jaot_prod_redis_exporter
+    environment:
+      REDIS_ADDR: "redis:6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+      - monitoring
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+          cpus: '0.25'
+          pids: 100
+    healthcheck:
+      # Scratch-based image: no shell, no wget — any exec healthcheck is broken by construction.
+      # Prometheus scrapes the exporter directly, which is the real liveness signal.
+      test: ["NONE"]
+    logging: *default-logging
+
+  # celery-exporter pinned by sha256 (D-26, same rigour as the rest of the monitoring stack).
+  celery-exporter:
+    image: danihodovic/celery-exporter:0.12.2@sha256:91e0b314cb5d62f0b2cd0ccdd059178d2d26f816ae0df2a4eeeb6b3c6feb5937
+    container_name: jaot_prod_celery_exporter
+    environment:
+      CE_BROKER_URL: "amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672//"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend
+      - monitoring
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:9808/metrics')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
+
+  blackbox-exporter:
+    # prom/blackbox-exporter:v0.25.0
+    image: prom/blackbox-exporter:v0.25.0@sha256:b04a9fef4fa086a02fc7fcd8dcdbc4b7b35cc30cdee860fdc6a19dd8b208d63e
+    container_name: jaot_prod_blackbox
+    volumes:
+      - ../monitoring/blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    networks:
+      - monitoring
+      - frontend
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+    logging: *default-logging
+
+  # Plausible CE v3.2.0 (Phase 8) — 3 containers (postgres 16, clickhouse 24.12, phoenix app).
+  # Caddy publicly exposes ONLY /js/script.js + /api/event; dashboard via SSH tunnel (see RUNBOOK-plausible.md).
+  # App shares `frontend` network with Caddy; DBs stay on `plausible_backend` (internal: true).
+  plausible_db:
+    image: postgres:16-alpine
+    container_name: jaot_prod_plausible_db
+    environment:
+      POSTGRES_PASSWORD: ${PLAUSIBLE_POSTGRES_PASSWORD}
+    volumes:
+      - jaot_plausible_db_data:/var/lib/postgresql/data
+    networks:
+      - plausible_backend
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+          pids: 100
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    logging: *default-logging
+
+  plausible_events_db:
+    image: clickhouse/clickhouse-server:24.12-alpine
+    container_name: jaot_prod_plausible_clickhouse
+    environment:
+      CLICKHOUSE_SKIP_USER_SETUP: "1"
+    volumes:
+      - jaot_plausible_event_data:/var/lib/clickhouse
+      - jaot_plausible_event_logs:/var/log/clickhouse-server
+      - ./plausible/clickhouse/ipv4-only.xml:/etc/clickhouse-server/config.d/ipv4-only.xml:ro
+      - ./plausible/clickhouse/logs.xml:/etc/clickhouse-server/config.d/logs.xml:ro
+      - ./plausible/clickhouse/low-resources.xml:/etc/clickhouse-server/config.d/low-resources.xml:ro
+      - ./plausible/clickhouse/default-profile-low-resources-overrides.xml:/etc/clickhouse-server/users.d/default-profile-low-resources-overrides.xml:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    networks:
+      - plausible_backend
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    cap_add:
+      # ClickHouse entrypoint runs as root briefly to chown its dirs, then drops privileges.
+      # Without these caps it loops on `chown: Operation not permitted` and never becomes healthy.
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          # ClickHouse 24.12 needs ~2GB to start BackgroundSchedulePool (1G crashed early-init).
+          memory: 2G
+          cpus: '1.0'
+          # NO pids limit — ClickHouse spawns 512+ OS threads at startup; `pids: 200` caused
+          # `Not enough threads` → SIGABRT → SIGSEGV. ClickHouse is the outlier vs other services.
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 -O - http://127.0.0.1:8123/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    logging: *default-logging
+
+  plausible:
+    image: ghcr.io/plausible/community-edition:v3.2.0
+    container_name: jaot_prod_plausible
+    # Auto-creates DBs + migrates on every start (idempotent). start_period: 90s covers migration window.
+    command: sh -c "/entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
+    ports:
+      # SSH-tunnel target — 127.0.0.1 only (dashboard never reaches public internet).
+      # Operator: `ssh -L 8000:127.0.0.1:8800 jaot@<SERVER_IP>` then http://localhost:8000/login.
+      # Port 8800 maps to the container's internal 8000.
+      - "127.0.0.1:8800:8000"
+    environment:
+      TMPDIR: /var/lib/plausible/tmp
+      BASE_URL: https://plausible.jaot.io
+      # SECRET_KEY_BASE >= 64 bytes — generate with `openssl rand -base64 48`.
+      SECRET_KEY_BASE: ${PLAUSIBLE_SECRET_KEY_BASE}
+      DISABLE_REGISTRATION: "true"
+      DATABASE_URL: postgres://postgres:${PLAUSIBLE_POSTGRES_PASSWORD}@plausible_db:5432/plausible_db
+      CLICKHOUSE_DATABASE_URL: http://plausible_events_db:8123/plausible_events_db
+      HTTP_PORT: "8000"
+      ENABLE_EMAIL_VERIFICATION: "false"
+    # NO env_file — sealed third-party app, would leak unrelated JAOT secrets (JWT_SECRET, ANTHROPIC_API_KEY).
+    # The PLAUSIBLE_* vars above are interpolated by compose from the env-file at process start.
+    depends_on:
+      plausible_db:
+        condition: service_healthy
+      plausible_events_db:
+        condition: service_healthy
+    volumes:
+      - jaot_plausible_app_data:/var/lib/plausible
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    networks:
+      - plausible_backend   # to reach plausible_db + plausible_events_db
+      - frontend            # shared with caddy (which is on [frontend, monitoring])
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    cap_add:
+      # Plausible entrypoint chowns TMPDIR/volume root before dropping privileges (mirrors postgres pattern).
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+          pids: 200
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 -O - http://127.0.0.1:8000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      # 180s grace — cold disk + ClickHouse init + Ecto migrations + Phoenix boot can exceed 90s.
+      # Tight start_period cascades into downstream `service_healthy` failures (Caddy proxy).
+      start_period: 180s
+    logging: *default-logging
+
+volumes:
+  jaot_postgres_data:
+    labels:
+      com.jaot.service: "postgres"
+      com.jaot.backup: "daily"
+  jaot_wal_archive:
+    labels:
+      com.jaot.service: "postgres"
+      com.jaot.backup: "continuous"
+  jaot_redis_data:
+    labels:
+      com.jaot.service: "redis"
+  jaot_rabbitmq_data:
+    labels:
+      com.jaot.service: "rabbitmq"
+  jaot_qdrant_data:
+    labels:
+      com.jaot.service: "qdrant"
+  jaot_caddy_data:
+    labels:
+      com.jaot.service: "caddy"
+  jaot_caddy_config:
+    labels:
+      com.jaot.service: "caddy"
+  jaot_prometheus_data:
+    labels:
+      com.jaot.service: "prometheus"
+  jaot_grafana_data:
+    labels:
+      com.jaot.service: "grafana"
+  jaot_alertmanager_data:
+    labels:
+      com.jaot.service: "alertmanager"
+  jaot_plausible_db_data:
+    labels:
+      com.jaot.service: "plausible-postgres"
+      com.jaot.backup: "daily"
+  jaot_plausible_event_data:
+    labels:
+      com.jaot.service: "plausible-clickhouse"
+      com.jaot.backup: "daily"
+  jaot_plausible_event_logs:
+    labels:
+      com.jaot.service: "plausible-clickhouse"
+  jaot_plausible_app_data:
+    labels:
+      com.jaot.service: "plausible"
+
+networks:
+  frontend:
+    name: jaot_prod_frontend
+  backend:
+    name: jaot_prod_backend
+  monitoring:
+    name: jaot_prod_monitoring
+  plausible_backend:
+    name: jaot_prod_plausible_backend
+    internal: true

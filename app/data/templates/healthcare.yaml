@@ -1,0 +1,303 @@
+category: healthcare
+category_display_name: Healthcare & Nutrition
+
+templates:
+  - id: diet_optimization
+    name: Diet Optimizer
+    display_name: Diet Optimization
+    short_description: Find the minimum-cost combination of foods that meets all daily nutritional requirements.
+    description: >
+      Select food quantities to minimize total daily food cost while satisfying minimum
+      requirements for calories, protein, calcium, fiber, and other nutrients. Each food
+      has a per-unit cost and a nutritional profile. The solver outputs the optimal
+      daily portions. This is the classic linear programming diet problem, useful for
+      meal planning, institutional catering, and humanitarian food-aid logistics.
+    scenario_description: >
+      A university cafeteria planner must design a daily menu using 5 staple items
+      (bread, milk, eggs, chicken, rice). Each item has a known cost per serving and
+      nutrient content. The menu must provide at least 2,000 kcal, 50 g protein,
+      800 mg calcium, and 25 g fiber at the lowest possible cost.
+    category: healthcare
+    tags: [healthcare, diet, nutrition, meal-planning, cost]
+    problem_type_tags: [LP]
+    generator_type: blending
+    generator_params:
+      mode: absolute
+    input_schema:
+      type: object
+      required: [ingredients, targets]
+      properties:
+        ingredients: {type: array}
+        targets: {type: array}
+        mix_quantity_min: {type: number}
+        mix_quantity_max: {type: number}
+    input_fields:
+      - name: ingredients
+        label: Food Items
+        type: array
+        description: Available foods with cost per serving and nutrient content
+        required: true
+        items:
+          type: object
+          properties:
+            id: {type: string}
+            name: {type: string}
+            price: {type: number, description: "Cost per serving"}
+            quantity_max: {type: number, description: "Max servings (-1 unlimited)"}
+            nutrients:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: {type: string}
+                  amount: {type: number}
+      - name: targets
+        label: Nutritional Requirements
+        type: array
+        description: Minimum (and optional maximum) daily nutrient amounts
+        required: true
+        items:
+          type: object
+          properties:
+            id: {type: string, description: "Nutrient identifier"}
+            min: {type: number, description: "Minimum daily amount"}
+            max: {type: number, description: "Maximum daily amount (0 = no limit)"}
+    example_input:
+      ingredients:
+        - id: bread
+          name: Bread
+          price: 2.0
+          quantity_max: 10
+          nutrients:
+            - {id: calories, amount: 250}
+            - {id: protein, amount: 8}
+            - {id: calcium, amount: 20}
+            - {id: fiber, amount: 2}
+        - id: milk
+          name: Milk
+          price: 3.5
+          quantity_max: 10
+          nutrients:
+            - {id: calories, amount: 150}
+            - {id: protein, amount: 8}
+            - {id: calcium, amount: 300}
+            - {id: fiber, amount: 0}
+        - id: eggs
+          name: Eggs
+          price: 1.5
+          quantity_max: 10
+          nutrients:
+            - {id: calories, amount: 80}
+            - {id: protein, amount: 6}
+            - {id: calcium, amount: 25}
+            - {id: fiber, amount: 0}
+        - id: chicken
+          name: Chicken
+          price: 5.0
+          quantity_max: 5
+          nutrients:
+            - {id: calories, amount: 200}
+            - {id: protein, amount: 25}
+            - {id: calcium, amount: 10}
+            - {id: fiber, amount: 0}
+        - id: rice
+          name: Rice
+          price: 2.5
+          quantity_max: 10
+          nutrients:
+            - {id: calories, amount: 130}
+            - {id: protein, amount: 3}
+            - {id: calcium, amount: 10}
+            - {id: fiber, amount: 1}
+      targets:
+        - {id: calories, min: 2000, max: 0}
+        - {id: protein, min: 50, max: 0}
+        - {id: calcium, min: 800, max: 0}
+        - {id: fiber, min: 25, max: 0}
+    is_featured: true
+    estimated_variables: 5
+    estimated_constraints: 4
+
+  - id: nurse_scheduling
+    name: Nurse Scheduling Optimizer
+    display_name: Nurse Scheduling
+    short_description: Create weekly nurse shift schedules that meet ward coverage requirements while respecting labour rules and preferences.
+    description: >
+      Assign nurses to shifts across a week so that every ward has adequate staffing
+      at all times. The solver minimizes total labour cost (or maximizes preference
+      satisfaction) while enforcing minimum rest between shifts, maximum hours per
+      week, and unavailability windows. The output is a ready-to-post weekly roster
+      that balances fairness and cost.
+    scenario_description: >
+      A hospital ward has 8 nurses covering 14 shifts per week (morning and evening,
+      7 days). Each shift needs 2-3 nurses. Nurses have maximum 40-hour weeks, at
+      least 10 hours between shifts, and some have day-off requests. The head nurse
+      wants the cheapest compliant schedule.
+    category: healthcare
+    tags: [healthcare, nursing, scheduling, shifts, hospital]
+    problem_type_tags: [MIP]
+    generator_type: scheduling
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [employees, shifts]
+      properties:
+        employees: {type: array}
+        shifts: {type: array}
+        objective: {type: string}
+    input_fields:
+      - name: employees
+        label: Nurses
+        type: array
+        description: Nurses with hourly rates and availability
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            hourly_cost: {type: number}
+            max_hours: {type: number}
+            min_hours: {type: number}
+            unavailable_shifts: {type: array, items: {type: string}}
+      - name: shifts
+        label: Shifts
+        type: array
+        description: Shifts to staff with required headcount
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            duration_hours: {type: number}
+            min_employees: {type: integer}
+            max_employees: {type: integer}
+      - name: objective
+        label: Objective
+        type: string
+        description: Minimize cost or number of shifts
+        required: false
+        enum: [minimize_cost, minimize_shifts]
+        default: minimize_cost
+    example_input:
+      employees:
+        - {name: nurse_anna, hourly_cost: 32, max_hours: 40, min_hours: 16}
+        - {name: nurse_ben, hourly_cost: 30, max_hours: 40, min_hours: 16}
+        - {name: nurse_clara, hourly_cost: 35, max_hours: 32, min_hours: 8, unavailable_shifts: [evening_sat, evening_sun]}
+        - {name: nurse_david, hourly_cost: 28, max_hours: 40, min_hours: 24}
+        - {name: nurse_elena, hourly_cost: 33, max_hours: 40, min_hours: 16}
+        - {name: nurse_frank, hourly_cost: 29, max_hours: 40, min_hours: 8, unavailable_shifts: [morning_wed]}
+        - {name: nurse_grace, hourly_cost: 31, max_hours: 36, min_hours: 16}
+        - {name: nurse_henry, hourly_cost: 34, max_hours: 40, min_hours: 16}
+      shifts:
+        - {name: morning_mon, duration_hours: 8, min_employees: 2, max_employees: 3}
+        - {name: evening_mon, duration_hours: 8, min_employees: 2, max_employees: 3}
+        - {name: morning_tue, duration_hours: 8, min_employees: 2, max_employees: 3}
+        - {name: evening_tue, duration_hours: 8, min_employees: 2, max_employees: 3}
+        - {name: morning_wed, duration_hours: 8, min_employees: 2, max_employees: 3}
+        - {name: evening_wed, duration_hours: 8, min_employees: 2, max_employees: 3}
+        - {name: morning_thu, duration_hours: 8, min_employees: 2, max_employees: 3}
+        - {name: evening_thu, duration_hours: 8, min_employees: 2, max_employees: 3}
+        - {name: morning_fri, duration_hours: 8, min_employees: 2, max_employees: 3}
+        - {name: evening_fri, duration_hours: 8, min_employees: 2, max_employees: 3}
+        - {name: morning_sat, duration_hours: 8, min_employees: 2, max_employees: 3}
+        - {name: evening_sat, duration_hours: 8, min_employees: 2, max_employees: 3}
+        - {name: morning_sun, duration_hours: 8, min_employees: 2, max_employees: 3}
+        - {name: evening_sun, duration_hours: 8, min_employees: 2, max_employees: 3}
+      objective: minimize_cost
+    is_featured: true
+    estimated_variables: 112
+    estimated_constraints: 30
+
+  - id: operating_room_scheduling
+    name: Operating Room Scheduling Optimizer
+    display_name: Operating Room Scheduling
+    short_description: Schedule surgeries across operating rooms and time blocks to maximize throughput while respecting surgeon and equipment availability.
+    description: >
+      Assign surgical cases to operating rooms and time blocks to maximize the number
+      of completed surgeries (or minimize idle time). Each surgery has a duration, a
+      required surgeon, and equipment needs. The solver ensures no room or surgeon is
+      double-booked and that all mandatory cases are scheduled within the planning
+      window. Useful for hospital operations managers.
+    scenario_description: >
+      A hospital has 3 operating rooms available for 5 daily time blocks (08:00-16:00
+      in 90-minute slots). Ten elective surgeries of varying durations (45-180 min) are
+      pending. Three surgeons are available with different schedules. The surgical
+      coordinator wants to fit as many cases as possible into tomorrow's schedule.
+    category: healthcare
+    tags: [healthcare, hospital, surgery, scheduling, operating-room]
+    problem_type_tags: [MIP]
+    generator_type: assignment
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [workers, tasks, costs]
+      properties:
+        workers: {type: array}
+        tasks: {type: array}
+        costs: {type: object}
+    input_fields:
+      - name: workers
+        label: Surgeries
+        type: array
+        description: Surgical cases to schedule
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: tasks
+        label: Room-Time Slots
+        type: array
+        description: Available operating room time slots
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: costs
+        label: Scheduling Cost Matrix
+        type: object
+        description: "Cost (or negative priority) for each surgery-slot pair"
+        required: true
+    example_input:
+      workers:
+        - {name: surgery_knee}
+        - {name: surgery_hip}
+        - {name: surgery_hernia}
+        - {name: surgery_appendix}
+        - {name: surgery_cataract}
+      tasks:
+        - {name: OR1_block1}
+        - {name: OR1_block2}
+        - {name: OR2_block1}
+        - {name: OR2_block2}
+        - {name: OR3_block1}
+      costs:
+        surgery_knee_OR1_block1: 2
+        surgery_knee_OR1_block2: 3
+        surgery_knee_OR2_block1: 2
+        surgery_knee_OR2_block2: 5
+        surgery_knee_OR3_block1: 4
+        surgery_hip_OR1_block1: 3
+        surgery_hip_OR1_block2: 2
+        surgery_hip_OR2_block1: 4
+        surgery_hip_OR2_block2: 2
+        surgery_hip_OR3_block1: 5
+        surgery_hernia_OR1_block1: 1
+        surgery_hernia_OR1_block2: 1
+        surgery_hernia_OR2_block1: 2
+        surgery_hernia_OR2_block2: 2
+        surgery_hernia_OR3_block1: 1
+        surgery_appendix_OR1_block1: 2
+        surgery_appendix_OR1_block2: 3
+        surgery_appendix_OR2_block1: 1
+        surgery_appendix_OR2_block2: 3
+        surgery_appendix_OR3_block1: 2
+        surgery_cataract_OR1_block1: 1
+        surgery_cataract_OR1_block2: 1
+        surgery_cataract_OR2_block1: 1
+        surgery_cataract_OR2_block2: 1
+        surgery_cataract_OR3_block1: 1
+    is_featured: false
+    estimated_variables: 25
+    estimated_constraints: 10

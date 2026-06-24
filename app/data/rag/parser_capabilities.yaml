@@ -1,0 +1,52 @@
+# Expression parser capabilities for RAG knowledge base.
+# Tells the LLM what JAOT's solver can and cannot handle,
+# guiding it to generate compatible formulations.
+
+documents:
+  - id: supported_operators
+    title: Supported Operators and Functions
+    text: >
+      JAOT expression parser supports: arithmetic operators (+, -, *, /),
+      power operator (**), comparison operators (<=, >=, ==), and functions
+      sum(), min(), max(), abs(). Variable names use snake_case with
+      alphanumeric characters and underscores. Index notation: x_1, x_2,
+      x_i_j for subscripted variables. Parentheses for grouping.
+
+  - id: variable_types
+    title: Supported Variable Types
+    text: >
+      Three variable types: continuous (real-valued: production amounts,
+      flows, weights), integer (whole numbers: workers, vehicles, items),
+      binary (0-1 decisions: assign, select, open/close). Always specify
+      bounds when the domain is naturally bounded (lower_bound: 0 for
+      quantities). Binary variables automatically have bounds [0, 1].
+
+  - id: limitations
+    title: Parser Limitations
+    text: >
+      The JAOT expression parser does NOT support: piecewise functions
+      (use linearization), if-then-else in expressions (use Big-M
+      reformulation), logarithmic or trigonometric functions (not LP/MIP
+      compatible), indicator constraints directly (use Big-M), SOS1/SOS2
+      constraints directly (use binary reformulation). For nonlinear
+      relationships, always reformulate to linear equivalents.
+
+  - id: big_m_patterns
+    title: Big-M Reformulation Patterns
+    text: >
+      To model conditional constraints in JAOT, use Big-M reformulation.
+      Pattern: "a*x <= b + M*(1-y)" where y is binary and M is a tight
+      upper bound. For "if y=1 then x <= 5": write "x <= 5 + M*(1-y)".
+      For "if y=0 then x = 0": write "x <= M*y". Always compute M from
+      variable bounds, never use arbitrary large values like 1000000.
+
+  - id: formulation_best_practices
+    title: Formulation Best Practices for JAOT
+    text: >
+      Prefer LP over MIP over NLP (linear is fastest). Use binary
+      variables only when necessary (yes/no decisions). Minimize the
+      number of integer variables. Use tight variable bounds to
+      strengthen the LP relaxation. Name variables descriptively
+      (workers_shift_1 not x_1). Write constraints with all variables
+      on the left and constant on the right. Use sum() for indexed
+      expressions. Ensure dimensional consistency across all terms.

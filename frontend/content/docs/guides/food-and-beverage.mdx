@@ -1,0 +1,169 @@
+---
+title: "Food & Beverage Production"
+description: "Plan recipes, batches, and production runs for food manufacturing"
+order: 4
+category: "food_beverage"
+difficulty: "intermediate"
+domain: "Manufacturing"
+templateCount: 1
+---
+
+# Food & Beverage Production
+
+Food and beverage optimization helps manufacturers **formulate recipes and plan production** to minimize ingredient costs while meeting nutritional, quality, and regulatory requirements. The example below shows recipe cost minimization: given a set of ingredients with known costs and nutrient profiles, find the least expensive blend that satisfies a target nutritional spec.
+
+## Step-by-Step Walkthrough
+
+**1. Define ingredients and their properties**
+
+List available ingredients with their costs per unit, nutritional content (protein, fat, fiber, calories), and availability limits. For example, oats cost $1.20/kg with 13% protein and 7% fat.
+
+**2. Set nutritional or quality targets**
+
+Define the minimum and maximum levels for each nutrient or quality metric in the final product. A protein bar might require at least 20g protein and no more than 8g fat per serving.
+
+**3. Add practical constraints**
+
+Include real-world limitations:
+- Ingredient availability or seasonal limits
+- Allergen restrictions (no nuts, gluten-free)
+- Taste or texture requirements (minimum/maximum percentages of specific ingredients)
+- Shelf life considerations
+
+**4. Configure the objective**
+
+Typically **minimize total ingredient cost** per batch. Alternatively, maximize nutritional value or minimize calorie count for a health-focused product.
+
+![Food & Beverage Optimization in JAOT Builder](/guides/manufacturing/food-beverage-builder.png)
+
+**5. Review the optimal recipe**
+
+The solver returns the ideal mix of ingredients. Verify the recipe makes practical sense (taste, texture) and adjust constraints if needed. Run sensitivity analysis to see how ingredient price changes would affect the recipe.
+
+## Example Parameters
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+# Minimize cost of a protein bar recipe (per 100g batch)
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": [
+        {"name": "oats_grams", "type": "continuous", "lb": 0, "ub": 60},
+        {"name": "whey_protein_grams", "type": "continuous", "lb": 0, "ub": 40},
+        {"name": "honey_grams", "type": "continuous", "lb": 0, "ub": 25},
+        {"name": "almonds_grams", "type": "continuous", "lb": 0, "ub": 30},
+        {"name": "cocoa_butter_grams", "type": "continuous", "lb": 0, "ub": 15},
+    ],
+    "objective": {
+        "sense": "minimize",
+        "coefficients": {
+            "oats_grams": 0.0012,
+            "whey_protein_grams": 0.008,
+            "honey_grams": 0.005,
+            "almonds_grams": 0.006,
+            "cocoa_butter_grams": 0.009,
+        },
+    },
+    "constraints": [
+        {
+            "name": "total_weight",
+            "coefficients": {
+                "oats_grams": 1, "whey_protein_grams": 1,
+                "honey_grams": 1, "almonds_grams": 1, "cocoa_butter_grams": 1
+            },
+            "sense": "==",
+            "rhs": 100,
+        },
+        {
+            "name": "min_protein",
+            "coefficients": {
+                "oats_grams": 0.13, "whey_protein_grams": 0.80,
+                "honey_grams": 0.003, "almonds_grams": 0.21, "cocoa_butter_grams": 0.0
+            },
+            "sense": ">=",
+            "rhs": 20,
+        },
+        {
+            "name": "max_fat",
+            "coefficients": {
+                "oats_grams": 0.07, "whey_protein_grams": 0.01,
+                "honey_grams": 0.0, "almonds_grams": 0.49, "cocoa_butter_grams": 0.57
+            },
+            "sense": "<=",
+            "rhs": 12,
+        },
+    ],
+})
+result = response.json()
+
+print(f"Minimum cost per bar: ${result['objective_value']:.4f}")
+for var in result["variables"]:
+    if var["value"] > 0.1:
+        print(f"  {var['name']}: {var['value']:.1f}g")
+```
+```json
+{
+  "variables": [
+    {"name": "oats_grams", "type": "continuous", "lb": 0, "ub": 60},
+    {"name": "whey_protein_grams", "type": "continuous", "lb": 0, "ub": 40},
+    {"name": "honey_grams", "type": "continuous", "lb": 0, "ub": 25},
+    {"name": "almonds_grams", "type": "continuous", "lb": 0, "ub": 30},
+    {"name": "cocoa_butter_grams", "type": "continuous", "lb": 0, "ub": 15}
+  ],
+  "objective": {
+    "sense": "minimize",
+    "coefficients": {
+      "oats_grams": 0.0012,
+      "whey_protein_grams": 0.008,
+      "honey_grams": 0.005,
+      "almonds_grams": 0.006,
+      "cocoa_butter_grams": 0.009
+    }
+  },
+  "constraints": [
+    {
+      "name": "total_weight",
+      "coefficients": {
+        "oats_grams": 1, "whey_protein_grams": 1,
+        "honey_grams": 1, "almonds_grams": 1, "cocoa_butter_grams": 1
+      },
+      "sense": "==",
+      "rhs": 100
+    },
+    {
+      "name": "min_protein",
+      "coefficients": {
+        "oats_grams": 0.13, "whey_protein_grams": 0.80,
+        "honey_grams": 0.003, "almonds_grams": 0.21, "cocoa_butter_grams": 0.0
+      },
+      "sense": ">=",
+      "rhs": 20
+    },
+    {
+      "name": "max_fat",
+      "coefficients": {
+        "oats_grams": 0.07, "whey_protein_grams": 0.01,
+        "honey_grams": 0.0, "almonds_grams": 0.49, "cocoa_butter_grams": 0.57
+      },
+      "sense": "<=",
+      "rhs": 12
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+- **[Recipe Optimization](/builder/templates/recipe_optimization)** -- minimize ingredient costs while meeting nutritional targets
+- **[Production Planning Optimizer](/builder/templates/production_planning)** -- schedule food production runs across lines to maximize throughput
+
+## Next Steps
+
+- **[Agricultural Planning](/docs/guides/agricultural-planning)** -- Optimize crop rotation and supply planning for raw ingredients `beginner`
+- **[Chemical Process Optimization](/docs/guides/chemical-process)** -- Apply blending and process optimization to more complex formulations `advanced`
+- **[Production Planning](/docs/guides/production-planning)** -- Broader manufacturing scheduling across product lines `intermediate`

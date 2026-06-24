@@ -1,0 +1,161 @@
+---
+title: "Workforce Scheduling"
+description: "Build shift schedules that balance coverage, fairness, and labor costs"
+order: 27
+category: "hr"
+difficulty: "intermediate"
+domain: "Services"
+templateCount: 2
+---
+
+# Workforce Scheduling
+
+Create optimal staff schedules that balance shift coverage, employee fairness, and labor costs. Whether you are scheduling nurses, retail associates, or call center agents, optimization ensures every shift is covered while respecting availability, skill requirements, and maximum-hours rules.
+
+## When to Use This Guide
+
+Use this guide when you have people to assign to time slots under coverage and fairness rules:
+
+- **Shift scheduling** -- assign employees to shifts across days while meeting minimum coverage per shift
+- **Workforce planning** -- determine how many staff to hire or schedule for peak and off-peak periods
+- **Skill-based assignment** -- match employees to roles that require specific certifications or experience
+- **Overtime minimization** -- keep total hours below thresholds to control premium pay
+
+## Step-by-Step Walkthrough
+
+1. **List your employees.** For each person, record their skills, availability windows, and maximum weekly hours.
+
+2. **Define shift requirements.** Specify how many workers are needed per shift and any skill requirements (e.g., "at least one certified forklift operator on every morning shift").
+
+3. **Set constraints.** Typical constraints include maximum hours per employee, minimum rest between shifts, and day-off requests.
+
+4. **Choose your objective.** Common choices are minimizing total labor cost, minimizing overtime, or maximizing schedule fairness (balancing hours evenly).
+
+5. **Run and review.** The solver returns an assignment matrix showing which employee works which shift on which day. Review for practical adjustments.
+
+## Example: Weekly Shift Schedule
+
+Schedule 10 employees across 3 shifts (morning, afternoon, night) over 5 days. Each shift needs at least 2 workers. Each employee can work at most 5 shifts per week. Certain employees have skill certifications required for specific shifts.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+employees = [f"emp_{i}" for i in range(1, 11)]
+shifts = ["morning", "afternoon", "night"]
+days = ["mon", "tue", "wed", "thu", "fri"]
+
+# Hourly cost per employee (varies by seniority)
+cost = {f"emp_{i}": 20 + i for i in range(1, 11)}
+
+# Binary variable: does employee e work shift s on day d?
+variables = []
+for e in employees:
+    for d in days:
+        for s in shifts:
+            variables.append({
+                "name": f"{e}_{d}_{s}",
+                "type": "binary",
+            })
+
+# Objective: minimize total cost (8-hour shifts)
+objective = {
+    "sense": "minimize",
+    "coefficients": {
+        f"{e}_{d}_{s}": cost[e] * 8
+        for e in employees for d in days for s in shifts
+    },
+}
+
+constraints = []
+
+# Each shift on each day needs at least 2 workers
+for d in days:
+    for s in shifts:
+        constraints.append({
+            "name": f"coverage_{d}_{s}",
+            "coefficients": {f"{e}_{d}_{s}": 1 for e in employees},
+            "sense": ">=",
+            "rhs": 2,
+        })
+
+# Each employee works at most 1 shift per day
+for e in employees:
+    for d in days:
+        constraints.append({
+            "name": f"one_shift_{e}_{d}",
+            "coefficients": {f"{e}_{d}_{s}": 1 for s in shifts},
+            "sense": "<=",
+            "rhs": 1,
+        })
+
+# Each employee works at most 5 shifts per week
+for e in employees:
+    constraints.append({
+        "name": f"max_shifts_{e}",
+        "coefficients": {f"{e}_{d}_{s}": 1 for d in days for s in shifts},
+        "sense": "<=",
+        "rhs": 5,
+    })
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Total weekly cost: ${result['objective_value']:.2f}")
+for e in employees:
+    assigned = [
+        f"{d}/{s}" for d in days for s in shifts
+        if result['solution'][f"{e}_{d}_{s}"] > 0.5
+    ]
+    print(f"  {e}: {', '.join(assigned)}")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/solve \
+  -H "Authorization: Bearer ok_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variables": [
+      {"name": "emp_1_mon_morning", "type": "binary"},
+      {"name": "emp_1_mon_afternoon", "type": "binary"},
+      {"name": "emp_1_mon_night", "type": "binary"}
+    ],
+    "objective": {
+      "sense": "minimize",
+      "coefficients": {
+        "emp_1_mon_morning": 168,
+        "emp_1_mon_afternoon": 168,
+        "emp_1_mon_night": 168
+      }
+    },
+    "constraints": [
+      {
+        "name": "coverage_mon_morning",
+        "coefficients": {"emp_1_mon_morning": 1, "emp_2_mon_morning": 1},
+        "sense": ">=",
+        "rhs": 2
+      }
+    ]
+  }'
+```
+</CodeTabs>
+
+The solver assigns the lowest-cost employees first while ensuring every shift has at least 2 workers and no one exceeds their weekly maximum.
+
+## Recommended Templates
+
+- **[Employee Scheduling Optimizer](/builder/templates/employee_scheduling)** -- pre-built template with shift coverage, availability, and fairness constraints
+- **[Assignment Optimizer](/builder/templates/workforce_assignment)** -- general-purpose assignment model adaptable to workforce allocation
+
+## Next Steps
+
+- **[Healthcare Resource Allocation](/docs/guides/healthcare-resources)** (intermediate) -- apply scheduling techniques to nurse rostering and medical staff allocation
+- **[Sports League Scheduling](/docs/guides/sports-scheduling)** (beginner) -- see how similar assignment models apply to game scheduling

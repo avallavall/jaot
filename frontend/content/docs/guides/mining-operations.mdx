@@ -1,0 +1,181 @@
+---
+title: "Mining Operations"
+description: "Plan extraction sequences, equipment deployment, and processing flows"
+order: 31
+category: "mining"
+difficulty: "advanced"
+domain: "Natural Resources"
+templateCount: 1
+---
+
+# Mining Operations
+
+Optimize mine planning, extraction scheduling, and ore blending to maximize the economic value of mineral deposits. Mining operations involve sequencing the removal of ore blocks over multiple periods while meeting processing plant requirements and grade specifications -- a problem well suited to mathematical optimization.
+
+## When to Use This Guide
+
+Use this guide for mine planning and extraction scheduling problems:
+
+- **Open-pit mine scheduling** -- decide which ore blocks to extract in each period to maximize net present value
+- **Ore blending** -- mix material from multiple sources to meet smelter grade requirements while minimizing cost
+- **Equipment allocation** -- assign trucks, shovels, and drills to pits and benches based on productivity and availability
+- **Reclamation planning** -- schedule rehabilitation activities across mined-out areas to meet environmental deadlines
+
+## Step-by-Step Walkthrough
+
+1. **Define your ore blocks.** For each block, record its tonnage, grade (e.g., percent copper), and extraction cost.
+
+2. **Set processing constraints.** The processing plant has a maximum throughput per period and requires ore grade to fall within an acceptable range.
+
+3. **Add precedence rules.** In open-pit mining, you must remove overlying blocks before accessing deeper ones. Encode these as sequencing constraints.
+
+4. **Choose your objective.** Maximize net present value (revenue minus extraction and processing cost, discounted by period) or maximize total metal recovery.
+
+5. **Run and interpret.** The solver returns a period-by-period extraction schedule. Review for haul road feasibility and equipment availability.
+
+## Example: Open-Pit Extraction Schedule
+
+Schedule extraction of 10 ore blocks over 4 periods. Each block has a tonnage, copper grade, and extraction cost. The plant processes at most 500 tonnes per period with a grade requirement between 1.5% and 3.0%.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+blocks = {
+    "B1": {"tonnes": 200, "grade": 2.5, "cost": 40},
+    "B2": {"tonnes": 150, "grade": 1.8, "cost": 35},
+    "B3": {"tonnes": 180, "grade": 3.2, "cost": 50},
+    "B4": {"tonnes": 120, "grade": 2.0, "cost": 30},
+    "B5": {"tonnes": 250, "grade": 1.5, "cost": 45},
+    "B6": {"tonnes": 160, "grade": 2.8, "cost": 42},
+    "B7": {"tonnes": 130, "grade": 2.2, "cost": 38},
+    "B8": {"tonnes": 190, "grade": 1.9, "cost": 41},
+    "B9": {"tonnes": 170, "grade": 2.6, "cost": 44},
+    "B10": {"tonnes": 140, "grade": 3.0, "cost": 48},
+}
+
+periods = [1, 2, 3, 4]
+copper_price = 8.0  # $/kg copper
+plant_capacity = 500  # tonnes per period
+min_grade = 1.5
+max_grade = 3.0
+discount_rate = 0.10
+
+# Binary: extract block b in period t
+variables = [
+    {"name": f"{b}_t{t}", "type": "binary"}
+    for b in blocks for t in periods
+]
+
+# Revenue = tonnes * grade/100 * 1000 * price, discounted
+objective = {
+    "sense": "maximize",
+    "coefficients": {
+        f"{b}_t{t}": round(
+            (blocks[b]["tonnes"] * blocks[b]["grade"] / 100 * 1000 * copper_price
+             - blocks[b]["tonnes"] * blocks[b]["cost"])
+            / (1 + discount_rate) ** (t - 1), 2
+        )
+        for b in blocks for t in periods
+    },
+}
+
+constraints = []
+
+# Each block extracted at most once
+for b in blocks:
+    constraints.append({
+        "name": f"once_{b}",
+        "coefficients": {f"{b}_t{t}": 1 for t in periods},
+        "sense": "<=",
+        "rhs": 1,
+    })
+
+# Plant capacity per period
+for t in periods:
+    constraints.append({
+        "name": f"capacity_t{t}",
+        "coefficients": {
+            f"{b}_t{t}": blocks[b]['tonnes'] for b in blocks
+        },
+        "sense": "<=",
+        "rhs": plant_capacity,
+    })
+
+# Precedence: B3 requires B1 extracted in same or earlier period
+# (B1 overlies B3 in the pit)
+for t in periods:
+    constraints.append({
+        "name": f"precedence_B1_B3_t{t}",
+        "coefficients": {
+            f"B3_t{t}": 1,
+            **{f"B1_t{tp}": -1 for tp in periods if tp <= t},
+        },
+        "sense": "<=",
+        "rhs": 0,
+    })
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Net present value: ${result['objective_value']:,.2f}")
+for t in periods:
+    extracted = [b for b in blocks if result['solution'].get(f"{b}_t{t}", 0) > 0.5]
+    total_tonnes = sum(blocks[b]["tonnes"] for b in extracted)
+    print(f"  Period {t}: {', '.join(extracted) or 'none'} ({total_tonnes}t)")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/solve \
+  -H "Authorization: Bearer ok_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variables": [
+      {"name": "B1_t1", "type": "binary"},
+      {"name": "B1_t2", "type": "binary"},
+      {"name": "B2_t1", "type": "binary"},
+      {"name": "B3_t2", "type": "binary"}
+    ],
+    "objective": {
+      "sense": "maximize",
+      "coefficients": {
+        "B1_t1": 3600, "B1_t2": 3272.73,
+        "B2_t1": 1770, "B3_t2": 3381.82
+      }
+    },
+    "constraints": [
+      {
+        "name": "once_B1",
+        "coefficients": {"B1_t1": 1, "B1_t2": 1},
+        "sense": "<=",
+        "rhs": 1
+      },
+      {
+        "name": "capacity_t1",
+        "coefficients": {"B1_t1": 200, "B2_t1": 150},
+        "sense": "<=",
+        "rhs": 500
+      }
+    ]
+  }'
+```
+</CodeTabs>
+
+The solver sequences extraction to process the highest-NPV blocks first while respecting plant capacity and pit precedence constraints.
+
+## Recommended Templates
+
+- **[Custom Optimization](/builder/templates/custom)** -- build a fully custom mine scheduling model with block precedence and blending constraints
+
+## Next Steps
+
+- **[Construction Project Planning](/docs/guides/construction-planning)** (intermediate) -- apply similar sequencing and resource allocation to construction projects
+- **[Forestry Management](/docs/guides/forestry-management)** (intermediate) -- see how comparable harvest scheduling models apply to renewable natural resources

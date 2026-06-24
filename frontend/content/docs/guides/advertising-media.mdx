@@ -1,0 +1,166 @@
+---
+title: "Advertising & Media Planning"
+description: "Allocate ad budgets across channels to maximize reach and conversions"
+order: 25
+category: "advertising_media"
+difficulty: "beginner"
+domain: "Technology"
+templateCount: 1
+---
+
+# Advertising & Media Planning
+
+Optimize advertising budget allocation across channels and campaigns to maximize reach, conversions, or return on ad spend. Media planning optimization distributes a fixed budget across channels like TV, social media, search, display, and email based on each channel's cost efficiency and audience overlap.
+
+## When to Use This Guide
+
+Media planning optimization helps whenever you need to decide where to spend advertising dollars:
+
+- **Media mix optimization** -- Allocate budget across channels to maximize total reach
+- **Campaign budget allocation** -- Distribute spend across campaigns with different goals
+- **Audience targeting** -- Balance reach and frequency across demographic segments
+- **Cross-channel planning** -- Coordinate spend between online and offline channels
+- **Seasonal budget planning** -- Adjust allocation based on seasonal demand patterns
+
+## Step-by-Step Walkthrough
+
+### 1. Define Your Channels
+
+List every advertising channel available. For each, specify the cost per unit (CPM, CPC, or cost per impression), estimated reach per dollar, and any minimum or maximum spend requirements.
+
+### 2. Set Budget and Frequency Constraints
+
+Set your total campaign budget. Add minimum spend per channel (if you must maintain presence) and maximum spend (diminishing returns or platform limits). Add frequency caps to avoid audience fatigue.
+
+### 3. Choose Your Objective
+
+Maximize total reach (unique people exposed), total conversions (actions taken), or a weighted combination. You can also minimize cost while requiring a minimum reach level.
+
+### 4. Solve and Allocate
+
+The optimizer distributes the budget across channels. Review the allocation for practical feasibility, then implement the media plan. Track actual performance to refine future optimizations.
+
+## Example: Allocate $100K Across 5 Channels
+
+Distribute a $100,000 advertising budget across TV, social media, search, display, and email. Each channel has different reach per dollar and minimum/maximum spend limits. Maximize total audience reach.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+channels = ["tv", "social", "search", "display", "email"]
+budget = 100000  # total budget
+
+# Reach per $1,000 spent (thousands of people)
+reach_per_k = [15, 25, 20, 12, 30]
+# Minimum spend per channel
+min_spend = [10000, 5000, 5000, 0, 2000]
+# Maximum spend per channel
+max_spend = [40000, 30000, 25000, 20000, 15000]
+
+variables = []
+for i, ch in enumerate(channels):
+    variables.append({
+        "name": ch,
+        "type": "continuous",
+        "lb": min_spend[i],
+        "ub": max_spend[i],
+    })
+
+# Maximize total reach (reach per $K * $K spent)
+# Coefficients are per-dollar reach: reach_per_k / 1000
+objective = {
+    "sense": "maximize",
+    "coefficients": {
+        ch: reach_per_k[i] / 1000
+        for i, ch in enumerate(channels)
+    },
+}
+
+constraints = []
+# Total budget constraint
+constraints.append({
+    "name": "total_budget",
+    "coefficients": {ch: 1 for ch in channels},
+    "sense": "<=",
+    "rhs": budget,
+})
+
+# Digital channels must be at least 40% of budget
+digital = ["social", "search", "display", "email"]
+constraints.append({
+    "name": "digital_minimum",
+    "coefficients": {ch: 1 for ch in digital},
+    "sense": ">=",
+    "rhs": budget * 0.40,
+})
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+total_reach = result["objective_value"]
+print(f"Total reach: {total_reach:,.0f} thousand people")
+print(f"\nBudget allocation:")
+for i, ch in enumerate(channels):
+    spend = result["solution"][ch]
+    reach = spend * reach_per_k[i] / 1000
+    print(f"  {ch.capitalize():>8}: ${spend:>8,.0f} "
+          f"({spend/budget*100:>5.1f}%) -> {reach:>6,.0f}K reach")
+```
+
+```json
+{
+  "variables": [
+    {"name": "tv", "type": "continuous", "lb": 10000, "ub": 40000},
+    {"name": "social", "type": "continuous", "lb": 5000, "ub": 30000},
+    {"name": "search", "type": "continuous", "lb": 5000, "ub": 25000},
+    {"name": "display", "type": "continuous", "lb": 0, "ub": 20000},
+    {"name": "email", "type": "continuous", "lb": 2000, "ub": 15000}
+  ],
+  "objective": {
+    "sense": "maximize",
+    "coefficients": {
+      "tv": 0.015, "social": 0.025, "search": 0.020,
+      "display": 0.012, "email": 0.030
+    }
+  },
+  "constraints": [
+    {
+      "name": "total_budget",
+      "coefficients": {
+        "tv": 1, "social": 1, "search": 1,
+        "display": 1, "email": 1
+      },
+      "sense": "<=",
+      "rhs": 100000
+    },
+    {
+      "name": "digital_minimum",
+      "coefficients": {
+        "social": 1, "search": 1, "display": 1, "email": 1
+      },
+      "sense": ">=",
+      "rhs": 40000
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+Build media planning models with the **[Budget Allocation Optimizer](/builder/templates/budget_allocation)** template. It is pre-configured for distributing budgets across categories with minimum/maximum constraints -- perfect for advertising channel allocation.
+
+## Next Steps
+
+- **[Portfolio Optimization](/docs/guides/portfolio-optimization)** -- Apply similar allocation techniques to investment portfolios
+- **[Retail Assortment & Pricing](/docs/guides/retail-assortment)** -- Optimize product mix and pricing alongside advertising
+- **[API Reference](/docs/api/solve)** -- Full endpoint documentation for the solve API

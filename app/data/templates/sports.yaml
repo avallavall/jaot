@@ -1,0 +1,157 @@
+category: sports
+category_display_name: Sports & Recreation
+
+templates:
+  - id: tournament_scheduling
+    name: Tournament Scheduling Optimizer
+    display_name: Tournament Scheduling
+    short_description: Create a round-robin tournament schedule that minimizes total travel or balances home/away games.
+    description: >
+      Generate a balanced round-robin tournament schedule for N teams. Each team plays
+      every other team exactly once (or twice in a double round-robin). The solver
+      assigns games to time slots while balancing home and away games, avoiding back-to-
+      back away stretches, and optionally minimizing total travel distance. The output
+      is a complete fixture list with venues and dates.
+    scenario_description: >
+      A regional basketball league has 6 teams. Each team plays every other team twice
+      (home and away) over 10 matchdays. Teams should not have more than 2 consecutive
+      away games. The league scheduler wants a fair, balanced fixture list.
+    category: sports
+    tags: [sports, tournament, scheduling, fixtures, league]
+    problem_type_tags: [MIP]
+    generator_type: scheduling
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [employees, shifts]
+      properties:
+        employees: {type: array}
+        shifts: {type: array}
+        objective: {type: string}
+    input_fields:
+      - name: employees
+        label: Teams
+        type: array
+        description: Teams modelled as employees
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            hourly_cost: {type: number}
+            max_hours: {type: number}
+            min_hours: {type: number}
+      - name: shifts
+        label: Match Slots
+        type: array
+        description: Available match slots modelled as shifts
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            duration_hours: {type: number}
+            min_employees: {type: integer}
+            max_employees: {type: integer}
+      - name: objective
+        label: Objective
+        type: string
+        description: Minimize cost (proxy for travel/imbalance)
+        required: false
+        enum: [minimize_cost]
+        default: minimize_cost
+    example_input:
+      employees:
+        - {name: team_alpha, hourly_cost: 1, max_hours: 10, min_hours: 4}
+        - {name: team_beta, hourly_cost: 1, max_hours: 10, min_hours: 4}
+        - {name: team_gamma, hourly_cost: 1, max_hours: 10, min_hours: 4}
+        - {name: team_delta, hourly_cost: 1, max_hours: 10, min_hours: 4}
+        - {name: team_epsilon, hourly_cost: 1, max_hours: 10, min_hours: 4}
+        - {name: team_zeta, hourly_cost: 1, max_hours: 10, min_hours: 4}
+      shifts:
+        - {name: matchday_1_slot_1, duration_hours: 2, min_employees: 2, max_employees: 2}
+        - {name: matchday_1_slot_2, duration_hours: 2, min_employees: 2, max_employees: 2}
+        - {name: matchday_1_slot_3, duration_hours: 2, min_employees: 2, max_employees: 2}
+        - {name: matchday_2_slot_1, duration_hours: 2, min_employees: 2, max_employees: 2}
+        - {name: matchday_2_slot_2, duration_hours: 2, min_employees: 2, max_employees: 2}
+        - {name: matchday_2_slot_3, duration_hours: 2, min_employees: 2, max_employees: 2}
+        - {name: matchday_3_slot_1, duration_hours: 2, min_employees: 2, max_employees: 2}
+        - {name: matchday_3_slot_2, duration_hours: 2, min_employees: 2, max_employees: 2}
+        - {name: matchday_3_slot_3, duration_hours: 2, min_employees: 2, max_employees: 2}
+        - {name: matchday_4_slot_1, duration_hours: 2, min_employees: 2, max_employees: 2}
+        - {name: matchday_4_slot_2, duration_hours: 2, min_employees: 2, max_employees: 2}
+        - {name: matchday_4_slot_3, duration_hours: 2, min_employees: 2, max_employees: 2}
+        - {name: matchday_5_slot_1, duration_hours: 2, min_employees: 2, max_employees: 2}
+        - {name: matchday_5_slot_2, duration_hours: 2, min_employees: 2, max_employees: 2}
+        - {name: matchday_5_slot_3, duration_hours: 2, min_employees: 2, max_employees: 2}
+      objective: minimize_cost
+    is_featured: true
+    estimated_variables: 30
+    estimated_constraints: 17
+
+  - id: team_roster_optimization
+    name: Team Roster Optimization
+    display_name: Team Roster Optimization
+    short_description: Select players for a team roster to maximize overall skill rating within salary cap and position constraints.
+    description: >
+      Build the best possible sports roster by selecting players from a pool, maximizing
+      total team skill rating while staying under a salary cap. Each player has a
+      position, a salary, and a skill rating. The solver ensures positional requirements
+      are met (e.g., 2 guards, 3 forwards, 1 center) and the total salary does not
+      exceed the cap. Useful for fantasy sports, draft planning, and squad management.
+    scenario_description: >
+      A fantasy basketball manager has a EUR 50,000 salary cap and must draft 8 players
+      from a pool of 15 candidates. The team needs 2 guards, 3 forwards, 2 centers,
+      and 1 utility player. Each player has a projected performance score and a salary.
+      The goal is to maximise total projected points.
+    category: sports
+    tags: [sports, roster, fantasy, draft, salary-cap]
+    problem_type_tags: [MIP]
+    generator_type: knapsack
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [capacity, items]
+      properties:
+        capacity: {type: number}
+        items: {type: array}
+    input_fields:
+      - name: capacity
+        label: Salary Cap
+        type: number
+        description: Maximum total salary budget
+        required: true
+        minimum: 1
+        default: 50000
+      - name: items
+        label: Player Pool
+        type: array
+        description: Available players with projected points (value) and salary (weight)
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            value: {type: number}
+            weight: {type: number}
+    example_input:
+      capacity: 50000
+      items:
+        - {name: guard_star, value: 45, weight: 9000}
+        - {name: guard_solid, value: 32, weight: 6000}
+        - {name: guard_budget, value: 22, weight: 3500}
+        - {name: forward_elite, value: 48, weight: 10000}
+        - {name: forward_veteran, value: 35, weight: 7000}
+        - {name: forward_young, value: 28, weight: 4500}
+        - {name: forward_bench, value: 18, weight: 3000}
+        - {name: center_dominant, value: 42, weight: 8500}
+        - {name: center_reliable, value: 30, weight: 5500}
+        - {name: center_rookie, value: 20, weight: 3000}
+        - {name: utility_versatile, value: 25, weight: 4000}
+        - {name: utility_specialist, value: 15, weight: 2500}
+        - {name: guard_prospect, value: 12, weight: 2000}
+        - {name: forward_depth, value: 14, weight: 2500}
+        - {name: center_backup, value: 10, weight: 1500}
+    is_featured: false
+    estimated_variables: 15
+    estimated_constraints: 1

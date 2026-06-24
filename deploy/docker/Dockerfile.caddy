@@ -1,0 +1,11 @@
+# Custom Caddy build with caddy-ratelimit plugin (github.com/mholt/caddy-ratelimit).
+# Drop-in replacement for caddy:2-alpine.
+
+FROM caddy:2-builder AS builder
+
+RUN xcaddy build \
+    --with github.com/mholt/caddy-ratelimit
+
+FROM caddy:2-alpine
+
+COPY --from=builder /usr/bin/caddy /usr/bin/caddy

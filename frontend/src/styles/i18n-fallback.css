@@ -1,0 +1,10 @@
+/* Visual indicator for fallback (English) translations shown in non-English locales.
+ * Applied via data-i18n-fallback attribute set by the FallbackText component.
+ * The subtle amber dotted underline signals to developers/translators that
+ * a string has not yet been translated for the current locale. */
+[data-i18n-fallback] {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: rgb(234 179 8 / 0.6);
+  text-underline-offset: 2px;
+}

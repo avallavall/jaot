@@ -1,0 +1,578 @@
+---
+title: Triggers
+description: HTTP event triggers for automated re-solve workflows
+order: 7
+---
+
+# Triggers
+
+Triggers let you fire optimization solves via HTTP requests, authenticated with per-trigger secrets. Each trigger is pinned to a specific model version for reproducible results. Use triggers to integrate JAOT solves into your existing automation pipelines -- CI/CD systems, scheduled jobs, or event-driven architectures.
+
+## Overview
+
+A trigger wraps a builder document + version pair behind an HTTP endpoint. When fired, it queues an async solve using the pinned version's model definition, optionally with override data for variable inputs.
+
+**Key concepts:**
+- **Per-trigger secret authentication** -- each trigger has its own secret, independent of your API key
+- **Version pinning** -- triggers always solve against a specific model version for reproducibility
+- **Override schema** -- define which input fields can be overridden at fire time
+- **Webhook delivery** -- results are POSTed to your webhook URL when the solve completes
+
+---
+
+## Create a trigger
+
+```
+POST /api/v2/triggers
+```
+
+Creates an HTTP event trigger pinned to a specific model version. The plaintext `trigger_secret` is returned **only once** in this response -- store it securely.
+
+**Authentication:** API key (organization scope)
+
+### Request body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Human-readable trigger name |
+| `description` | string | No | Optional description |
+| `document_id` | string | Yes | Builder document to solve |
+| `version_id` | string | Yes | Pinned model version |
+| `override_schema` | array | No | Fields that can be overridden at fire time |
+| `webhook_url` | string | No | URL to receive solve results |
+| `webhook_secret` | string | No | Secret for webhook signature verification |
+| `workspace_id` | string | No | Workspace scope |
+
+<CodeTabs>
+```python
+import requests
+
+response = requests.post(
+    "https://jaot.io/api/v2/triggers",
+    headers={"Authorization": "Bearer ok_live_..."},
+    json={
+        "name": "Daily warehouse restock",
+        "description": "Runs every morning to optimize warehouse restocking",
+        "document_id": "doc_abc123",
+        "version_id": "ver_def456",
+        "override_schema": [
+            {"name": "demand_forecast", "type": "array", "required": True}
+        ],
+        "webhook_url": "https://your-app.com/webhooks/jaot",
+        "webhook_secret": "whsec_your_signing_secret"
+    }
+)
+
+trigger = response.json()
+# Save the trigger_secret -- it will not be shown again
+print(f"Trigger ID: {trigger['id']}")
+print(f"Secret: {trigger['trigger_secret']}")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/triggers \
+  -H "Authorization: Bearer ok_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Daily warehouse restock",
+    "document_id": "doc_abc123",
+    "version_id": "ver_def456",
+    "webhook_url": "https://your-app.com/webhooks/jaot"
+  }'
+```
+
+```javascript
+const response = await fetch("https://jaot.io/api/v2/triggers", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer ok_live_...",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    name: "Daily warehouse restock",
+    document_id: "doc_abc123",
+    version_id: "ver_def456",
+    webhook_url: "https://your-app.com/webhooks/jaot",
+  }),
+});
+
+const trigger = await response.json();
+console.log("Save this secret:", trigger.trigger_secret);
+```
+</CodeTabs>
+
+### Response (201 Created)
+
+```json
+{
+  "id": "trg_a1b2c3d4",
+  "organization_id": "org_b7e4d1a0",
+  "created_by": "usr_3a9f21c4",
+  "name": "Daily warehouse restock",
+  "description": "Runs every morning to optimize warehouse restocking",
+  "document_id": "doc_abc123",
+  "version_id": "ver_def456",
+  "trigger_secret": "a3f8b2c1d4e5f67890abcdef12345678...",
+  "trigger_secret_prefix": "a3f8b2c1",
+  "override_schema": [
+    {"name": "demand_forecast", "type": "array", "required": true}
+  ],
+  "webhook_url": "https://your-app.com/webhooks/jaot",
+  "is_enabled": true,
+  "total_runs": 0,
+  "created_at": "2026-02-19T08:00:00Z"
+}
+```
+
+> **Tip:** Pin a specific model version to ensure trigger results are reproducible. If the pinned version is unnamed, it is automatically promoted to a named version to protect it from the retention pruning policy. See the [Versions](/docs/api/versions) page for version management details.
+
+---
+
+## List triggers
+
+```
+GET /api/v2/triggers
+```
+
+Returns all triggers for your organization, newest first.
+
+**Authentication:** API key (organization scope)
+
+### Query parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `document_id` | string | Filter by builder document |
+
+<CodeTabs>
+```python
+response = requests.get(
+    "https://jaot.io/api/v2/triggers",
+    headers={"Authorization": "Bearer ok_live_..."},
+    params={"document_id": "doc_abc123"}
+)
+
+triggers = response.json()
+for t in triggers:
+    print(f"{t['name']} (enabled={t['is_enabled']}, runs={t['total_runs']})")
+```
+
+```bash
+curl https://jaot.io/api/v2/triggers?document_id=doc_abc123 \
+  -H "Authorization: Bearer ok_live_..."
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/triggers?document_id=doc_abc123",
+  { headers: { "Authorization": "Bearer ok_live_..." } }
+);
+
+const triggers = await response.json();
+triggers.forEach((t) => {
+  console.log(`${t.name} (enabled=${t.is_enabled}, runs=${t.total_runs})`);
+});
+```
+</CodeTabs>
+
+### Response (200)
+
+```json
+[
+  {
+    "id": "trg_a1b2c3d4",
+    "name": "Daily warehouse restock",
+    "document_id": "doc_abc123",
+    "version_id": "ver_def456",
+    "trigger_secret_prefix": "a3f8b2c1",
+    "is_enabled": true,
+    "total_runs": 47,
+    "last_fired_at": "2026-02-19T06:00:00Z",
+    "created_at": "2026-01-15T08:00:00Z"
+  }
+]
+```
+
+---
+
+## Get a trigger
+
+```
+GET /api/v2/triggers/{trigger_id}
+```
+
+Returns a single trigger by ID.
+
+**Authentication:** API key (organization scope)
+
+<CodeTabs>
+```python
+response = requests.get(
+    "https://jaot.io/api/v2/triggers/trg_a1b2c3d4",
+    headers={"Authorization": "Bearer ok_live_..."},
+)
+trigger = response.json()
+print(f"{trigger['name']} (runs={trigger['total_runs']})")
+```
+
+```bash
+curl https://jaot.io/api/v2/triggers/trg_a1b2c3d4 \
+  -H "Authorization: Bearer ok_live_..."
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/triggers/trg_a1b2c3d4",
+  { headers: { "Authorization": "Bearer ok_live_..." } }
+);
+const trigger = await response.json();
+```
+</CodeTabs>
+
+---
+
+## Update a trigger
+
+```
+PATCH /api/v2/triggers/{trigger_id}
+```
+
+Partially update a trigger. The `version_id` is immutable after creation -- create a new trigger if you need to pin a different version.
+
+**Authentication:** API key (organization scope)
+
+### Request body (all fields optional)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Updated trigger name |
+| `description` | string | Updated description |
+| `override_schema` | array | Updated override fields |
+| `webhook_url` | string | Updated webhook URL |
+| `webhook_secret` | string | Updated webhook secret |
+
+<CodeTabs>
+```python
+response = requests.patch(
+    "https://jaot.io/api/v2/triggers/trg_a1b2c3d4",
+    headers={"Authorization": "Bearer ok_live_...", "Content-Type": "application/json"},
+    json={"name": "Warehouse restock v2", "webhook_url": "https://new-url.com/webhook"},
+)
+```
+
+```bash
+curl -X PATCH https://jaot.io/api/v2/triggers/trg_a1b2c3d4 \
+  -H "Authorization: Bearer ok_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Warehouse restock v2", "webhook_url": "https://new-url.com/webhook"}'
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/triggers/trg_a1b2c3d4",
+  {
+    method: "PATCH",
+    headers: {
+      "Authorization": "Bearer ok_live_...",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: "Warehouse restock v2",
+      webhook_url: "https://new-url.com/webhook",
+    }),
+  }
+);
+```
+</CodeTabs>
+
+---
+
+## Delete a trigger
+
+```
+DELETE /api/v2/triggers/{trigger_id}
+```
+
+Permanently deletes a trigger and all its run history.
+
+**Authentication:** API key (organization scope)
+
+<CodeTabs>
+```python
+response = requests.delete(
+    "https://jaot.io/api/v2/triggers/trg_a1b2c3d4",
+    headers={"Authorization": "Bearer ok_live_..."},
+)
+# Response: 204 No Content
+```
+
+```bash
+curl -X DELETE https://jaot.io/api/v2/triggers/trg_a1b2c3d4 \
+  -H "Authorization: Bearer ok_live_..."
+```
+
+```javascript
+await fetch("https://jaot.io/api/v2/triggers/trg_a1b2c3d4", {
+  method: "DELETE",
+  headers: { "Authorization": "Bearer ok_live_..." },
+});
+// Response: 204 No Content
+```
+</CodeTabs>
+
+---
+
+## Toggle a trigger
+
+```
+POST /api/v2/triggers/{trigger_id}/toggle
+```
+
+Enable or disable a trigger without deleting it. Disabled triggers return 409 Conflict when fired.
+
+### Request body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `enabled` | boolean | Yes | New enabled state |
+
+<CodeTabs>
+```python
+response = requests.post(
+    "https://jaot.io/api/v2/triggers/trg_a1b2c3d4/toggle",
+    headers={"Authorization": "Bearer ok_live_...", "Content-Type": "application/json"},
+    json={"enabled": False},
+)
+print(response.json())
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/triggers/trg_a1b2c3d4/toggle \
+  -H "Authorization: Bearer ok_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": false}'
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/triggers/trg_a1b2c3d4/toggle",
+  {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer ok_live_...",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ enabled: false }),
+  }
+);
+```
+</CodeTabs>
+
+---
+
+## Fire a trigger
+
+```
+POST /api/v2/triggers/{trigger_id}/fire
+```
+
+Fire a trigger to queue an async solve. Authentication uses the **per-trigger secret** (not your API key). Provide the secret via the `Authorization: Bearer` header or the `trigger_secret` field in the request body.
+
+**Authentication:** Per-trigger secret
+
+### Request body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `trigger_secret` | string | No | Alternative to Authorization header |
+| `override_data` | object | No | Override values for fields defined in `override_schema` |
+
+<CodeTabs>
+```python
+import requests
+
+# Fire with override data (e.g., today's demand forecast)
+response = requests.post(
+    "https://jaot.io/api/v2/triggers/trg_a1b2c3d4/fire",
+    headers={"Authorization": "Bearer a3f8b2c1d4e5f6..."},
+    json={
+        "override_data": {
+            "demand_forecast": [120, 85, 200, 150, 90]
+        }
+    }
+)
+
+result = response.json()
+print(f"Run ID: {result['run_id']}, Status: {result['status']}")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/triggers/trg_a1b2c3d4/fire \
+  -H "Authorization: Bearer a3f8b2c1d4e5f6..." \
+  -H "Content-Type: application/json" \
+  -d '{"override_data": {"demand_forecast": [120, 85, 200, 150, 90]}}'
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/triggers/trg_a1b2c3d4/fire",
+  {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer a3f8b2c1d4e5f6...",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      override_data: { demand_forecast: [120, 85, 200, 150, 90] },
+    }),
+  }
+);
+
+const { run_id, status } = await response.json();
+```
+</CodeTabs>
+
+### Response (202 Accepted)
+
+```json
+{
+  "run_id": "run_x1y2z3w4",
+  "status": "queued"
+}
+```
+
+### Errors
+
+| Status | Description |
+|--------|-------------|
+| 401 | Missing or invalid trigger secret |
+| 404 | Trigger not found |
+| 409 | Trigger is disabled |
+| 422 | Override validation failed |
+
+---
+
+## List trigger runs
+
+```
+GET /api/v2/triggers/{trigger_id}/runs
+```
+
+Returns paginated run history for a trigger, newest first.
+
+**Authentication:** API key (organization scope)
+
+### Query parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | int | 1 | Page number |
+| `page_size` | int | 20 | Items per page (max 100) |
+
+<CodeTabs>
+```python
+response = requests.get(
+    "https://jaot.io/api/v2/triggers/trg_a1b2c3d4/runs",
+    headers={"Authorization": "Bearer ok_live_..."},
+    params={"page": 1, "page_size": 10},
+)
+runs = response.json()
+for run in runs["items"]:
+    print(f"{run['id']}: {run['status']}")
+```
+
+```bash
+curl "https://jaot.io/api/v2/triggers/trg_a1b2c3d4/runs?page=1&page_size=10" \
+  -H "Authorization: Bearer ok_live_..."
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/triggers/trg_a1b2c3d4/runs?page=1&page_size=10",
+  { headers: { "Authorization": "Bearer ok_live_..." } }
+);
+const { items, total } = await response.json();
+```
+</CodeTabs>
+
+### Response (200)
+
+```json
+{
+  "items": [
+    {
+      "id": "run_x1y2z3w4",
+      "trigger_id": "trg_a1b2c3d4",
+      "status": "completed",
+      "override_data": {"demand_forecast": [120, 85, 200]},
+      "result_data": {"objective_value": 4250.0, "status": "optimal"},
+      "created_at": "2026-02-19T06:00:00Z",
+      "completed_at": "2026-02-19T06:00:15Z"
+    }
+  ],
+  "total": 47,
+  "page": 1,
+  "page_size": 10
+}
+```
+
+---
+
+## Get a single run
+
+```
+GET /api/v2/triggers/{trigger_id}/runs/{run_id}
+```
+
+Returns full details for a run including result data and override data.
+
+**Authentication:** API key (organization scope)
+
+---
+
+## Rerun a previous run
+
+```
+POST /api/v2/triggers/{trigger_id}/runs/{run_id}/rerun
+```
+
+Queue a new run using the override data from a previous run. Authenticated via API key (not trigger secret), since the user is already authenticated.
+
+**Authentication:** API key (organization scope)
+
+<CodeTabs>
+```python
+response = requests.post(
+    "https://jaot.io/api/v2/triggers/trg_a1b2c3d4/runs/run_x1y2z3w4/rerun",
+    headers={"Authorization": "Bearer ok_live_..."},
+)
+result = response.json()
+print(f"New run: {result['run_id']}")
+```
+
+```bash
+curl -X POST \
+  https://jaot.io/api/v2/triggers/trg_a1b2c3d4/runs/run_x1y2z3w4/rerun \
+  -H "Authorization: Bearer ok_live_..."
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/triggers/trg_a1b2c3d4/runs/run_x1y2z3w4/rerun",
+  {
+    method: "POST",
+    headers: { "Authorization": "Bearer ok_live_..." },
+  }
+);
+const { run_id, status } = await response.json();
+```
+</CodeTabs>
+
+### Response (202 Accepted)
+
+```json
+{
+  "run_id": "run_new_abc123",
+  "status": "queued"
+}
+```

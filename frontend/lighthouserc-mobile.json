@@ -1,0 +1,28 @@
+{
+  "ci": {
+    "collect": {
+      "url": [
+        "https://jaot.io",
+        "https://jaot.io/pricing",
+        "https://jaot.io/marketplace",
+        "https://jaot.io/marketplace/official_assignment",
+        "https://jaot.io/docs/getting-started/introduction",
+        "https://jaot.io/contact"
+      ],
+      "numberOfRuns": 3,
+      "settings": {
+        "formFactor": "mobile",
+        "chromeFlags": "--no-sandbox --disable-dev-shm-usage --disable-gpu",
+        "throttling": {
+          "rttMs": 150,
+          "throughputKbps": 1638.4,
+          "cpuSlowdownMultiplier": 4
+        }
+      }
+    },
+    "upload": {
+      "target": "filesystem",
+      "outputDir": ".lighthouseci/mobile"
+    }
+  }
+}

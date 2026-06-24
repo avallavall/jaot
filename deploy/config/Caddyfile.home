@@ -1,0 +1,121 @@
+# Caddyfile para self-hosting en casa (detrás de Cloudflare Tunnel).
+# Diferencias vs el Caddyfile de producción (el servidor):
+#   - SIN Let's Encrypt: TLS termina en el edge de Cloudflare. Caddy sirve HTTP plano
+#     en :80 y cloudflared lo alcanza por la red interna de Docker (caddy:80).
+#   - Sitio catch-all ":80" (cualquier Host): el túnel solo enruta los hostnames que
+#     configuremos en el dashboard (casa.jaot.io ahora; jaot.io/www/ci en el cutover Fase 5).
+#   - trusted_proxies + client_ip_headers CF-Connecting-IP: sin esto, el rate-limit
+#     {remote_host} vería la IP del contenedor cloudflared y metería a TODOS los
+#     visitantes en el mismo cubo. Con esto, {client_ip} = IP real del visitante.
+#
+# Rate limiting requiere el plugin caddy-ratelimit (ver deploy/docker/Dockerfile.caddy).
+
+{
+    # TLS lo pone Cloudflare en el edge — nada de ACME/redirect HTTP->HTTPS aquí.
+    auto_https off
+
+    servers {
+        # Solo cloudflared (red interna Docker) llega a Caddy → confiamos en rangos privados.
+        trusted_proxies static private_ranges
+        # {client_ip} se deriva de CF-Connecting-IP (Cloudflare lo fija y no es spoofeable
+        # porque CF descarta cualquier CF-Connecting-IP entrante del cliente).
+        client_ip_headers CF-Connecting-IP X-Forwarded-For
+    }
+}
+
+# Plausible self-hosted analytics. Solo /js/script.js + /api/event públicos
+# (igual que el Caddyfile de prod). El dashboard se ve por túnel SSH, no aquí.
+# http:// explícito → HTTP plano en :80 (TLS lo pone Cloudflare en el edge).
+http://plausible.jaot.io {
+    handle /js/script.js {
+        reverse_proxy plausible:8000
+    }
+    handle /api/event {
+        reverse_proxy plausible:8000
+    }
+    handle {
+        respond 404
+    }
+}
+
+# Redirect www -> dominio desnudo (canónico, paridad con prod).
+http://www.jaot.io {
+    redir https://jaot.io{uri} permanent
+}
+
+# Catch-all (jaot.io, casa.jaot.io, etc.) -> la app.
+:80 {
+    # ----- Rate limiting (caddy-ratelimit plugin) -----
+    # Clave = {client_ip} (IP real del visitante vía CF-Connecting-IP), no la del túnel.
+    rate_limit {
+        zone auth_rl {
+            match {
+                path /api/v2/auth/*
+            }
+            key    {client_ip}
+            events 10
+            window 1m
+        }
+        zone solve_rl {
+            match {
+                path /api/v2/solve
+            }
+            key    {client_ip}
+            events 30
+            window 1m
+        }
+        zone llm_rl {
+            match {
+                path /api/v2/llm/*
+            }
+            key    {client_ip}
+            events 20
+            window 1m
+        }
+        zone api_rl {
+            match {
+                path /api/*
+            }
+            key    {client_ip}
+            events 100
+            window 1m
+        }
+    }
+
+    # Block /metrics from public access — Prometheus scrapes internally via Docker network
+    handle /metrics* {
+        respond 403
+    }
+
+    # Backend API routes
+    handle /api/* {
+        reverse_proxy api:8001
+    }
+
+    # AI discovery and MCP protocol
+    handle /.well-known/* {
+        reverse_proxy api:8001
+    }
+    # Match BOTH the bare /mcp (the MCP handshake endpoint clients connect to)
+    # and /mcp/*. Caddy's /mcp/* matcher does NOT cover the exact /mcp path, so
+    # without /mcp here the handshake falls through to the frontend catch-all
+    # and returns 401 — even though discovery is meant to be public.
+    # NOTE: `handle` takes a single matcher, so covering both paths needs a
+    # named matcher (`handle /mcp /mcp/*` is a Caddyfile syntax error).
+    @mcp path /mcp /mcp/*
+    handle @mcp {
+        reverse_proxy api:8001
+    }
+
+    # Everything else -> frontend (Next.js)
+    handle {
+        reverse_proxy frontend:3000
+    }
+
+    # Maintenance page when backend/frontend is unreachable (502/503/504)
+    handle_errors 502 503 504 {
+        root * /srv
+        rewrite * /maintenance.html
+        file_server
+    }
+}

@@ -1,0 +1,253 @@
+category: water_management
+category_display_name: Water Management
+
+templates:
+  - id: water_distribution_network
+    name: Water Distribution Network Optimization
+    display_name: Water Distribution
+    short_description: Optimize water flow through a pipe network to meet demand at all nodes while minimizing pumping costs.
+    description: >
+      Routes water from treatment plants through a pipe network to consumption
+      nodes (residential, commercial, industrial). Each pipe segment has a
+      capacity and a pumping cost that depends on flow volume and elevation
+      difference. The model minimizes total pumping energy cost while ensuring
+      every demand node receives its required volume and no pipe exceeds its
+      capacity. Helps utilities plan daily operations and identify bottlenecks.
+    category: water_management
+    tags: [water, utilities, distribution, infrastructure]
+    problem_type_tags: [LP, network-flow]
+    generator_type: network_flow
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        nodes:
+          type: array
+          description: Network nodes with supply/demand
+        pipes:
+          type: array
+          description: Pipe segments with capacity and cost
+      required: [nodes, pipes]
+    input_fields:
+      - name: nodes
+        label: Network Nodes
+        type: array
+        description: "Treatment plants (supply > 0) and demand zones (demand > 0)"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            supply: {type: number}
+            demand: {type: number}
+      - name: pipes
+        label: Pipe Segments
+        type: array
+        description: "Connections between nodes with capacity and pumping cost per unit"
+        required: true
+        items:
+          type: object
+          properties:
+            from_node: {type: string}
+            to_node: {type: string}
+            capacity: {type: number}
+            cost_per_unit: {type: number}
+    example_input:
+      nodes:
+        - {name: "Treatment-Plant-1", supply: 500, demand: 0}
+        - {name: "Treatment-Plant-2", supply: 350, demand: 0}
+        - {name: "Junction-A", supply: 0, demand: 0}
+        - {name: "Junction-B", supply: 0, demand: 0}
+        - {name: "Residential-North", supply: 0, demand: 250}
+        - {name: "Commercial-Center", supply: 0, demand: 200}
+        - {name: "Industrial-East", supply: 0, demand: 180}
+        - {name: "Residential-South", supply: 0, demand: 220}
+      pipes:
+        - {from_node: "Treatment-Plant-1", to_node: "Junction-A", capacity: 400, cost_per_unit: 0.5}
+        - {from_node: "Treatment-Plant-1", to_node: "Junction-B", capacity: 250, cost_per_unit: 0.8}
+        - {from_node: "Treatment-Plant-2", to_node: "Junction-A", capacity: 200, cost_per_unit: 0.7}
+        - {from_node: "Treatment-Plant-2", to_node: "Junction-B", capacity: 300, cost_per_unit: 0.6}
+        - {from_node: "Junction-A", to_node: "Residential-North", capacity: 300, cost_per_unit: 0.3}
+        - {from_node: "Junction-A", to_node: "Commercial-Center", capacity: 250, cost_per_unit: 0.4}
+        - {from_node: "Junction-B", to_node: "Commercial-Center", capacity: 150, cost_per_unit: 0.5}
+        - {from_node: "Junction-B", to_node: "Industrial-East", capacity: 200, cost_per_unit: 0.7}
+        - {from_node: "Junction-B", to_node: "Residential-South", capacity: 250, cost_per_unit: 0.4}
+    scenario_description: >
+      A municipal water utility operates two treatment plants serving four
+      consumption zones through a network of trunk mains. Pumping costs vary by
+      pipe segment due to elevation and distance. The utility needs to route
+      850 cubic meters per hour to all zones at minimum pumping cost.
+    is_featured: false
+    estimated_variables: 8
+    estimated_constraints: 12
+
+  - id: reservoir_operation
+    name: Reservoir Operation Planning
+    display_name: Reservoir Operation
+    short_description: Plan water releases from a reservoir over multiple periods to balance irrigation, power generation, and flood control.
+    description: >
+      Schedules water releases from a multi-purpose reservoir over a planning
+      horizon (weeks or months). Inflows are forecasted, and the model must
+      balance competing demands -- irrigation water for agriculture, minimum
+      environmental flows, hydroelectric generation targets, and flood storage
+      reserves. The model maximizes total benefit (irrigation value plus energy
+      revenue) while keeping the reservoir level within safe operating bounds
+      at all times.
+    category: water_management
+    tags: [water, reservoir, hydropower, irrigation, planning]
+    problem_type_tags: [LP, production-planning]
+    generator_type: production
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        periods:
+          type: integer
+          description: Number of planning periods
+        inflows:
+          type: array
+          description: Forecasted inflows per period
+        reservoir_capacity:
+          type: number
+          description: Maximum reservoir volume
+        initial_volume:
+          type: number
+          description: Current reservoir volume
+      required: [periods, inflows, reservoir_capacity, initial_volume]
+    input_fields:
+      - name: periods
+        label: Planning Periods
+        type: integer
+        description: "Number of weeks or months to plan"
+        required: true
+        minimum: 1
+      - name: inflows
+        label: Forecasted Inflows
+        type: array
+        description: "Expected water inflows per period (cubic meters)"
+        required: true
+        items:
+          type: object
+          properties:
+            period: {type: integer}
+            volume: {type: number}
+      - name: reservoir_capacity
+        label: Reservoir Capacity
+        type: number
+        description: "Maximum storage capacity in cubic meters"
+        required: true
+        minimum: 0
+      - name: initial_volume
+        label: Initial Volume
+        type: number
+        description: "Current water volume in the reservoir"
+        required: true
+        minimum: 0
+      - name: irrigation_demand
+        label: Irrigation Demand
+        type: array
+        description: "Required irrigation water per period"
+        required: false
+        items:
+          type: object
+          properties:
+            period: {type: integer}
+            volume: {type: number}
+    example_input:
+      periods: 6
+      inflows:
+        - {period: 1, volume: 12000}
+        - {period: 2, volume: 15000}
+        - {period: 3, volume: 8000}
+        - {period: 4, volume: 5000}
+        - {period: 5, volume: 4000}
+        - {period: 6, volume: 6000}
+      reservoir_capacity: 50000
+      initial_volume: 30000
+      irrigation_demand:
+        - {period: 1, volume: 3000}
+        - {period: 2, volume: 3500}
+        - {period: 3, volume: 5000}
+        - {period: 4, volume: 6000}
+        - {period: 5, volume: 5500}
+        - {period: 6, volume: 4000}
+    scenario_description: >
+      A regional water authority manages a reservoir that serves both irrigation
+      and hydroelectric purposes over a six-month dry-season horizon. Inflows
+      peak in months 1-2 (rainy tail) and drop sharply by month 4. Irrigators
+      downstream need increasing water as the dry season progresses. The
+      authority must plan monthly releases that satisfy irrigation, generate
+      electricity revenue, and keep the reservoir within safe operating limits.
+    is_featured: false
+    estimated_variables: 18
+    estimated_constraints: 24
+
+  - id: wastewater_treatment_allocation
+    name: Wastewater Treatment Allocation
+    display_name: Wastewater Treatment
+    short_description: Route wastewater flows to treatment plants to minimize processing cost while meeting environmental discharge standards.
+    description: >
+      Allocates wastewater from collection points to treatment facilities. Each
+      facility has a capacity, treatment efficiency, and operating cost per unit.
+      Different wastewater sources have varying contamination levels. The model
+      minimizes total treatment and transport cost while ensuring all treated
+      effluent meets regulatory discharge limits. Helps utilities plan capacity
+      expansions and manage seasonal load variations.
+    category: water_management
+    tags: [water, wastewater, treatment, environmental]
+    problem_type_tags: [LP, network-flow]
+    generator_type: network_flow
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        sources:
+          type: array
+          description: Wastewater sources with flows and contamination
+        plants:
+          type: array
+          description: Treatment plants with capacity and costs
+      required: [sources, plants]
+    input_fields:
+      - name: sources
+        label: Wastewater Sources
+        type: array
+        description: "Sources with name, daily flow volume, and contamination level"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            flow_volume: {type: number}
+            contamination: {type: number}
+      - name: plants
+        label: Treatment Plants
+        type: array
+        description: "Plants with name, capacity, treatment cost per unit, and efficiency"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            capacity: {type: number}
+            cost_per_unit: {type: number}
+            efficiency: {type: number}
+    example_input:
+      sources:
+        - {name: "Industrial-District", flow_volume: 5000, contamination: 0.85}
+        - {name: "Residential-North", flow_volume: 8000, contamination: 0.30}
+        - {name: "Commercial-Center", flow_volume: 3000, contamination: 0.45}
+        - {name: "Hospital-Complex", flow_volume: 1500, contamination: 0.95}
+      plants:
+        - {name: "Primary-Plant-West", capacity: 8000, cost_per_unit: 2.5, efficiency: 0.80}
+        - {name: "Advanced-Plant-East", capacity: 6000, cost_per_unit: 4.0, efficiency: 0.95}
+        - {name: "Tertiary-Plant-South", capacity: 3500, cost_per_unit: 6.0, efficiency: 0.99}
+    scenario_description: >
+      A city generates wastewater from four main sources with different
+      contamination levels. Three treatment plants are available with varying
+      capacities and treatment technologies. The utility must route all flows
+      to plants such that treated effluent meets regulatory standards at
+      minimum total cost.
+    is_featured: false
+    estimated_variables: 12
+    estimated_constraints: 7

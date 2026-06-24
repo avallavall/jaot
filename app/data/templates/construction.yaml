@@ -1,0 +1,230 @@
+category: construction
+category_display_name: Construction
+
+templates:
+  - id: project_scheduling
+    name: Construction Project Scheduling
+    display_name: Project Scheduling
+    short_description: Schedule construction activities across trades to minimize project duration while respecting dependencies and resource limits.
+    description: >
+      Plans the start time of each construction activity to minimize total project
+      duration (make-span). Activities have durations, precedence constraints
+      (foundation before framing, framing before roofing), and resource
+      requirements (crane hours, skilled labor). The model ensures no resource is
+      over-allocated in any period and all dependencies are satisfied. Produces a
+      resource-leveled schedule that general contractors use for project planning.
+    category: construction
+    tags: [construction, project-management, critical-path, scheduling]
+    problem_type_tags: [MIP, scheduling]
+    generator_type: scheduling
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        activities:
+          type: array
+          description: Construction activities with durations and dependencies
+        resources:
+          type: array
+          description: Available resources per period
+        time_horizon:
+          type: integer
+          description: Maximum project duration in days
+      required: [activities, resources, time_horizon]
+    input_fields:
+      - name: activities
+        label: Activities
+        type: array
+        description: "Activities with name, duration (days), resource needs, and prerequisite IDs"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            duration: {type: integer}
+            resource_needs: {type: object}
+            prerequisites: {type: array, items: {type: string}}
+      - name: resources
+        label: Resources
+        type: array
+        description: "Resource types with daily availability"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            daily_capacity: {type: number}
+      - name: time_horizon
+        label: Time Horizon (days)
+        type: integer
+        description: "Maximum allowed project duration"
+        required: true
+        minimum: 1
+    example_input:
+      activities:
+        - {name: "Site-Prep", duration: 5, resource_needs: {laborers: 4, crane: 0}, prerequisites: []}
+        - {name: "Foundation", duration: 8, resource_needs: {laborers: 6, crane: 1}, prerequisites: ["Site-Prep"]}
+        - {name: "Framing", duration: 10, resource_needs: {laborers: 8, crane: 1}, prerequisites: ["Foundation"]}
+        - {name: "Roofing", duration: 6, resource_needs: {laborers: 5, crane: 1}, prerequisites: ["Framing"]}
+        - {name: "Plumbing-Rough", duration: 4, resource_needs: {laborers: 3, crane: 0}, prerequisites: ["Framing"]}
+        - {name: "Electrical-Rough", duration: 4, resource_needs: {laborers: 3, crane: 0}, prerequisites: ["Framing"]}
+        - {name: "Drywall", duration: 5, resource_needs: {laborers: 4, crane: 0}, prerequisites: ["Plumbing-Rough", "Electrical-Rough"]}
+        - {name: "Painting", duration: 4, resource_needs: {laborers: 3, crane: 0}, prerequisites: ["Drywall"]}
+        - {name: "Finishing", duration: 3, resource_needs: {laborers: 4, crane: 0}, prerequisites: ["Painting", "Roofing"]}
+      resources:
+        - {name: "laborers", daily_capacity: 10}
+        - {name: "crane", daily_capacity: 1}
+      time_horizon: 50
+    scenario_description: >
+      A general contractor is building a commercial structure with nine major
+      activities from site preparation through finishing. Ten laborers and one
+      crane are available daily. Activities have strict sequencing requirements
+      (cannot drywall before rough plumbing is complete). The contractor wants
+      the shortest possible project schedule that respects all dependencies and
+      resource limits.
+    is_featured: true
+    estimated_variables: 90
+    estimated_constraints: 60
+
+  - id: equipment_allocation
+    name: Construction Equipment Allocation
+    display_name: Equipment Allocation
+    short_description: Allocate heavy equipment to construction sites to minimize rental costs and idle time.
+    description: >
+      Assigns pieces of heavy equipment (excavators, cranes, loaders) to
+      construction sites over a planning horizon. Each site has time-varying
+      equipment needs. Equipment can be moved between sites at a transportation
+      cost, or additional units can be rented from external suppliers. The model
+      minimizes total cost (owned equipment transport + rental fees + idle costs)
+      while ensuring every site has the equipment it needs when it needs it.
+    category: construction
+    tags: [construction, equipment, fleet-management, allocation]
+    problem_type_tags: [MIP, assignment]
+    generator_type: assignment
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        equipment:
+          type: array
+          description: Available equipment with current locations
+        sites:
+          type: array
+          description: Construction sites with equipment needs per period
+      required: [equipment, sites]
+    input_fields:
+      - name: equipment
+        label: Equipment
+        type: array
+        description: "Equipment with name, type, current site, and idle cost per day"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            type: {type: string}
+            current_site: {type: string}
+            idle_cost_per_day: {type: number}
+      - name: sites
+        label: Construction Sites
+        type: array
+        description: "Sites with name and equipment needs per period"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            needs: {type: object}
+    example_input:
+      equipment:
+        - {name: "CAT-320-Excavator-1", type: "excavator", current_site: "Site-Alpha", idle_cost_per_day: 200}
+        - {name: "CAT-320-Excavator-2", type: "excavator", current_site: "Depot", idle_cost_per_day: 200}
+        - {name: "Liebherr-Crane-1", type: "crane", current_site: "Site-Beta", idle_cost_per_day: 450}
+        - {name: "CAT-950-Loader-1", type: "loader", current_site: "Site-Alpha", idle_cost_per_day: 150}
+        - {name: "CAT-950-Loader-2", type: "loader", current_site: "Depot", idle_cost_per_day: 150}
+      sites:
+        - {name: "Site-Alpha", needs: {excavator: 1, crane: 1, loader: 1}}
+        - {name: "Site-Beta", needs: {excavator: 1, crane: 1, loader: 0}}
+        - {name: "Site-Gamma", needs: {excavator: 0, crane: 0, loader: 2}}
+    scenario_description: >
+      A construction company has five pieces of heavy equipment spread across two
+      active sites and a depot. Three sites need specific equipment next week.
+      Moving equipment between sites costs money, and idle equipment incurs
+      storage fees. The fleet manager needs to assign equipment to sites at
+      minimum total cost.
+    is_featured: false
+    estimated_variables: 15
+    estimated_constraints: 8
+
+  - id: material_procurement
+    name: Construction Material Procurement
+    display_name: Material Procurement
+    short_description: Select suppliers and order quantities for building materials to minimize total procurement cost with delivery constraints.
+    description: >
+      Decides which suppliers to use and how much of each building material to
+      order from each. Suppliers have different prices, minimum order quantities,
+      delivery lead times, and quality ratings. The model minimizes total cost
+      (material + delivery + handling) while ensuring all material requirements
+      are met on time for the construction schedule and minimum quality thresholds
+      are maintained.
+    category: construction
+    tags: [construction, procurement, supply-chain, materials]
+    problem_type_tags: [MIP, knapsack]
+    generator_type: knapsack
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        materials:
+          type: array
+          description: Required materials with quantities
+        suppliers:
+          type: array
+          description: Suppliers with prices and capacity
+      required: [materials, suppliers]
+    input_fields:
+      - name: materials
+        label: Required Materials
+        type: array
+        description: "Materials with name and required quantity"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            required_qty: {type: number}
+            unit: {type: string}
+      - name: suppliers
+        label: Suppliers
+        type: array
+        description: "Suppliers with name, material, price, capacity, and min order"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            material: {type: string}
+            price_per_unit: {type: number}
+            max_capacity: {type: number}
+            delivery_cost: {type: number}
+    example_input:
+      materials:
+        - {name: "Ready-Mix Concrete", required_qty: 500, unit: "m3"}
+        - {name: "Rebar", required_qty: 30, unit: "tonnes"}
+        - {name: "Lumber", required_qty: 200, unit: "m3"}
+      suppliers:
+        - {name: "Metro Concrete", material: "Ready-Mix Concrete", price_per_unit: 120, max_capacity: 400, delivery_cost: 500}
+        - {name: "Valley Concrete", material: "Ready-Mix Concrete", price_per_unit: 115, max_capacity: 250, delivery_cost: 800}
+        - {name: "Steel Supply Co", material: "Rebar", price_per_unit: 850, max_capacity: 25, delivery_cost: 300}
+        - {name: "National Steel", material: "Rebar", price_per_unit: 820, max_capacity: 20, delivery_cost: 600}
+        - {name: "Pacific Lumber", material: "Lumber", price_per_unit: 280, max_capacity: 150, delivery_cost: 400}
+        - {name: "Mountain Timber", material: "Lumber", price_per_unit: 295, max_capacity: 120, delivery_cost: 250}
+    scenario_description: >
+      A construction project manager needs to procure concrete, rebar, and lumber
+      for a new building. Two suppliers offer each material at different prices
+      and capacities. Some suppliers have lower unit costs but higher delivery
+      charges. The manager wants to find the cheapest combination of suppliers
+      that covers all material requirements.
+    is_featured: false
+    estimated_variables: 12
+    estimated_constraints: 9

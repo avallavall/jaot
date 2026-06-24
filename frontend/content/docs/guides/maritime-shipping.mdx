@@ -1,0 +1,261 @@
+---
+title: "Maritime Shipping"
+description: "Optimize vessel routing, port scheduling, and cargo allocation"
+order: 13
+category: "maritime"
+difficulty: "advanced"
+domain: "Logistics"
+templateCount: 1
+---
+
+# Maritime Shipping
+
+Maritime shipping optimization assigns vessels to ports to minimize total voyage cost while ensuring all required ports are served and no vessel exceeds its maximum port call limit. The example below models this as a binary assignment problem: decide which vessel calls at which port, subject to coverage and capacity constraints.
+
+## Step-by-Step Walkthrough
+
+**1. Define the fleet**
+
+List each vessel with its capacity (TEU for containers, deadweight tonnes for bulk), fuel consumption rate, operating cost per day, and current position. Different vessel classes have different speed-fuel trade-offs.
+
+**2. Map the port network**
+
+Define ports with berth availability windows, handling rates (containers per hour), port fees, and draft restrictions. Specify distances and sailing times between port pairs.
+
+**3. Define cargo demand**
+
+List shipments with origin port, destination port, volume, weight, and delivery deadline. Group compatible cargo types and note any hazardous material handling requirements.
+
+**4. Add maritime constraints**
+
+- Berth availability windows at each port
+- Vessel draft restrictions for shallow ports
+- Crew rest requirements and maximum continuous sailing time
+- Container weight distribution for vessel stability
+- Bunker fuel availability and refueling ports
+
+**5. Set the objective**
+
+Typically **minimize total voyage cost** (fuel + port fees + time charter) or **maximize cargo revenue** minus operating costs.
+
+![Maritime Shipping in JAOT Builder](/guides/logistics/maritime-shipping-builder.png)
+
+**6. Review the sailing schedule**
+
+The solver produces a schedule showing each vessel's port rotation, arrival and departure times, and cargo assignments. Verify berth availability at each port, check fuel adequacy for each leg, and confirm all cargo meets its delivery deadline.
+
+## Example Parameters
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+# Schedule 3 vessels across 5 ports (simplified assignment)
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": [
+        # vessel_port = 1 if vessel calls at port
+        {"name": "vessel1_singapore", "type": "binary"},
+        {"name": "vessel1_shanghai", "type": "binary"},
+        {"name": "vessel1_busan", "type": "binary"},
+        {"name": "vessel1_rotterdam", "type": "binary"},
+        {"name": "vessel1_hamburg", "type": "binary"},
+        {"name": "vessel2_singapore", "type": "binary"},
+        {"name": "vessel2_shanghai", "type": "binary"},
+        {"name": "vessel2_busan", "type": "binary"},
+        {"name": "vessel2_rotterdam", "type": "binary"},
+        {"name": "vessel2_hamburg", "type": "binary"},
+        {"name": "vessel3_singapore", "type": "binary"},
+        {"name": "vessel3_shanghai", "type": "binary"},
+        {"name": "vessel3_busan", "type": "binary"},
+        {"name": "vessel3_rotterdam", "type": "binary"},
+        {"name": "vessel3_hamburg", "type": "binary"},
+    ],
+    "objective": {
+        "sense": "minimize",
+        "coefficients": {
+            "vessel1_singapore": 45000, "vessel1_shanghai": 38000,
+            "vessel1_busan": 32000, "vessel1_rotterdam": 65000,
+            "vessel1_hamburg": 68000,
+            "vessel2_singapore": 52000, "vessel2_shanghai": 42000,
+            "vessel2_busan": 36000, "vessel2_rotterdam": 58000,
+            "vessel2_hamburg": 61000,
+            "vessel3_singapore": 48000, "vessel3_shanghai": 40000,
+            "vessel3_busan": 34000, "vessel3_rotterdam": 72000,
+            "vessel3_hamburg": 75000,
+        },
+    },
+    "constraints": [
+        {
+            "name": "singapore_served",
+            "coefficients": {
+                "vessel1_singapore": 1, "vessel2_singapore": 1,
+                "vessel3_singapore": 1
+            },
+            "sense": ">=",
+            "rhs": 1,
+        },
+        {
+            "name": "shanghai_served",
+            "coefficients": {
+                "vessel1_shanghai": 1, "vessel2_shanghai": 1,
+                "vessel3_shanghai": 1
+            },
+            "sense": ">=",
+            "rhs": 1,
+        },
+        {
+            "name": "rotterdam_served",
+            "coefficients": {
+                "vessel1_rotterdam": 1, "vessel2_rotterdam": 1,
+                "vessel3_rotterdam": 1
+            },
+            "sense": ">=",
+            "rhs": 1,
+        },
+        {
+            "name": "vessel1_max_ports",
+            "coefficients": {
+                "vessel1_singapore": 1, "vessel1_shanghai": 1,
+                "vessel1_busan": 1, "vessel1_rotterdam": 1,
+                "vessel1_hamburg": 1
+            },
+            "sense": "<=",
+            "rhs": 3,
+        },
+        {
+            "name": "vessel2_max_ports",
+            "coefficients": {
+                "vessel2_singapore": 1, "vessel2_shanghai": 1,
+                "vessel2_busan": 1, "vessel2_rotterdam": 1,
+                "vessel2_hamburg": 1
+            },
+            "sense": "<=",
+            "rhs": 3,
+        },
+        {
+            "name": "vessel3_max_ports",
+            "coefficients": {
+                "vessel3_singapore": 1, "vessel3_shanghai": 1,
+                "vessel3_busan": 1, "vessel3_rotterdam": 1,
+                "vessel3_hamburg": 1
+            },
+            "sense": "<=",
+            "rhs": 3,
+        },
+    ],
+})
+result = response.json()
+
+print(f"Minimum total voyage cost: ${result['objective_value']:,.0f}")
+for var in result["variables"]:
+    if var["value"] > 0.5:
+        print(f"  {var['name']}: assigned")
+```
+```json
+{
+  "variables": [
+    {"name": "vessel1_singapore", "type": "binary"},
+    {"name": "vessel1_shanghai", "type": "binary"},
+    {"name": "vessel1_busan", "type": "binary"},
+    {"name": "vessel1_rotterdam", "type": "binary"},
+    {"name": "vessel1_hamburg", "type": "binary"},
+    {"name": "vessel2_singapore", "type": "binary"},
+    {"name": "vessel2_shanghai", "type": "binary"},
+    {"name": "vessel2_busan", "type": "binary"},
+    {"name": "vessel2_rotterdam", "type": "binary"},
+    {"name": "vessel2_hamburg", "type": "binary"},
+    {"name": "vessel3_singapore", "type": "binary"},
+    {"name": "vessel3_shanghai", "type": "binary"},
+    {"name": "vessel3_busan", "type": "binary"},
+    {"name": "vessel3_rotterdam", "type": "binary"},
+    {"name": "vessel3_hamburg", "type": "binary"}
+  ],
+  "objective": {
+    "sense": "minimize",
+    "coefficients": {
+      "vessel1_singapore": 45000, "vessel1_shanghai": 38000,
+      "vessel1_busan": 32000, "vessel1_rotterdam": 65000,
+      "vessel1_hamburg": 68000,
+      "vessel2_singapore": 52000, "vessel2_shanghai": 42000,
+      "vessel2_busan": 36000, "vessel2_rotterdam": 58000,
+      "vessel2_hamburg": 61000,
+      "vessel3_singapore": 48000, "vessel3_shanghai": 40000,
+      "vessel3_busan": 34000, "vessel3_rotterdam": 72000,
+      "vessel3_hamburg": 75000
+    }
+  },
+  "constraints": [
+    {
+      "name": "singapore_served",
+      "coefficients": {
+        "vessel1_singapore": 1, "vessel2_singapore": 1,
+        "vessel3_singapore": 1
+      },
+      "sense": ">=",
+      "rhs": 1
+    },
+    {
+      "name": "shanghai_served",
+      "coefficients": {
+        "vessel1_shanghai": 1, "vessel2_shanghai": 1,
+        "vessel3_shanghai": 1
+      },
+      "sense": ">=",
+      "rhs": 1
+    },
+    {
+      "name": "rotterdam_served",
+      "coefficients": {
+        "vessel1_rotterdam": 1, "vessel2_rotterdam": 1,
+        "vessel3_rotterdam": 1
+      },
+      "sense": ">=",
+      "rhs": 1
+    },
+    {
+      "name": "vessel1_max_ports",
+      "coefficients": {
+        "vessel1_singapore": 1, "vessel1_shanghai": 1,
+        "vessel1_busan": 1, "vessel1_rotterdam": 1,
+        "vessel1_hamburg": 1
+      },
+      "sense": "<=",
+      "rhs": 3
+    },
+    {
+      "name": "vessel2_max_ports",
+      "coefficients": {
+        "vessel2_singapore": 1, "vessel2_shanghai": 1,
+        "vessel2_busan": 1, "vessel2_rotterdam": 1,
+        "vessel2_hamburg": 1
+      },
+      "sense": "<=",
+      "rhs": 3
+    },
+    {
+      "name": "vessel3_max_ports",
+      "coefficients": {
+        "vessel3_singapore": 1, "vessel3_shanghai": 1,
+        "vessel3_busan": 1, "vessel3_rotterdam": 1,
+        "vessel3_hamburg": 1
+      },
+      "sense": "<=",
+      "rhs": 3
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+- **[Custom Optimization](/builder/templates/custom)** -- build a maritime scheduling model with your fleet data, port network, and cargo requirements
+
+## Next Steps
+
+- **[Railway Operations](/docs/guides/railway-operations)** -- Optimize rail scheduling and rolling stock allocation `advanced`
+- **[Warehouse Layout & Operations](/docs/guides/warehouse-operations)** -- Optimize port-side and inland warehouse operations `intermediate`
+- **[Transportation Network Design](/docs/guides/transportation-network)** -- Design multi-modal freight networks combining sea, rail, and road `advanced`

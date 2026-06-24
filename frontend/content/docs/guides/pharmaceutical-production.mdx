@@ -1,0 +1,197 @@
+---
+title: "Pharmaceutical Production"
+description: "Plan drug manufacturing, batch scheduling, and quality compliance"
+order: 22
+category: "pharmaceutical"
+difficulty: "advanced"
+domain: "Healthcare & Pharma"
+templateCount: 1
+---
+
+# Pharmaceutical Production
+
+Optimize drug production scheduling, batch sequencing, and equipment utilization in pharmaceutical manufacturing. Pharmaceutical optimization accounts for strict changeover times between product types, shelf-life constraints, regulatory compliance windows, and cleanroom requirements to minimize total production time.
+
+## When to Use This Guide
+
+Pharmaceutical optimization applies to regulated manufacturing environments:
+
+- **Batch production scheduling** -- Sequence drug batches across production lines to minimize makespan
+- **Changeover optimization** -- Minimize cleaning and setup time between incompatible product batches
+- **Clinical trial site selection** -- Choose trial locations to balance enrollment speed and cost
+- **Cold chain logistics** -- Plan temperature-controlled distribution for sensitive medications
+- **Shelf-life management** -- Schedule production to minimize waste from product expiration
+
+## Step-by-Step Walkthrough
+
+### 1. Define Products and Batches
+
+List every drug product with its batch size, processing time per production line, and shelf-life constraint. Some products may only be compatible with certain production lines (e.g., sterile vs. non-sterile).
+
+### 2. Set Equipment and Changeover Constraints
+
+Define production lines with their availability windows. Specify changeover times between product types -- switching from Product A to Product B may require different cleaning than B to A. Add any regulatory hold times.
+
+### 3. Add Quality and Compliance Rules
+
+Include constraints for batch traceability, maximum time between production and quality release, and any required sequencing (e.g., allergen-free products before allergen-containing ones).
+
+### 4. Solve and Schedule
+
+The optimizer assigns batches to production lines and time slots, minimizing total production time (makespan) or changeover costs. Review the schedule for compliance with GMP requirements and adjust as needed.
+
+## Example: Schedule 6 Batches Across 3 Production Lines
+
+Schedule 6 drug batches across 3 production lines with product-dependent changeover times and shelf-life constraints. Minimize total production makespan.
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+batches = 6
+lines = 3
+
+# Processing time per batch (hours)
+proc_time = [8, 12, 6, 10, 14, 9]
+# Shelf life constraint: must complete within N hours of start
+shelf_life = [48, 72, 36, 60, 96, 48]
+
+# Changeover time between consecutive batches on same line (hours)
+# Simplified: depends on batch type (0=tablet, 1=liquid, 2=injectable)
+batch_type = [0, 1, 0, 2, 1, 2]
+changeover = [
+    [1, 3, 4],   # from tablet to: tablet, liquid, injectable
+    [3, 1, 5],   # from liquid to: ...
+    [4, 5, 2],   # from injectable to: ...
+]
+
+variables = []
+# Binary: assign batch b to line l
+for b in range(batches):
+    for l in range(lines):
+        variables.append({"name": f"assign_{b}_{l}", "type": "binary"})
+
+# Continuous: start time of batch b
+for b in range(batches):
+    variables.append({
+        "name": f"start_{b}", "type": "continuous", "lb": 0, "ub": 200,
+    })
+
+# Makespan variable
+variables.append({
+    "name": "makespan", "type": "continuous", "lb": 0,
+})
+
+# Minimize makespan
+objective = {"sense": "minimize", "coefficients": {"makespan": 1}}
+
+constraints = []
+# Each batch assigned to exactly one line
+for b in range(batches):
+    constraints.append({
+        "name": f"assign_once_{b}",
+        "coefficients": {f"assign_{b}_{l}": 1 for l in range(lines)},
+        "sense": "==",
+        "rhs": 1,
+    })
+
+# Line capacity: at most 2 batches per line (simplified)
+for l in range(lines):
+    constraints.append({
+        "name": f"line_cap_{l}",
+        "coefficients": {f"assign_{b}_{l}": 1 for b in range(batches)},
+        "sense": "<=",
+        "rhs": 2,
+    })
+
+# Makespan >= completion of every batch
+for b in range(batches):
+    constraints.append({
+        "name": f"makespan_b{b}",
+        "coefficients": {"makespan": 1, f"start_{b}": -1},
+        "sense": ">=",
+        "rhs": proc_time[b],
+    })
+
+# Shelf life: completion <= shelf_life
+for b in range(batches):
+    constraints.append({
+        "name": f"shelf_{b}",
+        "coefficients": {f"start_{b}": 1},
+        "sense": "<=",
+        "rhs": shelf_life[b] - proc_time[b],
+    })
+
+response = httpx.post(f"{API_URL}/solve", headers=headers, json={
+    "variables": variables,
+    "objective": objective,
+    "constraints": constraints,
+})
+result = response.json()
+
+print(f"Status: {result['status']}")
+print(f"Total makespan: {result['objective_value']:.1f} hours")
+for b in range(batches):
+    start = result['solution'][f"start_{b}"]
+    line = next(
+        l for l in range(lines)
+        if result['solution'].get(f"assign_{b}_{l}", 0) > 0.5
+    )
+    print(
+        f"  Batch {b+1}: Line {line+1}, "
+        f"start={start:.1f}h, end={start + proc_time[b]:.1f}h"
+    )
+```
+
+```json
+{
+  "variables": [
+    {"name": "assign_0_0", "type": "binary"},
+    {"name": "assign_0_1", "type": "binary"},
+    {"name": "assign_0_2", "type": "binary"},
+    {"name": "start_0", "type": "continuous", "lb": 0, "ub": 200},
+    {"name": "makespan", "type": "continuous", "lb": 0}
+  ],
+  "objective": {
+    "sense": "minimize",
+    "coefficients": {"makespan": 1}
+  },
+  "constraints": [
+    {
+      "name": "assign_once_0",
+      "coefficients": {"assign_0_0": 1, "assign_0_1": 1, "assign_0_2": 1},
+      "sense": "==",
+      "rhs": 1
+    },
+    {
+      "name": "makespan_b0",
+      "coefficients": {"makespan": 1, "start_0": -1},
+      "sense": ">=",
+      "rhs": 8
+    },
+    {
+      "name": "shelf_0",
+      "coefficients": {"start_0": 1},
+      "sense": "<=",
+      "rhs": 40
+    }
+  ]
+}
+```
+</CodeTabs>
+
+## Templates
+
+Build pharmaceutical scheduling models with these templates:
+
+- **[Production Planning Optimizer](/builder/templates/production_planning)** -- Adapt general production scheduling for pharmaceutical batch processes
+- **[Custom Optimization](/builder/templates/custom)** -- Full flexibility for GMP-compliant scheduling with changeover and shelf-life constraints
+
+## Next Steps
+
+- **[Chemical Process Optimization](/docs/guides/chemical-process)** -- Related process optimization for chemical manufacturing
+- **[Healthcare Resource Allocation](/docs/guides/healthcare-resources)** -- Optimize hospital operations and staff scheduling
+- **[API Reference](/docs/api/solve)** -- Full endpoint documentation for the solve API

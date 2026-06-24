@@ -1,0 +1,135 @@
+category: advertising_media
+category_display_name: Advertising & Media
+
+templates:
+  - id: ad_campaign_budget
+    name: Advertising Campaign Budget Allocation
+    display_name: Ad Budget Allocation
+    short_description: Allocate an advertising budget across channels and campaigns to maximize reach and conversions.
+    description: >
+      Distributes a marketing budget across advertising channels (TV, digital,
+      print, social, radio) and campaign slots to maximize total expected
+      reach or conversions. Each channel has a cost per impression, an expected
+      conversion rate, and a capacity (available ad slots). Budget constraints,
+      minimum spend per channel, and maximum exposure frequency rules apply.
+      The model finds the spend allocation that delivers the best return on
+      advertising spend (ROAS).
+    category: advertising_media
+    tags: [advertising, marketing, budget-allocation, digital]
+    problem_type_tags: [MIP, knapsack]
+    generator_type: knapsack
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        channels:
+          type: array
+          description: Advertising channels with costs and performance
+        total_budget:
+          type: number
+          description: Total campaign budget
+      required: [channels, total_budget]
+    input_fields:
+      - name: channels
+        label: Ad Channels
+        type: array
+        description: "Channels with name, cost per unit, expected reach, and max units available"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            cost_per_unit: {type: number}
+            reach_per_unit: {type: number}
+            max_units: {type: integer}
+            min_units: {type: integer}
+      - name: total_budget
+        label: Total Budget
+        type: number
+        description: "Maximum total advertising spend"
+        required: true
+        minimum: 0
+    example_input:
+      channels:
+        - {name: "Google Ads", cost_per_unit: 2.50, reach_per_unit: 1000, max_units: 5000, min_units: 500}
+        - {name: "Facebook/Instagram", cost_per_unit: 1.80, reach_per_unit: 800, max_units: 8000, min_units: 1000}
+        - {name: "TV Prime-Time", cost_per_unit: 15000, reach_per_unit: 500000, max_units: 4, min_units: 0}
+        - {name: "YouTube Pre-Roll", cost_per_unit: 3.00, reach_per_unit: 1200, max_units: 4000, min_units: 0}
+        - {name: "Podcast Sponsorship", cost_per_unit: 500, reach_per_unit: 25000, max_units: 10, min_units: 0}
+        - {name: "Billboard", cost_per_unit: 8000, reach_per_unit: 200000, max_units: 3, min_units: 0}
+        - {name: "Email Campaign", cost_per_unit: 0.15, reach_per_unit: 150, max_units: 50000, min_units: 5000}
+      total_budget: 100000
+    scenario_description: >
+      A consumer goods company has a $100,000 quarterly advertising budget to
+      allocate across seven channels. Each channel has a different cost structure
+      and expected reach. Digital channels require minimum spends to be effective.
+      The marketing director wants to maximize total audience reach within the
+      budget constraint.
+    is_featured: true
+    estimated_variables: 7
+    estimated_constraints: 15
+
+  - id: media_mix_optimization
+    name: Media Mix Optimization
+    display_name: Media Mix
+    short_description: Find the optimal media spending mix across platforms to maximize ROI given diminishing returns and cross-channel effects.
+    description: >
+      Determines the optimal allocation of marketing spend across media platforms
+      considering diminishing returns on each channel. Each platform has a budget
+      range, an expected return curve, and synergy effects with other platforms
+      (e.g., TV ads boost search conversion). The model maximizes total marketing
+      ROI while staying within the overall budget and respecting per-channel
+      minimum and maximum constraints. A modern take on the classic Markowitz
+      portfolio approach applied to marketing.
+    category: advertising_media
+    tags: [advertising, media-planning, ROI, marketing-analytics]
+    problem_type_tags: [MIP, portfolio]
+    generator_type: portfolio
+    generator_params: {}
+    input_schema:
+      type: object
+      properties:
+        platforms:
+          type: array
+          description: Media platforms with return and budget parameters
+        total_budget:
+          type: number
+          description: Total marketing budget
+      required: [platforms, total_budget]
+    input_fields:
+      - name: platforms
+        label: Media Platforms
+        type: array
+        description: "Platforms with name, expected return rate, risk/variance, and budget range"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            expected_return: {type: number}
+            risk: {type: number}
+            min_spend: {type: number}
+            max_spend: {type: number}
+      - name: total_budget
+        label: Total Budget
+        type: number
+        description: "Total marketing budget to allocate"
+        required: true
+        minimum: 0
+    example_input:
+      platforms:
+        - {name: "Paid Search", expected_return: 0.35, risk: 0.10, min_spend: 5000, max_spend: 40000}
+        - {name: "Social Media Ads", expected_return: 0.28, risk: 0.15, min_spend: 3000, max_spend: 30000}
+        - {name: "Display/Programmatic", expected_return: 0.18, risk: 0.20, min_spend: 0, max_spend: 25000}
+        - {name: "Connected TV", expected_return: 0.22, risk: 0.18, min_spend: 0, max_spend: 20000}
+        - {name: "Influencer Marketing", expected_return: 0.40, risk: 0.30, min_spend: 0, max_spend: 15000}
+        - {name: "Print/Direct Mail", expected_return: 0.12, risk: 0.08, min_spend: 0, max_spend: 10000}
+      total_budget: 80000
+    scenario_description: >
+      A DTC brand has $80,000 monthly to spend across six media channels. Each
+      channel has a different expected ROI and variance (risk that actual returns
+      deviate from expected). The marketing team wants a diversified media mix
+      that maximizes expected return while controlling overall campaign risk.
+    is_featured: false
+    estimated_variables: 6
+    estimated_constraints: 13

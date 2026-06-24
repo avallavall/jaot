@@ -1,0 +1,295 @@
+category: agriculture
+category_display_name: Agriculture & Farming
+
+templates:
+  - id: fertilizer_mixing
+    name: Fertilizer Mix Optimizer
+    display_name: Fertilizer Mixing
+    short_description: Blend raw materials into a fertilizer mix that meets nutrient targets (N-P-K) at minimum cost.
+    description: >
+      Optimize a fertilizer blend by choosing quantities of raw materials so that
+      the final mix meets minimum and maximum nutrient percentages for nitrogen,
+      phosphorus, potassium, and any other tracked nutrients. The solver minimizes
+      total raw-material cost while respecting supplier stock limits and batch-size
+      constraints. The output tells you exactly how many tonnes of each ingredient
+      to purchase.
+    scenario_description: >
+      An agri-cooperative needs to produce 1,000 kg of NPK fertilizer. Four raw
+      materials are available -- urea (46% N), DAP (18% N, 46% P), MOP (60% K),
+      and inert filler. Target blend: 15-20% N, 10-15% P, 12-18% K. Prices range
+      from EUR 50 (filler) to EUR 480 (DAP) per tonne.
+    category: agriculture
+    tags: [agriculture, fertilizer, blending, nutrients, cost]
+    problem_type_tags: [LP]
+    generator_type: blending
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [nutrients, raw_materials, target_nutrients, mix_quantity_min, mix_quantity_max]
+      properties:
+        nutrients: {type: array}
+        raw_materials: {type: array}
+        target_nutrients: {type: array}
+        mix_quantity_min: {type: number}
+        mix_quantity_max: {type: number}
+    input_fields:
+      - name: nutrients
+        label: Nutrients
+        type: array
+        description: "Nutrients to track (e.g., Nitrogen, Phosphorus, Potassium)"
+        required: true
+        items:
+          type: object
+          properties:
+            id: {type: string}
+            name: {type: string}
+      - name: raw_materials
+        label: Raw Materials
+        type: array
+        description: Available raw materials with nutrient content and pricing
+        required: true
+        items:
+          type: object
+          properties:
+            id: {type: string}
+            name: {type: string}
+            price_per_ton: {type: number}
+            stock_max: {type: number}
+            quantity_min: {type: number}
+            quantity_max: {type: number}
+            nutrient_percentages: {type: array}
+      - name: target_nutrients
+        label: Target Nutrients
+        type: array
+        description: Target nutrient percentages in final mix
+        required: true
+        items:
+          type: object
+          properties:
+            id: {type: string}
+            min: {type: number}
+            max: {type: number}
+      - name: mix_quantity_min
+        label: Minimum Mix Quantity (kg)
+        type: number
+        description: Minimum total quantity to produce
+        required: true
+        default: 100
+      - name: mix_quantity_max
+        label: Maximum Mix Quantity (kg)
+        type: number
+        description: Maximum total quantity to produce
+        required: true
+        default: 1000
+    example_input:
+      nutrients:
+        - {id: "N", name: Nitrogen}
+        - {id: "P", name: Phosphorus}
+        - {id: "K", name: Potassium}
+      raw_materials:
+        - id: urea
+          name: Urea
+          price_per_ton: 350
+          stock_max: 5000
+          quantity_min: 0
+          quantity_max: -1
+          nutrient_percentages:
+            - {id: "N", percentage: 46.0}
+            - {id: "P", percentage: 0.0}
+            - {id: "K", percentage: 0.0}
+        - id: dap
+          name: DAP (Diammonium Phosphate)
+          price_per_ton: 480
+          stock_max: 3000
+          quantity_min: 0
+          quantity_max: -1
+          nutrient_percentages:
+            - {id: "N", percentage: 18.0}
+            - {id: "P", percentage: 46.0}
+            - {id: "K", percentage: 0.0}
+        - id: mop
+          name: MOP (Muriate of Potash)
+          price_per_ton: 320
+          stock_max: 4000
+          quantity_min: 0
+          quantity_max: -1
+          nutrient_percentages:
+            - {id: "N", percentage: 0.0}
+            - {id: "P", percentage: 0.0}
+            - {id: "K", percentage: 60.0}
+        - id: filler
+          name: Filler (Inert)
+          price_per_ton: 50
+          stock_max: -1
+          quantity_min: 0
+          quantity_max: -1
+          nutrient_percentages:
+            - {id: "N", percentage: 0.0}
+            - {id: "P", percentage: 0.0}
+            - {id: "K", percentage: 0.0}
+      target_nutrients:
+        - {id: "N", min: 15.0, max: 20.0}
+        - {id: "P", min: 10.0, max: 15.0}
+        - {id: "K", min: 12.0, max: 18.0}
+      mix_quantity_min: 1000
+      mix_quantity_max: 1000
+    is_featured: true
+    estimated_variables: 4
+    estimated_constraints: 10
+
+  - id: crop_rotation
+    name: Crop Rotation Planner
+    display_name: Crop Rotation
+    short_description: Select which crops to grow in each field and season to maximize profit while maintaining soil health.
+    description: >
+      Plan which crop to plant in each field for each season over a planning horizon.
+      The solver maximizes total profit (yield x price minus cost) while enforcing crop
+      rotation rules (no repeated families), respecting water and labour availability,
+      and maintaining soil nutrient balance. The result is a planting calendar that
+      maximizes income without depleting the land.
+    scenario_description: >
+      A farm has 4 fields and plans 3 seasons ahead. Six crop options (wheat, corn,
+      soybeans, sunflower, barley, fallow) each have different per-hectare profits,
+      water needs, and nitrogen impact. Soybeans fix nitrogen; corn depletes it.
+      Water supply is limited to 800 m3 per season.
+    category: agriculture
+    tags: [agriculture, crop-rotation, farming, planning, sustainability]
+    problem_type_tags: [MIP]
+    generator_type: crop_rotation
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [crops, fields, seasons, water_per_season]
+      properties:
+        crops: {type: array}
+        fields: {type: array}
+        seasons: {type: array}
+        water_per_season: {type: number}
+        no_repeat_crops: {type: array}
+    input_fields:
+      - name: crops
+        label: Crops
+        type: array
+        description: "Available crops with per-field profit and water requirements"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            profit: {type: number}
+            water_need: {type: number}
+      - name: fields
+        label: Fields
+        type: array
+        description: "Farm fields available for planting"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: seasons
+        label: Seasons
+        type: array
+        description: "Planning seasons (e.g., spring, autumn)"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: water_per_season
+        label: Water Limit per Season
+        type: number
+        description: "Maximum water available across all fields per season (m3)"
+        required: true
+        default: 800
+      - name: no_repeat_crops
+        label: No-Repeat Crops
+        type: array
+        description: "Crops that must not be planted in the same field in consecutive seasons"
+        required: false
+        items:
+          type: string
+    example_input:
+      crops:
+        - {name: wheat, profit: 800, water_need: 200}
+        - {name: corn, profit: 1200, water_need: 350}
+        - {name: soy, profit: 600, water_need: 150}
+      fields:
+        - {name: F1}
+        - {name: F2}
+      seasons:
+        - {name: spring}
+        - {name: autumn}
+      water_per_season: 800
+      no_repeat_crops: [corn]
+    is_featured: false
+    estimated_variables: 12
+    estimated_constraints: 10
+
+  - id: irrigation_scheduling
+    name: Irrigation Scheduling Optimizer
+    display_name: Irrigation Scheduling
+    short_description: Schedule water distribution across fields and time slots to minimize water usage while meeting crop requirements.
+    description: >
+      Determine how much water to deliver to each field in each time slot to satisfy
+      crop water requirements at minimum total usage. The solver considers pump capacity,
+      pipe flow limits, and crop-specific minimum hydration levels. The result is a
+      time-based irrigation schedule that avoids both over-watering and crop stress.
+    scenario_description: >
+      A farm has 4 fields with different crops and 6 daily irrigation slots. The main
+      pump delivers 120 m3/hour. Field A (tomatoes) needs 40 m3/day; field B (lettuce)
+      needs 25 m3/day. The farmer wants to minimize total water consumption while keeping
+      every crop above its minimum hydration threshold.
+    category: agriculture
+    tags: [agriculture, irrigation, water, scheduling, sustainability]
+    problem_type_tags: [LP]
+    generator_type: irrigation
+    generator_params: {}
+    input_schema:
+      type: object
+      required: [fields, slots, pump_capacity_per_slot]
+      properties:
+        fields: {type: array}
+        slots: {type: array}
+        pump_capacity_per_slot: {type: number}
+    input_fields:
+      - name: fields
+        label: Fields / Crops
+        type: array
+        description: "Fields with their total daily water demand and maximum delivery per slot"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+            water_demand: {type: number}
+            max_per_slot: {type: number}
+      - name: slots
+        label: Time Slots
+        type: array
+        description: "Irrigation time slots in the day (e.g., early morning, midday, evening)"
+        required: true
+        items:
+          type: object
+          properties:
+            name: {type: string}
+      - name: pump_capacity_per_slot
+        label: Pump Capacity per Slot
+        type: number
+        description: "Maximum total water the pump can deliver across all fields per slot (m3)"
+        required: true
+        default: 60
+    example_input:
+      fields:
+        - {name: tomatoes, water_demand: 40, max_per_slot: 20}
+        - {name: lettuce, water_demand: 25, max_per_slot: 15}
+        - {name: peppers, water_demand: 50, max_per_slot: 25}
+        - {name: herbs, water_demand: 15, max_per_slot: 10}
+      slots:
+        - {name: early_morning}
+        - {name: midday}
+        - {name: evening}
+      pump_capacity_per_slot: 60
+    is_featured: false
+    estimated_variables: 12
+    estimated_constraints: 7
