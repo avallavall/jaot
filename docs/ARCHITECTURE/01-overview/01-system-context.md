@@ -2,6 +2,8 @@
 
 > Highest-level view: what JAOT is, who uses it, which external systems it talks to. Intended for someone joining the project for the first time.
 
+> **Note (2026-06-25):** The marketplace is **free and collaborative by default** (`MONETIZATION_ENABLED=false`). The Stripe payments, commission split, and seller payouts described below are dormant and only apply to a self-hosted deployment that enables monetization.
+
 ## What is JAOT
 
 A SaaS platform to **build, buy, and automate optimization models** (linear programming, mixed-integer, etc.). Users create models in a visual builder, solve them against solvers (SCIP, HiGHS; Hexaly / Gurobi / CPLEX on the roadmap), share/sell them on a marketplace, or run them via schedule / webhook.

@@ -20,8 +20,8 @@ library and not a hosted SaaS** — you run it yourself with `docker compose up`
   runnable model, grounded in a RAG index over the template library
   (Qdrant + local sentence-transformers; no data leaves your box except the
   Claude calls you opt into).
-- **Model marketplace** — publish and activate pre-built models, priced in
-  credits or free.
+- **Model marketplace** — a free, collaborative gallery: publish your models
+  and activate community ones. No prices or commissions.
 - **MCP server** — exposes solver tools to AI agents (Claude, etc.) via the
   Model Context Protocol.
 - **102 templates + 27 problem generators** — knapsack, vehicle routing,
@@ -30,9 +30,11 @@ library and not a hosted SaaS** — you run it yourself with `docker compose up`
 - **Credits ledger, multi-tenant auth, admin panel, i18n (en/es/ca/fr/de),
   and a Prometheus/Grafana/Alertmanager monitoring stack** — included.
 
-Payments are optional and bring-your-own Stripe keys: the billing code is
-complete but **has never been exercised against live Stripe** — test before you
-charge real money.
+Monetization is **off by default** (`MONETIZATION_ENABLED=false`): the
+marketplace is free and collaborative. A self-hosted deployment can enable the
+paid marketplace by flipping the flag and bringing its own Stripe keys — that
+billing code is complete but **has never been exercised against live Stripe**,
+so test before you charge real money.
 
 ---
 

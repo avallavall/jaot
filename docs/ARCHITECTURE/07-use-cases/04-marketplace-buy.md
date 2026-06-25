@@ -2,6 +2,8 @@
 
 > Purchase flow: user browses templates, previews, pays via Stripe, access granted, forks to own model.
 
+> **Note (2026-06-25):** This paid flow is **dormant by default**. The platform runs with `MONETIZATION_ENABLED=false`, so the marketplace is free and collaborative — activation costs nothing and no commission is charged. The Stripe/commission/payout steps below only apply to a self-hosted deployment that enables monetization; the commission figures are illustrative of that optional mode.
+
 ## Diagram
 
 ```mermaid
