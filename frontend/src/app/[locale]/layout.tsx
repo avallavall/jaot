@@ -1,9 +1,23 @@
 import type { Metadata } from "next";
+import { Fraunces } from "next/font/google";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Toaster } from "sonner";
 import "../globals.css";
+
+// Brand display serif. Fraunces is an "old-style" serif with optical sizing and
+// soft/wonky character — it carries the vintage/editorial identity that the bare
+// `font-serif` (browser-default Georgia/Times) never could. Exposed as the
+// --font-fraunces CSS variable and wired to Tailwind's `font-serif` via the
+// --font-serif token in globals.css, so every existing `font-serif` call site
+// (logo, headings across the app) upgrades automatically.
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  display: "swap",
+  axes: ["opsz"],
+});
 import { routing } from "@/i18n/routing";
 import { buildAlternates, localizedUrl, BASE_URL, type Locale } from "@/lib/seo/urls";
 import { Providers } from "./providers";
@@ -65,7 +79,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   setRequestLocale(locale);
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={locale} className={fraunces.variable} suppressHydrationWarning>
       <body className="font-sans antialiased">
         <SkipLink />
         <NextIntlClientProvider>

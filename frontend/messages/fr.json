@@ -327,6 +327,8 @@
       "templatesCount": "100+ modèles",
       "firstMarketplace": "Marketplace de modèles d'optimisation",
       "mcpNative": "Natif MCP",
+      "heroVisualAlt": "Constructeur visuel de modèles JAOT montrant un modèle d'optimisation avec des nœuds de variables, contraintes et objectif",
+      "viewSource": "Voir sur GitHub",
       "pillars": {
         "aiBuilder": {
           "title": "Constructeur IA",
@@ -344,6 +346,12 @@
       "ctaBuilder": "Construire avec l'IA",
       "ctaMarketplace": "Parcourir les Modèles",
       "ctaMcp": "Connecter un Agent"
+    },
+    "platform": {
+      "eyebrow": "La plateforme",
+      "title": "Trois façons d'optimiser",
+      "subtitle": "Créez des modèles avec l'IA, achetez des solutions éprouvées sur la marketplace ou connectez votre agent IA via MCP.",
+      "aiVisualAlt": "L'assistant IA de JAOT formulant un modèle d'optimisation à partir d'une description du problème en langage naturel"
     },
     "audience": {
       "title": "Conçu pour tous ceux qui optimisent",

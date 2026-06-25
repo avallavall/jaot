@@ -3,6 +3,11 @@
 export const FEEDBACK_URL =
   "https://github.com/avallavall/jaot/issues/new/choose";
 
+// Public source repository — single source of truth for any "View on GitHub"
+// link (landing credibility strip, etc.). Safe to expose (the repo is public);
+// never link to deploy/hosting details.
+export const GITHUB_REPO_URL = "https://github.com/avallavall/jaot";
+
 export interface CommunityStatus {
   discourse_enabled: boolean;
   discourse_url: string | null;

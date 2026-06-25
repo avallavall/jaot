@@ -20,6 +20,12 @@
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
+  /* Brand display serif — Fraunces, loaded via next/font in [locale]/layout.tsx
+     and surfaced as --font-fraunces on <html>. Wiring it here makes Tailwind's
+     `font-serif` utility resolve to Fraunces everywhere (logo, all headings),
+     with a graceful fallback to the previous UA serif if the font fails. */
+  --font-serif: var(--font-fraunces), ui-serif, Georgia, "Times New Roman",
+    serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -70,7 +76,17 @@
   --vintage-dark: #3A3230;
   --vintage-light: #F5F1ED;
   --vintage-gray: #9B8E88;
-  
+
+  /* Warm depth — burgundy-tinted shadows (never neutral black) so cards and the
+     framed product shot lift off the paper background without breaking the
+     vintage warmth. Consumed by the .shadow-warm* utilities below. */
+  --shadow-warm-sm: 0 1px 2px rgba(93, 78, 71, 0.08),
+    0 2px 6px rgba(93, 78, 71, 0.05);
+  --shadow-warm-md: 0 4px 12px rgba(93, 78, 71, 0.1),
+    0 12px 28px rgba(93, 78, 71, 0.08);
+  --shadow-warm-lg: 0 10px 30px rgba(93, 78, 71, 0.12),
+    0 30px 70px rgba(93, 78, 71, 0.14);
+
   /* Surfaces */
   --background: #F6F0EA;
   --foreground: #3A3230;
@@ -279,6 +295,14 @@ html {
   --health-valid: #6BBF8A;
   --health-warning: #D4A04A;
   --health-error: #C45B5B;
+
+  /* Warm depth, dark variant — on espresso surfaces tinted shadows read as mud,
+     so fall back to deep neutral shadows with slightly higher spread. */
+  --shadow-warm-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-warm-md: 0 4px 12px rgba(0, 0, 0, 0.45),
+    0 12px 28px rgba(0, 0, 0, 0.4);
+  --shadow-warm-lg: 0 10px 30px rgba(0, 0, 0, 0.5),
+    0 30px 70px rgba(0, 0, 0, 0.5);
 }
 
 @layer base {
@@ -312,6 +336,57 @@ html {
   select:focus-visible {
     outline: 0.125rem solid var(--ring);
     outline-offset: 0.125rem;
+  }
+}
+
+/* ── Landing depth utilities ──────────────────────────────────────────────
+   Warm shadows, paper grain, and soft accent glows for the editorial home.
+   All additive and theme-aware; nothing here changes existing components. */
+
+.shadow-warm-sm {
+  box-shadow: var(--shadow-warm-sm);
+}
+.shadow-warm-md {
+  box-shadow: var(--shadow-warm-md);
+}
+.shadow-warm-lg {
+  box-shadow: var(--shadow-warm-lg);
+}
+
+/* Fractal-noise paper grain. Applied to an absolutely-positioned overlay; the
+   consumer controls opacity/blend with Tailwind so it stays a whisper (~4-6%). */
+.bg-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+/* Soft sage + peach radial glows behind the hero — turns the flat paper into a
+   lit surface without neon. Lower alpha in dark so it doesn't haze the espresso. */
+.hero-glow {
+  background-image:
+    radial-gradient(55% 50% at 85% -10%, rgba(138, 164, 153, 0.2), transparent 70%),
+    radial-gradient(45% 42% at 0% 0%, rgba(232, 160, 136, 0.16), transparent 70%);
+}
+.dark .hero-glow {
+  background-image:
+    radial-gradient(55% 50% at 85% -10%, rgba(138, 164, 153, 0.16), transparent 70%),
+    radial-gradient(45% 42% at 0% 0%, rgba(232, 160, 136, 0.12), transparent 70%);
+}
+
+/* Warm gradient band for the closing CTA. */
+.cta-band {
+  background-image:
+    radial-gradient(80% 130% at 50% 0%, rgba(232, 160, 136, 0.16), transparent 62%),
+    radial-gradient(60% 100% at 50% 120%, rgba(138, 164, 153, 0.14), transparent 60%);
+}
+
+/* Scroll-reveal — paired with the <Reveal> client component. Hidden offset state
+   collapses to none when the user prefers reduced motion (handled in the
+   component, but this keeps the no-JS / SSR fallback fully visible). */
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 

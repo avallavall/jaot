@@ -327,6 +327,8 @@
       "templatesCount": "100+ Vorlagen",
       "firstMarketplace": "Marktplatz für Optimierungsmodelle",
       "mcpNative": "MCP-nativ",
+      "heroVisualAlt": "Visueller Modell-Builder von JAOT mit einem Optimierungsmodell aus Variablen-, Bedingungs- und Zielknoten",
+      "viewSource": "Auf GitHub ansehen",
       "pillars": {
         "aiBuilder": {
           "title": "KI-Builder",
@@ -344,6 +346,12 @@
       "ctaBuilder": "Mit KI erstellen",
       "ctaMarketplace": "Modelle durchsuchen",
       "ctaMcp": "Agent verbinden"
+    },
+    "platform": {
+      "eyebrow": "Die Plattform",
+      "title": "Drei Wege zur Optimierung",
+      "subtitle": "Erstelle Modelle mit KI, kaufe bewährte Lösungen aus dem Marktplatz oder verbinde deinen KI-Agenten über MCP.",
+      "aiVisualAlt": "Der KI-Assistent von JAOT formuliert ein Optimierungsmodell aus einer Problembeschreibung in natürlicher Sprache"
     },
     "audience": {
       "title": "Für alle, die optimieren",

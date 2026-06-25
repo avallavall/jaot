@@ -327,6 +327,8 @@
       "templatesCount": "100+ templates",
       "firstMarketplace": "Optimization model marketplace",
       "mcpNative": "MCP-native",
+      "heroVisualAlt": "JAOT visual model builder showing an optimization model with variable, constraint, and objective nodes",
+      "viewSource": "View on GitHub",
       "pillars": {
         "aiBuilder": {
           "title": "AI Builder",
@@ -344,6 +346,12 @@
       "ctaBuilder": "Build with AI",
       "ctaMarketplace": "Browse Models",
       "ctaMcp": "Connect an Agent"
+    },
+    "platform": {
+      "eyebrow": "The platform",
+      "title": "Three ways to optimize",
+      "subtitle": "Build models with AI, buy proven solutions from the marketplace, or connect your AI agent via MCP.",
+      "aiVisualAlt": "The JAOT AI assistant formulating an optimization model from a plain-English problem description"
     },
     "audience": {
       "title": "Built for everyone who optimizes",

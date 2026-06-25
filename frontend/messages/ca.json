@@ -327,6 +327,8 @@
       "templatesCount": "Més de 100 plantilles",
       "firstMarketplace": "Marketplace de models d'optimització",
       "mcpNative": "Natiu MCP",
+      "heroVisualAlt": "Constructor visual de models de JAOT mostrant un model d'optimització amb nodes de variables, restriccions i objectiu",
+      "viewSource": "Veure a GitHub",
       "pillars": {
         "aiBuilder": {
           "title": "Constructor IA",
@@ -344,6 +346,12 @@
       "ctaBuilder": "Crea amb IA",
       "ctaMarketplace": "Explorar models",
       "ctaMcp": "Connectar un agent"
+    },
+    "platform": {
+      "eyebrow": "La plataforma",
+      "title": "Tres maneres d'optimitzar",
+      "subtitle": "Crea models amb IA, compra solucions provades al marketplace o connecta el teu agent d'IA via MCP.",
+      "aiVisualAlt": "L'assistent d'IA de JAOT formulant un model d'optimització a partir d'una descripció del problema en llenguatge natural"
     },
     "audience": {
       "title": "Dissenyat per a tothom qui optimitza",
