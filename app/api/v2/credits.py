@@ -111,6 +111,16 @@ class CurrencyRequest(BaseModel):
     currency: str = Field(..., pattern="^(EUR|USD|GBP|CHF)$")
 
 
+def _parse_optional_iso_date(rate_date: str | None) -> date | None:
+    """Parse an optional YYYY-MM-DD query param, raising 400 on bad format."""
+    if not rate_date:
+        return None
+    try:
+        return date.fromisoformat(rate_date)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD") from e
+
+
 @router.get("/rates", response_model=AllRatesResponse)
 async def get_exchange_rates(
     rate_date: str | None = Query(None, description="Date in YYYY-MM-DD format"),
@@ -119,14 +129,7 @@ async def get_exchange_rates(
     """Get all exchange rates for a date."""
     service = CreditsService(db)
 
-    parsed_date = None
-    if rate_date:
-        try:
-            parsed_date = date.fromisoformat(rate_date)
-        except ValueError as e:
-            raise HTTPException(
-                status_code=400, detail="Invalid date format. Use YYYY-MM-DD"
-            ) from e
+    parsed_date = _parse_optional_iso_date(rate_date)
 
     rates = service.get_all_rates(parsed_date)
 
@@ -149,12 +152,7 @@ async def get_exchange_rate(
 
     service = CreditsService(db)
 
-    parsed_date = None
-    if rate_date:
-        try:
-            parsed_date = date.fromisoformat(rate_date)
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail="Invalid date format") from e
+    parsed_date = _parse_optional_iso_date(rate_date)
 
     rate = service.get_exchange_rate(currency, parsed_date)
 
