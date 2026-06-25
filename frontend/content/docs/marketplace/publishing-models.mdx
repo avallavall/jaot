@@ -1,12 +1,12 @@
 ---
 title: Publishing Models
-description: Publish your optimization models to the JAOT marketplace and earn revenue from activations
+description: Publish your optimization models to the JAOT marketplace and share them with the community
 order: 2
 ---
 
 # Publishing Models
 
-Any organization on JAOT can publish their private optimization models to the marketplace, making them available for other organizations to discover, activate, and execute. Publishing lets you monetize your domain expertise and reach users who need optimization solutions but may not have the skills to formulate them.
+Any organization on JAOT can publish their private optimization models to the marketplace, making them available for other organizations to discover, activate, and execute. Publishing lets you share your domain expertise and reach users who need optimization solutions but may not have the skills to formulate them. The marketplace is free and collaborative — there are no prices or commissions.
 
 ## Who Can Publish
 
@@ -38,7 +38,6 @@ Go to **My Models**, select the private model you want to publish, and click **P
 | **Short description** | Yes | A one-line summary for the model card in search results |
 | **Category** | Yes | The industry category (manufacturing, finance, logistics, etc.) |
 | **Tags** | No | Keywords to improve discoverability (e.g., "routing", "scheduling", "mixed-integer") |
-| **Price (EUR)** | Yes | The activation price. Set to 0 for free models |
 | **Overview section** | No | Extended description with use cases and benefits |
 | **Features section** | No | Key capabilities and model characteristics |
 | **How it works** | No | Walkthrough of the model's optimization approach |
@@ -55,7 +54,7 @@ After publishing, you can manage your model from the **My Models** section:
 
 ### Updating a Published Model
 
-You can update the description, pricing, and metadata of a published model at any time. Changes take effect immediately in the marketplace. The underlying model definition is versioned, so existing users continue to see consistent behavior.
+You can update the description and metadata of a published model at any time. Changes take effect immediately in the marketplace. The underlying model definition is versioned, so existing users continue to see consistent behavior.
 
 ### Unpublishing
 
@@ -69,42 +68,24 @@ When you update a published model's definition, a new version is created. The ma
 - **Existing activations** continue to work with the version they activated
 - **Changelog section** lets you document what changed in each version
 
-## Pricing Strategy
+## Free and Collaborative
 
-Set your model's activation price considering:
+The marketplace is free to use — models carry no price and no commission is charged. Publishing builds your reputation through activations, ratings, and reviews. Execution credits are charged separately as a usage quota (based on problem complexity), paid by the executing organization.
 
-- **Free models** attract more activations and reviews, building your reputation on the platform
-- **Paid models** generate direct revenue from each organization that activates them
-- Execution credits are charged separately (paid by the executing organization based on problem complexity), so activation price reflects the value of your formulation and domain expertise
+> **Tip:** A clear description, good example input, and accurate categorization drive activations far more than anything else.
 
-> **Tip:** Consider publishing a simplified version for free and a full-featured version as a paid model. This lets users try your approach before committing.
+## Creator Analytics
 
-## Revenue and Analytics
-
-### Revenue Split
-
-JAOT operates a **70/30 revenue model** for paid marketplace models:
-
-| Party | Share |
-|-------|-------|
-| **Model author** | 70% of the activation price |
-| **JAOT platform** | 30% of the activation price |
-
-Revenue from activations is tracked in your seller dashboard and settled according to the platform's payout schedule.
-
-### Seller Analytics
-
-The seller dashboard provides visibility into your published models' performance:
+The creator dashboard provides visibility into your published models' adoption:
 
 | Metric | Description |
 |--------|-------------|
 | **Views** | How many times your model detail page was visited |
 | **Activations** | Total number of organizations that activated your model |
 | **Executions** | Total number of times your model was executed across all activators |
-| **Revenue** | Total and per-model earnings from paid activations |
 | **Rating** | Average user rating and individual reviews |
 
-Use these metrics to understand demand, identify opportunities for new models, and optimize your pricing.
+Use these metrics to understand demand, identify opportunities for new models, and improve your published ones.
 
 ## Publishing via API
 
@@ -124,7 +105,6 @@ response = httpx.post(
         "short_description": "Optimize warehouse placement for minimum logistics cost",
         "category": "logistics",
         "tags": ["warehouse", "facility-location", "logistics"],
-        "price_eur": 29.00,
     },
 )
 

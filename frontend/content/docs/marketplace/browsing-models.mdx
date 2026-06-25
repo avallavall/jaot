@@ -10,7 +10,7 @@ The JAOT marketplace is a catalog of pre-built optimization models published by 
 
 ## Accessing the Marketplace
 
-The public marketplace is available at **/marketplace** and does not require authentication to browse. Anyone can view model listings, read descriptions, and check input schemas. Authentication is only required when activating (purchasing) a model.
+The public marketplace is available at **/marketplace** and does not require authentication to browse. Anyone can view model listings, read descriptions, and check input schemas. Authentication is only required when activating a model.
 
 ## Search and Filter Controls
 
@@ -20,9 +20,7 @@ The marketplace provides several ways to find relevant models:
 |---------|---------|
 | **Search** | Free text search across model names and descriptions |
 | **Category** | Filter by industry: manufacturing, finance, logistics, supply chain, energy, healthcare, technology, services, natural resources, public sector, general |
-| **Sort** | Popular (default), Newest, Price ascending, Price descending, Rating |
-| **Price range** | Minimum and maximum price in EUR |
-| **Free only** | Toggle to show only free models |
+| **Sort** | Popular (default), Newest, Rating |
 | **Official only** | Toggle to show only JAOT-verified models |
 | **Min. rating** | Filter by minimum average rating (0--5) |
 
@@ -37,7 +35,6 @@ Each model in the catalog is displayed as a card with key information:
 - **Display name** -- The model's title
 - **Short description** -- A one-line summary of what the model solves
 - **Category** -- The industry or domain tag
-- **Price** -- In EUR (or "Free" for no-cost models)
 - **Rating** -- Average user rating out of 5 stars
 - **Activations** -- How many organizations have activated the model
 - **Official badge** -- Present on models published and verified by JAOT
@@ -88,20 +85,14 @@ User reviews with ratings and comments from organizations that have activated an
 To use a marketplace model, you need to activate it for your organization:
 
 1. Navigate to the model detail page
-2. Click **Activate** (or **Purchase** for paid models)
-3. For paid models, the price in EUR is charged to your organization's balance
-4. The model appears in your **My Models** list immediately after activation
+2. Click **Activate**
+3. The model appears in your **My Models** list immediately after activation
 
 > **Note:** Activation is an organization-level action. Once activated, all members of your organization can execute the model.
 
-### Free vs. Paid Models
+### Activation and Execution Costs
 
-| Type | Activation Cost | Execution Cost |
-|------|----------------|----------------|
-| **Free** | EUR 0 | Credits per solve (based on problem complexity) |
-| **Paid** | One-time price in EUR | Credits per solve (based on problem complexity) |
-
-Both free and paid models consume credits when executed. The activation price covers access to the model; solve credits cover the compute cost of running the SCIP solver.
+The marketplace is free — activating a model costs nothing. Models consume **execution credits** only when you run them (based on problem complexity); those credits are a usage quota covering the compute cost of running the SCIP solver.
 
 ## After Activation
 
@@ -110,7 +101,7 @@ Once activated, the model appears in **My Models** where you can:
 - **Execute** the model with your own input data
 - **View execution history** -- past runs with their results
 - **Check input schema** -- reference the required data format
-- **Deactivate** -- remove the model from your organization (paid models cannot be refunded)
+- **Deactivate** -- remove the model from your organization
 
 ### Executing an Activated Model
 
@@ -151,8 +142,8 @@ curl "https://jaot.io/api/v2/models/catalog?sort_by=popular&page_size=10"
 # Search by keyword
 curl "https://jaot.io/api/v2/models/catalog?search=routing"
 
-# Filter by category and price
-curl "https://jaot.io/api/v2/models/catalog?category=logistics&max_price=50"
+# Filter by category
+curl "https://jaot.io/api/v2/models/catalog?category=logistics"
 
 # Get model details
 curl "https://jaot.io/api/v2/models/catalog/b9c1d2e3-abcd-1234-5678-f0a1b2c3d4e5"
