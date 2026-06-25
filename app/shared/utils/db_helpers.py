@@ -1,31 +1,8 @@
 """Database helper functions to reduce code duplication."""
 
-from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models import APIKey, Organization, User
-
-
-def get_organization_or_404(db: Session, organization_id: str) -> Organization:
-    """Get organization or raise 404.
-
-    Args:
-        db: Database session
-        organization_id: Organization ID
-
-    Returns:
-        Organization model
-
-    Raises:
-        HTTPException: 404 if organization not found
-    """
-    org = db.query(Organization).filter(Organization.id == organization_id).first()
-    if not org:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Organization {organization_id} not found",
-        )
-    return org
 
 
 def get_organization_or_none(db: Session, organization_id: str) -> Organization | None:

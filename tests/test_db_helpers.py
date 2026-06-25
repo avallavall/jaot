@@ -1,30 +1,10 @@
 """Tests for database helper functions."""
 
-import pytest
-from fastapi import HTTPException
-
 from app.shared.utils.db_helpers import (
     get_api_key_by_hash,
-    get_organization_or_404,
     get_organization_or_none,
     get_user_or_none,
 )
-
-
-def test_get_organization_or_404_success(db_session, test_organization):
-    """Test getting organization successfully."""
-    org = get_organization_or_404(db_session, test_organization.id)
-    assert org.id == test_organization.id
-    assert org.name == test_organization.name
-
-
-def test_get_organization_or_404_raises(db_session):
-    """Test that 404 is raised for non-existent organization."""
-    with pytest.raises(HTTPException) as exc_info:
-        get_organization_or_404(db_session, "org_nonexistent")
-
-    assert exc_info.value.status_code == 404
-    assert "not found" in exc_info.value.detail.lower()
 
 
 def test_get_organization_or_none_success(db_session, test_organization):
