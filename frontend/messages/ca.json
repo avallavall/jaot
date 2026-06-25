@@ -112,7 +112,8 @@
       "promotions": "Promocions",
       "verification": "Verificació",
       "sellerAnalytics": "Analítiques venedor",
-      "marketplaceAnalytics": "Analítiques"
+      "marketplaceAnalytics": "Analítiques",
+      "platformAnalytics": "Plataforma"
     },
     "breadcrumbs": {
       "home": "Inici",
@@ -2148,7 +2149,78 @@
         "verification": "Verificació",
         "promotions": "Promocions",
         "settings": "Configuració",
-        "backToApp": "Tornar a l'app"
+        "backToApp": "Tornar a l'app",
+        "platformAnalytics": "Plataforma"
+      }
+    },
+    "platformAnalytics": {
+      "title": "Analítica de plataforma",
+      "description": "Salut, ús, IA i fiabilitat de tota la plataforma, en totes les organitzacions.",
+      "period": {
+        "last7Days": "7 dies",
+        "last30Days": "30 dies",
+        "last90Days": "90 dies",
+        "allTime": "Tot"
+      },
+      "loadError": "No s'ha pogut carregar l'analítica",
+      "retry": "Reintentar",
+      "noData": "Encara no hi ha dades",
+      "health": {
+        "title": "Salut de la plataforma",
+        "users": "Usuaris",
+        "activeUsers": "Usuaris actius",
+        "organizations": "Organitzacions",
+        "avgUsersPerOrg": "Mitjana usuaris / org",
+        "newInPeriod": "{count} nous al període",
+        "totalExecutions": "Execucions",
+        "execPerUser": "Execucions / usuari",
+        "execPerOrg": "Execucions / org",
+        "successRate": "Taxa d'èxit",
+        "avgSolveTime": "Temps mitjà",
+        "medianSolveTime": "Temps medià",
+        "planMix": "Distribució de plans",
+        "dailyExecutions": "Execucions per dia",
+        "byCategory": "Per categoria",
+        "category": "Categoria",
+        "avgTime": "Temps mitjà",
+        "executions": "Execucions",
+        "builderSolves": "Solves del builder"
+      },
+      "ai": {
+        "title": "Adopció d'IA / LLM",
+        "conversations": "Converses",
+        "messages": "Missatges",
+        "orgsUsingAi": "Orgs usant IA",
+        "inputTokens": "Tokens entrada",
+        "outputTokens": "Tokens sortida",
+        "totalCost": "Cost LLM",
+        "costPerConversation": "Cost / conversa",
+        "messagesPerConversation": "Missatges / conversa",
+        "acceptanceRate": "Taxa d'acceptació",
+        "acceptanceHint": "Converses la formulació de les quals es va desar en un model",
+        "thumbsUp": "Polzes amunt",
+        "thumbsDown": "Polzes avall"
+      },
+      "reliability": {
+        "title": "Fiabilitat i automatització",
+        "p50": "p50 solve",
+        "p95": "p95 solve",
+        "p99": "p99 solve",
+        "timeoutRate": "Taxa de timeout",
+        "failureRate": "Taxa de fallada",
+        "queueTime": "Temps de cua mitjà",
+        "asyncRuns": "Asíncrones",
+        "syncRuns": "Síncrones",
+        "failuresByReason": "Fallades per estat del solver",
+        "automation": "Automatització",
+        "triggers": "Triggers",
+        "activeTriggers": "Triggers actius",
+        "totalRuns": "Execucions de triggers",
+        "cronSuccess": "Èxit de cron",
+        "webhookDelivery": "Lliurament de webhooks",
+        "schedulesFailing": "Schedules fallant",
+        "lowSuccessModels": "Models amb baixa taxa d'èxit",
+        "model": "Model"
       }
     }
   },

@@ -15,6 +15,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from app.api.v2.routes.admin.analytics import router as platform_analytics_router
 from app.api.v2.routes.admin.api_keys import router as api_keys_router
 from app.api.v2.routes.admin.credits import router as credits_router
 from app.api.v2.routes.admin.feedback import router as feedback_router
@@ -55,5 +56,6 @@ router.include_router(models_router)
 router.include_router(scorecard_router)
 router.include_router(settings_router)
 router.include_router(withdrawals_router)
+router.include_router(platform_analytics_router)
 
 __all__ = ["router"]

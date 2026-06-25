@@ -124,6 +124,7 @@ export function useNavItems() {
             collapsedByDefault: true,
             children: [
               { label: t("nav.dashboard"), href: "/admin", icon: <LayoutDashboard className="w-4 h-4" /> },
+              { label: t("nav.platformAnalytics"), href: "/admin/platform", icon: <BarChart2 className="w-4 h-4" /> },
               { label: t("nav.organizations"), href: "/admin/organizations", icon: <Building2 className="w-4 h-4" /> },
               { label: t("nav.users"), href: "/admin/users", icon: <Users className="w-4 h-4" /> },
               { label: t("nav.models"), href: "/admin/models", icon: <Package className="w-4 h-4" /> },

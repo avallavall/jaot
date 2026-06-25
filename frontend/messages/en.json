@@ -112,7 +112,8 @@
       "promotions": "Promotions",
       "verification": "Verification",
       "sellerAnalytics": "Seller Analytics",
-      "marketplaceAnalytics": "Analytics"
+      "marketplaceAnalytics": "Analytics",
+      "platformAnalytics": "Platform"
     },
     "breadcrumbs": {
       "home": "Home",
@@ -2148,7 +2149,78 @@
         "verification": "Verification",
         "promotions": "Promotions",
         "settings": "Settings",
-        "backToApp": "Back to App"
+        "backToApp": "Back to App",
+        "platformAnalytics": "Platform"
+      }
+    },
+    "platformAnalytics": {
+      "title": "Platform analytics",
+      "description": "Platform-wide health, usage, AI and reliability across all organizations.",
+      "period": {
+        "last7Days": "7 days",
+        "last30Days": "30 days",
+        "last90Days": "90 days",
+        "allTime": "All time"
+      },
+      "loadError": "Failed to load analytics",
+      "retry": "Retry",
+      "noData": "No data yet",
+      "health": {
+        "title": "Platform health",
+        "users": "Users",
+        "activeUsers": "Active users",
+        "organizations": "Organizations",
+        "avgUsersPerOrg": "Avg users / org",
+        "newInPeriod": "{count} new in period",
+        "totalExecutions": "Executions",
+        "execPerUser": "Executions / user",
+        "execPerOrg": "Executions / org",
+        "successRate": "Success rate",
+        "avgSolveTime": "Avg solve time",
+        "medianSolveTime": "Median solve time",
+        "planMix": "Plan distribution",
+        "dailyExecutions": "Executions per day",
+        "byCategory": "By category",
+        "category": "Category",
+        "avgTime": "Avg time",
+        "executions": "Executions",
+        "builderSolves": "Builder solves"
+      },
+      "ai": {
+        "title": "AI / LLM adoption",
+        "conversations": "Conversations",
+        "messages": "Messages",
+        "orgsUsingAi": "Orgs using AI",
+        "inputTokens": "Input tokens",
+        "outputTokens": "Output tokens",
+        "totalCost": "LLM cost",
+        "costPerConversation": "Cost / conversation",
+        "messagesPerConversation": "Messages / conversation",
+        "acceptanceRate": "Acceptance rate",
+        "acceptanceHint": "Conversations whose formulation was saved to a model",
+        "thumbsUp": "Thumbs up",
+        "thumbsDown": "Thumbs down"
+      },
+      "reliability": {
+        "title": "Reliability & automation",
+        "p50": "p50 solve",
+        "p95": "p95 solve",
+        "p99": "p99 solve",
+        "timeoutRate": "Timeout rate",
+        "failureRate": "Failure rate",
+        "queueTime": "Avg queue time",
+        "asyncRuns": "Async",
+        "syncRuns": "Sync",
+        "failuresByReason": "Failures by solver status",
+        "automation": "Automation",
+        "triggers": "Triggers",
+        "activeTriggers": "Active triggers",
+        "totalRuns": "Trigger runs",
+        "cronSuccess": "Cron success",
+        "webhookDelivery": "Webhook delivery",
+        "schedulesFailing": "Schedules failing",
+        "lowSuccessModels": "Models with low success rate",
+        "model": "Model"
       }
     }
   },

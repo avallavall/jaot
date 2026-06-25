@@ -18,6 +18,7 @@ export default function AdminLayout({
 
   const adminNavItems = useMemo(() => [
     { label: t("nav.dashboard"), href: "/admin", icon: <LayoutDashboard className="w-4 h-4" /> },
+    { label: t("nav.platformAnalytics"), href: "/admin/platform", icon: <BarChart3 className="w-4 h-4" /> },
     { label: "─────────", href: "#", icon: null },
     { label: t("nav.organizations"), href: "/admin/organizations", icon: <Building2 className="w-4 h-4" /> },
     { label: t("nav.users"), href: "/admin/users", icon: <Users className="w-4 h-4" /> },

@@ -112,7 +112,8 @@
       "promotions": "Aktionen",
       "verification": "Verifizierung",
       "sellerAnalytics": "Verkäufer-Analytik",
-      "marketplaceAnalytics": "Analytik"
+      "marketplaceAnalytics": "Analytik",
+      "platformAnalytics": "Plattform"
     },
     "breadcrumbs": {
       "home": "Startseite",
@@ -2148,7 +2149,78 @@
         "verification": "Verifizierung",
         "promotions": "Aktionen",
         "settings": "Einstellungen",
-        "backToApp": "Zurück zur App"
+        "backToApp": "Zurück zur App",
+        "platformAnalytics": "Plattform"
+      }
+    },
+    "platformAnalytics": {
+      "title": "Plattform-Analytik",
+      "description": "Zustand, Nutzung, KI und Zuverlässigkeit der gesamten Plattform über alle Organisationen.",
+      "period": {
+        "last7Days": "7 Tage",
+        "last30Days": "30 Tage",
+        "last90Days": "90 Tage",
+        "allTime": "Gesamt"
+      },
+      "loadError": "Analytik konnte nicht geladen werden",
+      "retry": "Erneut versuchen",
+      "noData": "Noch keine Daten",
+      "health": {
+        "title": "Plattform-Zustand",
+        "users": "Nutzer",
+        "activeUsers": "Aktive Nutzer",
+        "organizations": "Organisationen",
+        "avgUsersPerOrg": "Ø Nutzer / Org",
+        "newInPeriod": "{count} neu im Zeitraum",
+        "totalExecutions": "Ausführungen",
+        "execPerUser": "Ausführungen / Nutzer",
+        "execPerOrg": "Ausführungen / Org",
+        "successRate": "Erfolgsrate",
+        "avgSolveTime": "Ø Lösezeit",
+        "medianSolveTime": "Median Lösezeit",
+        "planMix": "Plan-Verteilung",
+        "dailyExecutions": "Ausführungen pro Tag",
+        "byCategory": "Nach Kategorie",
+        "category": "Kategorie",
+        "avgTime": "Ø Zeit",
+        "executions": "Ausführungen",
+        "builderSolves": "Builder-Solves"
+      },
+      "ai": {
+        "title": "KI / LLM-Nutzung",
+        "conversations": "Konversationen",
+        "messages": "Nachrichten",
+        "orgsUsingAi": "Orgs mit KI",
+        "inputTokens": "Input-Tokens",
+        "outputTokens": "Output-Tokens",
+        "totalCost": "LLM-Kosten",
+        "costPerConversation": "Kosten / Konversation",
+        "messagesPerConversation": "Nachrichten / Konversation",
+        "acceptanceRate": "Akzeptanzrate",
+        "acceptanceHint": "Konversationen, deren Formulierung in einem Modell gespeichert wurde",
+        "thumbsUp": "Daumen hoch",
+        "thumbsDown": "Daumen runter"
+      },
+      "reliability": {
+        "title": "Zuverlässigkeit & Automatisierung",
+        "p50": "p50 solve",
+        "p95": "p95 solve",
+        "p99": "p99 solve",
+        "timeoutRate": "Timeout-Rate",
+        "failureRate": "Fehlerrate",
+        "queueTime": "Ø Wartezeit",
+        "asyncRuns": "Asynchron",
+        "syncRuns": "Synchron",
+        "failuresByReason": "Fehler nach Solver-Status",
+        "automation": "Automatisierung",
+        "triggers": "Trigger",
+        "activeTriggers": "Aktive Trigger",
+        "totalRuns": "Trigger-Läufe",
+        "cronSuccess": "Cron-Erfolg",
+        "webhookDelivery": "Webhook-Zustellung",
+        "schedulesFailing": "Fehlerhafte Zeitpläne",
+        "lowSuccessModels": "Modelle mit niedriger Erfolgsrate",
+        "model": "Modell"
       }
     }
   },

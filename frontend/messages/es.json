@@ -112,7 +112,8 @@
       "promotions": "Promociones",
       "verification": "Verificación",
       "sellerAnalytics": "Analíticas vendedor",
-      "marketplaceAnalytics": "Analíticas"
+      "marketplaceAnalytics": "Analíticas",
+      "platformAnalytics": "Plataforma"
     },
     "breadcrumbs": {
       "home": "Inicio",
@@ -2148,7 +2149,78 @@
         "verification": "Verificación",
         "promotions": "Promociones",
         "settings": "Configuración",
-        "backToApp": "Volver a la app"
+        "backToApp": "Volver a la app",
+        "platformAnalytics": "Plataforma"
+      }
+    },
+    "platformAnalytics": {
+      "title": "Analítica de plataforma",
+      "description": "Salud, uso, IA y fiabilidad de toda la plataforma, en todas las organizaciones.",
+      "period": {
+        "last7Days": "7 días",
+        "last30Days": "30 días",
+        "last90Days": "90 días",
+        "allTime": "Todo"
+      },
+      "loadError": "No se pudo cargar la analítica",
+      "retry": "Reintentar",
+      "noData": "Aún no hay datos",
+      "health": {
+        "title": "Salud de la plataforma",
+        "users": "Usuarios",
+        "activeUsers": "Usuarios activos",
+        "organizations": "Organizaciones",
+        "avgUsersPerOrg": "Media usuarios / org",
+        "newInPeriod": "{count} nuevos en el periodo",
+        "totalExecutions": "Ejecuciones",
+        "execPerUser": "Ejecuciones / usuario",
+        "execPerOrg": "Ejecuciones / org",
+        "successRate": "Tasa de éxito",
+        "avgSolveTime": "Tiempo medio",
+        "medianSolveTime": "Tiempo mediano",
+        "planMix": "Distribución de planes",
+        "dailyExecutions": "Ejecuciones por día",
+        "byCategory": "Por categoría",
+        "category": "Categoría",
+        "avgTime": "Tiempo medio",
+        "executions": "Ejecuciones",
+        "builderSolves": "Solves del builder"
+      },
+      "ai": {
+        "title": "Adopción de IA / LLM",
+        "conversations": "Conversaciones",
+        "messages": "Mensajes",
+        "orgsUsingAi": "Orgs usando IA",
+        "inputTokens": "Tokens entrada",
+        "outputTokens": "Tokens salida",
+        "totalCost": "Coste LLM",
+        "costPerConversation": "Coste / conversación",
+        "messagesPerConversation": "Mensajes / conversación",
+        "acceptanceRate": "Tasa de aceptación",
+        "acceptanceHint": "Conversaciones cuya formulación se guardó en un modelo",
+        "thumbsUp": "Pulgares arriba",
+        "thumbsDown": "Pulgares abajo"
+      },
+      "reliability": {
+        "title": "Fiabilidad y automatización",
+        "p50": "p50 solve",
+        "p95": "p95 solve",
+        "p99": "p99 solve",
+        "timeoutRate": "Tasa de timeout",
+        "failureRate": "Tasa de fallo",
+        "queueTime": "Tiempo de cola medio",
+        "asyncRuns": "Asíncronas",
+        "syncRuns": "Síncronas",
+        "failuresByReason": "Fallos por estado del solver",
+        "automation": "Automatización",
+        "triggers": "Triggers",
+        "activeTriggers": "Triggers activos",
+        "totalRuns": "Ejecuciones de triggers",
+        "cronSuccess": "Éxito de cron",
+        "webhookDelivery": "Entrega de webhooks",
+        "schedulesFailing": "Schedules fallando",
+        "lowSuccessModels": "Modelos con baja tasa de éxito",
+        "model": "Modelo"
       }
     }
   },

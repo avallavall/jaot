@@ -112,7 +112,8 @@
       "promotions": "Promotions",
       "verification": "Vérification",
       "sellerAnalytics": "Analytiques vendeur",
-      "marketplaceAnalytics": "Analytiques"
+      "marketplaceAnalytics": "Analytiques",
+      "platformAnalytics": "Plateforme"
     },
     "breadcrumbs": {
       "home": "Accueil",
@@ -2148,7 +2149,78 @@
         "verification": "Vérification",
         "promotions": "Promotions",
         "settings": "Paramètres",
-        "backToApp": "Retour à l'application"
+        "backToApp": "Retour à l'application",
+        "platformAnalytics": "Plateforme"
+      }
+    },
+    "platformAnalytics": {
+      "title": "Analytique de plateforme",
+      "description": "Santé, usage, IA et fiabilité de toute la plateforme, sur toutes les organisations.",
+      "period": {
+        "last7Days": "7 jours",
+        "last30Days": "30 jours",
+        "last90Days": "90 jours",
+        "allTime": "Tout"
+      },
+      "loadError": "Échec du chargement de l'analytique",
+      "retry": "Réessayer",
+      "noData": "Pas encore de données",
+      "health": {
+        "title": "Santé de la plateforme",
+        "users": "Utilisateurs",
+        "activeUsers": "Utilisateurs actifs",
+        "organizations": "Organisations",
+        "avgUsersPerOrg": "Moy. utilisateurs / org",
+        "newInPeriod": "{count} nouveaux sur la période",
+        "totalExecutions": "Exécutions",
+        "execPerUser": "Exécutions / utilisateur",
+        "execPerOrg": "Exécutions / org",
+        "successRate": "Taux de réussite",
+        "avgSolveTime": "Temps moyen",
+        "medianSolveTime": "Temps médian",
+        "planMix": "Répartition des forfaits",
+        "dailyExecutions": "Exécutions par jour",
+        "byCategory": "Par catégorie",
+        "category": "Catégorie",
+        "avgTime": "Temps moyen",
+        "executions": "Exécutions",
+        "builderSolves": "Solves du builder"
+      },
+      "ai": {
+        "title": "Adoption de l'IA / LLM",
+        "conversations": "Conversations",
+        "messages": "Messages",
+        "orgsUsingAi": "Orgs utilisant l'IA",
+        "inputTokens": "Tokens entrée",
+        "outputTokens": "Tokens sortie",
+        "totalCost": "Coût LLM",
+        "costPerConversation": "Coût / conversation",
+        "messagesPerConversation": "Messages / conversation",
+        "acceptanceRate": "Taux d'acceptation",
+        "acceptanceHint": "Conversations dont la formulation a été enregistrée dans un modèle",
+        "thumbsUp": "Pouces haut",
+        "thumbsDown": "Pouces bas"
+      },
+      "reliability": {
+        "title": "Fiabilité et automatisation",
+        "p50": "p50 solve",
+        "p95": "p95 solve",
+        "p99": "p99 solve",
+        "timeoutRate": "Taux de timeout",
+        "failureRate": "Taux d'échec",
+        "queueTime": "Temps d'attente moyen",
+        "asyncRuns": "Asynchrones",
+        "syncRuns": "Synchrones",
+        "failuresByReason": "Échecs par statut du solveur",
+        "automation": "Automatisation",
+        "triggers": "Déclencheurs",
+        "activeTriggers": "Déclencheurs actifs",
+        "totalRuns": "Exécutions de déclencheurs",
+        "cronSuccess": "Succès cron",
+        "webhookDelivery": "Livraison webhook",
+        "schedulesFailing": "Planifications en échec",
+        "lowSuccessModels": "Modèles à faible taux de réussite",
+        "model": "Modèle"
       }
     }
   },
