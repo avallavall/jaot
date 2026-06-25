@@ -2,6 +2,8 @@
 
 > Marketplace entities: ModelCatalog (global), Favorites, FeaturedPlacements, FormulationRatings, Verification, ViewEvents.
 
+> **Note (2026-06-25):** Monetized fields/entities below (`price_eur`, `stripe_connect_*`, `FeaturedPlacement`) are **dormant by default** — the marketplace is free and collaborative (`MONETIZATION_ENABLED=false`). They remain in the schema (additive-only) and only become active in a self-hosted deployment that enables monetization.
+
 ## Diagram
 
 ```mermaid

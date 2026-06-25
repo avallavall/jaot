@@ -32,7 +32,7 @@
 | | recharts | — | charts |
 | | lucide-react | — | icons |
 | **AI** | Anthropic Claude | — | formulation assistant |
-| **Payments** | Stripe + Stripe Connect | — | checkout + seller payouts |
+| **Payments** | Stripe + Stripe Connect | — | checkout + seller payouts (dormant by default; `MONETIZATION_ENABLED=false`) |
 | **Email** | Resend | — | transactional |
 | **Deploy** | Docker + Docker Compose | — | container orchestration |
 | | GitHub Actions | self-hosted runner | CI + deploy |

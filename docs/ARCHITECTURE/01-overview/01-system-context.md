@@ -83,7 +83,7 @@ flowchart TB
 1. **Email** — Resend (signup, reset, solve completed, notifications).
 2. **LLM calls** — Anthropic API for the formulation assistant (SSE streaming to the frontend).
 3. **Outbound webhooks** — post-trigger or post-execution, configurable payload delivery.
-4. **Stripe payouts** — Stripe Connect to the seller after a template sale (20% platform commission).
+4. **Stripe payouts** — Stripe Connect to the seller after a template sale (10% platform commission by default, configurable). Dormant unless monetization is enabled.
 
 ## Scope
 

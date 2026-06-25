@@ -37,7 +37,7 @@ sequenceDiagram
     Frontend->>API: POST /seller/checkout {model_id, payment_method='card'}
     
     API->>API: calculate_commission_split(price_eur=50)
-    API->>API: {platform_commission=10, seller_earnings=40} ← 20% platform fee
+    API->>API: {platform_commission=5, seller_earnings=45} ← 10% platform fee (default; configurable)
     
     API->>Stripe: create_checkout_session {
         line_items=[{name, amount_eur=50, currency='eur'}],
@@ -57,16 +57,16 @@ sequenceDiagram
         API->>API: idempotent (no double-credit)
     end
     
-    API->>DB: INSERT CreditTransaction(org_id=seller_org, type=SALE_EARNING, credits_amount=40)
-    API->>DB: UPDATE organization SET credits_earned += 40
-    API->>DB: INSERT CreditTransaction(org_id=platform, type=COMMISSION, amount_eur=10)
+    API->>DB: INSERT CreditTransaction(org_id=seller_org, type=SALE_EARNING, credits_amount=45)
+    API->>DB: UPDATE organization SET credits_earned += 45
+    API->>DB: INSERT CreditTransaction(org_id=platform, type=COMMISSION, amount_eur=5)
     
     API->>DB: CREATE OrganizationModel(buyer_org_id, catalog_id=model_id, custom_name=?, is_active=true)
     API->>DB: INSERT AuditLog(actor_id, action='purchase_template', target_type='model_catalog', ...)
     
     API->>Email: send_purchase_confirmation(buyer_email, seller_email)
     Email-->>User: "Template purchased! You now have access."
-    Email-->>Seller: "Your template was purchased. +40 credits earned."
+    Email-->>Seller: "Your template was purchased. +45 credits earned."
     
     API->>Frontend: 200 {message: "Model added to your account", model_id}
     Frontend->>Frontend: Redirect to /solver with the model loaded
