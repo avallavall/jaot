@@ -459,7 +459,7 @@ def solve_async(
         return result_payload
 
     except Exception as e:
-        logger.error(f"Task {task_id} failed: {str(e)}")
+        logger.error(f"Task {task_id} failed: {e!s}")
         SOLVE_TOTAL.labels(status="error", generator="async").inc()
 
         # W15/F-01: SoftTimeLimitExceeded carries no useful message — give
@@ -763,7 +763,7 @@ def solve_model_async(
         }
 
     except Exception as e:
-        logger.error(f"Execution {execution_id} failed: {str(e)}")
+        logger.error(f"Execution {execution_id} failed: {e!s}")
         SOLVE_TOTAL.labels(status="error", generator="model_async").inc()
 
         # Update execution record.

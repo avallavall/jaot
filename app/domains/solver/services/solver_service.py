@@ -49,9 +49,9 @@ def _emit_expression_string(parsed: ParsedExpression) -> str:
         if not term.variables:
             parts.append(repr(term.coefficient))
         elif len(term.variables) == 1:
-            parts.append(f"{repr(term.coefficient)}*{term.variables[0]}")
+            parts.append(f"{term.coefficient!r}*{term.variables[0]}")
         elif len(term.variables) == 2:
-            parts.append(f"{repr(term.coefficient)}*{term.variables[0]}*{term.variables[1]}")
+            parts.append(f"{term.coefficient!r}*{term.variables[0]}*{term.variables[1]}")
     return " + ".join(parts)
 
 
@@ -221,10 +221,9 @@ class SolverService:
 
         if config.mode == "epsilon":
             return self._solve_epsilon_constraint(problem, config, adapter)
-        elif config.mode == "weighted":
+        if config.mode == "weighted":
             return self._solve_weighted(problem, config, adapter)
-        else:
-            raise ValueError(f"Unknown multi-objective mode: {config.mode}")
+        raise ValueError(f"Unknown multi-objective mode: {config.mode}")
 
     def _is_nondominated(
         self,

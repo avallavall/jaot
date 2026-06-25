@@ -257,7 +257,7 @@ def delete_conversation(
 
     db.delete(conv)
     db.commit()
-    return None
+    return
 
 
 @router.post("/conversations/{conversation_id}/messages")
@@ -727,7 +727,7 @@ def delete_attachment(
 
     db.delete(attachment)
     db.commit()
-    return None
+    return
 
 
 def _load_template_formulation(db: Session, template_id: str) -> dict[str, Any] | None:

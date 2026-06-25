@@ -25,15 +25,19 @@ _OFFENSIVE_REJECTION = (
 
 # Patterns that clearly indicate non-optimization requests
 _OFFTOPIC_PATTERNS: list[re.Pattern[str]] = [
-    re.compile(r"\b(write|compose|create)\b.*\b(poem|song|story|essay|letter|novel)\b", re.I),
-    re.compile(r"\b(hack|crack|break)\s+(into|password|account|server|database)\b", re.I),
-    re.compile(r"\bbypass\b.{0,20}\b(security|auth|firewall|password|login)\b", re.I),
-    re.compile(r"\b(recipe|cook|bake|ingredients)\b.*\b(for|to make)\b", re.I),
-    re.compile(r"\btell me a joke\b", re.I),
-    re.compile(r"\b(translate|translation)\b.*\b(to|into|from)\b", re.I),
-    re.compile(r"\b(code|program|script)\b.*\b(in|using)\b\s*(python|java|c\+\+|rust|go)\b", re.I),
-    re.compile(r"\bplay a game\b", re.I),
-    re.compile(r"\b(horoscope|zodiac|astrology)\b", re.I),
+    re.compile(
+        r"\b(write|compose|create)\b.*\b(poem|song|story|essay|letter|novel)\b", re.IGNORECASE
+    ),
+    re.compile(r"\b(hack|crack|break)\s+(into|password|account|server|database)\b", re.IGNORECASE),
+    re.compile(r"\bbypass\b.{0,20}\b(security|auth|firewall|password|login)\b", re.IGNORECASE),
+    re.compile(r"\b(recipe|cook|bake|ingredients)\b.*\b(for|to make)\b", re.IGNORECASE),
+    re.compile(r"\btell me a joke\b", re.IGNORECASE),
+    re.compile(r"\b(translate|translation)\b.*\b(to|into|from)\b", re.IGNORECASE),
+    re.compile(
+        r"\b(code|program|script)\b.*\b(in|using)\b\s*(python|java|c\+\+|rust|go)\b", re.IGNORECASE
+    ),
+    re.compile(r"\bplay a game\b", re.IGNORECASE),
+    re.compile(r"\b(horoscope|zodiac|astrology)\b", re.IGNORECASE),
 ]
 
 # Offensive language patterns (basic profanity filter)

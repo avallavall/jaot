@@ -91,8 +91,7 @@ def apply_sorting(
 
     if sort_order.lower() == "asc":
         return query.order_by(asc(field))
-    else:
-        return query.order_by(desc(field))
+    return query.order_by(desc(field))
 
 
 def apply_search(

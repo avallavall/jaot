@@ -36,7 +36,7 @@ class RoutingGenerator(BaseGenerator):
         vehicles = user_input.get("vehicles", [])
         distances = user_input.get("distances", {})
 
-        depot = user_input.get("depot", None)
+        depot = user_input.get("depot")
         if depot is None:
             warehouses = user_input.get("warehouses", [])
             depot = warehouses[0] if warehouses else {"name": "depot"}

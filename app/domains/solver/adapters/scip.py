@@ -241,7 +241,7 @@ class SCIPAdapter:
         self,
         problem: OptimizationProblem,
         warm_start: dict[str, float] | None,
-    ) -> tuple[Model, dict[str, Any], dict[str, Any], "_ProgressEventHandler"]:
+    ) -> tuple[Model, dict[str, Any], dict[str, Any], _ProgressEventHandler]:
         """Create the SCIP model with variables, constraints, objective and progress handler."""
         model = Model(problem.name or "optimization_problem")
         self._configure_solver(model, problem)
@@ -266,7 +266,7 @@ class SCIPAdapter:
 
     @staticmethod
     def _finalize_progress_history(
-        progress_handler: "_ProgressEventHandler",
+        progress_handler: _ProgressEventHandler,
         model: Model,
         result: OptimizationResult,
         solve_time: float,

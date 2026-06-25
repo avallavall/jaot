@@ -267,7 +267,7 @@ async def websocket_execution_progress(
                         }
                     )
                     break
-                elif execution.progress_data:
+                if execution.progress_data:
                     await websocket.send_json(
                         {
                             "type": "progress",

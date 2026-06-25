@@ -370,7 +370,7 @@ class StripeService:
             logger.info(f"Subscription activated: org={org_id}, plan={plan}")
             return {"action": "subscription_activated", "plan": plan}
 
-        elif checkout_type == "topup":
+        if checkout_type == "topup":
             credits = int(metadata.get("credits", 0))
             if credits > 0:
                 self._record_transaction(

@@ -129,7 +129,7 @@ async def get_my_model_schema(
             "example_input": model.catalog_model.example_input,
             "custom_config": model.custom_config,
         }
-    elif model.private_definition:
+    if model.private_definition:
         return {
             "id": model.id,
             "name": model.custom_name or model.private_definition.get("name"),
@@ -139,8 +139,7 @@ async def get_my_model_schema(
             "example_input": model.private_definition.get("example_input", {}),
             "custom_config": model.custom_config,
         }
-    else:
-        raise HTTPException(status_code=500, detail="Model has no definition")
+    raise HTTPException(status_code=500, detail="Model has no definition")
 
 
 @router.post("/", response_model=OrganizationModelResponse)

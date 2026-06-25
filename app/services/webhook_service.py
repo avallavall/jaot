@@ -92,11 +92,8 @@ def deliver_webhook(
         if 200 <= resp.status_code < 300:
             logger.info(f"Webhook delivered to {url}: {payload.get('event')} ({resp.status_code})")
             return True
-        else:
-            logger.warning(
-                f"Webhook delivery failed to {url}: {resp.status_code} {resp.text[:200]}"
-            )
-            return False
+        logger.warning(f"Webhook delivery failed to {url}: {resp.status_code} {resp.text[:200]}")
+        return False
 
     except httpx.TimeoutException:
         logger.warning(f"Webhook delivery timed out to {url}")

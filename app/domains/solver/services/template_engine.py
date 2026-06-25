@@ -81,12 +81,11 @@ class TemplateEngine:
         """Recursively substitute {{variable}} placeholders."""
         if isinstance(obj, str):
             return self._substitute_string(obj, context)
-        elif isinstance(obj, dict):
+        if isinstance(obj, dict):
             return {k: self._substitute_recursive(v, context) for k, v in obj.items()}
-        elif isinstance(obj, list):
+        if isinstance(obj, list):
             return [self._substitute_recursive(item, context) for item in obj]
-        else:
-            return obj
+        return obj
 
     def _substitute_string(self, s: str, context: dict[str, Any]) -> Any:
         """Substitute {{variable}} in a string."""

@@ -74,10 +74,7 @@ def send_onboarding_email(
         if success:
             logger.info(f"Onboarding day {day} email sent to {user_email}")
             return {"status": "sent", "day": day, "to": user_email}
-        else:
-            raise EmailDeliveryError(
-                f"EmailService.send returned False for day {day} → {user_email}"
-            )
+        raise EmailDeliveryError(f"EmailService.send returned False for day {day} → {user_email}")
 
     except Exception as exc:
         logger.error(f"Failed to send onboarding day {day} to {user_email}: {exc}")
