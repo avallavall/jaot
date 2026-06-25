@@ -113,24 +113,14 @@ export function MarketplaceModelCard({
               )}
             </div>
 
-            <div className="flex items-center justify-between gap-2 text-sm">
-              {model.price_eur === 0 ? (
-                <Badge className="bg-green-100 text-green-800 border-green-200">
-                  {t("free")}
-                </Badge>
-              ) : (
-                <span className="text-muted-foreground">
-                  {t("activationPrice", { price: model.price_eur })}
-                </span>
-              )}
-
-              {model.total_activations > 0 && (
+            {model.total_activations > 0 && (
+              <div className="flex items-center justify-end gap-2 text-sm">
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                   <Zap className="w-3 h-3" />
                   {model.total_activations.toLocaleString()}
                 </span>
-              )}
-            </div>
+              </div>
+            )}
 
             {model.author_name && (
               <div className="text-xs text-muted-foreground truncate">

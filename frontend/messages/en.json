@@ -300,7 +300,7 @@
       "withdrawal": "Withdrawal",
       "purchase": "Purchase"
     },
-    "siteDescription": "Build, buy, and automate optimization models — solver-agnostic, AI-assisted, no PhD required.",
+    "siteDescription": "Build, use, and automate optimization models — solver-agnostic, AI-assisted, no PhD required.",
     "breadcrumbsAriaLabel": "Breadcrumbs",
     "tableOfContentsAriaLabel": "Table of contents",
     "onThisPage": "On this page"
@@ -316,10 +316,10 @@
     "meta": {},
     "hero": {
       "badge": "AI-Powered Optimization Platform",
-      "titleLine1": "Build, Buy, or Automate",
+      "titleLine1": "Build, Use, or Automate",
       "titleLine2": "Optimization Solutions",
       "titleLine3": "for any challenge",
-      "subtitle": "Three paths to optimal decisions: build models with AI, buy proven solutions from the marketplace, or connect your AI agent via MCP.",
+      "subtitle": "Three paths to optimal decisions: build models with AI, use proven solutions from the community marketplace, or connect your AI agent via MCP.",
       "tagline": "The optimization platform for humans and AI agents alike.",
       "visualBuilderLabel": "Visual Model Builder",
       "getStartedFree": "Get Started Free",
@@ -337,7 +337,7 @@
         },
         "marketplace": {
           "title": "Model Marketplace",
-          "description": "Browse the optimization model marketplace. Buy proven models or sell your expertise."
+          "description": "Browse the optimization model marketplace. Use proven community models or publish your own."
         },
         "mcp": {
           "title": "MCP for AI Agents",
@@ -351,7 +351,7 @@
     "platform": {
       "eyebrow": "The platform",
       "title": "Three ways to optimize",
-      "subtitle": "Build models with AI, buy proven solutions from the marketplace, or connect your AI agent via MCP.",
+      "subtitle": "Build models with AI, use proven solutions from the community marketplace, or connect your AI agent via MCP.",
       "aiVisualAlt": "The JAOT AI assistant formulating an optimization model from a plain-English problem description"
     },
     "audience": {
@@ -365,12 +365,12 @@
         "cta": "Start building"
       },
       "sellers": {
-        "title": "For Sellers & Consultants",
-        "item1": "Publish to the optimization model marketplace",
-        "item2": "Earn revenue with 90% seller share (10% platform commission)",
+        "title": "For Contributors & Consultants",
+        "item1": "Publish your models to the community marketplace",
+        "item2": "Share your optimization expertise with teams worldwide",
         "item3": "Reach teams and enterprises globally",
-        "item4": "Track sales, manage payouts, and grow your business",
-        "cta": "Start Selling"
+        "item4": "Track adoption and impact in your analytics",
+        "cta": "Start Publishing"
       },
       "students": {
         "title": "For Students & Researchers",
@@ -421,7 +421,7 @@
     },
     "features": {
       "title": "Four pillars of optimization",
-      "subtitle": "Everything you need to build, buy, sell, and automate optimization.",
+      "subtitle": "Everything you need to build, use, share, and automate optimization.",
       "pillars": {
         "aiBuilder": {
           "title": "AI-Powered Builder",
@@ -432,9 +432,9 @@
         },
         "marketplace": {
           "title": "Model Marketplace",
-          "description": "An optimization model marketplace. Buy proven models or monetize your expertise.",
+          "description": "An optimization model marketplace. Use proven models or share your own — free and open.",
           "buyModels": "Browse and activate ready-made models",
-          "sellModels": "Publish and earn with 90% revenue share",
+          "sellModels": "Publish your models for the community to use",
           "modelRatings": "Community ratings and reviews"
         },
         "mcpAgents": {
@@ -589,10 +589,11 @@
       "marketplace": "Marketplace",
       "aiBuilder": "AI Builder",
       "mcpIntegration": "MCP Integration",
-      "forSellers": "For Sellers",
+      "forSellers": "Contribute",
       "howItWorks": "How It Works",
       "sellerDashboard": "Seller Dashboard",
       "publishModel": "Publish a Model",
+      "browseModels": "Browse models",
       "developers": "Developers",
       "docs": "Documentation",
       "apiReference": "API Reference",

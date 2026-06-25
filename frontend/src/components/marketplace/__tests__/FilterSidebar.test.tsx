@@ -2,9 +2,6 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 // Mock sub-components to isolate FilterSidebar behavior
-vi.mock("../PriceRangeFilter", () => ({
-  PriceRangeFilter: () => <div data-testid="price-range-filter" />,
-}));
 vi.mock("../RatingFilter", () => ({
   RatingFilter: () => <div data-testid="rating-filter" />,
 }));
@@ -17,17 +14,14 @@ const defaultFilters: FilterDefaults = {
   category: null,
   search: "",
   sort: "popular",
-  free: false,
   official: false,
   featured: false,
   page: 1,
-  minPrice: null,
-  maxPrice: null,
   minRating: null,
 };
 
 describe("FilterSidebar", () => {
-  it("renders sort, category, price, and rating filter sections", () => {
+  it("renders sort, category, and rating filter sections", () => {
     render(
       <FilterSidebar
         filters={defaultFilters}
@@ -45,8 +39,7 @@ describe("FilterSidebar", () => {
     expect(
       screen.getByText("marketplace.filters.categories")
     ).toBeInTheDocument();
-    // Price and rating sub-components
-    expect(screen.getByTestId("price-range-filter")).toBeInTheDocument();
+    // Rating sub-component
     expect(screen.getByTestId("rating-filter")).toBeInTheDocument();
   });
 

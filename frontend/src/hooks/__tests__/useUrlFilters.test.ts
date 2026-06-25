@@ -46,12 +46,9 @@ describe("useUrlFilters", () => {
         category: null,
         search: "",
         sort: "popular",
-        free: false,
         official: false,
         featured: false,
         page: 1,
-        minPrice: null,
-        maxPrice: null,
         minRating: null,
       });
     });
@@ -60,19 +57,16 @@ describe("useUrlFilters", () => {
   describe("parseFromUrl - reads valid params", () => {
     it("reads all valid URL params", () => {
       mockSearchParams = new URLSearchParams(
-        "category=logistics&search=routing&sort=newest&free=true&official=true&featured=true&page=3"
+        "category=logistics&search=routing&sort=newest&official=true&featured=true&page=3"
       );
       const { result } = renderHook(() => useUrlFilters());
       expect(result.current.filters).toEqual({
         category: "logistics",
         search: "routing",
         sort: "newest",
-        free: true,
         official: true,
         featured: true,
         page: 3,
-        minPrice: null,
-        maxPrice: null,
         minRating: null,
       });
     });
@@ -116,15 +110,15 @@ describe("useUrlFilters", () => {
 
     it("counts each non-default filter (not page)", () => {
       mockSearchParams = new URLSearchParams(
-        "category=logistics&search=test&sort=newest&free=true&official=true&featured=true&page=3"
+        "category=logistics&search=test&sort=newest&official=true&featured=true&page=3"
       );
       const { result } = renderHook(() => useUrlFilters());
-      // category + search + sort + free + official + featured = 6 (page excluded)
-      expect(result.current.activeFilterCount).toBe(6);
+      // category + search + sort + official + featured = 5 (page excluded)
+      expect(result.current.activeFilterCount).toBe(5);
     });
 
     it("counts only the filters that differ from defaults", () => {
-      mockSearchParams = new URLSearchParams("category=logistics&free=true");
+      mockSearchParams = new URLSearchParams("category=logistics&official=true");
       const { result } = renderHook(() => useUrlFilters());
       expect(result.current.activeFilterCount).toBe(2);
     });
@@ -158,7 +152,7 @@ describe("useUrlFilters", () => {
   describe("clearFilters", () => {
     it("resets all to defaults", () => {
       mockSearchParams = new URLSearchParams(
-        "category=logistics&search=test&sort=newest&free=true&official=true&featured=true&page=3"
+        "category=logistics&search=test&sort=newest&official=true&featured=true&page=3"
       );
       const { result } = renderHook(() => useUrlFilters());
 
@@ -170,12 +164,9 @@ describe("useUrlFilters", () => {
         category: null,
         search: "",
         sort: "popular",
-        free: false,
         official: false,
         featured: false,
         page: 1,
-        minPrice: null,
-        maxPrice: null,
         minRating: null,
       });
     });

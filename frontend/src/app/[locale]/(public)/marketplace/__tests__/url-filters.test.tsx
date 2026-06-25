@@ -86,24 +86,24 @@ describe("Marketplace URL filters — sort syncs to URL", () => {
   });
 });
 
-describe("Marketplace URL filters — free checkbox syncs to URL", () => {
-  it("free=true appears in URL after setting free filter", () => {
+describe("Marketplace URL filters — official checkbox syncs to URL", () => {
+  it("official=true appears in URL after setting official filter", () => {
     const { result } = renderHook(() => useUrlFilters());
     act(() => {
-      result.current.updateFilter("free", true);
+      result.current.updateFilter("official", true);
     });
     const lastUrl = replaceStateSpy.mock.calls[replaceStateSpy.mock.calls.length - 1]?.[2];
-    expect(lastUrl).toContain("free=true");
-    expect(result.current.filters.free).toBe(true);
+    expect(lastUrl).toContain("official=true");
+    expect(result.current.filters.official).toBe(true);
   });
 
-  it("free=false (default) is omitted from URL", () => {
+  it("official=false (default) is omitted from URL", () => {
     const { result } = renderHook(() => useUrlFilters());
     act(() => {
-      result.current.updateFilter("free", false);
+      result.current.updateFilter("official", false);
     });
     const lastUrl = replaceStateSpy.mock.calls[replaceStateSpy.mock.calls.length - 1]?.[2];
-    expect(lastUrl).not.toContain("free=");
+    expect(lastUrl).not.toContain("official=");
   });
 });
 
@@ -128,30 +128,30 @@ describe("Marketplace URL filters — search input syncs to URL after debounce",
 });
 
 describe("Marketplace URL filters — multiple filters combine in URL", () => {
-  it("sort + free + search combine correctly", () => {
+  it("sort + official + search combine correctly", () => {
     const { result } = renderHook(() => useUrlFilters());
     act(() => {
       result.current.updateFilter("sort", "newest");
     });
     act(() => {
-      result.current.updateFilter("free", true);
+      result.current.updateFilter("official", true);
     });
     act(() => {
       result.current.updateFilter("search", "budget");
     });
     expect(result.current.filters.sort).toBe("newest");
-    expect(result.current.filters.free).toBe(true);
+    expect(result.current.filters.official).toBe(true);
     expect(result.current.filters.search).toBe("budget");
     expect(result.current.activeFilterCount).toBe(3);
   });
 });
 
 describe("Marketplace URL filters — URL params restore filter state on direct navigation", () => {
-  it("sort=newest&free=true&search=knapsack restores all three filters", () => {
-    mockSearchParams = new URLSearchParams("sort=newest&free=true&search=knapsack");
+  it("sort=newest&official=true&search=knapsack restores all three filters", () => {
+    mockSearchParams = new URLSearchParams("sort=newest&official=true&search=knapsack");
     const { result } = renderHook(() => useUrlFilters());
     expect(result.current.filters.sort).toBe("newest");
-    expect(result.current.filters.free).toBe(true);
+    expect(result.current.filters.official).toBe(true);
     expect(result.current.filters.search).toBe("knapsack");
   });
 });
@@ -194,8 +194,6 @@ describe("Marketplace URL filters — VALID_SORTS contract", () => {
     expect(VALID_SORTS).toContain("popular");
     expect(VALID_SORTS).toContain("newest");
     expect(VALID_SORTS).toContain("rating");
-    expect(VALID_SORTS).toContain("price_asc");
-    expect(VALID_SORTS).toContain("price_desc");
-    expect(VALID_SORTS).toHaveLength(5);
+    expect(VALID_SORTS).toHaveLength(3);
   });
 });

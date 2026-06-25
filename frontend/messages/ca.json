@@ -300,7 +300,7 @@
       "withdrawal": "Retirada",
       "purchase": "Compra"
     },
-    "siteDescription": "Crea, compra i automatitza models d'optimització: agnòstic al solver, assistit per IA i sense necessitat d'un doctorat.",
+    "siteDescription": "Crea, usa i automatitza models d'optimització: agnòstic al solver, assistit per IA i sense necessitat d'un doctorat.",
     "breadcrumbsAriaLabel": "Ruta de navegació",
     "tableOfContentsAriaLabel": "Taula de continguts",
     "onThisPage": "En aquesta pàgina"
@@ -316,10 +316,10 @@
     "meta": {},
     "hero": {
       "badge": "Plataforma d'optimització amb IA",
-      "titleLine1": "Crea, compra o automatitza",
+      "titleLine1": "Crea, usa o automatitza",
       "titleLine2": "solucions d'optimització",
       "titleLine3": "per a qualsevol repte",
-      "subtitle": "Tres camins cap a decisions optimes: crea models amb IA, compra solucions provades al marketplace o connecta el teu agent d'IA via MCP.",
+      "subtitle": "Tres camins cap a decisions òptimes: crea models amb IA, usa solucions provades del marketplace de la comunitat o connecta el teu agent d'IA via MCP.",
       "tagline": "La plataforma d'optimització per a humans i agents d'IA.",
       "visualBuilderLabel": "Constructor visual de models",
       "getStartedFree": "Comença gratuïtament",
@@ -337,7 +337,7 @@
         },
         "marketplace": {
           "title": "Marketplace de models",
-          "description": "Explora el marketplace de models d'optimització. Compra models provats o ven la teva experiència."
+          "description": "Explora el marketplace de models d'optimització. Usa models provats de la comunitat o publica els teus."
         },
         "mcp": {
           "title": "MCP per a agents IA",
@@ -351,7 +351,7 @@
     "platform": {
       "eyebrow": "La plataforma",
       "title": "Tres maneres d'optimitzar",
-      "subtitle": "Crea models amb IA, compra solucions provades al marketplace o connecta el teu agent d'IA via MCP.",
+      "subtitle": "Crea models amb IA, usa solucions provades del marketplace de la comunitat o connecta el teu agent d'IA via MCP.",
       "aiVisualAlt": "L'assistent d'IA de JAOT formulant un model d'optimització a partir d'una descripció del problema en llenguatge natural"
     },
     "audience": {
@@ -373,12 +373,12 @@
         "cta": "Prova gratuïtament"
       },
       "sellers": {
-        "title": "Per a venedors i consultors",
-        "item1": "Publica al marketplace de models d'optimització",
-        "item2": "Guanya ingressos amb el 90% de participacio (10% comissio de la plataforma)",
+        "title": "Per a col·laboradors i consultors",
+        "item1": "Publica els teus models al marketplace de la comunitat",
+        "item2": "Comparteix la teva experiència en optimització amb equips d'arreu del món",
         "item3": "Arriba a equips i empreses de tot el món",
-        "item4": "Fes seguiment de vendes, gestiona pagaments i fes creixer el teu negoci",
-        "cta": "Comença a vendre"
+        "item4": "Mesura l'adopció i l'impacte a les teves analítiques",
+        "cta": "Comença a publicar"
       }
     },
     "useCases": {
@@ -421,7 +421,7 @@
     },
     "features": {
       "title": "Quatre pilars de l'optimització",
-      "subtitle": "Tot el que necessites per crear, comprar, vendre i automatitzar l'optimització.",
+      "subtitle": "Tot el que necessites per crear, usar, compartir i automatitzar l'optimització.",
       "pillars": {
         "aiBuilder": {
           "title": "Constructor amb IA",
@@ -432,9 +432,9 @@
         },
         "marketplace": {
           "title": "Marketplace de models",
-          "description": "Un marketplace de models d'optimització. Compra models provats o monetitza la teva experiència.",
+          "description": "Un marketplace de models d'optimització. Usa models provats o comparteix els teus: gratuït i obert.",
           "buyModels": "Explora i activa models preparats per usar",
-          "sellModels": "Publica i guanya amb el 90% d'ingressos",
+          "sellModels": "Publica els teus models perquè la comunitat els faci servir",
           "modelRatings": "Valoracions i ressenyes de la comunitat"
         },
         "mcpAgents": {
@@ -494,10 +494,11 @@
       "marketplace": "Marketplace",
       "aiBuilder": "Constructor IA",
       "mcpIntegration": "Integracio MCP",
-      "forSellers": "Per a venedors",
+      "forSellers": "Col·laborar",
       "howItWorks": "Com funciona",
       "sellerDashboard": "Dashboard de venedor",
       "publishModel": "Publicar un model",
+      "browseModels": "Explorar models",
       "developers": "Desenvolupadors",
       "docs": "Documentació",
       "apiReference": "Referència de l'API",

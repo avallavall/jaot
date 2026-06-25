@@ -86,7 +86,7 @@ const HERO_PILLARS = [
 
 const AUDIENCE = [
   { icon: Building2, key: "teams", href: "/signup", accent: ACCENT_SEPIA },
-  { icon: Store, key: "sellers", href: "/for-sellers", accent: ACCENT_TERRACOTTA },
+  { icon: Store, key: "sellers", href: "/marketplace", accent: ACCENT_TERRACOTTA },
   { icon: GraduationCap, key: "students", href: "/signup", accent: ACCENT_SAGE },
 ] as const;
 

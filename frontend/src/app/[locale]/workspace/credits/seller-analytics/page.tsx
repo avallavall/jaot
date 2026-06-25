@@ -10,8 +10,6 @@ import type {
   GeoDistributionEntry,
   ModelPerformanceRow,
   ConversionFunnel,
-  FeaturedPlacement,
-  ModelCatalogItem,
 } from "@/lib/types";
 import { AnalyticsKPICards } from "@/components/seller/AnalyticsKPICards";
 import { RevenueChart } from "@/components/seller/RevenueChart";
@@ -19,11 +17,8 @@ import { ConversionFunnel as ConversionFunnelChart } from "@/components/seller/C
 import { GeoDistribution } from "@/components/seller/GeoDistribution";
 import { TopModelsTable } from "@/components/seller/TopModelsTable";
 import { OnboardingChecklist } from "@/components/seller/OnboardingChecklist";
-import { PromotionPurchase } from "@/components/seller/PromotionPurchase";
 import { VerificationRequest } from "@/components/seller/VerificationRequest";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
 type Period = "7d" | "30d" | "90d" | "all";
 
@@ -36,7 +31,6 @@ const PERIODS: { value: Period; labelKey: string }[] = [
 
 export default function SellerAnalyticsPage() {
   const t = useTranslations("seller.analytics");
-  const tp = useTranslations("seller.promotions");
   const { user, isLoading: authLoading } = useAuth();
 
   const [period, setPeriod] = useState<Period>("30d");
@@ -45,31 +39,7 @@ export default function SellerAnalyticsPage() {
   const [geo, setGeo] = useState<GeoDistributionEntry[]>([]);
   const [models, setModels] = useState<ModelPerformanceRow[]>([]);
   const [funnel, setFunnel] = useState<ConversionFunnel | null>(null);
-  const [activePlacements, setActivePlacements] = useState<FeaturedPlacement[]>([]);
-  const [sellerModels, setSellerModels] = useState<ModelCatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const loadPlacements = useCallback(async () => {
-    try {
-      const [placementsRes] = await Promise.all([
-        api.getActivePlacements(),
-        api.getMyModels({ page_size: 100 }),
-      ]);
-      setActivePlacements(placementsRes.items);
-      // Convert org models to catalog items for the promotion dialog
-      // We use catalog endpoint to get proper catalog items for published models
-      try {
-        const me = await api.getMe();
-        const orgModels = await api.getOrgModels(me.organization_id);
-        setSellerModels(orgModels);
-      } catch (err) {
-        console.warn('Failed to load seller models:', err);
-        setSellerModels([]);
-      }
-    } catch (err) {
-      console.warn('Failed to load placements:', err);
-    }
-  }, []);
 
   const loadData = useCallback(async (p: Period) => {
     setLoading(true);
@@ -97,9 +67,8 @@ export default function SellerAnalyticsPage() {
   useEffect(() => {
     if (!authLoading && user) {
       loadData(period);
-      loadPlacements();
     }
-  }, [period, authLoading, user, loadData, loadPlacements]);
+  }, [period, authLoading, user, loadData]);
 
   if (authLoading) {
     return (
@@ -146,44 +115,7 @@ export default function SellerAnalyticsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <VerificationRequest />
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">{tp("activePlacements")}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <PromotionPurchase
-              models={sellerModels}
-              onPurchase={loadPlacements}
-            />
-            {activePlacements.length > 0 ? (
-              <div className="space-y-2">
-                {activePlacements.map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between text-sm border rounded-lg px-3 py-2"
-                  >
-                    <span className="font-medium">
-                      {p.placement_type.replace(/_/g, " ")}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary">{p.duration_days}d</Badge>
-                      <span className="text-muted-foreground">
-                        {new Date(p.expires_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                {tp("noActivePlacements")}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      <VerificationRequest />
 
       {loading ? (
         <div className="space-y-4">

@@ -2,7 +2,6 @@
 
 import {
   Zap,
-  Store,
   ClipboardList,
   LayoutDashboard,
   Wrench,
@@ -28,7 +27,6 @@ import {
   Coins,
   ShieldCheck,
   TrendingUp,
-  Megaphone,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
@@ -89,7 +87,6 @@ export function useNavItems() {
         { label: t("nav.apiKeys"), href: "/workspace/api-keys", icon: <Key className="w-4 h-4" /> },
         { label: t("nav.credits"), href: "/workspace/credits", icon: <CreditCard className="w-4 h-4" /> },
         { label: t("nav.usage"), href: "/workspace/usage", icon: <BarChart2 className="w-4 h-4" /> },
-        { label: t("nav.forSellers"), href: "/for-sellers", icon: <Store className="w-4 h-4" /> },
         { label: t("nav.settings"), href: "/workspace/settings", icon: <Settings className="w-4 h-4" /> },
       ],
     },
@@ -133,8 +130,6 @@ export function useNavItems() {
               { label: t("nav.reviews"), href: "/admin/reviews", icon: <Flag className="w-4 h-4" /> },
               { label: t("nav.credits"), href: "/admin/credits", icon: <Coins className="w-4 h-4" /> },
               { label: t("nav.marketplaceAnalytics"), href: "/admin/marketplace/analytics", icon: <TrendingUp className="w-4 h-4" /> },
-              { label: t("nav.promotions"), href: "/admin/marketplace/promotions", icon: <Megaphone className="w-4 h-4" /> },
-              { label: t("nav.sellerAnalytics"), href: "/admin/marketplace/seller-analytics", icon: <BarChart2 className="w-4 h-4" /> },
               { label: t("nav.verification"), href: "/admin/marketplace/verification", icon: <ShieldCheck className="w-4 h-4" /> },
               { label: t("nav.settings"), href: "/admin/settings", icon: <Settings className="w-4 h-4" /> },
             ],

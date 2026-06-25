@@ -300,7 +300,7 @@
       "withdrawal": "Retrait",
       "purchase": "Achat"
     },
-    "siteDescription": "Créez, achetez et automatisez des modèles d'optimisation : indépendant du solveur, assisté par IA, sans doctorat requis.",
+    "siteDescription": "Créez, utilisez et automatisez des modèles d'optimisation : indépendant du solveur, assisté par IA, sans doctorat requis.",
     "breadcrumbsAriaLabel": "Fil d'Ariane",
     "tableOfContentsAriaLabel": "Table des matières",
     "onThisPage": "Sur cette page"
@@ -316,10 +316,10 @@
     "meta": {},
     "hero": {
       "badge": "Plateforme d'Optimisation propulsée par l'IA",
-      "titleLine1": "Construis, Achète ou Automatise",
+      "titleLine1": "Construis, Utilise ou Automatise",
       "titleLine2": "des Solutions d'Optimisation",
       "titleLine3": "pour tout défi",
-      "subtitle": "Trois chemins vers des décisions optimales : construis des modèles avec l'IA, achète des solutions éprouvées sur le marketplace, ou connecte ton agent IA via MCP.",
+      "subtitle": "Trois chemins vers des décisions optimales : construis des modèles avec l'IA, utilise des solutions éprouvées du marketplace communautaire, ou connecte ton agent IA via MCP.",
       "tagline": "La plateforme d'optimisation pour les humains et les agents IA.",
       "visualBuilderLabel": "Constructeur Visuel de Modèles",
       "getStartedFree": "Commencer Gratuitement",
@@ -337,7 +337,7 @@
         },
         "marketplace": {
           "title": "Marketplace de Modèles",
-          "description": "Parcours le marketplace de modèles d'optimisation. Achète des modèles éprouvés ou vends ton expertise."
+          "description": "Parcours le marketplace de modèles d'optimisation. Utilise des modèles éprouvés de la communauté ou publie les tiens."
         },
         "mcp": {
           "title": "MCP pour Agents IA",
@@ -351,7 +351,7 @@
     "platform": {
       "eyebrow": "La plateforme",
       "title": "Trois façons d'optimiser",
-      "subtitle": "Créez des modèles avec l'IA, achetez des solutions éprouvées sur la marketplace ou connectez votre agent IA via MCP.",
+      "subtitle": "Créez des modèles avec l'IA, utilisez des solutions éprouvées du marketplace communautaire ou connectez votre agent IA via MCP.",
       "aiVisualAlt": "L'assistant IA de JAOT formulant un modèle d'optimisation à partir d'une description du problème en langage naturel"
     },
     "audience": {
@@ -373,12 +373,12 @@
         "cta": "Essayer gratuitement"
       },
       "sellers": {
-        "title": "Pour les Vendeurs et Consultants",
-        "item1": "Publie sur le marketplace de modèles d'optimisation",
-        "item2": "Gagne des revenus avec 90% de part vendeur (10% de commission plateforme)",
+        "title": "Pour les contributeurs et consultants",
+        "item1": "Publie tes modèles sur le marketplace communautaire",
+        "item2": "Partage ton expertise en optimisation avec des équipes du monde entier",
         "item3": "Atteins des équipes et entreprises dans le monde entier",
-        "item4": "Suis tes ventes, gère les paiements et développe ton activité",
-        "cta": "Commencer à Vendre"
+        "item4": "Suis l'adoption et l'impact dans tes analytiques",
+        "cta": "Commence à publier"
       }
     },
     "useCases": {
@@ -421,7 +421,7 @@
     },
     "features": {
       "title": "Quatre piliers de l'optimisation",
-      "subtitle": "Tout ce dont tu as besoin pour construire, acheter, vendre et automatiser l'optimisation.",
+      "subtitle": "Tout ce dont tu as besoin pour construire, utiliser, partager et automatiser l'optimisation.",
       "pillars": {
         "aiBuilder": {
           "title": "Constructeur propulsé par l'IA",
@@ -432,9 +432,9 @@
         },
         "marketplace": {
           "title": "Marketplace de Modèles",
-          "description": "Un marketplace de modèles d'optimisation. Achète des modèles éprouvés ou monétise ton expertise.",
+          "description": "Un marketplace de modèles d'optimisation. Utilise des modèles éprouvés ou partage les tiens : gratuit et ouvert.",
           "buyModels": "Parcours et active des modèles prêts à l'emploi",
-          "sellModels": "Publie et gagne avec 90% de part des revenus",
+          "sellModels": "Publie tes modèles pour que la communauté les utilise",
           "modelRatings": "Notes et avis de la communauté"
         },
         "mcpAgents": {
@@ -494,10 +494,11 @@
       "marketplace": "Marketplace",
       "aiBuilder": "Constructeur IA",
       "mcpIntegration": "Intégration MCP",
-      "forSellers": "Pour les Vendeurs",
+      "forSellers": "Contribuer",
       "howItWorks": "Comment ça marche",
       "sellerDashboard": "Tableau de Bord Vendeur",
       "publishModel": "Publier un Modèle",
+      "browseModels": "Parcourir les modèles",
       "developers": "Développeurs",
       "docs": "Documentation",
       "apiReference": "Référence API",

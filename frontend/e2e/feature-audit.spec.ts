@@ -294,12 +294,6 @@ test("23 — trigger detail with tabs", async ({ page }) => {
   }
 });
 
-// ===== 24. BILLING CREDIT PACKS =====
-test("24 — billing page with credit packs", async ({ page }) => {
-  await page.goto("/billing");
-  await waitForContent(page);
-  await screenshot(page, "24-billing-credit-packs");
-});
 
 // ===== 25. DOCS SEARCH =====
 test("25 — documentation and search", async ({ page }) => {

@@ -47,7 +47,6 @@ export default function PublishModelPage() {
   const [shortDescription, setShortDescription] = useState("");
   const [category, setCategory] = useState("general");
   const [tags, setTags] = useState("");
-  const [priceEur, setPriceEur] = useState("0");
 
   // Section fields (both modes)
   const [sectionOverview, setSectionOverview] = useState("");
@@ -116,7 +115,7 @@ export default function PublishModelPage() {
         short_description: shortDescription.trim() || undefined,
         category,
         tags: tags.split(",").map((s) => s.trim()).filter(Boolean),
-        price_eur: parseFloat(priceEur) || 0,
+        price_eur: 0,
         // credits_per_execution removed — calculated dynamically
         // Include section content in publish request
         section_overview: sectionOverview.trim() || undefined,
@@ -456,36 +455,13 @@ export default function PublishModelPage() {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              {t("priceEur")}
-            </label>
-            <div className="relative">
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                value={priceEur}
-                onChange={(e) => setPriceEur(e.target.value)}
-                className="pr-8"
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                EUR
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {t("freeToActivate")}
-            </p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              {t("creditsPerRun")}
-            </label>
-            <p className="text-sm text-muted-foreground">
-              {t("dynamicCreditsDescription")}
-            </p>
-          </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            {t("creditsPerRun")}
+          </label>
+          <p className="text-sm text-muted-foreground">
+            {t("dynamicCreditsDescription")}
+          </p>
         </div>
 
         {/* Images (disabled in publish mode) */}

@@ -214,7 +214,7 @@ describe("useNavItems", () => {
   });
 
   describe("NAV-03: Admin section", () => {
-    it("Admin Panel collapsible has exactly 9 children with correct hrefs and is collapsed by default", () => {
+    it("Admin Panel collapsible has exactly 12 children with correct hrefs and is collapsed by default", () => {
       setAuthState({ isAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
       // Find Admin Panel collapsible by checking for a child with href "/admin"
@@ -224,10 +224,11 @@ describe("useNavItems", () => {
 
       expect(adminPanel).toBeDefined();
       expect(adminPanel!.collapsedByDefault).toBe(true);
-      expect(adminPanel!.children).toHaveLength(13);
+      expect(adminPanel!.children).toHaveLength(12);
 
       const expectedHrefs = [
         "/admin",
+        "/admin/platform",
         "/admin/organizations",
         "/admin/users",
         "/admin/models",
@@ -236,8 +237,6 @@ describe("useNavItems", () => {
         "/admin/reviews",
         "/admin/credits",
         "/admin/marketplace/analytics",
-        "/admin/marketplace/promotions",
-        "/admin/marketplace/seller-analytics",
         "/admin/marketplace/verification",
         "/admin/settings",
       ];

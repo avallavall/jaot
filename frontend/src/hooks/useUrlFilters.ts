@@ -5,12 +5,9 @@ export interface FilterDefaults {
   category: string | null;
   search: string;
   sort: string;
-  free: boolean;
   official: boolean;
   featured: boolean;
   page: number;
-  minPrice: number | null;
-  maxPrice: number | null;
   minRating: number | null;
 }
 
@@ -18,22 +15,13 @@ export const DEFAULTS: FilterDefaults = {
   category: null,
   search: "",
   sort: "popular",
-  free: false,
   official: false,
   featured: false,
   page: 1,
-  minPrice: null,
-  maxPrice: null,
   minRating: null,
 };
 
-export const VALID_SORTS = [
-  "popular",
-  "newest",
-  "rating",
-  "price_asc",
-  "price_desc",
-] as const;
+export const VALID_SORTS = ["popular", "newest", "rating"] as const;
 
 export function useUrlFilters() {
   const searchParams = useSearchParams();
@@ -42,8 +30,6 @@ export function useUrlFilters() {
   const parseFromUrl = useCallback((): FilterDefaults => {
     const rawSort = searchParams.get("sort") ?? "popular";
     const rawPage = parseInt(searchParams.get("page") ?? "1", 10);
-    const rawMinPrice = searchParams.get("minPrice");
-    const rawMaxPrice = searchParams.get("maxPrice");
     const rawMinRating = searchParams.get("minRating");
     return {
       category: searchParams.get("category") || null,
@@ -51,18 +37,9 @@ export function useUrlFilters() {
       sort: (VALID_SORTS as readonly string[]).includes(rawSort)
         ? rawSort
         : "popular",
-      free: searchParams.get("free") === "true",
       official: searchParams.get("official") === "true",
       featured: searchParams.get("featured") === "true",
       page: Number.isNaN(rawPage) || rawPage < 1 ? 1 : rawPage,
-      minPrice:
-        rawMinPrice !== null && rawMinPrice !== ""
-          ? Number(rawMinPrice)
-          : null,
-      maxPrice:
-        rawMaxPrice !== null && rawMaxPrice !== ""
-          ? Number(rawMaxPrice)
-          : null,
       minRating:
         rawMinRating !== null && rawMinRating !== ""
           ? Number(rawMinRating)
@@ -90,14 +67,9 @@ export function useUrlFilters() {
     if (newFilters.category) params.set("category", newFilters.category);
     if (newFilters.search) params.set("search", newFilters.search);
     if (newFilters.sort !== "popular") params.set("sort", newFilters.sort);
-    if (newFilters.free) params.set("free", "true");
     if (newFilters.official) params.set("official", "true");
     if (newFilters.featured) params.set("featured", "true");
     if (newFilters.page > 1) params.set("page", String(newFilters.page));
-    if (newFilters.minPrice !== null)
-      params.set("minPrice", String(newFilters.minPrice));
-    if (newFilters.maxPrice !== null)
-      params.set("maxPrice", String(newFilters.maxPrice));
     if (newFilters.minRating !== null)
       params.set("minRating", String(newFilters.minRating));
 
@@ -135,11 +107,8 @@ export function useUrlFilters() {
     (filters.category !== null ? 1 : 0) +
     (filters.search !== "" ? 1 : 0) +
     (filters.sort !== "popular" ? 1 : 0) +
-    (filters.free ? 1 : 0) +
     (filters.official ? 1 : 0) +
     (filters.featured ? 1 : 0) +
-    (filters.minPrice !== null ? 1 : 0) +
-    (filters.maxPrice !== null ? 1 : 0) +
     (filters.minRating !== null ? 1 : 0);
 
   return { filters, updateFilter, clearFilters, activeFilterCount };

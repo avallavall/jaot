@@ -300,7 +300,7 @@
       "withdrawal": "Auszahlung",
       "purchase": "Kauf"
     },
-    "siteDescription": "Optimierungsmodelle erstellen, kaufen und automatisieren – solver-unabhängig, KI-gestützt, ohne Doktortitel.",
+    "siteDescription": "Optimierungsmodelle erstellen, nutzen und automatisieren – solver-unabhängig, KI-gestützt, ohne Doktortitel.",
     "breadcrumbsAriaLabel": "Brotkrümelnavigation",
     "tableOfContentsAriaLabel": "Inhaltsverzeichnis",
     "onThisPage": "Auf dieser Seite"
@@ -316,10 +316,10 @@
     "meta": {},
     "hero": {
       "badge": "KI-gestützte Optimierungsplattform",
-      "titleLine1": "Erstellen, kaufen oder automatisieren",
+      "titleLine1": "Erstellen, nutzen oder automatisieren",
       "titleLine2": "OptimierungsLösungen",
       "titleLine3": "für jede Herausforderung",
-      "subtitle": "Drei Wege zu optimalen Entscheidungen: Modelle mit KI erstellen, bewährte Lösungen im Marktplatz kaufen oder deinen KI-Agenten über MCP verbinden.",
+      "subtitle": "Drei Wege zu optimalen Entscheidungen: Modelle mit KI erstellen, bewährte Lösungen aus dem Community-Marktplatz nutzen oder deinen KI-Agenten über MCP verbinden.",
       "tagline": "Die Optimierungsplattform für Menschen und KI-Agenten.",
       "visualBuilderLabel": "Visueller Modell-Builder",
       "getStartedFree": "Kostenlos starten",
@@ -337,7 +337,7 @@
         },
         "marketplace": {
           "title": "Modell-Marktplatz",
-          "description": "Entdecke den Marktplatz für Optimierungsmodelle. Kaufe bewährte Modelle oder verkaufe dein Know-how."
+          "description": "Durchsuche den Marktplatz für Optimierungsmodelle. Nutze bewährte Modelle der Community oder veröffentliche deine eigenen."
         },
         "mcp": {
           "title": "MCP für KI-Agenten",
@@ -351,7 +351,7 @@
     "platform": {
       "eyebrow": "Die Plattform",
       "title": "Drei Wege zur Optimierung",
-      "subtitle": "Erstelle Modelle mit KI, kaufe bewährte Lösungen aus dem Marktplatz oder verbinde deinen KI-Agenten über MCP.",
+      "subtitle": "Erstelle Modelle mit KI, nutze bewährte Lösungen aus dem Community-Marktplatz oder verbinde deinen KI-Agenten über MCP.",
       "aiVisualAlt": "Der KI-Assistent von JAOT formuliert ein Optimierungsmodell aus einer Problembeschreibung in natürlicher Sprache"
     },
     "audience": {
@@ -373,12 +373,12 @@
         "cta": "Kostenlos testen"
       },
       "sellers": {
-        "title": "für Verkäufer & Berater",
-        "item1": "Veröffentliche auf dem Marktplatz für Optimierungsmodelle",
-        "item2": "Verdiene mit 90% Verkäuferanteil (10% Plattformprovision)",
+        "title": "Für Beitragende und Berater",
+        "item1": "Veröffentliche deine Modelle im Community-Marktplatz",
+        "item2": "Teile dein Optimierungs-Know-how mit Teams weltweit",
         "item3": "Erreiche Teams und Unternehmen weltweit",
-        "item4": "Verfolge Verkäufe, verwalte Auszahlungen und baue dein Geschäft aus",
-        "cta": "Jetzt verkaufen"
+        "item4": "Verfolge Akzeptanz und Wirkung in deinen Analysen",
+        "cta": "Jetzt veröffentlichen"
       }
     },
     "useCases": {
@@ -421,7 +421,7 @@
     },
     "features": {
       "title": "Vier Säulen der Optimierung",
-      "subtitle": "Alles, was du zum Erstellen, Kaufen, Verkaufen und Automatisieren von Optimierung brauchst.",
+      "subtitle": "Alles, was du zum Erstellen, Nutzen, Teilen und Automatisieren von Optimierung brauchst.",
       "pillars": {
         "aiBuilder": {
           "title": "KI-gestützter Builder",
@@ -432,9 +432,9 @@
         },
         "marketplace": {
           "title": "Modell-Marktplatz",
-          "description": "Ein Marktplatz für Optimierungsmodelle. Kaufe bewährte Modelle oder monetarisiere dein Know-how.",
+          "description": "Ein Marktplatz für Optimierungsmodelle. Nutze bewährte Modelle oder teile deine eigenen – kostenlos und offen.",
           "buyModels": "Fertige Modelle durchsuchen und aktivieren",
-          "sellModels": "Veröffentlichen und mit 90% Umsatzbeteiligung verdienen",
+          "sellModels": "Veröffentliche deine Modelle, damit die Community sie nutzen kann",
           "modelRatings": "Community-Bewertungen und Rezensionen"
         },
         "mcpAgents": {
@@ -494,10 +494,11 @@
       "marketplace": "Marktplatz",
       "aiBuilder": "KI-Builder",
       "mcpIntegration": "MCP-Integration",
-      "forSellers": "für Verkäufer",
+      "forSellers": "Mitwirken",
       "howItWorks": "So funktioniert es",
       "sellerDashboard": "Verkäufer-Dashboard",
       "publishModel": "Modell Veröffentlichen",
+      "browseModels": "Modelle durchsuchen",
       "developers": "Entwickler",
       "docs": "Dokumentation",
       "apiReference": "API-Referenz",

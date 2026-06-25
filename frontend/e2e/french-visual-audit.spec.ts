@@ -287,13 +287,6 @@ test("Group 1: Public pages (FR)", async ({ page }) => {
     );
   }
 
-  await auditPage(
-    page,
-    "/for-sellers",
-    "public",
-    "For Sellers",
-    "06-for-sellers.png"
-  );
   await auditPage(page, "/terms", "public", "Terms", "07-terms.png");
   await auditPage(page, "/privacy", "public", "Privacy", "08-privacy.png");
   await auditPage(page, "/licenses", "public", "Licenses", "09-licenses.png");
@@ -645,12 +638,6 @@ test("Group 7: Admin pages (FR)", async ({ page }) => {
 /* ------------------------------------------------------------------ */
 /* Group 8: Billing & misc                                             */
 /* ------------------------------------------------------------------ */
-
-test("Group 8: Billing & misc (FR)", async ({ page }) => {
-  await loginAsAdmin(page);
-
-  await auditPage(page, "/billing", "billing", "Billing", "01-billing.png");
-});
 
 /* ------------------------------------------------------------------ */
 /* Summary                                                             */

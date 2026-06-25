@@ -73,7 +73,6 @@ describe("sitemap", () => {
 
     const expectedStaticUrls = [
       BASE_URL, // home ("")
-      `${BASE_URL}/for-sellers`,
       `${BASE_URL}/marketplace`,
       `${BASE_URL}/terms`,
       `${BASE_URL}/privacy`,

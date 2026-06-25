@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PriceRangeFilter } from "./PriceRangeFilter";
 import { RatingFilter } from "./RatingFilter";
 import { useCommonLabels } from "@/hooks/useCommonLabels";
 import type { FilterDefaults } from "@/hooks/useUrlFilters";
@@ -30,8 +29,6 @@ const SORT_OPTIONS = [
   { value: "popular", labelKey: "sortPopular" },
   { value: "rating", labelKey: "sortRating" },
   { value: "newest", labelKey: "sortNewest" },
-  { value: "price_asc", labelKey: "sortPriceAsc" },
-  { value: "price_desc", labelKey: "sortPriceDesc" },
 ] as const;
 
 export function FilterSidebar({
@@ -104,19 +101,6 @@ export function FilterSidebar({
       </div>
 
       <div className="space-y-2">
-        <h4 className="text-sm font-medium">{t("priceRange")}</h4>
-        <PriceRangeFilter
-          min={0}
-          max={100}
-          value={[filters.minPrice, filters.maxPrice]}
-          onChange={(vals) => {
-            updateFilter("minPrice", vals[0]);
-            updateFilter("maxPrice", vals[1]);
-          }}
-        />
-      </div>
-
-      <div className="space-y-2">
         <h4 className="text-sm font-medium">{t("rating")}</h4>
         <RatingFilter
           value={filters.minRating}
@@ -125,15 +109,6 @@ export function FilterSidebar({
       </div>
 
       <div className="space-y-2">
-        <label className="flex items-center gap-2 text-sm cursor-pointer">
-          <Checkbox
-            checked={filters.free}
-            onCheckedChange={(checked) =>
-              updateFilter("free", checked === true)
-            }
-          />
-          <span>{t("freeOnly")}</span>
-        </label>
         <label className="flex items-center gap-2 text-sm cursor-pointer">
           <Checkbox
             checked={filters.official}

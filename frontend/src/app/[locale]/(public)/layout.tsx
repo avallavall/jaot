@@ -34,12 +34,6 @@ export default async function PublicLayout({ children }: { children: React.React
               >
                 {t("docs")}
               </Link>
-              <Link
-                href="/for-sellers"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {t("forSellers")}
-              </Link>
             </nav>
             <LanguageSwitcher />
             <ThemeToggle />

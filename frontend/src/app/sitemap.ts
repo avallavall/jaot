@@ -29,7 +29,6 @@ function safeDate(value: string | null | undefined, fallback: Date): Date {
 // by the getDocsPages() loop (D-05).
 const STATIC_PAGES = [
   { path: "", changeFrequency: "weekly" as const, priority: 1.0, lastMod: new Date("2026-05-01") }, // home — marketing
-  { path: "/for-sellers", changeFrequency: "monthly" as const, priority: 0.8, lastMod: new Date("2026-05-01") }, // marketing
   { path: "/marketplace", changeFrequency: "daily" as const, priority: 0.9, lastMod: new Date("2026-05-01") }, // landing
   { path: "/terms", changeFrequency: "yearly" as const, priority: 0.3, lastMod: new Date("2026-01-01") }, // legal — rarely changes
   { path: "/privacy", changeFrequency: "yearly" as const, priority: 0.3, lastMod: new Date("2026-01-01") },

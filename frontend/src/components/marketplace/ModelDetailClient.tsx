@@ -276,13 +276,6 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
           </div>
 
           <div className="text-left sm:text-right">
-            <div className="text-2xl font-bold mb-2">
-              {model.price_eur === 0 ? (
-                <span className="text-green-600">{t("free")}</span>
-              ) : (
-                `${model.price_eur.toFixed(2)} \u20AC`
-              )}
-            </div>
             <div className="text-sm text-muted-foreground mb-4">
               {model.credits_per_execution > 0 ? (
                 t("creditsPerRun", { credits: model.credits_per_execution })
@@ -629,11 +622,6 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>{t("activateModal.bringToWorkspace")}</li>
               <li>{t("activateModal.ownCopy")}</li>
-              {model && model.price_eur > 0 && (
-                <li className="font-medium text-foreground">
-                  {t("activateModal.cost", { price: model.price_eur.toFixed(2) })}
-                </li>
-              )}
             </ul>
             <div>
               <label htmlFor="activate-custom-name" className="text-sm font-medium block mb-1.5">

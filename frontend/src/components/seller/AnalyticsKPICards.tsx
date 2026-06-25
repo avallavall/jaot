@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { useTranslations } from "next-intl";
-import { Eye, Download, Coins, TrendingUp } from "lucide-react";
+import { Eye, Download, TrendingUp } from "lucide-react";
 import type { AnalyticsSummary } from "@/lib/types";
 
 interface AnalyticsKPICardsProps {
@@ -26,13 +26,6 @@ export function AnalyticsKPICards({ data }: AnalyticsKPICardsProps) {
       icon: Download,
       color: "text-green-600",
       bg: "bg-green-50",
-    },
-    {
-      label: t("totalRevenue"),
-      value: `${data.total_revenue.toLocaleString()} credits`,
-      icon: Coins,
-      color: "text-amber-600",
-      bg: "bg-amber-50",
     },
     {
       label: t("conversionRate"),

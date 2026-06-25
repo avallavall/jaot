@@ -104,7 +104,7 @@ function MarketplaceListingInner() {
   // Reload models when any filter changes
   useEffect(() => {
     loadModels();
-  }, [debouncedSearch, filters.category, filters.sort, filters.free, filters.official, filters.minPrice, filters.maxPrice, filters.minRating, filters.page]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, filters.category, filters.sort, filters.official, filters.minRating, filters.page]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadModels = async () => {
     setLoading(true);
@@ -115,10 +115,7 @@ function MarketplaceListingInner() {
       if (filters.category) params.category = filters.category;
       if (filters.sort && filters.sort !== "popular")
         params.sort_by = filters.sort;
-      if (filters.free) params.is_free = 1;
       if (filters.official) params.is_official = 1;
-      if (filters.minPrice !== null) params.min_price = filters.minPrice;
-      if (filters.maxPrice !== null) params.max_price = filters.maxPrice;
       if (filters.minRating !== null) params.min_rating = filters.minRating;
       if (filters.page > 1) params.page = filters.page;
 
