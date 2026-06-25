@@ -744,6 +744,10 @@ class TestWorkspaceAuditTrail:
 class TestSelfPurchaseBlock:
     """D-14: Self-purchase is blocked (buyer org == author org)."""
 
+    @pytest.fixture(autouse=True)
+    def _enable_monetization(self, enable_monetization):
+        """Self-purchase block only fires on paid models; enable monetization."""
+
     def test_self_purchase_returns_403(
         self, authenticated_client, db_session, test_organization, test_user
     ):

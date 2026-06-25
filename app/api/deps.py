@@ -93,6 +93,29 @@ def require_org_owner(
 OrgOwnerUser = Annotated[User, Depends(require_org_owner)]
 
 
+def require_monetization_enabled(db: Session = Depends(get_db)) -> None:
+    """Gate paid-only endpoints behind the ``MONETIZATION_ENABLED`` flag.
+
+    The platform ships as a free, collaborative deployment
+    (``MONETIZATION_ENABLED=false`` by default): the marketplace is a place to
+    publish and use optimization models freely — no prices, commissions, or
+    payouts. Paid-marketplace endpoints (seller earnings, payouts, Stripe
+    Connect onboarding, featured-placement purchases, billing checkout) are
+    dormant and respond ``404`` so the monetization surface stays invisible.
+
+    A self-hosted deployment that wants the paid model back can flip the flag
+    on ("bring-your-own Stripe"); the dormant code paths then light up again.
+
+    Raises:
+        HTTPException: 404 when monetization is disabled.
+    """
+    # Lazy import keeps deps.py free of any settings-layer import-order risk.
+    from app.services.platform_settings_service import PlatformSettingsService
+
+    if not PlatformSettingsService.is_monetization_enabled(db):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+
+
 # Optional auth dependencies (Phase 9 / D-06)
 #
 # Used by endpoints in PUBLIC_PATHS that still want to tag rows with

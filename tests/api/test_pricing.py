@@ -15,6 +15,10 @@ import pytest
 class TestPricingEndpoint:
     """Tests for GET /api/v2/pricing."""
 
+    @pytest.fixture(autouse=True)
+    def _enable_monetization(self, enable_monetization):
+        """The pricing endpoint is paid-only (404 in free mode); enable monetization."""
+
     def test_four_tiers_present(self, client):
         """All four plan tiers are returned."""
         response = client.get("/api/v2/pricing")
@@ -129,6 +133,10 @@ class TestPricingEndpoint:
 
 class TestPricingEndpointEdgeCases:
     """Edge case tests for the pricing endpoint."""
+
+    @pytest.fixture(autouse=True)
+    def _enable_monetization(self, enable_monetization):
+        """The pricing endpoint is paid-only (404 in free mode); enable monetization."""
 
     def test_tiers_ordered_by_price(self, client):
         """Tiers are ordered by ascending monthly price."""

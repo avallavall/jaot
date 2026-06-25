@@ -18,6 +18,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.api.deps import require_monetization_enabled
 from app.api.v2.auth import get_current_user
 from app.models import Organization, User
 from app.services.invoice_service import InvoiceService
@@ -120,7 +121,11 @@ async def get_billing_status(
     )
 
 
-@router.post("/checkout/subscription", response_model=CheckoutResponse)
+@router.post(
+    "/checkout/subscription",
+    response_model=CheckoutResponse,
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def create_subscription_checkout(
     body: CreateCheckoutRequest,
     current_user: User = Depends(get_current_user),
@@ -156,7 +161,11 @@ async def create_subscription_checkout(
         raise HTTPException(status_code=502, detail="Payment service error") from e
 
 
-@router.post("/checkout/topup", response_model=CheckoutResponse)
+@router.post(
+    "/checkout/topup",
+    response_model=CheckoutResponse,
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def create_topup_checkout(
     body: CreateTopupRequest,
     current_user: User = Depends(get_current_user),
@@ -193,7 +202,11 @@ async def create_topup_checkout(
         raise HTTPException(status_code=502, detail="Payment service error") from e
 
 
-@router.get("/subscription", response_model=SubscriptionResponse)
+@router.get(
+    "/subscription",
+    response_model=SubscriptionResponse,
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def get_subscription(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -213,7 +226,7 @@ async def get_subscription(
     return SubscriptionResponse(**sub)
 
 
-@router.post("/subscription/cancel")
+@router.post("/subscription/cancel", dependencies=[Depends(require_monetization_enabled)])
 async def cancel_subscription(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -233,7 +246,11 @@ async def cancel_subscription(
         raise HTTPException(status_code=400, detail=str(e)) from e
 
 
-@router.post("/portal", response_model=PortalResponse)
+@router.post(
+    "/portal",
+    response_model=PortalResponse,
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def create_billing_portal(
     body: PortalRequest,
     current_user: User = Depends(get_current_user),

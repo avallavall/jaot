@@ -544,5 +544,25 @@ class PlatformSettingsService:
 
         Returns:
             Commission rate (e.g. 0.10 for 10%). Defaults to 0.10.
+
+        Note:
+            Only meaningful when :meth:`is_monetization_enabled` is True. With
+            monetization off (the default) the marketplace is free and no
+            commission is ever charged regardless of this value.
         """
         return float(cls.get(db, "marketplace_commission_rate"))
+
+    @classmethod
+    def is_monetization_enabled(cls, db: Session) -> bool:
+        """Whether paid features (marketplace sales, payouts, billing) are active.
+
+        Defaults to ``False`` — the platform runs as a free, collaborative
+        deployment where marketplace models are free to publish and use and no
+        money changes hands. A self-hosted deployment can set
+        ``MONETIZATION_ENABLED=true`` to restore the paid marketplace
+        ("bring-your-own Stripe").
+
+        Returns:
+            True when the ``MONETIZATION_ENABLED`` flag is on, else False.
+        """
+        return cls.get_bool(db, "MONETIZATION_ENABLED")

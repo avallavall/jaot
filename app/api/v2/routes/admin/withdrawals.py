@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.api.deps import require_monetization_enabled
 from app.models import Organization, Withdrawal, WithdrawalStatus
 from app.services.credits_service import CreditsService
 from app.services.stripe_connect_service import StripeConnectService
@@ -28,7 +29,7 @@ class WithdrawalActionRequest(BaseModel):
     reason: str | None = None
 
 
-@router.get("/withdrawals")
+@router.get("/withdrawals", dependencies=[Depends(require_monetization_enabled)])
 async def list_withdrawals(
     status: str | None = Query(
         None,
@@ -75,7 +76,10 @@ async def list_withdrawals(
     }
 
 
-@router.post("/withdrawals/{withdrawal_id}/approve")
+@router.post(
+    "/withdrawals/{withdrawal_id}/approve",
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def approve_withdrawal(
     withdrawal_id: str,
     request: Request,
@@ -175,7 +179,10 @@ async def approve_withdrawal(
     }
 
 
-@router.post("/withdrawals/{withdrawal_id}/reject")
+@router.post(
+    "/withdrawals/{withdrawal_id}/reject",
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def reject_withdrawal(
     withdrawal_id: str,
     body: WithdrawalActionRequest,

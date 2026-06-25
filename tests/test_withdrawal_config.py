@@ -1,8 +1,14 @@
 """Tests for withdrawal schedule CRUD endpoints (MKT-03)."""
 
+import pytest
 from sqlalchemy.orm import Session
 
 from app.models import Organization, User
+
+
+@pytest.fixture(autouse=True)
+def _enable_monetization(enable_monetization):
+    """Withdrawal schedule endpoints are paid-only; enable monetization for this module."""
 
 
 class TestWithdrawalScheduleEndpoints:

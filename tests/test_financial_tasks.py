@@ -9,6 +9,8 @@ import uuid
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from app.models import (
     CreditTransaction,
     Organization,
@@ -242,6 +244,10 @@ class TestScheduledWithdrawals:
 
 class TestAdminWithdrawals:
     """FIN-04: Admin withdrawal list, approve, reject."""
+
+    @pytest.fixture(autouse=True)
+    def _enable_monetization(self, enable_monetization):
+        """Admin withdrawal endpoints are paid-only; enable monetization for this class."""
 
     def _create_pending_withdrawal(self, db_session, org):
         """Helper to create a pending withdrawal."""

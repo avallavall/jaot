@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.api.deps import require_monetization_enabled
 from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.shared.db.base import get_db
 
@@ -63,8 +64,11 @@ class PricingResponse(BaseModel):
     description=(
         "Returns pricing tiers with credits, prices, limits, and "
         "features. All values are read from the platform settings "
-        "database. No authentication required."
+        "database. No authentication required. Only available when "
+        "monetization is enabled; the free collaborative deployment "
+        "responds 404."
     ),
+    dependencies=[Depends(require_monetization_enabled)],
 )
 def get_pricing(db: Session = Depends(get_db)) -> JSONResponse:
     """Return pricing data for all plan tiers.

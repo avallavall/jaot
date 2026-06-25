@@ -25,6 +25,15 @@ def process_scheduled_withdrawals_task(self: Any) -> dict[str, Any]:
     """
     db = SessionLocal()
     try:
+        from app.services.platform_settings_service import PlatformSettingsService
+
+        # Withdrawals are a monetization-only feature. In the free, collaborative
+        # deployment (MONETIZATION_ENABLED=false) there is nothing to pay out, so
+        # skip the run entirely rather than scanning for due schedules.
+        if not PlatformSettingsService.is_monetization_enabled(db):
+            logger.info("Scheduled withdrawals skipped: monetization disabled")
+            return {"processed": 0, "withdrawal_ids": [], "skipped": "monetization_disabled"}
+
         from app.services.credits_service import CreditsService
 
         service = CreditsService(db)

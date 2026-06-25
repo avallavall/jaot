@@ -1,10 +1,16 @@
 """Tests for D-16: Seller ToS must be accepted before withdrawal."""
 
+import pytest
 from sqlalchemy.orm import Session
 
 from app.models import Organization, SellerToSAcceptance, User
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
+
+
+@pytest.fixture(autouse=True)
+def _enable_monetization(enable_monetization):
+    """Withdrawal endpoints are paid-only; enable monetization for this module."""
 
 
 class TestWithdrawalTosCheck:

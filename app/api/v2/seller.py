@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.api.deps import require_monetization_enabled
 from app.api.v2.auth import get_current_user
 from app.models import (
     CreditTransaction,
@@ -61,7 +62,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/seller", tags=["seller"])
 
 
-@router.get("/earnings/summary", response_model=EarningsSummaryResponse)
+@router.get(
+    "/earnings/summary",
+    response_model=EarningsSummaryResponse,
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def get_earnings_summary(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -140,7 +145,11 @@ async def get_earnings_summary(
     )
 
 
-@router.get("/earnings/sales", response_model=SalesHistoryResponse)
+@router.get(
+    "/earnings/sales",
+    response_model=SalesHistoryResponse,
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def get_sales_history(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -302,7 +311,11 @@ async def get_analytics_funnel(
     return analytics.get_conversion_funnel(org_id=current_user.organization_id, period=period)
 
 
-@router.get("/placements/pricing", response_model=list[PlacementPricingResponse])
+@router.get(
+    "/placements/pricing",
+    response_model=list[PlacementPricingResponse],
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def get_placement_pricing(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -316,6 +329,7 @@ async def get_placement_pricing(
     "/placements/purchase",
     response_model=FeaturedPlacementResponse,
     status_code=201,
+    dependencies=[Depends(require_monetization_enabled)],
 )
 async def purchase_placement(
     body: PurchasePlacementRequest,
@@ -382,7 +396,11 @@ async def purchase_placement(
     )
 
 
-@router.get("/placements/active", response_model=ActivePlacementsResponse)
+@router.get(
+    "/placements/active",
+    response_model=ActivePlacementsResponse,
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def get_active_placements(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -540,13 +558,15 @@ async def get_onboarding_status(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> OnboardingStatusResponse:
-    """Get onboarding checklist status for the current seller.
+    """Get onboarding checklist status for the current creator.
 
-    Returns 4 steps with completion detection:
+    Returns up to 4 steps with completion detection:
     - complete_profile: org has name AND bio filled
     - publish_model: at least 1 published model in catalog
     - add_rich_media: at least 1 published model has logo_url or screenshot_urls
     - setup_payouts: org has credits_earned > 0 OR has a withdrawal schedule
+      (only present when monetization is enabled; omitted in the free,
+      collaborative deployment where there are no payouts)
     """
     org_id = current_user.organization_id
     org = db.query(Organization).filter(Organization.id == org_id).first()
@@ -571,20 +591,6 @@ async def get_onboarding_status(
         for m in published_models
     )
 
-    # Step 4: Setup payouts
-    has_earnings = bool(org and org.credits_earned > 0)
-    has_schedule = (
-        (
-            db.query(WithdrawalSchedule)
-            .filter(WithdrawalSchedule.organization_id == org_id)
-            .first()
-            is not None
-        )
-        if not has_earnings
-        else False
-    )
-    payouts_setup = has_earnings or has_schedule
-
     steps = [
         OnboardingStep(
             key="complete_profile",
@@ -601,18 +607,37 @@ async def get_onboarding_status(
             completed=has_rich_media,
             link="/workspace/models",
         ),
-        OnboardingStep(
-            key="setup_payouts",
-            completed=payouts_setup,
-            link="/workspace/credits/seller-earnings",
-        ),
     ]
+
+    # Step 4 (payouts) only exists in the paid deployment. In the free,
+    # collaborative mode there are no earnings or withdrawals, so the step is
+    # omitted entirely rather than shown as a permanently-incomplete item.
+    if PlatformSettingsService.is_monetization_enabled(db):
+        has_earnings = bool(org and org.credits_earned > 0)
+        has_schedule = (
+            (
+                db.query(WithdrawalSchedule)
+                .filter(WithdrawalSchedule.organization_id == org_id)
+                .first()
+                is not None
+            )
+            if not has_earnings
+            else False
+        )
+        payouts_setup = has_earnings or has_schedule
+        steps.append(
+            OnboardingStep(
+                key="setup_payouts",
+                completed=payouts_setup,
+                link="/workspace/credits/seller-earnings",
+            )
+        )
 
     all_complete = all(s.completed for s in steps)
     return OnboardingStatusResponse(steps=steps, all_complete=all_complete)
 
 
-@router.post("/connect/onboard")
+@router.post("/connect/onboard", dependencies=[Depends(require_monetization_enabled)])
 async def start_connect_onboarding(
     request: Request,
     db: Session = Depends(get_db),
@@ -644,7 +669,7 @@ async def start_connect_onboarding(
     return {"onboarding_url": onboarding_url}
 
 
-@router.get("/connect/status")
+@router.get("/connect/status", dependencies=[Depends(require_monetization_enabled)])
 async def get_connect_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -660,7 +685,7 @@ async def get_connect_status(
     return status
 
 
-@router.post("/tos/accept")
+@router.post("/tos/accept", dependencies=[Depends(require_monetization_enabled)])
 async def accept_seller_tos(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -683,7 +708,7 @@ async def accept_seller_tos(
     }
 
 
-@router.get("/tos/status")
+@router.get("/tos/status", dependencies=[Depends(require_monetization_enabled)])
 async def get_seller_tos_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

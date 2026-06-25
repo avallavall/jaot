@@ -494,7 +494,28 @@ SETTINGS_REGISTRY.extend(
     ]
 )
 
-# BILLING category (37 entries: DEFAULT_PLAN + 4 tiers x 9 fields)
+# BILLING category (38 entries: MONETIZATION_ENABLED + DEFAULT_PLAN + 4 tiers x 9 fields)
+
+SETTINGS_REGISTRY.append(
+    SettingDefinition(
+        key="MONETIZATION_ENABLED",
+        label="Monetization Enabled",
+        description=(
+            "Master switch for every paid feature. When OFF (the default), the "
+            "platform is fully free and collaborative: marketplace models are "
+            "free to publish and use, no commission is charged, and billing, "
+            "payouts, Stripe Connect onboarding, and featured-placement "
+            "purchases are disabled (their endpoints respond 404). Turn ON only "
+            "on a self-hosted deployment that brings its own Stripe keys to "
+            "restore the paid marketplace."
+        ),
+        category=SettingCategory.BILLING,
+        setting_type=SettingType.BOOL,
+        default_value="false",
+        is_secret=False,
+        is_readonly=False,
+    ),
+)
 
 SETTINGS_REGISTRY.append(
     SettingDefinition(

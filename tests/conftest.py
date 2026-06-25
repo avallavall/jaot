@@ -765,3 +765,19 @@ def enable_registration(db_session):
 
     PlatformSettingsService.set(db_session, "REGISTRATION_ENABLED", "true")
     db_session.commit()
+
+
+@pytest.fixture
+def enable_monetization(db_session):
+    """Turn on the paid features (marketplace sales, payouts, billing) for a test.
+
+    The platform default is OFF — a free, collaborative deployment where the
+    marketplace is free, no commission is charged, and billing/payout endpoints
+    404. Tests of the optional "bring-your-own Stripe" paid path opt in with
+    this fixture, mirroring a self-hosted deployment that sets
+    ``MONETIZATION_ENABLED=true``.
+    """
+    from app.services.platform_settings_service import PlatformSettingsService
+
+    PlatformSettingsService.set(db_session, "MONETIZATION_ENABLED", "true")
+    db_session.commit()

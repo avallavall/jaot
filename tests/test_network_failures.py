@@ -197,13 +197,14 @@ class TestExternalServiceFailure:
     """Tests for external service unavailability."""
 
     def test_stripe_service_unavailable(
-        self, client, app, db_session, test_organization, test_user, mock_auth
+        self, client, app, db_session, test_organization, test_user, mock_auth, enable_monetization
     ):
         """Billing endpoint returns 503 when Stripe is not configured.
 
         The _require_stripe() guard raises HTTPException(503) when
         Stripe is not configured, providing a clean error instead of
-        an unhandled exception.
+        an unhandled exception. Monetization must be enabled for the request
+        to reach that guard — otherwise the paid endpoint is gated (404).
         """
         mock_auth(test_user)
 

@@ -2,6 +2,7 @@
 
 from datetime import timedelta
 
+import pytest
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -14,7 +15,9 @@ from app.services.credits_service import CreditsService
 from app.shared.utils.datetime_helpers import utcnow
 
 
-class TestEarningsSummaryEmpty:
+@pytest.fixture(autouse=True)
+def _enable_monetization(enable_monetization):
+    """Seller earnings endpoints are paid-only; enable monetization for this module."""
     """Test earnings summary with no sales."""
 
     def test_earnings_summary_empty(

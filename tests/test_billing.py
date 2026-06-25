@@ -14,6 +14,8 @@ Tests cover:
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from app.services.stripe_service import PLAN_CREDITS, StripeService
 
 
@@ -53,6 +55,10 @@ class TestBillingStatusEndpoint:
 
 
 class TestSubscriptionCheckoutEndpoint:
+    @pytest.fixture(autouse=True)
+    def _enable_monetization(self, enable_monetization):
+        """Subscription checkout is paid-only; enable monetization for this class."""
+
     def test_invalid_plan_rejected(self, authenticated_client):
         """Invalid plan names should be rejected."""
         with patch.object(StripeService, "is_configured", return_value=True):
@@ -97,6 +103,10 @@ class TestSubscriptionCheckoutEndpoint:
 
 
 class TestTopupCheckoutEndpoint:
+    @pytest.fixture(autouse=True)
+    def _enable_monetization(self, enable_monetization):
+        """Top-up checkout is paid-only; enable monetization for this class."""
+
     def test_invalid_credit_amount_rejected(self, authenticated_client):
         """Invalid credit amounts should be rejected."""
         with patch.object(StripeService, "is_configured", return_value=True):
@@ -148,6 +158,10 @@ class TestTopupCheckoutEndpoint:
 
 
 class TestSubscriptionCancelEndpoint:
+    @pytest.fixture(autouse=True)
+    def _enable_monetization(self, enable_monetization):
+        """Subscription cancel is paid-only; enable monetization for this class."""
+
     def test_cancel_without_subscription(self, authenticated_client):
         """Cancelling without a subscription should fail with 400 (no sub) or 502 (stripe error)."""
         mock_stripe_mod = MagicMock()
@@ -455,6 +469,10 @@ class TestBillingPortalRejectionMatrix:
     Owner = PLAN_02 (financial endpoint); rejection-matrix
     cells #1 (401) and #2 (422).
     """
+
+    @pytest.fixture(autouse=True)
+    def _enable_monetization(self, enable_monetization):
+        """Billing portal is paid-only; enable monetization so 401/422 are reached."""
 
     def test_billing_portal_unauthenticated_returns_401(self, client):
         """SC3 cell #1: anonymous POST to /api/v2/billing/portal returns 401."""

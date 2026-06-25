@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.api.deps import require_monetization_enabled
 from app.models.optimization_model import ModelCatalog
 from app.models.organization import Organization
 from app.schemas.analytics import (
@@ -33,7 +34,11 @@ from app.shared.db.base import get_db
 router = APIRouter(prefix="/marketplace", tags=["admin-marketplace"])
 
 
-@router.get("/seller-analytics", response_model=AdminAnalyticsResponse)
+@router.get(
+    "/seller-analytics",
+    response_model=AdminAnalyticsResponse,
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def get_admin_seller_analytics(
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
     db: Session = Depends(get_db),
@@ -49,7 +54,11 @@ async def get_admin_seller_analytics(
     return AdminAnalyticsResponse(platform_totals=platform_totals, sellers=sellers)
 
 
-@router.get("/seller-analytics/{org_id}", response_model=AnalyticsSummaryResponse)
+@router.get(
+    "/seller-analytics/{org_id}",
+    response_model=AnalyticsSummaryResponse,
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def get_admin_seller_detail(
     org_id: str,
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
@@ -111,7 +120,11 @@ async def get_admin_feature_analytics_events(
     )
 
 
-@router.get("/promotions", response_model=list[AdminPlacementResponse])
+@router.get(
+    "/promotions",
+    response_model=list[AdminPlacementResponse],
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def get_admin_promotions(
     db: Session = Depends(get_db),
 ) -> list[AdminPlacementResponse]:
@@ -157,7 +170,11 @@ async def get_admin_promotions(
     return result
 
 
-@router.post("/promotions/{placement_id}/revoke", status_code=204)
+@router.post(
+    "/promotions/{placement_id}/revoke",
+    status_code=204,
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def revoke_promotion(
     placement_id: str,
     request: Request,
@@ -177,7 +194,10 @@ class ExtendPlacementRequest(BaseModel):
     extra_days: int
 
 
-@router.post("/promotions/{placement_id}/extend")
+@router.post(
+    "/promotions/{placement_id}/extend",
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def extend_promotion(
     placement_id: str,
     body: ExtendPlacementRequest,

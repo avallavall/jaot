@@ -720,6 +720,10 @@ class TestUpgradePath:
 class TestBillingPlanValidation:
     """Validate Stripe checkout only accepts starter, pro, business."""
 
+    @pytest.fixture(autouse=True)
+    def _enable_monetization(self, enable_monetization):
+        """Checkout is paid-only (404 in free mode); enable monetization for this class."""
+
     def test_valid_plans_for_checkout(self, authenticated_client):
         from app.services.stripe_service import StripeService
 

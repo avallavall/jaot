@@ -536,6 +536,12 @@ class TestCreditsRejectionMatrix:
     rejection-matrix.
     """
 
+    @pytest.fixture(autouse=True)
+    def _enable_monetization(self, enable_monetization):
+        """Several cells target paid-only endpoints (withdrawals/schedules);
+        enable monetization so the rejection paths (401/404/422) are reachable
+        instead of the free-mode 404 gate. Non-gated cells are unaffected."""
+
     def test_credits_withdrawals_unauthenticated_returns_401(self, client):
         """SC3 cell #3: anonymous POST /api/v2/credits/withdrawals -> 401."""
         response = client.post("/api/v2/credits/withdrawals", json={"credits_amount": 500})

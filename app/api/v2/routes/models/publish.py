@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.api.v2.auth import get_current_user
 from app.models import ModelCatalog, Organization, OrganizationModel, User
 from app.schemas.model import ModelCatalogResponse, PublishModelRequest
+from app.services.platform_settings_service import PlatformSettingsService
 from app.shared.db.base import get_db
 from app.shared.utils.datetime_helpers import utcnow
 
@@ -51,6 +52,11 @@ async def publish_model_to_marketplace(
 
     private_def = model.private_definition
 
+    # Free, collaborative marketplace: models carry no price. Force the price to
+    # 0 unless a self-hosted deployment has monetization enabled — the public
+    # deployment never persists a paywall, even if a price is submitted.
+    price_eur = body.price_eur if PlatformSettingsService.is_monetization_enabled(db) else 0.0
+
     catalog_id = str(uuid.uuid4())
     catalog_model = ModelCatalog(
         id=catalog_id,
@@ -68,7 +74,7 @@ async def publish_model_to_marketplace(
         status="published",
         author_organization_id=current_user.organization_id,
         is_official=False,
-        price_eur=body.price_eur,
+        price_eur=price_eur,
         credits_per_execution=1,  # Ignored for billing; credits calculated dynamically
         is_public=True,
         published_at=utcnow(),

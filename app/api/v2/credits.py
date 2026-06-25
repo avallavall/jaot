@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.api.deps import require_monetization_enabled
 from app.api.v2.auth import get_current_user
 from app.models import (
     CREDITS_PER_EUR,
@@ -241,7 +242,11 @@ async def get_transactions(
     return result
 
 
-@router.post("/withdrawals", response_model=WithdrawalResponse)
+@router.post(
+    "/withdrawals",
+    response_model=WithdrawalResponse,
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def create_withdrawal(
     body: WithdrawalRequest,
     request: Request,
@@ -306,7 +311,11 @@ async def create_withdrawal(
     )
 
 
-@router.get("/withdrawals", response_model=list[WithdrawalResponse])
+@router.get(
+    "/withdrawals",
+    response_model=list[WithdrawalResponse],
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def get_withdrawals(
     status: str | None = Query(None),
     limit: int = Query(50, ge=1, le=100),
@@ -343,7 +352,11 @@ async def get_withdrawals(
     ]
 
 
-@router.post("/schedules", response_model=ScheduleResponse)
+@router.post(
+    "/schedules",
+    response_model=ScheduleResponse,
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def create_withdrawal_schedule(
     request: ScheduleRequest,
     current_user: User = Depends(get_current_user),
@@ -382,7 +395,11 @@ async def create_withdrawal_schedule(
     )
 
 
-@router.get("/schedules", response_model=list[ScheduleResponse])
+@router.get(
+    "/schedules",
+    response_model=list[ScheduleResponse],
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def get_withdrawal_schedules(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -411,7 +428,10 @@ async def get_withdrawal_schedules(
     ]
 
 
-@router.delete("/schedules/{schedule_id}")
+@router.delete(
+    "/schedules/{schedule_id}",
+    dependencies=[Depends(require_monetization_enabled)],
+)
 async def delete_withdrawal_schedule(
     schedule_id: str,
     current_user: User = Depends(get_current_user),

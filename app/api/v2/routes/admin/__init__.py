@@ -55,6 +55,10 @@ router.include_router(marketplace_router)
 router.include_router(models_router)
 router.include_router(scorecard_router)
 router.include_router(settings_router)
+# Withdrawal routes are payouts of marketplace earnings (monetization-only) and
+# are gated per-route inside withdrawals.py. The /reconciliation/run route in the
+# same module stays open — credit-balance integrity matters even in free mode,
+# where credits are a usage quota.
 router.include_router(withdrawals_router)
 router.include_router(platform_analytics_router)
 

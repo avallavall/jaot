@@ -259,14 +259,24 @@ async def activate_catalog_model(
     if existing:
         raise HTTPException(status_code=400, detail="Model already activated")
 
-    # Self-purchase block (D-14): buyer org cannot activate their own model
-    if catalog_model.author_organization_id == current_user.organization_id:
+    monetization_enabled = PlatformSettingsService.is_monetization_enabled(db)
+
+    # Self-activation block (D-14): only relevant when models are paid — a
+    # creator must not "buy" their own model. With monetization off the
+    # marketplace is free, so activating your own published model is allowed.
+    if (
+        monetization_enabled
+        and catalog_model.author_organization_id == current_user.organization_id
+    ):
         raise HTTPException(
             status_code=403,
             detail="Cannot purchase your own model",
         )
 
-    if catalog_model.price_eur > 0:
+    # A paid activation only happens when monetization is enabled AND the model
+    # carries a price. Otherwise the model is free to activate.
+    charged = monetization_enabled and catalog_model.price_eur > 0
+    if charged:
         credits_needed = int(catalog_model.price_eur * 10)
         service = CreditsService(db)
         try:
@@ -305,8 +315,8 @@ async def activate_catalog_model(
         catalog_id=model_id,
         custom_name=body.custom_name,
         is_active=True,
-        purchased_at=utcnow() if catalog_model.price_eur > 0 else None,
-        purchase_price_eur=catalog_model.price_eur if catalog_model.price_eur > 0 else None,
+        purchased_at=utcnow() if charged else None,
+        purchase_price_eur=catalog_model.price_eur if charged else None,
     )
 
     db.add(org_model)
@@ -322,7 +332,7 @@ async def activate_catalog_model(
 
         analytics = AnalyticsService(db)
         ip_address = request.client.host if request.client else None
-        if catalog_model.price_eur > 0:
+        if charged:
             analytics.log_event(
                 user_id=current_user.id,
                 org_id=current_user.organization_id,
@@ -350,7 +360,9 @@ async def activate_catalog_model(
     except Exception:
         logger.debug("Failed to log analytics event", exc_info=True)
 
-    # Notify seller of new sale (fire-and-forget: never block activation)
+    # Notify the creator that their model was activated (fire-and-forget: never
+    # block activation). This is an adoption signal — it works in both the free
+    # collaborative mode and the paid mode, so the wording stays money-neutral.
     if catalog_model.author_organization_id:
         try:
             seller_users = (
@@ -367,13 +379,13 @@ async def activate_catalog_model(
                     user_id=seller_user.id,
                     organization_id=catalog_model.author_organization_id,
                     event_type="sale",
-                    title="New Sale",
-                    message=f"Your model '{catalog_model.display_name}' was activated",
+                    title="Model activated",
+                    message=f"Your model '{catalog_model.display_name}' was activated by another team",
                     data={"model_id": catalog_model.id},
-                    link="/workspace/credits/seller-earnings",
+                    link="/workspace/credits/seller-analytics",
                 )
             db.commit()
         except Exception:
-            logger.debug("Failed to send new sale notification", exc_info=True)
+            logger.debug("Failed to send activation notification", exc_info=True)
 
     return build_org_model_response(org_model)
