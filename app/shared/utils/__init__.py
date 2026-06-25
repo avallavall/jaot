@@ -6,7 +6,6 @@ Modules:
 - id_generator: ID and API key generation
 - pagination: Query pagination utilities
 - query_helpers: Generic query filters and sorting
-- responses: Standard API response builders
 - slug: URL slug generation
 """
 
@@ -25,13 +24,6 @@ from app.shared.utils.query_helpers import (
     exists,
     get_or_404,
     get_or_none,
-)
-from app.shared.utils.responses import (
-    created_response,
-    deleted_response,
-    error_response,
-    success_response,
-    updated_response,
 )
 from app.shared.utils.slug import generate_unique_slug, is_valid_slug, slugify
 
@@ -56,11 +48,6 @@ __all__ = [
     "apply_search",
     "apply_filters",
     "exists",
-    "success_response",
-    "error_response",
-    "deleted_response",
-    "updated_response",
-    "created_response",
     "slugify",
     "generate_unique_slug",
     "is_valid_slug",
