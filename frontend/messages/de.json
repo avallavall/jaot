@@ -419,6 +419,23 @@
       "builtWithAi": "Mit KI erstellt",
       "fromMarketplace": "Vom Marktplatz"
     },
+    "solutionExplainer": {
+      "eyebrow": "Lösungsanalyse",
+      "title": "Verstehe deine Lösung",
+      "subtitle": "Nicht nur lösen — verstehen. Jedes Ergebnis kommt mit der Begründung dahinter.",
+      "sensitivity": {
+        "title": "Schattenpreise & bindende Nebenbedingungen",
+        "description": "Sieh, welche Nebenbedingungen das Optimum wirklich begrenzen und wie viel jede bei Lockerung bringen würde."
+      },
+      "reducedCosts": {
+        "title": "Reduzierte Kosten der Variablen",
+        "description": "Erkenne, welche Entscheidungen an ihren Grenzen festsitzen — exakt für LP, näherungsweise für MIP."
+      },
+      "aiExplain": {
+        "title": "KI-Erklärung mit einem Klick",
+        "description": "Verwandle Schattenpreise und reduzierte Kosten in klare Sprache, ausschließlich auf Basis deiner echten Zahlen."
+      }
+    },
     "features": {
       "title": "Vier Säulen der Optimierung",
       "subtitle": "Alles, was du zum Erstellen, Nutzen, Teilen und Automatisieren von Optimierung brauchst.",
@@ -728,10 +745,11 @@
           "description": "Optimierte Lösung programmatisch abrufen"
         }
       },
-      "toolsTitle": "12 kuratierte Tools",
+      "toolsTitle": "17 kuratierte Tools",
       "tools": {
         "problemSolving": "ProblemLösung",
         "templates": "Vorlagen",
+        "fileIO": "Datei-Import",
         "marketplace": "Marktplatz",
         "execution": "Ausführung",
         "account": "Konto"
@@ -1185,7 +1203,8 @@
         "generating": "Formulierung wird generiert...",
         "generatingVariables": "Variablen werden generiert...",
         "generatingConstraints": "Nebenbedingungen werden generiert...",
-        "assembling": "Formulierung wird zusammengesetzt..."
+        "assembling": "Formulierung wird zusammengesetzt...",
+        "explaining": "Lösung wird erklärt..."
       },
       "error": {
         "serviceUnavailable": "Der KI-Assistent ist vorübergehend nicht verfügbar. Bitte versuchen Sie es gleich erneut.",
@@ -3194,7 +3213,22 @@
       "shadowPrice": "Schattenpreis",
       "binding": "Bindend",
       "yes": "Ja",
-      "no": "Nein"
+      "no": "Nein",
+      "variableReducedCosts": "Reduzierte Kosten der Variablen",
+      "variable": "Variable",
+      "reducedCost": "Reduzierte Kosten",
+      "atBound": "An der Grenze",
+      "rangingUnavailable": "Bereichsanalyse für Zielfunktion und rechte Seite ist für diesen Solver nicht verfügbar."
+    },
+    "explainer": {
+      "title": "Diese Lösung erklären",
+      "description": "Erhalte eine verständliche Erklärung, warum dies die optimale Lösung ist, welche Nebenbedingungen bindend sind und was zu ändern ist, um sie zu verbessern.",
+      "button": "Diese Lösung erklären",
+      "regenerate": "Neu generieren",
+      "thinking": "Deine Lösung wird analysiert…",
+      "grounded": "Erstellt aus deiner tatsächlichen Lösung und den Sensitivitätswerten.",
+      "unavailable": "Erklärungen sind nur für gelöste (optimale oder zulässige) Ausführungen verfügbar.",
+      "ref": "Ref: {requestId}"
     },
     "explorer": {
       "searchPlaceholder": "Variablen suchen...",

@@ -27,10 +27,12 @@ from app.models.llm_conversation import LLMConversation, LLMMessage
 from app.schemas.attachment import AttachmentResponse
 from app.schemas.llm import (
     ChatMessageRequest,
+    ExplainSolutionRequest,
 )
 from app.services.credits_service import CreditsService, InsufficientCreditsError
 from app.services.document_extraction import MAX_FILE_SIZE, extract_text
 from app.services.llm import (
+    explain_solution,
     generate_formulation_resilient,
     generate_text_response,
     moderate_message,
@@ -260,6 +262,204 @@ def delete_conversation(
     return
 
 
+async def _stream_llm_response(
+    *,
+    stream_gen: AsyncGenerator[dict[str, Any], None],
+    request: Request,
+    db: Session,
+    conv: LLMConversation,
+    org_id: str,
+    model: str,
+    llm_credit_cost: int,
+    llm_message_id: str,
+    request_id: str,
+    is_explanation: bool,
+) -> AsyncGenerator[dict[str, str], None]:
+    """Forward an LLM event stream as SSE, with credit + cost accounting.
+
+    Shared by the chat (``send_message``) and ``explain-solution`` endpoints so the
+    SSE event contract, credit refund-on-failure, and real-token cost persistence
+    stay byte-for-byte identical across both. On success the assistant message is
+    persisted with its token usage and EUR cost; on any upstream error the pre-paid
+    credits are refunded before the terminal event.
+    """
+    accumulated_text = ""
+    formulation_data = None
+    stream_failed = False  # Track whether we saw a non-recoverable error event
+    # W17: real token usage accumulated across ALL API calls this message
+    # triggered (retries and chunked-generation calls each bill separately).
+    total_input_tokens = 0
+    total_output_tokens = 0
+
+    try:
+        async for event in stream_gen:
+            if await request.is_disconnected():
+                logger.info("Client disconnected, stopping stream")
+                break
+
+            event_type = event.get("type", "unknown")
+
+            if event_type == "delta":
+                accumulated_text += event.get("text", "")
+                yield {
+                    "event": "delta",
+                    "data": json.dumps({"text": event["text"]}),
+                }
+            elif event_type == "usage":
+                # W17: internal-only token accounting — persisted on the
+                # assistant LLMMessage below, never sent to the client.
+                total_input_tokens += int(event.get("input_tokens") or 0)
+                total_output_tokens += int(event.get("output_tokens") or 0)
+            elif event_type == "formulation":
+                formulation_data = event.get("data")
+                yield {
+                    "event": "formulation",
+                    "data": json.dumps({"formulation": formulation_data}),
+                }
+            elif event_type == "validation_errors":
+                yield {
+                    "event": "validation_errors",
+                    "data": json.dumps({"errors": event.get("data", [])}),
+                }
+            elif event_type == "status":
+                # Only stable enum codes travel to the client. Any
+                # event that does not carry a valid LLMStatusCode is
+                # dropped with a warning so upstream regressions that
+                # silently drop the ``code`` kwarg become visible in
+                # logs instead of vanishing from the UI.
+                code = event.get("code")
+                if isinstance(code, LLMStatusCode):
+                    yield {
+                        "event": "status",
+                        "data": json.dumps({"code": code.value, "request_id": request_id}),
+                    }
+                else:
+                    logger.warning(
+                        "Status event dropped (missing or invalid code: %r)",
+                        code,
+                        extra={
+                            "event_code": "llm.status_dropped",
+                            "request_id": request_id,
+                        },
+                    )
+            elif event_type == "partial_result":
+                formulation_data = event.get("data")
+                yield {
+                    "event": "partial_result",
+                    "data": json.dumps(
+                        {
+                            "formulation": formulation_data,
+                            "warning": event.get("warning", ""),
+                        }
+                    ),
+                }
+            elif event_type == "error":
+                stream_failed = True
+                # Fall back to INTERNAL_ERROR if an upstream producer
+                # ever yields a legacy ``message`` field — never leak
+                # a free-form string into the SSE payload.
+                code = event.get("code")
+                if not isinstance(code, LLMErrorCode):
+                    code = LLMErrorCode.INTERNAL_ERROR
+                yield {
+                    "event": "error",
+                    "data": json.dumps({"code": code.value, "request_id": request_id}),
+                }
+            elif event_type == "done":
+                # If we saw an upstream error event, refund credits BEFORE
+                # emitting done. The done event always fires after error
+                # because generate_formulation yields {"type": "done"}
+                # unconditionally even on failure.
+                LLM_REQUESTS_TOTAL.labels(outcome="error" if stream_failed else "success").inc()
+                if stream_failed:
+                    try:
+                        credits_svc = CreditsService(db)
+                        credits_svc.refund_credits(
+                            organization_id=org_id,
+                            credits=llm_credit_cost,
+                            description=f"LLM stream failed, refunding: {llm_message_id}",
+                            reference_type="llm_message_refund",
+                            reference_id=llm_message_id,
+                        )
+                        db.commit()
+                    except Exception as refund_err:
+                        logger.error("Failed to refund credits: %s", refund_err)
+                else:
+                    # Persist assistant message after stream completes
+                    try:
+                        # W17: price the real token usage via the
+                        # per-model pricing map (platform setting).
+                        # NULL columns mean "usage was never captured"
+                        # (pre-migration rows / providers without usage),
+                        # not "zero tokens".
+                        has_usage = bool(total_input_tokens or total_output_tokens)
+                        message_cost = (
+                            compute_message_cost_eur(
+                                db, model, total_input_tokens, total_output_tokens
+                            )
+                            if has_usage
+                            else None
+                        )
+                        assistant_msg = LLMMessage(
+                            id=generate_id("msg_"),
+                            conversation_id=conv.id,
+                            role="assistant",
+                            content=accumulated_text,
+                            formulation_json=formulation_data,
+                            input_tokens=total_input_tokens if has_usage else None,
+                            output_tokens=total_output_tokens if has_usage else None,
+                            cost_eur=message_cost,
+                            created_at=utcnow().replace(tzinfo=None),
+                        )
+                        db.add(assistant_msg)
+
+                        # Update conversation's current formulation
+                        # (only for formulation responses, not explanations)
+                        if formulation_data and not is_explanation:
+                            conv.current_formulation = formulation_data
+
+                        db.commit()
+                    except Exception as e:
+                        logger.error("Failed to persist assistant message: %s", e)
+                        db.rollback()
+
+                yield {
+                    "event": "done",
+                    "data": "{}",
+                }
+
+    except Exception as e:
+        # Never leak str(e) — the raw exception may contain upstream
+        # API detail (Anthropic error bodies, DB errors, stack traces).
+        # handle_anthropic_failure classifies, logs, and bumps the
+        # upstream-error counter in one call.
+        LLM_REQUESTS_TOTAL.labels(outcome="error").inc()
+        error_event = handle_anthropic_failure(
+            e,
+            logger=logger,
+            context="SSE stream wrapper",
+            request_id=request_id,
+        )
+        code = error_event["code"]
+        # Refund pre-paid credits on stream failure
+        try:
+            credits_svc = CreditsService(db)
+            credits_svc.refund_credits(
+                organization_id=org_id,
+                credits=llm_credit_cost,
+                description=f"LLM stream failed, refunding: {llm_message_id}",
+                reference_type="llm_message_refund",
+                reference_id=llm_message_id,
+            )
+            db.commit()
+        except Exception as refund_err:
+            logger.error("Failed to refund credits: %s", refund_err)
+        yield {
+            "event": "error",
+            "data": json.dumps({"code": code.value, "request_id": request_id}),
+        }
+
+
 @router.post("/conversations/{conversation_id}/messages")
 async def send_message(
     conversation_id: str,
@@ -421,200 +621,200 @@ async def send_message(
     # complaints with server logs and Prometheus metrics.
     request_id = getattr(request.state, "request_id", None) or ""
 
-    async def event_generator() -> AsyncGenerator[dict[str, str], None]:
-        """Async generator yielding SSE events."""
-        accumulated_text = ""
-        formulation_data = None
-        stream_failed = False  # Track whether we saw a non-recoverable error event
-        # W17: real token usage accumulated across ALL API calls this message
-        # triggered (retries and chunked-generation calls each bill separately).
-        total_input_tokens = 0
-        total_output_tokens = 0
+    # Select the appropriate generator
+    if is_explanation:
+        stream_gen = generate_text_response(
+            api_messages, model, use_thinking, system_prompt=system_prompt, db=db
+        )
+    else:
+        stream_gen = generate_formulation_resilient(
+            api_messages,
+            model,
+            use_thinking,
+            user_message=body.message,
+            system_prompt=system_prompt,
+            db=db,
+        )
 
-        # Select the appropriate generator
-        if is_explanation:
-            stream_gen = generate_text_response(
-                api_messages, model, use_thinking, system_prompt=system_prompt, db=db
+    return EventSourceResponse(
+        _stream_llm_response(
+            stream_gen=stream_gen,
+            request=request,
+            db=db,
+            conv=conv,
+            org_id=org.id,
+            model=model,
+            llm_credit_cost=llm_credit_cost,
+            llm_message_id=llm_message_id,
+            request_id=request_id,
+            is_explanation=is_explanation,
+        )
+    )
+
+
+def _resolve_explanation_context(
+    db: Session,
+    org_id: str,
+    body: ExplainSolutionRequest,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]:
+    """Resolve (formulation, solution, sensitivity) for an explanation request.
+
+    ``execution_id`` takes precedence: the ModelExecution is loaded and org
+    ownership enforced (404 if missing or owned by another org — never leak the
+    existence of another org's execution). Falls back to the inline request fields
+    when no ``execution_id`` is supplied.
+    """
+    if body.execution_id:
+        from app.models.optimization_model import ModelExecution
+
+        execution = (
+            db.query(ModelExecution)
+            .filter(
+                ModelExecution.id == body.execution_id,
+                ModelExecution.organization_id == org_id,
             )
-        else:
-            stream_gen = generate_formulation_resilient(
-                api_messages,
-                model,
-                use_thinking,
-                user_message=body.message,
-                system_prompt=system_prompt,
-                db=db,
+            .first()
+        )
+        if not execution:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Execution not found",
             )
+        result_data = execution.result_data or {}
+        # result_data follows OptimizationResult.to_result_data(): model (the
+        # variable->value dict), objective_value, solver_status, variables,
+        # sensitivity, progress_history.
+        solution = {
+            "objective_value": result_data.get("objective_value"),
+            "solution": result_data.get("model"),
+            "variables": result_data.get("variables"),
+            "solver_status": result_data.get("solver_status"),
+        }
+        sensitivity = result_data.get("sensitivity")
+        return execution.input_data or None, solution, sensitivity
 
-        try:
-            async for event in stream_gen:
-                if await request.is_disconnected():
-                    logger.info("Client disconnected, stopping stream")
-                    break
+    return body.formulation, body.solution, body.sensitivity
 
-                event_type = event.get("type", "unknown")
 
-                if event_type == "delta":
-                    accumulated_text += event.get("text", "")
-                    yield {
-                        "event": "delta",
-                        "data": json.dumps({"text": event["text"]}),
-                    }
-                elif event_type == "usage":
-                    # W17: internal-only token accounting — persisted on the
-                    # assistant LLMMessage below, never sent to the client.
-                    total_input_tokens += int(event.get("input_tokens") or 0)
-                    total_output_tokens += int(event.get("output_tokens") or 0)
-                elif event_type == "formulation":
-                    formulation_data = event.get("data")
-                    yield {
-                        "event": "formulation",
-                        "data": json.dumps({"formulation": formulation_data}),
-                    }
-                elif event_type == "validation_errors":
-                    yield {
-                        "event": "validation_errors",
-                        "data": json.dumps({"errors": event.get("data", [])}),
-                    }
-                elif event_type == "status":
-                    # Only stable enum codes travel to the client. Any
-                    # event that does not carry a valid LLMStatusCode is
-                    # dropped with a warning so upstream regressions that
-                    # silently drop the ``code`` kwarg become visible in
-                    # logs instead of vanishing from the UI.
-                    code = event.get("code")
-                    if isinstance(code, LLMStatusCode):
-                        yield {
-                            "event": "status",
-                            "data": json.dumps({"code": code.value, "request_id": request_id}),
-                        }
-                    else:
-                        logger.warning(
-                            "Status event dropped (missing or invalid code: %r)",
-                            code,
-                            extra={
-                                "event_code": "llm.status_dropped",
-                                "request_id": request_id,
-                            },
-                        )
-                elif event_type == "partial_result":
-                    formulation_data = event.get("data")
-                    yield {
-                        "event": "partial_result",
-                        "data": json.dumps(
-                            {
-                                "formulation": formulation_data,
-                                "warning": event.get("warning", ""),
-                            }
-                        ),
-                    }
-                elif event_type == "error":
-                    stream_failed = True
-                    # Fall back to INTERNAL_ERROR if an upstream producer
-                    # ever yields a legacy ``message`` field — never leak
-                    # a free-form string into the SSE payload.
-                    code = event.get("code")
-                    if not isinstance(code, LLMErrorCode):
-                        code = LLMErrorCode.INTERNAL_ERROR
-                    yield {
-                        "event": "error",
-                        "data": json.dumps({"code": code.value, "request_id": request_id}),
-                    }
-                elif event_type == "done":
-                    # If we saw an upstream error event, refund credits BEFORE
-                    # emitting done. The done event always fires after error
-                    # because generate_formulation yields {"type": "done"}
-                    # unconditionally even on failure.
-                    LLM_REQUESTS_TOTAL.labels(outcome="error" if stream_failed else "success").inc()
-                    if stream_failed:
-                        try:
-                            credits_svc = CreditsService(db)
-                            credits_svc.refund_credits(
-                                organization_id=org.id,
-                                credits=llm_credit_cost,
-                                description=f"LLM stream failed, refunding: {llm_message_id}",
-                                reference_type="llm_message_refund",
-                                reference_id=llm_message_id,
-                            )
-                            db.commit()
-                        except Exception as refund_err:
-                            logger.error("Failed to refund credits: %s", refund_err)
-                    else:
-                        # Persist assistant message after stream completes
-                        try:
-                            # W17: price the real token usage via the
-                            # per-model pricing map (platform setting).
-                            # NULL columns mean "usage was never captured"
-                            # (pre-migration rows / providers without usage),
-                            # not "zero tokens".
-                            has_usage = bool(total_input_tokens or total_output_tokens)
-                            message_cost = (
-                                compute_message_cost_eur(
-                                    db, model, total_input_tokens, total_output_tokens
-                                )
-                                if has_usage
-                                else None
-                            )
-                            assistant_msg = LLMMessage(
-                                id=generate_id("msg_"),
-                                conversation_id=conv.id,
-                                role="assistant",
-                                content=accumulated_text,
-                                formulation_json=formulation_data,
-                                input_tokens=total_input_tokens if has_usage else None,
-                                output_tokens=total_output_tokens if has_usage else None,
-                                cost_eur=message_cost,
-                                created_at=utcnow().replace(tzinfo=None),
-                            )
-                            db.add(assistant_msg)
+@router.post("/conversations/{conversation_id}/explain-solution")
+async def explain_solution_endpoint(
+    conversation_id: str,
+    body: ExplainSolutionRequest,
+    request: Request,
+    db: DBSession,
+    user: CurrentUser,
+    org: CurrentOrg,
+) -> Any:
+    """Stream a plain-language explanation of a solved optimization model as SSE.
 
-                            # Update conversation's current formulation
-                            # (only for formulation responses, not explanations)
-                            if formulation_data and not is_explanation:
-                                conv.current_formulation = formulation_data
+    Loads the solution + sensitivity from a persisted ModelExecution
+    (``execution_id``, org ownership enforced) or from inline fields, then reuses
+    the chat streaming pipeline — budget guardrail, org rate limit, pre-paid credits
+    (refunded on failure), a persisted user/assistant turn pair — driven by
+    ``explain_solution`` rather than formulation generation. Moderation is skipped
+    because the prompt content is system-generated, not free user text.
+    """
+    # Verify conversation ownership and expiry
+    conv = _get_conversation_or_404(db, conversation_id, org.id, user.id)
 
-                            db.commit()
-                        except Exception as e:
-                            logger.error("Failed to persist assistant message: %s", e)
-                            db.rollback()
+    # W17 budget guardrail — pause gracefully when the monthly Anthropic budget
+    # is exhausted (identical shape to send_message so the UI degrades the same).
+    if is_llm_budget_exceeded(db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "feature_not_available",
+                "message": (
+                    "The AI assistant is taking a short break — the platform's "
+                    "monthly AI budget has been reached. It will be back at the "
+                    "start of next month."
+                ),
+                "reason": "llm_monthly_budget_exhausted",
+            },
+        )
 
-                    yield {
-                        "event": "done",
-                        "data": "{}",
-                    }
+    # LLM rate limiting (shared org bucket with chat)
+    allowed, rate_info = check_rate_limit(
+        f"llm:{org.id}",
+        PSS.get_int(db, "LLM_RATE_LIMIT_PER_MINUTE"),
+        PSS.get_int(db, "LLM_RATE_LIMIT_PER_DAY"),
+    )
+    if not allowed:
+        retry_after = rate_info.get("retry_after") if isinstance(rate_info, dict) else None
+        headers = {"Retry-After": str(retry_after)} if retry_after is not None else None
+        raise HTTPException(status_code=429, detail=rate_info, headers=headers)
 
-        except Exception as e:
-            # Never leak str(e) — the raw exception may contain upstream
-            # API detail (Anthropic error bodies, DB errors, stack traces).
-            # handle_anthropic_failure classifies, logs, and bumps the
-            # upstream-error counter in one call.
-            LLM_REQUESTS_TOTAL.labels(outcome="error").inc()
-            error_event = handle_anthropic_failure(
-                e,
-                logger=logger,
-                context="SSE stream wrapper",
-                request_id=request_id,
-            )
-            code = error_event["code"]
-            # Refund pre-paid credits on stream failure
-            try:
-                credits_svc = CreditsService(db)
-                credits_svc.refund_credits(
-                    organization_id=org.id,
-                    credits=llm_credit_cost,
-                    description=f"LLM stream failed, refunding: {llm_message_id}",
-                    reference_type="llm_message_refund",
-                    reference_id=llm_message_id,
-                )
-                db.commit()
-            except Exception as refund_err:
-                logger.error("Failed to refund credits: %s", refund_err)
-            yield {
-                "event": "error",
-                "data": json.dumps({"code": code.value, "request_id": request_id}),
-            }
+    # Resolve what to explain (execution ownership enforced here) BEFORE charging
+    # credits, so an invalid execution_id never costs the user anything.
+    formulation, solution, sensitivity = _resolve_explanation_context(db, org.id, body)
+    if not solution and not formulation:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="No solution to explain — provide execution_id or inline solution.",
+        )
 
-    return EventSourceResponse(event_generator())
+    # Pre-pay LLM credits before streaming (refunded on failure)
+    llm_credit_cost = PSS.get_int(db, "LLM_CREDIT_COST_PER_MESSAGE")
+    llm_message_id = generate_id("msg_")  # Idempotency key for this LLM charge
+    try:
+        CreditsService.deduct_credits(
+            db=db,
+            organization_id=org.id,
+            credits=llm_credit_cost,
+            description=f"LLM explanation: {llm_message_id}",
+            reference_type="llm_message",
+            reference_id=llm_message_id,
+        )
+        db.commit()
+    except InsufficientCreditsError as e:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail={
+                "error": "insufficient_credits",
+                "credits_needed": e.credits_needed,
+                "credits_available": e.credits_available,
+            },
+        ) from None
+
+    # Persist a user turn marking the explanation request. The content is
+    # system-generated scaffolding (the grounded prompt is built server-side),
+    # so content moderation does not apply here.
+    user_msg = LLMMessage(
+        id=generate_id("msg_"),
+        conversation_id=conv.id,
+        role="user",
+        content="Explain this solution",
+        created_at=utcnow().replace(tzinfo=None),
+    )
+    db.add(user_msg)
+    db.commit()
+
+    model, use_thinking = select_model(body.use_advanced_model, db=db)
+    request_id = getattr(request.state, "request_id", None) or ""
+
+    stream_gen = explain_solution(
+        [],
+        formulation,
+        solution,
+        sensitivity,
+        model,
+        thinking=use_thinking,
+        db=db,
+    )
+    return EventSourceResponse(
+        _stream_llm_response(
+            stream_gen=stream_gen,
+            request=request,
+            db=db,
+            conv=conv,
+            org_id=org.id,
+            model=model,
+            llm_credit_cost=llm_credit_cost,
+            llm_message_id=llm_message_id,
+            request_id=request_id,
+            is_explanation=True,
+        )
+    )
 
 
 # Extension-to-MIME mapping for allowed document types

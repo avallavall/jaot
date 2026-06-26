@@ -1,0 +1,51 @@
+---
+title: Understanding Your Solution
+description: Read shadow prices, binding constraints, and reduced costs, and get a plain-language AI explanation of why a solve returned the result it did
+order: 3
+---
+
+# Understanding Your Solution
+
+When a solve returns an optimal or feasible result, JAOT gives you two layers of analysis so you don't just get numbers -- you understand them. Both appear on the execution result page.
+
+## 1. Sensitivity analysis (deterministic)
+
+The solver computes sensitivity directly after solving. It answers: *how sensitive is the optimum to small changes?*
+
+### Shadow prices and binding constraints
+
+- **Shadow price** (per constraint) -- how much the objective would improve per one-unit relaxation of that constraint. A non-zero shadow price means the constraint is **binding**: it is actively limiting the optimum. The constraint with the largest shadow price is the one whose relaxation buys you the most.
+- **Binding constraint** -- a constraint that holds with equality at the optimum. Binding constraints are your real bottlenecks; non-binding constraints have slack and could be loosened with no immediate effect.
+
+The Sensitivity tab charts shadow prices by constraint (binding ones highlighted) and lists them in a table.
+
+### Reduced costs
+
+- **Reduced cost** (per variable) -- for a variable sitting at one of its bounds, how much the objective would change per unit relaxation of that bound. A variable that is **at a bound** with a non-zero reduced cost is being held back by that bound. The Sensitivity tab shows a per-variable reduced-cost table with an at-bound flag.
+
+### Exact vs approximate
+
+- For a **pure LP** (all continuous variables), shadow prices and reduced costs are **exact**.
+- For a **MIP** (integer or binary variables), there is no exact dual, so JAOT derives the figures from the **LP relaxation** and marks them **approximate**. Treat them as directional, not precise -- the result page shows an "approximate (LP relaxation)" badge.
+
+### Ranging
+
+Objective-coefficient and right-hand-side ranging (the interval over which the optimal basis stays unchanged) is shown only when the solver exposes it. The current SCIP build does not, so those ranges are left empty with a note. JAOT never fabricates ranging values.
+
+## 2. Plain-language explanation (AI)
+
+Click **Explain this solution** on the execution result page to stream a plain-language explanation of the result. It is grounded strictly in your actual formulation, solution values, and sensitivity figures -- the assistant is instructed to use only the numbers provided, never to invent them. It covers:
+
+1. **The decision** -- what the solution tells you to do, and the objective achieved.
+2. **Why** -- which constraints are binding and what their shadow prices mean here.
+3. **What-if levers** -- which constraint, if relaxed, would help the most, and which variables are pinned at their limits.
+
+Explanations are available only for solved (optimal or feasible) executions. The feature reuses the same credit cost and monthly AI-budget guardrails as the AI builder chat.
+
+## API
+
+```
+POST /api/v2/llm/conversations/{conversation_id}/explain-solution
+```
+
+Pass `{ "execution_id": "exe_..." }` to explain a persisted execution (organization ownership is enforced), or pass the `formulation`, `solution`, and `sensitivity` inline. The response is a Server-Sent Events stream: a `status` event, then `delta` events with the explanation text, then `done`.

@@ -17,6 +17,14 @@
   },
   {
     "id": 2,
+    "title": "Understanding Your Solution",
+    "description": "Read shadow prices, binding constraints, and reduced costs, and get a plain-language AI explanation of why a solve returned the result it did",
+    "slug": "ai-builder/understanding-your-solution",
+    "content": "Understanding Your Solution\n\nWhen a solve returns an optimal or feasible result, JAOT gives you two layers of analysis so you don't just get numbers -- you understand them. Both appear on the execution result page.\n\n 1. Sensitivity analysis (deterministic)\n\nThe solver computes sensitivity directly after solving. It answers: how sensitive is the optimum to small changes?\n\n Shadow prices and binding constraints\n\n- Shadow price (per constraint) -- how much the objective would improve per one-unit relaxation of that constraint. A non-zero shadow price means the constraint is binding: it is actively limiting the optimum. The constraint with the largest shadow price is the one whose relaxation buys you the most.\n- Binding constraint -- a constraint that holds with equality at the optimum. Binding constraints are your real bottlenecks; non-binding constraints have slack and could be loosened with no immediate effect.\n\nThe Sensitivity tab charts shadow prices by constraint (binding ones highlighted) and lists them in a table.\n\n Reduced costs\n\n- Reduced cost (per variable) -- for a variable sitting at one of its bounds, how much the objective would change per unit relaxation of that bound. A variable that is at a bound with a non-zero reduced cost is being held back by that bound. The Sensitivity tab shows a per-variable reduced-cost table with an at-bound flag.\n\n Exact vs approximate\n\n- For a pure LP (all continuous variables), shadow prices and reduced costs are exact.\n- For a MIP (integer or binary variables), there is no exact dual, so JAOT derives the figures from the LP relaxation and marks them approximate. Treat them as directional, not precise -- the result page shows an \"approximate (LP relaxation)\" badge.\n\n Ranging\n\nObjective-coefficient and right-hand-side ranging (the interval over which the optimal basis stays unchanged) is shown only when the solver exposes it. The current SCIP build does not, so those ranges are left empty with a note. JAOT never fabricates ranging values.\n\n 2. Plain-language explanation (AI)\n\nClick Explain this solution on the execution result page to stream a plain-language explanation of the result. It is grounded strictly in your actual formulation, solution values, and sensitivity figures -- the assistant is instructed to use only the numbers provided, never to invent them. It covers:\n\n1. The decision -- what the solution tells you to do, and the objective achieved.\n2. Why -- which constraints are binding and what their shadow prices mean here.\n3. What-if levers -- which constraint, if relaxed, would help the most, and which variables are pinned at their limits.\n\nExplanations are available only for solved (optimal or feasible) executions. The feature reuses the same credit cost and monthly AI-budget guardrails as the AI builder chat.\n\n API\n\nPass { \"executionid\": \"exe...\" } to explain a persisted execution (organization ownership is enforced), or pass the formulation, solution, and sensitivity inline. The response is a Server-Sent Events stream: a status event, then delta events with the explanation text, then done.",
+    "section": "ai-builder"
+  },
+  {
+    "id": 3,
     "title": "Admin",
     "description": "Administrative endpoints for system management",
     "slug": "api/admin",
@@ -24,7 +32,7 @@
     "section": "api"
   },
   {
-    "id": 3,
+    "id": 4,
     "title": "API Keys",
     "description": "Create, manage, and rotate API keys for authentication",
     "slug": "api/api-keys",
@@ -32,7 +40,7 @@
     "section": "api"
   },
   {
-    "id": 4,
+    "id": 5,
     "title": "Credits & Billing",
     "description": "Credit balance, transaction history, and billing management",
     "slug": "api/credits-billing",
@@ -40,7 +48,7 @@
     "section": "api"
   },
   {
-    "id": 5,
+    "id": 6,
     "title": "Executions",
     "description": "Track and retrieve optimization execution results",
     "slug": "api/executions",
@@ -48,7 +56,7 @@
     "section": "api"
   },
   {
-    "id": 6,
+    "id": 7,
     "title": "Health",
     "description": "Service health checks and status monitoring",
     "slug": "api/health",
@@ -56,7 +64,7 @@
     "section": "api"
   },
   {
-    "id": 7,
+    "id": 8,
     "title": "Models",
     "description": "Browse and manage optimization model catalog",
     "slug": "api/models",
@@ -64,7 +72,7 @@
     "section": "api"
   },
   {
-    "id": 8,
+    "id": 9,
     "title": "Notifications",
     "description": "In-app notification management and preferences",
     "slug": "api/notifications",
@@ -72,7 +80,7 @@
     "section": "api"
   },
   {
-    "id": 9,
+    "id": 10,
     "title": "Solve",
     "description": "Submit optimization problems and retrieve solutions",
     "slug": "api/solve",
@@ -80,7 +88,7 @@
     "section": "api"
   },
   {
-    "id": 10,
+    "id": 11,
     "title": "Triggers",
     "description": "HTTP event triggers for automated re-solve workflows",
     "slug": "api/triggers",
@@ -88,7 +96,7 @@
     "section": "api"
   },
   {
-    "id": 11,
+    "id": 12,
     "title": "Versions",
     "description": "Model version history, checkpoints, and restore",
     "slug": "api/versions",
@@ -96,7 +104,7 @@
     "section": "api"
   },
   {
-    "id": 12,
+    "id": 13,
     "title": "Webhooks",
     "description": "Receive real-time notifications for execution events via HTTP callbacks",
     "slug": "api/webhooks",
@@ -104,7 +112,7 @@
     "section": "api"
   },
   {
-    "id": 13,
+    "id": 14,
     "title": "WebSocket Protocol",
     "description": "Real-time execution monitoring via WebSocket",
     "slug": "api/websocket",
@@ -112,7 +120,7 @@
     "section": "api"
   },
   {
-    "id": 14,
+    "id": 15,
     "title": "Authentication",
     "description": "API key and JWT authentication for the JAOT API",
     "slug": "getting-started/authentication",
@@ -120,7 +128,7 @@
     "section": "getting-started"
   },
   {
-    "id": 15,
+    "id": 16,
     "title": "Introduction",
     "description": "Get started with JAOT, the self-hosted optimization platform",
     "slug": "getting-started/introduction",
@@ -128,7 +136,7 @@
     "section": "getting-started"
   },
   {
-    "id": 16,
+    "id": 17,
     "title": "Quick Start",
     "description": "Go from zero to your first optimization solve in 5 minutes",
     "slug": "getting-started/quick-start",
@@ -136,7 +144,7 @@
     "section": "getting-started"
   },
   {
-    "id": 17,
+    "id": 18,
     "title": "Advertising & Media Planning",
     "description": "Allocate ad budgets across channels to maximize reach and conversions",
     "slug": "guides/advertising-media",
@@ -144,7 +152,7 @@
     "section": "guides"
   },
   {
-    "id": 18,
+    "id": 19,
     "title": "Aerospace Mission Planning",
     "description": "Optimize flight paths, payload distribution, and mission scheduling",
     "slug": "guides/aerospace-mission",
@@ -152,7 +160,7 @@
     "section": "guides"
   },
   {
-    "id": 19,
+    "id": 20,
     "title": "Agricultural Planning",
     "description": "Optimize crop rotation, planting schedules, and resource allocation",
     "slug": "guides/agricultural-planning",
@@ -160,7 +168,7 @@
     "section": "guides"
   },
   {
-    "id": 20,
+    "id": 21,
     "title": "Chemical Process Optimization",
     "description": "Balance reactor yields, blending ratios, and process constraints",
     "slug": "guides/chemical-process",
@@ -168,7 +176,7 @@
     "section": "guides"
   },
   {
-    "id": 21,
+    "id": 22,
     "title": "Construction Project Planning",
     "description": "Schedule tasks, allocate crews, and manage resources across job sites",
     "slug": "guides/construction-planning",
@@ -176,7 +184,7 @@
     "section": "guides"
   },
   {
-    "id": 22,
+    "id": 23,
     "title": "Cutting & Packing",
     "description": "Minimize material waste with optimal cutting patterns and bin packing",
     "slug": "guides/cutting-and-packing",
@@ -184,7 +192,7 @@
     "section": "guides"
   },
   {
-    "id": 23,
+    "id": 24,
     "title": "Education Timetabling",
     "description": "Schedule classes, rooms, and instructors to avoid conflicts",
     "slug": "guides/education-timetabling",
@@ -192,7 +200,7 @@
     "section": "guides"
   },
   {
-    "id": 24,
+    "id": 25,
     "title": "Energy Grid Optimization",
     "description": "Balance power generation, storage, and distribution for efficiency",
     "slug": "guides/energy-grid",
@@ -200,7 +208,7 @@
     "section": "guides"
   },
   {
-    "id": 25,
+    "id": 26,
     "title": "Environmental Resource Management",
     "description": "Optimize emissions reduction, waste processing, and sustainability targets",
     "slug": "guides/environmental-management",
@@ -208,7 +216,7 @@
     "section": "guides"
   },
   {
-    "id": 26,
+    "id": 27,
     "title": "Facility Location",
     "description": "Choose optimal locations for warehouses, plants, and service centers",
     "slug": "guides/facility-location",
@@ -216,7 +224,7 @@
     "section": "guides"
   },
   {
-    "id": 27,
+    "id": 28,
     "title": "Food & Beverage Production",
     "description": "Plan recipes, batches, and production runs for food manufacturing",
     "slug": "guides/food-and-beverage",
@@ -224,7 +232,7 @@
     "section": "guides"
   },
   {
-    "id": 28,
+    "id": 29,
     "title": "Forestry Management",
     "description": "Schedule harvesting, replanting, and sustainable yield planning",
     "slug": "guides/forestry-management",
@@ -232,7 +240,7 @@
     "section": "guides"
   },
   {
-    "id": 29,
+    "id": 30,
     "title": "Getting Started with Optimization",
     "description": "Learn the fundamentals of mathematical optimization with simple examples",
     "slug": "guides/getting-started-optimization",
@@ -240,7 +248,7 @@
     "section": "guides"
   },
   {
-    "id": 30,
+    "id": 31,
     "title": "Government Resource Allocation",
     "description": "Distribute public budgets and resources across departments and regions",
     "slug": "guides/government-resources",
@@ -248,7 +256,7 @@
     "section": "guides"
   },
   {
-    "id": 31,
+    "id": 32,
     "title": "Healthcare Resource Allocation",
     "description": "Schedule staff, beds, and equipment to improve patient outcomes",
     "slug": "guides/healthcare-resources",
@@ -256,7 +264,7 @@
     "section": "guides"
   },
   {
-    "id": 32,
+    "id": 33,
     "title": "Use Case Guides",
     "description": "Step-by-step walkthroughs for all 34 optimization categories",
     "slug": "guides/index",
@@ -264,7 +272,7 @@
     "section": "guides"
   },
   {
-    "id": 33,
+    "id": 34,
     "title": "Insurance Risk Modeling",
     "description": "Optimize policy pricing and claims reserve allocation",
     "slug": "guides/insurance-risk",
@@ -272,7 +280,7 @@
     "section": "guides"
   },
   {
-    "id": 34,
+    "id": 35,
     "title": "Maritime Shipping",
     "description": "Optimize vessel routing, port scheduling, and cargo allocation",
     "slug": "guides/maritime-shipping",
@@ -280,7 +288,7 @@
     "section": "guides"
   },
   {
-    "id": 35,
+    "id": 36,
     "title": "Mining Operations",
     "description": "Plan extraction sequences, equipment deployment, and processing flows",
     "slug": "guides/mining-operations",
@@ -288,7 +296,7 @@
     "section": "guides"
   },
   {
-    "id": 36,
+    "id": 37,
     "title": "Network & Graph Optimization",
     "description": "Solve shortest path, flow, and connectivity problems on graphs",
     "slug": "guides/network-graph",
@@ -296,7 +304,7 @@
     "section": "guides"
   },
   {
-    "id": 37,
+    "id": 38,
     "title": "Pharmaceutical Production",
     "description": "Plan drug manufacturing, batch scheduling, and quality compliance",
     "slug": "guides/pharmaceutical-production",
@@ -304,7 +312,7 @@
     "section": "guides"
   },
   {
-    "id": 38,
+    "id": 39,
     "title": "Portfolio Optimization",
     "description": "Allocate investments to maximize returns under risk constraints",
     "slug": "guides/portfolio-optimization",
@@ -312,7 +320,7 @@
     "section": "guides"
   },
   {
-    "id": 39,
+    "id": 40,
     "title": "Production Planning",
     "description": "Optimize manufacturing schedules to maximize throughput and minimize costs",
     "slug": "guides/production-planning",
@@ -320,7 +328,7 @@
     "section": "guides"
   },
   {
-    "id": 40,
+    "id": 41,
     "title": "Railway Operations",
     "description": "Schedule trains, allocate rolling stock, and manage track capacity",
     "slug": "guides/railway-operations",
@@ -328,7 +336,7 @@
     "section": "guides"
   },
   {
-    "id": 41,
+    "id": 42,
     "title": "Real Estate Investment",
     "description": "Evaluate property portfolios and optimize acquisition strategies",
     "slug": "guides/real-estate-investment",
@@ -336,7 +344,7 @@
     "section": "guides"
   },
   {
-    "id": 42,
+    "id": 43,
     "title": "Retail Assortment & Pricing",
     "description": "Optimize product mix, shelf placement, and pricing strategies",
     "slug": "guides/retail-assortment",
@@ -344,7 +352,7 @@
     "section": "guides"
   },
   {
-    "id": 43,
+    "id": 44,
     "title": "Route & Fleet Optimization",
     "description": "Plan delivery routes and fleet assignments to reduce costs and time",
     "slug": "guides/route-and-fleet",
@@ -352,7 +360,7 @@
     "section": "guides"
   },
   {
-    "id": 44,
+    "id": 45,
     "title": "Sports League Scheduling",
     "description": "Create balanced fixture lists with venue, travel, and broadcast constraints",
     "slug": "guides/sports-scheduling",
@@ -360,7 +368,7 @@
     "section": "guides"
   },
   {
-    "id": 45,
+    "id": 46,
     "title": "Supply Chain Planning",
     "description": "Coordinate procurement, production, and distribution across the value chain",
     "slug": "guides/supply-chain-planning",
@@ -368,7 +376,7 @@
     "section": "guides"
   },
   {
-    "id": 46,
+    "id": 47,
     "title": "Telecom Network Planning",
     "description": "Optimize tower placement, bandwidth allocation, and coverage areas",
     "slug": "guides/telecom-network",
@@ -376,7 +384,7 @@
     "section": "guides"
   },
   {
-    "id": 47,
+    "id": 48,
     "title": "Textile Manufacturing",
     "description": "Optimize fabric cutting, dyeing schedules, and production lines",
     "slug": "guides/textile-manufacturing",
@@ -384,7 +392,7 @@
     "section": "guides"
   },
   {
-    "id": 48,
+    "id": 49,
     "title": "Transportation Network Design",
     "description": "Design freight networks balancing speed, cost, and capacity",
     "slug": "guides/transportation-network",
@@ -392,7 +400,7 @@
     "section": "guides"
   },
   {
-    "id": 49,
+    "id": 50,
     "title": "Warehouse Layout & Operations",
     "description": "Optimize storage layouts, picking routes, and inventory placement",
     "slug": "guides/warehouse-operations",
@@ -400,7 +408,7 @@
     "section": "guides"
   },
   {
-    "id": 50,
+    "id": 51,
     "title": "Water Distribution Networks",
     "description": "Design and manage water supply, treatment, and distribution systems",
     "slug": "guides/water-distribution",
@@ -408,7 +416,7 @@
     "section": "guides"
   },
   {
-    "id": 51,
+    "id": 52,
     "title": "Workforce Scheduling",
     "description": "Build shift schedules that balance coverage, fairness, and labor costs",
     "slug": "guides/workforce-scheduling",
@@ -416,23 +424,23 @@
     "section": "guides"
   },
   {
-    "id": 52,
+    "id": 53,
     "title": "Browsing Models",
     "description": "Discover and activate pre-built optimization models in the JAOT marketplace",
     "slug": "marketplace/browsing-models",
-    "content": "Browsing Models\n\nThe JAOT marketplace is a catalog of pre-built optimization models published by organizations and the JAOT team. You can browse, evaluate, and activate models without writing any formulation code.\n\n Accessing the Marketplace\n\nThe public marketplace is available at /marketplace and does not require authentication to browse. Anyone can view model listings, read descriptions, and check input schemas. Authentication is only required when activating (purchasing) a model.\n\n Search and Filter Controls\n\nThe marketplace provides several ways to find relevant models:\n\n| Control | Options |\n|---------|---------|\n| Search | Free text search across model names and descriptions |\n| Category | Filter by industry: manufacturing, finance, logistics, supply chain, energy, healthcare, technology, services, natural resources, public sector, general |\n| Sort | Popular (default), Newest, Price ascending, Price descending, Rating |\n| Price range | Minimum and maximum price in EUR |\n| Free only | Toggle to show only free models |\n| Official only | Toggle to show only JAOT-verified models |\n| Min. rating | Filter by minimum average rating (0--5) |\n\n Pagination\n\nResults are paginated with a default page size of 20. Use the page controls at the bottom to navigate through the catalog.\n\n Model Cards\n\nEach model in the catalog is displayed as a card with key information:\n\n- Display name -- The model's title\n- Short description -- A one-line summary of what the model solves\n- Category -- The industry or domain tag\n- Price -- In EUR (or \"Free\" for no-cost models)\n- Rating -- Average user rating out of 5 stars\n- Activations -- How many organizations have activated the model\n- Official badge -- Present on models published and verified by JAOT\n\n Model Detail Page\n\nClick on a model card to view its full detail page, which includes:\n\n Overview\n\nA comprehensive description of the optimization problem the model solves, including the mathematical approach, typical use cases, and expected results.\n\n Features\n\nKey capabilities and characteristics of the model, such as supported variable types, constraint patterns, and solver behavior.\n\n How It Works\n\nA walkthrough of the model's logic: how input data is transformed into an optimization problem, what the solver computes, and how results are structured.\n\n Input Schema\n\nThe exact JSON schema required to execute the model. This tells you what fields to provide, their types, and any validation rules:\n\n Example Input/Output\n\nA worked example showing a sample input and the corresponding solution, so you can understand what to expect before activating.\n\n Reviews\n\nUser reviews with ratings and comments from organizations that have activated and used the model.\n\n Activating a Model\n\nTo use a marketplace model, you need to activate it for your organization:\n\n1. Navigate to the model detail page\n2. Click Activate (or Purchase for paid models)\n3. For paid models, the price in EUR is charged to your organization's balance\n4. The model appears in your My Models list immediately after activation\n\n> Note: Activation is an organization-level action. Once activated, all members of your organization can execute the model.\n\n Free vs. Paid Models\n\n| Type | Activation Cost | Execution Cost |\n|------|----------------|----------------|\n| Free | EUR 0 | Credits per solve (based on problem complexity) |\n| Paid | One-time price in EUR | Credits per solve (based on problem complexity) |\n\nBoth free and paid models consume credits when executed. The activation price covers access to the model; solve credits cover the compute cost of running the SCIP solver.\n\n After Activation\n\nOnce activated, the model appears in My Models where you can:\n\n- Execute the model with your own input data\n- View execution history -- past runs with their results\n- Check input schema -- reference the required data format\n- Deactivate -- remove the model from your organization (paid models cannot be refunded)\n\n Executing an Activated Model\n\nProvide your input data matching the model's schema and run:\n\n Browsing via API\n\nThe catalog is also accessible through the REST API and MCP:\n\nSee the Models API reference(/docs/api/models) for full endpoint documentation.",
-    "section": "marketplace"
-  },
-  {
-    "id": 53,
-    "title": "Publishing Models",
-    "description": "Publish your optimization models to the JAOT marketplace and earn revenue from activations",
-    "slug": "marketplace/publishing-models",
-    "content": "Publishing Models\n\nAny organization on JAOT can publish their private optimization models to the marketplace, making them available for other organizations to discover, activate, and execute. Publishing lets you monetize your domain expertise and reach users who need optimization solutions but may not have the skills to formulate them.\n\n Who Can Publish\n\nModel publishing is available to any authenticated user who owns a private model within their organization. The model must have a valid definition (variables, constraints, and objective) before it can be published.\n\n> Note: Only private models can be published. Models that were activated from the catalog (i.e., models originally published by another organization) cannot be republished.\n\n Preparing Your Model\n\nBefore publishing, ensure your model:\n\n1. Has a valid definition -- The model must solve correctly with sample input data\n2. Has a clear input schema -- Define what data users need to provide, with descriptive field names and types\n3. Includes example input -- Provide a working example so potential users can understand the expected data format\n4. Has been tested -- Run multiple solves with different inputs to verify it handles edge cases\n\n Publishing Process\n\n Step 1: Navigate to Your Model\n\nGo to My Models, select the private model you want to publish, and click Publish to Marketplace.\n\n Step 2: Fill in the Publishing Form\n\n| Field | Required | Description |\n|-------|----------|-------------|\n| Display name | Yes | The public-facing name shown in the marketplace (e.g., \"Warehouse Location Optimizer\") |\n| Description | Yes | A detailed explanation of what the model solves and how it works |\n| Short description | Yes | A one-line summary for the model card in search results |\n| Category | Yes | The industry category (manufacturing, finance, logistics, etc.) |\n| Tags | No | Keywords to improve discoverability (e.g., \"routing\", \"scheduling\", \"mixed-integer\") |\n| Price (EUR) | Yes | The activation price. Set to 0 for free models |\n| Overview section | No | Extended description with use cases and benefits |\n| Features section | No | Key capabilities and model characteristics |\n| How it works | No | Walkthrough of the model's optimization approach |\n| Example I/O | No | Sample input and output for the documentation |\n| Changelog | No | Version history and changes |\n\n Step 3: Submit for Publication\n\nClick Publish to make your model available in the marketplace. The model status changes to published and it appears in the public catalog immediately.\n\n Managing Published Models\n\nAfter publishing, you can manage your model from the My Models section:\n\n Updating a Published Model\n\nYou can update the description, pricing, and metadata of a published model at any time. Changes take effect immediately in the marketplace. The underlying model definition is versioned, so existing users continue to see consistent behavior.\n\n Unpublishing\n\nTo remove a model from the marketplace, click Unpublish. The model remains available to organizations that have already activated it, but new activations are no longer possible. The model reverts to a private model in your organization.\n\n Version Management\n\nWhen you update a published model's definition, a new version is created. The marketplace displays the latest version, and the version history is tracked:\n\n- Version numbering follows semantic versioning (e.g., 1.0.0, 1.1.0, 2.0.0)\n- Existing activations continue to work with the version they activated\n- Changelog section lets you document what changed in each version\n\n Pricing Strategy\n\nSet your model's activation price considering:\n\n- Free models attract more activations and reviews, building your reputation on the platform\n- Paid models generate direct revenue from each organization that activates them\n- Execution credits are charged separately (paid by the executing organization based on problem complexity), so activation price reflects the value of your formulation and domain expertise\n\n> Tip: Consider publishing a simplified version for free and a full-featured version as a paid model. This lets users try your approach before committing.\n\n Revenue and Analytics\n\n Revenue Split\n\nJAOT operates a 70/30 revenue model for paid marketplace models:\n\n| Party | Share |\n|-------|-------|\n| Model author | 70% of the activation price |\n| JAOT platform | 30% of the activation price |\n\nRevenue from activations is tracked in your seller dashboard and settled according to the platform's payout schedule.\n\n Seller Analytics\n\nThe seller dashboard provides visibility into your published models' performance:\n\n| Metric | Description |\n|--------|-------------|\n| Views | How many times your model detail page was visited |\n| Activations | Total number of organizations that activated your model |\n| Executions | Total number of times your model was executed across all activators |\n| Revenue | Total and per-model earnings from paid activations |\n| Rating | Average user rating and individual reviews |\n\nUse these metrics to understand demand, identify opportunities for new models, and optimize your pricing.\n\n Publishing via API\n\nYou can also publish models programmatically:\n\nSee the Models API reference(/docs/api/models) for the full publishing endpoint specification.\n\n Best Practices\n\n1. Write a thorough description. Users decide whether to activate based on the detail page. Explain the problem, the approach, expected inputs, and what kind of results to expect.\n\n2. Provide realistic example input. An example that uses real-world-scale values helps users understand if the model fits their needs.\n\n3. Choose the right category. Accurate categorization helps users find your model through filters and improves marketplace discovery.\n\n4. Respond to reviews. Engage with users who leave feedback. Address issues promptly and update your model based on common requests.\n\n5. Keep the changelog updated. When you publish a new version, document the changes so existing users know what improved.",
+    "content": "Browsing Models\n\nThe JAOT marketplace is a catalog of pre-built optimization models published by organizations and the JAOT team. You can browse, evaluate, and activate models without writing any formulation code.\n\n Accessing the Marketplace\n\nThe public marketplace is available at /marketplace and does not require authentication to browse. Anyone can view model listings, read descriptions, and check input schemas. Authentication is only required when activating a model.\n\n Search and Filter Controls\n\nThe marketplace provides several ways to find relevant models:\n\n| Control | Options |\n|---------|---------|\n| Search | Free text search across model names and descriptions |\n| Category | Filter by industry: manufacturing, finance, logistics, supply chain, energy, healthcare, technology, services, natural resources, public sector, general |\n| Sort | Popular (default), Newest, Rating |\n| Official only | Toggle to show only JAOT-verified models |\n| Min. rating | Filter by minimum average rating (0--5) |\n\n Pagination\n\nResults are paginated with a default page size of 20. Use the page controls at the bottom to navigate through the catalog.\n\n Model Cards\n\nEach model in the catalog is displayed as a card with key information:\n\n- Display name -- The model's title\n- Short description -- A one-line summary of what the model solves\n- Category -- The industry or domain tag\n- Rating -- Average user rating out of 5 stars\n- Activations -- How many organizations have activated the model\n- Official badge -- Present on models published and verified by JAOT\n\n Model Detail Page\n\nClick on a model card to view its full detail page, which includes:\n\n Overview\n\nA comprehensive description of the optimization problem the model solves, including the mathematical approach, typical use cases, and expected results.\n\n Features\n\nKey capabilities and characteristics of the model, such as supported variable types, constraint patterns, and solver behavior.\n\n How It Works\n\nA walkthrough of the model's logic: how input data is transformed into an optimization problem, what the solver computes, and how results are structured.\n\n Input Schema\n\nThe exact JSON schema required to execute the model. This tells you what fields to provide, their types, and any validation rules:\n\n Example Input/Output\n\nA worked example showing a sample input and the corresponding solution, so you can understand what to expect before activating.\n\n Reviews\n\nUser reviews with ratings and comments from organizations that have activated and used the model.\n\n Activating a Model\n\nTo use a marketplace model, you need to activate it for your organization:\n\n1. Navigate to the model detail page\n2. Click Activate\n3. The model appears in your My Models list immediately after activation\n\n> Note: Activation is an organization-level action. Once activated, all members of your organization can execute the model.\n\n Activation and Execution Costs\n\nThe marketplace is free — activating a model costs nothing. Models consume execution credits only when you run them (based on problem complexity); those credits are a usage quota covering the compute cost of running the SCIP solver.\n\n After Activation\n\nOnce activated, the model appears in My Models where you can:\n\n- Execute the model with your own input data\n- View execution history -- past runs with their results\n- Check input schema -- reference the required data format\n- Deactivate -- remove the model from your organization\n\n Executing an Activated Model\n\nProvide your input data matching the model's schema and run:\n\n Browsing via API\n\nThe catalog is also accessible through the REST API and MCP:\n\nSee the Models API reference(/docs/api/models) for full endpoint documentation.",
     "section": "marketplace"
   },
   {
     "id": 54,
+    "title": "Publishing Models",
+    "description": "Publish your optimization models to the JAOT marketplace and share them with the community",
+    "slug": "marketplace/publishing-models",
+    "content": "Publishing Models\n\nAny organization on JAOT can publish their private optimization models to the marketplace, making them available for other organizations to discover, activate, and execute. Publishing lets you share your domain expertise and reach users who need optimization solutions but may not have the skills to formulate them. The marketplace is free and collaborative — there are no prices or commissions.\n\n Who Can Publish\n\nModel publishing is available to any authenticated user who owns a private model within their organization. The model must have a valid definition (variables, constraints, and objective) before it can be published.\n\n> Note: Only private models can be published. Models that were activated from the catalog (i.e., models originally published by another organization) cannot be republished.\n\n Preparing Your Model\n\nBefore publishing, ensure your model:\n\n1. Has a valid definition -- The model must solve correctly with sample input data\n2. Has a clear input schema -- Define what data users need to provide, with descriptive field names and types\n3. Includes example input -- Provide a working example so potential users can understand the expected data format\n4. Has been tested -- Run multiple solves with different inputs to verify it handles edge cases\n\n Publishing Process\n\n Step 1: Navigate to Your Model\n\nGo to My Models, select the private model you want to publish, and click Publish to Marketplace.\n\n Step 2: Fill in the Publishing Form\n\n| Field | Required | Description |\n|-------|----------|-------------|\n| Display name | Yes | The public-facing name shown in the marketplace (e.g., \"Warehouse Location Optimizer\") |\n| Description | Yes | A detailed explanation of what the model solves and how it works |\n| Short description | Yes | A one-line summary for the model card in search results |\n| Category | Yes | The industry category (manufacturing, finance, logistics, etc.) |\n| Tags | No | Keywords to improve discoverability (e.g., \"routing\", \"scheduling\", \"mixed-integer\") |\n| Overview section | No | Extended description with use cases and benefits |\n| Features section | No | Key capabilities and model characteristics |\n| How it works | No | Walkthrough of the model's optimization approach |\n| Example I/O | No | Sample input and output for the documentation |\n| Changelog | No | Version history and changes |\n\n Step 3: Submit for Publication\n\nClick Publish to make your model available in the marketplace. The model status changes to published and it appears in the public catalog immediately.\n\n Managing Published Models\n\nAfter publishing, you can manage your model from the My Models section:\n\n Updating a Published Model\n\nYou can update the description and metadata of a published model at any time. Changes take effect immediately in the marketplace. The underlying model definition is versioned, so existing users continue to see consistent behavior.\n\n Unpublishing\n\nTo remove a model from the marketplace, click Unpublish. The model remains available to organizations that have already activated it, but new activations are no longer possible. The model reverts to a private model in your organization.\n\n Version Management\n\nWhen you update a published model's definition, a new version is created. The marketplace displays the latest version, and the version history is tracked:\n\n- Version numbering follows semantic versioning (e.g., 1.0.0, 1.1.0, 2.0.0)\n- Existing activations continue to work with the version they activated\n- Changelog section lets you document what changed in each version\n\n Free and Collaborative\n\nThe marketplace is free to use — models carry no price and no commission is charged. Publishing builds your reputation through activations, ratings, and reviews. Execution credits are charged separately as a usage quota (based on problem complexity), paid by the executing organization.\n\n> Tip: A clear description, good example input, and accurate categorization drive activations far more than anything else.\n\n Creator Analytics\n\nThe creator dashboard provides visibility into your published models' adoption:\n\n| Metric | Description |\n|--------|-------------|\n| Views | How many times your model detail page was visited |\n| Activations | Total number of organizations that activated your model |\n| Executions | Total number of times your model was executed across all activators |\n| Rating | Average user rating and individual reviews |\n\nUse these metrics to understand demand, identify opportunities for new models, and improve your published ones.\n\n Publishing via API\n\nYou can also publish models programmatically:\n\nSee the Models API reference(/docs/api/models) for the full publishing endpoint specification.\n\n Best Practices\n\n1. Write a thorough description. Users decide whether to activate based on the detail page. Explain the problem, the approach, expected inputs, and what kind of results to expect.\n\n2. Provide realistic example input. An example that uses real-world-scale values helps users understand if the model fits their needs.\n\n3. Choose the right category. Accurate categorization helps users find your model through filters and improves marketplace discovery.\n\n4. Respond to reviews. Engage with users who leave feedback. Address issues promptly and update your model based on common requests.\n\n5. Keep the changelog updated. When you publish a new version, document the changes so existing users know what improved.",
+    "section": "marketplace"
+  },
+  {
+    "id": 55,
     "title": "MCP Overview",
     "description": "Connect AI agents to JAOT's optimization tools using the Model Context Protocol",
     "slug": "mcp/overview",
@@ -440,7 +448,7 @@
     "section": "mcp"
   },
   {
-    "id": 55,
+    "id": 56,
     "title": "Error Reference",
     "description": "HTTP error codes, error schema, and troubleshooting",
     "slug": "reference/errors",
@@ -448,7 +456,7 @@
     "section": "reference"
   },
   {
-    "id": 56,
+    "id": 57,
     "title": "Rate Limits & Credits",
     "description": "API rate limiting, credit pricing formula, and usage management",
     "slug": "reference/rate-limits-credits",

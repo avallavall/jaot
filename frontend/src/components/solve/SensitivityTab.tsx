@@ -40,6 +40,11 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
   }
 
   const { constraints, is_approximate, note } = sensitivity;
+  // Additive fields — older persisted results may not carry them.
+  const variables = sensitivity.variables ?? [];
+  const rangingUnavailable =
+    (sensitivity.objective_ranges?.length ?? 0) === 0 &&
+    (sensitivity.rhs_ranges?.length ?? 0) === 0;
 
   // Filter to constraints with numeric shadow prices, sort by magnitude descending
   const chartData: ChartEntry[] = constraints
@@ -195,6 +200,69 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
             </div>
           </div>
         </>
+      )}
+
+      {variables.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-foreground mb-3">
+            {t("variableReducedCosts")}
+          </h3>
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/40 border-b border-border">
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                      {t("variable")}
+                    </th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground">
+                      {t("reducedCost")}
+                    </th>
+                    <th className="px-3 py-2 text-center font-medium text-muted-foreground">
+                      {t("atBound")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {variables.map((v, idx) => (
+                    <tr
+                      key={`${v.name}-${idx}`}
+                      className={
+                        v.is_at_bound
+                          ? "bg-green-50/50 dark:bg-green-900/10 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                          : "hover:bg-muted/20 transition-colors"
+                      }
+                    >
+                      <td className="px-3 py-1.5 font-mono text-xs text-foreground truncate max-w-[200px]">
+                        {v.name}
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono text-xs tabular-nums">
+                        {formatShadowPrice(v.reduced_cost)}
+                      </td>
+                      <td className="px-3 py-1.5 text-center">
+                        {v.is_at_bound === null || v.is_at_bound === undefined ? (
+                          <span className="text-xs text-muted-foreground">&mdash;</span>
+                        ) : v.is_at_bound ? (
+                          <span className="inline-block px-1.5 py-0.5 rounded text-[0.625rem] font-medium uppercase tracking-wide bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                            {t("yes")}
+                          </span>
+                        ) : (
+                          <span className="inline-block px-1.5 py-0.5 rounded text-[0.625rem] font-medium uppercase tracking-wide bg-muted text-muted-foreground">
+                            {t("no")}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rangingUnavailable && (
+        <p className="text-xs text-muted-foreground">{t("rangingUnavailable")}</p>
       )}
     </div>
   );

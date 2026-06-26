@@ -419,6 +419,23 @@
       "builtWithAi": "Creado con IA",
       "fromMarketplace": "Desde el Marketplace"
     },
+    "solutionExplainer": {
+      "eyebrow": "Análisis de la solución",
+      "title": "Entiende tu solución",
+      "subtitle": "No solo resuelvas: entiende. Cada resultado viene con el razonamiento detrás.",
+      "sensitivity": {
+        "title": "Precios sombra y restricciones activas",
+        "description": "Descubre qué restricciones limitan realmente el óptimo y cuánto ganarías relajando cada una."
+      },
+      "reducedCosts": {
+        "title": "Costes reducidos de variables",
+        "description": "Sabe qué decisiones están fijadas en sus límites: exacto para LP, aproximado para MIP."
+      },
+      "aiExplain": {
+        "title": "Explicación con IA en un clic",
+        "description": "Convierte precios sombra y costes reducidos en lenguaje claro, basado solo en tus cifras reales."
+      }
+    },
     "features": {
       "title": "Cuatro pilares de la optimización",
       "subtitle": "Todo lo que necesitas para crear, usar, compartir y automatizar la optimización.",
@@ -728,10 +745,11 @@
           "description": "Obtener la solución optimizada programáticamente"
         }
       },
-      "toolsTitle": "12 herramientas especializadas",
+      "toolsTitle": "17 herramientas especializadas",
       "tools": {
         "problemSolving": "Resolución de problemas",
         "templates": "Plantillas",
+        "fileIO": "Importación de archivos",
         "marketplace": "Marketplace",
         "execution": "Ejecución",
         "account": "Cuenta"
@@ -1185,7 +1203,8 @@
         "generating": "Generando formulación...",
         "generatingVariables": "Generando variables...",
         "generatingConstraints": "Generando restricciones...",
-        "assembling": "Ensamblando formulación..."
+        "assembling": "Ensamblando formulación...",
+        "explaining": "Explicando la solución..."
       },
       "error": {
         "serviceUnavailable": "El asistente de IA no está disponible temporalmente. Inténtalo de nuevo en un momento.",
@@ -3194,7 +3213,22 @@
       "shadowPrice": "Shadow Price",
       "binding": "Binding",
       "yes": "Sí",
-      "no": "No"
+      "no": "No",
+      "variableReducedCosts": "Costes Reducidos de Variables",
+      "variable": "Variable",
+      "reducedCost": "Coste Reducido",
+      "atBound": "En el límite",
+      "rangingUnavailable": "El análisis de rangos de objetivo y de lado derecho no está disponible para este solver."
+    },
+    "explainer": {
+      "title": "Explicar esta solución",
+      "description": "Obtén una explicación en lenguaje claro de por qué esta es la solución óptima, qué restricciones son activas y qué cambiar para mejorarla.",
+      "button": "Explicar esta solución",
+      "regenerate": "Regenerar",
+      "thinking": "Analizando tu solución…",
+      "grounded": "Generado a partir de tu solución y valores de sensibilidad reales.",
+      "unavailable": "Las explicaciones solo están disponibles para ejecuciones resueltas (óptimas o factibles).",
+      "ref": "ref: {requestId}"
     },
     "explorer": {
       "searchPlaceholder": "Buscar variables...",

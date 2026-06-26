@@ -4,8 +4,8 @@ import { getFlatPages, getPrevNext, getDocsPages } from "../navigation";
 describe("getFlatPages", () => {
   it("returns all leaf pages with guides included", () => {
     const pages = getFlatPages();
-    // 3 getting-started + 2 ai-builder + 2 marketplace + 1 mcp + 12 api + 2 reference + 35 guides = 57
-    expect(pages.length).toBe(57);
+    // 3 getting-started + 3 ai-builder + 2 marketplace + 1 mcp + 12 api + 2 reference + 35 guides = 58
+    expect(pages.length).toBe(58);
     expect(pages[0].slug).toBe("getting-started/introduction");
   });
 

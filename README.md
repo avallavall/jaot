@@ -20,6 +20,10 @@ library and not a hosted SaaS** — you run it yourself with `docker compose up`
   runnable model, grounded in a RAG index over the template library
   (Qdrant + local sentence-transformers; no data leaves your box except the
   Claude calls you opt into).
+- **Solution explainer + sensitivity** — don't just solve, *understand*. Every
+  solve reports shadow prices, binding constraints, and variable reduced costs
+  (exact for LP, approximate for MIP), and a one-click AI explanation translates
+  the result into plain language grounded strictly in your actual numbers.
 - **Model marketplace** — a free, collaborative gallery: publish your models
   and activate community ones. No prices or commissions.
 - **MCP server** — exposes solver tools to AI agents (Claude, etc.) via the

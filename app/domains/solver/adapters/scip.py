@@ -32,6 +32,7 @@ from app.schemas.optimization import (
     SensitivityResult,
     SolverStatus,
     Variable,
+    VariableSensitivity,
     VariableSolution,
     VariableType,
 )
@@ -451,21 +452,38 @@ class SCIPAdapter:
             logger.warning("Failed to inject warm start solution: %s", e)
             return False
 
+    # RHS / objective-coefficient ranging is not reliably exposed by the
+    # PySCIPOpt build, so we never fabricate ranges — we annotate their absence.
+    _RANGING_NOTE = "Coefficient and RHS ranging are not available for this solver build."
+
     def _extract_sensitivity(
         self,
         model: Model,
         constraint_refs: dict[str, Any],
+        var_refs: dict[str, Any] | None = None,
+        problem: OptimizationProblem | None = None,
+        *,
+        is_approximate: bool = False,
+        note: str | None = None,
     ) -> SensitivityResult:
-        """Extract sensitivity analysis (shadow prices) from a solved LP model.
+        """Extract sensitivity (shadow prices + reduced costs) from a solved LP model.
 
-        Uses getDualSolVal on each constraint reference. Only valid for LP problems.
+        Shadow prices come from ``getDualSolVal`` per constraint; reduced costs and
+        the at-bound flag come from the variable references when provided. Objective
+        and RHS ranging are not reliably exposed by PySCIPOpt, so those lists stay
+        empty and the absence is recorded in ``note`` rather than guessed. Only valid
+        for LP models — the real model for pure-LP problems, the LP relaxation for MIP.
 
         Args:
             model: Solved SCIP model (must be LP, not MIP)
             constraint_refs: Dict of constraint name -> SCIP constraint object
+            var_refs: Dict of variable name -> SCIP variable object (for reduced costs)
+            problem: The original problem, used to read variable bounds
+            is_approximate: Stamp every entry as approximate (LP-relaxation path)
+            note: Base note to prefix before the ranging annotation
 
         Returns:
-            SensitivityResult with constraint shadow prices
+            SensitivityResult with constraint shadow prices and variable reduced costs
         """
         constraint_sensitivities = []
 
@@ -484,14 +502,76 @@ class SCIPAdapter:
                     name=name,
                     shadow_price=shadow_price,
                     is_binding=is_binding,
-                    is_approximate=False,
+                    is_approximate=is_approximate,
                 )
             )
 
+        variable_sensitivities = (
+            self._extract_variable_sensitivity(model, var_refs, problem, is_approximate)
+            if var_refs
+            else []
+        )
+
+        final_note = f"{note}. {self._RANGING_NOTE}" if note else self._RANGING_NOTE
+
         return SensitivityResult(
             constraints=constraint_sensitivities,
-            is_approximate=False,
+            variables=variable_sensitivities,
+            objective_ranges=[],
+            rhs_ranges=[],
+            is_approximate=is_approximate,
+            note=final_note,
         )
+
+    @staticmethod
+    def _extract_variable_sensitivity(
+        model: Model,
+        var_refs: dict[str, Any],
+        problem: OptimizationProblem | None,
+        is_approximate: bool,
+    ) -> list[VariableSensitivity]:
+        """Per-variable reduced costs + at-bound flags from a solved LP model.
+
+        ``getVarRedcost`` may be absent on some PySCIPOpt builds, and ``getVal``
+        can fail mid-extraction; both are guarded so a single variable never
+        aborts the whole sensitivity result.
+        """
+        bounds: dict[str, tuple[float | None, float | None]] = {}
+        if problem is not None:
+            for v in problem.variables:
+                lb = v.lower_bound
+                ub = v.upper_bound
+                if v.type == VariableType.BINARY:
+                    lb = 0.0 if lb is None else lb
+                    ub = 1.0 if ub is None else ub
+                bounds[v.name] = (lb, ub)
+
+        variable_sensitivities: list[VariableSensitivity] = []
+        for name, var in var_refs.items():
+            reduced_cost = None
+            is_at_bound = None
+            try:
+                reduced_cost = model.getVarRedcost(var)
+            except Exception as e:
+                logger.debug("Could not extract reduced cost for %s: %s", name, e)
+            try:
+                value = model.getVal(var)
+                lb, ub = bounds.get(name, (None, None))
+                at_lb = lb is not None and abs(value - lb) <= 1e-7
+                at_ub = ub is not None and abs(value - ub) <= 1e-7
+                is_at_bound = bool(at_lb or at_ub)
+            except Exception as e:
+                logger.debug("Could not determine bound status for %s: %s", name, e)
+
+            variable_sensitivities.append(
+                VariableSensitivity(
+                    name=name,
+                    reduced_cost=reduced_cost,
+                    is_at_bound=is_at_bound,
+                    is_approximate=is_approximate,
+                )
+            )
+        return variable_sensitivities
 
     def _has_integer_variables(self, problem: OptimizationProblem) -> bool:
         """Check if the problem has any integer or binary variables."""
@@ -527,12 +607,11 @@ class SCIPAdapter:
                     note="LP relaxation did not reach optimality — sensitivity unavailable",
                 )
 
-            sensitivity = self._extract_sensitivity(lp_model, lp_constraint_refs)
-            corrected = [
-                cs.model_copy(update={"is_approximate": True}) for cs in sensitivity.constraints
-            ]
-            return SensitivityResult(
-                constraints=corrected,
+            return self._extract_sensitivity(
+                lp_model,
+                lp_constraint_refs,
+                var_refs=lp_vars,
+                problem=problem,
                 is_approximate=True,
                 note="Approximate — based on LP relaxation",
             )
@@ -634,7 +713,9 @@ class SCIPAdapter:
             logger.info("Solution found: obj=%.4f", result.objective_value)
 
             if constraint_refs:
-                result.sensitivity = self._compute_sensitivity(model, problem, constraint_refs)
+                result.sensitivity = self._compute_sensitivity(
+                    model, problem, constraint_refs, scip_vars
+                )
 
         except Exception as e:
             logger.warning("Error extracting solution: %s", e)
@@ -675,12 +756,15 @@ class SCIPAdapter:
         model: Model,
         problem: OptimizationProblem,
         constraint_refs: dict[str, Any],
+        var_refs: dict[str, Any] | None = None,
     ) -> SensitivityResult | None:
         """Extract sensitivity analysis (exact for LP, approximate for MIP)."""
         try:
             if self._has_integer_variables(problem):
                 return self._extract_sensitivity_for_mip(problem)
-            return self._extract_sensitivity(model, constraint_refs)
+            return self._extract_sensitivity(
+                model, constraint_refs, var_refs=var_refs, problem=problem
+            )
         except Exception as e:
             logger.warning("Sensitivity extraction failed: %s", e)
             return None

@@ -101,14 +101,24 @@ const USE_CASE_KEYS = [
   { icon: Users, key: "resourceAssignment", source: "ai" as const },
 ] as const;
 
+const SOLUTION_EXPLAINER_KEYS = [
+  { icon: PieChart, key: "sensitivity" },
+  { icon: Network, key: "reducedCosts" },
+  { icon: Sparkles, key: "aiExplain" },
+] as const;
+
 const HOW_IT_WORKS_KEYS = ["step1", "step2", "step3"] as const;
 
 const MCP_TOOL_GROUPS = [
-  { key: "problemSolving", tools: ["solve_problem", "validate_problem"] },
+  {
+    key: "problemSolving",
+    tools: ["solve_problem", "validate_problem", "solve_multi_objective", "list_available_solvers"],
+  },
   {
     key: "templates",
     tools: ["list_templates", "get_template", "solve_with_template"],
   },
+  { key: "fileIO", tools: ["import_preview", "import_and_solve"] },
   {
     key: "marketplace",
     tools: [
@@ -118,7 +128,7 @@ const MCP_TOOL_GROUPS = [
       "activate_catalog_model",
     ],
   },
-  { key: "execution", tools: ["execute_model", "get_execution"] },
+  { key: "execution", tools: ["execute_model", "get_execution", "get_execution_insights"] },
   { key: "account", tools: ["get_credit_balance"] },
 ] as const;
 
@@ -405,6 +415,36 @@ export default async function HomePage() {
               </Reveal>
             );
           })}
+        </div>
+      </section>
+
+      {/* ── Understand your solution ───────────────────────────────────── */}
+      <section className="mx-auto max-w-6xl px-6 py-24">
+        <Reveal>
+          <SectionHeading
+            eyebrow={t("solutionExplainer.eyebrow")}
+            title={t("solutionExplainer.title")}
+            subtitle={t("solutionExplainer.subtitle")}
+          />
+        </Reveal>
+        <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-3">
+          {SOLUTION_EXPLAINER_KEYS.map((item, idx) => (
+            <Reveal key={item.key} delay={(idx % 3) * 80}>
+              <Card className="h-full overflow-hidden border-border shadow-warm-sm transition-shadow duration-300 hover:shadow-warm-md">
+                <CardContent className="flex h-full flex-col p-6">
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                    <item.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mb-2 font-serif text-lg">
+                    {t(`solutionExplainer.${item.key}.title`)}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {t(`solutionExplainer.${item.key}.description`)}
+                  </p>
+                </CardContent>
+              </Card>
+            </Reveal>
+          ))}
         </div>
       </section>
 

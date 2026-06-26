@@ -91,6 +91,7 @@ class LLMStatusCode(str, Enum):
     GENERATING_VARIABLES = "generating_variables"
     GENERATING_CONSTRAINTS = "generating_constraints"
     ASSEMBLING = "assembling"
+    EXPLAINING = "explaining"
 
 
 class LLMServiceError(Exception):

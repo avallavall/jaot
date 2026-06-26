@@ -419,6 +419,23 @@
         "result": "72% to 89% utilization"
       }
     },
+    "solutionExplainer": {
+      "eyebrow": "Solution analysis",
+      "title": "Understand your solution",
+      "subtitle": "Don't just solve — understand. Every result comes with the reasoning behind it.",
+      "sensitivity": {
+        "title": "Shadow prices & binding constraints",
+        "description": "See which constraints actually limit the optimum, and how much each one would buy you if relaxed."
+      },
+      "reducedCosts": {
+        "title": "Variable reduced costs",
+        "description": "Know which decisions are pinned at their limits — exact for LP, approximate for MIP."
+      },
+      "aiExplain": {
+        "title": "One-click AI explanation",
+        "description": "Turn shadow prices and reduced costs into plain language, grounded strictly in your actual numbers."
+      }
+    },
     "features": {
       "title": "Four pillars of optimization",
       "subtitle": "Everything you need to build, use, share, and automate optimization.",
@@ -474,10 +491,11 @@
           "description": "Get optimized solution programmatically"
         }
       },
-      "toolsTitle": "12 Curated Tools",
+      "toolsTitle": "17 Curated Tools",
       "tools": {
         "problemSolving": "Problem Solving",
         "templates": "Templates",
+        "fileIO": "File Import",
         "marketplace": "Marketplace",
         "execution": "Execution",
         "account": "Account"
@@ -1202,7 +1220,8 @@
         "generating": "Generating formulation...",
         "generatingVariables": "Generating variables...",
         "generatingConstraints": "Generating constraints...",
-        "assembling": "Assembling formulation..."
+        "assembling": "Assembling formulation...",
+        "explaining": "Explaining the solution..."
       },
       "error": {
         "serviceUnavailable": "The AI assistant is temporarily unavailable. Please try again in a moment.",
@@ -3227,7 +3246,22 @@
       "shadowPrice": "Shadow Price",
       "binding": "Binding",
       "yes": "Yes",
-      "no": "No"
+      "no": "No",
+      "variableReducedCosts": "Variable Reduced Costs",
+      "variable": "Variable",
+      "reducedCost": "Reduced Cost",
+      "atBound": "At bound",
+      "rangingUnavailable": "Objective and right-hand-side ranging are not available for this solver build."
+    },
+    "explainer": {
+      "title": "Explain this solution",
+      "description": "Get a plain-language explanation of why this is optimal, which constraints are binding, and what to change to improve it.",
+      "button": "Explain this solution",
+      "regenerate": "Regenerate",
+      "thinking": "Analyzing your solution…",
+      "grounded": "Generated from your actual solution and sensitivity values.",
+      "unavailable": "Explanations are available only for solved (optimal or feasible) executions.",
+      "ref": "ref: {requestId}"
     },
     "explorer": {
       "searchPlaceholder": "Search variables...",

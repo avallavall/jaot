@@ -419,6 +419,23 @@
       "builtWithAi": "Construit avec l'IA",
       "fromMarketplace": "Depuis le Marketplace"
     },
+    "solutionExplainer": {
+      "eyebrow": "Analyse de la solution",
+      "title": "Comprenez votre solution",
+      "subtitle": "Ne vous contentez pas de résoudre : comprenez. Chaque résultat est accompagné de son raisonnement.",
+      "sensitivity": {
+        "title": "Prix duals et contraintes actives",
+        "description": "Voyez quelles contraintes limitent réellement l'optimum et combien chacune rapporterait si elle était relâchée."
+      },
+      "reducedCosts": {
+        "title": "Coûts réduits des variables",
+        "description": "Sachez quelles décisions sont bloquées à leurs bornes : exact pour LP, approximatif pour MIP."
+      },
+      "aiExplain": {
+        "title": "Explication par IA en un clic",
+        "description": "Transformez prix duals et coûts réduits en langage clair, fondé uniquement sur vos chiffres réels."
+      }
+    },
     "features": {
       "title": "Quatre piliers de l'optimisation",
       "subtitle": "Tout ce dont tu as besoin pour construire, utiliser, partager et automatiser l'optimisation.",
@@ -728,10 +745,11 @@
           "description": "Obtiens la solution optimisée de manière programmatique"
         }
       },
-      "toolsTitle": "12 Outils Sélectionnés",
+      "toolsTitle": "17 Outils Sélectionnés",
       "tools": {
         "problemSolving": "Résolution de Problèmes",
         "templates": "Modèles",
+        "fileIO": "Import de fichiers",
         "marketplace": "Marketplace",
         "execution": "Exécution",
         "account": "Compte"
@@ -1185,7 +1203,8 @@
         "generating": "Génération de la formulation...",
         "generatingVariables": "Génération des variables...",
         "generatingConstraints": "Génération des contraintes...",
-        "assembling": "Assemblage de la formulation..."
+        "assembling": "Assemblage de la formulation...",
+        "explaining": "Explication de la solution..."
       },
       "error": {
         "serviceUnavailable": "L'assistant IA est temporairement indisponible. Veuillez réessayer dans un instant.",
@@ -3194,7 +3213,22 @@
       "shadowPrice": "Prix dual",
       "binding": "Active",
       "yes": "Oui",
-      "no": "Non"
+      "no": "Non",
+      "variableReducedCosts": "Coûts Réduits des Variables",
+      "variable": "Variable",
+      "reducedCost": "Coût Réduit",
+      "atBound": "À la borne",
+      "rangingUnavailable": "L'analyse de plages d'objectif et de second membre n'est pas disponible pour ce solveur."
+    },
+    "explainer": {
+      "title": "Expliquer cette solution",
+      "description": "Obtenez une explication en langage clair de pourquoi cette solution est optimale, quelles contraintes sont actives et quoi changer pour l'améliorer.",
+      "button": "Expliquer cette solution",
+      "regenerate": "Régénérer",
+      "thinking": "Analyse de votre solution…",
+      "grounded": "Généré à partir de votre solution et de vos valeurs de sensibilité réelles.",
+      "unavailable": "Les explications ne sont disponibles que pour les exécutions résolues (optimales ou réalisables).",
+      "ref": "réf : {requestId}"
     },
     "explorer": {
       "searchPlaceholder": "Rechercher des variables...",

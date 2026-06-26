@@ -24,6 +24,7 @@ const ADMIN_SPECS: RegExp[] = [
   /admin\.spec\.ts/,
   /admin-crud\.spec\.ts/,
   /announcement-banner\.spec\.ts/,
+  /solution-explainer\.spec\.ts/,
 ];
 
 const DPR_SPECS: RegExp[] = [/ui-polish\.spec\.ts/];

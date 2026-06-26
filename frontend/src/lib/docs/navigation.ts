@@ -18,6 +18,7 @@ export const docsNavigation: DocsNavItem[] = [
     children: [
       { title: "Building with AI", slug: "ai-builder/building-with-ai" },
       { title: "Templates Gallery", slug: "ai-builder/templates-gallery" },
+      { title: "Understanding Your Solution", slug: "ai-builder/understanding-your-solution" },
     ],
   },
   {
