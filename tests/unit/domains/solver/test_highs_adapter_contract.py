@@ -109,3 +109,39 @@ class TestHiGHSAdapterContract:
         adapter = HiGHSAdapter()
         result = adapter.solve(_infeasible_problem())
         assert result.status == SolverStatus.INFEASIBLE
+
+    def test_highs_lp_sensitivity_is_exact(self) -> None:
+        """Pure-LP solves must carry exact (non-approximate) sensitivity.
+
+        Regression: the adapter advertised ``supports_sensitivity=True`` but
+        never read HiGHS duals, so LP problems auto-routed to HiGHS came back
+        with ``result.sensitivity = None`` and an empty UI "Sensitivity" tab.
+        """
+        from app.domains.solver.adapters.highs import HiGHSAdapter  # noqa: PLC0415
+
+        result = HiGHSAdapter().solve(_lp_problem())
+        assert result.status == SolverStatus.OPTIMAL
+        sens = result.sensitivity
+        assert sens is not None, "LP solve must produce sensitivity"
+        assert sens.is_approximate is False  # HiGHS LP duals are exact
+        # One constraint (x + y >= 10), binding at the optimum with a real dual.
+        assert len(sens.constraints) == 1
+        constraint = sens.constraints[0]
+        assert constraint.shadow_price is not None
+        assert constraint.is_binding is True
+        # Reduced costs present (exact) for both decision variables.
+        assert {v.name for v in sens.variables} == {"x", "y"}
+        assert all(v.reduced_cost is not None for v in sens.variables)
+        assert all(v.is_approximate is False for v in sens.variables)
+
+    def test_highs_mip_has_no_dual_sensitivity(self) -> None:
+        """MIP solves carry no meaningful HiGHS duals — sensitivity stays None.
+
+        HiGHS exposes no useful dual solution for a MIP; we must return None
+        rather than fabricate misleading shadow prices.
+        """
+        from app.domains.solver.adapters.highs import HiGHSAdapter  # noqa: PLC0415
+
+        result = HiGHSAdapter().solve(_mip_problem())
+        assert result.status == SolverStatus.OPTIMAL
+        assert result.sensitivity is None

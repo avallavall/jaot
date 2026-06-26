@@ -18,10 +18,13 @@ from typing import TYPE_CHECKING
 from app.domains.solver.adapters.base import STRICT_EPSILON, SolverCapabilities
 from app.domains.solver.services.expression_parser import ExpressionParser
 from app.schemas.optimization import (
+    ConstraintSensitivity,
     OptimizationProblem,
     OptimizationResult,
+    SensitivityResult,
     SolverStatus,
     Variable,
+    VariableSensitivity,
     VariableSolution,
     VariableType,
 )
@@ -282,10 +285,89 @@ class HiGHSAdapter:
                 variable_solutions.append(VariableSolution(name=var.name, value=val, type=var.type))
                 solution_dict[var.name] = float(val)
 
-        return OptimizationResult(
+        result = OptimizationResult(
             status=status,
             objective_value=float(obj_value),
             solve_time_seconds=solve_time,
             variables=variable_solutions,
             solution=solution_dict,
+        )
+
+        # Sensitivity: HiGHS exposes exact LP duals (row_dual) + reduced costs
+        # (col_dual). Without this the capability flag `supports_sensitivity=True`
+        # was a lie — pure-LP solves auto-routed here came back with no
+        # sensitivity, so the UI showed an empty "Sensitivity" tab.
+        try:
+            result.sensitivity = self._extract_sensitivity(sol, col_map, problem, col_values)
+        except Exception as exc:  # never let sensitivity break a valid solve
+            logger.warning("HiGHS sensitivity extraction failed: %s", exc)
+
+        return result
+
+    def _extract_sensitivity(
+        self,
+        sol: object,
+        col_map: dict[str, int],
+        problem: OptimizationProblem,
+        col_values: list[float],
+    ) -> SensitivityResult | None:
+        """Build a SensitivityResult from HiGHS exact LP duals.
+
+        Returns None (→ no sensitivity persisted) when duals are not meaningful:
+        integer/binary problems (HiGHS gives no useful duals for a MIP) or when
+        HiGHS reports the dual solution invalid. Duals are exact for LP, so
+        ``is_approximate`` is always False here — unlike the SCIP LP-relaxation path.
+        """
+        # HiGHS duals are only meaningful for a pure LP.
+        if any(v.type in (VariableType.INTEGER, VariableType.BINARY) for v in problem.variables):
+            return None
+        # highspy sets dual_valid=0 when no dual solution is available.
+        if not getattr(sol, "dual_valid", 1):
+            return None
+
+        row_dual = list(getattr(sol, "row_dual", []) or [])
+        col_dual = list(getattr(sol, "col_dual", []) or [])
+        if not row_dual and not col_dual:
+            return None
+
+        # Rows are added in problem.constraints order (one addRow per constraint),
+        # so row index i maps 1:1 to constraints[i].
+        constraint_sens: list[ConstraintSensitivity] = []
+        for i, constraint in enumerate(problem.constraints):
+            shadow_price = float(row_dual[i]) if i < len(row_dual) else None
+            is_binding = abs(shadow_price) > 1e-8 if shadow_price is not None else None
+            constraint_sens.append(
+                ConstraintSensitivity(
+                    name=constraint.name or f"c{i}",
+                    shadow_price=shadow_price,
+                    is_binding=is_binding,
+                    is_approximate=False,
+                )
+            )
+
+        variable_sens: list[VariableSensitivity] = []
+        for var in problem.variables:
+            idx = col_map.get(var.name)
+            reduced_cost = float(col_dual[idx]) if idx is not None and idx < len(col_dual) else None
+            is_at_bound: bool | None = None
+            if idx is not None and idx < len(col_values):
+                value = col_values[idx]
+                lb = 0.0 if var.type == VariableType.BINARY else var.lower_bound
+                ub = 1.0 if var.type == VariableType.BINARY else var.upper_bound
+                at_lb = lb is not None and abs(value - lb) <= 1e-7
+                at_ub = ub is not None and abs(value - ub) <= 1e-7
+                is_at_bound = bool(at_lb or at_ub)
+            variable_sens.append(
+                VariableSensitivity(
+                    name=var.name,
+                    reduced_cost=reduced_cost,
+                    is_at_bound=is_at_bound,
+                    is_approximate=False,
+                )
+            )
+
+        return SensitivityResult(
+            constraints=constraint_sens,
+            variables=variable_sens,
+            is_approximate=False,
         )
