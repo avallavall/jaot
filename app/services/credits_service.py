@@ -557,17 +557,17 @@ class CreditsService:
                 days_ahead = 7
             return now + timedelta(days=days_ahead)
 
-        elif frequency == ScheduleFrequency.BIWEEKLY:
+        if frequency == ScheduleFrequency.BIWEEKLY:
             # Two weeks from now (fixed interval, not weekday-relative)
             return now + timedelta(days=14)
 
-        elif frequency == ScheduleFrequency.MONTHLY:
+        if frequency == ScheduleFrequency.MONTHLY:
             # First of next month
             if now.month == 12:
                 return datetime(now.year + 1, 1, 1, tzinfo=timezone.utc)
             return datetime(now.year, now.month + 1, 1, tzinfo=timezone.utc)
 
-        elif frequency == ScheduleFrequency.QUARTERLY:
+        if frequency == ScheduleFrequency.QUARTERLY:
             # First of next quarter
             quarter_month = ((now.month - 1) // 3 + 1) * 3 + 1
             if quarter_month > 12:

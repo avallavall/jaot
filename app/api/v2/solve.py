@@ -790,9 +790,9 @@ async def get_async_solve_status(
             "status": "pending",
             "message": "Task is waiting to be processed",
         }
-    elif result.state == "PROGRESS":
+    if result.state == "PROGRESS":
         return {"task_id": task_id, "status": "running", **result.info}
-    elif result.state == "SUCCESS":
+    if result.state == "SUCCESS":
         # The task caught all exceptions and returned a dict.  Check for
         # error conditions at two levels:
         # 1. Task-level: {"status": "error", "error": "..."} — exception handler
@@ -844,7 +844,7 @@ async def get_async_solve_status(
             if key in inner:
                 completed_payload[key] = inner[key]
         return completed_payload
-    elif result.state == "FAILURE":
+    if result.state == "FAILURE":
         return {"task_id": task_id, "status": "failed", "error": str(result.result)}
     return {"task_id": task_id, "status": result.state.lower()}
 

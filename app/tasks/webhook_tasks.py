@@ -35,8 +35,7 @@ def deliver_webhook_task(
         success = deliver_webhook(url=url, payload=payload, secret=secret)
         if success:
             return {"status": "delivered", "url": url, "event": payload.get("event")}
-        else:
-            raise Exception("Webhook delivery failed (non-2xx response)")
+        raise Exception("Webhook delivery failed (non-2xx response)")
     except Exception as exc:
         logger.warning(
             f"Webhook delivery attempt {self.request.retries + 1} failed for {url}: {exc}"

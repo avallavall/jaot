@@ -1,9 +1,9 @@
 """Pydantic v2 schemas for workspace collaboration API endpoints."""
 
 from datetime import datetime
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, field_validator
 
 _VALID_ROLES = {"admin", "editor", "solver", "viewer"}
 
@@ -14,66 +14,51 @@ def _validate_role(v: str) -> str:
     return v
 
 
+def _validate_name_length(v: str) -> str:
+    if len(v) > 255:
+        raise ValueError("name must be 255 characters or fewer")
+    return v
+
+
+# Reusable validated field types (Pydantic v2 Annotated pattern). These replace
+# the per-schema field_validator boilerplate that previously repeated the same
+# role/name checks across five schemas. For optional fields (e.g. PATCH bodies),
+# compose with `| None`: the validator only runs on the str branch.
+Role = Annotated[str, AfterValidator(_validate_role)]
+WorkspaceName = Annotated[str, AfterValidator(_validate_name_length)]
+
+
 class WorkspaceCreate(BaseModel):
     """Request body for creating a new workspace."""
 
-    name: str
+    name: WorkspaceName
     description: str | None = None
-
-    @field_validator("name")
-    @classmethod
-    def name_max_255(cls, v: str) -> str:
-        if len(v) > 255:
-            raise ValueError("name must be 255 characters or fewer")
-        return v
 
 
 class WorkspaceUpdate(BaseModel):
     """Request body for updating a workspace (PATCH — all fields optional)."""
 
-    name: str | None = None
+    name: WorkspaceName | None = None
     description: str | None = None
-
-    @field_validator("name")
-    @classmethod
-    def name_max_255(cls, v: str | None) -> str | None:
-        if v is not None and len(v) > 255:
-            raise ValueError("name must be 255 characters or fewer")
-        return v
 
 
 class MemberRoleUpdate(BaseModel):
     """Request body for updating a workspace member's role."""
 
-    role: str
-
-    @field_validator("role")
-    @classmethod
-    def role_valid(cls, v: str) -> str:
-        return _validate_role(v)
+    role: Role
 
 
 class EmailInviteCreate(BaseModel):
     """Request body for creating an email invite."""
 
     email: EmailStr
-    role: str
-
-    @field_validator("role")
-    @classmethod
-    def role_valid(cls, v: str) -> str:
-        return _validate_role(v)
+    role: Role
 
 
 class LinkInviteCreate(BaseModel):
     """Request body for creating a shareable link invite."""
 
-    role: str
-
-    @field_validator("role")
-    @classmethod
-    def role_valid(cls, v: str) -> str:
-        return _validate_role(v)
+    role: Role
 
 
 class InviteAccept(BaseModel):

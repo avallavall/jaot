@@ -8,8 +8,6 @@ from sqlalchemy.orm import DeclarativeBase, Session
 class Base(DeclarativeBase):
     """Base class for all database models."""
 
-    pass
-
 
 def get_db() -> Generator[Session, None, None]:
     """Dependency for getting database sessions.

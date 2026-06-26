@@ -36,19 +36,12 @@ def validate_overrides(
         # Open schema — any keys permitted
         return None
 
-    if not override_data:
-        # No overrides supplied; check for required fields
-        declared_names = {f["name"] for f in override_schema}
-        required_names = {f["name"] for f in override_schema if f.get("required")}
-        if required_names:
-            missing = sorted(required_names)
-            return f"Missing required override fields: {', '.join(missing)}"
-        return None
-
     declared_names = {f["name"] for f in override_schema}
     required_names = {f["name"] for f in override_schema if f.get("required")}
+    # No override_data is equivalent to an empty set of supplied keys: it can
+    # never have unknown keys, only missing-required ones.
+    supplied_keys = set(override_data.keys()) if override_data else set()
 
-    supplied_keys = set(override_data.keys())
     unknown_keys = supplied_keys - declared_names
     if unknown_keys:
         return f"Unknown override fields: {', '.join(sorted(unknown_keys))}"

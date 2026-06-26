@@ -219,7 +219,7 @@ class OrganizationModel(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
-    catalog_model: Mapped["ModelCatalog | None"] = relationship(
+    catalog_model: Mapped[ModelCatalog | None] = relationship(
         "ModelCatalog", foreign_keys=[catalog_id], lazy="joined"
     )
 
@@ -323,7 +323,7 @@ class ModelExecution(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     # Relationships
-    organization_model: Mapped["OrganizationModel | None"] = relationship(
+    organization_model: Mapped[OrganizationModel | None] = relationship(
         "OrganizationModel", foreign_keys=[organization_model_id], lazy="joined"
     )
 

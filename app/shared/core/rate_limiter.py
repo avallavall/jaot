@@ -237,68 +237,72 @@ def check_rate_limit(
     return _check_memory(organization_id, limit_per_minute, limit_per_day)
 
 
-def _check_memory_hourly(
+def _check_memory_window(
     key: str,
-    limit_per_hour: int,
+    limit: int,
+    window_seconds: int,
+    label: str,
 ) -> tuple[bool, dict[str, Any] | None]:
-    """In-memory sliding window hourly rate limit check."""
+    """In-memory sliding window rate limit check for a single named window."""
     now = time.time()
-    hour_ago = now - 3600
+    window_ago = now - window_seconds
 
     requests = _memory_store[key]
 
-    # Prune entries older than 1 hour
-    requests[:] = [ts for ts in requests if ts > hour_ago]
-    hour_count = len(requests)
+    # Prune entries older than the window
+    requests[:] = [ts for ts in requests if ts > window_ago]
+    window_count = len(requests)
 
-    if hour_count >= limit_per_hour:
-        retry_after = max(1, int(3600 - (now - min(requests, default=now))))
+    if window_count >= limit:
+        retry_after = max(1, int(window_seconds - (now - min(requests, default=now))))
         return False, {
             "error": "rate_limit_exceeded",
-            "message": f"You have exceeded your rate limit of {limit_per_hour} requests/hour",
-            "limit": limit_per_hour,
+            "message": f"You have exceeded your rate limit of {limit} requests/{label}",
+            "limit": limit,
             "remaining": 0,
             "reset_at": int(now) + retry_after,
             "retry_after": retry_after,
         }
 
     requests.append(now)
-    return True, {"hour_limit": limit_per_hour, "hour_remaining": limit_per_hour - hour_count - 1}
+    return True, {f"{label}_limit": limit, f"{label}_remaining": limit - window_count - 1}
 
 
-def _check_redis_hourly(
+def _check_redis_window(
     key: str,
-    limit_per_hour: int,
+    limit: int,
+    window_seconds: int,
+    label: str,
 ) -> tuple[bool, dict[str, Any] | None]:
-    """Redis sliding window hourly rate limit check."""
+    """Redis sliding window rate limit check for a single named window."""
     now = time.time()
     now_str = str(now)
-    hour_ago = now - 3600
+    window_ago = now - window_seconds
 
-    hour_key = f"rl:{key}:hour"
+    window_key = f"rl:{key}:{label}"
 
     try:
         assert _redis_client is not None
         pipe = _redis_client.pipeline()
 
         # Clean old entries
-        pipe.zremrangebyscore(hour_key, "-inf", hour_ago)
+        pipe.zremrangebyscore(window_key, "-inf", window_ago)
         # Count current entries
-        pipe.zcard(hour_key)
+        pipe.zcard(window_key)
 
         results = pipe.execute()
-        hour_count = results[1]
+        window_count = results[1]
 
-        if hour_count >= limit_per_hour:
-            oldest = _redis_client.zrangebyscore(hour_key, hour_ago, "+inf", start=0, num=1)
+        if window_count >= limit:
+            oldest = _redis_client.zrangebyscore(window_key, window_ago, "+inf", start=0, num=1)
             if oldest:
-                retry_after = max(1, int(3600 - (now - float(oldest[0]))))
+                retry_after = max(1, int(window_seconds - (now - float(oldest[0]))))
             else:
-                retry_after = 3600
+                retry_after = window_seconds
             return False, {
                 "error": "rate_limit_exceeded",
-                "message": (f"You have exceeded your rate limit of {limit_per_hour} requests/hour"),
-                "limit": limit_per_hour,
+                "message": f"You have exceeded your rate limit of {limit} requests/{label}",
+                "limit": limit,
                 "remaining": 0,
                 "reset_at": int(now) + retry_after,
                 "retry_after": retry_after,
@@ -307,18 +311,18 @@ def _check_redis_hourly(
         # Record request
         assert _redis_client is not None
         pipe2 = _redis_client.pipeline()
-        pipe2.zadd(hour_key, {now_str: now})
-        pipe2.expire(hour_key, 7200)  # TTL = 2x window
+        pipe2.zadd(window_key, {now_str: now})
+        pipe2.expire(window_key, window_seconds * 2)  # TTL = 2x window
         pipe2.execute()
 
         return True, {
-            "hour_limit": limit_per_hour,
-            "hour_remaining": limit_per_hour - hour_count - 1,
+            f"{label}_limit": limit,
+            f"{label}_remaining": limit - window_count - 1,
         }
 
     except (RedisError, ConnectionError, OSError) as e:
-        logger.warning(f"Redis hourly rate limit check failed, falling back to memory: {e}")
-        return _check_memory_hourly(key, limit_per_hour)
+        logger.warning(f"Redis {label} rate limit check failed, falling back to memory: {e}")
+        return _check_memory_window(key, limit, window_seconds, label)
 
 
 def check_rate_limit_hourly(
@@ -340,8 +344,8 @@ def check_rate_limit_hourly(
     if _is_bypassed():
         return True, None
     if _redis_client and not _fallback_mode:
-        return _check_redis_hourly(key, limit_per_hour)
-    return _check_memory_hourly(key, limit_per_hour)
+        return _check_redis_window(key, limit_per_hour, 3600, "hour")
+    return _check_memory_window(key, limit_per_hour, 3600, "hour")
 
 
 # 15-minute window helper. Sole consumer: POST /api/v2/contact (3/15min per IP — tighter
@@ -349,89 +353,6 @@ def check_rate_limit_hourly(
 
 
 _WINDOW_15MIN_SECONDS = 900
-
-
-def _check_memory_15min(
-    key: str,
-    limit_per_15min: int,
-) -> tuple[bool, dict[str, Any] | None]:
-    """In-memory sliding window 15-minute rate limit check."""
-    now = time.time()
-    window_ago = now - _WINDOW_15MIN_SECONDS
-
-    requests = _memory_store[key]
-
-    requests[:] = [ts for ts in requests if ts > window_ago]
-    window_count = len(requests)
-
-    if window_count >= limit_per_15min:
-        retry_after = max(1, int(_WINDOW_15MIN_SECONDS - (now - min(requests, default=now))))
-        return False, {
-            "error": "rate_limit_exceeded",
-            "message": (f"You have exceeded your rate limit of {limit_per_15min} requests/15min"),
-            "limit": limit_per_15min,
-            "remaining": 0,
-            "reset_at": int(now) + retry_after,
-            "retry_after": retry_after,
-        }
-
-    requests.append(now)
-    return True, {
-        "15min_limit": limit_per_15min,
-        "15min_remaining": limit_per_15min - window_count - 1,
-    }
-
-
-def _check_redis_15min(
-    key: str,
-    limit_per_15min: int,
-) -> tuple[bool, dict[str, Any] | None]:
-    """Redis sliding window 15-minute rate limit check."""
-    now = time.time()
-    now_str = str(now)
-    window_ago = now - _WINDOW_15MIN_SECONDS
-
-    window_key = f"rl:{key}:15min"
-
-    try:
-        assert _redis_client is not None
-        pipe = _redis_client.pipeline()
-        pipe.zremrangebyscore(window_key, "-inf", window_ago)
-        pipe.zcard(window_key)
-        results = pipe.execute()
-        window_count = results[1]
-
-        if window_count >= limit_per_15min:
-            oldest = _redis_client.zrangebyscore(window_key, window_ago, "+inf", start=0, num=1)
-            if oldest:
-                retry_after = max(1, int(_WINDOW_15MIN_SECONDS - (now - float(oldest[0]))))
-            else:
-                retry_after = _WINDOW_15MIN_SECONDS
-            return False, {
-                "error": "rate_limit_exceeded",
-                "message": (
-                    f"You have exceeded your rate limit of {limit_per_15min} requests/15min"
-                ),
-                "limit": limit_per_15min,
-                "remaining": 0,
-                "reset_at": int(now) + retry_after,
-                "retry_after": retry_after,
-            }
-
-        assert _redis_client is not None
-        pipe2 = _redis_client.pipeline()
-        pipe2.zadd(window_key, {now_str: now})
-        pipe2.expire(window_key, _WINDOW_15MIN_SECONDS * 2)
-        pipe2.execute()
-
-        return True, {
-            "15min_limit": limit_per_15min,
-            "15min_remaining": limit_per_15min - window_count - 1,
-        }
-
-    except (RedisError, ConnectionError, OSError) as e:
-        logger.warning(f"Redis 15min rate limit check failed, falling back to memory: {e}")
-        return _check_memory_15min(key, limit_per_15min)
 
 
 def check_rate_limit_15min(
@@ -456,8 +377,8 @@ def check_rate_limit_15min(
     if _is_bypassed():
         return True, None
     if _redis_client and not _fallback_mode:
-        return _check_redis_15min(key, limit_per_15min)
-    return _check_memory_15min(key, limit_per_15min)
+        return _check_redis_window(key, limit_per_15min, _WINDOW_15MIN_SECONDS, "15min")
+    return _check_memory_window(key, limit_per_15min, _WINDOW_15MIN_SECONDS, "15min")
 
 
 def clear(organization_id: str | None = None) -> None:

@@ -785,8 +785,8 @@ class MDPDPGenerator(BaseGenerator):
         }
 
         # Precompute route costs per vehicle (updated after each insertion)
-        route_dist: dict[int, float] = {k: 0.0 for k in range(n_vehicles)}
-        route_drive: dict[int, float] = {k: 0.0 for k in range(n_vehicles)}
+        route_dist: dict[int, float] = dict.fromkeys(range(n_vehicles), 0.0)
+        route_drive: dict[int, float] = dict.fromkeys(range(n_vehicles), 0.0)
 
         def _delta_cost(
             route: list[str],

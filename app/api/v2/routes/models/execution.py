@@ -399,14 +399,14 @@ async def get_async_execution_status(
             "status": "pending",
             "message": "Task is waiting to be processed",
         }
-    elif result.state == "PROGRESS":
+    if result.state == "PROGRESS":
         return {
             "task_id": task_id,
             "execution_id": execution.id,
             "status": "running",
             **result.info,
         }
-    elif result.state == "SUCCESS":
+    if result.state == "SUCCESS":
         celery_result = result.result
 
         if isinstance(celery_result, dict):
@@ -435,19 +435,18 @@ async def get_async_execution_status(
             "execution_time_ms": exec_time,
             "credits_used": credits,
         }
-    elif result.state == "FAILURE":
+    if result.state == "FAILURE":
         return {
             "task_id": task_id,
             "execution_id": execution.id,
             "status": "failed",
             "error": str(result.result),
         }
-    else:
-        return {
-            "task_id": task_id,
-            "execution_id": execution.id,
-            "status": result.state.lower(),
-        }
+    return {
+        "task_id": task_id,
+        "execution_id": execution.id,
+        "status": result.state.lower(),
+    }
 
 
 @router.post("/async/{task_id}/cancel")

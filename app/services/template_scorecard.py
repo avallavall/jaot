@@ -286,9 +286,7 @@ def _estimate_solvability(data: dict[str, Any]) -> int:
     issues = 0
 
     for v in data.values():
-        if isinstance(v, list) and len(v) == 0:
-            issues += 1
-        elif isinstance(v, dict) and len(v) == 0:
+        if isinstance(v, list) and len(v) == 0 or isinstance(v, dict) and len(v) == 0:
             issues += 1
 
     if issues == 0:

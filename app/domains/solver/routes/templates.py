@@ -241,7 +241,7 @@ async def solve_with_template(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to process input: {str(e)}",
+            detail=f"Failed to process input: {e!s}",
         ) from e
 
     # Resolve the solver (query param; templates carry no body solver field).

@@ -79,21 +79,20 @@ def rate_conversation(
         db.commit()
         db.refresh(existing)
         return existing
-    else:
-        new_rating = FormulationRating(
-            id=generate_id("frt_"),
-            conversation_id=conversation_id,
-            user_id=user.id,
-            organization_id=org.id,
-            rating=body.rating,
-            comment=body.comment,
-            zone=body.zone,
-            formulation_snapshot=body.formulation_snapshot,
-        )
-        db.add(new_rating)
-        db.commit()
-        db.refresh(new_rating)
-        return new_rating
+    new_rating = FormulationRating(
+        id=generate_id("frt_"),
+        conversation_id=conversation_id,
+        user_id=user.id,
+        organization_id=org.id,
+        rating=body.rating,
+        comment=body.comment,
+        zone=body.zone,
+        formulation_snapshot=body.formulation_snapshot,
+    )
+    db.add(new_rating)
+    db.commit()
+    db.refresh(new_rating)
+    return new_rating
 
 
 @router.get(
