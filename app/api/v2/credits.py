@@ -88,6 +88,24 @@ class WithdrawalResponse(BaseModel):
     failure_reason: str | None
     transaction_reference: str | None
 
+    @classmethod
+    def from_orm_withdrawal(cls, w: Any) -> "WithdrawalResponse":
+        """Build from a Withdrawal ORM object (datetimes rendered as ISO strings)."""
+        return cls(
+            id=w.id,
+            withdrawal_type=w.withdrawal_type,
+            credits_amount=w.credits_amount,
+            eur_amount=w.eur_amount,
+            target_currency=w.target_currency,
+            exchange_rate=w.exchange_rate,
+            local_amount=w.local_amount,
+            status=w.status,
+            created_at=w.created_at.isoformat(),
+            processed_at=w.processed_at.isoformat() if w.processed_at else None,
+            failure_reason=w.failure_reason,
+            transaction_reference=w.transaction_reference,
+        )
+
 
 class ScheduleRequest(BaseModel):
     frequency: str = Field(..., description="weekly, biweekly, monthly, quarterly")
@@ -105,6 +123,20 @@ class ScheduleResponse(BaseModel):
     next_execution: str
     is_active: bool
     created_at: str
+
+    @classmethod
+    def from_orm_schedule(cls, s: Any) -> "ScheduleResponse":
+        """Build from a WithdrawalSchedule ORM object (datetimes rendered as ISO strings)."""
+        return cls(
+            id=s.id,
+            frequency=s.frequency,
+            amount_type=s.amount_type,
+            amount_value=s.amount_value,
+            min_threshold=s.min_threshold,
+            next_execution=s.next_execution.isoformat(),
+            is_active=s.is_active,
+            created_at=s.created_at.isoformat(),
+        )
 
 
 class CurrencyRequest(BaseModel):
@@ -293,20 +325,7 @@ async def create_withdrawal(
     except Exception:
         logger.debug("Failed to log analytics event", exc_info=True)
 
-    return WithdrawalResponse(
-        id=withdrawal.id,
-        withdrawal_type=withdrawal.withdrawal_type,
-        credits_amount=withdrawal.credits_amount,
-        eur_amount=withdrawal.eur_amount,
-        target_currency=withdrawal.target_currency,
-        exchange_rate=withdrawal.exchange_rate,
-        local_amount=withdrawal.local_amount,
-        status=withdrawal.status,
-        created_at=withdrawal.created_at.isoformat(),
-        processed_at=withdrawal.processed_at.isoformat() if withdrawal.processed_at else None,
-        failure_reason=withdrawal.failure_reason,
-        transaction_reference=withdrawal.transaction_reference,
-    )
+    return WithdrawalResponse.from_orm_withdrawal(withdrawal)
 
 
 @router.get(
@@ -331,23 +350,7 @@ async def get_withdrawals(
         offset=offset,
     )
 
-    return [
-        WithdrawalResponse(
-            id=w.id,
-            withdrawal_type=w.withdrawal_type,
-            credits_amount=w.credits_amount,
-            eur_amount=w.eur_amount,
-            target_currency=w.target_currency,
-            exchange_rate=w.exchange_rate,
-            local_amount=w.local_amount,
-            status=w.status,
-            created_at=w.created_at.isoformat(),
-            processed_at=w.processed_at.isoformat() if w.processed_at else None,
-            failure_reason=w.failure_reason,
-            transaction_reference=w.transaction_reference,
-        )
-        for w in withdrawals
-    ]
+    return [WithdrawalResponse.from_orm_withdrawal(w) for w in withdrawals]
 
 
 @router.post(
@@ -381,16 +384,7 @@ async def create_withdrawal_schedule(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
-    return ScheduleResponse(
-        id=schedule.id,
-        frequency=schedule.frequency,
-        amount_type=schedule.amount_type,
-        amount_value=schedule.amount_value,
-        min_threshold=schedule.min_threshold,
-        next_execution=schedule.next_execution.isoformat(),
-        is_active=schedule.is_active,
-        created_at=schedule.created_at.isoformat(),
-    )
+    return ScheduleResponse.from_orm_schedule(schedule)
 
 
 @router.get(
@@ -411,19 +405,7 @@ async def get_withdrawal_schedules(
         .all()
     )
 
-    return [
-        ScheduleResponse(
-            id=s.id,
-            frequency=s.frequency,
-            amount_type=s.amount_type,
-            amount_value=s.amount_value,
-            min_threshold=s.min_threshold,
-            next_execution=s.next_execution.isoformat(),
-            is_active=s.is_active,
-            created_at=s.created_at.isoformat(),
-        )
-        for s in schedules
-    ]
+    return [ScheduleResponse.from_orm_schedule(s) for s in schedules]
 
 
 @router.delete(
