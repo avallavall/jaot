@@ -50,6 +50,14 @@ cp .env.example .env   # includes first-run admin credentials — change the pas
 docker compose up -d   # migrates, seeds the catalog, creates your admin on first boot
 ```
 
+Then check what still needs configuring (SMTP, AI key…):
+
+```bash
+docker compose exec api python scripts/doctor.py
+```
+
+See [Configuration](docs/getting-started/configuration.md) for the full guide.
+
 Open http://localhost:3000 and log in with your `SEED_ADMIN_*` credentials — or
 mint an API key and solve over HTTP:
 
@@ -102,6 +110,7 @@ import-linter contracts. Adding a solver means writing one adapter — see
 | Doc | Description |
 |---|---|
 | [Quickstart](docs/getting-started/QUICKSTART.md) | From zero to first solve |
+| [Configuration](docs/getting-started/configuration.md) | Self-hosting config: `.env` vs admin panel, + the config doctor |
 | [Architecture](docs/ARCHITECTURE/OVERVIEW.md) | System design, components, data model |
 | [Contributing](CONTRIBUTING.md) | Dev setup and conventions |
 | [Testing & Quality](docs/TESTING.md) | Test strategy, coverage, mutation scores |
