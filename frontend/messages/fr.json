@@ -419,6 +419,23 @@
       "builtWithAi": "Construit avec l'IA",
       "fromMarketplace": "Depuis le Marketplace"
     },
+    "solutionExplainer": {
+      "eyebrow": "Analyse de la solution",
+      "title": "Comprenez votre solution",
+      "subtitle": "Ne vous contentez pas de résoudre : comprenez. Chaque résultat est accompagné de son raisonnement.",
+      "sensitivity": {
+        "title": "Prix duals et contraintes actives",
+        "description": "Voyez quelles contraintes limitent réellement l'optimum et combien chacune rapporterait si elle était relâchée."
+      },
+      "reducedCosts": {
+        "title": "Coûts réduits des variables",
+        "description": "Sachez quelles décisions sont bloquées à leurs bornes : exact pour LP, approximatif pour MIP."
+      },
+      "aiExplain": {
+        "title": "Explication par IA en un clic",
+        "description": "Transformez prix duals et coûts réduits en langage clair, fondé uniquement sur vos chiffres réels."
+      }
+    },
     "features": {
       "title": "Quatre piliers de l'optimisation",
       "subtitle": "Tout ce dont tu as besoin pour construire, utiliser, partager et automatiser l'optimisation.",

@@ -419,6 +419,23 @@
       "builtWithAi": "Creado con IA",
       "fromMarketplace": "Desde el Marketplace"
     },
+    "solutionExplainer": {
+      "eyebrow": "Análisis de la solución",
+      "title": "Entiende tu solución",
+      "subtitle": "No solo resuelvas: entiende. Cada resultado viene con el razonamiento detrás.",
+      "sensitivity": {
+        "title": "Precios sombra y restricciones activas",
+        "description": "Descubre qué restricciones limitan realmente el óptimo y cuánto ganarías relajando cada una."
+      },
+      "reducedCosts": {
+        "title": "Costes reducidos de variables",
+        "description": "Sabe qué decisiones están fijadas en sus límites: exacto para LP, aproximado para MIP."
+      },
+      "aiExplain": {
+        "title": "Explicación con IA en un clic",
+        "description": "Convierte precios sombra y costes reducidos en lenguaje claro, basado solo en tus cifras reales."
+      }
+    },
     "features": {
       "title": "Cuatro pilares de la optimización",
       "subtitle": "Todo lo que necesitas para crear, usar, compartir y automatizar la optimización.",

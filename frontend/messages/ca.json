@@ -419,6 +419,23 @@
       "builtWithAi": "Creat amb IA",
       "fromMarketplace": "Des del Marketplace"
     },
+    "solutionExplainer": {
+      "eyebrow": "Anàlisi de la solució",
+      "title": "Entén la teva solució",
+      "subtitle": "No només resolguis: entén. Cada resultat ve amb el raonament al darrere.",
+      "sensitivity": {
+        "title": "Preus ombra i restriccions actives",
+        "description": "Descobreix quines restriccions limiten realment l'òptim i quant guanyaries relaxant-ne cadascuna."
+      },
+      "reducedCosts": {
+        "title": "Costos reduïts de variables",
+        "description": "Sàpigues quines decisions estan fixades als seus límits: exacte per a LP, aproximat per a MIP."
+      },
+      "aiExplain": {
+        "title": "Explicació amb IA en un clic",
+        "description": "Converteix preus ombra i costos reduïts en llenguatge clar, basat només en les teves xifres reals."
+      }
+    },
     "features": {
       "title": "Quatre pilars de l'optimització",
       "subtitle": "Tot el que necessites per crear, usar, compartir i automatitzar l'optimització.",

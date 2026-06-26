@@ -419,6 +419,23 @@
       "builtWithAi": "Mit KI erstellt",
       "fromMarketplace": "Vom Marktplatz"
     },
+    "solutionExplainer": {
+      "eyebrow": "Lösungsanalyse",
+      "title": "Verstehe deine Lösung",
+      "subtitle": "Nicht nur lösen — verstehen. Jedes Ergebnis kommt mit der Begründung dahinter.",
+      "sensitivity": {
+        "title": "Schattenpreise & bindende Nebenbedingungen",
+        "description": "Sieh, welche Nebenbedingungen das Optimum wirklich begrenzen und wie viel jede bei Lockerung bringen würde."
+      },
+      "reducedCosts": {
+        "title": "Reduzierte Kosten der Variablen",
+        "description": "Erkenne, welche Entscheidungen an ihren Grenzen festsitzen — exakt für LP, näherungsweise für MIP."
+      },
+      "aiExplain": {
+        "title": "KI-Erklärung mit einem Klick",
+        "description": "Verwandle Schattenpreise und reduzierte Kosten in klare Sprache, ausschließlich auf Basis deiner echten Zahlen."
+      }
+    },
     "features": {
       "title": "Vier Säulen der Optimierung",
       "subtitle": "Alles, was du zum Erstellen, Nutzen, Teilen und Automatisieren von Optimierung brauchst.",
