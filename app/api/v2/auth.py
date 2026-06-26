@@ -323,7 +323,11 @@ async def signup_email(
     Returns JWT cookies, API key, and user info.
     """
     client_ip = get_client_ip(request)
-    _rate_limit_or_raise(f"signup_ip:{client_ip}", limit_per_minute=10, limit_per_day=50)
+    _rate_limit_or_raise(
+        f"signup_ip:{client_ip}",
+        PSS.get_int(db, "AUTH_SIGNUP_RATE_LIMIT_PER_MINUTE"),
+        PSS.get_int(db, "AUTH_SIGNUP_RATE_LIMIT_PER_DAY"),
+    )
 
     if not PSS.get_bool(db, "REGISTRATION_ENABLED"):
         raise HTTPException(
@@ -489,7 +493,11 @@ async def signup_email(
 @router.post("/verify-email")
 async def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
     """Verify user email with a token."""
-    _rate_limit_or_raise(f"verify_email:{body.token[:16]}", limit_per_minute=20, limit_per_day=100)
+    _rate_limit_or_raise(
+        f"verify_email:{body.token[:16]}",
+        PSS.get_int(db, "AUTH_VERIFY_EMAIL_RATE_LIMIT_PER_MINUTE"),
+        PSS.get_int(db, "AUTH_VERIFY_EMAIL_RATE_LIMIT_PER_DAY"),
+    )
 
     import jwt as pyjwt
 
@@ -537,7 +545,7 @@ async def forgot_password(
     # Rate limit by email: 3 per hour
     allowed, rate_info = check_rate_limit_hourly(
         f"reset:{body.email}",
-        limit_per_hour=3,
+        limit_per_hour=PSS.get_int(db, "AUTH_PASSWORD_RESET_RATE_LIMIT_PER_HOUR"),
     )
     if not allowed:
         raise HTTPException(status_code=429, detail=rate_info)
@@ -580,7 +588,9 @@ async def reset_password(
 ) -> dict[str, Any]:
     """Reset password using a token."""
     _rate_limit_or_raise(
-        f"reset_password:{body.token[:16]}", limit_per_minute=20, limit_per_day=100
+        f"reset_password:{body.token[:16]}",
+        PSS.get_int(db, "AUTH_RESET_TOKEN_RATE_LIMIT_PER_MINUTE"),
+        PSS.get_int(db, "AUTH_RESET_TOKEN_RATE_LIMIT_PER_DAY"),
     )
 
     import jwt as pyjwt
@@ -784,7 +794,11 @@ async def signup(
     This is a public endpoint - no authentication required.
     """
     client_ip = get_client_ip(raw_request)
-    _rate_limit_or_raise(f"signup_ip:{client_ip}", limit_per_minute=10, limit_per_day=50)
+    _rate_limit_or_raise(
+        f"signup_ip:{client_ip}",
+        PSS.get_int(db, "AUTH_SIGNUP_RATE_LIMIT_PER_MINUTE"),
+        PSS.get_int(db, "AUTH_SIGNUP_RATE_LIMIT_PER_DAY"),
+    )
 
     if not PSS.get_bool(db, "REGISTRATION_ENABLED"):
         raise HTTPException(
