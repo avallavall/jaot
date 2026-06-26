@@ -155,9 +155,13 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)) -> LoginRe
 
     Used by frontend to validate credentials and get initial state.
     """
-    # Rate limit login by API key prefix to prevent brute force
+    # Rate limit login by API key prefix to prevent brute force (limits configurable in admin settings)
     key_prefix = request.api_key[:12] if len(request.api_key) >= 12 else request.api_key
-    _rate_limit_or_raise(f"login:{key_prefix}", limit_per_minute=30, limit_per_day=300)
+    _rate_limit_or_raise(
+        f"login:{key_prefix}",
+        PSS.get_int(db, "AUTH_LOGIN_RATE_LIMIT_PER_MINUTE"),
+        PSS.get_int(db, "AUTH_LOGIN_RATE_LIMIT_PER_DAY"),
+    )
 
     # Verify API key using the service
     result = APIKeyService.verify_key(db, request.api_key)
@@ -201,9 +205,13 @@ async def login_email(
 
     Returns JWT access/refresh cookies and user info.
     """
-    # Rate limit by IP: 5 per minute, 100 per day
+    # Rate limit login by IP to prevent brute force (limits configurable in admin settings)
     client_ip = get_client_ip(request)
-    _rate_limit_or_raise(f"login_ip:{client_ip}", limit_per_minute=30, limit_per_day=300)
+    _rate_limit_or_raise(
+        f"login_ip:{client_ip}",
+        PSS.get_int(db, "AUTH_LOGIN_RATE_LIMIT_PER_MINUTE"),
+        PSS.get_int(db, "AUTH_LOGIN_RATE_LIMIT_PER_DAY"),
+    )
 
     user = db.query(User).filter(User.email == body.email).first()
 

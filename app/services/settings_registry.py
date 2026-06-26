@@ -524,6 +524,30 @@ SETTINGS_REGISTRY.extend(
             max_value=172800,
             unit="seconds",
         ),
+        SettingDefinition(
+            key="AUTH_LOGIN_RATE_LIMIT_PER_MINUTE",
+            label="Login Rate Limit per Minute",
+            description=(
+                "Max login attempts per minute (per IP and per API-key prefix) before "
+                "a 429. Lower = stronger brute-force protection; higher = fewer false "
+                "positives for shared IPs."
+            ),
+            category=SettingCategory.SECURITY,
+            setting_type=SettingType.INT,
+            default_value="30",
+            min_value=1,
+            max_value=1000,
+        ),
+        SettingDefinition(
+            key="AUTH_LOGIN_RATE_LIMIT_PER_DAY",
+            label="Login Rate Limit per Day",
+            description="Max login attempts per day (per IP and per API-key prefix) before a 429.",
+            category=SettingCategory.SECURITY,
+            setting_type=SettingType.INT,
+            default_value="300",
+            min_value=1,
+            max_value=100000,
+        ),
     ]
 )
 

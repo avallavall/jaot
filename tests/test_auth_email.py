@@ -16,6 +16,7 @@ from app.config import settings
 from app.models import Organization, RefreshToken, User
 from app.services.auth import JWTService, PasswordService
 from app.services.auth.password_service import DUMMY_HASH
+from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.shared.core.rate_limiter import check_rate_limit_hourly, clear
 from app.shared.utils.datetime_helpers import utcnow
 
@@ -771,7 +772,9 @@ class TestRateLimiting:
     """Tests for login and password reset rate limiting."""
 
     def test_login_rate_limited_at_5_per_minute(self, client, db_session, real_rate_limiter):
-        """Login should be rate-limited at 5/min per IP."""
+        """Login should be rate-limited at 5/min per IP (limit set via platform settings)."""
+        PSS.set(db_session, "AUTH_LOGIN_RATE_LIMIT_PER_MINUTE", "5")
+        db_session.commit()
         # Make 5 requests (all fail with 401, but count for rate limiting)
         for i in range(5):
             client.post(

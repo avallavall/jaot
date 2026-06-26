@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.shared.core import rate_limiter as rl_module
 from app.shared.core.rate_limiter import (
     check_rate_limit,
@@ -145,8 +146,11 @@ def test_template_solve_endpoint_enforces_rate_limit(
     assert 429 in statuses, f"Expected at least one 429, got: {statuses}"
 
 
-def test_login_endpoint_enforces_rate_limit(client):
+def test_login_endpoint_enforces_rate_limit(client, db_session):
     """Hit login with wrong creds until 429."""
+    # Drive the configurable login limit low so 12 attempts trip it deterministically.
+    PSS.set(db_session, "AUTH_LOGIN_RATE_LIMIT_PER_MINUTE", "5")
+    db_session.commit()
     clear()
 
     statuses = []
