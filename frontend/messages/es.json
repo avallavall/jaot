@@ -745,10 +745,11 @@
           "description": "Obtener la solución optimizada programáticamente"
         }
       },
-      "toolsTitle": "12 herramientas especializadas",
+      "toolsTitle": "17 herramientas especializadas",
       "tools": {
         "problemSolving": "Resolución de problemas",
         "templates": "Plantillas",
+        "fileIO": "Importación de archivos",
         "marketplace": "Marketplace",
         "execution": "Ejecución",
         "account": "Cuenta"

@@ -745,10 +745,11 @@
           "description": "Obtiens la solution optimisée de manière programmatique"
         }
       },
-      "toolsTitle": "12 Outils Sélectionnés",
+      "toolsTitle": "17 Outils Sélectionnés",
       "tools": {
         "problemSolving": "Résolution de Problèmes",
         "templates": "Modèles",
+        "fileIO": "Import de fichiers",
         "marketplace": "Marketplace",
         "execution": "Exécution",
         "account": "Compte"

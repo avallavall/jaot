@@ -745,10 +745,11 @@
           "description": "Obtenir la solució optimitzada programàticament"
         }
       },
-      "toolsTitle": "12 eines especialitzades",
+      "toolsTitle": "17 eines especialitzades",
       "tools": {
         "problemSolving": "Resolucio de problemes",
         "templates": "Plantilles",
+        "fileIO": "Importació de fitxers",
         "marketplace": "Marketplace",
         "execution": "Execucio",
         "account": "Compte"

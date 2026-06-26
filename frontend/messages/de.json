@@ -745,10 +745,11 @@
           "description": "Optimierte Lösung programmatisch abrufen"
         }
       },
-      "toolsTitle": "12 kuratierte Tools",
+      "toolsTitle": "17 kuratierte Tools",
       "tools": {
         "problemSolving": "ProblemLösung",
         "templates": "Vorlagen",
+        "fileIO": "Datei-Import",
         "marketplace": "Marktplatz",
         "execution": "Ausführung",
         "account": "Konto"

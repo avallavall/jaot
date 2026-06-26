@@ -491,10 +491,11 @@
           "description": "Get optimized solution programmatically"
         }
       },
-      "toolsTitle": "12 Curated Tools",
+      "toolsTitle": "17 Curated Tools",
       "tools": {
         "problemSolving": "Problem Solving",
         "templates": "Templates",
+        "fileIO": "File Import",
         "marketplace": "Marketplace",
         "execution": "Execution",
         "account": "Account"

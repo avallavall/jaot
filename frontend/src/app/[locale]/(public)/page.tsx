@@ -110,11 +110,15 @@ const SOLUTION_EXPLAINER_KEYS = [
 const HOW_IT_WORKS_KEYS = ["step1", "step2", "step3"] as const;
 
 const MCP_TOOL_GROUPS = [
-  { key: "problemSolving", tools: ["solve_problem", "validate_problem"] },
+  {
+    key: "problemSolving",
+    tools: ["solve_problem", "validate_problem", "solve_multi_objective", "list_available_solvers"],
+  },
   {
     key: "templates",
     tools: ["list_templates", "get_template", "solve_with_template"],
   },
+  { key: "fileIO", tools: ["import_preview", "import_and_solve"] },
   {
     key: "marketplace",
     tools: [
@@ -124,7 +128,7 @@ const MCP_TOOL_GROUPS = [
       "activate_catalog_model",
     ],
   },
-  { key: "execution", tools: ["execute_model", "get_execution"] },
+  { key: "execution", tools: ["execute_model", "get_execution", "get_execution_insights"] },
   { key: "account", tools: ["get_credit_balance"] },
 ] as const;
 
