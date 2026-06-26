@@ -88,7 +88,7 @@ Shared database with `organization_id` column scoping. Every query filtered by `
 
 ## Solver
 
-Solver-agnostic abstraction via **SolverAdapter Protocol** (shipped Phase 4, v2.2). Currently ships SCIP (via PySCIPOpt) and HiGHS (via highspy), plus an optional Hexaly adapter (proprietary SDK, bring-your-own-license); further adapters are tracked in the [project roadmap](../../ROADMAP.md).
+Solver-agnostic abstraction via **SolverAdapter Protocol** (shipped Phase 4, v2.2). Currently ships SCIP (via PySCIPOpt) and HiGHS (via highspy), plus an optional Hexaly adapter (proprietary SDK, bring-your-own-license). New solvers are added by implementing a single adapter behind the protocol.
 
 Architecture (`app/domains/solver/`):
 - **`adapters/base.py`** — `SolverAdapter` Protocol (`solve`, `is_available`, `validate_license`), `SolverCapabilities` frozen dataclass (9 fields), exception hierarchy (`SolverError`, `SolverNotFoundError`, `SolverUnavailableError`), `MultiObjectiveSolverAdapter` extension

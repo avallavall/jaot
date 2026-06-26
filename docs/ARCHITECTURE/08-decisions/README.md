@@ -6,7 +6,7 @@
 
 | ID | Title | Date | Location |
 |----|--------|-------|-----------|
-| **ADR-001** | Modular monolith · feature-led extraction · Solver first | 2026-04-08 | [project roadmap](../../../ROADMAP.md) |
+| **ADR-001** | Modular monolith · feature-led extraction · Solver first | 2026-04-08 | Foundational |
 | **ADR-002** | Solver adapter pattern with `typing.Protocol` (not ABC) | 2026-04-13 | Phase 04 decisions |
 | **ADR-003** | Local RAG with sentence-transformers + Qdrant (CPU, 384 dims) | 2026-02-xx | Pillar-1 RAG research |
 | **ADR-004** | Dynamic queue routing in the producer (no static `task_routes`) | 2026-04-17 | Phase 06 decisions D-01..D-03 |

@@ -3,7 +3,7 @@
 > Complete visual map of the system. Mermaid diagrams versioned in git, rendered natively on GitHub and in most markdown editors. Each file covers **one specific focus** to avoid overloading the view.
 
 **Last updated:** 2026-04-18
-**Source of truth for decisions:** [project roadmap](../../ROADMAP.md)
+**Source of truth for decisions:** [Architecture Decision Records](./08-decisions/README.md)
 **Bounded contexts index:** [`docs/BOUNDED_CONTEXTS.md`](../BOUNDED_CONTEXTS.md)
 **Identified technical debt:** [`TECH_DEBT.md`](./TECH_DEBT.md)
 

@@ -87,6 +87,6 @@ flowchart TB
 
 ## Scope
 
-- **1 active milestone** in `ROADMAP.md` — multi-solver (Phase 6 complete in code).
+- **Active focus:** multi-solver (Phase 6 complete in code).
 - **Deploy target:** a single self-hosted Linux server. There is no AWS/GCP plan.
 - **Current scale:** early-stage, a single server. Per-solver Celery workers allow scaling components independently if needed.

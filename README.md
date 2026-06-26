@@ -103,7 +103,6 @@ import-linter contracts. Adding a solver means writing one adapter — see
 |---|---|
 | [Quickstart](docs/getting-started/QUICKSTART.md) | From zero to first solve |
 | [Architecture](docs/ARCHITECTURE/OVERVIEW.md) | System design, components, data model |
-| [Roadmap](ROADMAP.md) | What's shipped, what's next, where to help |
 | [Contributing](CONTRIBUTING.md) | Dev setup and conventions |
 | [Testing & Quality](docs/TESTING.md) | Test strategy, coverage, mutation scores |
 | [Disaster Recovery](deploy/DISASTER-RECOVERY.md) | Incident response runbook |
