@@ -56,7 +56,7 @@
     "mostPopular": "Més popular",
     "poweredByScip": "Powered by SCIP",
     "readyToOptimize": "Preparat per optimitzar?",
-    "startFreeCredits": "Comença amb 20.000 crèdits gratuïts. Sense targeta de crèdit.",
+    "startFreeCredits": "Comença gratis. Codi obert, sense límits artificials.",
     "jaot": "JAOT",
     "optimizationAsAService": "Optimització com a servei",
     "sidebar": {
@@ -369,7 +369,7 @@
         "item1": "Aprèn optimització amb construcció de models assistida per IA",
         "item2": "Plantilles educatives des de LP fins a MIP",
         "item3": "Comença simple i avança cap a models complexos",
-        "item4": "Pla gratuït amb 20.000 crèdits — sense targeta de crèdit",
+        "item4": "Gratis i de codi obert, ideal per aprendre",
         "cta": "Prova gratuïtament"
       },
       "sellers": {
@@ -519,9 +519,9 @@
       }
     },
     "cta": {
-      "title": "Preparat per optimitzar?",
-      "subtitle": "Comença amb 20.000 crèdits gratuïts. Sense targeta de crèdit.",
-      "button": "Comença gratuïtament"
+      "title": "Comença a optimitzar",
+      "subtitle": "Gratuït i de codi obert. Crea un compte i resol el teu primer model en minuts — o autoallotja la plataforma tu mateix.",
+      "button": "Crear compte"
     },
     "footer": {
       "product": "Producte",

@@ -56,7 +56,7 @@
     "mostPopular": "Am beliebtesten",
     "poweredByScip": "Angetrieben von SCIP",
     "readyToOptimize": "Bereit zur Optimierung?",
-    "startFreeCredits": "Starten Sie mit 20.000 Kostenlosen Credits. Keine Kreditkarte erforderlich.",
+    "startFreeCredits": "Kostenlos starten. Open Source, ohne künstliche Grenzen.",
     "jaot": "JAOT",
     "optimizationAsAService": "Optimierung als Service",
     "sidebar": {
@@ -369,7 +369,7 @@
         "item1": "Lerne Optimierung mit KI-gestütztem Modellbau",
         "item2": "Lehrvorlagen von LP bis MIP",
         "item3": "Einfach beginnen und zu komplexen Modellen wachsen",
-        "item4": "Kostenlos mit 20.000 Credits starten -- keine Kreditkarte erforderlich",
+        "item4": "Kostenlos und Open Source — ideal zum Lernen",
         "cta": "Kostenlos testen"
       },
       "sellers": {
@@ -519,9 +519,9 @@
       }
     },
     "cta": {
-      "title": "Bereit zur Optimierung?",
-      "subtitle": "Starten Sie mit 20.000 Kostenlosen Credits. Keine Kreditkarte erforderlich.",
-      "button": "Kostenlos starten"
+      "title": "Jetzt optimieren",
+      "subtitle": "Kostenlos und quelloffen. Erstellen Sie ein Konto und lösen Sie Ihr erstes Modell in Minuten — oder hosten Sie die Plattform selbst.",
+      "button": "Konto erstellen"
     },
     "footer": {
       "product": "Produkt",

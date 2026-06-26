@@ -56,7 +56,7 @@
     "mostPopular": "Más popular",
     "poweredByScip": "Powered by SCIP",
     "readyToOptimize": "¿Listo para optimizar?",
-    "startFreeCredits": "Empieza con 20.000 créditos gratis. Sin tarjeta de crédito.",
+    "startFreeCredits": "Empieza gratis. Open source, sin límites artificiales.",
     "jaot": "JAOT",
     "optimizationAsAService": "Optimización como servicio",
     "sidebar": {
@@ -369,7 +369,7 @@
         "item1": "Aprende optimización con construcción de modelos asistida por IA",
         "item2": "Plantillas educativas desde LP hasta MIP",
         "item3": "Empieza simple y avanza hacia modelos complejos",
-        "item4": "Plan gratuito con 20.000 créditos — sin tarjeta de crédito",
+        "item4": "Gratis y de código abierto, ideal para aprender",
         "cta": "Prueba gratis"
       },
       "sellers": {
@@ -519,9 +519,9 @@
       }
     },
     "cta": {
-      "title": "¿Listo para optimizar?",
-      "subtitle": "Empieza con 20.000 créditos gratis. Sin tarjeta de crédito.",
-      "button": "Empieza gratis"
+      "title": "Empieza a optimizar",
+      "subtitle": "Gratis y de código abierto. Crea una cuenta y resuelve tu primer modelo en minutos — o autoaloja la plataforma tú mismo.",
+      "button": "Crear cuenta"
     },
     "footer": {
       "product": "Producto",
