@@ -401,6 +401,84 @@ export default async function HomePage() {
         </Reveal>
       </section>
 
+      {/* ── MCP showcase ───────────────────────────────────────────────── */}
+      <section className="mx-auto max-w-6xl px-6 py-24">
+        <Reveal>
+          <SectionHeading title={t("mcp.title")} subtitle={t("mcp.subtitle")} />
+        </Reveal>
+        <div className="mt-14 grid grid-cols-1 gap-12 lg:grid-cols-2">
+          <div className="space-y-6">
+            {(["discover", "authenticate", "solve", "results"] as const).map(
+              (step, idx) => (
+                <Reveal key={step} delay={idx * 70}>
+                  <div className="flex gap-4">
+                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                      {idx + 1}
+                    </div>
+                    <div>
+                      <h3 className="mb-1 font-semibold">
+                        {t(`mcp.workflow.${step}.title`)}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {t(`mcp.workflow.${step}.description`)}
+                      </p>
+                    </div>
+                  </div>
+                </Reveal>
+              ),
+            )}
+          </div>
+
+          <Reveal delay={120}>
+            <Card className="overflow-hidden border-border shadow-warm-md">
+              <div className="flex items-center gap-2 border-b border-border bg-muted/50 px-4 py-2.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#E8A088]" />
+                <span className="h-2.5 w-2.5 rounded-full bg-[#8AA499]" />
+                <span className="h-2.5 w-2.5 rounded-full bg-[#9B8E88]" />
+                <span className="ml-3 font-mono text-xs text-muted-foreground">
+                  {t("mcp.toolsTitle")}
+                </span>
+              </div>
+              <CardContent className="space-y-4 p-6">
+                {MCP_TOOL_GROUPS.map((group) => (
+                  <div key={group.key}>
+                    <p className="mb-1 text-sm font-medium text-foreground">
+                      {t(`mcp.tools.${group.key}`)}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {group.tools.map((tool) => (
+                        <Badge
+                          key={tool}
+                          variant="secondary"
+                          className="font-mono text-xs font-normal"
+                        >
+                          {tool}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </Reveal>
+        </div>
+
+        <div className="mt-12 text-center">
+          <Badge variant="outline" className="mb-6 px-4 py-1.5 text-sm font-normal">
+            {t("mcp.agentBadge")}
+          </Badge>
+          <div className="mt-4">
+            <Link href="/docs/mcp/overview">
+              <Button variant="outline" size="lg" className="gap-2">
+                <Bot className="h-4 w-4" />
+                {t("mcp.cta")}
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* ── Audience ───────────────────────────────────────────────────── */}
       <section className="border-y border-border bg-muted/30 py-24">
         <div className="mx-auto max-w-6xl px-6">
@@ -523,84 +601,6 @@ export default async function HomePage() {
               </Reveal>
             );
           })}
-        </div>
-      </section>
-
-      {/* ── MCP showcase ───────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-6 py-24">
-        <Reveal>
-          <SectionHeading title={t("mcp.title")} subtitle={t("mcp.subtitle")} />
-        </Reveal>
-        <div className="mt-14 grid grid-cols-1 gap-12 lg:grid-cols-2">
-          <div className="space-y-6">
-            {(["discover", "authenticate", "solve", "results"] as const).map(
-              (step, idx) => (
-                <Reveal key={step} delay={idx * 70}>
-                  <div className="flex gap-4">
-                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-                      {idx + 1}
-                    </div>
-                    <div>
-                      <h3 className="mb-1 font-semibold">
-                        {t(`mcp.workflow.${step}.title`)}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {t(`mcp.workflow.${step}.description`)}
-                      </p>
-                    </div>
-                  </div>
-                </Reveal>
-              ),
-            )}
-          </div>
-
-          <Reveal delay={120}>
-            <Card className="overflow-hidden border-border shadow-warm-md">
-              <div className="flex items-center gap-2 border-b border-border bg-muted/50 px-4 py-2.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#E8A088]" />
-                <span className="h-2.5 w-2.5 rounded-full bg-[#8AA499]" />
-                <span className="h-2.5 w-2.5 rounded-full bg-[#9B8E88]" />
-                <span className="ml-3 font-mono text-xs text-muted-foreground">
-                  {t("mcp.toolsTitle")}
-                </span>
-              </div>
-              <CardContent className="space-y-4 p-6">
-                {MCP_TOOL_GROUPS.map((group) => (
-                  <div key={group.key}>
-                    <p className="mb-1 text-sm font-medium text-foreground">
-                      {t(`mcp.tools.${group.key}`)}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {group.tools.map((tool) => (
-                        <Badge
-                          key={tool}
-                          variant="secondary"
-                          className="font-mono text-xs font-normal"
-                        >
-                          {tool}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </Reveal>
-        </div>
-
-        <div className="mt-12 text-center">
-          <Badge variant="outline" className="mb-6 px-4 py-1.5 text-sm font-normal">
-            {t("mcp.agentBadge")}
-          </Badge>
-          <div className="mt-4">
-            <Link href="/docs/mcp/overview">
-              <Button variant="outline" size="lg" className="gap-2">
-                <Bot className="h-4 w-4" />
-                {t("mcp.cta")}
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
         </div>
       </section>
 
