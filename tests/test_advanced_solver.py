@@ -221,6 +221,50 @@ class TestSolverSensitivityLP:
         for cs in result.sensitivity.constraints:
             assert cs.is_binding is not None
 
+    def test_sensitivity_has_variable_entries(self):
+        """LP sensitivity exposes one reduced-cost entry per decision variable."""
+        solver = SolverService()
+        problem = _make_lp_problem()
+
+        result = solver.solve(problem)
+        assert result.sensitivity is not None
+        names = {vs.name for vs in result.sensitivity.variables}
+        assert names == {"x", "y"}
+
+    def test_sensitivity_variables_not_approximate_for_lp(self):
+        """Variable reduced costs from a true LP are exact, not approximate."""
+        solver = SolverService()
+        problem = _make_lp_problem()
+
+        result = solver.solve(problem)
+        assert result.sensitivity is not None
+        assert result.sensitivity.variables  # non-empty
+        for vs in result.sensitivity.variables:
+            assert vs.is_approximate is False
+
+    def test_sensitivity_basic_variable_not_at_bound(self):
+        """At the optimum x=1, y=3 both lie strictly inside [0, inf) → not at bound."""
+        solver = SolverService()
+        problem = _make_lp_problem()
+
+        result = solver.solve(problem)
+        assert result.sensitivity is not None
+        by_name = {vs.name: vs for vs in result.sensitivity.variables}
+        assert by_name["x"].is_at_bound is False
+        assert by_name["y"].is_at_bound is False
+
+    def test_sensitivity_note_records_ranging_unavailable(self):
+        """Ranging is not fabricated — its absence is recorded and ranges stay empty."""
+        solver = SolverService()
+        problem = _make_lp_problem()
+
+        result = solver.solve(problem)
+        assert result.sensitivity is not None
+        assert result.sensitivity.objective_ranges == []
+        assert result.sensitivity.rhs_ranges == []
+        assert result.sensitivity.note is not None
+        assert "ranging" in result.sensitivity.note.lower()
+
 
 class TestSolverSensitivityMIP:
     def test_sensitivity_present_for_mip(self):
@@ -250,6 +294,41 @@ class TestSolverSensitivityMIP:
         assert result.sensitivity is not None
         assert result.sensitivity.note is not None
         assert "LP relaxation" in result.sensitivity.note
+
+    def test_sensitivity_variables_approximate_for_mip(self):
+        """MIP variable reduced costs come from the LP relaxation → approximate."""
+        solver = SolverService()
+        problem = _make_mip_problem()
+
+        result = solver.solve(problem)
+        assert result.sensitivity is not None
+        assert result.sensitivity.variables  # non-empty
+        for vs in result.sensitivity.variables:
+            assert vs.is_approximate is True
+
+
+class TestSensitivityPersistence:
+    """to_result_data must carry sensitivity so it survives in ModelExecution."""
+
+    def test_to_result_data_includes_sensitivity(self):
+        """A solved LP serializes its sensitivity into the persisted result dict."""
+        solver = SolverService()
+        problem = _make_lp_problem()
+
+        result = solver.solve(problem)
+        assert result.sensitivity is not None
+
+        data = result.to_result_data()
+        assert data["sensitivity"] is not None
+        assert "constraints" in data["sensitivity"]
+        assert "variables" in data["sensitivity"]
+
+    def test_to_result_data_sensitivity_none_when_absent(self):
+        """No sensitivity → the key is present but null (additive, backward-compatible)."""
+        result = SolverService().solve(_make_lp_problem())
+        result.sensitivity = None
+        data = result.to_result_data()
+        assert data["sensitivity"] is None
 
 
 class TestSolverMultiObjectiveEpsilon:

@@ -215,11 +215,59 @@ class ConstraintSensitivity(BaseModel):
     )
 
 
+class VariableSensitivity(BaseModel):
+    """Sensitivity information for a single decision variable."""
+
+    name: str = Field(..., description="Variable name")
+    reduced_cost: float | None = Field(
+        default=None,
+        description=(
+            "Reduced cost: marginal change in the objective per unit relaxation of the "
+            "variable's binding bound (meaningful when the variable sits at a bound)"
+        ),
+    )
+    is_at_bound: bool | None = Field(
+        default=None,
+        description="Whether the variable rests at one of its bounds at optimality",
+    )
+    is_approximate: bool = Field(
+        default=False, description="True if value is from LP relaxation approximation"
+    )
+
+
+class ObjectiveCoeffRange(BaseModel):
+    """Range over which an objective coefficient keeps the optimal basis unchanged."""
+
+    variable: str = Field(..., description="Variable whose objective coefficient this range covers")
+    lower: float | None = Field(default=None, description="Lower end of the coefficient range")
+    upper: float | None = Field(default=None, description="Upper end of the coefficient range")
+
+
+class RhsRange(BaseModel):
+    """Range over which a constraint right-hand side keeps the optimal basis unchanged."""
+
+    constraint: str = Field(..., description="Constraint whose RHS range this covers")
+    lower: float | None = Field(default=None, description="Lower end of the RHS range")
+    upper: float | None = Field(default=None, description="Upper end of the RHS range")
+
+
 class SensitivityResult(BaseModel):
     """Sensitivity analysis results for all constraints."""
 
     constraints: list[ConstraintSensitivity] = Field(
         default=[], description="Sensitivity information per constraint"
+    )
+    variables: list[VariableSensitivity] = Field(
+        default=[],
+        description="Per-variable reduced costs (from the LP / LP relaxation)",
+    )
+    objective_ranges: list[ObjectiveCoeffRange] = Field(
+        default=[],
+        description="Objective-coefficient ranges, when the solver exposes ranging",
+    )
+    rhs_ranges: list[RhsRange] = Field(
+        default=[],
+        description="Constraint right-hand-side ranges, when the solver exposes ranging",
     )
     is_approximate: bool = Field(
         default=False,
@@ -410,6 +458,7 @@ class OptimizationResult(BaseModel):
             "solve_time_seconds": self.solve_time_seconds,
             "gap": self.gap,
             "variables": [v.model_dump() for v in self.variables] if self.variables else [],
+            "sensitivity": self.sensitivity.model_dump() if self.sensitivity else None,
             "progress_history": (
                 [p.model_dump() for p in self.progress_history] if self.progress_history else None
             ),
