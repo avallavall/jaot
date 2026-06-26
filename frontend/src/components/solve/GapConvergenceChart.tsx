@@ -12,13 +12,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-
-interface ProgressPoint {
-  iteration: number;
-  objective: number;
-  gap: number;
-  timestamp: number;
-}
+import type { ProgressPoint } from "@/lib/result-utils";
 
 interface ChartDataPoint {
   iteration: number;
