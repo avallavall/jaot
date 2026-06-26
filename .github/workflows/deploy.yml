@@ -50,5 +50,11 @@ jobs:
             --env-file .env.production exec -T caddy \
             caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 
-      - name: Prune dangling images
-        run: docker image prune -f
+      - name: Prune dangling images + build cache
+        run: |
+          docker image prune -f
+          # The image prune above only drops dangling images, NOT the BuildKit
+          # build cache — which grew unbounded (~48GB across rebuilds) and filled
+          # the disk to 85%. Keep ~10GB of recent cache for fast rebuilds, drop
+          # the rest so growth stays bounded deploy-to-deploy.
+          docker builder prune -f --keep-storage=10GB
