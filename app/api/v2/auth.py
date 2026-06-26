@@ -157,7 +157,7 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)) -> LoginRe
     """
     # Rate limit login by API key prefix to prevent brute force
     key_prefix = request.api_key[:12] if len(request.api_key) >= 12 else request.api_key
-    _rate_limit_or_raise(f"login:{key_prefix}", limit_per_minute=10, limit_per_day=100)
+    _rate_limit_or_raise(f"login:{key_prefix}", limit_per_minute=30, limit_per_day=300)
 
     # Verify API key using the service
     result = APIKeyService.verify_key(db, request.api_key)
@@ -203,7 +203,7 @@ async def login_email(
     """
     # Rate limit by IP: 5 per minute, 100 per day
     client_ip = get_client_ip(request)
-    _rate_limit_or_raise(f"login_ip:{client_ip}", limit_per_minute=5, limit_per_day=100)
+    _rate_limit_or_raise(f"login_ip:{client_ip}", limit_per_minute=30, limit_per_day=300)
 
     user = db.query(User).filter(User.email == body.email).first()
 
@@ -315,7 +315,7 @@ async def signup_email(
     Returns JWT cookies, API key, and user info.
     """
     client_ip = get_client_ip(request)
-    _rate_limit_or_raise(f"signup_ip:{client_ip}", limit_per_minute=3, limit_per_day=20)
+    _rate_limit_or_raise(f"signup_ip:{client_ip}", limit_per_minute=10, limit_per_day=50)
 
     if not PSS.get_bool(db, "REGISTRATION_ENABLED"):
         raise HTTPException(
@@ -481,7 +481,7 @@ async def signup_email(
 @router.post("/verify-email")
 async def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
     """Verify user email with a token."""
-    _rate_limit_or_raise(f"verify_email:{body.token[:16]}", limit_per_minute=5, limit_per_day=50)
+    _rate_limit_or_raise(f"verify_email:{body.token[:16]}", limit_per_minute=20, limit_per_day=100)
 
     import jwt as pyjwt
 
@@ -571,7 +571,9 @@ async def reset_password(
     body: ResetPasswordRequest, db: Session = Depends(get_db)
 ) -> dict[str, Any]:
     """Reset password using a token."""
-    _rate_limit_or_raise(f"reset_password:{body.token[:16]}", limit_per_minute=5, limit_per_day=50)
+    _rate_limit_or_raise(
+        f"reset_password:{body.token[:16]}", limit_per_minute=20, limit_per_day=100
+    )
 
     import jwt as pyjwt
 
@@ -774,7 +776,7 @@ async def signup(
     This is a public endpoint - no authentication required.
     """
     client_ip = get_client_ip(raw_request)
-    _rate_limit_or_raise(f"signup_ip:{client_ip}", limit_per_minute=3, limit_per_day=20)
+    _rate_limit_or_raise(f"signup_ip:{client_ip}", limit_per_minute=10, limit_per_day=50)
 
     if not PSS.get_bool(db, "REGISTRATION_ENABLED"):
         raise HTTPException(

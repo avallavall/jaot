@@ -54,8 +54,8 @@ class Organization(Base):
     low_credits_notified: Mapped[bool] = mapped_column(default=False)
 
     # Rate limits (requests per minute)
-    rate_limit_per_minute: Mapped[int] = mapped_column(Integer, default=2)
-    rate_limit_per_day: Mapped[int] = mapped_column(Integer, default=10)
+    rate_limit_per_minute: Mapped[int] = mapped_column(Integer, default=60)
+    rate_limit_per_day: Mapped[int] = mapped_column(Integer, default=2000)
 
     # Billing & Currency
     billing_email: Mapped[str | None] = mapped_column(String, nullable=True)
