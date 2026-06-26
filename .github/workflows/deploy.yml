@@ -29,8 +29,15 @@ jobs:
       - name: Run DB migrations (additive-only)
         run: |
           cd /opt/jaot
+          # --build is REQUIRED. `compose run` reuses the migrate image from the
+          # PREVIOUS deploy otherwise, so a migration added in *this* push never
+          # runs — yet the "Build + restart" step below rebuilds the api with the
+          # new ORM model, which then 500s on the missing column/table. Building
+          # the migrate service from the just-synced code keeps the schema ahead
+          # of the app. (Fixed 2026-06-26 after a BYOK column migration silently
+          # no-op'd and took login down.)
           docker compose -f deploy/docker-compose.prod.yml -f deploy/docker-compose.home.yml \
-            --env-file .env.production --profile migrate run --rm migrate
+            --env-file .env.production --profile migrate run --rm --build migrate
 
       - name: Build + restart stack
         run: |
