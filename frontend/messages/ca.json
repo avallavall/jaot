@@ -3180,6 +3180,9 @@
       "addExecution": "Afegir ID d'execució",
       "add": "Afegir",
       "remove": "Eliminar",
+      "comparing": "Comparant…",
+      "noMatch": "No s'han trobat execucions per a aquests IDs. Assegura't que pertanyen a la teva organització.",
+      "notFound": "No trobades: {ids}",
       "failedToLoad": "Error en carregar les analítiques."
     },
     "multiObjectiveConfig": {

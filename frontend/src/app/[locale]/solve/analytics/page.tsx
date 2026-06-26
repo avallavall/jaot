@@ -124,6 +124,7 @@ export default function SolveAnalyticsPage() {
   const [summary, setSummary] = useState<SolveAnalyticsSummary | null>(null);
   const [trends, setTrends] = useState<SolveAnalyticsTrends | null>(null);
   const [compareData, setCompareData] = useState<SolveAnalyticsCompare | null>(null);
+  const [comparing, setComparing] = useState(false);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [compareInput, setCompareInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -152,13 +153,29 @@ export default function SolveAnalyticsPage() {
 
   const handleCompare = useCallback(async () => {
     if (compareIds.length < 2) return;
+    setComparing(true);
+    setError(null);
     try {
       const data = await api.solveAnalytics.compare(compareIds);
       setCompareData(data);
     } catch (err) {
+      setCompareData(null);
       setError(getErrorMessage(err, t("failedToLoad")));
+    } finally {
+      setComparing(false);
     }
   }, [compareIds, t]);
+
+  // IDs the user asked to compare that the backend did not return (don't exist
+  // or aren't in this org). Surfacing them is the whole point: an empty result
+  // used to render nothing at all ("nothing happens on Compare").
+  const comparedMissingIds = useMemo(
+    () =>
+      compareData
+        ? compareIds.filter((id) => !compareData.executions.some((e) => e.id === id))
+        : [],
+    [compareData, compareIds],
+  );
 
   const addCompareId = () => {
     const id = compareInput.trim();
@@ -490,7 +507,11 @@ export default function SolveAnalyticsPage() {
                   </div>
                 )}
 
-                {compareData && compareData.executions.length > 0 ? (
+                {comparing ? (
+                  <p className="text-muted-foreground text-sm text-center py-8">
+                    {t("comparing")}
+                  </p>
+                ) : compareData && compareData.executions.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
@@ -544,7 +565,14 @@ export default function SolveAnalyticsPage() {
                         ))}
                       </tbody>
                     </table>
+                    {comparedMissingIds.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-3">
+                        {t("notFound", { ids: comparedMissingIds.join(", ") })}
+                      </p>
+                    )}
                   </div>
+                ) : compareData ? (
+                  <p className="text-muted-foreground text-sm text-center py-8">{t("noMatch")}</p>
                 ) : compareIds.length === 0 ? (
                   <p className="text-muted-foreground text-sm text-center py-8">{t("noExecutions")}</p>
                 ) : null}

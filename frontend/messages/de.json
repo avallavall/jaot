@@ -3180,6 +3180,9 @@
       "addExecution": "Ausführungs-ID hinzufügen",
       "add": "Hinzufügen",
       "remove": "Entfernen",
+      "comparing": "Wird verglichen…",
+      "noMatch": "Keine Ausführungen für diese IDs gefunden. Stelle sicher, dass sie zu deiner Organisation gehören.",
+      "notFound": "Nicht gefunden: {ids}",
       "failedToLoad": "Fehler beim Laden der Analytik."
     },
     "multiObjectiveConfig": {

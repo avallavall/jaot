@@ -3180,6 +3180,9 @@
       "addExecution": "Ajouter un ID d'exécution",
       "add": "Ajouter",
       "remove": "Supprimer",
+      "comparing": "Comparaison…",
+      "noMatch": "Aucune exécution trouvée pour ces ID. Vérifie qu'ils appartiennent à ton organisation.",
+      "notFound": "Introuvables : {ids}",
       "failedToLoad": "Erreur lors du chargement des analytiques."
     },
     "multiObjectiveConfig": {

@@ -3213,6 +3213,9 @@
       "addExecution": "Add execution ID",
       "add": "Add",
       "remove": "Remove",
+      "comparing": "Comparing…",
+      "noMatch": "No matching executions found for those IDs. Make sure they belong to your organization.",
+      "notFound": "Not found: {ids}",
       "failedToLoad": "Failed to load analytics data."
     },
     "multiObjectiveConfig": {
