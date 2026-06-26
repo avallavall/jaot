@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { buildOrganizationSchema, buildWebSiteSchema } from "@/lib/seo/schemas";
 import { BASE_URL } from "@/lib/seo/urls";
 import {
+  AlertTriangle,
   ArrowRight,
   Bot,
   Building2,
@@ -21,6 +23,7 @@ import {
   Check,
   Cpu,
   Factory,
+  Gauge,
   GraduationCap,
   LayoutTemplate,
   Network,
@@ -29,6 +32,7 @@ import {
   Store,
   Truck,
   Users,
+  Wrench,
 } from "lucide-react";
 
 // Static per-deployment JSON-LD — built once at module load (BASE_URL is a build-time
@@ -105,6 +109,12 @@ const SOLUTION_EXPLAINER_KEYS = [
   { icon: PieChart, key: "sensitivity" },
   { icon: Network, key: "reducedCosts" },
   { icon: Sparkles, key: "aiExplain" },
+] as const;
+
+const INFEASIBILITY_KEYS = [
+  { icon: AlertTriangle, key: "conflict" },
+  { icon: Wrench, key: "fix" },
+  { icon: Gauge, key: "honest" },
 ] as const;
 
 const HOW_IT_WORKS_KEYS = ["step1", "step2", "step3"] as const;
@@ -293,6 +303,104 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ── Understand your solution ───────────────────────────────────── */}
+      <section className="mx-auto max-w-6xl px-6 py-24">
+        <Reveal>
+          <SectionHeading
+            eyebrow={t("solutionExplainer.eyebrow")}
+            title={t("solutionExplainer.title")}
+            subtitle={t("solutionExplainer.subtitle")}
+          />
+        </Reveal>
+        <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-3">
+          {SOLUTION_EXPLAINER_KEYS.map((item, idx) => (
+            <Reveal key={item.key} delay={(idx % 3) * 80}>
+              <Card className="h-full overflow-hidden border-border shadow-warm-sm transition-shadow duration-300 hover:shadow-warm-md">
+                <CardContent className="flex h-full flex-col p-6">
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                    <item.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mb-2 font-serif text-lg">
+                    {t(`solutionExplainer.${item.key}.title`)}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {t(`solutionExplainer.${item.key}.description`)}
+                  </p>
+                </CardContent>
+              </Card>
+            </Reveal>
+          ))}
+        </div>
+
+        <Reveal delay={160}>
+          <div className="mx-auto mt-14 max-w-3xl overflow-hidden rounded-xl border border-border shadow-warm-md">
+            <Image
+              src="/showcase/p1-explainer-light.png"
+              alt={t("solutionExplainer.title")}
+              width={943}
+              height={815}
+              className="block h-auto w-full dark:hidden"
+            />
+            <Image
+              src="/showcase/p1-explainer-dark.png"
+              alt={t("solutionExplainer.title")}
+              width={943}
+              height={965}
+              className="hidden h-auto w-full dark:block"
+            />
+          </div>
+        </Reveal>
+      </section>
+
+      {/* ── Infeasibility explainer ────────────────────────────────────── */}
+      <section className="mx-auto max-w-6xl px-6 py-24">
+        <Reveal>
+          <SectionHeading
+            eyebrow={t("infeasibilityHighlight.eyebrow")}
+            title={t("infeasibilityHighlight.title")}
+            subtitle={t("infeasibilityHighlight.subtitle")}
+          />
+        </Reveal>
+        <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-3">
+          {INFEASIBILITY_KEYS.map((item, idx) => (
+            <Reveal key={item.key} delay={(idx % 3) * 80}>
+              <Card className="h-full overflow-hidden border-border shadow-warm-sm transition-shadow duration-300 hover:shadow-warm-md">
+                <CardContent className="flex h-full flex-col p-6">
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                    <item.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mb-2 font-serif text-lg">
+                    {t(`infeasibilityHighlight.${item.key}.title`)}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {t(`infeasibilityHighlight.${item.key}.description`)}
+                  </p>
+                </CardContent>
+              </Card>
+            </Reveal>
+          ))}
+        </div>
+
+        <Reveal delay={160}>
+          <div className="mx-auto mt-14 max-w-3xl overflow-hidden rounded-xl border border-border shadow-warm-md">
+            <Image
+              src="/showcase/p2-infeasibility-light.png"
+              alt={t("infeasibilityHighlight.title")}
+              width={943}
+              height={1018}
+              className="block h-auto w-full dark:hidden"
+            />
+            <Image
+              src="/showcase/p2-infeasibility-dark.png"
+              alt={t("infeasibilityHighlight.title")}
+              width={943}
+              height={945}
+              className="hidden h-auto w-full dark:block"
+            />
+          </div>
+        </Reveal>
+      </section>
+
       {/* ── Audience ───────────────────────────────────────────────────── */}
       <section className="border-y border-border bg-muted/30 py-24">
         <div className="mx-auto max-w-6xl px-6">
@@ -415,36 +523,6 @@ export default async function HomePage() {
               </Reveal>
             );
           })}
-        </div>
-      </section>
-
-      {/* ── Understand your solution ───────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-6 py-24">
-        <Reveal>
-          <SectionHeading
-            eyebrow={t("solutionExplainer.eyebrow")}
-            title={t("solutionExplainer.title")}
-            subtitle={t("solutionExplainer.subtitle")}
-          />
-        </Reveal>
-        <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-3">
-          {SOLUTION_EXPLAINER_KEYS.map((item, idx) => (
-            <Reveal key={item.key} delay={(idx % 3) * 80}>
-              <Card className="h-full overflow-hidden border-border shadow-warm-sm transition-shadow duration-300 hover:shadow-warm-md">
-                <CardContent className="flex h-full flex-col p-6">
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
-                    <item.icon className="h-5 w-5" />
-                  </div>
-                  <h3 className="mb-2 font-serif text-lg">
-                    {t(`solutionExplainer.${item.key}.title`)}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {t(`solutionExplainer.${item.key}.description`)}
-                  </p>
-                </CardContent>
-              </Card>
-            </Reveal>
-          ))}
         </div>
       </section>
 

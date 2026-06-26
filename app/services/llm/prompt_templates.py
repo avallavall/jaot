@@ -44,14 +44,26 @@ Do NOT include any text outside the JSON.
 - Mention key assumptions and what the variables represent
 
 ## Scope
-You ONLY help with optimization problems. If the user asks about something unrelated to \
-optimization (e.g., general chat, coding help, creative writing), respond with a JSON that has:
-- problem_name: "not_applicable"
-- summary: A polite explanation that you can only help with optimization problems, \
-with a suggestion to describe a problem involving decisions, constraints, and an objective.
-- variables: [] (empty)
-- constraints: [] (empty)
-- objective with sense "minimize", expression "0", and a description repeating the refusal.
+You help with everything involved in building, refining, diagnosing, and fixing \
+optimization models. The following are ALL in scope — answer them, never refuse them:
+- Explaining or fixing why a model is INFEASIBLE, unbounded, or returns no solution \
+(e.g. a lower bound above an upper bound, contradictory constraints).
+- Adjusting bounds, constraints, the objective, or variable types — including correcting \
+mistakes and contradictions in the current model.
+- Improving, clarifying, or rewording the problem statement, and answering questions \
+about the current formulation ("what's wrong with this?", "how do I make it solvable?").
+Questions phrased as "what error must I fix to run this?" or "help me improve the statement" \
+are modeling work, NOT technical support — treat them as such and respond with the model.
+
+ONLY return a refusal when the request is genuinely unrelated to optimization (general \
+chitchat, creative writing, coding help with no model involved). To refuse, return JSON with \
+problem_name "not_applicable", a one-line polite summary, empty variables/constraints, and \
+objective sense "minimize", expression "0".
+
+NEVER return that "not_applicable" refusal when a formulation already exists in the \
+conversation — doing so erases the user's work. For any follow-up about an existing model, \
+return the FULL model (repaired if they asked you to fix it, otherwise unchanged) and put your \
+diagnosis or answer in the summary.
 
 ## Mathematical Rigor
 - Ensure all constraints are dimensionally consistent
@@ -274,6 +286,92 @@ def build_solution_explanation_prompt(
         )
     else:
         parts.append("## Sensitivity analysis\nNot available for this solve.")
+
+    parts.append("Produce the explanation now, using only the values above.")
+    return "\n\n".join(parts)
+
+
+INFEASIBILITY_EXPLANATION_SYSTEM_PROMPT = """You are an optimization expert helping a \
+business user of JAOT whose model came back INFEASIBLE — it has no solution because some \
+requirements contradict each other.
+
+You receive the model formulation and, when available, an IIS (Irreducible Infeasible Set): \
+the minimal subset of constraints and/or variable bounds that are mutually unsatisfiable. \
+Removing any one member of the IIS would make the model solvable. Your job is to explain the \
+conflict and how to fix it.
+
+## Grounding (critical)
+- When an IIS is provided, the conflict involves EXACTLY those listed constraints/bounds. Name \
+them explicitly and explain how, together, they cannot all hold. Do NOT blame constraints that \
+are not in the IIS.
+- Use ONLY values present in the formulation. NEVER invent numbers or limits.
+- When NO IIS is provided (heuristic mode), say plainly that you are reasoning heuristically from \
+the formulation, that the exact conflicting set was not computed, and that your diagnosis is a \
+best guess that may be incomplete.
+
+## What to write
+1. **What's wrong** — in one or two sentences, which requirements conflict and why they cannot \
+all be satisfied at once.
+2. **The conflict** — name the specific constraints/bounds (from the IIS when available) and walk \
+through why they are mutually exclusive, using the actual numbers.
+3. **How to fix it** — concrete, actionable changes: which constraint to relax, which bound to \
+widen, which right-hand side to change (and roughly by how much), or which requirement to drop. \
+Offer the smallest realistic change first.
+
+## Style
+- Plain business language. Assume domain knowledge but not optimization jargon; briefly define \
+"infeasible" and "conflicting constraints" the first time.
+- ALWAYS format your answer in Markdown: `##` section headings for the parts above, `**bold**` \
+for constraint names and key numbers, and `-` bullet lists for the fix options. The UI renders \
+Markdown, so never output raw HTML.
+- Concise: short paragraphs and a short bullet list of fixes. Avoid tables unless they clarify \
+more than prose.
+"""
+
+
+def build_infeasibility_explanation_prompt(
+    formulation: dict[str, Any] | None,
+    infeasibility: dict[str, Any] | None,
+) -> str:
+    """Assemble the grounded user turn for an infeasibility explanation.
+
+    Embeds the formulation and (when present) the IIS analysis as JSON so the model
+    grounds its diagnosis in the exact conflicting constraints/bounds. When no IIS
+    is available — or it was computed heuristically (``method="llm_only"``) — the
+    prompt explicitly asks for a clearly-flagged heuristic diagnosis.
+    """
+    import json
+
+    parts: list[str] = ["Explain why the following optimization model is INFEASIBLE.\n"]
+
+    if formulation:
+        parts.append(
+            "## Formulation\n```json\n" + json.dumps(formulation, indent=2, default=str) + "\n```"
+        )
+
+    has_iis = bool(
+        infeasibility
+        and infeasibility.get("method") == "iis"
+        and (infeasibility.get("iis_constraints") or infeasibility.get("iis_variable_bounds"))
+    )
+
+    if has_iis:
+        parts.append(
+            "## Irreducible Infeasible Set (the exact conflict)\n```json\n"
+            + json.dumps(infeasibility, indent=2, default=str)
+            + "\n```\n"
+            "These constraints/bounds are mutually unsatisfiable — removing any one makes the "
+            "model solvable. Ground your explanation in exactly these."
+        )
+    else:
+        note = (infeasibility or {}).get("note")
+        heuristic_line = (
+            "No exact conflicting set was computed"
+            + (f" ({note})" if note else "")
+            + ". Reason heuristically from the formulation and clearly flag your diagnosis as a "
+            "best guess that may be incomplete."
+        )
+        parts.append("## Conflict analysis\n" + heuristic_line)
 
     parts.append("Produce the explanation now, using only the values above.")
     return "\n\n".join(parts)

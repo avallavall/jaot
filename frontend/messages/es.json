@@ -436,6 +436,23 @@
         "description": "Convierte precios sombra y costes reducidos en lenguaje claro, basado solo en tus cifras reales."
       }
     },
+    "infeasibilityHighlight": {
+      "eyebrow": "¿No factible? No te quedes atascado",
+      "title": "Te decimos exactamente qué restricciones entran en conflicto",
+      "subtitle": "La mayoría de los solvers solo dicen «sin solución». JAOT identifica el conflicto y te muestra cómo solucionarlo.",
+      "conflict": {
+        "title": "El conjunto exacto en conflicto",
+        "description": "JAOT aísla el conjunto mínimo de restricciones y límites que no pueden cumplirse a la vez, y los resalta en la página de resultados."
+      },
+      "fix": {
+        "title": "Cómo solucionarlo, en lenguaje claro",
+        "description": "Una explicación con IA en un clic nombra los requisitos en conflicto y sugiere soluciones concretas: qué límite ampliar, qué restricción relajar."
+      },
+      "honest": {
+        "title": "Honesto por diseño",
+        "description": "Cuando un modelo es demasiado grande para un conjunto exacto, JAOT lo dice y marca la explicación como heurística, nunca una suposición con falsa seguridad."
+      }
+    },
     "features": {
       "title": "Cuatro pilares de la optimización",
       "subtitle": "Todo lo que necesitas para crear, usar, compartir y automatizar la optimización.",
@@ -3230,6 +3247,20 @@
       "unavailable": "Las explicaciones solo están disponibles para ejecuciones resueltas (óptimas o factibles).",
       "ref": "ref: {requestId}"
     },
+    "infeasibility": {
+      "title": "¿Por qué es no factible?",
+      "description": "Este modelo no tiene solución porque algunos requisitos se contradicen entre sí. Descubre exactamente qué restricciones entran en conflicto, y cómo solucionarlo.",
+      "button": "Explicar por qué y cómo arreglarlo",
+      "regenerate": "Regenerar",
+      "analyzing": "Buscando las restricciones en conflicto…",
+      "thinking": "Explicando el conflicto…",
+      "conflictHeading": "Estos requisitos entran en conflicto",
+      "conflictHint": "Relajar o eliminar cualquiera de ellos hace que el modelo tenga solución.",
+      "heuristic": "Heurístico",
+      "heuristicHint": "El conjunto exacto en conflicto era demasiado grande para calcularlo, así que esta explicación es una estimación.",
+      "grounded": "Generado a partir de las restricciones en conflicto reales de tu modelo.",
+      "ref": "ref: {requestId}"
+    },
     "explorer": {
       "searchPlaceholder": "Buscar variables...",
       "all": "Todas",
@@ -4426,7 +4457,24 @@
   },
   "settings": {
     "title": "Configuración",
-    "description": "Gestiona las preferencias de tu espacio de trabajo y notificaciones"
+    "description": "Gestiona las preferencias de tu espacio de trabajo y notificaciones",
+    "byok": {
+      "title": "Tu propia API key de Anthropic",
+      "description": "Añade la API key de Anthropic de tu organización para ejecutar todas las funciones de IA en tu propia cuenta — sin créditos de JAOT e independiente del presupuesto compartido de la plataforma.",
+      "active": "Activa — usando tu propia key",
+      "inactive": "Sin configurar — usando el presupuesto de IA compartido de la plataforma.",
+      "placeholder": "sk-ant-...",
+      "save": "Guardar key",
+      "saving": "Guardando…",
+      "remove": "Quitar key",
+      "removing": "Quitando…",
+      "invalid": "Esa key no se aceptó. Las keys de Anthropic empiezan por 'sk-ant-'.",
+      "removeFailed": "No se pudo quitar la key. Inténtalo de nuevo.",
+      "ownerOnly": "Solo el propietario de la organización puede cambiar la API key.",
+      "securityNote": "Se guarda cifrada. No se vuelve a mostrar. Consigue una key en console.anthropic.com.",
+      "hintText": "Usa tu propia API key de Anthropic para que la IA sea gratis para tu organización.",
+      "hintLink": "Añade tu key"
+    }
   },
   "maintenance": {
     "title": "En mantenimiento — JAOT",

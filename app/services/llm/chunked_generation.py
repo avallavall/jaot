@@ -65,6 +65,8 @@ async def _generate_chunk(
     system_prompt: str,
     max_tokens: int = 16000,
     thinking: bool = False,
+    db: Any | None = None,
+    client: Any | None = None,
 ) -> tuple[dict[str, Any] | None, dict[str, int] | None]:
     """Generate a single chunk using non-streaming API call.
 
@@ -72,7 +74,8 @@ async def _generate_chunk(
     extracted before JSON parsing so a parse failure still reports the
     tokens that were billed for the attempt.
     """
-    client = get_anthropic_client()
+    # BYOK: prefer the org-resolved client; else the platform client (db-aware).
+    client = client or get_anthropic_client(db=db)
 
     kwargs: dict[str, Any] = {
         "model": model,
@@ -113,6 +116,8 @@ async def generate_formulation_chunked(
     messages: list[dict[str, Any]],
     model: str,
     thinking: bool = False,
+    db: Any | None = None,
+    client: Any | None = None,
 ) -> AsyncGenerator[dict[str, Any], None]:
     """Generate a formulation in chunks for very large problems.
 
@@ -125,7 +130,13 @@ async def generate_formulation_chunked(
     yield {"type": "status", "code": LLMStatusCode.GENERATING_VARIABLES}
 
     vars_chunk, usage = await _generate_chunk(
-        messages, model, VARIABLES_CHUNK_SCHEMA, VARIABLES_SYSTEM_PROMPT, thinking=thinking
+        messages,
+        model,
+        VARIABLES_CHUNK_SCHEMA,
+        VARIABLES_SYSTEM_PROMPT,
+        thinking=thinking,
+        db=db,
+        client=client,
     )
     if usage:
         # W17: internal cost-tracking event — every chunk call is billed,
@@ -135,7 +146,13 @@ async def generate_formulation_chunked(
     if vars_chunk is None:
         # Retry once
         vars_chunk, usage = await _generate_chunk(
-            messages, model, VARIABLES_CHUNK_SCHEMA, VARIABLES_SYSTEM_PROMPT, thinking=thinking
+            messages,
+            model,
+            VARIABLES_CHUNK_SCHEMA,
+            VARIABLES_SYSTEM_PROMPT,
+            thinking=thinking,
+            db=db,
+            client=client,
         )
         if usage:
             yield {"type": "usage", "model": model, **usage}
@@ -186,6 +203,8 @@ async def generate_formulation_chunked(
         CONSTRAINTS_CHUNK_SCHEMA,
         CONSTRAINTS_SYSTEM_PROMPT,
         thinking=thinking,
+        db=db,
+        client=client,
     )
     if usage:
         yield {"type": "usage", "model": model, **usage}
@@ -198,6 +217,8 @@ async def generate_formulation_chunked(
             CONSTRAINTS_CHUNK_SCHEMA,
             CONSTRAINTS_SYSTEM_PROMPT,
             thinking=thinking,
+            db=db,
+            client=client,
         )
         if usage:
             yield {"type": "usage", "model": model, **usage}

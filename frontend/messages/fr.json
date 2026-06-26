@@ -436,6 +436,23 @@
         "description": "Transformez prix duals et coûts réduits en langage clair, fondé uniquement sur vos chiffres réels."
       }
     },
+    "infeasibilityHighlight": {
+      "eyebrow": "Infaisable ? Ne restez pas bloqué",
+      "title": "Nous vous disons exactement quelles contraintes sont en conflit",
+      "subtitle": "La plupart des solveurs disent juste « aucune solution ». JAOT identifie le conflit et vous montre comment le corriger.",
+      "conflict": {
+        "title": "L'ensemble exact en conflit",
+        "description": "JAOT isole l'ensemble minimal de contraintes et de bornes qui ne peuvent pas toutes tenir à la fois, et les met en évidence sur la page de résultats."
+      },
+      "fix": {
+        "title": "Comment corriger, en langage clair",
+        "description": "Une explication par IA en un clic nomme les exigences en conflit et propose des corrections concrètes : quelle borne élargir, quelle contrainte assouplir."
+      },
+      "honest": {
+        "title": "Honnête par conception",
+        "description": "Quand un modèle est trop grand pour un ensemble exact, JAOT le dit et signale clairement l'explication comme heuristique, jamais une supposition assurée."
+      }
+    },
     "features": {
       "title": "Quatre piliers de l'optimisation",
       "subtitle": "Tout ce dont tu as besoin pour construire, utiliser, partager et automatiser l'optimisation.",
@@ -3230,6 +3247,20 @@
       "unavailable": "Les explications ne sont disponibles que pour les exécutions résolues (optimales ou réalisables).",
       "ref": "réf : {requestId}"
     },
+    "infeasibility": {
+      "title": "Pourquoi est-ce infaisable ?",
+      "description": "Ce modèle n'a pas de solution car certaines exigences se contredisent. Découvrez exactement quelles contraintes sont en conflit — et comment y remédier.",
+      "button": "Expliquer pourquoi et comment corriger",
+      "regenerate": "Régénérer",
+      "analyzing": "Recherche des contraintes en conflit…",
+      "thinking": "Explication du conflit…",
+      "conflictHeading": "Ces exigences sont en conflit",
+      "conflictHint": "Assouplir ou supprimer l'une d'elles rend le modèle résoluble.",
+      "heuristic": "Heuristique",
+      "heuristicHint": "L'ensemble exact en conflit était trop grand à calculer, donc cette explication est une estimation.",
+      "grounded": "Généré à partir des contraintes en conflit réelles de votre modèle.",
+      "ref": "réf : {requestId}"
+    },
     "explorer": {
       "searchPlaceholder": "Rechercher des variables...",
       "all": "Toutes",
@@ -4426,7 +4457,24 @@
   },
   "settings": {
     "title": "Paramètres",
-    "description": "Gère tes préférences d'espace de travail et de notifications"
+    "description": "Gère tes préférences d'espace de travail et de notifications",
+    "byok": {
+      "title": "Votre propre clé API Anthropic",
+      "description": "Ajoutez la clé API Anthropic de votre organisation pour exécuter toutes les fonctions d'IA sur votre propre compte — sans crédits JAOT et indépendamment du budget partagé de la plateforme.",
+      "active": "Active — avec votre propre clé",
+      "inactive": "Non configurée — utilise le budget IA partagé de la plateforme.",
+      "placeholder": "sk-ant-...",
+      "save": "Enregistrer la clé",
+      "saving": "Enregistrement…",
+      "remove": "Supprimer la clé",
+      "removing": "Suppression…",
+      "invalid": "Cette clé n'a pas été acceptée. Les clés Anthropic commencent par « sk-ant- ».",
+      "removeFailed": "Impossible de supprimer la clé. Veuillez réessayer.",
+      "ownerOnly": "Seul le propriétaire de l'organisation peut modifier la clé API.",
+      "securityNote": "Stockée chiffrée. Jamais réaffichée. Obtenez une clé sur console.anthropic.com.",
+      "hintText": "Utilisez votre propre clé API Anthropic pour que l'IA reste gratuite pour votre organisation.",
+      "hintLink": "Ajoutez votre clé"
+    }
   },
   "maintenance": {
     "title": "En maintenance — JAOT",

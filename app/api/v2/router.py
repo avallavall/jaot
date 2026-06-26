@@ -17,6 +17,7 @@ from app.api.v2 import (
     keys,
     llm,
     notifications,
+    org_settings,
     pricing,
     schedules,
     seller,
@@ -75,6 +76,9 @@ api_v2_router.include_router(triggers.router, tags=["triggers"])
 
 # LLM — natural language formulation generation with SSE streaming
 api_v2_router.include_router(llm.router, tags=["llm"])
+
+# Organization settings — BYOK Anthropic API key (owner-managed)
+api_v2_router.include_router(org_settings.router, tags=["organization"])
 
 # Guidance — skill level and onboarding wizard state
 api_v2_router.include_router(guidance.router, tags=["guidance"])

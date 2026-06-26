@@ -86,6 +86,7 @@ async def generate_formulation(
     max_tokens: int | None = None,
     system_prompt: str | None = None,
     db: Any | None = None,
+    client: Any | None = None,
 ) -> AsyncGenerator[dict[str, Any], None]:
     """Generate a structured formulation from conversation messages.
 
@@ -109,7 +110,9 @@ async def generate_formulation(
     Yields:
         Event dicts for SSE streaming.
     """
-    client = get_anthropic_client(db=db)
+    # BYOK: when the caller resolved an org-specific client, use it; otherwise
+    # create the shared platform client via the (test-patchable) factory.
+    client = client or get_anthropic_client(db=db)
 
     default_max = _pss_int(db, "LLM_MAX_TOKENS")
     effective_max_tokens = max_tokens or default_max
@@ -252,6 +255,7 @@ async def generate_formulation_resilient(
     user_message: str = "",
     system_prompt: str | None = None,
     db: Any | None = None,
+    client: Any | None = None,
 ) -> AsyncGenerator[dict[str, Any], None]:
     """Resilient formulation generator with auto-retry on truncation.
 
@@ -294,6 +298,7 @@ async def generate_formulation_resilient(
             max_tokens=capped_tokens,
             system_prompt=system_prompt,
             db=db,
+            client=client,
         ):
             event_type = event.get("type", "")
 
@@ -355,7 +360,9 @@ async def generate_formulation_resilient(
     LLM_RETRIES_TOTAL.labels(reason="chunked_fallback").inc()
     from app.services.llm.chunked_generation import generate_formulation_chunked
 
-    async for event in generate_formulation_chunked(messages, model, thinking):
+    async for event in generate_formulation_chunked(
+        messages, model, thinking, db=db, client=client
+    ):
         yield event
 
 
@@ -365,6 +372,7 @@ async def generate_text_response(
     thinking: bool = False,
     system_prompt: str | None = None,
     db: Any | None = None,
+    client: Any | None = None,
 ) -> AsyncGenerator[dict[str, Any], None]:
     """Generate a plain-text response (no structured JSON schema).
 
@@ -380,7 +388,8 @@ async def generate_text_response(
     Yields:
         Event dicts: {"type": "delta", "text": "..."} and {"type": "done"}.
     """
-    client = get_anthropic_client(db=db)
+    # BYOK: use the org-resolved client when provided, else the platform client.
+    client = client or get_anthropic_client(db=db)
 
     llm_max_tokens = _pss_int(db, "LLM_MAX_TOKENS")
 

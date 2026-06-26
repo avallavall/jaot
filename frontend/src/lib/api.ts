@@ -71,7 +71,7 @@ import type {
   SolveAnalyticsCompare,
 } from "./types";
 
-import type { AttachmentInfo } from "./llm-types";
+import type { AnthropicKeyStatus, AttachmentInfo, InfeasibilityAnalysis } from "./llm-types";
 
 export type { AttachmentInfo } from "./llm-types";
 
@@ -671,6 +671,32 @@ export const api = {
 
   getExecutionInsights(executionId: string): Promise<{ execution_id: string; insights: { category: string; message: string; severity: string }[] }> {
     return request(`/api/v2/solve/insights/${executionId}`);
+  },
+
+  /**
+   * Compute (or fetch the cached) minimal conflicting set (IIS) for an INFEASIBLE
+   * execution. The deletion-filtering cost is paid on demand, never on every solve.
+   */
+  analyzeInfeasibility(executionId: string): Promise<InfeasibilityAnalysis> {
+    return request(`/api/v2/solve/${executionId}/infeasibility-analysis`, { method: "POST" });
+  },
+
+  /** BYOK: whether the org has its own Anthropic key set (owner also gets a hint). */
+  getOrgAnthropicKey(): Promise<AnthropicKeyStatus> {
+    return request("/api/v2/organization/anthropic-key");
+  },
+
+  /** BYOK: store the org's own Anthropic key (owner only). */
+  setOrgAnthropicKey(apiKey: string): Promise<AnthropicKeyStatus> {
+    return request("/api/v2/organization/anthropic-key", {
+      method: "PUT",
+      body: JSON.stringify({ api_key: apiKey }),
+    });
+  },
+
+  /** BYOK: remove the org's Anthropic key — fall back to the platform key (owner only). */
+  clearOrgAnthropicKey(): Promise<AnthropicKeyStatus> {
+    return request("/api/v2/organization/anthropic-key", { method: "DELETE" });
   },
 
   solve(problem: OptimizationProblem, workspaceId?: string): Promise<SolveResult> {

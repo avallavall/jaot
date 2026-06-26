@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { ChatMessage as ChatMessageType, Formulation, AttachmentInfo } from "@/lib/llm-types";
 import type { FormulationStreamState } from "@/hooks/useSSE";
 import { resolveErrorKey } from "@/lib/llm-event-codes";
+import { ByokHint } from "@/components/llm/ByokHint";
 import { ChatMessage } from "./ChatMessage";
 import { ExamplePrompts } from "./ExamplePrompts";
 import { FileAttachmentChip } from "./FileAttachmentChip";
@@ -103,7 +104,16 @@ export function ChatPanel({ initialMessages, stream, onFormulationReady, onExpla
   useEffect(() => {
     if (stream.formulation && stream.formulation !== prevFormulationRef.current) {
       prevFormulationRef.current = stream.formulation;
-      onFormulationReady(stream.formulation);
+
+      // A refusal ("not_applicable") or variable-less formulation must NOT replace
+      // the user's current model — that would wipe their work. Still surface the
+      // assistant's text answer below so questions/diagnoses are visible.
+      const isRealModel =
+        stream.formulation.problem_name !== "not_applicable" &&
+        (stream.formulation.variables?.length ?? 0) > 0;
+      if (isRealModel) {
+        onFormulationReady(stream.formulation);
+      }
 
       const assistantMsg: ChatMessageType = {
         id: `msg_${Date.now()}`,
@@ -185,7 +195,10 @@ export function ChatPanel({ initialMessages, stream, onFormulationReady, onExpla
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {isEmpty ? (
-          <ExamplePrompts onSelect={handleExampleSelect} />
+          <div className="space-y-4">
+            <ExamplePrompts onSelect={handleExampleSelect} />
+            <ByokHint />
+          </div>
         ) : (
           <>
             {messages.map((msg, idx) => (

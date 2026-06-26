@@ -19,6 +19,8 @@ export const docsNavigation: DocsNavItem[] = [
       { title: "Building with AI", slug: "ai-builder/building-with-ai" },
       { title: "Templates Gallery", slug: "ai-builder/templates-gallery" },
       { title: "Understanding Your Solution", slug: "ai-builder/understanding-your-solution" },
+      { title: "Why Is My Model Infeasible?", slug: "ai-builder/why-is-my-model-infeasible" },
+      { title: "Bring Your Own API Key", slug: "ai-builder/bring-your-own-api-key" },
     ],
   },
   {

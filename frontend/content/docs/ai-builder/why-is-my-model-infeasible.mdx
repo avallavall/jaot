@@ -1,0 +1,66 @@
+---
+title: Why Is My Model Infeasible?
+description: When a solve returns no solution, JAOT finds the exact set of conflicting constraints (the IIS) and gives a plain-language AI explanation of why they conflict and how to fix it
+order: 4
+---
+
+# Why Is My Model Infeasible?
+
+A solve comes back **INFEASIBLE** when there is no assignment of your variables that satisfies every constraint at once — some requirements contradict each other. Most tools stop there and leave you to hunt through the formulation by hand. JAOT does two things instead, both on the execution result page.
+
+## 1. The conflict set (IIS)
+
+JAOT computes an **Irreducible Infeasible Set (IIS)**: a *minimal* subset of your constraints (and variable bounds) that are mutually unsatisfiable. "Minimal" means tight — remove any single member and the model becomes solvable. So the IIS points straight at the requirements that actually conflict, ignoring everything else in the model.
+
+### A worked example
+
+```
+maximize  x
+subject to
+  floor:    x >= 10
+  ceiling:  x <= 5
+  slack:    x <= 500
+```
+
+This model is infeasible: `x` cannot be both at least 10 and at most 5. The IIS is exactly `{floor, ceiling}` — `slack` is never part of the conflict and is not reported. The result page highlights `floor` and `ceiling` so you know precisely where to look.
+
+### How it is computed
+
+The IIS is found by **deletion filtering**, entirely solver-agnostically: JAOT repeatedly removes one constraint (or bound) and re-solves the model as a pure feasibility check. If the model is still infeasible without that constraint, the constraint was redundant and is dropped; if removing it makes the model solvable, it is required and kept. What remains is a minimal conflicting set. The same procedure also tests variable bounds, so a pure bound conflict (e.g. a lower bound above an upper bound) is caught too.
+
+Deletion filtering costs one extra solve per constraint, so it is **bounded** by two platform settings:
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `IIS_MAX_CONSTRAINTS` | 150 | Above this many constraints/bounds, exact IIS is skipped |
+| `IIS_TIME_BUDGET_SECONDS` | 20 | Wall-clock budget for the whole search |
+
+If either bound is hit, JAOT falls back to **heuristic** mode (see below) and labels the result clearly. The analysis is **on demand** — it runs only when you ask for it, so an infeasible solve never silently pays the cost.
+
+> Deletion filtering returns *a* minimal conflicting set, not necessarily the smallest possible one. That is the standard, documented trade-off — it is always a genuine, tight conflict.
+
+## 2. Plain-language explanation (AI)
+
+Click **Explain why & how to fix** on the result page to stream a plain-language explanation. When an exact IIS is available, the explanation is **grounded strictly in those specific conflicting constraints** — the assistant is told to name them, explain why they cannot all hold, and give concrete fixes (which constraint to relax, which bound to widen, which right-hand side to change, or which requirement to drop).
+
+When the model was too large or the time budget was exceeded, the explanation runs in **heuristic** mode over the formulation and is clearly flagged as a best guess that may be incomplete — JAOT never presents a guess as an exact diagnosis.
+
+Explanations reuse the same credit cost and monthly AI-budget guardrails as the AI builder chat.
+
+## API
+
+Compute (or fetch the cached) conflict set for an infeasible execution:
+
+```
+POST /api/v2/solve/{execution_id}/infeasibility-analysis
+```
+
+Returns the `InfeasibilityAnalysis`: `iis_constraints`, `iis_variable_bounds`, `conflict_type` (`constraint` | `bound` | `mixed` | `unknown`), `method` (`iis` | `llm_only`), and a `note`. The result is persisted back onto the execution, so a second call is free.
+
+Stream the explanation:
+
+```
+POST /api/v2/llm/conversations/{conversation_id}/explain-infeasibility
+```
+
+Pass `{ "execution_id": "exe_..." }` to load the formulation + persisted IIS (organization ownership is enforced), or pass the `formulation` and `infeasibility` inline. The response is a Server-Sent Events stream: a `status` event, then `delta` events with the explanation text, then `done`.

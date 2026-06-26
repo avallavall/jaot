@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { api, ModelExecution } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { OptimizationResult } from "@/lib/types";
+import type { InfeasibilityAnalysis } from "@/lib/llm-types";
 import { extractProgressHistory, extractObjectiveSense } from "@/lib/result-utils";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -14,6 +15,7 @@ import { InsightsPanel } from "@/components/solve/InsightsPanel";
 import { ExportButtons } from "@/components/solve/ExportButtons";
 import { SensitivityTab } from "@/components/solve/SensitivityTab";
 import { SolutionExplainer } from "@/components/solve/SolutionExplainer";
+import { InfeasibilityPanel } from "@/components/solve/InfeasibilityPanel";
 import { OriginBadge } from "@/components/solve/OriginBadge";
 import { GapConvergenceChart } from "@/components/solve/GapConvergenceChart";
 import { useTranslations } from "next-intl";
@@ -32,6 +34,12 @@ export default function ExecutionDetailPage() {
 
   const resultData = execution?.result_data as OptimizationResult | undefined;
   const variables = resultData?.variables ?? [];
+  const isInfeasible = execution?.solver_status === "infeasible";
+  // infeasibility_analysis is an additive result_data field (P2); read it loosely so
+  // a revisit shows the cached conflict immediately without depending on regen drift.
+  const infeasibilityAnalysis =
+    (resultData as { infeasibility_analysis?: InfeasibilityAnalysis | null } | undefined)
+      ?.infeasibility_analysis ?? null;
   const progressHistory = useMemo(
     () => extractProgressHistory(resultData as Record<string, unknown> | undefined),
     [resultData],
@@ -201,6 +209,15 @@ export default function ExecutionDetailPage() {
             {variables.length > 0 && (
               <div className="mb-6">
                 <SolutionExplainer executionId={executionId} canExplain={canUseAsWarmStart} />
+              </div>
+            )}
+
+            {isInfeasible && (
+              <div className="mb-6">
+                <InfeasibilityPanel
+                  executionId={executionId}
+                  initialAnalysis={infeasibilityAnalysis}
+                />
               </div>
             )}
 

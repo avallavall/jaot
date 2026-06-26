@@ -436,6 +436,23 @@
         "description": "Converteix preus ombra i costos reduïts en llenguatge clar, basat només en les teves xifres reals."
       }
     },
+    "infeasibilityHighlight": {
+      "eyebrow": "No factible? No et quedis encallat",
+      "title": "Et diem exactament quines restriccions entren en conflicte",
+      "subtitle": "La majoria de solvers només diuen «sense solució». JAOT identifica el conflicte i et mostra com solucionar-ho.",
+      "conflict": {
+        "title": "El conjunt exacte en conflicte",
+        "description": "JAOT aïlla el conjunt mínim de restriccions i límits que no poden complir-se alhora, i els ressalta a la pàgina de resultats."
+      },
+      "fix": {
+        "title": "Com solucionar-ho, en llenguatge clar",
+        "description": "Una explicació amb IA en un clic anomena els requisits en conflicte i suggereix solucions concretes: quin límit ampliar, quina restricció relaxar."
+      },
+      "honest": {
+        "title": "Honest per disseny",
+        "description": "Quan un model és massa gran per a un conjunt exacte, JAOT ho diu i marca l'explicació com a heurística, mai una suposició amb falsa seguretat."
+      }
+    },
     "features": {
       "title": "Quatre pilars de l'optimització",
       "subtitle": "Tot el que necessites per crear, usar, compartir i automatitzar l'optimització.",
@@ -3230,6 +3247,20 @@
       "unavailable": "Les explicacions només estan disponibles per a execucions resoltes (òptimes o factibles).",
       "ref": "ref: {requestId}"
     },
+    "infeasibility": {
+      "title": "Per què no és factible?",
+      "description": "Aquest model no té solució perquè alguns requisits es contradiuen entre si. Descobreix exactament quines restriccions entren en conflicte, i com solucionar-ho.",
+      "button": "Explica per què i com arreglar-ho",
+      "regenerate": "Regenera",
+      "analyzing": "Cercant les restriccions en conflicte…",
+      "thinking": "Explicant el conflicte…",
+      "conflictHeading": "Aquests requisits entren en conflicte",
+      "conflictHint": "Relaxar o eliminar qualsevol d'ells fa que el model tingui solució.",
+      "heuristic": "Heurístic",
+      "heuristicHint": "El conjunt exacte en conflicte era massa gran per calcular-lo, així que aquesta explicació és una estimació.",
+      "grounded": "Generat a partir de les restriccions en conflicte reals del teu model.",
+      "ref": "ref: {requestId}"
+    },
     "explorer": {
       "searchPlaceholder": "Cercar variables...",
       "all": "Totes",
@@ -4426,7 +4457,24 @@
   },
   "settings": {
     "title": "Configuració",
-    "description": "Gestiona les preferències del teu espai de treball i notificacions"
+    "description": "Gestiona les preferències del teu espai de treball i notificacions",
+    "byok": {
+      "title": "La teva pròpia API key d'Anthropic",
+      "description": "Afegeix l'API key d'Anthropic de la teva organització per executar totes les funcions d'IA al teu propi compte — sense crèdits de JAOT i independent del pressupost compartit de la plataforma.",
+      "active": "Activa — usant la teva pròpia key",
+      "inactive": "Sense configurar — usant el pressupost d'IA compartit de la plataforma.",
+      "placeholder": "sk-ant-...",
+      "save": "Desa la key",
+      "saving": "Desant…",
+      "remove": "Treu la key",
+      "removing": "Traient…",
+      "invalid": "Aquesta key no s'ha acceptat. Les keys d'Anthropic comencen per 'sk-ant-'.",
+      "removeFailed": "No s'ha pogut treure la key. Torna-ho a provar.",
+      "ownerOnly": "Només el propietari de l'organització pot canviar l'API key.",
+      "securityNote": "Es desa xifrada. No es torna a mostrar. Aconsegueix una key a console.anthropic.com.",
+      "hintText": "Usa la teva pròpia API key d'Anthropic perquè la IA sigui gratis per a la teva organització.",
+      "hintLink": "Afegeix la teva key"
+    }
   },
   "maintenance": {
     "title": "En manteniment — JAOT",

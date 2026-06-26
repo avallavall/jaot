@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from app.domains.solver.services.expression_parser import ExpressionParser
 
-__all__ = ["SolverService", "get_solver_service", "ExpressionParser"]
+__all__ = ["SolverService", "get_solver_service", "ExpressionParser", "compute_iis"]
 
 
 def __getattr__(name: str) -> object:
@@ -24,4 +24,8 @@ def __getattr__(name: str) -> object:
         )
 
         return {"SolverService": SolverService, "get_solver_service": get_solver_service}[name]
+    if name == "compute_iis":
+        from app.domains.solver.services.infeasibility import compute_iis  # noqa: PLC0415
+
+        return compute_iis
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

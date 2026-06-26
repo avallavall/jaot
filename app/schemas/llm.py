@@ -162,6 +162,32 @@ class ExplainSolutionRequest(BaseModel):
     )
 
 
+class ExplainInfeasibilityRequest(BaseModel):
+    """Request a plain-language explanation of WHY a model is INFEASIBLE.
+
+    Provide ``execution_id`` to load the formulation + persisted IIS analysis from a
+    ``ModelExecution`` (organization ownership is enforced), or pass ``formulation`` /
+    ``infeasibility`` inline. ``execution_id`` takes precedence when both are supplied.
+    When no IIS is available the explanation falls back to heuristic reasoning, clearly
+    flagged as such.
+    """
+
+    execution_id: str | None = Field(
+        default=None, description="ModelExecution id to load the formulation + IIS analysis from"
+    )
+    formulation: dict[str, Any] | None = Field(
+        default=None, description="Inline formulation (variables/constraints/objective)"
+    )
+    infeasibility: dict[str, Any] | None = Field(
+        default=None,
+        description="Inline IIS analysis (iis_constraints/iis_variable_bounds/conflict_type/method)",
+    )
+    use_advanced_model: bool = Field(
+        default=False,
+        description="Use Claude Opus with extended thinking for the explanation",
+    )
+
+
 class ChatMessageResponse(BaseModel):
     """A message in a conversation (returned to client)."""
 

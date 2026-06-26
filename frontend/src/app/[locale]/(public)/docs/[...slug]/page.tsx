@@ -21,6 +21,10 @@ const contentMap: Record<string, () => Promise<{ default: React.ComponentType; f
   "ai-builder/templates-gallery": () => import("@content/docs/ai-builder/templates-gallery.mdx"),
   "ai-builder/understanding-your-solution": () =>
     import("@content/docs/ai-builder/understanding-your-solution.mdx"),
+  "ai-builder/why-is-my-model-infeasible": () =>
+    import("@content/docs/ai-builder/why-is-my-model-infeasible.mdx"),
+  "ai-builder/bring-your-own-api-key": () =>
+    import("@content/docs/ai-builder/bring-your-own-api-key.mdx"),
   "marketplace/browsing-models": () => import("@content/docs/marketplace/browsing-models.mdx"),
   "marketplace/publishing-models": () => import("@content/docs/marketplace/publishing-models.mdx"),
   "mcp/overview": () => import("@content/docs/mcp/overview.mdx"),
