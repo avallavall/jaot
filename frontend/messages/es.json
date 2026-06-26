@@ -3195,7 +3195,22 @@
       "shadowPrice": "Shadow Price",
       "binding": "Binding",
       "yes": "Sí",
-      "no": "No"
+      "no": "No",
+      "variableReducedCosts": "Costes Reducidos de Variables",
+      "variable": "Variable",
+      "reducedCost": "Coste Reducido",
+      "atBound": "En el límite",
+      "rangingUnavailable": "El análisis de rangos de objetivo y de lado derecho no está disponible para este solver."
+    },
+    "explainer": {
+      "title": "Explicar esta solución",
+      "description": "Obtén una explicación en lenguaje claro de por qué esta es la solución óptima, qué restricciones son activas y qué cambiar para mejorarla.",
+      "button": "Explicar esta solución",
+      "regenerate": "Regenerar",
+      "thinking": "Analizando tu solución…",
+      "grounded": "Generado a partir de tu solución y valores de sensibilidad reales.",
+      "unavailable": "Las explicaciones solo están disponibles para ejecuciones resueltas (óptimas o factibles).",
+      "ref": "ref: {requestId}"
     },
     "explorer": {
       "searchPlaceholder": "Buscar variables...",

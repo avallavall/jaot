@@ -9,12 +9,12 @@ import {
   type LLMStatusCode,
 } from "@/lib/llm-event-codes";
 
-const BASE_URL =
+export const BASE_URL =
   typeof window !== "undefined"
     ? (process.env.NEXT_PUBLIC_API_URL ?? window.location.origin)
     : "http://localhost:8001";
 
-function getApiKey(): string | null {
+export function getApiKey(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("jaot_api_key");
 }
@@ -23,7 +23,7 @@ function getApiKey(): string | null {
  * Parse raw SSE text into structured events.
  * SSE format: "event: <type>\ndata: <json>\n\n"
  */
-function parseSSEEvents(text: string): SSEEvent[] {
+export function parseSSEEvents(text: string): SSEEvent[] {
   const events: SSEEvent[] = [];
   // sse-starlette emits CRLF — normalize before splitting.
   const blocks = text.replace(/\r\n/g, "\n").split("\n\n");

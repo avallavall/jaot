@@ -3195,7 +3195,22 @@
       "shadowPrice": "Preu Ombra",
       "binding": "Vinculant",
       "yes": "Sí",
-      "no": "No"
+      "no": "No",
+      "variableReducedCosts": "Costos Reduïts de Variables",
+      "variable": "Variable",
+      "reducedCost": "Cost Reduït",
+      "atBound": "Al límit",
+      "rangingUnavailable": "L'anàlisi de rangs d'objectiu i de terme independent no està disponible per a aquest solver."
+    },
+    "explainer": {
+      "title": "Explica aquesta solució",
+      "description": "Obtén una explicació en llenguatge clar de per què aquesta és la solució òptima, quines restriccions són actives i què canviar per millorar-la.",
+      "button": "Explica aquesta solució",
+      "regenerate": "Regenera",
+      "thinking": "Analitzant la teva solució…",
+      "grounded": "Generat a partir de la teva solució i valors de sensibilitat reals.",
+      "unavailable": "Les explicacions només estan disponibles per a execucions resoltes (òptimes o factibles).",
+      "ref": "ref: {requestId}"
     },
     "explorer": {
       "searchPlaceholder": "Cercar variables...",

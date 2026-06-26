@@ -3195,7 +3195,22 @@
       "shadowPrice": "Schattenpreis",
       "binding": "Bindend",
       "yes": "Ja",
-      "no": "Nein"
+      "no": "Nein",
+      "variableReducedCosts": "Reduzierte Kosten der Variablen",
+      "variable": "Variable",
+      "reducedCost": "Reduzierte Kosten",
+      "atBound": "An der Grenze",
+      "rangingUnavailable": "Bereichsanalyse für Zielfunktion und rechte Seite ist für diesen Solver nicht verfügbar."
+    },
+    "explainer": {
+      "title": "Diese Lösung erklären",
+      "description": "Erhalte eine verständliche Erklärung, warum dies die optimale Lösung ist, welche Nebenbedingungen bindend sind und was zu ändern ist, um sie zu verbessern.",
+      "button": "Diese Lösung erklären",
+      "regenerate": "Neu generieren",
+      "thinking": "Deine Lösung wird analysiert…",
+      "grounded": "Erstellt aus deiner tatsächlichen Lösung und den Sensitivitätswerten.",
+      "unavailable": "Erklärungen sind nur für gelöste (optimale oder zulässige) Ausführungen verfügbar.",
+      "ref": "Ref: {requestId}"
     },
     "explorer": {
       "searchPlaceholder": "Variablen suchen...",

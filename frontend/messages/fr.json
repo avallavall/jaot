@@ -3195,7 +3195,22 @@
       "shadowPrice": "Prix dual",
       "binding": "Active",
       "yes": "Oui",
-      "no": "Non"
+      "no": "Non",
+      "variableReducedCosts": "Coûts Réduits des Variables",
+      "variable": "Variable",
+      "reducedCost": "Coût Réduit",
+      "atBound": "À la borne",
+      "rangingUnavailable": "L'analyse de plages d'objectif et de second membre n'est pas disponible pour ce solveur."
+    },
+    "explainer": {
+      "title": "Expliquer cette solution",
+      "description": "Obtenez une explication en langage clair de pourquoi cette solution est optimale, quelles contraintes sont actives et quoi changer pour l'améliorer.",
+      "button": "Expliquer cette solution",
+      "regenerate": "Régénérer",
+      "thinking": "Analyse de votre solution…",
+      "grounded": "Généré à partir de votre solution et de vos valeurs de sensibilité réelles.",
+      "unavailable": "Les explications ne sont disponibles que pour les exécutions résolues (optimales ou réalisables).",
+      "ref": "réf : {requestId}"
     },
     "explorer": {
       "searchPlaceholder": "Rechercher des variables...",

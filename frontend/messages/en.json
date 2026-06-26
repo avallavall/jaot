@@ -3228,7 +3228,22 @@
       "shadowPrice": "Shadow Price",
       "binding": "Binding",
       "yes": "Yes",
-      "no": "No"
+      "no": "No",
+      "variableReducedCosts": "Variable Reduced Costs",
+      "variable": "Variable",
+      "reducedCost": "Reduced Cost",
+      "atBound": "At bound",
+      "rangingUnavailable": "Objective and right-hand-side ranging are not available for this solver build."
+    },
+    "explainer": {
+      "title": "Explain this solution",
+      "description": "Get a plain-language explanation of why this is optimal, which constraints are binding, and what to change to improve it.",
+      "button": "Explain this solution",
+      "regenerate": "Regenerate",
+      "thinking": "Analyzing your solution…",
+      "grounded": "Generated from your actual solution and sensitivity values.",
+      "unavailable": "Explanations are available only for solved (optimal or feasible) executions.",
+      "ref": "ref: {requestId}"
     },
     "explorer": {
       "searchPlaceholder": "Search variables...",

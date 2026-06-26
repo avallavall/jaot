@@ -472,6 +472,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/admin/platform/ai": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Platform Ai Usage
+         * @description LLM adoption, token/cost totals, acceptance rate, and thumbs ratings.
+         */
+        get: operations["get_platform_ai_usage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/admin/platform/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Platform Overview
+         * @description Growth, usage, and per-category breakdown across the whole platform.
+         */
+        get: operations["get_platform_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/admin/platform/reliability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Platform Reliability
+         * @description SLO percentiles, failure modes, queue time, and automation health.
+         */
+        get: operations["get_platform_reliability"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/admin/reconciliation/run": {
         parameters: {
             query?: never;
@@ -2010,6 +2070,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/llm/conversations/{conversation_id}/explain-solution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Explain Solution Endpoint
+         * @description Stream a plain-language explanation of a solved optimization model as SSE.
+         *
+         *     Loads the solution + sensitivity from a persisted ModelExecution
+         *     (``execution_id``, org ownership enforced) or from inline fields, then reuses
+         *     the chat streaming pipeline — budget guardrail, org rate limit, pre-paid credits
+         *     (refunded on failure), a persisted user/assistant turn pair — driven by
+         *     ``explain_solution`` rather than formulation generation. Moderation is skipped
+         *     because the prompt content is system-generated, not free user text.
+         */
+        post: operations["explain_solution_endpoint_api_v2_llm_conversations__conversation_id__explain_solution_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/llm/conversations/{conversation_id}/messages": {
         parameters: {
             query?: never;
@@ -2100,7 +2187,10 @@ export interface paths {
         put?: never;
         /**
          * Execute Model
-         * @description Execute a model with the provided input data.
+         * @description Execute an activated model with the provided input data.
+         *
+         *     Optional ``solver_name`` selects the solver (``scip``, ``highs``,
+         *     ``hexaly``) or ``auto`` routing; omit for the default.
          */
         post: operations["execute_model"];
         delete?: never;
@@ -2770,7 +2860,7 @@ export interface paths {
         };
         /**
          * Get public pricing data
-         * @description Returns pricing tiers with credits, prices, limits, and features. All values are read from the platform settings database. No authentication required.
+         * @description Returns pricing tiers with credits, prices, limits, and features. All values are read from the platform settings database. No authentication required. Only available when monetization is enabled; the free collaborative deployment responds 404.
          */
         get: operations["get_pricing_api_v2_pricing_get"];
         put?: never;
@@ -3025,13 +3115,15 @@ export interface paths {
         };
         /**
          * Get Onboarding Status
-         * @description Get onboarding checklist status for the current seller.
+         * @description Get onboarding checklist status for the current creator.
          *
-         *     Returns 4 steps with completion detection:
+         *     Returns up to 4 steps with completion detection:
          *     - complete_profile: org has name AND bio filled
          *     - publish_model: at least 1 published model in catalog
          *     - add_rich_media: at least 1 published model has logo_url or screenshot_urls
          *     - setup_payouts: org has credits_earned > 0 OR has a withdrawal schedule
+         *       (only present when monetization is enabled; omitted in the free,
+         *       collaborative deployment where there are no payouts)
          */
         get: operations["get_onboarding_status_api_v2_seller_onboarding_status_get"];
         put?: never;
@@ -3504,7 +3596,7 @@ export interface paths {
          * Solve Multi Objective Endpoint
          * @description Solve a multi-objective problem. Returns a Pareto front.
          */
-        post: operations["solve_multi_objective_endpoint_api_v2_solve_multi_objective_post"];
+        post: operations["solve_multi_objective"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3587,6 +3679,8 @@ export interface paths {
          * @description Solve a problem using a template.
          *
          *     The template transforms user-friendly input into an optimization problem.
+         *     Optional ``solver_name`` selects the solver (e.g. ``scip``, ``highs``,
+         *     ``hexaly``) or ``auto`` to let the platform route; omit for the default.
          *
          *     Example for knapsack template::
          *
@@ -4437,6 +4531,37 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** AiUsageResponse */
+        AiUsageResponse: {
+            /** Acceptance Rate */
+            acceptance_rate: number;
+            /** Accepted Conversations */
+            accepted_conversations: number;
+            /** Avg Cost Per Conversation */
+            avg_cost_per_conversation: number;
+            /** Conversations */
+            conversations: number;
+            /** Days */
+            days: number;
+            /** Messages */
+            messages: number;
+            /** Messages Per Conversation */
+            messages_per_conversation: number;
+            /** Orgs Using Ai */
+            orgs_using_ai: number;
+            /** Thumbs Down */
+            thumbs_down: number;
+            /** Thumbs Ratio */
+            thumbs_ratio: number;
+            /** Thumbs Up */
+            thumbs_up: number;
+            /** Total Cost Eur */
+            total_cost_eur: number;
+            /** Total Input Tokens */
+            total_input_tokens: number;
+            /** Total Output Tokens */
+            total_output_tokens: number;
+        };
         /** AllRatesResponse */
         AllRatesResponse: {
             /**
@@ -4707,6 +4832,21 @@ export interface components {
             /** Setting Key */
             setting_key: string;
         };
+        /** AutomationStats */
+        AutomationStats: {
+            /** Active Triggers */
+            active_triggers: number;
+            /** Cron Success Rate */
+            cron_success_rate: number;
+            /** Schedules Failing */
+            schedules_failing: number;
+            /** Total Runs */
+            total_runs: number;
+            /** Total Triggers */
+            total_triggers: number;
+            /** Webhook Delivery Rate */
+            webhook_delivery_rate: number;
+        };
         /** BillingStatusResponse */
         BillingStatusResponse: {
             /** Has Subscription */
@@ -4717,10 +4857,7 @@ export interface components {
         };
         /** Body_import_and_solve */
         Body_import_and_solve: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
             /**
              * Gap Tolerance
@@ -4738,35 +4875,23 @@ export interface components {
         };
         /** Body_import_preview */
         Body_import_preview: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
             objective_sense?: components["schemas"]["ObjectiveSense"] | null;
         };
         /** Body_upload_attachment_api_v2_llm_conversations__conversation_id__attachments_post */
         Body_upload_attachment_api_v2_llm_conversations__conversation_id__attachments_post: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
         };
         /** Body_upload_logo_api_v2_models_catalog__model_id__logo_post */
         Body_upload_logo_api_v2_models_catalog__model_id__logo_post: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
         };
         /** Body_upload_screenshot_api_v2_models_catalog__model_id__screenshots_post */
         Body_upload_screenshot_api_v2_models_catalog__model_id__screenshots_post: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
         };
         /**
@@ -4852,6 +4977,26 @@ export interface components {
             } | null;
             /** Name */
             name?: string | null;
+        };
+        /** BuilderSolves */
+        BuilderSolves: {
+            /** Avg Solve Time Ms */
+            avg_solve_time_ms: number | null;
+            /** Success Rate */
+            success_rate: number;
+            /** Total */
+            total: number;
+        };
+        /** CategoryStat */
+        CategoryStat: {
+            /** Avg Solve Time Ms */
+            avg_solve_time_ms: number | null;
+            /** Category */
+            category: string;
+            /** Executions */
+            executions: number;
+            /** Success Rate */
+            success_rate: number;
         };
         /**
          * ChatMessageRequest
@@ -5345,6 +5490,13 @@ export interface components {
             /** Currency */
             currency: string;
         };
+        /** DailyPoint */
+        DailyPoint: {
+            /** Date */
+            date: string;
+            /** Executions */
+            executions: number;
+        };
         /**
          * DailyTrend
          * @description Daily feedback trend entry.
@@ -5473,6 +5625,15 @@ export interface components {
              */
             tos_accepted: boolean;
         };
+        /** EntityCounts */
+        EntityCounts: {
+            /** Active */
+            active: number;
+            /** New */
+            new: number;
+            /** Total */
+            total: number;
+        };
         /**
          * EventBreakdownEntry
          * @description Single entry in event type breakdown.
@@ -5527,6 +5688,76 @@ export interface components {
             page_size: number;
             /** Total */
             total: number;
+        };
+        /** ExecutionStats */
+        ExecutionStats: {
+            /** Avg Solve Time Ms */
+            avg_solve_time_ms: number | null;
+            /** By Origin */
+            by_origin: {
+                [key: string]: number;
+            };
+            /** By Solver */
+            by_solver: {
+                [key: string]: number;
+            };
+            /** By Status */
+            by_status: {
+                [key: string]: number;
+            };
+            /** Median Solve Time Ms */
+            median_solve_time_ms: number | null;
+            /** Per Org */
+            per_org: number;
+            /** Per User */
+            per_user: number;
+            /** Success Rate */
+            success_rate: number;
+            /** Total */
+            total: number;
+        };
+        /**
+         * ExplainSolutionRequest
+         * @description Request a plain-language explanation of a solved optimization model.
+         *
+         *     Provide ``execution_id`` to load the solution + sensitivity from a persisted
+         *     ``ModelExecution`` (organization ownership is enforced), or pass the
+         *     ``formulation`` / ``solution`` / ``sensitivity`` inline. ``execution_id`` takes
+         *     precedence when both are supplied.
+         */
+        ExplainSolutionRequest: {
+            /**
+             * Execution Id
+             * @description ModelExecution id to load solution + sensitivity from
+             */
+            execution_id?: string | null;
+            /**
+             * Formulation
+             * @description Inline formulation (variables/constraints/objective)
+             */
+            formulation?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Sensitivity
+             * @description Inline sensitivity analysis
+             */
+            sensitivity?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Solution
+             * @description Inline solution (variable values + objective)
+             */
+            solution?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Use Advanced Model
+             * @description Use Claude Opus with extended thinking for the explanation
+             * @default false
+             */
+            use_advanced_model: boolean;
         };
         /**
          * ExtendPlacementRequest
@@ -6014,6 +6245,19 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** LowSuccessModel */
+        LowSuccessModel: {
+            /** Category */
+            category: string;
+            /** Display Name */
+            display_name: string;
+            /** Id */
+            id: string;
+            /** Success Rate */
+            success_rate: number;
+            /** Total Executions */
+            total_executions: number;
+        };
         /**
          * MarkReadResponse
          * @description Response model for mark as read.
@@ -6446,6 +6690,27 @@ export interface components {
             expression: string;
             /** @description Minimize or maximize */
             sense: components["schemas"]["ObjectiveSense"];
+        };
+        /**
+         * ObjectiveCoeffRange
+         * @description Range over which an objective coefficient keeps the optimal basis unchanged.
+         */
+        ObjectiveCoeffRange: {
+            /**
+             * Lower
+             * @description Lower end of the coefficient range
+             */
+            lower?: number | null;
+            /**
+             * Upper
+             * @description Upper end of the coefficient range
+             */
+            upper?: number | null;
+            /**
+             * Variable
+             * @description Variable whose objective coefficient this range covers
+             */
+            variable: string;
         };
         /**
          * ObjectiveSense
@@ -7152,6 +7417,15 @@ export interface components {
                 [key: string]: number;
             };
         };
+        /** Percentiles */
+        Percentiles: {
+            /** P50 */
+            p50: number | null;
+            /** P95 */
+            p95: number | null;
+            /** P99 */
+            p99: number | null;
+        };
         /**
          * PlacementPricingResponse
          * @description Pricing for a specific placement type.
@@ -7209,6 +7483,25 @@ export interface components {
                     [key: string]: string;
                 };
             };
+        };
+        /** PlatformOverviewResponse */
+        PlatformOverviewResponse: {
+            /** Avg Users Per Org */
+            avg_users_per_org: number;
+            builder_solves: components["schemas"]["BuilderSolves"];
+            /** By Category */
+            by_category: components["schemas"]["CategoryStat"][];
+            /** Daily */
+            daily: components["schemas"]["DailyPoint"][];
+            /** Days */
+            days: number;
+            executions: components["schemas"]["ExecutionStats"];
+            orgs: components["schemas"]["EntityCounts"];
+            /** Plan Distribution */
+            plan_distribution: {
+                [key: string]: number;
+            };
+            users: components["schemas"]["EntityCounts"];
         };
         /** PortalRequest */
         PortalRequest: {
@@ -7466,6 +7759,31 @@ export interface components {
             /** User Id */
             user_id: string;
         };
+        /** ReliabilityResponse */
+        ReliabilityResponse: {
+            /** Async Count */
+            async_count: number;
+            automation: components["schemas"]["AutomationStats"];
+            /** Avg Queue Time S */
+            avg_queue_time_s: number | null;
+            /** Days */
+            days: number;
+            /** Failure Rate */
+            failure_rate: number;
+            /** Failures By Solver Status */
+            failures_by_solver_status: {
+                [key: string]: number;
+            };
+            /** Low Success Models */
+            low_success_models: components["schemas"]["LowSuccessModel"][];
+            percentiles_ms: components["schemas"]["Percentiles"];
+            /** Sync Count */
+            sync_count: number;
+            /** Timeout Rate */
+            timeout_rate: number;
+            /** Total Executions */
+            total_executions: number;
+        };
         /**
          * ReportRequest
          * @description Request to report a review.
@@ -7566,6 +7884,27 @@ export interface components {
             user_id: string;
             /** User Name */
             user_name: string;
+        };
+        /**
+         * RhsRange
+         * @description Range over which a constraint right-hand side keeps the optimal basis unchanged.
+         */
+        RhsRange: {
+            /**
+             * Constraint
+             * @description Constraint whose RHS range this covers
+             */
+            constraint: string;
+            /**
+             * Lower
+             * @description Lower end of the RHS range
+             */
+            lower?: number | null;
+            /**
+             * Upper
+             * @description Upper end of the RHS range
+             */
+            upper?: number | null;
         };
         /**
          * SaleRecord
@@ -7707,6 +8046,24 @@ export interface components {
              * @description Additional context about the sensitivity analysis
              */
             note?: string | null;
+            /**
+             * Objective Ranges
+             * @description Objective-coefficient ranges, when the solver exposes ranging
+             * @default []
+             */
+            objective_ranges: components["schemas"]["ObjectiveCoeffRange"][];
+            /**
+             * Rhs Ranges
+             * @description Constraint right-hand-side ranges, when the solver exposes ranging
+             * @default []
+             */
+            rhs_ranges: components["schemas"]["RhsRange"][];
+            /**
+             * Variables
+             * @description Per-variable reduced costs (from the LP / LP relaxation)
+             * @default []
+             */
+            variables: components["schemas"]["VariableSensitivity"][];
         };
         /**
          * SettingDefinitionResponse
@@ -8592,6 +8949,33 @@ export interface components {
             upper_bound?: number | null;
         };
         /**
+         * VariableSensitivity
+         * @description Sensitivity information for a single decision variable.
+         */
+        VariableSensitivity: {
+            /**
+             * Is Approximate
+             * @description True if value is from LP relaxation approximation
+             * @default false
+             */
+            is_approximate: boolean;
+            /**
+             * Is At Bound
+             * @description Whether the variable rests at one of its bounds at optimality
+             */
+            is_at_bound?: boolean | null;
+            /**
+             * Name
+             * @description Variable name
+             */
+            name: string;
+            /**
+             * Reduced Cost
+             * @description Reduced cost: marginal change in the objective per unit relaxation of the variable's binding bound (meaningful when the variable sits at a bound)
+             */
+            reduced_cost?: number | null;
+        };
+        /**
          * VariableSolution
          * @description Solution value for a single variable.
          */
@@ -8798,6 +9182,7 @@ export type AdminPaginatedResponse = components['schemas']['AdminPaginatedRespon
 export type AdminPlacementResponse = components['schemas']['AdminPlacementResponse'];
 export type AdminVerificationDecision = components['schemas']['AdminVerificationDecision'];
 export type AdminVerificationEntry = components['schemas']['AdminVerificationEntry'];
+export type AiUsageResponse = components['schemas']['AiUsageResponse'];
 export type AllRatesResponse = components['schemas']['AllRatesResponse'];
 export type AnalyticsSummaryResponse = components['schemas']['AnalyticsSummaryResponse'];
 export type ApiKeyCreate = components['schemas']['APIKeyCreate'];
@@ -8811,6 +9196,7 @@ export type AppSchemasSellerAnalyticsConversionFunnelResponse = components['sche
 export type AppSchemasWorkspaceAuditLogResponse = components['schemas']['app__schemas__workspace__AuditLogResponse'];
 export type AttachmentResponse = components['schemas']['AttachmentResponse'];
 export type AuditEntryResponse = components['schemas']['AuditEntryResponse'];
+export type AutomationStats = components['schemas']['AutomationStats'];
 export type BillingStatusResponse = components['schemas']['BillingStatusResponse'];
 export type BodyImportAndSolve = components['schemas']['Body_import_and_solve'];
 export type BodyImportPreview = components['schemas']['Body_import_preview'];
@@ -8821,6 +9207,8 @@ export type BuilderDocumentCreate = components['schemas']['BuilderDocumentCreate
 export type BuilderDocumentListResponse = components['schemas']['BuilderDocumentListResponse'];
 export type BuilderDocumentResponse = components['schemas']['BuilderDocumentResponse'];
 export type BuilderDocumentUpdate = components['schemas']['BuilderDocumentUpdate'];
+export type BuilderSolves = components['schemas']['BuilderSolves'];
+export type CategoryStat = components['schemas']['CategoryStat'];
 export type ChatMessageRequest = components['schemas']['ChatMessageRequest'];
 export type CheckoutResponse = components['schemas']['CheckoutResponse'];
 export type CommunityStatusResponse = components['schemas']['CommunityStatusResponse'];
@@ -8849,6 +9237,7 @@ export type CreditPoolAllocate = components['schemas']['CreditPoolAllocate'];
 export type CreditPoolResponse = components['schemas']['CreditPoolResponse'];
 export type CronValidationResponse = components['schemas']['CronValidationResponse'];
 export type CurrencyRequest = components['schemas']['CurrencyRequest'];
+export type DailyPoint = components['schemas']['DailyPoint'];
 export type DailyTrend = components['schemas']['DailyTrend'];
 export type DetailedStatusResponse = components['schemas']['DetailedStatusResponse'];
 export type DomainSummaryEntry = components['schemas']['DomainSummaryEntry'];
@@ -8856,10 +9245,13 @@ export type EarningsSummaryResponse = components['schemas']['EarningsSummaryResp
 export type EmailInviteCreate = components['schemas']['EmailInviteCreate'];
 export type EmailLoginRequest = components['schemas']['EmailLoginRequest'];
 export type EmailSignupRequest = components['schemas']['EmailSignupRequest'];
+export type EntityCounts = components['schemas']['EntityCounts'];
 export type EventBreakdownEntry = components['schemas']['EventBreakdownEntry'];
 export type ExchangeRateResponse = components['schemas']['ExchangeRateResponse'];
 export type ExecuteModelRequest = components['schemas']['ExecuteModelRequest'];
 export type ExecutionListResponse = components['schemas']['ExecutionListResponse'];
+export type ExecutionStats = components['schemas']['ExecutionStats'];
+export type ExplainSolutionRequest = components['schemas']['ExplainSolutionRequest'];
 export type ExtendPlacementRequest = components['schemas']['ExtendPlacementRequest'];
 export type FavoriteResponse = components['schemas']['FavoriteResponse'];
 export type FeatureAnalyticsKpi = components['schemas']['FeatureAnalyticsKPI'];
@@ -8891,6 +9283,7 @@ export type LinkInviteCreate = components['schemas']['LinkInviteCreate'];
 export type LinkInviteResponse = components['schemas']['LinkInviteResponse'];
 export type LoginRequest = components['schemas']['LoginRequest'];
 export type LoginResponse = components['schemas']['LoginResponse'];
+export type LowSuccessModel = components['schemas']['LowSuccessModel'];
 export type MarkReadResponse = components['schemas']['MarkReadResponse'];
 export type MemberRoleUpdate = components['schemas']['MemberRoleUpdate'];
 export type MeResponse = components['schemas']['MeResponse'];
@@ -8909,6 +9302,7 @@ export type NotificationPreferenceEntry = components['schemas']['NotificationPre
 export type NotificationPreferencesResponse = components['schemas']['NotificationPreferencesResponse'];
 export type NotificationResponse = components['schemas']['NotificationResponse'];
 export type Objective = components['schemas']['Objective'];
+export type ObjectiveCoeffRange = components['schemas']['ObjectiveCoeffRange'];
 export type ObjectiveSense = components['schemas']['ObjectiveSense'];
 export type ObjectiveSpec = components['schemas']['ObjectiveSpec'];
 export type OnboardingStatusResponse = components['schemas']['OnboardingStatusResponse'];
@@ -8928,11 +9322,13 @@ export type PaginatedResponseAuditLogResponse = components['schemas']['Paginated
 export type PaginatedResponseTriggerRunResponse = components['schemas']['PaginatedResponse_TriggerRunResponse_'];
 export type PaginatedResponseWorkspaceResponse = components['schemas']['PaginatedResponse_WorkspaceResponse_'];
 export type ParetoPoint = components['schemas']['ParetoPoint'];
+export type Percentiles = components['schemas']['Percentiles'];
 export type PlacementPricingResponse = components['schemas']['PlacementPricingResponse'];
 export type PlacementPricingTier = components['schemas']['PlacementPricingTier'];
 export type PlanLimitsResponse = components['schemas']['PlanLimitsResponse'];
 export type PlanTiersResponse = components['schemas']['PlanTiersResponse'];
 export type PlanTiersUpdateRequest = components['schemas']['PlanTiersUpdateRequest'];
+export type PlatformOverviewResponse = components['schemas']['PlatformOverviewResponse'];
 export type PortalRequest = components['schemas']['PortalRequest'];
 export type PortalResponse = components['schemas']['PortalResponse'];
 export type PreviewRequest = components['schemas']['PreviewRequest'];
@@ -8945,12 +9341,14 @@ export type PurchasePlacementRequest = components['schemas']['PurchasePlacementR
 export type RatingCreate = components['schemas']['RatingCreate'];
 export type RatingResponse = components['schemas']['RatingResponse'];
 export type RecentEventEntry = components['schemas']['RecentEventEntry'];
+export type ReliabilityResponse = components['schemas']['ReliabilityResponse'];
 export type ReportRequest = components['schemas']['ReportRequest'];
 export type ResetPasswordRequest = components['schemas']['ResetPasswordRequest'];
 export type RestoreRequest = components['schemas']['RestoreRequest'];
 export type RestoreResponse = components['schemas']['RestoreResponse'];
 export type ReviewListResponse = components['schemas']['ReviewListResponse'];
 export type ReviewResponse = components['schemas']['ReviewResponse'];
+export type RhsRange = components['schemas']['RhsRange'];
 export type SaleRecord = components['schemas']['SaleRecord'];
 export type SalesHistoryResponse = components['schemas']['SalesHistoryResponse'];
 export type ScheduleCreateRequest = components['schemas']['ScheduleCreateRequest'];
@@ -8999,6 +9397,7 @@ export type UserReviewResponse = components['schemas']['UserReviewResponse'];
 export type UserUpdate = components['schemas']['UserUpdate'];
 export type ValidationError = components['schemas']['ValidationError'];
 export type Variable = components['schemas']['Variable'];
+export type VariableSensitivity = components['schemas']['VariableSensitivity'];
 export type VariableSolution = components['schemas']['VariableSolution'];
 export type VariableType = components['schemas']['VariableType'];
 export type VerificationRequestResponse = components['schemas']['VerificationRequestResponse'];
@@ -9879,6 +10278,102 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_platform_ai_usage: {
+        parameters: {
+            query?: {
+                /** @description Look-back window in days (0 = all time) */
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiUsageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_platform_overview: {
+        parameters: {
+            query?: {
+                /** @description Look-back window in days (0 = all time) */
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformOverviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_platform_reliability: {
+        parameters: {
+            query?: {
+                /** @description Look-back window in days (0 = all time) */
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReliabilityResponse"];
                 };
             };
             /** @description Validation Error */
@@ -12525,6 +13020,41 @@ export interface operations {
             };
         };
     };
+    explain_solution_endpoint_api_v2_llm_conversations__conversation_id__explain_solution_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExplainSolutionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     send_message_api_v2_llm_conversations__conversation_id__messages_post: {
         parameters: {
             query?: never;
@@ -14877,7 +15407,7 @@ export interface operations {
             };
         };
     };
-    solve_multi_objective_endpoint_api_v2_solve_multi_objective_post: {
+    solve_multi_objective: {
         parameters: {
             query?: {
                 solver_name?: string | null;

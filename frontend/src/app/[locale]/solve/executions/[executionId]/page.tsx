@@ -13,6 +13,7 @@ import { VariableValuesChart } from "@/components/solve/VariableValuesChart";
 import { InsightsPanel } from "@/components/solve/InsightsPanel";
 import { ExportButtons } from "@/components/solve/ExportButtons";
 import { SensitivityTab } from "@/components/solve/SensitivityTab";
+import { SolutionExplainer } from "@/components/solve/SolutionExplainer";
 import { OriginBadge } from "@/components/solve/OriginBadge";
 import { GapConvergenceChart } from "@/components/solve/GapConvergenceChart";
 import { useTranslations } from "next-intl";
@@ -197,6 +198,12 @@ export default function ExecutionDetailPage() {
           </TabsList>
 
           <TabsContent value="results">
+            {variables.length > 0 && (
+              <div className="mb-6">
+                <SolutionExplainer executionId={executionId} canExplain={canUseAsWarmStart} />
+              </div>
+            )}
+
             {variables.length > 0 && (
               <div className="mb-8">
                 <h2 className="text-lg font-semibold text-foreground mb-3">{t("solutionExplorer")}</h2>
