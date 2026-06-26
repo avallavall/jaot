@@ -135,6 +135,33 @@ class ChatMessageRequest(BaseModel):
     )
 
 
+class ExplainSolutionRequest(BaseModel):
+    """Request a plain-language explanation of a solved optimization model.
+
+    Provide ``execution_id`` to load the solution + sensitivity from a persisted
+    ``ModelExecution`` (organization ownership is enforced), or pass the
+    ``formulation`` / ``solution`` / ``sensitivity`` inline. ``execution_id`` takes
+    precedence when both are supplied.
+    """
+
+    execution_id: str | None = Field(
+        default=None, description="ModelExecution id to load solution + sensitivity from"
+    )
+    formulation: dict[str, Any] | None = Field(
+        default=None, description="Inline formulation (variables/constraints/objective)"
+    )
+    solution: dict[str, Any] | None = Field(
+        default=None, description="Inline solution (variable values + objective)"
+    )
+    sensitivity: dict[str, Any] | None = Field(
+        default=None, description="Inline sensitivity analysis"
+    )
+    use_advanced_model: bool = Field(
+        default=False,
+        description="Use Claude Opus with extended thinking for the explanation",
+    )
+
+
 class ChatMessageResponse(BaseModel):
     """A message in a conversation (returned to client)."""
 
