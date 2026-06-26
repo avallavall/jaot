@@ -17,6 +17,7 @@ from app.domains.solver.adapters.base import (
 )
 from app.domains.solver.prepaid import clear_prepaid_credits
 from app.domains.solver.queue_routing import resolve_queue
+from app.domains.solver.services.availability_gate import ensure_hexaly_worker_or_503
 from app.domains.solver.services.solver_service import SolverService, get_solver_service
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
 from app.domains.solver.time_limits import compute_celery_time_limits
@@ -26,7 +27,7 @@ from app.schemas.model import (
     ExecutionListResponse,
     ModelExecutionResponse,
 )
-from app.schemas.optimization import OptimizationProblem
+from app.schemas.optimization import OptimizationProblem, SolverStatus
 from app.services.credits_service import CreditsService, InsufficientCreditsError
 from app.shared.core.prometheus_metrics import RefundReason
 from app.shared.db.base import get_db
@@ -136,19 +137,41 @@ async def execute_model(
             "input_fields": (model.private_definition or {}).get("input_fields", []),
         }
 
-    # Override default solver if solver_name specified (Phase 5 / HIGH-04)
-    if solver_name is not None:
+    # Render the problem first — auto-routing classification needs it.
+    problem = template_engine.render(template, body.input_data)
+
+    # Resolve "auto" to a concrete solver BEFORE pricing, queueing, or solving.
+    # Parity with /api/v2/solve (Phase 7.4 / D-11 / D-13): this endpoint used to
+    # pass "auto" straight through to the registry, which raised
+    # SolverNotFoundError("Solver 'auto' is not registered.") and — on the sync
+    # path — still charged the user. Resolve it here so the rest of the flow
+    # only ever sees a concrete solver name.
+    auto_route_reason: str | None = None
+    fallback_triggered: bool = False
+    if solver_name == "auto":
+        from app.domains.solver.services.auto_router import select_solver  # noqa: PLC0415
+
+        effective_solver_name, auto_route_reason, fallback_triggered = select_solver(
+            problem, solver.parser
+        )
+    else:
+        effective_solver_name = solver_name
+
+    # D-11: direct hexaly selection + worker down → 503 BEFORE any credit op.
+    # No-op when the auto-router already fell back to SCIP.
+    if not fallback_triggered:
+        ensure_hexaly_worker_or_503(effective_solver_name)
+
+    # Bind the solver service to the concrete (post-routing) name.
+    if effective_solver_name is not None:
         try:
-            solver = get_solver_service(solver_name=solver_name)
+            solver = get_solver_service(solver_name=effective_solver_name)
         except (SolverNotFoundError, SolverUnavailableError) as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    problem = template_engine.render(template, body.input_data)
-    # Phase 7.4 / D-02 / PRC-01: pre-pay the multiplier-adjusted credit cost.
-    # When solver_name is None at this tier, fall back to DEFAULT_SOLVER_NAME
-    # (matches line 163 `solver_name or DEFAULT_SOLVER_NAME` for the
-    # ModelExecution row's solver_name column).
-    effective_solver_for_pricing = solver_name or DEFAULT_SOLVER_NAME
+    # Phase 7.4 / D-02 / PRC-01: pre-pay the multiplier-adjusted credit cost
+    # using the post-routing concrete solver (never "auto").
+    effective_solver_for_pricing = effective_solver_name or DEFAULT_SOLVER_NAME
     base_credits = calculate_credits(problem, solver_name=effective_solver_for_pricing, db=db)
 
     if org.credits_balance < base_credits:
@@ -168,7 +191,8 @@ async def execute_model(
         status=ExecutionStatus.PENDING.value if body.async_mode else ExecutionStatus.RUNNING.value,
         credits_base=base_credits,
         started_at=utcnow(),
-        solver_name=solver_name or DEFAULT_SOLVER_NAME,
+        solver_name=effective_solver_name or DEFAULT_SOLVER_NAME,
+        auto_route_reason=auto_route_reason,
     )
     db.add(execution)
     db.commit()
@@ -177,10 +201,10 @@ async def execute_model(
     if body.async_mode:
         from app.domains.solver.tasks.solve_tasks import solve_model_async
 
-        # get_solver_service above has already validated solver_name;
+        # solver_name has already been resolved ("auto" → concrete) above;
         # resolve_queue is a defense-in-depth check against future drift.
         try:
-            target_queue = resolve_queue(solver_name)
+            target_queue = resolve_queue(effective_solver_name)
         except SolverNotFoundError as exc:
             execution.status = ExecutionStatus.FAILED.value
             execution.error_message = str(exc)
@@ -232,7 +256,7 @@ async def execute_model(
                     "input_data": body.input_data,
                     "organization_id": current_user.organization_id,
                     "base_credits": base_credits,
-                    "solver_name": solver_name,
+                    "solver_name": effective_solver_name,
                     "_prepaid_credits": base_credits,
                 },
                 queue=target_queue,
@@ -302,6 +326,25 @@ async def execute_model(
         end_time = utcnow()
 
         execution_time_ms = int((end_time - start_time).total_seconds() * 1000)
+
+        # A solver-internal error comes back as status=ERROR WITHOUT raising
+        # (SolverService.solve swallows exceptions into an ERROR result). Treat
+        # it as a failure and do NOT charge — parity with /api/v2/solve (which
+        # refunds on ERROR) and with solve_model_async (which refunds pre-paid
+        # credits on failure). Charging for a solve that produced no result is
+        # exactly the bug reported ("Créditos consumidos: 3" on a FAILED solve).
+        if result.status == SolverStatus.ERROR:
+            execution.status = ExecutionStatus.FAILED.value
+            execution.error_message = result.error_message or "Solver returned an error"
+            execution.result_data = result.to_result_data()
+            execution.execution_time_ms = execution_time_ms
+            execution.solver_status = result.status.value
+            execution.credits_consumed = 0
+            execution.completed_at = end_time
+            db.commit()
+            db.refresh(execution)
+            return ModelExecutionResponse.model_validate(execution)
+
         total_credits = base_credits
 
         execution.status = ExecutionStatus.COMPLETED.value
@@ -335,28 +378,26 @@ async def execute_model(
 
         return ModelExecutionResponse.model_validate(execution)
 
+    except (SolverNotFoundError, SolverUnavailableError) as exc:
+        # Unknown/unavailable solver — surface 422 like /api/v2/solve and do
+        # NOT charge. After auto-routing this is only reachable via an explicit
+        # bad solver_name query param.
+        execution.status = ExecutionStatus.FAILED.value
+        execution.error_message = str(exc)
+        execution.completed_at = utcnow()
+        execution.credits_consumed = 0
+        db.commit()
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
     except Exception as e:
+        # Any other solve failure: record it, but never charge for a solve that
+        # did not deliver a result (the pre-fix path deducted base_credits here).
         execution.status = ExecutionStatus.FAILED.value
         execution.error_message = str(e)
         execution.completed_at = utcnow()
-        execution.credits_consumed = base_credits
-
-        try:
-            CreditsService.deduct_credits(
-                db=db,
-                organization_id=org.id,
-                credits=base_credits,
-                description=f"Model execution (failed): {execution.id}",
-                reference_type="execution_failed",
-                reference_id=execution.id,
-            )
-            org.credits_used_month += base_credits
-        except Exception as credit_err:
-            logger.warning("Failed to deduct credits on execution failure: %s", credit_err)
-
+        execution.credits_consumed = 0
         db.commit()
         db.refresh(execution)
-
         return ModelExecutionResponse.model_validate(execution)
 
 

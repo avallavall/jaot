@@ -106,6 +106,152 @@ class TestExecuteModel:
         db_session.refresh(test_organization)
         assert test_organization.credits_balance < initial_credits
 
+    def test_execute_model_auto_solver_resolves(
+        self, authenticated_client, db_session, test_organization
+    ):
+        """Regression: ``?solver_name=auto`` must resolve to a concrete solver.
+
+        Before the fix, execute_model passed ``"auto"`` straight to the solver
+        registry, which raised ``SolverNotFoundError('Solver 'auto' is not
+        registered.')`` and the sync path STILL charged the user. This test
+        uses the REAL solver registry (no mock) so it actually exercises
+        auto-routing end to end — exactly the gap that let the bug ship.
+        """
+        initial_credits = test_organization.credits_balance
+
+        catalog = ModelCatalog(
+            id="test_auto_catalog",
+            name="auto_catalog",
+            display_name="Auto Catalog",
+            description="For auto-routing regression",
+            category=ModelCategory.GENERAL,
+            generator_type="generic",
+            input_schema={},
+            input_fields=[],
+            example_input={},
+            version="1.0.0",
+            status="published",
+            is_official=False,
+            is_public=True,
+            price_eur=0.0,
+            credits_per_execution=5,
+        )
+        db_session.add(catalog)
+        org_model = OrganizationModel(
+            id="test_auto_org_model",
+            organization_id=test_organization.id,
+            catalog_id="test_auto_catalog",
+            is_active=True,
+        )
+        db_session.add(org_model)
+        db_session.commit()
+
+        # MILP (integer var) → auto routes to SCIP, which is always registered.
+        response = authenticated_client.post(
+            "/api/v2/models/test_auto_org_model/execute?solver_name=auto",
+            json={
+                "input_data": {
+                    "variables": [
+                        {"name": "x", "type": "integer", "lower_bound": 0, "upper_bound": 10}
+                    ],
+                    "objective": {"sense": "maximize", "expression": "x"},
+                }
+            },
+        )
+
+        assert response.status_code == 200, response.text
+        data = response.json()
+        # The bug surfaced as status FAILED + "Solver 'auto' is not registered".
+        assert data["status"] == "completed", data
+        assert data["solver_status"] in ("optimal", "feasible"), data
+
+        # "auto" must have been resolved to a concrete solver before persisting.
+        execution = db_session.query(ModelExecution).filter(ModelExecution.id == data["id"]).first()
+        assert execution is not None
+        assert execution.solver_name in ("scip", "highs", "hexaly")
+        assert execution.solver_name != "auto"
+        assert execution.auto_route_reason is not None
+
+        db_session.refresh(test_organization)
+        assert test_organization.credits_balance < initial_credits
+
+    def test_execute_model_failed_solve_does_not_charge(
+        self, authenticated_client, db_session, test_organization
+    ):
+        """A failed solve must NOT consume credits.
+
+        Regression for the user-reported "Créditos consumidos: 3" on a FAILED
+        solve. The pre-fix sync path deducted ``base_credits`` in its except
+        handler; now a solver-internal ERROR (or any exception) leaves the
+        balance untouched, matching /api/v2/solve and solve_model_async.
+        """
+        from app.domains.solver.services.solver_service import get_solver_service
+        from app.schemas.optimization import SolverStatus
+
+        initial_credits = test_organization.credits_balance
+
+        catalog = ModelCatalog(
+            id="test_fail_catalog",
+            name="fail_catalog",
+            display_name="Fail Catalog",
+            description="For failure no-charge regression",
+            category=ModelCategory.GENERAL,
+            generator_type="generic",
+            input_schema={},
+            input_fields=[],
+            example_input={},
+            version="1.0.0",
+            status="published",
+            is_official=False,
+            is_public=True,
+            price_eur=0.0,
+            credits_per_execution=5,
+        )
+        db_session.add(catalog)
+        org_model = OrganizationModel(
+            id="test_fail_org_model",
+            organization_id=test_organization.id,
+            catalog_id="test_fail_catalog",
+            is_active=True,
+        )
+        db_session.add(org_model)
+        db_session.commit()
+
+        # Solver returns an ERROR result WITHOUT raising (SolverService.solve
+        # swallows exceptions into an ERROR result).
+        error_result = MagicMock()
+        error_result.status = SolverStatus.ERROR
+        error_result.error_message = "boom"
+        error_result.objective_value = None
+        error_result.to_result_data.return_value = {"solver_status": "error"}
+
+        fake_solver = MagicMock()
+        fake_solver.solve.return_value = error_result
+
+        app = authenticated_client.app
+        app.dependency_overrides[get_solver_service] = lambda: fake_solver
+        try:
+            response = authenticated_client.post(
+                "/api/v2/models/test_fail_org_model/execute",
+                json={
+                    "input_data": {
+                        "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
+                        "objective": {"sense": "maximize", "expression": "x"},
+                    }
+                },
+            )
+        finally:
+            app.dependency_overrides.pop(get_solver_service, None)
+
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert data["status"] == "failed", data
+        assert data["credits_consumed"] == 0, data
+
+        # Balance must be exactly unchanged — no charge for a failed solve.
+        db_session.refresh(test_organization)
+        assert test_organization.credits_balance == initial_credits
+
     def test_execute_model_insufficient_credits(
         self, authenticated_client, db_session, test_organization
     ):

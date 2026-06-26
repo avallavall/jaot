@@ -2658,7 +2658,7 @@
       "warmStart": "Warm Start",
       "warmStartHint": "(opcional — usa una solución anterior para acelerar la resolución)",
       "warmStartSelected": "Warm start seleccionado — el solver usará esta solución como punto de partida (se aplica 50% de descuento en créditos).",
-      "runModel": "Ejecutar {mode} ({credits} créditos)",
+      "runModel": "Ejecutar {mode}",
       "modeAsync": "Asíncrono",
       "modeSync": "Modelo",
       "starting": "Iniciando...",
