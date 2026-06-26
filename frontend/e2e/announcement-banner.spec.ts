@@ -34,14 +34,6 @@ async function setSettings(
   }
 }
 
-async function setSetting(
-  request: import("@playwright/test").APIRequestContext,
-  key: string,
-  value: string,
-) {
-  await setSettings(request, { [key]: value });
-}
-
 type Locale = "en" | "es" | "ca" | "fr" | "de";
 
 async function setBanner(

@@ -3,7 +3,7 @@ import type { WorkspaceRole } from "@/lib/types";
 
 const ROLE_ORDER: WorkspaceRole[] = ["viewer", "solver", "editor", "admin"];
 
-export function hasMinimumRole(
+function hasMinimumRole(
   userRole: WorkspaceRole | null,
   required: WorkspaceRole
 ): boolean {

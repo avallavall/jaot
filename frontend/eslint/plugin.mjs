@@ -15,8 +15,10 @@
 
 import noE2eMockJaotBoundary from "./rules/no-e2e-mock-jaot-boundary.mjs";
 
-export default {
+const jaotPlugin = {
   rules: {
     "no-e2e-mock-jaot-boundary": noE2eMockJaotBoundary,
   },
 };
+
+export default jaotPlugin;

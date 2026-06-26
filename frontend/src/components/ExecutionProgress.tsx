@@ -4,16 +4,10 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { useExecutionWebSocket } from '@/hooks/useWebSocket';
 import { api } from '@/lib/api';
+import type { ProgressPoint } from '@/lib/result-utils';
 import { toast } from 'sonner';
 import { Info } from 'lucide-react';
 import Link from 'next/link';
-
-interface ProgressPoint {
-  iteration: number;
-  objective: number;
-  gap: number;
-  timestamp: number;
-}
 
 interface ExecutionProgressProps {
   executionId: string | null;
