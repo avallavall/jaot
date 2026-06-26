@@ -211,19 +211,35 @@ SOFTWARE.`;
 const dependencies = [
   {
     name: "SCIP",
-    version: "9.2",
+    version: "10.0.2",
     license: "Apache 2.0",
-    copyright: "Copyright (c) 2002-2024 Zuse Institute Berlin (ZIB)",
+    copyright: "Copyright (c) 2002-2026 Zuse Institute Berlin (ZIB)",
     url: "https://www.scipopt.org/",
     usedFor: "Core mixed-integer programming solver engine for optimization models",
   },
   {
     name: "PySCIPOpt",
-    version: "5.6.0",
+    version: "6.2.1",
     license: "MIT",
     copyright: "Copyright (c) 2023 Zuse Institute Berlin (ZIB)",
     url: "https://github.com/SCIP-Interfaces/PySCIPOpt",
     usedFor: "Python interface to the SCIP solver",
+  },
+  {
+    name: "HiGHS (highspy)",
+    version: "1.12+",
+    license: "MIT",
+    copyright: "Copyright (c) HiGHS developers (University of Edinburgh et al.)",
+    url: "https://highs.dev/",
+    usedFor: "Open-source LP/MIP solver backend",
+  },
+  {
+    name: "pypdf",
+    version: "5.1+",
+    license: "BSD-3-Clause",
+    copyright: "Copyright (c) 2006-2008, Mathieu Fenniak; and contributors",
+    url: "https://github.com/py-pdf/pypdf",
+    usedFor: "PDF text extraction for LLM document context",
   },
   {
     name: "requests",
@@ -271,10 +287,10 @@ export default async function LicensesPage() {
         </section>
 
         <section>
-          <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">SCIP 9.2</h2>
+          <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">SCIP 10.0.2</h2>
           <div className="text-sm space-y-1 mb-4">
             <p><span className="font-medium text-foreground">{t("licenses.fieldLicense")}</span> Apache License, Version 2.0</p>
-            <p><span className="font-medium text-foreground">{t("licenses.fieldCopyright")}</span> Copyright (c) 2002-2024 Zuse Institute Berlin (ZIB)</p>
+            <p><span className="font-medium text-foreground">{t("licenses.fieldCopyright")}</span> Copyright (c) 2002-2026 Zuse Institute Berlin (ZIB)</p>
             <p>
               <span className="font-medium text-foreground">{t("licenses.fieldUrl")}</span>{" "}
               <a href="https://www.scipopt.org/" className="underline hover:text-foreground transition-colors" target="_blank" rel="noopener noreferrer">
@@ -289,7 +305,7 @@ export default async function LicensesPage() {
         </section>
 
         <section>
-          <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">PySCIPOpt 5.6.0</h2>
+          <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">PySCIPOpt 6.2.1</h2>
           <div className="text-sm space-y-1 mb-4">
             <p><span className="font-medium text-foreground">{t("licenses.fieldLicense")}</span> MIT License</p>
             <p><span className="font-medium text-foreground">{t("licenses.fieldCopyright")}</span> Copyright (c) 2023 Zuse Institute Berlin (ZIB)</p>

@@ -29,6 +29,10 @@ RUN groupadd --gid 1001 jaot \
     && useradd --uid 1001 --gid jaot --shell /bin/false --create-home jaot
 
 COPY --chown=jaot:jaot app/ ./app/
+# Ship license + attribution notices inside the image: the worker bundles SCIP
+# (Apache-2.0) and other third-party binaries, so Apache-2.0 §4 attribution must
+# travel with any distributed image.
+COPY --chown=jaot:jaot LICENSE NOTICE THIRD_PARTY_LICENSES ./
 # Operator helper scripts (e.g. replay-daily-task.sh). The deploy runbook
 # invokes these via `docker exec ... bash /opt/jaot/deploy/scripts/...` and the
 # replay command may target a worker container, so ship them at that exact path

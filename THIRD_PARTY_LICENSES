@@ -18,21 +18,29 @@ SUMMARY
 
   Project      Version   License       Copyright Holder
   ----------   -------   ----------    ----------------------------
-  SCIP         9.0.2     Apache 2.0    Zuse Institute Berlin (ZIB)
-  PySCIPOpt    5.6.0     MIT           Zuse Institute Berlin (ZIB)
+  SCIP         10.0.2    Apache 2.0    Zuse Institute Berlin (ZIB)
+  SoPlex       8.0.2     Apache 2.0    Zuse Institute Berlin (ZIB)
+  PySCIPOpt    6.2.1     MIT           Zuse Institute Berlin (ZIB)
   HiGHS        1.12+     MIT           HiGHS developers (Univ. of Edinburgh)
   pypdf        5.1+      BSD-3-Clause  Mathieu Fenniak and contributors
   requests     2.32.5    Apache 2.0    Kenneth Reitz
 
 
 ========================================================================
-SCIP 9.0.2
+SCIP 10.0.2  (bundles SoPlex 8.0.2 as the LP solver)
 ========================================================================
 
 License:    Apache License, Version 2.0
-Copyright:  Copyright (c) 2002-2024 Zuse Institute Berlin (ZIB)
+Copyright:  Copyright (c) 2002-2026 Zuse Institute Berlin (ZIB)
 URL:        https://www.scipopt.org/
 Used for:   Core mixed-integer programming solver engine for optimization models
+Note:       Distributed via the PySCIPOpt 6.2.1 wheel, which bundles the SCIP
+            Optimization Suite, including the SoPlex 8.0.2 LP solver (also
+            Apache 2.0, copyright Zuse Institute Berlin). JAOT does not use the
+            LGPL components of the suite (ZIMPL, UG).
+            As requested by ZIB (https://www.scipopt.org/index.php#cite), JAOT
+            acknowledges and cites SCIP — see the README "Citing the solvers"
+            section for the reference.
 
 Full license text:
 
@@ -213,7 +221,7 @@ Full license text:
 
 
 ========================================================================
-PySCIPOpt 5.6.0
+PySCIPOpt 6.2.1
 ========================================================================
 
 License:    MIT License

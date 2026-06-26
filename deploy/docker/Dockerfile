@@ -33,6 +33,10 @@ RUN groupadd --gid 1001 jaot \
 
 COPY --chown=jaot:jaot app/ ./app/
 COPY --chown=jaot:jaot run.py .
+# Ship license + attribution notices inside the image: the image bundles SCIP
+# (Apache-2.0) and other third-party binaries, so Apache-2.0 §4 attribution must
+# travel with any distributed image.
+COPY --chown=jaot:jaot LICENSE NOTICE THIRD_PARTY_LICENSES ./
 COPY --chown=jaot:jaot scripts/ ./scripts/
 # Operator helper scripts (e.g. replay-daily-task.sh). The deploy runbook
 # invokes these as `docker exec jaot_prod_api bash /opt/jaot/deploy/scripts/...`,

@@ -65,6 +65,26 @@ export default async function Footer() {
 
         <div className="mt-8 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
           <span className="text-lg font-serif text-primary">JAOT</span>
+          <span>
+            {t("poweredBy")}{" "}
+            <a
+              href="https://www.scipopt.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-foreground transition-colors"
+            >
+              SCIP
+            </a>
+            {" & "}
+            <a
+              href="https://highs.dev/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-foreground transition-colors"
+            >
+              HiGHS
+            </a>
+          </span>
           <span>&copy; {new Date().getFullYear()} {t("copyright")}</span>
         </div>
       </div>

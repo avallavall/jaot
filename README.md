@@ -129,6 +129,47 @@ pass. Issues and focused PRs welcome; see [CONTRIBUTING.md](CONTRIBUTING.md) and
 
 ---
 
+## Citing the solvers
+
+JAOT is powered by **SCIP 10** (via PySCIPOpt) and **HiGHS**. As the SCIP team
+[requests](https://www.scipopt.org/index.php#cite), any work that uses SCIP
+should acknowledge and cite it. If JAOT helps your research or product, please
+cite the underlying solvers:
+
+```bibtex
+@misc{scip10,
+  title        = {The {SCIP} Optimization Suite 10.0},
+  author       = {Christopher Hojny and Mathieu Besançon and Ksenia Bestuzheva and Sander Borst and João Dionísio and Johannes Ehls and Leon Eifler and Mohammed Ghannam and Ambros Gleixner and Adrian Göß and Alexander Hoen and Jacob von Holly-Ponientzietz and Rolf van der Hulst and Dominik Kamp and Thorsten Koch and Kevin Kofler and Jurgen Lentz and Marco Lübbecke and Stephen J. Maher and Paul Matti Meinhold and Gioni Mexi and Til Mohr and Erik Mühmer and Krunal Kishor Patel and Marc E. Pfetsch and Sebastian Pokutta and Chantal Reinartz Groba and Felipe Serrano and Yuji Shinano and Mark Turner and Stefan Vigerske and Matthias Walter and Dieter Weninger and Liding Xu},
+  year         = {2025},
+  howpublished = {Optimization Online preprint, arXiv:2511.18580},
+  url          = {https://arxiv.org/abs/2511.18580}
+}
+
+@article{achterberg2009scip,
+  title   = {{SCIP}: solving constraint integer programs},
+  author  = {Achterberg, Tobias},
+  journal = {Mathematical Programming Computation},
+  volume  = {1},
+  number  = {1},
+  pages   = {1--41},
+  year    = {2009},
+  doi     = {10.1007/s12532-008-0001-1}
+}
+
+@article{huangfu2018highs,
+  title   = {Parallelizing the dual revised simplex method},
+  author  = {Huangfu, Qi and Hall, J. A. Julian},
+  journal = {Mathematical Programming Computation},
+  volume  = {10},
+  number  = {1},
+  pages   = {119--142},
+  year    = {2018},
+  doi     = {10.1007/s12532-017-0130-5}
+}
+```
+
+---
+
 ## License
 
 [Apache License 2.0](LICENSE) — see also [NOTICE](NOTICE). Third-party license

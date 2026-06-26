@@ -28,6 +28,8 @@ RUN groupadd --gid 1001 jaot \
     && useradd --uid 1001 --gid jaot --shell /bin/false --create-home jaot
 
 COPY --chown=jaot:jaot app/ ./app/
+# Image bundles SCIP (Apache-2.0) via requirements.txt — ship attribution notices.
+COPY --chown=jaot:jaot LICENSE NOTICE THIRD_PARTY_LICENSES ./
 COPY --chown=jaot:jaot scripts/ ./scripts/
 COPY --chown=jaot:jaot infra/alembic/ ./infra/alembic/
 COPY --chown=jaot:jaot infra/alembic.ini ./infra/alembic.ini

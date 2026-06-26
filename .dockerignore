@@ -61,7 +61,8 @@ test-results/
 .ruff_cache/
 pyproject.toml
 run_tests.py
-THIRD_PARTY_LICENSES
+# THIRD_PARTY_LICENSES is intentionally NOT ignored: it is baked into the
+# runtime images (Apache-2.0 §4 attribution travels with the distributed image).
 
 # Frontend (has its own Dockerfile)
 frontend/
