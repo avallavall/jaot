@@ -436,6 +436,23 @@
         "description": "Turn shadow prices and reduced costs into plain language, grounded strictly in your actual numbers."
       }
     },
+    "infeasibilityHighlight": {
+      "eyebrow": "Infeasible? Don't get stuck",
+      "title": "We tell you exactly which constraints conflict",
+      "subtitle": "Most solvers just say \"no solution.\" JAOT pinpoints the conflict and shows you how to fix it.",
+      "conflict": {
+        "title": "The exact conflict set",
+        "description": "JAOT isolates the minimal set of constraints and bounds that can't all hold at once — and highlights them on the result page."
+      },
+      "fix": {
+        "title": "How to fix it, in plain language",
+        "description": "A one-click AI explanation names the conflicting requirements and suggests concrete fixes: which bound to widen, which limit to relax."
+      },
+      "honest": {
+        "title": "Honest by design",
+        "description": "When a model is too large for an exact conflict set, JAOT says so and clearly flags the explanation as heuristic — never a confident guess."
+      }
+    },
     "features": {
       "title": "Four pillars of optimization",
       "subtitle": "Everything you need to build, use, share, and automate optimization.",
@@ -3263,6 +3280,20 @@
       "unavailable": "Explanations are available only for solved (optimal or feasible) executions.",
       "ref": "ref: {requestId}"
     },
+    "infeasibility": {
+      "title": "Why is this infeasible?",
+      "description": "This model has no solution because some requirements contradict each other. Find out exactly which constraints conflict — and how to fix it.",
+      "button": "Explain why & how to fix",
+      "regenerate": "Regenerate",
+      "analyzing": "Finding the conflicting constraints…",
+      "thinking": "Explaining the conflict…",
+      "conflictHeading": "These requirements conflict",
+      "conflictHint": "Relaxing or removing any one of these makes the model solvable.",
+      "heuristic": "Heuristic",
+      "heuristicHint": "The exact conflicting set was too large to compute, so this explanation is a best guess.",
+      "grounded": "Generated from your model's actual conflicting constraints.",
+      "ref": "ref: {requestId}"
+    },
     "explorer": {
       "searchPlaceholder": "Search variables...",
       "all": "All",
@@ -4426,7 +4457,24 @@
   },
   "settings": {
     "title": "Settings",
-    "description": "Manage your workspace and notification preferences"
+    "description": "Manage your workspace and notification preferences",
+    "byok": {
+      "title": "Your own Anthropic API key",
+      "description": "Add your organization's Anthropic API key to run all AI features on your own account — free of JAOT credits and independent of the platform's shared budget.",
+      "active": "Active — using your own key",
+      "inactive": "Not set — using the platform's shared AI budget.",
+      "placeholder": "sk-ant-...",
+      "save": "Save key",
+      "saving": "Saving…",
+      "remove": "Remove key",
+      "removing": "Removing…",
+      "invalid": "That key was not accepted. Anthropic keys start with 'sk-ant-'.",
+      "removeFailed": "Could not remove the key. Please try again.",
+      "ownerOnly": "Only the organization owner can change the API key.",
+      "securityNote": "Stored encrypted. Never shown again. Get a key at console.anthropic.com.",
+      "hintText": "Use your own Anthropic API key to keep AI free for your org.",
+      "hintLink": "Add your key"
+    }
   },
   "maintenance": {
     "title": "Under Maintenance — JAOT",

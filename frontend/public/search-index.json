@@ -1,6 +1,14 @@
 [
   {
     "id": 0,
+    "title": "Bring Your Own API Key (BYOK)",
+    "description": "Run JAOT's AI features on your own Anthropic account — free of JAOT credits, independent of the platform's shared budget",
+    "slug": "ai-builder/bring-your-own-api-key",
+    "content": "Bring Your Own API Key (BYOK)\n\nEvery AI feature in JAOT — the formulation assistant, the solution explainer, and the infeasibility explainer — is powered by Anthropic's Claude. By default these calls run on the platform's shared Anthropic key and draw on a shared monthly budget. If you'd rather not depend on that, your organization can bring its own Anthropic API key.\n\n How it works\n\nResolution is BYOK-first:\n\n- If your organization has set its own key, every AI call for your org runs on your Anthropic account. These calls cost no JAOT credits and are not affected by the platform's shared monthly AI budget — so the AI keeps working for you no matter what.\n- If your organization has no key, calls fall back to the platform's shared key, which is gated by a monthly budget.\n\nSo the moment you add a key, your org becomes self-sufficient for AI.\n\n Setting your key\n\nOnly the organization owner can set or change the key.\n\n1. Go to Workspace → Settings.\n2. Under Your own Anthropic API key, paste a key (it starts with sk-ant-). Get one at console.anthropic.com(https://console.anthropic.com).\n3. Save. The status switches to Active, and AI calls immediately start running on your account.\n\nTo stop using your own key, click Remove key — your org falls back to the platform key.\n\n Security\n\n- The key is encrypted at rest and is never shown again after you save it — the settings page only displays a masked hint (the last 4 characters) to the owner.\n- The key is never returned in any API response in plaintext and is never written to logs.\n- Other members of your organization can see whether a key is set, but cannot view or change it.\n\n API\n\nReads are available to any org member (the owner also receives the masked hint); writes require the organization owner.\n\n Billing\n\nWhen your org runs on its own key:\n\n- No JAOT credits are deducted for AI calls.\n- The usage is billed by Anthropic directly to your account, at Anthropic's rates.\n- The platform's monthly AI-budget pause never applies to you.\n\nSolves and other non-AI features continue to use JAOT credits as usual — BYOK only changes who pays for the AI calls.",
+    "section": "ai-builder"
+  },
+  {
+    "id": 1,
     "title": "Building with AI",
     "description": "Use the AI formulation assistant to describe optimization problems in natural language and generate mathematical models",
     "slug": "ai-builder/building-with-ai",
@@ -8,7 +16,7 @@
     "section": "ai-builder"
   },
   {
-    "id": 1,
+    "id": 2,
     "title": "Templates Gallery",
     "description": "Browse and use pre-built optimization templates across 11 industry categories",
     "slug": "ai-builder/templates-gallery",
@@ -16,15 +24,23 @@
     "section": "ai-builder"
   },
   {
-    "id": 2,
+    "id": 3,
     "title": "Understanding Your Solution",
     "description": "Read shadow prices, binding constraints, and reduced costs, and get a plain-language AI explanation of why a solve returned the result it did",
     "slug": "ai-builder/understanding-your-solution",
-    "content": "Understanding Your Solution\n\nWhen a solve returns an optimal or feasible result, JAOT gives you two layers of analysis so you don't just get numbers -- you understand them. Both appear on the execution result page.\n\n 1. Sensitivity analysis (deterministic)\n\nThe solver computes sensitivity directly after solving. It answers: how sensitive is the optimum to small changes?\n\n Shadow prices and binding constraints\n\n- Shadow price (per constraint) -- how much the objective would improve per one-unit relaxation of that constraint. A non-zero shadow price means the constraint is binding: it is actively limiting the optimum. The constraint with the largest shadow price is the one whose relaxation buys you the most.\n- Binding constraint -- a constraint that holds with equality at the optimum. Binding constraints are your real bottlenecks; non-binding constraints have slack and could be loosened with no immediate effect.\n\nThe Sensitivity tab charts shadow prices by constraint (binding ones highlighted) and lists them in a table.\n\n Reduced costs\n\n- Reduced cost (per variable) -- for a variable sitting at one of its bounds, how much the objective would change per unit relaxation of that bound. A variable that is at a bound with a non-zero reduced cost is being held back by that bound. The Sensitivity tab shows a per-variable reduced-cost table with an at-bound flag.\n\n Exact vs approximate\n\n- For a pure LP (all continuous variables), shadow prices and reduced costs are exact.\n- For a MIP (integer or binary variables), there is no exact dual, so JAOT derives the figures from the LP relaxation and marks them approximate. Treat them as directional, not precise -- the result page shows an \"approximate (LP relaxation)\" badge.\n\n Ranging\n\nObjective-coefficient and right-hand-side ranging (the interval over which the optimal basis stays unchanged) is shown only when the solver exposes it. The current SCIP build does not, so those ranges are left empty with a note. JAOT never fabricates ranging values.\n\n 2. Plain-language explanation (AI)\n\nClick Explain this solution on the execution result page to stream a plain-language explanation of the result. It is grounded strictly in your actual formulation, solution values, and sensitivity figures -- the assistant is instructed to use only the numbers provided, never to invent them. It covers:\n\n1. The decision -- what the solution tells you to do, and the objective achieved.\n2. Why -- which constraints are binding and what their shadow prices mean here.\n3. What-if levers -- which constraint, if relaxed, would help the most, and which variables are pinned at their limits.\n\nExplanations are available only for solved (optimal or feasible) executions. The feature reuses the same credit cost and monthly AI-budget guardrails as the AI builder chat.\n\n API\n\nPass { \"executionid\": \"exe...\" } to explain a persisted execution (organization ownership is enforced), or pass the formulation, solution, and sensitivity inline. The response is a Server-Sent Events stream: a status event, then delta events with the explanation text, then done.",
+    "content": "Understanding Your Solution\r\n\r\nWhen a solve returns an optimal or feasible result, JAOT gives you two layers of analysis so you don't just get numbers -- you understand them. Both appear on the execution result page.\r\n\r\n 1. Sensitivity analysis (deterministic)\r\n\r\nThe solver computes sensitivity directly after solving. It answers: how sensitive is the optimum to small changes?\r\n\r\n Shadow prices and binding constraints\r\n\r\n- Shadow price (per constraint) -- how much the objective would improve per one-unit relaxation of that constraint. A non-zero shadow price means the constraint is binding: it is actively limiting the optimum. The constraint with the largest shadow price is the one whose relaxation buys you the most.\r\n- Binding constraint -- a constraint that holds with equality at the optimum. Binding constraints are your real bottlenecks; non-binding constraints have slack and could be loosened with no immediate effect.\r\n\r\nThe Sensitivity tab charts shadow prices by constraint (binding ones highlighted) and lists them in a table.\r\n\r\n Reduced costs\r\n\r\n- Reduced cost (per variable) -- for a variable sitting at one of its bounds, how much the objective would change per unit relaxation of that bound. A variable that is at a bound with a non-zero reduced cost is being held back by that bound. The Sensitivity tab shows a per-variable reduced-cost table with an at-bound flag.\r\n\r\n Exact vs approximate\r\n\r\n- For a pure LP (all continuous variables), shadow prices and reduced costs are exact.\r\n- For a MIP (integer or binary variables), there is no exact dual, so JAOT derives the figures from the LP relaxation and marks them approximate. Treat them as directional, not precise -- the result page shows an \"approximate (LP relaxation)\" badge.\r\n\r\n Ranging\r\n\r\nObjective-coefficient and right-hand-side ranging (the interval over which the optimal basis stays unchanged) is shown only when the solver exposes it. The current SCIP build does not, so those ranges are left empty with a note. JAOT never fabricates ranging values.\r\n\r\n 2. Plain-language explanation (AI)\r\n\r\nClick Explain this solution on the execution result page to stream a plain-language explanation of the result. It is grounded strictly in your actual formulation, solution values, and sensitivity figures -- the assistant is instructed to use only the numbers provided, never to invent them. It covers:\r\n\r\n1. The decision -- what the solution tells you to do, and the objective achieved.\r\n2. Why -- which constraints are binding and what their shadow prices mean here.\r\n3. What-if levers -- which constraint, if relaxed, would help the most, and which variables are pinned at their limits.\r\n\r\nExplanations are available only for solved (optimal or feasible) executions. The feature reuses the same credit cost and monthly AI-budget guardrails as the AI builder chat.\r\n\r\n API\r\n\r\n\r\n\r\nPass { \"executionid\": \"exe...\" } to explain a persisted execution (organization ownership is enforced), or pass the formulation, solution, and sensitivity inline. The response is a Server-Sent Events stream: a status event, then delta events with the explanation text, then done.",
     "section": "ai-builder"
   },
   {
-    "id": 3,
+    "id": 4,
+    "title": "Why Is My Model Infeasible?",
+    "description": "When a solve returns no solution, JAOT finds the exact set of conflicting constraints (the IIS) and gives a plain-language AI explanation of why they conflict and how to fix it",
+    "slug": "ai-builder/why-is-my-model-infeasible",
+    "content": "Why Is My Model Infeasible?\n\nA solve comes back INFEASIBLE when there is no assignment of your variables that satisfies every constraint at once — some requirements contradict each other. Most tools stop there and leave you to hunt through the formulation by hand. JAOT does two things instead, both on the execution result page.\n\n 1. The conflict set (IIS)\n\nJAOT computes an Irreducible Infeasible Set (IIS): a minimal subset of your constraints (and variable bounds) that are mutually unsatisfiable. \"Minimal\" means tight — remove any single member and the model becomes solvable. So the IIS points straight at the requirements that actually conflict, ignoring everything else in the model.\n\n A worked example\n\nPOST /api/v2/solve/{executionid}/infeasibility-analysis\n\nPOST /api/v2/llm/conversations/{conversationid}/explain-infeasibility\n\nPass { \"executionid\": \"exe...\" } to load the formulation + persisted IIS (organization ownership is enforced), or pass the formulation and infeasibility inline. The response is a Server-Sent Events stream: a status event, then delta events with the explanation text, then done.",
+    "section": "ai-builder"
+  },
+  {
+    "id": 5,
     "title": "Admin",
     "description": "Administrative endpoints for system management",
     "slug": "api/admin",
@@ -32,7 +48,7 @@
     "section": "api"
   },
   {
-    "id": 4,
+    "id": 6,
     "title": "API Keys",
     "description": "Create, manage, and rotate API keys for authentication",
     "slug": "api/api-keys",
@@ -40,7 +56,7 @@
     "section": "api"
   },
   {
-    "id": 5,
+    "id": 7,
     "title": "Credits & Billing",
     "description": "Credit balance, transaction history, and billing management",
     "slug": "api/credits-billing",
@@ -48,7 +64,7 @@
     "section": "api"
   },
   {
-    "id": 6,
+    "id": 8,
     "title": "Executions",
     "description": "Track and retrieve optimization execution results",
     "slug": "api/executions",
@@ -56,7 +72,7 @@
     "section": "api"
   },
   {
-    "id": 7,
+    "id": 9,
     "title": "Health",
     "description": "Service health checks and status monitoring",
     "slug": "api/health",
@@ -64,7 +80,7 @@
     "section": "api"
   },
   {
-    "id": 8,
+    "id": 10,
     "title": "Models",
     "description": "Browse and manage optimization model catalog",
     "slug": "api/models",
@@ -72,7 +88,7 @@
     "section": "api"
   },
   {
-    "id": 9,
+    "id": 11,
     "title": "Notifications",
     "description": "In-app notification management and preferences",
     "slug": "api/notifications",
@@ -80,7 +96,7 @@
     "section": "api"
   },
   {
-    "id": 10,
+    "id": 12,
     "title": "Solve",
     "description": "Submit optimization problems and retrieve solutions",
     "slug": "api/solve",
@@ -88,7 +104,7 @@
     "section": "api"
   },
   {
-    "id": 11,
+    "id": 13,
     "title": "Triggers",
     "description": "HTTP event triggers for automated re-solve workflows",
     "slug": "api/triggers",
@@ -96,7 +112,7 @@
     "section": "api"
   },
   {
-    "id": 12,
+    "id": 14,
     "title": "Versions",
     "description": "Model version history, checkpoints, and restore",
     "slug": "api/versions",
@@ -104,7 +120,7 @@
     "section": "api"
   },
   {
-    "id": 13,
+    "id": 15,
     "title": "Webhooks",
     "description": "Receive real-time notifications for execution events via HTTP callbacks",
     "slug": "api/webhooks",
@@ -112,7 +128,7 @@
     "section": "api"
   },
   {
-    "id": 14,
+    "id": 16,
     "title": "WebSocket Protocol",
     "description": "Real-time execution monitoring via WebSocket",
     "slug": "api/websocket",
@@ -120,7 +136,7 @@
     "section": "api"
   },
   {
-    "id": 15,
+    "id": 17,
     "title": "Authentication",
     "description": "API key and JWT authentication for the JAOT API",
     "slug": "getting-started/authentication",
@@ -128,7 +144,7 @@
     "section": "getting-started"
   },
   {
-    "id": 16,
+    "id": 18,
     "title": "Introduction",
     "description": "Get started with JAOT, the self-hosted optimization platform",
     "slug": "getting-started/introduction",
@@ -136,7 +152,7 @@
     "section": "getting-started"
   },
   {
-    "id": 17,
+    "id": 19,
     "title": "Quick Start",
     "description": "Go from zero to your first optimization solve in 5 minutes",
     "slug": "getting-started/quick-start",
@@ -144,7 +160,7 @@
     "section": "getting-started"
   },
   {
-    "id": 18,
+    "id": 20,
     "title": "Advertising & Media Planning",
     "description": "Allocate ad budgets across channels to maximize reach and conversions",
     "slug": "guides/advertising-media",
@@ -152,7 +168,7 @@
     "section": "guides"
   },
   {
-    "id": 19,
+    "id": 21,
     "title": "Aerospace Mission Planning",
     "description": "Optimize flight paths, payload distribution, and mission scheduling",
     "slug": "guides/aerospace-mission",
@@ -160,7 +176,7 @@
     "section": "guides"
   },
   {
-    "id": 20,
+    "id": 22,
     "title": "Agricultural Planning",
     "description": "Optimize crop rotation, planting schedules, and resource allocation",
     "slug": "guides/agricultural-planning",
@@ -168,7 +184,7 @@
     "section": "guides"
   },
   {
-    "id": 21,
+    "id": 23,
     "title": "Chemical Process Optimization",
     "description": "Balance reactor yields, blending ratios, and process constraints",
     "slug": "guides/chemical-process",
@@ -176,7 +192,7 @@
     "section": "guides"
   },
   {
-    "id": 22,
+    "id": 24,
     "title": "Construction Project Planning",
     "description": "Schedule tasks, allocate crews, and manage resources across job sites",
     "slug": "guides/construction-planning",
@@ -184,7 +200,7 @@
     "section": "guides"
   },
   {
-    "id": 23,
+    "id": 25,
     "title": "Cutting & Packing",
     "description": "Minimize material waste with optimal cutting patterns and bin packing",
     "slug": "guides/cutting-and-packing",
@@ -192,7 +208,7 @@
     "section": "guides"
   },
   {
-    "id": 24,
+    "id": 26,
     "title": "Education Timetabling",
     "description": "Schedule classes, rooms, and instructors to avoid conflicts",
     "slug": "guides/education-timetabling",
@@ -200,7 +216,7 @@
     "section": "guides"
   },
   {
-    "id": 25,
+    "id": 27,
     "title": "Energy Grid Optimization",
     "description": "Balance power generation, storage, and distribution for efficiency",
     "slug": "guides/energy-grid",
@@ -208,7 +224,7 @@
     "section": "guides"
   },
   {
-    "id": 26,
+    "id": 28,
     "title": "Environmental Resource Management",
     "description": "Optimize emissions reduction, waste processing, and sustainability targets",
     "slug": "guides/environmental-management",
@@ -216,7 +232,7 @@
     "section": "guides"
   },
   {
-    "id": 27,
+    "id": 29,
     "title": "Facility Location",
     "description": "Choose optimal locations for warehouses, plants, and service centers",
     "slug": "guides/facility-location",
@@ -224,7 +240,7 @@
     "section": "guides"
   },
   {
-    "id": 28,
+    "id": 30,
     "title": "Food & Beverage Production",
     "description": "Plan recipes, batches, and production runs for food manufacturing",
     "slug": "guides/food-and-beverage",
@@ -232,7 +248,7 @@
     "section": "guides"
   },
   {
-    "id": 29,
+    "id": 31,
     "title": "Forestry Management",
     "description": "Schedule harvesting, replanting, and sustainable yield planning",
     "slug": "guides/forestry-management",
@@ -240,7 +256,7 @@
     "section": "guides"
   },
   {
-    "id": 30,
+    "id": 32,
     "title": "Getting Started with Optimization",
     "description": "Learn the fundamentals of mathematical optimization with simple examples",
     "slug": "guides/getting-started-optimization",
@@ -248,7 +264,7 @@
     "section": "guides"
   },
   {
-    "id": 31,
+    "id": 33,
     "title": "Government Resource Allocation",
     "description": "Distribute public budgets and resources across departments and regions",
     "slug": "guides/government-resources",
@@ -256,7 +272,7 @@
     "section": "guides"
   },
   {
-    "id": 32,
+    "id": 34,
     "title": "Healthcare Resource Allocation",
     "description": "Schedule staff, beds, and equipment to improve patient outcomes",
     "slug": "guides/healthcare-resources",
@@ -264,7 +280,7 @@
     "section": "guides"
   },
   {
-    "id": 33,
+    "id": 35,
     "title": "Use Case Guides",
     "description": "Step-by-step walkthroughs for all 34 optimization categories",
     "slug": "guides/index",
@@ -272,7 +288,7 @@
     "section": "guides"
   },
   {
-    "id": 34,
+    "id": 36,
     "title": "Insurance Risk Modeling",
     "description": "Optimize policy pricing and claims reserve allocation",
     "slug": "guides/insurance-risk",
@@ -280,7 +296,7 @@
     "section": "guides"
   },
   {
-    "id": 35,
+    "id": 37,
     "title": "Maritime Shipping",
     "description": "Optimize vessel routing, port scheduling, and cargo allocation",
     "slug": "guides/maritime-shipping",
@@ -288,7 +304,7 @@
     "section": "guides"
   },
   {
-    "id": 36,
+    "id": 38,
     "title": "Mining Operations",
     "description": "Plan extraction sequences, equipment deployment, and processing flows",
     "slug": "guides/mining-operations",
@@ -296,7 +312,7 @@
     "section": "guides"
   },
   {
-    "id": 37,
+    "id": 39,
     "title": "Network & Graph Optimization",
     "description": "Solve shortest path, flow, and connectivity problems on graphs",
     "slug": "guides/network-graph",
@@ -304,7 +320,7 @@
     "section": "guides"
   },
   {
-    "id": 38,
+    "id": 40,
     "title": "Pharmaceutical Production",
     "description": "Plan drug manufacturing, batch scheduling, and quality compliance",
     "slug": "guides/pharmaceutical-production",
@@ -312,7 +328,7 @@
     "section": "guides"
   },
   {
-    "id": 39,
+    "id": 41,
     "title": "Portfolio Optimization",
     "description": "Allocate investments to maximize returns under risk constraints",
     "slug": "guides/portfolio-optimization",
@@ -320,7 +336,7 @@
     "section": "guides"
   },
   {
-    "id": 40,
+    "id": 42,
     "title": "Production Planning",
     "description": "Optimize manufacturing schedules to maximize throughput and minimize costs",
     "slug": "guides/production-planning",
@@ -328,7 +344,7 @@
     "section": "guides"
   },
   {
-    "id": 41,
+    "id": 43,
     "title": "Railway Operations",
     "description": "Schedule trains, allocate rolling stock, and manage track capacity",
     "slug": "guides/railway-operations",
@@ -336,7 +352,7 @@
     "section": "guides"
   },
   {
-    "id": 42,
+    "id": 44,
     "title": "Real Estate Investment",
     "description": "Evaluate property portfolios and optimize acquisition strategies",
     "slug": "guides/real-estate-investment",
@@ -344,7 +360,7 @@
     "section": "guides"
   },
   {
-    "id": 43,
+    "id": 45,
     "title": "Retail Assortment & Pricing",
     "description": "Optimize product mix, shelf placement, and pricing strategies",
     "slug": "guides/retail-assortment",
@@ -352,7 +368,7 @@
     "section": "guides"
   },
   {
-    "id": 44,
+    "id": 46,
     "title": "Route & Fleet Optimization",
     "description": "Plan delivery routes and fleet assignments to reduce costs and time",
     "slug": "guides/route-and-fleet",
@@ -360,7 +376,7 @@
     "section": "guides"
   },
   {
-    "id": 45,
+    "id": 47,
     "title": "Sports League Scheduling",
     "description": "Create balanced fixture lists with venue, travel, and broadcast constraints",
     "slug": "guides/sports-scheduling",
@@ -368,7 +384,7 @@
     "section": "guides"
   },
   {
-    "id": 46,
+    "id": 48,
     "title": "Supply Chain Planning",
     "description": "Coordinate procurement, production, and distribution across the value chain",
     "slug": "guides/supply-chain-planning",
@@ -376,7 +392,7 @@
     "section": "guides"
   },
   {
-    "id": 47,
+    "id": 49,
     "title": "Telecom Network Planning",
     "description": "Optimize tower placement, bandwidth allocation, and coverage areas",
     "slug": "guides/telecom-network",
@@ -384,7 +400,7 @@
     "section": "guides"
   },
   {
-    "id": 48,
+    "id": 50,
     "title": "Textile Manufacturing",
     "description": "Optimize fabric cutting, dyeing schedules, and production lines",
     "slug": "guides/textile-manufacturing",
@@ -392,7 +408,7 @@
     "section": "guides"
   },
   {
-    "id": 49,
+    "id": 51,
     "title": "Transportation Network Design",
     "description": "Design freight networks balancing speed, cost, and capacity",
     "slug": "guides/transportation-network",
@@ -400,7 +416,7 @@
     "section": "guides"
   },
   {
-    "id": 50,
+    "id": 52,
     "title": "Warehouse Layout & Operations",
     "description": "Optimize storage layouts, picking routes, and inventory placement",
     "slug": "guides/warehouse-operations",
@@ -408,7 +424,7 @@
     "section": "guides"
   },
   {
-    "id": 51,
+    "id": 53,
     "title": "Water Distribution Networks",
     "description": "Design and manage water supply, treatment, and distribution systems",
     "slug": "guides/water-distribution",
@@ -416,7 +432,7 @@
     "section": "guides"
   },
   {
-    "id": 52,
+    "id": 54,
     "title": "Workforce Scheduling",
     "description": "Build shift schedules that balance coverage, fairness, and labor costs",
     "slug": "guides/workforce-scheduling",
@@ -424,7 +440,7 @@
     "section": "guides"
   },
   {
-    "id": 53,
+    "id": 55,
     "title": "Browsing Models",
     "description": "Discover and activate pre-built optimization models in the JAOT marketplace",
     "slug": "marketplace/browsing-models",
@@ -432,7 +448,7 @@
     "section": "marketplace"
   },
   {
-    "id": 54,
+    "id": 56,
     "title": "Publishing Models",
     "description": "Publish your optimization models to the JAOT marketplace and share them with the community",
     "slug": "marketplace/publishing-models",
@@ -440,7 +456,7 @@
     "section": "marketplace"
   },
   {
-    "id": 55,
+    "id": 57,
     "title": "MCP Overview",
     "description": "Connect AI agents to JAOT's optimization tools using the Model Context Protocol",
     "slug": "mcp/overview",
@@ -448,7 +464,7 @@
     "section": "mcp"
   },
   {
-    "id": 56,
+    "id": 58,
     "title": "Error Reference",
     "description": "HTTP error codes, error schema, and troubleshooting",
     "slug": "reference/errors",
@@ -456,7 +472,7 @@
     "section": "reference"
   },
   {
-    "id": 57,
+    "id": 59,
     "title": "Rate Limits & Credits",
     "description": "API rate limiting, credit pricing formula, and usage management",
     "slug": "reference/rate-limits-credits",

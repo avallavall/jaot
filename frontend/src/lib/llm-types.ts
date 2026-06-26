@@ -70,3 +70,24 @@ export interface AttachmentInfo {
   created_at: string;
   estimated_tokens: number;
 }
+
+/**
+ * Minimal conflicting set (IIS) for an INFEASIBLE execution, returned by
+ * POST /solve/{executionId}/infeasibility-analysis. `method === "llm_only"` means
+ * the exact set was not computed (too large / over budget) and any explanation is
+ * heuristic.
+ */
+export interface InfeasibilityAnalysis {
+  iis_constraints: string[];
+  iis_variable_bounds: string[];
+  conflict_type: "constraint" | "bound" | "mixed" | "unknown";
+  method: "iis" | "llm_only";
+  note: string | null;
+  explanation: string | null;
+}
+
+/** BYOK status for the org's Anthropic key. `hint` is owner-only (masked, last 4). */
+export interface AnthropicKeyStatus {
+  enabled: boolean;
+  hint: string | null;
+}

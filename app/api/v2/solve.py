@@ -25,6 +25,7 @@ from app.domains.solver.services.pool import get_solver_pool
 from app.domains.solver.time_limits import compute_celery_time_limits
 from app.models import ExecutionStatus, ModelExecution, Organization
 from app.schemas.optimization import (
+    InfeasibilityAnalysis,
     MultiObjectiveConfig,
     MultiObjectiveResult,
     OptimizationProblem,
@@ -454,6 +455,106 @@ async def validate_problem_endpoint(
             "binary": sum(1 for v in problem.variables if v.type.value == "binary"),
         },
     }
+
+
+@router.post(
+    "/{execution_id}/infeasibility-analysis",
+    response_model=InfeasibilityAnalysis,
+    operation_id="analyze_infeasibility",
+)
+def analyze_infeasibility(
+    execution_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    solver: SolverService = Depends(get_solver_service),
+) -> InfeasibilityAnalysis:
+    """Compute a minimal conflicting set (IIS) for an INFEASIBLE execution.
+
+    On-demand and org-scoped: the deletion-filtering cost (O(n) re-solves) is paid
+    only when the user explicitly asks, never on every infeasible solve. Loads the
+    persisted execution, reconstructs the problem from ``input_data``, runs bounded
+    IIS (capped by ``IIS_MAX_CONSTRAINTS`` / ``IIS_TIME_BUDGET_SECONDS``), persists
+    the result into ``result_data.infeasibility_analysis``, and returns it. When the
+    model is too large or the budget is exceeded the analysis comes back as
+    ``method="llm_only"`` so the UI can flag heuristic reasoning.
+
+    Defined as a sync handler so the blocking solve loop runs in FastAPI's threadpool.
+    """
+    org: Organization | None = getattr(request.state, "organization", None)
+    if not org:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required."
+        )
+
+    allowed, rate_info = check_rate_limit(org.id, org.rate_limit_per_minute, org.rate_limit_per_day)
+    if not allowed:
+        raise HTTPException(status_code=429, detail=rate_info)
+
+    # Load + enforce org ownership (404 hides the existence of other orgs' executions).
+    execution = (
+        db.query(ModelExecution)
+        .filter(
+            ModelExecution.id == execution_id,
+            ModelExecution.organization_id == org.id,
+        )
+        .first()
+    )
+    if not execution:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Execution not found",
+        )
+
+    result_data = execution.result_data or {}
+    if result_data.get("solver_status") != SolverStatus.INFEASIBLE.value:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Infeasibility analysis only applies to INFEASIBLE executions.",
+        )
+
+    # Return the cached analysis if it was already computed for this execution.
+    cached = result_data.get("infeasibility_analysis")
+    if cached:
+        return InfeasibilityAnalysis.model_validate(cached)
+
+    # Reconstruct the problem. input_data is OptimizationProblem.model_dump(mode="json")
+    # plus internal underscore-prefixed markers (prepaid credits, auto-route reason),
+    # which Pydantic ignores. A malformed/legacy payload yields a clean 422.
+    try:
+        problem = OptimizationProblem.model_validate(execution.input_data or {})
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Cannot reconstruct the problem from this execution.",
+        ) from exc
+
+    from app.domains.solver.services import compute_iis  # noqa: PLC0415
+
+    # Re-solve with the concrete solver that actually ran (never "auto").
+    effective_solver = execution.solver_name
+    if effective_solver in (None, "auto"):
+        effective_solver = None
+
+    analysis = compute_iis(
+        problem,
+        solver,
+        max_constraints=PSS.get_int(db, "IIS_MAX_CONSTRAINTS"),
+        time_budget_s=float(PSS.get_int(db, "IIS_TIME_BUDGET_SECONDS")),
+        solver_name=effective_solver,
+    )
+
+    # Persist into result_data. Reassign the whole dict so SQLAlchemy detects the
+    # change on the JSON column (in-place mutation would not be tracked).
+    execution.result_data = {**result_data, "infeasibility_analysis": analysis.model_dump()}
+    try:
+        db.commit()
+    except Exception:
+        logger.warning(
+            "Failed to persist infeasibility analysis for %s", execution_id, exc_info=True
+        )
+        db.rollback()
+
+    return analysis
 
 
 @router.post(

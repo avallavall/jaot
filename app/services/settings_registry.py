@@ -184,6 +184,39 @@ SETTINGS_REGISTRY.extend(
             max_value=172800,
             unit="seconds",
         ),
+        SettingDefinition(
+            key="IIS_MAX_CONSTRAINTS",
+            label="IIS: Max Constraints",
+            description=(
+                "Upper bound on the number of constraints for which the "
+                "infeasibility explainer runs exact IIS computation (deletion "
+                "filtering). Each constraint costs one extra re-solve, so the "
+                "analysis is O(n) solves; above this cap it falls back to "
+                "heuristic LLM-only reasoning over the formulation. P2."
+            ),
+            category=SettingCategory.SOLVER,
+            setting_type=SettingType.INT,
+            default_value="150",
+            min_value=1,
+            max_value=5000,
+            unit="constraints",
+        ),
+        SettingDefinition(
+            key="IIS_TIME_BUDGET_SECONDS",
+            label="IIS: Time Budget",
+            description=(
+                "Wall-clock budget (seconds) for the deletion-filtering IIS "
+                "search. When exceeded mid-search the analysis aborts and falls "
+                "back to heuristic LLM-only reasoning. Each candidate re-solve "
+                "also gets a tight per-solve time limit derived from this. P2."
+            ),
+            category=SettingCategory.SOLVER,
+            setting_type=SettingType.INT,
+            default_value="20",
+            min_value=1,
+            max_value=600,
+            unit="seconds",
+        ),
     ]
 )
 

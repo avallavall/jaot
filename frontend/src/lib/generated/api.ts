@@ -2070,6 +2070,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/llm/conversations/{conversation_id}/explain-infeasibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Explain Infeasibility Endpoint
+         * @description Stream a plain-language explanation of WHY a model is INFEASIBLE as SSE.
+         *
+         *     Loads the formulation + persisted IIS from a ModelExecution (``execution_id``,
+         *     org ownership enforced) or from inline fields, then reuses the chat streaming
+         *     pipeline — budget guardrail, org rate limit, pre-paid credits (refunded on
+         *     failure), a persisted user/assistant turn pair — driven by
+         *     ``explain_infeasibility``. When no IIS is available the explanation is heuristic
+         *     and clearly flagged. Moderation is skipped because the prompt content is
+         *     system-generated, not free user text.
+         */
+        post: operations["explain_infeasibility_endpoint_api_v2_llm_conversations__conversation_id__explain_infeasibility_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/llm/conversations/{conversation_id}/explain-solution": {
         parameters: {
             query?: never;
@@ -2771,6 +2799,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/organization/anthropic-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Anthropic Key Status
+         * @description Whether the org has a BYOK key set. The owner also sees a masked hint.
+         */
+        get: operations["get_anthropic_key_status_api_v2_organization_anthropic_key_get"];
+        /**
+         * Set Anthropic Key
+         * @description Store the org's Anthropic API key (encrypted). Owner only.
+         */
+        put: operations["set_anthropic_key_api_v2_organization_anthropic_key_put"];
+        post?: never;
+        /**
+         * Clear Anthropic Key
+         * @description Remove the org's BYOK key — the org falls back to the platform key. Owner only.
+         */
+        delete: operations["clear_anthropic_key_api_v2_organization_anthropic_key_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/organizations/{org_id}/models": {
         parameters: {
             query?: never;
@@ -3324,6 +3380,36 @@ export interface paths {
          *     re-solving or deducting credits twice.
          */
         post: operations["solve_optimization_problem_api_v2_solve__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/solve/{execution_id}/infeasibility-analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Analyze Infeasibility
+         * @description Compute a minimal conflicting set (IIS) for an INFEASIBLE execution.
+         *
+         *     On-demand and org-scoped: the deletion-filtering cost (O(n) re-solves) is paid
+         *     only when the user explicitly asks, never on every infeasible solve. Loads the
+         *     persisted execution, reconstructs the problem from ``input_data``, runs bounded
+         *     IIS (capped by ``IIS_MAX_CONSTRAINTS`` / ``IIS_TIME_BUDGET_SECONDS``), persists
+         *     the result into ``result_data.infeasibility_analysis``, and returns it. When the
+         *     model is too large or the budget is exceeded the analysis comes back as
+         *     ``method="llm_only"`` so the UI can flag heuristic reasoning.
+         *
+         *     Defined as a sync handler so the blocking solve loop runs in FastAPI's threadpool.
+         */
+        post: operations["analyze_infeasibility"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5717,6 +5803,43 @@ export interface components {
             total: number;
         };
         /**
+         * ExplainInfeasibilityRequest
+         * @description Request a plain-language explanation of WHY a model is INFEASIBLE.
+         *
+         *     Provide ``execution_id`` to load the formulation + persisted IIS analysis from a
+         *     ``ModelExecution`` (organization ownership is enforced), or pass ``formulation`` /
+         *     ``infeasibility`` inline. ``execution_id`` takes precedence when both are supplied.
+         *     When no IIS is available the explanation falls back to heuristic reasoning, clearly
+         *     flagged as such.
+         */
+        ExplainInfeasibilityRequest: {
+            /**
+             * Execution Id
+             * @description ModelExecution id to load the formulation + IIS analysis from
+             */
+            execution_id?: string | null;
+            /**
+             * Formulation
+             * @description Inline formulation (variables/constraints/objective)
+             */
+            formulation?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Infeasibility
+             * @description Inline IIS analysis (iis_constraints/iis_variable_bounds/conflict_type/method)
+             */
+            infeasibility?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Use Advanced Model
+             * @description Use Claude Opus with extended thinking for the explanation
+             * @default false
+             */
+            use_advanced_model: boolean;
+        };
+        /**
          * ExplainSolutionRequest
          * @description Request a plain-language explanation of a solved optimization model.
          *
@@ -6073,6 +6196,56 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * InfeasibilityAnalysis
+         * @description Why an INFEASIBLE model has no solution — a minimal conflicting set.
+         *
+         *     Computed solver-agnostically by deletion filtering (see
+         *     ``app.domains.solver.services.infeasibility.compute_iis``). The IIS is a
+         *     minimal subset of constraints (and/or variable bounds) that are mutually
+         *     unsatisfiable: drop any one of them and the model becomes feasible. When the
+         *     model is too large (constraint cap) or the time budget is exceeded, exact IIS
+         *     is skipped (``method="llm_only"``) and the LLM reasons heuristically over the
+         *     formulation instead. ``explanation`` is filled later by the LLM endpoint.
+         */
+        InfeasibilityAnalysis: {
+            /**
+             * Conflict Type
+             * @description Whether the conflict is among constraints, bounds, both, or undetermined
+             * @default unknown
+             * @enum {string}
+             */
+            conflict_type: "constraint" | "bound" | "mixed" | "unknown";
+            /**
+             * Explanation
+             * @description Plain-language explanation produced by the LLM (filled on demand)
+             */
+            explanation?: string | null;
+            /**
+             * Iis Constraints
+             * @description Names of the constraints in the minimal infeasible subset
+             * @default []
+             */
+            iis_constraints: string[];
+            /**
+             * Iis Variable Bounds
+             * @description Variable-bound identifiers (e.g. 'x>=lb') that participate in the conflict
+             * @default []
+             */
+            iis_variable_bounds: string[];
+            /**
+             * Method
+             * @description 'iis' = exact deletion filtering; 'llm_only' = heuristic LLM fallback
+             * @default iis
+             * @enum {string}
+             */
+            method: "iis" | "llm_only";
+            /**
+             * Note
+             * @description Context about how the analysis was produced or why it was skipped
+             */
+            note?: string | null;
         };
         /**
          * InsightResponse
@@ -6902,6 +7075,8 @@ export interface components {
              * @description MIP gap (if applicable)
              */
             gap?: number | null;
+            /** @description Minimal conflicting set (IIS) explaining why an INFEASIBLE model has no solution. Populated on demand for infeasible solves. */
+            infeasibility_analysis?: components["schemas"]["InfeasibilityAnalysis"] | null;
             /**
              * Iterations
              * @description Solver iterations
@@ -8064,6 +8239,17 @@ export interface components {
              * @default []
              */
             variables: components["schemas"]["VariableSensitivity"][];
+        };
+        /**
+         * SetAnthropicKeyRequest
+         * @description Body for storing the org's own Anthropic API key.
+         */
+        SetAnthropicKeyRequest: {
+            /**
+             * Api Key
+             * @description The organization's Anthropic API key (starts with 'sk-ant-').
+             */
+            api_key: string;
         };
         /**
          * SettingDefinitionResponse
@@ -9251,6 +9437,7 @@ export type ExchangeRateResponse = components['schemas']['ExchangeRateResponse']
 export type ExecuteModelRequest = components['schemas']['ExecuteModelRequest'];
 export type ExecutionListResponse = components['schemas']['ExecutionListResponse'];
 export type ExecutionStats = components['schemas']['ExecutionStats'];
+export type ExplainInfeasibilityRequest = components['schemas']['ExplainInfeasibilityRequest'];
 export type ExplainSolutionRequest = components['schemas']['ExplainSolutionRequest'];
 export type ExtendPlacementRequest = components['schemas']['ExtendPlacementRequest'];
 export type FavoriteResponse = components['schemas']['FavoriteResponse'];
@@ -9272,6 +9459,7 @@ export type GuidanceUpdate = components['schemas']['GuidanceUpdate'];
 export type HealthResponse = components['schemas']['HealthResponse'];
 export type HomeAnnouncementResponse = components['schemas']['HomeAnnouncementResponse'];
 export type HttpValidationError = components['schemas']['HTTPValidationError'];
+export type InfeasibilityAnalysis = components['schemas']['InfeasibilityAnalysis'];
 export type InsightResponse = components['schemas']['InsightResponse'];
 export type InsightsResponse = components['schemas']['InsightsResponse'];
 export type InviteAccept = components['schemas']['InviteAccept'];
@@ -9356,6 +9544,7 @@ export type ScheduleRequest = components['schemas']['ScheduleRequest'];
 export type ScheduleUpdateRequest = components['schemas']['ScheduleUpdateRequest'];
 export type SellerLeaderboardEntry = components['schemas']['SellerLeaderboardEntry'];
 export type SensitivityResult = components['schemas']['SensitivityResult'];
+export type SetAnthropicKeyRequest = components['schemas']['SetAnthropicKeyRequest'];
 export type SettingDefinitionResponse = components['schemas']['SettingDefinitionResponse'];
 export type SettingsRegistryResponse = components['schemas']['SettingsRegistryResponse'];
 export type SettingsUpdateRequest = components['schemas']['SettingsUpdateRequest'];
@@ -13020,6 +13209,41 @@ export interface operations {
             };
         };
     };
+    explain_infeasibility_endpoint_api_v2_llm_conversations__conversation_id__explain_infeasibility_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExplainInfeasibilityRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     explain_solution_endpoint_api_v2_llm_conversations__conversation_id__explain_solution_post: {
         parameters: {
             query?: never;
@@ -14301,6 +14525,85 @@ export interface operations {
             };
         };
     };
+    get_anthropic_key_status_api_v2_organization_anthropic_key_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    set_anthropic_key_api_v2_organization_anthropic_key_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetAnthropicKeyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_anthropic_key_api_v2_organization_anthropic_key_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     get_organization_models_api_v2_organizations__org_id__models_get: {
         parameters: {
             query?: never;
@@ -15014,6 +15317,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OptimizationResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    analyze_infeasibility: {
+        parameters: {
+            query?: {
+                solver_name?: string | null;
+            };
+            header?: never;
+            path: {
+                execution_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfeasibilityAnalysis"];
                 };
             };
             /** @description Validation Error */

@@ -1,0 +1,54 @@
+---
+title: Bring Your Own API Key (BYOK)
+description: Run JAOT's AI features on your own Anthropic account — free of JAOT credits, independent of the platform's shared budget
+order: 5
+---
+
+# Bring Your Own API Key (BYOK)
+
+Every AI feature in JAOT — the formulation assistant, the solution explainer, and the infeasibility explainer — is powered by Anthropic's Claude. By default these calls run on the platform's shared Anthropic key and draw on a shared monthly budget. If you'd rather not depend on that, your organization can **bring its own Anthropic API key**.
+
+## How it works
+
+Resolution is **BYOK-first**:
+
+- **If your organization has set its own key**, every AI call for your org runs on **your** Anthropic account. These calls cost **no JAOT credits** and are not affected by the platform's shared monthly AI budget — so the AI keeps working for you no matter what.
+- **If your organization has no key**, calls fall back to the platform's shared key, which is gated by a monthly budget.
+
+So the moment you add a key, your org becomes self-sufficient for AI.
+
+## Setting your key
+
+Only the **organization owner** can set or change the key.
+
+1. Go to **Workspace → Settings**.
+2. Under **Your own Anthropic API key**, paste a key (it starts with `sk-ant-`). Get one at [console.anthropic.com](https://console.anthropic.com).
+3. Save. The status switches to **Active**, and AI calls immediately start running on your account.
+
+To stop using your own key, click **Remove key** — your org falls back to the platform key.
+
+## Security
+
+- The key is **encrypted at rest** and is **never shown again** after you save it — the settings page only displays a masked hint (the last 4 characters) to the owner.
+- The key is **never returned in any API response in plaintext** and is **never written to logs**.
+- Other members of your organization can see *whether* a key is set, but cannot view or change it.
+
+## API
+
+```
+GET    /api/v2/organization/anthropic-key   → { "enabled": bool, "hint": string | null }
+PUT    /api/v2/organization/anthropic-key   → { "api_key": "sk-ant-..." }   (owner only)
+DELETE /api/v2/organization/anthropic-key   → clears the key                (owner only)
+```
+
+Reads are available to any org member (the owner also receives the masked hint); writes require the organization owner.
+
+## Billing
+
+When your org runs on its own key:
+
+- **No JAOT credits** are deducted for AI calls.
+- The usage is billed by Anthropic directly to your account, at Anthropic's rates.
+- The platform's monthly AI-budget pause never applies to you.
+
+Solves and other non-AI features continue to use JAOT credits as usual — BYOK only changes who pays for the *AI* calls.

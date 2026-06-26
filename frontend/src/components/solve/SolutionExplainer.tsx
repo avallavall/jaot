@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { useSolutionExplanation } from "@/hooks/useSolutionExplanation";
 import { resolveErrorKey } from "@/lib/llm-event-codes";
+import { ByokHint } from "@/components/llm/ByokHint";
 import type { Conversation } from "@/lib/llm-types";
 
 interface SolutionExplainerProps {
@@ -107,6 +108,8 @@ export function SolutionExplainer({ executionId, canExplain }: SolutionExplainer
       {stream.text && !stream.streaming && !showError && (
         <p className="text-xs text-muted-foreground">{t("grounded")}</p>
       )}
+
+      {started && <ByokHint />}
     </div>
   );
 }

@@ -278,6 +278,44 @@ class SensitivityResult(BaseModel):
     )
 
 
+class InfeasibilityAnalysis(BaseModel):
+    """Why an INFEASIBLE model has no solution — a minimal conflicting set.
+
+    Computed solver-agnostically by deletion filtering (see
+    ``app.domains.solver.services.infeasibility.compute_iis``). The IIS is a
+    minimal subset of constraints (and/or variable bounds) that are mutually
+    unsatisfiable: drop any one of them and the model becomes feasible. When the
+    model is too large (constraint cap) or the time budget is exceeded, exact IIS
+    is skipped (``method="llm_only"``) and the LLM reasons heuristically over the
+    formulation instead. ``explanation`` is filled later by the LLM endpoint.
+    """
+
+    iis_constraints: list[str] = Field(
+        default=[],
+        description="Names of the constraints in the minimal infeasible subset",
+    )
+    iis_variable_bounds: list[str] = Field(
+        default=[],
+        description="Variable-bound identifiers (e.g. 'x>=lb') that participate in the conflict",
+    )
+    conflict_type: Literal["constraint", "bound", "mixed", "unknown"] = Field(
+        default="unknown",
+        description="Whether the conflict is among constraints, bounds, both, or undetermined",
+    )
+    method: Literal["iis", "llm_only"] = Field(
+        default="iis",
+        description="'iis' = exact deletion filtering; 'llm_only' = heuristic LLM fallback",
+    )
+    note: str | None = Field(
+        default=None,
+        description="Context about how the analysis was produced or why it was skipped",
+    )
+    explanation: str | None = Field(
+        default=None,
+        description="Plain-language explanation produced by the LLM (filled on demand)",
+    )
+
+
 class ParetoPoint(BaseModel):
     """A single point on the Pareto front."""
 
@@ -438,6 +476,13 @@ class OptimizationResult(BaseModel):
     sensitivity: SensitivityResult | None = Field(
         default=None, description="Sensitivity analysis results (shadow prices)"
     )
+    infeasibility_analysis: InfeasibilityAnalysis | None = Field(
+        default=None,
+        description=(
+            "Minimal conflicting set (IIS) explaining why an INFEASIBLE model has "
+            "no solution. Populated on demand for infeasible solves."
+        ),
+    )
     warm_start_used: bool = Field(
         default=False, description="True if warm start solution was injected"
     )
@@ -459,6 +504,9 @@ class OptimizationResult(BaseModel):
             "gap": self.gap,
             "variables": [v.model_dump() for v in self.variables] if self.variables else [],
             "sensitivity": self.sensitivity.model_dump() if self.sensitivity else None,
+            "infeasibility_analysis": (
+                self.infeasibility_analysis.model_dump() if self.infeasibility_analysis else None
+            ),
             "progress_history": (
                 [p.model_dump() for p in self.progress_history] if self.progress_history else None
             ),

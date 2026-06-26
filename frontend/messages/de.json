@@ -436,6 +436,23 @@
         "description": "Verwandle Schattenpreise und reduzierte Kosten in klare Sprache, ausschließlich auf Basis deiner echten Zahlen."
       }
     },
+    "infeasibilityHighlight": {
+      "eyebrow": "Unzulässig? Bleib nicht stecken",
+      "title": "Wir sagen dir genau, welche Nebenbedingungen in Konflikt stehen",
+      "subtitle": "Die meisten Solver sagen nur „keine Lösung“. JAOT findet den Konflikt und zeigt dir, wie du ihn behebst.",
+      "conflict": {
+        "title": "Die exakte Konfliktmenge",
+        "description": "JAOT isoliert die minimale Menge an Nebenbedingungen und Schranken, die nicht gleichzeitig gelten können, und hebt sie auf der Ergebnisseite hervor."
+      },
+      "fix": {
+        "title": "Wie du es behebst, in klarer Sprache",
+        "description": "Eine KI-Erklärung mit einem Klick benennt die widersprüchlichen Anforderungen und schlägt konkrete Korrekturen vor: welche Schranke zu erweitern, welche Nebenbedingung zu lockern ist."
+      },
+      "honest": {
+        "title": "Ehrlich konzipiert",
+        "description": "Wenn ein Modell zu groß für eine exakte Konfliktmenge ist, sagt JAOT das und kennzeichnet die Erklärung klar als heuristisch — nie eine selbstsichere Vermutung."
+      }
+    },
     "features": {
       "title": "Vier Säulen der Optimierung",
       "subtitle": "Alles, was du zum Erstellen, Nutzen, Teilen und Automatisieren von Optimierung brauchst.",
@@ -3230,6 +3247,20 @@
       "unavailable": "Erklärungen sind nur für gelöste (optimale oder zulässige) Ausführungen verfügbar.",
       "ref": "Ref: {requestId}"
     },
+    "infeasibility": {
+      "title": "Warum ist dies unzulässig?",
+      "description": "Dieses Modell hat keine Lösung, weil sich einige Anforderungen widersprechen. Finde genau heraus, welche Nebenbedingungen in Konflikt stehen — und wie du es behebst.",
+      "button": "Erklären, warum & wie zu beheben",
+      "regenerate": "Neu generieren",
+      "analyzing": "Suche nach den widersprüchlichen Nebenbedingungen…",
+      "thinking": "Der Konflikt wird erklärt…",
+      "conflictHeading": "Diese Anforderungen stehen in Konflikt",
+      "conflictHint": "Eine davon zu lockern oder zu entfernen macht das Modell lösbar.",
+      "heuristic": "Heuristisch",
+      "heuristicHint": "Die exakte Konfliktmenge war zu groß zum Berechnen, daher ist diese Erklärung eine Schätzung.",
+      "grounded": "Erstellt aus den tatsächlich widersprüchlichen Nebenbedingungen deines Modells.",
+      "ref": "Ref: {requestId}"
+    },
     "explorer": {
       "searchPlaceholder": "Variablen suchen...",
       "all": "Alle",
@@ -4426,7 +4457,24 @@
   },
   "settings": {
     "title": "Einstellungen",
-    "description": "Verwalte deine Arbeitsbereich- und Benachrichtigungseinstellungen"
+    "description": "Verwalte deine Arbeitsbereich- und Benachrichtigungseinstellungen",
+    "byok": {
+      "title": "Dein eigener Anthropic-API-Schlüssel",
+      "description": "Füge den Anthropic-API-Schlüssel deiner Organisation hinzu, um alle KI-Funktionen über dein eigenes Konto laufen zu lassen — ohne JAOT-Credits und unabhängig vom geteilten Plattform-Budget.",
+      "active": "Aktiv — mit deinem eigenen Schlüssel",
+      "inactive": "Nicht gesetzt — nutzt das geteilte KI-Budget der Plattform.",
+      "placeholder": "sk-ant-...",
+      "save": "Schlüssel speichern",
+      "saving": "Speichern…",
+      "remove": "Schlüssel entfernen",
+      "removing": "Entfernen…",
+      "invalid": "Dieser Schlüssel wurde nicht akzeptiert. Anthropic-Schlüssel beginnen mit „sk-ant-“.",
+      "removeFailed": "Schlüssel konnte nicht entfernt werden. Bitte versuche es erneut.",
+      "ownerOnly": "Nur der Organisationsinhaber kann den API-Schlüssel ändern.",
+      "securityNote": "Verschlüsselt gespeichert. Wird nie erneut angezeigt. Schlüssel unter console.anthropic.com.",
+      "hintText": "Nutze deinen eigenen Anthropic-API-Schlüssel, damit KI für deine Organisation kostenlos bleibt.",
+      "hintLink": "Schlüssel hinzufügen"
+    }
   },
   "maintenance": {
     "title": "Wartungsarbeiten — JAOT",

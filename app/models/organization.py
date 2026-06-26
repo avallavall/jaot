@@ -87,6 +87,11 @@ class Organization(Base):
     max_private_plugins: Mapped[int] = mapped_column(Integer, default=5)
     ai_builder_enabled: Mapped[bool] = mapped_column(default=False)
 
+    # BYOK: the org's own Anthropic API key, Fernet-encrypted at rest (never stored
+    # or returned in plaintext). When set, LLM calls for this org run on the org's
+    # account instead of the shared platform key. See app/services/llm/byok.py.
+    anthropic_api_key_encrypted: Mapped[str | None] = mapped_column(String, nullable=True)
+
     # Public Profile
     slug: Mapped[str | None] = mapped_column(
         String(100), nullable=True, unique=True, index=True
