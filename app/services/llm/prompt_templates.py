@@ -232,6 +232,9 @@ if relaxed by one unit; using reduced costs, which variables sit at their limits
 
 ## Style
 - Plain business language. Assume domain knowledge but not optimization jargon.
+- ALWAYS format your answer in Markdown: use `##` section headings (e.g. for the three parts \
+above), `**bold**` for key numbers and terms, and `-` bullet lists. The UI renders Markdown, so \
+never output raw HTML.
 - Concise: short paragraphs, and a short bullet list only where it genuinely helps. Avoid markdown \
 tables unless they clarify more than prose would.
 - If the sensitivity is approximate (LP relaxation of a MIP), state that those figures are approximate.

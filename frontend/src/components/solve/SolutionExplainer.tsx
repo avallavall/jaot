@@ -3,6 +3,8 @@
 import { useCallback, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Sparkles } from "lucide-react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { useSolutionExplanation } from "@/hooks/useSolutionExplanation";
@@ -85,8 +87,8 @@ export function SolutionExplainer({ executionId, canExplain }: SolutionExplainer
       )}
 
       {stream.text && (
-        <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-          {stream.text}
+        <div className="prose prose-sm dark:prose-invert max-w-none text-foreground">
+          <Markdown remarkPlugins={[remarkGfm]}>{stream.text}</Markdown>
         </div>
       )}
 
