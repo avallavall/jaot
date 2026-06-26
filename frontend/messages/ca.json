@@ -2658,7 +2658,7 @@
       "warmStart": "Inici en Calent",
       "warmStartHint": "(opcional — utilitzeu una solució anterior per accelerar la resolució)",
       "warmStartSelected": "Inici en calent seleccionat — el solucionador utilitzarà aquesta solució com a punt de partida (s'aplica un 50% de descompte en crèdits).",
-      "runModel": "Executar {mode}",
+      "runModel": "{credits, plural, =0 {Executar {mode}} one {Executar {mode} (# crèdit)} other {Executar {mode} (# crèdits)}}",
       "modeAsync": "Asíncron",
       "modeSync": "Model",
       "starting": "Iniciant...",

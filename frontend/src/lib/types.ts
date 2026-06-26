@@ -351,6 +351,9 @@ export interface ValidationResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
+  // Present on POST /api/v2/solve/validate — base credit estimate (no solver
+  // multiplier). Optional because other validators reuse this shape.
+  estimated_credits?: number;
 }
 
 // Generated CreditBalanceResponse has different fields (currency, exchange_rate, etc.)

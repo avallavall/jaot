@@ -39,6 +39,9 @@ export default function RunModelPage() {
   const [error, setError] = useState<string | null>(null);
   const [asyncExecutionId, setAsyncExecutionId] = useState<string | null>(null);
   const [useAsyncMode, setUseAsyncMode] = useState(false);
+  // Live credit estimate for the run button. null = unknown (invalid/partial
+  // input or estimate in flight) → button shows just the mode label.
+  const [estimatedCredits, setEstimatedCredits] = useState<number | null>(null);
   const [selectedWarmStartId, setSelectedWarmStartId] = useState<string | null>(null);
   const [selectedWarmStartInfo, setSelectedWarmStartInfo] = useState<WarmStartCandidateInfo | null>(null);
   const [warmStartRefreshKey, setWarmStartRefreshKey] = useState(0);
@@ -240,6 +243,40 @@ export default function RunModelPage() {
     setError(errorMsg);
   };
 
+  // Estimate the dynamic credit cost for the run button: render the problem
+  // (preview) then price it (validate → estimated_credits). Debounced and
+  // best-effort — any failure (invalid/partial JSON, render error) clears the
+  // estimate so the button falls back to just the mode label.
+  useEffect(() => {
+    let cancelled = false;
+    let inputData: Record<string, unknown>;
+    try {
+      inputData = JSON.parse(inputJson);
+    } catch {
+      setEstimatedCredits(null);
+      return;
+    }
+    const handle = setTimeout(async () => {
+      try {
+        const problem = await api.previewModel(modelId, inputData);
+        const validation = await api.validateProblem(problem);
+        if (!cancelled) {
+          setEstimatedCredits(
+            typeof validation.estimated_credits === "number"
+              ? validation.estimated_credits
+              : null,
+          );
+        }
+      } catch {
+        if (!cancelled) setEstimatedCredits(null);
+      }
+    }, 500);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [inputJson, modelId]);
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -416,7 +453,10 @@ export default function RunModelPage() {
             ) : (
               <>
                 <Play className="w-4 h-4 mr-2" />
-                {t("runModel", { mode: useAsyncMode ? t("modeAsync") : t("modeSync") })}
+                {t("runModel", {
+                  mode: useAsyncMode ? t("modeAsync") : t("modeSync"),
+                  credits: estimatedCredits ?? 0,
+                })}
               </>
             )}
           </Button>

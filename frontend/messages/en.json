@@ -2687,7 +2687,7 @@
       "warmStart": "Warm Start",
       "warmStartHint": "(optional — use a previous solution to speed up solving)",
       "warmStartSelected": "Warm start selected — solver will use this solution as a starting point (50% credit discount applies).",
-      "runModel": "Run {mode}",
+      "runModel": "{credits, plural, =0 {Run {mode}} one {Run {mode} (# credit)} other {Run {mode} (# credits)}}",
       "modeAsync": "Async",
       "modeSync": "Model",
       "starting": "Starting...",
