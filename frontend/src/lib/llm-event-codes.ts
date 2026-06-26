@@ -8,7 +8,8 @@ export type LLMStatusCode =
   | "generating"
   | "generating_variables"
   | "generating_constraints"
-  | "assembling";
+  | "assembling"
+  | "explaining";
 
 /** Error codes emitted on stream failure. Includes public + internal. */
 export type LLMErrorCode =
@@ -25,6 +26,7 @@ export const STATUS_I18N_KEY: Record<LLMStatusCode, string> = {
   generating_variables: "llm.status.generatingVariables",
   generating_constraints: "llm.status.generatingConstraints",
   assembling: "llm.status.assembling",
+  explaining: "llm.status.explaining",
 };
 
 /** next-intl keys relative to the `builder` namespace. */

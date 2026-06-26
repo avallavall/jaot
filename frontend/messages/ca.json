@@ -1185,7 +1185,8 @@
         "generating": "Generant formulació...",
         "generatingVariables": "Generant variables...",
         "generatingConstraints": "Generant restriccions...",
-        "assembling": "Assemblant formulació..."
+        "assembling": "Assemblant formulació...",
+        "explaining": "Explicant la solució..."
       },
       "error": {
         "serviceUnavailable": "L'assistent d'IA no està disponible temporalment. Torneu-ho a provar d'aquí un moment.",

@@ -1185,7 +1185,8 @@
         "generating": "Formulierung wird generiert...",
         "generatingVariables": "Variablen werden generiert...",
         "generatingConstraints": "Nebenbedingungen werden generiert...",
-        "assembling": "Formulierung wird zusammengesetzt..."
+        "assembling": "Formulierung wird zusammengesetzt...",
+        "explaining": "Lösung wird erklärt..."
       },
       "error": {
         "serviceUnavailable": "Der KI-Assistent ist vorübergehend nicht verfügbar. Bitte versuchen Sie es gleich erneut.",

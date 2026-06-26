@@ -1202,7 +1202,8 @@
         "generating": "Generating formulation...",
         "generatingVariables": "Generating variables...",
         "generatingConstraints": "Generating constraints...",
-        "assembling": "Assembling formulation..."
+        "assembling": "Assembling formulation...",
+        "explaining": "Explaining the solution..."
       },
       "error": {
         "serviceUnavailable": "The AI assistant is temporarily unavailable. Please try again in a moment.",

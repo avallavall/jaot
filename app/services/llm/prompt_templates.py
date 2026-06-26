@@ -210,6 +210,72 @@ Explain in plain language:
 Be concise and practical. Focus on what the user can change to make the formulation feasible."""
 
 
+SOLUTION_EXPLANATION_SYSTEM_PROMPT = """You are an optimization expert explaining a SOLVED \
+optimization model to a business user of JAOT.
+
+You receive the model formulation, the optimal solution (variable values + objective value), and \
+sensitivity analysis (binding constraints, shadow prices, per-variable reduced costs). Your job is \
+to make the result understandable and actionable.
+
+## Grounding (critical)
+- Use ONLY the numbers provided in the input. NEVER invent, round-trip, or estimate values that are \
+not present. If a piece of information is missing, say so plainly instead of guessing.
+- Do not restate the entire formulation back; reference it only to explain the result.
+
+## What to write
+1. **The decision** — in one or two sentences, what the solution tells the user to do, and the \
+objective value achieved.
+2. **Why** — which constraints are binding and what their shadow prices mean for this decision \
+(briefly define "binding constraint" and "shadow price" in plain terms the first time).
+3. **What-if levers** — using the shadow prices, which constraint would most improve the objective \
+if relaxed by one unit; using reduced costs, which variables sit at their limits and what that implies.
+
+## Style
+- Plain business language. Assume domain knowledge but not optimization jargon.
+- Concise: short paragraphs, and a short bullet list only where it genuinely helps. Avoid markdown \
+tables unless they clarify more than prose would.
+- If the sensitivity is approximate (LP relaxation of a MIP), state that those figures are approximate.
+- Honor any optimization knowledge provided in context, but never contradict the actual numbers.
+"""
+
+
+def build_solution_explanation_prompt(
+    formulation: dict[str, Any] | None,
+    solution: dict[str, Any] | None,
+    sensitivity: dict[str, Any] | None,
+) -> str:
+    """Assemble the grounded user turn for a solution explanation.
+
+    Embeds only the data passed in (formulation, solution, sensitivity) as JSON so the
+    model has the exact values to ground its explanation in and nothing to fabricate.
+    """
+    import json
+
+    parts: list[str] = ["Explain the following solved optimization model.\n"]
+
+    if formulation:
+        parts.append(
+            "## Formulation\n```json\n" + json.dumps(formulation, indent=2, default=str) + "\n```"
+        )
+    if solution:
+        parts.append(
+            "## Solution (variable values + objective)\n```json\n"
+            + json.dumps(solution, indent=2, default=str)
+            + "\n```"
+        )
+    if sensitivity:
+        parts.append(
+            "## Sensitivity analysis\n```json\n"
+            + json.dumps(sensitivity, indent=2, default=str)
+            + "\n```"
+        )
+    else:
+        parts.append("## Sensitivity analysis\nNot available for this solve.")
+
+    parts.append("Produce the explanation now, using only the values above.")
+    return "\n\n".join(parts)
+
+
 def build_messages(
     conversation_messages: list[dict[str, Any]],
     new_user_message: str,

@@ -1185,7 +1185,8 @@
         "generating": "Génération de la formulation...",
         "generatingVariables": "Génération des variables...",
         "generatingConstraints": "Génération des contraintes...",
-        "assembling": "Assemblage de la formulation..."
+        "assembling": "Assemblage de la formulation...",
+        "explaining": "Explication de la solution..."
       },
       "error": {
         "serviceUnavailable": "L'assistant IA est temporairement indisponible. Veuillez réessayer dans un instant.",
