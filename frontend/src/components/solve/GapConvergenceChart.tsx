@@ -118,7 +118,7 @@ export function GapConvergenceChart({
             }}
             labelStyle={{ color: "var(--foreground)", fontWeight: 600, marginBottom: 4 }}
             labelFormatter={(label) => `${t("iteration")} ${label}`}
-            formatter={(value: number | string | undefined) =>
+            formatter={(value) =>
               typeof value === "number"
                 ? value.toLocaleString(undefined, { maximumFractionDigits: 6 })
                 : String(value ?? "")

@@ -117,7 +117,7 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
                       fontSize: 12,
                     }}
                     labelStyle={{ color: "var(--foreground)", fontWeight: 600, marginBottom: 4 }}
-                    formatter={(value: number | undefined) => [
+                    formatter={(value) => [
                       typeof value === "number" ? value.toFixed(6) : String(value ?? ""),
                       t("shadowPrice"),
                     ]}
