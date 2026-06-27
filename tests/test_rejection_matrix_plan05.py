@@ -1,5 +1,3 @@
-
-
 def test_delete_admin_api_keys_returns_404_for_nonexistent_id(admin_client):
     """SC3 (cell #1, owner=PLAN_05): DELETE /api/v2/admin/api-keys/{key_id} -> 404 (nonexistent id).
 
@@ -12,6 +10,7 @@ def test_delete_admin_api_keys_returns_404_for_nonexistent_id(admin_client):
     resp = admin_client.delete("/api/v2/admin/api-keys/key_does_not_exist")
     assert resp.status_code == 404
 
+
 def test_patch_admin_api_keys_toggle_returns_404_for_nonexistent_id(admin_client):
     """SC3 (cell #2, owner=PLAN_05): PATCH /api/v2/admin/api-keys/{key_id}/toggle -> 404.
 
@@ -21,6 +20,7 @@ def test_patch_admin_api_keys_toggle_returns_404_for_nonexistent_id(admin_client
     """
     resp = admin_client.patch("/api/v2/admin/api-keys/key_does_not_exist/toggle")
     assert resp.status_code == 404
+
 
 def test_patch_admin_models_returns_422_for_wrong_body_type(admin_client):
     """SC3 (cell #3, owner=PLAN_05): PATCH /api/v2/admin/models/{model_id} -> 422.
@@ -35,6 +35,7 @@ def test_patch_admin_models_returns_422_for_wrong_body_type(admin_client):
     )
     assert resp.status_code == 422
 
+
 def test_patch_admin_models_visibility_returns_422_for_missing_query_param(admin_client):
     """SC3 (cell #4, owner=PLAN_05): PATCH /api/v2/admin/models/{model_id}/visibility -> 422.
 
@@ -43,6 +44,7 @@ def test_patch_admin_models_visibility_returns_422_for_missing_query_param(admin
     """
     resp = admin_client.patch("/api/v2/admin/models/mod_does_not_exist/visibility")
     assert resp.status_code == 422
+
 
 def test_patch_admin_organizations_returns_422_for_wrong_body_type(admin_client):
     """SC3 (cell #5, owner=PLAN_05): PATCH /api/v2/admin/organizations/{org_id} -> 422.
@@ -56,6 +58,7 @@ def test_patch_admin_organizations_returns_422_for_wrong_body_type(admin_client)
     )
     assert resp.status_code == 422
 
+
 def test_delete_admin_organizations_returns_404_for_nonexistent_id(admin_client):
     """SC3 (cell #6, owner=PLAN_05): DELETE /api/v2/admin/organizations/{org_id} -> 404.
 
@@ -65,6 +68,7 @@ def test_delete_admin_organizations_returns_404_for_nonexistent_id(admin_client)
     """
     resp = admin_client.delete("/api/v2/admin/organizations/org_does_not_exist")
     assert resp.status_code == 404
+
 
 def test_delete_admin_organizations_verify_returns_404_for_nonexistent_id(admin_client):
     """SC3 (cell #7, owner=PLAN_05): DELETE /api/v2/admin/organizations/{org_id}/verify -> 404.
@@ -76,6 +80,7 @@ def test_delete_admin_organizations_verify_returns_404_for_nonexistent_id(admin_
     resp = admin_client.delete("/api/v2/admin/organizations/org_does_not_exist/verify")
     assert resp.status_code == 404
 
+
 def test_delete_admin_reviews_returns_404_for_nonexistent_id(admin_client):
     """SC3 (cell #8, owner=PLAN_05): DELETE /api/v2/admin/reviews/{review_id} -> 404.
 
@@ -85,6 +90,7 @@ def test_delete_admin_reviews_returns_404_for_nonexistent_id(admin_client):
     """
     resp = admin_client.delete("/api/v2/admin/reviews/rev_does_not_exist")
     assert resp.status_code == 404
+
 
 def test_patch_admin_reviews_visibility_returns_422_for_missing_query_param(admin_client):
     """SC3 (cell #9, owner=PLAN_05): PATCH /api/v2/admin/reviews/{review_id}/visibility -> 422.
@@ -96,6 +102,7 @@ def test_patch_admin_reviews_visibility_returns_422_for_missing_query_param(admi
     resp = admin_client.patch("/api/v2/admin/reviews/rev_does_not_exist/visibility")
     assert resp.status_code == 422
 
+
 def test_put_admin_settings_commission_returns_422_for_missing_query_param(admin_client):
     """SC3 (cell #10, owner=PLAN_05): PUT /api/v2/admin/settings/commission -> 422.
 
@@ -105,6 +112,7 @@ def test_put_admin_settings_commission_returns_422_for_missing_query_param(admin
     """
     resp = admin_client.put("/api/v2/admin/settings/commission")
     assert resp.status_code == 422
+
 
 def test_put_admin_settings_plans_returns_422_for_malformed_body(admin_client):
     """SC3 (cell #11, owner=PLAN_05): PUT /api/v2/admin/settings/plans -> 422.
@@ -118,6 +126,7 @@ def test_put_admin_settings_plans_returns_422_for_malformed_body(admin_client):
     )
     assert resp.status_code == 422
 
+
 def test_put_admin_settings_values_returns_422_for_malformed_body(admin_client):
     """SC3 (cell #12, owner=PLAN_05): PUT /api/v2/admin/settings/values -> 422.
 
@@ -129,6 +138,7 @@ def test_put_admin_settings_values_returns_422_for_malformed_body(admin_client):
         json="not_a_valid_dict",
     )
     assert resp.status_code == 422
+
 
 def test_patch_admin_users_returns_422_for_wrong_body_type(admin_client):
     """SC3 (cell #13, owner=PLAN_05): PATCH /api/v2/admin/users/{user_id} -> 422.
@@ -142,6 +152,7 @@ def test_patch_admin_users_returns_422_for_wrong_body_type(admin_client):
     )
     assert resp.status_code == 422
 
+
 def test_delete_admin_users_returns_404_for_nonexistent_id(admin_client):
     """SC3 (cell #14, owner=PLAN_05): DELETE /api/v2/admin/users/{user_id} -> 404.
 
@@ -152,6 +163,7 @@ def test_delete_admin_users_returns_404_for_nonexistent_id(admin_client):
     resp = admin_client.delete("/api/v2/admin/users/usr_does_not_exist")
     assert resp.status_code == 404
 
+
 def test_delete_builder_document_returns_404_for_nonexistent_id(authenticated_client):
     """SC3 (cell #15, owner=PLAN_05): DELETE /api/v2/builder/{document_id} -> 404.
 
@@ -160,6 +172,7 @@ def test_delete_builder_document_returns_404_for_nonexistent_id(authenticated_cl
     """
     resp = authenticated_client.delete("/api/v2/builder/doc_does_not_exist")
     assert resp.status_code == 404
+
 
 def test_patch_builder_version_returns_422_for_malformed_body(authenticated_client):
     """SC3 (cell #16, owner=PLAN_05): PATCH builder version -> 422.
@@ -173,6 +186,7 @@ def test_patch_builder_version_returns_422_for_malformed_body(authenticated_clie
     )
     assert resp.status_code == 422
 
+
 def test_delete_keys_returns_404_for_nonexistent_id(authenticated_client):
     """SC3 (cell #17, owner=PLAN_05): DELETE /api/v2/keys/{key_id} -> 404.
 
@@ -181,6 +195,7 @@ def test_delete_keys_returns_404_for_nonexistent_id(authenticated_client):
     """
     resp = authenticated_client.delete("/api/v2/keys/key_does_not_exist")
     assert resp.status_code == 404
+
 
 def test_delete_llm_conversation_attachment_returns_404_for_nonexistent_id(authenticated_client):
     """SC3 (cell #18, owner=PLAN_05): DELETE LLM conversation attachment -> 404.
@@ -192,6 +207,7 @@ def test_delete_llm_conversation_attachment_returns_404_for_nonexistent_id(authe
         "/api/v2/llm/conversations/conv_does_not_exist/attachments/att_does_not_exist"
     )
     assert resp.status_code == 404
+
 
 def test_delete_models_catalog_logo_returns_rejection(authenticated_client):
     """SC3 (cell #19, owner=PLAN_05): DELETE catalog logo -> rejection (404/503).
@@ -210,6 +226,7 @@ def test_delete_models_catalog_logo_returns_rejection(authenticated_client):
         f"DELETE logo must reject; got {resp.status_code} {resp.text[:200]}"
     )
 
+
 def test_delete_models_catalog_screenshot_returns_rejection(authenticated_client):
     """SC3 (cell #20, owner=PLAN_05): DELETE catalog screenshot -> rejection (404/503).
 
@@ -222,6 +239,7 @@ def test_delete_models_catalog_screenshot_returns_rejection(authenticated_client
     assert resp.status_code in (404, 503), (
         f"DELETE screenshot must reject; got {resp.status_code} {resp.text[:200]}"
     )
+
 
 def test_put_models_catalog_sections_returns_rejection(authenticated_client):
     """SC3 (cell #21, owner=PLAN_05): PUT catalog sections -> rejection (404/422/503).
@@ -240,6 +258,7 @@ def test_put_models_catalog_sections_returns_rejection(authenticated_client):
     assert resp.status_code in (404, 422, 503), (
         f"PUT sections must reject; got {resp.status_code} {resp.text[:200]}"
     )
+
 
 def test_delete_models_favorites_anonymous_rejected(authenticated_client):
     """SC3 (cell #22, owner=PLAN_05): DELETE favorites - idempotent + anon rejected (401).
@@ -262,6 +281,7 @@ def test_delete_models_favorites_anonymous_rejected(authenticated_client):
         f"Anonymous DELETE favorites must 401; got {anon_resp.status_code}"
     )
 
+
 def test_delete_models_reviews_returns_404_for_nonexistent_id(authenticated_client):
     """SC3 (cell #23, owner=PLAN_05): DELETE /api/v2/models/reviews/{review_id} -> 404.
 
@@ -271,6 +291,7 @@ def test_delete_models_reviews_returns_404_for_nonexistent_id(authenticated_clie
     """
     resp = authenticated_client.delete("/api/v2/models/reviews/rev_does_not_exist")
     assert resp.status_code == 404
+
 
 def test_patch_models_returns_rejection(authenticated_client):
     """SC3 (cell #24, owner=PLAN_05): PATCH /api/v2/models/{model_id} -> rejection (404/422).
@@ -288,6 +309,7 @@ def test_patch_models_returns_rejection(authenticated_client):
         f"PATCH model must reject; got {resp.status_code} {resp.text[:200]}"
     )
 
+
 def test_delete_models_returns_404_for_nonexistent_id(authenticated_client):
     """SC3 (cell #25, owner=PLAN_05): DELETE /api/v2/models/{model_id} -> 404.
 
@@ -297,6 +319,7 @@ def test_delete_models_returns_404_for_nonexistent_id(authenticated_client):
     """
     resp = authenticated_client.delete("/api/v2/models/mod_does_not_exist")
     assert resp.status_code == 404
+
 
 def test_patch_organizations_profile_returns_rejection(authenticated_client):
     """SC3 (cell #26, owner=PLAN_05): PATCH org profile -> rejection (403/422).
@@ -315,6 +338,7 @@ def test_patch_organizations_profile_returns_rejection(authenticated_client):
         f"PATCH org profile must reject; got {resp.status_code} {resp.text[:200]}"
     )
 
+
 def test_put_seller_notification_preferences_returns_422_for_wrong_body_type(authenticated_client):
     """SC3 (cell #27, owner=PLAN_05): PUT seller notification preferences -> 422.
 
@@ -326,6 +350,7 @@ def test_put_seller_notification_preferences_returns_422_for_wrong_body_type(aut
         json={"email_on_sale": "not-a-bool"},
     )
     assert resp.status_code == 422
+
 
 def test_patch_triggers_schedule_returns_422_for_malformed_body(authenticated_client):
     """SC3 (cell #28, owner=PLAN_05): PATCH /api/v2/triggers/{trigger_id}/schedule -> 422.
@@ -339,6 +364,7 @@ def test_patch_triggers_schedule_returns_422_for_malformed_body(authenticated_cl
     )
     assert resp.status_code == 422
 
+
 def test_delete_triggers_schedule_returns_404_for_nonexistent_id(authenticated_client):
     """SC3 (cell #29, owner=PLAN_05): DELETE /api/v2/triggers/{trigger_id}/schedule -> 404.
 
@@ -348,6 +374,7 @@ def test_delete_triggers_schedule_returns_404_for_nonexistent_id(authenticated_c
     """
     resp = authenticated_client.delete("/api/v2/triggers/trg_does_not_exist/schedule")
     assert resp.status_code == 404
+
 
 def test_delete_user_account_returns_rejection_without_confirmation(authenticated_client):
     """SC3 (cell #30, owner=PLAN_05): DELETE /api/v2/user/account -> rejection-path.
@@ -367,6 +394,7 @@ def test_delete_user_account_returns_rejection_without_confirmation(authenticate
         f"Account-delete rejection surface absent: {resp.status_code} {resp.text[:200]}"
     )
 
+
 def test_patch_users_profile_returns_422_for_wrong_body_type(authenticated_client):
     """SC3 (cell #31, owner=PLAN_05): PATCH /api/v2/users/profile -> 422.
 
@@ -380,6 +408,7 @@ def test_patch_users_profile_returns_422_for_wrong_body_type(authenticated_clien
         json={"is_public_profile": ["not", "a", "bool"]},
     )
     assert resp.status_code == 422
+
 
 def test_patch_workspaces_returns_rejection(authenticated_client):
     """SC3 (cell #32, owner=PLAN_05): PATCH workspace -> rejection (403/404/422).
@@ -397,6 +426,7 @@ def test_patch_workspaces_returns_rejection(authenticated_client):
         f"PATCH workspace must reject; got {resp.status_code} {resp.text[:200]}"
     )
 
+
 def test_delete_workspaces_returns_rejection(authenticated_client):
     """SC3 (cell #33, owner=PLAN_05): DELETE workspace -> rejection (403/404).
 
@@ -410,4 +440,3 @@ def test_delete_workspaces_returns_rejection(authenticated_client):
     assert resp.status_code in (403, 404), (
         f"DELETE workspace must reject; got {resp.status_code} {resp.text[:200]}"
     )
-

@@ -220,20 +220,22 @@ precision = 1
 # solver core — 11 files total). Tolerance: 2pp absolute drop per-module (Plan
 # 05 delta gate; stricter would false-REVERT on randomization noise).
 #
-# Config keys use mutmut 3.5.0 syntax. The full recognized set in 3.5.0 is:
-# do_not_mutate, also_copy, max_stack_depth, debug, mutate_only_covered_lines,
-# paths_to_mutate, tests_dir, pytest_add_cli_args,
-# pytest_add_cli_args_test_selection, type_check_command. Any other key is a
-# SILENT no-op (mutmut ignores unknown keys). Unreleased master renames
-# paths_to_mutate -> source_paths; do NOT bump mutmut to a >3.x version without
-# revising this section.
+# Config keys use mutmut 3.6.0 syntax. The recognized set in 3.6.0 is:
+# do_not_mutate, do_not_mutate_patterns, only_mutate, also_copy, max_stack_depth,
+# debug, mutate_only_covered_lines, source_paths (was paths_to_mutate), tests_dir,
+# pytest_add_cli_args, pytest_add_cli_args_test_selection, type_check_command,
+# timeout_constant, timeout_multiplier. Any other key is a SILENT no-op (mutmut
+# ignores unknown keys). 3.6.0 renamed paths_to_mutate -> source_paths (the old
+# name still works as a deprecated alias, with a DeprecationWarning); we use the
+# canonical source_paths below. 3.6.0 also (re)introduced timeout_constant /
+# timeout_multiplier — not used here; mutmut derives timeouts from the baseline.
 #
-# NOTE: per-module runs in later plans override paths_to_mutate + test-selection
+# NOTE: per-module runs in later plans override source_paths + test-selection
 # via CLI. This block holds shared settings + the full target list. A bare
 # `mutmut run` would mutate all 11 files (slow); per-module CLI runs are the
 # working path (see Plans 02-06).
 [tool.mutmut]
-paths_to_mutate = [
+source_paths = [
     # idempotency (D-01 extracted from app/api/v2/solve.py)
     "app/services/idempotency.py",
     # credits
@@ -276,9 +278,8 @@ pytest_add_cli_args_test_selection = [
 ]
 # Only mutate lines actually covered — drops tautologically unreachable mutants.
 mutate_only_covered_lines = true
-# NOTE: mutmut 3.5.0 has NO configurable timeout keys. `timeout_constant` and
-# `timeout_multiplier` were removed here — they are NOT in mutmut's recognized
-# key set and were silently ignored. mutmut 3.x derives each mutant's timeout
-# internally from the baseline (clean-run) duration; there is no multiplier to
-# tune. Credits/stripe tests with conftest setup run ~30-60s and are handled by
-# that internal baseline timing, not by config.
+# NOTE: mutmut 3.6.0 DOES recognize `timeout_constant` / `timeout_multiplier`
+# (3.5.0 did not), but we intentionally leave them unset — mutmut derives each
+# mutant's timeout internally from the baseline (clean-run) duration, which is
+# adequate here. Credits/stripe tests with conftest setup run ~30-60s and are
+# handled by that internal baseline timing, not by config.

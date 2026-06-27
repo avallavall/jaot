@@ -4,10 +4,11 @@ pytest-asyncio>=1.4.0
 pytest-cov>=7.1.0
 pytest-randomly>=4.1.0
 pytest-xdist>=3.8.0
-ruff>=0.14.0
-mypy>=1.8.0
+ruff>=0.15.20
+mypy>=2.1.0
 pre-commit>=4.6.0
 # Mutation testing — Phase 12.3 scoped pre-pilot (CONTEXT D-03), Phase 12.5
-# expansion to 5 critical modules. Lower-bound pin against the 3.x config-key
-# rename in unreleased master (paths_to_mutate -> source_paths).
-mutmut>=3.5.0,<4.0.0
+# expansion to 5 critical modules. 3.6.0 landed the config-key rename
+# paths_to_mutate -> source_paths; pyproject [tool.mutmut] now uses the
+# canonical source_paths. Cap <4 keeps a future 4.x a deliberate upgrade.
+mutmut>=3.6.0,<4.0.0
