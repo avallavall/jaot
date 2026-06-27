@@ -645,111 +645,118 @@
     },
     "privacy": {
       "title": "Privacy Policy",
-      "lastUpdated": "Last updated: March 3, 2026",
+      "lastUpdated": "Last updated: June 27, 2026",
       "section1": {
         "title": "1. Data We Collect",
-        "intro": "We collect the following types of information when you use JAOT:",
-        "accountInfo": "<strong>Account information:</strong> email address, name, and organization name provided during registration.",
-        "usageData": "<strong>Usage data:</strong> optimization models you create, solver executions, credit transactions, and feature usage patterns.",
-        "cookies": "<strong>Cookies:</strong> essential cookies for session management and authentication, plus optional analytics cookies (with your consent).",
-        "technicalData": "<strong>Technical data:</strong> browser type, device information, and IP address for security and service operation."
+        "intro": "This Privacy Policy describes how the JAOT instance hosted at jaot.io handles your data. We collect the following when you use it:",
+        "accountInfo": "<strong>Account information:</strong> the email address, name, and organization name you provide when you register.",
+        "usageData": "<strong>Usage data:</strong> the optimization models you create, your solver executions, and feature usage patterns.",
+        "cookies": "<strong>Cookies:</strong> essential cookies for session management and authentication. Our analytics are privacy-friendly and cookieless (see the Cookie Policy below).",
+        "technicalData": "<strong>Technical data:</strong> browser type, device information, and IP address, used for security and to operate the Service."
       },
       "section2": {
         "title": "2. How We Store Your Data",
-        "body": "Your data is stored in a PostgreSQL database with encryption at rest. All data transmission is encrypted using TLS. Organization data is logically isolated in our multi-tenant architecture, ensuring that only members of your organization can access your data."
+        "body": "Your data is encrypted in transit using TLS and is logically isolated per organization in our multi-tenant architecture, so only members of your organization can access it. Particularly sensitive fields — such as a stored AI provider key — are additionally encrypted at rest. If you self-host JAOT instead of using jaot.io, you run your own instance and act as the data controller for the data it holds; this policy then describes only the hosted instance."
       },
       "section3": {
         "title": "3. Third-Party Services",
-        "intro": "We use the following third-party services to operate JAOT:",
-        "stripe": "<strong>Stripe:</strong> payment processing for credit purchases and subscriptions. Stripe processes your payment information directly; we do not store credit card details.",
-        "discourse": "<strong>Discourse:</strong> community forum platform (optional). Your display name and email may be shared via SSO if you access the community forum."
+        "intro": "We rely on a small number of third-party services to operate the hosted instance:",
+        "anthropic": "<strong>Anthropic (Claude API):</strong> powers the optional AI assistant. Your prompts and model descriptions are sent to Anthropic only when you use the assistant, and are processed under Anthropic’s terms. You can use your own Anthropic key instead.",
+        "analytics": "<strong>Plausible Analytics:</strong> a privacy-friendly, self-hosted analytics tool used to understand aggregate usage. It is cookieless, does not track you across sites, and does not collect personal data.",
+        "payments": "<strong>Stripe (payments):</strong> used only if an operator enables monetization on their instance. On jaot.io monetization is off, so no payment data is processed. Where enabled, Stripe handles payment details directly and we never store card data.",
+        "note": "Retrieval, embeddings, and all solver computations run locally on the Service and are not sent to any third party."
       },
       "section4": {
         "title": "4. Data Retention",
-        "body": "We retain your data for as long as your account is active. When you request account deletion, all associated personal data, models, and execution history will be permanently deleted within 30 days. Anonymized, aggregated usage statistics may be retained for service improvement."
+        "body": "We keep your data for as long as your account is active. When you delete your account, your personal data, models, and execution history are permanently removed; any request that cannot be self-served through the platform is actioned within 30 days. AI assistant conversations are short-lived and are automatically discarded after a configured retention window. Anonymized, aggregated statistics that cannot identify you may be retained to improve the Service."
       },
       "section5": {
         "title": "5. Your Rights (GDPR)",
         "intro": "Under the General Data Protection Regulation (GDPR), you have the right to:",
-        "access": "<strong>Access:</strong> request a copy of all personal data we hold about you. Use the data export feature in your account settings or contact support.",
-        "erasure": "<strong>Erasure:</strong> request deletion of your account and all associated data. Use the account deletion option in settings or contact support.",
-        "portability": "<strong>Portability:</strong> export your data in JSON format through the settings page.",
-        "rectification": "<strong>Rectification:</strong> update your personal information through your account settings at any time.",
-        "objection": "<strong>Objection:</strong> opt out of optional analytics cookies through the cookie consent banner or Cookie Settings."
+        "access": "<strong>Access:</strong> request a copy of the personal data we hold about you. Use the data export feature in your account settings, or contact us.",
+        "erasure": "<strong>Erasure:</strong> delete your account and its associated data using the account deletion option in settings, or contact us.",
+        "portability": "<strong>Portability:</strong> export your data in a machine-readable JSON format from your settings page.",
+        "rectification": "<strong>Rectification:</strong> update your personal information from your account settings at any time.",
+        "objection": "<strong>Objection:</strong> object to processing of your data. Our analytics are already cookieless and anonymous, and you can manage your cookie choice from the consent banner at any time."
       },
       "section6": {
         "title": "6. How to Exercise Your Rights",
-        "body": "Most data rights can be exercised directly through the JAOT platform via your account settings page, which provides data export and account deletion options. For any requests that cannot be handled through the platform, or if you need assistance, contact us at <link>support@jaot.io</link>. We will respond to all requests within 30 days."
+        "body": "You can exercise most of these rights directly in the platform: your account settings provide data export and account deletion. For anything that cannot be handled there, or if you need help, contact us at <link>support@jaot.io</link>. We respond to all requests within 30 days."
       },
       "section7": {
         "title": "7. Cookie Policy",
-        "intro": "JAOT uses the following types of cookies:",
-        "essential": "<strong>Essential cookies:</strong> required for session management, authentication, and core site functionality. These cannot be disabled.",
-        "analytics": "<strong>Analytics cookies (optional):</strong> used to understand how users interact with the platform and improve the experience. These are only set with your explicit consent.",
-        "manage": "You can manage your cookie preferences at any time using the Cookie Settings link in the sidebar footer."
+        "intro": "The hosted instance uses cookies sparingly:",
+        "essential": "<strong>Essential cookies:</strong> required for session management and authentication. These cannot be disabled while you are signed in.",
+        "analytics": "<strong>Analytics:</strong> we use self-hosted, cookieless Plausible Analytics, which sets no tracking cookies and collects only aggregate, anonymous usage. A consent banner records your preference, stored locally in your browser.",
+        "manage": "You can review or change your choice at any time from the cookie consent banner, reachable via the Cookie Settings link in the footer."
       },
       "section8": {
         "title": "8. Changes to This Policy",
-        "body": "We may update this Privacy Policy from time to time. When we make significant changes, we will notify you via email and update the \"Last updated\" date at the top of this page. Continued use of the Service after changes constitutes acceptance of the updated policy."
+        "body": "We may update this Privacy Policy from time to time. When we make significant changes, we will update the “Last updated” date at the top of this page and, where appropriate, notify you. Continued use of the Service after a change takes effect constitutes acceptance of the updated policy."
       },
       "section9": {
         "title": "9. Contact",
-        "body": "For questions about this Privacy Policy or to exercise your data rights, please contact us at <link>support@jaot.io</link>."
+        "body": "For questions about this Privacy Policy or to exercise your data rights, contact us at <link>support@jaot.io</link>."
       }
     },
     "terms": {
       "title": "Terms of Service",
-      "lastUpdated": "Last updated: March 3, 2026",
+      "lastUpdated": "Last updated: June 27, 2026",
       "section1": {
         "title": "1. Acceptance of Terms",
-        "body": "By accessing or using JAOT (\"the Service\"), you agree to be bound by these Terms of Service. If you do not agree to these terms, do not use the Service. These terms apply to all users, including individual users and organizations."
+        "body": "These Terms of Service govern your use of the JAOT instance hosted at jaot.io, operated by the JAOT team (“we”, “us”, “the Service”). By accessing or using this instance, you agree to be bound by these Terms; if you do not agree, do not use it. JAOT is open-source software released under the Apache License 2.0 — if you run your own instance, your use of the software is governed by that license and these Terms do not apply to you, as you act as your own operator. These Terms apply to all users of the hosted instance, whether individuals or organizations."
       },
       "section2": {
         "title": "2. Description of Service",
-        "body": "JAOT is an optimization-as-a-service platform that provides a visual model builder for creating and solving mathematical optimization problems. The Service includes a marketplace of pre-built optimization templates, a drag-and-drop model builder, solver execution powered by the SCIP optimization suite, and collaborative organization workspaces."
+        "body": "JAOT is an open-source platform for building, sharing, and solving mathematical optimization models. It includes a free, collaborative marketplace of optimization templates, a visual drag-and-drop model builder, an optional AI formulation assistant, a Model Context Protocol (MCP) endpoint for programmatic access, and shared organization workspaces. Models are solved locally using open-source solvers — currently SCIP and HiGHS. The instance at jaot.io is the reference deployment operated by the JAOT team; anyone can self-host the same software under the Apache License 2.0."
       },
       "section3": {
         "title": "3. Acceptable Use",
-        "intro": "You agree not to:",
-        "item1": "Submit malicious models designed to consume excessive solver resources or disrupt the Service.",
-        "item2": "Attempt to bypass credit limits, rate limits, or other usage restrictions.",
+        "intro": "When using the hosted instance, you agree not to:",
+        "item1": "Submit models or requests designed to consume excessive solver resources, degrade performance, or otherwise disrupt the Service for other users.",
+        "item2": "Circumvent usage quotas, rate limits, or other technical measures that keep shared capacity fair.",
         "item3": "Use the Service for any unlawful purpose or in violation of applicable laws.",
-        "item4": "Reverse engineer, decompile, or attempt to extract the source code of the Service.",
+        "item4": "Attempt to access, interfere with, or extract data belonging to other organizations or users.",
         "item5": "Share API keys or account credentials with unauthorized parties."
       },
       "section4": {
-        "title": "4. Credits and Billing",
-        "body1": "JAOT uses a credit-based billing system. Credits are consumed when optimization models are executed. Credit costs depend on model complexity, including the number of variables, constraints, variable types, and solver time.",
-        "body2": "Credits are non-refundable once consumed by solver execution. Unused credits remain in your organization's balance. Payment processing is handled securely through Stripe. Billing occurs at the organization level, and all members of an organization share the organization's credit balance."
+        "title": "4. Usage Quotas",
+        "body1": "The hosted instance uses a credit system as a fair-use quota: credits are consumed when models are executed, and the cost of a run scales with model complexity — the number of variables, constraints, variable types, and solver time. This exists to share finite solver capacity fairly across everyone on the shared instance, not to charge you.",
+        "body2": "By default, JAOT is fully free: the marketplace is free to use and to publish to, no commission is charged, and every paid feature — billing, credit top-ups, and payment processing through Stripe — is disabled. On jaot.io these paid features are off and you will never be charged. An operator self-hosting JAOT may choose to enable monetization on their own instance, in which case their own commercial terms apply."
       },
       "section5": {
-        "title": "5. Solver Disclaimer",
-        "body1": "The optimization solver is provided on an \"as-is\" basis. JAOT provides best-effort optimization using the SCIP solver but does not guarantee that solutions are globally optimal, feasible for your real-world scenario, or suitable for critical decision-making without independent verification.",
-        "body2": "Results depend on model formulation. Users are responsible for verifying that model inputs accurately represent their problem and for independently validating results before making critical business decisions."
+        "title": "5. AI Assistant",
+        "body1": "The AI formulation assistant is optional and stays disabled unless you choose to use it. When you use it, the prompts and model descriptions you submit are sent to Anthropic’s Claude API to generate formulations and explanations, and are processed under Anthropic’s terms and privacy policy. We do not include your name, email, or organization details in these requests. If you never use the assistant, none of your data is sent to any AI provider.",
+        "body2": "You may provide your own Anthropic API key (“bring your own key”) in your organization settings; requests are then billed to your own Anthropic account and do not count against the shared assistant budget. Any retrieval and embedding features that support the assistant run locally on the Service and do not send your data to third parties. Like any large language model, the assistant can produce incorrect or incomplete results — always review its output before relying on it."
       },
       "section6": {
-        "title": "6. Data Ownership",
-        "body": "You retain full ownership of your optimization models, data, and results. JAOT stores your data solely to provide the Service and does not sell, share, or use your data for purposes other than operating the platform. You may export or delete your data at any time through the Service or by contacting support."
+        "title": "6. Solver Disclaimer",
+        "body1": "The optimization solvers are provided on an “as is” basis. JAOT runs your models with open-source solvers (SCIP and HiGHS) on a best-effort basis but does not guarantee that a solution is globally optimal, feasible for your real-world scenario, or suitable for critical decision-making without independent verification.",
+        "body2": "Results depend entirely on how a model is formulated. You are responsible for ensuring that your inputs accurately represent your problem and for independently validating any result before you act on it."
       },
       "section7": {
-        "title": "7. Multi-Tenancy",
-        "body": "The Service operates in a multi-tenant architecture. Each organization's data is logically isolated and accessible only to members of that organization. Users may belong to one organization and share resources (models, credits, executions) within it."
+        "title": "7. Data Ownership",
+        "body": "You retain full ownership of the models, data, and results you create. We store your data solely to operate the Service and do not sell it or share it with third parties except as described in our Privacy Policy. You can export your data or permanently delete your account at any time from your account settings."
       },
       "section8": {
-        "title": "8. Termination",
-        "body": "Either party may terminate use of the Service at any time. You may delete your account through the settings page or by contacting support. Upon account deletion, your data will be permanently removed in accordance with our Privacy Policy and GDPR requirements. JAOT reserves the right to suspend or terminate accounts that violate these Terms."
+        "title": "8. Multi-Tenancy",
+        "body": "The Service runs on a multi-tenant architecture. Each organization’s data is logically isolated and accessible only to members of that organization. You may belong to an organization and share its resources — models, usage quota, and executions — with its other members."
       },
       "section9": {
-        "title": "9. Limitation of Liability",
-        "body": "To the maximum extent permitted by law, JAOT and its operators shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the Service. This includes, without limitation, damages for loss of profits, data, or business opportunities arising from solver results, service interruptions, or any other aspect of the Service."
+        "title": "9. Termination",
+        "body": "You may stop using the Service at any time and delete your account from the settings page or by contacting us. On account deletion, your data is permanently removed as described in our Privacy Policy. We may suspend or terminate access to the hosted instance for accounts that violate these Terms or abuse shared resources."
       },
       "section10": {
-        "title": "10. Governing Law",
-        "body": "These Terms shall be governed by and construed in accordance with the laws of Spain. Any disputes arising from these Terms or your use of the Service shall be subject to the exclusive jurisdiction of the courts of Spain."
+        "title": "10. Disclaimer of Warranty and Limitation of Liability",
+        "body": "The Service is provided “as is” and “as available”, without warranties of any kind, whether express or implied, consistent with the Apache License 2.0 under which the software is distributed. To the maximum extent permitted by law, the JAOT team and operators shall not be liable for any indirect, incidental, special, consequential, or punitive damages — including loss of profits, data, or business opportunities — arising from your use of the Service, from solver or AI-generated results, or from any interruption of the Service."
       },
       "section11": {
-        "title": "11. Contact",
-        "body": "For questions about these Terms of Service, please contact us at <link>support@jaot.io</link>."
+        "title": "11. Governing Law",
+        "body": "As they apply to the hosted instance at jaot.io, these Terms are governed by the laws of Spain, and any dispute arising from them or from your use of that instance is subject to the exclusive jurisdiction of the courts of Spain. This clause applies only to the hosted instance; if you self-host JAOT, your use is governed by your own jurisdiction and by the Apache License 2.0."
+      },
+      "section12": {
+        "title": "12. Contact",
+        "body": "For questions about these Terms of Service, contact us at <link>support@jaot.io</link>."
       }
     },
     "licenses": {

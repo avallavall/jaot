@@ -549,111 +549,118 @@
     },
     "privacy": {
       "title": "Política de privadesa",
-      "lastUpdated": "Darrera actualització: 3 de març de 2026",
+      "lastUpdated": "Última actualització: 27 de juny de 2026",
       "section1": {
         "title": "1. Dades que recopilem",
-        "intro": "Recopilem els següents tipus d'informació quan utilitzes JAOT:",
-        "accountInfo": "<strong>Informació del compte:</strong> correu electrònic, nom i nom de l'organització proporcionats durant el registre.",
-        "usageData": "<strong>Dades d'ús:</strong> models d'optimització que crees, execucions del solver, transaccions de crèdits i patrons d'ús de funcionalitats.",
-        "cookies": "<strong>Galetes:</strong> galetes essencials per a la gestió de sessions i autenticació, a més de galetes d'anàlisi opcionals (amb el teu consentiment).",
-        "technicalData": "<strong>Dades tècniques:</strong> tipus de navegador, informació del dispositiu i adreça IP per a seguretat i funcionament del servei."
+        "intro": "Aquesta Política de privadesa descriu com la instància de JAOT allotjada a jaot.io tracta les teves dades. Recopilem el següent quan la fas servir:",
+        "accountInfo": "<strong>Informació del compte:</strong> l’adreça de correu, el nom i el nom de l’organització que facilites en registrar-te.",
+        "usageData": "<strong>Dades d’ús:</strong> els models d’optimització que crees, les teves execucions de solver i els patrons d’ús de funcions.",
+        "cookies": "<strong>Cookies:</strong> cookies essencials per a la gestió de sessió i l’autenticació. La nostra analítica respecta la privadesa i no fa servir cookies (consulta la Política de cookies més avall).",
+        "technicalData": "<strong>Dades tècniques:</strong> tipus de navegador, informació del dispositiu i adreça IP, fets servir per seguretat i per operar el Servei."
       },
       "section2": {
         "title": "2. Com emmagatzemem les teves dades",
-        "body": "Les teves dades s'emmagatzemen en una base de dades PostgreSQL amb xifrat en repòs. Tota la transmissió de dades està xifrada mitjançant TLS. Les dades de l'organització estan lògicament aïllades en la nostra arquitectura multi-tenant, assegurant que només els membres de la teva organització poden accedir a les teves dades."
+        "body": "Les teves dades es xifren en trànsit mitjançant TLS i estan aïllades lògicament per organització a la nostra arquitectura multitenant, de manera que només els membres de la teva organització hi poden accedir. Els camps especialment sensibles —com una clau de proveïdor d’IA emmagatzemada— es xifren a més en repòs. Si autoallotges JAOT en lloc de fer servir jaot.io, executes la teva pròpia instància i actues com a responsable del tractament de les dades que contingui; en aquest cas, aquesta política descriu únicament la instància allotjada."
       },
       "section3": {
         "title": "3. Serveis de tercers",
-        "intro": "Utilitzem els següents serveis de tercers per operar JAOT:",
-        "stripe": "<strong>Stripe:</strong> processament de pagaments per a compres de crèdits i subscripcions. Stripe processa la teva informació de pagament directament; no emmagatzemem dades de targetes de crèdit.",
-        "discourse": "<strong>Discourse:</strong> plataforma de fòrum comunitari (opcional). El teu nom visible i correu poden compartir-se via SSO si accedeixes al fòrum."
+        "intro": "Ens recolzem en un nombre reduït de serveis de tercers per operar la instància allotjada:",
+        "anthropic": "<strong>Anthropic (API de Claude):</strong> dona suport a l’assistent d’IA opcional. Les teves indicacions i descripcions de model s’envien a Anthropic només quan fas servir l’assistent, i es tracten d’acord amb els termes d’Anthropic. Pots fer servir la teva pròpia clau d’Anthropic en lloc seu.",
+        "analytics": "<strong>Plausible Analytics:</strong> una eina d’analítica autoallotjada i respectuosa amb la privadesa que es fa servir per entendre l’ús agregat. No fa servir cookies, no et rastreja entre llocs i no recopila dades personals.",
+        "payments": "<strong>Stripe (pagaments):</strong> es fa servir únicament si un operador activa la monetització a la seva instància. A jaot.io la monetització està desactivada, de manera que no es processen dades de pagament. Quan està activa, Stripe gestiona les dades de pagament directament i mai no emmagatzemem dades de targetes.",
+        "note": "La recuperació, els embeddings i tots els càlculs del solver s’executen localment al Servei i no s’envien a cap tercer."
       },
       "section4": {
-        "title": "4. Retenció de dades",
-        "body": "Conservem les teves dades mentre el teu compte estigui actiu. En sol·licitar l'eliminació del compte, totes les dades personals, models i historial d'execucions associats s'eliminaran permanentment en 30 dies. Estadístiques d'ús anonimitzades i agregades poden conservar-se per millorar el servei."
+        "title": "4. Conservació de dades",
+        "body": "Conservem les teves dades mentre el teu compte estigui actiu. Quan elimines el teu compte, les teves dades personals, models i historial d’execucions s’esborren de manera permanent; qualsevol sol·licitud que no es pugui gestionar tu mateix a la plataforma s’atén en un termini de 30 dies. Les converses amb l’assistent d’IA són efímeres i es descarten automàticament després d’un període de conservació configurat. Podem conservar estadístiques anonimitzades i agregades que no permeten identificar-te per millorar el Servei."
       },
       "section5": {
         "title": "5. Els teus drets (RGPD)",
-        "intro": "Segons el Reglament General de Protecció de Dades (RGPD), tens dret a:",
-        "access": "<strong>Accés:</strong> sol·licitar una còpia de totes les dades personals que tenim sobre tu. Utilitza la funció d'exportació de dades a la configuració del teu compte o contacta amb suport.",
-        "erasure": "<strong>Supressió:</strong> sol·licitar l'eliminació del teu compte i totes les dades associades. Utilitza l'opció d'eliminació de compte a configuració o contacta amb suport.",
-        "portability": "<strong>Portabilitat:</strong> exporta les teves dades en format JSON a través de la pàgina de configuració.",
-        "rectification": "<strong>Rectificació:</strong> actualitza la teva informació personal a través de la configuració del teu compte en qualsevol moment.",
-        "objection": "<strong>Oposició:</strong> desactiva les galetes d'anàlisi opcionals mitjançant el bànner de consentiment de galetes o la Configuració de galetes."
+        "intro": "D’acord amb el Reglament General de Protecció de Dades (RGPD), tens dret a:",
+        "access": "<strong>Accés:</strong> sol·licitar una còpia de les dades personals que tenim sobre tu. Fes servir la funció d’exportació de dades als ajustaments del teu compte o contacta amb nosaltres.",
+        "erasure": "<strong>Supressió:</strong> eliminar el teu compte i les dades associades mitjançant l’opció d’eliminació de compte als ajustaments, o contactant amb nosaltres.",
+        "portability": "<strong>Portabilitat:</strong> exportar les teves dades en format JSON llegible per màquina des de la pàgina d’ajustaments.",
+        "rectification": "<strong>Rectificació:</strong> actualitzar la teva informació personal des dels ajustaments del teu compte en qualsevol moment.",
+        "objection": "<strong>Oposició:</strong> oposar-te al tractament de les teves dades. La nostra analítica ja és anònima i sense cookies, i pots gestionar la teva preferència de cookies des del banner de consentiment en qualsevol moment."
       },
       "section6": {
         "title": "6. Com exercir els teus drets",
-        "body": "La majoria dels drets sobre dades es poden exercir directament a través de la plataforma JAOT a la pàgina de configuració del teu compte, que ofereix opcions d'exportació de dades i eliminació de compte. Per a sol·licituds que no puguin gestionar-se a través de la plataforma, o si necessites ajuda, contacta amb nosaltres a <link>support@jaot.io</link>. Respondrem a totes les sol·licituds en 30 dies."
+        "body": "Pots exercir la majoria d’aquests drets directament a la plataforma: els ajustaments del teu compte ofereixen exportació de dades i eliminació de compte. Per a qualsevol cosa que no es pugui gestionar allà, o si necessites ajuda, contacta amb nosaltres a <link>support@jaot.io</link>. Responem a totes les sol·licituds en un termini de 30 dies."
       },
       "section7": {
-        "title": "7. Política de galetes",
-        "intro": "JAOT utilitza els següents tipus de galetes:",
-        "essential": "<strong>Galetes essencials:</strong> necessàries per a la gestió de sessions, autenticació i funcionalitat bàsica del lloc. No es poden desactivar.",
-        "analytics": "<strong>Galetes d'anàlisi (opcionals):</strong> utilitzades per entendre com interactuen els usuaris amb la plataforma i millorar l'experiència. Només s'activen amb el teu consentiment explícit.",
-        "manage": "Pots gestionar les teves preferències de galetes en qualsevol moment utilitzant l'enllaç Configuració de galetes al peu de la barra lateral."
+        "title": "7. Política de cookies",
+        "intro": "La instància allotjada fa servir cookies de manera mínima:",
+        "essential": "<strong>Cookies essencials:</strong> necessàries per a la gestió de sessió i l’autenticació. No es poden desactivar mentre tens la sessió iniciada.",
+        "analytics": "<strong>Analítica:</strong> fem servir Plausible Analytics autoallotjat i sense cookies, que no estableix cookies de seguiment i només recopila ús agregat i anònim. Un banner de consentiment registra la teva preferència, emmagatzemada localment al teu navegador.",
+        "manage": "Pots revisar o canviar la teva elecció en qualsevol moment des del banner de consentiment de cookies, accessible mitjançant l’enllaç Configuració de cookies al peu de pàgina."
       },
       "section8": {
         "title": "8. Canvis en aquesta política",
-        "body": "Podem actualitzar aquesta Política de privadesa de tant en tant. Quan realitzem canvis significatius, et notificarem per correu electrònic i actualitzarem la data de \"Darrera actualització\" a la part superior d'aquesta pàgina. L'ús continuat del Servei després dels canvis constitueix l'acceptació de la política actualitzada."
+        "body": "Podem actualitzar aquesta Política de privadesa de tant en tant. Quan fem canvis significatius, actualitzarem la data d’“Última actualització” a la part superior d’aquesta pàgina i, quan escaigui, t’avisarem. L’ús continuat del Servei després que un canvi entri en vigor constitueix l’acceptació de la política actualitzada."
       },
       "section9": {
         "title": "9. Contacte",
-        "body": "Per a preguntes sobre aquesta Política de privadesa o per exercir els teus drets sobre dades, contacta amb nosaltres a <link>support@jaot.io</link>."
+        "body": "Per a consultes sobre aquesta Política de privadesa o per exercir els teus drets sobre les dades, contacta amb nosaltres a <link>support@jaot.io</link>."
       }
     },
     "terms": {
-      "title": "Termes de servei",
-      "lastUpdated": "Darrera actualització: 3 de març de 2026",
+      "title": "Termes del servei",
+      "lastUpdated": "Última actualització: 27 de juny de 2026",
       "section1": {
         "title": "1. Acceptació dels termes",
-        "body": "En accedir o utilitzar JAOT (\"el Servei\"), acceptes quedar vinculat per aquests Termes de servei. Si no acceptes aquests termes, no utilitzis el Servei. Aquests termes s'apliquen a tots els usuaris, incloent usuaris individuals i organitzacions."
+        "body": "Aquests Termes del servei regulen el teu ús de la instància de JAOT allotjada a jaot.io, operada per l’equip de JAOT (“nosaltres”, “el Servei”). En accedir a aquesta instància o utilitzar-la, acceptes quedar vinculat per aquests Termes; si no hi estàs d’acord, no la facis servir. JAOT és programari de codi obert publicat sota la Llicència Apache 2.0: si executes la teva pròpia instància, el teu ús del programari es regeix per aquesta llicència i aquests Termes no se t’apliquen, ja que actues com el teu propi operador. Aquests Termes s’apliquen a tots els usuaris de la instància allotjada, siguin persones o organitzacions."
       },
       "section2": {
         "title": "2. Descripció del servei",
-        "body": "JAOT és una plataforma d'optimització com a servei que proporciona un constructor visual de models per crear i resoldre problemes d'optimització matemàtica. El Servei inclou un marketplace de plantilles d'optimització predissenyades, un constructor de models d'arrossegar i deixar anar, execució de solver powered by SCIP, i espais de treball col·laboratius d'organització."
+        "body": "JAOT és una plataforma de codi obert per crear, compartir i resoldre models d’optimització matemàtica. Inclou un marketplace gratuït i col·laboratiu de plantilles d’optimització, un constructor visual de models d’arrossegar i deixar anar, un assistent de formulació amb IA opcional, un endpoint de Model Context Protocol (MCP) per a accés programàtic i espais de treball compartits per organització. Els models es resolen localment amb solvers de codi obert, actualment SCIP i HiGHS. La instància de jaot.io és el desplegament de referència operat per l’equip de JAOT; qualsevol pot autoallotjar el mateix programari sota la Llicència Apache 2.0."
       },
       "section3": {
         "title": "3. Ús acceptable",
-        "intro": "Acceptes no:",
-        "item1": "Enviar models maliciosos dissenyats per consumir recursos excessius del solver o interrompre el Servei.",
-        "item2": "Intentar eludir límits de crèdits, límits de taxa o altres restriccions d'ús.",
-        "item3": "Utilitzar el Servei per a qualsevol propòsit il·legal o en violació de les lleis aplicables.",
-        "item4": "Realitzar enginyeria inversa, descompilar o intentar extreure el codi font del Servei.",
-        "item5": "Compartir claus API o credencials del compte amb tercers no autoritzats."
+        "intro": "En utilitzar la instància allotjada, acceptes no:",
+        "item1": "Enviar models o sol·licituds dissenyats per consumir recursos del solver de manera excessiva, degradar el rendiment o interrompre el Servei per a altres usuaris.",
+        "item2": "Eludir les quotes d’ús, els límits de freqüència o altres mesures tècniques que mantenen un repartiment just de la capacitat compartida.",
+        "item3": "Utilitzar el Servei amb qualsevol finalitat il·lícita o infringint la legislació aplicable.",
+        "item4": "Intentar accedir a dades d’altres organitzacions o usuaris, interferir-hi o extreure-les.",
+        "item5": "Compartir claus d’API o credencials del compte amb tercers no autoritzats."
       },
       "section4": {
-        "title": "4. Crèdits i facturació",
-        "body1": "JAOT utilitza un sistema de facturació basat en crèdits. Els crèdits es consumeixen quan s'executen models d'optimització. El cost de crèdits depèn de la complexitat del model, incloent el nombre de variables, restriccions, tipus de variables i temps de solver.",
-        "body2": "Els crèdits no són reemborsables un cop consumits per l'execució del solver. Els crèdits no utilitzats romanen al saldo de la teva organització. El processament de pagaments es gestiona de forma segura a través de Stripe. La facturació es realitza a nivell d'organització, i tots els membres comparteixen el saldo de crèdits."
+        "title": "4. Quotes d’ús",
+        "body1": "La instància allotjada fa servir un sistema de crèdits com a quota d’ús just: els crèdits es consumeixen quan s’executen models, i el cost d’una execució depèn de la complexitat del model: nombre de variables, restriccions, tipus de variable i temps de solver. Existeix per repartir de manera equitativa la capacitat finita del solver entre tots els usuaris de la instància compartida, no per cobrar-te.",
+        "body2": "Per defecte, JAOT és totalment gratuït: el marketplace és gratis per fer servir i publicar-hi, no es cobra cap comissió, i totes les funcions de pagament —facturació, recàrregues de crèdits i processament de pagaments amb Stripe— estan desactivades. A jaot.io aquestes funcions de pagament estan desactivades i mai no se’t cobrarà. Un operador que autoallotgi JAOT pot optar per activar la monetització a la seva pròpia instància, cas en què s’apliquen els seus propis termes comercials."
       },
       "section5": {
-        "title": "5. Avís legal del solver",
-        "body1": "El solver d'optimització es proporciona \"tal qual\". JAOT ofereix la millor optimització possible utilitzant el solver SCIP però no garanteix que les solucions siguin globalment òptimes, factibles per al teu escenari real, o adequades per a la presa de decisions crítiques sense verificació independent.",
-        "body2": "Els resultats depenen de la formulació del model. Els usuaris són responsables de verificar que les dades d'entrada representin fidelment el seu problema i de validar els resultats de forma independent abans de prendre decisions empresarials crítiques."
+        "title": "5. Assistent d’IA",
+        "body1": "L’assistent de formulació amb IA és opcional i es manté desactivat tret que decideixis fer-lo servir. Quan el fas servir, les indicacions i descripcions de model que envies es transmeten a l’API de Claude d’Anthropic per generar formulacions i explicacions, i es tracten d’acord amb els termes i la política de privadesa d’Anthropic. No incloem el teu nom, correu ni dades de l’organització en aquestes sol·licituds. Si no fas servir mai l’assistent, cap de les teves dades s’envia a cap proveïdor d’IA.",
+        "body2": "Pots aportar la teva pròpia clau d’API d’Anthropic (“porta la teva clau”) als ajustaments de la teva organització; en aquest cas, les sol·licituds es cobren al teu propi compte d’Anthropic i no computen en el pressupost compartit de l’assistent. Les funcions de recuperació i d’embeddings que donen suport a l’assistent s’executen localment al Servei i no envien les teves dades a tercers. Com qualsevol model de llenguatge, l’assistent pot produir resultats incorrectes o incomplets: revisa sempre la seva sortida abans de confiar-hi."
       },
       "section6": {
-        "title": "6. Propietat de les dades",
-        "body": "Conserves la plena propietat dels teus models d'optimització, dades i resultats. JAOT emmagatzema les teves dades únicament per proporcionar el Servei i no ven, comparteix ni utilitza les teves dades per a fins diferents a l'operació de la plataforma. Pots exportar o eliminar les teves dades en qualsevol moment a través del Servei o contactant amb suport."
+        "title": "6. Avís sobre el solver",
+        "body1": "Els solvers d’optimització s’ofereixen “tal qual”. JAOT executa els teus models amb solvers de codi obert (SCIP i HiGHS) amb el millor esforç, però no garanteix que una solució sigui globalment òptima, factible per al teu escenari real o adequada per a decisions crítiques sense verificació independent.",
+        "body2": "Els resultats depenen completament de com es formuli el model. Ets responsable d’assegurar que les teves dades representen amb exactitud el teu problema i de validar de manera independent qualsevol resultat abans d’actuar-hi."
       },
       "section7": {
-        "title": "7. Multi-tenancy",
-        "body": "El Servei opera en una arquitectura multi-tenant. Les dades de cada organització estan lògicament aïllades i només són accessibles per als membres d'aquella organització. Els usuaris poden pertenèixer a una organització i compartir recursos (models, crèdits, execucions) dins d'ella."
+        "title": "7. Propietat de les dades",
+        "body": "Conserves la plena propietat dels models, dades i resultats que creïs. Emmagatzemem les teves dades únicament per operar el Servei i no les venem ni les compartim amb tercers tret del que es descriu a la nostra Política de privadesa. Pots exportar les teves dades o eliminar el teu compte de manera permanent en qualsevol moment des dels ajustaments del teu compte."
       },
       "section8": {
-        "title": "8. Terminació",
-        "body": "Qualsevol part pot donar per acabat l'ús del Servei en qualsevol moment. Pots eliminar el teu compte a través de la pàgina de configuració o contactant amb suport. Després de l'eliminació del compte, les teves dades s'eliminaran permanentment d'acord amb la nostra Política de privadesa i els requisits del RGPD. JAOT es reserva el dret de suspendre o cancel·lar comptes que violin aquests Termes."
+        "title": "8. Multitenència",
+        "body": "El Servei funciona amb una arquitectura multitenant. Les dades de cada organització estan aïllades lògicament i només hi poden accedir els membres d’aquesta organització. Pots pertànyer a una organització i compartir-ne els recursos —models, quota d’ús i execucions— amb els altres membres."
       },
       "section9": {
-        "title": "9. Limitació de responsabilitat",
-        "body": "En la màxima mesura permesa per la llei, JAOT i els seus operadors no seran responsables de cap dany indirecte, incidental, especial, conseqüent o punitiu derivat de l'ús del Servei. Això inclou, sense limitació, danys per pèrdua de beneficis, dades o oportunitats de negoci derivats dels resultats del solver, interrupcions del servei o qualsevol altre aspecte del Servei."
+        "title": "9. Cancel·lació",
+        "body": "Pots deixar d’utilitzar el Servei en qualsevol moment i eliminar el teu compte des de la pàgina d’ajustaments o contactant amb nosaltres. En eliminar el compte, les teves dades s’esborren de manera permanent segons es descriu a la nostra Política de privadesa. Podem suspendre o cancel·lar l’accés a la instància allotjada dels comptes que infringeixin aquests Termes o abusin dels recursos compartits."
       },
       "section10": {
-        "title": "10. Legislació aplicable",
-        "body": "Aquests Termes es regiran i interpretaran d'acord amb les lleis d'Espanya. Qualsevol disputa derivada d'aquests Termes o de l'ús del Servei estarà subjecta a la jurisdicció exclusiva dels tribunals d'Espanya."
+        "title": "10. Exempció de garanties i limitació de responsabilitat",
+        "body": "El Servei s’ofereix “tal qual” i “segons disponibilitat”, sense garanties de cap mena, expresses o implícites, en coherència amb la Llicència Apache 2.0 sota la qual es distribueix el programari. En la màxima mesura permesa per la llei, l’equip i els operadors de JAOT no seran responsables de cap dany indirecte, incidental, especial, conseqüent o punitiu —inclosa la pèrdua de beneficis, dades o oportunitats de negoci— derivat del teu ús del Servei, dels resultats del solver o generats per IA, o de qualsevol interrupció del Servei."
       },
       "section11": {
-        "title": "11. Contacte",
-        "body": "Per a preguntes sobre aquests Termes de servei, contacta amb nosaltres a <link>support@jaot.io</link>."
+        "title": "11. Legislació aplicable",
+        "body": "En la seva aplicació a la instància allotjada a jaot.io, aquests Termes es regeixen per les lleis d’Espanya, i qualsevol disputa derivada d’ells o del teu ús d’aquesta instància se sotmet a la jurisdicció exclusiva dels tribunals d’Espanya. Aquesta clàusula s’aplica només a la instància allotjada; si autoallotges JAOT, el teu ús es regeix per la teva pròpia jurisdicció i per la Llicència Apache 2.0."
+      },
+      "section12": {
+        "title": "12. Contacte",
+        "body": "Per a consultes sobre aquests Termes del servei, escriu-nos a <link>support@jaot.io</link>."
       }
     },
     "licenses": {

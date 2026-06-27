@@ -8,7 +8,11 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  return buildPageMetadata({ namespace: "metadata.terms", path: "/terms", locale });
+  return buildPageMetadata({
+    namespace: "metadata.terms",
+    path: "/terms",
+    locale,
+  });
 }
 
 export default async function TermsPage() {
@@ -17,7 +21,9 @@ export default async function TermsPage() {
   return (
     <div className="max-w-3xl mx-auto py-12 px-4">
       <h1 className="text-3xl font-bold mb-2">{t("terms.title")}</h1>
-      <p className="text-sm text-muted-foreground mb-8">{t("terms.lastUpdated")}</p>
+      <p className="text-sm text-muted-foreground mb-8">
+        {t("terms.lastUpdated")}
+      </p>
 
       <div className="space-y-8 text-muted-foreground leading-relaxed">
         <section>
@@ -68,7 +74,8 @@ export default async function TermsPage() {
           <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">
             {t("terms.section6.title")}
           </h2>
-          <p>{t("terms.section6.body")}</p>
+          <p>{t("terms.section6.body1")}</p>
+          <p className="mt-2">{t("terms.section6.body2")}</p>
         </section>
 
         <section>
@@ -103,10 +110,20 @@ export default async function TermsPage() {
           <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">
             {t("terms.section11.title")}
           </h2>
+          <p>{t("terms.section11.body")}</p>
+        </section>
+
+        <section>
+          <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">
+            {t("terms.section12.title")}
+          </h2>
           <p>
-            {t.rich("terms.section11.body", {
+            {t.rich("terms.section12.body", {
               link: (chunks) => (
-                <a href="mailto:support@jaot.io" className="underline hover:text-foreground">
+                <a
+                  href="mailto:support@jaot.io"
+                  className="underline hover:text-foreground"
+                >
                   {chunks}
                 </a>
               ),
