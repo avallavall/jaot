@@ -15,9 +15,6 @@ import {
   Save,
   Eye,
   CheckCircle,
-  Download,
-  Trash2,
-  AlertTriangle,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { OrgProfile } from "@/lib/types";
@@ -28,16 +25,12 @@ export default function OrganizationProfileSettingsPage() {
   const dialog = useDialog();
   const { organization } = useAuth();
   const t = useTranslations("workspace.orgProfile");
-  const tc = useTranslations("common");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [profile, setProfile] = useState<OrganizationPublicProfile | null>(null);
-  const [exporting, setExporting] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState("");
-  const [deletePassword, setDeletePassword] = useState("");
-  const [deleting, setDeleting] = useState(false);
-  const [showDeleteSection, setShowDeleteSection] = useState(false);
+  const [profile, setProfile] = useState<OrganizationPublicProfile | null>(
+    null,
+  );
 
   // Form fields
   const [slug, setSlug] = useState("");
@@ -59,7 +52,9 @@ export default function OrganizationProfileSettingsPage() {
     if (!organization) return;
     setLoading(true);
     try {
-      const data = await api.getOrgProfile(organization.id) as unknown as OrganizationPublicProfile;
+      const data = (await api.getOrgProfile(
+        organization.id,
+      )) as unknown as OrganizationPublicProfile;
       setProfile(data);
       setSlug(data.slug || "");
       setBio(data.bio || "");
@@ -96,31 +91,6 @@ export default function OrganizationProfileSettingsPage() {
     }
   };
 
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      await api.exportUserData();
-      dialog.showSuccess(t("exportSuccess"));
-    } catch {
-      dialog.showError(t("exportError"));
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    setDeleting(true);
-    try {
-      await api.deleteUserAccount(deletePassword);
-      // Redirect to homepage after deletion
-      window.location.href = "/";
-    } catch (err) {
-      dialog.showError(err instanceof Error ? err.message : t("deleteError"));
-    } finally {
-      setDeleting(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex justify-center py-12" aria-busy="true">
@@ -134,27 +104,31 @@ export default function OrganizationProfileSettingsPage() {
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       <div className="mb-8">
         <h1 className="text-2xl font-bold mb-2">{t("title")}</h1>
-        <p className="text-muted-foreground">
-          {t("subtitle")}
-        </p>
+        <p className="text-muted-foreground">{t("subtitle")}</p>
       </div>
 
       {profile && (
-        <div className={`mb-6 p-4 rounded-lg border ${
-          profile.is_verified
-            ? "bg-green-50 border-green-200"
-            : "bg-muted border-border"
-        }`}>
+        <div
+          className={`mb-6 p-4 rounded-lg border ${
+            profile.is_verified
+              ? "bg-green-50 border-green-200"
+              : "bg-muted border-border"
+          }`}
+        >
           <div className="flex items-center gap-2">
             {profile.is_verified ? (
               <>
                 <CheckCircle className="w-5 h-5 text-green-600" />
-                <span className="font-medium text-green-800">{t("verifiedPublisher")}</span>
+                <span className="font-medium text-green-800">
+                  {t("verifiedPublisher")}
+                </span>
               </>
             ) : (
               <>
                 <Building2 className="w-5 h-5 text-muted-foreground" />
-                <span className="text-muted-foreground">{t("notVerified")}</span>
+                <span className="text-muted-foreground">
+                  {t("notVerified")}
+                </span>
               </>
             )}
           </div>
@@ -168,7 +142,10 @@ export default function OrganizationProfileSettingsPage() {
 
       <div className="space-y-6">
         <div>
-          <label htmlFor="profile-url" className="block text-sm font-medium mb-2">
+          <label
+            htmlFor="profile-url"
+            className="block text-sm font-medium mb-2"
+          >
             {t("profileUrl")}
           </label>
           <div className="flex items-center gap-2">
@@ -176,18 +153,21 @@ export default function OrganizationProfileSettingsPage() {
             <Input
               id="profile-url"
               value={slug}
-              onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+              onChange={(e) =>
+                setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))
+              }
               placeholder="your-company"
               className="flex-1"
             />
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {t("urlHint")}
-          </p>
+          <p className="text-xs text-muted-foreground mt-1">{t("urlHint")}</p>
         </div>
 
         <div>
-          <label htmlFor="profile-bio" className="block text-sm font-medium mb-2">
+          <label
+            htmlFor="profile-bio"
+            className="block text-sm font-medium mb-2"
+          >
             {t("bio")}
           </label>
           <Textarea
@@ -204,7 +184,10 @@ export default function OrganizationProfileSettingsPage() {
         </div>
 
         <div>
-          <label htmlFor="profile-logo-url" className="block text-sm font-medium mb-2">
+          <label
+            htmlFor="profile-logo-url"
+            className="block text-sm font-medium mb-2"
+          >
             {t("logoUrl")}
           </label>
           <Input
@@ -216,7 +199,10 @@ export default function OrganizationProfileSettingsPage() {
         </div>
 
         <div>
-          <label htmlFor="profile-website" className="block text-sm font-medium mb-2 flex items-center gap-2">
+          <label
+            htmlFor="profile-website"
+            className="block text-sm font-medium mb-2 flex items-center gap-2"
+          >
             <Globe className="w-4 h-4" />
             {t("website")}
           </label>
@@ -229,7 +215,10 @@ export default function OrganizationProfileSettingsPage() {
         </div>
 
         <div>
-          <label htmlFor="profile-linkedin" className="block text-sm font-medium mb-2 flex items-center gap-2">
+          <label
+            htmlFor="profile-linkedin"
+            className="block text-sm font-medium mb-2 flex items-center gap-2"
+          >
             <Linkedin className="w-4 h-4" />
             {t("linkedin")}
           </label>
@@ -242,7 +231,10 @@ export default function OrganizationProfileSettingsPage() {
         </div>
 
         <div>
-          <label htmlFor="profile-twitter" className="block text-sm font-medium mb-2 flex items-center gap-2">
+          <label
+            htmlFor="profile-twitter"
+            className="block text-sm font-medium mb-2 flex items-center gap-2"
+          >
             <Twitter className="w-4 h-4" />
             {t("twitter")}
           </label>
@@ -264,7 +256,10 @@ export default function OrganizationProfileSettingsPage() {
               </div>
             </div>
           </div>
-          <label htmlFor="profile-public-toggle" className="relative inline-flex items-center cursor-pointer">
+          <label
+            htmlFor="profile-public-toggle"
+            className="relative inline-flex items-center cursor-pointer"
+          >
             <input
               id="profile-public-toggle"
               type="checkbox"
@@ -301,74 +296,6 @@ export default function OrganizationProfileSettingsPage() {
             </a>
           </div>
         )}
-      </div>
-
-      <div className="border-t my-10" />
-
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-bold mb-2">{t("account")}</h2>
-          <p className="text-muted-foreground text-sm">{t("accountDescription")}</p>
-        </div>
-
-        <div className="p-4 border rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="font-medium flex items-center gap-2">
-                <Download className="w-4 h-4" />
-                {t("exportData")}
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                {t("exportDescription")}
-              </p>
-            </div>
-            <Button variant="outline" disabled={exporting} onClick={handleExport}>
-              {exporting ? t("exporting") : t("exportButton")}
-            </Button>
-          </div>
-        </div>
-
-        <div className="p-4 border border-destructive/30 rounded-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="w-4 h-4 text-destructive" />
-            <span className="font-medium text-destructive">{t("deleteAccount")}</span>
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            {t("deleteWarning")}
-          </p>
-          {!showDeleteSection ? (
-            <Button variant="destructive" size="sm" onClick={() => setShowDeleteSection(true)}>
-              <Trash2 className="w-4 h-4 mr-2" /> {t("deleteButton")}
-            </Button>
-          ) : (
-            <div className="space-y-3 p-4 bg-destructive/5 rounded-md">
-              <p className="text-sm font-medium">{t("deleteConfirmPrompt")}</p>
-              <Input
-                placeholder={t("deleteTypePlaceholder")}
-                value={deleteConfirm}
-                onChange={(e) => setDeleteConfirm(e.target.value)}
-              />
-              <Input
-                type="password"
-                placeholder={t("deletePasswordPlaceholder")}
-                value={deletePassword}
-                onChange={(e) => setDeletePassword(e.target.value)}
-              />
-              <div className="flex gap-2">
-                <Button
-                  variant="destructive"
-                  disabled={deleteConfirm !== "DELETE" || !deletePassword || deleting}
-                  onClick={handleDeleteAccount}
-                >
-                  {deleting ? t("deleting") : t("permanentlyDelete")}
-                </Button>
-                <Button variant="outline" onClick={() => { setShowDeleteSection(false); setDeleteConfirm(""); setDeletePassword(""); }}>
-                  {tc("cancel")}
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
       <dialog.DialogComponent />

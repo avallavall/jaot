@@ -18,6 +18,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGuidance } from "@/contexts/GuidanceContext";
 import { SkillLevelSelector } from "@/components/guidance/SkillLevelSelector";
+import { AccountDataSection } from "@/components/account/AccountDataSection";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import type { UserProfile, SkillLevel } from "@/lib/types";
@@ -147,7 +148,9 @@ export default function MyProfilePage() {
             <User className="w-10 h-10 text-muted-foreground" />
           </div>
           <div className="flex-1">
-            <h2 className="text-xl font-semibold">{profile.display_name || profile.name}</h2>
+            <h2 className="text-xl font-semibold">
+              {profile.display_name || profile.name}
+            </h2>
             <Link
               href={`/org/${profile.organization_id}`}
               className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -166,8 +169,12 @@ export default function MyProfilePage() {
 
         <div className="grid grid-cols-2 gap-4 mt-6 pt-4 border-t">
           <div className="text-center">
-            <div className="text-2xl font-bold text-primary">{profile.total_reviews}</div>
-            <div className="text-sm text-muted-foreground">{t("reviewsWritten")}</div>
+            <div className="text-2xl font-bold text-primary">
+              {profile.total_reviews}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {t("reviewsWritten")}
+            </div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-primary flex items-center justify-center gap-1">
@@ -180,7 +187,9 @@ export default function MyProfilePage() {
                 "\u2014"
               )}
             </div>
-            <div className="text-sm text-muted-foreground">{t("avgRatingGiven")}</div>
+            <div className="text-sm text-muted-foreground">
+              {t("avgRatingGiven")}
+            </div>
           </div>
         </div>
       </div>
@@ -190,7 +199,12 @@ export default function MyProfilePage() {
 
         <div className="space-y-4">
           <div>
-            <label htmlFor="myprofile-display-name" className="block text-sm font-medium mb-1">{t("displayName")}</label>
+            <label
+              htmlFor="myprofile-display-name"
+              className="block text-sm font-medium mb-1"
+            >
+              {t("displayName")}
+            </label>
             <Input
               id="myprofile-display-name"
               value={displayName}
@@ -200,7 +214,12 @@ export default function MyProfilePage() {
           </div>
 
           <div>
-            <label htmlFor="myprofile-bio" className="block text-sm font-medium mb-1">{t("bio")}</label>
+            <label
+              htmlFor="myprofile-bio"
+              className="block text-sm font-medium mb-1"
+            >
+              {t("bio")}
+            </label>
             <Textarea
               id="myprofile-bio"
               value={bio}
@@ -211,7 +230,12 @@ export default function MyProfilePage() {
           </div>
 
           <div>
-            <label htmlFor="myprofile-linkedin" className="block text-sm font-medium mb-1">{t("linkedinUrl")}</label>
+            <label
+              htmlFor="myprofile-linkedin"
+              className="block text-sm font-medium mb-1"
+            >
+              {t("linkedinUrl")}
+            </label>
             <Input
               id="myprofile-linkedin"
               value={linkedinUrl}
@@ -221,7 +245,12 @@ export default function MyProfilePage() {
           </div>
 
           <div>
-            <label htmlFor="myprofile-twitter" className="block text-sm font-medium mb-1">{t("twitterUrl")}</label>
+            <label
+              htmlFor="myprofile-twitter"
+              className="block text-sm font-medium mb-1"
+            >
+              {t("twitterUrl")}
+            </label>
             <Input
               id="myprofile-twitter"
               value={twitterUrl}
@@ -230,11 +259,7 @@ export default function MyProfilePage() {
             />
           </div>
 
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full"
-          >
+          <Button onClick={handleSave} disabled={saving} className="w-full">
             <Save className="w-4 h-4 mr-2" />
             {saving ? t("saving") : t("saveChanges")}
           </Button>
@@ -242,7 +267,9 @@ export default function MyProfilePage() {
       </div>
 
       <div className="bg-card border rounded-lg p-6 mt-6">
-        <h3 className="text-lg font-semibold mb-2">{t("guidancePreferences")}</h3>
+        <h3 className="text-lg font-semibold mb-2">
+          {t("guidancePreferences")}
+        </h3>
         <p className="text-sm text-muted-foreground mb-4">
           {t("guidanceDescription")}
         </p>
@@ -251,6 +278,8 @@ export default function MyProfilePage() {
           onChange={handleSkillLevelChange}
         />
       </div>
+
+      <AccountDataSection />
 
       <dialog.DialogComponent />
     </div>
