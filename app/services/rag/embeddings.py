@@ -37,7 +37,7 @@ class SentenceTransformerClient:
         self._model = SentenceTransformer(model_name)
         self._model_name = model_name
         self._is_bge = "bge" in model_name.lower()
-        self._dimension = self._model.get_sentence_embedding_dimension()
+        self._dimension = self._model.get_embedding_dimension()
         logger.info(
             "SentenceTransformer initialized: %s (%d dims)",
             model_name,
