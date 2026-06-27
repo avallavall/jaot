@@ -210,7 +210,6 @@ export default async function HomePage() {
               height={1724}
               label={t("hero.visualBuilderLabel")}
               priority
-              className="lg:-rotate-1"
             />
           </Reveal>
         </div>
