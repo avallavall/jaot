@@ -408,6 +408,51 @@ class TestAdminOrganizationOverview:
         )
         assert response.status_code == 403
 
+    def test_overview_execution_stats_buckets(self, admin_client, db_session):
+        """execution_stats folds statuses into completed / failed / running buckets.
+
+        timeout + cancelled count as failed; pending counts as running. Uses a
+        fresh org so the buckets are deterministic regardless of other rows.
+        """
+        from app.models import ModelExecution
+        from app.shared.utils.id_generator import generate_id
+
+        org = Organization(
+            id=generate_id("org_"), name="Stats Org", credits_balance=100, is_active=True
+        )
+        db_session.add(org)
+        db_session.flush()
+
+        # (status, credits_consumed) — one execution per terminal/active status
+        for status, credits in [
+            ("completed", 1),
+            ("failed", 2),
+            ("timeout", 3),
+            ("cancelled", 4),
+            ("running", 5),
+            ("pending", 6),
+        ]:
+            db_session.add(
+                ModelExecution(
+                    id=generate_id("exe_"),
+                    organization_id=org.id,
+                    input_data={},
+                    status=status,
+                    credits_consumed=credits,
+                )
+            )
+        db_session.commit()
+
+        response = admin_client.get(f"/api/v2/admin/organizations/{org.id}/overview")
+        assert response.status_code == 200
+        stats = response.json()["execution_stats"]
+
+        assert stats["total"] == 6
+        assert stats["completed"] == 1
+        assert stats["failed"] == 3  # failed + timeout + cancelled
+        assert stats["running"] == 2  # running + pending
+        assert stats["credits_consumed_total"] == 21  # 1+2+3+4+5+6
+
 
 class TestAdminUsers:
     """Tests for admin user endpoints."""

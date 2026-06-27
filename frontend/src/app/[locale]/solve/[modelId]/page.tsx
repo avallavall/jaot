@@ -11,6 +11,7 @@ import { SolverSelect } from "@/components/solve/SolverSelect";
 import { SolutionExplainer } from "@/components/solve/SolutionExplainer";
 import { InfeasibilityPanel } from "@/components/solve/InfeasibilityPanel";
 import { WarmStartDropdown, WarmStartCandidateInfo } from "@/components/solve/WarmStartDropdown";
+import { deriveExplainState } from "@/lib/solve-explain";
 import type { InfeasibilityAnalysis } from "@/lib/llm-types";
 import { useSolvers } from "@/hooks/useSolvers";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
@@ -301,18 +302,10 @@ export default function RunModelPage() {
     );
   }
 
-  // Derived result state for the LLM explainers. result_data (OptimizationResult)
-  // carries its own solver_status + variables, so this also works for async runs
-  // where the top-level result.solver_status isn't set on the inline result.
+  // Which LLM explainer (if any) applies to the current result — see
+  // deriveExplainState for the sync/async gating rules.
   const resultData = result?.result_data;
-  // result_data (OptimizationResult) carries its own `status`, so async runs —
-  // whose inline result has no top-level solver_status — are still covered.
-  const solverStatus = result?.solver_status ?? resultData?.status ?? null;
-  const solutionVariables = resultData?.variables ?? [];
-  const isInfeasibleResult = solverStatus === "infeasible";
-  const canExplainSolution =
-    result?.status === "completed" &&
-    (solverStatus === "optimal" || solverStatus === "feasible");
+  const { isInfeasible, hasSolution, canExplainSolution } = deriveExplainState(result);
   // Cast matches the execution-detail page: the generated OptimizationResult's
   // infeasibility_analysis type differs slightly (optional vs nullable `note`)
   // from the llm-types InfeasibilityAnalysis that InfeasibilityPanel expects.
@@ -532,11 +525,11 @@ export default function RunModelPage() {
 
               {/* LLM explainers — same as the execution-history detail page, so a
                   result can be understood right here without leaving the run page. */}
-              {result.id && !isInfeasibleResult && solutionVariables.length > 0 && (
+              {result.id && !isInfeasible && hasSolution && (
                 <SolutionExplainer executionId={result.id} canExplain={canExplainSolution} />
               )}
 
-              {result.id && isInfeasibleResult && (
+              {result.id && isInfeasible && (
                 <InfeasibilityPanel
                   executionId={result.id}
                   initialAnalysis={infeasibilityAnalysis}

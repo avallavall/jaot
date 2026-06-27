@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
@@ -29,6 +29,32 @@ import type { AdminOrganizationOverview } from "@/types/admin";
 
 const RECENT_LIMIT = 20;
 
+type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
+
+function planBadgeVariant(plan: string): BadgeVariant {
+  switch (plan) {
+    case "business":
+      return "default";
+    case "pro":
+      return "secondary";
+    default:
+      return "outline";
+  }
+}
+
+function executionStatusVariant(status: string): BadgeVariant {
+  switch (status) {
+    case "completed":
+      return "default";
+    case "failed":
+    case "timeout":
+    case "cancelled":
+      return "destructive";
+    default:
+      return "secondary";
+  }
+}
+
 export default function OrganizationDetailPage() {
   const t = useTranslations("admin.orgDetail");
   const locale = useLocale();
@@ -40,7 +66,7 @@ export default function OrganizationDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = async () => {
     setLoading(true);
     setError(null);
     setNotFound(false);
@@ -58,11 +84,12 @@ export default function OrganizationDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [orgId, t]);
+  };
 
   useEffect(() => {
     load();
-  }, [load]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId]);
 
   const fmtDateTime = (s: string | null | undefined) =>
     s ? new Date(s).toLocaleString(locale) : "—";
@@ -119,22 +146,11 @@ export default function OrganizationDetailPage() {
 
   const { organization: org, owner, counts, execution_stats: stats } = data;
 
-  const planVariant =
-    org.plan === "business"
-      ? "default"
-      : org.plan === "pro"
-        ? "secondary"
-        : "outline";
+  const planVariant = planBadgeVariant(org.plan);
 
-  const statusBadge = (status: string) => {
-    const v =
-      status === "completed"
-        ? "default"
-        : status === "failed" || status === "timeout" || status === "cancelled"
-          ? "destructive"
-          : "secondary";
-    return <Badge variant={v}>{status}</Badge>;
-  };
+  const statusBadge = (status: string) => (
+    <Badge variant={executionStatusVariant(status)}>{status}</Badge>
+  );
 
   const kpis = [
     { icon: <Users className="w-4 h-4" />, label: t("kpi.users"), value: num(counts.users) },

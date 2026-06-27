@@ -163,7 +163,7 @@ async def get_organization_overview(
         .group_by(ModelExecution.status)
         .all()
     )
-    status_counts = {status: count for status, count in status_rows}
+    status_counts = dict(status_rows)
     credits_consumed_total = (
         db.query(func.coalesce(func.sum(ModelExecution.credits_consumed), 0))
         .filter(ModelExecution.organization_id == org_id)
