@@ -186,7 +186,9 @@ services:
       - /tmp:size=64m
     # Explicit command — Dockerfile default CMD broke at cold-start after SHIM-01 cleanup (WR-06).
     # `-Q jaot_default` (Phase 10/CR-01) so the boot-time queue audit finds a consumer set.
-    command: ["celery", "-A", "app.shared.core.celery_app", "worker", "--loglevel=info", "--concurrency=2", "-Q", "jaot_default"]
+    # LOCAL-DEV: also consume the per-solver queues so async solves work on this single
+    # monolithic worker (prod uses dedicated queue-bound workers). Not for prod.
+    command: ["celery", "-A", "app.shared.core.celery_app", "worker", "--loglevel=info", "--concurrency=2", "-Q", "jaot_default,solve_scip,solve_highs"]
     healthcheck:
       test: ["CMD", "celery", "-A", "app.shared.core.celery_app", "inspect", "ping", "--timeout", "5"]
       interval: 30s
