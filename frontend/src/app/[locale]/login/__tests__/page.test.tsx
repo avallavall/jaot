@@ -23,6 +23,15 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/login",
 }));
 
+// Login routes through next-intl's navigation wrapper (bugfix B2) so the
+// post-login redirect preserves the active locale. A separate spy lets the
+// regression tests assert the push lands HERE and not on next/navigation.
+const intlRouterPush = vi.fn();
+vi.mock("@/i18n/navigation", () => ({
+  useRouter: () => ({ push: intlRouterPush }),
+  Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
+}));
+
 describe("LoginPage", () => {
   beforeEach(() => {
     mockAuthState = {
@@ -33,6 +42,7 @@ describe("LoginPage", () => {
       user: null,
     };
     mockRouterPush.mockReset();
+    intlRouterPush.mockReset();
   });
 
   it("renders the login form with email and password inputs only (no tabs)", () => {
@@ -82,5 +92,26 @@ describe("LoginPage", () => {
 
     const { container } = render(<LoginPage />);
     expect(container.firstChild).toBeNull();
+  });
+
+  // Bug B2: the redirect must go through next-intl's router so the locale chosen
+  // on the public home survives into the dashboard. If LoginPage regressed to
+  // next/navigation's useRouter, intlRouterPush would never be called.
+  it("redirects an authenticated non-admin to /solve via next-intl router (B2)", () => {
+    mockAuthState.isAuthenticated = true;
+    mockAuthState.user = { is_admin: false };
+
+    render(<LoginPage />);
+
+    expect(intlRouterPush).toHaveBeenCalledWith("/solve");
+  });
+
+  it("redirects an authenticated admin to /admin via next-intl router (B2)", () => {
+    mockAuthState.isAuthenticated = true;
+    mockAuthState.user = { is_admin: true };
+
+    render(<LoginPage />);
+
+    expect(intlRouterPush).toHaveBeenCalledWith("/admin");
   });
 });

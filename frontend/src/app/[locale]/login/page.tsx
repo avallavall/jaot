@@ -1,9 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
+// next-intl's router/Link preserve the active locale on client-side navigation;
+// next/navigation does NOT (push("/solve") would drop the locale chosen on the
+// public home and fall back to the default). See bugfix B2.
+// next-intl's router/Link preserve the active locale on client-side navigation;
+// next/navigation does NOT (push("/solve") would drop the locale chosen on the
+// public home and fall back to the default). See bugfix B2.
+import { useRouter, Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

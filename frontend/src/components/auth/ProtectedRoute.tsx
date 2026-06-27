@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+// Use next-intl's router so redirects preserve the active locale (see bugfix B2).
+import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { EmailVerificationBanner } from "@/components/auth/EmailVerificationBanner";
 
