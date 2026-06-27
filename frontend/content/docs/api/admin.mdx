@@ -130,6 +130,63 @@ items.forEach((org) => {
 
 ---
 
+## Organization overview
+
+```
+GET /api/v2/admin/organizations/{organization_id}/overview
+```
+
+Returns a single, **read-only** aggregate of everything about one organization — its configuration and limits, a full credit breakdown, execution statistics, and its members, API keys, models, most-recent executions and most-recent credit movements. Designed for "viewing" an organization without editing it. No state is modified.
+
+**Authentication:** API key (admin required)
+
+<CodeTabs>
+```python
+response = requests.get(
+    "https://jaot.io/api/v2/admin/organizations/org_b7e4d1a0/overview",
+    headers={"Authorization": "Bearer ok_live_admin_key..."},
+)
+
+data = response.json()
+org = data["organization"]
+print(f"{org['name']} (plan={org['plan']}, BYOK={org['byok_configured']})")
+print(f"Users: {data['counts']['users']}, executions: {data['counts']['executions']}")
+for user in data["users"]:
+    print(f"  - {user['name']} ({user['email']}) role_admin={user['is_admin']}")
+```
+
+```bash
+curl "https://jaot.io/api/v2/admin/organizations/org_b7e4d1a0/overview" \
+  -H "Authorization: Bearer ok_live_admin_key..."
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/admin/organizations/org_b7e4d1a0/overview",
+  { headers: { "Authorization": "Bearer ok_live_admin_key..." } }
+);
+
+const data = await response.json();
+console.log(`${data.organization.name} — users: ${data.counts.users}`);
+```
+</CodeTabs>
+
+### Response (200)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `organization` | object | Org config & limits: `plan`, `credits_balance`, `credits_subscription`, `credits_purchased`, `credits_earned`, `credits_used_month`, `monthly_quota`, `rate_limit_per_minute`, `rate_limit_per_day`, `ai_builder_enabled`, `byok_configured` (bool — whether the org has its own LLM key; the key is never returned), `max_private_plugins`, `currency`, `is_active`, `is_verified`, `is_public_profile`, `slug`, `billing_email`, `website_url`, `created_at`, `owner_user_id` |
+| `owner` | object \| null | The owning user (`id`, `name`, `email`) |
+| `counts` | object | `users`, `active_users`, `api_keys`, `active_api_keys`, `models`, `executions` |
+| `execution_stats` | object | `total`, `completed`, `failed`, `running`, `credits_consumed_total` |
+| `users` | array | The org's users (`id`, `name`, `email`, `is_admin`, `can_build_plugins`, `is_active`, `created_at`) |
+| `api_keys` | array | The org's API keys — `key_prefix` only; the secret is never returned |
+| `models` | array | The org's models (`display_name`, `source`: `marketplace`/`custom`, `total_executions`, `total_credits_used`, `last_executed_at`) |
+| `recent_executions` | array | Up to 20 most-recent solve executions |
+| `recent_transactions` | array | Up to 20 most-recent credit movements |
+
+---
+
 ## List users
 
 ```
