@@ -191,6 +191,8 @@ class OrgDetail(BaseModel):
     created_at: datetime
     owner_user_id: str | None = None
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class OrgCounts(BaseModel):
     """Aggregate counts for an organization."""

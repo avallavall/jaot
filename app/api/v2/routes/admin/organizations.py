@@ -171,6 +171,8 @@ async def get_organization_overview(
         or 0
     )
 
+    # organization_model (and its catalog_model) are relationship(lazy="joined"),
+    # so reading e.organization_model.display_name below is eager — no N+1.
     recent_executions = (
         db.query(ModelExecution)
         .filter(ModelExecution.organization_id == org_id)
@@ -192,7 +194,7 @@ async def get_organization_overview(
         if owner_user:
             owner = OrgOwnerSummary(id=owner_user.id, name=owner_user.name, email=owner_user.email)
 
-    detail = OrgDetail.model_validate(org, from_attributes=True)
+    detail = OrgDetail.model_validate(org)
     detail.byok_configured = bool(org.anthropic_api_key_encrypted)
 
     counts = OrgCounts(

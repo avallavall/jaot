@@ -305,15 +305,17 @@ export default function RunModelPage() {
   // carries its own solver_status + variables, so this also works for async runs
   // where the top-level result.solver_status isn't set on the inline result.
   const resultData = result?.result_data;
-  const solverStatus =
-    result?.solver_status ??
-    (resultData as { solver_status?: string | null } | undefined)?.solver_status ??
-    null;
+  // result_data (OptimizationResult) carries its own `status`, so async runs —
+  // whose inline result has no top-level solver_status — are still covered.
+  const solverStatus = result?.solver_status ?? resultData?.status ?? null;
   const solutionVariables = resultData?.variables ?? [];
   const isInfeasibleResult = solverStatus === "infeasible";
   const canExplainSolution =
     result?.status === "completed" &&
     (solverStatus === "optimal" || solverStatus === "feasible");
+  // Cast matches the execution-detail page: the generated OptimizationResult's
+  // infeasibility_analysis type differs slightly (optional vs nullable `note`)
+  // from the llm-types InfeasibilityAnalysis that InfeasibilityPanel expects.
   const infeasibilityAnalysis =
     (resultData as { infeasibility_analysis?: InfeasibilityAnalysis | null } | undefined)
       ?.infeasibility_analysis ?? null;
@@ -530,7 +532,7 @@ export default function RunModelPage() {
 
               {/* LLM explainers — same as the execution-history detail page, so a
                   result can be understood right here without leaving the run page. */}
-              {result.id && solutionVariables.length > 0 && (
+              {result.id && !isInfeasibleResult && solutionVariables.length > 0 && (
                 <SolutionExplainer executionId={result.id} canExplain={canExplainSolution} />
               )}
 

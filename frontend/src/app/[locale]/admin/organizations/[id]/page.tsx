@@ -298,7 +298,7 @@ export default function OrganizationDetailPage() {
       {/* Users */}
       <Section title={t("sections.users")} count={counts.users}>
         {data.users.length === 0 ? (
-          <EmptyRow span={6} label={t("empty")} />
+          <EmptyRow label={t("empty")} />
         ) : (
           <Table>
             <TableHeader>
@@ -344,7 +344,7 @@ export default function OrganizationDetailPage() {
       {/* API keys */}
       <Section title={t("sections.apiKeys")} count={counts.api_keys}>
         {data.api_keys.length === 0 ? (
-          <EmptyRow span={5} label={t("empty")} />
+          <EmptyRow label={t("empty")} />
         ) : (
           <Table>
             <TableHeader>
@@ -378,7 +378,7 @@ export default function OrganizationDetailPage() {
       {/* Models */}
       <Section title={t("sections.models")} count={counts.models}>
         {data.models.length === 0 ? (
-          <EmptyRow span={6} label={t("empty")} />
+          <EmptyRow label={t("empty")} />
         ) : (
           <Table>
             <TableHeader>
@@ -418,7 +418,7 @@ export default function OrganizationDetailPage() {
       {/* Recent executions */}
       <Section title={t("sections.executions")} note={t("recentNote", { count: RECENT_LIMIT })}>
         {data.recent_executions.length === 0 ? (
-          <EmptyRow span={6} label={t("empty")} />
+          <EmptyRow label={t("empty")} />
         ) : (
           <Table>
             <TableHeader>
@@ -452,7 +452,7 @@ export default function OrganizationDetailPage() {
       {/* Recent transactions */}
       <Section title={t("sections.transactions")} note={t("recentNote", { count: RECENT_LIMIT })}>
         {data.recent_transactions.length === 0 ? (
-          <EmptyRow span={5} label={t("empty")} />
+          <EmptyRow label={t("empty")} />
         ) : (
           <Table>
             <TableHeader>
@@ -516,6 +516,6 @@ function Section({
   );
 }
 
-function EmptyRow({ label }: { span?: number; label: string }) {
+function EmptyRow({ label }: { label: string }) {
   return <div className="py-8 text-center text-muted-foreground text-sm">{label}</div>;
 }
