@@ -8,7 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ExecutionProgress } from "@/components/ExecutionProgress";
 import { SolverSelect } from "@/components/solve/SolverSelect";
+import { SolutionExplainer } from "@/components/solve/SolutionExplainer";
+import { InfeasibilityPanel } from "@/components/solve/InfeasibilityPanel";
 import { WarmStartDropdown, WarmStartCandidateInfo } from "@/components/solve/WarmStartDropdown";
+import type { InfeasibilityAnalysis } from "@/lib/llm-types";
 import { useSolvers } from "@/hooks/useSolvers";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { useTranslations } from "next-intl";
@@ -298,6 +301,23 @@ export default function RunModelPage() {
     );
   }
 
+  // Derived result state for the LLM explainers. result_data (OptimizationResult)
+  // carries its own solver_status + variables, so this also works for async runs
+  // where the top-level result.solver_status isn't set on the inline result.
+  const resultData = result?.result_data;
+  const solverStatus =
+    result?.solver_status ??
+    (resultData as { solver_status?: string | null } | undefined)?.solver_status ??
+    null;
+  const solutionVariables = resultData?.variables ?? [];
+  const isInfeasibleResult = solverStatus === "infeasible";
+  const canExplainSolution =
+    result?.status === "completed" &&
+    (solverStatus === "optimal" || solverStatus === "feasible");
+  const infeasibilityAnalysis =
+    (resultData as { infeasibility_analysis?: InfeasibilityAnalysis | null } | undefined)
+      ?.infeasibility_analysis ?? null;
+
   return (
     <div className="container mx-auto px-4 py-8">
       <button
@@ -507,6 +527,19 @@ export default function RunModelPage() {
                   </span>
                 )}
               </div>
+
+              {/* LLM explainers — same as the execution-history detail page, so a
+                  result can be understood right here without leaving the run page. */}
+              {result.id && solutionVariables.length > 0 && (
+                <SolutionExplainer executionId={result.id} canExplain={canExplainSolution} />
+              )}
+
+              {result.id && isInfeasibleResult && (
+                <InfeasibilityPanel
+                  executionId={result.id}
+                  initialAnalysis={infeasibilityAnalysis}
+                />
+              )}
 
               {result.status === "completed" && result.result_data && (
                 <>
