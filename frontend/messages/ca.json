@@ -1929,7 +1929,10 @@
       "deleteConfirm": "Esteu segurs que voleu eliminar \"{name}\"? Això també eliminarà tots els usuaris, claus API i dades associades a aquesta organització.",
       "deleteTitle": "Eliminar Organització",
       "pageOf": "Pàgina {page} de {totalPages}",
-      "operationFailed": "L'operació ha fallat. Torna-ho a provar."
+      "operationFailed": "L'operació ha fallat. Torna-ho a provar.",
+      "view": "Veure",
+      "loadError": "No s'ha pogut carregar. Torna-ho a provar.",
+      "retry": "Torna-ho a provar"
     },
     "reviews": {
       "title": "Ressenyes Reportades",
@@ -2104,7 +2107,9 @@
       "deleteConfirm": "Esteu segurs que voleu eliminar l'usuari \"{name}\"? Aquesta acció no es pot desfer.",
       "deleteTitle": "Eliminar Usuari",
       "pageOf": "Pàgina {page} de {totalPages}",
-      "operationFailed": "L'operació ha fallat. Torna-ho a provar."
+      "operationFailed": "L'operació ha fallat. Torna-ho a provar.",
+      "loadError": "No s'ha pogut carregar. Torna-ho a provar.",
+      "retry": "Torna-ho a provar"
     },
     "marketplace": {
       "sellerAnalytics": "Analitiques de venedor",
@@ -2270,6 +2275,115 @@
         "lowSuccessModels": "Models amb baixa taxa d'èxit",
         "model": "Model"
       }
+    },
+    "orgDetail": {
+      "back": "Torna a organitzacions",
+      "loading": "Carregant…",
+      "loadError": "No s'ha pogut carregar aquesta organització. Torna-ho a provar.",
+      "notFound": "Organització no trobada.",
+      "retry": "Torna-ho a provar",
+      "readonlyNote": "Vista de només lectura",
+      "recentNote": "Es mostren els {count} més recents",
+      "sections": {
+        "overview": "Resum",
+        "configuration": "Configuració i límits",
+        "credits": "Crèdits",
+        "users": "Usuaris",
+        "apiKeys": "Claus API",
+        "models": "Models",
+        "executions": "Execucions recents",
+        "transactions": "Moviments de crèdits recents"
+      },
+      "kpi": {
+        "users": "Usuaris",
+        "apiKeys": "Claus API",
+        "models": "Models",
+        "executions": "Execucions",
+        "creditsBalance": "Saldo de crèdits",
+        "creditsUsedMonth": "Usats aquest mes"
+      },
+      "config": {
+        "plan": "Pla",
+        "monthlyQuota": "Quota mensual",
+        "rateLimitMin": "Límit (per minut)",
+        "rateLimitDay": "Límit (per dia)",
+        "aiBuilder": "AI Builder",
+        "byok": "Clau LLM pròpia (BYOK)",
+        "maxPrivatePlugins": "Màx. models privats",
+        "currency": "Moneda",
+        "createdAt": "Creada",
+        "slug": "Slug públic",
+        "billingEmail": "Correu de facturació",
+        "website": "Lloc web",
+        "owner": "Propietari",
+        "verified": "Editor verificat",
+        "active": "Activa",
+        "publicProfile": "Perfil públic"
+      },
+      "credits": {
+        "balance": "Saldo total",
+        "subscription": "Subscripció",
+        "purchased": "Comprats",
+        "earned": "Guanyats (marketplace)",
+        "usedMonth": "Usats aquest mes"
+      },
+      "executionStats": {
+        "completed": "Completades",
+        "failed": "Fallides",
+        "running": "En curs"
+      },
+      "usersTable": {
+        "name": "Nom",
+        "email": "Correu",
+        "role": "Rol",
+        "builder": "Builder",
+        "status": "Estat",
+        "joined": "Alta"
+      },
+      "keysTable": {
+        "name": "Nom",
+        "prefix": "Prefix",
+        "status": "Estat",
+        "lastUsed": "Últim ús",
+        "created": "Creada"
+      },
+      "modelsTable": {
+        "name": "Nom",
+        "source": "Origen",
+        "executions": "Execucions",
+        "creditsUsed": "Crèdits usats",
+        "lastRun": "Última execució",
+        "status": "Estat"
+      },
+      "execTable": {
+        "model": "Model",
+        "status": "Estat",
+        "solver": "Solver",
+        "credits": "Crèdits",
+        "time": "Temps",
+        "objective": "Objectiu",
+        "date": "Data"
+      },
+      "txTable": {
+        "type": "Tipus",
+        "amount": "Import",
+        "balance": "Saldo després",
+        "description": "Descripció",
+        "date": "Data"
+      },
+      "roleAdmin": "Admin",
+      "roleMember": "Membre",
+      "active": "Actiu",
+      "inactive": "Inactiu",
+      "canBuild": "Builder",
+      "enabled": "Activat",
+      "disabled": "Desactivat",
+      "yes": "Sí",
+      "no": "No",
+      "none": "Cap",
+      "empty": "Encara no hi ha res",
+      "sourceMarketplace": "Marketplace",
+      "sourceCustom": "Personalitzat"
     }
   },
   "marketplace": {

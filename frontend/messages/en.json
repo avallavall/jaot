@@ -1929,7 +1929,10 @@
       "deleteConfirm": "Are you sure you want to delete \"{name}\"? This will also delete all users, API keys, and data associated with this organization.",
       "deleteTitle": "Delete Organization",
       "pageOf": "Page {page} of {totalPages}",
-      "operationFailed": "Operation failed. Please try again."
+      "operationFailed": "Operation failed. Please try again.",
+      "view": "View",
+      "loadError": "Could not load. Please try again.",
+      "retry": "Retry"
     },
     "reviews": {
       "title": "Reported Reviews",
@@ -2104,7 +2107,9 @@
       "deleteConfirm": "Are you sure you want to delete user \"{name}\"? This action cannot be undone.",
       "deleteTitle": "Delete User",
       "pageOf": "Page {page} of {totalPages}",
-      "operationFailed": "Operation failed. Please try again."
+      "operationFailed": "Operation failed. Please try again.",
+      "loadError": "Could not load. Please try again.",
+      "retry": "Retry"
     },
     "marketplace": {
       "sellerAnalytics": "Seller Analytics",
@@ -2270,6 +2275,115 @@
         "lowSuccessModels": "Models with low success rate",
         "model": "Model"
       }
+    },
+    "orgDetail": {
+      "back": "Back to organizations",
+      "loading": "Loading…",
+      "loadError": "Could not load this organization. Please try again.",
+      "notFound": "Organization not found.",
+      "retry": "Retry",
+      "readonlyNote": "Read-only view",
+      "recentNote": "Showing the {count} most recent",
+      "sections": {
+        "overview": "Overview",
+        "configuration": "Configuration & limits",
+        "credits": "Credits",
+        "users": "Users",
+        "apiKeys": "API keys",
+        "models": "Models",
+        "executions": "Recent executions",
+        "transactions": "Recent credit movements"
+      },
+      "kpi": {
+        "users": "Users",
+        "apiKeys": "API keys",
+        "models": "Models",
+        "executions": "Executions",
+        "creditsBalance": "Credit balance",
+        "creditsUsedMonth": "Used this month"
+      },
+      "config": {
+        "plan": "Plan",
+        "monthlyQuota": "Monthly quota",
+        "rateLimitMin": "Rate limit (per minute)",
+        "rateLimitDay": "Rate limit (per day)",
+        "aiBuilder": "AI Builder",
+        "byok": "Own LLM key (BYOK)",
+        "maxPrivatePlugins": "Max private models",
+        "currency": "Currency",
+        "createdAt": "Created",
+        "slug": "Public slug",
+        "billingEmail": "Billing email",
+        "website": "Website",
+        "owner": "Owner",
+        "verified": "Verified publisher",
+        "active": "Active",
+        "publicProfile": "Public profile"
+      },
+      "credits": {
+        "balance": "Total balance",
+        "subscription": "Subscription",
+        "purchased": "Purchased",
+        "earned": "Earned (marketplace)",
+        "usedMonth": "Used this month"
+      },
+      "executionStats": {
+        "completed": "Completed",
+        "failed": "Failed",
+        "running": "Running"
+      },
+      "usersTable": {
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "builder": "Builder",
+        "status": "Status",
+        "joined": "Joined"
+      },
+      "keysTable": {
+        "name": "Name",
+        "prefix": "Prefix",
+        "status": "Status",
+        "lastUsed": "Last used",
+        "created": "Created"
+      },
+      "modelsTable": {
+        "name": "Name",
+        "source": "Source",
+        "executions": "Executions",
+        "creditsUsed": "Credits used",
+        "lastRun": "Last run",
+        "status": "Status"
+      },
+      "execTable": {
+        "model": "Model",
+        "status": "Status",
+        "solver": "Solver",
+        "credits": "Credits",
+        "time": "Time",
+        "objective": "Objective",
+        "date": "Date"
+      },
+      "txTable": {
+        "type": "Type",
+        "amount": "Amount",
+        "balance": "Balance after",
+        "description": "Description",
+        "date": "Date"
+      },
+      "roleAdmin": "Admin",
+      "roleMember": "Member",
+      "active": "Active",
+      "inactive": "Inactive",
+      "canBuild": "Builder",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "yes": "Yes",
+      "no": "No",
+      "none": "None",
+      "empty": "Nothing here yet",
+      "sourceMarketplace": "Marketplace",
+      "sourceCustom": "Custom"
     }
   },
   "marketplace": {

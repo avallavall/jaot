@@ -1929,7 +1929,10 @@
       "deleteConfirm": "Sind Sie sicher, dass Sie \"{name}\" löschen möchten? Dies löscht auch alle Benutzer, API-Schlüssel und Daten dieser Organisation.",
       "deleteTitle": "Organisation löschen",
       "pageOf": "Seite {page} von {totalPages}",
-      "operationFailed": "Vorgang fehlgeschlagen. Bitte versuchen Sie es erneut."
+      "operationFailed": "Vorgang fehlgeschlagen. Bitte versuchen Sie es erneut.",
+      "view": "Ansehen",
+      "loadError": "Laden fehlgeschlagen. Bitte erneut versuchen.",
+      "retry": "Erneut versuchen"
     },
     "reviews": {
       "title": "Gemeldete Bewertungen",
@@ -2104,7 +2107,9 @@
       "deleteConfirm": "Sind Sie sicher, dass Sie Benutzer \"{name}\" löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
       "deleteTitle": "Benutzer löschen",
       "pageOf": "Seite {page} von {totalPages}",
-      "operationFailed": "Vorgang fehlgeschlagen. Bitte versuchen Sie es erneut."
+      "operationFailed": "Vorgang fehlgeschlagen. Bitte versuchen Sie es erneut.",
+      "loadError": "Laden fehlgeschlagen. Bitte erneut versuchen.",
+      "retry": "Erneut versuchen"
     },
     "marketplace": {
       "sellerAnalytics": "Verkäufer-Analysen",
@@ -2270,6 +2275,115 @@
         "lowSuccessModels": "Modelle mit niedriger Erfolgsrate",
         "model": "Modell"
       }
+    },
+    "orgDetail": {
+      "back": "Zurück zu Organisationen",
+      "loading": "Lädt…",
+      "loadError": "Diese Organisation konnte nicht geladen werden. Bitte erneut versuchen.",
+      "notFound": "Organisation nicht gefunden.",
+      "retry": "Erneut versuchen",
+      "readonlyNote": "Schreibgeschützte Ansicht",
+      "recentNote": "Es werden die {count} neuesten angezeigt",
+      "sections": {
+        "overview": "Übersicht",
+        "configuration": "Konfiguration & Limits",
+        "credits": "Credits",
+        "users": "Benutzer",
+        "apiKeys": "API-Schlüssel",
+        "models": "Modelle",
+        "executions": "Letzte Ausführungen",
+        "transactions": "Letzte Credit-Bewegungen"
+      },
+      "kpi": {
+        "users": "Benutzer",
+        "apiKeys": "API-Schlüssel",
+        "models": "Modelle",
+        "executions": "Ausführungen",
+        "creditsBalance": "Credit-Guthaben",
+        "creditsUsedMonth": "Diesen Monat genutzt"
+      },
+      "config": {
+        "plan": "Tarif",
+        "monthlyQuota": "Monatliches Kontingent",
+        "rateLimitMin": "Limit (pro Minute)",
+        "rateLimitDay": "Limit (pro Tag)",
+        "aiBuilder": "AI Builder",
+        "byok": "Eigener LLM-Schlüssel (BYOK)",
+        "maxPrivatePlugins": "Max. private Modelle",
+        "currency": "Währung",
+        "createdAt": "Erstellt",
+        "slug": "Öffentlicher Slug",
+        "billingEmail": "Rechnungs-E-Mail",
+        "website": "Webseite",
+        "owner": "Eigentümer",
+        "verified": "Verifizierter Anbieter",
+        "active": "Aktiv",
+        "publicProfile": "Öffentliches Profil"
+      },
+      "credits": {
+        "balance": "Gesamtguthaben",
+        "subscription": "Abonnement",
+        "purchased": "Gekauft",
+        "earned": "Verdient (Marktplatz)",
+        "usedMonth": "Diesen Monat genutzt"
+      },
+      "executionStats": {
+        "completed": "Abgeschlossen",
+        "failed": "Fehlgeschlagen",
+        "running": "Laufend"
+      },
+      "usersTable": {
+        "name": "Name",
+        "email": "E-Mail",
+        "role": "Rolle",
+        "builder": "Builder",
+        "status": "Status",
+        "joined": "Beigetreten"
+      },
+      "keysTable": {
+        "name": "Name",
+        "prefix": "Präfix",
+        "status": "Status",
+        "lastUsed": "Zuletzt verwendet",
+        "created": "Erstellt"
+      },
+      "modelsTable": {
+        "name": "Name",
+        "source": "Quelle",
+        "executions": "Ausführungen",
+        "creditsUsed": "Verbrauchte Credits",
+        "lastRun": "Letzte Ausführung",
+        "status": "Status"
+      },
+      "execTable": {
+        "model": "Modell",
+        "status": "Status",
+        "solver": "Solver",
+        "credits": "Credits",
+        "time": "Dauer",
+        "objective": "Zielwert",
+        "date": "Datum"
+      },
+      "txTable": {
+        "type": "Typ",
+        "amount": "Betrag",
+        "balance": "Saldo danach",
+        "description": "Beschreibung",
+        "date": "Datum"
+      },
+      "roleAdmin": "Admin",
+      "roleMember": "Mitglied",
+      "active": "Aktiv",
+      "inactive": "Inaktiv",
+      "canBuild": "Builder",
+      "enabled": "Aktiviert",
+      "disabled": "Deaktiviert",
+      "yes": "Ja",
+      "no": "Nein",
+      "none": "Keine",
+      "empty": "Noch nichts vorhanden",
+      "sourceMarketplace": "Marktplatz",
+      "sourceCustom": "Benutzerdefiniert"
     }
   },
   "marketplace": {

@@ -22,8 +22,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { api } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 import { useDialog } from "@/components/ui/dialog-custom";
 import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { toast } from "sonner";
 import type { PaginatedResponse } from "@/lib/types";
 
@@ -45,6 +47,7 @@ export default function OrganizationsPage() {
   const dialog = useDialog();
   const [organizations, setOrganizations] = useState<AdminOrganization[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -58,12 +61,16 @@ export default function OrganizationsPage() {
 
   const loadOrganizations = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const data = await api.admin.getOrganizations({ page, search }) as PaginatedResponse<AdminOrganization>;
       setOrganizations(data.items);
       setTotalPages(data.total_pages ?? 1);
     } catch (err) {
-      console.warn('Failed to load organizations:', err);
+      // Surface the failure instead of silently rendering an empty table —
+      // an empty list and a failed request must not look the same.
+      setLoadError(getErrorMessage(err, t("loadError")));
+      setOrganizations([]);
     } finally {
       setLoading(false);
     }
@@ -218,6 +225,15 @@ export default function OrganizationsPage() {
                     {tc("loading")}
                   </TableCell>
                 </TableRow>
+              ) : loadError ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <p className="text-destructive mb-3">{loadError}</p>
+                    <Button variant="outline" size="sm" onClick={loadOrganizations}>
+                      {t("retry")}
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ) : organizations.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
@@ -254,6 +270,9 @@ export default function OrganizationsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/admin/organizations/${org.id}`}>{t("view")}</Link>
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"

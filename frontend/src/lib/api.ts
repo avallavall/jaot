@@ -72,6 +72,7 @@ import type {
 } from "./types";
 
 import type { AnthropicKeyStatus, AttachmentInfo, InfeasibilityAnalysis } from "./llm-types";
+import type { AdminOrganizationOverview } from "@/types/admin";
 
 export type { AttachmentInfo } from "./llm-types";
 
@@ -355,6 +356,10 @@ async function request<T>(
         ...fetchOptions,
         headers,
         credentials: "include",
+        // Authenticated API data must never be served from the browser HTTP
+        // cache: a stale empty response (e.g. an admin list cached before data
+        // existed) would otherwise be returned without ever hitting the server.
+        cache: "no-store",
       });
     } catch (networkError) {
       lastError = networkError;
@@ -1475,6 +1480,10 @@ export const api = {
 
     unverifyOrg(id: string): Promise<void> {
       return request(`/api/v2/admin/organizations/${id}/verify`, { method: "DELETE" });
+    },
+
+    getOrganizationOverview(id: string): Promise<AdminOrganizationOverview> {
+      return request(`/api/v2/admin/organizations/${id}/overview`);
     },
 
     getUsers(params?: QueryParams): Promise<PaginatedResponse<User>> {

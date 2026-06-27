@@ -4,12 +4,29 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models import APIKey, Organization, OrganizationModel, User
+from app.models import (
+    APIKey,
+    CreditTransaction,
+    ModelExecution,
+    Organization,
+    OrganizationModel,
+    User,
+)
 from app.schemas.admin import (
     AdminPaginatedResponse,
+    APIKeyResponse,
     OrganizationCreate,
+    OrganizationOverviewResponse,
     OrganizationResponse,
     OrganizationUpdate,
+    OrgCounts,
+    OrgDetail,
+    OrgExecutionStats,
+    OrgExecutionSummary,
+    OrgModelSummary,
+    OrgOwnerSummary,
+    OrgTransactionSummary,
+    UserResponse,
 )
 from app.shared.db.base import get_db
 from app.shared.utils.id_generator import generate_id
@@ -107,6 +124,145 @@ async def get_organization(org_id: str, db: Session = Depends(get_db)) -> Organi
     )
 
     return response
+
+
+@router.get("/organizations/{org_id}/overview", response_model=OrganizationOverviewResponse)
+async def get_organization_overview(
+    org_id: str, db: Session = Depends(get_db)
+) -> OrganizationOverviewResponse:
+    """Rich read-only overview of one organization for platform admins.
+
+    Aggregates everything an admin needs to "see" an org without editing it:
+    members, API keys, models, recent solve executions, credit movements, and
+    usage/limit configuration. Read-only — no row is mutated here.
+    """
+    org = db.query(Organization).filter(Organization.id == org_id).first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    users = db.query(User).filter(User.organization_id == org_id).order_by(User.created_at).all()
+    api_keys = (
+        db.query(APIKey)
+        .filter(APIKey.organization_id == org_id)
+        .order_by(APIKey.created_at.desc())
+        .all()
+    )
+    org_models = (
+        db.query(OrganizationModel)
+        .filter(OrganizationModel.organization_id == org_id)
+        .order_by(OrganizationModel.created_at.desc())
+        .all()
+    )
+
+    execution_count = (
+        db.query(ModelExecution).filter(ModelExecution.organization_id == org_id).count()
+    )
+    status_rows = (
+        db.query(ModelExecution.status, func.count(ModelExecution.id))
+        .filter(ModelExecution.organization_id == org_id)
+        .group_by(ModelExecution.status)
+        .all()
+    )
+    status_counts = {status: count for status, count in status_rows}
+    credits_consumed_total = (
+        db.query(func.coalesce(func.sum(ModelExecution.credits_consumed), 0))
+        .filter(ModelExecution.organization_id == org_id)
+        .scalar()
+        or 0
+    )
+
+    recent_executions = (
+        db.query(ModelExecution)
+        .filter(ModelExecution.organization_id == org_id)
+        .order_by(ModelExecution.created_at.desc())
+        .limit(20)
+        .all()
+    )
+    recent_transactions = (
+        db.query(CreditTransaction)
+        .filter(CreditTransaction.organization_id == org_id)
+        .order_by(CreditTransaction.created_at.desc())
+        .limit(20)
+        .all()
+    )
+
+    owner: OrgOwnerSummary | None = None
+    if org.owner_user_id:
+        owner_user = db.query(User).filter(User.id == org.owner_user_id).first()
+        if owner_user:
+            owner = OrgOwnerSummary(id=owner_user.id, name=owner_user.name, email=owner_user.email)
+
+    detail = OrgDetail.model_validate(org, from_attributes=True)
+    detail.byok_configured = bool(org.anthropic_api_key_encrypted)
+
+    counts = OrgCounts(
+        users=len(users),
+        active_users=sum(1 for u in users if u.is_active),
+        api_keys=len(api_keys),
+        active_api_keys=sum(1 for k in api_keys if k.is_active),
+        models=len(org_models),
+        executions=execution_count,
+    )
+
+    execution_stats = OrgExecutionStats(
+        total=execution_count,
+        completed=status_counts.get("completed", 0),
+        failed=status_counts.get("failed", 0)
+        + status_counts.get("timeout", 0)
+        + status_counts.get("cancelled", 0),
+        running=status_counts.get("running", 0) + status_counts.get("pending", 0),
+        credits_consumed_total=int(credits_consumed_total),
+    )
+
+    return OrganizationOverviewResponse(
+        organization=detail,
+        owner=owner,
+        counts=counts,
+        execution_stats=execution_stats,
+        users=[UserResponse.model_validate(u) for u in users],
+        api_keys=[APIKeyResponse.model_validate(k) for k in api_keys],
+        models=[
+            OrgModelSummary(
+                id=m.id,
+                display_name=m.display_name,
+                catalog_id=m.catalog_id,
+                source="marketplace" if m.catalog_id else "custom",
+                is_active=m.is_active,
+                total_executions=m.total_executions,
+                total_credits_used=m.total_credits_used,
+                last_executed_at=m.last_executed_at,
+                created_at=m.created_at,
+            )
+            for m in org_models
+        ],
+        recent_executions=[
+            OrgExecutionSummary(
+                id=e.id,
+                status=e.status,
+                solver_name=e.solver_name,
+                credits_consumed=e.credits_consumed,
+                execution_time_ms=e.execution_time_ms,
+                objective_value=e.objective_value,
+                model_display_name=(
+                    e.organization_model.display_name if e.organization_model else None
+                ),
+                executed_by_user_id=e.executed_by_user_id,
+                created_at=e.created_at,
+            )
+            for e in recent_executions
+        ],
+        recent_transactions=[
+            OrgTransactionSummary(
+                id=t.id,
+                transaction_type=t.transaction_type,
+                credits_amount=t.credits_amount,
+                balance_after=t.balance_after,
+                description=t.description,
+                created_at=t.created_at,
+            )
+            for t in recent_transactions
+        ],
+    )
 
 
 @router.post(

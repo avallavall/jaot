@@ -26,9 +26,20 @@ class SecurityHeadersMiddleware:
         scope.setdefault("state", {})
         scope["state"]["csp_nonce"] = nonce
 
+        is_api = scope.get("path", "").startswith("/api/")
+
         async def send_with_headers(message: Message) -> None:
             if message["type"] == "http.response.start":
                 headers = list(message.get("headers", []))
+                # Authenticated API responses must never be cached by the browser
+                # or an upstream CDN (Cloudflare). Without this, a stale empty
+                # response (e.g. an admin list fetched before data existed) keeps
+                # being served from cache and the real request never reaches the
+                # server. Endpoints that opt into caching (e.g. /api/v2/pricing
+                # sets `public, max-age=...`) already emit their own
+                # cache-control, so we only add the default when none is present.
+                if is_api and not any(k.lower() == b"cache-control" for k, _ in headers):
+                    headers.append((b"cache-control", b"no-store"))
                 csp = (
                     f"default-src 'self'; "
                     f"script-src 'self' 'nonce-{nonce}' https://js.stripe.com; "

@@ -22,6 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { api } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 import { useDialog } from "@/components/ui/dialog-custom";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -37,6 +38,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [organizations, setOrganizations] = useState<AdminOrganizationSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [orgFilter, setOrgFilter] = useState("");
   const [page, setPage] = useState(1);
@@ -64,6 +66,7 @@ export default function UsersPage() {
 
   const loadUsers = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const data = await api.admin.getUsers({
         page,
@@ -73,7 +76,10 @@ export default function UsersPage() {
       setUsers(data.items);
       setTotalPages(data.total_pages ?? 1);
     } catch (err) {
-      console.warn('Failed to load users:', err);
+      // Surface the failure instead of silently rendering "no users" — a failed
+      // request and a genuinely empty list must not look identical.
+      setLoadError(getErrorMessage(err, t("loadError")));
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -237,6 +243,15 @@ export default function UsersPage() {
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     {tc("loading")}
+                  </TableCell>
+                </TableRow>
+              ) : loadError ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <p className="text-destructive mb-3">{loadError}</p>
+                    <Button variant="outline" size="sm" onClick={loadUsers}>
+                      {t("retry")}
+                    </Button>
                   </TableCell>
                 </TableRow>
               ) : users.length === 0 ? (

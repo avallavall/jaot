@@ -313,6 +313,102 @@ class TestAdminOrganizations:
         ), "CreditTransaction row was wiped — soft delete contract violated"
 
 
+class TestAdminOrganizationOverview:
+    """Tests for the read-only organization overview endpoint."""
+
+    def test_overview_happy_path(
+        self, admin_client, db_session, test_organization, test_user, test_api_key
+    ):
+        """Overview aggregates the org's members, keys, models and stats."""
+        from app.models import CreditTransaction, ModelExecution, OrganizationModel
+        from app.shared.utils.id_generator import generate_id
+
+        org_model = OrganizationModel(
+            id=generate_id("om_"),
+            organization_id=test_organization.id,
+            custom_name="Overview Model",
+            is_active=True,
+            total_executions=2,
+            total_credits_used=4,
+        )
+        db_session.add(org_model)
+        db_session.flush()
+
+        execution = ModelExecution(
+            id=generate_id("exe_"),
+            organization_id=test_organization.id,
+            organization_model_id=org_model.id,
+            input_data={},
+            status="completed",
+            credits_consumed=3,
+        )
+        tx = CreditTransaction(
+            id=generate_id("ctx_"),
+            organization_id=test_organization.id,
+            credits_amount=100,
+            balance_after=100,
+            transaction_type="purchase",
+            description="Overview test transaction",
+        )
+        db_session.add_all([execution, tx])
+        db_session.commit()
+
+        response = admin_client.get(f"/api/v2/admin/organizations/{test_organization.id}/overview")
+        assert response.status_code == 200
+        data = response.json()
+
+        # Org block
+        assert data["organization"]["id"] == test_organization.id
+        assert data["organization"]["plan"] == test_organization.plan
+        assert "byok_configured" in data["organization"]
+
+        # Members + keys
+        assert test_user.id in [u["id"] for u in data["users"]]
+        assert test_api_key.id in [k["id"] for k in data["api_keys"]]
+        assert data["counts"]["users"] >= 1
+        assert data["counts"]["api_keys"] >= 1
+
+        # Models + executions + transactions surfaced
+        assert org_model.id in [m["id"] for m in data["models"]]
+        assert execution.id in [e["id"] for e in data["recent_executions"]]
+        assert tx.id in [t["id"] for t in data["recent_transactions"]]
+        assert data["counts"]["executions"] >= 1
+        assert data["execution_stats"]["completed"] >= 1
+        assert data["execution_stats"]["credits_consumed_total"] >= 3
+
+        # Read-only view must never leak the API key secret material
+        for key in data["api_keys"]:
+            assert "key_hash" not in key
+            assert key.get("full_key") is None
+
+    def test_overview_scoped_to_org(
+        self, admin_client, db_session, test_organization, test_user, test_user_2
+    ):
+        """Overview must only include rows belonging to the target org."""
+        response = admin_client.get(f"/api/v2/admin/organizations/{test_organization.id}/overview")
+        assert response.status_code == 200
+        data = response.json()
+
+        user_ids = [u["id"] for u in data["users"]]
+        assert test_user.id in user_ids
+        # A user from another org must NOT leak into this org's overview
+        assert test_user_2.id not in user_ids
+        for user in data["users"]:
+            assert user["organization_id"] == test_organization.id
+
+    def test_overview_not_found(self, admin_client):
+        """Overview of a non-existent org returns 404."""
+        response = admin_client.get("/api/v2/admin/organizations/nonexistent_org/overview")
+        assert response.status_code == 404
+
+    def test_overview_requires_admin(self, authenticated_client, test_organization):
+        """Non-admin users cannot view an org overview."""
+        response = authenticated_client.get(
+            f"/api/v2/admin/organizations/{test_organization.id}/overview"
+        )
+        assert response.status_code == 403
+
+
 class TestAdminUsers:
     """Tests for admin user endpoints."""
 
@@ -326,6 +422,15 @@ class TestAdminUsers:
         assert data["total"] >= 1
         # Seeded user must appear
         assert test_user.id in [u["id"] for u in data["items"]]
+
+    # CONTRACT-TEST: authenticated API responses must be uncacheable so a stale
+    # empty list never gets served from browser/CDN cache (the "empty users"
+    # bug). Do not delete in consolidation passes.
+    def test_admin_list_is_not_cacheable(self, admin_client, db_session, test_user):
+        """Admin list responses must carry Cache-Control: no-store."""
+        response = admin_client.get("/api/v2/admin/users")
+        assert response.status_code == 200
+        assert response.headers.get("cache-control") == "no-store"
 
     def test_list_users_filter_by_org(
         self, admin_client, db_session, test_user, test_user_2, test_organization

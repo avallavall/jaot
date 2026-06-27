@@ -91,3 +91,14 @@ def test_permissions_policy(client):
     assert "camera=()" in pp
     assert "microphone=()" in pp
     assert "geolocation=()" in pp
+
+
+def test_api_responses_are_no_store(client):
+    """API responses must default to Cache-Control: no-store.
+
+    Guards the "empty admin list" bug: without no-store, a stale empty
+    response can be served from the browser/CDN cache and the real request
+    never reaches the server.
+    """
+    resp = client.get("/api/v2/health")
+    assert resp.headers.get("cache-control") == "no-store"

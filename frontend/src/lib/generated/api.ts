@@ -448,6 +448,30 @@ export interface paths {
         patch: operations["update_organization_api_v2_admin_organizations__org_id__patch"];
         trace?: never;
     };
+    "/api/v2/admin/organizations/{org_id}/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Organization Overview
+         * @description Rich read-only overview of one organization for platform admins.
+         *
+         *     Aggregates everything an admin needs to "see" an org without editing it:
+         *     members, API keys, models, recent solve executions, credit movements, and
+         *     usage/limit configuration. Read-only — no row is mutated here.
+         */
+        get: operations["get_organization_overview_api_v2_admin_organizations__org_id__overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/admin/organizations/{org_id}/verify": {
         parameters: {
             query?: never;
@@ -7236,6 +7260,26 @@ export interface components {
             total_executions: number;
         };
         /**
+         * OrganizationOverviewResponse
+         * @description Rich read-only overview of one organization for platform admins.
+         */
+        OrganizationOverviewResponse: {
+            /** Api Keys */
+            api_keys: components["schemas"]["APIKeyResponse"][];
+            counts: components["schemas"]["OrgCounts"];
+            execution_stats: components["schemas"]["OrgExecutionStats"];
+            /** Models */
+            models: components["schemas"]["OrgModelSummary"][];
+            organization: components["schemas"]["OrgDetail"];
+            owner?: components["schemas"]["OrgOwnerSummary"] | null;
+            /** Recent Executions */
+            recent_executions: components["schemas"]["OrgExecutionSummary"][];
+            /** Recent Transactions */
+            recent_transactions: components["schemas"]["OrgTransactionSummary"][];
+            /** Users */
+            users: components["schemas"]["UserResponse"][];
+        };
+        /**
          * OrganizationPublicProfile
          * @description Public profile of an organization.
          */
@@ -7358,6 +7402,185 @@ export interface components {
             rate_limit_per_day?: number | null;
             /** Rate Limit Per Minute */
             rate_limit_per_minute?: number | null;
+        };
+        /**
+         * OrgCounts
+         * @description Aggregate counts for an organization.
+         */
+        OrgCounts: {
+            /** Active Api Keys */
+            active_api_keys: number;
+            /** Active Users */
+            active_users: number;
+            /** Api Keys */
+            api_keys: number;
+            /** Executions */
+            executions: number;
+            /** Models */
+            models: number;
+            /** Users */
+            users: number;
+        };
+        /**
+         * OrgDetail
+         * @description Full organization detail for the admin overview (read-only).
+         */
+        OrgDetail: {
+            /** Ai Builder Enabled */
+            ai_builder_enabled: boolean;
+            /** Billing Email */
+            billing_email?: string | null;
+            /**
+             * Byok Configured
+             * @default false
+             */
+            byok_configured: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Credits Balance */
+            credits_balance: number;
+            /** Credits Earned */
+            credits_earned: number;
+            /** Credits Purchased */
+            credits_purchased: number;
+            /** Credits Subscription */
+            credits_subscription: number;
+            /** Credits Used Month */
+            credits_used_month: number;
+            /** Currency */
+            currency: string;
+            /** Id */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Is Public Profile */
+            is_public_profile: boolean;
+            /** Is Verified */
+            is_verified: boolean;
+            /** Max Private Plugins */
+            max_private_plugins: number;
+            /** Monthly Quota */
+            monthly_quota: number;
+            /** Name */
+            name: string;
+            /** Owner User Id */
+            owner_user_id?: string | null;
+            /** Plan */
+            plan: string;
+            /** Rate Limit Per Day */
+            rate_limit_per_day: number;
+            /** Rate Limit Per Minute */
+            rate_limit_per_minute: number;
+            /** Slug */
+            slug?: string | null;
+            /** Website Url */
+            website_url?: string | null;
+        };
+        /**
+         * OrgExecutionStats
+         * @description Execution outcome breakdown for an organization.
+         */
+        OrgExecutionStats: {
+            /** Completed */
+            completed: number;
+            /** Credits Consumed Total */
+            credits_consumed_total: number;
+            /** Failed */
+            failed: number;
+            /** Running */
+            running: number;
+            /** Total */
+            total: number;
+        };
+        /**
+         * OrgExecutionSummary
+         * @description A recent solve execution for an organization.
+         */
+        OrgExecutionSummary: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Credits Consumed */
+            credits_consumed: number;
+            /** Executed By User Id */
+            executed_by_user_id?: string | null;
+            /** Execution Time Ms */
+            execution_time_ms?: number | null;
+            /** Id */
+            id: string;
+            /** Model Display Name */
+            model_display_name?: string | null;
+            /** Objective Value */
+            objective_value?: number | null;
+            /** Solver Name */
+            solver_name?: string | null;
+            /** Status */
+            status: string;
+        };
+        /**
+         * OrgModelSummary
+         * @description A model that belongs to an organization.
+         */
+        OrgModelSummary: {
+            /** Catalog Id */
+            catalog_id?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Display Name */
+            display_name: string;
+            /** Id */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Last Executed At */
+            last_executed_at?: string | null;
+            /** Source */
+            source: string;
+            /** Total Credits Used */
+            total_credits_used: number;
+            /** Total Executions */
+            total_executions: number;
+        };
+        /**
+         * OrgOwnerSummary
+         * @description The user that owns an organization.
+         */
+        OrgOwnerSummary: {
+            /** Email */
+            email?: string | null;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * OrgTransactionSummary
+         * @description A recent credit transaction for an organization.
+         */
+        OrgTransactionSummary: {
+            /** Balance After */
+            balance_after: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Credits Amount */
+            credits_amount: number;
+            /** Description */
+            description: string;
+            /** Id */
+            id: string;
+            /** Transaction Type */
+            transaction_type: string;
         };
         /**
          * OverrideFieldSchema
@@ -9501,9 +9724,17 @@ export type OptimizationResult = components['schemas']['OptimizationResult'];
 export type OrganizationCreate = components['schemas']['OrganizationCreate'];
 export type OrganizationModelListResponse = components['schemas']['OrganizationModelListResponse'];
 export type OrganizationModelResponse = components['schemas']['OrganizationModelResponse'];
+export type OrganizationOverviewResponse = components['schemas']['OrganizationOverviewResponse'];
 export type OrganizationPublicProfile = components['schemas']['OrganizationPublicProfile'];
 export type OrganizationResponse = components['schemas']['OrganizationResponse'];
 export type OrganizationUpdate = components['schemas']['OrganizationUpdate'];
+export type OrgCounts = components['schemas']['OrgCounts'];
+export type OrgDetail = components['schemas']['OrgDetail'];
+export type OrgExecutionStats = components['schemas']['OrgExecutionStats'];
+export type OrgExecutionSummary = components['schemas']['OrgExecutionSummary'];
+export type OrgModelSummary = components['schemas']['OrgModelSummary'];
+export type OrgOwnerSummary = components['schemas']['OrgOwnerSummary'];
+export type OrgTransactionSummary = components['schemas']['OrgTransactionSummary'];
 export type OverrideFieldSchema = components['schemas']['OverrideFieldSchema'];
 export type PaginatedRecentEventsResponse = components['schemas']['PaginatedRecentEventsResponse'];
 export type PaginatedResponseAuditLogResponse = components['schemas']['PaginatedResponse_AuditLogResponse_'];
@@ -10401,6 +10632,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrganizationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_organization_overview_api_v2_admin_organizations__org_id__overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationOverviewResponse"];
                 };
             };
             /** @description Validation Error */
