@@ -21,29 +21,29 @@ alembic>=1.18.5
 stripe>=15.3.0                     # v13: stripe.error.X → stripe.X; v15: StripeObject not dict
 
 # Redis (rate limiting, Celery result backend)
-redis>=7.0.0                       # 2 major versions behind at >=5.0.0; server compat + patches
+redis>=8.0.1                       # redis-py 8.x; compatible with Redis server 5+; server compat + patches
 
 # Async task processing
 celery>=5.6.3
 sqlalchemy-celery-beat>=0.8.4
 cronsim>=2.7
-websockets>=14.0
+websockets>=16.0
 
 # Monitoring
-prometheus-fastapi-instrumentator>=7.0.0
+prometheus-fastapi-instrumentator>=8.0.2
 
 # LLM (Anthropic Claude)
 anthropic>=0.87.0                  # CVE-2026-34450: file perms, CVE-2026-34452: race condition
-sse-starlette>=2.0.0
+sse-starlette>=3.4.5
 
 # JWT (email/password auth)
 PyJWT>=2.13.0                      # CVE-2026-32597: crit header bypass (CVSS 7.5)
 
 # Password hashing (email/password auth)
-argon2-cffi>=23.1.0
+argon2-cffi>=25.1.0
 
 # Document extraction (PDF text)
-pypdf>=5.1.0                       # Pure-Python, BSD-licensed. Used in app/services/document_extraction.py
+pypdf>=6.14.2                      # Pure-Python, BSD-licensed. Used in app/services/document_extraction.py
 
 # Image processing & object storage (Phase 72)
 Pillow>=12.2.0                     # CVE-2026-25990: OOB write in PSD handler (potential RCE)
