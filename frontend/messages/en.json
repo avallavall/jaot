@@ -1073,6 +1073,7 @@
       "templateNotFound": "Template not found.",
       "scenario": "Scenario",
       "loadExample": "Load Example",
+      "noInputFields": "This model has no input fields to fill in.",
       "reloadExample": "Reload Example",
       "clearAll": "Clear All",
       "clear": "Clear",

@@ -1073,6 +1073,7 @@
       "templateNotFound": "Vorlage nicht gefunden.",
       "scenario": "Szenario",
       "loadExample": "Beispiel laden",
+      "noInputFields": "Dieses Modell hat keine auszufüllenden Eingabefelder.",
       "reloadExample": "Beispiel neu laden",
       "clearAll": "Alles löschen",
       "clear": "Löschen",

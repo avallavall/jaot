@@ -1073,6 +1073,7 @@
       "templateNotFound": "Plantilla no trobada.",
       "scenario": "Escenari",
       "loadExample": "Carregar Exemple",
+      "noInputFields": "Aquest model no té camps d'entrada per emplenar.",
       "reloadExample": "Recarregar Exemple",
       "clearAll": "Esborrar Tot",
       "clear": "Esborrar",

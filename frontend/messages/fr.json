@@ -1073,6 +1073,7 @@
       "templateNotFound": "Modèle introuvable.",
       "scenario": "Scénario",
       "loadExample": "Charger l'exemple",
+      "noInputFields": "Ce modèle n'a aucun champ de saisie à remplir.",
       "reloadExample": "Recharger l'exemple",
       "clearAll": "Tout effacer",
       "clear": "Effacer",

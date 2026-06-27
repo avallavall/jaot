@@ -150,6 +150,17 @@ export function DynamicFormRenderer({
     [inputFields, values, onSubmit, t]
   );
 
+  // A model/template with no input fields has no form to render. Show a clear
+  // message instead of an empty card with non-functional buttons (the model
+  // likely carries a direct definition meant for the visual editor).
+  if (inputFields.length === 0) {
+    return (
+      <div className="py-8 text-center" role="status">
+        <p className="text-sm text-muted-foreground">{t("templateForm.noInputFields")}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_2fr]">
       {/* Scenario description (left side on desktop, collapsible on mobile) */}

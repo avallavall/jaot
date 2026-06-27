@@ -1073,6 +1073,7 @@
       "templateNotFound": "Plantilla no encontrada.",
       "scenario": "Escenario",
       "loadExample": "Cargar ejemplo",
+      "noInputFields": "Este modelo no tiene campos de entrada para rellenar.",
       "reloadExample": "Recargar ejemplo",
       "clearAll": "Borrar todo",
       "clear": "Borrar",
