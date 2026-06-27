@@ -9,7 +9,8 @@ export interface SearchEntry {
   section: string;
 }
 
-// FlexSearch v0.7 types are incomplete -- use any for the Document index
+// The FlexSearch Document index handle is kept untyped here: its generic
+// signature is heavy and we only touch a small dynamic surface (add/search).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let index: any = null;
 let entries: SearchEntry[] = [];
@@ -20,7 +21,6 @@ export async function getSearchIndex() {
   const res = await fetch("/search-index.json");
   entries = await res.json();
 
-  // @ts-expect-error FlexSearch.Document constructor exists at runtime but types are incomplete
   index = new FlexSearch.Document({
     document: {
       id: "id",
