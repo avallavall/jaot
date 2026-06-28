@@ -155,7 +155,7 @@ Create or edit `.vscode/mcp.json` in your workspace. VS Code uses a `"servers"` 
 
 ## Available Tools
 
-JAOT exposes **17 MCP tools** organized into six categories:
+JAOT exposes **19 MCP tools** organized into six categories:
 
 ### Solve Tools
 
@@ -178,8 +178,10 @@ JAOT exposes **17 MCP tools** organized into six categories:
 
 | Tool | Auth | Description |
 |------|------|-------------|
-| `import_preview` | Yes | Preview how a CSV file is parsed into an optimization problem before solving |
-| `import_and_solve` | Yes | Import data from a CSV file and solve it in one step |
+| `import_preview` | Yes | Preview how a CSV/MPS/LP/CIP file is parsed into an optimization problem before solving |
+| `import_and_solve` | Yes | Import data from a CSV/MPS/LP/CIP file and solve it in one step |
+| `export_model` | Yes | Export a model (no solve required) to a standard format (MPS, LP, CIP, or flat JSON) |
+| `export_execution` | Yes | Export a finished execution's model or solution (MPS/LP/CIP/SOL/CSV/JSON) |
 
 ### Marketplace Tools
 
