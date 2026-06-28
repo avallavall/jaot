@@ -11,6 +11,7 @@
 | **ADR-003** | Local RAG with sentence-transformers + Qdrant (CPU, 384 dims) | 2026-02-xx | Pillar-1 RAG research |
 | **ADR-004** | Dynamic queue routing in the producer (no static `task_routes`) | 2026-04-17 | Phase 06 decisions D-01..D-03 |
 | **ADR-005** | Maintenance mode migration via DB flag (no header, no env var) | 2026-04-17 | Phase 06 decisions D-19..D-22 |
+| **ADR-006** | `ModelProject`: a single first-class model entity (full fusion of builder docs + marketplace models) | 2026-06-28 | [`ADR-006-model-project-unification.md`](ADR-006-model-project-unification.md) |
 
 ## Decisions by phase
 
