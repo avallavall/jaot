@@ -1,7 +1,7 @@
 """MCP server integration tests.
 
 Validates:
-- AI-01: MCP server mounted at /mcp with 17 curated tools
+- AI-01: MCP server mounted at /mcp with 19 curated tools
 - AI-02: Tools cover solve path and marketplace path
 - AI-03: Auth passthrough (public vs protected endpoints)
 - AI-04: llms.txt served at /.well-known/llms.txt
@@ -30,9 +30,11 @@ EXPECTED_OPERATIONS = [
     "list_templates",
     "get_template",
     "solve_with_template",
-    # File I/O (CSV)
+    # File I/O — standard formats (MPS/LP/CIP/JSON)
     "import_preview",
     "import_and_solve",
+    "export_model",
+    "export_execution",
     # Marketplace
     "list_catalog_models",
     "get_catalog_model",
@@ -82,18 +84,18 @@ def test_mcp_route_exists(mcp_app):
     assert len(mcp_routes) > 0, "No /mcp routes found in app"
 
 
-# ---- AI-01: Exactly 17 tools exposed ----
+# ---- AI-01: Exactly 19 tools exposed ----
 
 
 def test_mcp_tool_count(openapi_schema):
-    """MCP server exposes exactly 17 curated tools (not 40+)."""
+    """MCP server exposes exactly 19 curated tools (not 40+)."""
     all_op_ids = _extract_op_ids(openapi_schema)
 
-    # All 17 expected operations must be present
+    # All expected operations must be present
     missing = set(EXPECTED_OPERATIONS) - all_op_ids
     assert not missing, f"Missing operation_ids from OpenAPI schema: {missing}"
 
-    # The MCP module's include_operations list has exactly 17 entries
+    # The MCP module's include_operations list has exactly len(EXPECTED) entries
     from app.mcp import setup_mcp
 
     source = inspect.getsource(setup_mcp)

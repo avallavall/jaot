@@ -1,9 +1,10 @@
 """MCP server integration for JAOT Optimization Platform.
 
-Exposes 17 curated optimization tools via the Model Context Protocol (MCP),
+Exposes 19 curated optimization tools via the Model Context Protocol (MCP),
 enabling AI agents (Claude, GPT, etc.) to discover and use JAOT's
 optimization capabilities: multi-solver solving, multi-objective (Pareto),
-templates, CSV import, the model marketplace, execution insights, and credits.
+templates, standard-format import/export (MPS/LP/CIP/JSON), the model
+marketplace, execution insights, and credits.
 """
 
 from fastapi import FastAPI
@@ -18,8 +19,9 @@ def setup_mcp(app: FastAPI) -> FastApiMCP:
         description=(
             "Solve linear (LP) and mixed-integer (MIP) optimization problems with "
             "a choice of solvers (SCIP, HiGHS, Hexaly) or automatic routing, "
-            "including multi-objective (Pareto) solves and CSV import. Browse and "
-            "run a marketplace of pre-built models, and inspect result insights. "
+            "including multi-objective (Pareto) solves. Import and export models in "
+            "standard formats (MPS/LP/CIP/JSON). Browse and run a marketplace of "
+            "pre-built models, and inspect result insights. "
             "Authenticate with a Bearer API key."
         ),
         include_operations=[
@@ -32,9 +34,11 @@ def setup_mcp(app: FastAPI) -> FastApiMCP:
             "list_templates",
             "get_template",
             "solve_with_template",
-            # File I/O (CSV)
+            # File I/O — standard formats (MPS/LP/CIP/JSON)
             "import_preview",
             "import_and_solve",
+            "export_model",
+            "export_execution",
             # Marketplace
             "list_catalog_models",
             "get_catalog_model",
