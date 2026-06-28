@@ -225,6 +225,56 @@ class TestImportSimpleJson:
         assert names == ["c1", "c2"]
 
 
+# UNIT TESTS — FileImportService: wrapped execution-export JSON
+
+
+class TestImportWrappedExecutionJson:
+    """Regression for the execution-export JSON shape {"problem", "result"}.
+
+    Execution / "export result" downloads wrap the model under a "problem"
+    key (alongside "result"). The importer must unwrap it so the
+    export->import round-trip works instead of failing with a schema
+    mismatch ("No variables found"). A flat OptimizationProblem always
+    carries "variables" at the top level, so the unwrap is unambiguous.
+    """
+
+    def setup_method(self):
+        self.service = FileImportService()
+        self._flat = {
+            "name": "wrapped_test",
+            "objective": {"sense": "minimize", "expression": "x1 + 2*x2"},
+            "variables": [
+                {"name": "x1", "type": "continuous", "lower_bound": 0, "upper_bound": 5},
+                {"name": "x2", "type": "continuous", "lower_bound": 0, "upper_bound": 5},
+            ],
+            "constraints": [
+                {"name": "c1", "expression": "x1 + x2 <= 4"},
+            ],
+        }
+
+    def test_unwraps_wrapped_problem(self):
+        # CONTRACT-TEST: execution-export JSON ({problem,result}) round-trips back through import
+        wrapped = json.dumps(
+            {"problem": self._flat, "result": {"status": "optimal", "objective_value": 0.0}}
+        ).encode()
+        problem = self.service.import_from_file(wrapped, "exe_export.json")
+        assert problem.name == "wrapped_test"
+        assert _var_names(problem) == ["x1", "x2"]
+        assert len(problem.constraints) == 1
+
+    def test_wrapped_without_result_imports(self):
+        wrapped = json.dumps({"problem": self._flat}).encode()
+        problem = self.service.import_from_file(wrapped, "model.json")
+        assert _var_names(problem) == ["x1", "x2"]
+
+    def test_flat_problem_still_imports(self):
+        """A flat OptimizationProblem (no "problem" wrapper) is untouched."""
+        flat = json.dumps(self._flat).encode()
+        problem = self.service.import_from_file(flat, "model.json")
+        assert problem.name == "wrapped_test"
+        assert len(problem.variables) == 2
+
+
 # UNIT TESTS — FileImportService: mip_knapsack.mps
 
 

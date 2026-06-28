@@ -452,6 +452,14 @@ class FileImportService:
         if not isinstance(data, dict):
             raise FileImportError("JSON root must be an object")
 
+        # Tolerate the wrapped execution-export shape {"problem": ..., "result": ...}.
+        # "Export model" emits a flat OptimizationProblem, but execution exports
+        # (and "export result") wrap it under "problem". A flat problem always
+        # carries "variables" at the top level, so unwrapping only the wrapped
+        # shape is unambiguous and makes the export->import round-trip work.
+        if "variables" not in data and isinstance(data.get("problem"), dict):
+            data = data["problem"]
+
         try:
             return OptimizationProblem(**data)
         except Exception as exc:
