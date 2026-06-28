@@ -46,7 +46,12 @@
     "statDensity": "Density",
     "statHealth": "Health",
     "notFound": "Model not found.",
-    "loadFailed": "Could not load the model."
+    "loadFailed": "Could not load the model.",
+    "saveSaving": "Saving…",
+    "saveSaved": "Saved",
+    "saveError": "Save failed",
+    "statComposition": "Comp. (bin·int·cont)",
+    "statNonzeros": "Nonzeros"
   },
   "common": {
     "loading": "Loading...",

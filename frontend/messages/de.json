@@ -46,7 +46,12 @@
     "statDensity": "Dichte",
     "statHealth": "Zustand",
     "notFound": "Modell nicht gefunden.",
-    "loadFailed": "Modell konnte nicht geladen werden."
+    "loadFailed": "Modell konnte nicht geladen werden.",
+    "saveSaving": "Speichern…",
+    "saveSaved": "Gespeichert",
+    "saveError": "Speichern fehlgeschlagen",
+    "statComposition": "Komp. (bin·int·cont)",
+    "statNonzeros": "Nicht-Nullen"
   },
   "common": {
     "loading": "Wird geladen...",

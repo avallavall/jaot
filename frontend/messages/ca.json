@@ -46,7 +46,12 @@
     "statDensity": "Densitat",
     "statHealth": "Salut",
     "notFound": "Model no trobat.",
-    "loadFailed": "No s'ha pogut carregar el model."
+    "loadFailed": "No s'ha pogut carregar el model.",
+    "saveSaving": "Desant…",
+    "saveSaved": "Desat",
+    "saveError": "Error en desar",
+    "statComposition": "Comp. (bin·int·cont)",
+    "statNonzeros": "No zeros"
   },
   "common": {
     "loading": "Carregant...",

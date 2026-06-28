@@ -46,7 +46,12 @@
     "statDensity": "Densité",
     "statHealth": "Santé",
     "notFound": "Modèle introuvable.",
-    "loadFailed": "Impossible de charger le modèle."
+    "loadFailed": "Impossible de charger le modèle.",
+    "saveSaving": "Enregistrement…",
+    "saveSaved": "Enregistré",
+    "saveError": "Échec de l'enregistrement",
+    "statComposition": "Comp. (bin·int·cont)",
+    "statNonzeros": "Non-zéros"
   },
   "common": {
     "loading": "Chargement...",

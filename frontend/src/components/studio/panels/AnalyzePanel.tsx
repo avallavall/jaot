@@ -1,28 +1,37 @@
 "use client";
 
+import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Sparkles } from "lucide-react";
-import { useBuilderStore } from "@/hooks/useBuilderStore";
 import { Button } from "@/components/ui/button";
+import { useModelProjectStore } from "../store/useModelProjectStore";
+import { selectModelStats } from "../store/stats";
 
 /**
- * The Analyze lens — the model's overview as an artifact (structure, health,
- * I/O, "Explain model"). P0 shows live counts; the full ModelStatsService panel,
- * model I/O and the LLM explainer land in later slices.
+ * The Analyze lens — the model's overview as an artifact (structure, health, I/O,
+ * "Explain model"). P0/2A shows live structure stats from the canonical store; the
+ * backend ModelStatsService (health score, sparsity), model I/O and the LLM
+ * explainer land in later slices.
  */
 export function AnalyzePanel() {
   const t = useTranslations("studio");
-  const nodes = useBuilderStore((s) => s.nodes);
+  const problem = useModelProjectStore((s) => s.problem);
+  const stats = useMemo(() => selectModelStats(problem), [problem]);
 
-  const variables = nodes.filter((n) => n.type === "variable").length;
-  const constraints = nodes.filter((n) => n.type === "constraint").length;
-
-  const stats: Array<{ label: string; value: string }> = [
-    { label: t("statClass"), value: "—" },
-    { label: t("statVariables"), value: String(variables) },
-    { label: t("statConstraints"), value: String(constraints) },
-    { label: t("statDensity"), value: "—" },
-    { label: t("statHealth"), value: "—" },
+  const hasMatrix = stats.varTotal > 0 && stats.constraintTotal > 0;
+  const cards: Array<{ label: string; value: string }> = [
+    { label: t("statClass"), value: stats.problemClass },
+    { label: t("statVariables"), value: String(stats.varTotal) },
+    { label: t("statConstraints"), value: String(stats.constraintTotal) },
+    {
+      label: t("statComposition"),
+      value: `${stats.varBinary} · ${stats.varInteger} · ${stats.varContinuous}`,
+    },
+    { label: t("statNonzeros"), value: String(stats.nonzeros) },
+    {
+      label: t("statDensity"),
+      value: hasMatrix ? `${(stats.density * 100).toFixed(1)}%` : "—",
+    },
   ];
 
   return (
@@ -31,9 +40,7 @@ export function AnalyzePanel() {
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
             <h2 className="text-lg font-semibold">{t("analyzeTitle")}</h2>
-            <p className="text-sm text-muted-foreground">
-              {t("analyzeSubtitle")}
-            </p>
+            <p className="text-sm text-muted-foreground">{t("analyzeSubtitle")}</p>
           </div>
           <Button variant="outline" size="sm" disabled>
             <Sparkles className="h-4 w-4 mr-1" />
@@ -42,14 +49,12 @@ export function AnalyzePanel() {
         </div>
 
         <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {stats.map((stat) => (
-            <div key={stat.label} className="rounded-lg border p-4">
+          {cards.map((card) => (
+            <div key={card.label} className="rounded-lg border p-4">
               <dt className="text-xs uppercase tracking-wider text-muted-foreground">
-                {stat.label}
+                {card.label}
               </dt>
-              <dd className="text-2xl font-semibold tabular-nums mt-1">
-                {stat.value}
-              </dd>
+              <dd className="text-2xl font-semibold tabular-nums mt-1">{card.value}</dd>
             </div>
           ))}
         </dl>

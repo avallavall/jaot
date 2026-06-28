@@ -1,25 +1,28 @@
 "use client";
 
+import { useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { useBuilderStore } from "@/hooks/useBuilderStore";
+import { useModelProjectStore } from "./store/useModelProjectStore";
+import { selectModelStats } from "./store/stats";
 
 /**
- * Persistent right rail — the model "at a glance". P0 shows live variable and
- * constraint counts from the shared store; class/density/health are wired to the
- * backend ModelStatsService in a later slice (placeholders for now).
+ * Persistent right rail — the model "at a glance", live from the canonical store.
+ * Health is wired to the backend ModelStatsService (health score) in P1.
  */
 export function LiveStatsPanel() {
   const t = useTranslations("studio");
-  const nodes = useBuilderStore((s) => s.nodes);
+  const problem = useModelProjectStore((s) => s.problem);
+  const stats = useMemo(() => selectModelStats(problem), [problem]);
 
-  const variables = nodes.filter((n) => n.type === "variable").length;
-  const constraints = nodes.filter((n) => n.type === "constraint").length;
-
+  const hasMatrix = stats.varTotal > 0 && stats.constraintTotal > 0;
   const rows: Array<{ label: string; value: string }> = [
-    { label: t("statClass"), value: "—" },
-    { label: t("statVariables"), value: String(variables) },
-    { label: t("statConstraints"), value: String(constraints) },
-    { label: t("statDensity"), value: "—" },
+    { label: t("statClass"), value: stats.problemClass },
+    { label: t("statVariables"), value: String(stats.varTotal) },
+    { label: t("statConstraints"), value: String(stats.constraintTotal) },
+    {
+      label: t("statDensity"),
+      value: hasMatrix ? `${(stats.density * 100).toFixed(1)}%` : "—",
+    },
     { label: t("statHealth"), value: "—" },
   ];
 
@@ -33,10 +36,7 @@ export function LiveStatsPanel() {
       </h2>
       <dl className="space-y-2">
         {rows.map((row) => (
-          <div
-            key={row.label}
-            className="flex items-center justify-between text-sm"
-          >
+          <div key={row.label} className="flex items-center justify-between text-sm">
             <dt className="text-muted-foreground">{row.label}</dt>
             <dd className="font-medium tabular-nums">{row.value}</dd>
           </div>
