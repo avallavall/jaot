@@ -18,6 +18,7 @@ import re
 import time as _time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from typing import Any
 
 from fastapi import HTTPException, Request, status
@@ -50,6 +51,88 @@ from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
 
 logger = logging.getLogger(__name__)
+
+# Execution provenance — how a solve was created and the object it traces back
+# to. This is a platform concern, deliberately kept OUT of the solver-agnostic
+# OptimizationProblem/Result schemas. Persisted on ModelExecution.origin /
+# source_kind / source_id (see the 20260628_exec_provenance migration).
+ORIGIN_MANUAL = "manual"
+ORIGIN_VISUAL_BUILDER = "visual_builder"
+ORIGIN_AI_BUILDER = "ai_builder"
+ORIGIN_TEMPLATE = "template"
+ORIGIN_IMPORT = "import"
+ORIGIN_MARKETPLACE = "marketplace"
+# "triggered" (not "trigger") to match the value triggers already write — avoids
+# splitting historical rows across two slugs.
+ORIGIN_TRIGGER = "triggered"
+ORIGIN_API = "api"
+ORIGIN_MCP = "mcp"
+
+VALID_ORIGINS = frozenset(
+    {
+        ORIGIN_MANUAL,
+        ORIGIN_VISUAL_BUILDER,
+        ORIGIN_AI_BUILDER,
+        ORIGIN_TEMPLATE,
+        ORIGIN_IMPORT,
+        ORIGIN_MARKETPLACE,
+        ORIGIN_TRIGGER,
+        ORIGIN_API,
+        ORIGIN_MCP,
+    }
+)
+
+# The object an execution can navigate back to. Generic (not FKs) because
+# builder_document / llm_conversation / template have no FK on model_executions.
+VALID_SOURCE_KINDS = frozenset(
+    {
+        "builder_document",
+        "llm_conversation",
+        "template",
+        "organization_model",
+        "trigger",
+        "imported_file",
+    }
+)
+
+_SOURCE_ID_MAX_LEN = 64  # matches ModelExecution.source_id column width
+
+
+@dataclass(frozen=True)
+class ExecutionSource:
+    """Provenance of a solve: its creation channel and the object it came from.
+
+    ``origin`` is the channel (``visual_builder``, ``ai_builder``, ``template``…).
+    ``source_kind``/``source_id`` point at the object the execution can navigate
+    back to. All fields default so callers without provenance fall back to a
+    plain manual solve.
+    """
+
+    origin: str = ORIGIN_MANUAL
+    source_kind: str | None = None
+    source_id: str | None = None
+
+    @classmethod
+    def from_request(
+        cls,
+        origin: str | None,
+        source_kind: str | None = None,
+        source_id: str | None = None,
+    ) -> "ExecutionSource":
+        """Build from untrusted query params, sanitising unknown values.
+
+        Unknown origins collapse to ``manual`` and unknown source kinds to
+        ``None`` so a client cannot write arbitrary strings into the executions
+        table; ``source_id`` is dropped when there is no valid kind and capped
+        to the column width.
+        """
+        clean_origin = origin if origin in VALID_ORIGINS else ORIGIN_MANUAL
+        clean_kind = source_kind if source_kind in VALID_SOURCE_KINDS else None
+        clean_id = (source_id[:_SOURCE_ID_MAX_LEN] if source_id else None) if clean_kind else None
+        return cls(origin=clean_origin, source_kind=clean_kind, source_id=clean_id)
+
+
+_DEFAULT_SOURCE = ExecutionSource()
 
 # Variable name tokens excluded from expression parsing
 _EXCLUDED_TOKENS = {
@@ -197,6 +280,7 @@ class SolveOrchestrator:
         execution_id: str | None = None,
         solver_name: str | None = None,
         auto_route_reason: str | None = None,
+        source: ExecutionSource = _DEFAULT_SOURCE,
     ) -> OptimizationResult:
         """Full single-objective solve with pre-pay + refund credit pattern.
 
@@ -244,6 +328,7 @@ class SolveOrchestrator:
             elapsed_ms=elapsed_ms,
             solver_name=solver_name,
             auto_route_reason=auto_route_reason,
+            source=source,
         )
 
         # Audit log
@@ -284,6 +369,7 @@ class SolveOrchestrator:
         elapsed_ms: int,
         solver_name: str | None = None,
         auto_route_reason: str | None = None,
+        source: ExecutionSource = _DEFAULT_SOURCE,
     ) -> None:
         """Insert a ModelExecution row for a completed synchronous solve.
 
@@ -311,7 +397,9 @@ class SolveOrchestrator:
                 objective_value=result.objective_value,
                 credits_consumed=credits_needed,
                 credits_base=credits_needed,
-                origin="manual",
+                origin=source.origin,
+                source_kind=source.source_kind,
+                source_id=source.source_id,
                 is_async=False,
                 created_at=now,
                 started_at=now,
@@ -336,11 +424,17 @@ class SolveOrchestrator:
         request: Request,
         total_credits: int,
         workspace_id: str | None = None,
+        source: ExecutionSource = _DEFAULT_SOURCE,
     ) -> MultiObjectiveResult:
-        """Full multi-objective solve with pre-pay + refund credit pattern."""
+        """Full multi-objective solve with pre-pay + refund credit pattern.
+
+        Persists a ModelExecution row so multi-objective runs appear in history —
+        this path also used to write nothing to model_executions.
+        """
         execution_id = generate_id("exe_")
         timeout_seconds = PSS.get_int(self.db, "SOLVER_TIMEOUT_SECONDS")
 
+        start = _time.monotonic()
         pareto_points: list[ParetoPoint] = await self._execute_with_credits(
             solve_fn=lambda: self.solver.solve_multi_objective(problem, config),
             credits_needed=total_credits,
@@ -351,16 +445,84 @@ class SolveOrchestrator:
             generator_label="multi_objective",
             timeout_seconds=timeout_seconds,
         )
+        elapsed_ms = int((_time.monotonic() - start) * 1000)
 
         labels = [obj.label or f"Objective {i + 1}" for i, obj in enumerate(config.objectives)]
 
-        return MultiObjectiveResult(
+        result = MultiObjectiveResult(
             pareto_points=pareto_points,
             total_credits_used=total_credits,
             mode=config.mode,
             n_solved=len(pareto_points),
             labels=labels,
         )
+
+        self._persist_multi_objective_execution(
+            execution_id=execution_id,
+            problem=problem,
+            result=result,
+            org=org,
+            user=user,
+            credits_needed=total_credits,
+            elapsed_ms=elapsed_ms,
+            source=source,
+        )
+
+        return result
+
+    def _persist_multi_objective_execution(
+        self,
+        execution_id: str,
+        problem: OptimizationProblem,
+        result: MultiObjectiveResult,
+        org: Organization,
+        user: object | None,
+        credits_needed: int,
+        elapsed_ms: int,
+        source: ExecutionSource,
+    ) -> None:
+        """Insert a ModelExecution row for a completed multi-objective solve.
+
+        Multi-objective produces a Pareto front, not a single solution, so
+        result_data wraps the front under ``multi_objective`` (the single-solve
+        keys stay null). Best-effort like the sync persistence — never raises.
+        """
+        try:
+            now = utcnow()
+            row = ModelExecution(
+                id=execution_id,
+                organization_id=org.id,
+                executed_by_user_id=getattr(user, "id", None),
+                input_data=problem.model_dump(mode="json"),
+                result_data={
+                    "multi_objective": result.model_dump(mode="json"),
+                    "objective_value": None,
+                    "solver_status": "optimal",
+                },
+                status="completed",
+                execution_time_ms=elapsed_ms,
+                solver_status="optimal",
+                solver_name=DEFAULT_SOLVER_NAME,
+                objective_value=None,
+                credits_consumed=credits_needed,
+                credits_base=credits_needed,
+                origin=source.origin,
+                source_kind=source.source_kind,
+                source_id=source.source_id,
+                is_async=False,
+                created_at=now,
+                started_at=now,
+                completed_at=now,
+            )
+            self.db.add(row)
+            self.db.commit()
+        except Exception:
+            logger.warning(
+                "Failed to persist multi-objective ModelExecution %s",
+                execution_id,
+                exc_info=True,
+            )
+            self.db.rollback()
 
     async def solve_with_template(
         self,
@@ -372,10 +534,20 @@ class SolveOrchestrator:
         credits_needed: int,
         workspace_id: str | None = None,
         solver_name: str | None = None,
+        source: ExecutionSource | None = None,
     ) -> OptimizationResult:
-        """Solve a template-rendered problem with pre-pay + refund."""
+        """Solve a template-rendered problem with pre-pay + refund.
+
+        Persists a ModelExecution row (origin=template) so template solves show
+        up in history like any other solve — this path previously wrote nothing
+        to model_executions, the one gap that made template runs invisible.
+        """
         execution_id = generate_id("exe_")
         timeout_seconds = PSS.get_int(self.db, "SOLVER_TIMEOUT_SECONDS")
+        if source is None:
+            source = ExecutionSource(
+                origin=ORIGIN_TEMPLATE, source_kind="template", source_id=template_id
+            )
 
         # Use the requested solver if specified, else the default — parity with
         # solve_single so template solves can target HiGHS/Hexaly/etc.
@@ -383,6 +555,7 @@ class SolveOrchestrator:
             get_solver_service(solver_name=solver_name) if solver_name else self.solver
         )
 
+        start = _time.monotonic()
         result: OptimizationResult = await self._execute_with_credits(
             solve_fn=lambda: effective_solver.solve(problem),
             credits_needed=credits_needed,
@@ -393,8 +566,23 @@ class SolveOrchestrator:
             generator_label=template_id,
             timeout_seconds=timeout_seconds,
         )
+        elapsed_ms = int((_time.monotonic() - start) * 1000)
+
+        # Persist so template solves appear in history (parity with solve_single).
+        self._persist_sync_execution(
+            execution_id=execution_id,
+            problem=problem,
+            result=result,
+            org=org,
+            user=user,
+            credits_needed=credits_needed,
+            elapsed_ms=elapsed_ms,
+            solver_name=solver_name,
+            source=source,
+        )
 
         updated_org = self.db.query(Organization).filter(Organization.id == org.id).first()
+        result.execution_id = execution_id
         result.credits_used = credits_needed
         result.credits_remaining = updated_org.credits_balance if updated_org else 0
 

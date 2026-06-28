@@ -21,7 +21,12 @@ from app.schemas.optimization import (
     OptimizationResult,
     SolverStatus,
 )
-from app.services.solve_orchestrator import SolveOrchestrator
+from app.services.solve_orchestrator import (
+    ORIGIN_MANUAL,
+    ORIGIN_TEMPLATE,
+    ExecutionSource,
+    SolveOrchestrator,
+)
 
 
 def _make_request(debug: bool = False) -> MagicMock:
@@ -465,3 +470,133 @@ class TestI4PSSGetIntCalledOnce:
         """solve_with_template: PSS.get_int(SOLVER_TIMEOUT_SECONDS) called exactly once."""
         count = await self._count_get_int_calls("solve_with_template")
         assert count == 1, f"Expected 1 PSS.get_int call, got {count}"
+
+
+class TestExecutionSourceFromRequest:
+    """Provenance query params are sanitised before they can reach the DB."""
+
+    def test_valid_values_passthrough(self):
+        src = ExecutionSource.from_request("visual_builder", "builder_document", "bld_123")
+        assert src.origin == "visual_builder"
+        assert src.source_kind == "builder_document"
+        assert src.source_id == "bld_123"
+
+    def test_unknown_origin_collapses_to_manual(self):
+        src = ExecutionSource.from_request("haxxor", "builder_document", "bld_1")
+        assert src.origin == ORIGIN_MANUAL
+
+    def test_unknown_source_kind_dropped_with_its_id(self):
+        src = ExecutionSource.from_request("ai_builder", "evil_kind", "x")
+        assert src.source_kind is None
+        assert src.source_id is None
+
+    def test_source_id_capped_to_column_width(self):
+        src = ExecutionSource.from_request("import", "imported_file", "x" * 200)
+        assert src.source_id is not None
+        assert len(src.source_id) <= 64
+
+    def test_defaults_to_manual(self):
+        src = ExecutionSource.from_request(None)
+        assert src.origin == ORIGIN_MANUAL
+        assert src.source_kind is None
+        assert src.source_id is None
+
+
+class TestProvenancePersistence:
+    """Solve paths persist a ModelExecution row carrying their provenance."""
+
+    @staticmethod
+    def _capture_rows(orch: SolveOrchestrator) -> list:
+        captured: list = []
+        orch.db.add.side_effect = lambda row: captured.append(row)
+        return captured
+
+    async def test_template_solve_persists_template_origin(self):
+        # CONTRACT-TEST: template solves leave a navigable execution row (origin=template)
+        orch = _make_orchestrator()
+        result = _make_result(SolverStatus.OPTIMAL)
+        result.to_result_data.return_value = {}
+        result.objective_value = 1.0
+        captured = self._capture_rows(orch)
+
+        async def _fake_execute(*args, **kwargs):
+            return result
+
+        with patch.object(orch, "_execute_with_credits", side_effect=_fake_execute):
+            with patch("app.services.solve_orchestrator.PSS") as mock_pss:
+                mock_pss.get_int.return_value = 30
+                await orch.solve_with_template(
+                    problem=_make_problem(),
+                    template_id="tpl_xyz",
+                    org=_make_org(),
+                    user=None,
+                    request=_make_request(),
+                    credits_needed=5,
+                )
+
+        rows = [r for r in captured if hasattr(r, "origin")]
+        assert rows, "template solve persisted no ModelExecution row"
+        assert rows[-1].origin == ORIGIN_TEMPLATE
+        assert rows[-1].source_kind == "template"
+        assert rows[-1].source_id == "tpl_xyz"
+
+    async def test_solve_single_persists_given_source(self):
+        orch = _make_orchestrator()
+        result = _make_result(SolverStatus.OPTIMAL)
+        result.to_result_data.return_value = {}
+        result.objective_value = 1.0
+        captured = self._capture_rows(orch)
+
+        async def _fake_execute(*args, **kwargs):
+            return result
+
+        src = ExecutionSource(
+            origin="visual_builder", source_kind="builder_document", source_id="bld_9"
+        )
+        with patch.object(orch, "_execute_with_credits", side_effect=_fake_execute):
+            with patch("app.services.solve_orchestrator.PSS") as mock_pss:
+                mock_pss.get_int.return_value = 30
+                mock_pss.get_plan_config_dynamic.return_value = {"allowed_features": []}
+                await orch.solve_single(
+                    problem=_make_problem(),
+                    org=_make_org(),
+                    user=None,
+                    request=_make_request(),
+                    credits_needed=5,
+                    source=src,
+                )
+
+        rows = [r for r in captured if hasattr(r, "origin")]
+        assert rows, "solve_single persisted no ModelExecution row"
+        assert rows[-1].origin == "visual_builder"
+        assert rows[-1].source_kind == "builder_document"
+        assert rows[-1].source_id == "bld_9"
+
+    async def test_multi_objective_persists_execution(self):
+        # CONTRACT-TEST: multi-objective solves leave an execution row in history
+        orch = _make_orchestrator()
+        captured = self._capture_rows(orch)
+
+        async def _fake_execute(*args, **kwargs):
+            return []
+
+        with patch.object(orch, "_execute_with_credits", side_effect=_fake_execute):
+            with patch("app.services.solve_orchestrator.PSS") as mock_pss:
+                mock_pss.get_int.return_value = 30
+                config = MagicMock(spec=MultiObjectiveConfig)
+                config.objectives = []
+                config.mode = "weighted_sum"
+                await orch.solve_multi_objective(
+                    problem=_make_problem(),
+                    config=config,
+                    org=_make_org(),
+                    user=None,
+                    request=_make_request(),
+                    total_credits=5,
+                    source=ExecutionSource(origin="visual_builder"),
+                )
+
+        rows = [r for r in captured if hasattr(r, "origin")]
+        assert rows, "multi-objective solve persisted no ModelExecution row"
+        assert rows[-1].origin == "visual_builder"
+        assert "multi_objective" in rows[-1].result_data

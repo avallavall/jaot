@@ -36,7 +36,12 @@ from app.schemas.optimization import (
     OptimizationResult,
     VariableType,
 )
-from app.services.solve_orchestrator import SolveOrchestrator, validate_problem
+from app.services.solve_orchestrator import (
+    ORIGIN_IMPORT,
+    ExecutionSource,
+    SolveOrchestrator,
+    validate_problem,
+)
 from app.shared.core.rate_limiter import check_rate_limit
 from app.shared.db import get_db
 
@@ -206,6 +211,7 @@ async def import_and_solve(
             request=request,
             credits_needed=credits_needed,
             solver_name=solver_name,
+            source=ExecutionSource(origin=ORIGIN_IMPORT, source_kind="imported_file"),
         )
     except (SolverNotFoundError, SolverUnavailableError) as exc:
         raise HTTPException(

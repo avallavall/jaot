@@ -308,9 +308,18 @@ class ModelExecution(Base):
     credits_base: Mapped[int] = mapped_column(Integer, default=1)
     credits_compute: Mapped[int] = mapped_column(Integer, default=0)
 
-    # Trigger / origin tracking
-    origin: Mapped[str] = mapped_column(String(16), default="manual", server_default="manual")
+    # Provenance — how the execution was created and what it traces back to.
+    # origin values: visual_builder | ai_builder | template | import |
+    #   marketplace | trigger | api | mcp | manual (legacy default).
+    # Widened 16->32 to fit the richer slugs (additive: VARCHAR grow is safe).
+    origin: Mapped[str] = mapped_column(String(32), default="manual", server_default="manual")
     trigger_id: Mapped[str | None] = mapped_column(String(64), nullable=True, default=None)
+    # source_kind/source_id: the object this execution can navigate back to.
+    # Generic (not an FK) because builder_document / llm_conversation / template
+    # have no dedicated FK on this table. Kinds: builder_document |
+    # llm_conversation | template | organization_model | trigger | imported_file.
+    source_kind: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
+    source_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
 
     # Async execution tracking
     celery_task_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)

@@ -194,6 +194,9 @@ def trigger_solve_task(
             credits_consumed=0,
             trigger_id=trigger.id,
             origin="triggered",
+            # Provenance: navigates back to the trigger that fired this run.
+            source_kind="trigger",
+            source_id=trigger.id,
             started_at=start_datetime,
             completed_at=now,
         )

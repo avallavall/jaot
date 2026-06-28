@@ -29,6 +29,7 @@ from app.schemas.model import (
 )
 from app.schemas.optimization import OptimizationProblem, SolverStatus
 from app.services.credits_service import CreditsService, InsufficientCreditsError
+from app.services.solve_orchestrator import ORIGIN_MARKETPLACE
 from app.shared.core.prometheus_metrics import RefundReason
 from app.shared.db.base import get_db
 from app.shared.utils.datetime_helpers import utcnow
@@ -193,6 +194,10 @@ async def execute_model(
         started_at=utcnow(),
         solver_name=effective_solver_name or DEFAULT_SOLVER_NAME,
         auto_route_reason=auto_route_reason,
+        # Provenance: marketplace/catalog execution navigates back to the org model.
+        origin=ORIGIN_MARKETPLACE,
+        source_kind="organization_model",
+        source_id=model_id,
     )
     db.add(execution)
     db.commit()

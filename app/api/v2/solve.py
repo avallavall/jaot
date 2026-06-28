@@ -39,6 +39,7 @@ from app.services.platform_settings_service import (
     PlatformSettingsService as PSS,
 )
 from app.services.solve_orchestrator import (
+    ExecutionSource,
     SolveOrchestrator,
     load_warm_start_solution,
     validate_problem,
@@ -285,6 +286,9 @@ async def solve_optimization_problem(
     solver: SolverService = Depends(get_solver_service),
     workspace_member: OptionalRequireSolver = None,
     solver_name: str | None = Query(default=None, max_length=32),
+    origin: str | None = Query(default=None, max_length=32),
+    source_kind: str | None = Query(default=None, max_length=32),
+    source_id: str | None = Query(default=None, max_length=64),
 ) -> OptimizationResult:
     """Solve an optimization problem (universal endpoint).
 
@@ -406,6 +410,7 @@ async def solve_optimization_problem(
             execution_id=idem_exe_id,
             solver_name=effective_solver_name,
             auto_route_reason=auto_route_reason,
+            source=ExecutionSource.from_request(origin, source_kind, source_id),
         )
     except (SolverNotFoundError, SolverUnavailableError) as exc:
         raise HTTPException(
@@ -568,6 +573,9 @@ async def solve_multi_objective_endpoint(
     db: Session = Depends(get_db),
     solver: SolverService = Depends(get_solver_service),
     workspace_member: OptionalRequireSolver = None,
+    origin: str | None = Query(default=None, max_length=32),
+    source_kind: str | None = Query(default=None, max_length=32),
+    source_id: str | None = Query(default=None, max_length=64),
 ) -> MultiObjectiveResult:
     """Solve a multi-objective problem. Returns a Pareto front."""
     org: Organization | None = getattr(request.state, "organization", None)
@@ -601,6 +609,7 @@ async def solve_multi_objective_endpoint(
         request=request,
         total_credits=total_credits,
         workspace_id=ws_id,
+        source=ExecutionSource.from_request(origin, source_kind, source_id),
     )
 
 
@@ -611,6 +620,9 @@ async def solve_optimization_problem_async(
     db: Session = Depends(get_db),
     workspace_member: OptionalRequireSolver = None,
     solver_name: str | None = Query(default=None, max_length=32),
+    origin: str | None = Query(default=None, max_length=32),
+    source_kind: str | None = Query(default=None, max_length=32),
+    source_id: str | None = Query(default=None, max_length=64),
 ) -> dict[str, Any]:
     """Queue an async solve. Pre-pays credits; refund happens in Celery on failure."""
     from app.domains.solver.tasks.solve_tasks import solve_async
@@ -815,6 +827,7 @@ async def solve_optimization_problem_async(
         ) from exc
 
     # Minimal execution record so /async/{task_id} can verify ownership (prevents IDOR).
+    async_source = ExecutionSource.from_request(origin, source_kind, source_id)
     pending_exec = ModelExecution(
         id=execution_id,
         organization_id=org.id,
@@ -828,6 +841,9 @@ async def solve_optimization_problem_async(
         # D-13: persist auto-routing slug at enqueue time.
         # DB column added by Plan 09 migration.
         auto_route_reason=async_auto_reason,
+        origin=async_source.origin,
+        source_kind=async_source.source_kind,
+        source_id=async_source.source_id,
     )
     db.add(pending_exec)
     try:
