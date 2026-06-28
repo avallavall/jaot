@@ -274,6 +274,59 @@ class TestExportJson:
         assert "result" not in data
 
 
+class TestExportModelJson:
+    """Test FLAT model export (no solve required) and its import round-trip."""
+
+    def setup_method(self):
+        self.service = FileExportService()
+        self.problem = _simple_problem()
+
+    def test_model_json_is_flat(self):
+        """export_model_json emits a bare OptimizationProblem, not {problem,result}."""
+        content = self.service.export_model_json(self.problem)
+        data = json.loads(content)
+        assert "problem" not in data
+        assert "result" not in data
+        assert len(data["variables"]) == 3
+        assert data["name"] == "export_test"
+
+    def test_model_export_formats_exclude_solution_only(self):
+        from app.domains.solver.services.file_export import MODEL_EXPORT_FORMATS
+
+        assert "json" in MODEL_EXPORT_FORMATS
+        assert {"mps", "lp", "cip"} <= MODEL_EXPORT_FORMATS
+        # sol/csv need a solution, so they must NOT be model-export formats.
+        assert "sol" not in MODEL_EXPORT_FORMATS
+        assert "csv" not in MODEL_EXPORT_FORMATS
+
+    def test_export_model_then_import_roundtrip(self):
+        # CONTRACT-TEST: export-model JSON imports back to an equivalent problem
+        from app.domains.solver.services.file_import import FileImportService
+
+        content = self.service.export_model_json(self.problem)
+        reimported = FileImportService().import_from_file(content.encode("utf-8"), "model.json")
+
+        assert reimported.name == self.problem.name
+        assert sorted(v.name for v in reimported.variables) == ["x1", "x2", "x3"]
+        assert len(reimported.constraints) == 2
+        assert reimported.objective.sense == self.problem.objective.sense
+
+    def test_export_model_mps_roundtrips_variables(self):
+        """MPS export of a model (no solve) re-imports with the same variables."""
+        from app.domains.solver.services.file_import import FileImportService
+
+        path = self.service.export_to_file(self.problem, "mps")
+        try:
+            with open(path, "rb") as fh:
+                reimported = FileImportService().import_from_file(fh.read(), "model.mps")
+        finally:
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
+        assert sorted(v.name for v in reimported.variables) == ["x1", "x2", "x3"]
+
+
 class TestExportEndpoint:
     """Integration tests for GET /api/v2/solve/export/{execution_id}/{format}."""
 

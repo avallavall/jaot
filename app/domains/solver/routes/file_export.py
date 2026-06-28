@@ -21,10 +21,12 @@ from app.domains.solver.routes._helpers import load_execution, parse_problem
 from app.domains.solver.services.file_export import (
     ALL_EXPORT_FORMATS,
     MIME_TYPES,
+    MODEL_EXPORT_FORMATS,
     SOLVER_FORMATS,
     FileExportError,
     get_file_export_service,
 )
+from app.schemas.optimization import OptimizationProblem
 from app.shared.db import get_db
 
 logger = logging.getLogger(__name__)
@@ -131,6 +133,74 @@ async def export_execution(
 
     # fmt == "json"
     content = exporter.export_json(problem, result_data)
+    return StreamingResponse(
+        content=io.BytesIO(content.encode("utf-8")),
+        media_type=MIME_TYPES["json"],
+        headers={
+            "Content-Disposition": f'attachment; filename="{_safe_filename(problem_name, "json")}"',
+        },
+    )
+
+
+@router.post(
+    "/model/{fmt}",
+    operation_id="export_model",
+    response_model=None,
+    responses={
+        200: {"description": "File download"},
+        422: {"description": "Invalid problem or unsupported format"},
+    },
+)
+async def export_model(
+    fmt: str,
+    problem: OptimizationProblem,
+    current_user: CurrentUser,
+    org: CurrentOrg,
+) -> FileResponse | StreamingResponse:
+    """Export a MODEL in a standard format without solving it first.
+
+    Accepts an OptimizationProblem directly so the builder, LLM formulation,
+    a template-rendered problem or a catalog model can be exported BEFORE (or
+    without) a solve. ``json`` is emitted FLAT (a bare OptimizationProblem) so
+    it round-trips through import; use ``GET /export/{execution_id}/json`` for
+    the {problem, result} bundle. ``sol``/``csv`` are unavailable here — they
+    need a solution.
+    """
+    # Lazy import avoids any route<->orchestrator import-time coupling.
+    from app.services.solve_orchestrator import validate_problem
+
+    fmt = fmt.lower().strip()
+    if fmt not in MODEL_EXPORT_FORMATS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                f"Unsupported model export format: '{fmt}'. "
+                f"Supported: {', '.join(sorted(MODEL_EXPORT_FORMATS))}"
+            ),
+        )
+
+    validate_problem(problem)  # clean 400 on undefined-variable references etc.
+    exporter = get_file_export_service()
+    problem_name = problem.name or "model"
+
+    if fmt in SOLVER_FORMATS:
+        try:
+            tmp_path = exporter.export_to_file(problem, fmt)
+        except FileExportError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=str(exc),
+            ) from exc
+
+        return FileResponse(
+            path=tmp_path,
+            filename=_safe_filename(problem_name, fmt),
+            media_type=MIME_TYPES[fmt],
+            background=BackgroundTask(os.unlink, tmp_path),
+        )
+
+    # fmt == "json" — flat OptimizationProblem
+    content = exporter.export_model_json(problem)
     return StreamingResponse(
         content=io.BytesIO(content.encode("utf-8")),
         media_type=MIME_TYPES["json"],

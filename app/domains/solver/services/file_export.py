@@ -37,6 +37,10 @@ TEXT_FORMATS = frozenset({"sol", "csv", "json"})
 
 ALL_EXPORT_FORMATS = SOLVER_FORMATS | TEXT_FORMATS
 
+# Formats valid for exporting a MODEL with no solution yet (sol/csv need a
+# solution, so they are excluded). JSON here is the FLAT OptimizationProblem.
+MODEL_EXPORT_FORMATS = SOLVER_FORMATS | frozenset({"json"})
+
 # MIME types per format
 MIME_TYPES: dict[str, str] = {
     "mps": "application/x-mps",
@@ -194,6 +198,15 @@ class FileExportService:
         if result_data:
             data["result"] = result_data
         return json.dumps(data, indent=2, ensure_ascii=False)
+
+    def export_model_json(self, problem: OptimizationProblem) -> str:
+        """Export just the model as a FLAT OptimizationProblem JSON.
+
+        Unlike :meth:`export_json` (which nests the problem under ``"problem"``
+        alongside results), this emits a bare OptimizationProblem so it
+        round-trips straight back through the importer.
+        """
+        return json.dumps(problem.model_dump(mode="json"), indent=2, ensure_ascii=False)
 
 
 # Singleton
