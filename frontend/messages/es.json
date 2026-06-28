@@ -3011,7 +3011,8 @@
       "pageOf": "Página {page} de {totalPages}",
       "previous": "Anterior",
       "next": "Siguiente",
-      "failedToLoad": "Error al cargar las ejecuciones"
+      "failedToLoad": "Error al cargar las ejecuciones",
+      "openSource": "Abrir origen"
     },
     "execution": {
       "title": "Detalles de ejecución",
@@ -3343,7 +3344,14 @@
       "triggered": "Disparada",
       "triggeredRun": "Ejecución disparada",
       "triggerName": "Trigger: {name}",
-      "manual": "Manual"
+      "manual": "Manual",
+      "visual_builder": "Editor visual",
+      "ai_builder": "Asistente IA",
+      "template": "Plantilla",
+      "import": "Importación",
+      "marketplace": "Marketplace",
+      "api": "API",
+      "mcp": "MCP"
     },
     "sensitivity": {
       "upgradeMessage": "El análisis de sensibilidad muestra cómo los cambios en las restricciones afectan a tu solución óptima.",

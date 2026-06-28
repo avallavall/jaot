@@ -3037,7 +3037,8 @@
       "pageOf": "Page {page} of {totalPages}",
       "previous": "Previous",
       "next": "Next",
-      "failedToLoad": "Failed to load executions"
+      "failedToLoad": "Failed to load executions",
+      "openSource": "Open origin"
     },
     "execution": {
       "title": "Execution Details",
@@ -3376,7 +3377,14 @@
       "triggered": "Triggered",
       "triggeredRun": "Triggered run",
       "triggerName": "Trigger: {name}",
-      "manual": "Manual"
+      "manual": "Manual",
+      "visual_builder": "Visual builder",
+      "ai_builder": "AI builder",
+      "template": "Template",
+      "import": "Import",
+      "marketplace": "Marketplace",
+      "api": "API",
+      "mcp": "MCP"
     },
     "sensitivity": {
       "upgradeMessage": "Sensitivity analysis shows how changes in constraints affect your optimal solution.",

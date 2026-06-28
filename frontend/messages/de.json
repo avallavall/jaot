@@ -3011,7 +3011,8 @@
       "pageOf": "Seite {page} von {totalPages}",
       "previous": "Zurück",
       "next": "Weiter",
-      "failedToLoad": "Ausführungen konnten nicht geladen werden"
+      "failedToLoad": "Ausführungen konnten nicht geladen werden",
+      "openSource": "Quelle öffnen"
     },
     "execution": {
       "title": "Ausführungsdetails",
@@ -3343,7 +3344,14 @@
       "triggered": "Getriggert",
       "triggeredRun": "Getriggerte Ausführung",
       "triggerName": "Trigger: {name}",
-      "manual": "Manuell"
+      "manual": "Manuell",
+      "visual_builder": "Visueller Builder",
+      "ai_builder": "KI-Assistent",
+      "template": "Vorlage",
+      "import": "Import",
+      "marketplace": "Marktplatz",
+      "api": "API",
+      "mcp": "MCP"
     },
     "sensitivity": {
       "upgradeMessage": "Die Sensitivitätsanalyse zeigt, wie Änderungen an Nebenbedingungen Ihre optimale Lösung beeinflussen.",

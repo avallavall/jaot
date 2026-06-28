@@ -323,10 +323,34 @@ export interface ModelExecution {
   credits_consumed: number;
   created_at: string;
   completed_at?: string;
-  origin?: "manual" | "triggered";
+  origin?: ExecutionOrigin;
   trigger_id?: string;
+  // Provenance: the object this execution traces back to.
+  source_kind?: ExecutionSourceKind | null;
+  source_id?: string | null;
   solver_name?: string;
 }
+
+/** How an execution was created. Mirrors the backend ORIGIN_* slugs. */
+export type ExecutionOrigin =
+  | "manual"
+  | "triggered"
+  | "visual_builder"
+  | "ai_builder"
+  | "template"
+  | "import"
+  | "marketplace"
+  | "api"
+  | "mcp";
+
+/** The kind of object an execution can navigate back to. */
+export type ExecutionSourceKind =
+  | "builder_document"
+  | "llm_conversation"
+  | "template"
+  | "organization_model"
+  | "trigger"
+  | "imported_file";
 
 export interface AsyncTask {
   task_id: string;

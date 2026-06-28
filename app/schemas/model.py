@@ -168,6 +168,10 @@ class ModelExecutionResponse(BaseModel):
     credits_consumed: int
     origin: str | None = None
     trigger_id: str | None = None
+    # Provenance: the object this execution traces back to (builder_document,
+    # llm_conversation, template, organization_model, trigger, imported_file).
+    source_kind: str | None = None
+    source_id: str | None = None
     created_at: datetime
     completed_at: datetime | None = None
 

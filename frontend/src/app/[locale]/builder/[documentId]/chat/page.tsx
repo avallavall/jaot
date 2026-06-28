@@ -198,8 +198,10 @@ export default function ChatPage() {
       };
       const result = await api.solve(problem, undefined, {
         origin: "ai_builder",
-        sourceKind: "llm_conversation",
-        sourceId: conversationId,
+        // The chat is a view of a builder document; navigate back to it (its
+        // /chat view) rather than the conversation, which has no own route.
+        sourceKind: "builder_document",
+        sourceId: documentId || null,
       });
       setSolveResult(result);
     } catch (err) {
@@ -214,7 +216,7 @@ export default function ChatPage() {
     } finally {
       setSolving(false);
     }
-  }, [stream.formulation, currentFormulation, conversationId, t]);
+  }, [stream.formulation, currentFormulation, documentId, t]);
 
   if (loading) {
     return (

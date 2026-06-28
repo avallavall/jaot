@@ -3603,6 +3603,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/solve/export/model/{fmt}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Export Model
+         * @description Export a MODEL in a standard format without solving it first.
+         *
+         *     Accepts an OptimizationProblem directly so the builder, LLM formulation,
+         *     a template-rendered problem or a catalog model can be exported BEFORE (or
+         *     without) a solve. ``json`` is emitted FLAT (a bare OptimizationProblem) so
+         *     it round-trips through import; use ``GET /export/{execution_id}/json`` for
+         *     the {problem, result} bundle. ``sol``/``csv`` are unavailable here — they
+         *     need a solution.
+         */
+        post: operations["export_model"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/solve/import": {
         parameters: {
             query?: never;
@@ -6667,6 +6694,10 @@ export interface components {
             } | null;
             /** Solver Status */
             solver_status?: string | null;
+            /** Source Id */
+            source_id?: string | null;
+            /** Source Kind */
+            source_kind?: string | null;
             /** Status */
             status: string;
             /** Trigger Id */
@@ -15523,7 +15554,10 @@ export interface operations {
     solve_problem: {
         parameters: {
             query?: {
+                origin?: string | null;
                 solver_name?: string | null;
+                source_id?: string | null;
+                source_kind?: string | null;
                 workspace_id?: string | null;
             };
             header?: never;
@@ -15559,7 +15593,10 @@ export interface operations {
     solve_optimization_problem_api_v2_solve__post: {
         parameters: {
             query?: {
+                origin?: string | null;
                 solver_name?: string | null;
+                source_id?: string | null;
+                source_kind?: string | null;
                 workspace_id?: string | null;
             };
             header?: never;
@@ -15726,7 +15763,10 @@ export interface operations {
     solve_optimization_problem_async_api_v2_solve_async_post: {
         parameters: {
             query?: {
+                origin?: string | null;
                 solver_name?: string | null;
+                source_id?: string | null;
+                source_kind?: string | null;
                 workspace_id?: string | null;
             };
             header?: never;
@@ -15886,6 +15926,39 @@ export interface operations {
             };
         };
     };
+    export_model: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fmt: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OptimizationProblem-Input"];
+            };
+        };
+        responses: {
+            /** @description File download */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Invalid problem or unsupported format */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     import_and_solve: {
         parameters: {
             query?: never;
@@ -16008,7 +16081,10 @@ export interface operations {
     solve_multi_objective: {
         parameters: {
             query?: {
+                origin?: string | null;
                 solver_name?: string | null;
+                source_id?: string | null;
+                source_kind?: string | null;
                 workspace_id?: string | null;
             };
             header?: never;

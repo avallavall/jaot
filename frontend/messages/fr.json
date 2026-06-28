@@ -3011,7 +3011,8 @@
       "pageOf": "Page {page} sur {totalPages}",
       "previous": "Précédent",
       "next": "Suivant",
-      "failedToLoad": "Échec du chargement des exécutions"
+      "failedToLoad": "Échec du chargement des exécutions",
+      "openSource": "Ouvrir l'origine"
     },
     "execution": {
       "title": "Détails de l'exécution",
@@ -3343,7 +3344,14 @@
       "triggered": "Déclenchée",
       "triggeredRun": "Exécution déclenchée",
       "triggerName": "Déclencheur : {name}",
-      "manual": "Manuelle"
+      "manual": "Manuelle",
+      "visual_builder": "Éditeur visuel",
+      "ai_builder": "Assistant IA",
+      "template": "Modèle",
+      "import": "Import",
+      "marketplace": "Marketplace",
+      "api": "API",
+      "mcp": "MCP"
     },
     "sensitivity": {
       "upgradeMessage": "L'analyse de sensibilité montre comment les modifications des contraintes affectent votre solution optimale.",

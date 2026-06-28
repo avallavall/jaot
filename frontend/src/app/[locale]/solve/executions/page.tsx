@@ -7,12 +7,15 @@ import { getErrorMessage } from "@/lib/errors";
 import { Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { useCommonLabels } from "@/hooks/useCommonLabels";
 import { OriginBadge } from "@/components/solve/OriginBadge";
+import { executionOriginHref } from "@/lib/execution-origin";
 import { EmptyState } from "@/components/guidance/EmptyState";
 
 export default function ExecutionsPage() {
   const t = useTranslations("solve.executions");
+  const tOrigin = useTranslations("solve.origin");
   const { statusLabel } = useCommonLabels();
   const router = useRouter();
   const [executions, setExecutions] = useState<ModelExecution[]>([]);
@@ -94,6 +97,11 @@ export default function ExecutionsPage() {
           className="px-3 py-2 rounded-md border bg-background text-sm"
         >
           <option value="">{t("allOrigins")}</option>
+          <option value="visual_builder">{tOrigin("visual_builder")}</option>
+          <option value="ai_builder">{tOrigin("ai_builder")}</option>
+          <option value="template">{tOrigin("template")}</option>
+          <option value="import">{tOrigin("import")}</option>
+          <option value="marketplace">{tOrigin("marketplace")}</option>
           <option value="manual">{t("manual")}</option>
           <option value="triggered">{t("triggered")}</option>
         </select>
@@ -152,9 +160,16 @@ export default function ExecutionsPage() {
                       >
                         {exec.organization_model_id.slice(0, 8)}...
                       </button>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">{t("external")}</span>
-                    )}
+                    ) : (() => {
+                      const href = executionOriginHref(exec.origin, exec.source_id);
+                      return href ? (
+                        <Link href={href} className="text-sm text-primary hover:underline">
+                          {t("openSource")}
+                        </Link>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">{t("external")}</span>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3 text-sm">
                     {exec.status === "completed" && exec.result_data?.objective_value != null ? (

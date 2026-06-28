@@ -3011,7 +3011,8 @@
       "pageOf": "Pàgina {page} de {totalPages}",
       "previous": "Anterior",
       "next": "Següent",
-      "failedToLoad": "Error en carregar les execucions"
+      "failedToLoad": "Error en carregar les execucions",
+      "openSource": "Obrir origen"
     },
     "execution": {
       "title": "Detalls de l'Execució",
@@ -3343,7 +3344,14 @@
       "triggered": "Per trigger",
       "triggeredRun": "Execució per trigger",
       "triggerName": "Trigger: {name}",
-      "manual": "Manual"
+      "manual": "Manual",
+      "visual_builder": "Editor visual",
+      "ai_builder": "Assistent IA",
+      "template": "Plantilla",
+      "import": "Importació",
+      "marketplace": "Marketplace",
+      "api": "API",
+      "mcp": "MCP"
     },
     "sensitivity": {
       "upgradeMessage": "L'anàlisi de sensibilitat mostra com els canvis en les restriccions afecten la vostra solució òptima.",
