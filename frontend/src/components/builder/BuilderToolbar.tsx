@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Sparkles } from "lucide-react";
 import { serializeToOptimizationProblem } from "@/lib/builder/serializer";
+import { ExportModelButton } from "@/components/solve/ExportModelButton";
 import { deserializeFromOptimizationProblem } from "@/lib/builder/deserializer";
 import { diffCanvasJson } from "@/lib/builder/diff";
 import { api } from "@/lib/api";
@@ -439,6 +440,19 @@ export function BuilderToolbar({ documentId, onHelpClick }: BuilderToolbarProps)
         >
           {t("toolbar.import")}
         </Button>
+
+        <ExportModelButton
+          getProblem={() => {
+            try {
+              return serializeToOptimizationProblem(nodes, edges);
+            } catch {
+              return null;
+            }
+          }}
+          filenameBase={documentName || "model"}
+          variant="ghost"
+          disabled={nodes.length === 0}
+        />
 
         {effectiveDocId && (
           <VersionDropdown

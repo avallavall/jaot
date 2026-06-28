@@ -190,4 +190,30 @@ describe("ApiClient", () => {
       expect(url).not.toContain("source_kind=");
     });
   });
+
+  describe("fileExport.exportModel", () => {
+    const problem = {
+      name: "t",
+      variables: [],
+      objective: { sense: "maximize" as const, expression: "x" },
+      constraints: [],
+    };
+
+    it("POSTs the problem to the model-export endpoint and returns a blob", async () => {
+      const blob = new Blob(["MODEL"], { type: "application/x-mps" });
+      const spy = vi.spyOn(global, "fetch").mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        blob: async () => blob,
+      } as unknown as Response);
+      localStorage.setItem("jaot_api_key", "ok_test_key");
+
+      const result = await api.fileExport.exportModel(problem, "mps");
+
+      const [url, init] = spy.mock.calls[0];
+      expect(url).toContain("/api/v2/solve/export/model/mps");
+      expect((init as RequestInit).method).toBe("POST");
+      expect(result).toBe(blob);
+    });
+  });
 });

@@ -1352,6 +1352,33 @@ export const api = {
 
       return res.blob();
     },
+
+    /** Export a MODEL (no solve needed) in a standard format. fmt: mps|lp|cip|json. */
+    async exportModel(problem: OptimizationProblem, fmt: string): Promise<Blob> {
+      const url = buildUrl(`/api/v2/solve/export/model/${fmt}`);
+      const doFetch = async (): Promise<Response> =>
+        fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...authHeaders() },
+          credentials: "include",
+          body: JSON.stringify(problem),
+        });
+
+      let res = await doFetch();
+
+      if (res.status === 401) {
+        await refreshAccessToken();
+        res = await doFetch();
+      }
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const detail = typeof body.detail === "string" ? body.detail : undefined;
+        throw new ApiError(res.status, detail || `Export failed (${res.status})`, detail);
+      }
+
+      return res.blob();
+    },
   },
 
   solveAnalytics: {
