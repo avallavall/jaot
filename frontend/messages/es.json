@@ -974,7 +974,8 @@
       "saveError": "Error al guardar",
       "helpTutorial": "Tutorial",
       "noEditPermission": "Tu rol ({role}) no tiene permiso para guardar modelos. Contacta con el administrador de tu espacio de trabajo para obtener el rol de Editor.",
-      "noSolvePermission": "Tu rol ({role}) no tiene permiso para ejecutar resoluciones. Contacta con el administrador de tu espacio de trabajo para obtener el rol de Solucionador."
+      "noSolvePermission": "Tu rol ({role}) no tiene permiso para ejecutar resoluciones. Contacta con el administrador de tu espacio de trabajo para obtener el rol de Solucionador.",
+      "importModelTooltip": "Importar un modelo (JSON, MPS, LP, CIP)"
     },
     "onboarding": {
       "ariaLabel": "Tutorial del constructor",

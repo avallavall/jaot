@@ -974,7 +974,8 @@
       "saveError": "Error en desar",
       "helpTutorial": "Tutorial",
       "noEditPermission": "El teu rol ({role}) no té permís per desar models. Contacta amb l'administrador del teu espai de treball per obtenir el rol d'Editor.",
-      "noSolvePermission": "El teu rol ({role}) no té permís per executar resolucions. Contacta amb l'administrador del teu espai de treball per obtenir el rol de Solucionador."
+      "noSolvePermission": "El teu rol ({role}) no té permís per executar resolucions. Contacta amb l'administrador del teu espai de treball per obtenir el rol de Solucionador.",
+      "importModelTooltip": "Importa un model (JSON, MPS, LP, CIP)"
     },
     "onboarding": {
       "ariaLabel": "Tutorial del constructor",

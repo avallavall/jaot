@@ -974,7 +974,8 @@
       "saveError": "Échec de l'enregistrement",
       "helpTutorial": "Tutoriel",
       "noEditPermission": "Votre rôle ({role}) ne vous permet pas d'enregistrer des modèles. Contactez l'administrateur de votre espace de travail pour obtenir le rôle Éditeur.",
-      "noSolvePermission": "Votre rôle ({role}) ne vous permet pas d'exécuter des résolutions. Contactez l'administrateur de votre espace de travail pour obtenir le rôle Solveur."
+      "noSolvePermission": "Votre rôle ({role}) ne vous permet pas d'exécuter des résolutions. Contactez l'administrateur de votre espace de travail pour obtenir le rôle Solveur.",
+      "importModelTooltip": "Importer un modèle (JSON, MPS, LP, CIP)"
     },
     "onboarding": {
       "ariaLabel": "Tutoriel du constructeur",

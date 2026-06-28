@@ -974,7 +974,8 @@
       "unsavedChanges": "Unsaved changes",
       "lastSaved": "Saved {time} ago",
       "saveError": "Save failed",
-      "helpTutorial": "Tutorial"
+      "helpTutorial": "Tutorial",
+      "importModelTooltip": "Import a model (JSON, MPS, LP, CIP)"
     },
     "onboarding": {
       "ariaLabel": "Builder tutorial",

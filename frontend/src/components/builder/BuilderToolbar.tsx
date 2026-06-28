@@ -303,48 +303,68 @@ export function BuilderToolbar({ documentId, onHelpClick }: BuilderToolbarProps)
     fileInputRef.current?.click();
   }, []);
 
+  const applyImportedProblem = useCallback(
+    (problem: OptimizationProblem, baseName: string) => {
+      if (!problem.variables || !problem.objective) {
+        toast.error(t("toolbar.importInvalid"));
+        return;
+      }
+
+      const { nodes: importedNodes, edges: importedEdges } =
+        deserializeFromOptimizationProblem(problem);
+
+      useBuilderStore.getState().reset();
+      setDocument("new", baseName, importedNodes, importedEdges);
+
+      if (documentId === "new") {
+        // Already on /builder/new — force ReactFlow to pick up new nodes.
+        reactFlowInstance.setNodes(importedNodes);
+        reactFlowInstance.setEdges(importedEdges);
+        setTimeout(() => reactFlowInstance.fitView({ padding: 0.2 }), 50);
+      } else {
+        router.push("/builder/new");
+      }
+
+      toast.success(t("toolbar.importSuccess", { count: importedNodes.length }));
+    },
+    [setDocument, router, documentId, reactFlowInstance, t]
+  );
+
   const handleFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
+      // Reset input so the same file can be re-imported.
+      e.target.value = "";
       if (!file) return;
+
+      const baseName = file.name.replace(/\.(json|mps|lp|cip)(\.gz)?$/i, "");
+
+      // Standard solver formats are parsed server-side, then deserialized to the
+      // canvas via the same path as the builder's own JSON (a flat
+      // OptimizationProblem). JSON is parsed locally to avoid a round-trip.
+      if (/\.(mps|lp|cip)(\.gz)?$/i.test(file.name)) {
+        try {
+          const preview = await api.fileImport.preview(file);
+          applyImportedProblem(preview.problem as OptimizationProblem, baseName);
+        } catch (err) {
+          toast.error(getErrorMessage(err, t("toolbar.importParseFailed")));
+        }
+        return;
+      }
 
       const reader = new FileReader();
       reader.onload = (ev) => {
         try {
           const text = ev.target?.result as string;
           const problem = JSON.parse(text) as OptimizationProblem;
-
-          if (!problem.variables || !problem.objective) {
-            toast.error(t("toolbar.importInvalid"));
-            return;
-          }
-
-          const { nodes: importedNodes, edges: importedEdges } =
-            deserializeFromOptimizationProblem(problem);
-
-          useBuilderStore.getState().reset();
-          setDocument("new", file.name.replace(".json", ""), importedNodes, importedEdges);
-
-          if (documentId === "new") {
-            // Already on /builder/new — force ReactFlow to pick up new nodes.
-            reactFlowInstance.setNodes(importedNodes);
-            reactFlowInstance.setEdges(importedEdges);
-            setTimeout(() => reactFlowInstance.fitView({ padding: 0.2 }), 50);
-          } else {
-            router.push("/builder/new");
-          }
-
-          toast.success(t("toolbar.importSuccess", { count: importedNodes.length }));
+          applyImportedProblem(problem, baseName);
         } catch {
           toast.error(t("toolbar.importParseFailed"));
         }
       };
       reader.readAsText(file);
-
-      // Reset input so the same file can be re-imported.
-      e.target.value = "";
     },
-    [setDocument, router, documentId, reactFlowInstance, t]
+    [applyImportedProblem, t]
   );
 
   const effectiveDocId = storeDocId ?? (documentId !== "new" ? documentId : null);
@@ -435,7 +455,7 @@ export function BuilderToolbar({ documentId, onHelpClick }: BuilderToolbarProps)
           variant="ghost"
           size="sm"
           onClick={handleImportClick}
-          title={t("toolbar.importJson")}
+          title={t("toolbar.importModelTooltip")}
           className="h-8 px-2 text-xs"
         >
           {t("toolbar.import")}
@@ -466,7 +486,7 @@ export function BuilderToolbar({ documentId, onHelpClick }: BuilderToolbarProps)
         <input
           ref={fileInputRef}
           type="file"
-          accept=".json,application/json"
+          accept=".json,.mps,.lp,.cip,.gz,application/json"
           onChange={handleFileChange}
           className="hidden"
           aria-hidden="true"

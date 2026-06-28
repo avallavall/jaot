@@ -974,7 +974,8 @@
       "saveError": "Speichern fehlgeschlagen",
       "helpTutorial": "Tutorial",
       "noEditPermission": "Ihre Rolle ({role}) hat keine Berechtigung, Modelle zu speichern. Kontaktieren Sie Ihren Workspace-Administrator, um die Editor-Rolle zu erhalten.",
-      "noSolvePermission": "Ihre Rolle ({role}) hat keine Berechtigung, Lösungen auszuführen. Kontaktieren Sie Ihren Workspace-Administrator, um die Solver-Rolle zu erhalten."
+      "noSolvePermission": "Ihre Rolle ({role}) hat keine Berechtigung, Lösungen auszuführen. Kontaktieren Sie Ihren Workspace-Administrator, um die Solver-Rolle zu erhalten.",
+      "importModelTooltip": "Modell importieren (JSON, MPS, LP, CIP)"
     },
     "onboarding": {
       "ariaLabel": "Builder-Tutorial",
