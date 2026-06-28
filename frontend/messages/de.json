@@ -1090,6 +1090,7 @@
       "fieldRequired": "{field} ist erforderlich",
       "atLeastOneItem": "Mindestens ein Element ist erforderlich",
       "mustBeNumber": "Muss eine gültige Zahl sein",
+      "exportValidationFailed": "Füllen Sie die erforderlichen Felder aus, bevor Sie das Modell exportieren.",
       "minimumValue": "Mindestwert ist {min}",
       "maximumValue": "Höchstwert ist {max}"
     },

@@ -1090,6 +1090,7 @@
       "fieldRequired": "{field} és obligatori",
       "atLeastOneItem": "Es requereix almenys un element",
       "mustBeNumber": "Ha de ser un número vàlid",
+      "exportValidationFailed": "Emplena els camps obligatoris abans d'exportar el model.",
       "minimumValue": "El valor mínim és {min}",
       "maximumValue": "El valor màxim és {max}"
     },

@@ -10,8 +10,9 @@
  * assertion checks the actual translated copy.
  */
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeAll } from "vitest";
 import { DynamicFormRenderer } from "../DynamicFormRenderer";
 import type { FieldSchema } from "../FormFieldRenderer";
 
@@ -95,5 +96,41 @@ describe("DynamicFormRenderer — export model action", () => {
     expect(
       screen.queryByRole("button", { name: /download model/i })
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("DynamicFormRenderer — export validates before previewing", () => {
+  // radix DropdownMenu relies on pointer-capture / scrollIntoView, absent in jsdom.
+  beforeAll(() => {
+    Element.prototype.hasPointerCapture = Element.prototype.hasPointerCapture ?? (() => false);
+    Element.prototype.setPointerCapture = Element.prototype.setPointerCapture ?? (() => {});
+    Element.prototype.releasePointerCapture =
+      Element.prototype.releasePointerCapture ?? (() => {});
+    Element.prototype.scrollIntoView = Element.prototype.scrollIntoView ?? (() => {});
+  });
+
+  it("blocks export and surfaces field errors when required input is missing", async () => {
+    const getExportProblem = vi.fn();
+    const fields: FieldSchema[] = [
+      { name: "budget", type: "number", label: "Budget", required: true } as FieldSchema,
+    ];
+    const user = userEvent.setup();
+
+    renderWithIntl(
+      <DynamicFormRenderer
+        inputFields={fields}
+        exampleInput={{ budget: 100 }}
+        onSubmit={vi.fn()}
+        getExportProblem={getExportProblem}
+        exportFilenameBase="cflp"
+      />
+    );
+
+    // Form left empty → export must validate first and never hit the preview.
+    await user.click(screen.getByRole("button", { name: /download model/i }));
+    await user.click(await screen.findByRole("menuitem", { name: /mps format/i }));
+
+    expect(await screen.findByText("Budget is required")).toBeInTheDocument();
+    expect(getExportProblem).not.toHaveBeenCalled();
   });
 });

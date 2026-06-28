@@ -1090,6 +1090,7 @@
       "fieldRequired": "{field} es obligatorio",
       "atLeastOneItem": "Se requiere al menos un elemento",
       "mustBeNumber": "Debe ser un número válido",
+      "exportValidationFailed": "Rellena los campos obligatorios antes de exportar el modelo.",
       "minimumValue": "El valor mínimo es {min}",
       "maximumValue": "El valor máximo es {max}"
     },

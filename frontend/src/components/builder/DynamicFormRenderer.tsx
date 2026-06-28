@@ -221,7 +221,17 @@ export function DynamicFormRenderer({
             </Button>
             {getExportProblem && (
               <ExportModelButton
-                getProblem={() => getExportProblem(collectCleanValues())}
+                getProblem={() => {
+                  // Validate like Solve does: an incomplete form surfaces field
+                  // errors instead of firing a doomed preview that 500s on the
+                  // server (e.g. exporting a template with no rows filled in).
+                  const validationErrors = validate(inputFields, values, t);
+                  if (Object.keys(validationErrors).length > 0) {
+                    setErrors(validationErrors);
+                    throw new Error(t("templateForm.exportValidationFailed"));
+                  }
+                  return getExportProblem(collectCleanValues());
+                }}
                 filenameBase={exportFilenameBase}
                 variant="outline"
                 size="sm"
