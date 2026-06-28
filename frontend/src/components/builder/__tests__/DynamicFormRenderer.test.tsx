@@ -62,3 +62,38 @@ describe("DynamicFormRenderer — empty input_fields", () => {
     expect(screen.getByRole("button", { name: /solve/i })).toBeInTheDocument();
   });
 });
+
+describe("DynamicFormRenderer — export model action", () => {
+  const fields: FieldSchema[] = [
+    { name: "budget", type: "number", label: "Budget", required: true } as FieldSchema,
+  ];
+
+  it("renders the export trigger when getExportProblem is provided", () => {
+    renderWithIntl(
+      <DynamicFormRenderer
+        inputFields={fields}
+        exampleInput={{ budget: 100 }}
+        onSubmit={vi.fn()}
+        getExportProblem={vi.fn().mockResolvedValue(null)}
+      />
+    );
+
+    expect(
+      screen.getByRole("button", { name: /download model/i })
+    ).toBeInTheDocument();
+  });
+
+  it("omits the export trigger when getExportProblem is not provided", () => {
+    renderWithIntl(
+      <DynamicFormRenderer
+        inputFields={fields}
+        exampleInput={{ budget: 100 }}
+        onSubmit={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /download model/i })
+    ).not.toBeInTheDocument();
+  });
+});

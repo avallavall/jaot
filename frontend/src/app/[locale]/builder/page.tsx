@@ -4,8 +4,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import type { BuilderDocumentListItem, OptimizationProblem } from "@/lib/types";
+import type { BuilderDocumentListItem } from "@/lib/types";
 import { deserializeFromOptimizationProblem } from "@/lib/builder/deserializer";
+import { parseModelFile } from "@/lib/builder/import-model";
+import { getErrorMessage } from "@/lib/errors";
 import { useBuilderStore } from "@/hooks/useBuilderStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
@@ -182,32 +184,28 @@ export default function BuilderHomePage() {
   }, []);
 
   const handleFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
+      // Reset input so the same file can be re-imported.
+      e.target.value = "";
       if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        try {
-          const text = ev.target?.result as string;
-          const problem = JSON.parse(text) as OptimizationProblem;
+      try {
+        const { problem, baseName } = await parseModelFile(file);
 
-          if (!problem.variables || !problem.objective) {
-            toast.error(t("list.importInvalid"));
-            return;
-          }
-
-          const { nodes, edges } = deserializeFromOptimizationProblem(problem);
-          reset();
-          setDocument("new", file.name.replace(".json", ""), nodes, edges);
-          router.push("/builder/new");
-          toast.success(t("list.importSuccess", { count: nodes.length }));
-        } catch {
-          toast.error(t("list.importParseFailed"));
+        if (!problem.variables || !problem.objective) {
+          toast.error(t("list.importInvalid"));
+          return;
         }
-      };
-      reader.readAsText(file);
-      e.target.value = "";
+
+        const { nodes, edges } = deserializeFromOptimizationProblem(problem);
+        reset();
+        setDocument("new", baseName, nodes, edges);
+        router.push("/builder/new");
+        toast.success(t("list.importSuccess", { count: nodes.length }));
+      } catch (err) {
+        toast.error(getErrorMessage(err, t("list.importParseFailed")));
+      }
     },
     [reset, setDocument, router, t]
   );
@@ -224,7 +222,7 @@ export default function BuilderHomePage() {
         <TooltipProvider>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleImportClick}>
-              {t("list.importJson")}
+              {t("list.importModel")}
             </Button>
             <Button onClick={() => router.push("/builder/templates")}>
               {t("list.templates")}
@@ -250,7 +248,7 @@ export default function BuilderHomePage() {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".json,application/json"
+        accept=".json,.mps,.lp,.cip,.gz,application/json"
         onChange={handleFileChange}
         className="hidden"
         aria-hidden="true"

@@ -29,6 +29,7 @@ import { Sparkles } from "lucide-react";
 import { serializeToOptimizationProblem } from "@/lib/builder/serializer";
 import { ExportModelButton } from "@/components/solve/ExportModelButton";
 import { deserializeFromOptimizationProblem } from "@/lib/builder/deserializer";
+import { parseModelFile } from "@/lib/builder/import-model";
 import { diffCanvasJson } from "@/lib/builder/diff";
 import { api } from "@/lib/api";
 import { getErrorMessage, getErrorStatus } from "@/lib/errors";
@@ -337,32 +338,12 @@ export function BuilderToolbar({ documentId, onHelpClick }: BuilderToolbarProps)
       e.target.value = "";
       if (!file) return;
 
-      const baseName = file.name.replace(/\.(json|mps|lp|cip)(\.gz)?$/i, "");
-
-      // Standard solver formats are parsed server-side, then deserialized to the
-      // canvas via the same path as the builder's own JSON (a flat
-      // OptimizationProblem). JSON is parsed locally to avoid a round-trip.
-      if (/\.(mps|lp|cip)(\.gz)?$/i.test(file.name)) {
-        try {
-          const preview = await api.fileImport.preview(file);
-          applyImportedProblem(preview.problem as OptimizationProblem, baseName);
-        } catch (err) {
-          toast.error(getErrorMessage(err, t("toolbar.importParseFailed")));
-        }
-        return;
+      try {
+        const { problem, baseName } = await parseModelFile(file);
+        applyImportedProblem(problem, baseName);
+      } catch (err) {
+        toast.error(getErrorMessage(err, t("toolbar.importParseFailed")));
       }
-
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        try {
-          const text = ev.target?.result as string;
-          const problem = JSON.parse(text) as OptimizationProblem;
-          applyImportedProblem(problem, baseName);
-        } catch {
-          toast.error(t("toolbar.importParseFailed"));
-        }
-      };
-      reader.readAsText(file);
     },
     [applyImportedProblem, t]
   );

@@ -142,6 +142,8 @@ export function TemplateFormPage({ templateId, templateName }: TemplateFormPageP
           scenarioDescription={template.scenario_description}
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
+          getExportProblem={(values) => api.previewTemplate(templateId, values)}
+          exportFilenameBase={displayName}
         />
       </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { Download, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { Download, ChevronDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,9 +16,19 @@ import { downloadBlobAsFile } from "@/lib/download";
 import { getErrorMessage } from "@/lib/errors";
 import type { OptimizationProblem } from "@/lib/types";
 
+/**
+ * Produce the problem to export. May be synchronous (builder canvas / AI
+ * formulation already hold the problem) or async (template/model surfaces that
+ * must render the problem via a preview call first). Returns null when there's
+ * nothing exportable yet.
+ */
+type ProblemProvider = () =>
+  | OptimizationProblem
+  | null
+  | Promise<OptimizationProblem | null>;
+
 interface ExportModelButtonProps {
-  /** Lazily produce the problem to export; return null when there's nothing yet. */
-  getProblem: () => OptimizationProblem | null;
+  getProblem: ProblemProvider;
   filenameBase?: string;
   disabled?: boolean;
   size?: "sm" | "default";
@@ -41,26 +52,35 @@ export function ExportModelButton({
   variant = "outline",
 }: ExportModelButtonProps) {
   const t = useTranslations("solve.export");
+  const [busy, setBusy] = useState(false);
 
   const handleExport = async (fmt: (typeof MODEL_FORMATS)[number]) => {
-    const problem = getProblem();
-    if (!problem) {
-      toast.error(t("downloadFailed"));
-      return;
-    }
+    setBusy(true);
     try {
+      // getProblem may run a preview call (template/model surfaces), so await it.
+      const problem = await getProblem();
+      if (!problem) {
+        toast.error(t("downloadFailed"));
+        return;
+      }
       const blob = await api.fileExport.exportModel(problem, fmt);
       downloadBlobAsFile(blob, `${filenameBase}.${fmt}`);
     } catch (err) {
       toast.error(getErrorMessage(err, t("downloadFailed")));
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant={variant} size={size} disabled={disabled}>
-          <Download className="h-4 w-4 mr-2" />
+        <Button variant={variant} size={size} disabled={disabled || busy}>
+          {busy ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4 mr-2" />
+          )}
           {t("downloadModel")}
           <ChevronDown className="h-3 w-3 ml-1" />
         </Button>

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ExecutionProgress } from "@/components/ExecutionProgress";
 import { SolverSelect } from "@/components/solve/SolverSelect";
+import { ExportModelButton } from "@/components/solve/ExportModelButton";
 import { SolutionExplainer } from "@/components/solve/SolutionExplainer";
 import { InfeasibilityPanel } from "@/components/solve/InfeasibilityPanel";
 import { WarmStartDropdown, WarmStartCandidateInfo } from "@/components/solve/WarmStartDropdown";
@@ -352,6 +353,20 @@ export default function RunModelPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <ExportModelButton
+            getProblem={async () => {
+              // Render the model with the current input so the export is the
+              // exact problem that would be solved. Invalid/partial JSON → null.
+              try {
+                return await api.previewModel(modelId, JSON.parse(inputJson));
+              } catch {
+                return null;
+              }
+            }}
+            filenameBase={model.display_name}
+            variant="outline"
+            size="sm"
+          />
           <Button variant="outline" size="sm" onClick={() => router.push(`/solve/${modelId}/history`)}>
             <Clock className="w-4 h-4 mr-1.5" />
             {t("history")}

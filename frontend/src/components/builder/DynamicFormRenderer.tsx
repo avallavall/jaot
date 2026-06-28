@@ -8,6 +8,8 @@ import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormFieldRenderer, type FieldSchema } from "./FormFieldRenderer";
+import { ExportModelButton } from "@/components/solve/ExportModelButton";
+import type { OptimizationProblem } from "@/lib/types";
 import { useTranslations } from "next-intl";
 
 export interface DynamicFormRendererProps {
@@ -21,6 +23,16 @@ export interface DynamicFormRendererProps {
   onSubmit: (data: Record<string, unknown>) => Promise<void>;
   /** Whether a submit is in progress */
   isSubmitting?: boolean;
+  /**
+   * When provided, an "Export model" action renders alongside the form,
+   * rendering the model from the current input (without solving) so it can be
+   * downloaded in a standard format. Receives the cleaned form values.
+   */
+  getExportProblem?: (
+    values: Record<string, unknown>
+  ) => Promise<OptimizationProblem | null>;
+  /** Filename stem for the exported model (defaults to "model"). */
+  exportFilenameBase?: string;
 }
 
 function buildEmptyValues(fields: FieldSchema[]): Record<string, unknown> {
@@ -84,6 +96,8 @@ export function DynamicFormRenderer({
   scenarioDescription,
   onSubmit,
   isSubmitting = false,
+  getExportProblem,
+  exportFilenameBase = "model",
 }: DynamicFormRendererProps) {
   const t = useTranslations("builder");
   const [values, setValues] = useState<Record<string, unknown>>(() =>
@@ -128,6 +142,18 @@ export function DynamicFormRenderer({
     setExampleLoaded(false);
   }, [inputFields]);
 
+  // Drop undefined values so the payload matches what the backend expects.
+  const collectCleanValues = useCallback((): Record<string, unknown> => {
+    const cleanData: Record<string, unknown> = {};
+    for (const field of inputFields) {
+      const val = values[field.name];
+      if (val !== undefined) {
+        cleanData[field.name] = val;
+      }
+    }
+    return cleanData;
+  }, [inputFields, values]);
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -137,17 +163,9 @@ export function DynamicFormRenderer({
         setErrors(validationErrors);
         return;
       }
-      // Clean up undefined values
-      const cleanData: Record<string, unknown> = {};
-      for (const field of inputFields) {
-        const val = values[field.name];
-        if (val !== undefined) {
-          cleanData[field.name] = val;
-        }
-      }
-      await onSubmit(cleanData);
+      await onSubmit(collectCleanValues());
     },
-    [inputFields, values, onSubmit, t]
+    [inputFields, values, onSubmit, collectCleanValues, t]
   );
 
   // A model/template with no input fields has no form to render. Show a clear
@@ -201,6 +219,15 @@ export function DynamicFormRenderer({
             >
               {t("templateForm.clearAll")}
             </Button>
+            {getExportProblem && (
+              <ExportModelButton
+                getProblem={() => getExportProblem(collectCleanValues())}
+                filenameBase={exportFilenameBase}
+                variant="outline"
+                size="sm"
+                disabled={isSubmitting}
+              />
+            )}
           </div>
 
           {inputFields.map((field) => (

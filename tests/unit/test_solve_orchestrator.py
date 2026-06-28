@@ -65,6 +65,9 @@ def _make_result(status: SolverStatus = SolverStatus.OPTIMAL) -> MagicMock:
     result.credits_used = None
     result.credits_remaining = None
     result.sensitivity = None
+    # Recorded into the ModelExecution row by _record_execution; OPTIMAL solves
+    # carry a value, error/infeasible ones don't.
+    result.objective_value = 42.0 if status == SolverStatus.OPTIMAL else None
     return result
 
 
