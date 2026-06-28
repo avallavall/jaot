@@ -223,17 +223,39 @@ export default function RunModelPage() {
     }
   };
 
-  const handleAsyncComplete = (statusData: Record<string, unknown>) => {
+  const handleAsyncComplete = async (statusData: Record<string, unknown>) => {
     setExecuting(false);
     setAsyncExecutionId(null);
+
+    const executionId =
+      (statusData.execution_id as string) || asyncExecutionId || "";
+
+    // Fetch the canonical execution record so an async result has the SAME shape
+    // as a sync solve: top-level `solver_status` + `result_data.variables`. The
+    // async status payload's inline `result` is a trimmed dict (model,
+    // objective_value, solver_status, solve_time_seconds) with no `variables`,
+    // which would hide the solution explainer — deriveExplainState needs both.
+    if (executionId) {
+      try {
+        const execution = await api.getExecution(executionId);
+        setResult(execution);
+        setWarmStartRefreshKey((k) => k + 1);
+        return;
+      } catch {
+        // Fall through to the inline payload if the canonical fetch fails.
+      }
+    }
 
     const modelResult = statusData.result as Record<string, unknown> | undefined;
     const creditsUsed = statusData.credits_used as number;
     const executionTimeMs = statusData.execution_time_ms as number;
 
     setResult({
-      id: (statusData.execution_id as string) || asyncExecutionId || '',
+      id: executionId,
       status: 'completed',
+      // Surface the inline solver_status at the top level so deriveExplainState's
+      // infeasibility gating still works in this degraded fallback path.
+      solver_status: (modelResult?.solver_status as string) ?? null,
       result_data: modelResult || {},
       credits_consumed: creditsUsed || 0,
       execution_time_ms: executionTimeMs,
