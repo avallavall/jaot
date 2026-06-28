@@ -11,6 +11,7 @@ import {
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { downloadBlobAsFile } from "@/lib/download";
 import { getErrorMessage } from "@/lib/errors";
 import type { OptimizationProblem } from "@/lib/types";
 
@@ -49,12 +50,7 @@ export function ExportModelButton({
     }
     try {
       const blob = await api.fileExport.exportModel(problem, fmt);
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = `${filenameBase}.${fmt}`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+      downloadBlobAsFile(blob, `${filenameBase}.${fmt}`);
     } catch (err) {
       toast.error(getErrorMessage(err, t("downloadFailed")));
     }

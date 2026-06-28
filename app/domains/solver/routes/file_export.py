@@ -40,6 +40,17 @@ def _safe_filename(name: str, ext: str) -> str:
     return f"{clean}.{ext}"
 
 
+def _validate_fmt(fmt: str, allowed: frozenset[str]) -> str:
+    """Normalise and validate an export format, raising 422 if unsupported."""
+    fmt = fmt.lower().strip()
+    if fmt not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Unsupported format: '{fmt}'. Supported: {', '.join(sorted(allowed))}",
+        )
+    return fmt
+
+
 @router.get(
     "/{execution_id}/{fmt}",
     operation_id="export_execution",
@@ -62,12 +73,7 @@ async def export_execution(
     Solver formats (mps, lp, cip) rebuild the SCIP model and write to file.
     Text formats (sol, csv, json) are generated in memory.
     """
-    fmt = fmt.lower().strip()
-    if fmt not in ALL_EXPORT_FORMATS:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Unsupported format: '{fmt}'. Supported: {', '.join(sorted(ALL_EXPORT_FORMATS))}",
-        )
+    fmt = _validate_fmt(fmt, ALL_EXPORT_FORMATS)
 
     execution = load_execution(db, execution_id, org.id)
     problem = parse_problem(execution)
@@ -169,15 +175,7 @@ async def export_model(
     # Lazy import avoids any route<->orchestrator import-time coupling.
     from app.services.solve_orchestrator import validate_problem
 
-    fmt = fmt.lower().strip()
-    if fmt not in MODEL_EXPORT_FORMATS:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=(
-                f"Unsupported model export format: '{fmt}'. "
-                f"Supported: {', '.join(sorted(MODEL_EXPORT_FORMATS))}"
-            ),
-        )
+    fmt = _validate_fmt(fmt, MODEL_EXPORT_FORMATS)
 
     validate_problem(problem)  # clean 400 on undefined-variable references etc.
     exporter = get_file_export_service()

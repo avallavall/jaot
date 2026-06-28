@@ -128,7 +128,9 @@ class ExecutionSource:
         """
         clean_origin = origin if origin in VALID_ORIGINS else ORIGIN_MANUAL
         clean_kind = source_kind if source_kind in VALID_SOURCE_KINDS else None
-        clean_id = (source_id[:_SOURCE_ID_MAX_LEN] if source_id else None) if clean_kind else None
+        clean_id = None
+        if clean_kind and source_id:
+            clean_id = source_id[:_SOURCE_ID_MAX_LEN]
         return cls(origin=clean_origin, source_kind=clean_kind, source_id=clean_id)
 
 
@@ -358,43 +360,47 @@ class SolveOrchestrator:
 
         return result
 
-    def _persist_sync_execution(
+    def _persist_execution(
         self,
+        *,
         execution_id: str,
         problem: OptimizationProblem,
-        result: OptimizationResult,
         org: Organization,
         user: object | None,
         credits_needed: int,
         elapsed_ms: int,
+        result_data: dict[str, Any] | None,
+        status: str,
+        solver_status: str | None,
+        source: ExecutionSource,
         solver_name: str | None = None,
         auto_route_reason: str | None = None,
-        source: ExecutionSource = _DEFAULT_SOURCE,
+        objective_value: float | None = None,
+        error_message: str | None = None,
     ) -> None:
-        """Insert a ModelExecution row for a completed synchronous solve.
+        """Insert a completed-solve ModelExecution row (single DB-writing path).
 
-        DB errors are logged and rolled back — the response still returns the
-        OptimizationResult; only the executions detail page is affected.
+        Shared by every synchronous solve flavour (single / template / multi-
+        objective). Best-effort: DB errors are logged and rolled back — the
+        response still returns the result; only the executions detail page is
+        affected.
         """
         try:
-            solver_status = result.status.value
             now = utcnow()
             row = ModelExecution(
                 id=execution_id,
                 organization_id=org.id,
                 executed_by_user_id=getattr(user, "id", None),
                 input_data=problem.model_dump(mode="json"),
-                result_data=result.to_result_data(),
-                status="failed" if solver_status == "error" else "completed",
-                error_message=result.error_message,
+                result_data=result_data,
+                status=status,
+                error_message=error_message,
                 execution_time_ms=elapsed_ms,
                 solver_status=solver_status,
                 solver_name=solver_name or DEFAULT_SOLVER_NAME,
-                # Phase 7.4 / D-13: persist auto-routing decision slug.
-                # DB column added by Plan 09 migration; write is harmless
-                # until then because the column is nullable.
+                # Phase 7.4 / D-13: auto-routing decision slug (nullable column).
                 auto_route_reason=auto_route_reason,
-                objective_value=result.objective_value,
+                objective_value=objective_value,
                 credits_consumed=credits_needed,
                 credits_base=credits_needed,
                 origin=source.origin,
@@ -408,12 +414,40 @@ class SolveOrchestrator:
             self.db.add(row)
             self.db.commit()
         except Exception:
-            logger.warning(
-                "Failed to persist sync ModelExecution %s",
-                execution_id,
-                exc_info=True,
-            )
+            logger.warning("Failed to persist ModelExecution %s", execution_id, exc_info=True)
             self.db.rollback()
+
+    def _persist_sync_execution(
+        self,
+        execution_id: str,
+        problem: OptimizationProblem,
+        result: OptimizationResult,
+        org: Organization,
+        user: object | None,
+        credits_needed: int,
+        elapsed_ms: int,
+        solver_name: str | None = None,
+        auto_route_reason: str | None = None,
+        source: ExecutionSource = _DEFAULT_SOURCE,
+    ) -> None:
+        """Persist a completed single-objective solve (maps the result to a row)."""
+        solver_status = result.status.value
+        self._persist_execution(
+            execution_id=execution_id,
+            problem=problem,
+            org=org,
+            user=user,
+            credits_needed=credits_needed,
+            elapsed_ms=elapsed_ms,
+            result_data=result.to_result_data(),
+            status="failed" if solver_status == "error" else "completed",
+            solver_status=solver_status,
+            source=source,
+            solver_name=solver_name,
+            auto_route_reason=auto_route_reason,
+            objective_value=result.objective_value,
+            error_message=result.error_message,
+        )
 
     async def solve_multi_objective(
         self,
@@ -457,72 +491,26 @@ class SolveOrchestrator:
             labels=labels,
         )
 
-        self._persist_multi_objective_execution(
+        # Multi-objective yields a Pareto front, not a single solution, so the
+        # front is wrapped under "multi_objective" (single-solve keys stay null).
+        self._persist_execution(
             execution_id=execution_id,
             problem=problem,
-            result=result,
             org=org,
             user=user,
             credits_needed=total_credits,
             elapsed_ms=elapsed_ms,
+            result_data={
+                "multi_objective": result.model_dump(mode="json"),
+                "objective_value": None,
+                "solver_status": "optimal",
+            },
+            status="completed",
+            solver_status="optimal",
             source=source,
         )
 
         return result
-
-    def _persist_multi_objective_execution(
-        self,
-        execution_id: str,
-        problem: OptimizationProblem,
-        result: MultiObjectiveResult,
-        org: Organization,
-        user: object | None,
-        credits_needed: int,
-        elapsed_ms: int,
-        source: ExecutionSource,
-    ) -> None:
-        """Insert a ModelExecution row for a completed multi-objective solve.
-
-        Multi-objective produces a Pareto front, not a single solution, so
-        result_data wraps the front under ``multi_objective`` (the single-solve
-        keys stay null). Best-effort like the sync persistence — never raises.
-        """
-        try:
-            now = utcnow()
-            row = ModelExecution(
-                id=execution_id,
-                organization_id=org.id,
-                executed_by_user_id=getattr(user, "id", None),
-                input_data=problem.model_dump(mode="json"),
-                result_data={
-                    "multi_objective": result.model_dump(mode="json"),
-                    "objective_value": None,
-                    "solver_status": "optimal",
-                },
-                status="completed",
-                execution_time_ms=elapsed_ms,
-                solver_status="optimal",
-                solver_name=DEFAULT_SOLVER_NAME,
-                objective_value=None,
-                credits_consumed=credits_needed,
-                credits_base=credits_needed,
-                origin=source.origin,
-                source_kind=source.source_kind,
-                source_id=source.source_id,
-                is_async=False,
-                created_at=now,
-                started_at=now,
-                completed_at=now,
-            )
-            self.db.add(row)
-            self.db.commit()
-        except Exception:
-            logger.warning(
-                "Failed to persist multi-objective ModelExecution %s",
-                execution_id,
-                exc_info=True,
-            )
-            self.db.rollback()
 
     async def solve_with_template(
         self,
