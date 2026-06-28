@@ -137,7 +137,12 @@ export function BuilderToolbar({ documentId, onHelpClick }: BuilderToolbarProps)
     setIsSolving(true);
     try {
       const problem = serializeToOptimizationProblem(nodes, edges);
-      const result = await api.solve(problem, activeWorkspaceId ?? undefined);
+      const docId = storeDocId ?? (documentId !== "new" ? documentId : null);
+      const result = await api.solve(problem, activeWorkspaceId ?? undefined, {
+        origin: "visual_builder",
+        sourceKind: "builder_document",
+        sourceId: docId,
+      });
       setSolveResult(result);
       setDrawerOpen(true);
     } catch (err: unknown) {
@@ -154,7 +159,7 @@ export function BuilderToolbar({ documentId, onHelpClick }: BuilderToolbarProps)
     } finally {
       setIsSolving(false);
     }
-  }, [nodes, edges, activeWorkspaceId, t]);
+  }, [nodes, edges, activeWorkspaceId, storeDocId, documentId, t]);
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);

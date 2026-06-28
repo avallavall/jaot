@@ -139,4 +139,55 @@ describe("ApiClient", () => {
       expect(url).not.toContain("workspace_id");
     });
   });
+
+  describe("solve - provenance", () => {
+    const problem = {
+      name: "test",
+      variables: [],
+      objective: { sense: "minimize" as const, expression: "x" },
+      constraints: [],
+    };
+
+    it("sends origin/source_kind/source_id as query params", async () => {
+      const spy = mockFetch({ status: "optimal" }, 200);
+      localStorage.setItem("jaot_api_key", "ok_test_key");
+
+      await api.solve(problem, undefined, {
+        origin: "visual_builder",
+        sourceKind: "builder_document",
+        sourceId: "bld_123",
+      });
+
+      const url = spy.mock.calls[0][0] as string;
+      expect(url).toContain("origin=visual_builder");
+      expect(url).toContain("source_kind=builder_document");
+      expect(url).toContain("source_id=bld_123");
+    });
+
+    it("omits source_id when null but still sends origin", async () => {
+      const spy = mockFetch({ status: "optimal" }, 200);
+      localStorage.setItem("jaot_api_key", "ok_test_key");
+
+      await api.solve(problem, undefined, {
+        origin: "ai_builder",
+        sourceKind: "llm_conversation",
+        sourceId: null,
+      });
+
+      const url = spy.mock.calls[0][0] as string;
+      expect(url).toContain("origin=ai_builder");
+      expect(url).not.toContain("source_id=");
+    });
+
+    it("sends no provenance params when source is omitted", async () => {
+      const spy = mockFetch({ status: "optimal" }, 200);
+      localStorage.setItem("jaot_api_key", "ok_test_key");
+
+      await api.solve(problem);
+
+      const url = spy.mock.calls[0][0] as string;
+      expect(url).not.toContain("origin=");
+      expect(url).not.toContain("source_kind=");
+    });
+  });
 });

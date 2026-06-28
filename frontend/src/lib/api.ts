@@ -295,6 +295,32 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Execution provenance sent alongside a solve so the resulting history row
+ * can navigate back to where it came from. The backend sanitises unknown
+ * values, so callers only need to set what they know.
+ */
+export interface SolveSource {
+  origin: string;
+  sourceKind?: string;
+  sourceId?: string | null;
+}
+
+/** Merge workspace + provenance into the query params for a /solve call. */
+function buildSolveParams(
+  workspaceId?: string,
+  source?: SolveSource
+): Record<string, string> | undefined {
+  const params: Record<string, string> = {};
+  if (workspaceId) params.workspace_id = workspaceId;
+  if (source) {
+    params.origin = source.origin;
+    if (source.sourceKind) params.source_kind = source.sourceKind;
+    if (source.sourceId) params.source_id = source.sourceId;
+  }
+  return Object.keys(params).length > 0 ? params : undefined;
+}
+
 // Single-flight refresh prevents parallel refresh race condition.
 let refreshPromise: Promise<void> | null = null;
 
@@ -704,11 +730,15 @@ export const api = {
     return request("/api/v2/organization/anthropic-key", { method: "DELETE" });
   },
 
-  solve(problem: OptimizationProblem, workspaceId?: string): Promise<SolveResult> {
+  solve(
+    problem: OptimizationProblem,
+    workspaceId?: string,
+    source?: SolveSource
+  ): Promise<SolveResult> {
     return request("/api/v2/solve", {
       method: "POST",
       body: JSON.stringify(problem),
-      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+      params: buildSolveParams(workspaceId, source),
     });
   },
 
@@ -722,11 +752,12 @@ export const api = {
   solveMultiObjective(
     problem: OptimizationProblem,
     config: MultiObjectiveConfig,
-    workspaceId?: string
+    workspaceId?: string,
+    source?: SolveSource
   ): Promise<MultiObjectiveResult> {
     return request("/api/v2/solve/multi-objective", {
       method: "POST",
-      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+      params: buildSolveParams(workspaceId, source),
       body: JSON.stringify({ problem, config }),
     });
   },

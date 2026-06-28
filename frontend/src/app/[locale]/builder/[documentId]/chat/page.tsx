@@ -196,7 +196,11 @@ export default function ChatPage() {
           expression: formulation.objective.expression,
         },
       };
-      const result = await api.solve(problem);
+      const result = await api.solve(problem, undefined, {
+        origin: "ai_builder",
+        sourceKind: "llm_conversation",
+        sourceId: conversationId,
+      });
       setSolveResult(result);
     } catch (err) {
       if (err instanceof ApiError && err.status === 402) {
@@ -210,7 +214,7 @@ export default function ChatPage() {
     } finally {
       setSolving(false);
     }
-  }, [stream.formulation, currentFormulation, t]);
+  }, [stream.formulation, currentFormulation, conversationId, t]);
 
   if (loading) {
     return (
