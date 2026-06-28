@@ -956,7 +956,7 @@
       "modelSaved": "Modell gespeichert.",
       "saveFailed": "Speichern fehlgeschlagen. Bitte versuchen Sie es erneut.",
       "importInvalid": "Ungültiges Optimierungsproblem-JSON — Variablen oder Ziel fehlen.",
-      "importSuccess": "{count} Knoten aus JSON importiert.",
+      "importSuccess": "{count} Knoten importiert.",
       "importParseFailed": "JSON-Datei konnte nicht analysiert werden. Stellen Sie sicher, dass es ein gültiges OptimizationProblem ist.",
       "restoreTitle": "Diese Version wiederherstellen?",
       "restoreDescription": "Die Wiederherstellung wendet diese Änderungen auf Ihre Leinwand an:",

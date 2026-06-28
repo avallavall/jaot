@@ -956,7 +956,7 @@
       "modelSaved": "Modèle enregistré.",
       "saveFailed": "Échec de l'enregistrement. Veuillez réessayer.",
       "importInvalid": "JSON de problème d'optimisation invalide — variables ou objectif manquants.",
-      "importSuccess": "{count} nœuds importés depuis le JSON.",
+      "importSuccess": "{count} nœuds importés.",
       "importParseFailed": "Impossible d'analyser le fichier JSON. Assurez-vous qu'il s'agit d'un OptimizationProblem valide.",
       "restoreTitle": "Restaurer cette version ?",
       "restoreDescription": "La restauration appliquera ces modifications à votre canevas :",

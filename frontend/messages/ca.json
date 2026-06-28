@@ -956,7 +956,7 @@
       "modelSaved": "Model desat.",
       "saveFailed": "Error en desar. Si us plau, torneu-ho a provar.",
       "importInvalid": "JSON de problema d'optimització no vàlid — falten variables o objectiu.",
-      "importSuccess": "S'han importat {count} nodes des del JSON.",
+      "importSuccess": "S'han importat {count} nodes.",
       "importParseFailed": "No s'ha pogut analitzar el fitxer JSON. Assegureu-vos que sigui un OptimizationProblem vàlid.",
       "restoreTitle": "Restaurar aquesta versió?",
       "restoreDescription": "La restauració aplicarà aquests canvis al vostre llenç:",

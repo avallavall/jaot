@@ -956,7 +956,7 @@
       "modelSaved": "Modelo guardado.",
       "saveFailed": "Error al guardar. Inténtalo de nuevo.",
       "importInvalid": "JSON de problema de optimización no válido — faltan variables u objetivo.",
-      "importSuccess": "{count} nodos importados desde JSON.",
+      "importSuccess": "{count} nodos importados.",
       "importParseFailed": "No se pudo analizar el archivo JSON. Asegúrate de que es un OptimizationProblem válido.",
       "restoreTitle": "¿Restaurar esta versión?",
       "restoreDescription": "Restaurar aplicará estos cambios a tu lienzo:",

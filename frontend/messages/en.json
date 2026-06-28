@@ -958,7 +958,7 @@
       "modelSaved": "Model saved.",
       "saveFailed": "Failed to save. Please try again.",
       "importInvalid": "Invalid optimization problem JSON — missing variables or objective.",
-      "importSuccess": "Imported {count} nodes from JSON.",
+      "importSuccess": "Imported {count} nodes.",
       "importParseFailed": "Could not parse JSON file. Ensure it is a valid OptimizationProblem.",
       "restoreTitle": "Restore this version?",
       "restoreDescription": "Restoring will apply these changes to your canvas:",
