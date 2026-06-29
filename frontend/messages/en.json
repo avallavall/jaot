@@ -59,6 +59,8 @@
     "liveCancelled": "Cancelled",
     "liveWaiting": "Waiting for the first incumbent…",
     "liveStreamNote": "Some solvers stream live progress; others (e.g. HiGHS, Hexaly) only report the final result.",
+    "solveStatusLabel": "Status",
+    "solveSolverLabel": "Solver",
     "liveConvergence": "Convergence",
     "liveBestObjective": "Best objective",
     "liveGap": "Gap",

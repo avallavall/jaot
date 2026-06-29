@@ -1,82 +1,61 @@
 import React from "react";
-import { render, screen, waitFor, act } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
 
-const { mockGetStatus, mockCancel } = vi.hoisted(() => ({
-  mockGetStatus: vi.fn(),
-  mockCancel: vi.fn(),
-}));
-
-vi.mock("@/lib/api", () => ({
-  api: { getSolveAsyncStatus: mockGetStatus, cancelSolveAsync: mockCancel },
-}));
-// No real WebSocket in the test (avoids the WS-component render churn).
-vi.mock("@/hooks/useWebSocket", () => ({
-  useExecutionWebSocket: () => ({ isConnected: false }),
-}));
 // recharts is heavy in jsdom — stub the chart.
 vi.mock("@/components/solve/GapConvergenceChart", () => ({
   GapConvergenceChart: () => <div data-testid="chart" />,
 }));
 
 import { LiveSolvePanel } from "../LiveSolvePanel";
+import { IDLE_SOLVE_SESSION, type SolveSession } from "../../../store/createModelProjectStore";
 
-// The REAL completed payload: `status:"completed"` and `result` is the Celery task
-// envelope — the actual SolveResult is `result.result`.
-const COMPLETED = {
-  task_id: "t1",
-  status: "completed",
-  result: {
-    status: "success",
-    task_id: "t1",
-    result: {
+function session(overrides: Partial<SolveSession>): SolveSession {
+  return { ...IDLE_SOLVE_SESSION, ...overrides };
+}
+
+describe("LiveSolvePanel (presentational)", () => {
+  it("shows the waiting state while running with no incumbents yet", () => {
+    render(
+      <LiveSolvePanel session={session({ status: "running" })} objectiveSense="minimize" />,
+    );
+    expect(screen.getByText("studio.liveRunning")).toBeInTheDocument();
+    expect(screen.getByText("studio.liveWaiting")).toBeInTheDocument();
+    expect(screen.queryByTestId("chart")).not.toBeInTheDocument();
+  });
+
+  it("shows the convergence chart when incumbents streamed (SCIP)", () => {
+    const points = [
+      { iteration: 1, objective: 10, gap: 0.5, timestamp: 100 },
+      { iteration: 2, objective: 8, gap: 0, timestamp: 200 },
+    ];
+    render(
+      <LiveSolvePanel session={session({ status: "done", points })} objectiveSense="minimize" />,
+    );
+    expect(screen.getByText("studio.liveDone")).toBeInTheDocument();
+    expect(screen.getByTestId("chart")).toBeInTheDocument();
+  });
+
+  it("shows a clean final-result summary when the solver did NOT stream (HiGHS)", () => {
+    const result = {
       status: "optimal",
       objective_value: 8,
       solution: { x1: 8 },
-      progress_history: null,
-    },
-    solver_used: "highs",
-  },
-};
-
-/** Inline `onComplete` arrow → a NEW identity on every render — exactly how SolvePanel passes it. */
-function Harness({ cb }: { cb: (r: unknown) => void }) {
-  return (
-    <LiveSolvePanel
-      taskId="t1"
-      objectiveSense="minimize"
-      onComplete={(r) => cb(r)}
-      onError={() => {}}
-    />
-  );
-}
-
-describe("LiveSolvePanel", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("fires onComplete ONCE with the UNWRAPPED SolveResult and stays 'completed' across parent re-renders", async () => {
-    mockGetStatus.mockResolvedValue(COMPLETED);
-    const cb = vi.fn();
-    const { rerender } = render(<Harness cb={cb} />);
-
-    // The immediate poll resolves to "completed".
-    await waitFor(() => expect(cb).toHaveBeenCalledTimes(1));
-    expect(cb).toHaveBeenCalledWith(
-      expect.objectContaining({ objective_value: 8, solution: { x1: 8 } }),
+      solver_used: "highs",
+      solve_time_seconds: 0.01,
+    } as unknown as SolveSession["result"];
+    render(
+      <LiveSolvePanel
+        session={session({ status: "done", points: [], result })}
+        objectiveSense="minimize"
+      />,
     );
     expect(screen.getByText("studio.liveDone")).toBeInTheDocument();
+    // No empty live box / no "waiting"; a clean final summary instead.
+    expect(screen.queryByTestId("chart")).not.toBeInTheDocument();
     expect(screen.queryByText("studio.liveWaiting")).not.toBeInTheDocument();
-
-    // Parent re-renders with a NEW callback identity. On the buggy code the polling
-    // effect tore down + re-ran, resetting status to "running" and re-firing onComplete.
-    rerender(<Harness cb={cb} />);
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-
-    expect(cb).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("studio.liveDone")).toBeInTheDocument();
-    expect(screen.queryByText("studio.liveWaiting")).not.toBeInTheDocument();
+    expect(screen.getByText("studio.solveStatusLabel")).toBeInTheDocument();
+    expect(screen.getByText("studio.solveSolverLabel")).toBeInTheDocument();
+    expect(screen.getByText("optimal")).toBeInTheDocument();
   });
 });

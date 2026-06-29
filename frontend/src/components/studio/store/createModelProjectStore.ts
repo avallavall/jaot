@@ -2,12 +2,43 @@
 
 import { createStore } from "zustand/vanilla";
 import { temporal } from "zundo";
-import type { OptimizationProblem } from "@/lib/types";
+import type { OptimizationProblem, SolveResult } from "@/lib/types";
+import type { ProgressPoint } from "@/lib/result-utils";
+import type { SolveProgressEvent } from "../panels/solve/live-solve-metrics";
 
 /** The lenses that can author the model. Only `canvas` is live in P0/2A. */
 export type RepKey = "canvas" | "scratch" | "formulation";
 export type RepStatus = "synced" | "dirty" | "parse_error";
 export type SaveState = "idle" | "saving" | "saved" | "error";
+
+export type SolveStatus = "idle" | "running" | "done" | "failed" | "cancelled";
+
+/**
+ * The async-solve session. It lives in the canonical store (which is owned by the
+ * workspace provider/layout) — NOT in `SolvePanel` — so it SURVIVES tab switches:
+ * the panel unmounts when you move to Construir/Analizar, but the store and the
+ * provider-level `useSolveSession` poller keep going, so coming back shows the
+ * running/finished solve instead of a blank "start over".
+ */
+export interface SolveSession {
+  taskId: string | null;
+  status: SolveStatus;
+  result: SolveResult | null;
+  points: ProgressPoint[];
+  lastEvent: SolveProgressEvent | null;
+  solverName: string | null;
+  error: string | null;
+}
+
+export const IDLE_SOLVE_SESSION: SolveSession = {
+  taskId: null,
+  status: "idle",
+  result: null,
+  points: [],
+  lastEvent: null,
+  solverName: null,
+  error: null,
+};
 
 export interface ModelProjectState {
   /** Single source of truth — the solver-agnostic model. Only this is tracked by undo. */
@@ -38,6 +69,15 @@ export interface ModelProjectState {
   setLockVersion: (lockVersion: number) => void;
   /** Mark the current draft as committed — clears the "uncommitted edits" flag. */
   markCommitted: () => void;
+
+  /** The running/finished async solve (persists across tab switches). */
+  solveSession: SolveSession;
+  startSolveSession: (taskId: string, solverName: string | null) => void;
+  addSolvePoint: (point: ProgressPoint, event: SolveProgressEvent) => void;
+  finishSolveSession: (result: SolveResult, points: ProgressPoint[]) => void;
+  failSolveSession: (error: string) => void;
+  cancelSolveSession: () => void;
+  clearSolveSession: () => void;
 }
 
 /** Cheap structural equality — the models are small plain JSON objects. */
@@ -112,6 +152,34 @@ export function createModelProjectStore(init: ModelProjectInit) {
         setSaveState: (saveState) => set({ saveState }),
         setLockVersion: (lockVersion) => set({ lockVersion }),
         markCommitted: () => set({ headDirty: false }),
+
+        solveSession: IDLE_SOLVE_SESSION,
+        startSolveSession: (taskId, solverName) =>
+          set({
+            solveSession: {
+              taskId,
+              status: "running",
+              result: null,
+              points: [],
+              lastEvent: null,
+              solverName,
+              error: null,
+            },
+          }),
+        addSolvePoint: (point, event) => {
+          const s = get().solveSession;
+          if (s.status !== "running") return;
+          set({ solveSession: { ...s, points: [...s.points, point], lastEvent: event } });
+        },
+        finishSolveSession: (result, points) =>
+          set((state) => ({
+            solveSession: { ...state.solveSession, status: "done", result, points },
+          })),
+        failSolveSession: (error) =>
+          set((state) => ({ solveSession: { ...state.solveSession, status: "failed", error } })),
+        cancelSolveSession: () =>
+          set((state) => ({ solveSession: { ...state.solveSession, status: "cancelled" } })),
+        clearSolveSession: () => set({ solveSession: IDLE_SOLVE_SESSION }),
       }),
       {
         // Undo tracks ONLY the canonical model, so "undo my last change" means the

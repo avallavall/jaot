@@ -17,6 +17,7 @@ import {
 import { ModelProjectStoreContext } from "./useModelProjectStore";
 import { useCanvasBridge } from "./useCanvasBridge";
 import { useAutosave } from "./useAutosave";
+import { useSolveSession } from "./useSolveSession";
 
 const EMPTY_PROBLEM: OptimizationProblem = {
   variables: [],
@@ -113,6 +114,8 @@ export function ModelProjectStoreProvider({
 
   useCanvasBridge(store);
   useAutosave(store, modelId);
+  // Drives the async solve from the store so it survives tab switches.
+  useSolveSession(store);
 
   return (
     <ModelProjectStoreContext.Provider value={store}>

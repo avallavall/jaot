@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { Play } from "lucide-react";
@@ -18,28 +18,29 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { api } from "@/lib/api";
 import { getErrorMessage, getErrorStatus } from "@/lib/errors";
-import type { SolveResult } from "@/lib/types";
 import { useModelProjectStore } from "../store/useModelProjectStore";
 import { solveBlockedReason } from "./solve-precondition";
 import { LiveSolvePanel } from "./solve/LiveSolvePanel";
 
 /**
- * The Solve lens. Runs the CANONICAL model (from the shared store) through the
- * ASYNC `/solve/async` endpoint so progress streams live (Live Solve), shows the
- * real-time convergence chart, and opens the shared results drawer when it finishes.
- * Provenance is tagged `source_kind="model_project"` so the run traces back to this
- * project. (The synchronous `/solve` stays the API/ERP path — only the workspace UI is async.)
+ * The Solve lens — a thin VIEW over the store's `solveSession`. The running solve
+ * (polling + WS + accumulated points) is driven by `useSolveSession` at the provider
+ * level, so it SURVIVES tab switches: this panel can unmount and remount and the
+ * session keeps going. Runs the canonical model through async `/solve/async`,
+ * tagged `source_kind="model_project"`.
  */
 export function SolvePanel() {
   const t = useTranslations("studio");
   const problem = useModelProjectStore((s) => s.problem);
   const modelId = useModelProjectStore((s) => s.modelId);
+  const session = useModelProjectStore((s) => s.solveSession);
+  const startSolveSession = useModelProjectStore((s) => s.startSolveSession);
+  const clearSolveSession = useModelProjectStore((s) => s.clearSolveSession);
+  const cancelSolveSession = useModelProjectStore((s) => s.cancelSolveSession);
   const { activeWorkspaceId } = useAuth();
   const canSolve = useWorkspacePermission("solver");
   const { solverName, setSolverName, availableSolvers, solversLoading } = useSolvers();
-  const [solving, setSolving] = useState(false);
-  const [taskId, setTaskId] = useState<string | null>(null);
-  const [result, setResult] = useState<SolveResult | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const blocked = useMemo(() => solveBlockedReason(problem), [problem]);
@@ -53,34 +54,54 @@ export function SolvePanel() {
           : null;
 
   const objectiveSense = problem.objective?.sense === "maximize" ? "maximize" : "minimize";
+  const running = session.status === "running";
+  const done = session.status === "done";
+
+  // Toast once when a solve fails.
+  const failedRef = useRef(false);
+  useEffect(() => {
+    if (session.status === "failed" && !failedRef.current) {
+      failedRef.current = true;
+      toast.error(
+        session.error && session.error !== "solveFailed" ? session.error : t("solveFailed"),
+      );
+    }
+    if (session.status !== "failed") failedRef.current = false;
+  }, [session.status, session.error, t]);
 
   const handleSolve = async () => {
-    if (blocked) return;
-    setSolving(true);
-    setResult(null);
-    setTaskId(null);
+    if (blocked || running || submitting) return;
+    setSubmitting(true);
+    clearSolveSession();
     try {
       const sourceId = modelId && modelId !== "new" ? modelId : null;
       const task = await api.solveAsync(
         { ...problem, solver_name: solverName },
         activeWorkspaceId ?? undefined,
-        { origin: "visual_builder", sourceKind: "model_project", sourceId }
+        { origin: "visual_builder", sourceKind: "model_project", sourceId },
       );
-      setTaskId(task.task_id);
+      startSolveSession(task.task_id, solverName);
     } catch (err: unknown) {
       const status = getErrorStatus(err);
-      if (status === 402) {
-        toast.error(t("solveInsufficientCredits"));
-      } else if (status === 422) {
-        toast.error(getErrorMessage(err, t("solveInvalid")));
-      } else {
-        toast.error(getErrorMessage(err, t("solveFailed")));
-      }
-      setSolving(false);
+      if (status === 402) toast.error(t("solveInsufficientCredits"));
+      else if (status === 422) toast.error(getErrorMessage(err, t("solveInvalid")));
+      else toast.error(getErrorMessage(err, t("solveFailed")));
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const disabled = solving || !canSolve || blocked !== null;
+  const handleCancel = async () => {
+    if (!session.taskId) return;
+    try {
+      await api.cancelSolveAsync(session.taskId);
+    } catch {
+      // best-effort; the poller still resolves the run
+    }
+    cancelSolveSession();
+  };
+
+  const disabled = submitting || running || !canSolve || blocked !== null;
 
   return (
     <div className="flex-1 overflow-auto p-6">
@@ -103,7 +124,7 @@ export function SolvePanel() {
                   className="w-full"
                 >
                   <Play className="mr-1 h-4 w-4" />
-                  {solving ? t("solveRunning") : t("headerSolve")}
+                  {running || submitting ? t("solveRunning") : t("headerSolve")}
                 </Button>
               </span>
             </TooltipTrigger>
@@ -111,23 +132,15 @@ export function SolvePanel() {
           </Tooltip>
         </TooltipProvider>
 
-        {taskId && (
+        {session.status !== "idle" && (
           <LiveSolvePanel
-            taskId={taskId}
+            session={session}
             objectiveSense={objectiveSense}
-            onComplete={(res) => {
-              setResult(res);
-              setSolving(false);
-            }}
-            onError={(message) => {
-              toast.error(message);
-              setSolving(false);
-            }}
-            onCancelled={() => setSolving(false)}
+            onCancel={handleCancel}
           />
         )}
 
-        {result && (
+        {done && session.result && (
           <Button
             data-testid="studio-solve-done"
             variant="outline"
@@ -140,7 +153,7 @@ export function SolvePanel() {
       </div>
 
       <SolveResultsDrawer
-        result={result}
+        result={session.result}
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
       />

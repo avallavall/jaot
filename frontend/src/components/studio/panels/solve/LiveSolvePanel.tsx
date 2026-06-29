@@ -1,201 +1,61 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
-import { useExecutionWebSocket } from "@/hooks/useWebSocket";
-import { api } from "@/lib/api";
-import { extractProgressHistory, type ProgressPoint } from "@/lib/result-utils";
-import type { AsyncSolveResultEnvelope, SolveResult } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { GapConvergenceChart } from "@/components/solve/GapConvergenceChart";
-import {
-  toProgressPoint,
-  computeMetrics,
-  type SolveProgressEvent,
-} from "./live-solve-metrics";
+import type { SolveSession } from "../../store/createModelProjectStore";
+import { computeMetrics } from "./live-solve-metrics";
 
 interface LiveSolvePanelProps {
-  /** The async-solve task id (== the WS / Redis channel key the worker publishes to). */
-  taskId: string;
+  /** The current solve session (from the canonical store — survives tab switches). */
+  session: SolveSession;
   objectiveSense: "minimize" | "maximize";
-  onComplete: (result: SolveResult) => void;
-  onError: (message: string) => void;
-  onCancelled?: () => void;
-}
-
-type LiveStatus = "running" | "completed" | "failed" | "cancelled";
-
-/**
- * The completed async-solve status nests the Celery task envelope under `result`,
- * so the actual solver result is `result.result`. Fall back to `result` itself for
- * any non-wrapped shape.
- */
-function unwrapSolveResult(status: { result?: unknown }): SolveResult | null {
-  const envelope = status.result as AsyncSolveResultEnvelope | SolveResult | undefined;
-  if (!envelope) return null;
-  const inner = (envelope as AsyncSolveResultEnvelope).result;
-  return ((inner ?? envelope) as SolveResult) ?? null;
+  onCancel?: () => void;
 }
 
 /**
- * Watches a running async solve and renders the live primal/dual convergence chart
- * + metrics. Live points stream over the executions WebSocket (`type:"solve_progress"`);
- * completion is confirmed by polling the async status (the robust source of truth,
- * independent of the socket). If no live points arrived (e.g. the solver doesn't
- * stream — HiGHS/Hexaly — or the socket couldn't connect), the chart falls back to
- * the finished result's `progress_history`.
- *
- * IMPORTANT: the polling effect depends ONLY on `[taskId]`. The completion callbacks
- * are held in refs because `SolvePanel` passes them as inline arrows (new identity
- * each render). If they were effect deps, completion → parent setState → re-render →
- * new callback identities → effect teardown+rerun → `status` reset to "running" →
- * the panel would be stuck on "running" forever even though the solve finished.
+ * Presentational view of a solve session. It owns NO polling/WS/state — those run in
+ * `useSolveSession` at the provider level so the run survives tab switches; this panel
+ * just renders the store's `solveSession`. Shows the live primal/dual convergence chart
+ * when per-incumbent points streamed (SCIP); for solvers that don't stream (HiGHS,
+ * Hexaly) it shows a clean final-result summary instead of an empty live box.
  */
-export function LiveSolvePanel({
-  taskId,
-  objectiveSense,
-  onComplete,
-  onError,
-  onCancelled,
-}: LiveSolvePanelProps) {
+export function LiveSolvePanel({ session, objectiveSense, onCancel }: LiveSolvePanelProps) {
   const t = useTranslations("studio");
-  const [points, setPoints] = useState<ProgressPoint[]>([]);
-  const [lastEvent, setLastEvent] = useState<SolveProgressEvent | null>(null);
-  const [status, setStatus] = useState<LiveStatus>("running");
-  const [cancelling, setCancelling] = useState(false);
-  const doneRef = useRef(false);
-
-  // Keep the inline callbacks + translator in refs so the polling effect is stable.
-  const onCompleteRef = useRef(onComplete);
-  const onErrorRef = useRef(onError);
-  const tRef = useRef(t);
-  useEffect(() => {
-    onCompleteRef.current = onComplete;
-    onErrorRef.current = onError;
-    tRef.current = t;
-  });
-
-  // Live points — functional updates keep the callback stable (no stale closure,
-  // no socket reconnect churn).
-  const handleSolveProgress = useCallback((event: SolveProgressEvent) => {
-    if (doneRef.current) return;
-    setLastEvent(event);
-    setPoints((prev) => {
-      const point = toProgressPoint(event, prev.length);
-      return point ? [...prev, point] : prev;
-    });
-  }, []);
-
-  const { isConnected } = useExecutionWebSocket(taskId, {
-    autoReconnect: true,
-    onSolveProgress: handleSolveProgress,
-  });
-
-  // Completion via polling — depends ONLY on taskId (see the component doc above).
-  useEffect(() => {
-    doneRef.current = false;
-    setPoints([]);
-    setLastEvent(null);
-    setStatus("running");
-
-    let timer: ReturnType<typeof setInterval> | null = null;
-    const stop = () => {
-      doneRef.current = true;
-      if (timer) {
-        clearInterval(timer);
-        timer = null;
-      }
-    };
-
-    const poll = async () => {
-      if (doneRef.current) return;
-      try {
-        const s = await api.getSolveAsyncStatus(taskId);
-        if (s.status === "completed") {
-          stop();
-          setStatus("completed");
-          const solveResult = unwrapSolveResult(s);
-          // Fall back to the result's recorded history if nothing streamed live.
-          if (solveResult) {
-            const history = extractProgressHistory(
-              solveResult as unknown as Record<string, unknown>,
-            );
-            setPoints((prev) => (prev.length > 0 ? prev : history));
-            onCompleteRef.current(solveResult);
-          } else {
-            onErrorRef.current(tRef.current("solveFailed"));
-          }
-        } else if (s.status === "failed") {
-          stop();
-          setStatus("failed");
-          onErrorRef.current(s.error || tRef.current("solveFailed"));
-        }
-      } catch {
-        // Transient poll error — keep trying.
-      }
-    };
-
-    poll();
-    timer = setInterval(poll, 1000);
-    return () => {
-      doneRef.current = true;
-      if (timer) clearInterval(timer);
-    };
-  }, [taskId]);
-
-  const handleCancel = useCallback(async () => {
-    if (cancelling || doneRef.current) return;
-    setCancelling(true);
-    try {
-      await api.cancelSolveAsync(taskId);
-      doneRef.current = true;
-      setStatus("cancelled");
-      onCancelled?.();
-    } catch {
-      // Best-effort; if cancel fails the poll will still resolve the run.
-    } finally {
-      setCancelling(false);
-    }
-  }, [taskId, cancelling, onCancelled]);
-
+  const { status, points, lastEvent, result, solverName } = session;
   const metrics = computeMetrics(points, lastEvent);
   const fmt = (v: number | null, digits = 4): string =>
     v === null ? "—" : v.toLocaleString(undefined, { maximumFractionDigits: digits });
 
+  const running = status === "running";
+  const done = status === "done";
+  const hasPoints = points.length > 0;
+
   return (
     <div className="space-y-4 rounded-lg border border-border p-4">
       <div className="flex items-center gap-2">
-        {status === "running" && (
-          <Loader2 className="size-4 animate-spin text-primary" aria-hidden="true" />
-        )}
-        {status === "completed" && (
-          <CheckCircle2 className="size-4 text-green-600" aria-hidden="true" />
-        )}
+        {running && <Loader2 className="size-4 animate-spin text-primary" aria-hidden="true" />}
+        {done && <CheckCircle2 className="size-4 text-green-600" aria-hidden="true" />}
         {(status === "failed" || status === "cancelled") && (
           <XCircle className="size-4 text-destructive" aria-hidden="true" />
         )}
         <span className="text-sm font-medium">
-          {status === "running"
+          {running
             ? t("liveRunning")
-            : status === "completed"
+            : done
               ? t("liveDone")
               : status === "cancelled"
                 ? t("liveCancelled")
                 : t("liveFailed")}
         </span>
-        {status === "running" && (
-          <span
-            className={`ml-auto size-2 rounded-full ${isConnected ? "bg-green-500" : "bg-muted-foreground/40"}`}
-            title={isConnected ? t("liveConnected") : t("liveConnecting")}
-            aria-hidden="true"
-          />
-        )}
       </div>
 
-      {points.length === 0 && status === "running" ? (
+      {running && !hasPoints && (
         <p className="py-6 text-center text-sm text-muted-foreground">{t("liveWaiting")}</p>
-      ) : (
+      )}
+
+      {hasPoints && (
         <>
           <div>
             <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -203,7 +63,6 @@ export function LiveSolvePanel({
             </h4>
             <GapConvergenceChart progressHistory={points} objectiveSense={objectiveSense} />
           </div>
-
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             <Metric label={t("liveBestObjective")} value={fmt(metrics.bestObjective, 6)} />
             <Metric
@@ -220,11 +79,40 @@ export function LiveSolvePanel({
         </>
       )}
 
+      {/* Solved, but the solver didn't stream per-incumbent (HiGHS/Hexaly): final summary. */}
+      {done && !hasPoints && result && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Metric
+              label={t("liveBestObjective")}
+              value={
+                result.objective_value != null
+                  ? result.objective_value.toLocaleString(undefined, { maximumFractionDigits: 6 })
+                  : "—"
+              }
+            />
+            <Metric label={t("solveStatusLabel")} value={result.status ?? "—"} />
+            <Metric
+              label={t("solveSolverLabel")}
+              value={result.solver_used ?? solverName ?? "—"}
+            />
+            <Metric
+              label={t("liveElapsed")}
+              value={
+                result.solve_time_seconds != null
+                  ? `${result.solve_time_seconds.toFixed(2)}s`
+                  : "—"
+              }
+            />
+          </div>
+        </div>
+      )}
+
       <p className="text-xs text-muted-foreground">{t("liveStreamNote")}</p>
 
-      {status === "running" && (
-        <Button variant="outline" size="sm" onClick={handleCancel} disabled={cancelling}>
-          {cancelling ? t("liveCancelling") : t("liveCancel")}
+      {running && onCancel && (
+        <Button variant="outline" size="sm" onClick={onCancel}>
+          {t("liveCancel")}
         </Button>
       )}
     </div>

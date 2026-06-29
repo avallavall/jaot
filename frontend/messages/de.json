@@ -59,6 +59,8 @@
     "liveCancelled": "Abgebrochen",
     "liveWaiting": "Warten auf die erste Lösung…",
     "liveStreamNote": "Einige Solver übertragen den Fortschritt live; andere (z. B. HiGHS, Hexaly) melden nur das Endergebnis.",
+    "solveStatusLabel": "Status",
+    "solveSolverLabel": "Solver",
     "liveConvergence": "Konvergenz",
     "liveBestObjective": "Bestes Ziel",
     "liveGap": "Gap",
