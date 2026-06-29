@@ -377,6 +377,128 @@ def build_infeasibility_explanation_prompt(
     return "\n\n".join(parts)
 
 
+MODEL_EXPLANATION_SYSTEM_PROMPT = """You are an optimization expert explaining an optimization \
+MODEL (not yet solved) to a business user of JAOT.
+
+You receive the model formulation (variables, constraints, objective) and its computed structural \
+statistics (sizes, problem class, an auditable health score, and any risk warnings). Your job is to \
+make the MODEL itself understandable — what decision it represents, what it optimizes, what limits \
+it, and whether it looks sound — BEFORE it is solved.
+
+## Grounding (critical)
+- Use ONLY the facts provided (the formulation + the statistics block). NEVER invent counts, \
+coefficients, constraints, or a problem class that is not given. The statistics are AUTHORITATIVE — \
+cite them, never recompute or estimate. If something is missing, say so plainly.
+
+## What to write
+1. **What it optimizes** — restate the objective (minimize/maximize what) in plain business terms.
+2. **The decision** — what the variables represent and the choice being made. For large/indexed \
+models, describe variable FAMILIES and their counts (from the statistics), not thousands of \
+individual variables.
+3. **The limits** — group the key constraints by role (capacity / demand-coverage / balance / \
+logical) and what they enforce.
+4. **Trade-offs** — which requirements pull against each other.
+5. **Class & tractability** — state the problem class (e.g. MILP) from the statistics and, in one \
+line, what that implies for difficulty.
+6. **Health & risks** — surface the health score/band and the warnings VERBATIM from the \
+statistics (unbounded variables, missing integer bounds, numerical conditioning, …). Do not invent \
+risks that are not listed.
+
+## Style
+- Plain business language; assume domain knowledge but not optimization jargon (briefly define a \
+term the first time it appears).
+- ALWAYS Markdown: `##` section headings, `**bold**` for key numbers/terms, `-` bullet lists. The \
+UI renders Markdown — never output raw HTML.
+- Concise. Avoid tables unless they genuinely clarify more than prose.
+"""
+
+
+def build_model_explanation_prompt(
+    formulation: dict[str, Any] | None,
+    stats: dict[str, Any] | None,
+) -> str:
+    """Assemble the grounded user turn for a MODEL explanation.
+
+    Embeds the formulation and the Python-computed ``ModelStats`` (counts, problem
+    class, health, warnings) as JSON so the model has the exact, authoritative facts
+    to ground its explanation in and nothing to fabricate.
+    """
+    import json
+
+    parts: list[str] = ["Explain the following optimization MODEL (not yet solved).\n"]
+
+    if formulation:
+        parts.append(
+            "## Formulation\n```json\n" + json.dumps(formulation, indent=2, default=str) + "\n```"
+        )
+    if stats:
+        parts.append(
+            "## Computed statistics (authoritative — ground your explanation in these)\n```json\n"
+            + json.dumps(stats, indent=2, default=str)
+            + "\n```"
+        )
+    else:
+        parts.append("## Computed statistics\nNot available for this model.")
+
+    parts.append("Produce the explanation now, using only the formulation and statistics above.")
+    return "\n\n".join(parts)
+
+
+MODEL_DIFF_EXPLANATION_SYSTEM_PROMPT = """You are an optimization expert narrating the CHANGE \
+between two versions of an optimization model for a business user of JAOT.
+
+You receive a short summary of each version and a PRE-COMPUTED structural diff: the exact list of \
+variables and constraints that were added, removed, or modified, and whether the objective \
+changed. Your job is to explain, in plain language, WHAT changed and what it MEANS.
+
+## Grounding (critical)
+- Narrate ONLY the changes present in the provided diff. NEVER claim a change that is not listed, \
+and never invent numbers. The diff is AUTHORITATIVE and complete — if a category lists nothing, \
+nothing changed there. Do not restate the whole model; focus on the delta.
+
+## What to write
+1. **In one line** — the gist of the change.
+2. **What changed** — walk through the added / removed / modified variables and constraints and \
+the objective change, grouped sensibly, citing the exact names from the diff.
+3. **What it means** — the semantic consequence (e.g. a tighter feasible region, a new capacity \
+limit, a change of problem class) and any implication for solvability or the objective, but ONLY \
+when it follows from the listed diff.
+
+## Style
+- Plain business language; ALWAYS Markdown (`##` headings, `**bold**`, `-` bullets); concise; \
+never raw HTML.
+"""
+
+
+def build_version_diff_prompt(
+    old_problem: dict[str, Any] | None,
+    new_problem: dict[str, Any] | None,
+    structural_diff: dict[str, Any] | None,
+    old_summary: str | None,
+    new_summary: str | None,
+) -> str:
+    """Assemble the grounded user turn for a version-diff explanation.
+
+    The narration is grounded in the Python-computed ``structural_diff`` (the
+    authoritative list of added/removed/modified vars & constraints + objective
+    change) plus each version's commit summary. The full models are intentionally
+    NOT dumped — the diff is the change, and keeping the prompt to the diff both
+    bounds tokens and removes any surface to hallucinate an unlisted change.
+    """
+    import json
+
+    parts: list[str] = ["Explain the change between two versions of an optimization model.\n"]
+    parts.append(f"## Previous version\nSummary: {old_summary or '(no summary)'}")
+    parts.append(f"## New version\nSummary: {new_summary or '(no summary)'}")
+    parts.append(
+        "## Structural diff (authoritative — narrate ONLY what is listed here)\n```json\n"
+        + json.dumps(structural_diff or {}, indent=2, default=str)
+        + "\n```"
+    )
+    parts.append("Produce the explanation now, using only the summaries and the diff above.")
+    return "\n\n".join(parts)
+
+
 def build_messages(
     conversation_messages: list[dict[str, Any]],
     new_user_message: str,

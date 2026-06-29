@@ -188,6 +188,50 @@ class ExplainInfeasibilityRequest(BaseModel):
     )
 
 
+class ExplainModelRequest(BaseModel):
+    """Request a plain-language explanation of an optimization MODEL (not yet solved).
+
+    Provide ``project_id`` to explain a ModelProject (its mutable draft, or a specific
+    committed ``version_id``); organization ownership is enforced. Or pass the
+    ``formulation`` inline (``stats`` is computed when omitted). ``project_id`` takes
+    precedence when both are supplied.
+    """
+
+    project_id: str | None = Field(
+        default=None, description="ModelProject id to explain (draft or a committed version)"
+    )
+    version_id: str | None = Field(
+        default=None, description="Committed version id to explain; omit to explain the draft"
+    )
+    formulation: dict[str, Any] | None = Field(
+        default=None, description="Inline formulation (variables/constraints/objective)"
+    )
+    stats: dict[str, Any] | None = Field(
+        default=None, description="Inline ModelStats; computed from the formulation when omitted"
+    )
+    use_advanced_model: bool = Field(
+        default=False,
+        description="Use Claude Opus with extended thinking for the explanation",
+    )
+
+
+class ExplainVersionDiffRequest(BaseModel):
+    """Request a plain-language narration of the CHANGE between two model versions.
+
+    The structural diff is computed server-side (``model_project_service.diff_versions``)
+    and the LLM only narrates it. Organization ownership is enforced on the project and
+    both versions.
+    """
+
+    project_id: str = Field(..., description="ModelProject id owning both versions")
+    from_version_id: str = Field(..., description="The earlier (base) version id")
+    to_version_id: str = Field(..., description="The later (target) version id")
+    use_advanced_model: bool = Field(
+        default=False,
+        description="Use Claude Opus with extended thinking for the explanation",
+    )
+
+
 class ChatMessageResponse(BaseModel):
     """A message in a conversation (returned to client)."""
 

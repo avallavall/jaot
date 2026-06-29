@@ -28,13 +28,17 @@ from app.schemas.attachment import AttachmentResponse
 from app.schemas.llm import (
     ChatMessageRequest,
     ExplainInfeasibilityRequest,
+    ExplainModelRequest,
     ExplainSolutionRequest,
+    ExplainVersionDiffRequest,
 )
 from app.services.credits_service import CreditsService, InsufficientCreditsError
 from app.services.document_extraction import MAX_FILE_SIZE, extract_text
 from app.services.llm import (
     explain_infeasibility,
+    explain_model,
     explain_solution,
+    explain_version_diff,
     generate_formulation_resilient,
     generate_text_response,
     moderate_message,
@@ -1008,6 +1012,316 @@ async def explain_infeasibility_endpoint(
         [],
         formulation,
         infeasibility,
+        model,
+        thinking=use_thinking,
+        client=byok_client,
+        db=db,
+    )
+    return EventSourceResponse(
+        _stream_llm_response(
+            stream_gen=stream_gen,
+            request=request,
+            db=db,
+            conv=conv,
+            org_id=org.id,
+            model=model,
+            llm_credit_cost=llm_credit_cost,
+            llm_message_id=llm_message_id,
+            request_id=request_id,
+            is_explanation=True,
+            bill_platform=not is_byok,
+        )
+    )
+
+
+def _resolve_model_explanation_context(
+    db: Session,
+    org_id: str,
+    body: ExplainModelRequest,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """Resolve (formulation, stats) for an explain-model request.
+
+    ``project_id`` takes precedence: the ModelProject is loaded with org ownership
+    enforced (404 if missing or owned by another org — never leak existence). A
+    ``version_id`` explains that committed snapshot (formulation + its frozen
+    ``stats_json``); otherwise the project's mutable draft is explained, with stats
+    computed live. Falls back to the inline ``formulation`` (``stats`` computed when
+    omitted) when no ``project_id`` is supplied.
+    """
+    if body.project_id:
+        from app.services import model_project_service as projects_svc
+        from app.services.model_stats_service import compute_from_json
+
+        project = projects_svc.get_project_or_404(db, body.project_id, org_id)
+        if not project:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+        if body.version_id:
+            version = projects_svc.get_version_or_404(db, body.project_id, body.version_id, org_id)
+            if not version:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Version not found"
+                )
+            return version.model_json, version.stats_json
+        draft = project.draft_model_json
+        stats = compute_from_json(draft).model_dump(mode="json") if draft else None
+        return draft, stats
+
+    formulation = body.formulation
+    stats = body.stats
+    if formulation and not stats:
+        from app.services.model_stats_service import compute_from_json
+
+        stats = compute_from_json(formulation).model_dump(mode="json")
+    return formulation, stats
+
+
+@router.post("/conversations/{conversation_id}/explain-model")
+async def explain_model_endpoint(
+    conversation_id: str,
+    body: ExplainModelRequest,
+    request: Request,
+    db: DBSession,
+    user: CurrentUser,
+    org: CurrentOrg,
+) -> Any:
+    """Stream a plain-language explanation of an optimization MODEL (not yet solved) as SSE.
+
+    Loads the formulation + the Python-computed ``ModelStats`` from a ModelProject
+    (``project_id``, draft or a committed ``version_id``, org ownership enforced) or
+    from inline fields, then reuses the chat streaming pipeline — budget guardrail,
+    org rate limit, pre-paid credits (refunded on failure), a persisted user/assistant
+    turn pair — driven by ``explain_model``. The statistics are authoritative, so the
+    explanation has nothing to fabricate. Moderation is skipped because the prompt
+    content is system-generated, not free user text.
+    """
+    # Verify conversation ownership and expiry
+    conv = _get_conversation_or_404(db, conversation_id, org.id, user.id)
+
+    # BYOK: org with its own key runs on their account — skip budget + credit charge.
+    byok_client, is_byok = resolve_anthropic_client(org)
+
+    # W17 budget guardrail — pause gracefully when the monthly Anthropic budget is exhausted.
+    if not is_byok and is_llm_budget_exceeded(db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "feature_not_available",
+                "message": (
+                    "The AI assistant is taking a short break — the platform's "
+                    "monthly AI budget has been reached. It will be back at the "
+                    "start of next month."
+                ),
+                "reason": "llm_monthly_budget_exhausted",
+            },
+        )
+
+    # LLM rate limiting (shared org bucket with chat)
+    allowed, rate_info = check_rate_limit(
+        f"llm:{org.id}",
+        PSS.get_int(db, "LLM_RATE_LIMIT_PER_MINUTE"),
+        PSS.get_int(db, "LLM_RATE_LIMIT_PER_DAY"),
+    )
+    if not allowed:
+        retry_after = rate_info.get("retry_after") if isinstance(rate_info, dict) else None
+        headers = {"Retry-After": str(retry_after)} if retry_after is not None else None
+        raise HTTPException(status_code=429, detail=rate_info, headers=headers)
+
+    # Resolve what to explain (project/version ownership enforced here) BEFORE charging
+    # credits, so an invalid project/version never costs the user anything.
+    formulation, stats = _resolve_model_explanation_context(db, org.id, body)
+    if not formulation:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="No model to explain — provide project_id or inline formulation.",
+        )
+
+    # Pre-pay LLM credits before streaming (refunded on failure). BYOK is free.
+    llm_credit_cost = 0 if is_byok else PSS.get_int(db, "LLM_CREDIT_COST_PER_MESSAGE")
+    llm_message_id = generate_id("msg_")
+    if not is_byok:
+        try:
+            CreditsService.deduct_credits(
+                db=db,
+                organization_id=org.id,
+                credits=llm_credit_cost,
+                description=f"LLM model explanation: {llm_message_id}",
+                reference_type="llm_message",
+                reference_id=llm_message_id,
+            )
+            db.commit()
+        except InsufficientCreditsError as e:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail={
+                    "error": "insufficient_credits",
+                    "credits_needed": e.credits_needed,
+                    "credits_available": e.credits_available,
+                },
+            ) from None
+
+    user_msg = LLMMessage(
+        id=generate_id("msg_"),
+        conversation_id=conv.id,
+        role="user",
+        content="Explain this model",
+        created_at=utcnow().replace(tzinfo=None),
+    )
+    db.add(user_msg)
+    db.commit()
+
+    model, use_thinking = select_model(body.use_advanced_model, db=db)
+    request_id = getattr(request.state, "request_id", None) or ""
+
+    stream_gen = explain_model(
+        [],
+        formulation,
+        stats,
+        model,
+        thinking=use_thinking,
+        client=byok_client,
+        db=db,
+    )
+    return EventSourceResponse(
+        _stream_llm_response(
+            stream_gen=stream_gen,
+            request=request,
+            db=db,
+            conv=conv,
+            org_id=org.id,
+            model=model,
+            llm_credit_cost=llm_credit_cost,
+            llm_message_id=llm_message_id,
+            request_id=request_id,
+            is_explanation=True,
+            bill_platform=not is_byok,
+        )
+    )
+
+
+def _resolve_diff_explanation_context(
+    db: Session,
+    org_id: str,
+    body: ExplainVersionDiffRequest,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any], str | None, str | None]:
+    """Resolve (old_problem, new_problem, structural_diff, old_summary, new_summary).
+
+    The project and BOTH versions are loaded with org ownership enforced (404 on any
+    miss — never leak another org's data). The structural diff is computed in Python
+    (``model_project_service.diff_versions``); the LLM only narrates it, so the
+    explanation is hallucination-proof.
+    """
+    from app.services import model_project_service as projects_svc
+
+    project = projects_svc.get_project_or_404(db, body.project_id, org_id)
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    v_from = projects_svc.get_version_or_404(db, body.project_id, body.from_version_id, org_id)
+    v_to = projects_svc.get_version_or_404(db, body.project_id, body.to_version_id, org_id)
+    if not v_from or not v_to:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version not found")
+    diff = projects_svc.diff_versions(v_from, v_to)
+    return (
+        v_from.model_json,
+        v_to.model_json,
+        diff.model_dump(mode="json"),
+        v_from.commit_summary,
+        v_to.commit_summary,
+    )
+
+
+@router.post("/conversations/{conversation_id}/explain-diff")
+async def explain_diff_endpoint(
+    conversation_id: str,
+    body: ExplainVersionDiffRequest,
+    request: Request,
+    db: DBSession,
+    user: CurrentUser,
+    org: CurrentOrg,
+) -> Any:
+    """Stream a plain-language narration of the CHANGE between two model versions as SSE.
+
+    Loads the project + both versions (org ownership enforced), computes the structural
+    diff server-side via ``model_project_service.diff_versions``, and reuses the chat
+    streaming pipeline (budget guardrail, rate limit, pre-paid credits refunded on
+    failure, persisted turn pair) driven by ``explain_version_diff``. The LLM narrates
+    ONLY the pre-computed diff. Moderation is skipped (system-generated prompt content).
+    """
+    conv = _get_conversation_or_404(db, conversation_id, org.id, user.id)
+
+    byok_client, is_byok = resolve_anthropic_client(org)
+
+    if not is_byok and is_llm_budget_exceeded(db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "feature_not_available",
+                "message": (
+                    "The AI assistant is taking a short break — the platform's "
+                    "monthly AI budget has been reached. It will be back at the "
+                    "start of next month."
+                ),
+                "reason": "llm_monthly_budget_exhausted",
+            },
+        )
+
+    allowed, rate_info = check_rate_limit(
+        f"llm:{org.id}",
+        PSS.get_int(db, "LLM_RATE_LIMIT_PER_MINUTE"),
+        PSS.get_int(db, "LLM_RATE_LIMIT_PER_DAY"),
+    )
+    if not allowed:
+        retry_after = rate_info.get("retry_after") if isinstance(rate_info, dict) else None
+        headers = {"Retry-After": str(retry_after)} if retry_after is not None else None
+        raise HTTPException(status_code=429, detail=rate_info, headers=headers)
+
+    # Resolve + compute the diff (ownership enforced) BEFORE charging credits.
+    old_problem, new_problem, structural_diff, old_summary, new_summary = (
+        _resolve_diff_explanation_context(db, org.id, body)
+    )
+
+    llm_credit_cost = 0 if is_byok else PSS.get_int(db, "LLM_CREDIT_COST_PER_MESSAGE")
+    llm_message_id = generate_id("msg_")
+    if not is_byok:
+        try:
+            CreditsService.deduct_credits(
+                db=db,
+                organization_id=org.id,
+                credits=llm_credit_cost,
+                description=f"LLM version-diff explanation: {llm_message_id}",
+                reference_type="llm_message",
+                reference_id=llm_message_id,
+            )
+            db.commit()
+        except InsufficientCreditsError as e:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail={
+                    "error": "insufficient_credits",
+                    "credits_needed": e.credits_needed,
+                    "credits_available": e.credits_available,
+                },
+            ) from None
+
+    user_msg = LLMMessage(
+        id=generate_id("msg_"),
+        conversation_id=conv.id,
+        role="user",
+        content="Explain the change between these versions",
+        created_at=utcnow().replace(tzinfo=None),
+    )
+    db.add(user_msg)
+    db.commit()
+
+    model, use_thinking = select_model(body.use_advanced_model, db=db)
+    request_id = getattr(request.state, "request_id", None) or ""
+
+    stream_gen = explain_version_diff(
+        [],
+        old_problem,
+        new_problem,
+        structural_diff,
+        old_summary,
+        new_summary,
         model,
         thinking=use_thinking,
         client=byok_client,

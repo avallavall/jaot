@@ -21,9 +21,13 @@ from app.services.llm.errors import LLMStatusCode
 from app.services.llm.formulation_service import generate_text_response
 from app.services.llm.prompt_templates import (
     INFEASIBILITY_EXPLANATION_SYSTEM_PROMPT,
+    MODEL_DIFF_EXPLANATION_SYSTEM_PROMPT,
+    MODEL_EXPLANATION_SYSTEM_PROMPT,
     SOLUTION_EXPLANATION_SYSTEM_PROMPT,
     build_infeasibility_explanation_prompt,
+    build_model_explanation_prompt,
     build_solution_explanation_prompt,
+    build_version_diff_prompt,
 )
 
 logger = logging.getLogger(__name__)
@@ -136,6 +140,106 @@ async def explain_infeasibility(
     explain_messages = [*messages, {"role": "user", "content": user_turn}]
 
     system_prompt = INFEASIBILITY_EXPLANATION_SYSTEM_PROMPT
+    if rag_context:
+        system_prompt = f"{system_prompt}{rag_context}"
+
+    async for event in generate_text_response(
+        explain_messages,
+        model,
+        thinking=thinking,
+        system_prompt=system_prompt,
+        client=client,
+        db=db,
+    ):
+        yield event
+
+
+async def explain_model(
+    messages: list[dict[str, Any]],
+    formulation: dict[str, Any] | None,
+    stats: dict[str, Any] | None,
+    model: str,
+    *,
+    thinking: bool = False,
+    rag_context: str | None = None,
+    client: Any | None = None,
+    db: Any | None = None,
+) -> AsyncGenerator[dict[str, Any], None]:
+    """Stream a plain-language explanation of an optimization MODEL (not yet solved).
+
+    Builds a single grounded user turn (formulation + the Python-computed
+    ``ModelStats``), appends it to any prior ``messages``, and delegates to
+    ``generate_text_response`` with the model-explanation system prompt. Mirrors
+    ``explain_solution`` exactly so the SSE event contract and credit accounting stay
+    identical. The statistics are authoritative, so the model has nothing to invent.
+
+    Args:
+        messages: Prior conversation turns (Anthropic message dicts); may be empty.
+        formulation: The model formulation dict (variables/constraints/objective).
+        stats: The serialized ``ModelStats`` (counts, problem class, health, warnings).
+        model: Model ID to use (e.g. "claude-sonnet-4-6").
+        thinking: Whether to enable extended thinking.
+        rag_context: Optional pre-formatted optimization-knowledge block.
+        db: Optional DB session for runtime settings.
+    """
+    # Reuse the EXPLAINING status (P1) — no new event code, so the parity test stays green.
+    yield {"type": "status", "code": LLMStatusCode.EXPLAINING}
+
+    user_turn = build_model_explanation_prompt(formulation, stats)
+    explain_messages = [*messages, {"role": "user", "content": user_turn}]
+
+    system_prompt = MODEL_EXPLANATION_SYSTEM_PROMPT
+    if rag_context:
+        system_prompt = f"{system_prompt}{rag_context}"
+
+    async for event in generate_text_response(
+        explain_messages,
+        model,
+        thinking=thinking,
+        system_prompt=system_prompt,
+        client=client,
+        db=db,
+    ):
+        yield event
+
+
+async def explain_version_diff(
+    messages: list[dict[str, Any]],
+    old_problem: dict[str, Any] | None,
+    new_problem: dict[str, Any] | None,
+    structural_diff: dict[str, Any] | None,
+    old_summary: str | None,
+    new_summary: str | None,
+    model: str,
+    *,
+    thinking: bool = False,
+    rag_context: str | None = None,
+    client: Any | None = None,
+    db: Any | None = None,
+) -> AsyncGenerator[dict[str, Any], None]:
+    """Stream a plain-language narration of the CHANGE between two model versions.
+
+    The diff is computed in Python (``model_project_service.diff_versions``) and
+    passed in as ``structural_diff``; the LLM only verbalizes it — it is told to
+    narrate ONLY changes present in the diff, so the "explain the change" feature is
+    hallucination-proof. Mirrors ``explain_solution`` for the SSE/credit contract.
+
+    Args:
+        messages: Prior conversation turns; may be empty.
+        old_problem / new_problem: The two version snapshots' model_json (context).
+        structural_diff: The authoritative pre-computed diff (added/removed/modified
+            vars & constraints + objective change).
+        old_summary / new_summary: Each version's commit summary.
+        model: Model ID to use.
+    """
+    yield {"type": "status", "code": LLMStatusCode.EXPLAINING}
+
+    user_turn = build_version_diff_prompt(
+        old_problem, new_problem, structural_diff, old_summary, new_summary
+    )
+    explain_messages = [*messages, {"role": "user", "content": user_turn}]
+
+    system_prompt = MODEL_DIFF_EXPLANATION_SYSTEM_PROMPT
     if rag_context:
         system_prompt = f"{system_prompt}{rag_context}"
 
