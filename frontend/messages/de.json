@@ -29,6 +29,8 @@
     "tileMarketplaceDesc": "Ein Community-Modell forken.",
     "comingSoon": "Demnächst",
     "createFailed": "Modell konnte nicht erstellt werden. Bitte versuche es erneut.",
+    "importing": "Importiere…",
+    "importFailed": "Diese Datei konnte nicht gelesen werden. Verwende MPS, LP, CIP oder JSON.",
     "tabBuild": "Erstellen",
     "tabAnalyze": "Analysieren",
     "tabSolve": "Lösen",

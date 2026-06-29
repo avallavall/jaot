@@ -19,6 +19,7 @@ import { api } from "@/lib/api";
 import { useBuilderStore } from "@/hooks/useBuilderStore";
 import { getErrorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
+import { importFileToProject } from "@/components/studio/import-launch";
 
 type TileKey =
   | "ai"
@@ -51,9 +52,11 @@ export default function StudioNewPage() {
   const { activeWorkspaceId } = useAuth();
   const reset = useBuilderStore((s) => s.reset);
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const busy = creating || importing;
 
   const handleCreate = async () => {
-    if (creating) return;
+    if (busy) return;
     setCreating(true);
     try {
       reset();
@@ -68,11 +71,31 @@ export default function StudioNewPage() {
     }
   };
 
+  const handleImportClick = () => {
+    if (busy) return;
+    const input = document.getElementById("studio-import-file");
+    if (input instanceof HTMLInputElement) input.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file
+    if (!file) return;
+    setImporting(true);
+    try {
+      const projectId = await importFileToProject(file, activeWorkspaceId ?? undefined);
+      router.push(`/studio/${projectId}/solve`);
+    } catch (err) {
+      toast.error(getErrorMessage(err, t("importFailed")));
+      setImporting(false);
+    }
+  };
+
   const tiles: LauncherTile[] = [
     { key: "ai", icon: <Sparkles className="h-6 w-6" />, label: t("tileAi"), desc: t("tileAiDesc"), available: false },
     { key: "visual", icon: <Blocks className="h-6 w-6" />, label: t("tileVisual"), desc: t("tileVisualDesc"), available: true, onClick: handleCreate },
     { key: "editor", icon: <Code2 className="h-6 w-6" />, label: t("tileEditor"), desc: t("tileEditorDesc"), available: false },
-    { key: "import", icon: <Upload className="h-6 w-6" />, label: t("tileImport"), desc: t("tileImportDesc"), available: false },
+    { key: "import", icon: <Upload className="h-6 w-6" />, label: t("tileImport"), desc: t("tileImportDesc"), available: true, onClick: handleImportClick },
     { key: "template", icon: <LayoutTemplate className="h-6 w-6" />, label: t("tileTemplate"), desc: t("tileTemplateDesc"), available: false },
     { key: "marketplace", icon: <ShoppingBag className="h-6 w-6" />, label: t("tileMarketplace"), desc: t("tileMarketplaceDesc"), available: false },
     { key: "blank", icon: <FilePlus className="h-6 w-6" />, label: t("tileBlank"), desc: t("tileBlankDesc"), available: true, onClick: handleCreate },
@@ -85,6 +108,16 @@ export default function StudioNewPage() {
         <p className="text-muted-foreground text-sm mt-1">{t("newModelSubtitle")}</p>
       </div>
 
+      <input
+        id="studio-import-file"
+        type="file"
+        accept=".mps,.lp,.cip,.json,.gz"
+        className="hidden"
+        aria-hidden="true"
+        tabIndex={-1}
+        onChange={handleFileChange}
+      />
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {tiles.map((tile) =>
           tile.available ? (
@@ -92,11 +125,13 @@ export default function StudioNewPage() {
               key={tile.key}
               data-testid={`launcher-tile-${tile.key}`}
               onClick={tile.onClick}
-              disabled={creating}
+              disabled={busy}
               className="text-left rounded-lg border p-5 bg-card hover:border-primary/50 hover:shadow-sm transition-all disabled:opacity-60 disabled:pointer-events-none"
             >
               <div className="text-primary mb-3">{tile.icon}</div>
-              <h3 className="font-medium text-sm">{tile.label}</h3>
+              <h3 className="font-medium text-sm">
+                {importing && tile.key === "import" ? t("importing") : tile.label}
+              </h3>
               <p className="text-xs text-muted-foreground mt-1">{tile.desc}</p>
             </button>
           ) : (

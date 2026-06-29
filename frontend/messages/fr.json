@@ -29,6 +29,8 @@
     "tileMarketplaceDesc": "Dupliquez un modèle de la communauté.",
     "comingSoon": "Bientôt disponible",
     "createFailed": "Impossible de créer le modèle. Veuillez réessayer.",
+    "importing": "Importation…",
+    "importFailed": "Impossible de lire ce fichier. Utilisez MPS, LP, CIP ou JSON.",
     "tabBuild": "Construire",
     "tabAnalyze": "Analyser",
     "tabSolve": "Résoudre",

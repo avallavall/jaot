@@ -29,6 +29,8 @@
     "tileMarketplaceDesc": "Bifurca un model de la comunitat.",
     "comingSoon": "Properament",
     "createFailed": "No s'ha pogut crear el model. Torna-ho a provar.",
+    "importing": "Important…",
+    "importFailed": "No s'ha pogut llegir aquest fitxer. Usa MPS, LP, CIP o JSON.",
     "tabBuild": "Construeix",
     "tabAnalyze": "Analitza",
     "tabSolve": "Resol",

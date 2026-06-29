@@ -29,6 +29,8 @@
     "tileMarketplaceDesc": "Fork a community model.",
     "comingSoon": "Coming soon",
     "createFailed": "Could not create the model. Please try again.",
+    "importing": "Importing…",
+    "importFailed": "Couldn't read that file. Use MPS, LP, CIP, or JSON.",
     "tabBuild": "Build",
     "tabAnalyze": "Analyze",
     "tabSolve": "Solve",

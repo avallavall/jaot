@@ -29,6 +29,8 @@
     "tileMarketplaceDesc": "Bifurca un modelo de la comunidad.",
     "comingSoon": "Próximamente",
     "createFailed": "No se pudo crear el modelo. Inténtalo de nuevo.",
+    "importing": "Importando…",
+    "importFailed": "No se pudo leer ese archivo. Usa MPS, LP, CIP o JSON.",
     "tabBuild": "Construir",
     "tabAnalyze": "Analizar",
     "tabSolve": "Resolver",
