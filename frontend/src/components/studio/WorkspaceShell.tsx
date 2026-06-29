@@ -2,11 +2,12 @@
 
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
-import { ChevronLeft, Save, Sparkles, Play, Check, Loader2, AlertCircle } from "lucide-react";
+import { ChevronLeft, Sparkles, Play, Check, Loader2, AlertCircle } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { StudioTabBar } from "./StudioTabBar";
 import { LiveStatsPanel } from "./LiveStatsPanel";
+import { VersionControls } from "./versioning/VersionControls";
 import { useModelProjectStore } from "./store/useModelProjectStore";
 import type { SaveState } from "./store/createModelProjectStore";
 
@@ -44,10 +45,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
           <SaveIndicator state={saveState} />
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={comingSoon}>
-            <Save className="h-4 w-4 mr-1" />
-            {t("headerCommit")}
-          </Button>
+          <VersionControls />
           <Button variant="outline" size="sm" onClick={comingSoon}>
             <Sparkles className="h-4 w-4 mr-1" />
             {t("headerExplain")}

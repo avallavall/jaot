@@ -32,6 +32,8 @@ export interface ModelProjectState {
   enterTab: (rep: RepKey) => void;
   setName: (name: string) => void;
   setSaveState: (state: SaveState) => void;
+  /** Mark the current draft as committed — clears the "uncommitted edits" flag. */
+  markCommitted: () => void;
 }
 
 /** Cheap structural equality — the models are small plain JSON objects. */
@@ -103,6 +105,7 @@ export function createModelProjectStore(init: ModelProjectInit) {
 
         setName: (name) => set({ name }),
         setSaveState: (saveState) => set({ saveState }),
+        markCommitted: () => set({ headDirty: false }),
       }),
       {
         // Undo tracks ONLY the canonical model, so "undo my last change" means the
