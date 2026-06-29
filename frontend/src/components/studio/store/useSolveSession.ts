@@ -12,12 +12,30 @@ import { toProgressPoint, type SolveProgressEvent } from "../panels/solve/live-s
 /**
  * The completed async-solve status nests the Celery task envelope under `result`,
  * so the actual solver result is `result.result`. Fall back to `result` itself.
+ *
+ * Routing telemetry (`solver_used`, `auto_route_reason`, `warning`) is HOISTED by
+ * the async-status endpoint to the TOP level of the response (and the envelope) —
+ * it is NOT inside the inner solver result — so merge it back onto the returned
+ * result. Without this an `auto` solve shows "auto" instead of the solver that
+ * actually ran (e.g. SCIP).
  */
-function unwrapSolveResult(status: { result?: unknown }): SolveResult | null {
+function unwrapSolveResult(status: {
+  result?: unknown;
+  solver_used?: string;
+  auto_route_reason?: string;
+  warning?: string;
+}): SolveResult | null {
   const envelope = status.result as AsyncSolveResultEnvelope | SolveResult | undefined;
   if (!envelope) return null;
-  const inner = (envelope as AsyncSolveResultEnvelope).result;
-  return ((inner ?? envelope) as SolveResult) ?? null;
+  const env = envelope as AsyncSolveResultEnvelope;
+  const base = ((env.result ?? envelope) as SolveResult) ?? null;
+  if (!base) return null;
+  return {
+    ...base,
+    solver_used: status.solver_used ?? env.solver_used ?? base.solver_used,
+    auto_route_reason: status.auto_route_reason ?? env.auto_route_reason ?? base.auto_route_reason,
+    warning: status.warning ?? env.warning ?? base.warning,
+  };
 }
 
 /** A solve that the server still considers in-flight — re-attachable by task id. */
@@ -59,6 +77,7 @@ export function applyReconciledExecution(
 
   const terminal = TERMINAL_STATUS[latest.status];
   if (terminal) {
+    if (s.lastRun?.executionId === latest.id) return; // already surfaced — avoid re-render churn
     s.setLastRun({
       executionId: latest.id,
       status: terminal,
@@ -86,34 +105,47 @@ export function useSolveSession(store: ModelProjectStore, workspaceId?: string):
   const status = useStore(store, (s) => s.solveSession.status);
   const isRunning = status === "running" && !!taskId;
 
-  // One-shot server reconcile on mount (best-effort; a failure just leaves the
-  // panel idle). Keyed only on `store` so it fires exactly once even if
-  // `workspaceId` resolves a tick later — we capture the mount-time workspaceId
-  // in a ref (the endpoint is org-scoped, so workspaceId is only advisory).
+  // Server reconcile WHILE IDLE — not just on mount. Polls the project's latest
+  // execution so a solve started in ANOTHER tab / browser / device is picked up
+  // and re-attached here (the owner's "open it elsewhere and it knows" case), and
+  // also checks immediately when the tab regains focus. Stops as soon as a session
+  // becomes active (the `status` dep tears the effect down), handing off to the
+  // 1s completion poll + WebSocket below. Best-effort: errors leave the panel idle.
+  // (mount-time workspaceId captured in a ref; the endpoint is org-scoped so it's
+  // only advisory.)
   const workspaceIdRef = useRef(workspaceId);
-  const reconciledRef = useRef(false);
   useEffect(() => {
-    if (reconciledRef.current) return;
     const modelId = store.getState().modelId;
     if (!modelId || modelId === "new") return;
-    if (store.getState().solveSession.status !== "idle") {
-      reconciledRef.current = true; // a live session already owns the panel
-      return;
-    }
-    reconciledRef.current = true;
+    if (status !== "idle") return;
     let cancelled = false;
-    (async () => {
+    const check = async () => {
+      if (cancelled) return;
+      if (typeof document !== "undefined" && document.hidden) return;
+      if (store.getState().solveSession.status !== "idle") return;
       try {
         const execs = await api.getProjectExecutions(modelId, { limit: 1 }, workspaceIdRef.current);
         if (!cancelled) applyReconciledExecution(store, execs[0]);
       } catch {
-        // reconcile is best-effort — leave the panel idle on error
+        /* best-effort */
       }
-    })();
+    };
+    check();
+    const interval = setInterval(check, 7000);
+    const onVisible = () => {
+      if (typeof document !== "undefined" && !document.hidden) check();
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisible);
+    }
     return () => {
       cancelled = true;
+      clearInterval(interval);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisible);
+      }
     };
-  }, [store]);
+  }, [store, status]);
 
   // Live per-incumbent points over the executions WebSocket (SCIP streams; HiGHS/Hexaly don't).
   useExecutionWebSocket(isRunning ? taskId : null, {
