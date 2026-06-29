@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -54,6 +56,31 @@ export default function StudioHomePage() {
     setReloadKey((k) => k + 1);
   };
 
+  const ws = activeWorkspaceId ?? undefined;
+
+  // Archive (soft-delete) a model: optimistically drop it from the list, then
+  // offer an Undo that restores it (status -> active). Reverts the row on failure.
+  const archive = async (p: ProjectListItem) => {
+    setProjects((prev) => prev?.filter((x) => x.id !== p.id) ?? prev);
+    try {
+      await api.archiveProject(p.id, ws);
+      toast.success(t("modelArchived", { name: p.name || t("untitled") }), {
+        action: {
+          label: t("undo"),
+          onClick: () => {
+            api
+              .updateProject(p.id, { status: "active" }, ws)
+              .then(() => setProjects((prev) => (prev ? [p, ...prev] : prev)))
+              .catch(() => toast.error(t("archiveError")));
+          },
+        },
+      });
+    } catch {
+      setProjects((prev) => (prev ? [p, ...prev] : prev));
+      toast.error(t("archiveError"));
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -84,11 +111,14 @@ export default function StudioHomePage() {
       ) : (
         <ul className="space-y-2">
           {projects.map((p) => (
-            <li key={p.id}>
+            <li
+              key={p.id}
+              className="flex items-center gap-2 rounded-lg border p-4 hover:border-primary/50 hover:shadow-sm transition-all"
+            >
               <Link
                 href={`/studio/${p.id}/build`}
                 data-testid="studio-project-card"
-                className="flex items-center justify-between gap-4 rounded-lg border p-4 hover:border-primary/50 hover:shadow-sm transition-all"
+                className="flex flex-1 min-w-0 items-center justify-between gap-4"
               >
                 <div className="min-w-0">
                   <div className="font-medium truncate">{p.name || t("untitled")}</div>
@@ -103,6 +133,16 @@ export default function StudioHomePage() {
                   <span>{t("updatedLabel", { date: formatDate(p.updated_at) })}</span>
                 </div>
               </Link>
+              <button
+                type="button"
+                onClick={() => archive(p)}
+                data-testid="studio-project-archive"
+                aria-label={t("archiveModel")}
+                title={t("archiveModel")}
+                className="shrink-0 rounded-md p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </li>
           ))}
         </ul>

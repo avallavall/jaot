@@ -1138,6 +1138,15 @@ export const api = {
     });
   },
 
+  /** Soft-archive a project (hidden from the active list). Reversible via
+   * `updateProject(id, { status: "active" })`. */
+  archiveProject(id: string, workspaceId?: string): Promise<void> {
+    return request<void>(`/api/v2/projects/${id}`, {
+      method: "DELETE",
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
   listProjects(
     params?: { status?: string; q?: string; skip?: number; limit?: number },
     workspaceId?: string
