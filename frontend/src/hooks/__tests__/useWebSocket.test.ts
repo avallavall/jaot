@@ -19,9 +19,15 @@ describe("buildExecutionWsUrl", () => {
     );
   });
 
-  it("returns null when there is no token (unauthenticated → do not connect)", () => {
-    expect(buildExecutionWsUrl("exe_1", null, opts)).toBeNull();
-    expect(buildExecutionWsUrl("exe_1", "", opts)).toBeNull();
+  it("builds the URL WITHOUT a token param for a cookie/email session (server auths from the JWT cookie)", () => {
+    // No API key in localStorage (email/password login) must still open the
+    // socket — the cookie is sent on the same-origin handshake.
+    expect(buildExecutionWsUrl("exe_1", null, opts)).toBe(
+      "ws://localhost:3000/api/v2/ws/executions/exe_1"
+    );
+    expect(buildExecutionWsUrl("exe_1", "", opts)).toBe(
+      "ws://localhost:3000/api/v2/ws/executions/exe_1"
+    );
   });
 
   it("returns null when there is no executionId", () => {

@@ -108,6 +108,23 @@ export function LiveSolvePanel({ session, objectiveSense, onCancel }: LiveSolveP
         </div>
       )}
 
+      {/* Which solver actually ran (resolves "Auto" -> the chosen solver) + any
+          auto-route reason / fallback warning. Shown once solved. */}
+      {done && result && (result.solver_used || result.auto_route_reason || result.warning) && (
+        <div className="rounded-md bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          <span>
+            {t("solveSolverLabel")}:{" "}
+            <span className="font-medium text-foreground">
+              {result.solver_used ?? solverName ?? "—"}
+            </span>
+          </span>
+          {result.auto_route_reason && (
+            <span className="ml-2 rounded bg-muted px-1.5 py-0.5">{t("autoRouted")}</span>
+          )}
+          {result.warning && <div className="mt-1 text-amber-600">{result.warning}</div>}
+        </div>
+      )}
+
       <p className="text-xs text-muted-foreground">{t("liveStreamNote")}</p>
 
       {running && onCancel && (

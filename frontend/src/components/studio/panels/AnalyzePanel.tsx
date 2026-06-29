@@ -55,15 +55,32 @@ export function AnalyzePanel() {
 
   const hasMatrix = stats.varTotal > 0 && stats.constraintTotal > 0;
   const problemClass = backend?.problem_class ?? stats.problemClass;
+  const sense = problem.objective?.sense === "maximize" ? t("senseMaximize") : t("senseMinimize");
+  const ops = stats.constraintsByOperator;
+  const opsValue =
+    stats.constraintTotal > 0
+      ? [
+          ops["<="] ? `≤ ${ops["<="]}` : null,
+          ops[">="] ? `≥ ${ops[">="]}` : null,
+          ops["=="] || ops["="] ? `= ${(ops["=="] ?? 0) + (ops["="] ?? 0)}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ") || "—"
+      : "—";
+  const avgTerms =
+    stats.constraintTotal > 0 ? (stats.nonzeros / stats.constraintTotal).toFixed(1) : "—";
   const cards: Array<{ label: string; value: string }> = [
     { label: t("statClass"), value: problemClass },
-    { label: t("statVariables"), value: String(stats.varTotal) },
-    { label: t("statConstraints"), value: String(stats.constraintTotal) },
+    { label: t("statObjective"), value: sense },
+    { label: t("statVariables"), value: stats.varTotal.toLocaleString() },
+    { label: t("statConstraints"), value: stats.constraintTotal.toLocaleString() },
     {
       label: t("statComposition"),
       value: `${stats.varBinary} · ${stats.varInteger} · ${stats.varContinuous}`,
     },
-    { label: t("statNonzeros"), value: String(stats.nonzeros) },
+    { label: t("statNonzeros"), value: stats.nonzeros.toLocaleString() },
+    { label: t("statOperators"), value: opsValue },
+    { label: t("statAvgTerms"), value: avgTerms },
     {
       label: t("statDensity"),
       value: hasMatrix ? `${(stats.density * 100).toFixed(1)}%` : "—",

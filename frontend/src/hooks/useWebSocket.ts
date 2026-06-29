@@ -43,20 +43,24 @@ export interface UseWebSocketReturn {
 }
 
 /**
- * Build the execution-progress WebSocket URL with the session token as a query
- * param. Browsers cannot set an `Authorization` header on a WebSocket, so the
- * SPA passes its session token (the same value used for `Authorization: Bearer`)
- * via `?token=`; the server also reads the JWT cookie sent on the handshake.
+ * Build the execution-progress WebSocket URL. Auth has two transports and the
+ * server accepts either: the JWT **access cookie** (`jaot_access_token`,
+ * auto-sent by the browser on a same-origin handshake — the email/password login
+ * path) OR a Bearer **API key** passed via `?token=` (browsers can't set an
+ * `Authorization` header on a WebSocket). The API key is appended only when
+ * present; an email/cookie session has no API key in localStorage, so the URL is
+ * built WITHOUT `?token=` and the server authenticates from the cookie. (Returning
+ * null here when there was no API key was a bug: it meant cookie/email sessions —
+ * the common case — never opened the Live Solve socket at all.)
  *
- * Returns `null` when there is no `executionId` or no token (unauthenticated →
- * don't open a socket that would only be rejected).
+ * Returns `null` only when there is no `executionId`.
  */
 export function buildExecutionWsUrl(
   executionId: string | null,
   token: string | null,
   opts?: { protocol?: string; host?: string }
 ): string | null {
-  if (!executionId || !token) return null;
+  if (!executionId) return null;
 
   const protocol =
     opts?.protocol ??
@@ -69,7 +73,8 @@ export function buildExecutionWsUrl(
         ? window.location.host
         : '');
 
-  return `${protocol}//${host}/api/v2/ws/executions/${executionId}?token=${encodeURIComponent(token)}`;
+  const base = `${protocol}//${host}/api/v2/ws/executions/${executionId}`;
+  return token ? `${base}?token=${encodeURIComponent(token)}` : base;
 }
 
 export function useExecutionWebSocket(
