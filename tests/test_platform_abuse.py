@@ -591,14 +591,19 @@ class TestRequestBodySize:
 class TestMaxLengthValidation:
     """Verify max_length enforcement on expression and name fields."""
 
-    def test_expression_exceeds_500k_chars(self, authenticated_client):
-        """Expression > 500K chars is rejected with 422 by max_length=500_000."""
-        big_expr = "x + " * 126_000  # ~504K chars, over the 500_000 limit
+    def test_expression_exceeds_max_chars(self, authenticated_client):
+        """Expression over the max_length cap (5,000,000) is rejected with 422.
+
+        The cap was raised 500K -> 5M so that large indexed models (whose flat
+        objective is a single multi-hundred-thousand-char sum, e.g. a 200x200
+        assignment) are accepted; the bound still exists as a DoS guard.
+        """
+        big_expr = "x + " * 1_300_000  # ~5.2M chars, over the 5,000,000 limit
         body = _make_solve_body()
         body["objective"]["expression"] = big_expr.rstrip(" +")
         resp = authenticated_client.post("/api/v2/solve", json=body)
         assert resp.status_code == 422, (
-            f"Expected 422 for 504K-char expression, got {resp.status_code}: {resp.text[:200]}"
+            f"Expected 422 for a >5M-char expression, got {resp.status_code}: {resp.text[:200]}"
         )
 
     def test_name_field_max_length(self, authenticated_client):

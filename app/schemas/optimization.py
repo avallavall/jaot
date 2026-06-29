@@ -105,7 +105,7 @@ class Constraint(BaseModel):
         default=None, max_length=256, description="Constraint name for debugging"
     )
     expression: str = Field(
-        ..., max_length=500_000, description="Constraint expression (e.g., 'x + 2*y <= 10')"
+        ..., max_length=5_000_000, description="Constraint expression (e.g., 'x + 2*y <= 10')"
     )
 
     @field_validator("name", "expression", mode="before")
@@ -138,7 +138,7 @@ class Objective(BaseModel):
 
     sense: ObjectiveSense = Field(..., description="Minimize or maximize")
     expression: str = Field(
-        ..., max_length=500_000, description="Objective expression (e.g., '3*x + 2*y')"
+        ..., max_length=5_000_000, description="Objective expression (e.g., '3*x + 2*y')"
     )
 
     @field_validator("expression", mode="before")
@@ -170,7 +170,7 @@ class ObjectiveSpec(BaseModel):
     """Specification of a single objective in a multi-objective problem."""
 
     expression: str = Field(
-        ..., max_length=500_000, description="Objective expression (e.g., '3*x + 2*y')"
+        ..., max_length=5_000_000, description="Objective expression (e.g., '3*x + 2*y')"
     )
     sense: ObjectiveSense = Field(..., description="Minimize or maximize this objective")
     weight: float | None = Field(
