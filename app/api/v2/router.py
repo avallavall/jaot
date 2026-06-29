@@ -19,6 +19,7 @@ from app.api.v2 import (
     notifications,
     org_settings,
     pricing,
+    projects,
     schedules,
     seller,
     solve,
@@ -70,6 +71,9 @@ api_v2_router.include_router(billing.router, tags=["billing"])
 
 # Builder — visual model builder CRUD
 api_v2_router.include_router(builder.router, tags=["builder"])
+
+# Model Projects — first-class model entity (draft + commit-grade versions + solve)
+api_v2_router.include_router(projects.router, tags=["projects"])
 
 # Triggers — HTTP event triggers for async solve runs
 api_v2_router.include_router(triggers.router, tags=["triggers"])

@@ -64,6 +64,10 @@ class LLMConversation(Base):
     # Builder document ID for conversation scoping (no FK — ephemeral conversations)
     model_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
 
+    # ModelProject this conversation belongs to (P1a; no FK — conversations are
+    # ephemeral and would otherwise couple project lifetime to a 24h TTL).
+    model_project_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(
         DateTime, default=_default_expires_at, nullable=False, index=True

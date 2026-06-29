@@ -93,6 +93,9 @@ VALID_SOURCE_KINDS = frozenset(
         "organization_model",
         "trigger",
         "imported_file",
+        # P1a: a solve launched from a first-class ModelProject. Code-only addition
+        # — the source_kind column is already VARCHAR(32), so no DB change is needed.
+        "model_project",
     }
 )
 
@@ -285,6 +288,8 @@ class SolveOrchestrator:
         auto_route_reason: str | None = None,
         source: ExecutionSource = _DEFAULT_SOURCE,
         on_progress: Callable[[ProgressPoint], None] | None = None,
+        model_project_id: str | None = None,
+        model_project_version_id: str | None = None,
     ) -> OptimizationResult:
         """Full single-objective solve with pre-pay + refund credit pattern.
 
@@ -335,6 +340,8 @@ class SolveOrchestrator:
             solver_name=solver_name,
             auto_route_reason=auto_route_reason,
             source=source,
+            model_project_id=model_project_id,
+            model_project_version_id=model_project_version_id,
         )
 
         # Audit log
@@ -381,6 +388,8 @@ class SolveOrchestrator:
         auto_route_reason: str | None = None,
         objective_value: float | None = None,
         error_message: str | None = None,
+        model_project_id: str | None = None,
+        model_project_version_id: str | None = None,
     ) -> None:
         """Insert a completed-solve ModelExecution row (single DB-writing path).
 
@@ -410,6 +419,8 @@ class SolveOrchestrator:
                 origin=source.origin,
                 source_kind=source.source_kind,
                 source_id=source.source_id,
+                model_project_id=model_project_id,
+                model_project_version_id=model_project_version_id,
                 is_async=False,
                 created_at=now,
                 started_at=now,
@@ -433,6 +444,8 @@ class SolveOrchestrator:
         solver_name: str | None = None,
         auto_route_reason: str | None = None,
         source: ExecutionSource = _DEFAULT_SOURCE,
+        model_project_id: str | None = None,
+        model_project_version_id: str | None = None,
     ) -> None:
         """Persist a completed single-objective solve (maps the result to a row)."""
         solver_status = result.status.value
@@ -451,6 +464,8 @@ class SolveOrchestrator:
             auto_route_reason=auto_route_reason,
             objective_value=result.objective_value,
             error_message=result.error_message,
+            model_project_id=model_project_id,
+            model_project_version_id=model_project_version_id,
         )
 
     async def solve_multi_objective(

@@ -201,6 +201,11 @@ class OrganizationModel(Base):
     # For private models (when catalog_id is NULL)
     private_definition: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
+    # Authoring ModelProject this was published from (P1a; no FK — opaque link).
+    # Used by the full-fusion path (P1.5) to point a marketplace listing back at
+    # its source project.
+    source_model_project_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
     # Status
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_favorite: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -320,6 +325,15 @@ class ModelExecution(Base):
     # llm_conversation | template | organization_model | trigger | imported_file.
     source_kind: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     source_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+
+    # Per-project history (P1a): the ModelProject + committed version this run
+    # came from (NULL for non-project solves). The generic source_kind/source_id
+    # above also carry the "model_project" provenance for the "open origin"
+    # navigation; these typed columns power fast per-project history queries.
+    model_project_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    model_project_version_id: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, index=True
+    )
 
     # Async execution tracking
     celery_task_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
