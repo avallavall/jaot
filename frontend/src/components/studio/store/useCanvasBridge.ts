@@ -39,6 +39,10 @@ export function useCanvasBridge(store: ModelProjectStore): void {
       if (state.nodes === prev.nodes && state.edges === prev.edges) return;
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => {
+        // Re-check at fire time: the canvas may have been disabled (large model)
+        // between scheduling and firing — projecting an empty canvas now would
+        // clobber the canonical model and autosave the emptiness.
+        if (store.getState().canvasDisabled) return;
         const { nodes, edges } = useBuilderStore.getState();
         const problem = canvasProjector.toProblem({ nodes, edges });
         store.getState().setProblem(problem, { source: "canvas" });

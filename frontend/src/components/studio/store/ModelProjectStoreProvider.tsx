@@ -78,10 +78,14 @@ export function ModelProjectStoreProvider({
         // DIRECTLY from model_json so Analyze/Solve work, leave the canvas empty,
         // and flag it so the Build lens shows a notice and the bridge stays off.
         if (exceedsCanvasScale(modelJson) && modelJson) {
+          const st = store.getState();
+          // Disable the canvas bridge BEFORE touching the builder store: `reset()`
+          // emits a change, and if the bridge is still "live" it would project the
+          // now-empty canvas back onto the canonical model (empty), mark the draft
+          // dirty, and let autosave OVERWRITE the imported model with nothing.
+          st.setCanvasDisabled(true);
           useBuilderStore.getState().reset();
           useBuilderStore.setState({ documentId: project.id, documentName: project.name });
-          const st = store.getState();
-          st.setCanvasDisabled(true);
           st.hydrate(modelJson, project.name);
           st.setLockVersion(project.draft_lock_version);
           return;
