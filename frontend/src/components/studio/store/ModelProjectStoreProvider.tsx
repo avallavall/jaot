@@ -8,8 +8,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { useBuilderStore } from "@/hooks/useBuilderStore";
 import { serializeToOptimizationProblem } from "@/lib/builder/serializer";
-import type { BuilderNode, BuilderEdge } from "@/lib/builder/types";
 import type { OptimizationProblem } from "@/lib/types";
+import { resolveDraftCanvas } from "./draft-canvas";
 import {
   createModelProjectStore,
   type ModelProjectStore,
@@ -72,15 +72,13 @@ export function ModelProjectStoreProvider({
       .getProject(modelId, activeWorkspaceId ?? undefined)
       .then((project) => {
         if (cancelled) return;
-        const canvasJson = project.draft_canvas_json as
-          | { nodes?: unknown[]; edges?: unknown[] }
-          | null;
-        const nodes = Array.isArray(canvasJson?.nodes)
-          ? (canvasJson!.nodes as BuilderNode[])
-          : [];
-        const edges = Array.isArray(canvasJson?.edges)
-          ? (canvasJson!.edges as BuilderEdge[])
-          : [];
+        // Resolve the canvas to render: the stored canvas, else derive it from the
+        // canonical model_json (so an API/ERP-created project that set only model_json
+        // and no canvas still renders), else empty.
+        const { nodes, edges } = resolveDraftCanvas(
+          project.draft_canvas_json as { nodes?: unknown[]; edges?: unknown[] } | null,
+          (project.draft_model_json ?? null) as OptimizationProblem | null
+        );
 
         if (nodes.length > 0) {
           useBuilderStore.getState().setDocument(project.id, project.name, nodes, edges);
