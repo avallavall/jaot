@@ -703,6 +703,25 @@ export interface ProjectListItem {
   updated_at: string;
 }
 
+/**
+ * A compact execution row used to RECONCILE a solve from the server when the
+ * workspace opens (durable, server-derived solve sessions). A running async row
+ * is re-attached by `celery_task_id`; a terminal one surfaces as the "last run".
+ */
+export interface ProjectExecutionItem {
+  id: string;
+  status: string; // pending | running | completed | failed | cancelled | timeout
+  is_async: boolean;
+  celery_task_id?: string | null;
+  solver_name?: string | null;
+  objective_value?: number | null;
+  model_project_version_id?: string | null;
+  error_message?: string | null;
+  created_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+}
+
 export interface ProjectVersionSummary {
   id: string;
   sequence: number;

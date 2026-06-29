@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { ChevronLeft, Sparkles, Play, Check, Loader2, AlertCircle } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
@@ -84,6 +84,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
           <SaveIndicator state={saveState} />
         </div>
         <div className="flex items-center gap-2">
+          <SolveStatusIndicator onGoToSolve={goToSolve} />
           <VersionControls />
           <Button
             variant="outline"
@@ -109,6 +110,35 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
         <LiveStatsPanel />
       </div>
     </div>
+  );
+}
+
+/**
+ * Ambient "this model is solving" pill, visible from ANY tab (the solve session
+ * lives in the provider store, shared by Build/Analyze/Solve). Derived from the
+ * server on open, so a solve started hours ago — or in another tab/device —
+ * still shows here with how long it's been running. Click to jump to the live view.
+ */
+function SolveStatusIndicator({ onGoToSolve }: { onGoToSolve: () => void }) {
+  const t = useTranslations("studio");
+  const format = useFormatter();
+  const status = useModelProjectStore((s) => s.solveSession.status);
+  const startedAt = useModelProjectStore((s) => s.solveSession.startedAt);
+  if (status !== "running") return null;
+
+  const label = startedAt
+    ? t("solvingSince", { when: format.relativeTime(new Date(startedAt)) })
+    : t("solveRunning");
+  return (
+    <button
+      type="button"
+      onClick={onGoToSolve}
+      data-testid="studio-solving-indicator"
+      className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200 dark:hover:bg-amber-900"
+    >
+      <Loader2 className="h-3 w-3 animate-spin" />
+      {label}
+    </button>
   );
 }
 

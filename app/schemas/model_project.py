@@ -121,6 +121,34 @@ class ProjectListItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ProjectExecutionItem(BaseModel):
+    """Compact execution row for SERVER-DERIVED solve reconciliation (§14).
+
+    Carries exactly what the workspace needs to RECONCILE a solve from the
+    server when it opens — independent of browser memory, so a running solve
+    survives navigation, reload, a duplicated tab, a new device, or power loss:
+
+    * ``status`` + ``is_async`` + ``celery_task_id`` → re-attach a still-running
+      async solve (resume polling + the live WebSocket from where it is).
+    * terminal ``status`` + ``objective_value`` + ``completed_at`` → surface the
+      last run ("resuelta · objetivo X · hace Ys") instead of a blank panel.
+    """
+
+    id: str
+    status: str
+    is_async: bool
+    celery_task_id: str | None = None
+    solver_name: str | None = None
+    objective_value: float | None = None
+    model_project_version_id: str | None = None
+    error_message: str | None = None
+    created_at: datetime
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class DiffEntry(BaseModel):
     """One changed element in a version-to-version structural diff."""
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,9 +31,11 @@ import { LiveSolvePanel } from "./solve/LiveSolvePanel";
  */
 export function SolvePanel() {
   const t = useTranslations("studio");
+  const format = useFormatter();
   const problem = useModelProjectStore((s) => s.problem);
   const modelId = useModelProjectStore((s) => s.modelId);
   const session = useModelProjectStore((s) => s.solveSession);
+  const lastRun = useModelProjectStore((s) => s.lastRun);
   const startSolveSession = useModelProjectStore((s) => s.startSolveSession);
   const clearSolveSession = useModelProjectStore((s) => s.clearSolveSession);
   const cancelSolveSession = useModelProjectStore((s) => s.cancelSolveSession);
@@ -56,6 +58,12 @@ export function SolvePanel() {
   const objectiveSense = problem.objective?.sense === "maximize" ? "maximize" : "minimize";
   const running = session.status === "running";
   const done = session.status === "done";
+
+  // The reconciled "last run" banner — shown only when no live session owns the
+  // panel, so a finished-while-away solve reads as "resuelta · objetivo X · hace Ys".
+  const showLastRun = session.status === "idle" && lastRun !== null;
+  const lastRunWhen =
+    lastRun?.finishedAt != null ? format.relativeTime(new Date(lastRun.finishedAt)) : "";
 
   // Toast once when a solve fails.
   const failedRef = useRef(false);
@@ -80,7 +88,7 @@ export function SolvePanel() {
         activeWorkspaceId ?? undefined,
         { origin: "visual_builder", sourceKind: "model_project", sourceId },
       );
-      startSolveSession(task.task_id, solverName);
+      startSolveSession(task.task_id, solverName, new Date().toISOString());
     } catch (err: unknown) {
       const status = getErrorStatus(err);
       if (status === 402) toast.error(t("solveInsufficientCredits"));
@@ -131,6 +139,20 @@ export function SolvePanel() {
             {blockedLabel && <TooltipContent>{blockedLabel}</TooltipContent>}
           </Tooltip>
         </TooltipProvider>
+
+        {showLastRun && lastRun && (
+          <div
+            data-testid="studio-last-run"
+            className="rounded-md border bg-muted/40 px-4 py-3 text-sm text-muted-foreground"
+          >
+            {t("lastRun", {
+              status: lastRun.status,
+              hasObjective: lastRun.objectiveValue != null ? "yes" : "no",
+              objective: lastRun.objectiveValue ?? 0,
+              when: lastRunWhen,
+            })}
+          </div>
+        )}
 
         {session.status !== "idle" && (
           <LiveSolvePanel

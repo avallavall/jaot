@@ -28,6 +28,9 @@ export interface SolveSession {
   lastEvent: SolveProgressEvent | null;
   solverName: string | null;
   error: string | null;
+  /** ISO start time — `now` for a fresh solve, the server's start for a re-attach.
+   * Powers the header's "solving… (started Xm ago)" ambient indicator. */
+  startedAt: string | null;
 }
 
 export const IDLE_SOLVE_SESSION: SolveSession = {
@@ -38,7 +41,25 @@ export const IDLE_SOLVE_SESSION: SolveSession = {
   lastEvent: null,
   solverName: null,
   error: null,
+  startedAt: null,
 };
+
+/** Terminal statuses a reconciled "last run" can carry (never running/pending). */
+export type LastRunStatus = "completed" | "failed" | "cancelled" | "timeout";
+
+/**
+ * A compact summary of the most recent FINISHED solve, derived from the server
+ * when the workspace opens. It lets the Solve panel say "última ejecución:
+ * resuelta · objetivo X · hace Ys" instead of a blank box after the live session
+ * was lost (reload / new tab / power loss). Shown only while no solve is active.
+ */
+export interface LastRunSummary {
+  executionId: string;
+  status: LastRunStatus;
+  objectiveValue: number | null;
+  solverName: string | null;
+  finishedAt: string | null;
+}
 
 export interface ModelProjectState {
   /** Single source of truth — the solver-agnostic model. Only this is tracked by undo. */
@@ -72,12 +93,20 @@ export interface ModelProjectState {
 
   /** The running/finished async solve (persists across tab switches). */
   solveSession: SolveSession;
-  startSolveSession: (taskId: string, solverName: string | null) => void;
+  startSolveSession: (
+    taskId: string,
+    solverName: string | null,
+    startedAt?: string | null
+  ) => void;
   addSolvePoint: (point: ProgressPoint, event: SolveProgressEvent) => void;
   finishSolveSession: (result: SolveResult, points: ProgressPoint[]) => void;
   failSolveSession: (error: string) => void;
   cancelSolveSession: () => void;
   clearSolveSession: () => void;
+
+  /** The most recent FINISHED solve, reconciled from the server on open. */
+  lastRun: LastRunSummary | null;
+  setLastRun: (lastRun: LastRunSummary | null) => void;
 }
 
 /** Cheap structural equality — the models are small plain JSON objects. */
@@ -154,7 +183,7 @@ export function createModelProjectStore(init: ModelProjectInit) {
         markCommitted: () => set({ headDirty: false }),
 
         solveSession: IDLE_SOLVE_SESSION,
-        startSolveSession: (taskId, solverName) =>
+        startSolveSession: (taskId, solverName, startedAt = null) =>
           set({
             solveSession: {
               taskId,
@@ -164,6 +193,7 @@ export function createModelProjectStore(init: ModelProjectInit) {
               lastEvent: null,
               solverName,
               error: null,
+              startedAt,
             },
           }),
         addSolvePoint: (point, event) => {
@@ -180,6 +210,9 @@ export function createModelProjectStore(init: ModelProjectInit) {
         cancelSolveSession: () =>
           set((state) => ({ solveSession: { ...state.solveSession, status: "cancelled" } })),
         clearSolveSession: () => set({ solveSession: IDLE_SOLVE_SESSION }),
+
+        lastRun: null,
+        setLastRun: (lastRun) => set({ lastRun }),
       }),
       {
         // Undo tracks ONLY the canonical model, so "undo my last change" means the

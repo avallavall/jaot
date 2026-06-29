@@ -3097,6 +3097,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/projects/{project_id}/executions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Project Executions
+         * @description Executions for this project (newest first).
+         *
+         *     This is the server-side anchor that lets the workspace RECONCILE a solve on
+         *     open instead of trusting browser memory: a still-running async run can be
+         *     re-attached by its ``celery_task_id``, and a finished one surfaces as the
+         *     "last run". Matches BOTH provenance shapes a project solve can carry — the
+         *     typed ``model_project_id`` column (the ``/projects/{id}/solve`` path) and the
+         *     generic ``source_kind="model_project"`` provenance (the universal
+         *     ``/solve/async`` path the studio uses for live streaming) — so no solve
+         *     entry point has to change (see the solve-contract-drift safeguard).
+         */
+        get: operations["list_project_executions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/projects/{project_id}/solve": {
         parameters: {
             query?: never;
@@ -8649,6 +8678,46 @@ export interface components {
             workspace_id?: string | null;
         };
         /**
+         * ProjectExecutionItem
+         * @description Compact execution row for SERVER-DERIVED solve reconciliation (§14).
+         *
+         *     Carries exactly what the workspace needs to RECONCILE a solve from the
+         *     server when it opens — independent of browser memory, so a running solve
+         *     survives navigation, reload, a duplicated tab, a new device, or power loss:
+         *
+         *     * ``status`` + ``is_async`` + ``celery_task_id`` → re-attach a still-running
+         *       async solve (resume polling + the live WebSocket from where it is).
+         *     * terminal ``status`` + ``objective_value`` + ``completed_at`` → surface the
+         *       last run ("resuelta · objetivo X · hace Ys") instead of a blank panel.
+         */
+        ProjectExecutionItem: {
+            /** Celery Task Id */
+            celery_task_id?: string | null;
+            /** Completed At */
+            completed_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Error Message */
+            error_message?: string | null;
+            /** Id */
+            id: string;
+            /** Is Async */
+            is_async: boolean;
+            /** Model Project Version Id */
+            model_project_version_id?: string | null;
+            /** Objective Value */
+            objective_value?: number | null;
+            /** Solver Name */
+            solver_name?: string | null;
+            /** Started At */
+            started_at?: string | null;
+            /** Status */
+            status: string;
+        };
+        /**
          * ProjectListItem
          * @description Compact project row for the list view.
          */
@@ -10563,6 +10632,7 @@ export type PricingResponse = components['schemas']['PricingResponse'];
 export type PricingTier = components['schemas']['PricingTier'];
 export type ProgressPoint = components['schemas']['ProgressPoint'];
 export type ProjectCreate = components['schemas']['ProjectCreate'];
+export type ProjectExecutionItem = components['schemas']['ProjectExecutionItem'];
 export type ProjectListItem = components['schemas']['ProjectListItem'];
 export type ProjectMetaUpdate = components['schemas']['ProjectMetaUpdate'];
 export type ProjectRead = components['schemas']['ProjectRead'];
@@ -16133,6 +16203,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_project_executions: {
+        parameters: {
+            query?: {
+                limit?: number;
+                status?: string | null;
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectExecutionItem"][];
                 };
             };
             /** @description Validation Error */

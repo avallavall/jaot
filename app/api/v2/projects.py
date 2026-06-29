@@ -12,6 +12,7 @@ import logging
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from pydantic import ValidationError
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.api.deps import (
@@ -34,10 +35,12 @@ from app.domains.solver.services.pool import get_solver_pool
 from app.models.audit_log import AuditAction
 from app.models.builder_document import ModelBuilderDocument
 from app.models.model_project import ModelProject, ModelProjectVersion
+from app.models.optimization_model import ModelExecution
 from app.schemas.model_project import (
     CommitRequest,
     DraftUpdate,
     ProjectCreate,
+    ProjectExecutionItem,
     ProjectListItem,
     ProjectMetaUpdate,
     ProjectRead,
@@ -192,6 +195,49 @@ def get_model_stats(
     """Live structural statistics + health score for the project's working draft."""
     project = _project_or_404(db, project_id, org.id)
     return compute_cached(project.draft_model_json)
+
+
+# --------------------------------------------------------------------------- #
+# Executions — the SERVER-DERIVED source of truth for solve reconciliation (§14)
+# --------------------------------------------------------------------------- #
+@router.get(
+    "/{project_id}/executions",
+    response_model=list[ProjectExecutionItem],
+    operation_id="list_project_executions",
+)
+def list_project_executions(
+    project_id: str,
+    db: DBSession,
+    org: CurrentOrg,
+    _ws: OptionalRequireViewer,
+    status_filter: str | None = Query(None, alias="status"),
+    limit: int = Query(20, ge=1, le=100),
+) -> list[ModelExecution]:
+    """Executions for this project (newest first).
+
+    This is the server-side anchor that lets the workspace RECONCILE a solve on
+    open instead of trusting browser memory: a still-running async run can be
+    re-attached by its ``celery_task_id``, and a finished one surfaces as the
+    "last run". Matches BOTH provenance shapes a project solve can carry — the
+    typed ``model_project_id`` column (the ``/projects/{id}/solve`` path) and the
+    generic ``source_kind="model_project"`` provenance (the universal
+    ``/solve/async`` path the studio uses for live streaming) — so no solve
+    entry point has to change (see the solve-contract-drift safeguard).
+    """
+    _project_or_404(db, project_id, org.id)
+    query = db.query(ModelExecution).filter(
+        ModelExecution.organization_id == org.id,
+        or_(
+            ModelExecution.model_project_id == project_id,
+            and_(
+                ModelExecution.source_kind == "model_project",
+                ModelExecution.source_id == project_id,
+            ),
+        ),
+    )
+    if status_filter:
+        query = query.filter(ModelExecution.status == status_filter)
+    return query.order_by(ModelExecution.created_at.desc()).limit(limit).all()
 
 
 @router.patch("/{project_id}", response_model=ProjectRead, operation_id="update_model_project")

@@ -37,6 +37,7 @@ import type {
   ModelVersionListItem,
   ProjectRead,
   ProjectListItem,
+  ProjectExecutionItem,
   ProjectVersionSummary,
   ProjectVersionRead,
   ProjectVersionDiff,
@@ -125,6 +126,7 @@ export type {
   ModelVersionListItem,
   ProjectRead,
   ProjectListItem,
+  ProjectExecutionItem,
   ProjectVersionSummary,
   ProjectVersionRead,
   ProjectVersionDiff,
@@ -1148,6 +1150,21 @@ export const api = {
   getModelStats(id: string, workspaceId?: string): Promise<ModelStats> {
     return request(`/api/v2/projects/${id}/stats`, {
       params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  /**
+   * Executions for a project (newest first) — the server-side anchor for
+   * RECONCILING a solve on workspace open: a running async run is re-attached by
+   * its `celery_task_id`; a finished one becomes the "last run" summary.
+   */
+  getProjectExecutions(
+    id: string,
+    params?: { status?: string; limit?: number },
+    workspaceId?: string
+  ): Promise<ProjectExecutionItem[]> {
+    return request(`/api/v2/projects/${id}/executions`, {
+      params: { ...params, ...(workspaceId ? { workspace_id: workspaceId } : {}) },
     });
   },
 

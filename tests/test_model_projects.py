@@ -6,11 +6,15 @@ and the project solve routing through SolveOrchestrator with model_project
 provenance.
 """
 
+from datetime import timedelta
+
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.models import ModelExecution, Organization, User
 from app.models.model_project import ModelProject, ModelProjectVersion
+from app.shared.utils.datetime_helpers import utcnow
+from app.shared.utils.id_generator import generate_id
 from tests._helpers.anti_oracle import (
     assert_cross_tenant_404_anti_oracle,
     assert_cross_tenant_404_anti_oracle_write,
@@ -213,6 +217,176 @@ class TestSolve:
     def test_solve_unknown_project_404(self, authenticated_client: TestClient):
         resp = authenticated_client.post("/api/v2/projects/mp_nonexistent/solve")
         assert resp.status_code == 404
+
+
+def _insert_execution(
+    db: Session,
+    org: Organization,
+    *,
+    status: str,
+    is_async: bool = True,
+    model_project_id: str | None = None,
+    source_kind: str | None = None,
+    source_id: str | None = None,
+    celery_task_id: str | None = None,
+    objective_value: float | None = None,
+    created_at=None,
+) -> ModelExecution:
+    """Insert a ModelExecution directly so reconciliation can be tested without
+    standing up Celery — the endpoint reads the persisted row, which the worker
+    keeps in sync (pending -> running -> completed/failed)."""
+    execution = ModelExecution(
+        id=generate_id("exe_"),
+        organization_id=org.id,
+        input_data={"name": "tiny_lp"},
+        status=status,
+        is_async=is_async,
+        model_project_id=model_project_id,
+        source_kind=source_kind,
+        source_id=source_id,
+        celery_task_id=celery_task_id,
+        objective_value=objective_value,
+        created_at=created_at or utcnow(),
+    )
+    db.add(execution)
+    db.commit()
+    db.refresh(execution)
+    return execution
+
+
+class TestExecutionsReconcile:
+    """§14: the per-project executions endpoint is the server-side source of
+    truth for reconciling a solve on workspace open."""
+
+    def test_running_async_execution_is_returned_for_reattach(
+        self, authenticated_client: TestClient, db_session: Session, test_organization: Organization
+    ):
+        pid = _create_project(authenticated_client)["id"]
+        _insert_execution(
+            db_session,
+            test_organization,
+            status="running",
+            is_async=True,
+            model_project_id=pid,
+            source_kind="model_project",
+            source_id=pid,
+            celery_task_id="celery-task-123",
+        )
+        rows = authenticated_client.get(f"/api/v2/projects/{pid}/executions?limit=1").json()
+        assert len(rows) == 1
+        assert rows[0]["status"] == "running"
+        assert rows[0]["is_async"] is True
+        assert rows[0]["celery_task_id"] == "celery-task-123"
+
+    # CONTRACT-TEST: reconcile matches the generic source_kind="model_project" provenance,
+    # not only the typed model_project_id column — the studio's universal /solve/async path
+    # tags executions via source_kind/source_id WITHOUT the typed column, and they MUST be found.
+    def test_matches_generic_provenance_without_typed_column(
+        self, authenticated_client: TestClient, db_session: Session, test_organization: Organization
+    ):
+        pid = _create_project(authenticated_client)["id"]
+        _insert_execution(
+            db_session,
+            test_organization,
+            status="running",
+            is_async=True,
+            model_project_id=None,  # /solve/async does NOT set the typed column
+            source_kind="model_project",
+            source_id=pid,
+            celery_task_id="celery-async-xyz",
+        )
+        rows = authenticated_client.get(f"/api/v2/projects/{pid}/executions").json()
+        assert len(rows) == 1
+        assert rows[0]["celery_task_id"] == "celery-async-xyz"
+
+    def test_terminal_execution_surfaces_objective(
+        self, authenticated_client: TestClient, db_session: Session, test_organization: Organization
+    ):
+        pid = _create_project(authenticated_client)["id"]
+        _insert_execution(
+            db_session,
+            test_organization,
+            status="completed",
+            model_project_id=pid,
+            objective_value=90.0,
+        )
+        rows = authenticated_client.get(f"/api/v2/projects/{pid}/executions?limit=1").json()
+        assert rows[0]["status"] == "completed"
+        assert rows[0]["objective_value"] == 90.0
+
+    def test_newest_first_and_limit(
+        self, authenticated_client: TestClient, db_session: Session, test_organization: Organization
+    ):
+        pid = _create_project(authenticated_client)["id"]
+        now = utcnow()
+        _insert_execution(
+            db_session,
+            test_organization,
+            status="completed",
+            model_project_id=pid,
+            celery_task_id="older",
+            created_at=now - timedelta(minutes=5),
+        )
+        _insert_execution(
+            db_session,
+            test_organization,
+            status="running",
+            model_project_id=pid,
+            celery_task_id="newer",
+            created_at=now,
+        )
+        rows = authenticated_client.get(f"/api/v2/projects/{pid}/executions?limit=1").json()
+        assert len(rows) == 1
+        assert rows[0]["celery_task_id"] == "newer"
+
+    def test_status_filter(
+        self, authenticated_client: TestClient, db_session: Session, test_organization: Organization
+    ):
+        pid = _create_project(authenticated_client)["id"]
+        _insert_execution(db_session, test_organization, status="completed", model_project_id=pid)
+        _insert_execution(db_session, test_organization, status="running", model_project_id=pid)
+        rows = authenticated_client.get(f"/api/v2/projects/{pid}/executions?status=running").json()
+        assert len(rows) == 1
+        assert rows[0]["status"] == "running"
+
+    def test_empty_when_no_executions(self, authenticated_client: TestClient):
+        pid = _create_project(authenticated_client)["id"]
+        assert authenticated_client.get(f"/api/v2/projects/{pid}/executions").json() == []
+
+    # CONTRACT-TEST: per-project executions are org-scoped (cross-org -> 404, anti-oracle)
+    def test_executions_cross_tenant_404_anti_oracle(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization_2: Organization,
+        test_user_2: User,
+    ):
+        other = _insert_project(db_session, test_organization_2, test_user_2)
+        assert_cross_tenant_404_anti_oracle(
+            authenticated_client,
+            endpoint_template="/api/v2/projects/{id}/executions",
+            cross_tenant_resource_id=other.id,
+        )
+
+    def test_does_not_leak_other_orgs_executions(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization: Organization,
+        test_organization_2: Organization,
+    ):
+        # An execution in org2 tagged with OUR project id must never surface for us:
+        # the org filter precedes the provenance match.
+        pid = _create_project(authenticated_client)["id"]
+        _insert_execution(
+            db_session,
+            test_organization_2,
+            status="running",
+            source_kind="model_project",
+            source_id=pid,
+            celery_task_id="foreign",
+        )
+        assert authenticated_client.get(f"/api/v2/projects/{pid}/executions").json() == []
 
 
 class TestMultiTenancyWrite:

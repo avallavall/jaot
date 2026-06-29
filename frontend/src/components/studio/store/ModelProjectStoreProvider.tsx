@@ -114,8 +114,10 @@ export function ModelProjectStoreProvider({
 
   useCanvasBridge(store);
   useAutosave(store, modelId);
-  // Drives the async solve from the store so it survives tab switches.
-  useSolveSession(store);
+  // Drives the async solve from the store so it survives tab switches, and
+  // reconciles a running/finished solve from the server on open (survives
+  // reload / new tab / new device / power loss).
+  useSolveSession(store, activeWorkspaceId ?? undefined);
 
   return (
     <ModelProjectStoreContext.Provider value={store}>
