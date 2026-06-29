@@ -23,6 +23,8 @@ export interface ModelProjectState {
   /** True when the draft has uncommitted edits since load / last save. */
   headDirty: boolean;
   saveState: SaveState;
+  /** Optimistic-concurrency token for the ModelProject draft (the `If-Match` value). */
+  lockVersion: number;
 
   /** Apply an edit from a representation; makes that rep canonical and the others stale. */
   setProblem: (next: OptimizationProblem, opts: { source: RepKey }) => void;
@@ -32,6 +34,8 @@ export interface ModelProjectState {
   enterTab: (rep: RepKey) => void;
   setName: (name: string) => void;
   setSaveState: (state: SaveState) => void;
+  /** Update the draft lock version (from a load or a successful draft PUT). */
+  setLockVersion: (lockVersion: number) => void;
   /** Mark the current draft as committed — clears the "uncommitted edits" flag. */
   markCommitted: () => void;
 }
@@ -65,6 +69,7 @@ export function createModelProjectStore(init: ModelProjectInit) {
         name: init.name,
         headDirty: false,
         saveState: "idle",
+        lockVersion: 0,
 
         setProblem: (next, opts) => {
           // Idempotency guard: a re-projection that yields the model already in hand
@@ -105,6 +110,7 @@ export function createModelProjectStore(init: ModelProjectInit) {
 
         setName: (name) => set({ name }),
         setSaveState: (saveState) => set({ saveState }),
+        setLockVersion: (lockVersion) => set({ lockVersion }),
         markCommitted: () => set({ headDirty: false }),
       }),
       {

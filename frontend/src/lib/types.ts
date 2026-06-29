@@ -644,6 +644,137 @@ export interface TemplateSummary {
   tags: string[];
 }
 
+// ── ModelProject (studio workspace; P1e) ────────────────────────────────────
+// Handwritten mirror of app/schemas/model_project.py + model_stats.py. The
+// generated `api.ts` carries the canonical shapes once regenerated.
+export interface CanvasJson {
+  nodes?: unknown[];
+  edges?: unknown[];
+}
+
+export interface ProjectRead {
+  id: string;
+  organization_id: string;
+  workspace_id?: string | null;
+  name: string;
+  description?: string | null;
+  status: string;
+  source_type?: string | null;
+  source_ref?: string | null;
+  current_version_id?: string | null;
+  committed_count: number;
+  draft_model_json?: _OptimizationProblem | null;
+  draft_canvas_json?: CanvasJson | null;
+  draft_dsl_source?: string | null;
+  draft_content_hash?: string | null;
+  draft_lock_version: number;
+  draft_updated_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectListItem {
+  id: string;
+  name: string;
+  description?: string | null;
+  status: string;
+  source_type?: string | null;
+  current_version_id?: string | null;
+  committed_count: number;
+  updated_at: string;
+}
+
+export interface ProjectVersionSummary {
+  id: string;
+  sequence: number;
+  commit_summary: string;
+  problem_class?: string | null;
+  created_by?: string | null;
+  created_at: string;
+}
+
+export interface ProjectVersionRead extends ProjectVersionSummary {
+  model_project_id: string;
+  parent_version_id?: string | null;
+  commit_body?: string | null;
+  content_hash: string;
+  model_json: _OptimizationProblem;
+  canvas_json?: CanvasJson | null;
+  dsl_source?: string | null;
+  stats_json?: Record<string, unknown> | null;
+}
+
+export interface ProjectVersionDiffEntry {
+  kind: string;
+  change: string;
+  name: string;
+  detail?: string | null;
+}
+
+export interface ProjectVersionDiff {
+  from_version_id: string;
+  to_version_id: string;
+  entries: ProjectVersionDiffEntry[];
+  objective_changed: boolean;
+}
+
+export interface DraftUpdateBody {
+  model_json?: Record<string, unknown> | null;
+  canvas_json?: Record<string, unknown> | null;
+  dsl_source?: string | null;
+}
+
+export type ModelHealthBand = "A" | "B" | "C" | "D" | "F";
+
+export interface ModelHealthDeduction {
+  code: string;
+  points: number;
+  detail: string;
+}
+
+export interface ModelHealth {
+  score: number;
+  band: ModelHealthBand;
+  deductions: ModelHealthDeduction[];
+  has_hard_error: boolean;
+}
+
+export interface ModelStatsBoundProfile {
+  free: number;
+  boxed: number;
+  one_sided: number;
+  binary: number;
+  integers_missing_bounds: number;
+}
+
+export interface ModelStatsConditioning {
+  min_abs?: number | null;
+  max_abs?: number | null;
+  range_ratio?: number | null;
+  tier: "ok" | "mild" | "poor" | "severe";
+}
+
+export interface ModelStats {
+  var_total: number;
+  var_continuous: number;
+  var_integer: number;
+  var_binary: number;
+  constraint_total: number;
+  constraints_by_operator: Record<string, number>;
+  objective_sense?: string | null;
+  objective_terms: number;
+  objective_quadratic: boolean;
+  nonzeros: number;
+  density: number;
+  integrality_ratio: number;
+  bound_profile: ModelStatsBoundProfile;
+  conditioning: ModelStatsConditioning;
+  problem_class?: string | null;
+  warnings: string[];
+  health: ModelHealth;
+  content_hash: string;
+}
+
 export interface BuilderDocument {
   id: string;
   organization_id: string;

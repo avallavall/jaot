@@ -27,8 +27,8 @@ import { LiveSolvePanel } from "./solve/LiveSolvePanel";
  * The Solve lens. Runs the CANONICAL model (from the shared store) through the
  * ASYNC `/solve/async` endpoint so progress streams live (Live Solve), shows the
  * real-time convergence chart, and opens the shared results drawer when it finishes.
- * Provenance uses the builder-document shape until ModelProject-origin solves land in P2.
- * (The synchronous `/solve` stays the API/ERP path — only the workspace UI is async.)
+ * Provenance is tagged `source_kind="model_project"` so the run traces back to this
+ * project. (The synchronous `/solve` stays the API/ERP path — only the workspace UI is async.)
  */
 export function SolvePanel() {
   const t = useTranslations("studio");
@@ -64,7 +64,7 @@ export function SolvePanel() {
       const task = await api.solveAsync(
         { ...problem, solver_name: solverName },
         activeWorkspaceId ?? undefined,
-        { origin: "visual_builder", sourceKind: "builder_document", sourceId }
+        { origin: "visual_builder", sourceKind: "model_project", sourceId }
       );
       setTaskId(task.task_id);
     } catch (err: unknown) {

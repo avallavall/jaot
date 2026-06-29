@@ -69,10 +69,10 @@ export function ModelProjectStoreProvider({
     }
 
     api
-      .getBuilderDocument(modelId, activeWorkspaceId ?? undefined)
-      .then((doc) => {
+      .getProject(modelId, activeWorkspaceId ?? undefined)
+      .then((project) => {
         if (cancelled) return;
-        const canvasJson = doc.canvas_json as
+        const canvasJson = project.draft_canvas_json as
           | { nodes?: unknown[]; edges?: unknown[] }
           | null;
         const nodes = Array.isArray(canvasJson?.nodes)
@@ -83,19 +83,23 @@ export function ModelProjectStoreProvider({
           : [];
 
         if (nodes.length > 0) {
-          useBuilderStore.getState().setDocument(doc.id, doc.name, nodes, edges);
+          useBuilderStore.getState().setDocument(project.id, project.name, nodes, edges);
         } else {
           useBuilderStore.getState().reset();
-          useBuilderStore.setState({ documentId: doc.id, documentName: doc.name });
+          useBuilderStore.setState({ documentId: project.id, documentName: project.name });
         }
 
+        // Hydrate the canonical model from `serialize(canvas)` (not the cached
+        // draft_model_json) so the canvas bridge's first pass is an idempotent
+        // no-op — no spurious autosave on load. Store the draft lock for the
+        // optimistic-concurrency `If-Match` on the next save.
         const current = useBuilderStore.getState();
-        store
-          .getState()
-          .hydrate(
-            serializeToOptimizationProblem(current.nodes, current.edges),
-            doc.name
-          );
+        const st = store.getState();
+        st.hydrate(
+          serializeToOptimizationProblem(current.nodes, current.edges),
+          project.name
+        );
+        st.setLockVersion(project.draft_lock_version);
       })
       .catch((err: unknown) => {
         if (cancelled) return;

@@ -100,7 +100,15 @@
     "versionUncommittedSince": "Modifications non validées depuis la v{sequence}",
     "versionUncommittedNew": "Modifications non validées",
     "versionRestored": "Restauré — votre travail a été conservé comme point de contrôle",
-    "versionRestoreFailed": "Impossible de restaurer la version."
+    "versionRestoreFailed": "Impossible de restaurer la version.",
+    "versionHistoryTitle": "Historique des versions",
+    "versionCompareHint": "Choisissez deux versions à comparer",
+    "versionCompare": "Comparer",
+    "versionEmpty": "Aucune version pour l'instant. Validez pour commencer à suivre les changements.",
+    "versionRestore": "Restaurer cette version",
+    "versionDiffTitle": "Changements",
+    "versionDiffNone": "Aucun changement structurel",
+    "versionDiffObjective": "objectif modifié"
   },
   "common": {
     "loading": "Chargement...",

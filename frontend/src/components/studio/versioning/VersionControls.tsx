@@ -9,8 +9,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { useBuilderStore } from "@/hooks/useBuilderStore";
 import { serializeToOptimizationProblem } from "@/lib/builder/serializer";
+import { deserializeFromOptimizationProblem } from "@/lib/builder/deserializer";
 import type { BuilderNode, BuilderEdge } from "@/lib/builder/types";
-import type { ModelVersionListItem } from "@/lib/types";
+import type { ProjectVersionSummary } from "@/lib/types";
 import {
   useModelProjectStore,
   useModelProjectStoreApi,
@@ -21,9 +22,10 @@ import { VersionHistoryDrawer } from "./VersionHistoryDrawer";
 import { uncommittedSince } from "./commit-helpers";
 
 /**
- * All version control for the workspace header: the "vK" selector + recent dropdown,
- * the ambient "uncommitted changes since vK" line, the Commit button (+ dialog),
- * the full history drawer, restore, and the Cmd/Ctrl+S shortcut.
+ * All version control for the workspace header: the "vK" selector, the ambient
+ * "uncommitted changes since vK" line, the Commit button (+ dialog), the full
+ * history drawer, restore, and the Cmd/Ctrl+S shortcut. Backed by the first-class
+ * `ModelProject` version API (`/projects/{id}/versions`).
  *
  * Concept: autosave writes silent checkpoints (the draft); a *version* is an explicit,
  * message-required milestone. Committing requires a non-empty "What changed?".
@@ -31,6 +33,7 @@ import { uncommittedSince } from "./commit-helpers";
 export function VersionControls() {
   const t = useTranslations("studio");
   const { activeWorkspaceId } = useAuth();
+  const ws = activeWorkspaceId ?? undefined;
   const modelId = useModelProjectStore((s) => s.modelId);
   const headDirty = useModelProjectStore((s) => s.headDirty);
   const storeApi = useModelProjectStoreApi();
@@ -38,7 +41,7 @@ export function VersionControls() {
   const [commitOpen, setCommitOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [counter, setCounter] = useState(0);
-  const [latest, setLatest] = useState<ModelVersionListItem | null>(null);
+  const [latest, setLatest] = useState<ProjectVersionSummary | null>(null);
 
   const isPersisted = !!modelId && modelId !== "new";
 
@@ -47,7 +50,7 @@ export function VersionControls() {
     if (!isPersisted) return;
     let cancelled = false;
     api
-      .listVersions(modelId, { limit: 1 }, activeWorkspaceId ?? undefined)
+      .listProjectVersions(modelId, { limit: 1 }, ws)
       .then((list) => {
         if (!cancelled) setLatest(list[0] ?? null);
       })
@@ -57,7 +60,7 @@ export function VersionControls() {
     return () => {
       cancelled = true;
     };
-  }, [modelId, activeWorkspaceId, counter, isPersisted]);
+  }, [modelId, ws, counter, isPersisted]);
 
   // Cmd/Ctrl+S opens the commit dialog — but not while typing in a field or the editor.
   useEffect(() => {
@@ -81,20 +84,31 @@ export function VersionControls() {
   const handleRestore = useCallback(
     async (versionId: string) => {
       try {
-        const { nodes, edges } = useBuilderStore.getState();
-        const { document: restored } = await api.restoreVersion(
-          modelId,
-          versionId,
-          { current_canvas_json: { nodes, edges } },
-          activeWorkspaceId ?? undefined
-        );
-        const canvas = restored.canvas_json as { nodes?: unknown[]; edges?: unknown[] } | null;
-        const newNodes = Array.isArray(canvas?.nodes) ? (canvas!.nodes as BuilderNode[]) : [];
-        const newEdges = Array.isArray(canvas?.edges) ? (canvas!.edges as BuilderEdge[]) : [];
-        useBuilderStore.getState().setDocument(restored.id, restored.name, newNodes, newEdges);
+        // Checks the version out into the draft (history untouched). discard_draft
+        // forces it past any uncommitted edits — restore is a deliberate action,
+        // and every committed version remains recoverable.
+        const project = await api.restoreProjectVersion(modelId, versionId, true, ws);
+        // Prefer the snapshot's canvas (preserves node positions); fall back to
+        // deserializing the model when the version has no canvas.
+        const canvasJson = project.draft_canvas_json as
+          | { nodes?: unknown[]; edges?: unknown[] }
+          | null;
+        let nodes = Array.isArray(canvasJson?.nodes)
+          ? (canvasJson!.nodes as BuilderNode[])
+          : [];
+        let edges = Array.isArray(canvasJson?.edges)
+          ? (canvasJson!.edges as BuilderEdge[])
+          : [];
+        if (nodes.length === 0 && project.draft_model_json) {
+          const d = deserializeFromOptimizationProblem(project.draft_model_json);
+          nodes = d.nodes;
+          edges = d.edges;
+        }
+        useBuilderStore.getState().setDocument(project.id, project.name, nodes, edges);
         storeApi
           .getState()
-          .hydrate(serializeToOptimizationProblem(newNodes, newEdges), restored.name);
+          .hydrate(serializeToOptimizationProblem(nodes, edges), project.name);
+        storeApi.getState().setLockVersion(project.draft_lock_version);
         setCounter((c) => c + 1);
         setHistoryOpen(false);
         toast.success(t("versionRestored"));
@@ -102,7 +116,7 @@ export function VersionControls() {
         toast.error(t("versionRestoreFailed"));
       }
     },
-    [modelId, activeWorkspaceId, storeApi, t]
+    [modelId, ws, storeApi, t]
   );
 
   if (!isPersisted) return null;
@@ -120,11 +134,8 @@ export function VersionControls() {
       )}
 
       <VersionSelector
-        documentId={modelId}
         latestSequence={latest?.sequence ?? null}
-        saveCounter={counter}
         onViewAll={() => setHistoryOpen(true)}
-        onRestore={handleRestore}
       />
 
       <Button variant="outline" size="sm" onClick={() => setCommitOpen(true)}>
@@ -135,13 +146,14 @@ export function VersionControls() {
       <CommitDialog
         open={commitOpen}
         onOpenChange={setCommitOpen}
-        documentId={modelId}
-        workspaceId={activeWorkspaceId ?? undefined}
+        projectId={modelId}
+        workspaceId={ws}
         onCommitted={handleCommitted}
       />
       <VersionHistoryDrawer
-        documentId={modelId}
+        projectId={modelId}
         isOpen={historyOpen}
+        refreshKey={counter}
         onClose={() => setHistoryOpen(false)}
         onRestore={handleRestore}
       />

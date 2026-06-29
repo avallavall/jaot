@@ -100,7 +100,15 @@
     "versionUncommittedSince": "Canvis sense confirmar des de la v{sequence}",
     "versionUncommittedNew": "Canvis sense confirmar",
     "versionRestored": "Restaurat: la teva feina s'ha desat com a punt de control",
-    "versionRestoreFailed": "No s'ha pogut restaurar la versió."
+    "versionRestoreFailed": "No s'ha pogut restaurar la versió.",
+    "versionHistoryTitle": "Historial de versions",
+    "versionCompareHint": "Tria dues versions per comparar",
+    "versionCompare": "Compara",
+    "versionEmpty": "Encara no hi ha versions. Confirma per començar a registrar canvis.",
+    "versionRestore": "Restaura aquesta versió",
+    "versionDiffTitle": "Canvis",
+    "versionDiffNone": "Sense canvis estructurals",
+    "versionDiffObjective": "objectiu canviat"
   },
   "common": {
     "loading": "Carregant...",

@@ -1,44 +1,38 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { VersionDropdown } from "@/components/builder/VersionDropdown";
+import { History } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface VersionSelectorProps {
-  documentId: string;
   /** Latest committed sequence, for the "vK" badge (null = no versions yet). */
   latestSequence: number | null;
-  /** Bumped on commit/restore so the dropdown refetches its cached list. */
-  saveCounter: number;
+  /** Open the full version history drawer. */
   onViewAll: () => void;
-  onRestore: (versionId: string) => void;
 }
 
 /**
- * The header version control: a "vK" badge + the recent-versions dropdown (reused
- * from the builder) with restore + "view all".
+ * The header version control: a "vK" badge + a button that opens the full version
+ * history (list / diff / restore). The history drawer is the project's version
+ * timeline, backed by the `/projects/{id}/versions` API.
  */
-export function VersionSelector({
-  documentId,
-  latestSequence,
-  saveCounter,
-  onViewAll,
-  onRestore,
-}: VersionSelectorProps) {
+export function VersionSelector({ latestSequence, onViewAll }: VersionSelectorProps) {
   const t = useTranslations("studio");
 
   return (
-    <div className="flex items-center gap-1">
-      <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={onViewAll}
+      className="gap-1.5 text-muted-foreground"
+      title={t("versionHistoryTitle")}
+    >
+      <History className="h-4 w-4" />
+      <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium">
         {latestSequence === null
           ? t("versionNone")
           : t("versionBadge", { sequence: latestSequence })}
       </span>
-      <VersionDropdown
-        documentId={documentId}
-        saveCounter={saveCounter}
-        onViewAll={onViewAll}
-        onRestore={onRestore}
-      />
-    </div>
+    </Button>
   );
 }

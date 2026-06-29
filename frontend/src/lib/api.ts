@@ -35,6 +35,13 @@ import type {
   BuilderDocumentUpdate,
   ModelVersion,
   ModelVersionListItem,
+  ProjectRead,
+  ProjectListItem,
+  ProjectVersionSummary,
+  ProjectVersionRead,
+  ProjectVersionDiff,
+  DraftUpdateBody,
+  ModelStats,
   SolveTrigger,
   CreateTriggerResponse,
   CreateTriggerRequest,
@@ -116,6 +123,13 @@ export type {
   BuilderDocumentUpdate,
   ModelVersion,
   ModelVersionListItem,
+  ProjectRead,
+  ProjectListItem,
+  ProjectVersionSummary,
+  ProjectVersionRead,
+  ProjectVersionDiff,
+  DraftUpdateBody,
+  ModelStats,
   SolveTrigger,
   CreateTriggerResponse,
   CreateTriggerRequest,
@@ -1081,6 +1095,119 @@ export const api = {
     return request(`/api/v2/builder/${id}`, {
       method: "DELETE",
       params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  // ── ModelProject (first-class model entity; P1e) ────────────────────────
+  createProject(
+    body: { name?: string; description?: string; workspace_id?: string },
+    workspaceId?: string
+  ): Promise<ProjectRead> {
+    return request("/api/v2/projects", {
+      method: "POST",
+      body: JSON.stringify(body),
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  createProjectFromBuilder(documentId: string, workspaceId?: string): Promise<ProjectRead> {
+    return request(`/api/v2/projects/from-builder/${documentId}`, {
+      method: "POST",
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  getProject(id: string, workspaceId?: string): Promise<ProjectRead> {
+    return request(`/api/v2/projects/${id}`, {
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  listProjects(
+    params?: { status?: string; q?: string; skip?: number; limit?: number },
+    workspaceId?: string
+  ): Promise<ProjectListItem[]> {
+    return request("/api/v2/projects", {
+      params: { ...params, ...(workspaceId ? { workspace_id: workspaceId } : {}) },
+    });
+  },
+
+  getModelStats(id: string, workspaceId?: string): Promise<ModelStats> {
+    return request(`/api/v2/projects/${id}/stats`, {
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  /** Replace the HEAD draft. `lockVersion` becomes the `If-Match` optimistic-concurrency token. */
+  updateProjectDraft(
+    id: string,
+    body: DraftUpdateBody,
+    lockVersion?: number,
+    workspaceId?: string
+  ): Promise<ProjectRead> {
+    return request(`/api/v2/projects/${id}/draft`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+      headers: lockVersion != null ? { "If-Match": String(lockVersion) } : undefined,
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  commitProjectVersion(
+    id: string,
+    payload: { summary: string; body?: string },
+    workspaceId?: string
+  ): Promise<ProjectVersionRead> {
+    return request(`/api/v2/projects/${id}/commit`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  listProjectVersions(
+    id: string,
+    params?: { skip?: number; limit?: number },
+    workspaceId?: string
+  ): Promise<ProjectVersionSummary[]> {
+    return request(`/api/v2/projects/${id}/versions`, {
+      params: { ...params, ...(workspaceId ? { workspace_id: workspaceId } : {}) },
+    });
+  },
+
+  getProjectVersion(
+    id: string,
+    versionId: string,
+    workspaceId?: string
+  ): Promise<ProjectVersionRead> {
+    return request(`/api/v2/projects/${id}/versions/${versionId}`, {
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  diffProjectVersions(
+    id: string,
+    a: string,
+    b: string,
+    workspaceId?: string
+  ): Promise<ProjectVersionDiff> {
+    return request(`/api/v2/projects/${id}/versions/${a}/diff/${b}`, {
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  restoreProjectVersion(
+    id: string,
+    versionId: string,
+    discardDraft?: boolean,
+    workspaceId?: string
+  ): Promise<ProjectRead> {
+    return request(`/api/v2/projects/${id}/versions/${versionId}/restore`, {
+      method: "POST",
+      params: {
+        ...(discardDraft ? { discard_draft: true } : {}),
+        ...(workspaceId ? { workspace_id: workspaceId } : {}),
+      },
     });
   },
 

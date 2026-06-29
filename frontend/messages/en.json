@@ -100,7 +100,15 @@
     "versionUncommittedSince": "Uncommitted changes since v{sequence}",
     "versionUncommittedNew": "Uncommitted changes",
     "versionRestored": "Restored — your work was kept as a checkpoint",
-    "versionRestoreFailed": "Could not restore the version."
+    "versionRestoreFailed": "Could not restore the version.",
+    "versionHistoryTitle": "Version history",
+    "versionCompareHint": "Pick two versions to compare",
+    "versionCompare": "Compare",
+    "versionEmpty": "No versions yet. Commit to start tracking changes.",
+    "versionRestore": "Restore this version",
+    "versionDiffTitle": "Changes",
+    "versionDiffNone": "No structural changes",
+    "versionDiffObjective": "objective changed"
   },
   "common": {
     "loading": "Loading...",

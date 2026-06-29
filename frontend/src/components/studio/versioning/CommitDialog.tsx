@@ -16,6 +16,7 @@ import { api } from "@/lib/api";
 import { useBuilderStore } from "@/hooks/useBuilderStore";
 import { diffCanvasJson } from "@/lib/builder/diff";
 import type { CanvasDiff } from "@/lib/builder/diff";
+import { useModelProjectStoreApi } from "../store/useModelProjectStore";
 import {
   isValidSummary,
   suggestedSummary,
@@ -26,7 +27,7 @@ import {
 interface CommitDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  documentId: string;
+  projectId: string;
   workspaceId?: string;
   /** Called after a successful commit (so the header can refresh + clear the dirty flag). */
   onCommitted: () => void;
@@ -34,19 +35,20 @@ interface CommitDialogProps {
 
 /**
  * The commit moment: a required "What changed?" summary + an optional "Why?" body.
- * Reuses the builder version API — `createVersion` snapshots the canvas, then
- * `promoteVersion` attaches the message (the first-class `commit_summary` field lands
- * with the ModelProject backend in P1). The AI-suggested message is P4; here the
+ * Flushes the on-screen model into the `ModelProject` draft, then commits it as an
+ * immutable version (`POST /projects/{id}/commit`) — the backend enforces the
+ * required summary + content-hash dedup. The AI-suggested message is P4; here the
  * suggestion is the deterministic `diffCanvasJson` summary.
  */
 export function CommitDialog({
   open,
   onOpenChange,
-  documentId,
+  projectId,
   workspaceId,
   onCommitted,
 }: CommitDialogProps) {
   const t = useTranslations("studio");
+  const storeApi = useModelProjectStoreApi();
   const [summary, setSummary] = useState("");
   const [body, setBody] = useState("");
   const [diff, setDiff] = useState<CanvasDiff | null>(null);
@@ -63,12 +65,12 @@ export function CommitDialog({
     const { nodes, edges } = useBuilderStore.getState();
     const current = { nodes, edges };
     api
-      .listVersions(documentId, { limit: 1 }, workspaceId)
+      .listProjectVersions(projectId, { limit: 1 }, workspaceId)
       .then(async (list) => {
         if (cancelled || list.length === 0) return;
-        const full = await api.getVersion(documentId, list[0].id, workspaceId);
+        const full = await api.getProjectVersion(projectId, list[0].id, workspaceId);
         if (cancelled) return;
-        const prevCanvas = full.canvas_json as { nodes?: unknown[]; edges?: unknown[] };
+        const prevCanvas = (full.canvas_json as { nodes?: unknown[]; edges?: unknown[] }) ?? {};
         setDiff(diffCanvasJson(prevCanvas, current));
       })
       .catch(() => {
@@ -77,7 +79,7 @@ export function CommitDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, documentId, workspaceId]);
+  }, [open, projectId, workspaceId]);
 
   const suggestion = suggestedSummary(diff);
   const changes = detectedChanges(diff);
@@ -95,20 +97,43 @@ export function CommitDialog({
     }
   };
 
+  // Flush the on-screen model into the draft (so the committed version matches it),
+  // refetching the lock once on a concurrency conflict.
+  const flushDraft = useCallback(async () => {
+    const { nodes, edges } = useBuilderStore.getState();
+    const draftBody = {
+      model_json: storeApi.getState().problem as unknown as Record<string, unknown>,
+      canvas_json: { nodes, edges } as unknown as Record<string, unknown>,
+    };
+    try {
+      const p = await api.updateProjectDraft(
+        projectId,
+        draftBody,
+        storeApi.getState().lockVersion,
+        workspaceId
+      );
+      storeApi.getState().setLockVersion(p.draft_lock_version);
+    } catch (err: unknown) {
+      if ((err as { status?: number })?.status !== 409) throw err;
+      const latest = await api.getProject(projectId, workspaceId);
+      const p = await api.updateProjectDraft(
+        projectId,
+        draftBody,
+        latest.draft_lock_version,
+        workspaceId
+      );
+      storeApi.getState().setLockVersion(p.draft_lock_version);
+    }
+  }, [projectId, workspaceId, storeApi]);
+
   const handleCommit = useCallback(async () => {
     if (!isValidSummary(summary)) return;
     setIsSaving(true);
     try {
-      const { nodes, edges } = useBuilderStore.getState();
-      const version = await api.createVersion(
-        documentId,
-        { canvas_json: { nodes, edges } },
-        workspaceId
-      );
-      await api.promoteVersion(
-        documentId,
-        version.id,
-        { version_name: summary.trim(), version_description: body.trim() || undefined },
+      await flushDraft();
+      await api.commitProjectVersion(
+        projectId,
+        { summary: summary.trim(), body: body.trim() || undefined },
         workspaceId
       );
       toast.success(t("versionCommitted"));
@@ -119,7 +144,7 @@ export function CommitDialog({
     } finally {
       setIsSaving(false);
     }
-  }, [summary, body, documentId, workspaceId, onCommitted, onOpenChange, t]);
+  }, [summary, body, projectId, workspaceId, flushDraft, onCommitted, onOpenChange, t]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -2094,6 +2094,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/llm/conversations/{conversation_id}/explain-diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Explain Diff Endpoint
+         * @description Stream a plain-language narration of the CHANGE between two model versions as SSE.
+         *
+         *     Loads the project + both versions (org ownership enforced), computes the structural
+         *     diff server-side via ``model_project_service.diff_versions``, and reuses the chat
+         *     streaming pipeline (budget guardrail, rate limit, pre-paid credits refunded on
+         *     failure, persisted turn pair) driven by ``explain_version_diff``. The LLM narrates
+         *     ONLY the pre-computed diff. Moderation is skipped (system-generated prompt content).
+         */
+        post: operations["explain_diff_endpoint_api_v2_llm_conversations__conversation_id__explain_diff_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/llm/conversations/{conversation_id}/explain-infeasibility": {
         parameters: {
             query?: never;
@@ -2116,6 +2142,34 @@ export interface paths {
          *     system-generated, not free user text.
          */
         post: operations["explain_infeasibility_endpoint_api_v2_llm_conversations__conversation_id__explain_infeasibility_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/llm/conversations/{conversation_id}/explain-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Explain Model Endpoint
+         * @description Stream a plain-language explanation of an optimization MODEL (not yet solved) as SSE.
+         *
+         *     Loads the formulation + the Python-computed ``ModelStats`` from a ModelProject
+         *     (``project_id``, draft or a committed ``version_id``, org ownership enforced) or
+         *     from inline fields, then reuses the chat streaming pipeline — budget guardrail,
+         *     org rate limit, pre-paid credits (refunded on failure), a persisted user/assistant
+         *     turn pair — driven by ``explain_model``. The statistics are authoritative, so the
+         *     explanation has nothing to fabricate. Moderation is skipped because the prompt
+         *     content is system-generated, not free user text.
+         */
+        post: operations["explain_model_endpoint_api_v2_llm_conversations__conversation_id__explain_model_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2945,6 +2999,242 @@ export interface paths {
         get: operations["get_pricing_api_v2_pricing_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Model Projects
+         * @description List the organization's ModelProjects (newest-updated first).
+         */
+        get: operations["list_model_projects"];
+        put?: never;
+        /**
+         * Create Model Project
+         * @description Create a new blank ModelProject for the current organization.
+         */
+        post: operations["create_model_project"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Model Project
+         * @description Get a single ModelProject (metadata + draft + committed HEAD).
+         */
+        get: operations["get_model_project"];
+        put?: never;
+        post?: never;
+        /**
+         * Archive Model Project
+         * @description Soft-delete (archive) a ModelProject.
+         */
+        delete: operations["archive_model_project"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Model Project
+         * @description Patch project metadata (name / description / status).
+         */
+        patch: operations["update_model_project"];
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Commit Model Version
+         * @description Commit the current draft as an immutable, message-bearing version.
+         */
+        post: operations["commit_model_version"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Model Project Draft
+         * @description Replace the mutable HEAD draft (optimistic concurrency via ``If-Match``).
+         */
+        put: operations["update_model_project_draft"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/solve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Solve Model Project
+         * @description Solve a ModelProject's draft (or a specific committed version).
+         *
+         *     Mirrors the universal ``/solve`` flow exactly — tier caps, auto-routing,
+         *     credit calc, and ``SolveOrchestrator.solve_single`` — adding only the
+         *     ``model_project`` provenance + typed project/version columns on the row.
+         */
+        post: operations["solve_model_project"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Model Stats
+         * @description Live structural statistics + health score for the project's working draft.
+         */
+        get: operations["get_model_stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Project Versions
+         * @description List a project's committed versions (newest first).
+         */
+        get: operations["list_project_versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/versions/{a}/diff/{b}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Diff Project Versions
+         * @description Structural diff between two committed versions of a project.
+         */
+        get: operations["diff_project_versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/versions/{version_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Project Version
+         * @description Fetch a full committed version snapshot.
+         */
+        get: operations["get_project_version"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/versions/{version_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Project Version
+         * @description Check a committed version out into the draft (history untouched).
+         */
+        post: operations["restore_project_version"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/from-builder/{document_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create From Builder
+         * @description Seed a ModelProject from an existing builder document (migration helper).
+         */
+        post: operations["create_model_project_from_builder"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5032,6 +5322,42 @@ export interface components {
             file: string;
         };
         /**
+         * BoundProfile
+         * @description How variable bounds are distributed.
+         */
+        BoundProfile: {
+            /**
+             * Binary
+             * @description Binary variables (0/1)
+             * @default 0
+             */
+            binary: number;
+            /**
+             * Boxed
+             * @description Both bounds finite
+             * @default 0
+             */
+            boxed: number;
+            /**
+             * Free
+             * @description Both bounds None (-inf, +inf)
+             * @default 0
+             */
+            free: number;
+            /**
+             * Integers Missing Bounds
+             * @description INTEGER vars missing a lower or upper bound (weak branch-and-bound)
+             * @default 0
+             */
+            integers_missing_bounds: number;
+            /**
+             * One Sided
+             * @description Exactly one finite bound
+             * @default 0
+             */
+            one_sided: number;
+        };
+        /**
          * BuilderDocumentCreate
          * @description Request body for creating a new builder document.
          */
@@ -5161,6 +5487,47 @@ export interface components {
             checkout_url: string;
             /** Session Id */
             session_id: string;
+        };
+        /**
+         * CoefConditioning
+         * @description Coefficient magnitude spread — a numerical-conditioning signal.
+         */
+        CoefConditioning: {
+            /**
+             * Max Abs
+             * @description Largest |coefficient|
+             */
+            max_abs?: number | null;
+            /**
+             * Min Abs
+             * @description Smallest non-zero |coefficient|
+             */
+            min_abs?: number | null;
+            /**
+             * Range Ratio
+             * @description max_abs / min_abs
+             */
+            range_ratio?: number | null;
+            /**
+             * Tier
+             * @description ok <1e6 < mild <1e9 < poor <1e12 < severe
+             * @default ok
+             * @enum {string}
+             */
+            tier: "ok" | "mild" | "poor" | "severe";
+        };
+        /**
+         * CommitRequest
+         * @description Commit the current draft as an immutable version.
+         *
+         *     ``summary`` ("What changed?") is required and non-empty; ``body`` ("Why?")
+         *     is optional context.
+         */
+        CommitRequest: {
+            /** Body */
+            body?: string | null;
+            /** Summary */
+            summary: string;
         };
         /**
          * CommunityStatusResponse
@@ -5669,6 +6036,20 @@ export interface components {
             version: string;
         };
         /**
+         * DiffEntry
+         * @description One changed element in a version-to-version structural diff.
+         */
+        DiffEntry: {
+            /** Change */
+            change: string;
+            /** Detail */
+            detail?: string | null;
+            /** Kind */
+            kind: string;
+            /** Name */
+            name: string;
+        };
+        /**
          * DomainSummaryEntry
          * @description Single entry in domain summary (radar chart).
          */
@@ -5677,6 +6058,23 @@ export interface components {
             count: number;
             /** Domain */
             domain: string;
+        };
+        /**
+         * DraftUpdate
+         * @description Replace the mutable HEAD draft. Optimistic concurrency via the
+         *     ``If-Match`` header (``draft_lock_version``), handled in the route.
+         */
+        DraftUpdate: {
+            /** Canvas Json */
+            canvas_json?: {
+                [key: string]: unknown;
+            } | null;
+            /** Dsl Source */
+            dsl_source?: string | null;
+            /** Model Json */
+            model_json?: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * EarningsSummaryResponse
@@ -5891,6 +6289,47 @@ export interface components {
             use_advanced_model: boolean;
         };
         /**
+         * ExplainModelRequest
+         * @description Request a plain-language explanation of an optimization MODEL (not yet solved).
+         *
+         *     Provide ``project_id`` to explain a ModelProject (its mutable draft, or a specific
+         *     committed ``version_id``); organization ownership is enforced. Or pass the
+         *     ``formulation`` inline (``stats`` is computed when omitted). ``project_id`` takes
+         *     precedence when both are supplied.
+         */
+        ExplainModelRequest: {
+            /**
+             * Formulation
+             * @description Inline formulation (variables/constraints/objective)
+             */
+            formulation?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Project Id
+             * @description ModelProject id to explain (draft or a committed version)
+             */
+            project_id?: string | null;
+            /**
+             * Stats
+             * @description Inline ModelStats; computed from the formulation when omitted
+             */
+            stats?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Use Advanced Model
+             * @description Use Claude Opus with extended thinking for the explanation
+             * @default false
+             */
+            use_advanced_model: boolean;
+            /**
+             * Version Id
+             * @description Committed version id to explain; omit to explain the draft
+             */
+            version_id?: string | null;
+        };
+        /**
          * ExplainSolutionRequest
          * @description Request a plain-language explanation of a solved optimization model.
          *
@@ -5926,6 +6365,37 @@ export interface components {
             solution?: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Use Advanced Model
+             * @description Use Claude Opus with extended thinking for the explanation
+             * @default false
+             */
+            use_advanced_model: boolean;
+        };
+        /**
+         * ExplainVersionDiffRequest
+         * @description Request a plain-language narration of the CHANGE between two model versions.
+         *
+         *     The structural diff is computed server-side (``model_project_service.diff_versions``)
+         *     and the LLM only narrates it. Organization ownership is enforced on the project and
+         *     both versions.
+         */
+        ExplainVersionDiffRequest: {
+            /**
+             * From Version Id
+             * @description The earlier (base) version id
+             */
+            from_version_id: string;
+            /**
+             * Project Id
+             * @description ModelProject id owning both versions
+             */
+            project_id: string;
+            /**
+             * To Version Id
+             * @description The later (target) version id
+             */
+            to_version_id: string;
             /**
              * Use Advanced Model
              * @description Use Claude Opus with extended thinking for the explanation
@@ -6208,6 +6678,21 @@ export interface components {
             wizard_dismissed?: boolean | null;
             /** Wizard Step */
             wizard_step?: number | null;
+        };
+        /**
+         * HealthDeduction
+         * @description A single transparent deduction from the health score.
+         */
+        HealthDeduction: {
+            /** Code */
+            code: string;
+            /** Detail */
+            detail: string;
+            /**
+             * Points
+             * @description Points subtracted (positive number)
+             */
+            points: number;
         };
         /**
          * HealthResponse
@@ -6704,6 +7189,26 @@ export interface components {
             trigger_id?: string | null;
         };
         /**
+         * ModelHealth
+         * @description Auditable 0-100 health score. Hard errors cap the score (band F).
+         */
+        ModelHealth: {
+            /**
+             * Band
+             * @enum {string}
+             */
+            band: "A" | "B" | "C" | "D" | "F";
+            /** Deductions */
+            deductions?: components["schemas"]["HealthDeduction"][];
+            /**
+             * Has Hard Error
+             * @default false
+             */
+            has_hard_error: boolean;
+            /** Score */
+            score: number;
+        };
+        /**
          * ModelPerformanceRow
          * @description Per-model performance breakdown for a seller.
          */
@@ -6720,6 +7225,83 @@ export interface components {
             revenue: number;
             /** Views */
             views: number;
+        };
+        /**
+         * ModelStats
+         * @description Structural statistics of an optimization model.
+         */
+        ModelStats: {
+            bound_profile?: components["schemas"]["BoundProfile"];
+            conditioning?: components["schemas"]["CoefConditioning"];
+            /**
+             * Constraint Total
+             * @default 0
+             */
+            constraint_total: number;
+            /** Constraints By Operator */
+            constraints_by_operator?: {
+                [key: string]: number;
+            };
+            /**
+             * Content Hash
+             * @default
+             */
+            content_hash: string;
+            /**
+             * Density
+             * @default 0
+             */
+            density: number;
+            health: components["schemas"]["ModelHealth"];
+            /**
+             * Integrality Ratio
+             * @default 0
+             */
+            integrality_ratio: number;
+            /**
+             * Nonzeros
+             * @default 0
+             */
+            nonzeros: number;
+            /**
+             * Objective Quadratic
+             * @default false
+             */
+            objective_quadratic: boolean;
+            /** Objective Sense */
+            objective_sense?: string | null;
+            /**
+             * Objective Terms
+             * @default 0
+             */
+            objective_terms: number;
+            /**
+             * Problem Class
+             * @description LP/MILP/IP/BIP/QP/MIQP/QCP/MIQCP or None
+             */
+            problem_class?: string | null;
+            /**
+             * Var Binary
+             * @default 0
+             */
+            var_binary: number;
+            /**
+             * Var Continuous
+             * @default 0
+             */
+            var_continuous: number;
+            /**
+             * Var Integer
+             * @default 0
+             */
+            var_integer: number;
+            /**
+             * Var Total
+             * @default 0
+             */
+            var_total: number;
+            /** Warnings */
+            warnings?: string[];
         };
         /**
          * ModelVersionListItem
@@ -8050,6 +8632,110 @@ export interface components {
             objective: number;
             /** Primal Bound */
             primal_bound: number;
+        };
+        /**
+         * ProjectCreate
+         * @description Create a new (blank) ModelProject.
+         */
+        ProjectCreate: {
+            /** Description */
+            description?: string | null;
+            /**
+             * Name
+             * @default Untitled Project
+             */
+            name: string;
+            /** Workspace Id */
+            workspace_id?: string | null;
+        };
+        /**
+         * ProjectListItem
+         * @description Compact project row for the list view.
+         */
+        ProjectListItem: {
+            /** Committed Count */
+            committed_count: number;
+            /** Current Version Id */
+            current_version_id?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Source Type */
+            source_type?: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * ProjectMetaUpdate
+         * @description Patch a project's metadata (name / description / status).
+         */
+        ProjectMetaUpdate: {
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Status */
+            status?: string | null;
+        };
+        /**
+         * ProjectRead
+         * @description Full project view: metadata + the current draft + the committed HEAD.
+         */
+        ProjectRead: {
+            /** Committed Count */
+            committed_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Current Version Id */
+            current_version_id?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Draft Canvas Json */
+            draft_canvas_json?: {
+                [key: string]: unknown;
+            } | null;
+            /** Draft Content Hash */
+            draft_content_hash?: string | null;
+            /** Draft Dsl Source */
+            draft_dsl_source?: string | null;
+            /** Draft Lock Version */
+            draft_lock_version: number;
+            /** Draft Model Json */
+            draft_model_json?: {
+                [key: string]: unknown;
+            } | null;
+            /** Draft Updated At */
+            draft_updated_at?: string | null;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Organization Id */
+            organization_id: string;
+            /** Source Ref */
+            source_ref?: string | null;
+            /** Source Type */
+            source_type?: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Workspace Id */
+            workspace_id?: string | null;
         };
         /**
          * PromoteVersionRequest
@@ -9462,6 +10148,87 @@ export interface components {
             token: string;
         };
         /**
+         * VersionDiff
+         * @description Structural diff between two ModelProjectVersions.
+         */
+        VersionDiff: {
+            /** Entries */
+            entries: components["schemas"]["DiffEntry"][];
+            /** From Version Id */
+            from_version_id: string;
+            /**
+             * Objective Changed
+             * @default false
+             */
+            objective_changed: boolean;
+            /** To Version Id */
+            to_version_id: string;
+        };
+        /**
+         * VersionRead
+         * @description Full version snapshot.
+         */
+        VersionRead: {
+            /** Canvas Json */
+            canvas_json?: {
+                [key: string]: unknown;
+            } | null;
+            /** Commit Body */
+            commit_body?: string | null;
+            /** Commit Summary */
+            commit_summary: string;
+            /** Content Hash */
+            content_hash: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by?: string | null;
+            /** Dsl Source */
+            dsl_source?: string | null;
+            /** Id */
+            id: string;
+            /** Model Json */
+            model_json: {
+                [key: string]: unknown;
+            };
+            /** Model Project Id */
+            model_project_id: string;
+            /** Parent Version Id */
+            parent_version_id?: string | null;
+            /** Problem Class */
+            problem_class?: string | null;
+            /** Sequence */
+            sequence: number;
+            /** Stats Json */
+            stats_json?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * VersionSummary
+         * @description Compact view of a committed version (for the project header / timeline).
+         */
+        VersionSummary: {
+            /** Commit Summary */
+            commit_summary: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by?: string | null;
+            /** Id */
+            id: string;
+            /** Problem Class */
+            problem_class?: string | null;
+            /** Sequence */
+            sequence: number;
+        };
+        /**
          * WarmStartConfig
          * @description Configuration for warm-starting a solve from a previous execution.
          */
@@ -9643,6 +10410,7 @@ export type BodyImportPreview = components['schemas']['Body_import_preview'];
 export type BodyUploadAttachmentApiV2LlmConversationsConversationIdAttachmentsPost = components['schemas']['Body_upload_attachment_api_v2_llm_conversations__conversation_id__attachments_post'];
 export type BodyUploadLogoApiV2ModelsCatalogModelIdLogoPost = components['schemas']['Body_upload_logo_api_v2_models_catalog__model_id__logo_post'];
 export type BodyUploadScreenshotApiV2ModelsCatalogModelIdScreenshotsPost = components['schemas']['Body_upload_screenshot_api_v2_models_catalog__model_id__screenshots_post'];
+export type BoundProfile = components['schemas']['BoundProfile'];
 export type BuilderDocumentCreate = components['schemas']['BuilderDocumentCreate'];
 export type BuilderDocumentListResponse = components['schemas']['BuilderDocumentListResponse'];
 export type BuilderDocumentResponse = components['schemas']['BuilderDocumentResponse'];
@@ -9651,6 +10419,8 @@ export type BuilderSolves = components['schemas']['BuilderSolves'];
 export type CategoryStat = components['schemas']['CategoryStat'];
 export type ChatMessageRequest = components['schemas']['ChatMessageRequest'];
 export type CheckoutResponse = components['schemas']['CheckoutResponse'];
+export type CoefConditioning = components['schemas']['CoefConditioning'];
+export type CommitRequest = components['schemas']['CommitRequest'];
 export type CommunityStatusResponse = components['schemas']['CommunityStatusResponse'];
 export type ComparedExecutionResponse = components['schemas']['ComparedExecutionResponse'];
 export type CompareResponse = components['schemas']['CompareResponse'];
@@ -9680,7 +10450,9 @@ export type CurrencyRequest = components['schemas']['CurrencyRequest'];
 export type DailyPoint = components['schemas']['DailyPoint'];
 export type DailyTrend = components['schemas']['DailyTrend'];
 export type DetailedStatusResponse = components['schemas']['DetailedStatusResponse'];
+export type DiffEntry = components['schemas']['DiffEntry'];
 export type DomainSummaryEntry = components['schemas']['DomainSummaryEntry'];
+export type DraftUpdate = components['schemas']['DraftUpdate'];
 export type EarningsSummaryResponse = components['schemas']['EarningsSummaryResponse'];
 export type EmailInviteCreate = components['schemas']['EmailInviteCreate'];
 export type EmailLoginRequest = components['schemas']['EmailLoginRequest'];
@@ -9692,7 +10464,9 @@ export type ExecuteModelRequest = components['schemas']['ExecuteModelRequest'];
 export type ExecutionListResponse = components['schemas']['ExecutionListResponse'];
 export type ExecutionStats = components['schemas']['ExecutionStats'];
 export type ExplainInfeasibilityRequest = components['schemas']['ExplainInfeasibilityRequest'];
+export type ExplainModelRequest = components['schemas']['ExplainModelRequest'];
 export type ExplainSolutionRequest = components['schemas']['ExplainSolutionRequest'];
+export type ExplainVersionDiffRequest = components['schemas']['ExplainVersionDiffRequest'];
 export type ExtendPlacementRequest = components['schemas']['ExtendPlacementRequest'];
 export type FavoriteResponse = components['schemas']['FavoriteResponse'];
 export type FeatureAnalyticsKpi = components['schemas']['FeatureAnalyticsKPI'];
@@ -9710,6 +10484,7 @@ export type GeoDistributionResponse = components['schemas']['GeoDistributionResp
 export type GroupedTimeSeriesPoint = components['schemas']['GroupedTimeSeriesPoint'];
 export type GuidanceResponse = components['schemas']['GuidanceResponse'];
 export type GuidanceUpdate = components['schemas']['GuidanceUpdate'];
+export type HealthDeduction = components['schemas']['HealthDeduction'];
 export type HealthResponse = components['schemas']['HealthResponse'];
 export type HomeAnnouncementResponse = components['schemas']['HomeAnnouncementResponse'];
 export type HttpValidationError = components['schemas']['HTTPValidationError'];
@@ -9733,7 +10508,9 @@ export type MetricsResponse = components['schemas']['MetricsResponse'];
 export type ModelCatalogListResponse = components['schemas']['ModelCatalogListResponse'];
 export type ModelCatalogResponse = components['schemas']['ModelCatalogResponse'];
 export type ModelExecutionResponse = components['schemas']['ModelExecutionResponse'];
+export type ModelHealth = components['schemas']['ModelHealth'];
 export type ModelPerformanceRow = components['schemas']['ModelPerformanceRow'];
+export type ModelStats = components['schemas']['ModelStats'];
 export type ModelVersionListItem = components['schemas']['ModelVersionListItem'];
 export type ModelVersionResponse = components['schemas']['ModelVersionResponse'];
 export type MultiObjectiveConfig = components['schemas']['MultiObjectiveConfig'];
@@ -9785,6 +10562,10 @@ export type PreviewRequest = components['schemas']['PreviewRequest'];
 export type PricingResponse = components['schemas']['PricingResponse'];
 export type PricingTier = components['schemas']['PricingTier'];
 export type ProgressPoint = components['schemas']['ProgressPoint'];
+export type ProjectCreate = components['schemas']['ProjectCreate'];
+export type ProjectListItem = components['schemas']['ProjectListItem'];
+export type ProjectMetaUpdate = components['schemas']['ProjectMetaUpdate'];
+export type ProjectRead = components['schemas']['ProjectRead'];
 export type PromoteVersionRequest = components['schemas']['PromoteVersionRequest'];
 export type PublishModelRequest = components['schemas']['PublishModelRequest'];
 export type PurchasePlacementRequest = components['schemas']['PurchasePlacementRequest'];
@@ -9853,6 +10634,9 @@ export type VariableSolution = components['schemas']['VariableSolution'];
 export type VariableType = components['schemas']['VariableType'];
 export type VerificationRequestResponse = components['schemas']['VerificationRequestResponse'];
 export type VerifyEmailRequest = components['schemas']['VerifyEmailRequest'];
+export type VersionDiff = components['schemas']['VersionDiff'];
+export type VersionRead = components['schemas']['VersionRead'];
+export type VersionSummary = components['schemas']['VersionSummary'];
 export type WarmStartConfig = components['schemas']['WarmStartConfig'];
 export type WithdrawalActionRequest = components['schemas']['WithdrawalActionRequest'];
 export type WithdrawalRequest = components['schemas']['WithdrawalRequest'];
@@ -13502,6 +14286,41 @@ export interface operations {
             };
         };
     };
+    explain_diff_endpoint_api_v2_llm_conversations__conversation_id__explain_diff_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExplainVersionDiffRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     explain_infeasibility_endpoint_api_v2_llm_conversations__conversation_id__explain_infeasibility_post: {
         parameters: {
             query?: never;
@@ -13514,6 +14333,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ExplainInfeasibilityRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    explain_model_endpoint_api_v2_llm_conversations__conversation_id__explain_model_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExplainModelRequest"];
             };
         };
         responses: {
@@ -15041,6 +15895,493 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PricingResponse"];
+                };
+            };
+        };
+    };
+    list_model_projects: {
+        parameters: {
+            query?: {
+                limit?: number;
+                q?: string | null;
+                skip?: number;
+                status?: string | null;
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectListItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_model_project: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_model_project: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_model_project: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_model_project: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectMetaUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    commit_model_version: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_model_project_draft: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: {
+                "If-Match"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    solve_model_project: {
+        parameters: {
+            query?: {
+                solver_name?: string | null;
+                version_id?: string | null;
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OptimizationResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_model_stats: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelStats"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_project_versions: {
+        parameters: {
+            query?: {
+                limit?: number;
+                skip?: number;
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    diff_project_versions: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                a: string;
+                b: string;
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionDiff"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_project_version: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_project_version: {
+        parameters: {
+            query?: {
+                discard_draft?: boolean;
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_model_project_from_builder: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

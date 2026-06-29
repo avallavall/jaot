@@ -55,11 +55,11 @@ export default function StudioNewPage() {
     setCreating(true);
     try {
       reset();
-      const doc = await api.createBuilderDocument(
-        undefined,
+      const project = await api.createProject(
+        { name: "Untitled Model", workspace_id: activeWorkspaceId ?? undefined },
         activeWorkspaceId ?? undefined
       );
-      router.push(`/studio/${doc.id}/build`);
+      router.push(`/studio/${project.id}/build`);
     } catch (err) {
       toast.error(getErrorMessage(err, t("createFailed")));
       setCreating(false);
