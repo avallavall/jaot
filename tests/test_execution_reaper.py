@@ -33,7 +33,7 @@ from app.tasks.execution_reaper import reap_stale_executions
 # Default thresholds seeded from the settings registry by the
 # _seed_platform_settings autouse fixture.
 PENDING_MAX = 1800
-RUNNING_MAX = 7200
+RUNNING_MAX = 172800
 
 
 @pytest.fixture

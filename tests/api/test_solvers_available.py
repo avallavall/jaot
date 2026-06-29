@@ -14,14 +14,14 @@ class TestSolversAvailableMultiplier:
         for solver in response.json()["solvers"]:
             assert "multiplier" in solver
             assert isinstance(solver["multiplier"], (int, float))
-        # Defaults from settings_registry: scip=1.0, highs=1.2, hexaly=5.0
+        # Defaults from settings_registry: scip=1.0, highs=1.0, hexaly=1.0
         by_name = {s["name"]: s for s in response.json()["solvers"]}
         if "scip" in by_name:
             assert by_name["scip"]["multiplier"] == 1.0
         if "highs" in by_name:
-            assert by_name["highs"]["multiplier"] == 1.2
+            assert by_name["highs"]["multiplier"] == 1.0
         if "hexaly" in by_name:
-            assert by_name["hexaly"]["multiplier"] == 5.0
+            assert by_name["hexaly"]["multiplier"] == 1.0
 
     def test_hexaly_availability_reflects_worker_health(
         self, authenticated_client, monkeypatch: pytest.MonkeyPatch
@@ -60,7 +60,7 @@ class TestSolversAvailableOptionalSdk:
         by_name = {s["name"]: s for s in response.json()["solvers"]}
         assert "hexaly" in by_name
         assert by_name["hexaly"]["available"] is True
-        assert by_name["hexaly"]["multiplier"] == 5.0
+        assert by_name["hexaly"]["multiplier"] == 1.0
 
     def test_no_worker_and_no_sdk_hides_hexaly(
         self, authenticated_client, monkeypatch: pytest.MonkeyPatch

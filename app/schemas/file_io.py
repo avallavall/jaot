@@ -8,8 +8,8 @@ from app.schemas.optimization import OptimizationProblem
 SUPPORTED_FORMAT_EXTENSIONS = frozenset({".mps", ".lp", ".cip", ".json"})
 GZIP_EXTENSIONS = frozenset({".mps.gz", ".lp.gz"})
 ALL_EXTENSIONS = SUPPORTED_FORMAT_EXTENSIONS | GZIP_EXTENSIONS
-MAX_IMPORT_SIZE = 100 * 1024 * 1024  # 100 MB
-MAX_JSON_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_IMPORT_SIZE = 500 * 1024 * 1024  # 500 MB
+MAX_JSON_SIZE = 100 * 1024 * 1024  # 100 MB
 # Generous cap: real OptimizationProblem JSON is shallow (< 10 levels).
 # Anything beyond 64 is a stack-exhaustion DoS attempt and is rejected
 # before parsing. Safe cross-platform because it does not depend on

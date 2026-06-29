@@ -65,7 +65,7 @@ from app.shared.utils.datetime_helpers import utcnow
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_TIME_LIMIT_SECONDS = 60
+_DEFAULT_TIME_LIMIT_SECONDS = 300
 
 # Volume mount path per D-01 — root:root 0600 on the deploy host. Module-level
 # constant so tests can monkeypatch it. Plan 06 (expiry sweep) imports the same
@@ -227,7 +227,7 @@ class HexalyAdapter:
                 slated for removal in a follow-up phase.
             time_limit_seconds: Override for ``optimizer.param.time_limit``.
                 Defaults to ``OptimizationProblem.options.time_limit_seconds``
-                when omitted; ultimate fallback is 60s (D-12 explicit-stop).
+                when omitted; ultimate fallback is 300s (D-12 explicit-stop).
 
         Returns:
             An ``OptimizationResult``. Status is mapped from

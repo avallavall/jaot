@@ -129,10 +129,10 @@ SETTINGS_REGISTRY.extend(
         SettingDefinition(
             key="SOLVER_TIMEOUT_SECONDS",
             label="Timeout Seconds",
-            description="Solver timeout in seconds (per execution)",
+            description="Synchronous /solve wall-clock timeout in seconds (per execution)",
             category=SettingCategory.SOLVER,
             setting_type=SettingType.INT,
-            default_value="30",
+            default_value="120",
             min_value=1,
             max_value=3600,
             unit="seconds",
@@ -148,7 +148,7 @@ SETTINGS_REGISTRY.extend(
             ),
             category=SettingCategory.SOLVER,
             setting_type=SettingType.INT,
-            default_value="60",
+            default_value="300",
             min_value=1,
             max_value=3600,
             unit="seconds",
@@ -175,11 +175,11 @@ SETTINGS_REGISTRY.extend(
                 "Age in seconds after which a ModelExecution still running (DB "
                 "status 'running' or an active Celery worker state) is considered "
                 "hung, marked failed, and refunded by the execution reaper. "
-                "Default is 2x the maximum per-request solver time limit (3600s)."
+                "Default is 2x the maximum per-request solver time limit (86400s)."
             ),
             category=SettingCategory.SOLVER,
             setting_type=SettingType.INT,
-            default_value="7200",
+            default_value="172800",
             min_value=300,
             max_value=172800,
             unit="seconds",
@@ -287,7 +287,7 @@ SETTINGS_REGISTRY.extend(
             description="Max LLM requests per minute",
             category=SettingCategory.LLM,
             setting_type=SettingType.INT,
-            default_value="60",
+            default_value="300",
             min_value=1,
             max_value=1000,
         ),
@@ -297,7 +297,7 @@ SETTINGS_REGISTRY.extend(
             description="Max LLM requests per day",
             category=SettingCategory.LLM,
             setting_type=SettingType.INT,
-            default_value="500",
+            default_value="5000",
             min_value=1,
             max_value=100000,
         ),
@@ -325,7 +325,7 @@ SETTINGS_REGISTRY.extend(
             ),
             category=SettingCategory.LLM,
             setting_type=SettingType.FLOAT,
-            default_value="20.0",
+            default_value="50.0",
             min_value=0,
             max_value=100000,
             unit="EUR",
@@ -683,16 +683,18 @@ _ALLOWED_FEATURES_DEFAULT = (
 # Default values per tier, keyed by (tier, field)
 _PLAN_DEFAULTS: dict[tuple[str, str], str] = {
     # Default plan ("free"): no paid tiers anymore — every signup gets full,
-    # business-level access. The platform-wide monthly LLM budget remains the
-    # real cost ceiling. Applied to prod runtime 2026-06-24 and mirrored here so
-    # fresh installs / DB reseeds match. (starter/pro/business kept as legacy.)
+    # business-level access. Open-source self-hosted: business/usage limits
+    # relaxed (solve time up to 24h, 100k daily solves). The platform-wide
+    # monthly LLM budget remains the only real cost ceiling. Mirrored here so
+    # fresh installs / DB reseeds match. (starter/pro/business kept as legacy,
+    # also relaxed for consistency.)
     ("free", "credits"): "20000",
     ("free", "monthly_quota"): "20000",
     ("free", "rate_limit_per_minute"): "120",
     ("free", "rate_limit_per_day"): "50000",
-    ("free", "max_solve_time_seconds"): "3600",
+    ("free", "max_solve_time_seconds"): "86400",
     ("free", "max_variables"): "10000000",
-    ("free", "max_daily_solves"): "50000",
+    ("free", "max_daily_solves"): "100000",
     ("free", "max_cron_schedules"): "50",
     ("free", "allowed_features"): _ALLOWED_FEATURES_DEFAULT,
     # Starter tier
@@ -700,9 +702,9 @@ _PLAN_DEFAULTS: dict[tuple[str, str], str] = {
     ("starter", "monthly_quota"): "600",
     ("starter", "rate_limit_per_minute"): "20",
     ("starter", "rate_limit_per_day"): "500",
-    ("starter", "max_solve_time_seconds"): "300",
+    ("starter", "max_solve_time_seconds"): "86400",
     ("starter", "max_variables"): "100000",
-    ("starter", "max_daily_solves"): "500",
+    ("starter", "max_daily_solves"): "100000",
     ("starter", "max_cron_schedules"): "5",
     ("starter", "allowed_features"): _ALLOWED_FEATURES_DEFAULT,
     # Pro tier
@@ -710,9 +712,9 @@ _PLAN_DEFAULTS: dict[tuple[str, str], str] = {
     ("pro", "monthly_quota"): "2500",
     ("pro", "rate_limit_per_minute"): "60",
     ("pro", "rate_limit_per_day"): "5000",
-    ("pro", "max_solve_time_seconds"): "900",
+    ("pro", "max_solve_time_seconds"): "86400",
     ("pro", "max_variables"): "1000000",
-    ("pro", "max_daily_solves"): "5000",
+    ("pro", "max_daily_solves"): "100000",
     ("pro", "max_cron_schedules"): "15",
     ("pro", "allowed_features"): _ALLOWED_FEATURES_DEFAULT,
     # Business tier
@@ -720,9 +722,9 @@ _PLAN_DEFAULTS: dict[tuple[str, str], str] = {
     ("business", "monthly_quota"): "20000",
     ("business", "rate_limit_per_minute"): "120",
     ("business", "rate_limit_per_day"): "50000",
-    ("business", "max_solve_time_seconds"): "3600",
+    ("business", "max_solve_time_seconds"): "86400",
     ("business", "max_variables"): "10000000",
-    ("business", "max_daily_solves"): "50000",
+    ("business", "max_daily_solves"): "100000",
     ("business", "max_cron_schedules"): "50",
     ("business", "allowed_features"): _ALLOWED_FEATURES_DEFAULT,
 }
@@ -1285,12 +1287,12 @@ SETTINGS_REGISTRY.extend(
             label="HiGHS credit multiplier",
             description=(
                 "Per-solve credit multiplier applied when the effective "
-                "solver is HiGHS. Default 1.2. "
-                "Phase 7.4 / PRC-01 / D-02."
+                "solver is HiGHS. Default 1.0 — open-source self-hosted: all "
+                "solvers priced equally. Phase 7.4 / PRC-01 / D-02."
             ),
             category=SettingCategory.BILLING,
             setting_type=SettingType.FLOAT,
-            default_value="1.2",
+            default_value="1.0",
             min_value=0.1,
             max_value=100.0,
         ),
@@ -1299,13 +1301,13 @@ SETTINGS_REGISTRY.extend(
             label="Hexaly credit multiplier",
             description=(
                 "Per-solve credit multiplier applied when the effective "
-                "solver is Hexaly. Default 5.0 — commercial solver; the "
-                "deployment mounts a single instance-level Hexaly .lic (BYOL) "
-                "per D-01. Phase 7.4 / PRC-01 / D-02."
+                "solver is Hexaly. Default 1.0 — open-source self-hosted: all "
+                "solvers priced equally. The deployment mounts a single "
+                "instance-level Hexaly .lic (BYOL) per D-01. Phase 7.4 / PRC-01 / D-02."
             ),
             category=SettingCategory.BILLING,
             setting_type=SettingType.FLOAT,
-            default_value="5.0",
+            default_value="1.0",
             min_value=0.1,
             max_value=100.0,
         ),

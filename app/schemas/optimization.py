@@ -150,7 +150,9 @@ class Objective(BaseModel):
 class SolverOptions(BaseModel):
     """Solver configuration options."""
 
-    time_limit_seconds: float = Field(default=60.0, ge=1, le=3600, description="Max solve time")
+    time_limit_seconds: float = Field(
+        default=300.0, ge=1, le=86400, description="Max solve time (seconds, up to 24h)"
+    )
     gap_tolerance: float = Field(default=0.0001, ge=0, le=1, description="MIP gap tolerance")
     threads: int = Field(default=0, ge=0, le=8, description="Number of threads (0=auto)")
     verbose: bool = Field(default=False, description="Enable solver output")

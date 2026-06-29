@@ -188,26 +188,26 @@ class TestPlanConfiguration:
         cfg = PSS.get_plan_config_dynamic(db_session, "free")
         # Default plan now carries business-level limits (no paid tiers).
         assert cfg["max_variables"] == 10000000
-        assert cfg["max_solve_time_seconds"] == 3600
-        assert cfg["max_daily_solves"] == 50000
+        assert cfg["max_solve_time_seconds"] == 86400
+        assert cfg["max_daily_solves"] == 100000
 
     def test_starter_tier_caps(self, db_session):
         cfg = PSS.get_plan_config_dynamic(db_session, "starter")
         assert cfg["max_variables"] == 100000
-        assert cfg["max_solve_time_seconds"] == 300
-        assert cfg["max_daily_solves"] == 500
+        assert cfg["max_solve_time_seconds"] == 86400
+        assert cfg["max_daily_solves"] == 100000
 
     def test_pro_tier_caps(self, db_session):
         cfg = PSS.get_plan_config_dynamic(db_session, "pro")
         assert cfg["max_variables"] == 1000000
-        assert cfg["max_solve_time_seconds"] == 900
-        assert cfg["max_daily_solves"] == 5000
+        assert cfg["max_solve_time_seconds"] == 86400
+        assert cfg["max_daily_solves"] == 100000
 
     def test_business_tier_caps(self, db_session):
         cfg = PSS.get_plan_config_dynamic(db_session, "business")
         assert cfg["max_variables"] == 10000000
-        assert cfg["max_solve_time_seconds"] == 3600
-        assert cfg["max_daily_solves"] == 50000
+        assert cfg["max_solve_time_seconds"] == 86400
+        assert cfg["max_daily_solves"] == 100000
 
     # ---- Cron schedule limits ----
 

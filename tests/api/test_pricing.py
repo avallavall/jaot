@@ -83,7 +83,7 @@ class TestPricingEndpoint:
         assert free["credits"] == 20000
         assert free["monthly_quota"] == 20000
         assert free["max_variables"] == 10000000
-        assert free["max_solve_time_seconds"] == 3600
+        assert free["max_solve_time_seconds"] == 86400
         assert free["max_cron_schedules"] == 50
 
     def test_starter_tier_values(self, client):
@@ -94,7 +94,7 @@ class TestPricingEndpoint:
         assert starter["annual_price"] == 190
         assert starter["credits"] == 600
         assert starter["max_variables"] == 100000
-        assert starter["max_solve_time_seconds"] == 300
+        assert starter["max_solve_time_seconds"] == 86400
 
     def test_pro_tier_values(self, client):
         """Pro tier values match registry defaults."""
@@ -104,7 +104,7 @@ class TestPricingEndpoint:
         assert pro["annual_price"] == 490
         assert pro["credits"] == 2500
         assert pro["max_variables"] == 1000000
-        assert pro["max_solve_time_seconds"] == 900
+        assert pro["max_solve_time_seconds"] == 86400
 
     def test_business_tier_values(self, client):
         """Business tier values match registry defaults."""
@@ -114,7 +114,7 @@ class TestPricingEndpoint:
         assert business["annual_price"] == 1490
         assert business["credits"] == 20000
         assert business["max_variables"] == 10000000
-        assert business["max_solve_time_seconds"] == 3600
+        assert business["max_solve_time_seconds"] == 86400
 
     def test_no_auth_required(self, client):
         """Endpoint works without any Authorization header."""

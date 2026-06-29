@@ -402,7 +402,7 @@ class TestAdminAPIE2E:
         matching = [e for e in entries if e["setting_key"] == "SOLVER_TIMEOUT_SECONDS"]
         assert len(matching) == 2
         # Most recent first (reset), then set
-        assert matching[0]["new_value"] == "30"  # reset to registry default
+        assert matching[0]["new_value"] == "120"  # reset to registry default
         assert matching[1]["new_value"] == "777"  # set
 
     def test_batch_update_multiple_settings(self, admin_client, db_session):

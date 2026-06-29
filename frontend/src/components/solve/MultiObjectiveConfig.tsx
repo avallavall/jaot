@@ -2,7 +2,6 @@
 
 import type { MultiObjectiveConfig, ObjectiveSpec, ObjectiveSense } from "@/lib/types";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
 
 interface MultiObjectiveConfigProps {
   value: MultiObjectiveConfig;
@@ -10,8 +9,11 @@ interface MultiObjectiveConfigProps {
   variables?: string[];
 }
 
-const MAX_OBJECTIVES = 4;
-const MIN_OBJECTIVES = 2;
+// The backend solves exactly two objectives (epsilon-constraint / weighted
+// scalarization over a 2-D Pareto front — see app/schemas/optimization.py
+// MultiObjectiveConfig). The UI mirrors that contract: always two objectives,
+// no add/remove. Supporting N>2 objectives would need a new n-dimensional
+// multi-objective backend, tracked as a follow-up.
 
 /** Default objective spec shared by page.tsx and this component. */
 export const DEFAULT_OBJECTIVE: ObjectiveSpec = {
@@ -210,23 +212,6 @@ export function MultiObjectiveConfigForm({
     onChange({ ...value, objectives: newObjs });
   }
 
-  function addObjective() {
-    if (total >= MAX_OBJECTIVES) return;
-    const newObj: ObjectiveSpec = {
-      ...DEFAULT_OBJECTIVE,
-      _key: objUid(),
-      label: t("objectiveN", { n: total + 1 }),
-      weight: 1 / (total + 1),
-    } as ObjectiveSpec;
-    onChange({ ...value, objectives: [...objectives, newObj] });
-  }
-
-  function removeObjective(idx: number) {
-    if (total <= MIN_OBJECTIVES) return;
-    const newObjs = objectives.filter((_, i) => i !== idx);
-    onChange({ ...value, objectives: newObjs });
-  }
-
   function setNPoints(n: number) {
     onChange({ ...value, n_points: n });
   }
@@ -293,25 +278,10 @@ export function MultiObjectiveConfigForm({
             objective={obj}
             mode={value.mode}
             onChange={(o) => setObjective(idx, o)}
-            onRemove={total > MIN_OBJECTIVES ? () => removeObjective(idx) : null}
+            onRemove={null}
           />
         ))}
       </div>
-
-      {total < MAX_OBJECTIVES && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={addObjective}
-          data-testid="add-objective-btn"
-        >
-          {t("addObjective")}
-        </Button>
-      )}
-      {total >= MAX_OBJECTIVES && (
-        <p className="text-xs text-muted-foreground italic">{t("maxObjectivesReached")}</p>
-      )}
 
       <div>
         <label className="block text-xs font-medium text-muted-foreground mb-1">

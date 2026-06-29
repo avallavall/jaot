@@ -45,20 +45,23 @@ def test_hexaly_multiplier() -> None:
     from app.services.platform_settings_service import PlatformSettingsService as PSS
 
     mock_db = MagicMock()
-    # PSS.get_float reads from DB; mock it to return the registry default (5.0)
+    # PSS.get_float reads from DB; mock it to an arbitrary non-1.0 multiplier
+    # (5.0) so the test proves the multiplier is applied. The registry default
+    # is now 1.0 (open-source: all solvers priced equally), so a value of 5.0
+    # here is a deliberate test fixture, not the default.
     with __import__("unittest.mock", fromlist=["patch"]).patch.object(
         PSS, "get_float", return_value=5.0
     ):
         base = calculate_credits(_build_problem())
         hexaly = calculate_credits(_build_problem(), solver_name="hexaly", db=mock_db)
-    # Default Hexaly multiplier from settings_registry is 5.0
     assert hexaly == max(1, round(base * 5.0))
 
 
-def test_hexaly_costs_5x_scip_integration(authenticated_client) -> None:
-    """V-08 (integration): same problem, hexaly solver_name costs 5x scip
-    in persisted credit charge (proves the multiplier reaches the debit
-    end-to-end through /api/v2/solve, not just the unit-level calculator).
+def test_hexaly_costs_same_as_scip_integration(authenticated_client) -> None:
+    """V-08 (integration): same problem, hexaly solver_name costs the same as
+    scip in persisted credit charge — open-source self-hosted prices every
+    solver equally (multiplier 1.0). Proves the multiplier reaches the debit
+    end-to-end through /api/v2/solve, not just the unit-level calculator.
 
     Skipped when Hexaly worker not available — local dev / CI without
     a .lic file should not block this assertion (covered by mock-PSS
@@ -84,6 +87,6 @@ def test_hexaly_costs_5x_scip_integration(authenticated_client) -> None:
         pytest.skip("Hexaly worker unavailable in this environment")
     assert hexaly_resp.status_code == 200
     hexaly_credits = hexaly_resp.json()["credits_used"]
-    assert hexaly_credits == max(1, round(scip_credits * 5.0)), (
-        f"Expected hexaly={scip_credits * 5}, got hexaly={hexaly_credits}"
+    assert hexaly_credits == max(1, round(scip_credits * 1.0)), (
+        f"Expected hexaly={scip_credits * 1}, got hexaly={hexaly_credits}"
     )

@@ -294,7 +294,7 @@ class TestMonthCostAggregation:
         _add_costed_message(db_session, test_conversation, 3.0)
         cost, budget = get_budget_status(db_session)
         assert cost == pytest.approx(3.0, abs=1e-6)
-        assert budget == pytest.approx(20.0)  # registry default
+        assert budget == pytest.approx(50.0)  # registry default
 
         # Cached: a new row is invisible until the TTL expires / cache resets.
         _add_costed_message(db_session, test_conversation, 5.0)
@@ -315,7 +315,7 @@ class TestMonthCostAggregation:
         cost_sample = families["jaot_llm_cost_eur_month"].samples[0]
         budget_sample = families["jaot_llm_budget_eur"].samples[0]
         assert cost_sample.value == pytest.approx(4.5, abs=1e-6)
-        assert budget_sample.value == pytest.approx(20.0)
+        assert budget_sample.value == pytest.approx(50.0)
 
 
 class TestBudgetGuardrail:
@@ -355,7 +355,7 @@ class TestBudgetGuardrail:
         assert user_msgs == 0
 
     def test_under_budget_passes_through(self, authenticated_client, db_session, test_conversation):
-        # Spend well under the 20 EUR default budget.
+        # Spend well under the 50 EUR default budget.
         _add_costed_message(db_session, test_conversation, 1.0)
 
         mock_client = _mock_anthropic_client()

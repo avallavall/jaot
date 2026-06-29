@@ -31,7 +31,7 @@ Solve an optimization problem synchronously. The request blocks until the solver
 | `constraints[].name` | string | No | Descriptive constraint name |
 | `constraints[].expression` | string | Yes | Constraint expression (e.g. `"2*chairs + 3*tables <= 240"`) |
 | `options` | object | No | Solver options |
-| `options.time_limit_seconds` | number | No | Maximum solve time in seconds (default: 60) |
+| `options.time_limit_seconds` | number | No | Maximum solve time in seconds, 1–86400 (default: 300). Long solves should use the async endpoint. |
 | `options.gap_tolerance` | number | No | Optimality gap tolerance (default: 0.0001) |
 | `solver_name` | string | No | Solver override: `"scip"`, `"highs"`, `"hexaly"`, or `"auto"` (default: platform default) |
 | `warm_start` | object | No | Warm-start a solve from a previous execution (`{"execution_id": "exe_..."}`) |

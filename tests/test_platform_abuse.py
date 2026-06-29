@@ -572,7 +572,7 @@ class TestRequestBodySize:
         test_user,
         mock_auth,
     ):
-        """10MB request body is rejected with 413 by BodyLimitMiddleware."""
+        """60MB request body is rejected with 413 by BodyLimitMiddleware."""
         from starlette.testclient import TestClient
 
         mock_auth(test_user)
@@ -580,11 +580,11 @@ class TestRequestBodySize:
         client = TestClient(app, raise_server_exceptions=False)
         client.headers = {"Authorization": f"Bearer {test_api_key.plaintext}"}
 
-        big_name = "x" * 10_000_000
+        big_name = "x" * 60_000_000
         body = _make_solve_body(name=big_name)
         resp = client.post("/api/v2/solve", json=body)
         assert resp.status_code == 413, (
-            f"Expected 413 for 10MB body, got {resp.status_code}: {resp.text[:200]}"
+            f"Expected 413 for 60MB body, got {resp.status_code}: {resp.text[:200]}"
         )
 
 

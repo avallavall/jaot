@@ -44,7 +44,7 @@ export function ChatPanel({ initialMessages, stream, onFormulationReady, onExpla
   const handleFileSelected = useCallback(
     (file: File) => {
       const ALLOWED_EXTENSIONS = [".pdf", ".csv", ".txt"];
-      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+      const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
       if (file.size > MAX_FILE_SIZE) {
         toast.error(t("llm.attachment.fileTooLarge"));
         return;

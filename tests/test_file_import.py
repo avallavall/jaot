@@ -580,7 +580,7 @@ class TestImportErrors:
             self.service.import_from_file(b"{not valid json", "bad.json")
 
     def test_json_size_limit(self):
-        big_json = b"x" * (10 * 1024 * 1024 + 1)
+        big_json = b"x" * (100 * 1024 * 1024 + 1)
         with pytest.raises(FileImportError, match="too large"):
             self.service.import_from_file(big_json, "big.json")
 
@@ -614,8 +614,8 @@ class TestImportErrors:
 
     # --- Size limits ---
 
-    def test_reject_solver_file_over_100mb(self):
-        big_bytes = b"x" * (100 * 1024 * 1024 + 1)
+    def test_reject_solver_file_over_500mb(self):
+        big_bytes = b"x" * (500 * 1024 * 1024 + 1)
         with pytest.raises(FileImportError, match="too large"):
             self.service.import_from_file(big_bytes, "huge.mps")
 
@@ -656,7 +656,7 @@ class TestImportPayloadBombs:
         """A gzip file that inflates past MAX_IMPORT_SIZE must be rejected."""
         from app.schemas.file_io import MAX_IMPORT_SIZE
 
-        # Build a payload that inflates to just over the 100 MB cap.
+        # Build a payload that inflates to just over the 500 MB cap.
         # A buffer of MAX_IMPORT_SIZE + 1 bytes of 'A' compresses to a few KB.
         inflated = b"A" * (MAX_IMPORT_SIZE + 1)
         compressed = gzip.compress(inflated)

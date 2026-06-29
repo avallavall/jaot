@@ -14,7 +14,7 @@ import pypdf
 logger = logging.getLogger(__name__)
 
 # Constants
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 MAX_EXTRACTED_CHARS = 100_000
 ALLOWED_MIME_TYPES = {"application/pdf", "text/csv", "text/plain"}
 
