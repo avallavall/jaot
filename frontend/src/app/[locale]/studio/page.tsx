@@ -87,6 +87,7 @@ export default function StudioHomePage() {
             <li key={p.id}>
               <Link
                 href={`/studio/${p.id}/build`}
+                data-testid="studio-project-card"
                 className="flex items-center justify-between gap-4 rounded-lg border p-4 hover:border-primary/50 hover:shadow-sm transition-all"
               >
                 <div className="min-w-0">

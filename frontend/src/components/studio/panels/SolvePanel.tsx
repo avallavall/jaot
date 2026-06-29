@@ -96,7 +96,12 @@ export function SolvePanel() {
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="block">
-                <Button onClick={handleSolve} disabled={disabled} className="w-full">
+                <Button
+                  data-testid="studio-solve-run"
+                  onClick={handleSolve}
+                  disabled={disabled}
+                  className="w-full"
+                >
                   <Play className="mr-1 h-4 w-4" />
                   {solving ? t("solveRunning") : t("headerSolve")}
                 </Button>
@@ -124,6 +129,7 @@ export function SolvePanel() {
 
         {result && (
           <Button
+            data-testid="studio-solve-done"
             variant="outline"
             className="w-full"
             onClick={() => setDrawerOpen(true)}

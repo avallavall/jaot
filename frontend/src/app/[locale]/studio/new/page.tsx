@@ -90,6 +90,7 @@ export default function StudioNewPage() {
           tile.available ? (
             <button
               key={tile.key}
+              data-testid={`launcher-tile-${tile.key}`}
               onClick={tile.onClick}
               disabled={creating}
               className="text-left rounded-lg border p-5 bg-card hover:border-primary/50 hover:shadow-sm transition-all disabled:opacity-60 disabled:pointer-events-none"
@@ -101,6 +102,7 @@ export default function StudioNewPage() {
           ) : (
             <div
               key={tile.key}
+              data-testid={`launcher-tile-${tile.key}`}
               aria-disabled="true"
               className={cn(
                 "relative text-left rounded-lg border p-5 bg-muted/20 cursor-not-allowed select-none"

@@ -66,6 +66,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
             /
           </span>
           <input
+            data-testid="studio-name-input"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onBlur={onRenameBlur}
