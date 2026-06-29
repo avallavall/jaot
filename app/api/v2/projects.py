@@ -45,10 +45,12 @@ from app.schemas.model_project import (
     VersionRead,
     VersionSummary,
 )
+from app.schemas.model_stats import ModelStats
 from app.schemas.optimization import OptimizationProblem, OptimizationResult
 from app.services import model_project_service as svc
 from app.services.audit_service import log_action
 from app.services.model_project_service import ProjectConflictError
+from app.services.model_stats_service import compute_cached
 from app.services.solve_orchestrator import (
     ORIGIN_VISUAL_BUILDER,
     ExecutionSource,
@@ -181,6 +183,15 @@ def get_model_project(
 ) -> ModelProject:
     """Get a single ModelProject (metadata + draft + committed HEAD)."""
     return _project_or_404(db, project_id, org.id)
+
+
+@router.get("/{project_id}/stats", response_model=ModelStats, operation_id="get_model_stats")
+def get_model_stats(
+    project_id: str, db: DBSession, org: CurrentOrg, _ws: OptionalRequireViewer
+) -> ModelStats:
+    """Live structural statistics + health score for the project's working draft."""
+    project = _project_or_404(db, project_id, org.id)
+    return compute_cached(project.draft_model_json)
 
 
 @router.patch("/{project_id}", response_model=ProjectRead, operation_id="update_model_project")

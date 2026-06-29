@@ -247,6 +247,11 @@ def commit_version(
     latest = _latest_version(db, locked.id)
     next_seq = (latest.sequence if latest else 0) + 1
 
+    # Freeze structural stats + problem class onto the immutable version (P1b).
+    from app.services.model_stats_service import compute_from_json  # noqa: PLC0415
+
+    stats = compute_from_json(model_json)
+
     version = ModelProjectVersion(
         model_project_id=locked.id,
         organization_id=locked.organization_id,
@@ -259,6 +264,8 @@ def commit_version(
         commit_summary=clean_summary[:500],
         commit_body=body.strip() if body else None,
         created_by=user_id,
+        stats_json=stats.model_dump(mode="json"),
+        problem_class=stats.problem_class,
     )
     db.add(version)
     db.flush()

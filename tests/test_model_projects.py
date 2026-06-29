@@ -30,7 +30,9 @@ def _create_project(client: TestClient, name: str = "Test Project") -> dict:
     return resp.json()
 
 
-def _insert_project(db: Session, org: Organization, user: User, name: str = "Other") -> ModelProject:
+def _insert_project(
+    db: Session, org: Organization, user: User, name: str = "Other"
+) -> ModelProject:
     project = ModelProject(organization_id=org.id, created_by=user.id, name=name, status="active")
     db.add(project)
     db.commit()
@@ -98,7 +100,9 @@ class TestDraft:
     def test_stale_if_match_conflicts_409(self, authenticated_client: TestClient):
         pid = _create_project(authenticated_client)["id"]
         # First write lands at lock 1.
-        authenticated_client.put(f"/api/v2/projects/{pid}/draft", json={"model_json": _VALID_PROBLEM})
+        authenticated_client.put(
+            f"/api/v2/projects/{pid}/draft", json={"model_json": _VALID_PROBLEM}
+        )
         # A second write with the stale lock 0 must 409.
         resp = authenticated_client.put(
             f"/api/v2/projects/{pid}/draft",
@@ -111,7 +115,9 @@ class TestDraft:
 class TestCommit:
     def test_commit_happy_path(self, authenticated_client: TestClient):
         pid = _create_project(authenticated_client)["id"]
-        authenticated_client.put(f"/api/v2/projects/{pid}/draft", json={"model_json": _VALID_PROBLEM})
+        authenticated_client.put(
+            f"/api/v2/projects/{pid}/draft", json={"model_json": _VALID_PROBLEM}
+        )
         resp = authenticated_client.post(
             f"/api/v2/projects/{pid}/commit", json={"summary": "Add x and c1", "body": "first cut"}
         )
@@ -127,7 +133,9 @@ class TestCommit:
     # CONTRACT-TEST: commit rejects empty/whitespace summary
     def test_commit_rejects_blank_summary(self, authenticated_client: TestClient):
         pid = _create_project(authenticated_client)["id"]
-        authenticated_client.put(f"/api/v2/projects/{pid}/draft", json={"model_json": _VALID_PROBLEM})
+        authenticated_client.put(
+            f"/api/v2/projects/{pid}/draft", json={"model_json": _VALID_PROBLEM}
+        )
         for blank in ("", "   ", "\t\n"):
             resp = authenticated_client.post(
                 f"/api/v2/projects/{pid}/commit", json={"summary": blank}
@@ -136,7 +144,9 @@ class TestCommit:
 
     def test_commit_dedup_noop(self, authenticated_client: TestClient):
         pid = _create_project(authenticated_client)["id"]
-        authenticated_client.put(f"/api/v2/projects/{pid}/draft", json={"model_json": _VALID_PROBLEM})
+        authenticated_client.put(
+            f"/api/v2/projects/{pid}/draft", json={"model_json": _VALID_PROBLEM}
+        )
         v1 = authenticated_client.post(
             f"/api/v2/projects/{pid}/commit", json={"summary": "v1"}
         ).json()
@@ -150,21 +160,27 @@ class TestCommit:
     # CONTRACT-TEST: a committed ModelProjectVersion is immutable (no API mutates/deletes it)
     def test_committed_version_is_immutable(self, authenticated_client: TestClient):
         pid = _create_project(authenticated_client)["id"]
-        authenticated_client.put(f"/api/v2/projects/{pid}/draft", json={"model_json": _VALID_PROBLEM})
+        authenticated_client.put(
+            f"/api/v2/projects/{pid}/draft", json={"model_json": _VALID_PROBLEM}
+        )
         vid = authenticated_client.post(
             f"/api/v2/projects/{pid}/commit", json={"summary": "v1"}
         ).json()["id"]
         url = f"/api/v2/projects/{pid}/versions/{vid}"
         # The version is readable but exposes no mutate/delete verb.
         assert authenticated_client.get(url).status_code == 200
-        assert authenticated_client.patch(url, json={"commit_summary": "tampered"}).status_code == 405
+        assert (
+            authenticated_client.patch(url, json={"commit_summary": "tampered"}).status_code == 405
+        )
         assert authenticated_client.put(url, json={}).status_code == 405
         assert authenticated_client.delete(url).status_code == 405
 
 
 class TestSolve:
     def _fund_and_arm(self, client: TestClient, db: Session, org: Organization) -> str:
-        db.query(Organization).filter(Organization.id == org.id).update({"credits_balance": 1_000_000})
+        db.query(Organization).filter(Organization.id == org.id).update(
+            {"credits_balance": 1_000_000}
+        )
         db.commit()
         pid = _create_project(client)["id"]
         client.put(f"/api/v2/projects/{pid}/draft", json={"model_json": _VALID_PROBLEM})
@@ -182,9 +198,7 @@ class TestSolve:
         resp = authenticated_client.post(f"/api/v2/projects/{pid}/solve")
         assert resp.status_code == 200, resp.text
         execution = (
-            db_session.query(ModelExecution)
-            .filter(ModelExecution.model_project_id == pid)
-            .first()
+            db_session.query(ModelExecution).filter(ModelExecution.model_project_id == pid).first()
         )
         assert execution is not None
         assert execution.source_kind == "model_project"

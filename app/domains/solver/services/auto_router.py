@@ -97,11 +97,21 @@ def select_solver(
 
         parser = ExpressionParser()
 
-    has_quadratic = _has_quadratic(problem, parser)
-    pure_lp = _is_pure_lp(problem)
+    # Single source of truth for the problem class (shared with ModelStatsService).
+    # The routing below is exactly the legacy two-boolean tree: ``cls == LP`` is the
+    # old ``pure_lp and not has_quadratic``, and ``cls in QUADRATIC_CLASSES`` is the
+    # old ``has_quadratic`` — so routing + reason slugs are unchanged.
+    from app.domains.solver.services.classify import (  # noqa: PLC0415
+        QUADRATIC_CLASSES,
+        ProblemClass,
+        classify,
+    )
+
+    cls = classify(problem, parser)
+    has_quadratic = cls in QUADRATIC_CLASSES
 
     # 1. LP -> HiGHS
-    if pure_lp and not has_quadratic:
+    if cls == ProblemClass.LP:
         return ("highs", AUTO_REASON_LP, False)
 
     # 2 + 3. Quadratic — check worker, fall back to SCIP if down (D-11).
