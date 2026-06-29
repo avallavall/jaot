@@ -117,6 +117,9 @@ class ProjectListItem(BaseModel):
     current_version_id: str | None = None
     committed_count: int
     updated_at: datetime
+    # Attribution — the list is org-wide, so the row shows whose model it is.
+    created_by: str | None = None
+    created_by_name: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

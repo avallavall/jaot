@@ -160,21 +160,28 @@ def create_from_builder(
 @router.get("", response_model=list[ProjectListItem], operation_id="list_model_projects")
 def list_model_projects(
     db: DBSession,
+    user: CurrentUser,
     org: CurrentOrg,
     _ws: OptionalRequireViewer,
     status_filter: str | None = Query("active", alias="status"),
     workspace_id: str | None = Query(None),
     q: str | None = Query(None),
+    mine: bool = Query(False),
     skip: int = 0,
     limit: int = 50,
 ) -> list[ModelProject]:
-    """List the organization's ModelProjects (newest-updated first)."""
+    """List the organization's ModelProjects (newest-updated first).
+
+    The list is org-wide (collaborative); pass ``mine=true`` to narrow it to the
+    current user's own models.
+    """
     return svc.list_projects(
         db,
         org_id=org.id,
         status=status_filter,
         workspace_id=workspace_id,
         q=q,
+        created_by=user.id if mine else None,
         skip=skip,
         limit=limit,
     )

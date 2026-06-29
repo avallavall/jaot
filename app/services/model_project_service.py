@@ -120,15 +120,22 @@ def list_projects(
     status: str | None = "active",
     workspace_id: str | None = None,
     q: str | None = None,
+    created_by: str | None = None,
     skip: int = 0,
     limit: int = 50,
 ) -> list[ModelProject]:
-    """List the org's projects, newest-updated first."""
+    """List the org's projects, newest-updated first.
+
+    The list is org-scoped (collaborative). Pass ``created_by`` to narrow it to a
+    single user's models (the "Mine" filter).
+    """
     query = db.query(ModelProject).filter(ModelProject.organization_id == org_id)
     if status:
         query = query.filter(ModelProject.status == status)
     if workspace_id:
         query = query.filter(ModelProject.workspace_id == workspace_id)
+    if created_by:
+        query = query.filter(ModelProject.created_by == created_by)
     if q:
         like = f"%{q}%"
         query = query.filter(

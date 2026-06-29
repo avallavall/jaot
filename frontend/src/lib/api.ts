@@ -1157,7 +1157,7 @@ export const api = {
   },
 
   listProjects(
-    params?: { status?: string; q?: string; skip?: number; limit?: number },
+    params?: { status?: string; q?: string; mine?: boolean; skip?: number; limit?: number },
     workspaceId?: string
   ): Promise<ProjectListItem[]> {
     return request("/api/v2/projects", {

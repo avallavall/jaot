@@ -7,7 +7,7 @@ append-only list of immutable, commit-grade ``ModelProjectVersion`` snapshots.
 """
 
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -15,6 +15,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.shared.db.base import Base
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
+
+if TYPE_CHECKING:
+    from app.models.user import User
 
 
 def _default_project_id() -> str:
@@ -93,11 +96,24 @@ class ModelProject(Base):
         cascade="all, delete-orphan",
         order_by="ModelProjectVersion.sequence",
     )
+    # Who created the project — surfaced as an attribution badge in the list. The
+    # list is org-wide (collaborative), so "by {name}" tells whose model it is.
+    # ``selectin`` (a separate batched query), NOT ``joined``: a joined eager load
+    # turns the ``SELECT ... FOR UPDATE`` lock in commit into an outer join, which
+    # Postgres rejects ("FOR UPDATE cannot be applied to the nullable side").
+    creator: Mapped["User | None"] = relationship(
+        "User", foreign_keys=[created_by], lazy="selectin"
+    )
 
     __table_args__ = (
         Index("ix_model_projects_org_status", "organization_id", "status"),
         Index("ix_model_projects_org_updated", "organization_id", "updated_at"),
     )
+
+    @property
+    def created_by_name(self) -> str | None:
+        """Display name of the creator (None if the user was deleted)."""
+        return self.creator.name if self.creator else None
 
     def __repr__(self) -> str:
         return f"<ModelProject(id={self.id!r}, name={self.name!r}, status={self.status!r})>"

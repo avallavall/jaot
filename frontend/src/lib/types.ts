@@ -701,6 +701,8 @@ export interface ProjectListItem {
   current_version_id?: string | null;
   committed_count: number;
   updated_at: string;
+  created_by?: string | null;
+  created_by_name?: string | null;
 }
 
 /**

@@ -67,6 +67,41 @@ class TestCreateListGet:
         assert "Mine" in names
         assert "Theirs" not in names
 
+    def test_list_is_org_wide_with_creator_and_mine_filter(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization: Organization,
+    ):
+        # A project created by the current user (via the API).
+        _create_project(authenticated_client, name="MineModel")
+        # A same-org project NOT created by the current user.
+        orphan = ModelProject(
+            organization_id=test_organization.id,
+            created_by=None,
+            name="OrgModel",
+            status="active",
+        )
+        db_session.add(orphan)
+        db_session.commit()
+
+        # Org-wide list (default) includes both — the list is collaborative.
+        all_rows = authenticated_client.get("/api/v2/projects").json()
+        names = {r["name"] for r in all_rows}
+        assert {"MineModel", "OrgModel"} <= names
+
+        # Attribution is surfaced for the row the current user created.
+        mine_row = next(r for r in all_rows if r["name"] == "MineModel")
+        assert mine_row["created_by"] is not None
+        assert mine_row["created_by_name"]
+
+        # mine=true narrows to the current user's own models.
+        mine_names = {
+            r["name"] for r in authenticated_client.get("/api/v2/projects?mine=true").json()
+        }
+        assert "MineModel" in mine_names
+        assert "OrgModel" not in mine_names
+
     def test_get_happy_path(self, authenticated_client: TestClient):
         pid = _create_project(authenticated_client)["id"]
         resp = authenticated_client.get(f"/api/v2/projects/{pid}")

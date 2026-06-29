@@ -22,6 +22,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { ProjectListItem } from "@/lib/types";
 
 type View = "active" | "archived";
+type Scope = "all" | "mine";
+type Confirm =
+  | { kind: "single"; project: ProjectListItem }
+  | { kind: "bulk"; ids: string[] }
+  | null;
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -29,20 +34,23 @@ function formatDate(iso: string): string {
 }
 
 /**
- * Studio home — the real "My Models" list, with an Active / Archived toggle.
- * Active models link into their workspace and can be archived (soft-delete, with
- * Undo). Archived models can be restored or permanently deleted (irreversible,
- * behind a confirm dialog). Loading skeleton, empty state, and error+retry.
+ * Studio home — the org's models (collaborative, org-wide), with Active/Archived
+ * tabs and a Mine / Whole-org scope filter. Each row shows who created it. Active
+ * models link into their workspace and can be archived (with Undo). Archived
+ * models can be restored or permanently deleted — one at a time or in bulk via
+ * multi-select.
  */
 export default function StudioHomePage() {
   const t = useTranslations("studio");
   const router = useRouter();
   const { activeWorkspaceId } = useAuth();
   const [view, setView] = useState<View>("active");
+  const [scope, setScope] = useState<Scope>("all");
   const [projects, setProjects] = useState<ProjectListItem[] | null>(null);
   const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-  const [pendingDelete, setPendingDelete] = useState<ProjectListItem | null>(null);
+  const [confirm, setConfirm] = useState<Confirm>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const ws = activeWorkspaceId ?? undefined;
 
   // State is only set from async callbacks here (never synchronously) so this
@@ -50,7 +58,7 @@ export default function StudioHomePage() {
   useEffect(() => {
     let active = true;
     api
-      .listProjects({ status: view }, ws)
+      .listProjects({ status: view, mine: scope === "mine" }, ws)
       .then((p) => {
         if (active) {
           setProjects(p);
@@ -63,7 +71,7 @@ export default function StudioHomePage() {
     return () => {
       active = false;
     };
-  }, [ws, reloadKey, view]);
+  }, [ws, reloadKey, view, scope]);
 
   const retry = () => {
     setProjects(null);
@@ -71,18 +79,31 @@ export default function StudioHomePage() {
     setReloadKey((k) => k + 1);
   };
 
-  // Switching tabs is a user event, so resetting to the loading skeleton here
-  // (rather than in the effect) keeps setState out of the effect body.
+  // View/scope changes are user events, so resetting to the loading skeleton +
+  // clearing the selection here keeps setState out of the effect body.
   const changeView = (next: View) => {
     if (next === view) return;
     setProjects(null);
     setError(false);
+    setSelected(new Set());
     setView(next);
   };
+  const changeScope = (next: Scope) => {
+    if (next === scope) return;
+    setProjects(null);
+    setError(false);
+    setSelected(new Set());
+    setScope(next);
+  };
+
+  const drop = (ids: Set<string>) =>
+    setProjects((prev) => prev?.filter((x) => !ids.has(x.id)) ?? prev);
+  const readd = (items: ProjectListItem[]) =>
+    setProjects((prev) => (prev ? [...items, ...prev] : prev));
 
   // Archive (active -> archived) with an Undo that restores it.
   const archive = async (p: ProjectListItem) => {
-    setProjects((prev) => prev?.filter((x) => x.id !== p.id) ?? prev);
+    drop(new Set([p.id]));
     try {
       await api.archiveProject(p.id, ws);
       toast.success(t("modelArchived", { name: p.name || t("untitled") }), {
@@ -91,47 +112,93 @@ export default function StudioHomePage() {
           onClick: () => {
             api
               .updateProject(p.id, { status: "active" }, ws)
-              .then(() => view === "active" && setProjects((prev) => (prev ? [p, ...prev] : prev)))
+              .then(() => view === "active" && readd([p]))
               .catch(() => toast.error(t("archiveError")));
           },
         },
       });
     } catch {
-      setProjects((prev) => (prev ? [p, ...prev] : prev));
+      readd([p]);
       toast.error(t("archiveError"));
     }
   };
 
-  // Restore (archived -> active).
-  const restore = async (p: ProjectListItem) => {
-    setProjects((prev) => prev?.filter((x) => x.id !== p.id) ?? prev);
+  const restoreOne = async (p: ProjectListItem) => {
+    drop(new Set([p.id]));
     try {
       await api.updateProject(p.id, { status: "active" }, ws);
       toast.success(t("modelRestored", { name: p.name || t("untitled") }));
     } catch {
-      setProjects((prev) => (prev ? [p, ...prev] : prev));
+      readd([p]);
       toast.error(t("actionError"));
     }
   };
 
-  // Permanent delete (archived only, irreversible) — confirmed via the dialog.
-  const confirmDelete = async () => {
-    const p = pendingDelete;
-    setPendingDelete(null);
-    if (!p) return;
-    setProjects((prev) => prev?.filter((x) => x.id !== p.id) ?? prev);
-    try {
-      await api.deleteProjectPermanently(p.id, ws);
-      toast.success(t("modelDeleted", { name: p.name || t("untitled") }));
-    } catch {
-      setProjects((prev) => (prev ? [p, ...prev] : prev));
+  const toggleOne = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const allSelected = !!projects && projects.length > 0 && projects.every((p) => selected.has(p.id));
+  const toggleAll = () =>
+    setSelected(allSelected ? new Set() : new Set((projects ?? []).map((p) => p.id)));
+
+  const selectedItems = () => (projects ?? []).filter((p) => selected.has(p.id));
+
+  const restoreSelected = async () => {
+    const items = selectedItems();
+    if (!items.length) return;
+    const ids = new Set(items.map((p) => p.id));
+    drop(ids);
+    setSelected(new Set());
+    const results = await Promise.allSettled(
+      items.map((p) => api.updateProject(p.id, { status: "active" }, ws))
+    );
+    const failed = items.filter((_, i) => results[i].status === "rejected");
+    if (failed.length) {
+      readd(failed);
       toast.error(t("actionError"));
+    } else {
+      toast.success(t("bulkRestored", { count: items.length }));
+    }
+  };
+
+  // Single + bulk permanent delete share the confirm dialog (`confirm` state).
+  const runConfirmedDelete = async () => {
+    const c = confirm;
+    setConfirm(null);
+    if (!c) return;
+    const items =
+      c.kind === "single" ? [c.project] : (projects ?? []).filter((p) => c.ids.includes(p.id));
+    if (!items.length) return;
+    const ids = new Set(items.map((p) => p.id));
+    drop(ids);
+    setSelected(new Set());
+    const results = await Promise.allSettled(
+      items.map((p) => api.deleteProjectPermanently(p.id, ws))
+    );
+    const failed = items.filter((_, i) => results[i].status === "rejected");
+    if (failed.length) {
+      readd(failed);
+      toast.error(
+        c.kind === "single" ? t("actionError") : t("bulkDeleteError", { count: failed.length })
+      );
+    } else if (c.kind === "single") {
+      toast.success(t("modelDeleted", { name: items[0].name || t("untitled") }));
+    } else {
+      toast.success(t("bulkDeleted", { count: items.length }));
     }
   };
 
   const tabs: Array<{ key: View; label: string }> = [
     { key: "active", label: t("viewActive") },
     { key: "archived", label: t("viewArchived") },
+  ];
+  const scopes: Array<{ key: Scope; label: string }> = [
+    { key: "all", label: t("viewAll") },
+    { key: "mine", label: t("viewMine") },
   ];
 
   return (
@@ -144,25 +211,82 @@ export default function StudioHomePage() {
         <Button onClick={() => router.push("/studio/new")}>{t("newModel")}</Button>
       </div>
 
-      <div className="mb-4 flex items-center gap-1 border-b">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => changeView(tab.key)}
-            aria-pressed={view === tab.key}
-            data-testid={`studio-view-${tab.key}`}
-            className={cn(
-              "-mb-px border-b-2 px-3 py-2 text-sm transition-colors",
-              view === tab.key
-                ? "border-primary font-medium text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b">
+        <div className="flex items-center gap-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => changeView(tab.key)}
+              aria-pressed={view === tab.key}
+              data-testid={`studio-view-${tab.key}`}
+              className={cn(
+                "-mb-px border-b-2 px-3 py-2 text-sm transition-colors",
+                view === tab.key
+                  ? "border-primary font-medium text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <div className="mb-1.5 inline-flex rounded-md border p-0.5 text-xs">
+          {scopes.map((s) => (
+            <button
+              key={s.key}
+              type="button"
+              onClick={() => changeScope(s.key)}
+              aria-pressed={scope === s.key}
+              data-testid={`studio-scope-${s.key}`}
+              className={cn(
+                "rounded px-2.5 py-1 transition-colors",
+                scope === s.key
+                  ? "bg-muted font-medium text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Bulk action bar (archived view, multi-select). */}
+      {view === "archived" && projects && projects.length > 0 && (
+        <div className="mb-2 flex items-center gap-3 rounded-md bg-muted/40 px-3 py-2 text-sm">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={toggleAll}
+              data-testid="studio-select-all"
+              className="h-4 w-4 accent-primary"
+            />
+            {t("selectAll")}
+          </label>
+          {selected.size > 0 && (
+            <>
+              <span className="text-muted-foreground">{t("selectedCount", { count: selected.size })}</span>
+              <div className="ml-auto flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={restoreSelected}>
+                  <ArchiveRestore className="mr-1 h-4 w-4" />
+                  {t("restore")}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => setConfirm({ kind: "bulk", ids: [...selected] })}
+                  data-testid="studio-delete-selected"
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                >
+                  <Trash2 className="mr-1 h-4 w-4" />
+                  {t("deletePermanently")}
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {error ? (
         <div className="rounded-lg border border-dashed p-10 text-center text-sm">
@@ -188,13 +312,24 @@ export default function StudioHomePage() {
               key={p.id}
               className="flex items-center gap-2 rounded-lg border p-4 transition-all hover:border-primary/50 hover:shadow-sm"
             >
+              {view === "archived" && (
+                <input
+                  type="checkbox"
+                  checked={selected.has(p.id)}
+                  onChange={() => toggleOne(p.id)}
+                  aria-label={t("selectRow", { name: p.name || t("untitled") })}
+                  data-testid="studio-row-select"
+                  className="h-4 w-4 shrink-0 accent-primary"
+                />
+              )}
+
               {view === "archived" ? (
                 <div className="flex flex-1 min-w-0 items-center justify-between gap-4">
                   <div className="min-w-0">
                     <div className="font-medium truncate">{p.name || t("untitled")}</div>
-                    {p.description && (
-                      <div className="text-xs text-muted-foreground truncate">{p.description}</div>
-                    )}
+                    <div className="text-xs text-muted-foreground truncate">
+                      {p.created_by_name ? t("createdBy", { name: p.created_by_name }) : null}
+                    </div>
                   </div>
                   <span className="shrink-0 text-xs text-muted-foreground">
                     {t("updatedLabel", { date: formatDate(p.updated_at) })}
@@ -208,9 +343,11 @@ export default function StudioHomePage() {
                 >
                   <div className="min-w-0">
                     <div className="font-medium truncate">{p.name || t("untitled")}</div>
-                    {p.description && (
-                      <div className="text-xs text-muted-foreground truncate">{p.description}</div>
-                    )}
+                    <div className="text-xs text-muted-foreground truncate">
+                      {[p.description, p.created_by_name && t("createdBy", { name: p.created_by_name })]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
                     <span className="rounded-full bg-muted px-2 py-0.5 font-mono">
@@ -226,7 +363,7 @@ export default function StudioHomePage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => restore(p)}
+                    onClick={() => restoreOne(p)}
                     data-testid="studio-project-restore"
                   >
                     <ArchiveRestore className="mr-1 h-4 w-4" />
@@ -234,7 +371,7 @@ export default function StudioHomePage() {
                   </Button>
                   <button
                     type="button"
-                    onClick={() => setPendingDelete(p)}
+                    onClick={() => setConfirm({ kind: "single", project: p })}
                     data-testid="studio-project-delete"
                     aria-label={t("deletePermanently")}
                     title={t("deletePermanently")}
@@ -260,18 +397,24 @@ export default function StudioHomePage() {
         </ul>
       )}
 
-      <AlertDialog open={pendingDelete !== null} onOpenChange={(o) => !o && setPendingDelete(null)}>
+      <AlertDialog open={confirm !== null} onOpenChange={(o) => !o && setConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("deleteConfirmTitle")}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {confirm?.kind === "bulk"
+                ? t("bulkDeleteConfirmTitle", { count: confirm.ids.length })
+                : t("deleteConfirmTitle")}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {t("deleteConfirmBody", { name: pendingDelete?.name || t("untitled") })}
+              {confirm?.kind === "bulk"
+                ? t("bulkDeleteConfirmBody")
+                : t("deleteConfirmBody", { name: confirm?.project.name || t("untitled") })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={confirmDelete}
+              onClick={runConfirmedDelete}
               data-testid="studio-delete-confirm"
               className="bg-destructive text-white hover:bg-destructive/90"
             >
