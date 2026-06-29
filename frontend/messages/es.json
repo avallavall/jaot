@@ -133,6 +133,8 @@
     },
     "nav": {
       "modelAnalyzeSolve": "Modelar, analizar y resolver",
+      "newModel": "Nuevo modelo",
+      "activatedModels": "Modelos activados",
       "studioMyModels": "Mis modelos",
       "studioNewModel": "Nuevo modelo",
       "build": "Construir",

@@ -133,6 +133,8 @@
     },
     "nav": {
       "modelAnalyzeSolve": "Modelar, analitzar i resoldre",
+      "newModel": "Nou model",
+      "activatedModels": "Models activats",
       "studioMyModels": "Els meus models",
       "studioNewModel": "Nou model",
       "build": "Construir",

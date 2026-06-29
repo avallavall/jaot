@@ -107,18 +107,19 @@ function setAuthState(opts: {
 
 describe("useNavItems", () => {
   describe("NAV-01: Section structure", () => {
-    it("admin user with workspace sees 4 primary separators + 4 collapsible groups", () => {
+    it("admin user with workspace sees 3 primary separators + 4 collapsible groups", () => {
       setAuthState({ isAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
       const headers = getSectionHeaders(result.current);
       const headerLabels = headers.map((h) => h.label);
 
-      // 4 primary separator headers (always visible)
+      // 3 primary separator headers — the legacy "Build" section was folded into
+      // the "Model, Analyze & Solve" hub (single home for model work).
       expect(headerLabels).toContain("common.nav.modelAnalyzeSolve");
-      expect(headerLabels).toContain("common.nav.build");
       expect(headerLabels).toContain("common.nav.discover");
       expect(headerLabels).toContain("common.nav.activity");
-      expect(headers).toHaveLength(4);
+      expect(headerLabels).not.toContain("common.nav.build");
+      expect(headers).toHaveLength(3);
 
       // The Model, Analyze & Solve hub funnels into the studio workspace
       expect(findItemByHref(result.current, "/studio")).toBeDefined();
@@ -134,18 +135,18 @@ describe("useNavItems", () => {
       expect(collapsibles).toHaveLength(4);
     });
 
-    it("non-admin without workspace sees 4 primary separators + 2 collapsible groups", () => {
+    it("non-admin without workspace sees 3 primary separators + 2 collapsible groups", () => {
       setAuthState({ isAdmin: false, hasWorkspace: false });
       const { result } = renderHook(() => useNavItems());
       const headers = getSectionHeaders(result.current);
       const headerLabels = headers.map((h) => h.label);
 
-      // 4 primary separator headers
+      // 3 primary separator headers
       expect(headerLabels).toContain("common.nav.modelAnalyzeSolve");
-      expect(headerLabels).toContain("common.nav.build");
       expect(headerLabels).toContain("common.nav.discover");
       expect(headerLabels).toContain("common.nav.activity");
-      expect(headers).toHaveLength(4);
+      expect(headerLabels).not.toContain("common.nav.build");
+      expect(headers).toHaveLength(3);
 
       // 2 collapsible groups: Community, Account (no Team, no Admin)
       const collapsibles = getCollapsibleGroups(result.current);
@@ -157,12 +158,12 @@ describe("useNavItems", () => {
       expect(collapsibles).toHaveLength(2);
     });
 
-    it("admin without workspace sees 4 primary separators + 3 collapsible groups (no Team)", () => {
+    it("admin without workspace sees 3 primary separators + 3 collapsible groups (no Team)", () => {
       setAuthState({ isAdmin: true, hasWorkspace: false });
       const { result } = renderHook(() => useNavItems());
       const headers = getSectionHeaders(result.current);
 
-      expect(headers).toHaveLength(4);
+      expect(headers).toHaveLength(3);
 
       const collapsibles = getCollapsibleGroups(result.current);
       const collapsibleLabels = collapsibles.map((c) => c.label);
@@ -173,12 +174,12 @@ describe("useNavItems", () => {
       expect(collapsibles).toHaveLength(3);
     });
 
-    it("non-admin with workspace sees 4 primary separators + 3 collapsible groups (no Admin)", () => {
+    it("non-admin with workspace sees 3 primary separators + 3 collapsible groups (no Admin)", () => {
       setAuthState({ isAdmin: false, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
       const headers = getSectionHeaders(result.current);
 
-      expect(headers).toHaveLength(4);
+      expect(headers).toHaveLength(3);
 
       const collapsibles = getCollapsibleGroups(result.current);
       const collapsibleLabels = collapsibles.map((c) => c.label);
@@ -188,10 +189,32 @@ describe("useNavItems", () => {
       expect(collapsibleLabels).not.toContain("common.nav.adminPanel");
       expect(collapsibles).toHaveLength(3);
     });
+
+    it("has a single 'My Models' (-> /studio); /solve is relabeled 'Activated Models' under Discover", () => {
+      setAuthState({ isAdmin: true, hasWorkspace: true });
+      const { result } = renderHook(() => useNavItems());
+
+      // Exactly one "My Models" entry, and it funnels to the studio hub (not legacy /solve).
+      const myModels = (result.current as NavItem[]).filter(
+        (i) => i.label === "common.nav.myModels"
+      );
+      expect(myModels).toHaveLength(1);
+      expect(myModels[0].href).toBe("/studio");
+
+      // Legacy /solve is kept (no redirect, not hidden), relabeled "Activated Models".
+      const activated = findItemByHref(result.current, "/solve");
+      expect(activated).toBeDefined();
+      expect(activated!.label).toBe("common.nav.activatedModels");
+
+      // The classic builder routes stay reachable from the hub until /studio parity.
+      expect(findItemByHref(result.current, "/builder")).toBeDefined();
+      expect(findItemByHref(result.current, "/builder/templates")).toBeDefined();
+      expect(findItemByHref(result.current, "/builder/ai-assistant")).toBeDefined();
+    });
   });
 
   describe("NAV-02: Previously missing pages", () => {
-    it("Build section has Templates entry at /builder/templates", () => {
+    it("hub has Templates entry at /builder/templates", () => {
       setAuthState({ isAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
       const templates = findItemByHref(result.current, "/builder/templates");
