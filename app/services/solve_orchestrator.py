@@ -34,6 +34,7 @@ from app.schemas.optimization import (
     OptimizationProblem,
     OptimizationResult,
     ParetoPoint,
+    ProgressPoint,
     SolverStatus,
 )
 from app.services import workspace_credits_service
@@ -283,6 +284,7 @@ class SolveOrchestrator:
         solver_name: str | None = None,
         auto_route_reason: str | None = None,
         source: ExecutionSource = _DEFAULT_SOURCE,
+        on_progress: Callable[[ProgressPoint], None] | None = None,
     ) -> OptimizationResult:
         """Full single-objective solve with pre-pay + refund credit pattern.
 
@@ -306,7 +308,9 @@ class SolveOrchestrator:
         start = _time.monotonic()
         result: OptimizationResult = await self._execute_with_credits(
             solve_fn=lambda: effective_solver.solve(
-                problem, warm_start_solution=warm_start_solution
+                problem,
+                warm_start_solution=warm_start_solution,
+                on_progress=on_progress,
             ),
             credits_needed=credits_needed,
             org=org,

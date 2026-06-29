@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
 from typing import Any
 
 from pyscipopt import SCIP_EVENTTYPE, SCIP_PARAMSETTING, Eventhdlr, Model  # noqa: F401
@@ -89,9 +90,13 @@ class _ProgressEventHandler(Eventhdlr):
 
     EVENT_MASK = SCIP_EVENTTYPE.BESTSOLFOUND
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        on_progress: Callable[[ProgressPoint], None] | None = None,
+    ) -> None:
         super().__init__()
         self.history: list[ProgressPoint] = []
+        self._on_progress = on_progress
         self._t0 = time.time()
         self._iter = 0
 
@@ -126,6 +131,11 @@ class _ProgressEventHandler(Eventhdlr):
                 elapsed_seconds=round(time.time() - self._t0, 3),
             )
             self.history.append(point)
+            # Live Solve: stream this incumbent out (best-effort). The point is
+            # already recorded above, so a failing callback never loses history;
+            # the surrounding try/except also guarantees it can't abort the solve.
+            if self._on_progress is not None:
+                self._on_progress(point)
         except Exception as exc:  # never let the handler raise — would abort the solve
             logger.debug("Progress event handler failed: %s", exc)
 
@@ -146,6 +156,7 @@ class SCIPAdapter:
         supports_sensitivity=True,  # via getDualSolVal + LP relaxation
         supports_warm_start=True,  # via createSol + addSol
         supports_multi_objective=False,  # uses orchestrator fallback
+        supports_progress=True,  # _ProgressEventHandler streams per-incumbent (Live Solve)
         # Phase 7.4 / D-10: requires_license removed — no per-request gate
     )
 
@@ -203,13 +214,14 @@ class SCIPAdapter:
         problem: OptimizationProblem,
         *,
         warm_start: dict[str, float] | None = None,
+        on_progress: Callable[[ProgressPoint], None] | None = None,
     ) -> OptimizationResult:
         """Solve an optimization problem with SCIP. See module docstring."""
         start_time = time.time()
 
         try:
             model, scip_vars, constraint_refs, progress_handler = self._build_model(
-                problem, warm_start
+                problem, warm_start, on_progress
             )
 
             logger.info("Solving problem: %s", problem.name or "unnamed")
@@ -242,6 +254,7 @@ class SCIPAdapter:
         self,
         problem: OptimizationProblem,
         warm_start: dict[str, float] | None,
+        on_progress: Callable[[ProgressPoint], None] | None = None,
     ) -> tuple[Model, dict[str, Any], dict[str, Any], _ProgressEventHandler]:
         """Create the SCIP model with variables, constraints, objective and progress handler."""
         model = Model(problem.name or "optimization_problem")
@@ -257,7 +270,7 @@ class SCIPAdapter:
         if ws is not None:
             self._apply_warm_start(model, scip_vars, ws)
 
-        progress_handler = _ProgressEventHandler()
+        progress_handler = _ProgressEventHandler(on_progress)
         model.includeEventhdlr(
             progress_handler,
             "JaotProgressHdlr",

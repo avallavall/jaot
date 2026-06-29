@@ -40,7 +40,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
@@ -56,6 +56,7 @@ from app.schemas.optimization import (
     ObjectiveSense,
     OptimizationProblem,
     OptimizationResult,
+    ProgressPoint,
     SolverStatus,
     VariableSolution,
     VariableType,
@@ -138,6 +139,7 @@ class HexalyAdapter:
         supports_sensitivity=False,
         supports_warm_start=True,
         supports_multi_objective=False,
+        supports_progress=False,  # no per-incumbent callback wired (Hexaly metaheuristic)
         # Phase 7.4 / D-10: requires_license removed — license loaded in __init__ (Plan 02).
     )
 
@@ -204,6 +206,7 @@ class HexalyAdapter:
         problem: OptimizationProblem,
         *,
         warm_start: dict[str, float] | None = None,
+        on_progress: Callable[[ProgressPoint], None] | None = None,
         license_plaintext: str | None = None,
         time_limit_seconds: int | None = None,
     ) -> OptimizationResult:

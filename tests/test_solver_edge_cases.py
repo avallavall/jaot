@@ -496,7 +496,7 @@ class TestSolveTimeoutRefundIntegration:
 
         # Use a solver that always raises TimeoutError inside the pool.
         class _TimeoutSolver(SolverService):
-            def solve(self, problem, warm_start_solution=None):  # type: ignore[override]
+            def solve(self, problem, warm_start_solution=None, on_progress=None):  # type: ignore[override]
                 # This exception bubbles up through asyncio.run_in_executor.
                 raise TimeoutError("Simulated SCIP timeout")
 

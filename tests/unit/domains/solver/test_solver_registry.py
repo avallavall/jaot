@@ -36,7 +36,7 @@ def _make_fake_adapter(
         def is_available(self) -> bool:
             return self._available
 
-        def solve(self, problem, *, warm_start=None) -> OptimizationResult:
+        def solve(self, problem, *, warm_start=None, on_progress=None) -> OptimizationResult:
             return OptimizationResult(
                 status=SolverStatus.OPTIMAL,
                 solve_time_seconds=0.001,

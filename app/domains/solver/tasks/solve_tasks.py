@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import time
+from collections.abc import Callable
 from typing import Any
 
 from celery import current_task
@@ -73,6 +74,25 @@ def _publish_ws_event(execution_id: str, data: dict[str, Any]) -> None:
         client.publish(channel, json.dumps(data, default=str))
     except Exception as e:
         logger.debug(f"Failed to publish WebSocket event for {execution_id}: {e}")
+
+
+def _make_solve_progress_publisher(execution_id: str) -> Callable[[Any], None]:
+    """Build the Live Solve ``on_progress`` callback for an async solve.
+
+    The returned callable streams each new incumbent (a ``ProgressPoint``) to the
+    existing ``ws:execution:{execution_id}`` channel. Best-effort: ``_publish_ws_event``
+    has bounded socket timeouts and never raises, and the SCIP event handler swallows
+    callback errors — so a solve can never be blocked or aborted by progress streaming.
+    Solvers whose ``capabilities.supports_progress`` is False never invoke it.
+    """
+
+    def _publish(point: Any) -> None:
+        _publish_ws_event(
+            execution_id,
+            {"type": "solve_progress", "execution_id": execution_id, **point.model_dump()},
+        )
+
+    return _publish
 
 
 def update_task_progress(
@@ -375,7 +395,14 @@ def solve_async(
             # the license from /etc/jaot/hexaly.lic at __init__ time; no
             # per-org BYOL decrypt needed. All solvers go through the same
             # adapter path.
-            result = solver.solve(problem, warm_start_solution=warm_start_solution)
+            #
+            # Live Solve: stream each new incumbent to ws:execution:{task_id}
+            # (task_id == execution_id). Only solvers with supports_progress fire it.
+            result = solver.solve(
+                problem,
+                warm_start_solution=warm_start_solution,
+                on_progress=_make_solve_progress_publisher(task_id),
+            )
         finally:
             ACTIVE_SOLVES.dec()
         execution_time = time.time() - start_time

@@ -97,6 +97,7 @@ class _RecordingFakeAdapter:
         problem: OptimizationProblem,
         *,
         warm_start: dict[str, float] | None = None,
+        on_progress=None,
     ) -> OptimizationResult:
         self.solve_calls.append(problem)
         return OptimizationResult(

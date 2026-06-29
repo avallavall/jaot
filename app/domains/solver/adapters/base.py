@@ -23,6 +23,7 @@ Design notes:
   per D-01). The Protocol surface is now: capabilities + is_available + solve.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -31,6 +32,7 @@ from app.schemas.optimization import (
     OptimizationProblem,
     OptimizationResult,
     ParetoPoint,
+    ProgressPoint,
 )
 
 
@@ -55,6 +57,10 @@ class SolverCapabilities:
     supports_sensitivity: bool
     supports_warm_start: bool
     supports_multi_objective: bool
+    # Live Solve: the adapter can stream per-incumbent progress through the
+    # ``on_progress`` callback of ``solve()``. Default False (keeps every existing
+    # instantiation valid); only SCIP sets it True today.
+    supports_progress: bool = False
 
 
 class SolverError(Exception):
@@ -102,6 +108,7 @@ class SolverAdapter(Protocol):
         problem: OptimizationProblem,
         *,
         warm_start: dict[str, float] | None = None,
+        on_progress: Callable[[ProgressPoint], None] | None = None,
     ) -> OptimizationResult:
         """Solve a single-objective optimization problem.
 
@@ -109,6 +116,12 @@ class SolverAdapter(Protocol):
         populates result.sensitivity as part of its return value.
         When warm_start is provided and capabilities.supports_warm_start
         is True, the adapter sets result.warm_start_used.
+
+        ``on_progress``, when provided and capabilities.supports_progress is
+        True, is invoked with a ``ProgressPoint`` on each new incumbent during
+        the solve (used by Live Solve to stream convergence). It is best-effort:
+        adapters that do not support it accept and ignore the argument, and a
+        callback that raises must never abort the solve.
         """
         ...
 
