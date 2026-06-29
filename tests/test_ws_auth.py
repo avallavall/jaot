@@ -20,6 +20,7 @@ import pytest
 
 from app.models import ModelExecution, Organization, User
 from app.services.auth.api_key_service import APIKeyService
+from app.services.auth.jwt_service import JWTService
 
 
 @pytest.fixture
@@ -262,35 +263,63 @@ class TestCancelOwnership:
         assert body["task_id"] == execution_a.celery_task_id
 
 
-# Cookie auth tests (documents that cookie auth is NOT implemented for WS)
+# Cookie / JWT auth tests.
+#
+# The WebSocket now authenticates with the SAME credentials as the HTTP API
+# (shared resolve_principal): the browser session's `jaot_access_token` JWT
+# cookie sent automatically on the handshake, OR a Bearer API key / JWT passed
+# via `?token=` (browsers cannot set a WS Authorization header). This is what
+# enables Live Solve to stream for a logged-in SPA session.
 
 
-class TestWebSocketCookieAuth:
-    """Cookie-based auth is not supported on the WebSocket endpoint.
+class TestWebSocketJwtAuth:
+    """JWT auth on the WebSocket — via the session cookie and via ?token=."""
 
-    The _authenticate_websocket function in ws.py only checks:
-    1. token query param (API key)
-    2. Authorization: Bearer header
-    It does NOT check cookies. All cookie-only connections are rejected
-    with close code 4001 ("Authentication required").
-    """
+    def test_jwt_cookie_auth_accepted(self, app, client, execution_a, user_a, org_a):
+        """A valid `jaot_access_token` JWT cookie authenticates the owner."""
+        jwt_token = JWTService.create_access_token(user_id=user_a.id, org_id=org_a.id)
+        with client.websocket_connect(
+            f"/api/v2/ws/executions/{execution_a.id}",
+            cookies={"jaot_access_token": jwt_token},
+        ) as ws:
+            data = ws.receive_json()
+            assert data["type"] == "snapshot"
+            assert data["execution_id"] == execution_a.id
 
-    def test_cookie_auth_not_supported_rejected(self, app, client, execution_a, user_a, org_a):
-        """Cookie-only auth with valid JWT is rejected with 4001.
+    def test_jwt_query_token_accepted(self, app, client, execution_a, user_a, org_a):
+        """A JWT access token passed as ?token= authenticates the owner.
 
-        The WebSocket endpoint does NOT implement cookie auth.
-        Even a valid JWT in the access_token cookie is ignored --
-        the endpoint requires a token query param or Bearer header.
+        The SPA stores its session token under one key and passes it as the
+        query param; if it is a JWT (not an API key) it must still authenticate.
+        """
+        jwt_token = JWTService.create_access_token(user_id=user_a.id, org_id=org_a.id)
+        with client.websocket_connect(
+            f"/api/v2/ws/executions/{execution_a.id}?token={jwt_token}"
+        ) as ws:
+            data = ws.receive_json()
+            assert data["type"] == "snapshot"
+            assert data["execution_id"] == execution_a.id
+
+    def test_invalid_jwt_cookie_rejected(self, app, client, execution_a):
+        """A garbage `jaot_access_token` cookie is rejected with 4001."""
+        from starlette.websockets import WebSocketDisconnect
+
+        with pytest.raises(WebSocketDisconnect) as exc_info:
+            with client.websocket_connect(
+                f"/api/v2/ws/executions/{execution_a.id}",
+                cookies={"jaot_access_token": "not-a-real-jwt"},
+            ):
+                pass  # pragma: no cover
+        assert exc_info.value.code == 4001
+
+    def test_wrong_cookie_name_rejected(self, app, client, execution_a, user_a, org_a):
+        """A valid JWT under the WRONG cookie name is ignored → 4001.
+
+        Only `jaot_access_token` is honoured (matches the HTTP middleware).
         """
         from starlette.websockets import WebSocketDisconnect
 
-        from app.services.auth.jwt_service import JWTService
-
-        jwt_token = JWTService.create_access_token(
-            user_id=user_a.id,
-            org_id=org_a.id,
-        )
-
+        jwt_token = JWTService.create_access_token(user_id=user_a.id, org_id=org_a.id)
         with pytest.raises(WebSocketDisconnect) as exc_info:
             with client.websocket_connect(
                 f"/api/v2/ws/executions/{execution_a.id}",
@@ -298,6 +327,24 @@ class TestWebSocketCookieAuth:
             ):
                 pass  # pragma: no cover
         assert exc_info.value.code == 4001
+
+    def test_jwt_cookie_wrong_org_rejected(self, app, client, execution_a, user_b, org_b):
+        """A valid JWT cookie for org B cannot open org A's execution (4003).
+
+        # CONTRACT-TEST: the progress socket enforces org ownership regardless of
+        # the credential type (API key or JWT). A different org's valid session
+        # must never reach another org's execution.
+        """
+        from starlette.websockets import WebSocketDisconnect
+
+        jwt_token = JWTService.create_access_token(user_id=user_b.id, org_id=org_b.id)
+        with pytest.raises(WebSocketDisconnect) as exc_info:
+            with client.websocket_connect(
+                f"/api/v2/ws/executions/{execution_a.id}",
+                cookies={"jaot_access_token": jwt_token},
+            ):
+                pass  # pragma: no cover
+        assert exc_info.value.code == 4003
 
 
 class TestWebSocketReconnection:

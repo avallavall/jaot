@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { api } from '@/lib/api';
 
 export interface ExecutionProgress {
   type: 'status' | 'progress' | 'solve_progress' | 'completed' | 'failed' | 'error';
@@ -41,6 +42,36 @@ export interface UseWebSocketReturn {
   sendMessage: (message: string) => void;
 }
 
+/**
+ * Build the execution-progress WebSocket URL with the session token as a query
+ * param. Browsers cannot set an `Authorization` header on a WebSocket, so the
+ * SPA passes its session token (the same value used for `Authorization: Bearer`)
+ * via `?token=`; the server also reads the JWT cookie sent on the handshake.
+ *
+ * Returns `null` when there is no `executionId` or no token (unauthenticated →
+ * don't open a socket that would only be rejected).
+ */
+export function buildExecutionWsUrl(
+  executionId: string | null,
+  token: string | null,
+  opts?: { protocol?: string; host?: string }
+): string | null {
+  if (!executionId || !token) return null;
+
+  const protocol =
+    opts?.protocol ??
+    (typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:');
+  const host =
+    opts?.host ??
+    (process.env.NEXT_PUBLIC_API_URL
+      ? new URL(process.env.NEXT_PUBLIC_API_URL).host
+      : typeof window !== 'undefined'
+        ? window.location.host
+        : '');
+
+  return `${protocol}//${host}/api/v2/ws/executions/${executionId}?token=${encodeURIComponent(token)}`;
+}
+
 export function useExecutionWebSocket(
   executionId: string | null,
   options: UseWebSocketOptions = {}
@@ -60,17 +91,11 @@ export function useExecutionWebSocket(
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const connectRef = useRef<() => void>(() => {});
 
-  const getWebSocketUrl = useCallback(() => {
-    if (!executionId) return null;
-    
-    // Determine WebSocket URL based on current location
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = process.env.NEXT_PUBLIC_API_URL 
-      ? new URL(process.env.NEXT_PUBLIC_API_URL).host 
-      : window.location.host;
-    
-    return `${protocol}//${host}/api/v2/ws/executions/${executionId}`;
-  }, [executionId]);
+  const getWebSocketUrl = useCallback(
+    // Token read fresh at connect time (localStorage), not reactive.
+    () => buildExecutionWsUrl(executionId, api.getApiKey()),
+    [executionId]
+  );
 
   const connect = useCallback(() => {
     const url = getWebSocketUrl();
