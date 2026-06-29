@@ -39,6 +39,8 @@
     "subLensAssistant": "Assistent",
     "subLensEditor": "Editor",
     "subLensComingSoon": "Diese Ansicht kommt bald — nutze vorerst die Leinwand.",
+    "canvasTooLargeTitle": "Modell zu groß für die Leinwand",
+    "canvasTooLarge": "Dieses Modell hat {count, number} Elemente – zu viele für die visuelle Leinwand. Du kannst es trotzdem direkt über die anderen Tabs analysieren und lösen.",
     "headerCommit": "Festschreiben…",
     "headerExplain": "Modell erklären",
     "headerSolve": "Lösen",

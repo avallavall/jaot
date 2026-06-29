@@ -15,6 +15,7 @@ import {
   type ModelProjectStore,
 } from "./createModelProjectStore";
 import { ModelProjectStoreContext } from "./useModelProjectStore";
+import { exceedsCanvasScale } from "./model-scale";
 import { useCanvasBridge } from "./useCanvasBridge";
 import { useAutosave } from "./useAutosave";
 import { useSolveSession } from "./useSolveSession";
@@ -60,12 +61,9 @@ export function ModelProjectStoreProvider({
 
     if (!modelId || modelId === "new") {
       // Seeded by a launcher flow (or empty): derive canonical from current canvas.
-      store
-        .getState()
-        .hydrate(
-          serializeToOptimizationProblem(builder.nodes, builder.edges),
-          builder.documentName
-        );
+      const seeded = serializeToOptimizationProblem(builder.nodes, builder.edges);
+      store.getState().setCanvasDisabled(exceedsCanvasScale(seeded));
+      store.getState().hydrate(seeded, builder.documentName);
       return;
     }
 
@@ -73,12 +71,28 @@ export function ModelProjectStoreProvider({
       .getProject(modelId, activeWorkspaceId ?? undefined)
       .then((project) => {
         if (cancelled) return;
+        const modelJson = (project.draft_model_json ?? null) as OptimizationProblem | null;
+
+        // Hairball guard: a model too large for the visual canvas is NEVER laid
+        // out as nodes (it would freeze the tab). Hydrate the canonical model
+        // DIRECTLY from model_json so Analyze/Solve work, leave the canvas empty,
+        // and flag it so the Build lens shows a notice and the bridge stays off.
+        if (exceedsCanvasScale(modelJson) && modelJson) {
+          useBuilderStore.getState().reset();
+          useBuilderStore.setState({ documentId: project.id, documentName: project.name });
+          const st = store.getState();
+          st.setCanvasDisabled(true);
+          st.hydrate(modelJson, project.name);
+          st.setLockVersion(project.draft_lock_version);
+          return;
+        }
+
         // Resolve the canvas to render: the stored canvas, else derive it from the
         // canonical model_json (so an API/ERP-created project that set only model_json
         // and no canvas still renders), else empty.
         const { nodes, edges } = resolveDraftCanvas(
           project.draft_canvas_json as { nodes?: unknown[]; edges?: unknown[] } | null,
-          (project.draft_model_json ?? null) as OptimizationProblem | null
+          modelJson
         );
 
         if (nodes.length > 0) {
@@ -94,6 +108,7 @@ export function ModelProjectStoreProvider({
         // optimistic-concurrency `If-Match` on the next save.
         const current = useBuilderStore.getState();
         const st = store.getState();
+        st.setCanvasDisabled(false);
         st.hydrate(
           serializeToOptimizationProblem(current.nodes, current.edges),
           project.name

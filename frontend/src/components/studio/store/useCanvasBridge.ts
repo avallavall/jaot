@@ -32,6 +32,10 @@ export function useCanvasBridge(store: ModelProjectStore): void {
     // Canvas -> canonical (debounced).
     const unsubCanvas = useBuilderStore.subscribe((state, prev) => {
       if (isProjecting.current) return;
+      // Hairball guard: a too-large model has an intentionally empty canvas — its
+      // truth lives in model_json, so an empty-canvas projection must never
+      // overwrite (and re-deriving the canvas would freeze the tab anyway).
+      if (store.getState().canvasDisabled) return;
       if (state.nodes === prev.nodes && state.edges === prev.edges) return;
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => {
@@ -44,6 +48,7 @@ export function useCanvasBridge(store: ModelProjectStore): void {
     // Canonical -> canvas (only for non-canvas sources).
     const unsubModel = store.subscribe((state, prev) => {
       if (state.problem === prev.problem) return;
+      if (state.canvasDisabled) return;
       if (state.lastSource === "canvas" || state.lastSource === null) return;
       isProjecting.current = true;
       try {

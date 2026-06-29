@@ -39,6 +39,8 @@
     "subLensAssistant": "Assistent",
     "subLensEditor": "Editor",
     "subLensComingSoon": "Aquesta vista arribarà aviat — fes servir el Llenç de moment.",
+    "canvasTooLargeTitle": "Model massa gran per al llenç",
+    "canvasTooLarge": "Aquest model té {count, number} elements: massa per al llenç visual. Encara pots analitzar-lo i resoldre'l directament des de les altres pestanyes.",
     "headerCommit": "Confirma…",
     "headerExplain": "Explica el model",
     "headerSolve": "Resol",

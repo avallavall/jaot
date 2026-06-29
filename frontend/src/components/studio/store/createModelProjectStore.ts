@@ -107,6 +107,12 @@ export interface ModelProjectState {
   /** The most recent FINISHED solve, reconciled from the server on open. */
   lastRun: LastRunSummary | null;
   setLastRun: (lastRun: LastRunSummary | null) => void;
+
+  /** True when the model is too large for the visual canvas (hairball guard):
+   * the canvas lens is replaced by a notice and the canvas<->model bridge is
+   * off. The model is still fully solvable from its canonical form. */
+  canvasDisabled: boolean;
+  setCanvasDisabled: (canvasDisabled: boolean) => void;
 }
 
 /** Cheap structural equality — the models are small plain JSON objects. */
@@ -213,6 +219,9 @@ export function createModelProjectStore(init: ModelProjectInit) {
 
         lastRun: null,
         setLastRun: (lastRun) => set({ lastRun }),
+
+        canvasDisabled: false,
+        setCanvasDisabled: (canvasDisabled) => set({ canvasDisabled }),
       }),
       {
         // Undo tracks ONLY the canonical model, so "undo my last change" means the

@@ -39,6 +39,8 @@
     "subLensAssistant": "Asistente",
     "subLensEditor": "Editor",
     "subLensComingSoon": "Esta vista llegará pronto — usa el Lienzo por ahora.",
+    "canvasTooLargeTitle": "Modelo demasiado grande para el lienzo",
+    "canvasTooLarge": "Este modelo tiene {count, number} elementos: demasiados para el lienzo visual. Aún puedes analizarlo y resolverlo directamente desde las otras pestañas.",
     "headerCommit": "Confirmar…",
     "headerExplain": "Explicar modelo",
     "headerSolve": "Resolver",

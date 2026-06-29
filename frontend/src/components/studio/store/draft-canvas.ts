@@ -1,6 +1,7 @@
 import { deserializeFromOptimizationProblem } from "@/lib/builder/deserializer";
 import type { BuilderNode, BuilderEdge } from "@/lib/builder/types";
 import type { OptimizationProblem } from "@/lib/types";
+import { exceedsCanvasScale } from "./model-scale";
 
 export interface DraftCanvas {
   nodes: BuilderNode[];
@@ -16,6 +17,10 @@ export interface DraftCanvas {
  *     API/ERP consumer created the project with only `model_json` and no canvas;
  *     without this the workspace would render empty for them;
  *  3. otherwise empty.
+ *
+ * A model too large for the canvas ({@link exceedsCanvasScale}) is NEVER
+ * deserialized here — laying out tens of thousands of nodes would freeze the
+ * tab. The caller detects the same condition and works from the model directly.
  */
 export function resolveDraftCanvas(
   canvasJson: { nodes?: unknown[]; edges?: unknown[] } | null | undefined,
@@ -26,7 +31,12 @@ export function resolveDraftCanvas(
   if (nodes.length > 0) {
     return { nodes, edges };
   }
-  if (modelJson && Array.isArray(modelJson.variables) && modelJson.variables.length > 0) {
+  if (
+    modelJson &&
+    Array.isArray(modelJson.variables) &&
+    modelJson.variables.length > 0 &&
+    !exceedsCanvasScale(modelJson)
+  ) {
     return deserializeFromOptimizationProblem(modelJson);
   }
   return { nodes: [], edges: [] };

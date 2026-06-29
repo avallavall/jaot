@@ -39,6 +39,8 @@
     "subLensAssistant": "Assistant",
     "subLensEditor": "Éditeur",
     "subLensComingSoon": "Cette vue arrive bientôt — utilisez la Toile pour l'instant.",
+    "canvasTooLargeTitle": "Modèle trop volumineux pour la toile",
+    "canvasTooLarge": "Ce modèle compte {count, number} éléments : trop pour la toile visuelle. Vous pouvez tout de même l'analyser et le résoudre directement depuis les autres onglets.",
     "headerCommit": "Valider…",
     "headerExplain": "Expliquer le modèle",
     "headerSolve": "Résoudre",

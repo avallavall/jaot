@@ -39,6 +39,8 @@
     "subLensAssistant": "Assistant",
     "subLensEditor": "Editor",
     "subLensComingSoon": "This view is coming soon — use Canvas for now.",
+    "canvasTooLargeTitle": "Model too large for the canvas",
+    "canvasTooLarge": "This model has {count, number} elements — too many for the visual canvas. You can still analyze and solve it directly from the other tabs.",
     "headerCommit": "Commit…",
     "headerExplain": "Explain model",
     "headerSolve": "Solve",

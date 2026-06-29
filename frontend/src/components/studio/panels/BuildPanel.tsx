@@ -3,10 +3,13 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
+import { LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NodePalette } from "@/components/builder/NodePalette";
 import { PropertiesPanel } from "@/components/builder/PropertiesPanel";
 import { useBuilderStore } from "@/hooks/useBuilderStore";
+import { useModelProjectStore } from "../store/useModelProjectStore";
+import { modelElementCount } from "../store/model-scale";
 
 // ReactFlow requires browser APIs — load the canvas client-side only.
 const BuilderCanvas = dynamic(
@@ -26,6 +29,8 @@ export function BuildPanel() {
   const t = useTranslations("studio");
   const [lens, setLens] = useState<SubLens>("canvas");
   const selectedNodeId = useBuilderStore((s) => s.selectedNodeId);
+  const canvasDisabled = useModelProjectStore((s) => s.canvasDisabled);
+  const elementCount = useModelProjectStore((s) => modelElementCount(s.problem));
 
   const labels: Record<SubLens, string> = {
     canvas: t("subLensCanvas"),
@@ -58,7 +63,20 @@ export function BuildPanel() {
         ))}
       </div>
 
-      {lens === "canvas" ? (
+      {lens === "canvas" && canvasDisabled ? (
+        <div
+          data-testid="studio-canvas-too-large"
+          className="flex-1 flex items-center justify-center p-6"
+        >
+          <div className="max-w-md text-center">
+            <LayoutGrid className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+            <p className="text-sm font-medium">{t("canvasTooLargeTitle")}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("canvasTooLarge", { count: elementCount })}
+            </p>
+          </div>
+        </div>
+      ) : lens === "canvas" ? (
         <div className="flex flex-1 min-h-0 overflow-hidden">
           <NodePalette />
           <BuilderCanvas />
