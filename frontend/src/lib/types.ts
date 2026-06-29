@@ -371,6 +371,15 @@ export type SolveResult = _OptimizationResult & {
   execution_id: string;
 };
 
+/** Status of an async `/solve/async` task (the universal solve, not a marketplace model). */
+export interface SolveAsyncStatus {
+  task_id?: string;
+  status: string; // pending | running | completed | failed
+  result?: SolveResult;
+  error?: string;
+  progress?: number;
+}
+
 export interface ValidationResult {
   valid: boolean;
   errors: string[];

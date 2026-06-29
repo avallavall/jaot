@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 export interface ExecutionProgress {
-  type: 'status' | 'progress' | 'completed' | 'failed' | 'error';
+  type: 'status' | 'progress' | 'solve_progress' | 'completed' | 'failed' | 'error';
   execution_id?: string;
   task_id?: string;
   status?: string;
@@ -14,10 +14,19 @@ export interface ExecutionProgress {
   result?: Record<string, unknown>;
   error?: string;
   progress_data?: Record<string, unknown>;
+  // Live Solve per-incumbent fields (type === 'solve_progress'); mirror the
+  // backend ProgressPoint streamed on each new best solution.
+  node?: number;
+  objective?: number;
+  primal_bound?: number;
+  dual_bound?: number | null;
+  elapsed_seconds?: number;
 }
 
 export interface UseWebSocketOptions {
   onProgress?: (data: ExecutionProgress) => void;
+  /** Fired on `type === 'solve_progress'` — the per-incumbent Live Solve stream. */
+  onSolveProgress?: (data: ExecutionProgress) => void;
   onComplete?: (data: ExecutionProgress) => void;
   onError?: (data: ExecutionProgress) => void;
   autoReconnect?: boolean;
@@ -38,6 +47,7 @@ export function useExecutionWebSocket(
 ): UseWebSocketReturn {
   const {
     onProgress,
+    onSolveProgress,
     onComplete,
     onError,
     autoReconnect = true,
@@ -89,6 +99,9 @@ export function useExecutionWebSocket(
             case 'progress':
               onProgress?.(data);
               break;
+            case 'solve_progress':
+              onSolveProgress?.(data);
+              break;
             case 'completed':
               onComplete?.(data);
               break;
@@ -121,7 +134,7 @@ export function useExecutionWebSocket(
       console.warn('Failed to create WebSocket:', err);
       onError?.({ type: 'error', error: 'Failed to create WebSocket connection' });
     }
-  }, [getWebSocketUrl, onProgress, onComplete, onError, autoReconnect, reconnectInterval]);
+  }, [getWebSocketUrl, onProgress, onSolveProgress, onComplete, onError, autoReconnect, reconnectInterval]);
 
   useEffect(() => { connectRef.current = connect; }, [connect]);
 

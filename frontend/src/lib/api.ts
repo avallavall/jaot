@@ -12,6 +12,7 @@ import type {
   ModelExecution,
   AsyncTask,
   AsyncTaskStatus,
+  SolveAsyncStatus,
   OptimizationProblem,
   SolveResult,
   ValidationResult,
@@ -740,6 +741,29 @@ export const api = {
       body: JSON.stringify(problem),
       params: buildSolveParams(workspaceId, source),
     });
+  },
+
+  /** Universal async solve — enqueues the solve and returns a task id to poll/stream. */
+  solveAsync(
+    problem: OptimizationProblem,
+    workspaceId?: string,
+    source?: SolveSource
+  ): Promise<AsyncTask> {
+    return request("/api/v2/solve/async", {
+      method: "POST",
+      body: JSON.stringify(problem),
+      params: buildSolveParams(workspaceId, source),
+    });
+  },
+
+  /** Poll the status (and, once finished, the result) of an async `/solve/async` task. */
+  getSolveAsyncStatus(taskId: string): Promise<SolveAsyncStatus> {
+    return request(`/api/v2/solve/async/${taskId}`);
+  },
+
+  /** Cancel a running async solve. */
+  cancelSolveAsync(taskId: string): Promise<void> {
+    return request(`/api/v2/solve/async/${taskId}/cancel`, { method: "POST" });
   },
 
   validateProblem(problem: OptimizationProblem): Promise<ValidationResult> {

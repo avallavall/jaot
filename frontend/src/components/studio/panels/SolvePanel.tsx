@@ -21,12 +21,14 @@ import { getErrorMessage, getErrorStatus } from "@/lib/errors";
 import type { SolveResult } from "@/lib/types";
 import { useModelProjectStore } from "../store/useModelProjectStore";
 import { solveBlockedReason } from "./solve-precondition";
+import { LiveSolvePanel } from "./solve/LiveSolvePanel";
 
 /**
- * The Solve lens. Runs the CANONICAL model (from the shared store, not a fresh
- * canvas serialize) through the universal `/solve` endpoint, with a solver picker
- * and the shared results drawer. Provenance uses the builder-document shape until
- * ModelProject-origin solves land in P2.
+ * The Solve lens. Runs the CANONICAL model (from the shared store) through the
+ * ASYNC `/solve/async` endpoint so progress streams live (Live Solve), shows the
+ * real-time convergence chart, and opens the shared results drawer when it finishes.
+ * Provenance uses the builder-document shape until ModelProject-origin solves land in P2.
+ * (The synchronous `/solve` stays the API/ERP path — only the workspace UI is async.)
  */
 export function SolvePanel() {
   const t = useTranslations("studio");
@@ -35,7 +37,8 @@ export function SolvePanel() {
   const { activeWorkspaceId } = useAuth();
   const canSolve = useWorkspacePermission("solver");
   const { solverName, setSolverName, availableSolvers, solversLoading } = useSolvers();
-  const [isSolving, setIsSolving] = useState(false);
+  const [solving, setSolving] = useState(false);
+  const [taskId, setTaskId] = useState<string | null>(null);
   const [result, setResult] = useState<SolveResult | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -49,18 +52,21 @@ export function SolvePanel() {
           ? t("solveNoPermission")
           : null;
 
+  const objectiveSense = problem.objective?.sense === "maximize" ? "maximize" : "minimize";
+
   const handleSolve = async () => {
     if (blocked) return;
-    setIsSolving(true);
+    setSolving(true);
+    setResult(null);
+    setTaskId(null);
     try {
       const sourceId = modelId && modelId !== "new" ? modelId : null;
-      const res = await api.solve(
+      const task = await api.solveAsync(
         { ...problem, solver_name: solverName },
         activeWorkspaceId ?? undefined,
         { origin: "visual_builder", sourceKind: "builder_document", sourceId }
       );
-      setResult(res);
-      setDrawerOpen(true);
+      setTaskId(task.task_id);
     } catch (err: unknown) {
       const status = getErrorStatus(err);
       if (status === 402) {
@@ -70,12 +76,11 @@ export function SolvePanel() {
       } else {
         toast.error(getErrorMessage(err, t("solveFailed")));
       }
-    } finally {
-      setIsSolving(false);
+      setSolving(false);
     }
   };
 
-  const disabled = isSolving || !canSolve || blocked !== null;
+  const disabled = solving || !canSolve || blocked !== null;
 
   return (
     <div className="flex-1 overflow-auto p-6">
@@ -93,13 +98,29 @@ export function SolvePanel() {
               <span className="block">
                 <Button onClick={handleSolve} disabled={disabled} className="w-full">
                   <Play className="mr-1 h-4 w-4" />
-                  {isSolving ? t("solveRunning") : t("headerSolve")}
+                  {solving ? t("solveRunning") : t("headerSolve")}
                 </Button>
               </span>
             </TooltipTrigger>
             {blockedLabel && <TooltipContent>{blockedLabel}</TooltipContent>}
           </Tooltip>
         </TooltipProvider>
+
+        {taskId && (
+          <LiveSolvePanel
+            taskId={taskId}
+            objectiveSense={objectiveSense}
+            onComplete={(res) => {
+              setResult(res);
+              setSolving(false);
+            }}
+            onError={(message) => {
+              toast.error(message);
+              setSolving(false);
+            }}
+            onCancelled={() => setSolving(false)}
+          />
+        )}
 
         {result && (
           <Button
