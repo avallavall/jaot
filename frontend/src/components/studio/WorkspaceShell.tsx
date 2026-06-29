@@ -3,7 +3,7 @@
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { ChevronLeft, Save, Sparkles, Play, Check, Loader2, AlertCircle } from "lucide-react";
-import { Link } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { StudioTabBar } from "./StudioTabBar";
 import { LiveStatsPanel } from "./LiveStatsPanel";
@@ -18,11 +18,13 @@ import type { SaveState } from "./store/createModelProjectStore";
  */
 export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("studio");
+  const router = useRouter();
   const name = useModelProjectStore((s) => s.name);
   const modelId = useModelProjectStore((s) => s.modelId);
   const saveState = useModelProjectStore((s) => s.saveState);
 
   const comingSoon = () => toast(t("comingSoon"));
+  const goToSolve = () => router.push(`/studio/${modelId}/solve`);
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -50,7 +52,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
             <Sparkles className="h-4 w-4 mr-1" />
             {t("headerExplain")}
           </Button>
-          <Button size="sm" onClick={comingSoon}>
+          <Button size="sm" onClick={goToSolve}>
             <Play className="h-4 w-4 mr-1" />
             {t("headerSolve")}
           </Button>

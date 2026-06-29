@@ -41,6 +41,10 @@ export function useNavItems() {
 
   return [
 
+    { label: t("nav.modelAnalyzeSolve"), href: "#", icon: null },
+    { label: t("nav.studioMyModels"), href: "/studio", icon: <Zap className="w-4 h-4" /> },
+    { label: t("nav.studioNewModel"), href: "/studio/new", icon: <Sparkles className="w-4 h-4" /> },
+
     { label: t("nav.build"), href: "#", icon: null },
     { label: t("nav.myModels"), href: "/solve", icon: <Zap className="w-4 h-4" /> },
     { label: t("nav.visualBuilder"), href: "/builder", icon: <Blocks className="w-4 h-4" /> },

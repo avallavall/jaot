@@ -107,17 +107,22 @@ function setAuthState(opts: {
 
 describe("useNavItems", () => {
   describe("NAV-01: Section structure", () => {
-    it("admin user with workspace sees 3 primary separators + 4 collapsible groups", () => {
+    it("admin user with workspace sees 4 primary separators + 4 collapsible groups", () => {
       setAuthState({ isAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
       const headers = getSectionHeaders(result.current);
       const headerLabels = headers.map((h) => h.label);
 
-      // 3 primary separator headers (always visible)
+      // 4 primary separator headers (always visible)
+      expect(headerLabels).toContain("common.nav.modelAnalyzeSolve");
       expect(headerLabels).toContain("common.nav.build");
       expect(headerLabels).toContain("common.nav.discover");
       expect(headerLabels).toContain("common.nav.activity");
-      expect(headers).toHaveLength(3);
+      expect(headers).toHaveLength(4);
+
+      // The Model, Analyze & Solve hub funnels into the studio workspace
+      expect(findItemByHref(result.current, "/studio")).toBeDefined();
+      expect(findItemByHref(result.current, "/studio/new")).toBeDefined();
 
       // 4 collapsible groups: Community, Account, Team, Admin
       const collapsibles = getCollapsibleGroups(result.current);
@@ -129,17 +134,18 @@ describe("useNavItems", () => {
       expect(collapsibles).toHaveLength(4);
     });
 
-    it("non-admin without workspace sees 3 primary separators + 2 collapsible groups", () => {
+    it("non-admin without workspace sees 4 primary separators + 2 collapsible groups", () => {
       setAuthState({ isAdmin: false, hasWorkspace: false });
       const { result } = renderHook(() => useNavItems());
       const headers = getSectionHeaders(result.current);
       const headerLabels = headers.map((h) => h.label);
 
-      // 3 primary separator headers
+      // 4 primary separator headers
+      expect(headerLabels).toContain("common.nav.modelAnalyzeSolve");
       expect(headerLabels).toContain("common.nav.build");
       expect(headerLabels).toContain("common.nav.discover");
       expect(headerLabels).toContain("common.nav.activity");
-      expect(headers).toHaveLength(3);
+      expect(headers).toHaveLength(4);
 
       // 2 collapsible groups: Community, Account (no Team, no Admin)
       const collapsibles = getCollapsibleGroups(result.current);
@@ -151,12 +157,12 @@ describe("useNavItems", () => {
       expect(collapsibles).toHaveLength(2);
     });
 
-    it("admin without workspace sees 3 primary separators + 3 collapsible groups (no Team)", () => {
+    it("admin without workspace sees 4 primary separators + 3 collapsible groups (no Team)", () => {
       setAuthState({ isAdmin: true, hasWorkspace: false });
       const { result } = renderHook(() => useNavItems());
       const headers = getSectionHeaders(result.current);
 
-      expect(headers).toHaveLength(3);
+      expect(headers).toHaveLength(4);
 
       const collapsibles = getCollapsibleGroups(result.current);
       const collapsibleLabels = collapsibles.map((c) => c.label);
@@ -167,12 +173,12 @@ describe("useNavItems", () => {
       expect(collapsibles).toHaveLength(3);
     });
 
-    it("non-admin with workspace sees 3 primary separators + 3 collapsible groups (no Admin)", () => {
+    it("non-admin with workspace sees 4 primary separators + 3 collapsible groups (no Admin)", () => {
       setAuthState({ isAdmin: false, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
       const headers = getSectionHeaders(result.current);
 
-      expect(headers).toHaveLength(3);
+      expect(headers).toHaveLength(4);
 
       const collapsibles = getCollapsibleGroups(result.current);
       const collapsibleLabels = collapsibles.map((c) => c.label);
