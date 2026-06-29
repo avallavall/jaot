@@ -371,13 +371,32 @@ export type SolveResult = _OptimizationResult & {
   execution_id: string;
 };
 
+/**
+ * The Celery task-return envelope nested under an async-solve status once the task
+ * completes. The real `SolveResult` lives at `result.result`.
+ */
+export interface AsyncSolveResultEnvelope {
+  status?: string; // "success"
+  task_id?: string;
+  result?: SolveResult; // the actual solver result
+  execution_time_seconds?: number;
+  solver_used?: string;
+  auto_route_reason?: string;
+  warning?: string;
+}
+
 /** Status of an async `/solve/async` task (the universal solve, not a marketplace model). */
 export interface SolveAsyncStatus {
   task_id?: string;
   status: string; // pending | running | completed | failed
-  result?: SolveResult;
+  // On "completed" this is the task envelope (unwrap `result.result`); some paths
+  // may return a plain SolveResult — callers unwrap defensively.
+  result?: AsyncSolveResultEnvelope | SolveResult;
   error?: string;
   progress?: number;
+  solver_used?: string;
+  auto_route_reason?: string;
+  warning?: string;
 }
 
 export interface ValidationResult {

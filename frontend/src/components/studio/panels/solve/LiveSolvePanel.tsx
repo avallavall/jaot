@@ -6,7 +6,7 @@ import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { useExecutionWebSocket } from "@/hooks/useWebSocket";
 import { api } from "@/lib/api";
 import { extractProgressHistory, type ProgressPoint } from "@/lib/result-utils";
-import type { SolveResult } from "@/lib/types";
+import type { AsyncSolveResultEnvelope, SolveResult } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { GapConvergenceChart } from "@/components/solve/GapConvergenceChart";
 import {
@@ -27,12 +27,30 @@ interface LiveSolvePanelProps {
 type LiveStatus = "running" | "completed" | "failed" | "cancelled";
 
 /**
+ * The completed async-solve status nests the Celery task envelope under `result`,
+ * so the actual solver result is `result.result`. Fall back to `result` itself for
+ * any non-wrapped shape.
+ */
+function unwrapSolveResult(status: { result?: unknown }): SolveResult | null {
+  const envelope = status.result as AsyncSolveResultEnvelope | SolveResult | undefined;
+  if (!envelope) return null;
+  const inner = (envelope as AsyncSolveResultEnvelope).result;
+  return ((inner ?? envelope) as SolveResult) ?? null;
+}
+
+/**
  * Watches a running async solve and renders the live primal/dual convergence chart
- * + metrics. Live points stream over the existing executions WebSocket
- * (`type: "solve_progress"`); completion is confirmed by polling the async status
- * (the robust source of truth). If no live points arrived (e.g. the solver doesn't
- * stream, or the socket couldn't connect), the chart falls back to the finished
- * result's `progress_history`.
+ * + metrics. Live points stream over the executions WebSocket (`type:"solve_progress"`);
+ * completion is confirmed by polling the async status (the robust source of truth,
+ * independent of the socket). If no live points arrived (e.g. the solver doesn't
+ * stream — HiGHS/Hexaly — or the socket couldn't connect), the chart falls back to
+ * the finished result's `progress_history`.
+ *
+ * IMPORTANT: the polling effect depends ONLY on `[taskId]`. The completion callbacks
+ * are held in refs because `SolvePanel` passes them as inline arrows (new identity
+ * each render). If they were effect deps, completion → parent setState → re-render →
+ * new callback identities → effect teardown+rerun → `status` reset to "running" →
+ * the panel would be stuck on "running" forever even though the solve finished.
  */
 export function LiveSolvePanel({
   taskId,
@@ -47,6 +65,16 @@ export function LiveSolvePanel({
   const [status, setStatus] = useState<LiveStatus>("running");
   const [cancelling, setCancelling] = useState(false);
   const doneRef = useRef(false);
+
+  // Keep the inline callbacks + translator in refs so the polling effect is stable.
+  const onCompleteRef = useRef(onComplete);
+  const onErrorRef = useRef(onError);
+  const tRef = useRef(t);
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+    onErrorRef.current = onError;
+    tRef.current = t;
+  });
 
   // Live points — functional updates keep the callback stable (no stale closure,
   // no socket reconnect churn).
@@ -64,7 +92,7 @@ export function LiveSolvePanel({
     onSolveProgress: handleSolveProgress,
   });
 
-  // Completion via polling (source of truth — independent of the socket).
+  // Completion via polling — depends ONLY on taskId (see the component doc above).
   useEffect(() => {
     doneRef.current = false;
     setPoints([]);
@@ -72,25 +100,36 @@ export function LiveSolvePanel({
     setStatus("running");
 
     let timer: ReturnType<typeof setInterval> | null = null;
+    const stop = () => {
+      doneRef.current = true;
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    };
 
     const poll = async () => {
       if (doneRef.current) return;
       try {
         const s = await api.getSolveAsyncStatus(taskId);
-        if (s.status === "completed" && s.result) {
-          doneRef.current = true;
+        if (s.status === "completed") {
+          stop();
           setStatus("completed");
+          const solveResult = unwrapSolveResult(s);
           // Fall back to the result's recorded history if nothing streamed live.
-          setPoints((prev) =>
-            prev.length > 0
-              ? prev
-              : extractProgressHistory(s.result as unknown as Record<string, unknown>),
-          );
-          onComplete(s.result);
+          if (solveResult) {
+            const history = extractProgressHistory(
+              solveResult as unknown as Record<string, unknown>,
+            );
+            setPoints((prev) => (prev.length > 0 ? prev : history));
+            onCompleteRef.current(solveResult);
+          } else {
+            onErrorRef.current(tRef.current("solveFailed"));
+          }
         } else if (s.status === "failed") {
-          doneRef.current = true;
+          stop();
           setStatus("failed");
-          onError(s.error || t("solveFailed"));
+          onErrorRef.current(s.error || tRef.current("solveFailed"));
         }
       } catch {
         // Transient poll error — keep trying.
@@ -103,7 +142,7 @@ export function LiveSolvePanel({
       doneRef.current = true;
       if (timer) clearInterval(timer);
     };
-  }, [taskId, onComplete, onError, t]);
+  }, [taskId]);
 
   const handleCancel = useCallback(async () => {
     if (cancelling || doneRef.current) return;

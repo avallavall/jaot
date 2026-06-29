@@ -1,5 +1,12 @@
 {
   "studio": {
+    "soon": "Aviat",
+    "myModelsError": "No s'han pogut carregar els teus models.",
+    "retry": "Reintentar",
+    "projectDraft": "Esborrany",
+    "updatedLabel": "Actualitzat {date}",
+    "renameError": "No s'ha pogut canviar el nom del model.",
+    "namePlaceholder": "Nom del model",
     "myModels": "Els meus models",
     "myModelsSubtitle": "Construeix, analitza i resol — cada model en un sol lloc.",
     "myModelsEmpty": "Els teus models apareixeran aquí. Crea'n un de nou per començar.",

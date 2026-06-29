@@ -1,5 +1,12 @@
 {
   "studio": {
+    "soon": "Bald",
+    "myModelsError": "Modelle konnten nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "projectDraft": "Entwurf",
+    "updatedLabel": "Aktualisiert {date}",
+    "renameError": "Modell konnte nicht umbenannt werden.",
+    "namePlaceholder": "Modellname",
     "myModels": "Meine Modelle",
     "myModelsSubtitle": "Erstellen, analysieren und lösen — jedes Modell an einem Ort.",
     "myModelsEmpty": "Deine Modelle erscheinen hier. Erstelle ein neues, um zu beginnen.",

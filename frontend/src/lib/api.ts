@@ -1123,6 +1123,19 @@ export const api = {
     });
   },
 
+  /** Patch project metadata (name / description / status) — the rename path. */
+  updateProject(
+    id: string,
+    body: { name?: string; description?: string; status?: string },
+    workspaceId?: string
+  ): Promise<ProjectRead> {
+    return request(`/api/v2/projects/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
   listProjects(
     params?: { status?: string; q?: string; skip?: number; limit?: number },
     workspaceId?: string

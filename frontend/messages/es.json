@@ -1,5 +1,12 @@
 {
   "studio": {
+    "soon": "Pronto",
+    "myModelsError": "No se pudieron cargar tus modelos.",
+    "retry": "Reintentar",
+    "projectDraft": "Borrador",
+    "updatedLabel": "Actualizado {date}",
+    "renameError": "No se pudo renombrar el modelo.",
+    "namePlaceholder": "Nombre del modelo",
     "myModels": "Mis modelos",
     "myModelsSubtitle": "Construye, analiza y resuelve — cada modelo en un solo lugar.",
     "myModelsEmpty": "Tus modelos aparecerán aquí. Crea uno nuevo para empezar.",

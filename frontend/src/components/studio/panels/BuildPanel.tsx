@@ -42,13 +42,18 @@ export function BuildPanel() {
             onClick={() => setLens(l)}
             aria-pressed={lens === l}
             className={cn(
-              "px-3 py-1 text-sm rounded-md transition-colors",
+              "inline-flex items-center gap-1.5 px-3 py-1 text-sm rounded-md transition-colors",
               lens === l
                 ? "bg-muted font-medium text-foreground"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
             {labels[l]}
+            {l !== "canvas" && (
+              <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+                {t("soon")}
+              </span>
+            )}
           </button>
         ))}
       </div>

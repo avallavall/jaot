@@ -1,5 +1,12 @@
 {
   "studio": {
+    "soon": "Soon",
+    "myModelsError": "Could not load your models.",
+    "retry": "Retry",
+    "projectDraft": "Draft",
+    "updatedLabel": "Updated {date}",
+    "renameError": "Could not rename the model.",
+    "namePlaceholder": "Model name",
     "myModels": "My Models",
     "myModelsSubtitle": "Build, analyze and solve — every model in one place.",
     "myModelsEmpty": "Your models will appear here. Create a new one to get started.",
