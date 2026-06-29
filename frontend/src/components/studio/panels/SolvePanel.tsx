@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter, useNow, useTranslations } from "next-intl";
 import { Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +32,7 @@ import { LiveSolvePanel } from "./solve/LiveSolvePanel";
 export function SolvePanel() {
   const t = useTranslations("studio");
   const format = useFormatter();
+  const now = useNow();
   const problem = useModelProjectStore((s) => s.problem);
   const modelId = useModelProjectStore((s) => s.modelId);
   const session = useModelProjectStore((s) => s.solveSession);
@@ -63,7 +64,7 @@ export function SolvePanel() {
   // panel, so a finished-while-away solve reads as "resuelta · objetivo X · hace Ys".
   const showLastRun = session.status === "idle" && lastRun !== null;
   const lastRunWhen =
-    lastRun?.finishedAt != null ? format.relativeTime(new Date(lastRun.finishedAt)) : "";
+    lastRun?.finishedAt != null ? format.relativeTime(new Date(lastRun.finishedAt), now) : "";
 
   // Toast once when a solve fails.
   const failedRef = useRef(false);

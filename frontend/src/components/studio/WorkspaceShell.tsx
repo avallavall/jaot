@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter, useNow, useTranslations } from "next-intl";
 import { ChevronLeft, Sparkles, Play, Check, Loader2, AlertCircle } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
@@ -122,12 +122,16 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
 function SolveStatusIndicator({ onGoToSolve }: { onGoToSolve: () => void }) {
   const t = useTranslations("studio");
   const format = useFormatter();
+  // Re-render once a minute so "started Xm ago" stays accurate for a long solve.
+  // `now` is also passed to relativeTime so next-intl doesn't warn about a
+  // missing reference time (ENVIRONMENT_FALLBACK).
+  const now = useNow({ updateInterval: 60_000 });
   const status = useModelProjectStore((s) => s.solveSession.status);
   const startedAt = useModelProjectStore((s) => s.solveSession.startedAt);
   if (status !== "running") return null;
 
   const label = startedAt
-    ? t("solvingSince", { when: format.relativeTime(new Date(startedAt)) })
+    ? t("solvingSince", { when: format.relativeTime(new Date(startedAt), now) })
     : t("solveRunning");
   return (
     <button
