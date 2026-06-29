@@ -1,7 +1,7 @@
 """MCP server integration tests.
 
 Validates:
-- AI-01: MCP server mounted at /mcp with 19 curated tools
+- AI-01: MCP server mounted at /mcp with 26 curated tools
 - AI-02: Tools cover solve path and marketplace path
 - AI-03: Auth passthrough (public vs protected endpoints)
 - AI-04: llms.txt served at /.well-known/llms.txt
@@ -45,6 +45,14 @@ EXPECTED_OPERATIONS = [
     "get_execution",
     "get_execution_insights",
     "get_credit_balance",
+    # Model projects — create, version, analyze & solve a first-class model
+    "create_model_project",
+    "get_model_project",
+    "list_model_projects",
+    "commit_model_version",
+    "list_project_versions",
+    "get_model_stats",
+    "solve_model_project",
 ]
 
 
@@ -84,11 +92,11 @@ def test_mcp_route_exists(mcp_app):
     assert len(mcp_routes) > 0, "No /mcp routes found in app"
 
 
-# ---- AI-01: Exactly 19 tools exposed ----
+# ---- AI-01: Exactly 26 tools exposed ----
 
 
 def test_mcp_tool_count(openapi_schema):
-    """MCP server exposes exactly 19 curated tools (not 40+)."""
+    """MCP server exposes exactly 26 curated tools (not 40+)."""
     all_op_ids = _extract_op_ids(openapi_schema)
 
     # All expected operations must be present

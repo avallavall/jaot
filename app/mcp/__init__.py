@@ -1,10 +1,11 @@
 """MCP server integration for JAOT Optimization Platform.
 
-Exposes 19 curated optimization tools via the Model Context Protocol (MCP),
+Exposes 26 curated optimization tools via the Model Context Protocol (MCP),
 enabling AI agents (Claude, GPT, etc.) to discover and use JAOT's
 optimization capabilities: multi-solver solving, multi-objective (Pareto),
 templates, standard-format import/export (MPS/LP/CIP/JSON), the model
-marketplace, execution insights, and credits.
+marketplace, execution insights, credits, and first-class **model projects**
+(create, version with commit messages, analyze stats/health, and solve).
 """
 
 from fastapi import FastAPI
@@ -21,7 +22,9 @@ def setup_mcp(app: FastAPI) -> FastApiMCP:
             "a choice of solvers (SCIP, HiGHS, Hexaly) or automatic routing, "
             "including multi-objective (Pareto) solves. Import and export models in "
             "standard formats (MPS/LP/CIP/JSON). Browse and run a marketplace of "
-            "pre-built models, and inspect result insights. "
+            "pre-built models, and inspect result insights. Create, version "
+            "(git-style commits), analyze (stats + health score) and solve "
+            "first-class model projects. "
             "Authenticate with a Bearer API key."
         ),
         include_operations=[
@@ -49,6 +52,14 @@ def setup_mcp(app: FastAPI) -> FastApiMCP:
             "get_execution",
             "get_execution_insights",
             "get_credit_balance",
+            # Model projects — create, version, analyze & solve a first-class model
+            "create_model_project",
+            "get_model_project",
+            "list_model_projects",
+            "commit_model_version",
+            "list_project_versions",
+            "get_model_stats",
+            "solve_model_project",
         ],
         describe_all_responses=True,
         describe_full_response_schema=True,
