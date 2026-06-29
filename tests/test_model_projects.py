@@ -389,6 +389,65 @@ class TestExecutionsReconcile:
         assert authenticated_client.get(f"/api/v2/projects/{pid}/executions").json() == []
 
 
+class TestArchiveAndPermanentDelete:
+    """Archive (reversible) vs permanent hard-delete (irreversible, archived-only)."""
+
+    def test_archive_then_permanent_delete_removes_project_and_versions(
+        self, authenticated_client: TestClient, db_session: Session
+    ):
+        pid = _create_project(authenticated_client)["id"]
+        authenticated_client.put(
+            f"/api/v2/projects/{pid}/draft", json={"model_json": _VALID_PROBLEM}
+        )
+        vid = authenticated_client.post(
+            f"/api/v2/projects/{pid}/commit", json={"summary": "v1"}
+        ).json()["id"]
+
+        # Archive first (reversible).
+        assert authenticated_client.delete(f"/api/v2/projects/{pid}").status_code == 204
+        # Then permanent delete (irreversible).
+        assert (
+            authenticated_client.delete(f"/api/v2/projects/{pid}?permanent=true").status_code == 204
+        )
+        # Project gone...
+        assert authenticated_client.get(f"/api/v2/projects/{pid}").status_code == 404
+        # ...and its committed versions cascade-deleted.
+        assert (
+            db_session.query(ModelProjectVersion).filter(ModelProjectVersion.id == vid).first()
+            is None
+        )
+
+    # CONTRACT-TEST: permanent delete is refused (409) unless the project is archived first
+    def test_permanent_delete_requires_archived_first(self, authenticated_client: TestClient):
+        pid = _create_project(authenticated_client)["id"]
+        resp = authenticated_client.delete(f"/api/v2/projects/{pid}?permanent=true")
+        assert resp.status_code == 409
+        # The active project is untouched.
+        assert authenticated_client.get(f"/api/v2/projects/{pid}").status_code == 200
+
+    def test_archived_project_can_be_restored(self, authenticated_client: TestClient):
+        pid = _create_project(authenticated_client)["id"]
+        authenticated_client.delete(f"/api/v2/projects/{pid}")  # archive
+        assert pid not in {p["id"] for p in authenticated_client.get("/api/v2/projects").json()}
+        archived = authenticated_client.get("/api/v2/projects?status=archived").json()
+        assert pid in {p["id"] for p in archived}
+        # Restore via PATCH status -> active.
+        authenticated_client.patch(f"/api/v2/projects/{pid}", json={"status": "active"})
+        assert pid in {p["id"] for p in authenticated_client.get("/api/v2/projects").json()}
+
+    # CONTRACT-TEST: permanent delete is org-scoped (cross-org -> 404 before the status check)
+    def test_permanent_delete_cross_tenant_404(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization_2: Organization,
+        test_user_2: User,
+    ):
+        other = _insert_project(db_session, test_organization_2, test_user_2)
+        resp = authenticated_client.delete(f"/api/v2/projects/{other.id}?permanent=true")
+        assert resp.status_code == 404
+
+
 class TestMultiTenancyWrite:
     def test_commit_cross_tenant_404(
         self,

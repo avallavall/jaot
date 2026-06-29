@@ -1147,6 +1147,15 @@ export const api = {
     });
   },
 
+  /** Permanently delete an ARCHIVED project and its versions (irreversible).
+   * The backend rejects this (409) unless the project is already archived. */
+  deleteProjectPermanently(id: string, workspaceId?: string): Promise<void> {
+    return request<void>(`/api/v2/projects/${id}`, {
+      method: "DELETE",
+      params: { permanent: true, ...(workspaceId ? { workspace_id: workspaceId } : {}) },
+    });
+  },
+
   listProjects(
     params?: { status?: string; q?: string; skip?: number; limit?: number },
     workspaceId?: string

@@ -395,3 +395,15 @@ def archive_project(db: Session, project: ModelProject) -> ModelProject:
     db.flush()
     db.refresh(project)
     return project
+
+
+def hard_delete_project(db: Session, project: ModelProject) -> None:
+    """Permanently delete a project and its versions (irreversible).
+
+    The ``versions`` relationship cascades (``all, delete-orphan`` + DB-level
+    ``ondelete=CASCADE``), so the committed history is removed with it. Past
+    ``ModelExecution`` rows keep their ``model_project_id`` as a historical tag
+    (no FK), so the executions audit trail is preserved.
+    """
+    db.delete(project)
+    db.flush()

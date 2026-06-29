@@ -266,9 +266,36 @@ def archive_model_project(
     user: CurrentUser,
     org: CurrentOrg,
     _ws: OptionalRequireEditor,
+    permanent: bool = Query(False),
 ) -> None:
-    """Soft-delete (archive) a ModelProject."""
+    """Archive a ModelProject (soft-delete), or permanently delete it.
+
+    Default is a reversible **archive** (``status="archived"``). With
+    ``?permanent=true`` the project and its versions are **hard-deleted**
+    (irreversible) — only allowed once the project is already archived, so a
+    permanent delete is always a deliberate two-step action from the trash view.
+    """
     project = _project_or_404(db, project_id, org.id)
+    if permanent:
+        if project.status != "archived":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Archive the project before deleting it permanently.",
+            )
+        name = project.name
+        pid = project.id
+        svc.hard_delete_project(db, project)
+        log_action(
+            db=db,
+            organization_id=org.id,
+            actor=user,
+            action=AuditAction.MODEL_DELETE,
+            target_type="model_project",
+            target_id=pid,
+            target_name=name,
+        )
+        db.commit()
+        return
     svc.archive_project(db, project)
     log_action(
         db=db,
