@@ -34,8 +34,10 @@ export default defineConfig({
   testDir: "./e2e",
   timeout: 30_000,
   fullyParallel: true,
-  // Limit workers in CI/Docker to avoid overwhelming the dev server
-  workers: process.env.CI ? 2 : undefined,
+  // Cap workers so parallel specs don't overwhelm the single frontend container:
+  // CI gets 2; locally the default (~half the cores, e.g. 6 on a 12-core box) saturated
+  // one prod-Docker frontend → unhealthy + flaky seeds. 4 keeps it parallel but stable.
+  workers: process.env.CI ? 2 : 4,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? "github" : "html",
 
