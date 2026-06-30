@@ -59,6 +59,38 @@ describe("ModelProjectStore.setProblem", () => {
   });
 });
 
+describe("ModelProjectStore.editorParseError", () => {
+  it("defaults to false and toggles via the setter", () => {
+    const store = makeStore();
+    expect(store.getState().editorParseError).toBe(false);
+    store.getState().setEditorParseError(true);
+    expect(store.getState().editorParseError).toBe(true);
+  });
+
+  it("is cleared when the model changes from a non-scratch source", () => {
+    const store = makeStore();
+    store.getState().setEditorParseError(true);
+    store.getState().setProblem({ ...BASE, constraints: [] }, { source: "canvas" });
+    expect(store.getState().editorParseError).toBe(false);
+  });
+
+  it("survives a scratch-sourced change (the editor owns its own block)", () => {
+    const store = makeStore();
+    store.getState().setEditorParseError(true);
+    // A scratch edit that applies a valid problem clears the flag explicitly in the
+    // panel; setProblem itself must NOT clear it for scratch (the panel is in charge).
+    store.getState().setProblem({ ...BASE, constraints: [] }, { source: "scratch" });
+    expect(store.getState().editorParseError).toBe(true);
+  });
+
+  it("is cleared on hydrate (reload / restore)", () => {
+    const store = makeStore();
+    store.getState().setEditorParseError(true);
+    store.getState().hydrate(BASE, "Reloaded");
+    expect(store.getState().editorParseError).toBe(false);
+  });
+});
+
 describe("selectModelStats", () => {
   it("classifies a mixed model and counts structure", () => {
     const stats = selectModelStats(BASE);

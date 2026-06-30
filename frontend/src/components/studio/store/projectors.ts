@@ -30,13 +30,18 @@ function notImplemented(rep: RepKey): never {
   throw new Error(`Projector for "${rep}" is not implemented yet`);
 }
 
-// Registered for shape-completeness; wired when the Editor (scratch) and the
-// Assistant (formulation) lenses land. They are never invoked in 2A.
+/**
+ * The Editor (text) lens projects the canonical model to/from pretty-printed JSON.
+ * `toProblem` throws on malformed JSON — callers parse defensively (see
+ * `panels/editor/parse.ts`) so a typo never reaches the canonical model.
+ */
 export const scratchProjector: Projector<string> = {
-  toProblem: () => notImplemented("scratch"),
-  fromProblem: () => notImplemented("scratch"),
+  toProblem: (text) => JSON.parse(text) as OptimizationProblem,
+  fromProblem: (problem) => JSON.stringify(problem, null, 2),
 };
 
+// Registered for shape-completeness; wired when the Assistant (formulation) lens
+// lands. Never invoked yet.
 export const formulationProjector: Projector<unknown> = {
   toProblem: () => notImplemented("formulation"),
   fromProblem: () => notImplemented("formulation"),

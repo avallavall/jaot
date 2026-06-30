@@ -151,17 +151,47 @@ test.describe("Studio — critical path (guards live bugs A/B/C)", () => {
     page,
   }) => {
     await page.goto("/studio/new");
-    // The implemented starting points are real, enabled buttons.
-    for (const key of ["blank", "visual", "import", "template", "marketplace"]) {
+    // The implemented starting points are real, enabled buttons (P3 made 'editor' real).
+    for (const key of ["blank", "visual", "editor", "import", "template", "marketplace"]) {
       await expect(page.getByTestId(`launcher-tile-${key}`)).toBeEnabled();
     }
-    // The not-yet-built tiles are visibly disabled (rendered as aria-disabled cards),
-    // never clickable controls that toast "coming soon".
-    for (const key of ["ai", "editor"]) {
-      const tile = page.getByTestId(`launcher-tile-${key}`);
+    // The not-yet-built tile (AI Assistant = P4) stays visibly disabled (an aria-disabled
+    // card), never a clickable control that toasts "coming soon".
+    {
+      const tile = page.getByTestId("launcher-tile-ai");
       await expect(tile).toBeVisible();
       await expect(tile).toHaveAttribute("aria-disabled", "true");
     }
+  });
+
+  // P3: the Editor (text) lens edits the model as JSON. A valid edit reflects on the
+  // canonical model; a malformed edit shows an error and BLOCKS solve (so the user never
+  // acts on a model they believe they just changed). The canvas keeps the last-good model.
+  test("editor lens — shows the model as JSON; invalid JSON blocks solve, valid unblocks (P3)", async ({
+    page,
+  }) => {
+    const projectId = await createBlankProject(page);
+    await seedDraft(page, projectId);
+
+    // `?lens=editor` opens straight into the text editor (the launcher 'editor' tile path).
+    await page.goto(`/studio/${projectId}/build?lens=editor`);
+    const textarea = page.getByTestId("studio-editor-textarea");
+    await expect(textarea).toBeVisible({ timeout: NAV });
+    // It is seeded with the model serialized as JSON.
+    await expect(textarea).toHaveValue(/"variables"/, { timeout: NAV });
+
+    const headerSolve = page.getByTestId("studio-header-solve");
+    await expect(headerSolve).toBeEnabled();
+
+    // Malformed JSON → inline error + solve blocked (header button disabled).
+    await textarea.fill("{ this is not json");
+    await expect(page.getByTestId("studio-editor-error")).toBeVisible({ timeout: NAV });
+    await expect(headerSolve).toBeDisabled();
+
+    // Fixing the JSON (a valid model shape) clears the error and re-enables solve.
+    await textarea.fill(JSON.stringify(SEED_MODEL, null, 2));
+    await expect(page.getByTestId("studio-editor-error")).toHaveCount(0, { timeout: NAV });
+    await expect(headerSolve).toBeEnabled({ timeout: NAV });
   });
 
   // P2 centralization: the 'template' tile → gallery → "Use" SEEDS a ModelProject and

@@ -113,6 +113,13 @@ export interface ModelProjectState {
    * off. The model is still fully solvable from its canonical form. */
   canvasDisabled: boolean;
   setCanvasDisabled: (canvasDisabled: boolean) => void;
+
+  /** True while the text Editor lens holds JSON that does not parse. The broken
+   * text is never applied to the canonical model, but solve/commit are blocked
+   * so the user does not act on a model they believe they just changed. Cleared
+   * when the JSON parses, the model changes from another source, or on reload. */
+  editorParseError: boolean;
+  setEditorParseError: (editorParseError: boolean) => void;
 }
 
 /** Cheap structural equality — the models are small plain JSON objects. */
@@ -162,6 +169,9 @@ export function createModelProjectStore(init: ModelProjectInit) {
             repStatus,
             lastSource: opts.source,
             headDirty: true,
+            // A change from the canvas/restore makes any pending Editor parse error
+            // stale — the canonical model just moved on, so clear the block.
+            ...(opts.source !== "scratch" ? { editorParseError: false } : {}),
           });
         },
 
@@ -174,6 +184,7 @@ export function createModelProjectStore(init: ModelProjectInit) {
             lastSource: null,
             headDirty: false,
             saveState: "idle",
+            editorParseError: false,
           });
         },
 
@@ -222,6 +233,9 @@ export function createModelProjectStore(init: ModelProjectInit) {
 
         canvasDisabled: false,
         setCanvasDisabled: (canvasDisabled) => set({ canvasDisabled }),
+
+        editorParseError: false,
+        setEditorParseError: (editorParseError) => set({ editorParseError }),
       }),
       {
         // Undo tracks ONLY the canonical model, so "undo my last change" means the

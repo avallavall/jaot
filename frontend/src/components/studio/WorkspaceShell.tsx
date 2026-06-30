@@ -28,6 +28,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const name = useModelProjectStore((s) => s.name);
   const modelId = useModelProjectStore((s) => s.modelId);
   const saveState = useModelProjectStore((s) => s.saveState);
+  const editorParseError = useModelProjectStore((s) => s.editorParseError);
   const setName = useModelProjectStore((s) => s.setName);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -104,7 +105,13 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
             <Sparkles className="h-4 w-4 mr-1" />
             {t("headerExplain")}
           </Button>
-          <Button size="sm" onClick={goToSolve}>
+          <Button
+            size="sm"
+            data-testid="studio-header-solve"
+            onClick={goToSolve}
+            disabled={editorParseError}
+            title={editorParseError ? t("editorBlockSolve") : undefined}
+          >
             <Play className="h-4 w-4 mr-1" />
             {t("headerSolve")}
           </Button>

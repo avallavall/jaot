@@ -36,6 +36,7 @@ export function VersionControls() {
   const ws = activeWorkspaceId ?? undefined;
   const modelId = useModelProjectStore((s) => s.modelId);
   const headDirty = useModelProjectStore((s) => s.headDirty);
+  const editorParseError = useModelProjectStore((s) => s.editorParseError);
   const storeApi = useModelProjectStoreApi();
 
   const [commitOpen, setCommitOpen] = useState(false);
@@ -70,11 +71,12 @@ export function VersionControls() {
       const tag = el?.tagName.toLowerCase();
       if (tag === "input" || tag === "textarea" || el?.isContentEditable) return;
       e.preventDefault();
-      if (isPersisted) setCommitOpen(true);
+      // Don't open the commit dialog over a model whose Editor text doesn't parse.
+      if (isPersisted && !storeApi.getState().editorParseError) setCommitOpen(true);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isPersisted]);
+  }, [isPersisted, storeApi]);
 
   const handleCommitted = useCallback(() => {
     storeApi.getState().markCommitted();
@@ -138,7 +140,13 @@ export function VersionControls() {
         onViewAll={() => setHistoryOpen(true)}
       />
 
-      <Button variant="outline" size="sm" onClick={() => setCommitOpen(true)}>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setCommitOpen(true)}
+        disabled={editorParseError}
+        title={editorParseError ? t("editorBlockCommit") : undefined}
+      >
         <Save className="h-4 w-4 mr-1" />
         {t("headerCommit")}
       </Button>

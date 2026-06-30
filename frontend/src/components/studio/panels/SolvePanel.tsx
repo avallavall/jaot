@@ -35,6 +35,7 @@ export function SolvePanel() {
   const now = useNow();
   const problem = useModelProjectStore((s) => s.problem);
   const modelId = useModelProjectStore((s) => s.modelId);
+  const editorParseError = useModelProjectStore((s) => s.editorParseError);
   const session = useModelProjectStore((s) => s.solveSession);
   const lastRun = useModelProjectStore((s) => s.lastRun);
   const startSolveSession = useModelProjectStore((s) => s.startSolveSession);
@@ -47,8 +48,9 @@ export function SolvePanel() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const blocked = useMemo(() => solveBlockedReason(problem), [problem]);
-  const blockedLabel =
-    blocked === "noVariables"
+  const blockedLabel = editorParseError
+    ? t("editorBlockSolve")
+    : blocked === "noVariables"
       ? t("solveNoVariables")
       : blocked === "noObjective"
         ? t("solveNoObjective")
@@ -79,7 +81,7 @@ export function SolvePanel() {
   }, [session.status, session.error, t]);
 
   const handleSolve = async () => {
-    if (blocked || running || submitting) return;
+    if (blocked || running || submitting || editorParseError) return;
     setSubmitting(true);
     clearSolveSession();
     try {
@@ -110,7 +112,7 @@ export function SolvePanel() {
     cancelSolveSession();
   };
 
-  const disabled = submitting || running || !canSolve || blocked !== null;
+  const disabled = submitting || running || !canSolve || blocked !== null || editorParseError;
 
   return (
     <div className="flex-1 overflow-auto p-6">

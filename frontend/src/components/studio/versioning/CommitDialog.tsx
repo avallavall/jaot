@@ -16,7 +16,10 @@ import { api } from "@/lib/api";
 import { useBuilderStore } from "@/hooks/useBuilderStore";
 import { diffCanvasJson } from "@/lib/builder/diff";
 import type { CanvasDiff } from "@/lib/builder/diff";
-import { useModelProjectStoreApi } from "../store/useModelProjectStore";
+import {
+  useModelProjectStore,
+  useModelProjectStoreApi,
+} from "../store/useModelProjectStore";
 import {
   isValidSummary,
   suggestedSummary,
@@ -49,6 +52,7 @@ export function CommitDialog({
 }: CommitDialogProps) {
   const t = useTranslations("studio");
   const storeApi = useModelProjectStoreApi();
+  const editorParseError = useModelProjectStore((s) => s.editorParseError);
   const [summary, setSummary] = useState("");
   const [body, setBody] = useState("");
   const [diff, setDiff] = useState<CanvasDiff | null>(null);
@@ -127,7 +131,7 @@ export function CommitDialog({
   }, [projectId, workspaceId, storeApi]);
 
   const handleCommit = useCallback(async () => {
-    if (!isValidSummary(summary)) return;
+    if (!isValidSummary(summary) || editorParseError) return;
     setIsSaving(true);
     try {
       await flushDraft();
@@ -144,7 +148,17 @@ export function CommitDialog({
     } finally {
       setIsSaving(false);
     }
-  }, [summary, body, projectId, workspaceId, flushDraft, onCommitted, onOpenChange, t]);
+  }, [
+    summary,
+    body,
+    editorParseError,
+    projectId,
+    workspaceId,
+    flushDraft,
+    onCommitted,
+    onOpenChange,
+    t,
+  ]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -224,6 +238,10 @@ export function CommitDialog({
             <Sparkles className="size-3.5 mr-1" />
             {t("versionExplainDiff")}
           </Button>
+
+          {editorParseError && (
+            <p className="text-xs text-destructive">{t("editorBlockCommit")}</p>
+          )}
         </div>
 
         <div className="flex justify-end gap-2 pt-1">
@@ -233,7 +251,7 @@ export function CommitDialog({
           <Button
             size="sm"
             onClick={handleCommit}
-            disabled={!isValidSummary(summary) || isSaving}
+            disabled={!isValidSummary(summary) || isSaving || editorParseError}
           >
             {isSaving ? t("versionCommitting") : t("versionCommit")}
           </Button>

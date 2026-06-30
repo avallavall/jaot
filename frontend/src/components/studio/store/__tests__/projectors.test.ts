@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { canvasProjector } from "../projectors";
+import { canvasProjector, scratchProjector } from "../projectors";
 import type { OptimizationProblem } from "@/lib/types";
 
 const PROBLEM: OptimizationProblem = {
@@ -24,5 +24,17 @@ describe("canvasProjector round-trip", () => {
     expect(back.objective.expression).toContain("y");
     expect(back.constraints).toHaveLength(1);
     expect(back.constraints[0].expression).toContain("<= 4");
+  });
+});
+
+describe("scratchProjector round-trip", () => {
+  it("serializes to pretty JSON and parses back to the same problem", () => {
+    const text = scratchProjector.fromProblem(PROBLEM);
+    expect(text).toContain("\n"); // pretty-printed, not minified
+    expect(scratchProjector.toProblem(text)).toEqual(PROBLEM);
+  });
+
+  it("throws on malformed JSON (callers parse defensively)", () => {
+    expect(() => scratchProjector.toProblem("{ not json")).toThrow();
   });
 });

@@ -55,7 +55,7 @@ export default function StudioNewPage() {
   const [importing, setImporting] = useState(false);
   const busy = creating || importing;
 
-  const handleCreate = async () => {
+  const handleCreate = async (initialLens?: "editor") => {
     if (busy) return;
     setCreating(true);
     try {
@@ -64,7 +64,8 @@ export default function StudioNewPage() {
         { name: "Untitled Model", workspace_id: activeWorkspaceId ?? undefined },
         activeWorkspaceId ?? undefined
       );
-      router.push(`/studio/${project.id}/build`);
+      const suffix = initialLens === "editor" ? "?lens=editor" : "";
+      router.push(`/studio/${project.id}/build${suffix}`);
     } catch (err) {
       toast.error(getErrorMessage(err, t("createFailed")));
       setCreating(false);
@@ -93,12 +94,12 @@ export default function StudioNewPage() {
 
   const tiles: LauncherTile[] = [
     { key: "ai", icon: <Sparkles className="h-6 w-6" />, label: t("tileAi"), desc: t("tileAiDesc"), available: false },
-    { key: "visual", icon: <Blocks className="h-6 w-6" />, label: t("tileVisual"), desc: t("tileVisualDesc"), available: true, onClick: handleCreate },
-    { key: "editor", icon: <Code2 className="h-6 w-6" />, label: t("tileEditor"), desc: t("tileEditorDesc"), available: false },
+    { key: "visual", icon: <Blocks className="h-6 w-6" />, label: t("tileVisual"), desc: t("tileVisualDesc"), available: true, onClick: () => handleCreate() },
+    { key: "editor", icon: <Code2 className="h-6 w-6" />, label: t("tileEditor"), desc: t("tileEditorDesc"), available: true, onClick: () => handleCreate("editor") },
     { key: "import", icon: <Upload className="h-6 w-6" />, label: t("tileImport"), desc: t("tileImportDesc"), available: true, onClick: handleImportClick },
     { key: "template", icon: <LayoutTemplate className="h-6 w-6" />, label: t("tileTemplate"), desc: t("tileTemplateDesc"), available: true, onClick: () => router.push("/studio/templates") },
     { key: "marketplace", icon: <ShoppingBag className="h-6 w-6" />, label: t("tileMarketplace"), desc: t("tileMarketplaceDesc"), available: true, onClick: () => router.push("/marketplace") },
-    { key: "blank", icon: <FilePlus className="h-6 w-6" />, label: t("tileBlank"), desc: t("tileBlankDesc"), available: true, onClick: handleCreate },
+    { key: "blank", icon: <FilePlus className="h-6 w-6" />, label: t("tileBlank"), desc: t("tileBlankDesc"), available: true, onClick: () => handleCreate() },
   ];
 
   return (
