@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { AlertCircle, CheckCircle2, Code2, Loader2, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,8 @@ import {
   useModelProjectStoreApi,
 } from "../../store/useModelProjectStore";
 import { scratchProjector } from "../../store/projectors";
-import { exceedsCanvasScale, modelElementCount } from "../../store/model-scale";
+import { CANVAS_SCALE_CAP, modelElementCount } from "../../store/model-scale";
+import { TooLargeNotice } from "../../TooLargeNotice";
 import { parseModelText, type ParseResult, type ShapeField } from "./parse";
 
 const VALIDATE_DEBOUNCE_MS = 500;
@@ -28,8 +29,8 @@ export function ModelEditorPanel() {
   const t = useTranslations("studio");
   const problem = useModelProjectStore((s) => s.problem);
   const lastSource = useModelProjectStore((s) => s.lastSource);
-  const tooLarge = useModelProjectStore((s) => exceedsCanvasScale(s.problem));
   const elementCount = useModelProjectStore((s) => modelElementCount(s.problem));
+  const tooLarge = elementCount > CANVAS_SCALE_CAP;
   const storeApi = useModelProjectStoreApi();
 
   const [text, setText] = useState<string>(() => scratchProjector.fromProblem(problem));
@@ -40,7 +41,10 @@ export function ModelEditorPanel() {
   // Monotonic token so a slow validation response can never overwrite a newer one.
   const validateSeq = useRef(0);
 
-  const runValidate = useCallback((p: OptimizationProblem) => {
+  // A plain function (not useCallback): it's only invoked from a setTimeout inside
+  // handleChange, never passed to a memoized child or a dependency array, so a stable
+  // identity buys nothing. Stale-response races are handled by the validateSeq token.
+  const runValidate = (p: OptimizationProblem) => {
     const seq = ++validateSeq.current;
     setValidating(true);
     api
@@ -55,7 +59,7 @@ export function ModelEditorPanel() {
       .finally(() => {
         if (seq === validateSeq.current) setValidating(false);
       });
-  }, []);
+  };
 
   // Re-seed the textarea when the model changes from ANOTHER source (canvas edit,
   // version restore, load) — but never while the user is typing here (lastSource
@@ -105,18 +109,12 @@ export function ModelEditorPanel() {
 
   if (tooLarge) {
     return (
-      <div
-        data-testid="studio-editor-too-large"
-        className="flex-1 flex items-center justify-center p-6"
-      >
-        <div className="max-w-md text-center">
-          <Code2 className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-          <p className="text-sm font-medium">{t("editorTooLargeTitle")}</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("editorTooLarge", { count: elementCount })}
-          </p>
-        </div>
-      </div>
+      <TooLargeNotice
+        testid="studio-editor-too-large"
+        icon={<Code2 className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />}
+        title={t("editorTooLargeTitle")}
+        body={t("editorTooLarge", { count: elementCount })}
+      />
     );
   }
 

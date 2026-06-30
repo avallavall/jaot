@@ -27,14 +27,16 @@ describe("canvasProjector round-trip", () => {
   });
 });
 
-describe("scratchProjector round-trip", () => {
-  it("serializes to pretty JSON and parses back to the same problem", () => {
+describe("scratchProjector", () => {
+  it("serializes to pretty JSON that round-trips", () => {
     const text = scratchProjector.fromProblem(PROBLEM);
     expect(text).toContain("\n"); // pretty-printed, not minified
-    expect(scratchProjector.toProblem(text)).toEqual(PROBLEM);
+    expect(JSON.parse(text)).toEqual(PROBLEM);
   });
 
-  it("throws on malformed JSON (callers parse defensively)", () => {
-    expect(() => scratchProjector.toProblem("{ not json")).toThrow();
+  it("leaves text -> problem to the typed parser (parse.ts), not the projector", () => {
+    // The editor parses via parseModelText (typed Result); the projector's reverse
+    // direction is intentionally unimplemented so there is one shape-checking parser.
+    expect(() => scratchProjector.toProblem("{}")).toThrow();
   });
 });

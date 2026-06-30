@@ -10,6 +10,7 @@ import { PropertiesPanel } from "@/components/builder/PropertiesPanel";
 import { useBuilderStore } from "@/hooks/useBuilderStore";
 import { useModelProjectStore } from "../store/useModelProjectStore";
 import { modelElementCount } from "../store/model-scale";
+import { TooLargeNotice } from "../TooLargeNotice";
 import { ModelEditorPanel } from "./editor/ModelEditorPanel";
 
 // ReactFlow requires browser APIs — load the canvas client-side only.
@@ -79,18 +80,12 @@ export function BuildPanel() {
       </div>
 
       {lens === "canvas" && canvasDisabled ? (
-        <div
-          data-testid="studio-canvas-too-large"
-          className="flex-1 flex items-center justify-center p-6"
-        >
-          <div className="max-w-md text-center">
-            <LayoutGrid className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-            <p className="text-sm font-medium">{t("canvasTooLargeTitle")}</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t("canvasTooLarge", { count: elementCount })}
-            </p>
-          </div>
-        </div>
+        <TooLargeNotice
+          testid="studio-canvas-too-large"
+          icon={<LayoutGrid className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />}
+          title={t("canvasTooLargeTitle")}
+          body={t("canvasTooLarge", { count: elementCount })}
+        />
       ) : lens === "canvas" ? (
         <div className="flex flex-1 min-h-0 overflow-hidden">
           <NodePalette />

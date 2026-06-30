@@ -31,12 +31,15 @@ function notImplemented(rep: RepKey): never {
 }
 
 /**
- * The Editor (text) lens projects the canonical model to/from pretty-printed JSON.
- * `toProblem` throws on malformed JSON — callers parse defensively (see
- * `panels/editor/parse.ts`) so a typo never reaches the canonical model.
+ * The Editor (text) lens serializes the canonical model to pretty-printed JSON.
+ * The reverse direction (text -> problem) is deliberately NOT this projector's job:
+ * the editor needs a typed parse Result (syntax + shape errors for inline feedback)
+ * that the throwing `Projector.toProblem` signature can't carry, so it lives in
+ * `panels/editor/parse.ts` (`parseModelText`). Leaving `toProblem` unimplemented
+ * keeps a single, shape-checking parser instead of a second weaker `JSON.parse`.
  */
 export const scratchProjector: Projector<string> = {
-  toProblem: (text) => JSON.parse(text) as OptimizationProblem,
+  toProblem: () => notImplemented("scratch"),
   fromProblem: (problem) => JSON.stringify(problem, null, 2),
 };
 
