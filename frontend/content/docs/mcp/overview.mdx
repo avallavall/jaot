@@ -164,7 +164,7 @@ JAOT exposes **19 MCP tools** organized into six categories:
 | `solve_problem` | Yes | Solve an optimization problem defined as variables, constraints, and an objective. Optionally choose a solver (`scip`, `highs`, `hexaly`) or `auto` routing |
 | `validate_problem` | Yes | Validate a problem definition without solving (no credits charged) |
 | `solve_multi_objective` | Yes | Solve a multi-objective problem and return a Pareto front |
-| `list_available_solvers` | Yes | List the solvers available to your organization and their credit multipliers |
+| `list_available_solvers` | Yes | List the solvers available to your organization |
 
 ### Catalog Tools
 
@@ -190,7 +190,7 @@ JAOT exposes **19 MCP tools** organized into six categories:
 | `list_catalog_models` | No | Browse published models in the marketplace |
 | `get_catalog_model` | No | Get a specific marketplace model's details |
 | `get_catalog_model_schema` | No | Get the input schema for a marketplace model |
-| `activate_catalog_model` | Yes | Activate (purchase) a marketplace model for your organization |
+| `activate_catalog_model` | Yes | Activate a marketplace model for your organization (free) |
 
 ### Execution Tools
 
@@ -274,6 +274,6 @@ These documents follow the [llms.txt specification](https://llmstxt.org/) and al
 
 ## Credit Consumption
 
-MCP tool calls that trigger optimization solves consume credits from your organization's balance, following the same pricing formula as direct API calls. Use `get_credit_balance` to check your balance, and the `validate_problem` tool to estimate credit cost before solving.
+MCP tool calls that trigger optimization solves draw from your organization's credit quota, following the same usage formula as direct API calls. Use `get_credit_balance` to check your balance, and the `validate_problem` tool to estimate the cost before solving.
 
-See [Rate Limits and Credits](/docs/reference/rate-limits-credits) for the complete credit pricing formula and plan details.
+See [Rate Limits and Credits](/docs/reference/rate-limits-credits) for the complete credit usage formula.

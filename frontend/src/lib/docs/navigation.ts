@@ -48,7 +48,7 @@ export const docsNavigation: DocsNavItem[] = [
       { title: "Solve", slug: "api/solve" },
       { title: "Models", slug: "api/models" },
       { title: "Executions", slug: "api/executions" },
-      { title: "Credits & Billing", slug: "api/credits-billing" },
+      { title: "Credits", slug: "api/credits-billing" },
       { title: "API Keys", slug: "api/api-keys" },
       { title: "Notifications", slug: "api/notifications" },
       { title: "Triggers", slug: "api/triggers" },

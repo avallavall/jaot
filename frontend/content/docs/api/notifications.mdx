@@ -6,7 +6,7 @@ order: 6
 
 # Notifications
 
-The Notifications endpoints let you manage in-app notifications for the authenticated user. Notifications are created automatically by the system when events occur, such as completed solves, credit purchases, or model updates.
+The Notifications endpoints let you manage in-app notifications for the authenticated user. Notifications are created automatically by the system when events occur, such as completed solves or model updates.
 
 ## GET /api/v2/notifications
 
@@ -43,9 +43,7 @@ List notifications for the current user.
 |------|-------------|
 | `execution_complete` | An optimization execution finished |
 | `execution_failed` | An optimization execution failed |
-| `credits_low` | Credit balance is running low |
-| `credits_purchased` | Credits were purchased |
-| `subscription_updated` | Subscription plan changed |
+| `credits_low` | Usage quota is running low |
 | `system` | System announcement |
 
 ### Examples
@@ -105,7 +103,7 @@ items.forEach((n) => {
       "id": "ntf_e5f6g7h8",
       "type": "credits_low",
       "title": "Low credit balance",
-      "message": "Your organization has 15 credits remaining. Consider purchasing more.",
+      "message": "Your organization has 15 credits remaining in its usage quota.",
       "data": {"credits_remaining": 15},
       "link": "/workspace/credits",
       "is_read": false,

@@ -255,7 +255,7 @@ List credit transactions across all organizations. Useful for auditing credit fl
 | `page` | int | 1 | Page number |
 | `page_size` | int | 20 | Items per page |
 | `organization_id` | string | -- | Filter by organization |
-| `transaction_type` | string | -- | Filter by type: `purchase`, `execution`, `sale_earning`, `withdrawal`, `refund`, `adjustment` |
+| `transaction_type` | string | -- | Filter by type: `execution`, `refund`, `adjustment` (the `purchase`, `sale_earning`, and `withdrawal` types are inert when `MONETIZATION_ENABLED` is off) |
 
 <CodeTabs>
 ```python

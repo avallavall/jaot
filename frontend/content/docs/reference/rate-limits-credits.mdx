@@ -200,8 +200,7 @@ curl -X POST https://jaot.io/api/v2/credits/calculator \
     "raw_total": 7.87,
     "cap_applied": false,
     "max_credits_per_solve": 500
-  },
-  "cost_eur": 0.128
+  }
 }
 ```
 
@@ -241,6 +240,6 @@ curl -H "Authorization: Bearer ok_live_..." \
 
 ---
 
-## Purchasing Credits
+## Credits as a Usage Quota
 
-Credits can be purchased through the billing portal or via the checkout API endpoints, when the instance operator has configured Stripe. See the [Credits & Billing API](/docs/api/credits-billing) for the available endpoints.
+Credits are a free usage quota, not something you buy — monetization is off by default on the hosted instance. A solve draws at least one credit; the quota and per-plan caps are platform settings a self-host operator can raise from the admin panel. See the [Credits API](/docs/api/credits-billing).
