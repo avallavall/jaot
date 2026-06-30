@@ -179,4 +179,15 @@ test.describe("Studio — critical path (guards live bugs A/B/C)", () => {
     // The workspace mounted with the seeded model (the name input is always present).
     await expect(page.getByTestId("studio-name-input")).toBeVisible({ timeout: NAV });
   });
+
+  // P2 centralization: a marketplace model's "Use in studio" SEEDS a ModelProject too.
+  // Uses an OFFICIAL model (materializes from its example input; community models may not).
+  test("marketplace 'Use in studio' seeds a ModelProject (P2)", async ({ page }) => {
+    await page.goto("/marketplace/official_assortment_planning");
+    const useBtn = page.getByTestId("marketplace-use-in-studio");
+    await expect(useBtn).toBeVisible({ timeout: NAV });
+    await useBtn.click();
+    await page.waitForURL(/\/studio\/(mp_[A-Za-z0-9]+)\/build/, { timeout: NAV });
+    await expect(page.getByTestId("studio-name-input")).toBeVisible({ timeout: NAV });
+  });
 });

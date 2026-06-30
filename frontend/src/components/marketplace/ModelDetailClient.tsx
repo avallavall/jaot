@@ -57,6 +57,7 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
   const [activating, setActivating] = useState(false);
   const [isActivated, setIsActivated] = useState(false);
   const [activatedModelId, setActivatedModelId] = useState<string | null>(null);
+  const [openingStudio, setOpeningStudio] = useState(false);
 
   // Activation modal
   const [showActivateModal, setShowActivateModal] = useState(false);
@@ -152,6 +153,31 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
       dialog.showError(msg);
     } finally {
       setActivating(false);
+    }
+  };
+
+  // P2 centralization: "Use in studio" SEEDS a ModelProject from this marketplace
+  // model and opens the workspace (additive — the legacy "activate" → /solve path
+  // stays). A model whose generator can't materialize from its example input yields a
+  // 422 → an honest message rather than a broken redirect.
+  const handleUseInStudio = async () => {
+    if (!model) return;
+    if (!isAuthenticated) {
+      router.push(`/login?returnUrl=/marketplace/${modelId}`);
+      return;
+    }
+    setOpeningStudio(true);
+    try {
+      const project = await api.createProjectFromMarketplace(model.id);
+      router.push(`/studio/${project.id}/build`);
+    } catch (err) {
+      setOpeningStudio(false);
+      const status = getErrorStatus(err);
+      dialog.showError(
+        status === 422
+          ? t("useInStudioUnavailable")
+          : getErrorMessage(err, t("useInStudioFailed")),
+      );
     }
   };
 
@@ -286,29 +312,49 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
                 </span>
               )}
             </div>
-            {isActivated ? (
-              <Button
-                onClick={() => router.push(`/solve/${activatedModelId}`)}
-                size="lg"
-                variant="outline"
-                className="w-full sm:w-auto"
-              >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                {t("openModel")}
-              </Button>
-            ) : !isAuthenticated ? (
-              <Button
-                onClick={() => router.push(`/login?returnUrl=/marketplace/${modelId}`)}
-                size="lg"
-                className="w-full sm:w-auto"
-              >
-                {t("signInToActivate")}
-              </Button>
-            ) : (
-              <Button onClick={handleActivateClick} disabled={activating} size="lg" className="w-full sm:w-auto">
-                {activating ? t("activating") : t("activateModel")}
-              </Button>
-            )}
+            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+              {isAuthenticated && (
+                <Button
+                  onClick={handleUseInStudio}
+                  disabled={openingStudio}
+                  size="lg"
+                  className="w-full sm:w-auto"
+                  data-testid="marketplace-use-in-studio"
+                >
+                  <Package className="w-4 h-4 mr-2" />
+                  {openingStudio ? t("openingStudio") : t("useInStudio")}
+                </Button>
+              )}
+              {isActivated ? (
+                <Button
+                  onClick={() => router.push(`/solve/${activatedModelId}`)}
+                  size="lg"
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  {t("openModel")}
+                </Button>
+              ) : !isAuthenticated ? (
+                <Button
+                  onClick={() => router.push(`/login?returnUrl=/marketplace/${modelId}`)}
+                  size="lg"
+                  className="w-full sm:w-auto"
+                >
+                  {t("signInToActivate")}
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleActivateClick}
+                  disabled={activating}
+                  size="lg"
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                >
+                  {activating ? t("activating") : t("activateModel")}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
