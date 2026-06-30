@@ -489,6 +489,66 @@ class TestConversationCRUD:
         data = response.json()
         assert data["model_id"] == "doc_abc123"
 
+    def test_create_conversation_scoped_to_project_seeds_formulation(self, authenticated_client):
+        """A studio conversation scoped to a ModelProject seeds current_formulation from
+        the project's draft, so the first chat message refines the existing model."""
+        pid = authenticated_client.post("/api/v2/projects", json={"name": "Seed Probe"}).json()[
+            "id"
+        ]
+        model = {
+            "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
+            "objective": {"sense": "minimize", "expression": "x"},
+            "constraints": [{"name": "c1", "expression": "x >= 5"}],
+        }
+        draft = authenticated_client.put(
+            f"/api/v2/projects/{pid}/draft", json={"model_json": model}
+        )
+        assert draft.status_code == 200, draft.text
+
+        resp = authenticated_client.post(
+            "/api/v2/llm/conversations", json={"model_project_id": pid}
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["model_project_id"] == pid
+        cf = data["current_formulation"]
+        assert cf is not None
+        assert cf["problem_name"] == "Seed Probe"
+        assert [v["name"] for v in cf["variables"]] == ["x"]
+        assert cf["objective"]["sense"] == "minimize"
+        assert len(cf["constraints"]) == 1
+
+    def test_create_conversation_unknown_project_returns_404(self, authenticated_client):
+        """A model_project_id that is not an org-owned project must 404 (no leak)."""
+        resp = authenticated_client.post(
+            "/api/v2/llm/conversations", json={"model_project_id": "mp_does_not_exist"}
+        )
+        assert resp.status_code == 404
+
+    def test_create_conversation_empty_project_no_seed(self, authenticated_client):
+        """A brand-new (variable-less) project seeds nothing — the chat builds from scratch."""
+        pid = authenticated_client.post("/api/v2/projects", json={"name": "Empty"}).json()["id"]
+        resp = authenticated_client.post(
+            "/api/v2/llm/conversations", json={"model_project_id": pid}
+        )
+        assert resp.status_code == 201
+        assert resp.json()["current_formulation"] is None
+
+    def test_list_conversations_filters_by_project(self, authenticated_client):
+        """GET /conversations?model_project_id= returns only that project's conversations."""
+        pid = authenticated_client.post("/api/v2/projects", json={"name": "Filter Probe"}).json()[
+            "id"
+        ]
+        scoped = authenticated_client.post(
+            "/api/v2/llm/conversations", json={"model_project_id": pid}
+        ).json()["id"]
+        authenticated_client.post("/api/v2/llm/conversations", json={})  # unscoped
+
+        resp = authenticated_client.get(f"/api/v2/llm/conversations?model_project_id={pid}")
+        assert resp.status_code == 200
+        ids = [c["id"] for c in resp.json()["items"]]
+        assert ids == [scoped]
+
     def test_list_conversations_filters_by_model_id(
         self, authenticated_client, db_session, test_user, test_organization
     ):

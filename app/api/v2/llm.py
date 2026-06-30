@@ -74,6 +74,48 @@ class CreateConversationRequest(BaseModel):
         None, description="Template ID for template-based conversations"
     )
     model_id: str | None = Field(None, description="Builder document ID for conversation scoping")
+    model_project_id: str | None = Field(
+        None, description="ModelProject id (studio) for conversation scoping"
+    )
+
+
+def _problem_to_formulation(problem: dict[str, Any], name: str) -> dict[str, Any]:
+    """Map a canonical ``OptimizationProblem`` to a ``Formulation`` dict.
+
+    Seeds a studio conversation's ``current_formulation`` from the project's current
+    model, so the first chat message refines the EXISTING model instead of starting
+    from scratch. Structural copy only; descriptions default to empty.
+    """
+    variables = [
+        {
+            "name": v.get("name", ""),
+            "type": v.get("type", "continuous"),
+            "lower_bound": v.get("lower_bound"),
+            "upper_bound": v.get("upper_bound"),
+            "description": v.get("description", ""),
+        }
+        for v in (problem.get("variables") or [])
+    ]
+    constraints = [
+        {
+            "name": c.get("name", ""),
+            "expression": c.get("expression", ""),
+            "description": c.get("description", ""),
+        }
+        for c in (problem.get("constraints") or [])
+    ]
+    obj = problem.get("objective") or {}
+    return {
+        "problem_name": name or "Model",
+        "summary": "",
+        "variables": variables,
+        "constraints": constraints,
+        "objective": {
+            "sense": obj.get("sense", "minimize"),
+            "expression": obj.get("expression", ""),
+            "description": obj.get("description", ""),
+        },
+    }
 
 
 def _is_real_formulation(formulation: dict[str, Any] | None) -> bool:
@@ -135,6 +177,7 @@ def _conv_to_response(conv: LLMConversation, include_messages: bool = True) -> d
         "expires_at": conv.expires_at.isoformat(),
         "current_formulation": conv.current_formulation,
         "model_id": conv.model_id,
+        "model_project_id": conv.model_project_id,
     }
     if include_messages:
         data["messages"] = [
@@ -178,12 +221,25 @@ def create_conversation(
             },
         )
 
+    # Studio scoping: a model_project_id must reference an org-owned project (404 otherwise).
+    project = None
+    if body.model_project_id:
+        from app.services import model_project_service as projects_svc
+
+        project = projects_svc.get_project_or_404(db, body.model_project_id, org.id)
+        if project is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Model project not found",
+            )
+
     conv = LLMConversation(
         id=generate_id("conv_"),
         organization_id=org.id,
         user_id=user.id,
         template_id=body.template_id,
         model_id=body.model_id,
+        model_project_id=body.model_project_id,
         created_at=utcnow().replace(tzinfo=None),
         expires_at=(
             utcnow() + timedelta(hours=PSS.get_int(db, "LLM_CONVERSATION_TTL_HOURS"))
@@ -204,6 +260,12 @@ def create_conversation(
             )
             conv.messages.append(msg)
             conv.current_formulation = template_formulation
+    elif project is not None:
+        # Seed the conversation with the project's current model so the first chat
+        # message refines the EXISTING model rather than generating from scratch.
+        draft = project.draft_model_json or {}
+        if draft.get("variables"):
+            conv.current_formulation = _problem_to_formulation(draft, project.name)
 
     db.add(conv)
     db.commit()
@@ -220,6 +282,7 @@ def list_conversations(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     model_id: str | None = Query(None, description="Filter by builder document ID"),
+    model_project_id: str | None = Query(None, description="Filter by ModelProject id (studio)"),
 ) -> dict[str, Any]:
     """List active (non-expired) conversations for the current user."""
     now = utcnow().replace(tzinfo=None)
@@ -235,6 +298,8 @@ def list_conversations(
 
     if model_id:
         query = query.filter(LLMConversation.model_id == model_id)
+    if model_project_id:
+        query = query.filter(LLMConversation.model_project_id == model_project_id)
 
     items, total = paginate_query(query, page=page, page_size=page_size)
 
