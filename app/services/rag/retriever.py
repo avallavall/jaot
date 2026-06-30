@@ -248,7 +248,7 @@ async def get_rag_context(
     )
 
     # Batch-read all RAG settings in one DB query
-    rag_settings = PSS.get_many(db, ["RAG_ENABLED", "RAG_TOP_K", "RAG_MIN_SCORE"])
+    rag_settings = PSS.get_many(db, ["RAG_ENABLED", "RAG_TOP_K", "RAG_MIN_SCORE", "RAG_MAX_TOKENS"])
 
     if rag_settings.get("RAG_ENABLED", "false").lower() != "true":
         return None
@@ -268,6 +268,7 @@ async def get_rag_context(
 
         top_k = int(rag_settings.get("RAG_TOP_K", "5"))
         min_score = float(rag_settings.get("RAG_MIN_SCORE", "0.35"))
+        max_tokens = int(rag_settings.get("RAG_MAX_TOKENS", "3000"))
 
         retriever = RAGRetriever(
             qdrant=qdrant,
@@ -291,7 +292,7 @@ async def get_rag_context(
 
         from app.services.llm.prompt_templates import format_rag_context
 
-        return format_rag_context(results)
+        return format_rag_context(results, max_tokens=max_tokens)
 
     except Exception as e:
         cb.record_failure()

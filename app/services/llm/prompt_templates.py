@@ -158,12 +158,17 @@ def format_rag_document(payload: dict[str, Any], score: float) -> str:
     return f"--- {header} ---\n{text}"
 
 
-def format_rag_context(results: list[dict[str, Any]]) -> str:
+def format_rag_context(results: list[dict[str, Any]], max_tokens: int | None = None) -> str:
     """Format all retrieved documents into the RAG context block.
 
     Args:
         results: List of dicts with keys: text, score, payload.
-            From RAGRetriever.retrieve().
+            From RAGRetriever.retrieve() — already sorted by descending score.
+        max_tokens: Optional cap on the estimated tokens of the injected context.
+            Documents are added most-relevant-first until the next would exceed the
+            budget; the single most relevant document is always kept even if it alone
+            exceeds the cap. Bounds the system prompt so many/long retrieved documents
+            cannot bloat it (and the per-message LLM cost) without limit.
 
     Returns:
         Formatted RAG context string ready for system prompt injection.
@@ -172,7 +177,17 @@ def format_rag_context(results: list[dict[str, Any]]) -> str:
     if not results:
         return NO_RAG_CONTEXT
 
-    docs = [format_rag_document(result["payload"], result["score"]) for result in results]
+    from app.services.llm.token_estimation import estimate_tokens
+
+    docs: list[str] = []
+    used = 0
+    for result in results:
+        doc = format_rag_document(result["payload"], result["score"])
+        cost = estimate_tokens(doc)
+        if max_tokens is not None and docs and used + cost > max_tokens:
+            break
+        docs.append(doc)
+        used += cost
 
     return RAG_CONTEXT_TEMPLATE.format(retrieved_documents="\n\n".join(docs))
 
