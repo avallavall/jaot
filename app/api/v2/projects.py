@@ -32,6 +32,7 @@ from app.domains.solver.adapters.base import (
 from app.domains.solver.services import SolverService, get_solver_service
 from app.domains.solver.services.availability_gate import ensure_hexaly_worker_or_503
 from app.domains.solver.services.pool import get_solver_pool
+from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
 from app.models.audit_log import AuditAction
 from app.models.builder_document import ModelBuilderDocument
 from app.models.model_project import ModelProject, ModelProjectVersion
@@ -60,6 +61,7 @@ from app.services.solve_orchestrator import (
     SolveOrchestrator,
     validate_problem,
 )
+from app.services.template_resolver import resolve_template_dict
 from app.shared.core.rate_limiter import check_rate_limit
 from app.shared.db import get_db
 
@@ -151,6 +153,123 @@ def create_from_builder(
         source_type="builder_document",
         source_ref=doc.id,
         auto_commit_summary="Imported from builder document" if doc.model_json else None,
+    )
+    db.commit()
+    db.refresh(project)
+    return project
+
+
+def _seed_from_template(
+    db: Session,
+    *,
+    org_id: str,
+    user_id: str | None,
+    template_engine: TemplateEngine,
+    template_id: str,
+    source_type: str,
+) -> ModelProject:
+    """Resolve a template/marketplace id, materialize it, and seed a ModelProject.
+
+    Shared by the from-template and from-marketplace routes (P2 centralization).
+    The template is rendered with its own ``example_input`` — a one-click starting
+    point — and the new project is born with a v1 commit so it has history from the
+    first moment, exactly like ``create_from_builder``. Materialization reuses the
+    existing ``TemplateEngine`` (the same path the template-solve routes use), so no
+    new generator code is introduced.
+    """
+    template_dict, _origin = resolve_template_dict(template_id, db)
+    if template_dict is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+    input_data = template_dict.get("example_input") or {}
+    try:
+        problem = template_engine.render(template_dict, input_data)
+    except Exception as exc:  # noqa: BLE001 — any generator failure → 422, not 500
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Could not build a model from this template: {exc}",
+        ) from exc
+    name = template_dict.get("display_name") or template_dict.get("name") or "Untitled Model"
+    label = "template" if source_type == "template" else "marketplace model"
+    return svc.create_seeded(
+        db,
+        org_id=org_id,
+        user_id=user_id,
+        name=name,
+        problem_json=problem.model_dump(mode="json"),
+        source_type=source_type,
+        source_ref=template_id,
+        auto_commit_summary=f"Created from {label} '{name}'",
+    )
+
+
+@router.post(
+    "/from-template/{template_id}",
+    response_model=ProjectRead,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="create_model_project_from_template",
+)
+def create_from_template(
+    template_id: str,
+    db: DBSession,
+    user: CurrentUser,
+    org: CurrentOrg,
+    _ws: OptionalRequireSolver,
+    template_engine: TemplateEngine = Depends(get_template_engine),
+) -> ModelProject:
+    """Seed a ModelProject from a template (one-click "Use template" → workspace)."""
+    project = _seed_from_template(
+        db,
+        org_id=org.id,
+        user_id=user.id,
+        template_engine=template_engine,
+        template_id=template_id,
+        source_type="template",
+    )
+    log_action(
+        db=db,
+        organization_id=org.id,
+        actor=user,
+        action=AuditAction.MODEL_EDIT,
+        target_type="model_project",
+        target_id=project.id,
+        target_name=project.name,
+    )
+    db.commit()
+    db.refresh(project)
+    return project
+
+
+@router.post(
+    "/from-marketplace/{model_id}",
+    response_model=ProjectRead,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="create_model_project_from_marketplace",
+)
+def create_from_marketplace(
+    model_id: str,
+    db: DBSession,
+    user: CurrentUser,
+    org: CurrentOrg,
+    _ws: OptionalRequireSolver,
+    template_engine: TemplateEngine = Depends(get_template_engine),
+) -> ModelProject:
+    """Seed a ModelProject from a published marketplace model → workspace."""
+    project = _seed_from_template(
+        db,
+        org_id=org.id,
+        user_id=user.id,
+        template_engine=template_engine,
+        template_id=model_id,
+        source_type="marketplace",
+    )
+    log_action(
+        db=db,
+        organization_id=org.id,
+        actor=user,
+        action=AuditAction.MODEL_EDIT,
+        target_type="model_project",
+        target_id=project.id,
+        target_name=project.name,
     )
     db.commit()
     db.refresh(project)

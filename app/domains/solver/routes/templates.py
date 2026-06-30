@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import OptionalRequireSolver
 from app.api.v2.solve import _enforce_tier_caps, calculate_credits
-from app.data.templates import TemplateDefinition, get_yaml_template, load_all_templates
+from app.data.templates import load_all_templates
 from app.domains.solver.adapters.base import (
     DEFAULT_SOLVER_NAME,
     SolverNotFoundError,
@@ -25,9 +25,13 @@ from app.domains.solver.adapters.base import (
 from app.domains.solver.services import SolverService, get_solver_service
 from app.domains.solver.services.availability_gate import ensure_hexaly_worker_or_503
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
-from app.models import ModelCatalog, Organization
+from app.models import Organization
 from app.schemas.optimization import OptimizationProblem
 from app.services.solve_orchestrator import SolveOrchestrator, validate_problem
+from app.services.template_resolver import (
+    catalog_model_to_dict as _catalog_model_to_dict,
+    resolve_template as _resolve_template,
+)
 from app.shared.core.rate_limiter import check_rate_limit
 from app.shared.db import get_db
 
@@ -36,54 +40,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def _yaml_template_to_dict(tmpl: TemplateDefinition) -> dict[str, Any]:
-    """Convert a YAML TemplateDefinition to a template dict for the engine."""
-    return {**tmpl.model_dump(), "generator": tmpl.generator_type}
-
-
-def _resolve_template(
-    template_id: str,
-    db: Session,
-) -> tuple[dict[str, Any] | None, ModelCatalog | None]:
-    """Return (template_dict, None) or (None, catalog_model).
-
-    Resolution order: YAML templates → DB catalog.
-    Both may be None when template_id matches nothing.
-    """
-    yaml_tmpl = get_yaml_template(template_id)
-    if yaml_tmpl:
-        return _yaml_template_to_dict(yaml_tmpl), None
-
-    model = (
-        db.query(ModelCatalog)
-        .filter(
-            ModelCatalog.id.in_([template_id, f"official_{template_id}"]),
-            ModelCatalog.status == "published",
-        )
-        .first()
-    )
-    if model:
-        return None, model
-
-    return None, None
-
-
-def _catalog_model_to_dict(model: ModelCatalog) -> dict[str, Any]:
-    """Convert a ModelCatalog row to a template dict for the engine."""
-    return {
-        "id": model.id,
-        "name": model.name,
-        "display_name": model.display_name,
-        "description": model.description,
-        "scenario_description": model.scenario_description,
-        "category": model.category,
-        "tags": model.tags or [],
-        "generator": model.generator_type,
-        "generator_type": model.generator_type,
-        "input_schema": model.input_schema,
-        "input_fields": model.input_fields,
-        "example_input": model.example_input,
-    }
+# Template resolution (id → engine-ready dict) lives in
+# ``app/services/template_resolver.py`` so the ModelProject "create from template /
+# marketplace" endpoints (P2) share ONE resolution path. Imported above as
+# ``_resolve_template`` / ``_yaml_template_to_dict`` / ``_catalog_model_to_dict``.
 
 
 @router.get("/metadata", operation_id="get_solve_metadata")
