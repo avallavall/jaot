@@ -148,15 +148,35 @@ test.describe("Studio — critical path (guards live bugs A/B/C)", () => {
     page,
   }) => {
     await page.goto("/studio/new");
-    // The two implemented starting points are real, enabled buttons.
-    await expect(page.getByTestId("launcher-tile-blank")).toBeEnabled();
-    await expect(page.getByTestId("launcher-tile-visual")).toBeEnabled();
+    // The implemented starting points are real, enabled buttons.
+    for (const key of ["blank", "visual", "import", "template"]) {
+      await expect(page.getByTestId(`launcher-tile-${key}`)).toBeEnabled();
+    }
     // The not-yet-built tiles are visibly disabled (rendered as aria-disabled cards),
     // never clickable controls that toast "coming soon".
-    for (const key of ["ai", "editor", "import", "template", "marketplace"]) {
+    for (const key of ["ai", "editor", "marketplace"]) {
       const tile = page.getByTestId(`launcher-tile-${key}`);
       await expect(tile).toBeVisible();
       await expect(tile).toHaveAttribute("aria-disabled", "true");
     }
+  });
+
+  // P2 centralization: the 'template' tile → gallery → "Use" SEEDS a ModelProject and
+  // opens the workspace (replacing the old solve-once-and-lose-it template flow).
+  test("template gallery — 'Use' seeds a ModelProject and opens the workspace (P2)", async ({
+    page,
+  }) => {
+    await page.goto("/studio/new");
+    await page.getByTestId("launcher-tile-template").click();
+    await page.waitForURL(/\/studio\/templates$/, { timeout: NAV });
+
+    const firstUse = page.locator('[data-testid^="use-template-"]').first();
+    await expect(firstUse).toBeVisible({ timeout: NAV });
+    await firstUse.click();
+
+    // Seeding creates a first-class ModelProject and drops into the Build tab.
+    await page.waitForURL(/\/studio\/(mp_[A-Za-z0-9]+)\/build/, { timeout: NAV });
+    // The workspace mounted with the seeded model (the name input is always present).
+    await expect(page.getByTestId("studio-name-input")).toBeVisible({ timeout: NAV });
   });
 });

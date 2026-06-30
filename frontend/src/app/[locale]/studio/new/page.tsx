@@ -96,7 +96,7 @@ export default function StudioNewPage() {
     { key: "visual", icon: <Blocks className="h-6 w-6" />, label: t("tileVisual"), desc: t("tileVisualDesc"), available: true, onClick: handleCreate },
     { key: "editor", icon: <Code2 className="h-6 w-6" />, label: t("tileEditor"), desc: t("tileEditorDesc"), available: false },
     { key: "import", icon: <Upload className="h-6 w-6" />, label: t("tileImport"), desc: t("tileImportDesc"), available: true, onClick: handleImportClick },
-    { key: "template", icon: <LayoutTemplate className="h-6 w-6" />, label: t("tileTemplate"), desc: t("tileTemplateDesc"), available: false },
+    { key: "template", icon: <LayoutTemplate className="h-6 w-6" />, label: t("tileTemplate"), desc: t("tileTemplateDesc"), available: true, onClick: () => router.push("/studio/templates") },
     { key: "marketplace", icon: <ShoppingBag className="h-6 w-6" />, label: t("tileMarketplace"), desc: t("tileMarketplaceDesc"), available: false },
     { key: "blank", icon: <FilePlus className="h-6 w-6" />, label: t("tileBlank"), desc: t("tileBlankDesc"), available: true, onClick: handleCreate },
   ];

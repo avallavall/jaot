@@ -3015,6 +3015,9 @@ export interface paths {
         /**
          * List Model Projects
          * @description List the organization's ModelProjects (newest-updated first).
+         *
+         *     The list is org-wide (collaborative); pass ``mine=true`` to narrow it to the
+         *     current user's own models.
          */
         get: operations["list_model_projects"];
         put?: never;
@@ -3045,7 +3048,12 @@ export interface paths {
         post?: never;
         /**
          * Archive Model Project
-         * @description Soft-delete (archive) a ModelProject.
+         * @description Archive a ModelProject (soft-delete), or permanently delete it.
+         *
+         *     Default is a reversible **archive** (``status="archived"``). With
+         *     ``?permanent=true`` the project and its versions are **hard-deleted**
+         *     (irreversible) — only allowed once the project is already archived, so a
+         *     permanent delete is always a deliberate two-step action from the trash view.
          */
         delete: operations["archive_model_project"];
         options?: never;
@@ -3264,6 +3272,46 @@ export interface paths {
          * @description Seed a ModelProject from an existing builder document (migration helper).
          */
         post: operations["create_model_project_from_builder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/from-marketplace/{model_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create From Marketplace
+         * @description Seed a ModelProject from a published marketplace model → workspace.
+         */
+        post: operations["create_model_project_from_marketplace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/from-template/{template_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create From Template
+         * @description Seed a ModelProject from a template (one-click "Use template" → workspace).
+         */
+        post: operations["create_model_project_from_template"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8724,6 +8772,10 @@ export interface components {
         ProjectListItem: {
             /** Committed Count */
             committed_count: number;
+            /** Created By */
+            created_by?: string | null;
+            /** Created By Name */
+            created_by_name?: string | null;
             /** Current Version Id */
             current_version_id?: string | null;
             /** Description */
@@ -9418,8 +9470,8 @@ export interface components {
             threads: number;
             /**
              * Time Limit Seconds
-             * @description Max solve time
-             * @default 60
+             * @description Max solve time (seconds, up to 24h)
+             * @default 300
              */
             time_limit_seconds: number;
             /**
@@ -15973,6 +16025,7 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
+                mine?: boolean;
                 q?: string | null;
                 skip?: number;
                 status?: string | null;
@@ -16075,6 +16128,7 @@ export interface operations {
     archive_model_project: {
         parameters: {
             query?: {
+                permanent?: boolean;
                 workspace_id?: string | null;
             };
             header?: never;
@@ -16466,6 +16520,72 @@ export interface operations {
             header?: never;
             path: {
                 document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_model_project_from_marketplace: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                model_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_model_project_from_template: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                template_id: string;
             };
             cookie?: never;
         };

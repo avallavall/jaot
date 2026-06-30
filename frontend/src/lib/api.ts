@@ -1119,6 +1119,23 @@ export const api = {
     });
   },
 
+  /** Seed a ModelProject from a template (P2 centralization). The backend
+   * materializes the template via the existing engine and auto-commits v1. */
+  createProjectFromTemplate(templateId: string, workspaceId?: string): Promise<ProjectRead> {
+    return request(`/api/v2/projects/from-template/${encodeURIComponent(templateId)}`, {
+      method: "POST",
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  /** Seed a ModelProject from a published marketplace model (P2 centralization). */
+  createProjectFromMarketplace(modelId: string, workspaceId?: string): Promise<ProjectRead> {
+    return request(`/api/v2/projects/from-marketplace/${encodeURIComponent(modelId)}`, {
+      method: "POST",
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
   getProject(id: string, workspaceId?: string): Promise<ProjectRead> {
     return request(`/api/v2/projects/${id}`, {
       params: workspaceId ? { workspace_id: workspaceId } : undefined,
