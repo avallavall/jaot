@@ -31,4 +31,10 @@ describe("executionOriginHref", () => {
     expect(executionOriginHref("manual", "x")).toBeNull();
     expect(executionOriginHref(undefined, "x")).toBeNull();
   });
+
+  it("routes a studio model project to its workspace (source_kind wins over the origin slug)", () => {
+    expect(executionOriginHref("visual_builder", "mp_42", "model_project")).toBe(
+      "/studio/mp_42/build",
+    );
+  });
 });

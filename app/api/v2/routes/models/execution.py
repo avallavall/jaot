@@ -22,6 +22,7 @@ from app.domains.solver.services.solver_service import SolverService, get_solver
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
 from app.domains.solver.time_limits import compute_celery_time_limits
 from app.models import ExecutionStatus, ModelExecution, Organization, OrganizationModel, User
+from app.models.model_project import ModelProject
 from app.schemas.model import (
     ExecuteModelRequest,
     ExecutionListResponse,
@@ -604,6 +605,43 @@ async def list_model_executions(
     )
 
 
+def _attach_model_names(
+    db: Session,
+    executions: list[ModelExecution],
+    items: list[ModelExecutionResponse],
+) -> None:
+    """Batch-fill each row's ``model_name``/``model_author`` (studio project or org model).
+
+    The ModelExecution row carries ids/provenance, not a display name. Studio runs
+    trace to a ModelProject (typed ``model_project_id``, or ``source_kind="model_project"``
+    + ``source_id`` for the universal async path); marketplace/activated runs trace to an
+    OrganizationModel. Resolved in two batch queries so the history table shows a name +
+    author instead of an opaque id.
+    """
+
+    def _mp_id(e: ModelExecution) -> str | None:
+        return e.model_project_id or (e.source_id if e.source_kind == "model_project" else None)
+
+    mp_ids = {mp_id for e in executions if (mp_id := _mp_id(e))}
+    om_ids = {e.organization_model_id for e in executions if e.organization_model_id}
+
+    mp_info: dict[str, tuple[str, str | None]] = {}
+    if mp_ids:
+        for mp in db.query(ModelProject).filter(ModelProject.id.in_(mp_ids)).all():
+            mp_info[mp.id] = (mp.name, mp.created_by_name)
+    om_names: dict[str, str] = {}
+    if om_ids:
+        for om in db.query(OrganizationModel).filter(OrganizationModel.id.in_(om_ids)).all():
+            om_names[om.id] = om.display_name
+
+    for e, item in zip(executions, items, strict=True):
+        mp_id = _mp_id(e)
+        if mp_id and mp_id in mp_info:
+            item.model_name, item.model_author = mp_info[mp_id]
+        elif e.organization_model_id and e.organization_model_id in om_names:
+            item.model_name = om_names[e.organization_model_id]
+
+
 @router.get("/executions/all", response_model=ExecutionListResponse)
 async def list_all_executions(
     status: str | None = Query(None),
@@ -628,12 +666,9 @@ async def list_all_executions(
 
     executions, total = paginate_query(query, page, page_size)
 
-    return ExecutionListResponse(
-        items=[ModelExecutionResponse.model_validate(e) for e in executions],
-        total=total,
-        page=page,
-        page_size=page_size,
-    )
+    items = [ModelExecutionResponse.model_validate(e) for e in executions]
+    _attach_model_names(db, executions, items)
+    return ExecutionListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.get(

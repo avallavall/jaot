@@ -27,7 +27,10 @@ import type { PaginatedResponse } from "@/lib/types";
 
 interface AdminExecution {
   id: string;
-  model_id: string;
+  // Optional: studio/async runs trace via source_kind, not an org-model id — the
+  // row can arrive without a model_id (guarded below so it never builds a broken
+  // `/marketplace/undefined` link). Full studio-name resolution lands with P1.5.
+  model_id?: string;
   model_name?: string;
   organization_id: string;
   organization_name?: string;
@@ -201,13 +204,17 @@ export default function AdminExecutionsPage() {
                       {exec.id.slice(0, 8)}...
                     </TableCell>
                     <TableCell>
-                      <Link
-                        href={`/marketplace/${exec.model_id}`}
-                        className="flex items-center gap-1 hover:text-primary"
-                      >
-                        {exec.model_name || exec.model_id}
-                        <ExternalLink className="w-3 h-3" />
-                      </Link>
+                      {exec.model_id ? (
+                        <Link
+                          href={`/marketplace/${exec.model_id}`}
+                          className="flex items-center gap-1 hover:text-primary"
+                        >
+                          {exec.model_name || exec.model_id}
+                          <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      ) : (
+                        <span className="text-muted-foreground">{exec.model_name || "—"}</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Link

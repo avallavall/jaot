@@ -7244,6 +7244,10 @@ export interface components {
             input_data: {
                 [key: string]: unknown;
             };
+            /** Model Author */
+            model_author?: string | null;
+            /** Model Name */
+            model_name?: string | null;
             /** Objective Value */
             objective_value?: number | null;
             /** Organization Model Id */

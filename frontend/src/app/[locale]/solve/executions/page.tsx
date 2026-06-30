@@ -149,25 +149,35 @@ export default function ExecutionsPage() {
                   <td className="px-4 py-3">
                     <OriginBadge
                       origin={exec.origin}
+                      sourceKind={exec.source_kind ?? undefined}
                       triggerName={exec.input_data?.trigger_name as string | undefined}
                     />
                   </td>
                   <td className="px-4 py-3">
-                    {exec.organization_model_id ? (
-                      <button
-                        onClick={() => router.push(`/solve/${exec.organization_model_id}`)}
-                        className="text-sm hover:text-primary"
-                      >
-                        {exec.organization_model_id.slice(0, 8)}...
-                      </button>
-                    ) : (() => {
-                      const href = executionOriginHref(exec.origin, exec.source_id);
+                    {(() => {
+                      const href =
+                        executionOriginHref(exec.origin, exec.source_id, exec.source_kind) ??
+                        (exec.organization_model_id
+                          ? `/solve/${exec.organization_model_id}`
+                          : null);
+                      const label = exec.model_name ?? (href ? t("openSource") : t("external"));
+                      const content = (
+                        <>
+                          <span className="text-sm">{label}</span>
+                          {exec.model_author && (
+                            <span className="text-xs text-muted-foreground">
+                              {" · "}
+                              {exec.model_author}
+                            </span>
+                          )}
+                        </>
+                      );
                       return href ? (
-                        <Link href={href} className="text-sm text-primary hover:underline">
-                          {t("openSource")}
+                        <Link href={href} className="text-primary hover:underline">
+                          {content}
                         </Link>
                       ) : (
-                        <span className="text-sm text-muted-foreground">{t("external")}</span>
+                        <span className="text-muted-foreground">{content}</span>
                       );
                     })()}
                   </td>

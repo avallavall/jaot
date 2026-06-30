@@ -844,6 +844,12 @@ async def solve_optimization_problem_async(
         origin=async_source.origin,
         source_kind=async_source.source_kind,
         source_id=async_source.source_id,
+        # Typed per-project column for fast per-project history + the §14 durable
+        # reconcile + P1.5. The studio solves through this universal async path with
+        # source_kind="model_project"; mirror the id onto the typed column too.
+        model_project_id=(
+            async_source.source_id if async_source.source_kind == "model_project" else None
+        ),
     )
     db.add(pending_exec)
     try:

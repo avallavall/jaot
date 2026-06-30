@@ -135,6 +135,7 @@ export default function ExecutionDetailPage() {
           </span>
           <OriginBadge
             origin={execution.origin}
+            sourceKind={execution.source_kind ?? undefined}
             triggerName={execution.input_data?.trigger_name as string | undefined}
           />
           {execution.trigger_id && (

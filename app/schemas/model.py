@@ -172,6 +172,12 @@ class ModelExecutionResponse(BaseModel):
     # llm_conversation, template, organization_model, trigger, imported_file).
     source_kind: str | None = None
     source_id: str | None = None
+    # Resolved display name + author of the model this run came from (studio
+    # ModelProject or activated org model). NOT on the ORM row — the list endpoint
+    # batch-fills it from source_kind/source_id (model_project) or
+    # organization_model_id, so the history table can show a name, not an id.
+    model_name: str | None = None
+    model_author: str | None = None
     created_at: datetime
     completed_at: datetime | None = None
 

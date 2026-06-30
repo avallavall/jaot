@@ -107,6 +107,9 @@ test.describe("Studio — critical path (guards live bugs A/B/C)", () => {
     // store hydrates the canonical model from the seeded canvas.
     await seedDraft(page, projectId);
     await page.goto(`/studio/${projectId}/build`);
+    // Let the workspace finish loading + hydrating the store before interacting, so the
+    // rename doesn't race a late hydrate (dev first-load is slow to recompile).
+    await page.waitForLoadState("networkidle");
 
     // BUG C — rename the model and assert it PERSISTS across a reload.
     const nameInput = page.getByTestId("studio-name-input");
@@ -149,12 +152,12 @@ test.describe("Studio — critical path (guards live bugs A/B/C)", () => {
   }) => {
     await page.goto("/studio/new");
     // The implemented starting points are real, enabled buttons.
-    for (const key of ["blank", "visual", "import", "template"]) {
+    for (const key of ["blank", "visual", "import", "template", "marketplace"]) {
       await expect(page.getByTestId(`launcher-tile-${key}`)).toBeEnabled();
     }
     // The not-yet-built tiles are visibly disabled (rendered as aria-disabled cards),
     // never clickable controls that toast "coming soon".
-    for (const key of ["ai", "editor", "marketplace"]) {
+    for (const key of ["ai", "editor"]) {
       const tile = page.getByTestId(`launcher-tile-${key}`);
       await expect(tile).toBeVisible();
       await expect(tile).toHaveAttribute("aria-disabled", "true");
@@ -189,5 +192,35 @@ test.describe("Studio — critical path (guards live bugs A/B/C)", () => {
     await useBtn.click();
     await page.waitForURL(/\/studio\/(mp_[A-Za-z0-9]+)\/build/, { timeout: NAV });
     await expect(page.getByTestId("studio-name-input")).toBeVisible({ timeout: NAV });
+  });
+
+  // Fix-wave (2026-06-30): a studio async solve must land in the GLOBAL history as
+  // COMPLETED (not a 'pending' zombie — the worker now writes the row back on success),
+  // labelled with the model NAME + a studio origin badge (not the generic "visual builder").
+  test("studio solve shows COMPLETED with the model name + studio origin in global history", async ({
+    page,
+  }) => {
+    const projectId = await createBlankProject(page);
+    await seedDraft(page, projectId);
+    // Name it via the API (reliable) so the history row is findable by name; the UI
+    // rename path is exercised by the critical-path test, not here.
+    const named = await page.request.patch(`/api/v2/projects/${projectId}`, {
+      data: { name: "History Probe Model" },
+    });
+    await expect(named, `rename failed: ${named.status()}`).toBeOK();
+
+    await page.goto(`/studio/${projectId}/solve`);
+    const solveBtn = page.getByTestId("studio-solve-run");
+    await expect(solveBtn).toBeEnabled({ timeout: NAV });
+    await solveBtn.click();
+    await expect(page.getByTestId("studio-solve-done")).toBeVisible({ timeout: 40_000 });
+
+    await page.goto("/solve/executions");
+    const row = page.locator("tbody tr").filter({ hasText: "History Probe Model" }).first();
+    await expect(row).toBeVisible({ timeout: NAV });
+    // #A — terminal row written by the worker on success, not a 'pending' zombie.
+    await expect(row).not.toContainText(/pendiente|pending/i);
+    // #B — tagged as a studio model, not the generic "Editor visual".
+    await expect(row).toContainText(/estudio|studio/i);
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useFormatter, useNow, useTranslations } from "next-intl";
 import { ChevronLeft, Sparkles, Play, Check, Loader2, AlertCircle } from "lucide-react";
@@ -30,10 +30,17 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const saveState = useModelProjectStore((s) => s.saveState);
   const setName = useModelProjectStore((s) => s.setName);
 
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState(name);
-  // Keep the input in sync when the store name changes elsewhere (load / restore).
+  // Keep the input in sync when the store name changes elsewhere (load / restore) —
+  // but NEVER clobber what the user is actively typing. A late hydrate landing on top
+  // of an in-progress rename would otherwise silently discard the new name (and, since
+  // the reverted draft then equals the stored name, the blur commits nothing).
   useEffect(() => {
-    setDraft(name);
+    // One-way sync of the external store name (load/restore) into the editable draft,
+    // guarded so a late hydrate never overwrites an in-progress rename (focused input).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (document.activeElement !== nameInputRef.current) setDraft(name);
   }, [name]);
 
   const goToSolve = () => router.push(`/studio/${modelId}/solve`);
@@ -66,6 +73,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
             /
           </span>
           <input
+            ref={nameInputRef}
             data-testid="studio-name-input"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}

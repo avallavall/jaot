@@ -329,6 +329,10 @@ export interface ModelExecution {
   source_kind?: ExecutionSourceKind | null;
   source_id?: string | null;
   solver_name?: string;
+  // Resolved display name + author of the model behind the run (studio
+  // ModelProject or activated org model); filled by the history list endpoint.
+  model_name?: string | null;
+  model_author?: string | null;
 }
 
 /** How an execution was created. Mirrors the backend ORIGIN_* slugs. */
