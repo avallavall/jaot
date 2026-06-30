@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { GitCompare, RotateCcw } from "lucide-react";
+import { GitCompare, RotateCcw, Sparkles } from "lucide-react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +14,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
+import { useExplanationStream } from "@/hooks/useExplanationStream";
+import { resolveErrorKey } from "@/lib/llm-event-codes";
+import { ByokHint } from "@/components/llm/ByokHint";
+import type { Conversation } from "@/lib/llm-types";
 import type { ProjectVersionSummary, ProjectVersionDiff } from "@/lib/types";
 
 interface VersionHistoryDrawerProps {
@@ -37,16 +43,26 @@ export function VersionHistoryDrawer({
   onRestore,
 }: VersionHistoryDrawerProps) {
   const t = useTranslations("studio");
+  const tBuilder = useTranslations("builder");
   const { activeWorkspaceId } = useAuth();
   const ws = activeWorkspaceId ?? undefined;
 
   const [versions, setVersions] = useState<ProjectVersionSummary[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [diff, setDiff] = useState<ProjectVersionDiff | null>(null);
+  /** The [from, to] version ids of the current diff — the explain-diff payload. */
+  const [comparePair, setComparePair] = useState<[string, string] | null>(null);
+
+  const explain = useExplanationStream();
+  const conversationIdRef = useRef<string | null>(null);
+  const [explainSetupFailed, setExplainSetupFailed] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
+    explain.reset();
+    setComparePair(null);
+    setExplainSetupFailed(false);
     api
       .listProjectVersions(projectId, { limit: 100 }, ws)
       .then((list) => {
@@ -61,28 +77,58 @@ export function VersionHistoryDrawer({
     return () => {
       cancelled = true;
     };
+    // explain is stable across renders; reset only needs to fire on open/refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, projectId, ws, refreshKey]);
 
-  const toggleSelect = useCallback((id: string) => {
-    setDiff(null);
-    setSelected((prev) => {
-      if (prev.includes(id)) return prev.filter((x) => x !== id);
-      // keep the two most-recently picked
-      return [...prev, id].slice(-2);
-    });
-  }, []);
+  const toggleSelect = useCallback(
+    (id: string) => {
+      setDiff(null);
+      setComparePair(null);
+      explain.reset();
+      setSelected((prev) => {
+        if (prev.includes(id)) return prev.filter((x) => x !== id);
+        // keep the two most-recently picked
+        return [...prev, id].slice(-2);
+      });
+    },
+    [explain]
+  );
 
   const handleCompare = useCallback(async () => {
     if (selected.length !== 2) return;
     // Order oldest → newest by sequence so the diff reads "from → to".
     const seqOf = (id: string) => versions.find((v) => v.id === id)?.sequence ?? 0;
     const [a, b] = [...selected].sort((x, y) => seqOf(x) - seqOf(y));
+    explain.reset();
+    setExplainSetupFailed(false);
     try {
       setDiff(await api.diffProjectVersions(projectId, a, b, ws));
+      setComparePair([a, b]);
     } catch {
       /* ignore */
     }
-  }, [selected, versions, projectId, ws]);
+  }, [selected, versions, projectId, ws, explain]);
+
+  const runExplainDiff = useCallback(async () => {
+    if (!comparePair) return;
+    setExplainSetupFailed(false);
+    try {
+      if (!conversationIdRef.current) {
+        const conv = await api.request<Conversation>("/api/v2/llm/conversations", {
+          method: "POST",
+          body: JSON.stringify({}),
+        });
+        conversationIdRef.current = conv.id;
+      }
+      await explain.explain(
+        `/api/v2/llm/conversations/${conversationIdRef.current}/explain-diff`,
+        { project_id: projectId, from_version_id: comparePair[0], to_version_id: comparePair[1] }
+      );
+    } catch {
+      setExplainSetupFailed(true);
+    }
+  }, [comparePair, projectId, explain]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
@@ -176,6 +222,47 @@ export function VersionHistoryDrawer({
                 ))}
               </ul>
             )}
+          </div>
+        )}
+
+        {comparePair && (
+          <div className="border-t pt-3 space-y-2">
+            {!explain.streaming && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={runExplainDiff}
+                data-testid="studio-explain-diff-run"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                {explain.text ? t("explainRegenerate") : t("explainDiffButton")}
+              </Button>
+            )}
+            {explain.streaming && !explain.text && (
+              <p className="text-xs text-muted-foreground animate-pulse">
+                {t("explainDiffThinking")}
+              </p>
+            )}
+            {explain.text && (
+              <div className="prose prose-sm dark:prose-invert max-w-none text-foreground max-h-48 overflow-y-auto">
+                <Markdown remarkPlugins={[remarkGfm]}>{explain.text}</Markdown>
+              </div>
+            )}
+            {(explainSetupFailed || explain.errorCode !== null) && (
+              <p className="text-xs text-destructive">
+                {explain.errorCode
+                  ? tBuilder(resolveErrorKey(explain.errorCode))
+                  : tBuilder(resolveErrorKey("service_unavailable"))}
+                {explain.requestId && (
+                  <span className="text-muted-foreground">
+                    {" "}
+                    {t("explainRef", { requestId: explain.requestId })}
+                  </span>
+                )}
+              </p>
+            )}
+            {explain.text && <ByokHint />}
           </div>
         )}
       </DialogContent>

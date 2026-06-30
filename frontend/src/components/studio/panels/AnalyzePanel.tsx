@@ -2,12 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import type { ModelStats } from "@/lib/types";
 import { useModelProjectStore } from "../store/useModelProjectStore";
 import { selectModelStats } from "../store/stats";
+import { ModelExplanationPanel } from "../ModelExplanationPanel";
 
 const HEALTH_TONE: Record<string, string> = {
   A: "text-emerald-600",
@@ -90,15 +89,9 @@ export function AnalyzePanel() {
   return (
     <div className="flex-1 overflow-y-auto p-6">
       <div className="max-w-3xl mx-auto">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
-            <h2 className="text-lg font-semibold">{t("analyzeTitle")}</h2>
-            <p className="text-sm text-muted-foreground">{t("analyzeSubtitle")}</p>
-          </div>
-          <Button variant="outline" size="sm" disabled title={t("comingSoon")}>
-            <Sparkles className="h-4 w-4 mr-1" />
-            {t("explainModel")}
-          </Button>
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold">{t("analyzeTitle")}</h2>
+          <p className="text-sm text-muted-foreground">{t("analyzeSubtitle")}</p>
         </div>
 
         <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -138,6 +131,12 @@ export function AnalyzePanel() {
                 ))}
               </ul>
             )}
+          </div>
+        )}
+
+        {isPersisted && (
+          <div className="mt-6">
+            <ModelExplanationPanel projectId={modelId} />
           </div>
         )}
       </div>

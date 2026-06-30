@@ -18,9 +18,8 @@ import { commitRename } from "./rename";
  * The persistent workspace chrome: header (editable model name + save state +
  * Commit/Explain/Solve), the Build/Analyze/Solve tab bar, and the live-stats rail.
  * Presentational — the model is loaded by the store provider above; this reads the
- * canonical store. "Explain model" is disabled until the AI tab provides a project
- * conversation (a later slice) — shown as a clearly-disabled "soon" control, not a
- * dead button that toasts.
+ * canonical store. "Explain model" jumps to the Analyze lens, where the grounded LLM
+ * explanation streams (mirrors how "Solve" jumps to the Solve lens).
  */
 export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("studio");
@@ -98,9 +97,8 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
           <Button
             variant="outline"
             size="sm"
-            disabled
-            title={t("comingSoon")}
-            aria-label={`${t("headerExplain")} — ${t("comingSoon")}`}
+            data-testid="studio-header-explain"
+            onClick={() => router.push(`/studio/${modelId}/analyze`)}
           >
             <Sparkles className="h-4 w-4 mr-1" />
             {t("headerExplain")}

@@ -194,6 +194,24 @@ test.describe("Studio — critical path (guards live bugs A/B/C)", () => {
     await expect(headerSolve).toBeEnabled({ timeout: NAV });
   });
 
+  // P4: the header "Explain" button jumps to the Analyze lens, which hosts the grounded
+  // "Explain this model" card (the actual LLM streaming is verified out-of-band, since it
+  // needs an LLM key the CI DB lacks; here we assert the wiring + card render).
+  test("explain — header button opens Analyze with the Explain-model card (P4)", async ({
+    page,
+  }) => {
+    const projectId = await createBlankProject(page);
+    await seedDraft(page, projectId);
+    await page.goto(`/studio/${projectId}/build`);
+
+    await page.getByTestId("studio-header-explain").click();
+    await page.waitForURL(new RegExp(`/studio/${projectId}/analyze`), { timeout: NAV });
+
+    const card = page.getByTestId("studio-explain-model");
+    await expect(card).toBeVisible({ timeout: NAV });
+    await expect(page.getByTestId("studio-explain-model-run")).toBeVisible();
+  });
+
   // P2 centralization: the 'template' tile → gallery → "Use" SEEDS a ModelProject and
   // opens the workspace (replacing the old solve-once-and-lose-it template flow).
   test("template gallery — 'Use' seeds a ModelProject and opens the workspace (P2)", async ({

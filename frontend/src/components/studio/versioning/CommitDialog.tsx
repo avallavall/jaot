@@ -234,11 +234,6 @@ export function CommitDialog({
             />
           </div>
 
-          <Button variant="ghost" size="sm" disabled title={t("versionExplainSoon")}>
-            <Sparkles className="size-3.5 mr-1" />
-            {t("versionExplainDiff")}
-          </Button>
-
           {editorParseError && (
             <p className="text-xs text-destructive">{t("editorBlockCommit")}</p>
           )}
