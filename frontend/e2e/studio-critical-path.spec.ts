@@ -235,6 +235,45 @@ test.describe("Studio — critical path (guards live bugs A/B/C)", () => {
     await expect(page.getByTestId("studio-name-input")).toBeVisible({ timeout: NAV });
   });
 
+  // Task #16 (L1 durable AI conversation): the Assistant session is LIFTED to the
+  // workspace provider, so switching tab/sub-lens no longer tears it down. CI-safe
+  // proof (no LLM needed): opening the Assistant bootstraps the conversation ONCE;
+  // navigating to Solve and back (client-side) does NOT re-bootstrap — the old
+  // lens-owned effect re-ran the find-or-create on every remount.
+  test("assistant session is lifted to the provider — bootstraps once across tab switches (§16)", async ({
+    page,
+  }) => {
+    const projectId = await createBlankProject(page);
+    await seedDraft(page, projectId);
+
+    // Count conversation list calls (the find step of find-or-create). Lifted → exactly 1.
+    let convLists = 0;
+    page.on("request", (req) => {
+      if (
+        req.method() === "GET" &&
+        req.url().includes("/api/v2/llm/conversations") &&
+        req.url().includes("model_project_id")
+      ) {
+        convLists += 1;
+      }
+    });
+
+    // Open the Assistant sub-lens (full load) → the session bootstraps once.
+    await page.goto(`/studio/${projectId}/build?lens=assistant`);
+    await expect(page.getByTestId("studio-assistant")).toBeVisible({ timeout: NAV });
+
+    // Leave to Solve and back — all CLIENT-SIDE (the layout/provider must persist).
+    await page.getByTestId("studio-tab-solve").click();
+    await expect(page.getByTestId("studio-solve-run")).toBeVisible({ timeout: NAV });
+    await page.getByTestId("studio-tab-build").click();
+    await page.getByTestId("studio-sublens-assistant").click();
+    await expect(page.getByTestId("studio-assistant")).toBeVisible({ timeout: NAV });
+
+    // The conversation was fetched ONCE for the whole workspace lifetime, not on each
+    // Assistant mount — proof the session survives in the provider above the tabs.
+    expect(convLists).toBe(1);
+  });
+
   // Fix-wave (2026-06-30): a studio async solve must land in the GLOBAL history as
   // COMPLETED (not a 'pending' zombie — the worker now writes the row back on success),
   // labelled with the model NAME + a studio origin badge (not the generic "visual builder").

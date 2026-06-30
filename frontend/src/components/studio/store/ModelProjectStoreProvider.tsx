@@ -19,6 +19,7 @@ import { exceedsCanvasScale } from "./model-scale";
 import { useCanvasBridge } from "./useCanvasBridge";
 import { useAutosave } from "./useAutosave";
 import { useSolveSession } from "./useSolveSession";
+import { StudioAssistantProvider } from "../assistant/StudioAssistantProvider";
 
 const EMPTY_PROBLEM: OptimizationProblem = {
   variables: [],
@@ -140,7 +141,11 @@ export function ModelProjectStoreProvider({
 
   return (
     <ModelProjectStoreContext.Provider value={store}>
-      {children}
+      {/* The AI session lives here, above the tab panels, so an in-flight generation
+          (and the produced model) survives switching sub-lens or Build/Analyze/Solve.
+          It renders `children` (a stable element) so its per-delta re-renders never
+          reach the workspace tree — only the Assistant lens consumes the context. */}
+      <StudioAssistantProvider store={store}>{children}</StudioAssistantProvider>
     </ModelProjectStoreContext.Provider>
   );
 }

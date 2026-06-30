@@ -39,6 +39,7 @@ export function StudioTabBar({ modelId }: StudioTabBarProps) {
             key={tab}
             href={href}
             role="tab"
+            data-testid={`studio-tab-${tab}`}
             aria-selected={active}
             className={cn(
               "px-4 py-2 text-sm -mb-px border-b-2 transition-colors",

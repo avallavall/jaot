@@ -19,7 +19,8 @@ import { useTranslations } from "next-intl";
 interface ChatPanelProps {
   initialMessages: ChatMessageType[];
   stream: FormulationStreamState;
-  onFormulationReady: (formulation: Formulation) => void;
+  /** Required in uncontrolled mode; unused in controlled mode (parent folds in results). */
+  onFormulationReady?: (formulation: Formulation) => void;
   onExplainFailure?: (status: string) => void;
   /** Shows "Explain with AI" button when infeasible/unbounded. */
   solveStatus?: string;
@@ -28,11 +29,22 @@ interface ChatPanelProps {
   onFileSelected?: (file: File) => void;
   onRemoveAttachment?: () => void;
   removing?: boolean;
+  /**
+   * Controlled mode: when BOTH `messages` and `onSend` are provided, the parent owns
+   * the conversation (the studio lifts it to a provider so it survives tab switches)
+   * and ChatPanel renders that list + delegates sending — it does NOT keep its own
+   * message state or append stream results (the parent does both). The builder chat
+   * page omits these props and stays uncontrolled (unchanged behavior).
+   */
+  messages?: ChatMessageType[];
+  onSend?: (text: string) => void;
 }
 
-export function ChatPanel({ initialMessages, stream, onFormulationReady, onExplainFailure, solveStatus, attachment, uploading, onFileSelected, onRemoveAttachment, removing }: ChatPanelProps) {
+export function ChatPanel({ initialMessages, stream, onFormulationReady, onExplainFailure, solveStatus, attachment, uploading, onFileSelected, onRemoveAttachment, removing, messages: controlledMessages, onSend }: ChatPanelProps) {
   const t = useTranslations("builder");
-  const [messages, setMessages] = useState<ChatMessageType[]>(initialMessages);
+  const controlled = controlledMessages !== undefined && onSend !== undefined;
+  const [internalMessages, setInternalMessages] = useState<ChatMessageType[]>(initialMessages);
+  const messages = controlled ? controlledMessages! : internalMessages;
   const [inputText, setInputText] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const dragCounter = useRef(0);
@@ -94,14 +106,16 @@ export function ChatPanel({ initialMessages, stream, onFormulationReady, onExpla
   );
 
   useEffect(() => {
-    setMessages(initialMessages);
-  }, [initialMessages]);
+    if (controlled) return; // parent owns the list
+    setInternalMessages(initialMessages);
+  }, [initialMessages, controlled]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, stream.streaming]);
 
   useEffect(() => {
+    if (controlled) return; // parent appends stream results to its own list
     if (stream.formulation && stream.formulation !== prevFormulationRef.current) {
       prevFormulationRef.current = stream.formulation;
 
@@ -112,7 +126,7 @@ export function ChatPanel({ initialMessages, stream, onFormulationReady, onExpla
         stream.formulation.problem_name !== "not_applicable" &&
         (stream.formulation.variables?.length ?? 0) > 0;
       if (isRealModel) {
-        onFormulationReady(stream.formulation);
+        onFormulationReady?.(stream.formulation);
       }
 
       const assistantMsg: ChatMessageType = {
@@ -122,14 +136,15 @@ export function ChatPanel({ initialMessages, stream, onFormulationReady, onExpla
         formulation_json: stream.formulation,
         created_at: new Date().toISOString(),
       };
-      setMessages((prev) => [...prev, assistantMsg]);
+      setInternalMessages((prev) => [...prev, assistantMsg]);
     }
-  }, [stream.formulation, onFormulationReady, t]);
+  }, [stream.formulation, onFormulationReady, t, controlled]);
 
   // Stream errors surface as assistant messages. Text comes from a stable backend code via
   // next-intl — never from a raw string — so we cannot leak upstream detail. The request_id is
   // appended so users can cite it to support.
   useEffect(() => {
+    if (controlled) return; // parent appends stream results to its own list
     if (stream.errorCode) {
       const localizedError = t(resolveErrorKey(stream.errorCode));
       const errorMsg: ChatMessageType = {
@@ -144,11 +159,11 @@ export function ChatPanel({ initialMessages, stream, onFormulationReady, onExpla
         formulation_json: null,
         created_at: new Date().toISOString(),
       };
-      setMessages((prev) => [...prev, errorMsg]);
+      setInternalMessages((prev) => [...prev, errorMsg]);
     }
   // requestId read as a snapshot inside the effect; adding it as a dep would re-fire and duplicate.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stream.errorCode, t]);
+  }, [stream.errorCode, t, controlled]);
 
   const handleSend = useCallback(
     async (text: string) => {
@@ -160,6 +175,13 @@ export function ChatPanel({ initialMessages, stream, onFormulationReady, onExpla
         return;
       }
 
+      // Controlled: the parent owns the list + the stream — just delegate.
+      if (controlled) {
+        setInputText("");
+        onSend!(trimmed);
+        return;
+      }
+
       const userMsg: ChatMessageType = {
         id: `usr_${Date.now()}`,
         role: "user",
@@ -167,12 +189,12 @@ export function ChatPanel({ initialMessages, stream, onFormulationReady, onExpla
         formulation_json: null,
         created_at: new Date().toISOString(),
       };
-      setMessages((prev) => [...prev, userMsg]);
+      setInternalMessages((prev) => [...prev, userMsg]);
       setInputText("");
 
       await stream.sendMessage(trimmed);
     },
-    [stream, t]
+    [stream, t, controlled, onSend]
   );
 
   const handleExampleSelect = useCallback(

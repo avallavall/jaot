@@ -67,6 +67,7 @@ export function BuildPanel() {
           <button
             key={l}
             onClick={() => setLens(l)}
+            data-testid={`studio-sublens-${l}`}
             aria-pressed={lens === l}
             className={cn(
               "inline-flex items-center gap-1.5 px-3 py-1 text-sm rounded-md transition-colors",
