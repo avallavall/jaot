@@ -55,7 +55,7 @@ export default function StudioNewPage() {
   const [importing, setImporting] = useState(false);
   const busy = creating || importing;
 
-  const handleCreate = async (initialLens?: "editor") => {
+  const handleCreate = async (initialLens?: "editor" | "assistant") => {
     if (busy) return;
     setCreating(true);
     try {
@@ -64,7 +64,7 @@ export default function StudioNewPage() {
         { name: "Untitled Model", workspace_id: activeWorkspaceId ?? undefined },
         activeWorkspaceId ?? undefined
       );
-      const suffix = initialLens === "editor" ? "?lens=editor" : "";
+      const suffix = initialLens ? `?lens=${initialLens}` : "";
       router.push(`/studio/${project.id}/build${suffix}`);
     } catch (err) {
       toast.error(getErrorMessage(err, t("createFailed")));
@@ -93,7 +93,7 @@ export default function StudioNewPage() {
   };
 
   const tiles: LauncherTile[] = [
-    { key: "ai", icon: <Sparkles className="h-6 w-6" />, label: t("tileAi"), desc: t("tileAiDesc"), available: false },
+    { key: "ai", icon: <Sparkles className="h-6 w-6" />, label: t("tileAi"), desc: t("tileAiDesc"), available: true, onClick: () => handleCreate("assistant") },
     { key: "visual", icon: <Blocks className="h-6 w-6" />, label: t("tileVisual"), desc: t("tileVisualDesc"), available: true, onClick: () => handleCreate() },
     { key: "editor", icon: <Code2 className="h-6 w-6" />, label: t("tileEditor"), desc: t("tileEditorDesc"), available: true, onClick: () => handleCreate("editor") },
     { key: "import", icon: <Upload className="h-6 w-6" />, label: t("tileImport"), desc: t("tileImportDesc"), available: true, onClick: handleImportClick },

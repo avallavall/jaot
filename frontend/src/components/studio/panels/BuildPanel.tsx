@@ -20,6 +20,12 @@ const BuilderCanvas = dynamic(
   { ssr: false }
 );
 
+// The AI chat is client-only (SSE streaming + uploads); lazy-load it.
+const AssistantLens = dynamic(
+  () => import("./assistant/AssistantLens").then((m) => m.AssistantLens),
+  { ssr: false }
+);
+
 const SUB_LENSES = ["canvas", "assistant", "editor"] as const;
 type SubLens = (typeof SUB_LENSES)[number];
 
@@ -70,11 +76,6 @@ export function BuildPanel() {
             )}
           >
             {labels[l]}
-            {l === "assistant" && (
-              <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
-                {t("soon")}
-              </span>
-            )}
           </button>
         ))}
       </div>
@@ -95,9 +96,7 @@ export function BuildPanel() {
       ) : lens === "editor" ? (
         <ModelEditorPanel />
       ) : (
-        <div className="flex-1 flex items-center justify-center p-6 text-center text-sm text-muted-foreground">
-          {t("subLensComingSoon")}
-        </div>
+        <AssistantLens />
       )}
     </div>
   );

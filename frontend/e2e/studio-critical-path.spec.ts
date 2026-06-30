@@ -147,20 +147,13 @@ test.describe("Studio — critical path (guards live bugs A/B/C)", () => {
     await expect(card).toHaveAttribute("href", new RegExp(projectId));
   });
 
-  test("launcher offers honest controls — 'Soon' tiles are disabled, not dead buttons", async ({
+  test("launcher — every starting point is a real, enabled control (no dead 'Soon' tiles)", async ({
     page,
   }) => {
     await page.goto("/studio/new");
-    // The implemented starting points are real, enabled buttons (P3 made 'editor' real).
-    for (const key of ["blank", "visual", "editor", "import", "template", "marketplace"]) {
+    // Every tile is now implemented (P4b made 'ai' real — the last placeholder).
+    for (const key of ["blank", "visual", "editor", "ai", "import", "template", "marketplace"]) {
       await expect(page.getByTestId(`launcher-tile-${key}`)).toBeEnabled();
-    }
-    // The not-yet-built tile (AI Assistant = P4) stays visibly disabled (an aria-disabled
-    // card), never a clickable control that toasts "coming soon".
-    {
-      const tile = page.getByTestId("launcher-tile-ai");
-      await expect(tile).toBeVisible();
-      await expect(tile).toHaveAttribute("aria-disabled", "true");
     }
   });
 

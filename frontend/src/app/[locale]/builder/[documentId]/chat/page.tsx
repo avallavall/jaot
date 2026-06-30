@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import type { Conversation, ChatMessage as ChatMessageType, Formulation, AttachmentInfo } from "@/lib/llm-types";
-import type { OptimizationProblem, PaginatedResponse, SolveResult } from "@/lib/types";
+import type { PaginatedResponse, SolveResult } from "@/lib/types";
 import { SolveResultsDrawer } from "@/components/builder/SolveResultsDrawer";
 import { useFormulationStream } from "@/hooks/useSSE";
 import { ChatPanel } from "@/components/llm/ChatPanel";
@@ -14,31 +14,10 @@ import { CreditEstimate } from "@/components/llm/CreditEstimate";
 import { WorkspaceBreadcrumb } from "@/components/layout/WorkspaceBreadcrumb";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formulationToCanvas, isParametricFormulation } from "@/lib/builder/formulationToCanvas";
+import { formulationToProblem } from "@/lib/builder/formulationToProblem";
 import { FormulationRating } from "@/components/feedback/FormulationRating";
 import { ExportModelButton } from "@/components/solve/ExportModelButton";
 import { useTranslations } from "next-intl";
-
-/** Build a solver-ready OptimizationProblem from an AI formulation. */
-function formulationToProblem(formulation: Formulation): OptimizationProblem {
-  return {
-    name: formulation.problem_name || "ai_formulation",
-    description: formulation.summary || "",
-    variables: formulation.variables.map((v) => ({
-      name: v.name,
-      type: v.type,
-      lower_bound: v.lower_bound,
-      upper_bound: v.upper_bound,
-    })),
-    constraints: formulation.constraints.map((c) => ({
-      name: c.name,
-      expression: c.expression,
-    })),
-    objective: {
-      sense: formulation.objective.sense,
-      expression: formulation.objective.expression,
-    },
-  };
-}
 
 /** Split-pane: chat (left) + formulation (right). SSE hook is lifted here so both panels share state. */
 export default function ChatPage() {
