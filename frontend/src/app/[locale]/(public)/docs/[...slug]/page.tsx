@@ -17,6 +17,7 @@ const contentMap: Record<string, () => Promise<{ default: React.ComponentType; f
   "getting-started/introduction": () => import("@content/docs/getting-started/introduction.mdx"),
   "getting-started/quick-start": () => import("@content/docs/getting-started/quick-start.mdx"),
   "getting-started/authentication": () => import("@content/docs/getting-started/authentication.mdx"),
+  "studio/model-workspace": () => import("@content/docs/studio/model-workspace.mdx"),
   "ai-builder/building-with-ai": () => import("@content/docs/ai-builder/building-with-ai.mdx"),
   "ai-builder/templates-gallery": () => import("@content/docs/ai-builder/templates-gallery.mdx"),
   "ai-builder/understanding-your-solution": () =>

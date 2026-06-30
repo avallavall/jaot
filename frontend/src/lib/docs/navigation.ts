@@ -14,6 +14,12 @@ export const docsNavigation: DocsNavItem[] = [
     ],
   },
   {
+    title: "Model Workspace",
+    children: [
+      { title: "The Model Workspace", slug: "studio/model-workspace" },
+    ],
+  },
+  {
     title: "AI Builder",
     children: [
       { title: "Building with AI", slug: "ai-builder/building-with-ai" },
