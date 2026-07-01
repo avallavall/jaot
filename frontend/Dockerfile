@@ -46,7 +46,10 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
+# Use 127.0.0.1 (not localhost): the server binds IPv4 0.0.0.0, but `localhost`
+# resolves to IPv6 ::1 first inside the container → wget gets "connection refused"
+# and the container is wrongly marked unhealthy while it serves fine.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD wget --spider -q http://localhost:3000/en || exit 1
+    CMD wget --spider -q http://127.0.0.1:3000/en || exit 1
 
 CMD ["node", "server.js"]
