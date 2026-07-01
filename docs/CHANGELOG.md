@@ -19,6 +19,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Added
 
+- **Sharper AI grounding: worked examples + reranking (2026-07-01)** — The formulation assistant's RAG now indexes a real worked-example formulation (concrete variables/objective/constraints) for every template alongside the summaries, so suggestions imitate proven models; an optional local cross-encoder reranker (off by default) can re-order retrieved context for higher precision. All local — no data leaves the box.
 - **AI Assistant lens (P4b, 2026-06-30)** — Build a model by chatting in the studio and refine it incrementally ("add y", "make x integer"); the conversation is scoped to the model and each result flows into it live, with RAG grounding and file attachments.
 - **Durable AI conversation (2026-06-30)** — An in-flight AI generation now survives switching studio tab/sub-lens; the produced model still lands even from another tab.
 - **Explain a model & a version diff with AI (P4, 2026-06-30)** — Grounded plain-language explanations of what a model optimizes (Analyze) and what changed between two versions (history). Python computes the facts; the LLM only narrates them.

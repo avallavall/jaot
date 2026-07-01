@@ -9,6 +9,7 @@ from unittest.mock import patch
 from app.services.rag.client import (
     _build_qdrant_kwargs,
     get_circuit_breaker,
+    get_reranker,
     reset_clients,
 )
 
@@ -67,3 +68,51 @@ class TestResetClients:
         # New instance, no failures
         assert cb2.state == "closed"
         assert cb1 is not cb2
+
+
+class TestGetReranker:
+    """Reranker singleton loads lazily, caches per model, degrades gracefully.
+
+    The real CrossEncoder is mocked so tests never download a model.
+    """
+
+    def test_loads_and_caches_per_model(self):
+        reset_clients()
+        created: list[str] = []
+
+        class FakeCrossEncoder:
+            def __init__(self, name: str) -> None:
+                created.append(name)
+
+        with patch("sentence_transformers.CrossEncoder", FakeCrossEncoder):
+            r1 = get_reranker("model-a")
+            r2 = get_reranker("model-a")
+
+        assert r1 is r2  # same cached instance
+        assert created == ["model-a"]  # constructed exactly once
+        reset_clients()
+
+    def test_reloads_when_model_name_changes(self):
+        reset_clients()
+        created: list[str] = []
+
+        class FakeCrossEncoder:
+            def __init__(self, name: str) -> None:
+                created.append(name)
+
+        with patch("sentence_transformers.CrossEncoder", FakeCrossEncoder):
+            get_reranker("model-a")
+            get_reranker("model-b")
+
+        assert created == ["model-a", "model-b"]
+        reset_clients()
+
+    def test_load_failure_returns_none(self):
+        reset_clients()
+
+        def boom(name: str) -> object:
+            raise RuntimeError("model not found")
+
+        with patch("sentence_transformers.CrossEncoder", boom):
+            assert get_reranker("bad-model") is None
+        reset_clients()

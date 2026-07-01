@@ -45,11 +45,16 @@ COPY --chown=jaot:jaot deploy/scripts/ /opt/jaot/deploy/scripts/
 COPY --chown=jaot:jaot infra/alembic/ ./infra/alembic/
 COPY --chown=jaot:jaot infra/alembic.ini ./infra/alembic.ini
 
-# Pre-download sentence-transformers model — read-only fs at runtime blocks the download.
-ENV SENTENCE_TRANSFORMERS_HOME=/app/.model_cache
+# Pre-download sentence-transformers models — read-only fs at runtime blocks the download.
+# The embedding model is always used; the default cross-encoder reranker
+# (RAG_RERANKER_MODEL) is gated off by default but must be baked in so it can be
+# enabled in prod without network access. Both caches share /app/.model_cache.
+ENV SENTENCE_TRANSFORMERS_HOME=/app/.model_cache \
+    HF_HOME=/app/.model_cache
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-small-en-v1.5')" \
+    && python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')" \
     && chown -R jaot:jaot /app/.model_cache
-# Model is baked above; force offline at runtime so RAG loads from the local cache
+# Models are baked above; force offline at runtime so RAG loads from the local cache
 # instead of contacting the HF Hub on every boot (no network dependency, no log noise).
 ENV HF_HUB_OFFLINE=1 \
     TRANSFORMERS_OFFLINE=1

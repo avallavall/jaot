@@ -1367,6 +1367,30 @@ SETTINGS_REGISTRY.extend(
             max_value=10000,
             unit="tokens",
         ),
+        SettingDefinition(
+            key="RAG_RERANKER_ENABLED",
+            label="Reranker Enabled",
+            description=(
+                "Re-rank retrieved candidates with a local cross-encoder before "
+                "selecting the top-K (improves precision; adds CPU latency). The model "
+                "must be present in the image — see RAG_RERANKER_MODEL."
+            ),
+            category=SettingCategory.RAG,
+            setting_type=SettingType.BOOL,
+            default_value="false",
+        ),
+        SettingDefinition(
+            key="RAG_RERANKER_MODEL",
+            label="Reranker Model",
+            description=(
+                "sentence-transformers CrossEncoder model for reranking. The default is "
+                "pre-downloaded in the image; a non-default value requires a rebuild that "
+                "bakes it in (the runtime filesystem is read-only)."
+            ),
+            category=SettingCategory.RAG,
+            setting_type=SettingType.STRING,
+            default_value="cross-encoder/ms-marco-MiniLM-L-6-v2",
+        ),
     ]
 )
 

@@ -11,6 +11,7 @@ from app.services.rag.document_types import (
     DocType,
     _add_contextual_prefix,
     _load_yaml,
+    _render_problem_compact,
     _synthesize_template_text,
     extract_all_documents,
     extract_constraint_patterns,
@@ -19,6 +20,7 @@ from app.services.rag.document_types import (
     extract_linearization_techniques,
     extract_parser_capabilities,
     extract_template_documents,
+    extract_worked_examples,
 )
 
 
@@ -33,6 +35,7 @@ class TestDocTypeEnum:
             "linearization",
             "parser_capability",
             "industry_vocabulary",
+            "worked_example",
         }
         actual = {dt.value for dt in DocType}
         assert actual == expected
@@ -326,6 +329,91 @@ class TestExtractIndustryVocabulary:
             assert doc["text"].startswith("This maps industry-specific terminology")
 
 
+# worked examples
+
+
+class TestRenderProblemCompact:
+    """The compact renderer bounds size and reports omitted items."""
+
+    def test_small_problem_rendered_in_full(self):
+        problem = {
+            "variables": [
+                {"name": "x", "type": "integer", "lower_bound": 0, "upper_bound": 100},
+                {"name": "y", "type": "continuous", "lower_bound": 0, "upper_bound": None},
+            ],
+            "objective": {"sense": "minimize", "expression": "3*x + 5*y"},
+            "constraints": [{"name": "cap", "expression": "x + y <= 10"}],
+        }
+        text = _render_problem_compact(problem)
+        assert "Variables (2 total): x (integer, [0, 100]); y (continuous, [0, +inf])" in text
+        assert "Objective: minimize 3*x + 5*y" in text
+        assert "Constraints (1 total):" in text
+        assert "cap: x + y <= 10" in text
+        assert "more)" not in text  # nothing omitted
+
+    def test_binary_variable_omits_noisy_bounds(self):
+        problem = {
+            "variables": [{"name": "use_a", "type": "binary", "upper_bound": None}],
+            "objective": {"sense": "maximize", "expression": "use_a"},
+            "constraints": [],
+        }
+        text = _render_problem_compact(problem)
+        assert "use_a (binary)" in text
+        assert "[-inf, +inf]" not in text  # binary domain is implicit, no noisy bounds
+
+    def test_large_problem_is_truncated_with_omitted_note(self):
+        problem = {
+            "variables": [
+                {"name": f"x{i}", "type": "binary", "lower_bound": 0, "upper_bound": 1}
+                for i in range(200)
+            ],
+            "objective": {"sense": "maximize", "expression": "z"},
+            "constraints": [{"name": f"c{i}", "expression": f"x{i} <= 1"} for i in range(200)],
+        }
+        text = _render_problem_compact(problem)
+        # Totals reflect the FULL problem; only the rendered head is truncated.
+        assert "Variables (200 total):" in text
+        assert "Constraints (200 total):" in text
+        assert "(+175 more)" in text  # 200 - 25 head
+
+    def test_long_expression_is_clipped(self):
+        problem = {
+            "variables": [{"name": "x", "type": "continuous"}],
+            "objective": {"sense": "minimize", "expression": "a" * 5000},
+            "constraints": [],
+        }
+        text = _render_problem_compact(problem)
+        assert "chars)" in text  # elision marker
+        assert len(text) < 1000  # the 5000-char expression was clipped
+
+
+class TestExtractWorkedExamples:
+    """Worked examples render real formulations from each template's example_input."""
+
+    def test_produces_worked_example_docs(self):
+        docs = extract_worked_examples()
+        assert len(docs) > 0, "expected at least one template to render a worked example"
+        for doc in docs:
+            assert doc["payload"]["doc_type"] == DocType.WORKED_EXAMPLE.value
+            assert doc["id"].startswith("example_")
+            assert doc["payload"]["template_id"]
+            assert doc["payload"]["generator_type"]
+
+    def test_worked_example_text_shape(self):
+        docs = extract_worked_examples()
+        doc = docs[0]
+        # Contextual prefix + the compact formulation sections.
+        assert doc["text"].startswith("This ")
+        assert "Worked example:" in doc["text"]
+        assert "Variables (" in doc["text"]
+        assert "Objective:" in doc["text"]
+
+    def test_ids_are_unique(self):
+        docs = extract_worked_examples()
+        ids = [d["id"] for d in docs]
+        assert len(ids) == len(set(ids))
+
+
 # extract_all_documents
 
 
@@ -334,7 +422,12 @@ class TestExtractAllDocuments:
 
     def test_total_count(self):
         docs = extract_all_documents()
-        assert len(docs) == 186
+        # 186 base docs (templates + generators + constraint patterns + linearization
+        # + parser capabilities + vocabulary) plus one worked example per template that
+        # renders from its example_input. The base stays pinned; worked examples float.
+        worked = [d for d in docs if d["payload"]["doc_type"] == DocType.WORKED_EXAMPLE.value]
+        assert len(worked) > 0, "expected worked-example docs to be extracted"
+        assert len(docs) == 186 + len(worked)
 
     def test_all_doc_types_present(self):
         docs = extract_all_documents()

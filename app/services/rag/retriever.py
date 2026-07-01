@@ -49,12 +49,18 @@ class RAGRetriever:
         min_score: float = 0.35,
         category_filter: str | None = None,
         doc_type_filter: str | None = None,
+        reranker: Any | None = None,
     ) -> list[dict[str, Any]]:
         """Retrieve relevant documents for a query.
 
         Uses hybrid search (dense + sparse with RRF fusion). Requests
         top_k*2 results initially and slices down — avoids a second
         Qdrant round-trip for the dynamic expansion case.
+
+        When a ``reranker`` (cross-encoder) is supplied, the expanded candidate set
+        is re-ordered by cross-encoder relevance before the top_k slice. The score
+        gates (confidence threshold, ``min_score``) stay on the fusion score, which
+        is what they are calibrated against — the reranker only changes ORDER.
         """
         from qdrant_client.models import (
             FieldCondition,
@@ -105,9 +111,17 @@ class RAGRetriever:
                 with_payload=True,
             )
 
-        # Slice to top_k unless top score is below confidence threshold
+        # Qdrant returns points sorted by fusion score, so points[0] is the best
+        # FUSION score — capture it for the confidence gate BEFORE any reranking
+        # reorders the list.
         points = results.points
-        if points and points[0].score >= HIGH_CONFIDENCE_THRESHOLD:
+        top_fusion = points[0].score if points else 0.0
+
+        if reranker is not None and points:
+            points = await self._rerank(query, points, reranker)
+
+        # Slice to top_k unless the best fusion score is below the confidence threshold
+        if points and top_fusion >= HIGH_CONFIDENCE_THRESHOLD:
             points = points[:top_k]
 
         filtered = [
@@ -129,6 +143,23 @@ class RAGRetriever:
         )
 
         return filtered
+
+    async def _rerank(self, query: str, points: list[Any], reranker: Any) -> list[Any]:
+        """Reorder candidate points by cross-encoder relevance (best first).
+
+        The cross-encoder is CPU-bound — offloaded to the thread pool. Leaves each
+        point's fusion ``score`` untouched (only order changes) and degrades to the
+        original fusion order on any failure.
+        """
+        pairs = [(query, point.payload.get("text", "")) for point in points]
+        try:
+            loop = asyncio.get_running_loop()
+            scores = await loop.run_in_executor(None, functools.partial(reranker.predict, pairs))
+            ranked = sorted(zip(points, scores, strict=True), key=lambda ps: ps[1], reverse=True)
+            return [point for point, _ in ranked]
+        except Exception as e:
+            logger.warning("RAG rerank failed, keeping fusion order: %s", e)
+            return points
 
     async def _embed_query(self, text: str) -> list[float]:
         """Embed query text, using Redis cache when available."""
@@ -245,10 +276,21 @@ async def get_rag_context(
         get_circuit_breaker,
         get_embed_client,
         get_qdrant_client,
+        get_reranker,
     )
 
     # Batch-read all RAG settings in one DB query
-    rag_settings = PSS.get_many(db, ["RAG_ENABLED", "RAG_TOP_K", "RAG_MIN_SCORE", "RAG_MAX_TOKENS"])
+    rag_settings = PSS.get_many(
+        db,
+        [
+            "RAG_ENABLED",
+            "RAG_TOP_K",
+            "RAG_MIN_SCORE",
+            "RAG_MAX_TOKENS",
+            "RAG_RERANKER_ENABLED",
+            "RAG_RERANKER_MODEL",
+        ],
+    )
 
     if rag_settings.get("RAG_ENABLED", "false").lower() != "true":
         return None
@@ -276,6 +318,12 @@ async def get_rag_context(
             redis=redis_client,
         )
 
+        reranker = None
+        if rag_settings.get("RAG_RERANKER_ENABLED", "false").lower() == "true":
+            reranker = get_reranker(
+                rag_settings.get("RAG_RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
+            )
+
         query = build_search_query(user_message, current_formulation)
 
         results = await retriever.retrieve(
@@ -283,6 +331,7 @@ async def get_rag_context(
             top_k=top_k,
             min_score=min_score,
             category_filter=category_filter,
+            reranker=reranker,
         )
 
         cb.record_success()

@@ -152,6 +152,11 @@ def format_rag_document(payload: dict[str, Any], score: float) -> str:
         header = (
             f"Linearization: {payload.get('technique_name', 'unknown')} (relevance: {score:.2f})"
         )
+    elif doc_type == DocType.WORKED_EXAMPLE.value:
+        header = (
+            f"Worked example: {payload.get('display_name', 'unknown')} "
+            f"(generator: {payload.get('generator_type', 'unknown')}, relevance: {score:.2f})"
+        )
     else:
         header = f"Reference (relevance: {score:.2f})"
 

@@ -61,6 +61,19 @@ class TestFormatRagDocument:
         assert "Linearization: Big-M Calibration" in result
         assert "relevance: 0.65" in result
 
+    def test_worked_example_header(self):
+        payload = {
+            "doc_type": "worked_example",
+            "display_name": "Budget Allocation",
+            "generator_type": "budget_allocation",
+            "text": "Worked example body",
+        }
+        result = format_rag_document(payload, 0.88)
+        assert "Worked example: Budget Allocation" in result
+        assert "generator: budget_allocation" in result
+        assert "relevance: 0.88" in result
+        assert "Worked example body" in result
+
     def test_unknown_type_fallback(self):
         payload = {
             "doc_type": "something_new",

@@ -4,6 +4,8 @@ These are unit tests that don't require Qdrant or Voyage.
 Integration tests with in-memory Qdrant are in test_integration.py.
 """
 
+import asyncio
+
 import pytest
 
 from app.services.rag.retriever import (
@@ -11,6 +13,46 @@ from app.services.rag.retriever import (
     _is_refinement_message,
     build_search_query,
 )
+
+
+class _FakePoint:
+    """Minimal stand-in for a Qdrant scored point."""
+
+    def __init__(self, text: str, score: float) -> None:
+        self.payload = {"text": text}
+        self.score = score
+
+
+class TestRerank:
+    """The cross-encoder reranker reorders candidates but leaves fusion scores intact."""
+
+    def test_reorders_by_cross_encoder_score(self):
+        retriever = RAGRetriever(qdrant=None, embed_client=None)
+        points = [_FakePoint("a", 0.9), _FakePoint("b", 0.5), _FakePoint("c", 0.7)]
+
+        class FakeReranker:
+            # Cross-encoder prefers c > a > b, independent of the fusion score.
+            _scores = {"a": 0.2, "b": 0.1, "c": 0.9}
+
+            def predict(self, pairs):
+                return [self._scores[text] for _query, text in pairs]
+
+        result = asyncio.run(retriever._rerank("q", points, FakeReranker()))
+
+        assert [p.payload["text"] for p in result] == ["c", "a", "b"]
+        # Fusion scores travel with their points, untouched.
+        assert [p.score for p in result] == [0.7, 0.9, 0.5]
+
+    def test_falls_back_to_fusion_order_on_failure(self):
+        retriever = RAGRetriever(qdrant=None, embed_client=None)
+        points = [_FakePoint("a", 0.9), _FakePoint("b", 0.5)]
+
+        class BoomReranker:
+            def predict(self, pairs):
+                raise RuntimeError("reranker down")
+
+        result = asyncio.run(retriever._rerank("q", points, BoomReranker()))
+        assert result is points  # original order preserved, no raise
 
 
 class TestBuildSearchQuery:
