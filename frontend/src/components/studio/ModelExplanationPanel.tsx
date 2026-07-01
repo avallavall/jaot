@@ -1,60 +1,30 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Sparkles } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
-import { api } from "@/lib/api";
-import { useExplanationStream } from "@/hooks/useExplanationStream";
 import { resolveErrorKey } from "@/lib/llm-event-codes";
 import { ByokHint } from "@/components/llm/ByokHint";
-import type { Conversation } from "@/lib/llm-types";
-
-interface ModelExplanationPanelProps {
-  /** The ModelProject id whose draft (HEAD) the backend loads, stats and all. */
-  projectId: string;
-}
+import { useModelExplanation } from "./explain/ModelExplanationProvider";
 
 /**
- * "Explain this model" card on the Analyze lens. Creates a short-lived LLM
- * conversation on first use, then streams a grounded, plain-language explanation
- * from POST /llm/conversations/{id}/explain-model. The backend loads the model +
- * its computed stats from the project draft itself (Python computes; the model only
- * narrates), so the client passes just the project id.
+ * "Explain this model" card on the Analyze lens. The streaming state + conversation
+ * live in `ModelExplanationProvider` (mounted above the tabs), so an in-flight
+ * explanation survives leaving and re-entering the Analyze tab — this component is a
+ * pure consumer/view. The backend loads the model + its computed stats from the
+ * project draft itself (Python computes; the model only narrates).
  */
-export function ModelExplanationPanel({ projectId }: ModelExplanationPanelProps) {
+export function ModelExplanationPanel() {
   const t = useTranslations("studio");
   const tBuilder = useTranslations("builder");
-  const stream = useExplanationStream();
-  const conversationIdRef = useRef<string | null>(null);
-  const [started, setStarted] = useState(false);
-  const [setupFailed, setSetupFailed] = useState(false);
+  const { text, streaming, errorCode, requestId, started, setupFailed, runExplain } =
+    useModelExplanation();
 
-  const runExplain = useCallback(async () => {
-    setSetupFailed(false);
-    setStarted(true);
-    try {
-      if (!conversationIdRef.current) {
-        const conv = await api.request<Conversation>("/api/v2/llm/conversations", {
-          method: "POST",
-          body: JSON.stringify({}),
-        });
-        conversationIdRef.current = conv.id;
-      }
-      await stream.explain(
-        `/api/v2/llm/conversations/${conversationIdRef.current}/explain-model`,
-        { project_id: projectId }
-      );
-    } catch {
-      setSetupFailed(true);
-    }
-  }, [projectId, stream]);
-
-  const showError = setupFailed || stream.errorCode !== null;
-  const errorMessage = stream.errorCode
-    ? tBuilder(resolveErrorKey(stream.errorCode))
+  const showError = setupFailed || errorCode !== null;
+  const errorMessage = errorCode
+    ? tBuilder(resolveErrorKey(errorCode))
     : tBuilder(resolveErrorKey("service_unavailable"));
 
   return (
@@ -70,7 +40,7 @@ export function ModelExplanationPanel({ projectId }: ModelExplanationPanelProps)
           </h3>
           <p className="text-sm text-muted-foreground max-w-prose">{t("explainDescription")}</p>
         </div>
-        {!stream.streaming && (
+        {!streaming && (
           <Button
             variant="outline"
             size="sm"
@@ -84,29 +54,29 @@ export function ModelExplanationPanel({ projectId }: ModelExplanationPanelProps)
         )}
       </div>
 
-      {stream.streaming && !stream.text && (
+      {streaming && !text && (
         <p className="text-sm text-muted-foreground animate-pulse">{t("explainThinking")}</p>
       )}
 
-      {stream.text && (
+      {text && (
         <div className="prose prose-sm dark:prose-invert max-w-none text-foreground">
-          <Markdown remarkPlugins={[remarkGfm]}>{stream.text}</Markdown>
+          <Markdown remarkPlugins={[remarkGfm]}>{text}</Markdown>
         </div>
       )}
 
       {showError && (
         <p className="text-sm text-destructive">
           {errorMessage}
-          {stream.requestId && (
+          {requestId && (
             <span className="text-muted-foreground">
               {" "}
-              {t("explainRef", { requestId: stream.requestId })}
+              {t("explainRef", { requestId })}
             </span>
           )}
         </p>
       )}
 
-      {stream.text && !stream.streaming && !showError && (
+      {text && !streaming && !showError && (
         <p className="text-xs text-muted-foreground">{t("explainGrounded")}</p>
       )}
 

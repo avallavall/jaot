@@ -20,6 +20,7 @@ import { useCanvasBridge } from "./useCanvasBridge";
 import { useAutosave } from "./useAutosave";
 import { useSolveSession } from "./useSolveSession";
 import { StudioAssistantProvider } from "../assistant/StudioAssistantProvider";
+import { ModelExplanationProvider } from "../explain/ModelExplanationProvider";
 
 const EMPTY_PROBLEM: OptimizationProblem = {
   variables: [],
@@ -144,8 +145,12 @@ export function ModelProjectStoreProvider({
       {/* The AI session lives here, above the tab panels, so an in-flight generation
           (and the produced model) survives switching sub-lens or Build/Analyze/Solve.
           It renders `children` (a stable element) so its per-delta re-renders never
-          reach the workspace tree — only the Assistant lens consumes the context. */}
-      <StudioAssistantProvider store={store}>{children}</StudioAssistantProvider>
+          reach the workspace tree — only the Assistant lens consumes the context.
+          The "Explain this model" session is lifted the same way, so an in-flight
+          explanation survives leaving the Analyze tab and back. */}
+      <StudioAssistantProvider store={store}>
+        <ModelExplanationProvider projectId={modelId}>{children}</ModelExplanationProvider>
+      </StudioAssistantProvider>
     </ModelProjectStoreContext.Provider>
   );
 }

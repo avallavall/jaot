@@ -136,7 +136,7 @@ export function AnalyzePanel() {
 
         {isPersisted && (
           <div className="mt-6">
-            <ModelExplanationPanel projectId={modelId} />
+            <ModelExplanationPanel />
           </div>
         )}
       </div>
