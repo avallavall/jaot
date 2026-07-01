@@ -428,6 +428,57 @@ UI renders Markdown — never output raw HTML.
 """
 
 
+# Token budget for the formulation block embedded in a model-explanation prompt.
+# Large indexed models (tens of thousands of variables + long algebraic expressions)
+# can serialize to millions of tokens and blow past the provider context window, so
+# the formulation is sampled down to a representative head when it exceeds this. The
+# statistics block stays authoritative for the complete counts.
+MODEL_EXPLANATION_FORMULATION_MAX_TOKENS = 8000
+_FORMULATION_SAMPLE_LIST_ITEMS = 30
+_FORMULATION_SAMPLE_EXPR_CHARS = 500
+
+
+def _clip_long_string(value: Any, cap: int) -> Any:
+    """Clip a long expression string to ``cap`` chars with an elision marker."""
+    if isinstance(value, str) and len(value) > cap:
+        return value[:cap] + f"… [+{len(value) - cap} chars]"
+    return value
+
+
+def _sample_formulation(formulation: dict[str, Any]) -> dict[str, Any]:
+    """Build a size-bounded copy of a large formulation for prompt grounding.
+
+    Header/scalar fields are kept verbatim; list fields (variables, constraints, …)
+    are truncated to a representative head with an ``_<key>_omitted`` note; long
+    algebraic expression strings inside items and dict fields are clipped. The
+    authoritative complete counts live in the statistics block, so the sample only
+    needs to convey naming/structure, never every item.
+    """
+    sampled: dict[str, Any] = {}
+    for key, value in formulation.items():
+        if isinstance(value, list):
+            head = value[:_FORMULATION_SAMPLE_LIST_ITEMS]
+            sampled[key] = [
+                {k: _clip_long_string(v, _FORMULATION_SAMPLE_EXPR_CHARS) for k, v in item.items()}
+                if isinstance(item, dict)
+                else item
+                for item in head
+            ]
+            omitted = len(value) - len(head)
+            if omitted > 0:
+                sampled[f"_{key}_omitted"] = (
+                    f"{omitted} more {key} omitted for size — the statistics block has the "
+                    "authoritative totals"
+                )
+        elif isinstance(value, dict):
+            sampled[key] = {
+                k: _clip_long_string(v, _FORMULATION_SAMPLE_EXPR_CHARS) for k, v in value.items()
+            }
+        else:
+            sampled[key] = _clip_long_string(value, _FORMULATION_SAMPLE_EXPR_CHARS)
+    return sampled
+
+
 def build_model_explanation_prompt(
     formulation: dict[str, Any] | None,
     stats: dict[str, Any] | None,
@@ -437,15 +488,31 @@ def build_model_explanation_prompt(
     Embeds the formulation and the Python-computed ``ModelStats`` (counts, problem
     class, health, warnings) as JSON so the model has the exact, authoritative facts
     to ground its explanation in and nothing to fabricate.
+
+    Very large formulations (tens of thousands of variables / huge expressions) are
+    sampled to a representative head bounded by
+    ``MODEL_EXPLANATION_FORMULATION_MAX_TOKENS`` so the prompt never exceeds the
+    provider context window. The statistics block remains the authoritative source of
+    the complete counts, and the prompt header flags the sample as such.
     """
     import json
+
+    from app.services.llm.token_estimation import estimate_tokens
 
     parts: list[str] = ["Explain the following optimization MODEL (not yet solved).\n"]
 
     if formulation:
-        parts.append(
-            "## Formulation\n```json\n" + json.dumps(formulation, indent=2, default=str) + "\n```"
-        )
+        formulation_json = json.dumps(formulation, indent=2, default=str)
+        header = "## Formulation"
+        if estimate_tokens(formulation_json) > MODEL_EXPLANATION_FORMULATION_MAX_TOKENS:
+            formulation_json = json.dumps(_sample_formulation(formulation), indent=2, default=str)
+            header = (
+                "## Formulation (SAMPLED — too large to include in full; variable/constraint "
+                "lists are truncated to a representative head and long expressions are clipped. "
+                "The statistics block below is the AUTHORITATIVE complete picture — cite its "
+                "counts, never the sample's.)"
+            )
+        parts.append(header + "\n```json\n" + formulation_json + "\n```")
     if stats:
         parts.append(
             "## Computed statistics (authoritative — ground your explanation in these)\n```json\n"

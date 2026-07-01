@@ -59,6 +59,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Fixed
 
+- **"Explain this model" failed on very large models (2026-06-30)** — The grounded model explanation now samples a huge formulation to a representative head (long expressions clipped) instead of dumping every variable, so a 48,556-variable model no longer overflows the LLM context window (was a 400 "prompt is too long"). The authoritative counts still come from the computed statistics block.
 - **Live Solve chart never streamed for email/password sessions (2026-06-29)** — The progress WebSocket now authenticates from the same-origin JWT access cookie, so the convergence chart streams live on the deployed site (not just with an API key).
 - **More at-a-glance model & solver info (2026-06-29)** — Analyze gained the objective sense, a constraint operator breakdown, and avg terms/constraint; Solve shows which solver actually ran for an `auto` selection.
 - **Multi-objective form restricted to two objectives (2026-06-29)** — The form is now strictly bi-objective, matching the backend (which solves exactly two); a third objective no longer returns a cryptic 422.

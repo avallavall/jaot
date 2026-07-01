@@ -84,9 +84,7 @@ def project_with_two_versions(db_session, test_user, test_organization):
         auto_commit_summary="initial model",
     )
     projects_svc.update_draft(db_session, project, model_json=MODEL_B, expected_lock=None)
-    projects_svc.commit_version(
-        db_session, project, user_id=test_user.id, summary="cap x at 2"
-    )
+    projects_svc.commit_version(db_session, project, user_id=test_user.id, summary="cap x at 2")
     db_session.commit()
     versions = projects_svc.list_versions(db_session, project.id, test_organization.id)
     # Newest first → [v2 (cap x at 2), v1 (initial)].
@@ -204,7 +202,9 @@ class TestExplainModelEndpoint:
         assert "event: done" in response.text
 
     def test_requires_auth(self, client, test_conversation):
-        response = client.post(_explain_model_url(test_conversation.id), json={"formulation": MODEL_A})
+        response = client.post(
+            _explain_model_url(test_conversation.id), json={"formulation": MODEL_A}
+        )
         assert response.status_code == 401
 
     def test_cross_org_project_is_not_found(
@@ -236,9 +236,7 @@ class TestExplainModelEndpoint:
         )
         assert count == 0
 
-    def test_budget_exceeded_returns_403(
-        self, authenticated_client, db_session, test_conversation
-    ):
+    def test_budget_exceeded_returns_403(self, authenticated_client, db_session, test_conversation):
         PSS.set(db_session, "LLM_MONTHLY_BUDGET_EUR", "0.05")
         db_session.commit()
         costed = LLMMessage(
@@ -370,3 +368,61 @@ def test_diff_prompt_is_grounded_in_the_computed_diff(db_session, test_user, tes
     assert "c2" in prompt
     assert "added" in prompt
     assert "Structural diff" in prompt
+
+
+def test_model_explanation_prompt_embeds_small_formulation_in_full():
+    """A normal-size formulation is embedded verbatim (no sampling), so nothing is lost."""
+    from app.services.llm.prompt_templates import build_model_explanation_prompt
+
+    stats = {"num_variables": 2, "num_constraints": 1, "problem_class": "LP"}
+    prompt = build_model_explanation_prompt(MODEL_A, stats)
+
+    # Full formulation present; the SAMPLED flag must NOT appear for a tiny model.
+    assert "## Formulation\n" in prompt
+    assert "SAMPLED" not in prompt
+    assert '"tiny_lp"' in prompt
+    assert "3*x + 2*y" in prompt  # objective expression embedded verbatim
+
+
+def test_model_explanation_prompt_bounds_a_huge_formulation():
+    """CONTRACT-TEST: a huge model is SAMPLED so the prompt never blows the context window.
+
+    Regression for the 2026-06-30 'prompt is too long: 3.85M tokens' 400 from Anthropic
+    on scenario_16 (48k variables). The full dump must never reach the provider; the
+    statistics block stays authoritative for the complete counts.
+    """
+    from app.services.llm.prompt_templates import (
+        MODEL_EXPLANATION_FORMULATION_MAX_TOKENS,
+        build_model_explanation_prompt,
+    )
+    from app.services.llm.token_estimation import estimate_tokens
+
+    n_vars = 48_556
+    huge = {
+        "name": "scenario_16",
+        "variables": [
+            {"name": f"assign_e{i}", "type": "binary", "lower_bound": 0, "upper_bound": 1}
+            for i in range(n_vars)
+        ],
+        "constraints": [
+            {"name": f"cover_{j}", "expression": " + ".join(f"assign_e{k}" for k in range(200))}
+            for j in range(685)
+        ],
+        "objective": {
+            "sense": "minimize",
+            "expression": " + ".join(f"c{i}*assign_e{i}" for i in range(n_vars)),
+        },
+    }
+    stats = {"num_variables": n_vars, "num_constraints": 685, "problem_class": "BIP"}
+
+    prompt = build_model_explanation_prompt(huge, stats)
+
+    # The whole prompt must fit comfortably under the provider context window.
+    assert estimate_tokens(prompt) <= MODEL_EXPLANATION_FORMULATION_MAX_TOKENS + 4000
+    # It is flagged as sampled and points the model at the authoritative statistics.
+    assert "SAMPLED" in prompt
+    assert "omitted for size" in prompt
+    # Authoritative counts still reach the model via the statistics block.
+    assert "48556" in prompt or "48,556" in prompt
+    # Long expressions are clipped, not dumped whole.
+    assert "[+" in prompt and "chars]" in prompt
