@@ -59,6 +59,42 @@ describe("ModelProjectStore.setProblem", () => {
   });
 });
 
+describe("ModelProjectStore.setProblem — canvas hairball guard", () => {
+  const big = (n: number): OptimizationProblem => ({
+    variables: Array.from({ length: n }, (_, i) => ({
+      name: `v${i}`,
+      type: "continuous",
+      lower_bound: 0,
+    })),
+    objective: { sense: "minimize", expression: "v0" },
+    constraints: [],
+  });
+
+  it("re-enables the canvas when a non-canvas source shrinks a large model", () => {
+    // The data-loss regression: loaded large (canvas disabled), the Assistant then
+    // replaces it with a small model — the canvas must come back so it lays out and
+    // autosave persists a canvas that matches the new model.
+    const store = createModelProjectStore({ modelId: "m", name: "M", problem: big(900) });
+    store.getState().setCanvasDisabled(true);
+    store.getState().setProblem(big(10), { source: "formulation" });
+    expect(store.getState().canvasDisabled).toBe(false);
+  });
+
+  it("disables the canvas when a non-canvas source grows past the cap", () => {
+    const store = makeStore();
+    expect(store.getState().canvasDisabled).toBe(false);
+    store.getState().setProblem(big(900), { source: "formulation" });
+    expect(store.getState().canvasDisabled).toBe(true);
+  });
+
+  it("leaves the flag untouched for a canvas-sourced edit", () => {
+    const store = makeStore();
+    store.getState().setCanvasDisabled(true);
+    store.getState().setProblem({ ...BASE, constraints: [] }, { source: "canvas" });
+    expect(store.getState().canvasDisabled).toBe(true);
+  });
+});
+
 describe("ModelProjectStore.editorParseError", () => {
   it("defaults to false and toggles via the setter", () => {
     const store = makeStore();

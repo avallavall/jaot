@@ -5,6 +5,7 @@ import { temporal } from "zundo";
 import type { OptimizationProblem, SolveResult } from "@/lib/types";
 import type { ProgressPoint } from "@/lib/result-utils";
 import type { SolveProgressEvent } from "../panels/solve/live-solve-metrics";
+import { exceedsCanvasScale } from "./model-scale";
 
 /** The lenses that can author the model. Only `canvas` is live in P0/2A. */
 export type RepKey = "canvas" | "scratch" | "formulation";
@@ -172,6 +173,17 @@ export function createModelProjectStore(init: ModelProjectInit) {
             // A change from the canvas/restore makes any pending Editor parse error
             // stale — the canonical model just moved on, so clear the block.
             ...(opts.source !== "scratch" ? { editorParseError: false } : {}),
+            // Re-evaluate the canvas hairball guard whenever a NON-canvas source
+            // (AI Assistant / Editor) replaces the model. Without this the flag is
+            // sticky: a model loaded large (canvas disabled) that the Assistant then
+            // replaces with a SMALL one would keep the canvas disabled, leaving an
+            // empty/degenerate canvas saved next to the new model_json (the source of
+            // the "model shows 0 / empty after reload" data divergence). Recomputing
+            // re-enables the canvas for a large→small swap (so it lays out and
+            // autosave persists a canvas that matches the model) and disables it for
+            // a small→large swap. The canvas source never needs this — if it is
+            // authoring, the canvas is by definition already enabled.
+            ...(opts.source !== "canvas" ? { canvasDisabled: exceedsCanvasScale(next) } : {}),
           });
         },
 

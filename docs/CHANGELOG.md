@@ -59,6 +59,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Fixed
 
+- **Model shown empty after a non-canvas edit + reload (2026-07-01)** — Replacing the model from a non-canvas source (AI Assistant / Editor) now re-evaluates the canvas hairball guard, so a large→small swap re-enables the canvas and autosave persists a canvas that matches the model. Load also ignores a stale canvas (fewer nodes than the model has variables) and rebuilds it from `model_json`, so a model can no longer render as "0 variables / empty" next to a real saved model.
 - **"Explain this model" reset when leaving the Analyze tab (2026-07-01)** — The explanation stream and its conversation were lifted to the workspace provider (above the tabs), so an in-flight explanation now survives switching Build/Analyze/Solve and is still there (streaming or finished) on return — matching the durable AI Assistant and solve sessions.
 - **"Explain this model" failed on very large models (2026-06-30)** — The grounded model explanation now samples a huge formulation to a representative head (long expressions clipped) instead of dumping every variable, so a 48,556-variable model no longer overflows the LLM context window (was a 400 "prompt is too long"). The authoritative counts still come from the computed statistics block.
 - **Live Solve chart never streamed for email/password sessions (2026-06-29)** — The progress WebSocket now authenticates from the same-origin JWT access cookie, so the convergence chart streams live on the deployed site (not just with an API key).

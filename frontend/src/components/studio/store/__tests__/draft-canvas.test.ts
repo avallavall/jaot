@@ -41,4 +41,24 @@ describe("resolveDraftCanvas", () => {
       edges: [],
     });
   });
+
+  it("derives from model_json when the stored canvas is stale (fewer nodes than vars)", () => {
+    // Regression: a non-canvas source (AI Assistant / Editor) replaced the model while
+    // the canvas was disabled, leaving a 1-node canvas saved next to a many-variable
+    // model. Trusting the canvas rendered the workspace EMPTY (the "0 variables after
+    // reload" bug). The richer model_json must win.
+    const manyVarModel: OptimizationProblem = {
+      variables: Array.from({ length: 6 }, (_, i) => ({
+        name: `v${i}`,
+        type: "continuous",
+        lower_bound: 0,
+      })),
+      objective: { sense: "minimize", expression: "v0" },
+      constraints: [],
+    };
+    const staleCanvas = { nodes: [{ id: "stale" }], edges: [] };
+    const out = resolveDraftCanvas(staleCanvas, manyVarModel);
+    expect(out.nodes.length).toBeGreaterThanOrEqual(6); // derived from the 6-var model
+    expect(out.nodes.some((n) => (n as { id?: string }).id === "stale")).toBe(false);
+  });
 });
