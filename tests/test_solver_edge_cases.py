@@ -64,6 +64,47 @@ def _make_large_problem(
     )
 
 
+class TestConstantConstraintDoesNotCrash:
+    """A constraint whose LHS has no variable terms must not crash the SCIP build.
+
+    Regression: parametric/complex models (the parser binds no variables) can reduce a
+    constraint to ``constant <op> rhs``; pyscipopt's ``addCons`` then raised
+    "given constraint is not ExprCons but bool" and aborted the whole model. The builder
+    now anchors the constant to a zero-weighted variable — redundant when satisfied,
+    infeasible when not.
+    """
+
+    def _problem(self, const_expr: str) -> OptimizationProblem:
+        return OptimizationProblem(
+            name="const_cons",
+            objective=Objective(sense=ObjectiveSense.MAXIMIZE, expression="a + b"),
+            variables=[
+                Variable(name="a", type=VariableType.BINARY),
+                Variable(name="b", type=VariableType.BINARY),
+            ],
+            constraints=[
+                Constraint(name="real", expression="a + b <= 1"),
+                Constraint(name="const", expression=const_expr),
+            ],
+        )
+
+    def test_build_does_not_raise_on_constant_lhs(self):
+        from app.domains.solver.adapters._scip_model_builder import build_scip_model
+
+        # Previously raised: "given constraint is not ExprCons but bool".
+        _model, scip_vars, _refs = build_scip_model(self._problem("1 <= 5"))
+        assert set(scip_vars) == {"a", "b"}
+
+    def test_trivially_satisfied_constant_constraint_solves(self):
+        result = SolverService().solve(self._problem("1 <= 5"))
+        assert result.status == SolverStatus.OPTIMAL
+        assert result.objective_value == pytest.approx(1.0)
+
+    def test_trivially_violated_constant_constraint_is_infeasible(self):
+        result = SolverService().solve(self._problem("5 <= 1"))
+        assert result.status == SolverStatus.INFEASIBLE
+
+
 class TestSolverTimeLimit:
     """Verify the solver respects time_limit_seconds."""
 

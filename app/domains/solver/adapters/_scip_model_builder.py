@@ -14,7 +14,10 @@ from typing import Any
 
 from pyscipopt import Model
 
-from app.domains.solver.adapters._scip_expression import build_scip_expression
+from app.domains.solver.adapters._scip_expression import (
+    anchor_constant_expr,
+    build_scip_expression,
+)
 from app.domains.solver.services.expression_parser import ExpressionParser
 from app.schemas.optimization import (
     Constraint,
@@ -96,8 +99,10 @@ def add_constraints(
             constraint.expression,
             known_variables=variable_names,
         )
-        lhs_expr = build_scip_expression(parsed.lhs, scip_vars)
         name = constraint.name or f"c{i}"
+        lhs_expr = anchor_constant_expr(
+            build_scip_expression(parsed.lhs, scip_vars), scip_vars, label=name
+        )
 
         if parsed.operator == "<=":
             cons = model.addCons(lhs_expr <= parsed.rhs, name=name)

@@ -14,11 +14,14 @@ Phase 4 / Plan 02 / SOLV-06 / D-05 / D-06.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from pyscipopt import Variable as SCIPVariable  # noqa: F401  (used in type hint)
 
 from app.domains.solver.services.expression_parser import ParsedExpression
+
+logger = logging.getLogger(__name__)
 
 
 def build_scip_expression(
@@ -58,4 +61,32 @@ def build_scip_expression(
         else:
             raise ValueError("Terms with more than 2 variables not supported")
 
+    return expr
+
+
+def anchor_constant_expr(
+    expr: Any,
+    scip_vars: dict[str, SCIPVariable],
+    *,
+    label: str = "",
+) -> Any:
+    """Keep a constraint LHS a SCIP expression even when it has no variable terms.
+
+    A constant LHS (the parser bound no variables — common for parametric/indexed
+    expressions the flat parser can't resolve) would make ``expr <op> rhs`` a plain
+    Python bool, which pyscipopt's ``addCons`` rejects with "given constraint is not
+    ExprCons but bool" and aborts the whole model. Anchoring the constant to a
+    zero-weighted variable keeps it a valid SCIP expression that SCIP treats as
+    redundant when satisfied and infeasible when violated — never a crash.
+
+    Objectives must NOT use this: ``setObjective`` accepts a bare constant.
+    """
+    if isinstance(expr, (int, float)) and scip_vars:
+        logger.warning(
+            "Constraint '%s' has no variable terms (constant LHS %s); anchoring it to a "
+            "zero-weighted variable so the model stays buildable.",
+            label or "?",
+            expr,
+        )
+        return expr + 0 * next(iter(scip_vars.values()))
     return expr

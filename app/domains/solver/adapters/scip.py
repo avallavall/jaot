@@ -18,6 +18,7 @@ from typing import Any
 from pyscipopt import SCIP_EVENTTYPE, SCIP_PARAMSETTING, Eventhdlr, Model  # noqa: F401
 
 from app.domains.solver.adapters._scip_expression import (
+    anchor_constant_expr,
     build_scip_expression as _build_scip_expression_impl,
 )
 from app.domains.solver.adapters._scip_model_builder import (
@@ -390,8 +391,13 @@ class SCIPAdapter:
                 constraint.expression,
                 known_variables=variable_names,
             )
-            lhs_expr = self._build_expression(parsed.lhs, scip_vars)
             name = constraint.name or f"c{i}"
+            # Anchor a constant LHS (no variable terms) so addCons never gets a Python
+            # bool — the "given constraint is not ExprCons but bool" crash. Shared with
+            # the file-export/stats builder via _scip_expression.anchor_constant_expr.
+            lhs_expr = anchor_constant_expr(
+                self._build_expression(parsed.lhs, scip_vars), scip_vars, label=name
+            )
 
             cons = self._add_cons_for_operator(model, parsed.operator, lhs_expr, parsed.rhs, name)
             if cons is not None:
