@@ -90,6 +90,21 @@ SETTINGS_REGISTRY.extend(
             is_secret=False,
             is_readonly=False,
         ),
+        SettingDefinition(
+            key="JAOT_DSL",
+            label="JModel DSL (experimental)",
+            description=(
+                "When enabled, the studio exposes the JModel editor lens and the "
+                "POST /dsl/compile endpoint that lowers the declarative DSL "
+                "(sets / params / indexed families) to a flat optimization problem. "
+                "Off by default; the feature ships dark."
+            ),
+            category=SettingCategory.SYSTEM,
+            setting_type=SettingType.BOOL,
+            default_value="false",
+            is_secret=False,
+            is_readonly=False,
+        ),
     ]
 )
 
