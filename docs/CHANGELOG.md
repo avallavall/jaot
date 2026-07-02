@@ -19,6 +19,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Added
 
+- **JModel DSL editor — experimental (P5, 2026-07-02)** — A new declarative modeling language (sets, params, indexed variable & constraint families, `sum{}`, set-filters) as a 4th "JModel" lens in the studio Build tab. Write a compact model that compiles to the flat problem — a 200×14 assignment is ~12 lines instead of thousands of nodes. Off by default behind the `JAOT_DSL` flag (ships dark).
 - **Sharper AI grounding: worked examples + reranking (2026-07-01)** — The formulation assistant's RAG now indexes a real worked-example formulation (concrete variables/objective/constraints) for every template alongside the summaries, so suggestions imitate proven models; an optional local cross-encoder reranker (off by default) can re-order retrieved context for higher precision. All local — no data leaves the box.
 - **AI Assistant lens (P4b, 2026-06-30)** — Build a model by chatting in the studio and refine it incrementally ("add y", "make x integer"); the conversation is scoped to the model and each result flows into it live, with RAG grounding and file attachments.
 - **Durable AI conversation (2026-06-30)** — An in-flight AI generation now survives switching studio tab/sub-lens; the produced model still lands even from another tab.
