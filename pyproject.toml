@@ -156,6 +156,29 @@ ignore_imports = [
     "app.domains.solver.services.file_import -> app.domains.solver.adapters._scip_import",
 ]
 
+[[tool.importlinter.contracts]]
+# Contract 6 — the DSL compiler is a PURE library: stdlib + app.schemas only.
+# Contract 4 (independence) only guards dsl <-> solver; without this contract nothing
+# stops a future import of app.services/app.api from inside the domain, which would
+# silently break the "compiler is pure" guarantee its tests and the API layer rely on.
+id = "dsl-domain-pure"
+name = "DSL domain imports only app.schemas (pure compiler)"
+type = "forbidden"
+source_modules = [
+    "app.domains.dsl",
+]
+forbidden_modules = [
+    "app.api",
+    "app.config",
+    "app.core",
+    "app.data",
+    "app.models",
+    "app.services",
+    "app.shared",
+    "app.tasks",
+    "app.utils",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"

@@ -238,10 +238,246 @@ def test_illegal_character_raises():
 
 
 def test_duplicate_variable_family_raises():
-    with pytest.raises(JModelError, match="duplicate variable"):
+    with pytest.raises(JModelError, match="already declared as a variable"):
         compile_jmodel("var x >= 0; var x >= 0; minimize obj: x; subject to c: x >= 1;")
 
 
 def test_constraint_requires_relational_operator():
     with pytest.raises(JModelError, match="relational operator"):
         compile_jmodel("var x >= 0; minimize obj: x; subject to c: x + 1;")
+
+
+# --------------------------------------------------------------------------- #
+# Hardening — declaration validation
+# --------------------------------------------------------------------------- #
+
+
+def test_undefined_set_in_var_family_raises():
+    # A raw KeyError here used to escape as a 500 from /dsl/compile.
+    with pytest.raises(JModelError, match="unknown set 'J' in variable family") as exc:
+        compile_jmodel("var x{J}; minimize obj: 0; subject to c: 0 <= 1;")
+    assert exc.value.position is not None
+
+
+def test_undefined_set_in_param_raises():
+    with pytest.raises(JModelError, match="unknown set 'J' in param"):
+        compile_jmodel(
+            "param p{J} := a 1; var x >= 0; minimize obj: x; subject to c: x >= 1;"
+        )
+
+
+def test_param_data_key_not_in_set_raises():
+    # A typo'd data key used to be accepted silently (surfacing later or never).
+    with pytest.raises(JModelError, match="not in set 'S'"):
+        compile_jmodel(
+            """
+            set S := {item1, item2};
+            param p{S} := iteem1 5, item2 7;
+            var x{S} >= 0;
+            minimize obj: sum{i in S} p[i] * x[i];
+            subject to c: x[item1] >= 1;
+            """
+        )
+
+
+def test_ghost_variable_reference_raises():
+    # x is declared over I but indexed with a member of the larger J: without the
+    # membership check this emitted a flat name that exists nowhere in the expansion.
+    with pytest.raises(JModelError, match="'c' is not a member of set 'I'"):
+        compile_jmodel(
+            """
+            set I := {a, b};
+            set J := {a, b, c};
+            var x{I} >= 0;
+            minimize obj: sum{i in I} x[i];
+            subject to cover{j in J}: x[j] <= 1;
+            """
+        )
+
+
+def test_unknown_filter_identifier_raises():
+    # A typo'd filter term used to degrade to a literal string, silently making the
+    # filter a no-op (every tuple kept).
+    with pytest.raises(JModelError, match="unknown index 'jj' in filter"):
+        compile_jmodel(
+            """
+            set I := {a, b};
+            var x{I} >= 0;
+            minimize obj: sum{i in I: jj != i} x[i];
+            subject to c: x[a] >= 1;
+            """
+        )
+
+
+def test_reserved_word_as_name_rejected():
+    with pytest.raises(JModelError, match="reserved word"):
+        compile_jmodel("var sum >= 0; minimize obj: 0; subject to c: 0 <= 1;")
+    with pytest.raises(JModelError, match="reserved word"):
+        compile_jmodel("set in := {a}; var x >= 0; minimize obj: x; subject to c: x >= 1;")
+
+
+def test_cross_namespace_collision_rejected():
+    with pytest.raises(JModelError, match="already declared as a param"):
+        compile_jmodel("param c := 5; var c >= 0; minimize obj: c; subject to k: c >= 1;")
+
+
+def test_binary_with_explicit_bounds_rejected():
+    with pytest.raises(JModelError, match="binary"):
+        compile_jmodel("var x binary >= 5; minimize obj: x; subject to c: x >= 0;")
+
+
+def test_crossed_bounds_rejected():
+    with pytest.raises(JModelError, match="lower bound"):
+        compile_jmodel("var x >= 5 <= 2; minimize obj: x; subject to c: x >= 0;")
+
+
+# --------------------------------------------------------------------------- #
+# Hardening — numeric emission (the flat ExpressionParser reads no e-notation)
+# --------------------------------------------------------------------------- #
+
+
+def test_float_coefficients_emitted_positionally():
+    prob = compile_jmodel(
+        """
+        var x >= 0;
+        var y >= 0;
+        param tiny := .0000001;
+        param big := 1234567.89;
+        minimize obj: big * x + tiny * y;
+        subject to c: x + y >= 2;
+        """
+    )
+    # %g used to emit '1.23457e+06' (precision loss) and '1e-07' — both of which the
+    # flat ExpressionParser misreads as a ghost variable 'e'.
+    assert "e" not in prob.objective.expression
+    assert prob.objective.expression == "1234567.89*x + 0.0000001*y"
+
+
+def test_float_model_solves_correctly():
+    from app.domains.solver.adapters.scip import SCIPAdapter
+
+    prob = compile_jmodel(
+        """
+        var x >= 0;
+        var y >= 0;
+        param cheap := 0.5;
+        param dear := 1234567.89;
+        minimize obj: dear * x + cheap * y;
+        subject to demand: x + y >= 2;
+        """
+    )
+    result = SCIPAdapter().solve(prob)
+    assert result.status.value == "optimal"
+    assert result.objective_value is not None
+    assert abs(result.objective_value - 1.0) < 1e-6  # all demand on the cheap variable
+
+
+def test_huge_number_literal_rejected():
+    with pytest.raises(JModelError, match="too large"):
+        compile_jmodel(f"param big := {'9' * 400}; var x >= 0; minimize obj: x;")
+
+
+# --------------------------------------------------------------------------- #
+# Hardening — grounded semantics
+# --------------------------------------------------------------------------- #
+
+
+def test_variables_on_both_sides_of_a_constraint():
+    prob = compile_jmodel(
+        """
+        var x >= 0;
+        var y >= 0;
+        minimize obj: x + y;
+        subject to c: x >= y;
+        """
+    )
+    # the RHS variable must move to the LHS with a negated coefficient
+    assert prob.constraints[0].expression == "x - y >= 0"
+
+
+def test_sum_binds_to_the_following_term_only():
+    prob = compile_jmodel(
+        """
+        set I := {a, b};
+        var x{I} >= 0;
+        var y >= 0;
+        minimize obj: sum{i in I} x[i] - y;
+        subject to c: y >= 1;
+        """
+    )
+    # AMPL precedence: the sum spans only the next term, so y is subtracted ONCE
+    assert prob.objective.expression == "x_a + x_b - y"
+
+
+def test_trivially_true_constant_row_is_dropped():
+    prob = compile_jmodel(
+        """
+        set I := {a};
+        var x{I} >= 0;
+        minimize obj: x[a];
+        subject to vacuous: sum{i in I: i != a} x[i] <= 5;
+        subject to real: x[a] >= 1;
+        """
+    )
+    names = [c.name for c in prob.constraints]
+    assert "vacuous" not in names
+    assert "real" in names
+
+
+def test_constant_violated_row_is_a_compile_error():
+    with pytest.raises(JModelError, match="constant and violated"):
+        compile_jmodel(
+            """
+            set I := {a};
+            var x{I} >= 0;
+            minimize obj: x[a];
+            subject to impossible: sum{i in I: i != a} x[i] >= 5;
+            """
+        )
+
+
+def test_constraint_name_collision_after_mangling_rejected():
+    with pytest.raises(JModelError, match="constraint name collision"):
+        compile_jmodel(
+            """
+            set I := {a};
+            var x{I} >= 0;
+            minimize obj: x[a];
+            subject to c{i in I}: x[i] <= 1;
+            subject to c_a: x[a] <= 1;
+            """
+        )
+
+
+# --------------------------------------------------------------------------- #
+# Hardening — resource bounds
+# --------------------------------------------------------------------------- #
+
+
+def test_expansion_budget_rejects_blowup_before_grounding():
+    src = """
+    set A := {a, b, c, d};
+    var x{A, A} >= 0;
+    minimize obj: sum{i in A, j in A} x[i, j];
+    subject to c: x[a, a] >= 1;
+    """
+    # 16 grounded variables exceed a budget of 10 — must refuse, not expand
+    with pytest.raises(JModelError, match="grounded elements"):
+        compile_jmodel(src, max_grounded_elements=10)
+    # and the identical source compiles fine under the default budget
+    assert len(compile_jmodel(src).variables) == 16
+
+
+def test_deep_nesting_rejected_with_structured_error():
+    depth = 300
+    src = "var x >= 0; minimize obj: " + "(" * depth + "x" + ")" * depth + "; subject to c: x >= 1;"
+    # a raw RecursionError here used to escape as a 500 from /dsl/compile
+    with pytest.raises(JModelError, match="nesting"):
+        compile_jmodel(src)
+
+
+def test_grounding_error_position_is_exact():
+    src = "var x >= 0;\nminimize obj: x + qq;\nsubject to c: x >= 1;"
+    with pytest.raises(JModelError) as exc:
+        compile_jmodel(src)
+    assert exc.value.position == src.index("qq")
