@@ -129,20 +129,8 @@ class TestCreditCalculatorFormula:
         data = response.json()
         assert data["breakdown"]["constraint_cost"] == 1.0
 
-    def test_time_bonus_under_60s(self, client):
-        """Time limit <= 60s should have 0 time bonus."""
-        response = client.post(
-            "/api/v2/credits/calculator",
-            json={
-                "num_variables": 1,
-                "time_limit_seconds": 30,
-            },
-        )
-        data = response.json()
-        assert data["breakdown"]["time_bonus"] == 0
-
-    def test_time_bonus_over_60s(self, client):
-        """Time limit > 60s should have positive time bonus (1 credit per extra minute)."""
+    def test_time_bonus_under_default_limit(self, client):
+        """Time limit at or below the free default (300s) has 0 time bonus."""
         response = client.post(
             "/api/v2/credits/calculator",
             json={
@@ -151,8 +139,20 @@ class TestCreditCalculatorFormula:
             },
         )
         data = response.json()
+        assert data["breakdown"]["time_bonus"] == 0
+
+    def test_time_bonus_over_default_limit(self, client):
+        """Beyond the free default limit: 1 credit per extra minute."""
+        response = client.post(
+            "/api/v2/credits/calculator",
+            json={
+                "num_variables": 1,
+                "time_limit_seconds": 360,
+            },
+        )
+        data = response.json()
         assert data["breakdown"]["time_bonus"] > 0
-        # ceil((120 - 60) / 60) = 1
+        # ceil((360 - 300) / 60) = 1
         assert data["breakdown"]["time_bonus"] == 1
 
 
@@ -223,13 +223,13 @@ class TestCreditCalculatorValidation:
         )
         assert response.status_code == 422
 
-    def test_time_limit_over_3600_rejected(self, client):
-        """Time limit over 3600 seconds should be rejected."""
+    def test_time_limit_over_cap_rejected(self, client):
+        """Time limit beyond the 24h cap (86400s) should be rejected."""
         response = client.post(
             "/api/v2/credits/calculator",
             json={
                 "num_variables": 10,
-                "time_limit_seconds": 3601,
+                "time_limit_seconds": 86401,
             },
         )
         assert response.status_code == 422
@@ -288,13 +288,15 @@ class TestCreditCalculatorEdgeCases:
         assert data["breakdown"]["cap_applied"] is True
         assert data["breakdown"]["max_credits_per_solve"] == 500
 
-    def test_exactly_60s_no_bonus(self, client):
-        """Exactly 60s time limit should have 0 bonus."""
+    # CONTRACT-TEST: a solve requesting exactly the platform-default time limit pays no
+    # time bonus — the default is free, only time beyond it is charged.
+    def test_exactly_default_limit_no_bonus(self, client):
+        """Exactly the default (300s) time limit should have 0 bonus."""
         response = client.post(
             "/api/v2/credits/calculator",
             json={
                 "num_variables": 1,
-                "time_limit_seconds": 60,
+                "time_limit_seconds": 300,
             },
         )
         assert response.json()["breakdown"]["time_bonus"] == 0

@@ -56,9 +56,10 @@ def resolve_template(
 ) -> tuple[dict[str, Any] | None, ModelCatalog | None]:
     """Return ``(yaml_template_dict, None)`` or ``(None, catalog_model)``.
 
-    Resolution order: YAML templates first, then a *published* DB catalog row
-    (matched on either the bare id or the ``official_`` prefixed id). Both are
-    ``None`` when ``template_id`` matches nothing.
+    Resolution order: YAML templates first, then a *published and public* DB catalog
+    row (matched on either the bare id or the ``official_`` prefixed id). Both are
+    ``None`` when ``template_id`` matches nothing. The ``is_public`` filter mirrors the
+    public catalog listing, so an admin-hidden model cannot be materialized by id.
     """
     yaml_tmpl = get_yaml_template(template_id)
     if yaml_tmpl:
@@ -69,6 +70,7 @@ def resolve_template(
         .filter(
             ModelCatalog.id.in_([template_id, f"official_{template_id}"]),
             ModelCatalog.status == "published",
+            ModelCatalog.is_public == True,  # noqa: E712
         )
         .first()
     )

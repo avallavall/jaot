@@ -139,7 +139,7 @@ def test_invalid_api_key_returns_401(
     middleware_client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        "app.shared.core.auth_middleware.APIKeyService.verify_key",
+        "app.services.auth.credentials.APIKeyService.verify_key",
         staticmethod(lambda db, key: None),
     )
 
@@ -161,7 +161,7 @@ def test_valid_api_key_injects_state_and_headers(
     fake_org = SimpleNamespace(id="org_123", credits_balance=2500)
 
     monkeypatch.setattr(
-        "app.shared.core.auth_middleware.APIKeyService.verify_key",
+        "app.services.auth.credentials.APIKeyService.verify_key",
         staticmethod(lambda db, key: (fake_api_key, fake_user, fake_org)),
     )
 
@@ -184,7 +184,7 @@ def test_valid_auth_on_post_endpoint(
     fake_org = SimpleNamespace(id="org_456", credits_balance=100)
 
     monkeypatch.setattr(
-        "app.shared.core.auth_middleware.APIKeyService.verify_key",
+        "app.services.auth.credentials.APIKeyService.verify_key",
         staticmethod(lambda db, key: (fake_api_key, fake_user, fake_org)),
     )
 
@@ -201,7 +201,7 @@ def test_operational_error_returns_503(
     middleware_client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        "app.shared.core.auth_middleware.APIKeyService.verify_key",
+        "app.services.auth.credentials.APIKeyService.verify_key",
         staticmethod(
             lambda db, key: (_ for _ in ()).throw(
                 OperationalError("stmt", {}, Exception("db locked"))
@@ -222,7 +222,7 @@ def test_unexpected_error_returns_500(
     middleware_client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        "app.shared.core.auth_middleware.APIKeyService.verify_key",
+        "app.services.auth.credentials.APIKeyService.verify_key",
         staticmethod(lambda db, key: (_ for _ in ()).throw(RuntimeError("boom"))),
     )
 
@@ -310,7 +310,7 @@ class TestUnauthenticatedWriteRejectedByMiddleware:
         # An unrecognized key resolves to no principal (verify_key -> None),
         # exactly as the real service does for a bad key.
         monkeypatch.setattr(
-            "app.shared.core.auth_middleware.APIKeyService.verify_key",
+            "app.services.auth.credentials.APIKeyService.verify_key",
             staticmethod(lambda db, key: None),
         )
 

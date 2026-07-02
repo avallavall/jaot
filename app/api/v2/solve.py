@@ -23,13 +23,14 @@ from app.domains.solver.services import SolverService, get_solver_service
 from app.domains.solver.services.availability_gate import ensure_hexaly_worker_or_503
 from app.domains.solver.services.pool import get_solver_pool
 from app.domains.solver.time_limits import compute_celery_time_limits
-from app.models import ExecutionStatus, ModelExecution, Organization
+from app.models import ExecutionStatus, ModelExecution, ModelProject, Organization
 from app.schemas.optimization import (
     InfeasibilityAnalysis,
     MultiObjectiveConfig,
     MultiObjectiveResult,
     OptimizationProblem,
     OptimizationResult,
+    SolverOptions,
     SolverStatus,
 )
 from app.schemas.tier import tier_cap_detail
@@ -155,11 +156,17 @@ def _error_response(
     return response
 
 
+# The default solver time limit is free: the time bonus only charges for time
+# REQUESTED BEYOND the platform default, so a problem solved with default options
+# always prices at the base formula. Derived from the schema so the two can't drift.
+FREE_TIME_LIMIT_SECONDS = float(SolverOptions.model_fields["time_limit_seconds"].default)
+
+
 def compute_credits(
     num_variables: int,
     num_integer_binary: int,
     num_constraints: int,
-    time_limit_seconds: float = 60.0,
+    time_limit_seconds: float = FREE_TIME_LIMIT_SECONDS,
     *,
     max_credits_per_solve: int = 500,
 ) -> tuple[int, dict[str, float]]:
@@ -190,9 +197,9 @@ def compute_credits(
     else:
         con_cost = 2.5 + math.sqrt(num_constraints - 50) * 0.5
 
-    # --- time bonus: 1 credit per extra minute beyond 60s ---
-    if time_limit_seconds > 60:
-        time_cost = math.ceil((time_limit_seconds - 60) / 60)
+    # --- time bonus: 1 credit per extra minute beyond the free default limit ---
+    if time_limit_seconds > FREE_TIME_LIMIT_SECONDS:
+        time_cost = math.ceil((time_limit_seconds - FREE_TIME_LIMIT_SECONDS) / 60)
     else:
         time_cost = 0.0
 
@@ -828,6 +835,22 @@ async def solve_optimization_problem_async(
 
     # Minimal execution record so /async/{task_id} can verify ownership (prevents IDOR).
     async_source = ExecutionSource.from_request(origin, source_kind, source_id)
+    # Only mirror the id onto the TYPED project column when it names a real project in
+    # this org — source_id is client-supplied, and the typed column feeds joins/reconcile
+    # (§14) + P1.5, which must never carry a cross-org or dangling id. The generic
+    # source_kind/source_id provenance stays as sanitized above.
+    typed_model_project_id: str | None = None
+    if async_source.source_kind == "model_project" and async_source.source_id:
+        owns_project = (
+            db.query(ModelProject.id)
+            .filter(
+                ModelProject.id == async_source.source_id,
+                ModelProject.organization_id == org.id,
+            )
+            .first()
+        )
+        if owns_project:
+            typed_model_project_id = async_source.source_id
     pending_exec = ModelExecution(
         id=execution_id,
         organization_id=org.id,
@@ -845,11 +868,8 @@ async def solve_optimization_problem_async(
         source_kind=async_source.source_kind,
         source_id=async_source.source_id,
         # Typed per-project column for fast per-project history + the §14 durable
-        # reconcile + P1.5. The studio solves through this universal async path with
-        # source_kind="model_project"; mirror the id onto the typed column too.
-        model_project_id=(
-            async_source.source_id if async_source.source_kind == "model_project" else None
-        ),
+        # reconcile + P1.5 — populated only when validated as an in-org project above.
+        model_project_id=typed_model_project_id,
     )
     db.add(pending_exec)
     try:

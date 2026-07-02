@@ -463,7 +463,7 @@ class CreditCalculatorRequest(BaseModel):
         default=0, ge=0, le=10_000_000, description="Number of constraints"
     )
     time_limit_seconds: float = Field(
-        default=60, ge=1, le=3600, description="Time limit in seconds"
+        default=300, ge=1, le=86400, description="Time limit in seconds (up to 24h)"
     )
 
 

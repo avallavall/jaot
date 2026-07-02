@@ -17,7 +17,9 @@ from app.models import ModelCatalog
 _TEMPLATE = load_all_templates()[0]
 
 
-def _published_catalog(db: Session, *, status: str = "published") -> ModelCatalog:
+def _published_catalog(
+    db: Session, *, status: str = "published", is_public: bool = True
+) -> ModelCatalog:
     """A marketplace catalog row reusing a real generator + example input."""
     model = ModelCatalog(
         id="cat_p2_seed_test",
@@ -30,6 +32,7 @@ def _published_catalog(db: Session, *, status: str = "published") -> ModelCatalo
         input_fields=[],
         example_input=_TEMPLATE.example_input,
         status=status,
+        is_public=is_public,
     )
     db.add(model)
     db.commit()
@@ -93,6 +96,15 @@ class TestSeedFromMarketplace:
     ):
         # A draft (unpublished) catalog row must NOT be reachable as a seed source.
         model = _published_catalog(db_session, status="draft")
+        resp = authenticated_client.post(f"/api/v2/projects/from-marketplace/{model.id}")
+        assert resp.status_code == 404
+
+    def test_hidden_catalog_not_resolved_404(
+        self, authenticated_client: TestClient, db_session: Session
+    ):
+        # An admin-hidden model (is_public=False) — even if published — must NOT be
+        # materializable by id, mirroring the public catalog listing filter.
+        model = _published_catalog(db_session, is_public=False)
         resp = authenticated_client.post(f"/api/v2/projects/from-marketplace/{model.id}")
         assert resp.status_code == 404
 

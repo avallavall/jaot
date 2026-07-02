@@ -424,8 +424,10 @@ class TestDynamicCreditCalculation:
     def test_time_limit_bonus(self):
         from app.api.v2.solve import calculate_credits
 
-        problem_under = _build_problem(num_vars=4, time_limit=60)
-        problem_over = _build_problem(num_vars=4, time_limit=61)
+        # The free window tracks the default solve time limit (300s); only time beyond
+        # it earns a bonus (1 credit per extra minute).
+        problem_under = _build_problem(num_vars=4, time_limit=300)
+        problem_over = _build_problem(num_vars=4, time_limit=360)
 
         credits_under = calculate_credits(problem_under)
         credits_over = calculate_credits(problem_over)

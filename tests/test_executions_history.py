@@ -84,3 +84,29 @@ def test_all_executions_without_model_has_no_name(
     rows = authenticated_client.get("/api/v2/models/executions/all").json()["items"]
     row = next(r for r in rows if r["id"] == "exe_hist_bare_test")
     assert row["model_name"] is None
+
+
+# CONTRACT-TEST: `source_id` is client-supplied on the solve request, so name/author
+# resolution MUST be org-scoped — a run whose source_id points at another org's project
+# must never leak that project's name or author into this org's history.
+def test_all_executions_does_not_leak_cross_org_model_name(
+    authenticated_client: TestClient, db_session: Session, test_organization, test_organization_2
+):
+    foreign = _project(db_session, test_organization_2.id, name="Secret Foreign Model")
+    db_session.add(
+        ModelExecution(
+            id="exe_hist_crossorg_test",
+            organization_id=test_organization.id,  # the run is MINE...
+            status="completed",
+            input_data={},
+            origin="visual_builder",
+            source_kind="model_project",
+            source_id=foreign.id,  # ...but it names ANOTHER org's project
+        )
+    )
+    db_session.commit()
+
+    rows = authenticated_client.get("/api/v2/models/executions/all").json()["items"]
+    row = next(r for r in rows if r["id"] == "exe_hist_crossorg_test")
+    assert row["model_name"] is None
+    assert row["model_author"] is None

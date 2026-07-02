@@ -607,6 +607,7 @@ async def list_model_executions(
 
 def _attach_model_names(
     db: Session,
+    organization_id: str,
     executions: list[ModelExecution],
     items: list[ModelExecutionResponse],
 ) -> None:
@@ -617,6 +618,10 @@ def _attach_model_names(
     + ``source_id`` for the universal async path); marketplace/activated runs trace to an
     OrganizationModel. Resolved in two batch queries so the history table shows a name +
     author instead of an opaque id.
+
+    Both lookups are scoped to ``organization_id``: ``source_id`` is client-supplied on
+    the solve request, so a cross-org id must NOT resolve to another org's project name
+    or author — it simply stays opaque.
     """
 
     def _mp_id(e: ModelExecution) -> str | None:
@@ -627,11 +632,27 @@ def _attach_model_names(
 
     mp_info: dict[str, tuple[str, str | None]] = {}
     if mp_ids:
-        for mp in db.query(ModelProject).filter(ModelProject.id.in_(mp_ids)).all():
+        rows = (
+            db.query(ModelProject)
+            .filter(
+                ModelProject.id.in_(mp_ids),
+                ModelProject.organization_id == organization_id,
+            )
+            .all()
+        )
+        for mp in rows:
             mp_info[mp.id] = (mp.name, mp.created_by_name)
     om_names: dict[str, str] = {}
     if om_ids:
-        for om in db.query(OrganizationModel).filter(OrganizationModel.id.in_(om_ids)).all():
+        rows_om = (
+            db.query(OrganizationModel)
+            .filter(
+                OrganizationModel.id.in_(om_ids),
+                OrganizationModel.organization_id == organization_id,
+            )
+            .all()
+        )
+        for om in rows_om:
             om_names[om.id] = om.display_name
 
     for e, item in zip(executions, items, strict=True):
@@ -667,7 +688,7 @@ async def list_all_executions(
     executions, total = paginate_query(query, page, page_size)
 
     items = [ModelExecutionResponse.model_validate(e) for e in executions]
-    _attach_model_names(db, executions, items)
+    _attach_model_names(db, current_user.organization_id, executions, items)
     return ExecutionListResponse(items=items, total=total, page=page, page_size=page_size)
 
 

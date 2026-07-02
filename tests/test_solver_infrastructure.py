@@ -31,12 +31,12 @@ class TestSolverPoolConfig:
         assert PSS.get_int(db_session, "SOLVER_POOL_SIZE") == 4
 
     def test_default_timeout(self, db_session):
-        """Default solver timeout should be 30 seconds."""
+        """Default sync solve wall-clock timeout is 120s (relaxed for OSS self-hosting)."""
         from app.services.platform_settings_service import (
             PlatformSettingsService as PSS,
         )
 
-        assert PSS.get_int(db_session, "SOLVER_TIMEOUT_SECONDS") == 30
+        assert PSS.get_int(db_session, "SOLVER_TIMEOUT_SECONDS") == 120
 
     def test_pool_size_is_positive(self, db_session):
         """Pool size must be a positive integer."""

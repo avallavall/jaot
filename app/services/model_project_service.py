@@ -410,7 +410,14 @@ def hard_delete_project(db: Session, project: ModelProject) -> None:
     The ``versions`` relationship cascades (``all, delete-orphan`` + DB-level
     ``ondelete=CASCADE``), so the committed history is removed with it. Past
     ``ModelExecution`` rows keep their ``model_project_id`` as a historical tag
-    (no FK), so the executions audit trail is preserved.
+    (no FK), so the executions audit trail is preserved. The AI Assistant
+    conversations, by contrast, are unlinked (``model_project_id`` cleared) so the
+    project-scoped conversation filter never returns rows dangling off a dead id.
     """
+    from app.models.llm_conversation import LLMConversation  # noqa: PLC0415
+
+    db.query(LLMConversation).filter(LLMConversation.model_project_id == project.id).update(
+        {"model_project_id": None}, synchronize_session=False
+    )
     db.delete(project)
     db.flush()

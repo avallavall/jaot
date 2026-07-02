@@ -72,13 +72,14 @@ class TestCreditCalculation:
             objective=Objective(sense=ObjectiveSense.MINIMIZE, expression="sum"),
             variables=[Variable(name=f"x{i}", type=VariableType.BINARY) for i in range(10)],
             constraints=[Constraint(expression=f"x{i} <= 1") for i in range(10)],
-            options=SolverOptions(time_limit_seconds=120),  # Long time limit
+            options=SolverOptions(time_limit_seconds=120),
         )
 
         credits = calculate_credits(problem)
-        # Formula: base(1) + 10 vars * 0.1 + sqrt(10) * 2.0 + 10 cons * 0.05 + ceil(60/60)
-        #        = 1 + 1.0 + 6.324 + 0.5 + 1 = 9.824 -> round -> 10
-        assert credits == 10
+        # 120s is at/below the free default limit (300s) -> no time bonus.
+        # Formula: base(1) + 10 vars * 0.1 + sqrt(10) * 2.0 + 10 cons * 0.05 + time(0)
+        #        = 1 + 1.0 + 6.324 + 0.5 + 0 = 8.824 -> round -> 9
+        assert credits == 9
 
     def test_calculate_credits_minimum_is_one(self):
         """Test that minimum credits is always 1."""

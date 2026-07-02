@@ -589,12 +589,17 @@ async def solve_model_project(
     workspace_member: OptionalRequireSolver = None,
     version_id: str | None = Query(default=None),
     solver_name: str | None = Query(default=None, max_length=32),
+    origin: str | None = Query(default=None, max_length=32),
 ) -> OptimizationResult:
     """Solve a ModelProject's draft (or a specific committed version).
 
     Mirrors the universal ``/solve`` flow exactly — tier caps, auto-routing,
     credit calc, and ``SolveOrchestrator.solve_single`` — adding only the
     ``model_project`` provenance + typed project/version columns on the row.
+
+    ``origin`` lets a programmatic caller (API/MCP/ERP) label the run honestly;
+    it is sanitized server-side and falls back to ``visual_builder`` (the studio),
+    which is the historical default for this endpoint.
     """
     org = getattr(request.state, "organization", None)
     if not org:
@@ -667,7 +672,9 @@ async def solve_model_project(
             workspace_id=ws_id,
             solver_name=effective_solver_name,
             auto_route_reason=auto_route_reason,
-            source=ExecutionSource.from_request(ORIGIN_VISUAL_BUILDER, "model_project", project.id),
+            source=ExecutionSource.from_request(
+                origin or ORIGIN_VISUAL_BUILDER, "model_project", project.id
+            ),
             model_project_id=project.id,
             model_project_version_id=mpv_id,
         )
