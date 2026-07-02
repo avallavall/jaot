@@ -127,6 +127,10 @@ def compute(problem: OptimizationProblem, *, content_hash: str | None = None) ->
     seen_names: set[str] = set()
     dup_names = 0
     missing_names = 0
+    # One aggregate warning for unparseable rows (with a small name sample) instead of
+    # one per row — a large broken import must not balloon stats_json with 10k+ strings.
+    unparseable = 0
+    unparseable_sample: list[str] = []
     for c in problem.constraints:
         if c.name is None or c.name == "":
             missing_names += 1
@@ -137,7 +141,9 @@ def compute(problem: OptimizationProblem, *, content_hash: str | None = None) ->
         try:
             parsed = parser.parse_constraint(c.expression, known_variables=known)
         except ParseError:
-            warnings.append(f"Constraint '{c.name or '?'}' could not be parsed.")
+            unparseable += 1
+            if len(unparseable_sample) < 5:
+                unparseable_sample.append(c.name or "?")
             continue
         by_op[parsed.operator] = by_op.get(parsed.operator, 0) + 1
         var_terms = [t for t in parsed.lhs.terms if t.variables]
@@ -196,6 +202,10 @@ def compute(problem: OptimizationProblem, *, content_hash: str | None = None) ->
             unbounded_risk += 1
 
     # --- Warnings (human-readable) ---
+    if unparseable:
+        sample = ", ".join(f"'{n}'" for n in unparseable_sample)
+        suffix = ", …" if unparseable > len(unparseable_sample) else ""
+        warnings.append(f"{unparseable} constraint(s) could not be parsed ({sample}{suffix}).")
     if lb_gt_ub:
         hard_error = True
         warnings.append(f"{lb_gt_ub} variable(s) have lower_bound > upper_bound (infeasible).")
@@ -347,8 +357,22 @@ def compute_from_json(model_json: dict[str, Any] | None) -> ModelStats:
     return compute(problem, content_hash=chash)
 
 
+_redis_singleton: Any | None = None
+_redis_initialized = False
+
+
 def _redis_client() -> Any | None:
-    """Best-effort Redis client (returns None when unavailable/disabled)."""
+    """Best-effort Redis client, created once and reused (returns None when unavailable).
+
+    The live-stats endpoint calls this on every debounced edit; a fresh
+    ``Redis.from_url`` per call would spin up a new connection pool each time. The
+    client is lazily built once and cached at module level (``redis.Redis`` is
+    thread-safe and pools connections internally).
+    """
+    global _redis_singleton, _redis_initialized
+    if _redis_initialized:
+        return _redis_singleton
+    _redis_initialized = True
     try:
         from app.config import settings  # noqa: PLC0415
 
@@ -357,11 +381,11 @@ def _redis_client() -> Any | None:
             return None
         import redis  # noqa: PLC0415
 
-        client = redis.Redis.from_url(url, socket_timeout=2, socket_connect_timeout=2)
-        return client
+        _redis_singleton = redis.Redis.from_url(url, socket_timeout=2, socket_connect_timeout=2)
     except Exception as exc:  # pragma: no cover - infra optional
         logger.debug("ModelStats cache unavailable: %s", exc)
-        return None
+        _redis_singleton = None
+    return _redis_singleton
 
 
 def compute_cached(model_json: dict[str, Any] | None) -> ModelStats:

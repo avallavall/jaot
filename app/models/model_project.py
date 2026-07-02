@@ -44,14 +44,14 @@ class ModelProject(Base):
         String(64),
         ForeignKey("organizations.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
     # First model entity to carry workspace scoping at rest (builder docs never did).
+    # Filtered only in combination with organization_id, which is indexed, so no
+    # separate index (kept aligned with the migration — the org filter carries it).
     workspace_id: Mapped[str | None] = mapped_column(
         String(64),
         ForeignKey("workspaces.id", ondelete="SET NULL"),
         nullable=True,
-        index=True,
     )
     created_by: Mapped[str | None] = mapped_column(
         String(64),
@@ -61,8 +61,9 @@ class ModelProject(Base):
 
     name: Mapped[str] = mapped_column(String(255), nullable=False, default="Untitled Project")
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # active | archived (soft-delete via status + archived_at)
-    status: Mapped[str] = mapped_column(String(32), nullable=False, default="active", index=True)
+    # active | archived (soft-delete via status + archived_at); served by the
+    # (organization_id, status) composite index below.
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="active")
 
     # How the project was SEEDED (provenance of the project itself):
     # blank | template | marketplace | import | llm_conversation | builder_document
@@ -82,9 +83,7 @@ class ModelProject(Base):
     # Optimistic-concurrency token for the HEAD draft (If-Match); bumped on every write.
     draft_lock_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=utcnow, index=True
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=utcnow, onupdate=utcnow
     )
@@ -105,7 +104,10 @@ class ModelProject(Base):
         "User", foreign_keys=[created_by], lazy="selectin"
     )
 
+    # Index names mirror the migration (20260629_add_model_projects) exactly so
+    # `alembic --autogenerate` stays a no-op for this table.
     __table_args__ = (
+        Index("ix_model_projects_organization_id", "organization_id"),
         Index("ix_model_projects_org_status", "organization_id", "status"),
         Index("ix_model_projects_org_updated", "organization_id", "updated_at"),
     )
@@ -136,14 +138,13 @@ class ModelProjectVersion(Base):
         String(64),
         ForeignKey("model_projects.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
-    # Denormalized so multi-tenant filtering needs no join to the project.
+    # Denormalized so multi-tenant filtering needs no join to the project; served by
+    # the (organization_id, created_at) composite index below.
     organization_id: Mapped[str] = mapped_column(
         String(64),
         ForeignKey("organizations.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
     # Monotonic per project (v1, v2, …). Allocated under FOR UPDATE on the project row.
     sequence: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -154,7 +155,7 @@ class ModelProjectVersion(Base):
     model_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     canvas_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     dsl_source: Mapped[str | None] = mapped_column(Text, nullable=True)
-    content_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
 
     # --- Commit metadata ---
     commit_summary: Mapped[str] = mapped_column(String(500), nullable=False)  # REQUIRED subject
@@ -169,15 +170,17 @@ class ModelProjectVersion(Base):
     stats_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     problem_class: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=utcnow, index=True
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
 
     project: Mapped["ModelProject"] = relationship("ModelProject", back_populates="versions")
 
+    # Index names mirror the migration (20260629_add_model_projects) exactly so
+    # `alembic --autogenerate` stays a no-op for this table.
     __table_args__ = (
+        Index("ix_mpv_project", "model_project_id"),
         Index("ix_mpv_project_sequence", "model_project_id", "sequence", unique=True),
         Index("ix_mpv_org_created", "organization_id", "created_at"),
+        Index("ix_mpv_content_hash", "content_hash"),
     )
 
     def __repr__(self) -> str:
