@@ -144,6 +144,38 @@ describe("ModelProjectStore.parseErrors (per-lens, fold of the old two booleans)
   });
 });
 
+describe("ModelProjectStore.scratchText (retained un-applied editor text)", () => {
+  it("defaults to null and stores the broken text a lens unmount must not lose", () => {
+    const store = makeStore();
+    expect(store.getState().scratchText).toBeNull();
+    store.getState().setScratchText("{ broken");
+    expect(store.getState().scratchText).toBe("{ broken");
+  });
+
+  it("dies with its parse error when the model changes from another source", () => {
+    const store = makeStore();
+    store.getState().setParseError("scratch", true);
+    store.getState().setScratchText("{ broken");
+    store.getState().setProblem({ ...BASE, constraints: [] }, { source: "canvas" });
+    expect(store.getState().scratchText).toBeNull();
+    expect(store.getState().parseErrors.scratch ?? false).toBe(false);
+  });
+
+  it("is cleared by any applied model — a valid scratch edit ends the retention", () => {
+    const store = makeStore();
+    store.getState().setScratchText("{ broken");
+    store.getState().setProblem({ ...BASE, constraints: [] }, { source: "scratch" });
+    expect(store.getState().scratchText).toBeNull();
+  });
+
+  it("is cleared on hydrate (reload / restore)", () => {
+    const store = makeStore();
+    store.getState().setScratchText("{ broken");
+    store.getState().hydrate(BASE, "Reloaded");
+    expect(store.getState().scratchText).toBeNull();
+  });
+});
+
 describe("ModelProjectStore JModel (DSL) source", () => {
   it("setDraftDslSource without dirty does not mark the draft dirty (load-time rehydrate)", () => {
     const store = makeStore();

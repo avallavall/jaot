@@ -20,10 +20,13 @@ const VALIDATE_DEBOUNCE_MS = 500;
 /**
  * The Editor (text) sub-lens of Build: a plain monospace textarea over the canonical
  * model serialized as JSON. A valid edit is reprojected onto the canvas and autosaved
- * for free (it flows through `setProblem({source:"scratch"})`); a malformed edit is
- * held locally and flags this lens' parse error (`parseErrors.scratch`) so solve/commit
- * are blocked, while the canvas/Solve keep the last-good model. Backend `validateProblem`
- * adds live semantic feedback (non-blocking). No external editor dependency.
+ * for free (it flows through `setProblem({source:"scratch"})`); a malformed edit flags
+ * this lens' parse error (`parseErrors.scratch`) so solve/commit are blocked, while the
+ * canvas/Solve keep the last-good model. Both the flag AND the broken text (store
+ * `scratchText`) survive the lens unmounting — switching tab never silently unblocks a
+ * solve of a model the user believes they just changed, and coming back re-shows the
+ * broken text with its error. Backend `validateProblem` adds live semantic feedback
+ * (non-blocking). No external editor dependency.
  */
 export function ModelEditorPanel() {
   const t = useTranslations("studio");
@@ -33,8 +36,15 @@ export function ModelEditorPanel() {
   const tooLarge = elementCount > CANVAS_SCALE_CAP;
   const storeApi = useModelProjectStoreApi();
 
-  const [text, setText] = useState<string>(() => scratchProjector.fromProblem(problem));
-  const [parsed, setParsed] = useState<ParseResult>(() => ({ ok: true, problem }));
+  // Seed from the retained un-applied text (a broken edit that survived a lens
+  // unmount) when there is one, so its error re-shows; otherwise from the model.
+  const [text, setText] = useState<string>(
+    () => storeApi.getState().scratchText ?? scratchProjector.fromProblem(problem)
+  );
+  const [parsed, setParsed] = useState<ParseResult>(() => {
+    const retained = storeApi.getState().scratchText;
+    return retained != null ? parseModelText(retained) : { ok: true, problem };
+  });
   const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [validating, setValidating] = useState(false);
   const validateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -66,6 +76,10 @@ export function ModelEditorPanel() {
   // "scratch"), which would clobber the cursor.
   useEffect(() => {
     if (lastSource === "scratch") return;
+    // A retained broken text takes precedence over re-seeding: the canonical model
+    // has NOT moved since it broke (any `setProblem` would have cleared the retention),
+    // so this run is the mount pass and the user's un-applied text must stay visible.
+    if (storeApi.getState().scratchText != null) return;
     /* eslint-disable react-hooks/set-state-in-effect -- mirror an external model change
        (canvas / restore / load) into the textarea; intentional derived-state sync */
     setText(scratchProjector.fromProblem(problem));
@@ -75,15 +89,15 @@ export function ModelEditorPanel() {
     storeApi.getState().setParseError("scratch", false);
   }, [problem, lastSource, storeApi]);
 
-  // Leaving the editor abandons any broken text (the canonical model is always
-  // last-good-valid), so clear the block and drop any in-flight validation.
+  // Leaving the editor keeps a broken text's block in place (switching tab must not
+  // silently unblock a solve of the last-good model) — the text itself is retained in
+  // the store, so coming back re-shows it. Only the in-flight validation is dropped.
   useEffect(
     () => () => {
       if (validateTimer.current) clearTimeout(validateTimer.current);
       validateSeq.current++;
-      storeApi.getState().setParseError("scratch", false);
     },
-    [storeApi]
+    []
   );
 
   const handleChange = (value: string) => {
@@ -93,11 +107,16 @@ export function ModelEditorPanel() {
     if (validateTimer.current) clearTimeout(validateTimer.current);
     if (result.ok) {
       storeApi.getState().setParseError("scratch", false);
+      // Explicit (setProblem also clears it, but no-ops when the parsed model equals
+      // the canonical one — the retention must still die once the text is valid).
+      storeApi.getState().setScratchText(null);
       storeApi.getState().setProblem(result.problem, { source: "scratch" });
       const p = result.problem;
       validateTimer.current = setTimeout(() => runValidate(p), VALIDATE_DEBOUNCE_MS);
     } else {
       storeApi.getState().setParseError("scratch", true);
+      // Retain the un-applied text so it survives this lens unmounting.
+      storeApi.getState().setScratchText(value);
       setValidation(null);
     }
   };
@@ -157,6 +176,7 @@ export function ModelEditorPanel() {
           ) : (
             <span>{shapeMessage(t, parsed.field)}</span>
           )}
+          <p className="mt-1 opacity-80">{t("lensNotApplied")}</p>
         </div>
       )}
 

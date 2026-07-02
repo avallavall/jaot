@@ -23,6 +23,14 @@ var x{I} binary;
 maximize obj: sum{i in I} w[i] * x[i];
 subject to pick_two: sum{i in I} x[i] <= 2;`;
 
+// A small valid model used to drift the canonical model AWAY from the DSL source
+// (applied through the JSON editor lens — deterministic, unlike canvas drag-drop).
+const DRIFT_MODEL = {
+  variables: [{ name: "z", type: "continuous", lower_bound: 0, upper_bound: 5 }],
+  objective: { sense: "minimize", expression: "z" },
+  constraints: [{ name: "c1", expression: "z >= 1" }],
+};
+
 async function setDslFlag(value: "true" | "false"): Promise<void> {
   const ctx = await request.newContext({ baseURL: BASE });
   try {
@@ -118,6 +126,17 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
     await expect(page.getByTestId("studio-jmodel-error")).toBeVisible({ timeout: NAV });
     await expect(headerSolve).toBeDisabled();
 
+    // The block SURVIVES leaving the lens (client-side tab nav): the Solve tab's run
+    // button is blocked too — the old unmount cleanup cleared the flag and silently
+    // solved the previous good model. Coming back re-derives the compile error from
+    // the persisted source, so the block stays explained.
+    await page.getByTestId("studio-tab-solve").click();
+    await expect(page.getByTestId("studio-solve-run")).toBeDisabled();
+    await page.getByTestId("studio-tab-build").click();
+    await page.getByTestId("studio-sublens-jmodel").click();
+    await expect(page.getByTestId("studio-jmodel-error")).toBeVisible({ timeout: NAV });
+    await expect(headerSolve).toBeDisabled();
+
     // Fixing it clears the block, and the compiled model solves on the Solve tab.
     await textarea.fill(VALID_JMODEL);
     await expect(page.getByTestId("studio-jmodel-error")).toHaveCount(0, { timeout: NAV });
@@ -138,5 +157,45 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
     await expect(page.getByTestId("studio-solve-done")).toBeVisible({ timeout: 40_000 });
     // (The compiled model's optimum = 7 is asserted by the compiler unit tests, which
     // solve it through the real SCIPAdapter; here we prove the studio path solves.)
+  });
+
+  // A model edited from ANOTHER lens leaves the JModel source drifted (lowering is
+  // one-way). The drifted source is NOT the applied model, so it locks read-only and
+  // re-applying it must be the explicit "recompile" action — a deliberate replace of
+  // the newer model, never a silent clobber from a stray keystroke.
+  test("stale source locks read-only until explicitly recompiled (deliberate replace)", async ({
+    page,
+  }) => {
+    await setDslFlag("true");
+    const projectId = await createBlankProject(page);
+    await page.goto(`/studio/${projectId}/build?lens=jmodel`);
+
+    const textarea = page.getByTestId("studio-jmodel-textarea");
+    await expect(textarea).toBeVisible({ timeout: NAV });
+    await textarea.fill(VALID_JMODEL);
+    await expect(page.getByTestId("studio-jmodel-error")).toHaveCount(0, { timeout: NAV });
+    // Realistic pace: the user sees "Saved" before moving on to another lens.
+    await expect(page.getByTestId("studio-saved")).toBeVisible({ timeout: NAV });
+
+    // Edit the model from another lens (the JSON editor — deterministic, no canvas DnD).
+    await page.getByTestId("studio-sublens-editor").click();
+    const editor = page.getByTestId("studio-editor-textarea");
+    await expect(editor).toBeVisible({ timeout: NAV });
+    await editor.fill(JSON.stringify(DRIFT_MODEL, null, 2));
+    await expect(page.getByTestId("studio-editor-error")).toHaveCount(0, { timeout: NAV });
+
+    // Back on JModel: drifted source → stale notice + read-only + recompile action.
+    await page.getByTestId("studio-sublens-jmodel").click();
+    await expect(textarea).toBeVisible({ timeout: NAV });
+    await expect(page.getByTestId("studio-jmodel-recompile")).toBeVisible({ timeout: NAV });
+    await expect(textarea).toHaveJSProperty("readOnly", true);
+
+    // The explicit recompile re-applies this source: staleness (and the lock) end.
+    await page.getByTestId("studio-jmodel-recompile").click();
+    await expect(page.getByTestId("studio-jmodel-recompile")).toHaveCount(0, {
+      timeout: NAV,
+    });
+    await expect(textarea).toHaveJSProperty("readOnly", false);
+    await expect(page.getByTestId("studio-jmodel-error")).toHaveCount(0);
   });
 });

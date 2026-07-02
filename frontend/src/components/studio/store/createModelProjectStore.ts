@@ -113,11 +113,21 @@ export interface ModelProjectState {
    * A broken lens never applies its text to the canonical model, but records itself
    * here so solve/commit are blocked (`selectHasParseError`) — the user must not act
    * on a model they believe they just changed. One entry per authoring lens means a
-   * broken JModel tab and a valid JSON editor never cross-block. Cleared for a lens
-   * when its text parses, when the model changes from another source, or on reload.
+   * broken JModel tab and a valid JSON editor never cross-block. The flag PERSISTS
+   * when the lens unmounts (switching tab must not silently unblock a solve of the
+   * last-good model); it clears when the text parses, when the model changes from
+   * another source, or on reload.
    */
   parseErrors: Partial<Record<RepKey, boolean>>;
   setParseError: (rep: RepKey, hasError: boolean) => void;
+
+  /** The JSON Editor's un-applied (un-parseable) text, retained here so it survives
+   * the lens unmounting: coming back shows the broken text + its error instead of an
+   * unexplained block. `null` = the editor is in sync with the canonical model and
+   * derives its text from `problem`. Memory-only (never persisted to the draft);
+   * cleared whenever the canonical model moves on (`setProblem`) or on reload. */
+  scratchText: string | null;
+  setScratchText: (scratchText: string | null) => void;
 
   /** The current JModel (DSL) source text for this project's HEAD draft. Persisted
    * to `draft_dsl_source` and rehydrated on load. It is the source of truth for the
@@ -177,6 +187,9 @@ export function createModelProjectStore(init: ModelProjectInit) {
             lastSource: opts.source,
             headDirty: true,
             parseErrors,
+            // The canonical model moved on, so any retained un-applied editor text
+            // no longer describes a pending fix — drop it with its parse error.
+            scratchText: null,
             // Re-evaluate the canvas hairball guard whenever a NON-canvas source
             // (AI Assistant / Editor) replaces the model. Without this the flag is
             // sticky: a model loaded large (canvas disabled) that the Assistant then
@@ -199,6 +212,7 @@ export function createModelProjectStore(init: ModelProjectInit) {
             headDirty: false,
             saveState: "idle",
             parseErrors: {},
+            scratchText: null,
           });
         },
 
@@ -250,6 +264,9 @@ export function createModelProjectStore(init: ModelProjectInit) {
             else delete next[rep];
             return { parseErrors: next };
           }),
+
+        scratchText: null,
+        setScratchText: (scratchText) => set({ scratchText }),
 
         draftDslSource: "",
         dslDirty: false,

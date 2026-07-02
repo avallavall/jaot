@@ -170,8 +170,11 @@ test.describe("Studio — critical path (guards live bugs A/B/C)", () => {
     await page.goto(`/studio/${projectId}/build?lens=editor`);
     const textarea = page.getByTestId("studio-editor-textarea");
     await expect(textarea).toBeVisible({ timeout: NAV });
-    // It is seeded with the model serialized as JSON.
-    await expect(textarea).toHaveValue(/"variables"/, { timeout: NAV });
+    // It is seeded with the SEEDED model serialized as JSON. Match a value unique to
+    // the seed (not just `"variables"`, which the pre-hydrate empty model also has):
+    // typing before the project load lands would race the late hydrate, which
+    // legitimately resets the editor state — a user sees their model before editing.
+    await expect(textarea).toHaveValue(/"upper_bound": 23/, { timeout: NAV });
 
     const headerSolve = page.getByTestId("studio-header-solve");
     await expect(headerSolve).toBeEnabled();
@@ -179,6 +182,21 @@ test.describe("Studio — critical path (guards live bugs A/B/C)", () => {
     // Malformed JSON → inline error + solve blocked (header button disabled).
     await textarea.fill("{ this is not json");
     await expect(page.getByTestId("studio-editor-error")).toBeVisible({ timeout: NAV });
+    await expect(headerSolve).toBeDisabled();
+
+    // The block SURVIVES leaving the lens (client-side tab nav): the Solve tab's run
+    // button is blocked too — switching tabs must not silently solve the last-good
+    // model the user believes they just changed (the old unmount cleared the flag).
+    await page.getByTestId("studio-tab-solve").click();
+    await expect(page.getByTestId("studio-solve-run")).toBeDisabled();
+    // Coming back re-shows the retained un-applied text with its error.
+    await page.getByTestId("studio-tab-build").click();
+    await page.getByTestId("studio-sublens-editor").click();
+    await expect(page.getByTestId("studio-editor-textarea")).toHaveValue(
+      "{ this is not json",
+      { timeout: NAV },
+    );
+    await expect(page.getByTestId("studio-editor-error")).toBeVisible();
     await expect(headerSolve).toBeDisabled();
 
     // Fixing the JSON (a valid model shape) clears the error and re-enables solve.

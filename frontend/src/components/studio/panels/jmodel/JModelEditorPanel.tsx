@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import type { DslCompileResult } from "@/lib/types";
 import {
@@ -24,11 +26,16 @@ subject to pick_two: sum{i in I} x[i] <= 2;`;
  * The JModel (DSL) sub-lens of Build: a plain monospace textarea over the declarative
  * source. Every debounced edit is compiled server-side (`POST /dsl/compile`); a
  * successful compile flows the lowered model through `setProblem({source:"dsl"})` so it
- * reflects on the canvas/Analyze/Solve and autosaves, while a compile error is held
- * locally and flags this lens' parse error (`parseErrors.dsl`) so solve/commit are blocked (the canonical model
- * stays last-good). The source itself is persisted to the draft via `setDraftDslSource`
- * so it survives navigation even when it does not (yet) compile. Lowering is one-way —
- * editing the model elsewhere leaves this source unchanged (a notice flags the drift).
+ * reflects on the canvas/Analyze/Solve and autosaves, while a compile error flags this
+ * lens' parse error (`parseErrors.dsl`) so solve/commit are blocked (the canonical model
+ * stays last-good). The flag PERSISTS when the lens unmounts — switching tab must not
+ * silently unblock a solve of the last-good model — and clears only when the source
+ * compiles again or the model is edited from another lens. The source itself is
+ * persisted to the draft via `setDraftDslSource` so it survives navigation even when it
+ * does not (yet) compile. Lowering is one-way — editing the model elsewhere leaves this
+ * source unchanged; the drifted source then shows a notice, is NOT applied, and locks
+ * read-only until the user explicitly recompiles (a deliberate replace, never a silent
+ * clobber of the newer model).
  */
 export function JModelEditorPanel() {
   const t = useTranslations("studio");
@@ -46,32 +53,37 @@ export function JModelEditorPanel() {
   // during render) so the store-sync effect can skip the user's own keystrokes.
   const textRef = useRef(text);
 
-  const runCompile = (source: string) => {
-    const seq = ++compileSeq.current;
-    setCompiling(true);
-    api
-      .compileDsl(source)
-      .then((res) => {
-        if (seq !== compileSeq.current) return;
-        setResult(res);
-        if (res.ok && res.problem) {
-          storeApi.getState().setParseError("dsl", false);
-          storeApi.getState().setProblem(res.problem, { source: "dsl" });
-        } else {
-          storeApi.getState().setParseError("dsl", true);
-        }
-      })
-      .catch(() => {
-        // A transport/gate failure must not apply a model or flip the block state.
-        // Keep a prior compile error's box visible (so an existing block stays
-        // explained rather than invisible); only clear the box if nothing is blocked.
-        if (seq !== compileSeq.current) return;
-        if (!storeApi.getState().parseErrors.dsl) setResult(null);
-      })
-      .finally(() => {
-        if (seq === compileSeq.current) setCompiling(false);
-      });
-  };
+  // useCallback (unlike the editor's runValidate): this is also called from the
+  // mount/unmount effect below, so it must be a stable dependency there.
+  const runCompile = useCallback(
+    (source: string) => {
+      const seq = ++compileSeq.current;
+      setCompiling(true);
+      api
+        .compileDsl(source)
+        .then((res) => {
+          if (seq !== compileSeq.current) return;
+          setResult(res);
+          if (res.ok && res.problem) {
+            storeApi.getState().setParseError("dsl", false);
+            storeApi.getState().setProblem(res.problem, { source: "dsl" });
+          } else {
+            storeApi.getState().setParseError("dsl", true);
+          }
+        })
+        .catch(() => {
+          // A transport/gate failure must not apply a model or flip the block state.
+          // Keep a prior compile error's box visible (so an existing block stays
+          // explained rather than invisible); only clear the box if nothing is blocked.
+          if (seq !== compileSeq.current) return;
+          if (!storeApi.getState().parseErrors.dsl) setResult(null);
+        })
+        .finally(() => {
+          if (seq === compileSeq.current) setCompiling(false);
+        });
+    },
+    [storeApi]
+  );
 
   const handleChange = (value: string) => {
     setText(value);
@@ -80,6 +92,7 @@ export function JModelEditorPanel() {
     // before it compiles.
     storeApi.getState().setDraftDslSource(value, { dirty: true });
     if (compileTimer.current) clearTimeout(compileTimer.current);
+    compileTimer.current = null;
     if (!value.trim()) {
       // Empty source: nothing to compile. Clear any error and leave the model as-is.
       compileSeq.current++;
@@ -88,7 +101,12 @@ export function JModelEditorPanel() {
       setCompiling(false);
       return;
     }
-    compileTimer.current = setTimeout(() => runCompile(value), COMPILE_DEBOUNCE_MS);
+    // Null the ref when it fires so the unmount flush only re-runs a compile that is
+    // genuinely still pending, not one that already ran.
+    compileTimer.current = setTimeout(() => {
+      compileTimer.current = null;
+      runCompile(value);
+    }, COMPILE_DEBOUNCE_MS);
   };
 
   // Sync the textarea when the source changes in the store from OUTSIDE this panel:
@@ -103,24 +121,57 @@ export function JModelEditorPanel() {
     setResult(null);
     /* eslint-enable react-hooks/set-state-in-effect */
     textRef.current = storeDslSource;
+    // Drop BOTH the in-flight compile and a still-pending debounce: they belong to
+    // the replaced text, and firing one now would re-flag/apply the old source over
+    // the fresh one.
+    if (compileTimer.current) clearTimeout(compileTimer.current);
+    compileTimer.current = null;
     compileSeq.current++;
     storeApi.getState().setParseError("dsl", false);
   }, [storeDslSource, storeApi]);
 
-  // Leaving the lens abandons any broken source's block (the canonical model is always
-  // last-good-valid) and drops any in-flight compile.
-  useEffect(
-    () => () => {
-      if (compileTimer.current) clearTimeout(compileTimer.current);
-      compileSeq.current++;
-      storeApi.getState().setParseError("dsl", false);
-    },
-    [storeApi]
-  );
+  // On mount: a block that persisted from a previous mount (the source still doesn't
+  // compile — the flag is never cleared on unmount) has no local error box yet, so
+  // re-derive it; the block must stay explained, not invisible. Safe even if the
+  // recompile now succeeds: the flag being set proves no other lens touched the model
+  // since (setProblem from elsewhere clears it), so applying is what the user asked.
+  // On unmount: FLUSH (don't drop) a pending debounced compile — leaving the lens must
+  // not skip the compile that decides whether solve stays blocked; its result lands in
+  // the provider-owned store even after this panel is gone.
+  useEffect(() => {
+    if (storeApi.getState().parseErrors.dsl && textRef.current.trim()) {
+      runCompile(textRef.current);
+    }
+    return () => {
+      if (compileTimer.current) {
+        clearTimeout(compileTimer.current);
+        compileTimer.current = null;
+        runCompile(textRef.current);
+      }
+    };
+  }, [storeApi, runCompile]);
 
   // The model was last changed by another lens, so this DSL source may be out of date
-  // (lowering is one-way: model → DSL is not reconstructed).
-  const stale = lastSource !== null && lastSource !== "dsl" && text.trim().length > 0;
+  // (lowering is one-way: model → DSL is not reconstructed). A drifted source is NOT
+  // the applied model: lock it read-only until the user explicitly opts back in —
+  // recompiling it REPLACES the newer model, so that must be a deliberate act, never
+  // a silent clobber from a stray keystroke.
+  const drifted = lastSource !== null && lastSource !== "dsl";
+  const stale = drifted && text.trim().length > 0;
+  const [editingStale, setEditingStale] = useState(false);
+  const readOnly = stale && !editingStale;
+
+  // The opt-in lives for ONE drift episode: when the drift ends (a recompile
+  // re-applied this source, or a reload), reset it so the NEXT drift asks again.
+  // Adjusted during render — self-terminating (the set makes the condition false).
+  if (!drifted && editingStale) setEditingStale(false);
+
+  const handleRecompile = () => {
+    setEditingStale(true);
+    if (compileTimer.current) clearTimeout(compileTimer.current);
+    compileTimer.current = null;
+    runCompile(textRef.current);
+  };
 
   return (
     <div className="flex flex-1 min-h-0 flex-col">
@@ -130,8 +181,20 @@ export function JModelEditorPanel() {
       </div>
 
       {stale && (
-        <div className="border-b border-amber-300/40 bg-amber-50 px-4 py-1.5 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-          {t("jmodelStale")}
+        <div className="flex items-center justify-between gap-3 border-b border-amber-300/40 bg-amber-50 px-4 py-1.5 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+          <span>{t("jmodelStale")}</span>
+          {readOnly && (
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="studio-jmodel-recompile"
+              onClick={handleRecompile}
+              className="h-6 shrink-0 border-amber-400/60 bg-transparent px-2 text-xs text-amber-900 hover:bg-amber-100 dark:text-amber-100 dark:hover:bg-amber-900"
+            >
+              <RefreshCw className="mr-1 h-3 w-3" />
+              {t("jmodelRecompile")}
+            </Button>
+          )}
         </div>
       )}
 
@@ -139,6 +202,7 @@ export function JModelEditorPanel() {
         data-testid="studio-jmodel-textarea"
         value={text}
         onChange={(e) => handleChange(e.target.value)}
+        readOnly={readOnly}
         spellCheck={false}
         autoComplete="off"
         autoCorrect="off"
@@ -146,7 +210,10 @@ export function JModelEditorPanel() {
         placeholder={PLACEHOLDER_EXAMPLE}
         aria-label={t("jmodelAriaLabel")}
         aria-invalid={result ? !result.ok : false}
-        className="flex-1 min-h-0 w-full resize-none bg-transparent px-4 py-3 font-mono text-xs leading-relaxed outline-none"
+        className={cn(
+          "flex-1 min-h-0 w-full resize-none bg-transparent px-4 py-3 font-mono text-xs leading-relaxed outline-none",
+          readOnly && "cursor-not-allowed opacity-60"
+        )}
       />
 
       {result && !result.ok && result.error && (
@@ -161,6 +228,7 @@ export function JModelEditorPanel() {
               <span className="opacity-70"> (pos {result.error.position})</span>
             )}
           </span>
+          <p className="mt-1 opacity-80">{t("lensNotApplied")}</p>
         </div>
       )}
     </div>
