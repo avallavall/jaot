@@ -39,6 +39,23 @@ async function setDslFlag(value: "true" | "false"): Promise<void> {
   }
 }
 
+/** Read the current JAOT_DSL flag so afterAll can restore it (the owner may run local
+ *  with it ON to test — this spec must not silently turn it off for them). */
+async function readDslFlag(): Promise<"true" | "false"> {
+  const ctx = await request.newContext({ baseURL: BASE });
+  try {
+    const login = await ctx.post("/api/v2/auth/login/email", {
+      data: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD },
+    });
+    expect(login.ok(), `admin login failed: ${login.status()}`).toBeTruthy();
+    const resp = await ctx.get("/api/v2/dsl/status");
+    expect(resp.ok(), `read JAOT_DSL failed: ${resp.status()}`).toBeTruthy();
+    return (await resp.json()).enabled ? "true" : "false";
+  } finally {
+    await ctx.dispose();
+  }
+}
+
 async function createBlankProject(page: Page): Promise<string> {
   await page.goto("/studio/new");
   const blank = page.getByTestId("launcher-tile-blank");
@@ -51,12 +68,19 @@ async function createBlankProject(page: Page): Promise<string> {
 }
 
 test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
+  let priorDslFlag: "true" | "false" = "false";
+
+  test.beforeAll(async () => {
+    priorDslFlag = await readDslFlag();
+  });
+
   test.beforeEach(async ({ page }) => {
     await interceptGuidanceApi(page);
   });
 
   test.afterAll(async () => {
-    await setDslFlag("false");
+    // Restore whatever the flag was before the suite ran (do not clobber the owner's ON).
+    await setDslFlag(priorDslFlag);
   });
 
   test("gating: flag OFF hides the lens and ?lens=jmodel falls back to canvas", async ({
@@ -99,12 +123,20 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
     await expect(page.getByTestId("studio-jmodel-error")).toHaveCount(0, { timeout: NAV });
     await expect(headerSolve).toBeEnabled({ timeout: NAV });
 
-    // Client-side tab nav (NOT a reload) so the in-memory compiled model survives —
-    // a full goto would race the 800ms autosave debounce and reload a stale empty draft.
+    // Wait until the compiled model is autosaved (as a user does — they see "Saved"
+    // before moving on). The compile is async and the draft autosaves 800ms after it;
+    // switching tabs before that would race the persist. This is the ONE realistic wait
+    // that keeps the client-side tab nav deterministic (a human never switches in the
+    // ~600ms window the test otherwise hit).
+    await expect(page.getByTestId("studio-saved")).toBeVisible({ timeout: NAV });
+
+    // Client-side tab nav (NOT a reload) so the in-memory compiled model survives.
     await page.getByTestId("studio-tab-solve").click();
     const runBtn = page.getByTestId("studio-solve-run");
     await expect(runBtn).toBeEnabled({ timeout: NAV });
     await runBtn.click();
     await expect(page.getByTestId("studio-solve-done")).toBeVisible({ timeout: 40_000 });
+    // (The compiled model's optimum = 7 is asserted by the compiler unit tests, which
+    // solve it through the real SCIPAdapter; here we prove the studio path solves.)
   });
 });

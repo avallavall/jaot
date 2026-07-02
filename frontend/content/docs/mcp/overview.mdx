@@ -155,7 +155,7 @@ Create or edit `.vscode/mcp.json` in your workspace. VS Code uses a `"servers"` 
 
 ## Available Tools
 
-JAOT exposes **19 MCP tools** organized into six categories:
+JAOT exposes **26 MCP tools** organized into seven categories:
 
 ### Solve Tools
 
@@ -205,6 +205,21 @@ JAOT exposes **19 MCP tools** organized into six categories:
 | Tool | Auth | Description |
 |------|------|-------------|
 | `get_credit_balance` | Yes | Check your organization's current credit balance |
+
+### Model Project Tools
+
+Create, version, analyze, and solve a first-class model — the same "Model, Analyze &
+Solve" workspace an agent can drive over MCP.
+
+| Tool | Auth | Description |
+|------|------|-------------|
+| `create_model_project` | Yes | Create a versioned model project from an optimization problem |
+| `get_model_project` | Yes | Retrieve a model project's current draft and metadata |
+| `list_model_projects` | Yes | List your organization's model projects |
+| `commit_model_version` | Yes | Commit the draft as an immutable version with a "what changed" message |
+| `list_project_versions` | Yes | List a model project's committed versions |
+| `get_model_stats` | Yes | Get structure stats, problem class, and health for a model project |
+| `solve_model_project` | Yes | Solve a model project's draft or a specific committed version |
 
 ## Example Workflows
 
