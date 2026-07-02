@@ -36,6 +36,7 @@ export function SolvePanel() {
   const problem = useModelProjectStore((s) => s.problem);
   const modelId = useModelProjectStore((s) => s.modelId);
   const editorParseError = useModelProjectStore((s) => s.editorParseError);
+  const jmodelParseError = useModelProjectStore((s) => s.jmodelParseError);
   const session = useModelProjectStore((s) => s.solveSession);
   const lastRun = useModelProjectStore((s) => s.lastRun);
   const startSolveSession = useModelProjectStore((s) => s.startSolveSession);
@@ -50,7 +51,9 @@ export function SolvePanel() {
   const blocked = useMemo(() => solveBlockedReason(problem), [problem]);
   const blockedLabel = editorParseError
     ? t("editorBlockSolve")
-    : blocked === "noVariables"
+    : jmodelParseError
+      ? t("jmodelBlockSolve")
+      : blocked === "noVariables"
       ? t("solveNoVariables")
       : blocked === "noObjective"
         ? t("solveNoObjective")
@@ -81,7 +84,7 @@ export function SolvePanel() {
   }, [session.status, session.error, t]);
 
   const handleSolve = async () => {
-    if (blocked || running || submitting || editorParseError) return;
+    if (blocked || running || submitting || editorParseError || jmodelParseError) return;
     setSubmitting(true);
     clearSolveSession();
     try {
@@ -112,7 +115,8 @@ export function SolvePanel() {
     cancelSolveSession();
   };
 
-  const disabled = submitting || running || !canSolve || blocked !== null || editorParseError;
+  const disabled =
+    submitting || running || !canSolve || blocked !== null || editorParseError || jmodelParseError;
 
   return (
     <div className="flex-1 overflow-auto p-6">

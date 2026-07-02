@@ -709,6 +709,24 @@ export interface ProjectListItem {
   created_by_name?: string | null;
 }
 
+/** A single JModel (DSL) lex/parse/grounding error (POST /api/v2/dsl/compile). */
+export interface DslCompileError {
+  message: string;
+  position?: number | null;
+}
+
+/** Result of compiling JModel source: ok=true → problem, ok=false → error. */
+export interface DslCompileResult {
+  ok: boolean;
+  problem?: _OptimizationProblem | null;
+  error?: DslCompileError | null;
+}
+
+/** Whether the JModel DSL feature is enabled on this instance (GET /api/v2/dsl/status). */
+export interface DslStatusResult {
+  enabled: boolean;
+}
+
 /**
  * A compact execution row used to RECONCILE a solve from the server when the
  * workspace opens (durable, server-derived solve sessions). A running async row

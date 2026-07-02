@@ -185,7 +185,18 @@
     "versionRestore": "Restaura aquesta versió",
     "versionDiffTitle": "Canvis",
     "versionDiffNone": "Sense canvis estructurals",
-    "versionDiffObjective": "objectiu canviat"
+    "versionDiffObjective": "objectiu canviat",
+    "subLensJModel": "JModel",
+    "jmodelHint": "Escriu el model en JModel (conjunts, paràmetres, famílies indexades). Es compila al model i es desa automàticament.",
+    "jmodelAriaLabel": "Model com a codi JModel",
+    "jmodelInvalid": "Error de compilació",
+    "jmodelValid": "Model vàlid",
+    "jmodelCompiling": "Compilant…",
+    "jmodelStale": "El model s'ha canviat en una altra vista, així que aquest codi JModel pot estar desactualitzat.",
+    "jmodelBlockSolve": "Corregeix el codi JModel abans de resoldre.",
+    "jmodelBlockCommit": "Corregeix el codi JModel abans de desar una versió.",
+    "tileJModel": "Escriure JModel",
+    "tileJModelDesc": "DSL declaratiu: conjunts, paràmetres, famílies indexades."
   },
   "common": {
     "loading": "Carregant...",

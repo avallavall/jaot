@@ -89,6 +89,7 @@ export function ModelProjectStoreProvider({
           useBuilderStore.getState().reset();
           useBuilderStore.setState({ documentId: project.id, documentName: project.name });
           st.hydrate(modelJson, project.name);
+          st.setDraftDslSource(project.draft_dsl_source ?? "");
           st.setLockVersion(project.draft_lock_version);
           return;
         }
@@ -119,6 +120,7 @@ export function ModelProjectStoreProvider({
           serializeToOptimizationProblem(current.nodes, current.edges),
           project.name
         );
+        st.setDraftDslSource(project.draft_dsl_source ?? "");
         st.setLockVersion(project.draft_lock_version);
       })
       .catch((err: unknown) => {

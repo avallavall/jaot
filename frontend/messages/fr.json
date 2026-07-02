@@ -185,7 +185,18 @@
     "versionRestore": "Restaurer cette version",
     "versionDiffTitle": "Changements",
     "versionDiffNone": "Aucun changement structurel",
-    "versionDiffObjective": "objectif modifié"
+    "versionDiffObjective": "objectif modifié",
+    "subLensJModel": "JModel",
+    "jmodelHint": "Écrivez le modèle en JModel (ensembles, paramètres, familles indexées). Il se compile vers le modèle et s'enregistre automatiquement.",
+    "jmodelAriaLabel": "Modèle en code JModel",
+    "jmodelInvalid": "Erreur de compilation",
+    "jmodelValid": "Modèle valide",
+    "jmodelCompiling": "Compilation…",
+    "jmodelStale": "Le modèle a été modifié ailleurs ; ce code JModel peut donc être obsolète.",
+    "jmodelBlockSolve": "Corrigez le code JModel avant de résoudre.",
+    "jmodelBlockCommit": "Corrigez le code JModel avant d'enregistrer une version.",
+    "tileJModel": "Écrire en JModel",
+    "tileJModelDesc": "DSL déclaratif : ensembles, paramètres, familles indexées."
   },
   "common": {
     "loading": "Chargement...",

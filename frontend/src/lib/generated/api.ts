@@ -1787,6 +1787,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/dsl/compile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dsl Compile
+         * @description Compile JModel source into a flat optimization problem.
+         *
+         *     Returns ``ok=false`` with a structured error on any lex/parse/grounding failure,
+         *     so the editor can surface the message and position without a 4xx round-trip.
+         */
+        post: operations["dsl_compile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/dsl/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dsl Status
+         * @description Report whether the JModel DSL feature is enabled on this instance.
+         */
+        get: operations["dsl_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/feedback/conversations/{conversation_id}/rating": {
         parameters: {
             query?: never;
@@ -5830,6 +5873,11 @@ export interface components {
              */
             model_id?: string | null;
             /**
+             * Model Project Id
+             * @description ModelProject id (studio) for conversation scoping
+             */
+            model_project_id?: string | null;
+            /**
              * Template Id
              * @description Template ID for template-based conversations
              */
@@ -6152,6 +6200,54 @@ export interface components {
             model_json?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /**
+         * DSLCompileError
+         * @description A single lex, parse, or grounding error.
+         */
+        DSLCompileError: {
+            /**
+             * Message
+             * @description Human-readable error message
+             */
+            message: string;
+            /**
+             * Position
+             * @description 0-based character offset in the source, when known
+             */
+            position?: number | null;
+        };
+        /**
+         * DSLCompileRequest
+         * @description A JModel source to compile.
+         */
+        DSLCompileRequest: {
+            /**
+             * Source
+             * @description JModel source text (sets / params / indexed families / sum / filters).
+             */
+            source: string;
+        };
+        /**
+         * DSLCompileResponse
+         * @description Result of compiling a JModel source.
+         *
+         *     On success ``ok`` is true and ``problem`` holds the lowered flat problem; on
+         *     failure ``ok`` is false and ``error`` describes the first failure.
+         */
+        DSLCompileResponse: {
+            error?: components["schemas"]["DSLCompileError"] | null;
+            /** Ok */
+            ok: boolean;
+            problem?: components["schemas"]["OptimizationProblem-Output"] | null;
+        };
+        /**
+         * DSLStatusResponse
+         * @description Whether the JModel DSL feature is enabled on this instance.
+         */
+        DSLStatusResponse: {
+            /** Enabled */
+            enabled: boolean;
         };
         /**
          * EarningsSummaryResponse
@@ -10578,6 +10674,10 @@ export type DetailedStatusResponse = components['schemas']['DetailedStatusRespon
 export type DiffEntry = components['schemas']['DiffEntry'];
 export type DomainSummaryEntry = components['schemas']['DomainSummaryEntry'];
 export type DraftUpdate = components['schemas']['DraftUpdate'];
+export type DslCompileError = components['schemas']['DSLCompileError'];
+export type DslCompileRequest = components['schemas']['DSLCompileRequest'];
+export type DslCompileResponse = components['schemas']['DSLCompileResponse'];
+export type DslStatusResponse = components['schemas']['DSLStatusResponse'];
 export type EarningsSummaryResponse = components['schemas']['EarningsSummaryResponse'];
 export type EmailInviteCreate = components['schemas']['EmailInviteCreate'];
 export type EmailLoginRequest = components['schemas']['EmailLoginRequest'];
@@ -13869,6 +13969,59 @@ export interface operations {
             };
         };
     };
+    dsl_compile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DSLCompileRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DSLCompileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dsl_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DSLStatusResponse"];
+                };
+            };
+        };
+    };
     get_conversation_rating_api_v2_feedback_conversations__conversation_id__rating_get: {
         parameters: {
             query?: never;
@@ -14219,6 +14372,8 @@ export interface operations {
             query?: {
                 /** @description Filter by builder document ID */
                 model_id?: string | null;
+                /** @description Filter by ModelProject id (studio) */
+                model_project_id?: string | null;
                 page?: number;
                 page_size?: number;
             };

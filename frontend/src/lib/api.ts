@@ -78,6 +78,8 @@ import type {
   SolveAnalyticsSummary,
   SolveAnalyticsTrends,
   SolveAnalyticsCompare,
+  DslCompileResult,
+  DslStatusResult,
 } from "./types";
 
 import type { AnthropicKeyStatus, AttachmentInfo, InfeasibilityAnalysis } from "./llm-types";
@@ -787,6 +789,20 @@ export const api = {
       method: "POST",
       body: JSON.stringify(problem),
     });
+  },
+
+  /** Compile JModel (DSL) source into a flat problem. Gated behind JAOT_DSL (404
+   * when off). A user syntax error is a 200 with `ok:false` + `{message, position}`. */
+  compileDsl(source: string): Promise<DslCompileResult> {
+    return request("/api/v2/dsl/compile", {
+      method: "POST",
+      body: JSON.stringify({ source }),
+    });
+  },
+
+  /** Whether the JModel DSL feature is enabled, so the SPA can surface the lens. */
+  dslStatus(): Promise<DslStatusResult> {
+    return request("/api/v2/dsl/status");
   },
 
   solveMultiObjective(

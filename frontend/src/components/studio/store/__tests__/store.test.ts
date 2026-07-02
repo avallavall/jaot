@@ -127,6 +127,57 @@ describe("ModelProjectStore.editorParseError", () => {
   });
 });
 
+describe("ModelProjectStore JModel (DSL) source", () => {
+  it("setDraftDslSource without dirty does not mark the draft dirty (load-time rehydrate)", () => {
+    const store = makeStore();
+    store.getState().setDraftDslSource("set I := {a};");
+    expect(store.getState().draftDslSource).toBe("set I := {a};");
+    expect(store.getState().headDirty).toBe(false);
+  });
+
+  it("setDraftDslSource with dirty marks the draft dirty (a user edit → autosave)", () => {
+    const store = makeStore();
+    store.getState().setDraftDslSource("var x >= 0;", { dirty: true });
+    expect(store.getState().headDirty).toBe(true);
+  });
+
+  it("jmodelParseError defaults false, toggles, and is cleared on hydrate", () => {
+    const store = makeStore();
+    expect(store.getState().jmodelParseError).toBe(false);
+    store.getState().setJmodelParseError(true);
+    expect(store.getState().jmodelParseError).toBe(true);
+    store.getState().hydrate(BASE, "Reloaded");
+    expect(store.getState().jmodelParseError).toBe(false);
+  });
+
+  it("a non-dsl source change clears jmodelParseError but a dsl change keeps it", () => {
+    const store = makeStore();
+    store.getState().setJmodelParseError(true);
+    // A canvas edit moots a stale JModel error.
+    store.getState().setProblem({ ...BASE, constraints: [] }, { source: "canvas" });
+    expect(store.getState().jmodelParseError).toBe(false);
+
+    // A dsl-sourced change does NOT self-clear (the panel owns its block), and it
+    // does clear a stale editor error.
+    store.getState().setEditorParseError(true);
+    store.getState().setJmodelParseError(true);
+    store.getState().setProblem({ ...BASE, constraints: [{ name: "c", expression: "x <= 1" }] }, {
+      source: "dsl",
+    });
+    expect(store.getState().jmodelParseError).toBe(true);
+    expect(store.getState().editorParseError).toBe(false);
+  });
+
+  it("marks the dsl rep synced and the others dirty on a dsl-sourced change", () => {
+    const store = makeStore();
+    store.getState().setProblem({ ...BASE, constraints: [] }, { source: "dsl" });
+    const s = store.getState();
+    expect(s.repStatus.dsl).toBe("synced");
+    expect(s.repStatus.canvas).toBe("dirty");
+    expect(s.lastSource).toBe("dsl");
+  });
+});
+
 describe("selectModelStats", () => {
   it("classifies a mixed model and counts structure", () => {
     const stats = selectModelStats(BASE);

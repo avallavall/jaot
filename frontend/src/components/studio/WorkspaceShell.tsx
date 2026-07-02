@@ -28,7 +28,9 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const modelId = useModelProjectStore((s) => s.modelId);
   const saveState = useModelProjectStore((s) => s.saveState);
   const editorParseError = useModelProjectStore((s) => s.editorParseError);
+  const jmodelParseError = useModelProjectStore((s) => s.jmodelParseError);
   const setName = useModelProjectStore((s) => s.setName);
+  const blockSolve = editorParseError || jmodelParseError;
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState(name);
@@ -107,8 +109,14 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
             size="sm"
             data-testid="studio-header-solve"
             onClick={goToSolve}
-            disabled={editorParseError}
-            title={editorParseError ? t("editorBlockSolve") : undefined}
+            disabled={blockSolve}
+            title={
+              blockSolve
+                ? editorParseError
+                  ? t("editorBlockSolve")
+                  : t("jmodelBlockSolve")
+                : undefined
+            }
           >
             <Play className="h-4 w-4 mr-1" />
             {t("headerSolve")}

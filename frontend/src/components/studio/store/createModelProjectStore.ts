@@ -7,8 +7,8 @@ import type { ProgressPoint } from "@/lib/result-utils";
 import type { SolveProgressEvent } from "../panels/solve/live-solve-metrics";
 import { exceedsCanvasScale } from "./model-scale";
 
-/** The lenses that can author the model. Only `canvas` is live in P0/2A. */
-export type RepKey = "canvas" | "scratch" | "formulation";
+/** The lenses that can author the model. `scratch` = the JSON Editor, `dsl` = the JModel editor. */
+export type RepKey = "canvas" | "scratch" | "formulation" | "dsl";
 export type RepStatus = "synced" | "dirty" | "parse_error";
 export type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -121,6 +121,22 @@ export interface ModelProjectState {
    * when the JSON parses, the model changes from another source, or on reload. */
   editorParseError: boolean;
   setEditorParseError: (editorParseError: boolean) => void;
+
+  /** The current JModel (DSL) source text for this project's HEAD draft. Persisted
+   * to `draft_dsl_source` and rehydrated on load. It is the source of truth for the
+   * JModel lens' textarea — the flat model is not projected back into DSL (one-way). */
+  draftDslSource: string;
+  /** Set the JModel source. `dirty:true` marks the draft dirty so autosave persists
+   * it even when the text does not (yet) compile to a new model; the load-time
+   * rehydrate uses the default (no dirty) so it never triggers a spurious save. */
+  setDraftDslSource: (draftDslSource: string, opts?: { dirty?: boolean }) => void;
+
+  /** True while the JModel lens holds source that does not compile. Like
+   * `editorParseError`, the broken source is never applied to the canonical model but
+   * solve/commit are blocked. A separate flag so a broken JModel tab and a valid JSON
+   * editor (or vice-versa) do not cross-block. */
+  jmodelParseError: boolean;
+  setJmodelParseError: (jmodelParseError: boolean) => void;
 }
 
 /** Cheap structural equality — the models are small plain JSON objects. */
@@ -129,9 +145,10 @@ export function problemsEqual(a: OptimizationProblem, b: OptimizationProblem): b
 }
 
 const OTHER_REPS: Record<RepKey, RepKey[]> = {
-  canvas: ["scratch", "formulation"],
-  scratch: ["canvas", "formulation"],
-  formulation: ["canvas", "scratch"],
+  canvas: ["scratch", "formulation", "dsl"],
+  scratch: ["canvas", "formulation", "dsl"],
+  formulation: ["canvas", "scratch", "dsl"],
+  dsl: ["canvas", "scratch", "formulation"],
 };
 
 export interface ModelProjectInit {
@@ -146,7 +163,7 @@ export function createModelProjectStore(init: ModelProjectInit) {
       (set, get) => ({
         problem: init.problem,
         lastGoodProblem: init.problem,
-        repStatus: { canvas: "synced", scratch: "synced", formulation: "synced" },
+        repStatus: { canvas: "synced", scratch: "synced", formulation: "synced", dsl: "synced" },
         lastSource: null,
         modelId: init.modelId,
         name: init.name,
@@ -173,6 +190,9 @@ export function createModelProjectStore(init: ModelProjectInit) {
             // A change from the canvas/restore makes any pending Editor parse error
             // stale — the canonical model just moved on, so clear the block.
             ...(opts.source !== "scratch" ? { editorParseError: false } : {}),
+            // Symmetric to the Editor: a change from any lens other than the JModel
+            // editor moots a stale JModel compile error.
+            ...(opts.source !== "dsl" ? { jmodelParseError: false } : {}),
             // Re-evaluate the canvas hairball guard whenever a NON-canvas source
             // (AI Assistant / Editor) replaces the model. Without this the flag is
             // sticky: a model loaded large (canvas disabled) that the Assistant then
@@ -192,11 +212,12 @@ export function createModelProjectStore(init: ModelProjectInit) {
             problem,
             lastGoodProblem: problem,
             name,
-            repStatus: { canvas: "synced", scratch: "synced", formulation: "synced" },
+            repStatus: { canvas: "synced", scratch: "synced", formulation: "synced", dsl: "synced" },
             lastSource: null,
             headDirty: false,
             saveState: "idle",
             editorParseError: false,
+            jmodelParseError: false,
           });
         },
 
@@ -248,6 +269,13 @@ export function createModelProjectStore(init: ModelProjectInit) {
 
         editorParseError: false,
         setEditorParseError: (editorParseError) => set({ editorParseError }),
+
+        draftDslSource: "",
+        setDraftDslSource: (draftDslSource, opts) =>
+          set(opts?.dirty ? { draftDslSource, headDirty: true } : { draftDslSource }),
+
+        jmodelParseError: false,
+        setJmodelParseError: (jmodelParseError) => set({ jmodelParseError }),
       }),
       {
         // Undo tracks ONLY the canonical model, so "undo my last change" means the

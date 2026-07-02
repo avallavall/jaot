@@ -5,7 +5,6 @@ import { useBuilderStore } from "@/hooks/useBuilderStore";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import type { ModelProjectStore } from "./createModelProjectStore";
-import type { OptimizationProblem } from "@/lib/types";
 
 const DEBOUNCE_MS = 800;
 
@@ -25,11 +24,16 @@ export function useAutosave(store: ModelProjectStore, modelId: string): void {
     if (!modelId || modelId === "new") return;
     const ws = activeWorkspaceId ?? undefined;
 
-    const persist = (problem: OptimizationProblem) => {
+    const persist = () => {
+      const st = store.getState();
       const { nodes, edges } = useBuilderStore.getState();
       const body = {
-        model_json: problem as unknown as Record<string, unknown>,
+        model_json: st.problem as unknown as Record<string, unknown>,
         canvas_json: { nodes, edges } as unknown as Record<string, unknown>,
+        // Persist the JModel source when the model was (or is being) authored as DSL.
+        // The backend only assigns draft_dsl_source when it is present, so omitting it
+        // on a canvas/JSON edit leaves any existing source untouched.
+        ...(st.draftDslSource ? { dsl_source: st.draftDslSource } : {}),
       };
       store.getState().setSaveState("saving");
       api
@@ -60,11 +64,13 @@ export function useAutosave(store: ModelProjectStore, modelId: string): void {
     };
 
     const unsub = store.subscribe((state, prev) => {
-      if (state.problem === prev.problem) return;
+      // Save on a real model change OR a JModel-source edit (which may not change the
+      // compiled model — e.g. broken text — but must still be persisted so it survives
+      // navigation). Load-time projections never set headDirty, so they don't save.
+      if (state.problem === prev.problem && state.draftDslSource === prev.draftDslSource) return;
       if (!state.headDirty) return;
       if (timer.current) clearTimeout(timer.current);
-      const problem = state.problem;
-      timer.current = setTimeout(() => persist(problem), DEBOUNCE_MS);
+      timer.current = setTimeout(() => persist(), DEBOUNCE_MS);
     });
 
     return () => {

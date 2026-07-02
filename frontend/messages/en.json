@@ -185,7 +185,18 @@
     "versionRestore": "Restore this version",
     "versionDiffTitle": "Changes",
     "versionDiffNone": "No structural changes",
-    "versionDiffObjective": "objective changed"
+    "versionDiffObjective": "objective changed",
+    "subLensJModel": "JModel",
+    "jmodelHint": "Write the model in JModel (sets, params, indexed families). It compiles to the model and autosaves.",
+    "jmodelAriaLabel": "Model as JModel source",
+    "jmodelInvalid": "Compile error",
+    "jmodelValid": "Valid model",
+    "jmodelCompiling": "Compiling…",
+    "jmodelStale": "The model was changed elsewhere, so this JModel source may be out of date.",
+    "jmodelBlockSolve": "Fix the JModel source before solving.",
+    "jmodelBlockCommit": "Fix the JModel source before saving a version.",
+    "tileJModel": "Write JModel",
+    "tileJModelDesc": "Declarative DSL: sets, params, indexed families."
   },
   "common": {
     "loading": "Loading...",

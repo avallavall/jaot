@@ -53,6 +53,8 @@ export function CommitDialog({
   const t = useTranslations("studio");
   const storeApi = useModelProjectStoreApi();
   const editorParseError = useModelProjectStore((s) => s.editorParseError);
+  const jmodelParseError = useModelProjectStore((s) => s.jmodelParseError);
+  const blockCommit = editorParseError || jmodelParseError;
   const [summary, setSummary] = useState("");
   const [body, setBody] = useState("");
   const [diff, setDiff] = useState<CanvasDiff | null>(null);
@@ -131,7 +133,7 @@ export function CommitDialog({
   }, [projectId, workspaceId, storeApi]);
 
   const handleCommit = useCallback(async () => {
-    if (!isValidSummary(summary) || editorParseError) return;
+    if (!isValidSummary(summary) || editorParseError || jmodelParseError) return;
     setIsSaving(true);
     try {
       await flushDraft();
@@ -152,6 +154,7 @@ export function CommitDialog({
     summary,
     body,
     editorParseError,
+    jmodelParseError,
     projectId,
     workspaceId,
     flushDraft,
@@ -234,8 +237,10 @@ export function CommitDialog({
             />
           </div>
 
-          {editorParseError && (
-            <p className="text-xs text-destructive">{t("editorBlockCommit")}</p>
+          {blockCommit && (
+            <p className="text-xs text-destructive">
+              {editorParseError ? t("editorBlockCommit") : t("jmodelBlockCommit")}
+            </p>
           )}
         </div>
 
@@ -246,7 +251,7 @@ export function CommitDialog({
           <Button
             size="sm"
             onClick={handleCommit}
-            disabled={!isValidSummary(summary) || isSaving || editorParseError}
+            disabled={!isValidSummary(summary) || isSaving || blockCommit}
           >
             {isSaving ? t("versionCommitting") : t("versionCommit")}
           </Button>

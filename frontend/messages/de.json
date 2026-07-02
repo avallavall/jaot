@@ -185,7 +185,18 @@
     "versionRestore": "Diese Version wiederherstellen",
     "versionDiffTitle": "Änderungen",
     "versionDiffNone": "Keine strukturellen Änderungen",
-    "versionDiffObjective": "Zielfunktion geändert"
+    "versionDiffObjective": "Zielfunktion geändert",
+    "subLensJModel": "JModel",
+    "jmodelHint": "Schreibe das Modell in JModel (Mengen, Parameter, indizierte Familien). Es wird zum Modell kompiliert und automatisch gespeichert.",
+    "jmodelAriaLabel": "Modell als JModel-Quelltext",
+    "jmodelInvalid": "Kompilierfehler",
+    "jmodelValid": "Gültiges Modell",
+    "jmodelCompiling": "Kompiliere…",
+    "jmodelStale": "Das Modell wurde anderswo geändert, daher ist dieser JModel-Quelltext möglicherweise veraltet.",
+    "jmodelBlockSolve": "Behebe den JModel-Quelltext vor dem Lösen.",
+    "jmodelBlockCommit": "Behebe den JModel-Quelltext vor dem Speichern einer Version.",
+    "tileJModel": "JModel schreiben",
+    "tileJModelDesc": "Deklarative DSL: Mengen, Parameter, indizierte Familien."
   },
   "common": {
     "loading": "Wird geladen...",

@@ -37,6 +37,8 @@ export function VersionControls() {
   const modelId = useModelProjectStore((s) => s.modelId);
   const headDirty = useModelProjectStore((s) => s.headDirty);
   const editorParseError = useModelProjectStore((s) => s.editorParseError);
+  const jmodelParseError = useModelProjectStore((s) => s.jmodelParseError);
+  const blockCommit = editorParseError || jmodelParseError;
   const storeApi = useModelProjectStoreApi();
 
   const [commitOpen, setCommitOpen] = useState(false);
@@ -71,8 +73,9 @@ export function VersionControls() {
       const tag = el?.tagName.toLowerCase();
       if (tag === "input" || tag === "textarea" || el?.isContentEditable) return;
       e.preventDefault();
-      // Don't open the commit dialog over a model whose Editor text doesn't parse.
-      if (isPersisted && !storeApi.getState().editorParseError) setCommitOpen(true);
+      // Don't open the commit dialog over a model whose Editor/JModel text doesn't parse.
+      const st = storeApi.getState();
+      if (isPersisted && !st.editorParseError && !st.jmodelParseError) setCommitOpen(true);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -144,8 +147,14 @@ export function VersionControls() {
         variant="outline"
         size="sm"
         onClick={() => setCommitOpen(true)}
-        disabled={editorParseError}
-        title={editorParseError ? t("editorBlockCommit") : undefined}
+        disabled={blockCommit}
+        title={
+          blockCommit
+            ? editorParseError
+              ? t("editorBlockCommit")
+              : t("jmodelBlockCommit")
+            : undefined
+        }
       >
         <Save className="h-4 w-4 mr-1" />
         {t("headerCommit")}
