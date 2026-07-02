@@ -114,12 +114,18 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
-# Contract 4 — unchanged: independence contracts do not accept forbidden_modules
+# Contract 4 — independence contracts do not accept forbidden_modules.
+# Siblings listed EXPLICITLY (not the bare parent `app.domains`): import-linter's
+# `independence` type only compares the modules it is given, so a single parent
+# entry enforces nothing between the actual domains. Listing each domain guarantees
+# `solver` and `dsl` never import one another (directly or transitively). Add any
+# new bounded context here when it is extracted.
 id = "domains-independent"
 name = "domain modules are independent of each other"
 type = "independence"
 modules = [
-    "app.domains",
+    "app.domains.solver",
+    "app.domains.dsl",
 ]
 
 [[tool.importlinter.contracts]]
