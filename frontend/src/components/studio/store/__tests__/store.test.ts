@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createModelProjectStore } from "../createModelProjectStore";
+import { createModelProjectStore, selectHasParseError } from "../createModelProjectStore";
 import { selectModelStats } from "../stats";
 import type { OptimizationProblem } from "@/lib/types";
 
@@ -17,7 +17,7 @@ function makeStore() {
 }
 
 describe("ModelProjectStore.setProblem", () => {
-  it("makes the editing rep canonical and marks the others dirty", () => {
+  it("records the editing source and marks the draft dirty", () => {
     const store = makeStore();
     const next: OptimizationProblem = {
       ...BASE,
@@ -25,9 +25,6 @@ describe("ModelProjectStore.setProblem", () => {
     };
     store.getState().setProblem(next, { source: "canvas" });
     const s = store.getState();
-    expect(s.repStatus.canvas).toBe("synced");
-    expect(s.repStatus.scratch).toBe("dirty");
-    expect(s.repStatus.formulation).toBe("dirty");
     expect(s.headDirty).toBe(true);
     expect(s.lastSource).toBe("canvas");
     expect(s.problem.constraints[0].expression).toContain("<= 8");
@@ -41,7 +38,6 @@ describe("ModelProjectStore.setProblem", () => {
     // No change => not dirty => no autosave, and the bridge cannot ping-pong.
     expect(s.headDirty).toBe(false);
     expect(s.lastSource).toBeNull();
-    expect(s.repStatus.scratch).toBe("synced");
   });
 
   it("hydrate replaces the model without marking it dirty", () => {
@@ -95,35 +91,56 @@ describe("ModelProjectStore.setProblem — canvas hairball guard", () => {
   });
 });
 
-describe("ModelProjectStore.editorParseError", () => {
-  it("defaults to false and toggles via the setter", () => {
+describe("ModelProjectStore.parseErrors (per-lens, fold of the old two booleans)", () => {
+  it("defaults empty; selectHasParseError is false until a lens reports one", () => {
     const store = makeStore();
-    expect(store.getState().editorParseError).toBe(false);
-    store.getState().setEditorParseError(true);
-    expect(store.getState().editorParseError).toBe(true);
+    expect(store.getState().parseErrors).toEqual({});
+    expect(selectHasParseError(store.getState())).toBe(false);
+    store.getState().setParseError("scratch", true);
+    expect(selectHasParseError(store.getState())).toBe(true);
   });
 
-  it("is cleared when the model changes from a non-scratch source", () => {
+  it("clearing a lens removes its key (no lingering false entry)", () => {
     const store = makeStore();
-    store.getState().setEditorParseError(true);
+    store.getState().setParseError("scratch", true);
+    store.getState().setParseError("scratch", false);
+    expect(store.getState().parseErrors).toEqual({});
+    expect(selectHasParseError(store.getState())).toBe(false);
+  });
+
+  it("tracks the two authoring lenses independently (no cross-block)", () => {
+    const store = makeStore();
+    store.getState().setParseError("scratch", true);
+    store.getState().setParseError("dsl", true);
+    expect(selectHasParseError(store.getState())).toBe(true);
+    store.getState().setParseError("scratch", false);
+    // dsl still broken => still blocked
+    expect(selectHasParseError(store.getState())).toBe(true);
+    expect(store.getState().parseErrors.dsl).toBe(true);
+  });
+
+  it("a change from another source clears a stale lens error", () => {
+    const store = makeStore();
+    store.getState().setParseError("scratch", true);
     store.getState().setProblem({ ...BASE, constraints: [] }, { source: "canvas" });
-    expect(store.getState().editorParseError).toBe(false);
+    expect(selectHasParseError(store.getState())).toBe(false);
   });
 
-  it("survives a scratch-sourced change (the editor owns its own block)", () => {
+  it("survives a same-source change (the lens owns its own block)", () => {
     const store = makeStore();
-    store.getState().setEditorParseError(true);
+    store.getState().setParseError("scratch", true);
     // A scratch edit that applies a valid problem clears the flag explicitly in the
-    // panel; setProblem itself must NOT clear it for scratch (the panel is in charge).
+    // panel; setProblem itself must NOT clear the SOURCE lens' error.
     store.getState().setProblem({ ...BASE, constraints: [] }, { source: "scratch" });
-    expect(store.getState().editorParseError).toBe(true);
+    expect(store.getState().parseErrors.scratch).toBe(true);
   });
 
   it("is cleared on hydrate (reload / restore)", () => {
     const store = makeStore();
-    store.getState().setEditorParseError(true);
+    store.getState().setParseError("scratch", true);
+    store.getState().setParseError("dsl", true);
     store.getState().hydrate(BASE, "Reloaded");
-    expect(store.getState().editorParseError).toBe(false);
+    expect(store.getState().parseErrors).toEqual({});
   });
 });
 
@@ -135,46 +152,48 @@ describe("ModelProjectStore JModel (DSL) source", () => {
     expect(store.getState().headDirty).toBe(false);
   });
 
-  it("setDraftDslSource with dirty marks the draft dirty (a user edit → autosave)", () => {
+  it("setDraftDslSource with dirty marks the draft (and the DSL) dirty → autosave", () => {
     const store = makeStore();
     store.getState().setDraftDslSource("var x >= 0;", { dirty: true });
     expect(store.getState().headDirty).toBe(true);
+    expect(store.getState().dslDirty).toBe(true);
   });
 
-  it("jmodelParseError defaults false, toggles, and is cleared on hydrate", () => {
+  it("dslDirty gates persistence: false after a rehydrate, true after a user edit", () => {
     const store = makeStore();
-    expect(store.getState().jmodelParseError).toBe(false);
-    store.getState().setJmodelParseError(true);
-    expect(store.getState().jmodelParseError).toBe(true);
-    store.getState().hydrate(BASE, "Reloaded");
-    expect(store.getState().jmodelParseError).toBe(false);
+    // Rehydrate (load) sets the source without dirtying — autosave must not fire.
+    store.getState().setDraftDslSource("set I := {a};");
+    expect(store.getState().dslDirty).toBe(false);
+    // Once the user edits, the empty string must be persistable (a delete sticks).
+    store.getState().setDraftDslSource("var x >= 0;", { dirty: true });
+    expect(store.getState().dslDirty).toBe(true);
+    store.getState().setDraftDslSource("", { dirty: true });
+    expect(store.getState().draftDslSource).toBe("");
+    expect(store.getState().dslDirty).toBe(true);
   });
 
-  it("a non-dsl source change clears jmodelParseError but a dsl change keeps it", () => {
+  it("a non-dsl source change clears a stale dsl error but a dsl change keeps it", () => {
     const store = makeStore();
-    store.getState().setJmodelParseError(true);
+    store.getState().setParseError("dsl", true);
     // A canvas edit moots a stale JModel error.
     store.getState().setProblem({ ...BASE, constraints: [] }, { source: "canvas" });
-    expect(store.getState().jmodelParseError).toBe(false);
+    expect(store.getState().parseErrors.dsl ?? false).toBe(false);
 
     // A dsl-sourced change does NOT self-clear (the panel owns its block), and it
     // does clear a stale editor error.
-    store.getState().setEditorParseError(true);
-    store.getState().setJmodelParseError(true);
+    store.getState().setParseError("scratch", true);
+    store.getState().setParseError("dsl", true);
     store.getState().setProblem({ ...BASE, constraints: [{ name: "c", expression: "x <= 1" }] }, {
       source: "dsl",
     });
-    expect(store.getState().jmodelParseError).toBe(true);
-    expect(store.getState().editorParseError).toBe(false);
+    expect(store.getState().parseErrors.dsl).toBe(true);
+    expect(store.getState().parseErrors.scratch ?? false).toBe(false);
   });
 
-  it("marks the dsl rep synced and the others dirty on a dsl-sourced change", () => {
+  it("records dsl as the source on a dsl-sourced change", () => {
     const store = makeStore();
     store.getState().setProblem({ ...BASE, constraints: [] }, { source: "dsl" });
-    const s = store.getState();
-    expect(s.repStatus.dsl).toBe("synced");
-    expect(s.repStatus.canvas).toBe("dirty");
-    expect(s.lastSource).toBe("dsl");
+    expect(store.getState().lastSource).toBe("dsl");
   });
 });
 

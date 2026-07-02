@@ -16,6 +16,7 @@ import {
   useModelProjectStore,
   useModelProjectStoreApi,
 } from "../store/useModelProjectStore";
+import { selectHasParseError } from "../store/createModelProjectStore";
 import { CommitDialog } from "./CommitDialog";
 import { VersionSelector } from "./VersionSelector";
 import { VersionHistoryDrawer } from "./VersionHistoryDrawer";
@@ -36,9 +37,9 @@ export function VersionControls() {
   const ws = activeWorkspaceId ?? undefined;
   const modelId = useModelProjectStore((s) => s.modelId);
   const headDirty = useModelProjectStore((s) => s.headDirty);
-  const editorParseError = useModelProjectStore((s) => s.editorParseError);
-  const jmodelParseError = useModelProjectStore((s) => s.jmodelParseError);
-  const blockCommit = editorParseError || jmodelParseError;
+  const scratchParseError = useModelProjectStore((s) => s.parseErrors.scratch ?? false);
+  const dslParseError = useModelProjectStore((s) => s.parseErrors.dsl ?? false);
+  const blockCommit = scratchParseError || dslParseError;
   const storeApi = useModelProjectStoreApi();
 
   const [commitOpen, setCommitOpen] = useState(false);
@@ -74,8 +75,7 @@ export function VersionControls() {
       if (tag === "input" || tag === "textarea" || el?.isContentEditable) return;
       e.preventDefault();
       // Don't open the commit dialog over a model whose Editor/JModel text doesn't parse.
-      const st = storeApi.getState();
-      if (isPersisted && !st.editorParseError && !st.jmodelParseError) setCommitOpen(true);
+      if (isPersisted && !selectHasParseError(storeApi.getState())) setCommitOpen(true);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -113,6 +113,10 @@ export function VersionControls() {
         storeApi
           .getState()
           .hydrate(serializeToOptimizationProblem(nodes, edges), project.name);
+        // Rehydrate the JModel source to the restored version's — without this the
+        // pre-restore source lingers and the next autosave pushes it back, silently
+        // reverting the DSL half of the restore.
+        storeApi.getState().setDraftDslSource(project.draft_dsl_source ?? "");
         storeApi.getState().setLockVersion(project.draft_lock_version);
         setCounter((c) => c + 1);
         setHistoryOpen(false);
@@ -150,7 +154,7 @@ export function VersionControls() {
         disabled={blockCommit}
         title={
           blockCommit
-            ? editorParseError
+            ? scratchParseError
               ? t("editorBlockCommit")
               : t("jmodelBlockCommit")
             : undefined

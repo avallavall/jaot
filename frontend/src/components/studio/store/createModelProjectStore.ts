@@ -9,7 +9,6 @@ import { exceedsCanvasScale } from "./model-scale";
 
 /** The lenses that can author the model. `scratch` = the JSON Editor, `dsl` = the JModel editor. */
 export type RepKey = "canvas" | "scratch" | "formulation" | "dsl";
-export type RepStatus = "synced" | "dirty" | "parse_error";
 export type SaveState = "idle" | "saving" | "saved" | "error";
 
 export type SolveStatus = "idle" | "running" | "done" | "failed" | "cancelled";
@@ -65,10 +64,6 @@ export interface LastRunSummary {
 export interface ModelProjectState {
   /** Single source of truth — the solver-agnostic model. Only this is tracked by undo. */
   problem: OptimizationProblem;
-  /** Last known-valid model; fallback when a representation has a parse error. */
-  lastGoodProblem: OptimizationProblem;
-  /** Sync status per representation (canvas / DSL editor / AI formulation). */
-  repStatus: Record<RepKey, RepStatus>;
   /** Which representation produced the most recent `problem` change. */
   lastSource: RepKey | null;
   modelId: string;
@@ -83,8 +78,6 @@ export interface ModelProjectState {
   setProblem: (next: OptimizationProblem, opts: { source: RepKey }) => void;
   /** Replace the model on load WITHOUT marking it dirty (no autosave, no undo pollution). */
   hydrate: (problem: OptimizationProblem, name: string) => void;
-  /** Entering a tab clears that rep's dirty flag (reprojection lands with its slice). */
-  enterTab: (rep: RepKey) => void;
   setName: (name: string) => void;
   setSaveState: (state: SaveState) => void;
   /** Update the draft lock version (from a load or a successful draft PUT). */
@@ -115,41 +108,40 @@ export interface ModelProjectState {
   canvasDisabled: boolean;
   setCanvasDisabled: (canvasDisabled: boolean) => void;
 
-  /** True while the text Editor lens holds JSON that does not parse. The broken
-   * text is never applied to the canonical model, but solve/commit are blocked
-   * so the user does not act on a model they believe they just changed. Cleared
-   * when the JSON parses, the model changes from another source, or on reload. */
-  editorParseError: boolean;
-  setEditorParseError: (editorParseError: boolean) => void;
+  /**
+   * Which lenses currently hold un-parseable text (Editor JSON, JModel source).
+   * A broken lens never applies its text to the canonical model, but records itself
+   * here so solve/commit are blocked (`selectHasParseError`) — the user must not act
+   * on a model they believe they just changed. One entry per authoring lens means a
+   * broken JModel tab and a valid JSON editor never cross-block. Cleared for a lens
+   * when its text parses, when the model changes from another source, or on reload.
+   */
+  parseErrors: Partial<Record<RepKey, boolean>>;
+  setParseError: (rep: RepKey, hasError: boolean) => void;
 
   /** The current JModel (DSL) source text for this project's HEAD draft. Persisted
    * to `draft_dsl_source` and rehydrated on load. It is the source of truth for the
    * JModel lens' textarea — the flat model is not projected back into DSL (one-way). */
   draftDslSource: string;
-  /** Set the JModel source. `dirty:true` marks the draft dirty so autosave persists
-   * it even when the text does not (yet) compile to a new model; the load-time
+  /** True once the user has edited the JModel source this session. Gates persistence:
+   * autosave sends `draft_dsl_source` (even empty, so a delete sticks) only when this
+   * is set, which avoids a canvas-only save wiping a not-yet-hydrated source. */
+  dslDirty: boolean;
+  /** Set the JModel source. `dirty:true` marks the draft (and the DSL) dirty so autosave
+   * persists it even when the text does not (yet) compile to a new model; the load-time
    * rehydrate uses the default (no dirty) so it never triggers a spurious save. */
   setDraftDslSource: (draftDslSource: string, opts?: { dirty?: boolean }) => void;
+}
 
-  /** True while the JModel lens holds source that does not compile. Like
-   * `editorParseError`, the broken source is never applied to the canonical model but
-   * solve/commit are blocked. A separate flag so a broken JModel tab and a valid JSON
-   * editor (or vice-versa) do not cross-block. */
-  jmodelParseError: boolean;
-  setJmodelParseError: (jmodelParseError: boolean) => void;
+/** True when ANY authoring lens holds un-parseable text — blocks solve and commit. */
+export function selectHasParseError(state: ModelProjectState): boolean {
+  return Object.values(state.parseErrors).some(Boolean);
 }
 
 /** Cheap structural equality — the models are small plain JSON objects. */
 export function problemsEqual(a: OptimizationProblem, b: OptimizationProblem): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
-
-const OTHER_REPS: Record<RepKey, RepKey[]> = {
-  canvas: ["scratch", "formulation", "dsl"],
-  scratch: ["canvas", "formulation", "dsl"],
-  formulation: ["canvas", "scratch", "dsl"],
-  dsl: ["canvas", "scratch", "formulation"],
-};
 
 export interface ModelProjectInit {
   modelId: string;
@@ -162,8 +154,6 @@ export function createModelProjectStore(init: ModelProjectInit) {
     temporal(
       (set, get) => ({
         problem: init.problem,
-        lastGoodProblem: init.problem,
-        repStatus: { canvas: "synced", scratch: "synced", formulation: "synced", dsl: "synced" },
         lastSource: null,
         modelId: init.modelId,
         name: init.name,
@@ -176,23 +166,17 @@ export function createModelProjectStore(init: ModelProjectInit) {
           // is a no-op. This is what stops the canvas <-> canonical bridge from looping
           // and prevents an autosave firing on load.
           if (problemsEqual(next, get().problem)) return;
-          const repStatus: Record<RepKey, RepStatus> = {
-            ...get().repStatus,
-            [opts.source]: "synced",
-          };
-          for (const other of OTHER_REPS[opts.source]) repStatus[other] = "dirty";
+          // A change from source S makes every OTHER lens' text stale, so any parse
+          // error they were holding no longer applies — the canonical model moved on.
+          const parseErrors: Partial<Record<RepKey, boolean>> = {};
+          for (const [rep, hasError] of Object.entries(get().parseErrors)) {
+            if (rep === opts.source && hasError) parseErrors[rep as RepKey] = true;
+          }
           set({
             problem: next,
-            lastGoodProblem: next,
-            repStatus,
             lastSource: opts.source,
             headDirty: true,
-            // A change from the canvas/restore makes any pending Editor parse error
-            // stale — the canonical model just moved on, so clear the block.
-            ...(opts.source !== "scratch" ? { editorParseError: false } : {}),
-            // Symmetric to the Editor: a change from any lens other than the JModel
-            // editor moots a stale JModel compile error.
-            ...(opts.source !== "dsl" ? { jmodelParseError: false } : {}),
+            parseErrors,
             // Re-evaluate the canvas hairball guard whenever a NON-canvas source
             // (AI Assistant / Editor) replaces the model. Without this the flag is
             // sticky: a model loaded large (canvas disabled) that the Assistant then
@@ -210,21 +194,12 @@ export function createModelProjectStore(init: ModelProjectInit) {
         hydrate: (problem, name) => {
           set({
             problem,
-            lastGoodProblem: problem,
             name,
-            repStatus: { canvas: "synced", scratch: "synced", formulation: "synced", dsl: "synced" },
             lastSource: null,
             headDirty: false,
             saveState: "idle",
-            editorParseError: false,
-            jmodelParseError: false,
+            parseErrors: {},
           });
-        },
-
-        enterTab: (rep) => {
-          const { repStatus } = get();
-          if (repStatus[rep] === "synced") return;
-          set({ repStatus: { ...repStatus, [rep]: "synced" } });
         },
 
         setName: (name) => set({ name }),
@@ -267,15 +242,23 @@ export function createModelProjectStore(init: ModelProjectInit) {
         canvasDisabled: false,
         setCanvasDisabled: (canvasDisabled) => set({ canvasDisabled }),
 
-        editorParseError: false,
-        setEditorParseError: (editorParseError) => set({ editorParseError }),
+        parseErrors: {},
+        setParseError: (rep, hasError) =>
+          set((state) => {
+            const next = { ...state.parseErrors };
+            if (hasError) next[rep] = true;
+            else delete next[rep];
+            return { parseErrors: next };
+          }),
 
         draftDslSource: "",
+        dslDirty: false,
         setDraftDslSource: (draftDslSource, opts) =>
-          set(opts?.dirty ? { draftDslSource, headDirty: true } : { draftDslSource }),
-
-        jmodelParseError: false,
-        setJmodelParseError: (jmodelParseError) => set({ jmodelParseError }),
+          set(
+            opts?.dirty
+              ? { draftDslSource, dslDirty: true, headDirty: true }
+              : { draftDslSource }
+          ),
       }),
       {
         // Undo tracks ONLY the canonical model, so "undo my last change" means the

@@ -44,10 +44,10 @@ interface LauncherTile {
 }
 
 /**
- * "New model" launcher. Only the implemented starting points — Blank model and
- * Visual canvas (both create a model and open the visual Build tab) — are clickable.
- * The not-yet-built tiles (AI / Editor / Import / Template / Marketplace) render as
- * visibly-disabled "Soon" cards instead of active controls that toast "coming soon".
+ * "New model" launcher. Every starting point creates a model project and drops into the
+ * workspace: Blank, Visual canvas, Describe with AI, Editor (text), Import a file, From
+ * template, and From marketplace. The JModel tile appears only when the JAOT_DSL feature
+ * is enabled. A tile can still render as a disabled "Soon" card via `available:false`.
  */
 export default function StudioNewPage() {
   const t = useTranslations("studio");

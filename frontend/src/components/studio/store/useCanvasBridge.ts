@@ -44,8 +44,20 @@ export function useCanvasBridge(store: ModelProjectStore): void {
         // clobber the canonical model and autosave the emptiness.
         if (store.getState().canvasDisabled) return;
         const { nodes, edges } = useBuilderStore.getState();
-        const problem = canvasProjector.toProblem({ nodes, edges });
-        store.getState().setProblem(problem, { source: "canvas" });
+        const projected = canvasProjector.toProblem({ nodes, edges });
+        // Guard against a spurious empty-canvas projection clobbering a non-empty
+        // model. When the model was authored elsewhere (DSL / Editor / AI) the canvas
+        // is only a projection; a canvas that is empty (or was never laid out — e.g.
+        // the DSL lens keeps the canvas unmounted) must NOT flow an empty model back
+        // over the real one. Silently emptying the model is data loss; a genuine
+        // "clear the canvas" is recoverable via undo.
+        const projectedEmpty =
+          projected.variables.length === 0 && projected.constraints.length === 0;
+        const current = store.getState().problem;
+        const currentNonEmpty =
+          current.variables.length > 0 || current.constraints.length > 0;
+        if (projectedEmpty && currentNonEmpty) return;
+        store.getState().setProblem(projected, { source: "canvas" });
       }, DEBOUNCE_MS);
     });
 

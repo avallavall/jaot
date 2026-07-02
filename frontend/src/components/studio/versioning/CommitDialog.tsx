@@ -52,9 +52,9 @@ export function CommitDialog({
 }: CommitDialogProps) {
   const t = useTranslations("studio");
   const storeApi = useModelProjectStoreApi();
-  const editorParseError = useModelProjectStore((s) => s.editorParseError);
-  const jmodelParseError = useModelProjectStore((s) => s.jmodelParseError);
-  const blockCommit = editorParseError || jmodelParseError;
+  const scratchParseError = useModelProjectStore((s) => s.parseErrors.scratch ?? false);
+  const dslParseError = useModelProjectStore((s) => s.parseErrors.dsl ?? false);
+  const blockCommit = scratchParseError || dslParseError;
   const [summary, setSummary] = useState("");
   const [body, setBody] = useState("");
   const [diff, setDiff] = useState<CanvasDiff | null>(null);
@@ -107,9 +107,13 @@ export function CommitDialog({
   // refetching the lock once on a concurrency conflict.
   const flushDraft = useCallback(async () => {
     const { nodes, edges } = useBuilderStore.getState();
+    const st = storeApi.getState();
     const draftBody = {
-      model_json: storeApi.getState().problem as unknown as Record<string, unknown>,
+      model_json: st.problem as unknown as Record<string, unknown>,
       canvas_json: { nodes, edges } as unknown as Record<string, unknown>,
+      // Co-version the JModel source with the model it produced. Committing inside the
+      // autosave debounce would otherwise freeze a stale source into the version.
+      ...(st.dslDirty ? { dsl_source: st.draftDslSource } : {}),
     };
     try {
       const p = await api.updateProjectDraft(
@@ -133,7 +137,7 @@ export function CommitDialog({
   }, [projectId, workspaceId, storeApi]);
 
   const handleCommit = useCallback(async () => {
-    if (!isValidSummary(summary) || editorParseError || jmodelParseError) return;
+    if (!isValidSummary(summary) || blockCommit) return;
     setIsSaving(true);
     try {
       await flushDraft();
@@ -153,8 +157,7 @@ export function CommitDialog({
   }, [
     summary,
     body,
-    editorParseError,
-    jmodelParseError,
+    blockCommit,
     projectId,
     workspaceId,
     flushDraft,
@@ -239,7 +242,7 @@ export function CommitDialog({
 
           {blockCommit && (
             <p className="text-xs text-destructive">
-              {editorParseError ? t("editorBlockCommit") : t("jmodelBlockCommit")}
+              {scratchParseError ? t("editorBlockCommit") : t("jmodelBlockCommit")}
             </p>
           )}
         </div>

@@ -21,9 +21,9 @@ const VALIDATE_DEBOUNCE_MS = 500;
  * The Editor (text) sub-lens of Build: a plain monospace textarea over the canonical
  * model serialized as JSON. A valid edit is reprojected onto the canvas and autosaved
  * for free (it flows through `setProblem({source:"scratch"})`); a malformed edit is
- * held locally and flags `editorParseError` so solve/commit are blocked, while the
- * canvas/Solve keep the last-good model. Backend `validateProblem` adds live semantic
- * feedback (non-blocking). No external editor dependency — owner chose the simple path.
+ * held locally and flags this lens' parse error (`parseErrors.scratch`) so solve/commit
+ * are blocked, while the canvas/Solve keep the last-good model. Backend `validateProblem`
+ * adds live semantic feedback (non-blocking). No external editor dependency.
  */
 export function ModelEditorPanel() {
   const t = useTranslations("studio");
@@ -72,7 +72,7 @@ export function ModelEditorPanel() {
     setParsed({ ok: true, problem });
     setValidation(null);
     /* eslint-enable react-hooks/set-state-in-effect */
-    storeApi.getState().setEditorParseError(false);
+    storeApi.getState().setParseError("scratch", false);
   }, [problem, lastSource, storeApi]);
 
   // Leaving the editor abandons any broken text (the canonical model is always
@@ -81,7 +81,7 @@ export function ModelEditorPanel() {
     () => () => {
       if (validateTimer.current) clearTimeout(validateTimer.current);
       validateSeq.current++;
-      storeApi.getState().setEditorParseError(false);
+      storeApi.getState().setParseError("scratch", false);
     },
     [storeApi]
   );
@@ -92,12 +92,12 @@ export function ModelEditorPanel() {
     setParsed(result);
     if (validateTimer.current) clearTimeout(validateTimer.current);
     if (result.ok) {
-      storeApi.getState().setEditorParseError(false);
+      storeApi.getState().setParseError("scratch", false);
       storeApi.getState().setProblem(result.problem, { source: "scratch" });
       const p = result.problem;
       validateTimer.current = setTimeout(() => runValidate(p), VALIDATE_DEBOUNCE_MS);
     } else {
-      storeApi.getState().setEditorParseError(true);
+      storeApi.getState().setParseError("scratch", true);
       setValidation(null);
     }
   };

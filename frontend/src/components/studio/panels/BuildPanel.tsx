@@ -36,10 +36,10 @@ function isSubLens(value: string | null): value is SubLens {
 }
 
 /**
- * The Build lens. Canvas (visual) and Editor (model-as-JSON text) are live; the
- * Assistant (AI chat) sub-lens lands with P4. The active sub-lens is local UI state,
- * but a `?lens=` query selects the initial one (so the "Editor" launcher tile opens
- * straight into the editor).
+ * The Build lens. Sub-lenses: Canvas (visual), Assistant (AI chat), Editor
+ * (model-as-JSON text), and — when the JAOT_DSL feature is on — JModel (the DSL editor).
+ * The active sub-lens is local UI state, but a `?lens=` query selects the initial one
+ * (so a launcher tile can open straight into a specific lens).
  */
 export function BuildPanel() {
   const t = useTranslations("studio");

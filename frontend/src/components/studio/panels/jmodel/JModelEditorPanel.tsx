@@ -25,7 +25,7 @@ subject to pick_two: sum{i in I} x[i] <= 2;`;
  * source. Every debounced edit is compiled server-side (`POST /dsl/compile`); a
  * successful compile flows the lowered model through `setProblem({source:"dsl"})` so it
  * reflects on the canvas/Analyze/Solve and autosaves, while a compile error is held
- * locally and flags `jmodelParseError` so solve/commit are blocked (the canonical model
+ * locally and flags this lens' parse error (`parseErrors.dsl`) so solve/commit are blocked (the canonical model
  * stays last-good). The source itself is persisted to the draft via `setDraftDslSource`
  * so it survives navigation even when it does not (yet) compile. Lowering is one-way —
  * editing the model elsewhere leaves this source unchanged (a notice flags the drift).
@@ -33,6 +33,7 @@ subject to pick_two: sum{i in I} x[i] <= 2;`;
 export function JModelEditorPanel() {
   const t = useTranslations("studio");
   const lastSource = useModelProjectStore((s) => s.lastSource);
+  const storeDslSource = useModelProjectStore((s) => s.draftDslSource);
   const storeApi = useModelProjectStoreApi();
 
   const [text, setText] = useState<string>(() => storeApi.getState().draftDslSource);
@@ -41,6 +42,9 @@ export function JModelEditorPanel() {
   const compileTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Monotonic token so a slow compile response can never overwrite a newer one.
   const compileSeq = useRef(0);
+  // Mirrors the on-screen text (updated in the change handler + the sync effect, never
+  // during render) so the store-sync effect can skip the user's own keystrokes.
+  const textRef = useRef(text);
 
   const runCompile = (source: string) => {
     const seq = ++compileSeq.current;
@@ -51,15 +55,18 @@ export function JModelEditorPanel() {
         if (seq !== compileSeq.current) return;
         setResult(res);
         if (res.ok && res.problem) {
-          storeApi.getState().setJmodelParseError(false);
+          storeApi.getState().setParseError("dsl", false);
           storeApi.getState().setProblem(res.problem, { source: "dsl" });
         } else {
-          storeApi.getState().setJmodelParseError(true);
+          storeApi.getState().setParseError("dsl", true);
         }
       })
       .catch(() => {
-        // A transport/gate failure must not block editing or apply a stale model.
-        if (seq === compileSeq.current) setResult(null);
+        // A transport/gate failure must not apply a model or flip the block state.
+        // Keep a prior compile error's box visible (so an existing block stays
+        // explained rather than invisible); only clear the box if nothing is blocked.
+        if (seq !== compileSeq.current) return;
+        if (!storeApi.getState().parseErrors.dsl) setResult(null);
       })
       .finally(() => {
         if (seq === compileSeq.current) setCompiling(false);
@@ -68,6 +75,7 @@ export function JModelEditorPanel() {
 
   const handleChange = (value: string) => {
     setText(value);
+    textRef.current = value;
     // Persist the source (dirty) so a work-in-progress model survives navigation even
     // before it compiles.
     storeApi.getState().setDraftDslSource(value, { dirty: true });
@@ -75,7 +83,7 @@ export function JModelEditorPanel() {
     if (!value.trim()) {
       // Empty source: nothing to compile. Clear any error and leave the model as-is.
       compileSeq.current++;
-      storeApi.getState().setJmodelParseError(false);
+      storeApi.getState().setParseError("dsl", false);
       setResult(null);
       setCompiling(false);
       return;
@@ -83,13 +91,29 @@ export function JModelEditorPanel() {
     compileTimer.current = setTimeout(() => runCompile(value), COMPILE_DEBOUNCE_MS);
   };
 
+  // Sync the textarea when the source changes in the store from OUTSIDE this panel:
+  // a load arriving after mount (deep-link / reload race) or a version restore. Guarded
+  // by textRef so the user's own typing (which updates the store to the same value)
+  // never re-seeds and moves the cursor.
+  useEffect(() => {
+    if (storeDslSource === textRef.current) return;
+    /* eslint-disable react-hooks/set-state-in-effect -- mirror an external source change
+       (restore / late load) into the textarea; intentional derived-state sync */
+    setText(storeDslSource);
+    setResult(null);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    textRef.current = storeDslSource;
+    compileSeq.current++;
+    storeApi.getState().setParseError("dsl", false);
+  }, [storeDslSource, storeApi]);
+
   // Leaving the lens abandons any broken source's block (the canonical model is always
   // last-good-valid) and drops any in-flight compile.
   useEffect(
     () => () => {
       if (compileTimer.current) clearTimeout(compileTimer.current);
       compileSeq.current++;
-      storeApi.getState().setJmodelParseError(false);
+      storeApi.getState().setParseError("dsl", false);
     },
     [storeApi]
   );

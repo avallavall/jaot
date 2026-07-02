@@ -27,10 +27,10 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const name = useModelProjectStore((s) => s.name);
   const modelId = useModelProjectStore((s) => s.modelId);
   const saveState = useModelProjectStore((s) => s.saveState);
-  const editorParseError = useModelProjectStore((s) => s.editorParseError);
-  const jmodelParseError = useModelProjectStore((s) => s.jmodelParseError);
+  const scratchParseError = useModelProjectStore((s) => s.parseErrors.scratch ?? false);
+  const dslParseError = useModelProjectStore((s) => s.parseErrors.dsl ?? false);
   const setName = useModelProjectStore((s) => s.setName);
-  const blockSolve = editorParseError || jmodelParseError;
+  const blockSolve = scratchParseError || dslParseError;
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState(name);
@@ -112,7 +112,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
             disabled={blockSolve}
             title={
               blockSolve
-                ? editorParseError
+                ? scratchParseError
                   ? t("editorBlockSolve")
                   : t("jmodelBlockSolve")
                 : undefined
@@ -181,7 +181,10 @@ function SaveIndicator({ state }: { state: SaveState }) {
   }
   if (state === "saved") {
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+      <span
+        data-testid="studio-saved"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0"
+      >
         <Check className="h-3 w-3" />
         {t("saveSaved")}
       </span>

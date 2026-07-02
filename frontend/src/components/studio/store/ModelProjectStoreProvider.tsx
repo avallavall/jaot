@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
@@ -56,6 +56,19 @@ export function ModelProjectStoreProvider({
       problem: EMPTY_PROBLEM,
     })
   );
+
+  // `router`/`t` are used only in the load effect's error branch. Keep them in refs
+  // (not effect deps) so a client-side tab navigation (Build→Solve), which can hand
+  // back new `router`/`t` refs, does NOT re-run the load. Re-running it would
+  // re-hydrate from the server draft and silently discard in-memory edits autosave
+  // has not yet persisted (e.g. a just-compiled JModel), emptying the model on a tab
+  // switch. The load re-runs only on a real model/workspace change (its true deps).
+  const routerRef = useRef(router);
+  const tRef = useRef(t);
+  useEffect(() => {
+    routerRef.current = router;
+    tRef.current = t;
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -126,14 +139,16 @@ export function ModelProjectStoreProvider({
       .catch((err: unknown) => {
         if (cancelled) return;
         const status = (err as { status?: number })?.status;
-        toast.error(status === 404 ? t("notFound") : t("loadFailed"));
-        router.push("/studio");
+        toast.error(status === 404 ? tRef.current("notFound") : tRef.current("loadFailed"));
+        routerRef.current.push("/studio");
       });
 
     return () => {
       cancelled = true;
     };
-  }, [modelId, activeWorkspaceId, router, t, store]);
+    // router/t intentionally excluded — accessed via refs so a tab navigation does
+    // not re-run the load (which would re-hydrate and drop unsaved in-memory edits).
+  }, [modelId, activeWorkspaceId, store]);
 
   useCanvasBridge(store);
   useAutosave(store, modelId);

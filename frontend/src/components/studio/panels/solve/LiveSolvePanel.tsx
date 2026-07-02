@@ -85,6 +85,7 @@ export function LiveSolvePanel({ session, objectiveSense, onCancel }: LiveSolveP
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Metric
               label={t("liveBestObjective")}
+              testid="studio-solve-objective"
               value={
                 result.objective_value != null
                   ? result.objective_value.toLocaleString(undefined, { maximumFractionDigits: 6 })
@@ -139,12 +140,15 @@ export function LiveSolvePanel({ session, objectiveSense, onCancel }: LiveSolveP
 interface MetricProps {
   label: string;
   value: string;
+  testid?: string;
 }
 
-function Metric({ label, value }: MetricProps) {
+function Metric({ label, value, testid }: MetricProps) {
   return (
     <div className="rounded-md bg-muted/30 p-2 text-center">
-      <div className="font-mono text-sm font-semibold text-foreground">{value}</div>
+      <div data-testid={testid} className="font-mono text-sm font-semibold text-foreground">
+        {value}
+      </div>
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
     </div>
   );

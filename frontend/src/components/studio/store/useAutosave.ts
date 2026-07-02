@@ -30,10 +30,10 @@ export function useAutosave(store: ModelProjectStore, modelId: string): void {
       const body = {
         model_json: st.problem as unknown as Record<string, unknown>,
         canvas_json: { nodes, edges } as unknown as Record<string, unknown>,
-        // Persist the JModel source when the model was (or is being) authored as DSL.
-        // The backend only assigns draft_dsl_source when it is present, so omitting it
-        // on a canvas/JSON edit leaves any existing source untouched.
-        ...(st.draftDslSource ? { dsl_source: st.draftDslSource } : {}),
+        // Persist the JModel source once the user has touched it this session (`dslDirty`),
+        // sending it even when empty so a deletion sticks. Before the user edits the DSL,
+        // it is omitted so a canvas/JSON edit never wipes a not-yet-hydrated source.
+        ...(st.dslDirty ? { dsl_source: st.draftDslSource } : {}),
       };
       store.getState().setSaveState("saving");
       api
