@@ -198,6 +198,10 @@ class ProjectExecutionItem(BaseModel):
     solver_name: str | None = None
     objective_value: float | None = None
     model_project_version_id: str | None = None
+    # §8/S1: which named dataset the run was compiled against. `dataset_name`
+    # is a snapshot — it survives dataset deletion (S3 compares runs by dataset).
+    dataset_id: str | None = None
+    dataset_name: str | None = None
     error_message: str | None = None
     created_at: datetime
     started_at: datetime | None = None

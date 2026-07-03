@@ -3981,6 +3981,11 @@ export interface paths {
         /**
          * Solve Optimization Problem Async
          * @description Queue an async solve. Pre-pays credits; refund happens in Celery on failure.
+         *
+         *     ``dataset_id`` (§8 Scenarios / S1) records which named dataset the model was
+         *     compiled against — provenance only, the problem body is already grounded.
+         *     Async-only on purpose: the studio always solves async, and the sync path is
+         *     slated for consolidation (async-only direction, 2026-06-30).
          */
         post: operations["solve_optimization_problem_async_api_v2_solve_async_post"];
         delete?: never;
@@ -5463,7 +5468,10 @@ export interface components {
         };
         /** Body_import_and_solve */
         Body_import_and_solve: {
-            /** File */
+            /**
+             * File
+             * Format: binary
+             */
             file: string;
             /**
              * Gap Tolerance
@@ -5481,23 +5489,35 @@ export interface components {
         };
         /** Body_import_preview */
         Body_import_preview: {
-            /** File */
+            /**
+             * File
+             * Format: binary
+             */
             file: string;
             objective_sense?: components["schemas"]["ObjectiveSense"] | null;
         };
         /** Body_upload_attachment_api_v2_llm_conversations__conversation_id__attachments_post */
         Body_upload_attachment_api_v2_llm_conversations__conversation_id__attachments_post: {
-            /** File */
+            /**
+             * File
+             * Format: binary
+             */
             file: string;
         };
         /** Body_upload_logo_api_v2_models_catalog__model_id__logo_post */
         Body_upload_logo_api_v2_models_catalog__model_id__logo_post: {
-            /** File */
+            /**
+             * File
+             * Format: binary
+             */
             file: string;
         };
         /** Body_upload_screenshot_api_v2_models_catalog__model_id__screenshots_post */
         Body_upload_screenshot_api_v2_models_catalog__model_id__screenshots_post: {
-            /** File */
+            /**
+             * File
+             * Format: binary
+             */
             file: string;
         };
         /**
@@ -7480,6 +7500,10 @@ export interface components {
             created_at: string;
             /** Credits Consumed */
             credits_consumed: number;
+            /** Dataset Id */
+            dataset_id?: string | null;
+            /** Dataset Name */
+            dataset_name?: string | null;
             /** Error Message */
             error_message?: string | null;
             /** Execution Time Ms */
@@ -8998,6 +9022,10 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Dataset Id */
+            dataset_id?: string | null;
+            /** Dataset Name */
+            dataset_name?: string | null;
             /** Error Message */
             error_message?: string | null;
             /** Id */
@@ -17817,6 +17845,7 @@ export interface operations {
     solve_optimization_problem_async_api_v2_solve_async_post: {
         parameters: {
             query?: {
+                dataset_id?: string | null;
                 origin?: string | null;
                 solver_name?: string | null;
                 source_id?: string | null;

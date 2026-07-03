@@ -232,6 +232,16 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
     await page.getByTestId("studio-jmodel-dataset").selectOption("");
     await expect(page.getByTestId("studio-jmodel-error")).toBeVisible({ timeout: NAV });
     await expect(headerSolve).toBeDisabled();
+
+    // §8/S1: the executions history says WHICH dataset each run was compiled
+    // against — persisted server-side (name snapshot), not browser memory.
+    await page.goto("/solve/executions");
+    await expect(
+      page
+        .getByTestId("execution-dataset-badge")
+        .filter({ hasText: "Scenario A" })
+        .first(),
+    ).toBeVisible({ timeout: NAV });
   });
 
   // A model edited from ANOTHER lens leaves the JModel source drifted (lowering is

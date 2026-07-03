@@ -271,3 +271,165 @@ class TestDatasetAuth:
     def test_create_requires_auth(self, client: TestClient):
         resp = client.post("/api/v2/projects/mp_x/datasets", json={"name": "n", "data_json": _DATA})
         assert resp.status_code in (401, 403), resp.text
+
+
+# ---------------------------------------------------------------------------
+# §8/S1 — dataset provenance on /solve/async executions
+# ---------------------------------------------------------------------------
+
+_TINY_PROBLEM = {
+    "name": "tiny_lp",
+    "variables": [{"name": "x", "type": "continuous", "lower_bound": 0, "upper_bound": 10}],
+    "objective": {"sense": "maximize", "expression": "x"},
+    "constraints": [{"name": "c1", "expression": "x <= 5"}],
+    "options": {"time_limit_seconds": 10.0, "verbose": False},
+}
+
+
+def _stub_enqueue(monkeypatch, task_id: str = "fake-task-s1") -> None:
+    """Stub solve_async.apply_async so POST /solve/async succeeds without a broker.
+
+    Same broker-independent pattern as tests/api/test_auto_routing.py::test_async_hoist —
+    the handler imports the task object locally, so patching its attribute is enough.
+    """
+    import app.domains.solver.tasks.solve_tasks as _solve_tasks_mod
+
+    class _FakeAsyncResult:
+        def __init__(self, tid: str) -> None:
+            self.id = tid
+
+    monkeypatch.setattr(
+        _solve_tasks_mod.solve_async,
+        "apply_async",
+        lambda **kwargs: _FakeAsyncResult(task_id),
+    )
+
+
+def _solve_async_url(pid: str, dsid: str | None = None) -> str:
+    url = f"/api/v2/solve/async?origin=visual_builder&source_kind=model_project&source_id={pid}"
+    if dsid is not None:
+        url += f"&dataset_id={dsid}"
+    return url
+
+
+class TestSolveDatasetProvenance:
+    # CONTRACT-TEST: an async solve tagged with a dataset persists BOTH the dataset id
+    # and a name SNAPSHOT on the ModelExecution row (history must survive dataset deletion).
+    def test_async_solve_stores_dataset_id_and_name_snapshot(
+        self, authenticated_client: TestClient, db_session: Session, monkeypatch
+    ):
+        from app.models.optimization_model import ModelExecution
+
+        _stub_enqueue(monkeypatch)
+        pid = _create_project(authenticated_client)["id"]
+        ds = _create_dataset(authenticated_client, pid)
+        resp = authenticated_client.post(_solve_async_url(pid, ds["id"]), json=_TINY_PROBLEM)
+        assert resp.status_code == 200, resp.text
+        row = (
+            db_session.query(ModelExecution)
+            .filter(ModelExecution.celery_task_id == "fake-task-s1")
+            .first()
+        )
+        assert row is not None
+        assert row.dataset_id == ds["id"]
+        assert row.dataset_name == "Q3 forecast"
+        assert row.model_project_id == pid
+
+    def test_solve_without_dataset_leaves_columns_null(
+        self, authenticated_client: TestClient, db_session: Session, monkeypatch
+    ):
+        from app.models.optimization_model import ModelExecution
+
+        _stub_enqueue(monkeypatch, task_id="fake-task-s1-nods")
+        pid = _create_project(authenticated_client)["id"]
+        resp = authenticated_client.post(_solve_async_url(pid), json=_TINY_PROBLEM)
+        assert resp.status_code == 200, resp.text
+        row = (
+            db_session.query(ModelExecution)
+            .filter(ModelExecution.celery_task_id == "fake-task-s1-nods")
+            .first()
+        )
+        assert row is not None
+        assert row.dataset_id is None
+        assert row.dataset_name is None
+
+    def test_history_keeps_the_name_after_dataset_deletion(
+        self, authenticated_client: TestClient, monkeypatch
+    ):
+        # The owner's ask: "el historial debe decir qué dataset se usó" — even after
+        # the dataset (working data, hard-deletable) is gone.
+        _stub_enqueue(monkeypatch, task_id="fake-task-s1-del")
+        pid = _create_project(authenticated_client)["id"]
+        ds = _create_dataset(authenticated_client, pid)
+        resp = authenticated_client.post(_solve_async_url(pid, ds["id"]), json=_TINY_PROBLEM)
+        assert resp.status_code == 200, resp.text
+        assert (
+            authenticated_client.delete(f"/api/v2/projects/{pid}/datasets/{ds['id']}").status_code
+            == 204
+        )
+        rows = authenticated_client.get(f"/api/v2/projects/{pid}/executions").json()
+        assert len(rows) == 1
+        assert rows[0]["dataset_id"] == ds["id"]
+        assert rows[0]["dataset_name"] == "Q3 forecast"
+
+    def test_unknown_dataset_404s_before_charging_or_enqueueing(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization: Organization,
+        monkeypatch,
+    ):
+        from app.models.optimization_model import ModelExecution
+
+        enqueued: list[str] = []
+
+        import app.domains.solver.tasks.solve_tasks as _solve_tasks_mod
+
+        def _record_enqueue(**kwargs):
+            enqueued.append("called")
+            raise AssertionError("apply_async must not be reached on a dataset 404")
+
+        monkeypatch.setattr(_solve_tasks_mod.solve_async, "apply_async", _record_enqueue)
+        pid = _create_project(authenticated_client)["id"]
+        db_session.refresh(test_organization)
+        credits_before = test_organization.credits_balance
+        resp = authenticated_client.post(
+            _solve_async_url(pid, "mpd_does_not_exist_anywhere"), json=_TINY_PROBLEM
+        )
+        assert resp.status_code == 404, resp.text
+        assert enqueued == []
+        db_session.refresh(test_organization)
+        assert test_organization.credits_balance == credits_before
+        assert db_session.query(ModelExecution).filter_by(model_project_id=pid).first() is None
+
+    # CONTRACT-TEST: a cross-org dataset_id on the solve request 404s with no oracle —
+    # client-supplied ids must never resolve across orgs (the audit's cross-org lesson).
+    def test_cross_org_dataset_404_anti_oracle(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization_2: Organization,
+        test_user_2: User,
+        monkeypatch,
+    ):
+        _stub_enqueue(monkeypatch)
+        foreign = _insert_foreign_dataset(db_session, test_organization_2, test_user_2)
+        pid = _create_project(authenticated_client)["id"]
+        cross = authenticated_client.post(_solve_async_url(pid, foreign.id), json=_TINY_PROBLEM)
+        nonex = authenticated_client.post(
+            _solve_async_url(pid, "mpd_does_not_exist_anywhere"), json=_TINY_PROBLEM
+        )
+        assert cross.status_code == 404, cross.text
+        assert nonex.status_code == 404, nonex.text
+        assert cross.json()["detail"] == nonex.json()["detail"]
+
+    def test_own_dataset_from_another_project_is_404(
+        self, authenticated_client: TestClient, monkeypatch
+    ):
+        # When the solve names a project, the dataset must belong to THAT project.
+        _stub_enqueue(monkeypatch)
+        pid_a = _create_project(authenticated_client, name="A")["id"]
+        pid_b = _create_project(authenticated_client, name="B")["id"]
+        ds_b = _create_dataset(authenticated_client, pid_b)
+        resp = authenticated_client.post(_solve_async_url(pid_a, ds_b["id"]), json=_TINY_PROBLEM)
+        assert resp.status_code == 404, resp.text

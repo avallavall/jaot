@@ -3239,7 +3239,8 @@
       "previous": "Zurück",
       "next": "Weiter",
       "failedToLoad": "Ausführungen konnten nicht geladen werden",
-      "openSource": "Quelle öffnen"
+      "openSource": "Quelle öffnen",
+      "datasetBadge": "Für diesen Lauf verwendeter Datensatz"
     },
     "execution": {
       "title": "Ausführungsdetails",
@@ -3269,7 +3270,8 @@
       "failedToLoad": "Ausführung konnte nicht geladen werden",
       "visualization": "Visualisierung",
       "variableValues": "Variablenwerte",
-      "insightsTitle": "Automatische Analyse"
+      "insightsTitle": "Automatische Analyse",
+      "datasetBadge": "Für diesen Lauf verwendeter Datensatz"
     },
     "compare": {
       "title": "Ausführungsvergleich",

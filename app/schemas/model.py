@@ -172,6 +172,10 @@ class ModelExecutionResponse(BaseModel):
     # llm_conversation, template, organization_model, trigger, imported_file).
     source_kind: str | None = None
     source_id: str | None = None
+    # §8/S1: dataset provenance — the named dataset the model was compiled
+    # against. `dataset_name` is a snapshot that survives dataset deletion.
+    dataset_id: str | None = None
+    dataset_name: str | None = None
     # Resolved display name + author of the model this run came from (studio
     # ModelProject or activated org model). NOT on the ORM row — the list endpoint
     # batch-fills it from source_kind/source_id (model_project) or

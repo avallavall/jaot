@@ -3239,7 +3239,8 @@
       "previous": "Anterior",
       "next": "Següent",
       "failedToLoad": "Error en carregar les execucions",
-      "openSource": "Obrir origen"
+      "openSource": "Obrir origen",
+      "datasetBadge": "Dataset usat en aquesta execució"
     },
     "execution": {
       "title": "Detalls de l'Execució",
@@ -3269,7 +3270,8 @@
       "failedToLoad": "Error en carregar l'execució",
       "visualization": "Visualització",
       "variableValues": "Valors de variables",
-      "insightsTitle": "Anàlisi automàtica"
+      "insightsTitle": "Anàlisi automàtica",
+      "datasetBadge": "Dataset usat en aquesta execució"
     },
     "compare": {
       "title": "Comparació d'Execucions",

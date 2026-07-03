@@ -630,8 +630,15 @@ async def solve_optimization_problem_async(
     origin: str | None = Query(default=None, max_length=32),
     source_kind: str | None = Query(default=None, max_length=32),
     source_id: str | None = Query(default=None, max_length=64),
+    dataset_id: str | None = Query(default=None, max_length=64),
 ) -> dict[str, Any]:
-    """Queue an async solve. Pre-pays credits; refund happens in Celery on failure."""
+    """Queue an async solve. Pre-pays credits; refund happens in Celery on failure.
+
+    ``dataset_id`` (§8 Scenarios / S1) records which named dataset the model was
+    compiled against — provenance only, the problem body is already grounded.
+    Async-only on purpose: the studio always solves async, and the sync path is
+    slated for consolidation (async-only direction, 2026-06-30).
+    """
     from app.domains.solver.tasks.solve_tasks import solve_async
     from app.services import workspace_credits_service
     from app.services.credits_service import CreditsService, InsufficientCreditsError
@@ -653,6 +660,51 @@ async def solve_optimization_problem_async(
 
     ws_id = workspace_member.workspace_id if workspace_member else None
     execution_id = generate_id("exe_")
+
+    # Provenance is sanitized up front: it scopes the dataset lookup below, and
+    # the execution INSERT at the end reuses these values.
+    async_source = ExecutionSource.from_request(origin, source_kind, source_id)
+    # Only mirror the id onto the TYPED project column when it names a real project in
+    # this org — source_id is client-supplied, and the typed column feeds joins/reconcile
+    # (§14) + P1.5, which must never carry a cross-org or dangling id. The generic
+    # source_kind/source_id provenance stays as sanitized above.
+    typed_model_project_id: str | None = None
+    if async_source.source_kind == "model_project" and async_source.source_id:
+        owns_project = (
+            db.query(ModelProject.id)
+            .filter(
+                ModelProject.id == async_source.source_id,
+                ModelProject.organization_id == org.id,
+            )
+            .first()
+        )
+        if owns_project:
+            typed_model_project_id = async_source.source_id
+
+    # §8 Scenarios / S1: dataset provenance. Resolved BEFORE credits are deducted
+    # or the task is enqueued so an unknown/foreign dataset 404s without charging.
+    # Org-scoped (and pinned to the project when the solve names one) — a
+    # client-supplied id must never resolve across orgs.
+    dataset_name: str | None = None
+    if dataset_id is not None:
+        # Inline org-scoped lookup mirroring model_project_service.get_dataset_or_404 —
+        # importing that service here would let the solver-domain routes that import
+        # this module reach app.domains.dsl transitively, breaching the
+        # domains-independent import contract.
+        from app.models.model_project import ModelProjectDataset  # noqa: PLC0415
+
+        ds_query = db.query(ModelProjectDataset).filter(
+            ModelProjectDataset.id == dataset_id,
+            ModelProjectDataset.organization_id == org.id,
+        )
+        if typed_model_project_id is not None:
+            ds_query = ds_query.filter(
+                ModelProjectDataset.model_project_id == typed_model_project_id
+            )
+        dataset = ds_query.first()
+        if dataset is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
+        dataset_name = dataset.name
 
     # Resolve "auto" to a concrete solver BEFORE pre-paying credits or
     # enqueuing. D-11 / D-13: uses worker-health probe instead
@@ -834,23 +886,8 @@ async def solve_optimization_problem_async(
         ) from exc
 
     # Minimal execution record so /async/{task_id} can verify ownership (prevents IDOR).
-    async_source = ExecutionSource.from_request(origin, source_kind, source_id)
-    # Only mirror the id onto the TYPED project column when it names a real project in
-    # this org — source_id is client-supplied, and the typed column feeds joins/reconcile
-    # (§14) + P1.5, which must never carry a cross-org or dangling id. The generic
-    # source_kind/source_id provenance stays as sanitized above.
-    typed_model_project_id: str | None = None
-    if async_source.source_kind == "model_project" and async_source.source_id:
-        owns_project = (
-            db.query(ModelProject.id)
-            .filter(
-                ModelProject.id == async_source.source_id,
-                ModelProject.organization_id == org.id,
-            )
-            .first()
-        )
-        if owns_project:
-            typed_model_project_id = async_source.source_id
+    # Provenance (async_source / typed_model_project_id / dataset) was resolved and
+    # validated up front, before the credit deduction.
     pending_exec = ModelExecution(
         id=execution_id,
         organization_id=org.id,
@@ -870,6 +907,10 @@ async def solve_optimization_problem_async(
         # Typed per-project column for fast per-project history + the §14 durable
         # reconcile + P1.5 — populated only when validated as an in-org project above.
         model_project_id=typed_model_project_id,
+        # §8/S1: dataset provenance — name is a snapshot so history survives
+        # dataset deletion. Both None unless the id resolved in-org above.
+        dataset_id=dataset_id,
+        dataset_name=dataset_name,
     )
     db.add(pending_exec)
     try:

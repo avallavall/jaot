@@ -19,7 +19,7 @@ import { InfeasibilityPanel } from "@/components/solve/InfeasibilityPanel";
 import { OriginBadge } from "@/components/solve/OriginBadge";
 import { GapConvergenceChart } from "@/components/solve/GapConvergenceChart";
 import { useTranslations } from "next-intl";
-import { RotateCcw } from "lucide-react";
+import { Database, RotateCcw } from "lucide-react";
 
 export default function ExecutionDetailPage() {
   const t = useTranslations("solve.execution");
@@ -138,6 +138,17 @@ export default function ExecutionDetailPage() {
             sourceKind={execution.source_kind ?? undefined}
             triggerName={execution.input_data?.trigger_name as string | undefined}
           />
+          {/* §8/S1: which dataset (scenario) the run was compiled against. */}
+          {execution.dataset_name && (
+            <span
+              data-testid="execution-dataset-badge"
+              title={t("datasetBadge")}
+              className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
+            >
+              <Database className="h-3.5 w-3.5" />
+              {execution.dataset_name}
+            </span>
+          )}
           {execution.trigger_id && (
             <button
               onClick={() => router.push(`/triggers/${execution.trigger_id}`)}

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api, ModelExecution } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import { Play } from "lucide-react";
+import { Database, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -180,6 +180,17 @@ export default function ExecutionsPage() {
                         <span className="text-muted-foreground">{content}</span>
                       );
                     })()}
+                    {/* §8/S1: which dataset (scenario) the run was compiled against. */}
+                    {exec.dataset_name && (
+                      <span
+                        data-testid="execution-dataset-badge"
+                        title={t("datasetBadge")}
+                        className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
+                      >
+                        <Database className="h-3 w-3" />
+                        {exec.dataset_name}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-sm">
                     {exec.status === "completed" && exec.result_data?.objective_value != null ? (

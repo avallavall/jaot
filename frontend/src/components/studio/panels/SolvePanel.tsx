@@ -94,7 +94,14 @@ export function SolvePanel() {
       const task = await api.solveAsync(
         { ...problem, solver_name: solverName },
         activeWorkspaceId ?? undefined,
-        { origin: "visual_builder", sourceKind: "model_project", sourceId },
+        {
+          origin: "visual_builder",
+          sourceKind: "model_project",
+          sourceId,
+          // §8/S1: tag the run with the dataset the model was compiled against
+          // so the executions history can say which scenario each run used.
+          datasetId: activeDataset?.id ?? null,
+        },
       );
       startSolveSession(task.task_id, solverName, new Date().toISOString());
     } catch (err: unknown) {

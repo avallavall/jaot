@@ -335,6 +335,13 @@ class ModelExecution(Base):
         String(64), nullable=True, index=True
     )
 
+    # Dataset provenance (§8 Scenarios / S1): which named dataset the model was
+    # compiled against for this run. `dataset_name` is a SNAPSHOT — datasets are
+    # hard-deletable working data, and history must survive their deletion.
+    # Not an FK on purpose (same rationale as source_kind/source_id above).
+    dataset_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    dataset_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
     # Async execution tracking
     celery_task_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     progress_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)

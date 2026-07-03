@@ -333,6 +333,10 @@ export interface ModelExecution {
   // ModelProject or activated org model); filled by the history list endpoint.
   model_name?: string | null;
   model_author?: string | null;
+  // §8/S1: the named dataset the model was compiled against. `dataset_name`
+  // is a snapshot — it survives dataset deletion.
+  dataset_id?: string | null;
+  dataset_name?: string | null;
 }
 
 /** How an execution was created. Mirrors the backend ORIGIN_* slugs. */
@@ -760,6 +764,9 @@ export interface ProjectExecutionItem {
   solver_name?: string | null;
   objective_value?: number | null;
   model_project_version_id?: string | null;
+  // §8/S1: dataset provenance (name is a deletion-surviving snapshot).
+  dataset_id?: string | null;
+  dataset_name?: string | null;
   error_message?: string | null;
   created_at: string;
   started_at?: string | null;

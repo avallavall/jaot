@@ -3265,7 +3265,8 @@
       "previous": "Previous",
       "next": "Next",
       "failedToLoad": "Failed to load executions",
-      "openSource": "Open origin"
+      "openSource": "Open origin",
+      "datasetBadge": "Dataset used for this run"
     },
     "execution": {
       "title": "Execution Details",
@@ -3295,7 +3296,8 @@
       "viewAllExecutions": "View All Executions",
       "externalExecution": "This execution was triggered externally — no associated model. \"Run Again\" and history navigation are unavailable.",
       "viewTriggerConfig": "View Trigger Config",
-      "failedToLoad": "Failed to load execution"
+      "failedToLoad": "Failed to load execution",
+      "datasetBadge": "Dataset used for this run"
     },
     "compare": {
       "title": "Execution Comparison",

@@ -3239,7 +3239,8 @@
       "previous": "Précédent",
       "next": "Suivant",
       "failedToLoad": "Échec du chargement des exécutions",
-      "openSource": "Ouvrir l'origine"
+      "openSource": "Ouvrir l'origine",
+      "datasetBadge": "Jeu de données utilisé pour cette exécution"
     },
     "execution": {
       "title": "Détails de l'exécution",
@@ -3269,7 +3270,8 @@
       "failedToLoad": "Échec du chargement de l'exécution",
       "visualization": "Visualisation",
       "variableValues": "Valeurs des variables",
-      "insightsTitle": "Analyse automatique"
+      "insightsTitle": "Analyse automatique",
+      "datasetBadge": "Jeu de données utilisé pour cette exécution"
     },
     "compare": {
       "title": "Comparaison d'exécutions",

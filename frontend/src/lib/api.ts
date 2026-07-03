@@ -325,6 +325,8 @@ export interface SolveSource {
   origin: string;
   sourceKind?: string;
   sourceId?: string | null;
+  /** §8/S1: the named dataset the model was compiled against (async solves only). */
+  datasetId?: string | null;
 }
 
 /** Merge workspace + provenance into the query params for a /solve call. */
@@ -338,6 +340,7 @@ function buildSolveParams(
     params.origin = source.origin;
     if (source.sourceKind) params.source_kind = source.sourceKind;
     if (source.sourceId) params.source_id = source.sourceId;
+    if (source.datasetId) params.dataset_id = source.datasetId;
   }
   return Object.keys(params).length > 0 ? params : undefined;
 }
