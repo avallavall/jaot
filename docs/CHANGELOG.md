@@ -19,6 +19,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Added
 
+- **Table view for datasets (S2b, 2026-07-03)** — The dataset editor gains a structured Table view over the same JSON: sets as member lists, scalar params as a number field, indexed params as index/value rows with add/remove — switch views freely, the data never forks.
 - **Live dataset↔model validation (S5, 2026-07-03)** — While editing a dataset, the editor checks it against the model's declarations as you type: "fills the model", missing/unknown sets or params, scalar-vs-indexed shape and composite-key arity — guidance only, the compiler stays the source of truth.
 - **Compare N scenarios side by side (S3, 2026-07-03)** — The Solve tab gains a Scenarios section: select several datasets, solve them all in one click, and watch a live comparison table (dataset · status · objective · time · solver, server-derived so it survives reloads); a dataset that doesn't fill the model shows the compiler message as a failed row, and any two completed runs diff their solutions variable by variable.
 - **Import a dataset from a file (S2c, 2026-07-03)** — The dataset editor accepts AMPL `.dat` (sets, scalar and N-D params), `.csv` (one param per file, header auto-detected, name from the filename) and our JSON shape; the file is parsed server-side into a preview with compiler-grade errors and saved through the normal create.

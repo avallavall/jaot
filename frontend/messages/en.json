@@ -256,7 +256,15 @@
     "datasetCheckArity": "{name}: key \"{key}\" has {got} indices — expected {expected}",
     "datasetCheckScalar": "{name} is scalar — use a number",
     "datasetCheckIndexed": "{name} is indexed — use a key→value object",
-    "datasetCheckMore": "{count} more issues (not shown)."
+    "datasetCheckMore": "{count} more issues (not shown).",
+    "datasetTableView": "Table",
+    "datasetTableUnparseable": "Fix the JSON first — the table view needs valid dataset JSON.",
+    "datasetTableEmpty": "No sets or params yet — start from the skeleton or the JSON view.",
+    "datasetTableMembers": "members, comma-separated",
+    "datasetTableArity": "{count} indices",
+    "datasetTableValue": "value",
+    "datasetTableAddRow": "Add row",
+    "datasetTableRemoveRow": "Remove row"
   },
   "common": {
     "loading": "Loading...",

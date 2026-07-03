@@ -256,7 +256,15 @@
     "datasetCheckArity": "{name}: la clave \"{key}\" tiene {got} índices — se esperaban {expected}",
     "datasetCheckScalar": "{name} es escalar — usa un número",
     "datasetCheckIndexed": "{name} es indexado — usa un objeto clave→valor",
-    "datasetCheckMore": "{count} avisos más (no mostrados)."
+    "datasetCheckMore": "{count} avisos más (no mostrados).",
+    "datasetTableView": "Tabla",
+    "datasetTableUnparseable": "Arregla primero el JSON — la vista de tabla necesita un dataset JSON válido.",
+    "datasetTableEmpty": "Aún no hay sets ni params — empieza por el esqueleto o la vista JSON.",
+    "datasetTableMembers": "miembros, separados por comas",
+    "datasetTableArity": "{count} índices",
+    "datasetTableValue": "valor",
+    "datasetTableAddRow": "Añadir fila",
+    "datasetTableRemoveRow": "Quitar fila"
   },
   "common": {
     "loading": "Cargando...",

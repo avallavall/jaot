@@ -256,7 +256,15 @@
     "datasetCheckArity": "{name}: la clau \"{key}\" té {got} índexs — se n'esperaven {expected}",
     "datasetCheckScalar": "{name} és escalar — fes servir un número",
     "datasetCheckIndexed": "{name} és indexat — fes servir un objecte clau→valor",
-    "datasetCheckMore": "{count} avisos més (no mostrats)."
+    "datasetCheckMore": "{count} avisos més (no mostrats).",
+    "datasetTableView": "Taula",
+    "datasetTableUnparseable": "Arregla primer el JSON — la vista de taula necessita un dataset JSON vàlid.",
+    "datasetTableEmpty": "Encara no hi ha sets ni params — comença per l'esquelet o la vista JSON.",
+    "datasetTableMembers": "membres, separats per comes",
+    "datasetTableArity": "{count} índexs",
+    "datasetTableValue": "valor",
+    "datasetTableAddRow": "Afegir fila",
+    "datasetTableRemoveRow": "Treure fila"
   },
   "common": {
     "loading": "Carregant...",

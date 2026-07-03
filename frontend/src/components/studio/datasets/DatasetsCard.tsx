@@ -33,6 +33,8 @@ import {
   checkDatasetAgainstDeclarations,
   type DatasetCheckMessage,
 } from "./dataset-validation";
+import { tableFromJson, tableToJson, type TableModel } from "./dataset-table";
+import { DatasetTableEditor } from "./DatasetTableEditor";
 
 // Seed shown in the editor for a NEW dataset — the JModelData JSON shape.
 const NEW_DATASET_TEMPLATE = `{
@@ -78,6 +80,28 @@ export function DatasetsCard() {
   const [confirmDelete, setConfirmDelete] = useState<ProjectDatasetSummary | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // S2b: the values editor has two views over the SAME text — raw JSON and a
+  // structured table. The table model lives here while that view is open (a
+  // re-parse per keystroke would normalize half-typed input out from under the
+  // user); every table edit serializes back to `editor.text`.
+  const [view, setView] = useState<"json" | "table">("json");
+  const [tableModel, setTableModel] = useState<TableModel | null>(null);
+  const enterTableView = () => {
+    if (!editor) return;
+    const model = tableFromJson(editor.text);
+    if (model === null) {
+      toast.info(t("datasetTableUnparseable"));
+      return;
+    }
+    setTableModel(model);
+    setView("table");
+  };
+  const handleTableChange = (model: TableModel) => {
+    setTableModel(model);
+    const text = tableToJson(model);
+    setEditor((prev) => (prev ? { ...prev, text } : prev));
+  };
+
   // S5: live dataset↔model guidance. The declarations are fetched ONCE per dialog
   // open (they depend on the SOURCE, not the dataset text); every edit then runs a
   // pure local check — no round-trip per keystroke. Server compile stays the truth.
@@ -117,13 +141,16 @@ export function DatasetsCard() {
 
   if (!dslEnabled || !isPersisted) return null;
 
-  const openCreate = () =>
+  const openCreate = () => {
+    setView("json");
     setEditor({ id: null, name: "", description: "", text: NEW_DATASET_TEMPLATE });
+  };
 
   const openEdit = async (row: ProjectDatasetSummary) => {
     try {
       // The list is compact — fetch the full values on demand.
       const full = await api.getProjectDataset(modelId, row.id);
+      setView("json");
       setEditor({
         id: full.id,
         name: full.name,
@@ -211,6 +238,9 @@ export function DatasetsCard() {
             }
           : prev,
       );
+      // A wholesale replacement is clearest reviewed as raw JSON (re-enter
+      // the table view to keep editing structurally).
+      setView("json");
     } catch (err: unknown) {
       // 422 carries the parser message incl. the character position.
       toast.error(getErrorMessage(err, t("datasetImportFailed")));
@@ -242,6 +272,7 @@ export function DatasetsCard() {
       // must survive — only the values text is the requested replacement. A closed
       // dialog (prev === null) stays closed.
       setEditor((prev) => (prev ? { ...prev, text } : prev));
+      setView("json");
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, t("datasetSkeletonFailed")));
     } finally {
@@ -368,6 +399,27 @@ export function DatasetsCard() {
                     {t("datasetValues")}
                   </label>
                   <div className="flex items-center gap-1">
+                    {/* S2b: two views over the same text — raw JSON and a table. */}
+                    <div className="mr-1 flex overflow-hidden rounded border text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setView("json")}
+                        data-testid="studio-dataset-view-json"
+                        aria-pressed={view === "json"}
+                        className={`px-2 py-0.5 ${view === "json" ? "bg-muted font-medium" : "text-muted-foreground hover:text-foreground"}`}
+                      >
+                        JSON
+                      </button>
+                      <button
+                        type="button"
+                        onClick={enterTableView}
+                        data-testid="studio-dataset-view-table"
+                        aria-pressed={view === "table"}
+                        className={`border-l px-2 py-0.5 ${view === "table" ? "bg-muted font-medium" : "text-muted-foreground hover:text-foreground"}`}
+                      >
+                        {t("datasetTableView")}
+                      </button>
+                    </div>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -408,15 +460,19 @@ export function DatasetsCard() {
                     )}
                   </div>
                 </div>
-                <textarea
-                  id="dataset-json"
-                  data-testid="studio-dataset-json"
-                  value={editor.text}
-                  onChange={(e) => setEditor({ ...editor, text: e.target.value })}
-                  spellCheck={false}
-                  rows={12}
-                  className="w-full resize-y rounded-md border bg-transparent px-2 py-1.5 font-mono text-xs leading-relaxed focus:outline-none focus:ring-1 focus:ring-ring"
-                />
+                {view === "table" && tableModel ? (
+                  <DatasetTableEditor model={tableModel} onModelChange={handleTableChange} />
+                ) : (
+                  <textarea
+                    id="dataset-json"
+                    data-testid="studio-dataset-json"
+                    value={editor.text}
+                    onChange={(e) => setEditor({ ...editor, text: e.target.value })}
+                    spellCheck={false}
+                    rows={12}
+                    className="w-full resize-y rounded-md border bg-transparent px-2 py-1.5 font-mono text-xs leading-relaxed focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                )}
                 {/* S5: live guidance against the model's declarations. */}
                 {checkMessages && (
                   <div data-testid="studio-dataset-check" className="mt-1 space-y-0.5">

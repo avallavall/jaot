@@ -256,7 +256,15 @@
     "datasetCheckArity": "{name} : la clé \"{key}\" a {got} indices — {expected} attendus",
     "datasetCheckScalar": "{name} est scalaire — utilisez un nombre",
     "datasetCheckIndexed": "{name} est indexé — utilisez un objet clé→valeur",
-    "datasetCheckMore": "{count} avertissements de plus (non affichés)."
+    "datasetCheckMore": "{count} avertissements de plus (non affichés).",
+    "datasetTableView": "Tableau",
+    "datasetTableUnparseable": "Corrigez d'abord le JSON — la vue tableau nécessite un JSON de jeu de données valide.",
+    "datasetTableEmpty": "Pas encore d'ensembles ni de paramètres — commencez par le squelette ou la vue JSON.",
+    "datasetTableMembers": "membres, séparés par des virgules",
+    "datasetTableArity": "{count} indices",
+    "datasetTableValue": "valeur",
+    "datasetTableAddRow": "Ajouter une ligne",
+    "datasetTableRemoveRow": "Supprimer la ligne"
   },
   "common": {
     "loading": "Chargement...",

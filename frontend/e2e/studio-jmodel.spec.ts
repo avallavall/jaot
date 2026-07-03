@@ -100,6 +100,19 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
 
   test.beforeEach(async ({ page }) => {
     await interceptGuidanceApi(page);
+    // Pre-seed cookie consent (same pattern as feature-showcase): the fixed
+    // bottom banner otherwise intercepts clicks on bottom-of-page controls
+    // (the scenarios table's lower rows).
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "jaot_cookie_consent",
+        JSON.stringify({
+          essential: true,
+          analytics: false,
+          timestamp: "2026-06-26T00:00:00.000Z",
+        }),
+      );
+    });
   });
 
   test.afterAll(async () => {
@@ -194,6 +207,17 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
       timeout: NAV,
     });
     await expect(page.getByTestId("studio-dataset-name")).toHaveValue("q4_forecast");
+
+    // S2b: the table view edits the SAME text — change the scalar and see it
+    // round-trip back into the raw JSON.
+    await page.getByTestId("studio-dataset-view-table").click();
+    await expect(page.getByTestId("studio-dataset-table")).toBeVisible({ timeout: NAV });
+    await page.getByTestId("studio-dataset-table-scalar").fill("25");
+    await page.getByTestId("studio-dataset-view-json").click();
+    await expect(page.getByTestId("studio-dataset-json")).toHaveValue(/"cap": 25/, {
+      timeout: NAV,
+    });
+
     await page.getByTestId("studio-dataset-save").click();
     await expect(
       page.getByTestId("studio-dataset-row").filter({ hasText: "q4_forecast" }),

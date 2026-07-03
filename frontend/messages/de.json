@@ -256,7 +256,15 @@
     "datasetCheckArity": "{name}: Schlüssel \"{key}\" hat {got} Indizes — erwartet {expected}",
     "datasetCheckScalar": "{name} ist skalar — verwende eine Zahl",
     "datasetCheckIndexed": "{name} ist indiziert — verwende ein Schlüssel→Wert-Objekt",
-    "datasetCheckMore": "{count} weitere Hinweise (nicht angezeigt)."
+    "datasetCheckMore": "{count} weitere Hinweise (nicht angezeigt).",
+    "datasetTableView": "Tabelle",
+    "datasetTableUnparseable": "Korrigiere zuerst das JSON — die Tabellenansicht braucht gültiges Dataset-JSON.",
+    "datasetTableEmpty": "Noch keine Sets oder Parameter — starte mit dem Gerüst oder der JSON-Ansicht.",
+    "datasetTableMembers": "Mitglieder, kommagetrennt",
+    "datasetTableArity": "{count} Indizes",
+    "datasetTableValue": "Wert",
+    "datasetTableAddRow": "Zeile hinzufügen",
+    "datasetTableRemoveRow": "Zeile entfernen"
   },
   "common": {
     "loading": "Wird geladen...",
