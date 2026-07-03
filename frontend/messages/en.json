@@ -247,7 +247,16 @@
     "scenariosDiffIdentical": "The two solutions are identical.",
     "scenariosDiffVariable": "Variable",
     "scenariosDiffMore": "{count} more variables differ (not shown).",
-    "scenariosDiffFailed": "Could not load the two solutions"
+    "scenariosDiffFailed": "Could not load the two solutions",
+    "datasetCheckOk": "Fills the model",
+    "datasetCheckMissingSet": "Missing set {name}",
+    "datasetCheckMissingParam": "Missing param {name}",
+    "datasetCheckUnknownSet": "The model does not declare a set {name}",
+    "datasetCheckUnknownParam": "The model does not declare a param {name}",
+    "datasetCheckArity": "{name}: key \"{key}\" has {got} indices — expected {expected}",
+    "datasetCheckScalar": "{name} is scalar — use a number",
+    "datasetCheckIndexed": "{name} is indexed — use a key→value object",
+    "datasetCheckMore": "{count} more issues (not shown)."
   },
   "common": {
     "loading": "Loading...",

@@ -247,7 +247,16 @@
     "scenariosDiffIdentical": "Les deux solutions sont identiques.",
     "scenariosDiffVariable": "Variable",
     "scenariosDiffMore": "{count} variables de plus diffèrent (non affichées).",
-    "scenariosDiffFailed": "Impossible de charger les deux solutions"
+    "scenariosDiffFailed": "Impossible de charger les deux solutions",
+    "datasetCheckOk": "Remplit le modèle",
+    "datasetCheckMissingSet": "Ensemble {name} manquant",
+    "datasetCheckMissingParam": "Paramètre {name} manquant",
+    "datasetCheckUnknownSet": "Le modèle ne déclare pas d'ensemble {name}",
+    "datasetCheckUnknownParam": "Le modèle ne déclare pas de paramètre {name}",
+    "datasetCheckArity": "{name} : la clé \"{key}\" a {got} indices — {expected} attendus",
+    "datasetCheckScalar": "{name} est scalaire — utilisez un nombre",
+    "datasetCheckIndexed": "{name} est indexé — utilisez un objet clé→valeur",
+    "datasetCheckMore": "{count} avertissements de plus (non affichés)."
   },
   "common": {
     "loading": "Chargement...",

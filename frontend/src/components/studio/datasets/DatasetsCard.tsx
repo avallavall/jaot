@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { Database, Pencil, Plus, Trash2, Upload } from "lucide-react";
@@ -24,11 +24,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import type { ProjectDatasetSummary } from "@/lib/types";
+import type { DslInspectResult, ProjectDatasetSummary } from "@/lib/types";
 import { useDslStatus } from "@/hooks/useDslStatus";
 import { useModelProjectStore } from "../store/useModelProjectStore";
 import { useProjectDatasets } from "./useProjectDatasets";
 import { buildDatasetSkeleton } from "./dataset-skeleton";
+import {
+  checkDatasetAgainstDeclarations,
+  type DatasetCheckMessage,
+} from "./dataset-validation";
 
 // Seed shown in the editor for a NEW dataset — the JModelData JSON shape.
 const NEW_DATASET_TEMPLATE = `{
@@ -73,6 +77,43 @@ export function DatasetsCard() {
   const [importing, setImporting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<ProjectDatasetSummary | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // S5: live dataset↔model guidance. The declarations are fetched ONCE per dialog
+  // open (they depend on the SOURCE, not the dataset text); every edit then runs a
+  // pure local check — no round-trip per keystroke. Server compile stays the truth.
+  const dialogOpen = editor !== null;
+  const editorText = editor?.text ?? "";
+  const [decls, setDecls] = useState<DslInspectResult | null>(null);
+  const [checkMessages, setCheckMessages] = useState<DatasetCheckMessage[] | null>(null);
+  useEffect(() => {
+    if (!dialogOpen || !draftDslSource.trim()) {
+      setDecls(null);
+      return;
+    }
+    let cancelled = false;
+    api
+      .inspectDsl(draftDslSource)
+      .then((r) => {
+        if (!cancelled) setDecls(r);
+      })
+      .catch(() => {
+        /* guidance only — the save path still validates server-side */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dialogOpen, draftDslSource]);
+  useEffect(() => {
+    if (!dialogOpen || decls === null) {
+      setCheckMessages(null);
+      return;
+    }
+    const id = setTimeout(
+      () => setCheckMessages(checkDatasetAgainstDeclarations(editorText, decls)),
+      400,
+    );
+    return () => clearTimeout(id);
+  }, [dialogOpen, editorText, decls]);
 
   if (!dslEnabled || !isPersisted) return null;
 
@@ -376,6 +417,29 @@ export function DatasetsCard() {
                   rows={12}
                   className="w-full resize-y rounded-md border bg-transparent px-2 py-1.5 font-mono text-xs leading-relaxed focus:outline-none focus:ring-1 focus:ring-ring"
                 />
+                {/* S5: live guidance against the model's declarations. */}
+                {checkMessages && (
+                  <div data-testid="studio-dataset-check" className="mt-1 space-y-0.5">
+                    {checkMessages.slice(0, 6).map((m, i) => (
+                      <p
+                        key={`${m.key}-${i}`}
+                        className={
+                          m.level === "ok"
+                            ? "text-xs text-emerald-600 dark:text-emerald-400"
+                            : "text-xs text-amber-600 dark:text-amber-400"
+                        }
+                      >
+                        {m.level === "ok" ? "✓ " : "• "}
+                        {t(m.key, m.values)}
+                      </p>
+                    ))}
+                    {checkMessages.length > 6 && (
+                      <p className="text-xs text-muted-foreground">
+                        {t("datasetCheckMore", { count: checkMessages.length - 6 })}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}

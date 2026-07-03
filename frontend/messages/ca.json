@@ -247,7 +247,16 @@
     "scenariosDiffIdentical": "Les dues solucions són idèntiques.",
     "scenariosDiffVariable": "Variable",
     "scenariosDiffMore": "{count} variables més difereixen (no mostrades).",
-    "scenariosDiffFailed": "No s'han pogut carregar les dues solucions"
+    "scenariosDiffFailed": "No s'han pogut carregar les dues solucions",
+    "datasetCheckOk": "Omple el model",
+    "datasetCheckMissingSet": "Falta el set {name}",
+    "datasetCheckMissingParam": "Falta el param {name}",
+    "datasetCheckUnknownSet": "El model no declara un set {name}",
+    "datasetCheckUnknownParam": "El model no declara un param {name}",
+    "datasetCheckArity": "{name}: la clau \"{key}\" té {got} índexs — se n'esperaven {expected}",
+    "datasetCheckScalar": "{name} és escalar — fes servir un número",
+    "datasetCheckIndexed": "{name} és indexat — fes servir un objecte clau→valor",
+    "datasetCheckMore": "{count} avisos més (no mostrats)."
   },
   "common": {
     "loading": "Carregant...",

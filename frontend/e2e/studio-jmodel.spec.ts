@@ -296,17 +296,25 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
     await expect(page.getByTestId("studio-jmodel-error")).toBeVisible({ timeout: NAV });
 
     // Three datasets: two that fill the model with different data, one that doesn't.
-    const createDataset = async (name: string, json: string) => {
+    // S5: while typing, the editor shows live guidance against the model's
+    // declarations — "✓ fills" for a good one, the offending name for a bad one.
+    const createDataset = async (name: string, json: string, expectCheckText?: string) => {
       await page.getByTestId("studio-dataset-new").click();
       await page.getByTestId("studio-dataset-name").fill(name);
       await page.getByTestId("studio-dataset-json").fill(json);
+      if (expectCheckText) {
+        await expect(page.getByTestId("studio-dataset-check")).toContainText(
+          expectCheckText,
+          { timeout: NAV },
+        );
+      }
       await page.getByTestId("studio-dataset-save").click();
       await expect(
         page.getByTestId("studio-dataset-row").filter({ hasText: name }),
       ).toHaveCount(1, { timeout: NAV });
     };
     await page.getByTestId("studio-tab-data").click();
-    await createDataset("Base", DATASET_JSON); // optimum 7 (picks b+c)
+    await createDataset("Base", DATASET_JSON, "✓"); // optimum 7 (picks b+c)
     await createDataset(
       "Alta",
       JSON.stringify(
@@ -322,6 +330,7 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
         null,
         2,
       ),
+      "peso", // S5 live guidance names the undeclared param before saving
     ); // unknown param -> compile error row, never a crash
 
     // Solve tab: the Scenarios section lists the datasets; run all three.

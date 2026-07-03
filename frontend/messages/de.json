@@ -247,7 +247,16 @@
     "scenariosDiffIdentical": "Die beiden Lösungen sind identisch.",
     "scenariosDiffVariable": "Variable",
     "scenariosDiffMore": "{count} weitere Variablen weichen ab (nicht angezeigt).",
-    "scenariosDiffFailed": "Die beiden Lösungen konnten nicht geladen werden"
+    "scenariosDiffFailed": "Die beiden Lösungen konnten nicht geladen werden",
+    "datasetCheckOk": "Füllt das Modell",
+    "datasetCheckMissingSet": "Set {name} fehlt",
+    "datasetCheckMissingParam": "Parameter {name} fehlt",
+    "datasetCheckUnknownSet": "Das Modell deklariert kein Set {name}",
+    "datasetCheckUnknownParam": "Das Modell deklariert keinen Parameter {name}",
+    "datasetCheckArity": "{name}: Schlüssel \"{key}\" hat {got} Indizes — erwartet {expected}",
+    "datasetCheckScalar": "{name} ist skalar — verwende eine Zahl",
+    "datasetCheckIndexed": "{name} ist indiziert — verwende ein Schlüssel→Wert-Objekt",
+    "datasetCheckMore": "{count} weitere Hinweise (nicht angezeigt)."
   },
   "common": {
     "loading": "Wird geladen...",
