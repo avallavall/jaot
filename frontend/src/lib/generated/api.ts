@@ -9165,6 +9165,8 @@ export interface components {
             dataset_name?: string | null;
             /** Error Message */
             error_message?: string | null;
+            /** Execution Time Ms */
+            execution_time_ms?: number | null;
             /** Id */
             id: string;
             /** Is Async */

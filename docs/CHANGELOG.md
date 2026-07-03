@@ -19,6 +19,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Added
 
+- **Compare N scenarios side by side (S3, 2026-07-03)** — The Solve tab gains a Scenarios section: select several datasets, solve them all in one click, and watch a live comparison table (dataset · status · objective · time · solver, server-derived so it survives reloads); a dataset that doesn't fill the model shows the compiler message as a failed row, and any two completed runs diff their solutions variable by variable.
 - **Import a dataset from a file (S2c, 2026-07-03)** — The dataset editor accepts AMPL `.dat` (sets, scalar and N-D params), `.csv` (one param per file, header auto-detected, name from the filename) and our JSON shape; the file is parsed server-side into a preview with compiler-grade errors and saved through the normal create.
 - **Dataset skeleton from the model (S2a, 2026-07-03)** — One click pre-fills a new dataset with the model's real declared symbols (sets → `[]`, scalar params → `0`, indexed → `{}`) via a new parse-only `/dsl/inspect` endpoint — no more writing the JSON shape by hand.
 - **"Data" tab in the studio (S4, 2026-07-03)** — Input data gets its own top-level tab (Build · Data · Analyze · Solve, shown while JModel is enabled): dataset management moves out of Analyze, the Build "Editor" lens is renamed "JSON", and data-shaped JModel errors plus the Solve dataset chip now link straight to the Data tab.

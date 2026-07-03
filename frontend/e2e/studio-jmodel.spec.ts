@@ -278,6 +278,75 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
     ).toBeVisible({ timeout: NAV });
   });
 
+  // S3: run the model against N datasets in one click; the comparison table is
+  // server-derived (latest run per dataset), a dataset that does not fill the model
+  // becomes a failed row with the compiler message, and 2 completed selections diff
+  // their solutions variable by variable.
+  test("scenarios compare: run all datasets, failed row for a non-filling one, solution diff", async ({
+    page,
+  }) => {
+    test.setTimeout(180_000);
+    await setDslFlag("true");
+    const projectId = await createBlankProject(page);
+    await page.goto(`/studio/${projectId}/build?lens=jmodel`);
+
+    const textarea = page.getByTestId("studio-jmodel-textarea");
+    await expect(textarea).toBeVisible({ timeout: NAV });
+    await textarea.fill(DECL_JMODEL);
+    await expect(page.getByTestId("studio-jmodel-error")).toBeVisible({ timeout: NAV });
+
+    // Three datasets: two that fill the model with different data, one that doesn't.
+    const createDataset = async (name: string, json: string) => {
+      await page.getByTestId("studio-dataset-new").click();
+      await page.getByTestId("studio-dataset-name").fill(name);
+      await page.getByTestId("studio-dataset-json").fill(json);
+      await page.getByTestId("studio-dataset-save").click();
+      await expect(
+        page.getByTestId("studio-dataset-row").filter({ hasText: name }),
+      ).toHaveCount(1, { timeout: NAV });
+    };
+    await page.getByTestId("studio-tab-data").click();
+    await createDataset("Base", DATASET_JSON); // optimum 7 (picks b+c)
+    await createDataset(
+      "Alta",
+      JSON.stringify(
+        { sets: { I: ["a", "b", "c"] }, params: { w: { a: 10, b: 1, c: 1 } } },
+        null,
+        2,
+      ),
+    ); // optimum 11 (picks a + one of b/c)
+    await createDataset(
+      "Rota",
+      JSON.stringify(
+        { sets: { I: ["a", "b", "c"] }, params: { peso: { a: 1, b: 1, c: 1 } } },
+        null,
+        2,
+      ),
+    ); // unknown param -> compile error row, never a crash
+
+    // Solve tab: the Scenarios section lists the datasets; run all three.
+    await page.getByTestId("studio-tab-solve").click();
+    await expect(page.getByTestId("studio-scenarios")).toBeVisible({ timeout: NAV });
+    const checks = page.getByTestId("studio-scenario-check");
+    await expect(checks).toHaveCount(3, { timeout: NAV });
+    for (let i = 0; i < 3; i++) await checks.nth(i).check();
+    await page.getByTestId("studio-scenarios-run-all").click();
+
+    // The non-filling dataset fails at compile with the structured message...
+    await expect(page.getByTestId("studio-scenario-failed")).toBeVisible({ timeout: NAV });
+    await expect(page.getByTestId("studio-scenario-failed")).toContainText("peso");
+    // ...and the two real runs complete with their objectives (server-derived rows).
+    const objectives = page.getByTestId("studio-scenario-objective");
+    await expect(objectives.filter({ hasText: "7" })).toHaveCount(1, { timeout: 60_000 });
+    await expect(objectives.filter({ hasText: "11" })).toHaveCount(1, { timeout: 60_000 });
+
+    // Exactly two completed selections -> solution diff (x_a differs: 0 vs 1).
+    await checks.nth(2).uncheck();
+    await page.getByTestId("studio-scenarios-compare").click();
+    await expect(page.getByTestId("studio-scenarios-diff")).toBeVisible({ timeout: NAV });
+    await expect(page.getByTestId("studio-scenarios-diff")).toContainText("x_a");
+  });
+
   // A model edited from ANOTHER lens leaves the JModel source drifted (lowering is
   // one-way). The drifted source is NOT the applied model, so it locks read-only and
   // re-applying it must be the explicit "recompile" action — a deliberate replace of

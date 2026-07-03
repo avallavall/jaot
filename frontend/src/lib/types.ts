@@ -792,6 +792,7 @@ export interface ProjectExecutionItem {
   solver_name?: string | null;
   objective_value?: number | null;
   model_project_version_id?: string | null;
+  execution_time_ms?: number | null;
   // §8/S1: dataset provenance (name is a deletion-surviving snapshot).
   dataset_id?: string | null;
   dataset_name?: string | null;

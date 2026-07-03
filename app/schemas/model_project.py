@@ -205,6 +205,7 @@ class ProjectExecutionItem(BaseModel):
     celery_task_id: str | None = None
     solver_name: str | None = None
     objective_value: float | None = None
+    execution_time_ms: int | None = None
     model_project_version_id: str | None = None
     # §8/S1: which named dataset the run was compiled against. `dataset_name`
     # is a snapshot — it survives dataset deletion (S3 compares runs by dataset).
