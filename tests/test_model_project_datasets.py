@@ -574,3 +574,26 @@ class TestDatasetImport:
     def test_import_requires_auth(self, client: TestClient):
         resp = client.post(_import_url("mp_x"), files={"file": ("d.dat", _DAT_FILE, "text/plain")})
         assert resp.status_code in (401, 403), resp.text
+
+    def test_flat_model_json_gets_a_targeted_message(self, authenticated_client: TestClient):
+        # The owner's TFM scenario files are complete MODELS (grounded variables,
+        # baked data) — the dataset import must say so and point at the model
+        # import path, not list the model's keys as "unknown".
+        import json as _json
+
+        pid = _create_project(authenticated_client)["id"]
+        flat_model = {
+            "name": "tfm_scenario",
+            "variables": [{"name": "a_1_1", "type": "binary"}],
+            "objective": {"sense": "minimize", "expression": "a_1_1"},
+            "constraints": [{"name": "c1", "expression": "a_1_1 <= 1"}],
+        }
+        resp = authenticated_client.post(
+            _import_url(pid),
+            files={
+                "file": ("scenario_01.json", _json.dumps(flat_model).encode(), "application/json")
+            },
+        )
+        assert resp.status_code == 422, resp.text
+        assert "complete MODEL" in resp.json()["detail"]
+        assert "Import a file" in resp.json()["detail"]

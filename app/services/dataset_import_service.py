@@ -46,6 +46,13 @@ def _decode(content: bytes) -> str:
         raise JModelError("file is not valid UTF-8 text") from exc
 
 
+# A flat OptimizationProblem export (e.g. the owner's TFM scenario files) — a
+# complete MODEL with the data already baked into grounded names. There is no
+# extractable "data part", so the dataset import must say what the file IS and
+# where it belongs instead of listing its keys as "unknown".
+_MODEL_SHAPE_KEYS = frozenset({"variables", "objective", "constraints"})
+
+
 def _parse_json(text: str) -> dict[str, Any]:
     try:
         data = json.loads(text)
@@ -53,6 +60,12 @@ def _parse_json(text: str) -> dict[str, Any]:
         raise JModelError(f"invalid JSON: {exc.msg}", position=exc.pos) from exc
     if not isinstance(data, dict):
         raise JModelError("dataset JSON must be an object with 'sets' and/or 'params'")
+    if _MODEL_SHAPE_KEYS & data.keys():
+        raise JModelError(
+            "this file is a complete MODEL (it has variables/objective/constraints), not a "
+            "dataset — import it as a model from the studio launcher ('Import a file'); a "
+            "dataset carries only 'sets' and 'params' values for a declaration-only JModel"
+        )
     return data
 
 
