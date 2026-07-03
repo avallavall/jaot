@@ -429,9 +429,10 @@ def hard_delete_project(db: Session, project: ModelProject) -> None:
 # --------------------------------------------------------------------------- #
 
 #: Upper bound on a dataset's serialized size. Generous for real scenarios (the
-#: TFM's largest is well under 1 MB of values) while keeping a single row from
-#: approaching the request-body cap.
-MAX_DATASET_JSON_BYTES = 5_000_000
+#: TFM's largest — 243 vehicles × 199 orders over three sparse tuple arc sets —
+#: serializes to ~5.8 MB) while keeping a single row well under the 50 MB
+#: request-body cap.
+MAX_DATASET_JSON_BYTES = 16_000_000
 
 
 def validate_dataset_json(data_json: dict[str, Any]) -> None:
