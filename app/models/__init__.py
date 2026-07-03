@@ -13,7 +13,7 @@ from app.models.featured_placement import FeaturedPlacement, PlacementStatus, Pl
 from app.models.formulation_rating import FormulationRating
 from app.models.invoice import Invoice, InvoiceStatus, InvoiceType
 from app.models.llm_conversation import LLMConversation, LLMMessage
-from app.models.model_project import ModelProject, ModelProjectVersion
+from app.models.model_project import ModelProject, ModelProjectDataset, ModelProjectVersion
 from app.models.model_version import ModelVersion
 from app.models.model_view_event import ModelViewEvent
 from app.models.notification import Notification, NotificationChannel, NotificationType
@@ -97,6 +97,7 @@ __all__ = [
     "ModelVersion",
     # Model Projects (first-class model entity + commit-grade versions)
     "ModelProject",
+    "ModelProjectDataset",
     "ModelProjectVersion",
     # Triggers
     "SolveTrigger",

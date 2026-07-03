@@ -7,7 +7,7 @@ error paths. Grammar: ``.claude/plans/jmodel-grammar-2026-07-01.md``.
 
 import pytest
 
-from app.domains.dsl import JModelError, compile_jmodel
+from app.domains.dsl import JModelData, JModelError, compile_jmodel
 from app.schemas.optimization import VariableType
 
 pytestmark = pytest.mark.unit
@@ -481,3 +481,190 @@ def test_grounding_error_position_is_exact():
     with pytest.raises(JModelError) as exc:
         compile_jmodel(src)
     assert exc.value.position == src.index("qq")
+
+
+# --------------------------------------------------------------------------- #
+# Datasets (§8 Scenarios) — declaration-only sets/params + JModelData
+# --------------------------------------------------------------------------- #
+
+# The KNAPSACK model with its structure and data separated: same optimization
+# problem, values supplied by a dataset instead of inline `:=` bodies.
+PARAMETRIC_KNAPSACK = """
+set ITEMS;
+param value{ITEMS};
+param weight{ITEMS};
+param cap;
+var take{ITEMS} binary;
+maximize total_value:
+    sum{i in ITEMS} value[i] * take[i];
+subject to capacity:
+    sum{i in ITEMS} weight[i] * take[i] <= cap;
+"""
+
+KNAPSACK_DATA = {
+    "sets": {"ITEMS": ["a", "b", "c", "d"]},
+    "params": {
+        "value": {"a": 60, "b": 100, "c": 120, "d": 40},
+        "weight": {"a": 10, "b": 20, "c": 30, "d": 15},
+        "cap": 50,
+    },
+}
+
+
+def test_parametric_model_with_dataset_lowers_identically_to_inline():
+    # The strongest equivalence proof available: structure+dataset must produce the
+    # exact same flat problem as the classic inline model, byte for byte.
+    data = JModelData.from_json(KNAPSACK_DATA)
+    parametric = compile_jmodel(PARAMETRIC_KNAPSACK, data=data).model_dump()
+    inline = compile_jmodel(KNAPSACK).model_dump()
+    assert parametric == inline
+
+
+def test_dataset_compile_is_deterministic():
+    data = JModelData.from_json(KNAPSACK_DATA)
+    a = compile_jmodel(PARAMETRIC_KNAPSACK, data=data).model_dump()
+    b = compile_jmodel(PARAMETRIC_KNAPSACK, data=data).model_dump()
+    assert a == b
+
+
+def test_declaration_only_model_without_dataset_names_the_missing_symbol():
+    with pytest.raises(JModelError, match="set 'ITEMS' has no members"):
+        compile_jmodel(PARAMETRIC_KNAPSACK)
+
+
+def test_declaration_only_param_without_dataset_names_the_missing_symbol():
+    src = """
+    set I := {a, b};
+    param w{I};
+    var x{I} binary;
+    maximize obj: sum{i in I} w[i] * x[i];
+    subject to c: sum{i in I} x[i] <= 1;
+    """
+    with pytest.raises(JModelError, match="param 'w' has no values") as exc:
+        compile_jmodel(src)
+    assert exc.value.position == src.index("param w") + len("param ")
+
+
+def test_dataset_overrides_an_inline_default_whole_symbol():
+    # A scenario can replace an inline `:=` default; the replace is whole-symbol.
+    data = JModelData.from_json({"params": {"cap": 30}})
+    prob = compile_jmodel(KNAPSACK, data=data)
+    assert prob.constraints[0].expression.endswith("<= 30")
+
+
+def test_dataset_partial_indexed_override_fails_on_the_missing_key():
+    # Whole-symbol replace: providing 1 of 4 keys leaves the other 3 undefined —
+    # a per-key merge with the inline values must NOT happen silently.
+    data = JModelData.from_json({"params": {"value": {"a": 1}}})
+    with pytest.raises(JModelError, match="has no value for index"):
+        compile_jmodel(KNAPSACK, data=data)
+
+
+def test_dataset_unknown_symbols_rejected():
+    with pytest.raises(JModelError, match="unknown param 'capp'"):
+        compile_jmodel(KNAPSACK, data=JModelData.from_json({"params": {"capp": 1}}))
+    with pytest.raises(JModelError, match="unknown set 'X'"):
+        compile_jmodel(KNAPSACK, data=JModelData.from_json({"sets": {"X": ["a"]}}))
+
+
+def test_dataset_composite_keys_ground_a_two_dim_param():
+    src = """
+    set W := {A, B};
+    set T := {1, 2};
+    param cost{W, T};
+    var assign{W, T} binary;
+    minimize obj: sum{w in W, t in T} cost[w, t] * assign[w, t];
+    subject to one{t in T}: sum{w in W} assign[w, t] == 1;
+    """
+    data = JModelData.from_json(
+        # " A, 1" exercises the documented whitespace tolerance around members.
+        {"params": {"cost": {"A,1": 9, " A, 2": 2, "B,1": 6, "B,2": 4}}}
+    )
+    prob = compile_jmodel(src, data=data)
+    assert prob.objective.expression == (
+        "9*assign_A_1 + 2*assign_A_2 + 6*assign_B_1 + 4*assign_B_2"
+    )
+
+
+def test_dataset_key_arity_and_shape_mismatches_rejected():
+    two_dim = """
+    set W := {A};
+    set T := {1};
+    param cost{W, T};
+    var x{W, T} binary;
+    minimize obj: sum{w in W, t in T} cost[w, t] * x[w, t];
+    subject to c: x[A, 1] <= 1;
+    """
+    with pytest.raises(JModelError, match="expected 2"):
+        compile_jmodel(two_dim, data=JModelData.from_json({"params": {"cost": {"A": 5}}}))
+    with pytest.raises(JModelError, match="is indexed over 2"):
+        compile_jmodel(two_dim, data=JModelData.from_json({"params": {"cost": 5}}))
+    with pytest.raises(JModelError, match="is scalar"):
+        compile_jmodel(KNAPSACK, data=JModelData.from_json({"params": {"cap": {"a": 1}}}))
+
+
+def test_dataset_key_member_must_belong_to_the_index_set():
+    data = JModelData.from_json(
+        {
+            "sets": {"ITEMS": ["a", "b"]},
+            "params": {
+                "value": {"a": 1, "zz": 2},
+                "weight": {"a": 1, "b": 1},
+                "cap": 5,
+            },
+        }
+    )
+    with pytest.raises(JModelError, match="'zz'"):
+        compile_jmodel(PARAMETRIC_KNAPSACK, data=data)
+
+
+def test_dataset_empty_set_grounds_to_zero_variables_and_is_a_clear_error():
+    data = JModelData.from_json(
+        {"sets": {"ITEMS": []}, "params": {"value": {}, "weight": {}, "cap": 5}}
+    )
+    with pytest.raises(JModelError, match="zero variables"):
+        compile_jmodel(PARAMETRIC_KNAPSACK, data=data)
+
+
+def test_dataset_integer_members_normalize_to_strings():
+    src = """
+    set T;
+    var x{T} binary;
+    maximize obj: sum{t in T} x[t];
+    subject to c: sum{t in T} x[t] <= 1;
+    """
+    prob = compile_jmodel(src, data=JModelData.from_json({"sets": {"T": [1, 2]}}))
+    assert [v.name for v in prob.variables] == ["x_1", "x_2"]
+
+
+def test_from_json_shape_violations_are_structured_errors():
+    for payload, pattern in [
+        ([], "must be a JSON object"),
+        ({"sets": {}, "bogus": {}}, "unknown top-level"),
+        ({"sets": []}, "'sets' must be an object"),
+        ({"sets": {"I": "abc"}}, "must be a list"),
+        ({"sets": {"I": [""]}}, "empty member"),
+        ({"sets": {"I": ["a,b"]}}, "contains a comma"),
+        ({"sets": {"I": [True]}}, "boolean member"),
+        ({"sets": {"I": [1.5]}}, "strings or integers"),
+        ({"params": []}, "'params' must be an object"),
+        ({"params": {"w": True}}, "not a boolean"),
+        ({"params": {"w": "5"}}, "number .scalar. or an object"),
+        ({"params": {"w": {"a": "x"}}}, "must be numbers"),
+        ({"params": {"w": {"a": float("nan")}}}, "non-finite"),
+        ({"params": {"w": {1: 2}}}, "keys must be strings"),
+        ({"params": {"w": {"a,": 1}}}, "empty index member"),
+        ({"params": {"w": {"A,1": 1, "A, 1": 2}}}, "duplicate entries"),
+        ({"sets": {"I": ["a", "a"]}}, None),  # duplicate members surface at compile
+    ]:
+        if pattern is None:
+            data = JModelData.from_json(payload)
+            with pytest.raises(JModelError, match="duplicate members"):
+                compile_jmodel(
+                    "set I;\nvar x{I} binary;\nmaximize o: sum{i in I} x[i];\n"
+                    "subject to c: sum{i in I} x[i] <= 1;",
+                    data=data,
+                )
+        else:
+            with pytest.raises(JModelError, match=pattern):
+                JModelData.from_json(payload)

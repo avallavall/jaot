@@ -38,6 +38,7 @@ export function SolvePanel() {
   const scratchParseError = useModelProjectStore((s) => s.parseErrors.scratch ?? false);
   const dslParseError = useModelProjectStore((s) => s.parseErrors.dsl ?? false);
   const hasParseError = scratchParseError || dslParseError;
+  const activeDataset = useModelProjectStore((s) => s.activeDataset);
   const session = useModelProjectStore((s) => s.solveSession);
   const lastRun = useModelProjectStore((s) => s.lastRun);
   const startSolveSession = useModelProjectStore((s) => s.startSolveSession);
@@ -128,6 +129,16 @@ export function SolvePanel() {
           availableSolvers={availableSolvers}
           loading={solversLoading}
         />
+
+        {/* Which dataset (scenario) the canonical model was compiled against (§8). */}
+        {activeDataset && (
+          <div
+            data-testid="studio-solve-dataset-chip"
+            className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
+          >
+            {t("solveWithDataset", { name: activeDataset.name })}
+          </div>
+        )}
 
         <TooltipProvider>
           <Tooltip>

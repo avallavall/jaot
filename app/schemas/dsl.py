@@ -10,12 +10,20 @@ from app.schemas.optimization import OptimizationProblem
 
 
 class DSLCompileRequest(BaseModel):
-    """A JModel source to compile."""
+    """A JModel source to compile, optionally against a named dataset."""
 
     source: str = Field(
         ...,
         max_length=1_000_000,
         description="JModel source text (sets / params / indexed families / sum / filters).",
+    )
+    dataset_id: str | None = Field(
+        default=None,
+        max_length=64,
+        description=(
+            "Optional org-owned dataset (scenario) whose set members / param values "
+            "fill a declaration-only source (§8 model/data separation)."
+        ),
     )
 
 

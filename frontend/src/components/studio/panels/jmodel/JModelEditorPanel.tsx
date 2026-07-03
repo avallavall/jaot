@@ -11,6 +11,7 @@ import {
   useModelProjectStore,
   useModelProjectStoreApi,
 } from "../../store/useModelProjectStore";
+import { useProjectDatasets } from "../../datasets/useProjectDatasets";
 
 const COMPILE_DEBOUNCE_MS = 500;
 
@@ -41,7 +42,11 @@ export function JModelEditorPanel() {
   const t = useTranslations("studio");
   const lastSource = useModelProjectStore((s) => s.lastSource);
   const storeDslSource = useModelProjectStore((s) => s.draftDslSource);
+  const modelId = useModelProjectStore((s) => s.modelId);
+  const activeDataset = useModelProjectStore((s) => s.activeDataset);
   const storeApi = useModelProjectStoreApi();
+  // Named datasets ("scenarios") this source can compile against (§8).
+  const { datasets } = useProjectDatasets(modelId && modelId !== "new" ? modelId : null);
 
   const [text, setText] = useState<string>(() => storeApi.getState().draftDslSource);
   const [result, setResult] = useState<DslCompileResult | null>(null);
@@ -60,7 +65,10 @@ export function JModelEditorPanel() {
       const seq = ++compileSeq.current;
       setCompiling(true);
       api
-        .compileDsl(source)
+        // The active dataset is read from the store AT compile time, so the
+        // debounced/flushed/mount compiles all use the current selection without
+        // threading it through effect dependencies.
+        .compileDsl(source, storeApi.getState().activeDataset?.id ?? null)
         .then((res) => {
           if (seq !== compileSeq.current) return;
           setResult(res);
@@ -173,11 +181,42 @@ export function JModelEditorPanel() {
     runCompile(textRef.current);
   };
 
+  // Switching the dataset recompiles the source against the new data right away —
+  // an explicit user act, so no debounce (and a stale lock disables the selector).
+  const handleDatasetChange = (datasetId: string) => {
+    const row = datasetId ? datasets.find((d) => d.id === datasetId) : undefined;
+    storeApi.getState().setActiveDataset(row ? { id: row.id, name: row.name } : null);
+    if (compileTimer.current) clearTimeout(compileTimer.current);
+    compileTimer.current = null;
+    if (textRef.current.trim()) runCompile(textRef.current);
+  };
+
   return (
     <div className="flex flex-1 min-h-0 flex-col">
       <div className="flex items-center justify-between gap-3 border-b px-3 py-1.5">
         <p className="min-w-0 truncate text-xs text-muted-foreground">{t("jmodelHint")}</p>
-        <JModelStatus result={result} compiling={compiling} />
+        <div className="flex shrink-0 items-center gap-2">
+          {datasets.length > 0 && (
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              {t("jmodelDatasetLabel")}
+              <select
+                data-testid="studio-jmodel-dataset"
+                value={activeDataset?.id ?? ""}
+                onChange={(e) => handleDatasetChange(e.target.value)}
+                disabled={readOnly}
+                className="max-w-[12rem] truncate rounded-md border bg-transparent px-1.5 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                <option value="">{t("jmodelNoDataset")}</option>
+                {datasets.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <JModelStatus result={result} compiling={compiling} />
+        </div>
       </div>
 
       {stale && (

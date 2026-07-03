@@ -28,6 +28,10 @@ def _default_version_id() -> str:
     return generate_id("mpv_")
 
 
+def _default_dataset_id() -> str:
+    return generate_id("mpd_")
+
+
 class ModelProject(Base):
     """A first-class optimization model project (git working-tree analogy).
 
@@ -94,6 +98,12 @@ class ModelProject(Base):
         back_populates="project",
         cascade="all, delete-orphan",
         order_by="ModelProjectVersion.sequence",
+    )
+    datasets: Mapped[list["ModelProjectDataset"]] = relationship(
+        "ModelProjectDataset",
+        back_populates="project",
+        cascade="all, delete-orphan",
+        order_by="ModelProjectDataset.created_at",
     )
     # Who created the project — surfaced as an attribution badge in the list. The
     # list is org-wide (collaborative), so "by {name}" tells whose model it is.
@@ -187,4 +197,63 @@ class ModelProjectVersion(Base):
         return (
             f"<ModelProjectVersion(id={self.id!r}, project={self.model_project_id!r}, "
             f"sequence={self.sequence})>"
+        )
+
+
+class ModelProjectDataset(Base):
+    """A named data bundle — a "scenario" — for a project's parametric JModel source.
+
+    Holds the set members + param values (``data_json``, the ``JModelData`` JSON
+    shape: ``{"sets": {...}, "params": {...}}``) that fill a declaration-only JModel
+    at compile time. One model, many datasets is the §8 Scenarios seam (the TFM case:
+    16 scenarios = 1 model + 16 data bundles). Datasets are draft-level working data,
+    deliberately NOT snapshotted into versions — a version freezes the model's
+    structure; the data varies per run.
+    """
+
+    __tablename__ = "model_project_datasets"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=_default_dataset_id)
+    model_project_id: Mapped[str] = mapped_column(
+        String(64),
+        ForeignKey("model_projects.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    # Denormalized so multi-tenant filtering needs no join to the project (same
+    # rationale as ModelProjectVersion.organization_id).
+    organization_id: Mapped[str] = mapped_column(
+        String(64),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    created_by: Mapped[str | None] = mapped_column(
+        String(64),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Validated as JModelData (shape + members/values) on every write.
+    data_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=utcnow, onupdate=utcnow
+    )
+
+    project: Mapped["ModelProject"] = relationship("ModelProject", back_populates="datasets")
+
+    # Index names mirror the migration (20260703_add_model_project_datasets) exactly
+    # so `alembic --autogenerate` stays a no-op for this table.
+    __table_args__ = (
+        Index("ix_mpd_project", "model_project_id"),
+        Index("ix_mpd_project_name", "model_project_id", "name", unique=True),
+        Index("ix_mpd_org", "organization_id"),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<ModelProjectDataset(id={self.id!r}, project={self.model_project_id!r}, "
+            f"name={self.name!r})>"
         )

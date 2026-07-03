@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { createModelProjectStore, selectHasParseError } from "../createModelProjectStore";
+import {
+  createModelProjectStore,
+  problemsEqual,
+  selectHasParseError,
+} from "../createModelProjectStore";
+import { canvasProjector } from "../projectors";
 import { selectModelStats } from "../stats";
 import type { OptimizationProblem } from "@/lib/types";
 
@@ -176,6 +181,30 @@ describe("ModelProjectStore.scratchText (retained un-applied editor text)", () =
   });
 });
 
+describe("ModelProjectStore.activeDataset (§8 Scenarios compile target)", () => {
+  it("defaults to null — inline := values only", () => {
+    const store = makeStore();
+    expect(store.getState().activeDataset).toBeNull();
+  });
+
+  it("set / replace / clear roundtrip (the JModel selector contract)", () => {
+    const store = makeStore();
+    store.getState().setActiveDataset({ id: "mpd_1", name: "Q3 forecast" });
+    expect(store.getState().activeDataset).toEqual({ id: "mpd_1", name: "Q3 forecast" });
+    store.getState().setActiveDataset({ id: "mpd_2", name: "+20% demand" });
+    expect(store.getState().activeDataset?.id).toBe("mpd_2");
+    store.getState().setActiveDataset(null);
+    expect(store.getState().activeDataset).toBeNull();
+  });
+
+  it("survives hydrate — the selection is a compile preference, not model content", () => {
+    const store = makeStore();
+    store.getState().setActiveDataset({ id: "mpd_1", name: "Q3 forecast" });
+    store.getState().hydrate(BASE, "Reloaded");
+    expect(store.getState().activeDataset?.id).toBe("mpd_1");
+  });
+});
+
 describe("ModelProjectStore JModel (DSL) source", () => {
   it("setDraftDslSource without dirty does not mark the draft dirty (load-time rehydrate)", () => {
     const store = makeStore();
@@ -226,6 +255,54 @@ describe("ModelProjectStore JModel (DSL) source", () => {
     const store = makeStore();
     store.getState().setProblem({ ...BASE, constraints: [] }, { source: "dsl" });
     expect(store.getState().lastSource).toBe("dsl");
+  });
+});
+
+describe("canvas partial-lens merge (bridge contract)", () => {
+  // The EXACT shape /dsl/compile (and any API-authored problem) hydrates into the
+  // store: null-y optional fields + options present. The canvas cannot represent
+  // name/options/etc., so the bridge merges its projection over the canonical
+  // problem — an untouched canvas MUST reproject to a problemsEqual model, or every
+  // innocent canvas visit becomes a phantom edit + a false "changed elsewhere"
+  // drift that stale-locks the JModel lens.
+  const API_SHAPED = {
+    name: "obj",
+    description: null,
+    variables: [
+      { name: "x_a", type: "binary", lower_bound: 0, upper_bound: 1 },
+      { name: "x_b", type: "binary", lower_bound: 0, upper_bound: 1 },
+      { name: "x_c", type: "binary", lower_bound: 0, upper_bound: 1 },
+    ],
+    objective: { sense: "maximize", expression: "2*x_a + 3*x_b + 4*x_c" },
+    constraints: [{ name: "pick_two", expression: "x_a + x_b + x_c <= 2" }],
+    options: { time_limit_seconds: 300, gap_tolerance: 0.0001, threads: 0, verbose: false },
+    warm_start: null,
+    metadata: null,
+    solver_name: null,
+  } as unknown as OptimizationProblem;
+
+  it("an untouched canvas round-trip merges back problemsEqual (no phantom edit)", () => {
+    const { nodes, edges } = canvasProjector.fromProblem(API_SHAPED);
+    const projected = canvasProjector.toProblem({ nodes, edges });
+    const merged = {
+      ...API_SHAPED,
+      variables: projected.variables,
+      objective: projected.objective,
+      constraints: projected.constraints,
+    };
+    expect(problemsEqual(merged, API_SHAPED)).toBe(true);
+  });
+
+  it("a real canvas edit still registers as a change through the merge", () => {
+    const { nodes, edges } = canvasProjector.fromProblem(API_SHAPED);
+    const projected = canvasProjector.toProblem({ nodes, edges });
+    const merged = {
+      ...API_SHAPED,
+      variables: projected.variables.slice(1),
+      objective: projected.objective,
+      constraints: projected.constraints,
+    };
+    expect(problemsEqual(merged, API_SHAPED)).toBe(false);
   });
 });
 

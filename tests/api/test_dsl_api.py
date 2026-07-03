@@ -159,10 +159,139 @@ def test_compile_internal_error_is_structured_not_500(
 
 @pytest.mark.integration
 def test_compile_source_size_cap(authenticated_client, test_organization, db_session, enable_dsl):
-    resp = authenticated_client.post(
-        "/api/v2/dsl/compile", json={"source": "x" * 1_000_001}
-    )
+    resp = authenticated_client.post("/api/v2/dsl/compile", json={"source": "x" * 1_000_001})
     assert resp.status_code == 422, resp.text
+
+
+# --------------------------------------------------------------------------- #
+# Datasets (§8) — compile a declaration-only source against a named dataset
+# --------------------------------------------------------------------------- #
+
+PARAMETRIC_SOURCE = """
+set I;
+param w{I};
+var x{I} binary;
+maximize obj: sum{i in I} w[i] * x[i];
+subject to c: sum{i in I} x[i] <= 1;
+"""
+
+DATASET_JSON = {"sets": {"I": ["a", "b"]}, "params": {"w": {"a": 2, "b": 3}}}
+
+
+def _create_dataset(client, data=None) -> str:
+    pid = client.post("/api/v2/projects", json={"name": "DSL data host"}).json()["id"]
+    resp = client.post(
+        f"/api/v2/projects/{pid}/datasets",
+        json={"name": "scenario 1", "data_json": data or DATASET_JSON},
+    )
+    assert resp.status_code == 201, resp.text
+    return resp.json()["id"]
+
+
+@pytest.mark.integration
+def test_compile_with_dataset_fills_declarations(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
+    dsid = _create_dataset(authenticated_client)
+    resp = authenticated_client.post(
+        "/api/v2/dsl/compile", json={"source": PARAMETRIC_SOURCE, "dataset_id": dsid}
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ok"] is True, body
+    problem = body["problem"]
+    assert [v["name"] for v in problem["variables"]] == ["x_a", "x_b"]
+    assert problem["objective"]["expression"] == "2*x_a + 3*x_b"
+
+
+@pytest.mark.integration
+def test_compile_declaration_only_without_dataset_names_the_missing_symbol(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
+    resp = authenticated_client.post("/api/v2/dsl/compile", json={"source": PARAMETRIC_SOURCE})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ok"] is False
+    assert "set 'I' has no members" in body["error"]["message"]
+
+
+@pytest.mark.integration
+def test_compile_with_unknown_dataset_is_a_structured_error(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
+    resp = authenticated_client.post(
+        "/api/v2/dsl/compile",
+        json={"source": PARAMETRIC_SOURCE, "dataset_id": "mpd_does_not_exist"},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ok"] is False
+    assert "dataset not found" in body["error"]["message"]
+
+
+# CONTRACT-TEST: /dsl/compile dataset resolution is org-scoped — another org's
+# dataset id behaves exactly like a nonexistent one (no cross-org oracle).
+@pytest.mark.integration
+def test_compile_with_foreign_dataset_matches_nonexistent(
+    authenticated_client,
+    test_organization,
+    db_session,
+    enable_dsl,
+    test_organization_2,
+    test_user_2,
+):
+    from app.models.model_project import ModelProject, ModelProjectDataset
+
+    project = ModelProject(
+        organization_id=test_organization_2.id,
+        created_by=test_user_2.id,
+        name="Foreign",
+        status="active",
+    )
+    db_session.add(project)
+    db_session.flush()
+    foreign = ModelProjectDataset(
+        model_project_id=project.id,
+        organization_id=test_organization_2.id,
+        created_by=test_user_2.id,
+        name="Foreign DS",
+        data_json=DATASET_JSON,
+    )
+    db_session.add(foreign)
+    db_session.commit()
+
+    def _compile_error(dataset_id: str) -> str:
+        resp = authenticated_client.post(
+            "/api/v2/dsl/compile",
+            json={"source": PARAMETRIC_SOURCE, "dataset_id": dataset_id},
+        )
+        assert resp.status_code == 200, resp.text
+        body = resp.json()
+        assert body["ok"] is False
+        return body["error"]["message"]
+
+    assert _compile_error(foreign.id) == _compile_error("mpd_does_not_exist_anywhere")
+
+
+@pytest.mark.integration
+def test_compile_dataset_overrides_inline_defaults(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
+    inline = """
+    set I := {a, b};
+    param w{I} := a 1, b 1;
+    var x{I} binary;
+    maximize obj: sum{i in I} w[i] * x[i];
+    subject to c: sum{i in I} x[i] <= 1;
+    """
+    dsid = _create_dataset(authenticated_client, data={"params": {"w": {"a": 7, "b": 9}}})
+    resp = authenticated_client.post(
+        "/api/v2/dsl/compile", json={"source": inline, "dataset_id": dsid}
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ok"] is True, body
+    assert body["problem"]["objective"]["expression"] == "7*x_a + 9*x_b"
 
 
 @pytest.mark.integration

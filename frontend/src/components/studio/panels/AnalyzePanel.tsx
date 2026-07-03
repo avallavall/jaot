@@ -7,6 +7,7 @@ import type { ModelStats } from "@/lib/types";
 import { useModelProjectStore } from "../store/useModelProjectStore";
 import { selectModelStats } from "../store/stats";
 import { ModelExplanationPanel } from "../ModelExplanationPanel";
+import { DatasetsCard } from "../datasets/DatasetsCard";
 
 const HEALTH_TONE: Record<string, string> = {
   A: "text-emerald-600",
@@ -133,6 +134,9 @@ export function AnalyzePanel() {
             )}
           </div>
         )}
+
+        {/* §8 Scenarios: named datasets for a parametric JModel (gated by JAOT_DSL). */}
+        <DatasetsCard />
 
         {isPersisted && (
           <div className="mt-6">

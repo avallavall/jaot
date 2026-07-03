@@ -1800,8 +1800,11 @@ export interface paths {
          * Dsl Compile
          * @description Compile JModel source into a flat optimization problem.
          *
-         *     Returns ``ok=false`` with a structured error on any lex/parse/grounding failure,
-         *     so the editor can surface the message and position without a 4xx round-trip.
+         *     ``dataset_id`` (optional) names an org-owned dataset whose set members / param
+         *     values fill a declaration-only source (§8 Scenarios). Returns ``ok=false`` with
+         *     a structured error on any lex/parse/dataset/grounding failure, so the editor can
+         *     surface the message and position without a 4xx round-trip — including a dataset
+         *     deleted from under an open editor.
          */
         post: operations["dsl_compile"];
         delete?: never;
@@ -3128,6 +3131,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/projects/{project_id}/datasets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Project Datasets
+         * @description List a project's datasets (values omitted — fetch one for its data_json).
+         */
+        get: operations["list_project_datasets"];
+        put?: never;
+        /**
+         * Create Project Dataset
+         * @description Create a named dataset ("scenario") for the project.
+         */
+        post: operations["create_project_dataset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/datasets/{dataset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Project Dataset
+         * @description Fetch a dataset with its full values.
+         */
+        get: operations["get_project_dataset"];
+        /**
+         * Update Project Dataset
+         * @description Update a dataset's name/description/values (only the provided fields).
+         */
+        put: operations["update_project_dataset"];
+        post?: never;
+        /**
+         * Delete Project Dataset
+         * @description Delete a dataset (working data — no archive tier).
+         */
+        delete: operations["delete_project_dataset"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/projects/{project_id}/draft": {
         parameters: {
             query?: never;
@@ -3193,6 +3248,10 @@ export interface paths {
          *     Mirrors the universal ``/solve`` flow exactly — tier caps, auto-routing,
          *     credit calc, and ``SolveOrchestrator.solve_single`` — adding only the
          *     ``model_project`` provenance + typed project/version columns on the row.
+         *
+         *     ``origin`` lets a programmatic caller (API/MCP/ERP) label the run honestly;
+         *     it is sanitized server-side and falls back to ``visual_builder`` (the studio),
+         *     which is the historical default for this endpoint.
          */
         post: operations["solve_model_project"];
         delete?: never;
@@ -6055,8 +6114,8 @@ export interface components {
             num_variables: number;
             /**
              * Time Limit Seconds
-             * @description Time limit in seconds
-             * @default 60
+             * @description Time limit in seconds (up to 24h)
+             * @default 300
              */
             time_limit_seconds: number;
         };
@@ -6141,6 +6200,92 @@ export interface components {
             up: number;
         };
         /**
+         * DatasetCreate
+         * @description Create a named dataset ("scenario") — set members + param values for the
+         *     project's parametric JModel. ``data_json`` shape and size are validated in the
+         *     service against :class:`~app.domains.dsl.JModelData` (422 on violation).
+         */
+        DatasetCreate: {
+            /** Data Json */
+            data_json: {
+                [key: string]: unknown;
+            };
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name: string;
+        };
+        /**
+         * DatasetRead
+         * @description Full dataset view (values included — datasets are edited as a whole).
+         */
+        DatasetRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by?: string | null;
+            /** Data Json */
+            data_json: {
+                [key: string]: unknown;
+            };
+            /** Description */
+            description?: string | null;
+            /** Id */
+            id: string;
+            /** Model Project Id */
+            model_project_id: string;
+            /** Name */
+            name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * DatasetSummary
+         * @description Compact dataset row for the list view (no values — they can be MBs).
+         */
+        DatasetSummary: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Id */
+            id: string;
+            /** Model Project Id */
+            model_project_id: string;
+            /** Name */
+            name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * DatasetUpdate
+         * @description Patch a dataset (only the provided fields change).
+         */
+        DatasetUpdate: {
+            /** Data Json */
+            data_json?: {
+                [key: string]: unknown;
+            } | null;
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name?: string | null;
+        };
+        /**
          * DetailedStatusResponse
          * @description Detailed health status for SLA monitoring.
          */
@@ -6219,9 +6364,14 @@ export interface components {
         };
         /**
          * DSLCompileRequest
-         * @description A JModel source to compile.
+         * @description A JModel source to compile, optionally against a named dataset.
          */
         DSLCompileRequest: {
+            /**
+             * Dataset Id
+             * @description Optional org-owned dataset (scenario) whose set members / param values fill a declaration-only source (§8 model/data separation).
+             */
+            dataset_id?: string | null;
             /**
              * Source
              * @description JModel source text (sets / params / indexed families / sum / filters).
@@ -10670,6 +10820,10 @@ export type CronValidationResponse = components['schemas']['CronValidationRespon
 export type CurrencyRequest = components['schemas']['CurrencyRequest'];
 export type DailyPoint = components['schemas']['DailyPoint'];
 export type DailyTrend = components['schemas']['DailyTrend'];
+export type DatasetCreate = components['schemas']['DatasetCreate'];
+export type DatasetRead = components['schemas']['DatasetRead'];
+export type DatasetSummary = components['schemas']['DatasetSummary'];
+export type DatasetUpdate = components['schemas']['DatasetUpdate'];
 export type DetailedStatusResponse = components['schemas']['DetailedStatusResponse'];
 export type DiffEntry = components['schemas']['DiffEntry'];
 export type DomainSummaryEntry = components['schemas']['DomainSummaryEntry'];
@@ -16390,6 +16544,180 @@ export interface operations {
             };
         };
     };
+    list_project_datasets: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatasetSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_project_dataset: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatasetCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatasetRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_project_dataset: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                dataset_id: string;
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatasetRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_project_dataset: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                dataset_id: string;
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatasetUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatasetRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_project_dataset: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                dataset_id: string;
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     update_model_project_draft: {
         parameters: {
             query?: {
@@ -16467,6 +16795,7 @@ export interface operations {
     solve_model_project: {
         parameters: {
             query?: {
+                origin?: string | null;
                 solver_name?: string | null;
                 version_id?: string | null;
                 workspace_id?: string | null;

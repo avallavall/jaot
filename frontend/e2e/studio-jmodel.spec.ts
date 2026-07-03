@@ -23,6 +23,22 @@ var x{I} binary;
 maximize obj: sum{i in I} w[i] * x[i];
 subject to pick_two: sum{i in I} x[i] <= 2;`;
 
+// §8 Scenarios: the same pick-2 knapsack, but declaration-only — the sets/params
+// carry NO inline values; a named dataset must fill them at compile time.
+const DECL_JMODEL = `set I;
+param w{I};
+var x{I} binary;
+maximize obj: sum{i in I} w[i] * x[i];
+subject to pick_two: sum{i in I} x[i] <= 2;`;
+
+// NOTE: the params must exactly match the model's declarations — a dataset symbol
+// the model does not declare is a compile error by design (typo safety).
+const DATASET_JSON = JSON.stringify(
+  { sets: { I: ["a", "b", "c"] }, params: { w: { a: 2, b: 3, c: 4 } } },
+  null,
+  2
+);
+
 // A small valid model used to drift the canonical model AWAY from the DSL source
 // (applied through the JSON editor lens — deterministic, unlike canvas drag-drop).
 const DRIFT_MODEL = {
@@ -157,6 +173,65 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
     await expect(page.getByTestId("studio-solve-done")).toBeVisible({ timeout: 40_000 });
     // (The compiled model's optimum = 7 is asserted by the compiler unit tests, which
     // solve it through the real SCIPAdapter; here we prove the studio path solves.)
+  });
+
+  // §8 Scenarios: a declaration-only source (`set I;` / `param w{I};`) carries no
+  // data of its own — it must error without a dataset, compile against a named
+  // dataset created in Analyze, solve with the chip naming which data ran, and
+  // error again the moment the dataset is deselected.
+  test("scenarios: declaration-only source compiles against a named dataset and solves", async ({
+    page,
+  }) => {
+    await setDslFlag("true");
+    const projectId = await createBlankProject(page);
+    await page.goto(`/studio/${projectId}/build?lens=jmodel`);
+
+    const textarea = page.getByTestId("studio-jmodel-textarea");
+    await expect(textarea).toBeVisible({ timeout: NAV });
+    const headerSolve = page.getByTestId("studio-header-solve");
+
+    // Without data, the declaration-only source is a compile error and blocks solve.
+    await textarea.fill(DECL_JMODEL);
+    await expect(page.getByTestId("studio-jmodel-error")).toBeVisible({ timeout: NAV });
+    await expect(headerSolve).toBeDisabled();
+
+    // Create a dataset in Analyze and mark it as the one in use.
+    await page.getByTestId("studio-tab-analyze").click();
+    await page.getByTestId("studio-dataset-new").click();
+    await page.getByTestId("studio-dataset-name").fill("Scenario A");
+    await page.getByTestId("studio-dataset-json").fill(DATASET_JSON);
+    await page.getByTestId("studio-dataset-save").click();
+    await expect(page.getByTestId("studio-dataset-row")).toHaveCount(1, { timeout: NAV });
+    await page.getByTestId("studio-dataset-use").click();
+
+    // Back on JModel, the persisted error re-derives against the ACTIVE dataset → ok,
+    // and the compiled model autosaves ("Saved") before the user moves on.
+    await page.getByTestId("studio-tab-build").click();
+    await page.getByTestId("studio-sublens-jmodel").click();
+    await expect(page.getByTestId("studio-jmodel-error")).toHaveCount(0, { timeout: NAV });
+    await expect(headerSolve).toBeEnabled({ timeout: NAV });
+    await expect(page.getByTestId("studio-saved")).toBeVisible({ timeout: NAV });
+
+    // Solve — the chip names the dataset the canonical model was compiled with.
+    await page.getByTestId("studio-tab-solve").click();
+    await expect(page.getByTestId("studio-solve-dataset-chip")).toContainText("Scenario A", {
+      timeout: NAV,
+    });
+    const runBtn = page.getByTestId("studio-solve-run");
+    await expect(runBtn).toBeEnabled({ timeout: NAV });
+    await runBtn.click();
+    await expect(page.getByTestId("studio-solve-done")).toBeVisible({ timeout: 40_000 });
+
+    // Deselecting the dataset recompiles immediately → the source errors again.
+    // Realistic pacing (audit lesson): a user sees the canvas render and the
+    // persisted source back on screen before touching the dataset selector.
+    await page.getByTestId("studio-tab-build").click();
+    await expect(page.getByTestId("studio-sublens-canvas")).toBeVisible({ timeout: NAV });
+    await page.getByTestId("studio-sublens-jmodel").click();
+    await expect(textarea).toHaveValue(/param w/, { timeout: NAV });
+    await page.getByTestId("studio-jmodel-dataset").selectOption("");
+    await expect(page.getByTestId("studio-jmodel-error")).toBeVisible({ timeout: NAV });
+    await expect(headerSolve).toBeDisabled();
   });
 
   // A model edited from ANOTHER lens leaves the JModel source drifted (lowering is

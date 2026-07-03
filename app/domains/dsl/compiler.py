@@ -2,11 +2,19 @@
 
 Public API::
 
-    compile_jmodel(src: str) -> OptimizationProblem
+    compile_jmodel(src: str, data: JModelData | None = None) -> OptimizationProblem
+    JModelData.from_json(payload)  # validate a {"sets": ..., "params": ...} bundle
 
 Raises :class:`JModelError` (with a source position when available) on any lex, parse,
 or grounding error. The compiler is pure: it depends only on the standard library and
 :mod:`app.schemas.optimization`.
+
+Model/data separation (§8 Scenarios): ``set I;`` and ``param w{I};`` — with no ``:=``
+body — DECLARE structure whose values must come from a dataset (:class:`JModelData`).
+A dataset may also override an inline ``:=`` default, always replacing the WHOLE
+symbol (never a per-key merge). A dataset key the model does not declare is an error
+(a typo'd name must never silently fall back to the inline value), and a declared
+set/param that ends up with no values is an error naming the missing symbol.
 
 Hardening guarantees (all violations raise :class:`JModelError`, never a raw exception):
 
@@ -78,6 +86,110 @@ class JModelError(Exception):
         super().__init__(message)
         self.message = message
         self.position = position
+
+
+@dataclass(frozen=True)
+class JModelData:
+    """A validated model↔data bundle: set members and param values for a JModel source.
+
+    This is what a named dataset ("scenario") carries. Build one from its stored JSON
+    with :meth:`from_json`; pass it to :func:`compile_jmodel`. Scalar param values are
+    stored under the empty key ``()``; an N-dim value key is a tuple of members.
+    """
+
+    sets: dict[str, list[str]]
+    params: dict[str, dict[tuple[str, ...], float]]
+
+    @staticmethod
+    def from_json(payload: object) -> JModelData:
+        """Validate and normalize a ``{"sets": {...}, "params": {...}}`` JSON object.
+
+        Set members are strings or integers. A param value is either a single number
+        (scalar param) or an object mapping comma-joined index keys to numbers
+        (``{"A,1": 4}`` — members never contain commas, so the join is unambiguous).
+        Raises :class:`JModelError` on any shape violation.
+        """
+        if not isinstance(payload, dict):
+            raise JModelError("dataset must be a JSON object with 'sets' and/or 'params'")
+        unknown = set(payload) - {"sets", "params"}
+        if unknown:
+            raise JModelError(
+                f"dataset has unknown top-level key(s) {sorted(unknown)!r} — "
+                "only 'sets' and 'params' are allowed"
+            )
+        sets: dict[str, list[str]] = {}
+        raw_sets = payload.get("sets", {})
+        if not isinstance(raw_sets, dict):
+            raise JModelError("dataset 'sets' must be an object of set name -> member list")
+        for name, raw_members in raw_sets.items():
+            if not isinstance(raw_members, list):
+                raise JModelError(f"dataset set {name!r} must be a list of members")
+            sets[name] = [_data_member(name, m) for m in raw_members]
+        params: dict[str, dict[tuple[str, ...], float]] = {}
+        raw_params = payload.get("params", {})
+        if not isinstance(raw_params, dict):
+            raise JModelError("dataset 'params' must be an object of param name -> value(s)")
+        for name, raw_value in raw_params.items():
+            if isinstance(raw_value, bool):
+                raise JModelError(f"dataset param {name!r} must be a number, not a boolean")
+            if isinstance(raw_value, (int, float)):
+                params[name] = {(): _data_number(name, raw_value)}
+                continue
+            if not isinstance(raw_value, dict):
+                raise JModelError(
+                    f"dataset param {name!r} must be a number (scalar) or an object "
+                    "of index keys to numbers"
+                )
+            values: dict[tuple[str, ...], float] = {}
+            for raw_key, raw_num in raw_value.items():
+                key = _data_key(name, raw_key)
+                if key in values:
+                    raise JModelError(
+                        f"dataset param {name!r} has duplicate entries for key {','.join(key)!r}"
+                    )
+                values[key] = _data_number(name, raw_num)
+            params[name] = values
+        return JModelData(sets=sets, params=params)
+
+
+def _data_member(set_name: str, raw: object) -> str:
+    """A set member from dataset JSON: a non-empty string (comma-free) or an integer."""
+    if isinstance(raw, bool):
+        raise JModelError(f"dataset set {set_name!r} has a boolean member — use strings/integers")
+    if isinstance(raw, int):
+        return str(raw)
+    if not isinstance(raw, str):
+        raise JModelError(
+            f"dataset set {set_name!r} members must be strings or integers (got {raw!r})"
+        )
+    member = raw.strip()
+    if not member:
+        raise JModelError(f"dataset set {set_name!r} has an empty member")
+    if "," in member:
+        raise JModelError(
+            f"dataset set {set_name!r} member {raw!r} contains a comma — "
+            "commas separate the members of a composite param key"
+        )
+    return member
+
+
+def _data_key(param_name: str, raw: object) -> tuple[str, ...]:
+    """A composite param key from dataset JSON: comma-joined members, e.g. ``\"A,1\"``."""
+    if not isinstance(raw, str):
+        raise JModelError(f"dataset param {param_name!r} keys must be strings (got {raw!r})")
+    parts = tuple(part.strip() for part in raw.split(","))
+    if any(not part for part in parts):
+        raise JModelError(f"dataset param {param_name!r} key {raw!r} has an empty index member")
+    return parts
+
+
+def _data_number(param_name: str, raw: object) -> float:
+    if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+        raise JModelError(f"dataset param {param_name!r} values must be numbers (got {raw!r})")
+    value = float(raw)
+    if not math.isfinite(value):
+        raise JModelError(f"dataset param {param_name!r} has a non-finite value")
+    return value
 
 
 # --------------------------------------------------------------------------- #
@@ -180,7 +292,8 @@ class SetDecl:
 class ParamDecl:
     name: str
     index_sets: list[str]  # [] => scalar
-    data: dict[tuple[str, ...], float]  # scalar stored under key ()
+    # scalar stored under key (); None => declared without values (dataset must fill)
+    data: dict[tuple[str, ...], float] | None
     pos: int = 0
 
 
@@ -213,7 +326,8 @@ class ConstraintDecl:
 
 @dataclass
 class ModelAst:
-    sets: dict[str, list[str]] = field(default_factory=dict)
+    # a None member list => declared without values (dataset must fill)
+    sets: dict[str, list[str] | None] = field(default_factory=dict)
     params: dict[str, ParamDecl] = field(default_factory=dict)
     vars: dict[str, VarDecl] = field(default_factory=dict)
     var_order: list[str] = field(default_factory=list)
@@ -350,6 +464,11 @@ class _Parser:
     def _parse_set(self, model: ModelAst) -> None:
         self._expect_kw("set")
         name_tok = self._expect_name()
+        # `set I;` (no body) declares the set; its members must come from a dataset.
+        if self._accept_op(";"):
+            model.check_unused_name(name_tok.value, name_tok.pos)
+            model.sets[name_tok.value] = None
+            return
         self._expect_op(":=")
         self._expect_op("{")
         members: list[str] = []
@@ -379,6 +498,11 @@ class _Parser:
         if self._accept_op("{"):
             index_sets = self._parse_index_sets()
             self._expect_op("}")
+        # `param w{I};` (no body) declares the param; values must come from a dataset.
+        if self._accept_op(";"):
+            model.check_unused_name(name_tok.value, name_tok.pos)
+            model.params[name_tok.value] = ParamDecl(name_tok.value, index_sets, None, name_tok.pos)
+            return
         self._expect_op(":=")
         data: dict[tuple[str, ...], float] = {}
         if not index_sets:
@@ -576,6 +700,64 @@ class _Parser:
 
 
 # --------------------------------------------------------------------------- #
+# Dataset application (model ↔ data merge)
+# --------------------------------------------------------------------------- #
+
+
+def _apply_data(model: ModelAst, data: JModelData | None) -> None:
+    """Fill the model's declared sets/params from a dataset, then require completeness.
+
+    A dataset value replaces the WHOLE symbol (sets: the member list; params: every
+    key) — there is no per-key merge, so a scenario can never half-override an inline
+    default. Unknown dataset symbols are errors: a typo'd name must never silently
+    leave the inline value in effect.
+    """
+    if data is not None:
+        for name, members in data.sets.items():
+            if name not in model.sets:
+                raise JModelError(
+                    f"dataset provides unknown set {name!r} — the model does not declare it"
+                )
+            if len(members) != len(set(members)):
+                raise JModelError(f"dataset set {name!r} has duplicate members")
+            model.sets[name] = list(members)
+        for name, values in data.params.items():
+            decl = model.params.get(name)
+            if decl is None:
+                raise JModelError(
+                    f"dataset provides unknown param {name!r} — the model does not declare it"
+                )
+            arity = len(decl.index_sets)
+            for key in values:
+                if arity == 0 and key != ():
+                    raise JModelError(
+                        f"param {name!r} is scalar — the dataset value must be a single number"
+                    )
+                if arity > 0 and key == ():
+                    raise JModelError(
+                        f"param {name!r} is indexed over {arity} set(s) — the dataset value "
+                        "must be an object of index keys to numbers"
+                    )
+                if len(key) != arity:
+                    raise JModelError(
+                        f"dataset param {name!r} key {','.join(key)!r} has {len(key)} "
+                        f"member(s), expected {arity}"
+                    )
+            decl.data = dict(values)
+    for name, members in model.sets.items():
+        if members is None:
+            raise JModelError(
+                f"set {name!r} has no members — define them inline (:=) or provide a dataset"
+            )
+    for decl in model.params.values():
+        if decl.data is None:
+            raise JModelError(
+                f"param {decl.name!r} has no values — define them inline (:=) or provide a dataset",
+                position=decl.pos,
+            )
+
+
+# --------------------------------------------------------------------------- #
 # Grounding / lowering
 # --------------------------------------------------------------------------- #
 
@@ -609,7 +791,11 @@ class _Ctx:
 
     @staticmethod
     def build(model: ModelAst, max_grounded_elements: int) -> _Ctx:
-        set_members = {name: frozenset(members) for name, members in model.sets.items()}
+        # The `is not None` narrow is for the type only: _apply_data ran before any
+        # lowering, so every declared set has members here.
+        set_members = {
+            name: frozenset(members) for name, members in model.sets.items() if members is not None
+        }
         all_members: frozenset[str] = frozenset()
         if set_members:
             all_members = frozenset().union(*set_members.values())
@@ -786,6 +972,7 @@ def _ground(node: Expr, env: dict[str, str], ctx: _Ctx) -> _LinForm:
         return _LinForm.variable(_mangle(node.name, members))
     if node.name in model.params:
         param_decl = model.params[node.name]
+        assert param_decl.data is not None  # guaranteed by _apply_data
         if len(node.idx) != len(param_decl.index_sets):
             raise JModelError(
                 f"param {node.name!r} indexed with {len(node.idx)} subscript(s), "
@@ -882,10 +1069,20 @@ def _lower(model: ModelAst, max_grounded_elements: int) -> OptimizationProblem:
                 )
             )
 
+    # The flat schema requires at least one variable; grounding to zero (every family
+    # expanded over an empty set) must be a clear compile error, not a downstream
+    # Pydantic ValidationError the API can only report as "internal compiler error".
+    if not variables:
+        raise JModelError(
+            "model grounds to zero variables — every variable family expands over an "
+            "empty set (check the dataset's set members)"
+        )
+
     # 1b. params — declared index sets must exist and every data key must be a member
     # of the corresponding set (a typo'd key would only surface — or worse, not — when
     # that exact index is referenced).
     for param in model.params.values():
+        assert param.data is not None  # guaranteed by _apply_data
         member_sets: list[frozenset[str]] = []
         for set_name in param.index_sets:
             members_frozen = ctx.set_members.get(set_name)
@@ -954,12 +1151,18 @@ def _lower(model: ModelAst, max_grounded_elements: int) -> OptimizationProblem:
 
 
 def compile_jmodel(
-    src: str, *, max_grounded_elements: int = MAX_GROUNDED_ELEMENTS
+    src: str,
+    *,
+    data: JModelData | None = None,
+    max_grounded_elements: int = MAX_GROUNDED_ELEMENTS,
 ) -> OptimizationProblem:
     """Parse and lower JModel source into a flat :class:`OptimizationProblem`.
 
-    Raises :class:`JModelError` on any lex, parse, or grounding error, including a
-    grounding expansion beyond ``max_grounded_elements``.
+    ``data`` (a named dataset / scenario) fills declaration-only sets/params and
+    replaces inline defaults, whole-symbol. Raises :class:`JModelError` on any lex,
+    parse, dataset, or grounding error, including a grounding expansion beyond
+    ``max_grounded_elements``.
     """
     model = _Parser(tokenize(src)).parse()
+    _apply_data(model, data)
     return _lower(model, max_grounded_elements)

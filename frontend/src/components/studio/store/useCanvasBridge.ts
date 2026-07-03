@@ -57,7 +57,21 @@ export function useCanvasBridge(store: ModelProjectStore): void {
         const currentNonEmpty =
           current.variables.length > 0 || current.constraints.length > 0;
         if (projectedEmpty && currentNonEmpty) return;
-        store.getState().setProblem(projected, { source: "canvas" });
+        // The canvas is a PARTIAL lens: it authors variables/objective/constraints but
+        // not name/options/warm_start/metadata. Merge over the canonical problem so an
+        // untouched canvas reprojects to an IDENTICAL model (setProblem's equality
+        // guard no-ops → no phantom edit/autosave, no false "changed elsewhere" drift
+        // for the JModel/editor lenses) and a real canvas edit never silently drops
+        // the fields the canvas cannot represent.
+        store.getState().setProblem(
+          {
+            ...current,
+            variables: projected.variables,
+            objective: projected.objective,
+            constraints: projected.constraints,
+          },
+          { source: "canvas" }
+        );
       }, DEBOUNCE_MS);
     });
 

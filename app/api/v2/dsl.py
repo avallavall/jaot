@@ -17,15 +17,16 @@ import logging
 
 from fastapi import APIRouter, Depends
 
-from app.api.deps import CurrentUser, DBSession
+from app.api.deps import CurrentOrg, CurrentUser, DBSession
 from app.api.v2.deps.dsl_feature_gate import dsl_enabled, dsl_feature_gate
-from app.domains.dsl import JModelError, compile_jmodel
+from app.domains.dsl import JModelData, JModelError, compile_jmodel
 from app.schemas.dsl import (
     DSLCompileError,
     DSLCompileRequest,
     DSLCompileResponse,
     DSLStatusResponse,
 )
+from app.services import model_project_service as project_svc
 
 logger = logging.getLogger(__name__)
 
@@ -43,14 +44,29 @@ def dsl_status(db: DBSession, _user: CurrentUser) -> DSLStatusResponse:
     operation_id="dsl_compile",
     dependencies=[Depends(dsl_feature_gate)],
 )
-def dsl_compile(body: DSLCompileRequest, _user: CurrentUser) -> DSLCompileResponse:
+def dsl_compile(body: DSLCompileRequest, db: DBSession, org: CurrentOrg) -> DSLCompileResponse:
     """Compile JModel source into a flat optimization problem.
 
-    Returns ``ok=false`` with a structured error on any lex/parse/grounding failure,
-    so the editor can surface the message and position without a 4xx round-trip.
+    ``dataset_id`` (optional) names an org-owned dataset whose set members / param
+    values fill a declaration-only source (§8 Scenarios). Returns ``ok=false`` with
+    a structured error on any lex/parse/dataset/grounding failure, so the editor can
+    surface the message and position without a 4xx round-trip — including a dataset
+    deleted from under an open editor.
     """
     try:
-        problem = compile_jmodel(body.source)
+        data = None
+        if body.dataset_id:
+            dataset = project_svc.get_dataset_or_404(db, body.dataset_id, org.id)
+            if dataset is None:
+                return DSLCompileResponse(
+                    ok=False,
+                    error=DSLCompileError(
+                        message="dataset not found — it may have been deleted",
+                        position=None,
+                    ),
+                )
+            data = JModelData.from_json(dataset.data_json)
+        problem = compile_jmodel(body.source, data=data)
     except JModelError as exc:
         return DSLCompileResponse(
             ok=False,

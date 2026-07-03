@@ -129,6 +129,13 @@ export interface ModelProjectState {
   scratchText: string | null;
   setScratchText: (scratchText: string | null) => void;
 
+  /** The dataset ("scenario") the JModel lens compiles against — §8 model/data
+   * separation. Lives in the store (not the lens) so the Solve tab can show which
+   * data the canonical model was built with. `null` = inline `:=` values only.
+   * In-memory per workspace: a reload falls back to null (the user re-picks). */
+  activeDataset: { id: string; name: string } | null;
+  setActiveDataset: (activeDataset: { id: string; name: string } | null) => void;
+
   /** The current JModel (DSL) source text for this project's HEAD draft. Persisted
    * to `draft_dsl_source` and rehydrated on load. It is the source of truth for the
    * JModel lens' textarea — the flat model is not projected back into DSL (one-way). */
@@ -267,6 +274,9 @@ export function createModelProjectStore(init: ModelProjectInit) {
 
         scratchText: null,
         setScratchText: (scratchText) => set({ scratchText }),
+
+        activeDataset: null,
+        setActiveDataset: (activeDataset) => set({ activeDataset }),
 
         draftDslSource: "",
         dslDirty: false,

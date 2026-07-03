@@ -80,6 +80,8 @@ import type {
   SolveAnalyticsCompare,
   DslCompileResult,
   DslStatusResult,
+  ProjectDataset,
+  ProjectDatasetSummary,
 } from "./types";
 
 import type { AnthropicKeyStatus, AttachmentInfo, InfeasibilityAnalysis } from "./llm-types";
@@ -792,11 +794,13 @@ export const api = {
   },
 
   /** Compile JModel (DSL) source into a flat problem. Gated behind JAOT_DSL (404
-   * when off). A user syntax error is a 200 with `ok:false` + `{message, position}`. */
-  compileDsl(source: string): Promise<DslCompileResult> {
+   * when off). A user syntax error is a 200 with `ok:false` + `{message, position}`.
+   * `datasetId` names an org-owned dataset whose set members / param values fill a
+   * declaration-only source (§8 model/data separation). */
+  compileDsl(source: string, datasetId?: string | null): Promise<DslCompileResult> {
     return request("/api/v2/dsl/compile", {
       method: "POST",
-      body: JSON.stringify({ source }),
+      body: JSON.stringify({ source, ...(datasetId ? { dataset_id: datasetId } : {}) }),
     });
   },
 
@@ -1290,6 +1294,45 @@ export const api = {
         ...(workspaceId ? { workspace_id: workspaceId } : {}),
       },
     });
+  },
+
+  /** List a project's datasets ("scenarios") — compact rows, no values (§8). */
+  listProjectDatasets(id: string): Promise<ProjectDatasetSummary[]> {
+    return request(`/api/v2/projects/${id}/datasets`);
+  },
+
+  /** Fetch one dataset with its full `data_json` values. */
+  getProjectDataset(id: string, datasetId: string): Promise<ProjectDataset> {
+    return request(`/api/v2/projects/${id}/datasets/${datasetId}`);
+  },
+
+  createProjectDataset(
+    id: string,
+    payload: { name: string; description?: string | null; data_json: Record<string, unknown> }
+  ): Promise<ProjectDataset> {
+    return request(`/api/v2/projects/${id}/datasets`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  updateProjectDataset(
+    id: string,
+    datasetId: string,
+    payload: {
+      name?: string;
+      description?: string | null;
+      data_json?: Record<string, unknown>;
+    }
+  ): Promise<ProjectDataset> {
+    return request(`/api/v2/projects/${id}/datasets/${datasetId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  deleteProjectDataset(id: string, datasetId: string): Promise<void> {
+    return request(`/api/v2/projects/${id}/datasets/${datasetId}`, { method: "DELETE" });
   },
 
   listTemplates(): Promise<{ templates: TemplateSummary[] }> {

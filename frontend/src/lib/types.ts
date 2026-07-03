@@ -728,6 +728,26 @@ export interface DslStatusResult {
 }
 
 /**
+ * A named data bundle ("scenario") for a project's parametric JModel: set members
+ * + param values that fill a declaration-only source at compile time (§8).
+ * `data_json` = `{"sets": {...}, "params": {...}}` — composite param keys are
+ * comma-joined (`"A,1": 4`). The list endpoint returns the summary (no values).
+ */
+export interface ProjectDatasetSummary {
+  id: string;
+  model_project_id: string;
+  name: string;
+  description?: string | null;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectDataset extends ProjectDatasetSummary {
+  data_json: Record<string, unknown>;
+}
+
+/**
  * A compact execution row used to RECONCILE a solve from the server when the
  * workspace opens (durable, server-derived solve sessions). A running async row
  * is re-attached by `celery_task_id`; a terminal one surfaces as the "last run".

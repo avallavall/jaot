@@ -12,7 +12,7 @@ from typing import Any
 from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
 
-from app.models.model_project import ModelProject, ModelProjectVersion
+from app.models.model_project import ModelProject, ModelProjectDataset, ModelProjectVersion
 from app.schemas.model_project import DiffEntry, VersionDiff
 from app.shared.utils.datetime_helpers import utcnow
 
@@ -408,11 +408,12 @@ def hard_delete_project(db: Session, project: ModelProject) -> None:
     """Permanently delete a project and its versions (irreversible).
 
     The ``versions`` relationship cascades (``all, delete-orphan`` + DB-level
-    ``ondelete=CASCADE``), so the committed history is removed with it. Past
-    ``ModelExecution`` rows keep their ``model_project_id`` as a historical tag
-    (no FK), so the executions audit trail is preserved. The AI Assistant
-    conversations, by contrast, are unlinked (``model_project_id`` cleared) so the
-    project-scoped conversation filter never returns rows dangling off a dead id.
+    ``ondelete=CASCADE``), so the committed history is removed with it (and so are
+    its datasets). Past ``ModelExecution`` rows keep their ``model_project_id`` as
+    a historical tag (no FK), so the executions audit trail is preserved. The AI
+    Assistant conversations, by contrast, are unlinked (``model_project_id``
+    cleared) so the project-scoped conversation filter never returns rows dangling
+    off a dead id.
     """
     from app.models.llm_conversation import LLMConversation  # noqa: PLC0415
 
@@ -420,4 +421,131 @@ def hard_delete_project(db: Session, project: ModelProject) -> None:
         {"model_project_id": None}, synchronize_session=False
     )
     db.delete(project)
+    db.flush()
+
+
+# --------------------------------------------------------------------------- #
+# Datasets (named data bundles / scenarios, §8)
+# --------------------------------------------------------------------------- #
+
+#: Upper bound on a dataset's serialized size. Generous for real scenarios (the
+#: TFM's largest is well under 1 MB of values) while keeping a single row from
+#: approaching the request-body cap.
+MAX_DATASET_JSON_BYTES = 5_000_000
+
+
+def validate_dataset_json(data_json: dict[str, Any]) -> None:
+    """Validate a dataset's ``data_json`` (size + JModelData shape).
+
+    Raises :class:`~app.domains.dsl.JModelError` — routes map it to a 422 with the
+    message. Validating here (not in the Pydantic schema) keeps ``app.schemas``
+    from importing ``app.domains`` (the compiler imports ``app.schemas`` — a cycle).
+    """
+    from app.domains.dsl import JModelData, JModelError  # noqa: PLC0415
+
+    serialized = json.dumps(data_json, separators=(",", ":"), default=str)
+    if len(serialized) > MAX_DATASET_JSON_BYTES:
+        raise JModelError(
+            f"dataset is too large ({len(serialized):,} bytes — max {MAX_DATASET_JSON_BYTES:,})"
+        )
+    JModelData.from_json(data_json)
+
+
+def list_datasets(db: Session, project: ModelProject) -> list[ModelProjectDataset]:
+    """The project's datasets, oldest first (stable scenario order)."""
+    return (
+        db.query(ModelProjectDataset)
+        .filter(
+            ModelProjectDataset.model_project_id == project.id,
+            ModelProjectDataset.organization_id == project.organization_id,
+        )
+        .order_by(ModelProjectDataset.created_at, ModelProjectDataset.id)
+        .all()
+    )
+
+
+def get_dataset_or_404(
+    db: Session, dataset_id: str, org_id: str, project_id: str | None = None
+) -> ModelProjectDataset | None:
+    """Fetch an org-owned dataset (optionally pinned to a project), or None."""
+    query = db.query(ModelProjectDataset).filter(
+        ModelProjectDataset.id == dataset_id,
+        ModelProjectDataset.organization_id == org_id,
+    )
+    if project_id is not None:
+        query = query.filter(ModelProjectDataset.model_project_id == project_id)
+    return query.first()
+
+
+def _dataset_name_taken(
+    db: Session, project: ModelProject, name: str, exclude_id: str | None = None
+) -> bool:
+    query = db.query(ModelProjectDataset.id).filter(
+        ModelProjectDataset.model_project_id == project.id,
+        ModelProjectDataset.name == name,
+    )
+    if exclude_id is not None:
+        query = query.filter(ModelProjectDataset.id != exclude_id)
+    return db.query(query.exists()).scalar() or False
+
+
+def create_dataset(
+    db: Session,
+    project: ModelProject,
+    *,
+    user_id: str | None,
+    name: str,
+    description: str | None,
+    data_json: dict[str, Any],
+) -> ModelProjectDataset:
+    """Create a named dataset for the project.
+
+    Raises :class:`~app.domains.dsl.JModelError` on an invalid ``data_json`` and
+    :class:`ProjectConflictError` on a duplicate name (a unique index backs this).
+    """
+    validate_dataset_json(data_json)
+    if _dataset_name_taken(db, project, name):
+        raise ProjectConflictError(f"a dataset named {name!r} already exists")
+    dataset = ModelProjectDataset(
+        model_project_id=project.id,
+        organization_id=project.organization_id,
+        created_by=user_id,
+        name=name,
+        description=description,
+        data_json=data_json,
+    )
+    db.add(dataset)
+    db.flush()
+    db.refresh(dataset)
+    logger.info("Created dataset %s (%r) for project %s", dataset.id, name, project.id)
+    return dataset
+
+
+def update_dataset(
+    db: Session,
+    dataset: ModelProjectDataset,
+    *,
+    name: str | None = None,
+    description: str | None = None,
+    data_json: dict[str, Any] | None = None,
+) -> ModelProjectDataset:
+    """Update a dataset's name/description/values (only the fields provided)."""
+    if data_json is not None:
+        validate_dataset_json(data_json)
+        dataset.data_json = data_json
+    if name is not None and name != dataset.name:
+        if _dataset_name_taken(db, dataset.project, name, exclude_id=dataset.id):
+            raise ProjectConflictError(f"a dataset named {name!r} already exists")
+        dataset.name = name
+    if description is not None:
+        dataset.description = description
+    dataset.updated_at = utcnow()
+    db.flush()
+    db.refresh(dataset)
+    return dataset
+
+
+def delete_dataset(db: Session, dataset: ModelProjectDataset) -> None:
+    """Delete a dataset (datasets are working data — no soft-delete tier)."""
+    db.delete(dataset)
     db.flush()

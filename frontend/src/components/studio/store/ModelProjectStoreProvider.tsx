@@ -65,6 +65,9 @@ export function ModelProjectStoreProvider({
   // switch. The load re-runs only on a real model/workspace change (its true deps).
   const routerRef = useRef(router);
   const tRef = useRef(t);
+  // True once the first project load has been handled (applied or yielded to
+  // in-flight user edits) — later runs (workspace switch) always re-hydrate.
+  const firstLoadDone = useRef(false);
   useEffect(() => {
     routerRef.current = router;
     tRef.current = t;
@@ -86,6 +89,18 @@ export function ModelProjectStoreProvider({
       .getProject(modelId, activeWorkspaceId ?? undefined)
       .then((project) => {
         if (cancelled) return;
+        // A LATE-arriving initial load must not clobber edits made while the GET
+        // was in flight (deep-link straight into a lens + immediate typing): the
+        // in-memory draft is NEWER than the server's. Keep it and take only the
+        // lock version, so the pending autosave can persist those edits. Scoped to
+        // the first load — a deliberate workspace switch still re-hydrates.
+        const pre = store.getState();
+        if (!firstLoadDone.current && (pre.headDirty || pre.dslDirty)) {
+          firstLoadDone.current = true;
+          pre.setLockVersion(project.draft_lock_version);
+          return;
+        }
+        firstLoadDone.current = true;
         const modelJson = (project.draft_model_json ?? null) as OptimizationProblem | null;
 
         // Hairball guard: a model too large for the visual canvas is NEVER laid

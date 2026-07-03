@@ -55,6 +55,60 @@ class CommitRequest(BaseModel):
         return v.strip()
 
 
+class DatasetCreate(BaseModel):
+    """Create a named dataset ("scenario") — set members + param values for the
+    project's parametric JModel. ``data_json`` shape and size are validated in the
+    service against :class:`~app.domains.dsl.JModelData` (422 on violation)."""
+
+    name: str = Field(max_length=255)
+    description: str | None = None
+    data_json: dict[str, Any]
+
+    @field_validator("name")
+    @classmethod
+    def _name_not_blank(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("dataset name must not be empty")
+        return v.strip()
+
+
+class DatasetUpdate(BaseModel):
+    """Patch a dataset (only the provided fields change)."""
+
+    name: str | None = Field(default=None, max_length=255)
+    description: str | None = None
+    data_json: dict[str, Any] | None = None
+
+    @field_validator("name")
+    @classmethod
+    def _name_not_blank(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        if not v.strip():
+            raise ValueError("dataset name must not be empty")
+        return v.strip()
+
+
+class DatasetSummary(BaseModel):
+    """Compact dataset row for the list view (no values — they can be MBs)."""
+
+    id: str
+    model_project_id: str
+    name: str
+    description: str | None = None
+    created_by: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DatasetRead(DatasetSummary):
+    """Full dataset view (values included — datasets are edited as a whole)."""
+
+    data_json: dict[str, Any]
+
+
 class VersionSummary(BaseModel):
     """Compact view of a committed version (for the project header / timeline)."""
 

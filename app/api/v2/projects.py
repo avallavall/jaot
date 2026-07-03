@@ -24,6 +24,7 @@ from app.api.deps import (
     OptionalRequireViewer,
 )
 from app.api.v2.solve import _enforce_tier_caps, calculate_credits
+from app.domains.dsl import JModelError
 from app.domains.solver.adapters.base import (
     DEFAULT_SOLVER_NAME,
     SolverNotFoundError,
@@ -35,10 +36,14 @@ from app.domains.solver.services.pool import get_solver_pool
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
 from app.models.audit_log import AuditAction
 from app.models.builder_document import ModelBuilderDocument
-from app.models.model_project import ModelProject, ModelProjectVersion
+from app.models.model_project import ModelProject, ModelProjectDataset, ModelProjectVersion
 from app.models.optimization_model import ModelExecution
 from app.schemas.model_project import (
     CommitRequest,
+    DatasetCreate,
+    DatasetRead,
+    DatasetSummary,
+    DatasetUpdate,
     DraftUpdate,
     ProjectCreate,
     ProjectExecutionItem,
@@ -471,6 +476,162 @@ def update_model_project_draft(
     db.commit()
     db.refresh(project)
     return project
+
+
+# --------------------------------------------------------------------------- #
+# Datasets — named data bundles / scenarios (§8)
+# --------------------------------------------------------------------------- #
+@router.get(
+    "/{project_id}/datasets",
+    response_model=list[DatasetSummary],
+    operation_id="list_project_datasets",
+)
+def list_project_datasets(
+    project_id: str, db: DBSession, org: CurrentOrg, _ws: OptionalRequireViewer
+) -> list[ModelProjectDataset]:
+    """List a project's datasets (values omitted — fetch one for its data_json)."""
+    project = _project_or_404(db, project_id, org.id)
+    return svc.list_datasets(db, project)
+
+
+@router.post(
+    "/{project_id}/datasets",
+    response_model=DatasetRead,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="create_project_dataset",
+)
+def create_project_dataset(
+    project_id: str,
+    body: DatasetCreate,
+    db: DBSession,
+    user: CurrentUser,
+    org: CurrentOrg,
+    _ws: OptionalRequireEditor,
+) -> ModelProjectDataset:
+    """Create a named dataset ("scenario") for the project."""
+    project = _project_or_404(db, project_id, org.id)
+    try:
+        dataset = svc.create_dataset(
+            db,
+            project,
+            user_id=user.id,
+            name=body.name,
+            description=body.description,
+            data_json=body.data_json,
+        )
+    except JModelError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.message
+        ) from exc
+    except ProjectConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    log_action(
+        db=db,
+        organization_id=org.id,
+        actor=user,
+        action=AuditAction.MODEL_EDIT,
+        target_type="model_project_dataset",
+        target_id=dataset.id,
+        target_name=dataset.name,
+    )
+    db.commit()
+    db.refresh(dataset)
+    return dataset
+
+
+@router.get(
+    "/{project_id}/datasets/{dataset_id}",
+    response_model=DatasetRead,
+    operation_id="get_project_dataset",
+)
+def get_project_dataset(
+    project_id: str,
+    dataset_id: str,
+    db: DBSession,
+    org: CurrentOrg,
+    _ws: OptionalRequireViewer,
+) -> ModelProjectDataset:
+    """Fetch a dataset with its full values."""
+    dataset = svc.get_dataset_or_404(db, dataset_id, org.id, project_id=project_id)
+    if dataset is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
+    return dataset
+
+
+@router.put(
+    "/{project_id}/datasets/{dataset_id}",
+    response_model=DatasetRead,
+    operation_id="update_project_dataset",
+)
+def update_project_dataset(
+    project_id: str,
+    dataset_id: str,
+    body: DatasetUpdate,
+    db: DBSession,
+    user: CurrentUser,
+    org: CurrentOrg,
+    _ws: OptionalRequireEditor,
+) -> ModelProjectDataset:
+    """Update a dataset's name/description/values (only the provided fields)."""
+    dataset = svc.get_dataset_or_404(db, dataset_id, org.id, project_id=project_id)
+    if dataset is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
+    try:
+        dataset = svc.update_dataset(
+            db,
+            dataset,
+            name=body.name,
+            description=body.description,
+            data_json=body.data_json,
+        )
+    except JModelError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.message
+        ) from exc
+    except ProjectConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    log_action(
+        db=db,
+        organization_id=org.id,
+        actor=user,
+        action=AuditAction.MODEL_EDIT,
+        target_type="model_project_dataset",
+        target_id=dataset.id,
+        target_name=dataset.name,
+    )
+    db.commit()
+    db.refresh(dataset)
+    return dataset
+
+
+@router.delete(
+    "/{project_id}/datasets/{dataset_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    operation_id="delete_project_dataset",
+)
+def delete_project_dataset(
+    project_id: str,
+    dataset_id: str,
+    db: DBSession,
+    user: CurrentUser,
+    org: CurrentOrg,
+    _ws: OptionalRequireEditor,
+) -> None:
+    """Delete a dataset (working data — no archive tier)."""
+    dataset = svc.get_dataset_or_404(db, dataset_id, org.id, project_id=project_id)
+    if dataset is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
+    log_action(
+        db=db,
+        organization_id=org.id,
+        actor=user,
+        action=AuditAction.MODEL_DELETE,
+        target_type="model_project_dataset",
+        target_id=dataset.id,
+        target_name=dataset.name,
+    )
+    svc.delete_dataset(db, dataset)
+    db.commit()
 
 
 # --------------------------------------------------------------------------- #
