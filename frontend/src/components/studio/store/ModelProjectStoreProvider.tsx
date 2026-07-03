@@ -19,6 +19,7 @@ import { exceedsCanvasScale } from "./model-scale";
 import { useCanvasBridge } from "./useCanvasBridge";
 import { useAutosave } from "./useAutosave";
 import { useSolveSession } from "./useSolveSession";
+import { useActiveDatasetCompile } from "./useActiveDatasetCompile";
 import { StudioAssistantProvider } from "../assistant/StudioAssistantProvider";
 import { ModelExplanationProvider } from "../explain/ModelExplanationProvider";
 
@@ -171,6 +172,9 @@ export function ModelProjectStoreProvider({
   // reconciles a running/finished solve from the server on open (survives
   // reload / new tab / new device / power loss).
   useSolveSession(store, activeWorkspaceId ?? undefined);
+  // Recompiles the JModel source when the active dataset changes, so picking a
+  // dataset in Datos applies the model everywhere without visiting the lens.
+  useActiveDatasetCompile(store);
 
   return (
     <ModelProjectStoreContext.Provider value={store}>

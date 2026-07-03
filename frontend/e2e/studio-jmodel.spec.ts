@@ -262,6 +262,14 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
     await expect(page.getByTestId("studio-dataset-row")).toHaveCount(1, { timeout: NAV });
     await page.getByTestId("studio-dataset-use").click();
 
+    // "Use" APPLIES immediately (provider-level recompile): going straight to
+    // Solve — without ever visiting the JModel lens — must enable the normal
+    // Resolver, not just "Solve all" (owner's 2026-07-03 report: the canonical
+    // model stayed empty and only the Scenarios section could solve).
+    await page.getByTestId("studio-tab-solve").click();
+    await expect(page.getByTestId("studio-solve-run")).toBeEnabled({ timeout: NAV });
+    await expect(headerSolve).toBeEnabled();
+
     // Back on JModel, the persisted error re-derives against the ACTIVE dataset → ok,
     // and the compiled model autosaves ("Saved") before the user moves on.
     await page.getByTestId("studio-tab-build").click();
