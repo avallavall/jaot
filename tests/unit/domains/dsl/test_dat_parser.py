@@ -30,6 +30,33 @@ def test_set_members_allow_commas():
     assert parse_dat("set I := a, b, c;") == {"sets": {"I": ["a", "b", "c"]}, "params": {}}
 
 
+def test_tuple_set_members_join_components_with_commas():
+    # AMPL's N-dimensional set data `(a,b) (b,c)` -> our composite-key encoding
+    assert parse_dat("set ARCS := (a, b) (b, c);") == {
+        "sets": {"ARCS": ["a,b", "b,c"]},
+        "params": {},
+    }
+
+
+def test_tuple_set_members_mix_with_plain_members_is_left_to_dataset_validation():
+    # the .dat parser only encodes; JModelData.from_json rejects the mixed arity
+    assert parse_dat("set A := (a, b) c;") == {"sets": {"A": ["a,b", "c"]}, "params": {}}
+
+
+@pytest.mark.parametrize(
+    ("src", "pattern"),
+    [
+        ("set A := (a);", "at least two components"),
+        ("set A := (a, b;", "malformed tuple member"),
+        ("set A := (a,, b);", "malformed tuple member"),
+        ("set A := (a, b,);", "malformed tuple member"),
+    ],
+)
+def test_malformed_tuple_members_rejected(src: str, pattern: str):
+    with pytest.raises(JModelError, match=pattern):
+        parse_dat(src)
+
+
 def test_scientific_notation_and_negatives():
     data = parse_dat("param w := a 1e-3, b -2.5;")
     assert data["params"]["w"] == {"a": 0.001, "b": -2.5}

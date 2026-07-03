@@ -3,6 +3,7 @@
 Parses the small, dataset-shaped subset of AMPL's data format:
 
     set I := a b c;                 # members separated by spaces (commas optional)
+    set ARCS := (a,b) (b,c);        # tuple members of an N-dimensional set
     param cap := 10;                # scalar
     param w := a 2, b 3, c 4;       # 1-D: key value pairs, comma-separated
     param c := a p 1, a q 2;        # N-D: N key tokens + value; arity inferred
@@ -29,6 +30,8 @@ _TOKEN_RE = re.compile(
   | (?P<assign>:=)
   | (?P<comma>,)
   | (?P<semi>;)
+  | (?P<lparen>\()
+  | (?P<rparen>\))
   | (?P<word>[A-Za-z0-9_.+\-]+)
     """,
     re.VERBOSE,
@@ -106,8 +109,37 @@ class _DatParser:
             if kind == "word":
                 members.append(text)
                 continue
+            if kind == "lparen":
+                # `(a, b)` — a tuple member of an N-dimensional set; stored in the
+                # dataset shape's comma-joined encoding ("a,b").
+                members.append(self._parse_tuple_member(name, pos))
+                continue
             raise JModelError(
                 f"expected a member or ';' in set {name!r} (got {text or 'end of file'!r})",
+                position=pos,
+            )
+
+    def _parse_tuple_member(self, name: str, open_pos: int) -> str:
+        parts: list[str] = []
+        expect_word = True
+        while True:
+            kind, text, pos = self._next()
+            if kind == "word" and expect_word:
+                parts.append(text)
+                expect_word = False
+                continue
+            if kind == "comma" and not expect_word:
+                expect_word = True
+                continue
+            if kind == "rparen" and not expect_word:
+                if len(parts) < 2:
+                    raise JModelError(
+                        f"tuple member in set {name!r} needs at least two components",
+                        position=open_pos,
+                    )
+                return ",".join(parts)
+            raise JModelError(
+                f"malformed tuple member in set {name!r} (got {text or 'end of file'!r})",
                 position=pos,
             )
 

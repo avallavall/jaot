@@ -16,6 +16,17 @@ symbol (never a per-key merge). A dataset key the model does not declare is an e
 (a typo'd name must never silently fall back to the inline value), and a declared
 set/param that ends up with no values is an error naming the missing symbol.
 
+Tuple sets (S6 / DSL-expressivity #3): a set may hold N-dimensional members —
+``set ARCS := {(a, b), (b, c)};`` inline, or ``set ARCS dimen 2;`` declaration-only
+(``dimen`` defaults to 1, as in AMPL). Dataset members encode tuples as comma-joined
+strings (``"a,b"``), the same composite-key encoding indexed param values use.
+Qualifiers unpack them — ``sum{(i, j) in ARCS} d[i,j]*x[i,j]`` — and variables or
+params indexed over a tuple set take the FLAT component count as subscripts
+(``var x{ARCS, K};`` → ``x[i,j,k]``), expanding only over the set's actual members
+(sparse, never the cartesian closure). Equality filters that pin a tuple component
+to an already-known index (``sum{(i2, j) in ARCS : i2 == i}``) are applied as indexed
+slices, so sparse formulations ground in linear — not quadratic — time and budget.
+
 Hardening guarantees (all violations raise :class:`JModelError`, never a raw exception):
 
 - every referenced set/param/variable must be declared; every resolved index member must
@@ -48,10 +59,12 @@ from app.schemas.optimization import (
 )
 
 #: Hard cap on grounded work per compile: expanded variables + constraint rows + summed
-#: terms. Generous for real models (the largest TFM scenario is ~49k variables) while
-#: rejecting accidental combinatorial blowups (three-index families over large sets)
-#: before they pin a CPU.
-MAX_GROUNDED_ELEMENTS = 500_000
+#: terms. Generous for real models (the TFM's largest flow scenario — 243 vehicles ×
+#: 199 orders over sparse tuple arc sets — grounds to ~850k elements) while rejecting
+#: accidental combinatorial blowups (three-index families over large sets) before they
+#: pin a CPU. Equality-filter slicing in ``_iter_env`` keeps honest sparse models from
+#: burning budget on members their filters would discard.
+MAX_GROUNDED_ELEMENTS = 2_000_000
 
 #: Maximum expression nesting depth (parens / unary signs / sum bodies) before the
 #: parser refuses — keeps pathological sources from hitting Python's recursion limit.
@@ -73,6 +86,7 @@ _RESERVED_WORDS = {
     "binary",
     "integer",
     "continuous",
+    "dimen",
 }
 
 
@@ -93,21 +107,23 @@ class JModelData:
     """A validated model↔data bundle: set members and param values for a JModel source.
 
     This is what a named dataset ("scenario") carries. Build one from its stored JSON
-    with :meth:`from_json`; pass it to :func:`compile_jmodel`. Scalar param values are
-    stored under the empty key ``()``; an N-dim value key is a tuple of members.
+    with :meth:`from_json`; pass it to :func:`compile_jmodel`. Set members are tuples
+    of components (1-tuples for plain sets); scalar param values are stored under the
+    empty key ``()``; an N-dim value key is a tuple of members.
     """
 
-    sets: dict[str, list[str]]
+    sets: dict[str, list[tuple[str, ...]]]
     params: dict[str, dict[tuple[str, ...], float]]
 
     @staticmethod
     def from_json(payload: object) -> JModelData:
         """Validate and normalize a ``{"sets": {...}, "params": {...}}`` JSON object.
 
-        Set members are strings or integers. A param value is either a single number
-        (scalar param) or an object mapping comma-joined index keys to numbers
-        (``{"A,1": 4}`` — members never contain commas, so the join is unambiguous).
-        Raises :class:`JModelError` on any shape violation.
+        Set members are strings or integers; a comma-joined string names a TUPLE
+        member (``"A,B"`` in a 2-dimensional set) — the same composite-key encoding
+        indexed param values use (``{"A,1": 4}``). Every member of one set must have
+        the same number of components. Raises :class:`JModelError` on any shape
+        violation.
         """
         if not isinstance(payload, dict):
             raise JModelError("dataset must be a JSON object with 'sets' and/or 'params'")
@@ -117,14 +133,22 @@ class JModelData:
                 f"dataset has unknown top-level key(s) {sorted(unknown)!r} — "
                 "only 'sets' and 'params' are allowed"
             )
-        sets: dict[str, list[str]] = {}
+        sets: dict[str, list[tuple[str, ...]]] = {}
         raw_sets = payload.get("sets", {})
         if not isinstance(raw_sets, dict):
             raise JModelError("dataset 'sets' must be an object of set name -> member list")
         for name, raw_members in raw_sets.items():
             if not isinstance(raw_members, list):
                 raise JModelError(f"dataset set {name!r} must be a list of members")
-            sets[name] = [_data_member(name, m) for m in raw_members]
+            members = [_data_member(name, m) for m in raw_members]
+            arities = {len(member) for member in members}
+            if len(arities) > 1:
+                raise JModelError(
+                    f"dataset set {name!r} mixes members of different dimensions "
+                    f"({sorted(arities)} components) — every member of a set must "
+                    "have the same number of comma-separated components"
+                )
+            sets[name] = members
         params: dict[str, dict[tuple[str, ...], float]] = {}
         raw_params = payload.get("params", {})
         if not isinstance(raw_params, dict):
@@ -152,25 +176,29 @@ class JModelData:
         return JModelData(sets=sets, params=params)
 
 
-def _data_member(set_name: str, raw: object) -> str:
-    """A set member from dataset JSON: a non-empty string (comma-free) or an integer."""
+def _data_member(set_name: str, raw: object) -> tuple[str, ...]:
+    """A set member from dataset JSON: a non-empty string or an integer.
+
+    A comma-joined string is a TUPLE member (``"A,B"`` → the pair ``(A, B)`` of a
+    2-dimensional set); a plain string or integer is a 1-tuple.
+    """
     if isinstance(raw, bool):
         raise JModelError(f"dataset set {set_name!r} has a boolean member — use strings/integers")
     if isinstance(raw, int):
-        return str(raw)
+        return (str(raw),)
     if not isinstance(raw, str):
         raise JModelError(
             f"dataset set {set_name!r} members must be strings or integers (got {raw!r})"
         )
-    member = raw.strip()
-    if not member:
+    if not raw.strip():
         raise JModelError(f"dataset set {set_name!r} has an empty member")
-    if "," in member:
+    parts = tuple(part.strip() for part in raw.split(","))
+    if any(not part for part in parts):
         raise JModelError(
-            f"dataset set {set_name!r} member {raw!r} contains a comma — "
-            "commas separate the members of a composite param key"
+            f"dataset set {set_name!r} member {raw!r} has an empty component — "
+            "commas separate the components of a tuple member"
         )
-    return member
+    return parts
 
 
 def _data_key(param_name: str, raw: object) -> tuple[str, ...]:
@@ -278,14 +306,25 @@ Expr = Num | Ref | Neg | BinOp | Sum
 
 @dataclass
 class Qualifiers:
-    bindings: list[tuple[str, str, int]]  # (index_var, set_name, set_name_pos)
+    # (index_vars, set_name, set_name_pos) — one index var per member component:
+    # `i in I` binds ("i",); `(i, j) in ARCS` binds ("i", "j").
+    bindings: list[tuple[tuple[str, ...], str, int]]
     filters: list[tuple[Token, str, Token]]  # (left, op, right)
 
 
 @dataclass
-class SetDecl:
-    name: str
-    members: list[str]
+class SetDef:
+    """A declared set: its dimension and (unless dataset-fillable) its members.
+
+    ``dimen`` is the number of components per member (1 for plain sets, as in AMPL);
+    for inline sets it is inferred from the literal, for declaration-only sets it
+    comes from an explicit ``set ARCS dimen 2;`` (default 1). ``members is None``
+    means the set was declared without values and a dataset must fill it.
+    """
+
+    dimen: int
+    members: list[tuple[str, ...]] | None
+    pos: int = 0
 
 
 @dataclass
@@ -326,8 +365,7 @@ class ConstraintDecl:
 
 @dataclass
 class ModelAst:
-    # a None member list => declared without values (dataset must fill)
-    sets: dict[str, list[str] | None] = field(default_factory=dict)
+    sets: dict[str, SetDef] = field(default_factory=dict)
     params: dict[str, ParamDecl] = field(default_factory=dict)
     vars: dict[str, VarDecl] = field(default_factory=dict)
     var_order: list[str] = field(default_factory=list)
@@ -464,26 +502,71 @@ class _Parser:
     def _parse_set(self, model: ModelAst) -> None:
         self._expect_kw("set")
         name_tok = self._expect_name()
+        # `set ARCS dimen 2;` — explicit member dimension (default 1, as in AMPL).
+        # Mandatory knowledge for declaration-only tuple sets; optional (but checked)
+        # next to an inline literal.
+        declared_dimen: int | None = None
+        if self._accept_kw("dimen"):
+            dimen_tok = self._advance()
+            if dimen_tok.kind != "NUM" or not dimen_tok.value.isdigit():
+                raise JModelError(
+                    f"expected an integer after 'dimen' (got {dimen_tok.value!r})",
+                    position=dimen_tok.pos,
+                )
+            declared_dimen = int(dimen_tok.value)
+            if declared_dimen < 1:
+                raise JModelError("'dimen' must be at least 1", position=dimen_tok.pos)
         # `set I;` (no body) declares the set; its members must come from a dataset.
         if self._accept_op(";"):
             model.check_unused_name(name_tok.value, name_tok.pos)
-            model.sets[name_tok.value] = None
+            model.sets[name_tok.value] = SetDef(declared_dimen or 1, None, name_tok.pos)
             return
         self._expect_op(":=")
         self._expect_op("{")
-        members: list[str] = []
+        members: list[tuple[str, ...]] = []
         if not self._accept_op("}"):
-            members.append(self._member())
+            members.append(self._set_member())
             while self._accept_op(","):
-                members.append(self._member())
+                members.append(self._set_member())
             self._expect_op("}")
         self._expect_op(";")
         model.check_unused_name(name_tok.value, name_tok.pos)
+        arities = {len(member) for member in members}
+        if len(arities) > 1:
+            raise JModelError(
+                f"set {name_tok.value!r} mixes members of different dimensions "
+                f"({sorted(arities)} components) — every member must have the same arity",
+                position=name_tok.pos,
+            )
+        dimen = next(iter(arities)) if members else (declared_dimen or 1)
+        if declared_dimen is not None and members and dimen != declared_dimen:
+            raise JModelError(
+                f"set {name_tok.value!r} declares dimen {declared_dimen} but its members "
+                f"have {dimen} component(s)",
+                position=name_tok.pos,
+            )
         if len(members) != len(set(members)):
             raise JModelError(
                 f"set {name_tok.value!r} has duplicate members", position=name_tok.pos
             )
-        model.sets[name_tok.value] = members
+        model.sets[name_tok.value] = SetDef(dimen, members, name_tok.pos)
+
+    def _set_member(self) -> tuple[str, ...]:
+        """A scalar member (`a`) or a tuple member (`(a, b)`)."""
+        if self._accept_op("("):
+            open_pos = self._peek().pos
+            parts = [self._member()]
+            while self._accept_op(","):
+                parts.append(self._member())
+            self._expect_op(")")
+            if len(parts) < 2:
+                raise JModelError(
+                    "a tuple member needs at least two components — write a plain "
+                    "member without parentheses instead",
+                    position=open_pos,
+                )
+            return tuple(parts)
+        return (self._member(),)
 
     def _parse_index_sets(self) -> list[str]:
         sets = [self._expect_ident()]
@@ -509,16 +592,71 @@ class _Parser:
             data[()] = self._signed_number()
             self._expect_op(";")
         else:
-            arity = len(index_sets)
+            # Entries are read greedily (all tokens up to the last are key members,
+            # the last is the value): once tuple sets exist, the FLAT key arity may
+            # exceed the number of index sets, and set dimensions are only certain
+            # after a dataset is applied — key shapes are validated at grounding.
             while True:
-                key = tuple(self._member() for _ in range(arity))
-                data[key] = self._signed_number()
+                key, value, key_pos = self._parse_param_entry(name_tok.value)
+                if key in data:
+                    raise JModelError(
+                        f"param {name_tok.value!r} has duplicate entries for key {','.join(key)!r}",
+                        position=key_pos,
+                    )
+                data[key] = value
                 if self._accept_op(","):
                     continue
                 break
             self._expect_op(";")
         model.check_unused_name(name_tok.value, name_tok.pos)
         model.params[name_tok.value] = ParamDecl(name_tok.value, index_sets, data, name_tok.pos)
+
+    def _parse_param_entry(self, param_name: str) -> tuple[tuple[str, ...], float, int]:
+        """One `member... value` entry of an indexed param body.
+
+        Returns (key members, numeric value, position of the first token).
+        """
+        items: list[tuple[Token, bool]] = []  # (token, was_negated)
+        while True:
+            negative = self._accept_op("-")
+            tok = self._advance()
+            if tok.kind not in ("IDENT", "NUM"):
+                raise JModelError(
+                    f"expected a key member or a numeric value in param {param_name!r} "
+                    f"(got {tok.value or 'end of input'!r})",
+                    position=tok.pos,
+                )
+            items.append((tok, negative))
+            nxt = self._peek()
+            if nxt.kind == "OP" and nxt.value in (",", ";"):
+                break
+            if nxt.kind == "EOF":
+                raise JModelError(
+                    f"unterminated param {param_name!r} (missing ';')", position=nxt.pos
+                )
+        value_tok, value_negative = items[-1]
+        if value_tok.kind != "NUM":
+            raise JModelError(
+                f"param {param_name!r} entry must end in a numeric value (got {value_tok.value!r})",
+                position=value_tok.pos,
+            )
+        if len(items) == 1:
+            raise JModelError(
+                f"param {param_name!r} is indexed — each entry needs key member(s) "
+                "before its value",
+                position=value_tok.pos,
+            )
+        for tok, negated in items[:-1]:
+            if negated:
+                raise JModelError(
+                    f"param {param_name!r} key members cannot be negative",
+                    position=tok.pos,
+                )
+        value = self._finite_number(value_tok, value_tok.value)
+        if value_negative:
+            value = -value
+        key = tuple(tok.value for tok, _ in items[:-1])
+        return key, value, items[0][0].pos
 
     def _parse_var(self, model: ModelAst) -> None:
         self._expect_kw("var")
@@ -595,16 +733,24 @@ class _Parser:
         )
 
     def _parse_qualifiers(self) -> Qualifiers:
-        bindings: list[tuple[str, str, int]] = []
+        bindings: list[tuple[tuple[str, ...], str, int]] = []
+        seen_indices: set[str] = set()
         while True:
-            index_tok = self._expect_name()
+            index_toks = self._parse_binding_indices()
+            for tok in index_toks:
+                if tok.value in seen_indices:
+                    raise JModelError(
+                        f"index {tok.value!r} is bound more than once in this qualifier",
+                        position=tok.pos,
+                    )
+                seen_indices.add(tok.value)
             self._expect_kw("in")
             set_tok = self._advance()
             if set_tok.kind != "IDENT":
                 raise JModelError(
                     f"expected a set name (got {set_tok.value!r})", position=set_tok.pos
                 )
-            bindings.append((index_tok.value, set_tok.value, set_tok.pos))
+            bindings.append((tuple(tok.value for tok in index_toks), set_tok.value, set_tok.pos))
             if self._accept_op(","):
                 continue
             break
@@ -616,6 +762,22 @@ class _Parser:
                     continue
                 break
         return Qualifiers(bindings, filters)
+
+    def _parse_binding_indices(self) -> list[Token]:
+        """The index side of a binding: `i` or the tuple-unpacking `(i, j)`."""
+        if self._accept_op("("):
+            toks = [self._expect_name()]
+            while self._accept_op(","):
+                toks.append(self._expect_name())
+            self._expect_op(")")
+            if len(toks) < 2:
+                raise JModelError(
+                    "a tuple binding needs at least two indices — write the index "
+                    "without parentheses instead",
+                    position=toks[0].pos,
+                )
+            return toks
+        return [self._expect_name()]
 
     def _parse_condition(self) -> tuple[Token, str, Token]:
         left = self._parse_idx_term()
@@ -714,13 +876,21 @@ def _apply_data(model: ModelAst, data: JModelData | None) -> None:
     """
     if data is not None:
         for name, members in data.sets.items():
-            if name not in model.sets:
+            set_def = model.sets.get(name)
+            if set_def is None:
                 raise JModelError(
                     f"dataset provides unknown set {name!r} — the model does not declare it"
                 )
+            if members and len(members[0]) != set_def.dimen:
+                raise JModelError(
+                    f"set {name!r} expects {set_def.dimen}-dimensional members but the "
+                    f"dataset provides {len(members[0])} component(s) per member — "
+                    f"declare `set {name} dimen {len(members[0])};` if the tuples are "
+                    "intended"
+                )
             if len(members) != len(set(members)):
                 raise JModelError(f"dataset set {name!r} has duplicate members")
-            model.sets[name] = list(members)
+            set_def.members = list(members)
         for name, values in data.params.items():
             decl = model.params.get(name)
             if decl is None:
@@ -738,14 +908,11 @@ def _apply_data(model: ModelAst, data: JModelData | None) -> None:
                         f"param {name!r} is indexed over {arity} set(s) — the dataset value "
                         "must be an object of index keys to numbers"
                     )
-                if len(key) != arity:
-                    raise JModelError(
-                        f"dataset param {name!r} key {','.join(key)!r} has {len(key)} "
-                        f"member(s), expected {arity}"
-                    )
+                # Exact key arity is checked at grounding (the flat arity of a param
+                # over tuple sets is the sum of its sets' dimensions).
             decl.data = dict(values)
-    for name, members in model.sets.items():
-        if members is None:
+    for name, set_def in model.sets.items():
+        if set_def.members is None:
             raise JModelError(
                 f"set {name!r} has no members — define them inline (:=) or provide a dataset"
             )
@@ -785,21 +952,29 @@ class _Ctx:
     """Grounding context: the parsed model plus membership caches and the budget."""
 
     model: ModelAst
-    set_members: dict[str, frozenset[str]]
-    all_members: frozenset[str]
+    set_members: dict[str, frozenset[tuple[str, ...]]]
+    all_members: frozenset[str]  # every scalar component, for filter-term validation
     budget: _Budget
+    # Lazily-built equality-slice indexes: (set name, pinned positions) -> canonical
+    # pinned values -> members, preserving declaration order (determinism).
+    slice_cache: dict[tuple[str, tuple[int, ...]], dict[tuple[str, ...], list[tuple[str, ...]]]] = (
+        field(default_factory=dict)
+    )
 
     @staticmethod
     def build(model: ModelAst, max_grounded_elements: int) -> _Ctx:
         # The `is not None` narrow is for the type only: _apply_data ran before any
         # lowering, so every declared set has members here.
         set_members = {
-            name: frozenset(members) for name, members in model.sets.items() if members is not None
+            name: frozenset(set_def.members)
+            for name, set_def in model.sets.items()
+            if set_def.members is not None
         }
-        all_members: frozenset[str] = frozenset()
-        if set_members:
-            all_members = frozenset().union(*set_members.values())
-        return _Ctx(model, set_members, all_members, _Budget(max_grounded_elements))
+        components: set[str] = set()
+        for members in set_members.values():
+            for member in members:
+                components.update(member)
+        return _Ctx(model, set_members, frozenset(components), _Budget(max_grounded_elements))
 
 
 @dataclass
@@ -880,7 +1055,8 @@ def _validate_filter_terms(quals: Qualifiers, base_env: dict[str, str], ctx: _Ct
     anything else is a typo that would otherwise silently degrade to a literal string
     (making the filter a no-op)."""
     bound = set(base_env)
-    bound.update(index_var for index_var, _, _ in quals.bindings)
+    for index_vars, _, _ in quals.bindings:
+        bound.update(index_vars)
     for left, _, right in quals.filters:
         for tok in (left, right):
             if tok.kind == "IDENT" and tok.value not in bound and tok.value not in ctx.all_members:
@@ -891,42 +1067,154 @@ def _validate_filter_terms(quals: Qualifiers, base_env: dict[str, str], ctx: _Ct
                 )
 
 
+def _canon_idx(text: str) -> str:
+    """Canonical form for slice-index keys, mirroring :func:`_compare`'s numeric-first
+    equality (``"1"`` equals ``"1.0"`` numerically, so both must map to one key)."""
+    num = _as_number(text)
+    return repr(num) if num is not None else text
+
+
+def _sliced_members(
+    ctx: _Ctx, set_name: str, positions: tuple[int, ...], values: tuple[str, ...]
+) -> list[tuple[str, ...]]:
+    """Members of ``set_name`` whose components at ``positions`` equal ``values``.
+
+    Backed by a lazily-built index per (set, positions) pair, so repeated slices —
+    one per grounded constraint row — cost O(matched members) instead of a full scan.
+    """
+    cache_key = (set_name, positions)
+    index = ctx.slice_cache.get(cache_key)
+    if index is None:
+        index = {}
+        set_def = ctx.model.sets[set_name]
+        assert set_def.members is not None  # guaranteed by _apply_data
+        for member in set_def.members:
+            key = tuple(_canon_idx(member[p]) for p in positions)
+            index.setdefault(key, []).append(member)
+        ctx.slice_cache[cache_key] = index
+    return index.get(tuple(_canon_idx(v) for v in values), [])
+
+
+def _split_filters(
+    quals: Qualifiers,
+) -> tuple[dict[int, list[tuple[int, Token]]], list[tuple[Token, str, Token]]]:
+    """Partition filters into per-level equality SLICES and residual compares.
+
+    An ``==`` filter pinning an index introduced at binding level ``b`` to a value
+    resolvable before ``b`` (a literal, an outer/base index, or an index of an
+    earlier binding) is hoisted into level ``b``'s member lookup. Everything else —
+    ordering ops, ``!=``, or equalities between two indices of the same binding —
+    stays a per-combination compare, exactly as before.
+    """
+    var_level: dict[str, int] = {}
+    var_position: dict[str, int] = {}
+    for level, (index_vars, _, _) in enumerate(quals.bindings):
+        for position, var in enumerate(index_vars):
+            var_level[var] = level
+            var_position[var] = position
+
+    def hoist(var_tok: Token, value_tok: Token) -> tuple[int, int] | None:
+        """(level, position) when `var_tok == value_tok` can slice, else None."""
+        if var_tok.kind != "IDENT" or var_tok.value not in var_level:
+            return None
+        level = var_level[var_tok.value]
+        if value_tok.kind == "IDENT" and value_tok.value in var_level:
+            # NOTE: an index var shadows a base_env name of the same spelling (the
+            # binding overwrites it in the env), so this check must come first.
+            if var_level[value_tok.value] >= level:
+                return None
+        return (level, var_position[var_tok.value])
+
+    sliced: dict[int, list[tuple[int, Token]]] = {}
+    residual: list[tuple[Token, str, Token]] = []
+    for left, op, right in quals.filters:
+        placed = None
+        if op == "==":
+            placed = hoist(left, right)
+            if placed is not None:
+                sliced.setdefault(placed[0], []).append((placed[1], right))
+            else:
+                placed = hoist(right, left)
+                if placed is not None:
+                    sliced.setdefault(placed[0], []).append((placed[1], left))
+        if placed is None:
+            residual.append((left, op, right))
+    return sliced, residual
+
+
 def _iter_env(quals: Qualifiers, base_env: dict[str, str], ctx: _Ctx) -> list[dict[str, str]]:
-    member_lists: list[list[str]] = []
-    for _, set_name, set_pos in quals.bindings:
-        members = ctx.model.sets.get(set_name)
-        if members is None:
+    member_lists: list[list[tuple[str, ...]]] = []
+    for index_vars, set_name, set_pos in quals.bindings:
+        set_def = ctx.model.sets.get(set_name)
+        if set_def is None:
             raise JModelError(f"unknown set {set_name!r} in qualifier", position=set_pos)
-        member_lists.append(members)
+        if len(index_vars) != set_def.dimen:
+            raise JModelError(
+                f"binding names {len(index_vars)} index(es) but set {set_name!r} has "
+                f"{set_def.dimen}-dimensional members",
+                position=set_pos,
+            )
+        assert set_def.members is not None  # guaranteed by _apply_data
+        member_lists.append(set_def.members)
     _validate_filter_terms(quals, base_env, ctx)
-    size = math.prod(len(m) for m in member_lists) if member_lists else 1
-    first_pos = quals.bindings[0][2] if quals.bindings else None
-    ctx.budget.consume(size, first_pos)
-    envs: list[dict[str, str]] = []
-    for combo in product(*member_lists):
-        env = dict(base_env)
-        for (index_var, _, _), member in zip(quals.bindings, combo, strict=True):
-            env[index_var] = member
-        if all(
-            _compare(_resolve_idx(left, env), op, _resolve_idx(right, env), position=left.pos)
-            for left, op, right in quals.filters
-        ):
-            envs.append(env)
+    sliced, residual = _split_filters(quals)
+
+    envs: list[dict[str, str]] = [dict(base_env)]
+    if not quals.bindings:
+        ctx.budget.consume(1, None)
+    for level, (index_vars, set_name, set_pos) in enumerate(quals.bindings):
+        level_slices = sorted(sliced.get(level, ()), key=lambda pv: pv[0])
+        positions = tuple(position for position, _ in level_slices)
+        next_envs: list[dict[str, str]] = []
+        for env in envs:
+            if level_slices:
+                values = tuple(_resolve_idx(tok, env) for _, tok in level_slices)
+                candidates = _sliced_members(ctx, set_name, positions, values)
+            else:
+                candidates = member_lists[level]
+            ctx.budget.consume(len(candidates), set_pos)
+            for member in candidates:
+                env2 = dict(env)
+                for index_var, component in zip(index_vars, member, strict=True):
+                    env2[index_var] = component
+                next_envs.append(env2)
+        envs = next_envs
+    if residual:
+        envs = [
+            env
+            for env in envs
+            if all(
+                _compare(_resolve_idx(left, env), op, _resolve_idx(right, env), position=left.pos)
+                for left, op, right in residual
+            )
+        ]
     return envs
 
 
+def _flat_arity(decl_sets: list[str], ctx: _Ctx) -> int:
+    """Total subscript count of a family indexed over ``decl_sets`` — the sum of the
+    sets' dimensions (a tuple set contributes one subscript per component)."""
+    return sum(ctx.model.sets[set_name].dimen for set_name in decl_sets)
+
+
 def _resolve_members(node: Ref, decl_sets: list[str], env: dict[str, str], ctx: _Ctx) -> list[str]:
-    """Resolve a Ref's index tokens and verify each member belongs to the declared set
-    at that position — a mismatch would otherwise emit a "ghost" name that exists in an
-    expression but not in the declared variable expansion."""
+    """Resolve a Ref's index tokens and verify each member (grouped per declared set —
+    a tuple set consumes its dimension's worth of subscripts) belongs to that set.
+    A mismatch would otherwise emit a "ghost" name that exists in an expression but
+    not in the declared variable expansion — for a tuple set this is also the guard
+    that keeps references INSIDE the sparse member list."""
     members = [_resolve_idx(tok, env) for tok in node.idx]
-    for k, member in enumerate(members):
-        set_name = decl_sets[k]
-        if member not in ctx.set_members.get(set_name, frozenset()):
+    offset = 0
+    for set_name in decl_sets:
+        dimen = ctx.model.sets[set_name].dimen
+        group = tuple(members[offset : offset + dimen])
+        if group not in ctx.set_members.get(set_name, frozenset()):
+            shown = group[0] if dimen == 1 else "(" + ", ".join(group) + ")"
             raise JModelError(
-                f"{node.name!r} index {member!r} is not a member of set {set_name!r}",
+                f"{node.name!r} index {shown!r} is not a member of set {set_name!r}",
                 position=node.pos,
             )
+        offset += dimen
     return members
 
 
@@ -962,10 +1250,11 @@ def _ground(node: Expr, env: dict[str, str], ctx: _Ctx) -> _LinForm:
     model = ctx.model
     if node.name in model.vars:
         var_decl = model.vars[node.name]
-        if len(node.idx) != len(var_decl.index_sets):
+        expected = _flat_arity(var_decl.index_sets, ctx)
+        if len(node.idx) != expected:
             raise JModelError(
                 f"variable {node.name!r} indexed with {len(node.idx)} subscript(s), "
-                f"expected {len(var_decl.index_sets)}",
+                f"expected {expected}",
                 position=node.pos,
             )
         members = _resolve_members(node, var_decl.index_sets, env, ctx)
@@ -973,10 +1262,11 @@ def _ground(node: Expr, env: dict[str, str], ctx: _Ctx) -> _LinForm:
     if node.name in model.params:
         param_decl = model.params[node.name]
         assert param_decl.data is not None  # guaranteed by _apply_data
-        if len(node.idx) != len(param_decl.index_sets):
+        expected = _flat_arity(param_decl.index_sets, ctx)
+        if len(node.idx) != expected:
             raise JModelError(
                 f"param {node.name!r} indexed with {len(node.idx)} subscript(s), "
-                f"expected {len(param_decl.index_sets)}",
+                f"expected {expected}",
                 position=node.pos,
             )
         members = _resolve_members(node, param_decl.index_sets, env, ctx)
@@ -1037,24 +1327,27 @@ def _lower(model: ModelAst, max_grounded_elements: int) -> OptimizationProblem:
     assert model.objective is not None  # guaranteed by parse()
     ctx = _Ctx.build(model, max_grounded_elements)
 
-    # 1. variables — full cartesian expansion of every declared family
+    # 1. variables — cartesian expansion across the declared index sets; a tuple set
+    # contributes its ACTUAL member list (sparse), never a cartesian closure of its
+    # components.
     variables: list[Variable] = []
     seen: set[str] = set()
     for name in model.var_order:
         decl = model.vars[name]
-        member_lists: list[list[str]] = []
+        member_lists: list[list[tuple[str, ...]]] = []
         for set_name in decl.index_sets:
-            members = model.sets.get(set_name)
-            if members is None:
+            set_def = model.sets.get(set_name)
+            if set_def is None:
                 raise JModelError(
                     f"unknown set {set_name!r} in variable family {name!r}", position=decl.pos
                 )
-            member_lists.append(members)
+            assert set_def.members is not None  # guaranteed by _apply_data
+            member_lists.append(set_def.members)
         size = math.prod(len(m) for m in member_lists) if member_lists else 1
         ctx.budget.consume(size, decl.pos)
         combos = product(*member_lists) if member_lists else [()]
         for combo in combos:
-            flat = _mangle(name, list(combo))
+            flat = _mangle(name, [component for member in combo for component in member])
             if flat in seen:
                 raise JModelError(
                     f"variable name collision after mangling: {flat!r}", position=decl.pos
@@ -1078,27 +1371,41 @@ def _lower(model: ModelAst, max_grounded_elements: int) -> OptimizationProblem:
             "empty set (check the dataset's set members)"
         )
 
-    # 1b. params — declared index sets must exist and every data key must be a member
-    # of the corresponding set (a typo'd key would only surface — or worse, not — when
-    # that exact index is referenced).
+    # 1b. params — declared index sets must exist, every data key must have the flat
+    # arity (sum of set dimensions), and every key group must be a member of the
+    # corresponding set (a typo'd key would only surface — or worse, not — when that
+    # exact index is referenced).
     for param in model.params.values():
         assert param.data is not None  # guaranteed by _apply_data
-        member_sets: list[frozenset[str]] = []
+        group_specs: list[tuple[str, frozenset[tuple[str, ...]], int]] = []
+        total_arity = 0
         for set_name in param.index_sets:
             members_frozen = ctx.set_members.get(set_name)
             if members_frozen is None:
                 raise JModelError(
                     f"unknown set {set_name!r} in param {param.name!r}", position=param.pos
                 )
-            member_sets.append(members_frozen)
+            dimen = model.sets[set_name].dimen
+            group_specs.append((set_name, members_frozen, dimen))
+            total_arity += dimen
         for key in param.data:
-            for k, member in enumerate(key):
-                if member not in member_sets[k]:
+            if len(key) != total_arity:
+                raise JModelError(
+                    f"param {param.name!r} data key {','.join(key)!r} has {len(key)} "
+                    f"member(s), expected {total_arity}",
+                    position=param.pos,
+                )
+            offset = 0
+            for set_name, members_frozen, dimen in group_specs:
+                group = tuple(key[offset : offset + dimen])
+                if group not in members_frozen:
+                    shown = group[0] if dimen == 1 else "(" + ", ".join(group) + ")"
                     raise JModelError(
-                        f"param {param.name!r} data key {key} has member {member!r} "
-                        f"which is not in set {param.index_sets[k]!r}",
+                        f"param {param.name!r} data key {key} has member {shown!r} "
+                        f"which is not in set {set_name!r}",
                         position=param.pos,
                     )
+                offset += dimen
 
     # 2. objective
     obj = model.objective
@@ -1114,7 +1421,11 @@ def _lower(model: ModelAst, max_grounded_elements: int) -> OptimizationProblem:
     for con in model.constraints:
         for env in _iter_env(con.quals, {}, ctx):
             combined = _ground(con.lhs, env, ctx).minus(_ground(con.rhs, env, ctx))
-            suffix = [env[index_var] for index_var, _, _ in con.quals.bindings]
+            suffix = [
+                env[index_var]
+                for index_vars, _, _ in con.quals.bindings
+                for index_var in index_vars
+            ]
             flat_name = _mangle(con.name, suffix)
             if combined.is_const():
                 # A row with no variables (e.g. a sum emptied by its filters): keep the
@@ -1183,7 +1494,11 @@ class SetInfo:
 
 @dataclass(frozen=True)
 class ParamInfo:
-    """A declared param: its index sets define the dataset key shape."""
+    """A declared param: its index sets define the dataset key shape.
+
+    ``arity`` is the FLAT key arity — the sum of the index sets' dimensions, which
+    exceeds ``len(index_sets)`` once tuple sets are involved.
+    """
 
     name: str
     index_sets: tuple[str, ...]
@@ -1207,10 +1522,18 @@ def inspect_declarations(src: str) -> ModelDeclarations:
     the editor needs a skeleton. Raises :class:`JModelError` on lex/parse errors only.
     """
     model = _Parser(tokenize(src)).parse()
+
+    def flat_arity(index_sets: list[str]) -> int:
+        # Unknown set names (a typo the compile will reject) count as dimension 1 —
+        # this is best-effort guidance for the editor, not validation.
+        return sum(model.sets[name].dimen if name in model.sets else 1 for name in index_sets)
+
     return ModelDeclarations(
-        sets=tuple(SetInfo(name, members is not None) for name, members in model.sets.items()),
+        sets=tuple(
+            SetInfo(name, set_def.members is not None) for name, set_def in model.sets.items()
+        ),
         params=tuple(
-            ParamInfo(p.name, tuple(p.index_sets), len(p.index_sets), p.data is not None)
+            ParamInfo(p.name, tuple(p.index_sets), flat_arity(p.index_sets), p.data is not None)
             for p in model.params.values()
         ),
     )

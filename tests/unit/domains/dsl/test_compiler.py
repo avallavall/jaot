@@ -642,7 +642,8 @@ def test_from_json_shape_violations_are_structured_errors():
         ({"sets": []}, "'sets' must be an object"),
         ({"sets": {"I": "abc"}}, "must be a list"),
         ({"sets": {"I": [""]}}, "empty member"),
-        ({"sets": {"I": ["a,b"]}}, "contains a comma"),
+        ({"sets": {"I": ["a,"]}}, "empty component"),
+        ({"sets": {"I": ["a,b", "c"]}}, "different dimensions"),
         ({"sets": {"I": [True]}}, "boolean member"),
         ({"sets": {"I": [1.5]}}, "strings or integers"),
         ({"params": []}, "'params' must be an object"),
@@ -726,3 +727,271 @@ def test_inspect_raises_on_parse_error():
     with pytest.raises(JModelError) as exc_info:
         inspect_declarations("set S := {a, b}\nvar x >= 0;")
     assert exc_info.value.position is not None
+
+
+# --------------------------------------------------------------------------- #
+# Tuple sets (S6 / DSL-expressivity #3)
+# --------------------------------------------------------------------------- #
+
+SPARSE_PATH = """
+set ARCS := {(a, b), (b, c), (a, c)};
+param w{ARCS} := a b 1, b c 2, a c 4;
+var use{ARCS} binary;
+minimize total: sum{(i, j) in ARCS} w[i, j] * use[i, j];
+subject to reach_c: sum{(i, j) in ARCS : j == c} use[i, j] >= 1;
+subject to chain{(i, j) in ARCS : j != c}: use[i, j] <= 1;
+"""
+
+
+def test_tuple_set_inline_lowering_is_sparse():
+    prob = compile_jmodel(SPARSE_PATH)
+
+    # only the 3 declared arcs expand — never the 9-member cartesian closure
+    assert [v.name for v in prob.variables] == ["use_a_b", "use_b_c", "use_a_c"]
+    assert prob.objective.expression == "use_a_b + 2*use_b_c + 4*use_a_c"
+    by_name = {c.name: c.expression for c in prob.constraints}
+    assert by_name["reach_c"] == "use_b_c + use_a_c >= 1"
+    # the constraint family grounds one row per matching tuple, named by components
+    assert by_name["chain_a_b"] == "use_a_b <= 1"
+    assert "chain_b_c" not in by_name
+
+
+def test_tuple_set_solves_to_known_optimum():
+    from app.domains.solver.adapters.scip import SCIPAdapter
+
+    result = SCIPAdapter().solve(compile_jmodel(SPARSE_PATH))
+    assert result.status.value == "optimal"
+    assert result.objective_value is not None
+    assert abs(result.objective_value - 2.0) < 1e-6  # cheapest way to reach c is b->c
+
+
+def test_tuple_set_lowering_is_deterministic():
+    assert compile_jmodel(SPARSE_PATH).model_dump() == compile_jmodel(SPARSE_PATH).model_dump()
+
+
+def test_tuple_set_from_dataset_with_composite_members():
+    src = """
+    set ARCS dimen 2;
+    param w{ARCS};
+    var use{ARCS} binary;
+    minimize total: sum{(i, j) in ARCS} w[i, j] * use[i, j];
+    subject to pick_all{(i, j) in ARCS}: use[i, j] >= 1;
+    """
+    data = JModelData.from_json(
+        {"sets": {"ARCS": ["a,b", "b,c"]}, "params": {"w": {"a,b": 3, "b,c": 5}}}
+    )
+    prob = compile_jmodel(src, data=data)
+    assert [v.name for v in prob.variables] == ["use_a_b", "use_b_c"]
+    assert prob.objective.expression == "3*use_a_b + 5*use_b_c"
+
+
+def test_declaration_only_tuple_set_defaults_to_dimen_1():
+    src = """
+    set ARCS;
+    var use{ARCS} binary;
+    minimize total: sum{a in ARCS} use[a];
+    subject to c: sum{a in ARCS} use[a] <= 1;
+    """
+    with pytest.raises(JModelError, match="dimen 2"):
+        compile_jmodel(src, data=JModelData.from_json({"sets": {"ARCS": ["a,b"]}}))
+
+
+def test_mixed_arity_set_literal_rejected():
+    with pytest.raises(JModelError, match="different dimensions"):
+        compile_jmodel(
+            "set A := {(a, b), c};\nvar x{A} binary;\n"
+            "minimize o: sum{(i, j) in A} x[i, j];\nsubject to c1: x[a, b] <= 1;"
+        )
+
+
+def test_dimen_contradicting_inline_literal_rejected():
+    with pytest.raises(JModelError, match="declares dimen 3"):
+        compile_jmodel(
+            "set A dimen 3 := {(a, b)};\nvar x{A} binary;\n"
+            "minimize o: sum{(i, j) in A} x[i, j];\nsubject to c1: x[a, b] <= 1;"
+        )
+
+
+def test_binding_arity_must_match_set_dimension():
+    src = """
+    set ARCS := {(a, b)};
+    var use{ARCS} binary;
+    minimize total: sum{i in ARCS} use[i];
+    subject to c: use[a, b] <= 1;
+    """
+    with pytest.raises(JModelError, match="2-dimensional"):
+        compile_jmodel(src)
+
+
+def test_duplicate_index_in_one_qualifier_rejected():
+    src = """
+    set ARCS := {(a, b)};
+    var use{ARCS} binary;
+    minimize total: sum{(i, i) in ARCS} use[i, i];
+    subject to c: use[a, b] <= 1;
+    """
+    with pytest.raises(JModelError, match="bound more than once"):
+        compile_jmodel(src)
+
+
+def test_reference_outside_tuple_set_is_a_ghost_error():
+    src = """
+    set ARCS := {(a, b), (b, c)};
+    var use{ARCS} binary;
+    minimize total: sum{(i, j) in ARCS} use[i, j];
+    subject to c: use[a, c] <= 1;
+    """
+    # (a, c) is not a member — must never emit a ghost flat variable use_a_c
+    with pytest.raises(JModelError, match="not a member of set 'ARCS'"):
+        compile_jmodel(src)
+
+
+def test_var_over_tuple_set_takes_flat_subscripts():
+    src = """
+    set ARCS := {(a, b)};
+    set K := {1, 2};
+    var x{ARCS, K} binary;
+    minimize total: sum{(i, j) in ARCS, k in K} x[i, j, k];
+    subject to c: x[a, b] <= 1;
+    """
+    with pytest.raises(JModelError, match="expected 3"):
+        compile_jmodel(src)
+
+
+def test_param_key_flat_arity_validated_against_tuple_sets():
+    src = """
+    set ARCS dimen 2;
+    param w{ARCS};
+    var use{ARCS} binary;
+    minimize total: sum{(i, j) in ARCS} w[i, j] * use[i, j];
+    subject to c{(i, j) in ARCS}: use[i, j] <= 1;
+    """
+    data = JModelData.from_json({"sets": {"ARCS": ["a,b"]}, "params": {"w": {"a": 1}}})
+    with pytest.raises(JModelError, match="expected 2"):
+        compile_jmodel(src, data=data)
+
+
+def test_equality_filter_slices_instead_of_scanning_the_whole_set():
+    # 20 arcs fan out of 20 sources; each per-source constraint row must consume
+    # budget for ITS matching arcs only. A full-scan grounding would need
+    # ~20 rows x 40 arcs = 800+ elements; the sliced one stays under 200.
+    out_arcs = ", ".join(f"(s{i}, t{i % 2})" for i in range(20))
+    in_arcs = ", ".join(f"(t{i % 2}, u{i})" for i in range(20))
+    sources = ", ".join(f"s{i}" for i in range(20))
+    src = (
+        "set ARCS := {" + out_arcs + ", " + in_arcs + "};\n"
+        "set SOURCES := {" + sources + "};\n"
+        "var use{ARCS} binary;\n"
+        "minimize total: sum{(i, j) in ARCS} use[i, j];\n"
+        "subject to out_once{s in SOURCES}:\n"
+        "    sum{(i, j) in ARCS : i == s} use[i, j] <= 1;\n"
+    )
+    prob = compile_jmodel(src, max_grounded_elements=200)
+    assert len(prob.variables) == 40
+    names = {c.name for c in prob.constraints}
+    assert "out_once_s0" in names and len(names) == 20
+
+
+def test_sliced_equality_keeps_numeric_equality_semantics():
+    # _compare treats "1" == "1.0" as equal (numeric-first); the slice index must too
+    src = """
+    set ARCS := {(1, a), (2, b)};
+    var use{ARCS} binary;
+    minimize total: sum{(i, j) in ARCS} use[i, j];
+    subject to c: sum{(i, j) in ARCS : i == 1.0} use[i, j] >= 1;
+    """
+    prob = compile_jmodel(src)
+    assert {c.name: c.expression for c in prob.constraints}["c"] == "use_1_a >= 1"
+
+
+def test_filter_between_indices_of_same_binding_stays_a_compare():
+    src = """
+    set PAIRS := {(a, a), (a, b), (b, b)};
+    var pick{PAIRS} binary;
+    minimize total: sum{(i, j) in PAIRS} pick[i, j];
+    subject to no_diag: sum{(i, j) in PAIRS : i == j} pick[i, j] <= 1;
+    """
+    prob = compile_jmodel(src)
+    assert {c.name: c.expression for c in prob.constraints}["no_diag"] == (
+        "pick_a_a + pick_b_b <= 1"
+    )
+
+
+def test_cross_binding_equality_slices_on_the_later_binding():
+    src = """
+    set NODES := {a, b};
+    set ARCS := {(a, b), (b, a)};
+    var use{ARCS} binary;
+    minimize total: sum{(i, j) in ARCS} use[i, j];
+    subject to into{n in NODES}:
+        sum{(i, j) in ARCS : j == n} use[i, j] == 1;
+    """
+    prob = compile_jmodel(src)
+    by_name = {c.name: c.expression for c in prob.constraints}
+    assert by_name["into_a"] == "use_b_a == 1"
+    assert by_name["into_b"] == "use_a_b == 1"
+
+
+def test_inline_param_greedy_entries_over_tuple_set():
+    src = """
+    set ARCS := {(a, b), (b, c)};
+    param w{ARCS} := a b 1.5, b c -2;
+    var use{ARCS} binary;
+    minimize total: sum{(i, j) in ARCS} w[i, j] * use[i, j];
+    subject to c{(i, j) in ARCS}: use[i, j] <= 1;
+    """
+    prob = compile_jmodel(src)
+    assert prob.objective.expression == "1.5*use_a_b - 2*use_b_c"
+
+
+def test_inline_param_entry_must_end_in_a_number():
+    with pytest.raises(JModelError, match="end in a numeric value"):
+        compile_jmodel(
+            "set I := {a};\nparam w{I} := a b;\nvar x{I} binary;\n"
+            "minimize o: sum{i in I} w[i]*x[i];\nsubject to c: x[a] <= 1;"
+        )
+
+
+def test_inline_param_duplicate_key_rejected():
+    with pytest.raises(JModelError, match="duplicate entries"):
+        compile_jmodel(
+            "set I := {a};\nparam w{I} := a 1, a 2;\nvar x{I} binary;\n"
+            "minimize o: sum{i in I} w[i]*x[i];\nsubject to c: x[a] <= 1;"
+        )
+
+
+def test_inline_param_negative_key_member_rejected():
+    with pytest.raises(JModelError, match="cannot be negative"):
+        compile_jmodel(
+            "set I := {1};\nparam w{I, I} := -1 1 5;\nvar x{I} binary;\n"
+            "minimize o: sum{i in I} w[i, i]*x[i];\nsubject to c: x[1] <= 1;"
+        )
+
+
+def test_tuple_binding_of_one_index_rejected():
+    with pytest.raises(JModelError, match="at least two indices"):
+        compile_jmodel(
+            "set I := {a};\nvar x{I} binary;\nminimize o: sum{(i) in I} x[i];\n"
+            "subject to c: x[a] <= 1;"
+        )
+
+
+def test_tuple_literal_of_one_component_rejected():
+    with pytest.raises(JModelError, match="at least two components"):
+        compile_jmodel(
+            "set I := {(a)};\nvar x{I} binary;\nminimize o: sum{i in I} x[i];\n"
+            "subject to c: x[a] <= 1;"
+        )
+
+
+def test_inspect_reports_flat_arity_over_tuple_sets():
+    from app.domains.dsl import inspect_declarations
+
+    decls = inspect_declarations(
+        "set ARCS dimen 2;\nset K;\nparam d{ARCS, K};\nvar x{ARCS, K} binary;\n"
+        "minimize o: sum{(i, j) in ARCS, k in K} d[i, j, k] * x[i, j, k];\n"
+        "subject to c{k in K}: sum{(i, j) in ARCS} x[i, j, k] <= 1;"
+    )
+    (param,) = decls.params
+    assert param.index_sets == ("ARCS", "K")
+    assert param.arity == 3

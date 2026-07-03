@@ -5518,10 +5518,7 @@ export interface components {
         };
         /** Body_import_and_solve */
         Body_import_and_solve: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
             /**
              * Gap Tolerance
@@ -5539,45 +5536,30 @@ export interface components {
         };
         /** Body_import_preview */
         Body_import_preview: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
             objective_sense?: components["schemas"]["ObjectiveSense"] | null;
         };
         /** Body_import_project_dataset */
         Body_import_project_dataset: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
             /** Param Name */
             param_name?: string | null;
         };
         /** Body_upload_attachment_api_v2_llm_conversations__conversation_id__attachments_post */
         Body_upload_attachment_api_v2_llm_conversations__conversation_id__attachments_post: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
         };
         /** Body_upload_logo_api_v2_models_catalog__model_id__logo_post */
         Body_upload_logo_api_v2_models_catalog__model_id__logo_post: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
         };
         /** Body_upload_screenshot_api_v2_models_catalog__model_id__screenshots_post */
         Body_upload_screenshot_api_v2_models_catalog__model_id__screenshots_post: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
         };
         /**
@@ -6519,7 +6501,7 @@ export interface components {
         DSLParamDecl: {
             /**
              * Arity
-             * @description len(index_sets) — 0 for a scalar.
+             * @description Flat dataset-key arity — the sum of the index sets' dimensions (tuple sets count one per component); 0 for a scalar.
              */
             arity: number;
             /**

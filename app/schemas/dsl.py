@@ -72,7 +72,13 @@ class DSLParamDecl(BaseModel):
 
     name: str
     index_sets: list[str] = Field(..., description="Empty for a scalar param.")
-    arity: int = Field(..., description="len(index_sets) — 0 for a scalar.")
+    arity: int = Field(
+        ...,
+        description=(
+            "Flat dataset-key arity — the sum of the index sets' dimensions "
+            "(tuple sets count one per component); 0 for a scalar."
+        ),
+    )
     has_inline_values: bool = Field(
         ..., description="True when the source defines values inline (:=)."
     )
