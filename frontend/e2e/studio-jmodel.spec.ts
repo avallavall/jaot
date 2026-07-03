@@ -177,6 +177,29 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
     // solve it through the real SCIPAdapter; here we prove the studio path solves.)
   });
 
+  // S2c: a .dat file imports into the dataset editor as a PREVIEW (nothing stored
+  // until saved through the normal create), suggesting the filename as the name.
+  test("dataset import: a .dat file pre-fills the editor and saves", async ({ page }) => {
+    await setDslFlag("true");
+    const projectId = await createBlankProject(page);
+    await page.goto(`/studio/${projectId}/data`);
+
+    await page.getByTestId("studio-dataset-new").click();
+    await page.getByTestId("studio-dataset-import-input").setInputFiles({
+      name: "q4_forecast.dat",
+      mimeType: "text/plain",
+      buffer: Buffer.from("set I := a b c;\nparam cap := 10;\nparam w := a 2, b 3, c 4;\n"),
+    });
+    await expect(page.getByTestId("studio-dataset-json")).toHaveValue(/"cap": 10/, {
+      timeout: NAV,
+    });
+    await expect(page.getByTestId("studio-dataset-name")).toHaveValue("q4_forecast");
+    await page.getByTestId("studio-dataset-save").click();
+    await expect(
+      page.getByTestId("studio-dataset-row").filter({ hasText: "q4_forecast" }),
+    ).toHaveCount(1, { timeout: NAV });
+  });
+
   // §8 Scenarios: a declaration-only source (`set I;` / `param w{I};`) carries no
   // data of its own — it must error without a dataset, compile against a named
   // dataset created in Analyze, solve with the chip naming which data ran, and

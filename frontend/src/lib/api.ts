@@ -83,6 +83,7 @@ import type {
   DslStatusResult,
   ProjectDataset,
   ProjectDatasetSummary,
+  DatasetImportPreview,
 } from "./types";
 
 import type { AnthropicKeyStatus, AttachmentInfo, InfeasibilityAnalysis } from "./llm-types";
@@ -1347,6 +1348,37 @@ export const api = {
 
   deleteProjectDataset(id: string, datasetId: string): Promise<void> {
     return request(`/api/v2/projects/${id}/datasets/${datasetId}`, { method: "DELETE" });
+  },
+
+  /** Parse a data file (.dat / .json / .csv) into a dataset PREVIEW (S2c) — nothing
+   * is stored; the caller fills the editor and saves via the normal create. */
+  async importProjectDataset(
+    id: string,
+    file: File,
+    paramName?: string | null
+  ): Promise<DatasetImportPreview> {
+    const doUpload = async (): Promise<Response> => {
+      const formData = new FormData();
+      formData.append("file", file);
+      if (paramName) formData.append("param_name", paramName);
+      return fetch(buildUrl(`/api/v2/projects/${id}/datasets/import`), {
+        method: "POST",
+        headers: authHeaders(), // NO Content-Type — browser sets multipart boundary
+        body: formData,
+        credentials: "include",
+      });
+    };
+    let res = await doUpload();
+    if (res.status === 401) {
+      await refreshAccessToken();
+      res = await doUpload();
+    }
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      const detail = typeof body.detail === "string" ? body.detail : undefined;
+      throw new ApiError(res.status, detail || `Import failed (${res.status})`, detail);
+    }
+    return res.json();
   },
 
   listTemplates(): Promise<{ templates: TemplateSummary[] }> {

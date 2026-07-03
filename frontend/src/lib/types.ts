@@ -769,6 +769,12 @@ export interface ProjectDatasetSummary {
   updated_at: string;
 }
 
+/** A parsed data file (S2c) — a preview the user names and saves via the normal create. */
+export interface DatasetImportPreview {
+  data_json: Record<string, unknown>;
+  suggested_name: string;
+}
+
 export interface ProjectDataset extends ProjectDatasetSummary {
   data_json: Record<string, unknown>;
 }

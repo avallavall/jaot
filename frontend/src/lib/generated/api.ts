@@ -3208,6 +3208,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/projects/{project_id}/datasets/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Project Dataset
+         * @description Parse an uploaded ``.dat`` / ``.json`` / ``.csv`` file into a dataset PREVIEW (S2c).
+         *
+         *     Nothing is stored: the response carries the parsed ``data_json`` (already run
+         *     through the same validation as create, so the preview fails early with the
+         *     compiler-grade message) + a name suggestion; the user saves through the normal
+         *     create. ``param_name`` names the single CSV param (defaults from the filename).
+         */
+        post: operations["import_project_dataset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/projects/{project_id}/draft": {
         parameters: {
             query?: never;
@@ -5521,6 +5546,16 @@ export interface components {
             file: string;
             objective_sense?: components["schemas"]["ObjectiveSense"] | null;
         };
+        /** Body_import_project_dataset */
+        Body_import_project_dataset: {
+            /**
+             * File
+             * Format: binary
+             */
+            file: string;
+            /** Param Name */
+            param_name?: string | null;
+        };
         /** Body_upload_attachment_api_v2_llm_conversations__conversation_id__attachments_post */
         Body_upload_attachment_api_v2_llm_conversations__conversation_id__attachments_post: {
             /**
@@ -6259,6 +6294,19 @@ export interface components {
             description?: string | null;
             /** Name */
             name: string;
+        };
+        /**
+         * DatasetImportPreview
+         * @description A parsed data file (S2c) — a PREVIEW the user names and saves through the
+         *     normal dataset create (which re-validates shape and size).
+         */
+        DatasetImportPreview: {
+            /** Data Json */
+            data_json: {
+                [key: string]: unknown;
+            };
+            /** Suggested Name */
+            suggested_name: string;
         };
         /**
          * DatasetRead
@@ -10895,6 +10943,7 @@ export type AutomationStats = components['schemas']['AutomationStats'];
 export type BillingStatusResponse = components['schemas']['BillingStatusResponse'];
 export type BodyImportAndSolve = components['schemas']['Body_import_and_solve'];
 export type BodyImportPreview = components['schemas']['Body_import_preview'];
+export type BodyImportProjectDataset = components['schemas']['Body_import_project_dataset'];
 export type BodyUploadAttachmentApiV2LlmConversationsConversationIdAttachmentsPost = components['schemas']['Body_upload_attachment_api_v2_llm_conversations__conversation_id__attachments_post'];
 export type BodyUploadLogoApiV2ModelsCatalogModelIdLogoPost = components['schemas']['Body_upload_logo_api_v2_models_catalog__model_id__logo_post'];
 export type BodyUploadScreenshotApiV2ModelsCatalogModelIdScreenshotsPost = components['schemas']['Body_upload_screenshot_api_v2_models_catalog__model_id__screenshots_post'];
@@ -10938,6 +10987,7 @@ export type CurrencyRequest = components['schemas']['CurrencyRequest'];
 export type DailyPoint = components['schemas']['DailyPoint'];
 export type DailyTrend = components['schemas']['DailyTrend'];
 export type DatasetCreate = components['schemas']['DatasetCreate'];
+export type DatasetImportPreview = components['schemas']['DatasetImportPreview'];
 export type DatasetRead = components['schemas']['DatasetRead'];
 export type DatasetSummary = components['schemas']['DatasetSummary'];
 export type DatasetUpdate = components['schemas']['DatasetUpdate'];
@@ -16860,6 +16910,43 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_project_dataset: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_project_dataset"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatasetImportPreview"];
+                };
             };
             /** @description Validation Error */
             422: {

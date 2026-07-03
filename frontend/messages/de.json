@@ -227,7 +227,9 @@
     "datasetSkeleton": "Gerüst aus dem Modell erzeugen",
     "datasetSkeletonNothing": "Das Modell deklariert keine Sets oder Parameter zum Befüllen.",
     "datasetSkeletonParseError": "Der JModel-Code lässt sich nicht parsen: {error}",
-    "datasetSkeletonFailed": "Modell konnte nicht inspiziert werden"
+    "datasetSkeletonFailed": "Modell konnte nicht inspiziert werden",
+    "datasetImport": "Datei importieren",
+    "datasetImportFailed": "Datei konnte nicht importiert werden"
   },
   "common": {
     "loading": "Wird geladen...",

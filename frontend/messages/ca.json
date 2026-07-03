@@ -227,7 +227,9 @@
     "datasetSkeleton": "Generar esquelet des del model",
     "datasetSkeletonNothing": "El model no declara sets ni params per omplir.",
     "datasetSkeletonParseError": "El codi JModel no parseja: {error}",
-    "datasetSkeletonFailed": "No s'ha pogut inspeccionar el model"
+    "datasetSkeletonFailed": "No s'ha pogut inspeccionar el model",
+    "datasetImport": "Importar fitxer",
+    "datasetImportFailed": "No s'ha pogut importar el fitxer"
   },
   "common": {
     "loading": "Carregant...",

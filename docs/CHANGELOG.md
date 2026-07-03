@@ -19,6 +19,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Added
 
+- **Import a dataset from a file (S2c, 2026-07-03)** — The dataset editor accepts AMPL `.dat` (sets, scalar and N-D params), `.csv` (one param per file, header auto-detected, name from the filename) and our JSON shape; the file is parsed server-side into a preview with compiler-grade errors and saved through the normal create.
 - **Dataset skeleton from the model (S2a, 2026-07-03)** — One click pre-fills a new dataset with the model's real declared symbols (sets → `[]`, scalar params → `0`, indexed → `{}`) via a new parse-only `/dsl/inspect` endpoint — no more writing the JSON shape by hand.
 - **"Data" tab in the studio (S4, 2026-07-03)** — Input data gets its own top-level tab (Build · Data · Analyze · Solve, shown while JModel is enabled): dataset management moves out of Analyze, the Build "Editor" lens is renamed "JSON", and data-shaped JModel errors plus the Solve dataset chip now link straight to the Data tab.
 - **Dataset provenance in the executions history (S1, 2026-07-03)** — Every solve launched with a dataset now records which one it ran with; the history table and the execution detail show a dataset badge, and the name survives even if the dataset is later deleted.

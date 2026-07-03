@@ -433,3 +433,144 @@ class TestSolveDatasetProvenance:
         ds_b = _create_dataset(authenticated_client, pid_b)
         resp = authenticated_client.post(_solve_async_url(pid_a, ds_b["id"]), json=_TINY_PROBLEM)
         assert resp.status_code == 404, resp.text
+
+
+# ---------------------------------------------------------------------------
+# S2c — POST /projects/{id}/datasets/import (file -> data_json preview)
+# ---------------------------------------------------------------------------
+
+_DAT_FILE = b"set I := a b c;\nparam cap := 10;\nparam w := a 2, b 3, c 4;\n"
+
+
+def _import_url(pid: str) -> str:
+    return f"/api/v2/projects/{pid}/datasets/import"
+
+
+class TestDatasetImport:
+    def test_dat_file_parses_to_preview(self, authenticated_client: TestClient):
+        pid = _create_project(authenticated_client)["id"]
+        resp = authenticated_client.post(
+            _import_url(pid), files={"file": ("q3_forecast.dat", _DAT_FILE, "text/plain")}
+        )
+        assert resp.status_code == 200, resp.text
+        body = resp.json()
+        assert body["suggested_name"] == "q3_forecast"
+        assert body["data_json"] == {
+            "sets": {"I": ["a", "b", "c"]},
+            "params": {"cap": 10.0, "w": {"a": 2.0, "b": 3.0, "c": 4.0}},
+        }
+        # The preview is exactly what the normal create accepts.
+        created = authenticated_client.post(
+            f"/api/v2/projects/{pid}/datasets",
+            json={"name": body["suggested_name"], "data_json": body["data_json"]},
+        )
+        assert created.status_code == 201, created.text
+
+    def test_dat_parse_error_is_422_with_position(self, authenticated_client: TestClient):
+        pid = _create_project(authenticated_client)["id"]
+        resp = authenticated_client.post(
+            _import_url(pid),
+            files={"file": ("bad.dat", b"param w := a x;", "text/plain")},
+        )
+        assert resp.status_code == 422, resp.text
+        assert "must end in a number" in resp.json()["detail"]
+        assert "(pos" in resp.json()["detail"]
+
+    def test_csv_one_param_with_header_and_filename_default(self, authenticated_client: TestClient):
+        pid = _create_project(authenticated_client)["id"]
+        csv_bytes = b"origin,destination,cost\nA,1,4\nA,2,6.5\nB,1,3\n"
+        resp = authenticated_client.post(
+            _import_url(pid), files={"file": ("shipping cost.csv", csv_bytes, "text/csv")}
+        )
+        assert resp.status_code == 200, resp.text
+        body = resp.json()
+        # Param name defaults from the sanitized filename stem.
+        assert body["data_json"] == {
+            "params": {"shipping_cost": {"A,1": 4.0, "A,2": 6.5, "B,1": 3.0}}
+        }
+
+    def test_csv_param_name_override(self, authenticated_client: TestClient):
+        pid = _create_project(authenticated_client)["id"]
+        resp = authenticated_client.post(
+            _import_url(pid),
+            files={"file": ("whatever.csv", b"a,2\nb,3\n", "text/csv")},
+            data={"param_name": "w"},
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["data_json"] == {"params": {"w": {"a": 2.0, "b": 3.0}}}
+
+    def test_csv_ragged_rows_are_422(self, authenticated_client: TestClient):
+        pid = _create_project(authenticated_client)["id"]
+        resp = authenticated_client.post(
+            _import_url(pid),
+            files={"file": ("bad.csv", b"a,1,2\nb,3\n", "text/csv")},
+        )
+        assert resp.status_code == 422, resp.text
+        assert "columns" in resp.json()["detail"]
+
+    def test_json_file_round_trips(self, authenticated_client: TestClient):
+        import json as _json
+
+        pid = _create_project(authenticated_client)["id"]
+        resp = authenticated_client.post(
+            _import_url(pid),
+            files={"file": ("data.json", _json.dumps(_DATA).encode(), "application/json")},
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["data_json"] == _DATA
+
+    def test_json_bad_shape_is_422_with_compiler_message(self, authenticated_client: TestClient):
+        pid = _create_project(authenticated_client)["id"]
+        resp = authenticated_client.post(
+            _import_url(pid),
+            files={"file": ("data.json", b'{"sets": {"I": "abc"}}', "application/json")},
+        )
+        assert resp.status_code == 422, resp.text
+        assert "must be a list" in resp.json()["detail"]
+
+    def test_unsupported_extension_is_422(self, authenticated_client: TestClient):
+        pid = _create_project(authenticated_client)["id"]
+        resp = authenticated_client.post(
+            _import_url(pid), files={"file": ("model.mps", b"NAME test", "text/plain")}
+        )
+        assert resp.status_code == 422, resp.text
+        assert "unsupported file type" in resp.json()["detail"]
+
+    def test_oversized_file_is_422(self, authenticated_client: TestClient, monkeypatch):
+        from app.services import model_project_service as svc_mod
+
+        monkeypatch.setattr(svc_mod, "MAX_DATASET_JSON_BYTES", 8)
+        pid = _create_project(authenticated_client)["id"]
+        resp = authenticated_client.post(
+            _import_url(pid), files={"file": ("big.dat", _DAT_FILE, "text/plain")}
+        )
+        assert resp.status_code == 422, resp.text
+        assert "too large" in resp.json()["detail"]
+
+    def test_non_utf8_file_is_422(self, authenticated_client: TestClient):
+        pid = _create_project(authenticated_client)["id"]
+        resp = authenticated_client.post(
+            _import_url(pid), files={"file": ("bad.dat", b"\xff\xfe\x00 binary", "text/plain")}
+        )
+        assert resp.status_code == 422, resp.text
+        assert "not valid UTF-8" in resp.json()["detail"]
+
+    # CONTRACT-TEST: import is org-scoped like every dataset surface (anti-oracle 404).
+    def test_cross_tenant_project_404_anti_oracle(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization_2: Organization,
+        test_user_2: User,
+    ):
+        foreign = _insert_foreign_dataset(db_session, test_organization_2, test_user_2)
+        files = {"file": ("d.dat", _DAT_FILE, "text/plain")}
+        cross = authenticated_client.post(_import_url(foreign.model_project_id), files=files)
+        nonex = authenticated_client.post(_import_url("mp_does_not_exist_anywhere"), files=files)
+        assert cross.status_code == 404, cross.text
+        assert nonex.status_code == 404, nonex.text
+        assert cross.json()["detail"] == nonex.json()["detail"]
+
+    def test_import_requires_auth(self, client: TestClient):
+        resp = client.post(_import_url("mp_x"), files={"file": ("d.dat", _DAT_FILE, "text/plain")})
+        assert resp.status_code in (401, 403), resp.text

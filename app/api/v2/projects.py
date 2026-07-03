@@ -10,7 +10,18 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    status,
+)
 from pydantic import ValidationError
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
@@ -41,6 +52,7 @@ from app.models.optimization_model import ModelExecution
 from app.schemas.model_project import (
     CommitRequest,
     DatasetCreate,
+    DatasetImportPreview,
     DatasetRead,
     DatasetSummary,
     DatasetUpdate,
@@ -537,6 +549,52 @@ def create_project_dataset(
     db.commit()
     db.refresh(dataset)
     return dataset
+
+
+@router.post(
+    "/{project_id}/datasets/import",
+    response_model=DatasetImportPreview,
+    operation_id="import_project_dataset",
+)
+async def import_project_dataset(
+    project_id: str,
+    db: DBSession,
+    org: CurrentOrg,
+    _ws: OptionalRequireEditor,
+    file: UploadFile = File(...),
+    param_name: str | None = Form(default=None, max_length=255),
+) -> DatasetImportPreview:
+    """Parse an uploaded ``.dat`` / ``.json`` / ``.csv`` file into a dataset PREVIEW (S2c).
+
+    Nothing is stored: the response carries the parsed ``data_json`` (already run
+    through the same validation as create, so the preview fails early with the
+    compiler-grade message) + a name suggestion; the user saves through the normal
+    create. ``param_name`` names the single CSV param (defaults from the filename).
+    """
+    from app.services import dataset_import_service  # noqa: PLC0415
+
+    _project_or_404(db, project_id, org.id)
+    content = await file.read()
+    if len(content) > svc.MAX_DATASET_JSON_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                f"file is too large ({len(content):,} bytes — max {svc.MAX_DATASET_JSON_BYTES:,})"
+            ),
+        )
+    try:
+        data_json, suggested_name = dataset_import_service.parse_dataset_file(
+            file.filename or "dataset", content, param_name
+        )
+        svc.validate_dataset_json(data_json)
+    except JModelError as exc:
+        detail = exc.message
+        if exc.position is not None:
+            detail += f" (pos {exc.position})"
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=detail
+        ) from exc
+    return DatasetImportPreview(data_json=data_json, suggested_name=suggested_name)
 
 
 @router.get(

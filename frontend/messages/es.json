@@ -227,7 +227,9 @@
     "datasetSkeleton": "Generar esqueleto desde el modelo",
     "datasetSkeletonNothing": "El modelo no declara sets ni params que rellenar.",
     "datasetSkeletonParseError": "El código JModel no parsea: {error}",
-    "datasetSkeletonFailed": "No se pudo inspeccionar el modelo"
+    "datasetSkeletonFailed": "No se pudo inspeccionar el modelo",
+    "datasetImport": "Importar fichero",
+    "datasetImportFailed": "No se pudo importar el fichero"
   },
   "common": {
     "loading": "Cargando...",

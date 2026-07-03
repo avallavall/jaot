@@ -227,7 +227,9 @@
     "datasetSkeleton": "Generate skeleton from the model",
     "datasetSkeletonNothing": "The model declares no sets or params to fill.",
     "datasetSkeletonParseError": "The JModel source does not parse: {error}",
-    "datasetSkeletonFailed": "Could not inspect the model"
+    "datasetSkeletonFailed": "Could not inspect the model",
+    "datasetImport": "Import file",
+    "datasetImportFailed": "Could not import the file"
   },
   "common": {
     "loading": "Loading...",

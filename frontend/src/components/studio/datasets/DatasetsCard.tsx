@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
-import { Database, Pencil, Plus, Trash2 } from "lucide-react";
+import { Database, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -70,7 +70,9 @@ export function DatasetsCard() {
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [saving, setSaving] = useState(false);
   const [skeletonLoading, setSkeletonLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<ProjectDatasetSummary | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!dslEnabled || !isPersisted) return null;
 
@@ -149,6 +151,31 @@ export function DatasetsCard() {
   const toggleUse = (row: ProjectDatasetSummary) => {
     if (activeDataset?.id === row.id) setActiveDataset(null);
     else setActiveDataset({ id: row.id, name: row.name });
+  };
+
+  // S2c: parse an uploaded .dat / .json / .csv into the editor (server-side
+  // preview — nothing is stored until the user saves through the normal create).
+  const handleImportFile = async (file: File) => {
+    if (!editor) return;
+    setImporting(true);
+    try {
+      const preview = await api.importProjectDataset(modelId, file);
+      setEditor((prev) =>
+        prev
+          ? {
+              ...prev,
+              text: JSON.stringify(preview.data_json, null, 2),
+              // A name the user already typed wins over the filename suggestion.
+              name: prev.name.trim() ? prev.name : preview.suggested_name,
+            }
+          : prev,
+      );
+    } catch (err: unknown) {
+      // 422 carries the parser message incl. the character position.
+      toast.error(getErrorMessage(err, t("datasetImportFailed")));
+    } finally {
+      setImporting(false);
+    }
   };
 
   // S2a: pre-fill the editor with the model's REAL declared symbols (sets → [],
@@ -295,23 +322,50 @@ export function DatasetsCard() {
                 />
               </div>
               <div>
-                <div className="mb-1 flex items-center justify-between">
+                <div className="mb-1 flex items-center justify-between gap-2">
                   <label className="block text-xs font-medium" htmlFor="dataset-json">
                     {t("datasetValues")}
                   </label>
-                  {draftDslSource.trim() && (
+                  <div className="flex items-center gap-1">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".dat,.json,.csv"
+                      className="hidden"
+                      data-testid="studio-dataset-import-input"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        // Reset so re-choosing the same file fires onChange again.
+                        e.target.value = "";
+                        if (file) void handleImportFile(file);
+                      }}
+                    />
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       className="h-6 px-2 text-xs"
-                      onClick={() => void handleSkeleton()}
-                      disabled={skeletonLoading}
-                      data-testid="studio-dataset-skeleton"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={importing}
+                      data-testid="studio-dataset-import"
                     >
-                      {t("datasetSkeleton")}
+                      <Upload className="mr-1 h-3 w-3" />
+                      {t("datasetImport")}
                     </Button>
-                  )}
+                    {draftDslSource.trim() && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs"
+                        onClick={() => void handleSkeleton()}
+                        disabled={skeletonLoading}
+                        data-testid="studio-dataset-skeleton"
+                      >
+                        {t("datasetSkeleton")}
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <textarea
                   id="dataset-json"

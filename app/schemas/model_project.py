@@ -109,6 +109,14 @@ class DatasetRead(DatasetSummary):
     data_json: dict[str, Any]
 
 
+class DatasetImportPreview(BaseModel):
+    """A parsed data file (S2c) — a PREVIEW the user names and saves through the
+    normal dataset create (which re-validates shape and size)."""
+
+    data_json: dict[str, Any]
+    suggested_name: str
+
+
 class VersionSummary(BaseModel):
     """Compact view of a committed version (for the project header / timeline)."""
 
