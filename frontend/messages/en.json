@@ -66,7 +66,7 @@
     "tabsLabel": "Model workspace",
     "subLensCanvas": "Canvas",
     "subLensAssistant": "Assistant",
-    "subLensEditor": "Editor",
+    "subLensEditor": "JSON",
     "editorHint": "Edit the model as JSON. Valid changes reflect on the canvas and autosave.",
     "editorAriaLabel": "Model as JSON",
     "editorFormat": "Format",
@@ -215,7 +215,15 @@
     "jmodelBlockSolve": "Fix the JModel source before solving.",
     "jmodelBlockCommit": "Fix the JModel source before saving a version.",
     "tileJModel": "Write JModel",
-    "tileJModelDesc": "Declarative DSL: sets, params, indexed families."
+    "tileJModelDesc": "Declarative DSL: sets, params, indexed families.",
+    "tabData": "Data",
+    "dataTitle": "Input data",
+    "dataSubtitle": "The model's structure is written in Build; its values live here as named datasets (scenarios).",
+    "dataUnavailable": "Datasets need the JModel feature, which is not enabled on this instance.",
+    "dataNeedsSave": "Save the model first — datasets attach to a persisted model.",
+    "dataExplainer": "A dataset fills the sets and params that a declaration-only JModel leaves open.",
+    "dataGoToJModel": "Open the JModel lens →",
+    "jmodelGoToData": "Create or pick a dataset →"
   },
   "common": {
     "loading": "Loading...",

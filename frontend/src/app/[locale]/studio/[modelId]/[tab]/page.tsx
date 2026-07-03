@@ -2,11 +2,13 @@
 
 import { useParams, notFound } from "next/navigation";
 import { BuildPanel } from "@/components/studio/panels/BuildPanel";
+import { DataPanel } from "@/components/studio/panels/DataPanel";
 import { AnalyzePanel } from "@/components/studio/panels/AnalyzePanel";
 import { SolvePanel } from "@/components/studio/panels/SolvePanel";
 
 const TAB_REGISTRY = {
   build: BuildPanel,
+  data: DataPanel,
   analyze: AnalyzePanel,
   solve: SolvePanel,
 } as const;

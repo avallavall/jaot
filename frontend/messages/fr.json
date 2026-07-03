@@ -66,7 +66,7 @@
     "tabsLabel": "Espace de travail du modèle",
     "subLensCanvas": "Toile",
     "subLensAssistant": "Assistant",
-    "subLensEditor": "Éditeur",
+    "subLensEditor": "JSON",
     "editorHint": "Modifiez le modèle en JSON. Les changements valides se reflètent sur la toile et sont enregistrés automatiquement.",
     "editorAriaLabel": "Modèle en JSON",
     "editorFormat": "Formater",
@@ -215,7 +215,15 @@
     "jmodelBlockSolve": "Corrigez le code JModel avant de résoudre.",
     "jmodelBlockCommit": "Corrigez le code JModel avant d'enregistrer une version.",
     "tileJModel": "Écrire en JModel",
-    "tileJModelDesc": "DSL déclaratif : ensembles, paramètres, familles indexées."
+    "tileJModelDesc": "DSL déclaratif : ensembles, paramètres, familles indexées.",
+    "tabData": "Données",
+    "dataTitle": "Données d'entrée",
+    "dataSubtitle": "La structure du modèle s'écrit dans Construire ; ses valeurs vivent ici sous forme de jeux de données nommés (scénarios).",
+    "dataUnavailable": "Les jeux de données nécessitent la fonction JModel, qui n'est pas activée sur cette instance.",
+    "dataNeedsSave": "Enregistrez d'abord le modèle — les jeux de données s'attachent à un modèle persisté.",
+    "dataExplainer": "Un jeu de données remplit les ensembles et paramètres qu'un JModel en déclarations seules laisse ouverts.",
+    "dataGoToJModel": "Ouvrir la lentille JModel →",
+    "jmodelGoToData": "Créer ou choisir un jeu de données →"
   },
   "common": {
     "loading": "Chargement...",

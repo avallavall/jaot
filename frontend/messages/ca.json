@@ -66,7 +66,7 @@
     "tabsLabel": "Espai de treball del model",
     "subLensCanvas": "Llenç",
     "subLensAssistant": "Assistent",
-    "subLensEditor": "Editor",
+    "subLensEditor": "JSON",
     "editorHint": "Edita el model com a JSON. Els canvis vàlids es reflecteixen al llenç i es desen sols.",
     "editorAriaLabel": "Model com a JSON",
     "editorFormat": "Formata",
@@ -215,7 +215,15 @@
     "jmodelBlockSolve": "Corregeix el codi JModel abans de resoldre.",
     "jmodelBlockCommit": "Corregeix el codi JModel abans de desar una versió.",
     "tileJModel": "Escriure JModel",
-    "tileJModelDesc": "DSL declaratiu: conjunts, paràmetres, famílies indexades."
+    "tileJModelDesc": "DSL declaratiu: conjunts, paràmetres, famílies indexades.",
+    "tabData": "Dades",
+    "dataTitle": "Dades d'entrada",
+    "dataSubtitle": "L'estructura del model s'escriu a Construir; els seus valors viuen aquí com a datasets amb nom (escenaris).",
+    "dataUnavailable": "Els datasets requereixen la funció JModel, que no està activada en aquesta instància.",
+    "dataNeedsSave": "Desa primer el model — els datasets s'associen a un model persistit.",
+    "dataExplainer": "Un dataset omple els sets i params que un JModel només-declaracions deixa oberts.",
+    "dataGoToJModel": "Obrir la lent JModel →",
+    "jmodelGoToData": "Crear o triar un dataset →"
   },
   "common": {
     "loading": "Carregant...",

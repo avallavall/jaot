@@ -119,6 +119,8 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
     // ...but the JModel tab is not offered and the deep-link shows no JModel editor.
     await expect(page.getByTestId("studio-sublens-jmodel")).toHaveCount(0);
     await expect(page.getByTestId("studio-jmodel-textarea")).toHaveCount(0);
+    // S4: the Datos tab shares the same gate — hidden while the flag is off.
+    await expect(page.getByTestId("studio-tab-data")).toHaveCount(0);
   });
 
   test("flag ON: valid source compiles, broken blocks solve, valid model solves", async ({
@@ -195,8 +197,8 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
     await expect(page.getByTestId("studio-jmodel-error")).toBeVisible({ timeout: NAV });
     await expect(headerSolve).toBeDisabled();
 
-    // Create a dataset in Analyze and mark it as the one in use.
-    await page.getByTestId("studio-tab-analyze").click();
+    // Create a dataset in the Datos tab (S4) and mark it as the one in use.
+    await page.getByTestId("studio-tab-data").click();
     await page.getByTestId("studio-dataset-new").click();
     await page.getByTestId("studio-dataset-name").fill("Scenario A");
     await page.getByTestId("studio-dataset-json").fill(DATASET_JSON);

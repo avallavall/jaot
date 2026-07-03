@@ -66,7 +66,7 @@
     "tabsLabel": "Modell-Arbeitsbereich",
     "subLensCanvas": "Leinwand",
     "subLensAssistant": "Assistent",
-    "subLensEditor": "Editor",
+    "subLensEditor": "JSON",
     "editorHint": "Bearbeite das Modell als JSON. Gültige Änderungen erscheinen auf der Leinwand und werden automatisch gespeichert.",
     "editorAriaLabel": "Modell als JSON",
     "editorFormat": "Formatieren",
@@ -215,7 +215,15 @@
     "jmodelBlockSolve": "Behebe den JModel-Quelltext vor dem Lösen.",
     "jmodelBlockCommit": "Behebe den JModel-Quelltext vor dem Speichern einer Version.",
     "tileJModel": "JModel schreiben",
-    "tileJModelDesc": "Deklarative DSL: Mengen, Parameter, indizierte Familien."
+    "tileJModelDesc": "Deklarative DSL: Mengen, Parameter, indizierte Familien.",
+    "tabData": "Daten",
+    "dataTitle": "Eingabedaten",
+    "dataSubtitle": "Die Struktur des Modells entsteht unter Erstellen; seine Werte liegen hier als benannte Datensätze (Szenarien).",
+    "dataUnavailable": "Datensätze benötigen die JModel-Funktion, die auf dieser Instanz nicht aktiviert ist.",
+    "dataNeedsSave": "Speichere zuerst das Modell — Datensätze gehören zu einem persistierten Modell.",
+    "dataExplainer": "Ein Datensatz füllt die Sets und Parameter, die ein deklarationsbasiertes JModel offen lässt.",
+    "dataGoToJModel": "JModel-Linse öffnen →",
+    "jmodelGoToData": "Datensatz erstellen oder auswählen →"
   },
   "common": {
     "loading": "Wird geladen...",

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { AlertCircle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
+import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
@@ -268,6 +269,22 @@ export function JModelEditorPanel() {
             )}
           </span>
           <p className="mt-1 opacity-80">{t("lensNotApplied")}</p>
+          {/* S4 cross-link: a data-shaped error (declaration without values/members,
+              dataset/model mismatch — those messages all name "dataset") is fixed in
+              the Datos tab, not by editing the source. */}
+          {modelId &&
+            modelId !== "new" &&
+            /dataset|has no (values|members)/i.test(result.error.message) && (
+              <p className="mt-1">
+                <Link
+                  href={`/studio/${modelId}/data`}
+                  className="font-medium underline underline-offset-2"
+                  data-testid="studio-jmodel-goto-data"
+                >
+                  {t("jmodelGoToData")}
+                </Link>
+              </p>
+            )}
         </div>
       )}
     </div>

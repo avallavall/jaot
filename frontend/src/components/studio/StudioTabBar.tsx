@@ -3,8 +3,9 @@
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
+import { useDslStatus } from "@/hooks/useDslStatus";
 
-const TABS = ["build", "analyze", "solve"] as const;
+const TABS = ["build", "data", "analyze", "solve"] as const;
 type StudioTab = (typeof TABS)[number];
 
 interface StudioTabBarProps {
@@ -12,15 +13,21 @@ interface StudioTabBarProps {
 }
 
 /**
- * Top-level Build / Analyze / Solve tab bar. Each tab is a real link so tabs are
- * deep-linkable and back-button friendly.
+ * Top-level Build / Datos / Analyze / Solve tab bar (S4: D2 amended by owner —
+ * "Datos" holds ALL input data and only exists while JAOT_DSL is on, same gate
+ * as the JModel lens). Each tab is a real link so tabs are deep-linkable and
+ * back-button friendly.
  */
 export function StudioTabBar({ modelId }: StudioTabBarProps) {
   const t = useTranslations("studio");
   const pathname = usePathname();
+  const dslEnabled = useDslStatus();
+
+  const tabs = dslEnabled ? TABS : TABS.filter((tab) => tab !== "data");
 
   const labels: Record<StudioTab, string> = {
     build: t("tabBuild"),
+    data: t("tabData"),
     analyze: t("tabAnalyze"),
     solve: t("tabSolve"),
   };
@@ -31,7 +38,7 @@ export function StudioTabBar({ modelId }: StudioTabBarProps) {
       aria-label={t("tabsLabel")}
       className="flex items-center gap-1 border-b px-3"
     >
-      {TABS.map((tab) => {
+      {tabs.map((tab) => {
         const href = `/studio/${modelId}/${tab}`;
         const active = pathname === href;
         return (

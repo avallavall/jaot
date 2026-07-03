@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useFormatter, useNow, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -137,14 +138,16 @@ export function SolvePanel() {
           loading={solversLoading}
         />
 
-        {/* Which dataset (scenario) the canonical model was compiled against (§8). */}
+        {/* Which dataset (scenario) the canonical model was compiled against (§8).
+            S4: the chip links to the Datos tab, where the selection is managed. */}
         {activeDataset && (
-          <div
+          <Link
+            href={`/studio/${modelId}/data`}
             data-testid="studio-solve-dataset-chip"
-            className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
+            className="block rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-800 hover:bg-emerald-100 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200 dark:hover:bg-emerald-950/60"
           >
             {t("solveWithDataset", { name: activeDataset.name })}
-          </div>
+          </Link>
         )}
 
         <TooltipProvider>
