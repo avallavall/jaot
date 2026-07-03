@@ -316,3 +316,85 @@ def test_gate_cache_serves_stale_within_ttl(db_session, monkeypatch):
 
     now[0] = 1006.0
     assert gate._is_on(db_session) is False  # TTL expired: fresh read sees OFF
+
+
+# ---------------------------------------------------------------------------
+# S2a — POST /dsl/inspect (parse-only declarations for the dataset skeleton)
+# ---------------------------------------------------------------------------
+
+DECL_ONLY_SOURCE = """
+set I;
+param w{I};
+param cap;
+var x{I} binary;
+maximize obj: sum{i in I} w[i] * x[i];
+subject to c: sum{i in I} x[i] <= cap;
+"""
+
+
+# CONTRACT-TEST: /dsl/inspect ships dark behind the same gate as compile (404 when off).
+@pytest.mark.integration
+def test_inspect_404_when_flag_off(authenticated_client, test_organization, db_session):
+    resp = authenticated_client.post("/api/v2/dsl/inspect", json={"source": DECL_ONLY_SOURCE})
+    assert resp.status_code == 404, resp.text
+    assert resp.json()["detail"]["error"] == "dsl_disabled"
+
+
+@pytest.mark.integration
+def test_inspect_lists_declaration_only_symbols(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
+    """The whole point of inspect: it succeeds where compile errors (no data)."""
+    resp = authenticated_client.post("/api/v2/dsl/inspect", json={"source": DECL_ONLY_SOURCE})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ok"] is True
+    assert body["sets"] == [{"name": "I", "has_inline_values": False}]
+    by_name = {p["name"]: p for p in body["params"]}
+    assert by_name["w"] == {
+        "name": "w",
+        "index_sets": ["I"],
+        "arity": 1,
+        "has_inline_values": False,
+    }
+    assert by_name["cap"] == {
+        "name": "cap",
+        "index_sets": [],
+        "arity": 0,
+        "has_inline_values": False,
+    }
+
+
+@pytest.mark.integration
+def test_inspect_marks_inline_values(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
+    src = "set I := {a, b};\nparam w{I} := a 2, b 3;\nvar x{I} binary;\n"
+    src += "maximize obj: sum{i in I} w[i] * x[i];\nsubject to c: sum{i in I} x[i] <= 1;"
+    resp = authenticated_client.post("/api/v2/dsl/inspect", json={"source": src})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ok"] is True
+    assert body["sets"][0]["has_inline_values"] is True
+    assert body["params"][0]["has_inline_values"] is True
+
+
+@pytest.mark.integration
+def test_inspect_reports_structured_parse_error(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
+    resp = authenticated_client.post(
+        "/api/v2/dsl/inspect", json={"source": "set S := {a, b}\nvar x >= 0;"}
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ok"] is False
+    assert body["sets"] is None
+    assert body["error"]["message"]
+    assert body["error"]["position"] is not None
+
+
+@pytest.mark.integration
+def test_inspect_requires_auth(client):
+    resp = client.post("/api/v2/dsl/inspect", json={"source": DECL_ONLY_SOURCE})
+    assert resp.status_code in (401, 403), resp.text

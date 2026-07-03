@@ -223,7 +223,11 @@
     "dataNeedsSave": "Speichere zuerst das Modell — Datensätze gehören zu einem persistierten Modell.",
     "dataExplainer": "Ein Datensatz füllt die Sets und Parameter, die ein deklarationsbasiertes JModel offen lässt.",
     "dataGoToJModel": "JModel-Linse öffnen →",
-    "jmodelGoToData": "Datensatz erstellen oder auswählen →"
+    "jmodelGoToData": "Datensatz erstellen oder auswählen →",
+    "datasetSkeleton": "Gerüst aus dem Modell erzeugen",
+    "datasetSkeletonNothing": "Das Modell deklariert keine Sets oder Parameter zum Befüllen.",
+    "datasetSkeletonParseError": "Der JModel-Code lässt sich nicht parsen: {error}",
+    "datasetSkeletonFailed": "Modell konnte nicht inspiziert werden"
   },
   "common": {
     "loading": "Wird geladen...",

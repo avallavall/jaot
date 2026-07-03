@@ -48,6 +48,50 @@ class DSLCompileResponse(BaseModel):
     error: DSLCompileError | None = None
 
 
+class DSLInspectRequest(BaseModel):
+    """A JModel source whose data-facing declarations we want to list (S2a)."""
+
+    source: str = Field(
+        ...,
+        max_length=1_000_000,
+        description="JModel source text — parsed only, never grounded.",
+    )
+
+
+class DSLSetDecl(BaseModel):
+    """A declared set, as the dataset editor needs to see it."""
+
+    name: str
+    has_inline_values: bool = Field(
+        ..., description="True when the source defines members inline (:=)."
+    )
+
+
+class DSLParamDecl(BaseModel):
+    """A declared param: its index sets define the dataset key shape."""
+
+    name: str
+    index_sets: list[str] = Field(..., description="Empty for a scalar param.")
+    arity: int = Field(..., description="len(index_sets) — 0 for a scalar.")
+    has_inline_values: bool = Field(
+        ..., description="True when the source defines values inline (:=)."
+    )
+
+
+class DSLInspectResponse(BaseModel):
+    """Parse-only view of a source's sets/params (skeleton + live validation).
+
+    On success ``ok`` is true and ``sets``/``params`` list every declaration
+    (inline-valued or dataset-fillable); on a lex/parse failure ``ok`` is false
+    and ``error`` describes it.
+    """
+
+    ok: bool
+    sets: list[DSLSetDecl] | None = None
+    params: list[DSLParamDecl] | None = None
+    error: DSLCompileError | None = None
+
+
 class DSLStatusResponse(BaseModel):
     """Whether the JModel DSL feature is enabled on this instance."""
 

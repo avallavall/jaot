@@ -15,6 +15,22 @@ This domain imports ONLY ``app.schemas`` — never ``app.domains.solver`` — to
 the ``domains-independent`` import-linter contract.
 """
 
-from app.domains.dsl.compiler import JModelData, JModelError, compile_jmodel
+from app.domains.dsl.compiler import (
+    JModelData,
+    JModelError,
+    ModelDeclarations,
+    ParamInfo,
+    SetInfo,
+    compile_jmodel,
+    inspect_declarations,
+)
 
-__all__ = ["JModelData", "JModelError", "compile_jmodel"]
+__all__ = [
+    "JModelData",
+    "JModelError",
+    "ModelDeclarations",
+    "ParamInfo",
+    "SetInfo",
+    "compile_jmodel",
+    "inspect_declarations",
+]

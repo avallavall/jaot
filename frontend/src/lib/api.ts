@@ -79,6 +79,7 @@ import type {
   SolveAnalyticsTrends,
   SolveAnalyticsCompare,
   DslCompileResult,
+  DslInspectResult,
   DslStatusResult,
   ProjectDataset,
   ProjectDatasetSummary,
@@ -804,6 +805,16 @@ export const api = {
     return request("/api/v2/dsl/compile", {
       method: "POST",
       body: JSON.stringify({ source, ...(datasetId ? { dataset_id: datasetId } : {}) }),
+    });
+  },
+
+  /** Parse-only list of a JModel source's sets/params (S2a) — powers the dataset
+   * skeleton button and the live dataset↔model validation. Succeeds where compile
+   * errors (declaration-only sources, missing data). Gated like compile. */
+  inspectDsl(source: string): Promise<DslInspectResult> {
+    return request("/api/v2/dsl/inspect", {
+      method: "POST",
+      body: JSON.stringify({ source }),
     });
   },
 

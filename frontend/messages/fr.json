@@ -223,7 +223,11 @@
     "dataNeedsSave": "Enregistrez d'abord le modèle — les jeux de données s'attachent à un modèle persisté.",
     "dataExplainer": "Un jeu de données remplit les ensembles et paramètres qu'un JModel en déclarations seules laisse ouverts.",
     "dataGoToJModel": "Ouvrir la lentille JModel →",
-    "jmodelGoToData": "Créer ou choisir un jeu de données →"
+    "jmodelGoToData": "Créer ou choisir un jeu de données →",
+    "datasetSkeleton": "Générer un squelette depuis le modèle",
+    "datasetSkeletonNothing": "Le modèle ne déclare aucun ensemble ni paramètre à remplir.",
+    "datasetSkeletonParseError": "Le code JModel ne se parse pas : {error}",
+    "datasetSkeletonFailed": "Impossible d'inspecter le modèle"
   },
   "common": {
     "loading": "Chargement...",

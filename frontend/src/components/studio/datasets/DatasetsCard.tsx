@@ -28,6 +28,7 @@ import type { ProjectDatasetSummary } from "@/lib/types";
 import { useDslStatus } from "@/hooks/useDslStatus";
 import { useModelProjectStore } from "../store/useModelProjectStore";
 import { useProjectDatasets } from "./useProjectDatasets";
+import { buildDatasetSkeleton } from "./dataset-skeleton";
 
 // Seed shown in the editor for a NEW dataset — the JModelData JSON shape.
 const NEW_DATASET_TEMPLATE = `{
@@ -61,11 +62,14 @@ export function DatasetsCard() {
   const modelId = useModelProjectStore((s) => s.modelId);
   const activeDataset = useModelProjectStore((s) => s.activeDataset);
   const setActiveDataset = useModelProjectStore((s) => s.setActiveDataset);
+  // S2a: the skeleton derives from the draft JModel source's real declarations.
+  const draftDslSource = useModelProjectStore((s) => s.draftDslSource);
   const isPersisted = !!modelId && modelId !== "new";
   const { datasets, refresh } = useProjectDatasets(isPersisted ? modelId : null);
 
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [saving, setSaving] = useState(false);
+  const [skeletonLoading, setSkeletonLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<ProjectDatasetSummary | null>(null);
 
   if (!dslEnabled || !isPersisted) return null;
@@ -145,6 +149,36 @@ export function DatasetsCard() {
   const toggleUse = (row: ProjectDatasetSummary) => {
     if (activeDataset?.id === row.id) setActiveDataset(null);
     else setActiveDataset({ id: row.id, name: row.name });
+  };
+
+  // S2a: pre-fill the editor with the model's REAL declared symbols (sets → [],
+  // scalar params → 0, indexed → {}). Deterministic — /dsl/inspect parses only,
+  // so it works for declaration-only sources that don't compile yet.
+  const handleSkeleton = async () => {
+    if (!editor || !draftDslSource.trim()) return;
+    setSkeletonLoading(true);
+    try {
+      const inspect = await api.inspectDsl(draftDslSource);
+      if (!inspect.ok) {
+        toast.error(
+          t("datasetSkeletonParseError", { error: inspect.error?.message ?? "" }),
+        );
+        return;
+      }
+      const text = buildDatasetSkeleton(inspect);
+      if (text === null) {
+        toast.info(t("datasetSkeletonNothing"));
+        return;
+      }
+      // Functional update: name/description typed while the request was in flight
+      // must survive — only the values text is the requested replacement. A closed
+      // dialog (prev === null) stays closed.
+      setEditor((prev) => (prev ? { ...prev, text } : prev));
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, t("datasetSkeletonFailed")));
+    } finally {
+      setSkeletonLoading(false);
+    }
   };
 
   return (
@@ -261,9 +295,24 @@ export function DatasetsCard() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium" htmlFor="dataset-json">
-                  {t("datasetValues")}
-                </label>
+                <div className="mb-1 flex items-center justify-between">
+                  <label className="block text-xs font-medium" htmlFor="dataset-json">
+                    {t("datasetValues")}
+                  </label>
+                  {draftDslSource.trim() && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => void handleSkeleton()}
+                      disabled={skeletonLoading}
+                      data-testid="studio-dataset-skeleton"
+                    >
+                      {t("datasetSkeleton")}
+                    </Button>
+                  )}
+                </div>
                 <textarea
                   id="dataset-json"
                   data-testid="studio-dataset-json"

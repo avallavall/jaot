@@ -201,6 +201,15 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
     await page.getByTestId("studio-tab-data").click();
     await page.getByTestId("studio-dataset-new").click();
     await page.getByTestId("studio-dataset-name").fill("Scenario A");
+    // S2a: the skeleton button pre-fills the editor with the model's REAL declared
+    // symbols (parse-only /dsl/inspect — works while the source doesn't compile).
+    // Anchor on `"I": []` — unique to the skeleton; the dialog's starting template
+    // also contains `"sets"`, so a looser match would pass before the response lands
+    // and the late overwrite would clobber the DATASET_JSON filled next.
+    await page.getByTestId("studio-dataset-skeleton").click();
+    await expect(page.getByTestId("studio-dataset-json")).toHaveValue(/"I": \[\]/, {
+      timeout: NAV,
+    });
     await page.getByTestId("studio-dataset-json").fill(DATASET_JSON);
     await page.getByTestId("studio-dataset-save").click();
     await expect(page.getByTestId("studio-dataset-row")).toHaveCount(1, { timeout: NAV });

@@ -1166,3 +1166,51 @@ def compile_jmodel(
     model = _Parser(tokenize(src)).parse()
     _apply_data(model, data)
     return _lower(model, max_grounded_elements)
+
+
+# --------------------------------------------------------------------------- #
+# Declaration inspector (S2a) — the data-facing view of a source
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True)
+class SetInfo:
+    """A declared set, as the dataset editor needs to see it."""
+
+    name: str
+    has_inline_values: bool
+
+
+@dataclass(frozen=True)
+class ParamInfo:
+    """A declared param: its index sets define the dataset key shape."""
+
+    name: str
+    index_sets: tuple[str, ...]
+    arity: int
+    has_inline_values: bool
+
+
+@dataclass(frozen=True)
+class ModelDeclarations:
+    """The data-facing declarations (sets + params) of a JModel source."""
+
+    sets: tuple[SetInfo, ...]
+    params: tuple[ParamInfo, ...]
+
+
+def inspect_declarations(src: str) -> ModelDeclarations:
+    """Parse-only view of the source's sets/params (``POST /dsl/inspect``, S2a).
+
+    NO data application and NO grounding, so it succeeds for declaration-only
+    sources and for sources whose dataset is missing — exactly the states in which
+    the editor needs a skeleton. Raises :class:`JModelError` on lex/parse errors only.
+    """
+    model = _Parser(tokenize(src)).parse()
+    return ModelDeclarations(
+        sets=tuple(SetInfo(name, members is not None) for name, members in model.sets.items()),
+        params=tuple(
+            ParamInfo(p.name, tuple(p.index_sets), len(p.index_sets), p.data is not None)
+            for p in model.params.values()
+        ),
+    )

@@ -1813,6 +1813,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/dsl/inspect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dsl Inspect
+         * @description List a source's data-facing declarations — parse-only, never grounded (S2a).
+         *
+         *     Powers the dataset editor's "skeleton from the model" button and the live
+         *     dataset↔model validation (S5): it must succeed for declaration-only sources
+         *     AND for sources whose data is missing, states in which ``/dsl/compile`` errors.
+         *     Same structured-error contract as compile (no 4xx mid-keystroke).
+         */
+        post: operations["dsl_inspect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/dsl/status": {
         parameters: {
             query?: never;
@@ -6412,6 +6437,70 @@ export interface components {
             problem?: components["schemas"]["OptimizationProblem-Output"] | null;
         };
         /**
+         * DSLInspectRequest
+         * @description A JModel source whose data-facing declarations we want to list (S2a).
+         */
+        DSLInspectRequest: {
+            /**
+             * Source
+             * @description JModel source text — parsed only, never grounded.
+             */
+            source: string;
+        };
+        /**
+         * DSLInspectResponse
+         * @description Parse-only view of a source's sets/params (skeleton + live validation).
+         *
+         *     On success ``ok`` is true and ``sets``/``params`` list every declaration
+         *     (inline-valued or dataset-fillable); on a lex/parse failure ``ok`` is false
+         *     and ``error`` describes it.
+         */
+        DSLInspectResponse: {
+            error?: components["schemas"]["DSLCompileError"] | null;
+            /** Ok */
+            ok: boolean;
+            /** Params */
+            params?: components["schemas"]["DSLParamDecl"][] | null;
+            /** Sets */
+            sets?: components["schemas"]["DSLSetDecl"][] | null;
+        };
+        /**
+         * DSLParamDecl
+         * @description A declared param: its index sets define the dataset key shape.
+         */
+        DSLParamDecl: {
+            /**
+             * Arity
+             * @description len(index_sets) — 0 for a scalar.
+             */
+            arity: number;
+            /**
+             * Has Inline Values
+             * @description True when the source defines values inline (:=).
+             */
+            has_inline_values: boolean;
+            /**
+             * Index Sets
+             * @description Empty for a scalar param.
+             */
+            index_sets: string[];
+            /** Name */
+            name: string;
+        };
+        /**
+         * DSLSetDecl
+         * @description A declared set, as the dataset editor needs to see it.
+         */
+        DSLSetDecl: {
+            /**
+             * Has Inline Values
+             * @description True when the source defines members inline (:=).
+             */
+            has_inline_values: boolean;
+            /** Name */
+            name: string;
+        };
+        /**
          * DSLStatusResponse
          * @description Whether the JModel DSL feature is enabled on this instance.
          */
@@ -10859,6 +10948,10 @@ export type DraftUpdate = components['schemas']['DraftUpdate'];
 export type DslCompileError = components['schemas']['DSLCompileError'];
 export type DslCompileRequest = components['schemas']['DSLCompileRequest'];
 export type DslCompileResponse = components['schemas']['DSLCompileResponse'];
+export type DslInspectRequest = components['schemas']['DSLInspectRequest'];
+export type DslInspectResponse = components['schemas']['DSLInspectResponse'];
+export type DslParamDecl = components['schemas']['DSLParamDecl'];
+export type DslSetDecl = components['schemas']['DSLSetDecl'];
 export type DslStatusResponse = components['schemas']['DSLStatusResponse'];
 export type EarningsSummaryResponse = components['schemas']['EarningsSummaryResponse'];
 export type EmailInviteCreate = components['schemas']['EmailInviteCreate'];
@@ -14171,6 +14264,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DSLCompileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dsl_inspect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DSLInspectRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DSLInspectResponse"];
                 };
             };
             /** @description Validation Error */

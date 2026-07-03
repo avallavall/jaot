@@ -731,6 +731,28 @@ export interface DslStatusResult {
   enabled: boolean;
 }
 
+/** A declared set as listed by POST /api/v2/dsl/inspect (S2a). */
+export interface DslSetDecl {
+  name: string;
+  has_inline_values: boolean;
+}
+
+/** A declared param: its index sets define the dataset key shape. */
+export interface DslParamDecl {
+  name: string;
+  index_sets: string[];
+  arity: number;
+  has_inline_values: boolean;
+}
+
+/** Parse-only view of a source's declarations (skeleton + live validation). */
+export interface DslInspectResult {
+  ok: boolean;
+  sets?: DslSetDecl[] | null;
+  params?: DslParamDecl[] | null;
+  error?: DslCompileError | null;
+}
+
 /**
  * A named data bundle ("scenario") for a project's parametric JModel: set members
  * + param values that fill a declaration-only source at compile time (§8).

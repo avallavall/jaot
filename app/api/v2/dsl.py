@@ -19,11 +19,15 @@ from fastapi import APIRouter, Depends
 
 from app.api.deps import CurrentOrg, CurrentUser, DBSession
 from app.api.v2.deps.dsl_feature_gate import dsl_enabled, dsl_feature_gate
-from app.domains.dsl import JModelData, JModelError, compile_jmodel
+from app.domains.dsl import JModelData, JModelError, compile_jmodel, inspect_declarations
 from app.schemas.dsl import (
     DSLCompileError,
     DSLCompileRequest,
     DSLCompileResponse,
+    DSLInspectRequest,
+    DSLInspectResponse,
+    DSLParamDecl,
+    DSLSetDecl,
     DSLStatusResponse,
 )
 from app.services import model_project_service as project_svc
@@ -82,3 +86,44 @@ def dsl_compile(body: DSLCompileRequest, db: DBSession, org: CurrentOrg) -> DSLC
             error=DSLCompileError(message="internal compiler error", position=None),
         )
     return DSLCompileResponse(ok=True, problem=problem)
+
+
+@router.post(
+    "/inspect",
+    operation_id="dsl_inspect",
+    dependencies=[Depends(dsl_feature_gate)],
+)
+def dsl_inspect(body: DSLInspectRequest, _user: CurrentUser) -> DSLInspectResponse:
+    """List a source's data-facing declarations — parse-only, never grounded (S2a).
+
+    Powers the dataset editor's "skeleton from the model" button and the live
+    dataset↔model validation (S5): it must succeed for declaration-only sources
+    AND for sources whose data is missing, states in which ``/dsl/compile`` errors.
+    Same structured-error contract as compile (no 4xx mid-keystroke).
+    """
+    try:
+        decls = inspect_declarations(body.source)
+    except JModelError as exc:
+        return DSLInspectResponse(
+            ok=False,
+            error=DSLCompileError(message=exc.message, position=exc.position),
+        )
+    except Exception:
+        logger.exception("JModel inspector crashed on user source")
+        return DSLInspectResponse(
+            ok=False,
+            error=DSLCompileError(message="internal compiler error", position=None),
+        )
+    return DSLInspectResponse(
+        ok=True,
+        sets=[DSLSetDecl(name=s.name, has_inline_values=s.has_inline_values) for s in decls.sets],
+        params=[
+            DSLParamDecl(
+                name=p.name,
+                index_sets=list(p.index_sets),
+                arity=p.arity,
+                has_inline_values=p.has_inline_values,
+            )
+            for p in decls.params
+        ],
+    )

@@ -223,7 +223,11 @@
     "dataNeedsSave": "Desa primer el model — els datasets s'associen a un model persistit.",
     "dataExplainer": "Un dataset omple els sets i params que un JModel només-declaracions deixa oberts.",
     "dataGoToJModel": "Obrir la lent JModel →",
-    "jmodelGoToData": "Crear o triar un dataset →"
+    "jmodelGoToData": "Crear o triar un dataset →",
+    "datasetSkeleton": "Generar esquelet des del model",
+    "datasetSkeletonNothing": "El model no declara sets ni params per omplir.",
+    "datasetSkeletonParseError": "El codi JModel no parseja: {error}",
+    "datasetSkeletonFailed": "No s'ha pogut inspeccionar el model"
   },
   "common": {
     "loading": "Carregant...",

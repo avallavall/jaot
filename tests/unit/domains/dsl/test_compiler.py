@@ -261,9 +261,7 @@ def test_undefined_set_in_var_family_raises():
 
 def test_undefined_set_in_param_raises():
     with pytest.raises(JModelError, match="unknown set 'J' in param"):
-        compile_jmodel(
-            "param p{J} := a 1; var x >= 0; minimize obj: x; subject to c: x >= 1;"
-        )
+        compile_jmodel("param p{J} := a 1; var x >= 0; minimize obj: x; subject to c: x >= 1;")
 
 
 def test_param_data_key_not_in_set_raises():
@@ -668,3 +666,63 @@ def test_from_json_shape_violations_are_structured_errors():
         else:
             with pytest.raises(JModelError, match=pattern):
                 JModelData.from_json(payload)
+
+
+# ---------------------------------------------------------------------------
+# S2a — inspect_declarations (parse-only, powers /dsl/inspect)
+# ---------------------------------------------------------------------------
+
+
+def test_inspect_declaration_only_symbols():
+    from app.domains.dsl import inspect_declarations
+
+    decls = inspect_declarations(
+        "set I;\nparam w{I};\nparam cap;\nvar x{I} binary;\n"
+        "maximize obj: sum{i in I} w[i] * x[i];\n"
+        "subject to c: sum{i in I} x[i] <= cap;"
+    )
+    assert [(s.name, s.has_inline_values) for s in decls.sets] == [("I", False)]
+    by_name = {p.name: p for p in decls.params}
+    assert by_name["w"].index_sets == ("I",)
+    assert by_name["w"].arity == 1
+    assert by_name["w"].has_inline_values is False
+    assert by_name["cap"].index_sets == ()
+    assert by_name["cap"].arity == 0
+
+
+def test_inspect_marks_inline_values_and_multi_arity():
+    from app.domains.dsl import inspect_declarations
+
+    decls = inspect_declarations(
+        "set I := {a, b};\nset J := {p, q};\nparam c{I, J} := a p 1, a q 2, b p 3, b q 4;\n"
+        "var x{I, J} binary;\nmaximize obj: sum{i in I, j in J} c[i, j] * x[i, j];\n"
+        "subject to one: sum{i in I, j in J} x[i, j] <= 2;"
+    )
+    assert all(s.has_inline_values for s in decls.sets)
+    (param,) = decls.params
+    assert param.index_sets == ("I", "J")
+    assert param.arity == 2
+    assert param.has_inline_values is True
+
+
+def test_inspect_never_grounds():
+    from app.domains.dsl import inspect_declarations
+
+    # compile_jmodel on this source raises (set has no members); inspect must not.
+    src = (
+        "set I;\nparam w{I};\nvar x{I} binary;\n"
+        "maximize obj: sum{i in I} w[i] * x[i];\n"
+        "subject to c: sum{i in I} x[i] <= 1;"
+    )
+    with pytest.raises(JModelError):
+        compile_jmodel(src)
+    decls = inspect_declarations(src)
+    assert decls.sets[0].name == "I"
+
+
+def test_inspect_raises_on_parse_error():
+    from app.domains.dsl import inspect_declarations
+
+    with pytest.raises(JModelError) as exc_info:
+        inspect_declarations("set S := {a, b}\nvar x >= 0;")
+    assert exc_info.value.position is not None

@@ -223,7 +223,11 @@
     "dataNeedsSave": "Save the model first — datasets attach to a persisted model.",
     "dataExplainer": "A dataset fills the sets and params that a declaration-only JModel leaves open.",
     "dataGoToJModel": "Open the JModel lens →",
-    "jmodelGoToData": "Create or pick a dataset →"
+    "jmodelGoToData": "Create or pick a dataset →",
+    "datasetSkeleton": "Generate skeleton from the model",
+    "datasetSkeletonNothing": "The model declares no sets or params to fill.",
+    "datasetSkeletonParseError": "The JModel source does not parse: {error}",
+    "datasetSkeletonFailed": "Could not inspect the model"
   },
   "common": {
     "loading": "Loading...",
