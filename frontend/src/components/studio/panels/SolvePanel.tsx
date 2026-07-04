@@ -21,6 +21,7 @@ import { api } from "@/lib/api";
 import { getErrorMessage, getErrorStatus } from "@/lib/errors";
 import { useModelProjectStore } from "../store/useModelProjectStore";
 import { solveBlockedReason } from "./solve-precondition";
+import { ProjectRunsCard } from "./solve/ProjectRunsCard";
 import { ScenariosSection } from "./solve/ScenariosSection";
 import { LiveSolvePanel } from "./solve/LiveSolvePanel";
 
@@ -206,6 +207,9 @@ export function SolvePanel() {
 
       {/* S3: run the JModel against N datasets and compare outcomes side by side. */}
       <ScenariosSection solverName={solverName} />
+
+      {/* This model's own run history (the global one lives under Solve → Executions). */}
+      <ProjectRunsCard />
 
       <SolveResultsDrawer
         result={session.result}

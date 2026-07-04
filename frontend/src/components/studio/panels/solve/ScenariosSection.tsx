@@ -71,6 +71,10 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [launching, setLaunching] = useState(false);
+  // Per-dataset transient launch phase. Large scenarios spend 10-30s in
+  // compile+upload before a ModelExecution row exists server-side; without this
+  // the table showed NOTHING while the browser worked (live report 2026-07-04).
+  const [launchPhases, setLaunchPhases] = useState<Record<string, "compiling" | "queueing">>({});
   const [compileFailures, setCompileFailures] = useState<Record<string, string>>({});
   const [runs, setRuns] = useState<ProjectExecutionItem[]>([]);
   const [diff, setDiff] = useState<DiffState | null>(null);
@@ -126,6 +130,7 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
     setLaunching(true);
     setDiff(null);
     const failures: Record<string, string> = {};
+    setLaunchPhases(Object.fromEntries([...selected].map((id) => [id, "compiling"] as const)));
     await Promise.all(
       [...selected].map(async (dsId) => {
         try {
@@ -134,6 +139,7 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
             failures[dsId] = compiled.error?.message ?? t("scenariosCompileFailed");
             return;
           }
+          setLaunchPhases((prev) => ({ ...prev, [dsId]: "queueing" }));
           await api.solveAsync(
             { ...compiled.problem, solver_name: solverName },
             activeWorkspaceId ?? undefined,
@@ -144,8 +150,18 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
               datasetId: dsId,
             },
           );
+          // Refresh per launch: this dataset's row flips to pending/running as
+          // soon as IT is queued, instead of waiting for every sibling (a big
+          // scenario compiling must not hide a small one already solving).
+          void refreshRuns();
         } catch (err: unknown) {
           failures[dsId] = getErrorMessage(err, t("scenariosLaunchFailed"));
+        } finally {
+          setLaunchPhases((prev) => {
+            const next = { ...prev };
+            delete next[dsId];
+            return next;
+          });
         }
       }),
     );
@@ -279,7 +295,17 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
                   </td>
                   <td className="py-2 pr-3 font-medium">{ds.name}</td>
                   <td className="py-2 pr-3">
-                    {failure ? (
+                    {launchPhases[ds.id] ? (
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs ${STATUS_TONE.pending}`}
+                        data-testid="studio-scenario-launching"
+                      >
+                        <span className="h-2.5 w-2.5 animate-spin rounded-full border border-current border-t-transparent" />
+                        {launchPhases[ds.id] === "compiling"
+                          ? t("scenariosCompiling")
+                          : t("scenariosQueueing")}
+                      </span>
+                    ) : failure ? (
                       <span
                         className={`inline-block max-w-[16rem] truncate rounded-full px-2 py-0.5 text-xs ${STATUS_TONE.failed}`}
                         title={failure}
@@ -317,20 +343,25 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
         </table>
       </div>
 
-      {comparable && (
-        <div className="mt-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void handleCompare()}
-            disabled={diffLoading}
-            data-testid="studio-scenarios-compare"
-          >
-            <GitCompareArrows className="mr-1 h-3.5 w-3.5" />
-            {t("scenariosCompare")}
-          </Button>
-        </div>
-      )}
+      {/* Always visible so the diff is discoverable — it used to materialize only
+          once exactly 2 completed datasets were selected, and nobody could guess
+          that rule from an absent button (live report 2026-07-04). */}
+      <div className="mt-3 flex items-center gap-3">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void handleCompare()}
+          disabled={!comparable || diffLoading}
+          title={!comparable ? t("scenariosCompareHint") : undefined}
+          data-testid="studio-scenarios-compare"
+        >
+          <GitCompareArrows className="mr-1 h-3.5 w-3.5" />
+          {t("scenariosCompare")}
+        </Button>
+        {!comparable && (
+          <span className="text-xs text-muted-foreground">{t("scenariosCompareHint")}</span>
+        )}
+      </div>
 
       {diff && (
         <div className="mt-3 rounded-md border p-3" data-testid="studio-scenarios-diff">
