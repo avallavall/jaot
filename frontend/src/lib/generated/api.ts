@@ -4036,6 +4036,11 @@ export interface paths {
          *     compiled against — provenance only, the problem body is already grounded.
          *     Async-only on purpose: the studio always solves async, and the sync path is
          *     slated for consolidation (async-only direction, 2026-06-30).
+         *
+         *     ``wait=true`` (ADR-007 §4) blocks in the threadpool for up to
+         *     ``ASYNC_WAIT_TIMEOUT_SECONDS`` and returns the exact synchronous
+         *     ``OptimizationResult`` contract; past the budget it degrades to
+         *     202 + the normal task envelope.
          */
         post: operations["solve_optimization_problem_async_api_v2_solve_async_post"];
         delete?: never;
@@ -18047,6 +18052,7 @@ export interface operations {
                 solver_name?: string | null;
                 source_id?: string | null;
                 source_kind?: string | null;
+                wait?: boolean;
                 workspace_id?: string | null;
             };
             header?: never;

@@ -23,6 +23,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Added
 
+- **`?wait=true` on the async solve (ADR-007, 2026-07-04)** — `POST /solve/async?wait=true` waits server-side (up to 100s) and returns the classic synchronous result directly — the "just give me the answer" contract for ERP/MCP callers — degrading to the normal task envelope if the solve needs longer; async responses now also carry the `execution_id` alongside the `task_id`.
 - **Conditional expressions in JModel (DSL #5, 2026-07-04)** — `if <condition> then <term> [else <term>]` selects coefficients and terms at compile time from indices and param values (`if setup[i] == 1 then fixed[i] * y[i]`); only the taken branch is evaluated, so sparse conditional data just works, and a missing `else` is 0.
 - **Set operators in JModel (DSL #4, 2026-07-04)** — `set S := A union B;`, `A diff B` and `A cross B` build sets from other sets (parentheses, literals and ranges allowed, `cross` concatenates tuple dimensions): define arc sets, exclusions and product index spaces from data instead of enumerating them by hand.
 - **Quadratic models in JModel (DSL #1, 2026-07-04)** — JModel now compiles quadratic terms (`x*y`, `x^2`, `(x + y)^2`) into solvable QP/MIQP/QCP/MIQCP problems: products distribute at grounding, anything beyond degree 2 is a clear compile error, and the solve path handles the rest (SCIP objectives via an epigraph reformulation; HiGHS now honestly rejects quadratics instead of silently dropping them; sensitivity is marked unavailable for quadratic models).

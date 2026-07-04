@@ -6,7 +6,7 @@ import logging
 import math
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -51,6 +51,11 @@ from app.shared.db import get_db
 from app.shared.utils.datetime_helpers import utcnow
 
 logger = logging.getLogger(__name__)
+
+#: ADR-007 §4: server-side wait budget for `POST /solve/async?wait=true`. Kept below
+#: the frontend proxy's 120s timeout so a long solve degrades to a clean
+#: 202 + task_id instead of an opaque proxy 500.
+ASYNC_WAIT_TIMEOUT_SECONDS = 100
 
 
 def _clamp_time_limit_to_plan(
@@ -628,6 +633,7 @@ def solve_optimization_problem_async(  # sync ON PURPOSE -> FastAPI threadpool
     # (api flapped "unhealthy", UI looked dead — live 2026-07-04).
     problem: OptimizationProblem,
     request: Request,
+    response: Response,
     db: Session = Depends(get_db),
     workspace_member: OptionalRequireSolver = None,
     solver_name: str | None = Query(default=None, max_length=32),
@@ -635,6 +641,7 @@ def solve_optimization_problem_async(  # sync ON PURPOSE -> FastAPI threadpool
     source_kind: str | None = Query(default=None, max_length=32),
     source_id: str | None = Query(default=None, max_length=64),
     dataset_id: str | None = Query(default=None, max_length=64),
+    wait: bool = Query(default=False),
 ) -> dict[str, Any]:
     """Queue an async solve. Pre-pays credits; refund happens in Celery on failure.
 
@@ -642,6 +649,11 @@ def solve_optimization_problem_async(  # sync ON PURPOSE -> FastAPI threadpool
     compiled against — provenance only, the problem body is already grounded.
     Async-only on purpose: the studio always solves async, and the sync path is
     slated for consolidation (async-only direction, 2026-06-30).
+
+    ``wait=true`` (ADR-007 §4) blocks in the threadpool for up to
+    ``ASYNC_WAIT_TIMEOUT_SECONDS`` and returns the exact synchronous
+    ``OptimizationResult`` contract; past the budget it degrades to
+    202 + the normal task envelope.
     """
     from app.domains.solver.tasks.solve_tasks import solve_async
     from app.services import workspace_credits_service
@@ -928,14 +940,107 @@ def solve_optimization_problem_async(  # sync ON PURPOSE -> FastAPI threadpool
         )
         db.rollback()  # Non-critical: poll will still work via Celery
 
-    return {
+    task_envelope = {
         "task_id": task.id,
+        # ADR-007 §6: the ModelExecution row id is first-class in the async contract
+        # (additive) — task_id keys Celery/WS, execution_id keys history/refunds.
+        "execution_id": execution_id,
         "status": "pending",
         "message": "Task queued for processing",
         "ws_url": f"/api/v2/ws/executions/{task.id}",
         "poll_url": f"/api/v2/solve/async/{task.id}",
         "estimated_credits": credits_needed,
     }
+    if not wait:
+        return task_envelope
+    return _wait_for_async_result(
+        db=db,
+        org_id=org.id,
+        task=task,
+        execution_id=execution_id,
+        credits_needed=credits_needed,
+        solver_used=effective_async_solver,
+        auto_route_reason=async_auto_reason,
+        fallback_triggered=async_fallback_triggered,
+        task_envelope=task_envelope,
+        response=response,
+    )
+
+
+def _wait_for_async_result(
+    *,
+    db: Session,
+    org_id: str,
+    task: Any,
+    execution_id: str,
+    credits_needed: int,
+    solver_used: str,
+    auto_route_reason: str | None,
+    fallback_triggered: bool,
+    task_envelope: dict[str, Any],
+    response: Response,
+) -> dict[str, Any]:
+    """Bounded server-side wait mapping the worker envelope to the SYNC contract.
+
+    ADR-007 §4: the caller ran the exact enqueue path (pre-pay, provenance,
+    pending row); this helper only waits and reshapes. The worker's
+    ``OptimizationResult`` carries schema defaults for ``execution_id`` /
+    ``credits_used`` / ``credits_remaining`` (the sync orchestrator used to inject
+    them), so they are injected here. Runs in the threadpool — the enclosing
+    handler is a sync ``def`` on purpose; a blocking ``get`` must never sit on
+    the event loop.
+    """
+    from celery.exceptions import TimeoutError as CeleryTimeoutError  # noqa: PLC0415
+
+    try:
+        payload = task.get(timeout=ASYNC_WAIT_TIMEOUT_SECONDS, propagate=False)
+    except CeleryTimeoutError:
+        # Degrade to the plain async envelope: the solve keeps running, the
+        # caller polls/reconnects like any async client (ADR-007 §4).
+        response.status_code = status.HTTP_202_ACCEPTED
+        return {
+            **task_envelope,
+            "message": (
+                "Solve still running after the wait budget — poll poll_url or "
+                "subscribe to ws_url for the result."
+            ),
+        }
+
+    if isinstance(payload, BaseException):
+        # Task hard-killed or crashed before its own error handling: the reaper
+        # reconciles the row + refund idempotently; report the sync error shape.
+        result = OptimizationResult(
+            status=SolverStatus.ERROR,
+            solve_time_seconds=0.0,
+            error_message=f"Solve task failed: {payload}",
+            credits_used=0,
+        )
+    elif payload.get("status") == "success":
+        result = OptimizationResult(**payload["result"])
+        result.credits_used = credits_needed
+    else:
+        # Solver-level error: the worker already refunded the prepaid credits.
+        result = OptimizationResult(
+            status=SolverStatus.ERROR,
+            solve_time_seconds=0.0,
+            error_message=str(payload.get("error") or "Solve failed"),
+            credits_used=0,
+        )
+
+    result.execution_id = execution_id
+    result.credits_remaining = (
+        db.query(Organization.credits_balance).filter(Organization.id == org_id).scalar()
+    )
+    envelope = payload if isinstance(payload, dict) else {}
+    result.solver_used = envelope.get("solver_used") or solver_used
+    result.auto_route_reason = envelope.get("auto_route_reason") or auto_route_reason
+    warning = envelope.get("warning")
+    if warning is None and fallback_triggered:
+        # Same message the sync route surfaces on a Hexaly→SCIP fallback.
+        warning = "Hexaly temporarily unavailable; solved with SCIP (quadratic quality may differ)"
+    if warning is not None:
+        result.warning = warning
+    return result.model_dump(mode="json")
 
 
 @router.get("/async/{task_id}")
