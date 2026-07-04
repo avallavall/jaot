@@ -196,9 +196,11 @@ def test_unknown_symbol_raises():
         compile_jmodel("var x >= 0; minimize obj: x + y; subject to c: x >= 1;")
 
 
-def test_nonlinear_term_rejected():
-    with pytest.raises(JModelError, match="nonlinear"):
-        compile_jmodel("var x >= 0; var y >= 0; minimize obj: x * y; subject to c: x >= 1;")
+def test_degree_beyond_two_rejected():
+    with pytest.raises(JModelError, match="degree greater than 2"):
+        compile_jmodel(
+            "var x >= 0; var y >= 0; var z >= 0;\nminimize obj: x * y * z; subject to c: x >= 1;"
+        )
 
 
 def test_param_missing_index_value_raises():
@@ -1058,9 +1060,7 @@ def test_range_endpoints_must_be_integers():
 
 def test_range_beyond_budget_rejected():
     with pytest.raises(JModelError, match="grounded-element budget"):
-        compile_jmodel(
-            "set T := 1..99999999;\nvar x{T} binary;\nminimize o: sum{t in T} x[t];"
-        )
+        compile_jmodel("set T := 1..99999999;\nvar x{T} binary;\nminimize o: sum{t in T} x[t];")
 
 
 def test_range_set_body_must_be_braces_or_range():
@@ -1093,3 +1093,177 @@ def test_range_set_solves_to_known_optimum():
     assert result.status.value == "optimal"
     assert result.objective_value is not None
     assert abs(result.objective_value - 3.0) < 1e-6
+
+
+# --------------------------------------------------------------------------- #
+# Quadratic terms (DSL-expressivity #1) — x*y, x^2, degree-2 cap
+# --------------------------------------------------------------------------- #
+
+
+def test_variable_product_emits_bilinear_term():
+    prob = compile_jmodel(
+        "var x >= 0; var y >= 0;\nminimize obj: x * y;\nsubject to c: x + y >= 2;"
+    )
+    assert prob.objective.expression == "x*y"
+
+
+def test_square_via_caret_and_double_star():
+    caret = compile_jmodel("var x >= 0;\nminimize obj: x^2;\nsubject to c: x >= 1;")
+    stars = compile_jmodel("var x >= 0;\nminimize obj: x**2;\nsubject to c: x >= 1;")
+    assert caret.objective.expression == "x^2"
+    assert stars.model_dump() == caret.model_dump()
+
+
+def test_squared_binomial_distributes():
+    prob = compile_jmodel(
+        "var x >= 0; var y >= 0;\nminimize obj: (x + y)^2;\nsubject to c: x + y >= 1;"
+    )
+    assert prob.objective.expression == "x^2 + 2*x*y + y^2"
+
+
+def test_bilinear_pair_consolidates_regardless_of_order():
+    prob = compile_jmodel(
+        "var x >= 0; var y >= 0;\nminimize obj: x*y + y*x;\nsubject to c: x >= 1;"
+    )
+    assert prob.objective.expression == "2*x*y"
+
+
+def test_quadratic_coefficients_fold():
+    prob = compile_jmodel(
+        "var x >= 0; var y >= 0;\nminimize obj: 2 * x * 3 * y;\nsubject to c: x >= 1;"
+    )
+    assert prob.objective.expression == "6*x*y"
+
+
+def test_indexed_sum_of_squares():
+    prob = compile_jmodel(
+        """
+        set I := {a, b};
+        param w{I} := a 2, b 3;
+        var x{I} >= 0;
+        minimize obj: sum{i in I} w[i] * x[i]^2;
+        subject to c: sum{i in I} x[i] >= 1;
+        """
+    )
+    assert prob.objective.expression == "2*x_a^2 + 3*x_b^2"
+
+
+def test_quadratic_constraint_emitted():
+    prob = compile_jmodel(
+        "var x >= 0; var y >= 0;\nminimize obj: x + y;\nsubject to c: x * y >= 4;"
+    )
+    assert prob.constraints[0].expression == "x*y >= 4"
+
+
+def test_mixed_linear_and_quadratic_terms_keep_order():
+    prob = compile_jmodel("var x >= 0;\nminimize obj: 3*x + x^2;\nsubject to c: x >= 1;")
+    # linear terms first, then quadratic — deterministic emission
+    assert prob.objective.expression == "3*x + x^2"
+
+
+def test_param_squared_is_a_constant():
+    prob = compile_jmodel(
+        "param k := 3;\nvar x >= 0;\nminimize obj: k^2 * x;\nsubject to c: x >= 1;"
+    )
+    assert prob.objective.expression == "9*x"
+
+
+def test_cancelled_quadratic_row_is_dropped():
+    prob = compile_jmodel(
+        "var x >= 0; var y >= 0;\nminimize obj: x + y;\n"
+        "subject to gone: x*y - x*y >= -1;\nsubject to keep: x >= 1;"
+    )
+    assert [c.name for c in prob.constraints] == ["keep"]
+
+
+@pytest.mark.parametrize(
+    "objective",
+    [
+        "x * y * z",  # triple product
+        "x^2 * y",  # square times variable
+        "(x * y)^2",  # square of a bilinear
+        "(x + y)^2 * z",  # quadratic times variable
+    ],
+)
+def test_degree_beyond_two_is_structured_error(objective):
+    with pytest.raises(JModelError, match="degree greater than 2"):
+        compile_jmodel(
+            "var x >= 0; var y >= 0; var z >= 0;\n"
+            f"minimize obj: {objective};\nsubject to c: x >= 1;"
+        )
+
+
+def test_exponent_out_of_range_rejected():
+    with pytest.raises(JModelError, match="out of range"):
+        compile_jmodel("var x >= 0;\nminimize obj: x^3;\nsubject to c: x >= 1;")
+    with pytest.raises(JModelError, match="out of range"):
+        compile_jmodel("var x >= 0;\nminimize obj: x^0;\nsubject to c: x >= 1;")
+
+
+def test_exponent_must_be_integer_literal():
+    with pytest.raises(JModelError, match="positive integer literal"):
+        compile_jmodel("var x >= 0;\nminimize obj: x^1.5;\nsubject to c: x >= 1;")
+
+
+def test_chained_exponents_rejected():
+    with pytest.raises(JModelError, match="chained exponents"):
+        compile_jmodel("var x >= 0;\nminimize obj: x^2^2;\nsubject to c: x >= 1;")
+
+
+def test_exponent_one_is_the_identity():
+    prob = compile_jmodel("var x >= 0;\nminimize obj: x^1;\nsubject to c: x >= 1;")
+    assert prob.objective.expression == "x"
+
+
+def test_unary_minus_binds_looser_than_power():
+    prob = compile_jmodel("var x >= 0;\nmaximize obj: -x^2 + 4*x;\nsubject to c: x <= 3;")
+    # -x^2 must ground as -(x^2), not (-x)^2
+    assert prob.objective.expression == "4*x - x^2"
+
+
+def test_quadratic_lowering_is_deterministic():
+    src = (
+        "set I := {a, b};\nvar x{I} >= 0;\n"
+        "minimize obj: sum{i in I} x[i]^2 + x[a]*x[b];\nsubject to c: x[a] >= 1;"
+    )
+    assert compile_jmodel(src).model_dump() == compile_jmodel(src).model_dump()
+
+
+def test_compiled_quadratic_classifies_as_qp_and_miqp():
+    from app.domains.solver.services import ProblemClass, classify
+    from app.domains.solver.services.expression_parser import ExpressionParser
+
+    qp = compile_jmodel(
+        "var x >= 0; var y >= 0;\nminimize obj: x^2 + y^2;\nsubject to c: x + y >= 4;"
+    )
+    assert classify(qp, ExpressionParser()) == ProblemClass.QP
+
+    miqp = compile_jmodel(
+        "var x integer >= 0; var y integer >= 0;\nmaximize obj: x*y;\nsubject to c: x + y <= 10;"
+    )
+    assert classify(miqp, ExpressionParser()) == ProblemClass.MIQP
+
+
+def test_quadratic_models_solve_to_known_optima():
+    from app.domains.solver.adapters.scip import SCIPAdapter
+
+    # convex QP: min x^2 + y^2 s.t. x + y >= 4 -> x = y = 2, objective 8
+    qp = SCIPAdapter().solve(
+        compile_jmodel(
+            "var x >= 0; var y >= 0;\nminimize obj: x^2 + y^2;\nsubject to c: x + y >= 4;"
+        )
+    )
+    assert qp.status.value == "optimal"
+    assert qp.objective_value is not None
+    assert abs(qp.objective_value - 8.0) < 1e-5
+
+    # MIQP: max x*y s.t. x + y <= 10, integers -> x = y = 5, objective 25
+    miqp = SCIPAdapter().solve(
+        compile_jmodel(
+            "var x integer >= 0 <= 10; var y integer >= 0 <= 10;\n"
+            "maximize obj: x*y;\nsubject to c: x + y <= 10;"
+        )
+    )
+    assert miqp.status.value == "optimal"
+    assert miqp.objective_value is not None
+    assert abs(miqp.objective_value - 25.0) < 1e-5

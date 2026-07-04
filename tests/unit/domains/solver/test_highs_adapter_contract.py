@@ -145,3 +145,34 @@ class TestHiGHSAdapterContract:
         result = HiGHSAdapter().solve(_mip_problem())
         assert result.status == SolverStatus.OPTIMAL
         assert result.sensitivity is None
+
+    def test_highs_rejects_quadratic_instead_of_silently_relaxing(self) -> None:
+        """A quadratic model forced onto HiGHS must be an explicit error result —
+        never a silently-solved linear relaxation (dropped quadratic terms)."""
+        from app.domains.solver.adapters.highs import HiGHSAdapter  # noqa: PLC0415
+
+        two_vars = [
+            Variable(name="x", type=VariableType.CONTINUOUS, lower_bound=0.0),
+            Variable(name="y", type=VariableType.CONTINUOUS, lower_bound=0.0),
+        ]
+        quad_objective = OptimizationProblem(
+            name="qp_objective",
+            variables=list(two_vars),
+            constraints=[Constraint(expression="x + y >= 4")],
+            objective=Objective(expression="x*x + y*y", sense="minimize"),
+            options=SolverOptions(time_limit_seconds=30.0, verbose=False),
+        )
+        result = HiGHSAdapter().solve(quad_objective)
+        assert result.status == SolverStatus.ERROR
+        assert "linear problems only" in (result.error_message or "")
+
+        quad_constraint = OptimizationProblem(
+            name="qp_constraint",
+            variables=list(two_vars),
+            constraints=[Constraint(expression="x*y >= 4")],
+            objective=Objective(expression="x + y", sense="minimize"),
+            options=SolverOptions(time_limit_seconds=30.0, verbose=False),
+        )
+        result = HiGHSAdapter().solve(quad_constraint)
+        assert result.status == SolverStatus.ERROR
+        assert "linear problems only" in (result.error_message or "")

@@ -31,6 +31,13 @@ Ranges (DSL-expressivity #2): ``set T := 1..96;`` declares the 1-dimensional int
 members ``1..96`` inclusive, exactly as the equivalent brace literal would. Endpoints
 are (optionally signed) integer literals; an empty (descending) range is an error.
 
+Quadratic terms (DSL-expressivity #1): products of two variables (``x*y``, including
+distributed products of linear sub-expressions like ``(x + y)^2``) and squares
+(``x^2`` / ``x**2``) ground into degree-2 terms and are emitted as ``v1*v2`` /
+``v^2`` strings — the flat ``ExpressionParser`` parses both, ``classify()`` reports
+QP/MIQP/QCP/MIQCP, and the capable solvers (SCIP, Hexaly) build them natively.
+Anything beyond total degree 2 is a structured compile error.
+
 Hardening guarantees (all violations raise :class:`JModelError`, never a raw exception):
 
 - every referenced set/param/variable must be declared; every resolved index member must
@@ -232,7 +239,7 @@ _TOKEN_SPEC: list[tuple[str, str]] = [
     ("WS", r"[ \t\r\n]+"),
     ("COMMENT", r"#[^\n]*"),
     ("NUM", r"\d+\.\d+|\.\d+|\d+"),
-    ("OP", r":=|<=|>=|==|!=|\.\.|[<>=]|[-+*{}\[\](),;:]"),
+    ("OP", r":=|<=|>=|==|!=|\.\.|\*\*|[<>=]|[-+*^{}\[\](),;:]"),
     ("IDENT", r"[A-Za-z_][A-Za-z0-9_]*"),
 ]
 _MASTER_RE = re.compile("|".join(f"(?P<{name}>{pat})" for name, pat in _TOKEN_SPEC))
@@ -305,7 +312,14 @@ class Sum:
     pos: int = 0
 
 
-Expr = Num | Ref | Neg | BinOp | Sum
+@dataclass
+class Pow:
+    base: Expr
+    exponent: int
+    pos: int = 0
+
+
+Expr = Num | Ref | Neg | BinOp | Sum | Pow
 
 
 @dataclass
@@ -877,15 +891,23 @@ class _Parser:
         tok = self._peek()
         if tok.kind == "OP" and tok.value == "-":
             self._advance()
+            # unary minus binds LOOSER than '^' (as in AMPL): -x^2 == -(x^2)
             return Neg(self._parse_factor())
         if tok.kind == "OP" and tok.value == "+":
             self._advance()
             return self._parse_factor()
         if tok.kind == "OP" and tok.value == "(":
+            # handled here (not in _parse_primary) to keep the recursion frames per
+            # nesting level unchanged — _MAX_EXPR_DEPTH is calibrated against Python's
+            # own recursion limit.
             self._advance()
             node = self._parse_expr()
             self._expect_op(")")
-            return node
+            return self._maybe_power(node)
+        return self._maybe_power(self._parse_primary())
+
+    def _parse_primary(self) -> Expr:
+        tok = self._peek()
         if tok.kind == "NUM":
             self._advance()
             return Num(self._finite_number(tok, tok.value))
@@ -906,6 +928,31 @@ class _Parser:
                 self._expect_op("]")
             return Ref(name, idx, tok.pos)
         raise self._error("expected a number, variable, param, sum, or '('")
+
+    def _maybe_power(self, base: Expr) -> Expr:
+        """An optional ``^ 2`` / ``** 2`` postfix on a primary (DSL-expressivity #1)."""
+        tok = self._peek()
+        if tok.kind != "OP" or tok.value not in ("^", "**"):
+            return base
+        self._advance()
+        exp_tok = self._advance()
+        if exp_tok.kind != "NUM" or not exp_tok.value.isdigit():
+            raise JModelError(
+                "exponent must be a positive integer literal "
+                f"(got {exp_tok.value or 'end of input'!r})",
+                position=exp_tok.pos,
+            )
+        exponent = int(exp_tok.value)
+        if exponent not in (1, 2):
+            raise JModelError(
+                f"exponent {exponent} is out of range — only ^1 and ^2 are supported "
+                "(the solve path caps expressions at degree 2)",
+                position=exp_tok.pos,
+            )
+        nxt = self._peek()
+        if nxt.kind == "OP" and nxt.value in ("^", "**"):
+            raise JModelError("chained exponents are not supported", position=nxt.pos)
+        return base if exponent == 1 else Pow(base, 2, tok.pos)
 
 
 # --------------------------------------------------------------------------- #
@@ -1026,10 +1073,16 @@ class _Ctx:
 
 @dataclass
 class _LinForm:
-    """A grounded linear form: sum(coeff * var) + const, ordered by first appearance."""
+    """A grounded degree-≤2 form: sum(coef*var) + sum(coef*var*var) + const.
+
+    ``quad`` keys are alphabetically-ordered variable pairs (``v1 <= v2``), so
+    ``x*y`` and ``y*x`` consolidate into one term; insertion order is preserved
+    for deterministic emission. Terms are ordered by first appearance.
+    """
 
     coeffs: dict[str, float]
     const: float
+    quad: dict[tuple[str, str], float] = field(default_factory=dict)
 
     @staticmethod
     def number(value: float) -> _LinForm:
@@ -1040,19 +1093,63 @@ class _LinForm:
         return _LinForm({name: 1.0}, 0.0)
 
     def is_const(self) -> bool:
-        return all(c == 0 for c in self.coeffs.values())
+        return all(c == 0 for c in self.coeffs.values()) and all(c == 0 for c in self.quad.values())
+
+    def is_linear(self) -> bool:
+        return all(c == 0 for c in self.quad.values())
 
     def scaled(self, k: float) -> _LinForm:
-        return _LinForm({v: c * k for v, c in self.coeffs.items()}, self.const * k)
+        return _LinForm(
+            {v: c * k for v, c in self.coeffs.items()},
+            self.const * k,
+            {pair: c * k for pair, c in self.quad.items()},
+        )
 
     def plus(self, other: _LinForm) -> _LinForm:
         merged = dict(self.coeffs)
         for var, coef in other.coeffs.items():
             merged[var] = merged.get(var, 0.0) + coef
-        return _LinForm(merged, self.const + other.const)
+        merged_quad = dict(self.quad)
+        for pair, coef in other.quad.items():
+            merged_quad[pair] = merged_quad.get(pair, 0.0) + coef
+        return _LinForm(merged, self.const + other.const, merged_quad)
 
     def minus(self, other: _LinForm) -> _LinForm:
         return self.plus(other.scaled(-1.0))
+
+
+def _multiply(left: _LinForm, right: _LinForm) -> _LinForm:
+    """Product of two grounded forms, capped at total degree 2.
+
+    Constants scale; linear × linear distributes into bilinear terms; anything
+    that would exceed degree 2 (a factor that is already quadratic) is a
+    structured compile error — the flat ``ExpressionParser`` caps at degree 2.
+    """
+    if left.is_const():
+        return right.scaled(left.const)
+    if right.is_const():
+        return left.scaled(right.const)
+    if not left.is_linear() or not right.is_linear():
+        raise JModelError(
+            "term of degree greater than 2 — a product may multiply at most two variables"
+        )
+    quad: dict[tuple[str, str], float] = {}
+    for v1, c1 in left.coeffs.items():
+        if c1 == 0:
+            continue
+        for v2, c2 in right.coeffs.items():
+            if c2 == 0:
+                continue
+            pair = (v1, v2) if v1 <= v2 else (v2, v1)
+            quad[pair] = quad.get(pair, 0.0) + c1 * c2
+    coeffs: dict[str, float] = {}
+    if right.const != 0:
+        for var, coef in left.coeffs.items():
+            coeffs[var] = coeffs.get(var, 0.0) + coef * right.const
+    if left.const != 0:
+        for var, coef in right.coeffs.items():
+            coeffs[var] = coeffs.get(var, 0.0) + coef * left.const
+    return _LinForm(coeffs, left.const * right.const, quad)
 
 
 def _mangle(name: str, members: list[str]) -> str:
@@ -1277,22 +1374,24 @@ def _ground(node: Expr, env: dict[str, str], ctx: _Ctx) -> _LinForm:
             return left.plus(right)
         if node.op == "-":
             return left.minus(right)
-        if left.is_const():
-            return right.scaled(left.const)
-        if right.is_const():
-            return left.scaled(right.const)
-        raise JModelError("nonlinear term (variable * variable) is out of scope")
+        return _multiply(left, right)
+    if isinstance(node, Pow):
+        base = _ground(node.base, env, ctx)
+        return _multiply(base, base)  # parser guarantees exponent == 2
     if isinstance(node, Sum):
         # Accumulate into one mutable dict — building an immutable _LinForm per term
         # would copy the growing dict on every step (quadratic in the sum's length).
         coeffs: dict[str, float] = {}
+        quad: dict[tuple[str, str], float] = {}
         const = 0.0
         for env2 in _iter_env(node.quals, env, ctx):
             form = _ground(node.body, env2, ctx)
             for var, coef in form.coeffs.items():
                 coeffs[var] = coeffs.get(var, 0.0) + coef
+            for pair, coef in form.quad.items():
+                quad[pair] = quad.get(pair, 0.0) + coef
             const += form.const
-        return _LinForm(coeffs, const)
+        return _LinForm(coeffs, const, quad)
     # Ref
     model = ctx.model
     if node.name in model.vars:
@@ -1350,6 +1449,12 @@ def _fmt_linform(lf: _LinForm, include_const: bool) -> str:
             continue
         magnitude = _fmt_num(abs(coef))
         term = var if abs(coef) == 1 else f"{magnitude}*{var}"
+        parts.append((coef < 0, term))
+    for (v1, v2), coef in lf.quad.items():
+        if coef == 0:
+            continue
+        base = f"{v1}^2" if v1 == v2 else f"{v1}*{v2}"
+        term = base if abs(coef) == 1 else f"{_fmt_num(abs(coef))}*{base}"
         parts.append((coef < 0, term))
     if include_const and lf.const != 0:
         parts.append((lf.const < 0, _fmt_num(abs(lf.const))))
@@ -1491,7 +1596,9 @@ def _lower(model: ModelAst, max_grounded_elements: int) -> OptimizationProblem:
                     position=con.pos,
                 )
             seen_constraints.add(flat_name)
-            lhs_str = _fmt_linform(_LinForm(combined.coeffs, 0.0), include_const=False)
+            lhs_str = _fmt_linform(
+                _LinForm(combined.coeffs, 0.0, combined.quad), include_const=False
+            )
             rhs_num = _fmt_num(-combined.const)
             constraints.append(
                 Constraint(

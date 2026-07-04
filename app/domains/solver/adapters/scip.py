@@ -20,6 +20,7 @@ from pyscipopt import SCIP_EVENTTYPE, SCIP_PARAMSETTING, Eventhdlr, Model  # noq
 from app.domains.solver.adapters._scip_expression import (
     anchor_constant_expr,
     build_scip_expression as _build_scip_expression_impl,
+    set_scip_objective,
 )
 from app.domains.solver.adapters._scip_model_builder import (
     build_scip_model as _build_scip_model_impl,
@@ -437,7 +438,7 @@ class SCIPAdapter:
         obj_expr = self._build_expression(parsed, scip_vars)
 
         sense = "minimize" if objective.sense.value == "minimize" else "maximize"
-        model.setObjective(obj_expr, sense=sense)
+        set_scip_objective(model, obj_expr, sense, is_linear=parsed.is_linear())
 
         logger.debug("Set objective: %s %s", sense, objective.expression)
 
@@ -770,6 +771,21 @@ class SCIPAdapter:
             logger.debug("MIP gap extraction failed", exc_info=True)
             return None
 
+    def _is_quadratic_problem(self, problem: OptimizationProblem) -> bool:
+        """True when the objective or any constraint carries a degree-2 term."""
+        variable_names = {v.name for v in problem.variables}
+        parsed_obj = self._parser.parse_expression(
+            problem.objective.expression, known_variables=variable_names
+        )
+        if not parsed_obj.is_linear():
+            return True
+        return any(
+            not self._parser.parse_constraint(
+                c.expression, known_variables=variable_names
+            ).lhs.is_linear()
+            for c in problem.constraints
+        )
+
     def _compute_sensitivity(
         self,
         model: Model,
@@ -777,8 +793,19 @@ class SCIPAdapter:
         constraint_refs: dict[str, Any],
         var_refs: dict[str, Any] | None = None,
     ) -> SensitivityResult | None:
-        """Extract sensitivity analysis (exact for LP, approximate for MIP)."""
+        """Extract sensitivity analysis (exact for LP, approximate for MIP).
+
+        Quadratic problems are excluded: LP shadow prices / reduced costs do not
+        apply to a quadratic model, and the "LP relaxation" rebuilt for MIPs would
+        silently be a QP — better an honest absence than misleading duals.
+        """
         try:
+            if self._is_quadratic_problem(problem):
+                return SensitivityResult(
+                    constraints=[],
+                    is_approximate=True,
+                    note="Sensitivity analysis is not available for quadratic problems.",
+                )
             if self._has_integer_variables(problem):
                 return self._extract_sensitivity_for_mip(problem)
             return self._extract_sensitivity(

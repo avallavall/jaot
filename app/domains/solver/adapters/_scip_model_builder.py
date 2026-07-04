@@ -17,6 +17,7 @@ from pyscipopt import Model
 from app.domains.solver.adapters._scip_expression import (
     anchor_constant_expr,
     build_scip_expression,
+    set_scip_objective,
 )
 from app.domains.solver.services.expression_parser import ExpressionParser
 from app.schemas.optimization import (
@@ -137,4 +138,4 @@ def set_objective(
     )
     obj_expr = build_scip_expression(parsed, scip_vars)
     sense = "minimize" if objective.sense == ObjectiveSense.MINIMIZE else "maximize"
-    model.setObjective(obj_expr, sense=sense)
+    set_scip_objective(model, obj_expr, sense, is_linear=parsed.is_linear())

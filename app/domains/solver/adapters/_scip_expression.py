@@ -64,6 +64,35 @@ def build_scip_expression(
     return expr
 
 
+def set_scip_objective(
+    model: Any,
+    obj_expr: Any,
+    sense: str,
+    *,
+    is_linear: bool,
+) -> None:
+    """Set the objective, lowering a quadratic objective to its epigraph form.
+
+    pyscipopt's ``setObjective`` accepts LINEAR expressions only (it raises
+    "SCIP does not support nonlinear objective functions"); quadratic
+    *constraints*, however, are native. A degree-2 objective is therefore
+    reformulated the standard way: a free auxiliary variable ``t`` linked by
+    ``f(x) <= t`` (minimize) / ``f(x) >= t`` (maximize), with objective ``t``
+    — same optimum, same reported objective value. The auxiliary variable is
+    NOT registered in the caller's variable map, so it never leaks into
+    extracted solutions.
+    """
+    if is_linear:
+        model.setObjective(obj_expr, sense=sense)
+        return
+    aux = model.addVar(name="jaot_obj_epigraph", vtype="C", lb=None, ub=None)
+    if sense == "minimize":
+        model.addCons(obj_expr <= aux, name="jaot_obj_epigraph_link")
+    else:
+        model.addCons(obj_expr >= aux, name="jaot_obj_epigraph_link")
+    model.setObjective(aux, sense=sense)
+
+
 def anchor_constant_expr(
     expr: Any,
     scip_vars: dict[str, SCIPVariable],

@@ -568,3 +568,46 @@ class TestSolveTimeoutRefundIntegration:
         db_session.expire_all()
         updated = db_session.get(Organization, test_organization.id)
         assert updated.credits_balance == initial_balance
+
+
+class TestQuadraticSensitivityUnavailable:
+    """LP shadow prices / reduced costs do not apply to quadratic models — the
+    result must carry an honest "not available" note, never misleading duals."""
+
+    def test_qp_solves_but_sensitivity_is_an_honest_absence(self):
+        problem = OptimizationProblem(
+            name="qp_sensitivity",
+            variables=[
+                Variable(name="x", type=VariableType.CONTINUOUS, lower_bound=0.0),
+                Variable(name="y", type=VariableType.CONTINUOUS, lower_bound=0.0),
+            ],
+            constraints=[Constraint(name="c", expression="x + y >= 4")],
+            objective=Objective(expression="x*x + y*y", sense=ObjectiveSense.MINIMIZE),
+            options=SolverOptions(time_limit_seconds=30.0),
+        )
+        result = SCIPAdapter().solve(problem)
+        assert result.status == SolverStatus.OPTIMAL
+        assert result.objective_value is not None
+        assert abs(result.objective_value - 8.0) < 1e-5
+        assert result.sensitivity is not None
+        assert result.sensitivity.constraints == []
+        assert "quadratic" in (result.sensitivity.note or "")
+
+    def test_miqp_sensitivity_also_capped(self):
+        problem = OptimizationProblem(
+            name="miqp_sensitivity",
+            variables=[
+                Variable(name="x", type=VariableType.INTEGER, lower_bound=0.0, upper_bound=10.0),
+                Variable(name="y", type=VariableType.INTEGER, lower_bound=0.0, upper_bound=10.0),
+            ],
+            constraints=[Constraint(name="c", expression="x + y <= 10")],
+            objective=Objective(expression="x*y", sense=ObjectiveSense.MAXIMIZE),
+            options=SolverOptions(time_limit_seconds=30.0),
+        )
+        result = SCIPAdapter().solve(problem)
+        assert result.status == SolverStatus.OPTIMAL
+        assert result.objective_value is not None
+        assert abs(result.objective_value - 25.0) < 1e-5
+        assert result.sensitivity is not None
+        assert result.sensitivity.constraints == []
+        assert "quadratic" in (result.sensitivity.note or "")
