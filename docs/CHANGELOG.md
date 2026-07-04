@@ -71,6 +71,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Fixed
 
+- **"Run all scenarios" explains itself when the project has no JModel source (2026-07-04)** — Scenarios recompile the JModel formulation with each dataset's values; on a flat/imported model (already grounded) the button used to sit disabled with no hint. The section now says why and links to the JModel lens.
 - **A broken JModel/JSON editor no longer lets a tab switch solve the previous model silently (2026-07-03)** — A source that doesn't compile keeps solve/commit blocked even after leaving the lens (the block used to clear on unmount), and the broken text survives the round trip with its error. A broken or out-of-date JModel source is now explicitly marked "not applied"; a drifted source locks read-only until you explicitly recompile it, so replacing the newer model is always a deliberate act.
 - **Solves overcharged credits with default options (2026-07-02)** — When the default solve time limit rose to 300 s (relaxed limits), the credit formula still granted the free window only up to 60 s, so every solve using default options billed ~4 phantom "time-bonus" credits. The free threshold now tracks the actual default limit.
 - **Execution history could show another org's model name (2026-07-02)** — The run history resolves a model's name/author from a client-supplied source id; that lookup is now organization-scoped, so a run pointing at another org's project id can never surface that project's name or author.
