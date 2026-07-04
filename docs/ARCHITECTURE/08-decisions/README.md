@@ -12,6 +12,7 @@
 | **ADR-004** | Dynamic queue routing in the producer (no static `task_routes`) | 2026-04-17 | Phase 06 decisions D-01..D-03 |
 | **ADR-005** | Maintenance mode migration via DB flag (no header, no env var) | 2026-04-17 | Phase 06 decisions D-19..D-22 |
 | **ADR-006** | `ModelProject`: a single first-class model entity (full fusion of builder docs + marketplace models) | 2026-06-28 | [`ADR-006-model-project-unification.md`](ADR-006-model-project-unification.md) |
+| **ADR-007** | Async-only executions: one pipeline, one `ModelExecution` writer, one credit model, `?wait=true` for answer-only callers | 2026-07-04 | [`ADR-007-async-only-executions.md`](ADR-007-async-only-executions.md) |
 
 ## Decisions by phase
 
