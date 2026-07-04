@@ -437,7 +437,7 @@ async def solve_optimization_problem(
 
 
 @router.post("/validate", operation_id="validate_problem")
-async def validate_problem_endpoint(
+def validate_problem_endpoint(  # sync ON PURPOSE -> threadpool (CPU-bound, no awaits)
     problem: OptimizationProblem,
     request: Request,
 ) -> dict[str, Any]:
@@ -621,7 +621,11 @@ async def solve_multi_objective_endpoint(
 
 
 @router.post("/async", dependencies=[Depends(solve_maintenance_gate)])
-async def solve_optimization_problem_async(
+def solve_optimization_problem_async(  # sync ON PURPOSE -> FastAPI threadpool
+    # This handler awaits nothing and does real CPU work (tier caps, auto-routing,
+    # 27MB model_dump for Celery). As `async def` all of it ran ON the event loop:
+    # a burst of big scenario launches froze every other request incl. /health
+    # (api flapped "unhealthy", UI looked dead — live 2026-07-04).
     problem: OptimizationProblem,
     request: Request,
     db: Session = Depends(get_db),
