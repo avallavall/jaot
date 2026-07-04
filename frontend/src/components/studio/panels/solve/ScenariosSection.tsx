@@ -16,6 +16,11 @@ import { useProjectDatasets } from "../../datasets/useProjectDatasets";
 
 const POLL_MS = 5000;
 const DIFF_ROW_CAP = 50;
+// Launching is CLIENT-side work (compile -> download compiled problem -> upload to
+// /solve/async — up to ~31MB each way for the big TFM scenarios). Firing 16 at once
+// queued them behind the browser's ~6-connection limit for minutes; capping the
+// batch keeps each launch's vulnerable window short (live report 2026-07-04).
+const CONCURRENT_LAUNCHES = 3;
 
 interface DiffRow {
   name: string;
@@ -131,8 +136,7 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
     setDiff(null);
     const failures: Record<string, string> = {};
     setLaunchPhases(Object.fromEntries([...selected].map((id) => [id, "compiling"] as const)));
-    await Promise.all(
-      [...selected].map(async (dsId) => {
+    const launchOne = async (dsId: string) => {
         try {
           const compiled = await api.compileDsl(draftDslSource, dsId);
           if (!compiled.ok || !compiled.problem) {
@@ -163,12 +167,28 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
             return next;
           });
         }
-      }),
-    );
+    };
+    const ids = [...selected];
+    for (let i = 0; i < ids.length; i += CONCURRENT_LAUNCHES) {
+      await Promise.all(ids.slice(i, i + CONCURRENT_LAUNCHES).map(launchOne));
+    }
     setCompileFailures(failures);
     await refreshRuns();
     setLaunching(false);
   };
+
+  // A reload/close ABORTS in-flight launches (fetches die client-side): datasets
+  // still uploading silently fall back to "no runs" after F5 (live 2026-07-04).
+  // Ask the browser to confirm leaving while a batch is launching.
+  useEffect(() => {
+    if (!launching) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [launching]);
 
   // Solution diff for EXACTLY two selected datasets with completed latest runs.
   const comparable = useMemo(() => {

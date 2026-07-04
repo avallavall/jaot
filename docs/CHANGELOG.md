@@ -75,6 +75,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Fixed
 
+- **Launching many scenarios at once is survivable (2026-07-04)** — "Run all" launches at most 3 datasets at a time (big scenarios upload tens of MB each; 16 at once sat for minutes behind the browser's connection limit), and leaving/reloading the page while a batch is still launching now asks for confirmation instead of silently losing the not-yet-queued runs.
 - **Times shown one timezone off (2026-07-04)** — API timestamps (naive UTC) were parsed as local time, so every displayed date sat hours in the past ("hace 2 horas" on a run that just finished); all date displays now parse them as UTC.
 - **A burst of big solves froze the whole API (2026-07-04)** — the async-solve and validate handlers did CPU-bound work on the event loop; they now run in the threadpool, so health checks and the rest of the UI stay responsive while large problems are ingested.
 - **A failed autosave no longer sticks at "Error al guardar" (2026-07-04)** — it retries with the latest in-memory model every 10 seconds instead of waiting for the next edit.
