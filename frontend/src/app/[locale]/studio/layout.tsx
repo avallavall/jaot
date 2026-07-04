@@ -10,11 +10,10 @@ import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 /**
  * Studio shell — the "Model, Analyze & Solve" hub.
  *
- * List pages (`/studio`, `/studio/new`) render with the app sidebar.
- * Workspace pages (`/studio/<id>/...`) are full-screen (no sidebar) and wrapped
- * in a ReactFlowProvider so the Build/Canvas lens can mount.
- *
- * P0: additive + dark — reachable by URL only (not yet wired into the nav).
+ * List pages (`/studio`, `/studio/new`, `/studio/templates`) render with the app
+ * sidebar and normal page scroll. Workspace pages (`/studio/<modelId>/...`) are
+ * full-screen (no sidebar, `overflow-hidden`) and wrapped in a ReactFlowProvider
+ * so the Build/Canvas lens can mount.
  */
 export default function StudioLayout({
   children,
@@ -24,8 +23,13 @@ export default function StudioLayout({
   const pathname = usePathname();
   const navItems = useNavItems();
 
+  // Only `/studio/<modelId>/...` is the workspace; every static segment under
+  // /studio/ is a list page. Matching the segment (not the full path) keeps
+  // sub-routes like /studio/templates/... out of the clipped full-screen shell
+  // (the gallery rendered scroll-less inside it — live bug 2026-07-04).
+  const segment = pathname.split("/")[2] ?? "";
   const isWorkspacePage =
-    pathname.startsWith("/studio/") && pathname !== "/studio/new";
+    pathname.startsWith("/studio/") && segment !== "new" && segment !== "templates";
 
   if (isWorkspacePage) {
     return (

@@ -232,7 +232,29 @@ test.describe("Studio — critical path (guards live bugs A/B/C)", () => {
     await page.getByTestId("launcher-tile-template").click();
     await page.waitForURL(/\/studio\/templates$/, { timeout: NAV });
 
+    // The gallery is a LIST page: normal document scroll (the workspace shell's
+    // overflow-hidden used to swallow it — live bug 2026-07-04) so the 100+
+    // cards below the fold are reachable.
     const firstUse = page.locator('[data-testid^="use-template-"]').first();
+    await expect(firstUse).toBeVisible({ timeout: NAV });
+    expect(await page.locator('[data-testid^="use-template-"]').count()).toBeGreaterThan(20);
+    const scrollable = await page.evaluate(() => {
+      window.scrollTo(0, document.body.scrollHeight);
+      return window.scrollY > 0;
+    });
+    expect(scrollable).toBeTruthy();
+    await page.evaluate(() => window.scrollTo(0, 0));
+
+    // Search narrows on the text the user SEES and clears back to the full grid.
+    const firstTitle = (await page.locator("h3").first().innerText()).trim();
+    const search = page.getByTestId("studio-templates-search");
+    await search.fill("zzz-no-such-template");
+    await expect(page.getByTestId("studio-templates-no-matches")).toBeVisible({ timeout: NAV });
+    await search.fill(firstTitle);
+    await expect(page.locator("h3").filter({ hasText: firstTitle }).first()).toBeVisible({
+      timeout: NAV,
+    });
+    await search.fill("");
     await expect(firstUse).toBeVisible({ timeout: NAV });
     await firstUse.click();
 

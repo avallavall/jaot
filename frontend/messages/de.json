@@ -58,6 +58,8 @@
     "importFailed": "Diese Datei konnte nicht gelesen werden. Verwende MPS, LP, CIP oder JSON.",
     "templatesTitle": "Vorlagen",
     "templatesSubtitle": "Wählen Sie ein fertiges Modell als Ausgangspunkt — es öffnet sich im Arbeitsbereich, bereit zum Bearbeiten.",
+    "templatesSearchPlaceholder": "Vorlagen suchen (Name, Beschreibung, Kategorie)...",
+    "templatesNoMatches": "Keine Vorlage entspricht \"{query}\".",
     "useTemplate": "Verwenden",
     "templatesEmpty": "Noch keine Vorlagen verfügbar.",
     "tabBuild": "Erstellen",

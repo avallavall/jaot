@@ -58,6 +58,8 @@
     "importFailed": "Couldn't read that file. Use MPS, LP, CIP, or JSON.",
     "templatesTitle": "Templates",
     "templatesSubtitle": "Pick a ready-made model as your starting point — it opens in the workspace, yours to edit.",
+    "templatesSearchPlaceholder": "Search templates (name, description, category)...",
+    "templatesNoMatches": "No template matches \"{query}\".",
     "useTemplate": "Use",
     "templatesEmpty": "No templates available yet.",
     "tabBuild": "Build",

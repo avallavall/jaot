@@ -58,6 +58,8 @@
     "importFailed": "Impossible de lire ce fichier. Utilisez MPS, LP, CIP ou JSON.",
     "templatesTitle": "Modèles",
     "templatesSubtitle": "Choisissez un modèle prêt à l'emploi comme point de départ : il s'ouvre dans l'espace de travail, à vous de l'éditer.",
+    "templatesSearchPlaceholder": "Rechercher des modèles (nom, description, catégorie)...",
+    "templatesNoMatches": "Aucun modèle ne correspond à \"{query}\".",
     "useTemplate": "Utiliser",
     "templatesEmpty": "Aucun modèle disponible pour le moment.",
     "tabBuild": "Construire",

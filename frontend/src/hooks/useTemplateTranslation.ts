@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
  * the translation key is "ad_campaign_budget".
  * Community or unknown IDs are returned as-is (will gracefully fallback).
  */
-function toTemplateKey(catalogId: string): string {
+export function toTemplateKey(catalogId: string): string {
   return catalogId.startsWith("official_")
     ? catalogId.slice("official_".length)
     : catalogId;

@@ -58,6 +58,8 @@
     "importFailed": "No s'ha pogut llegir aquest fitxer. Usa MPS, LP, CIP o JSON.",
     "templatesTitle": "Plantilles",
     "templatesSubtitle": "Tria un model ja fet com a punt de partida: s'obre a l'espai de treball, teu per editar.",
+    "templatesSearchPlaceholder": "Cerca plantilles (nom, descripció, categoria)...",
+    "templatesNoMatches": "Cap plantilla coincideix amb \"{query}\".",
     "useTemplate": "Usa",
     "templatesEmpty": "Encara no hi ha plantilles disponibles.",
     "tabBuild": "Construeix",

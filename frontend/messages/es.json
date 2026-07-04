@@ -58,6 +58,8 @@
     "importFailed": "No se pudo leer ese archivo. Usa MPS, LP, CIP o JSON.",
     "templatesTitle": "Plantillas",
     "templatesSubtitle": "Elige un modelo ya hecho como punto de partida: se abre en el espacio de trabajo, tuyo para editar.",
+    "templatesSearchPlaceholder": "Buscar plantillas (nombre, descripción, categoría)...",
+    "templatesNoMatches": "Ninguna plantilla coincide con \"{query}\".",
     "useTemplate": "Usar",
     "templatesEmpty": "Aún no hay plantillas disponibles.",
     "tabBuild": "Construir",

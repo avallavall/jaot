@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+import { Search } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import type { TemplateSummary } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useTemplateTranslation } from "@/hooks/useTemplateTranslation";
+import { useTemplateTranslation, toTemplateKey } from "@/hooks/useTemplateTranslation";
 import { getErrorMessage } from "@/lib/errors";
 
 interface TemplateCardProps {
@@ -65,11 +67,14 @@ function TemplateCard({ template, onUse, busy }: TemplateCardProps) {
  */
 export default function StudioTemplatesPage() {
   const t = useTranslations("studio");
+  const tt = useTranslations("templates");
+  const tb = useTranslations("builder");
   const router = useRouter();
   const { activeWorkspaceId } = useAuth();
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [creatingId, setCreatingId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     api
@@ -78,6 +83,26 @@ export default function StudioTemplatesPage() {
       .catch(() => setTemplates([]))
       .finally(() => setIsLoading(false));
   }, []);
+
+  // Client-side search over what the user actually SEES: the localized name,
+  // description and category (falling back to the raw English fields), so
+  // "mochila" finds Knapsack on the es locale — plus the raw id for power users.
+  const visibleTemplates = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return templates;
+    return templates.filter((tpl) => {
+      const key = toTemplateKey(tpl.id);
+      const name = tt.has(`${key}.displayName`) ? tt(`${key}.displayName`) : tpl.display_name;
+      const desc = tt.has(`${key}.description`)
+        ? tt(`${key}.description`)
+        : (tpl.description ?? "");
+      const categoryKey = `templates.categories.${tpl.category}`;
+      const category = tb.has(categoryKey) ? tb(categoryKey) : tpl.category;
+      return `${name} ${desc} ${category} ${tpl.display_name} ${tpl.id}`
+        .toLowerCase()
+        .includes(q);
+    });
+  }, [templates, query, tt, tb]);
 
   const handleUse = async (id: string) => {
     if (creatingId) return;
@@ -98,6 +123,17 @@ export default function StudioTemplatesPage() {
         <p className="text-muted-foreground text-sm mt-1">{t("templatesSubtitle")}</p>
       </div>
 
+      <div className="relative mb-4 max-w-md">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t("templatesSearchPlaceholder")}
+          className="pl-9"
+          data-testid="studio-templates-search"
+        />
+      </div>
+
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
@@ -113,9 +149,16 @@ export default function StudioTemplatesPage() {
         <div className="border-2 border-dashed rounded-xl p-12 text-center">
           <p className="text-muted-foreground">{t("templatesEmpty")}</p>
         </div>
+      ) : visibleTemplates.length === 0 ? (
+        <div
+          className="border-2 border-dashed rounded-xl p-12 text-center"
+          data-testid="studio-templates-no-matches"
+        >
+          <p className="text-muted-foreground">{t("templatesNoMatches", { query })}</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {templates.map((tpl) => (
+          {visibleTemplates.map((tpl) => (
             <TemplateCard
               key={tpl.id}
               template={tpl}
