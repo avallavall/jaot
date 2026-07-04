@@ -27,7 +27,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from app.domains.solver.adapters.base import HEXALY_SOLVER_NAME
-from app.schemas.optimization import OptimizationProblem, VariableType
+from app.schemas.optimization import OptimizationProblem
 
 if TYPE_CHECKING:  # pragma: no cover
     from app.domains.solver.services.expression_parser import ExpressionParser
@@ -41,30 +41,6 @@ AUTO_REASON_LP = "lp_routed_to_highs"
 AUTO_REASON_QUADRATIC = "quadratic_routed_to_hexaly"
 AUTO_REASON_FALLBACK = "hexaly_unavailable_fallback"
 AUTO_REASON_MIP = "milp_routed_to_scip"
-
-
-def _has_quadratic(problem: OptimizationProblem, parser: ExpressionParser) -> bool:
-    """True iff any term (objective or constraint LHS) references >=2 variables.
-
-    Uses :meth:`ParsedExpression.is_linear` as the single source of truth
-    (Pitfall 5 — x*x / x**2 / 2*x*x all consolidate to one bilinear term
-    after parsing; ``is_linear`` returns False for any term with
-    ``len(variables) > 1``).
-    """
-    known = [v.name for v in problem.variables]
-    parsed_obj = parser.parse_expression(problem.objective.expression, known_variables=known)
-    if not parsed_obj.is_linear():
-        return True
-    for constraint in problem.constraints:
-        parsed_c = parser.parse_constraint(constraint.expression, known_variables=known)
-        if not parsed_c.lhs.is_linear():
-            return True
-    return False
-
-
-def _is_pure_lp(problem: OptimizationProblem) -> bool:
-    """True when every decision variable is CONTINUOUS (no INTEGER / BINARY)."""
-    return all(v.type == VariableType.CONTINUOUS for v in problem.variables)
 
 
 def select_solver(

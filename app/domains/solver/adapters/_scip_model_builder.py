@@ -57,7 +57,7 @@ def build_scip_model(
     model.hideOutput()
 
     scip_vars = create_variables(model, problem.variables)
-    variable_names = [v.name for v in problem.variables]
+    variable_names = {v.name for v in problem.variables}
     constraint_refs = add_constraints(model, scip_vars, problem.constraints, variable_names, parser)
     set_objective(model, scip_vars, problem.objective, variable_names, parser)
 
@@ -88,7 +88,7 @@ def add_constraints(
     model: Model,
     scip_vars: dict[str, Any],
     constraints: list[Constraint],
-    variable_names: list[str],
+    variable_names: set[str],
     parser: ExpressionParser,
 ) -> dict[str, Any]:
     """Parse and add constraints to a SCIP model."""
@@ -127,7 +127,7 @@ def set_objective(
     model: Model,
     scip_vars: dict[str, Any],
     objective: Any,
-    variable_names: list[str],
+    variable_names: set[str],
     parser: ExpressionParser,
 ) -> None:
     """Parse and set the objective function on a SCIP model."""

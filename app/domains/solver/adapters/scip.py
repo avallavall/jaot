@@ -261,7 +261,7 @@ class SCIPAdapter:
         model = Model(problem.name or "optimization_problem")
         self._configure_solver(model, problem)
         scip_vars = self._create_variables(model, problem.variables)
-        variable_names = [v.name for v in problem.variables]
+        variable_names = {v.name for v in problem.variables}
         constraint_refs = self._add_constraints(
             model, scip_vars, problem.constraints, variable_names
         )
@@ -381,7 +381,7 @@ class SCIPAdapter:
         model: Model,
         scip_vars: dict[str, Any],
         constraints: list[Any],
-        variable_names: list[str],
+        variable_names: set[str],
     ) -> dict[str, Any]:
         """Add constraints to model and return constraint references for sensitivity analysis."""
         constraint_refs: dict[str, Any] = {}
@@ -426,7 +426,7 @@ class SCIPAdapter:
         model: Model,
         scip_vars: dict[str, Any],
         objective: Any,
-        variable_names: list[str],
+        variable_names: set[str],
     ) -> None:
         """Set the objective function."""
         parsed = self._parser.parse_expression(
@@ -610,7 +610,7 @@ class SCIPAdapter:
             lp_model.hideOutput()
             lp_model.setParam("display/verblevel", 0)
 
-            variable_names = [v.name for v in problem.variables]
+            variable_names = {v.name for v in problem.variables}
             lp_vars = self._create_lp_relaxation_vars(lp_model, problem)
             lp_constraint_refs = self._rebuild_lp_constraints(
                 lp_model, problem, lp_vars, variable_names
@@ -661,7 +661,7 @@ class SCIPAdapter:
         lp_model: Model,
         problem: OptimizationProblem,
         lp_vars: dict[str, Any],
-        variable_names: list[str],
+        variable_names: set[str],
     ) -> dict[str, Any]:
         """Rebuild problem constraints on the LP relaxation model."""
         lp_constraint_refs: dict[str, Any] = {}
@@ -685,7 +685,7 @@ class SCIPAdapter:
         lp_model: Model,
         problem: OptimizationProblem,
         lp_vars: dict[str, Any],
-        variable_names: list[str],
+        variable_names: set[str],
     ) -> None:
         """Set the objective on the LP relaxation model."""
         parsed_obj = self._parser.parse_expression(

@@ -66,7 +66,9 @@ def classify(
 
         parser = ExpressionParser()
 
-    known = [v.name for v in problem.variables]
+    # A SET on purpose: the parser adopts it without copying, so classifying a
+    # 100k-constraint problem stays linear instead of O(constraints x variables).
+    known = {v.name for v in problem.variables}
 
     quad_obj = not parser.parse_expression(
         problem.objective.expression, known_variables=known

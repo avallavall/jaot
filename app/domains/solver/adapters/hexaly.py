@@ -264,7 +264,7 @@ class HexalyAdapter:
 
         start_time = time.time()
 
-        known_variables = [v.name for v in problem.variables]
+        known_variables = {v.name for v in problem.variables}
 
         try:
             with hexaly_license_scope(effective_plaintext):
@@ -378,7 +378,7 @@ class HexalyAdapter:
         model: Any,
         hex_vars: dict[str, Any],
         constraint: Any,
-        known_variables: list[str],
+        known_variables: set[str],
         default_name: str,
     ) -> None:
         """Parse a constraint string and attach it to the Hexaly model.

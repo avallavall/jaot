@@ -59,7 +59,9 @@ def _band(score: int) -> str:
 def compute(problem: OptimizationProblem, *, content_hash: str | None = None) -> ModelStats:
     """Compute structural statistics + health for a validated ``OptimizationProblem``."""
     parser = ExpressionParser()
-    known = [v.name for v in problem.variables]
+    # A SET on purpose — the parser adopts it without copying (per-constraint
+    # set() rebuilds made stats on 100k-constraint models take minutes).
+    known = {v.name for v in problem.variables}
     warnings: list[str] = []
     hard_error = False
 
