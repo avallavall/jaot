@@ -38,6 +38,13 @@ distributed products of linear sub-expressions like ``(x + y)^2``) and squares
 QP/MIQP/QCP/MIQCP, and the capable solvers (SCIP, Hexaly) build them natively.
 Anything beyond total degree 2 is a structured compile error.
 
+Set operators (DSL-expressivity #4): ``set S := A union B;`` / ``A diff B`` /
+``A cross B`` define a COMPUTED set (``cross`` binds tighter; parentheses, literal
+and range atoms allowed). Operands must be declared earlier in the source, so the
+member dimension is static (cross adds dimensions) and cycles are impossible;
+members are computed after datasets fill the operands, and a dataset may still
+override the computed set itself, whole-symbol.
+
 Hardening guarantees (all violations raise :class:`JModelError`, never a raw exception):
 
 - every referenced set/param/variable must be declared; every resolved index member must
@@ -98,6 +105,9 @@ _RESERVED_WORDS = {
     "integer",
     "continuous",
     "dimen",
+    "union",
+    "diff",
+    "cross",
 }
 
 
@@ -337,12 +347,42 @@ class SetDef:
     ``dimen`` is the number of components per member (1 for plain sets, as in AMPL);
     for inline sets it is inferred from the literal, for declaration-only sets it
     comes from an explicit ``set ARCS dimen 2;`` (default 1). ``members is None``
-    means the set was declared without values and a dataset must fill it.
+    means the set was declared without values and a dataset must fill it — unless
+    ``expr`` is set (a ``union``/``diff``/``cross`` expression over earlier sets),
+    in which case the members are computed in :func:`_apply_data` after datasets
+    are applied. A dataset value for a computed set overrides the expression,
+    whole-symbol, exactly like it overrides an inline literal.
     """
 
     dimen: int
     members: list[tuple[str, ...]] | None
     pos: int = 0
+    expr: SetExpr | None = None
+
+
+@dataclass
+class SetLiteralNode:
+    """An anonymous literal / range operand inside a set expression."""
+
+    members: list[tuple[str, ...]]
+    pos: int = 0
+
+
+@dataclass
+class SetRefNode:
+    name: str
+    pos: int = 0
+
+
+@dataclass
+class SetOpNode:
+    op: str  # union | diff | cross
+    left: SetExpr
+    right: SetExpr
+    pos: int = 0
+
+
+SetExpr = SetLiteralNode | SetRefNode | SetOpNode
 
 
 @dataclass
@@ -540,39 +580,130 @@ class _Parser:
             model.sets[name_tok.value] = SetDef(declared_dimen or 1, None, name_tok.pos)
             return
         self._expect_op(":=")
-        members: list[tuple[str, ...]] = []
-        if self._accept_op("{"):
+        expr = self._parse_set_expr(model, name_tok.value)
+        self._expect_op(";")
+        model.check_unused_name(name_tok.value, name_tok.pos)
+        if isinstance(expr, SetLiteralNode):
+            # plain literal / range body — members are known right here
+            members = expr.members
+            arities = {len(member) for member in members}
+            if len(arities) > 1:
+                raise JModelError(
+                    f"set {name_tok.value!r} mixes members of different dimensions "
+                    f"({sorted(arities)} components) — every member must have the same arity",
+                    position=name_tok.pos,
+                )
+            dimen = next(iter(arities)) if members else (declared_dimen or 1)
+            if declared_dimen is not None and members and dimen != declared_dimen:
+                raise JModelError(
+                    f"set {name_tok.value!r} declares dimen {declared_dimen} but its members "
+                    f"have {dimen} component(s)",
+                    position=name_tok.pos,
+                )
+            if len(members) != len(set(members)):
+                raise JModelError(
+                    f"set {name_tok.value!r} has duplicate members", position=name_tok.pos
+                )
+            model.sets[name_tok.value] = SetDef(dimen, members, name_tok.pos)
+            return
+        # union/diff/cross expression — dimension is static, members are computed
+        # in _apply_data once datasets have filled the operands
+        dimen = self._set_expr_dimen(expr, model, name_tok.value)
+        if declared_dimen is not None and dimen != declared_dimen:
+            raise JModelError(
+                f"set {name_tok.value!r} declares dimen {declared_dimen} but its expression "
+                f"produces {dimen}-dimensional members",
+                position=name_tok.pos,
+            )
+        model.sets[name_tok.value] = SetDef(dimen, None, name_tok.pos, expr=expr)
+
+    def _parse_set_expr(self, model: ModelAst, target: str) -> SetExpr:
+        """A set expression: term (('union' | 'diff') term)*, left-associative."""
+        node = self._parse_set_term(model, target)
+        while True:
+            tok = self._peek()
+            if tok.kind == "IDENT" and tok.value in ("union", "diff"):
+                self._advance()
+                node = SetOpNode(tok.value, node, self._parse_set_term(model, target), tok.pos)
+            else:
+                return node
+
+    def _parse_set_term(self, model: ModelAst, target: str) -> SetExpr:
+        """A set term: atom ('cross' atom)* — cross binds tighter, as in AMPL."""
+        node = self._parse_set_atom(model, target)
+        while True:
+            tok = self._peek()
+            if tok.kind == "IDENT" and tok.value == "cross":
+                self._advance()
+                node = SetOpNode("cross", node, self._parse_set_atom(model, target), tok.pos)
+            else:
+                return node
+
+    def _parse_set_atom(self, model: ModelAst, target: str) -> SetExpr:
+        tok = self._peek()
+        if tok.kind == "OP" and tok.value == "(":
+            self._advance()
+            node = self._parse_set_expr(model, target)
+            self._expect_op(")")
+            return node
+        if tok.kind == "OP" and tok.value == "{":
+            self._advance()
+            members: list[tuple[str, ...]] = []
             if not self._accept_op("}"):
                 members.append(self._set_member())
                 while self._accept_op(","):
                     members.append(self._set_member())
                 self._expect_op("}")
-        else:
-            nxt = self._peek()
-            if not (nxt.kind == "NUM" or (nxt.kind == "OP" and nxt.value == "-")):
-                raise self._error("expected a set literal '{...}' or an integer range 'lo..hi'")
-            members = self._parse_range(name_tok.value)
-        self._expect_op(";")
-        model.check_unused_name(name_tok.value, name_tok.pos)
-        arities = {len(member) for member in members}
-        if len(arities) > 1:
+            return SetLiteralNode(members, tok.pos)
+        if tok.kind == "NUM" or (tok.kind == "OP" and tok.value == "-"):
+            return SetLiteralNode(self._parse_range(target), tok.pos)
+        if tok.kind == "IDENT" and tok.value not in _RESERVED_WORDS:
+            name_tok = self._advance()
+            if name_tok.value not in model.sets:
+                raise JModelError(
+                    f"unknown set {name_tok.value!r} in the definition of {target!r} — "
+                    "a set expression may only use sets declared earlier in the source",
+                    position=name_tok.pos,
+                )
+            return SetRefNode(name_tok.value, name_tok.pos)
+        raise self._error("expected a set name, a literal '{...}', a range 'lo..hi', or '('")
+
+    def _set_expr_dimen(self, node: SetExpr, model: ModelAst, target: str) -> int:
+        """Static member dimension of a set expression (operands are declared earlier,
+        so every dimension is known at parse time)."""
+        if isinstance(node, SetLiteralNode):
+            if not node.members:
+                raise JModelError(
+                    f"an empty literal has no dimension — declare it as its own set "
+                    f"before using it in the definition of {target!r}",
+                    position=node.pos,
+                )
+            arities = {len(member) for member in node.members}
+            if len(arities) > 1:
+                raise JModelError(
+                    f"a literal in the definition of {target!r} mixes members of different "
+                    f"dimensions ({sorted(arities)} components)",
+                    position=node.pos,
+                )
+            if len(node.members) != len(set(node.members)):
+                raise JModelError(
+                    f"a literal in the definition of {target!r} has duplicate members",
+                    position=node.pos,
+                )
+            return next(iter(arities))
+        if isinstance(node, SetRefNode):
+            return model.sets[node.name].dimen
+        left = self._set_expr_dimen(node.left, model, target)
+        right = self._set_expr_dimen(node.right, model, target)
+        if node.op == "cross":
+            return left + right
+        if left != right:
             raise JModelError(
-                f"set {name_tok.value!r} mixes members of different dimensions "
-                f"({sorted(arities)} components) — every member must have the same arity",
-                position=name_tok.pos,
+                f"'{node.op}' operands in the definition of {target!r} have different "
+                f"member dimensions ({left} vs {right})",
+                position=node.pos,
             )
-        dimen = next(iter(arities)) if members else (declared_dimen or 1)
-        if declared_dimen is not None and members and dimen != declared_dimen:
-            raise JModelError(
-                f"set {name_tok.value!r} declares dimen {declared_dimen} but its members "
-                f"have {dimen} component(s)",
-                position=name_tok.pos,
-            )
-        if len(members) != len(set(members)):
-            raise JModelError(
-                f"set {name_tok.value!r} has duplicate members", position=name_tok.pos
-            )
-        model.sets[name_tok.value] = SetDef(dimen, members, name_tok.pos)
+        return left
 
     def _set_member(self) -> tuple[str, ...]:
         """A scalar member (`a`) or a tuple member (`(a, b)`)."""
@@ -1005,6 +1136,13 @@ def _apply_data(model: ModelAst, data: JModelData | None) -> None:
                 # Exact key arity is checked at grounding (the flat arity of a param
                 # over tuple sets is the sum of its sets' dimensions).
             decl.data = dict(values)
+    # Computed sets (union/diff/cross) are evaluated AFTER dataset application, in
+    # declaration order — the parser guarantees operands are declared earlier, so
+    # every operand (inline, dataset-filled, or itself computed) is resolved by the
+    # time its consumer runs. A dataset value for the computed set itself wins.
+    for name, set_def in model.sets.items():
+        if set_def.expr is not None and set_def.members is None:
+            set_def.members = _eval_set_expr(set_def.expr, model, name)
     for name, set_def in model.sets.items():
         if set_def.members is None:
             raise JModelError(
@@ -1016,6 +1154,44 @@ def _apply_data(model: ModelAst, data: JModelData | None) -> None:
                 f"param {decl.name!r} has no values — define them inline (:=) or provide a dataset",
                 position=decl.pos,
             )
+
+
+def _eval_set_expr(node: SetExpr, model: ModelAst, target: str) -> list[tuple[str, ...]]:
+    """Members of a computed set. ``union`` keeps first-appearance order and
+    deduplicates; ``diff`` keeps the left operand's order; ``cross`` concatenates
+    member tuples (left-outer order) and is budget-checked before materializing."""
+    if isinstance(node, SetLiteralNode):
+        return list(node.members)
+    if isinstance(node, SetRefNode):
+        operand = model.sets[node.name]
+        if operand.members is None:
+            raise JModelError(
+                f"set {node.name!r} has no members — the computed set {target!r} needs "
+                "them; define them inline (:=) or provide a dataset",
+                position=node.pos,
+            )
+        return list(operand.members)
+    left = _eval_set_expr(node.left, model, target)
+    right = _eval_set_expr(node.right, model, target)
+    if node.op == "union":
+        seen = set(left)
+        merged = list(left)
+        for member in right:
+            if member not in seen:
+                seen.add(member)
+                merged.append(member)
+        return merged
+    if node.op == "diff":
+        removed = set(right)
+        return [member for member in left if member not in removed]
+    # cross
+    if len(left) * len(right) > MAX_GROUNDED_ELEMENTS:
+        raise JModelError(
+            f"computed set {target!r} crosses {len(left):,} × {len(right):,} members — "
+            f"more than the {MAX_GROUNDED_ELEMENTS:,} grounded-element budget",
+            position=node.pos,
+        )
+    return [lm + rm for lm in left for rm in right]
 
 
 # --------------------------------------------------------------------------- #
@@ -1684,7 +1860,10 @@ def inspect_declarations(src: str) -> ModelDeclarations:
 
     return ModelDeclarations(
         sets=tuple(
-            SetInfo(name, set_def.members is not None) for name, set_def in model.sets.items()
+            # a computed (union/diff/cross) set is self-filling — the dataset
+            # editor must not ask for its members
+            SetInfo(name, set_def.members is not None or set_def.expr is not None)
+            for name, set_def in model.sets.items()
         ),
         params=tuple(
             ParamInfo(p.name, tuple(p.index_sets), flat_arity(p.index_sets), p.data is not None)

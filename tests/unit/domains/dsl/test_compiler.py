@@ -1063,9 +1063,13 @@ def test_range_beyond_budget_rejected():
         compile_jmodel("set T := 1..99999999;\nvar x{T} binary;\nminimize o: sum{t in T} x[t];")
 
 
-def test_range_set_body_must_be_braces_or_range():
-    with pytest.raises(JModelError, match="set literal .* or an integer range"):
+def test_range_set_body_must_be_braces_range_or_set_expr():
+    # an undeclared identifier is now a (rejected) set-expression operand (#4)...
+    with pytest.raises(JModelError, match="unknown set 'abc'"):
         compile_jmodel("set T := abc;\nvar x binary;\nminimize o: x;")
+    # ...and anything else still fails with the atom-level message
+    with pytest.raises(JModelError, match="expected a set name"):
+        compile_jmodel("set T := *;\nvar x binary;\nminimize o: x;")
 
 
 def test_range_contradicting_declared_dimen_rejected():
@@ -1267,3 +1271,231 @@ def test_quadratic_models_solve_to_known_optima():
     assert miqp.status.value == "optimal"
     assert miqp.objective_value is not None
     assert abs(miqp.objective_value - 25.0) < 1e-5
+
+
+# --------------------------------------------------------------------------- #
+# Set operators (DSL-expressivity #4) — union / diff / cross
+# --------------------------------------------------------------------------- #
+
+
+def test_union_keeps_order_and_dedupes():
+    prob = compile_jmodel(
+        """
+        set A := {a, b};
+        set B := {b, c};
+        set U := A union B;
+        var x{U} binary;
+        minimize o: sum{u in U} x[u];
+        subject to c: sum{u in U} x[u] >= 1;
+        """
+    )
+    assert [v.name for v in prob.variables] == ["x_a", "x_b", "x_c"]
+
+
+def test_diff_keeps_left_order():
+    prob = compile_jmodel(
+        """
+        set A := {a, b, c, d};
+        set B := {b, d};
+        set D := A diff B;
+        var x{D} binary;
+        minimize o: sum{i in D} x[i];
+        subject to c: sum{i in D} x[i] >= 1;
+        """
+    )
+    assert [v.name for v in prob.variables] == ["x_a", "x_c"]
+
+
+def test_cross_concatenates_tuples_and_adds_dimensions():
+    prob = compile_jmodel(
+        """
+        set I := {a, b};
+        set J := {1, 2};
+        set IJ := I cross J;
+        var x{IJ} binary;
+        minimize o: sum{(i, j) in IJ} x[i, j];
+        subject to c{i in I}: sum{(i2, j) in IJ : i2 == i} x[i2, j] <= 1;
+        """
+    )
+    assert [v.name for v in prob.variables] == ["x_a_1", "x_a_2", "x_b_1", "x_b_2"]
+    by_name = {c.name: c.expression for c in prob.constraints}
+    assert by_name["c_a"] == "x_a_1 + x_a_2 <= 1"
+
+
+def test_cross_binds_tighter_than_union():
+    # A union B cross C must parse as A union (B cross C): dimensions 2 == 1+1
+    prob = compile_jmodel(
+        """
+        set A := {(p, q)};
+        set B := {a};
+        set C := {1, 2};
+        set S := A union B cross C;
+        var x{S} binary;
+        minimize o: sum{(i, j) in S} x[i, j];
+        subject to c: sum{(i, j) in S} x[i, j] >= 1;
+        """
+    )
+    assert [v.name for v in prob.variables] == ["x_p_q", "x_a_1", "x_a_2"]
+
+
+def test_parenthesized_set_expression():
+    prob = compile_jmodel(
+        """
+        set A := {a, b};
+        set B := {b, c};
+        set C := {c};
+        set S := (A union B) diff C;
+        var x{S} binary;
+        minimize o: sum{i in S} x[i];
+        subject to c: sum{i in S} x[i] >= 1;
+        """
+    )
+    assert [v.name for v in prob.variables] == ["x_a", "x_b"]
+
+
+def test_literal_and_range_atoms_in_set_expression():
+    prob = compile_jmodel(
+        """
+        set T := 1..5 diff {2, 4};
+        var x{T} binary;
+        minimize o: sum{t in T} x[t];
+        subject to c: sum{t in T} x[t] >= 1;
+        """
+    )
+    assert [v.name for v in prob.variables] == ["x_1", "x_3", "x_5"]
+
+
+def test_computed_set_over_dataset_filled_operands():
+    src = """
+    set I;
+    set J;
+    set U := I union J;
+    var x{U} binary;
+    minimize o: sum{u in U} x[u];
+    subject to c: sum{u in U} x[u] >= 1;
+    """
+    data = JModelData.from_json({"sets": {"I": ["a", "b"], "J": ["b", "c"]}})
+    prob = compile_jmodel(src, data=data)
+    assert [v.name for v in prob.variables] == ["x_a", "x_b", "x_c"]
+
+
+def test_dataset_overrides_a_computed_set_whole_symbol():
+    src = """
+    set A := {a, b};
+    set B := {c};
+    set U := A union B;
+    var x{U} binary;
+    minimize o: sum{u in U} x[u];
+    subject to c: sum{u in U} x[u] >= 1;
+    """
+    data = JModelData.from_json({"sets": {"U": ["z"]}})
+    prob = compile_jmodel(src, data=data)
+    assert [v.name for v in prob.variables] == ["x_z"]
+
+
+def test_chained_computed_sets_evaluate_in_declaration_order():
+    prob = compile_jmodel(
+        """
+        set A := {a, b};
+        set B := {b, c};
+        set U := A union B;
+        set W := U diff A;
+        var x{W} binary;
+        minimize o: sum{w in W} x[w];
+        subject to c: sum{w in W} x[w] >= 1;
+        """
+    )
+    assert [v.name for v in prob.variables] == ["x_c"]
+
+
+def test_forward_reference_in_set_expression_rejected():
+    with pytest.raises(JModelError, match="declared earlier"):
+        compile_jmodel(
+            "set U := A union B;\nset A := {a};\nset B := {b};\n"
+            "var x{U} binary;\nminimize o: sum{u in U} x[u];"
+        )
+
+
+def test_union_dimension_mismatch_rejected():
+    with pytest.raises(
+        JModelError, match="different\s+member dimensions|different member dimensions"
+    ):
+        compile_jmodel(
+            "set A := {a};\nset P := {(p, q)};\nset U := A union P;\n"
+            "var x{U} binary;\nminimize o: sum{u in U} x[u];"
+        )
+
+
+def test_empty_literal_inside_set_expression_rejected():
+    with pytest.raises(JModelError, match="empty literal"):
+        compile_jmodel(
+            "set A := {a};\nset U := A union {};\nvar x{U} binary;\nminimize o: sum{u in U} x[u];"
+        )
+
+
+def test_declared_dimen_contradicting_expression_rejected():
+    with pytest.raises(JModelError, match="declares dimen 3"):
+        compile_jmodel(
+            "set I := {a};\nset J := {1};\nset IJ dimen 3 := I cross J;\n"
+            "var x{IJ} binary;\nminimize o: sum{(i, j) in IJ} x[i, j];"
+        )
+
+
+def test_computed_set_with_unfilled_operand_names_both_sets():
+    src = (
+        "set I;\nset U := I union {a};\nvar x{U} binary;\n"
+        "minimize o: sum{u in U} x[u];\nsubject to c: sum{u in U} x[u] >= 1;"
+    )
+    with pytest.raises(JModelError, match="'I'.*'U'|computed set"):
+        compile_jmodel(src)
+
+
+def test_reserved_operator_names_rejected_as_declarations():
+    for word in ("union", "diff", "cross"):
+        with pytest.raises(JModelError, match="reserved word"):
+            compile_jmodel(f"set {word} := {{a}};\nvar x binary;\nminimize o: x;")
+
+
+def test_computed_set_lowering_is_deterministic():
+    src = """
+    set A := {a, b};
+    set B := {b, c};
+    set U := (A union B) cross A;
+    var x{U} binary;
+    minimize o: sum{(i, j) in U} x[i, j];
+    subject to c: sum{(i, j) in U} x[i, j] >= 1;
+    """
+    assert compile_jmodel(src).model_dump() == compile_jmodel(src).model_dump()
+
+
+def test_inspect_marks_computed_sets_as_self_filling():
+    from app.domains.dsl import inspect_declarations
+
+    decls = inspect_declarations(
+        "set I;\nset J := {a};\nset U := J union J;\n"
+        "var x{U} binary;\nminimize o: sum{u in U} x[u];"
+    )
+    by_name = {s.name: s.has_inline_values for s in decls.sets}
+    assert by_name == {"I": False, "J": True, "U": True}
+
+
+def test_computed_set_model_solves_to_known_optimum():
+    from app.domains.solver.adapters.scip import SCIPAdapter
+
+    # U = {a, b, c}; pick the 2 cheapest -> 1 + 2 = 3
+    result = SCIPAdapter().solve(
+        compile_jmodel(
+            """
+            set A := {a, b};
+            set B := {b, c};
+            set U := A union B;
+            param cost{U} := a 1, b 2, c 3;
+            var pick{U} binary;
+            minimize total: sum{u in U} cost[u] * pick[u];
+            subject to two: sum{u in U} pick[u] == 2;
+            """
+        )
+    )
+    assert result.status.value == "optimal"
+    assert result.objective_value is not None
+    assert abs(result.objective_value - 3.0) < 1e-6
