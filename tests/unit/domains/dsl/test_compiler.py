@@ -995,3 +995,101 @@ def test_inspect_reports_flat_arity_over_tuple_sets():
     (param,) = decls.params
     assert param.index_sets == ("ARCS", "K")
     assert param.arity == 3
+
+
+# --------------------------------------------------------------------------- #
+# Ranges (DSL-expressivity #2) — `set T := 1..N;`
+# --------------------------------------------------------------------------- #
+
+
+def test_range_set_lowers_like_the_equivalent_brace_literal():
+    range_form = compile_jmodel(
+        "set T := 1..4;\nvar x{T} binary;\nmaximize o: sum{t in T} x[t];\n"
+        "subject to c: sum{t in T} x[t] <= 2;"
+    )
+    brace_form = compile_jmodel(
+        "set T := {1, 2, 3, 4};\nvar x{T} binary;\nmaximize o: sum{t in T} x[t];\n"
+        "subject to c: sum{t in T} x[t] <= 2;"
+    )
+    assert range_form.model_dump() == brace_form.model_dump()
+    assert [v.name for v in range_form.variables] == ["x_1", "x_2", "x_3", "x_4"]
+
+
+def test_range_members_work_in_filters_and_params():
+    prob = compile_jmodel(
+        """
+        set T := 1..5;
+        param w{T} := 1 10, 2 20, 3 30, 4 40, 5 50;
+        var x{T} binary;
+        minimize o: sum{t in T : t >= 4} w[t] * x[t];
+        subject to c: x[1] + x[5] >= 1;
+        """
+    )
+    assert prob.objective.expression == "40*x_4 + 50*x_5"
+    assert prob.constraints[0].expression == "x_1 + x_5 >= 1"
+
+
+def test_range_with_negative_endpoints():
+    prob = compile_jmodel(
+        "set T := -2..1;\nvar x{T} binary;\nminimize o: sum{t in T} x[t];\n"
+        "subject to c: sum{t in T} x[t] >= 1;"
+    )
+    assert len(prob.variables) == 4  # -2, -1, 0, 1
+
+
+def test_range_single_member_when_endpoints_equal():
+    prob = compile_jmodel(
+        "set T := 7..7;\nvar x{T} binary;\nminimize o: x[7];\nsubject to c: x[7] <= 1;"
+    )
+    assert [v.name for v in prob.variables] == ["x_7"]
+
+
+def test_descending_range_rejected():
+    with pytest.raises(JModelError, match="is empty"):
+        compile_jmodel("set T := 5..1;\nvar x{T} binary;\nminimize o: sum{t in T} x[t];")
+
+
+def test_range_endpoints_must_be_integers():
+    with pytest.raises(JModelError, match="must be integer literals"):
+        compile_jmodel("set T := 1.5..3;\nvar x{T} binary;\nminimize o: sum{t in T} x[t];")
+    with pytest.raises(JModelError, match="must be integer literals"):
+        compile_jmodel("set T := 1..n;\nvar x{T} binary;\nminimize o: sum{t in T} x[t];")
+
+
+def test_range_beyond_budget_rejected():
+    with pytest.raises(JModelError, match="grounded-element budget"):
+        compile_jmodel(
+            "set T := 1..99999999;\nvar x{T} binary;\nminimize o: sum{t in T} x[t];"
+        )
+
+
+def test_range_set_body_must_be_braces_or_range():
+    with pytest.raises(JModelError, match="set literal .* or an integer range"):
+        compile_jmodel("set T := abc;\nvar x binary;\nminimize o: x;")
+
+
+def test_range_contradicting_declared_dimen_rejected():
+    with pytest.raises(JModelError, match="dimen 2"):
+        compile_jmodel(
+            "set T dimen 2 := 1..3;\nvar x{T} binary;\nminimize o: sum{(i, j) in T} x[i, j];"
+        )
+
+
+def test_range_set_solves_to_known_optimum():
+    from app.domains.solver.adapters.scip import SCIPAdapter
+
+    # pick the 2 cheapest of periods 1..4: 1 (cost 1) and 2 (cost 2) -> 3
+    result = SCIPAdapter().solve(
+        compile_jmodel(
+            """
+            set T := 1..4;
+            param cost{T} := 1 1, 2 2, 3 3, 4 4;
+            var pick{T} binary;
+            minimize total: sum{t in T} cost[t] * pick[t];
+            subject to need_two: sum{t in T} pick[t] == 2;
+            """
+        )
+    )
+    assert result.status.value == "optimal"
+    assert result.objective_value is not None
+    assert abs(result.objective_value - 3.0) < 1e-6

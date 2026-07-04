@@ -27,6 +27,10 @@ params indexed over a tuple set take the FLAT component count as subscripts
 to an already-known index (``sum{(i2, j) in ARCS : i2 == i}``) are applied as indexed
 slices, so sparse formulations ground in linear — not quadratic — time and budget.
 
+Ranges (DSL-expressivity #2): ``set T := 1..96;`` declares the 1-dimensional integer
+members ``1..96`` inclusive, exactly as the equivalent brace literal would. Endpoints
+are (optionally signed) integer literals; an empty (descending) range is an error.
+
 Hardening guarantees (all violations raise :class:`JModelError`, never a raw exception):
 
 - every referenced set/param/variable must be declared; every resolved index member must
@@ -228,7 +232,7 @@ _TOKEN_SPEC: list[tuple[str, str]] = [
     ("WS", r"[ \t\r\n]+"),
     ("COMMENT", r"#[^\n]*"),
     ("NUM", r"\d+\.\d+|\.\d+|\d+"),
-    ("OP", r":=|<=|>=|==|!=|[<>=]|[-+*{}\[\](),;:]"),
+    ("OP", r":=|<=|>=|==|!=|\.\.|[<>=]|[-+*{}\[\](),;:]"),
     ("IDENT", r"[A-Za-z_][A-Za-z0-9_]*"),
 ]
 _MASTER_RE = re.compile("|".join(f"(?P<{name}>{pat})" for name, pat in _TOKEN_SPEC))
@@ -522,13 +526,18 @@ class _Parser:
             model.sets[name_tok.value] = SetDef(declared_dimen or 1, None, name_tok.pos)
             return
         self._expect_op(":=")
-        self._expect_op("{")
         members: list[tuple[str, ...]] = []
-        if not self._accept_op("}"):
-            members.append(self._set_member())
-            while self._accept_op(","):
+        if self._accept_op("{"):
+            if not self._accept_op("}"):
                 members.append(self._set_member())
-            self._expect_op("}")
+                while self._accept_op(","):
+                    members.append(self._set_member())
+                self._expect_op("}")
+        else:
+            nxt = self._peek()
+            if not (nxt.kind == "NUM" or (nxt.kind == "OP" and nxt.value == "-")):
+                raise self._error("expected a set literal '{...}' or an integer range 'lo..hi'")
+            members = self._parse_range(name_tok.value)
         self._expect_op(";")
         model.check_unused_name(name_tok.value, name_tok.pos)
         arities = {len(member) for member in members}
@@ -567,6 +576,44 @@ class _Parser:
                 )
             return tuple(parts)
         return (self._member(),)
+
+    def _parse_range(self, set_name: str) -> list[tuple[str, ...]]:
+        """An inclusive integer range literal — ``set T := 1..96;``.
+
+        Endpoints are (optionally signed) integer literals; the range declares the
+        1-dimensional members ``lo, lo+1, ..., hi`` exactly as the equivalent brace
+        literal would.
+        """
+        start_tok = self._peek()
+        lo = self._range_endpoint(set_name)
+        self._expect_op("..")
+        hi = self._range_endpoint(set_name)
+        if lo > hi:
+            raise JModelError(
+                f"range {lo}..{hi} in set {set_name!r} is empty — the lower endpoint "
+                "must not exceed the upper endpoint",
+                position=start_tok.pos,
+            )
+        size = hi - lo + 1
+        if size > MAX_GROUNDED_ELEMENTS:
+            raise JModelError(
+                f"range {lo}..{hi} in set {set_name!r} has {size:,} members — more than "
+                f"the {MAX_GROUNDED_ELEMENTS:,} grounded-element budget",
+                position=start_tok.pos,
+            )
+        return [(str(value),) for value in range(lo, hi + 1)]
+
+    def _range_endpoint(self, set_name: str) -> int:
+        negative = self._accept_op("-")
+        tok = self._advance()
+        if tok.kind != "NUM" or not tok.value.isdigit():
+            raise JModelError(
+                f"range endpoints in set {set_name!r} must be integer literals "
+                f"(got {tok.value or 'end of input'!r})",
+                position=tok.pos,
+            )
+        value = int(tok.value)
+        return -value if negative else value
 
     def _parse_index_sets(self) -> list[str]:
         sets = [self._expect_ident()]
