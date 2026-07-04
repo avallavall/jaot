@@ -69,8 +69,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 - **Solver orchestrator slimmed (Phase 4)** — `solver_service.py` rewritten as a solver-agnostic orchestrator (-66%); all SCIP code lives in the adapter.
 - **Test suite audit** — dead/low-value tests removed, weak assertions strengthened, missing tenant/concurrency/idempotency coverage added.
 
+### Added
+
+- **Per-model run history on the Solve tab (2026-07-04)** — A "Runs of this model" card lists the open project's executions only (status, dataset, objective, time, solver), each row linking to the execution detail; the global history stays under Solve → Executions.
+
 ### Fixed
 
+- **Large solves no longer die with an opaque 500 (2026-07-04)** — The expression parser rebuilt its known-variables set on every parsed expression, so auto-routing or building a 100k-constraint model cost O(constraints × variables) — minutes of CPU that Next's 30-second proxy timeout turned into a bare 500. Name sets are now built once per problem and adopted without copying (routing a 200×200 TFM scenario: >2 min → 2.8 s; queueing it: 5 s), and the proxy timeout rises to 120 s.
+- **Scenario runs show what they're doing (2026-07-04)** — "Run all" now marks each selected dataset as Compiling…/Queueing… and updates the table as each run is queued (big scenarios spend many seconds uploading before a server row exists); the solution-diff button is always visible with a hint on how to enable it.
 - **Template gallery: page scroll restored + search (2026-07-04)** — `/studio/templates` rendered inside the workspace's full-screen shell, clipping the 102 cards to one screen with no scroll or sidebar; it is a normal list page again and gains a search box that filters on the localized name/description/category ("mochila" finds Knapsack).
 - **"Run all scenarios" explains itself when the project has no JModel source (2026-07-04)** — Scenarios recompile the JModel formulation with each dataset's values; on a flat/imported model (already grounded) the button used to sit disabled with no hint. The section now says why and links to the JModel lens.
 - **A broken JModel/JSON editor no longer lets a tab switch solve the previous model silently (2026-07-03)** — A source that doesn't compile keeps solve/commit blocked even after leaving the lens (the block used to clear on unmount), and the broken text survives the round trip with its error. A broken or out-of-date JModel source is now explicitly marked "not applied"; a drifted source locks read-only until you explicitly recompile it, so replacing the newer model is always a deliberate act.
