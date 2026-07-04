@@ -17,6 +17,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Fixed
+
+- **Large scenarios failed to launch through the web app (2026-07-04)** — solve payloads over 10 MB (the biggest TFM scenarios) were silently truncated by the frontend proxy's default body cap and surfaced as opaque "NetworkError"/500 rows in Solve-all; the proxy now allows up to the API's own 50 MB limit.
+
 ### Added
 
 - **Quadratic models in JModel (DSL #1, 2026-07-04)** — JModel now compiles quadratic terms (`x*y`, `x^2`, `(x + y)^2`) into solvable QP/MIQP/QCP/MIQCP problems: products distribute at grounding, anything beyond degree 2 is a clear compile error, and the solve path handles the rest (SCIP objectives via an epigraph reformulation; HiGHS now honestly rejects quadratics instead of silently dropping them; sensitivity is marked unavailable for quadratic models).
