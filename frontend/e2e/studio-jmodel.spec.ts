@@ -310,6 +310,59 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
     ).toBeVisible({ timeout: NAV });
   });
 
+  // S6 (tuple sets): a declaration-only TUPLE-set model — the miniature of the TFM
+  // MDPDP bridge — fills from a dataset whose members use the composite "a,b"
+  // encoding, applies via "Use" and solves straight from the Solve tab.
+  test("scenarios: a tuple-set model (dimen 2) fills from composite members and solves", async ({
+    page,
+  }) => {
+    await setDslFlag("true");
+    const projectId = await createBlankProject(page);
+    await page.goto(`/studio/${projectId}/build?lens=jmodel`);
+
+    const textarea = page.getByTestId("studio-jmodel-textarea");
+    await expect(textarea).toBeVisible({ timeout: NAV });
+    const headerSolve = page.getByTestId("studio-header-solve");
+
+    // Sparse arc model: cheapest way to reach c is the b->c arc (w = 2).
+    await textarea.fill(`set ARCS dimen 2;
+param w{ARCS};
+var use{ARCS} binary;
+minimize total: sum{(i, j) in ARCS} w[i, j] * use[i, j];
+subject to reach_c: sum{(i, j) in ARCS : j == c} use[i, j] >= 1;`);
+    await expect(page.getByTestId("studio-jmodel-error")).toBeVisible({ timeout: NAV });
+    await expect(headerSolve).toBeDisabled();
+
+    await page.getByTestId("studio-tab-data").click();
+    await page.getByTestId("studio-dataset-new").click();
+    await page.getByTestId("studio-dataset-name").fill("Sparse arcs");
+    await page.getByTestId("studio-dataset-json").fill(
+      JSON.stringify(
+        {
+          sets: { ARCS: ["a,b", "b,c", "a,c"] },
+          params: { w: { "a,b": 1, "b,c": 2, "a,c": 4 } },
+        },
+        null,
+        2,
+      ),
+    );
+    await page.getByTestId("studio-dataset-save").click();
+    await expect(page.getByTestId("studio-dataset-row")).toHaveCount(1, { timeout: NAV });
+    await page.getByTestId("studio-dataset-use").click();
+
+    // "Use" applies the compiled tuple model everywhere: straight to Solve.
+    await page.getByTestId("studio-tab-solve").click();
+    await expect(page.getByTestId("studio-solve-dataset-chip")).toContainText("Sparse arcs", {
+      timeout: NAV,
+    });
+    const runBtn = page.getByTestId("studio-solve-run");
+    await expect(runBtn).toBeEnabled({ timeout: NAV });
+    await runBtn.click();
+    await expect(page.getByTestId("studio-solve-done")).toBeVisible({ timeout: 40_000 });
+    // (Optimum 2 through the real solver is pinned by the compiler unit tests;
+    // here we prove the tuple encoding travels the full UI/API path.)
+  });
+
   // S3: run the model against N datasets in one click; the comparison table is
   // server-derived (latest run per dataset), a dataset that does not fill the model
   // becomes a failed row with the compiler message, and 2 completed selections diff

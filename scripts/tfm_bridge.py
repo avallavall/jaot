@@ -47,11 +47,6 @@ PROJECT_DESCRIPTION = (
     "known optimum 90; scenario_01..16 are synthetic at the Table 4 sizes."
 )
 COMMIT_SUMMARY = "MDPDP TFM formulation (thesis 4.1-4.10)"
-COMMIT_BODY = (
-    "Sparse tripartite arc sets SC/CD/DE (A'), objective 4.1 "
-    "(alpha*d_ij*L_k*X_ijk + gamma*b_i*Z_i), constraints 4.2-4.7 and 4.10. "
-    "Seeded by scripts/tfm_bridge.py; the draft holds scenario_00 compiled."
-)
 
 
 def dump_files(scenarios: list[tuple[str, dict]], dump_dir: Path) -> None:
