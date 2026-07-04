@@ -75,6 +75,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Fixed
 
+- **Times shown one timezone off (2026-07-04)** — API timestamps (naive UTC) were parsed as local time, so every displayed date sat hours in the past ("hace 2 horas" on a run that just finished); all date displays now parse them as UTC.
+- **A burst of big solves froze the whole API (2026-07-04)** — the async-solve and validate handlers did CPU-bound work on the event loop; they now run in the threadpool, so health checks and the rest of the UI stay responsive while large problems are ingested.
+- **A failed autosave no longer sticks at "Error al guardar" (2026-07-04)** — it retries with the latest in-memory model every 10 seconds instead of waiting for the next edit.
 - **Large solves no longer die with an opaque 500 (2026-07-04)** — The expression parser rebuilt its known-variables set on every parsed expression, so auto-routing or building a 100k-constraint model cost O(constraints × variables) — minutes of CPU that Next's 30-second proxy timeout turned into a bare 500. Name sets are now built once per problem and adopted without copying (routing a 200×200 TFM scenario: >2 min → 2.8 s; queueing it: 5 s), and the proxy timeout rises to 120 s.
 - **Scenario runs show what they're doing (2026-07-04)** — "Run all" now marks each selected dataset as Compiling…/Queueing… and updates the table as each run is queued (big scenarios spend many seconds uploading before a server row exists); the solution-diff button is always visible with a hint on how to enable it.
 - **Template gallery: page scroll restored + search (2026-07-04)** — `/studio/templates` rendered inside the workspace's full-screen shell, clipping the 102 cards to one screen with no scroll or sidebar; it is a normal list page again and gains a search box that filters on the localized name/description/category ("mochila" finds Knapsack).
