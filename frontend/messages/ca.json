@@ -232,6 +232,8 @@
     "datasetImportFailed": "No s'ha pogut importar el fitxer",
     "scenariosTitle": "Escenaris",
     "scenariosHint": "Resol el model amb diversos datasets i compara els resultats.",
+    "scenariosNeedsJModel": "Aquest projecte no té font JModel: els escenaris recompilen la formulació JModel amb els valors de cada dataset, i un model pla o importat ja ve aterrat.",
+    "scenariosOpenJModel": "Escriu la formulació a la lent JModel",
     "scenariosRunAll": "Resoldre'ls tots ({count})",
     "scenariosCompileFailed": "Aquest dataset no omple el model",
     "scenariosLaunchFailed": "No s'ha pogut llançar aquesta execució",

@@ -310,6 +310,35 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
     ).toBeVisible({ timeout: NAV });
   });
 
+  // Scenarios need a JModel SOURCE (a flat/imported model is already grounded):
+  // without one, "Run all" must not sit mutely disabled — the section explains why
+  // and links to the JModel lens (owner live-testing 2026-07-04).
+  test("scenarios: without a JModel source the section explains why Run-all is off", async ({
+    page,
+  }) => {
+    await setDslFlag("true");
+    const projectId = await createBlankProject(page);
+
+    // A dataset exists, but the project never got a JModel formulation.
+    await page.goto(`/studio/${projectId}/data`);
+    await page.getByTestId("studio-dataset-new").click();
+    await page.getByTestId("studio-dataset-name").fill("Loose data");
+    await page.getByTestId("studio-dataset-json").fill('{ "sets": { "I": ["a"] } }');
+    await page.getByTestId("studio-dataset-save").click();
+    await expect(page.getByTestId("studio-dataset-row")).toHaveCount(1, { timeout: NAV });
+
+    await page.getByTestId("studio-tab-solve").click();
+    await expect(page.getByTestId("studio-scenarios-needs-jmodel")).toBeVisible({
+      timeout: NAV,
+    });
+    await page.getByTestId("studio-scenario-check").first().check();
+    await expect(page.getByTestId("studio-scenarios-run-all")).toBeDisabled();
+
+    // The CTA lands on the JModel lens, where the missing formulation is written.
+    await page.getByTestId("studio-scenarios-open-jmodel").click();
+    await expect(page.getByTestId("studio-jmodel-textarea")).toBeVisible({ timeout: NAV });
+  });
+
   // S6 (tuple sets): a declaration-only TUPLE-set model — the miniature of the TFM
   // MDPDP bridge — fills from a dataset whose members use the composite "a,b"
   // encoding, applies via "Use" and solves straight from the Solve tab.

@@ -232,6 +232,8 @@
     "datasetImportFailed": "Impossible d'importer le fichier",
     "scenariosTitle": "Scénarios",
     "scenariosHint": "Résolvez le modèle avec plusieurs jeux de données et comparez les résultats.",
+    "scenariosNeedsJModel": "Ce projet n'a pas de source JModel : les scénarios recompilent la formulation JModel avec les valeurs de chaque jeu de données, et un modèle plat ou importé est déjà instancié.",
+    "scenariosOpenJModel": "Écrivez la formulation dans la lentille JModel",
     "scenariosRunAll": "Tout résoudre ({count})",
     "scenariosCompileFailed": "Ce jeu de données ne remplit pas le modèle",
     "scenariosLaunchFailed": "Impossible de lancer cette exécution",

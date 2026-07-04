@@ -232,6 +232,8 @@
     "datasetImportFailed": "Could not import the file",
     "scenariosTitle": "Scenarios",
     "scenariosHint": "Solve the model against several datasets and compare the outcomes.",
+    "scenariosNeedsJModel": "This project has no JModel source — scenarios recompile the JModel formulation with each dataset's values, and a flat or imported model is already grounded.",
+    "scenariosOpenJModel": "Write the formulation in the JModel lens",
     "scenariosRunAll": "Solve all ({count})",
     "scenariosCompileFailed": "This dataset does not fill the model",
     "scenariosLaunchFailed": "Could not launch this run",

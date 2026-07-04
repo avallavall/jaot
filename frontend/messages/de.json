@@ -232,6 +232,8 @@
     "datasetImportFailed": "Datei konnte nicht importiert werden",
     "scenariosTitle": "Szenarien",
     "scenariosHint": "Löse das Modell mit mehreren Datensätzen und vergleiche die Ergebnisse.",
+    "scenariosNeedsJModel": "Dieses Projekt hat keine JModel-Quelle: Szenarien kompilieren die JModel-Formulierung mit den Werten jedes Datensatzes neu, und ein flaches oder importiertes Modell ist bereits ausgerollt.",
+    "scenariosOpenJModel": "Schreibe die Formulierung in der JModel-Linse",
     "scenariosRunAll": "Alle lösen ({count})",
     "scenariosCompileFailed": "Dieser Datensatz füllt das Modell nicht",
     "scenariosLaunchFailed": "Dieser Lauf konnte nicht gestartet werden",

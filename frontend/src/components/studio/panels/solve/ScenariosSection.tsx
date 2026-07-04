@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { FlaskConical, GitCompareArrows, Play } from "lucide-react";
+import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
@@ -199,6 +200,8 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
 
   if (!dslEnabled || !isPersisted || datasets.length === 0) return null;
 
+  const hasSource = draftDslSource.trim().length > 0;
+
   const fmt = (v: number | null | undefined) =>
     v == null ? "—" : Number.isInteger(v) ? String(v) : v.toFixed(4);
 
@@ -218,7 +221,8 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
         <Button
           size="sm"
           onClick={() => void handleRunAll()}
-          disabled={launching || selected.size === 0 || !draftDslSource.trim()}
+          disabled={launching || selected.size === 0 || !hasSource}
+          title={!hasSource ? t("scenariosNeedsJModel") : undefined}
           data-testid="studio-scenarios-run-all"
           className="shrink-0"
         >
@@ -226,6 +230,25 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
           {t("scenariosRunAll", { count: selected.size })}
         </Button>
       </div>
+
+      {/* A flat/imported model is already grounded — scenarios recompile a JModel
+          SOURCE with each dataset. Without one the run-all button would sit mutely
+          disabled (live-testing 2026-07-04), so say WHY and point at the lens. */}
+      {!hasSource && (
+        <p
+          className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
+          data-testid="studio-scenarios-needs-jmodel"
+        >
+          {t("scenariosNeedsJModel")}{" "}
+          <Link
+            href={`/studio/${modelId}/build?lens=jmodel`}
+            className="font-medium underline underline-offset-2"
+            data-testid="studio-scenarios-open-jmodel"
+          >
+            {t("scenariosOpenJModel")}
+          </Link>
+        </p>
+      )}
 
       <div className="mt-3 overflow-x-auto">
         <table className="w-full text-sm">
