@@ -35,6 +35,7 @@ import type { Review } from "@/lib/types";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { ModelTabs } from "@/components/marketplace/ModelTabs";
 import { ImageGallery } from "@/components/marketplace/ImageGallery";
+import { apiDate } from "@/lib/dates";
 
 interface ReviewsResponse {
   items: Review[];
@@ -594,7 +595,7 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
                     </div>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {new Date(review.created_at).toLocaleDateString()}
+                    {apiDate(review.created_at).toLocaleDateString()}
                   </span>
                 </div>
 

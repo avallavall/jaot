@@ -12,6 +12,7 @@ import {
   Bell, Webhook, Activity,
 } from "lucide-react";
 import type { ModelExecution, SolveTrigger, UserInfo } from "@/lib/types";
+import { apiDate } from "@/lib/dates";
 
 interface DashboardStats {
   activeTriggers: number;
@@ -143,7 +144,7 @@ export default function DashboardPage() {
                     {exec.status}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {new Date(exec.created_at).toLocaleDateString()}
+                    {apiDate(exec.created_at).toLocaleDateString()}
                   </span>
                 </div>
               </Link>

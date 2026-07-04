@@ -3,6 +3,7 @@
 import type { ModelExecution, OptimizationResult, VariableType } from "@/lib/types";
 import { OriginBadge } from "@/components/solve/OriginBadge";
 import { extractVariables } from "@/lib/result-utils";
+import { apiDate } from "@/lib/dates";
 import { useTranslations } from "next-intl";
 
 interface ComparedVariable {
@@ -212,13 +213,13 @@ export function ExecutionComparisonView({ executionA, executionB }: ExecutionCom
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">
                   <div>{t("runA")}</div>
                   <div className="text-xs font-normal text-muted-foreground/70">
-                    {idPrefix(executionA.id)} · {new Date(executionA.created_at).toLocaleDateString()}
+                    {idPrefix(executionA.id)} · {apiDate(executionA.created_at).toLocaleDateString()}
                   </div>
                 </th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">
                   <div>{t("runB")}</div>
                   <div className="text-xs font-normal text-muted-foreground/70">
-                    {idPrefix(executionB.id)} · {new Date(executionB.created_at).toLocaleDateString()}
+                    {idPrefix(executionB.id)} · {apiDate(executionB.created_at).toLocaleDateString()}
                   </div>
                 </th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">

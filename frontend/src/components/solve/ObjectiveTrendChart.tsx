@@ -19,6 +19,7 @@ import {
 } from "recharts";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { ModelExecution } from "@/lib/types";
+import { apiDate } from "@/lib/dates";
 
 interface TrendPoint {
   date: string;
@@ -141,13 +142,13 @@ export default function ObjectiveTrendChart({ executions, chartRef }: Props) {
         (e) => e.status === "completed" && e.objective_value != null
       )
       .map((e) => ({
-        date: new Date(e.created_at).toLocaleDateString("en-US", {
+        date: apiDate(e.created_at).toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
           hour: "2-digit",
           minute: "2-digit",
         }),
-        dateMs: new Date(e.created_at).getTime(),
+        dateMs: apiDate(e.created_at).getTime(),
         objective: e.objective_value as number,
         credits: e.credits_consumed,
         executionId: e.id,

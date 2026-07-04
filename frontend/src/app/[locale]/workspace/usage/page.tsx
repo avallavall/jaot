@@ -5,6 +5,7 @@ import { api, CreditTransaction, OrganizationModel } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { apiDate } from "@/lib/dates";
 import {
   LineChart,
   Line,
@@ -53,9 +54,9 @@ function groupByDay<T extends { created_at: string }>(items: T[], days: number) 
   }
 
   for (const item of items) {
-    const ts = new Date(item.created_at).getTime();
+    const ts = apiDate(item.created_at).getTime();
     if (ts < cutoff) continue;
-    const key = new Date(item.created_at).toISOString().slice(0, 10);
+    const key = apiDate(item.created_at).toISOString().slice(0, 10);
     if (map[key]) map[key].push(item);
   }
 

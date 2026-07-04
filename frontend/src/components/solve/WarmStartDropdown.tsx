@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { api, ModelExecution } from "@/lib/api";
+import { apiDate } from "@/lib/dates";
 import {
   Select,
   SelectContent,
@@ -98,7 +99,7 @@ export function WarmStartDropdown({
         // Sort by created_at descending (most recent first)
         eligible.sort(
           (a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            apiDate(b.created_at).getTime() - apiDate(a.created_at).getTime()
         );
         setCandidates(eligible);
       } catch (err) {

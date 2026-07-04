@@ -16,6 +16,7 @@ import { api } from "@/lib/api";
 import type { ModelExecution } from "@/lib/types";
 import { downloadCSV } from "@/lib/csv-utils";
 import { extractVariables } from "@/lib/result-utils";
+import { apiDate } from "@/lib/dates";
 
 interface ExportButtonsProps {
   execution: ModelExecution;
@@ -138,7 +139,7 @@ async function exportPDF(
          <img src="${trendChartImageDataUrl}" alt="${labels.objectiveTrend}" />`
       : "";
 
-  const dateStr = new Date(execution.created_at).toLocaleString();
+  const dateStr = apiDate(execution.created_at).toLocaleString();
   const duration = execution.execution_time_ms != null ? `${execution.execution_time_ms} ms` : "\u2014";
   const credits = execution.credits_consumed;
   const objValue =

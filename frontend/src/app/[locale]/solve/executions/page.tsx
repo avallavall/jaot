@@ -12,6 +12,7 @@ import { useCommonLabels } from "@/hooks/useCommonLabels";
 import { OriginBadge } from "@/components/solve/OriginBadge";
 import { executionOriginHref } from "@/lib/execution-origin";
 import { EmptyState } from "@/components/guidance/EmptyState";
+import { apiDate } from "@/lib/dates";
 
 export default function ExecutionsPage() {
   const t = useTranslations("solve.executions");
@@ -212,7 +213,7 @@ export default function ExecutionsPage() {
                     {exec.execution_time_ms ? `${exec.execution_time_ms}ms` : "-"}
                   </td>
                   <td className="px-4 py-3 text-right text-sm text-muted-foreground">
-                    {new Date(exec.created_at).toLocaleString()}
+                    {apiDate(exec.created_at).toLocaleString()}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Button

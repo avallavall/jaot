@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MarketplaceModelCard } from "@/components/marketplace/MarketplaceModelCard";
+import { apiDate } from "@/lib/dates";
 
 function StatCard({
   icon: Icon,
@@ -170,7 +171,7 @@ export function SellerProfileClient({ orgId }: { orgId: string }) {
               <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
                 {t("memberSince")}{" "}
-                {new Date(profile.created_at).toLocaleDateString()}
+                {apiDate(profile.created_at).toLocaleDateString()}
               </div>
               {(profile.website_url ||
                 profile.linkedin_url ||
@@ -234,7 +235,7 @@ export function SellerProfileClient({ orgId }: { orgId: string }) {
         <StatCard
           icon={Calendar}
           label={t("memberSince")}
-          value={new Date(profile.created_at).getFullYear()}
+          value={apiDate(profile.created_at).getFullYear()}
         />
       </div>
 

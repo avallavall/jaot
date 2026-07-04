@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { api } from "@/lib/api";
 import { getErrorMessage, getErrorStatus } from "@/lib/errors";
+import { apiDate } from "@/lib/dates";
 import { useModelProjectStore } from "../store/useModelProjectStore";
 import { solveBlockedReason } from "./solve-precondition";
 import { ProjectRunsCard } from "./solve/ProjectRunsCard";
@@ -74,7 +75,7 @@ export function SolvePanel() {
   // panel, so a finished-while-away solve reads as "resuelta · objetivo X · hace Ys".
   const showLastRun = session.status === "idle" && lastRun !== null;
   const lastRunWhen =
-    lastRun?.finishedAt != null ? format.relativeTime(new Date(lastRun.finishedAt), now) : "";
+    lastRun?.finishedAt != null ? format.relativeTime(apiDate(lastRun.finishedAt), now) : "";
 
   // Toast once when a solve fails.
   const failedRef = useRef(false);

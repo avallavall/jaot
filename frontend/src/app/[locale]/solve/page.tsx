@@ -20,6 +20,7 @@ import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { Coins, Truck, Factory, Wheat, Hospital, Users, Settings, Code, Star, Upload, Trash2, Package, MoreHorizontal, Clock, FileUp } from "lucide-react";
 import { EmptyState } from "@/components/guidance/EmptyState";
 import { FileImportDialog } from "@/components/solve/FileImportDialog";
+import { apiDate } from "@/lib/dates";
 
 export default function MyModelsPage() {
   const t = useTranslations("solve.list");
@@ -294,7 +295,7 @@ function ModelCard({
 
       {model.last_executed_at && (
         <div className="text-xs text-muted-foreground mb-4">
-          {t("lastRun", { date: new Date(model.last_executed_at).toLocaleDateString() })}
+          {t("lastRun", { date: apiDate(model.last_executed_at).toLocaleDateString() })}
         </div>
       )}
 

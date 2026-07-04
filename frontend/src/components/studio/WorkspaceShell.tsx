@@ -7,6 +7,7 @@ import { ChevronLeft, Sparkles, Play, Check, Loader2, AlertCircle } from "lucide
 import { Link, useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
+import { apiDate } from "@/lib/dates";
 import { StudioTabBar } from "./StudioTabBar";
 import { LiveStatsPanel } from "./LiveStatsPanel";
 import { VersionControls } from "./versioning/VersionControls";
@@ -152,7 +153,7 @@ function SolveStatusIndicator({ onGoToSolve }: { onGoToSolve: () => void }) {
   if (status !== "running") return null;
 
   const label = startedAt
-    ? t("solvingSince", { when: format.relativeTime(new Date(startedAt), now) })
+    ? t("solvingSince", { when: format.relativeTime(apiDate(startedAt), now) })
     : t("solveRunning");
   return (
     <button

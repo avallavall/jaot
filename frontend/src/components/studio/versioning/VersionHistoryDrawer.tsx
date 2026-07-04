@@ -19,6 +19,7 @@ import { resolveErrorKey } from "@/lib/llm-event-codes";
 import { ByokHint } from "@/components/llm/ByokHint";
 import type { Conversation } from "@/lib/llm-types";
 import type { ProjectVersionSummary, ProjectVersionDiff } from "@/lib/types";
+import { apiDate } from "@/lib/dates";
 
 interface VersionHistoryDrawerProps {
   projectId: string;
@@ -178,7 +179,7 @@ export function VersionHistoryDrawer({
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     {v.problem_class ? `${v.problem_class} · ` : ""}
-                    {new Date(v.created_at).toLocaleString()}
+                    {apiDate(v.created_at).toLocaleString()}
                   </div>
                 </button>
                 <Button

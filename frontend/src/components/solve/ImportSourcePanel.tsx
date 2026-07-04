@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
+import { apiDate } from "@/lib/dates";
 import { Import, Search, X, FileCode, Box, LayoutTemplate } from "lucide-react";
 
 type TabId = "builder" | "models" | "templates";
@@ -288,7 +289,7 @@ export function ImportSourcePanel({ onImport, importedFrom, onClear }: ImportSou
               <ListItem
                 key={doc.id}
                 name={doc.name}
-                subtitle={new Date(doc.updated_at).toLocaleDateString()}
+                subtitle={apiDate(doc.updated_at).toLocaleDateString()}
                 onImport={() => importFromBuilder(doc)}
                 loading={loading}
                 t={t}

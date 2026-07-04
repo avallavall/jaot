@@ -20,6 +20,7 @@ import { ConceptTooltip } from "@/components/ui/concept-tooltip";
 import { EmptyState } from "@/components/guidance/EmptyState";
 import { useTranslations } from "next-intl";
 import { useCommonLabels } from "@/hooks/useCommonLabels";
+import { apiDate } from "@/lib/dates";
 import { Coins } from "lucide-react";
 
 export default function CreditsPage() {
@@ -139,7 +140,7 @@ export default function CreditsPage() {
                 <div>
                   <div className="font-medium">{tx.description || t("creditTransaction")}</div>
                   <div className="text-xs text-muted-foreground">
-                    {new Date(tx.created_at).toLocaleString()} · {transactionTypeLabel(tx.transaction_type || "purchase")}
+                    {apiDate(tx.created_at).toLocaleString()} · {transactionTypeLabel(tx.transaction_type || "purchase")}
                   </div>
                 </div>
                 <div className={`font-mono font-medium ${getTxTypeColor(tx.transaction_type || "purchase")}`}>

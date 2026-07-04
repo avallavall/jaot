@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import type { TriggerRun, TriggerRunStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { apiDate } from "@/lib/dates";
 import {
   Dialog,
   DialogContent,
@@ -127,7 +128,7 @@ function RunDetailModal({ run, open, onClose, t }: { run: TriggerRun; open: bool
             </div>
             <div>
               <div className="text-xs text-muted-foreground mb-1">{t("createdAt")}</div>
-              <div className="text-xs">{new Date(run.created_at).toLocaleString()}</div>
+              <div className="text-xs">{apiDate(run.created_at).toLocaleString()}</div>
             </div>
           </div>
 

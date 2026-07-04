@@ -6,6 +6,7 @@ import { History } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { api } from "@/lib/api";
 import type { ProjectExecutionItem } from "@/lib/types";
+import { apiDate } from "@/lib/dates";
 import { useModelProjectStore } from "../../store/useModelProjectStore";
 
 const POLL_MS = 7000;
@@ -105,7 +106,7 @@ export function ProjectRunsCard() {
                 data-testid="studio-project-run-row"
               >
                 <td className="py-2 pr-3 whitespace-nowrap text-muted-foreground">
-                  {format.relativeTime(new Date(run.created_at), now)}
+                  {format.relativeTime(apiDate(run.created_at), now)}
                 </td>
                 <td className="py-2 pr-3">
                   <span

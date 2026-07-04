@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { apiDate } from "@/lib/dates";
 import {
   Dialog,
   DialogContent,
@@ -97,10 +98,10 @@ export function ActivePromotions({ placements, onUpdate }: ActivePromotionsProps
               </TableCell>
               <TableCell className="text-right">{p.credits_paid}</TableCell>
               <TableCell>
-                {new Date(p.starts_at).toLocaleDateString()}
+                {apiDate(p.starts_at).toLocaleDateString()}
               </TableCell>
               <TableCell>
-                {new Date(p.expires_at).toLocaleDateString()}
+                {apiDate(p.expires_at).toLocaleDateString()}
               </TableCell>
               <TableCell>
                 <Badge

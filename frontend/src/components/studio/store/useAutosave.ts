@@ -7,6 +7,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { ModelProjectStore } from "./createModelProjectStore";
 
 const DEBOUNCE_MS = 800;
+// A failed save used to leave "Error al guardar" stuck until the NEXT edit (live
+// 2026-07-04: an autosave that hit an api restart never healed). Retry on a slow
+// cadence instead — the in-memory model is the truth and the save is idempotent.
+const RETRY_MS = 10_000;
 
 /**
  * Persists the canonical model to the `ModelProject` HEAD draft (`PUT
@@ -60,6 +64,10 @@ export function useAutosave(store: ModelProjectStore, modelId: string): void {
             }
           }
           store.getState().setSaveState("error");
+          // Self-heal: retry with the latest in-memory state. A new edit replaces
+          // this timer via the debounce path; unmount clears it.
+          if (timer.current) clearTimeout(timer.current);
+          timer.current = setTimeout(() => persist(), RETRY_MS);
         });
     };
 
