@@ -45,6 +45,13 @@ member dimension is static (cross adds dimensions) and cycles are impossible;
 members are computed after datasets fill the operands, and a dataset may still
 override the computed set itself, whole-symbol.
 
+Conditional expressions (DSL-expressivity #5): ``if <cond> [and <cond>]* then
+<term> [else <term>]`` selects at GROUNDING time — conditions compare bound
+indices, set members, numbers, and (possibly indexed) PARAM values, never
+variables. Only the taken branch is grounded (``if i != j then d[i, j]`` never
+touches the diagonal); a missing ``else`` is 0, as in AMPL. This is the
+"conditional params" seam: per-index data decides the emitted coefficients.
+
 Hardening guarantees (all violations raise :class:`JModelError`, never a raw exception):
 
 - every referenced set/param/variable must be declared; every resolved index member must
@@ -108,6 +115,9 @@ _RESERVED_WORDS = {
     "union",
     "diff",
     "cross",
+    "if",
+    "then",
+    "else",
 }
 
 
@@ -329,7 +339,30 @@ class Pow:
     pos: int = 0
 
 
-Expr = Num | Ref | Neg | BinOp | Sum | Pow
+@dataclass
+class CondOperand:
+    """One side of an if-condition: an index var, a member/number literal, or a
+    (possibly indexed) param reference — never a variable."""
+
+    token: Token
+    idx: list[Token]
+
+
+@dataclass
+class IfExpr:
+    """``if cond [and cond]* then term [else term]`` — grounding-time selection.
+
+    Only the taken branch is grounded (so ``if i != j then d[i, j]`` never looks
+    up the diagonal); a missing ``else`` is 0, as in AMPL.
+    """
+
+    conds: list[tuple[CondOperand, str, CondOperand]]
+    then: Expr
+    els: Expr | None
+    pos: int = 0
+
+
+Expr = Num | Ref | Neg | BinOp | Sum | Pow | IfExpr
 
 
 @dataclass
@@ -1050,6 +1083,8 @@ class _Parser:
                 self._expect_op("}")
                 body = self._parse_term()  # sum binds to the following term (AMPL precedence)
                 return Sum(quals, body, tok.pos)
+            if tok.value == "if":
+                return self._parse_if_expr()
             name = self._advance().value
             idx: list[Token] = []
             if self._accept_op("["):
@@ -1059,6 +1094,49 @@ class _Parser:
                 self._expect_op("]")
             return Ref(name, idx, tok.pos)
         raise self._error("expected a number, variable, param, sum, or '('")
+
+    def _parse_if_expr(self) -> IfExpr:
+        """``if cond [and cond]* then term [else term]`` — the branches bind to the
+        following TERM (like ``sum``); parenthesize to widen them."""
+        if_tok = self._advance()  # 'if'
+        conds: list[tuple[CondOperand, str, CondOperand]] = []
+        while True:
+            left = self._parse_if_operand()
+            op_tok = self._advance()
+            if op_tok.kind != "OP" or op_tok.value not in _FILTER_OPS:
+                raise JModelError(
+                    f"expected a comparison operator in if-condition (got {op_tok.value!r})",
+                    position=op_tok.pos,
+                )
+            right = self._parse_if_operand()
+            conds.append((left, op_tok.value, right))
+            if self._accept_kw("and"):
+                continue
+            break
+        self._expect_kw("then")
+        then_expr = self._parse_term()
+        els_expr: Expr | None = None
+        if self._accept_kw("else"):
+            els_expr = self._parse_term()
+        return IfExpr(conds, then_expr, els_expr, if_tok.pos)
+
+    def _parse_if_operand(self) -> CondOperand:
+        """An if-condition operand: index var, member/number literal, or a
+        (possibly indexed) param reference."""
+        tok = self._advance()
+        if tok.kind not in ("IDENT", "NUM"):
+            raise JModelError(
+                f"expected an index, member, number, or param in if-condition "
+                f"(got {tok.value or 'end of input'!r})",
+                position=tok.pos,
+            )
+        idx: list[Token] = []
+        if tok.kind == "IDENT" and self._accept_op("["):
+            idx.append(self._parse_idx_term())
+            while self._accept_op(","):
+                idx.append(self._parse_idx_term())
+            self._expect_op("]")
+        return CondOperand(tok, idx)
 
     def _maybe_power(self, base: Expr) -> Expr:
         """An optional ``^ 2`` / ``** 2`` postfix on a primary (DSL-expressivity #1)."""
@@ -1370,6 +1448,62 @@ def _compare(left: str, op: str, right: str, position: int | None = None) -> boo
     return left_num >= right_num
 
 
+def _eval_cond_operand(operand: CondOperand, env: dict[str, str], ctx: _Ctx) -> str:
+    """Resolve an if-condition operand to its comparable string.
+
+    An indexed reference must be a PARAM (its numeric value compares); a bare
+    identifier is, in order: a bound index (its member), a scalar param (its
+    value), or a declared set member (a literal, as in filters). Variables are
+    rejected — an if-condition is decided at compile time, never by the solver.
+    """
+    tok = operand.token
+    model = ctx.model
+    if operand.idx:
+        param = model.params.get(tok.value)
+        if param is None:
+            kind = "variable" if tok.value in model.vars else "unknown symbol"
+            raise JModelError(
+                f"{tok.value!r} in an if-condition is a {kind} — only params can be "
+                "compared (conditions are decided at compile time)",
+                position=tok.pos,
+            )
+        assert param.data is not None  # guaranteed by _apply_data
+        expected = _flat_arity(param.index_sets, ctx)
+        if len(operand.idx) != expected:
+            raise JModelError(
+                f"param {tok.value!r} indexed with {len(operand.idx)} subscript(s), "
+                f"expected {expected}",
+                position=tok.pos,
+            )
+        ref = Ref(tok.value, operand.idx, tok.pos)
+        key = tuple(_resolve_members(ref, param.index_sets, env, ctx))
+        if key not in param.data:
+            raise JModelError(f"param {tok.value!r} has no value for index {key}", position=tok.pos)
+        return str(param.data[key])
+    if tok.kind == "NUM":
+        return tok.value
+    if tok.value in env:
+        return env[tok.value]
+    scalar = model.params.get(tok.value)
+    if scalar is not None:
+        assert scalar.data is not None  # guaranteed by _apply_data
+        if scalar.index_sets:
+            raise JModelError(
+                f"param {tok.value!r} is indexed over {len(scalar.index_sets)} set(s) — "
+                "subscript it in the if-condition",
+                position=tok.pos,
+            )
+        return str(scalar.data[()])
+    if tok.value in ctx.all_members:
+        return tok.value
+    kind = "a variable" if tok.value in model.vars else "not a bound index, param, or set member"
+    raise JModelError(
+        f"{tok.value!r} in an if-condition is {kind} — conditions compare indices "
+        "and param values at compile time",
+        position=tok.pos,
+    )
+
+
 def _validate_filter_terms(quals: Qualifiers, base_env: dict[str, str], ctx: _Ctx) -> None:
     """A filter identifier must be a bound index variable or a declared set member —
     anything else is a typo that would otherwise silently degrade to a literal string
@@ -1554,6 +1688,21 @@ def _ground(node: Expr, env: dict[str, str], ctx: _Ctx) -> _LinForm:
     if isinstance(node, Pow):
         base = _ground(node.base, env, ctx)
         return _multiply(base, base)  # parser guarantees exponent == 2
+    if isinstance(node, IfExpr):
+        taken = all(
+            _compare(
+                _eval_cond_operand(left, env, ctx),
+                op,
+                _eval_cond_operand(right, env, ctx),
+                position=node.pos,
+            )
+            for left, op, right in node.conds
+        )
+        if taken:
+            return _ground(node.then, env, ctx)
+        if node.els is not None:
+            return _ground(node.els, env, ctx)
+        return _LinForm.number(0.0)
     if isinstance(node, Sum):
         # Accumulate into one mutable dict — building an immutable _LinForm per term
         # would copy the growing dict on every step (quadratic in the sum's length).

@@ -23,6 +23,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Added
 
+- **Conditional expressions in JModel (DSL #5, 2026-07-04)** — `if <condition> then <term> [else <term>]` selects coefficients and terms at compile time from indices and param values (`if setup[i] == 1 then fixed[i] * y[i]`); only the taken branch is evaluated, so sparse conditional data just works, and a missing `else` is 0.
 - **Set operators in JModel (DSL #4, 2026-07-04)** — `set S := A union B;`, `A diff B` and `A cross B` build sets from other sets (parentheses, literals and ranges allowed, `cross` concatenates tuple dimensions): define arc sets, exclusions and product index spaces from data instead of enumerating them by hand.
 - **Quadratic models in JModel (DSL #1, 2026-07-04)** — JModel now compiles quadratic terms (`x*y`, `x^2`, `(x + y)^2`) into solvable QP/MIQP/QCP/MIQCP problems: products distribute at grounding, anything beyond degree 2 is a clear compile error, and the solve path handles the rest (SCIP objectives via an epigraph reformulation; HiGHS now honestly rejects quadratics instead of silently dropping them; sensitivity is marked unavailable for quadratic models).
 - **Integer ranges in JModel (DSL #2, 2026-07-04)** — `set T := 1..96;` declares an inclusive integer range as a set, exactly like the equivalent brace literal — the natural way to write time periods and other numbered index sets.

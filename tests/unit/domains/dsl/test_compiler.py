@@ -1499,3 +1499,205 @@ def test_computed_set_model_solves_to_known_optimum():
     assert result.status.value == "optimal"
     assert result.objective_value is not None
     assert abs(result.objective_value - 3.0) < 1e-6
+
+
+# --------------------------------------------------------------------------- #
+# Conditional expressions (DSL-expressivity #5) — if/then/else
+# --------------------------------------------------------------------------- #
+
+
+def test_if_on_indices_matches_the_equivalent_filter():
+    conditional = compile_jmodel(
+        """
+        set I := {1, 2, 3};
+        var x{I, I} binary;
+        minimize o: sum{i in I, j in I} if i != j then x[i, j];
+        subject to c: x[1, 2] >= 0;
+        """
+    )
+    filtered = compile_jmodel(
+        """
+        set I := {1, 2, 3};
+        var x{I, I} binary;
+        minimize o: sum{i in I, j in I : i != j} x[i, j];
+        subject to c: x[1, 2] >= 0;
+        """
+    )
+    assert conditional.objective.expression == filtered.objective.expression
+
+
+def test_if_else_selects_coefficients():
+    prob = compile_jmodel(
+        """
+        set I := {a, b, c};
+        var x{I} binary;
+        minimize o: sum{i in I} (if i == a then 5 else 1) * x[i];
+        subject to c: sum{i in I} x[i] >= 1;
+        """
+    )
+    assert prob.objective.expression == "5*x_a + x_b + x_c"
+
+
+def test_if_without_else_is_zero():
+    prob = compile_jmodel(
+        """
+        set I := {a, b};
+        var x{I} binary;
+        minimize o: sum{i in I} x[i] + sum{i in I} if i == a then 3;
+        subject to c: sum{i in I} x[i] >= 1;
+        """
+    )
+    # the conditional sum contributes the constant 3 only for i == a
+    assert prob.objective.expression == "x_a + x_b + 3"
+
+
+def test_if_compares_param_values():
+    prob = compile_jmodel(
+        """
+        set I := {a, b, c};
+        param setup{I} := a 1, b 0, c 1;
+        param fixed{I} := a 10, b 20, c 30;
+        var y{I} binary;
+        minimize o: sum{i in I} if setup[i] == 1 then fixed[i] * y[i];
+        subject to c: sum{i in I} y[i] >= 1;
+        """
+    )
+    assert prob.objective.expression == "10*y_a + 30*y_c"
+
+
+def test_if_orders_on_param_values():
+    prob = compile_jmodel(
+        """
+        set I := {a, b, c};
+        param w{I} := a 5, b 15, c 25;
+        var x{I} binary;
+        minimize o: sum{i in I} if w[i] >= 10 then x[i];
+        subject to c: sum{i in I} x[i] >= 1;
+        """
+    )
+    assert prob.objective.expression == "x_b + x_c"
+
+
+def test_if_branch_not_taken_is_never_grounded():
+    # d has NO diagonal entries — the then-branch must not be evaluated for i == j
+    prob = compile_jmodel(
+        """
+        set I := {1, 2};
+        param d{I, I} := 1 2 7, 2 1 9;
+        var x{I, I} binary;
+        minimize o: sum{i in I, j in I} if i != j then d[i, j] * x[i, j];
+        subject to c: x[1, 2] >= 0;
+        """
+    )
+    assert prob.objective.expression == "7*x_1_2 + 9*x_2_1"
+
+
+def test_if_with_and_conditions():
+    prob = compile_jmodel(
+        """
+        set I := {1, 2, 3};
+        var x{I} binary;
+        minimize o: sum{i in I} if i >= 2 and i <= 2 then x[i] else 2 * x[i];
+        subject to c: sum{i in I} x[i] >= 1;
+        """
+    )
+    assert prob.objective.expression == "2*x_1 + x_2 + 2*x_3"
+
+
+def test_if_scalar_param_condition_toggles_whole_terms():
+    on = compile_jmodel(
+        "param use_penalty := 1;\nvar x >= 0; var p >= 0;\n"
+        "minimize o: x + if use_penalty == 1 then 100 * p;\nsubject to c: x + p >= 4;"
+    )
+    off = compile_jmodel(
+        "param use_penalty := 0;\nvar x >= 0; var p >= 0;\n"
+        "minimize o: x + if use_penalty == 1 then 100 * p;\nsubject to c: x + p >= 4;"
+    )
+    assert on.objective.expression == "x + 100*p"
+    assert off.objective.expression == "x"
+
+
+def test_if_in_constraint_rhs():
+    prob = compile_jmodel(
+        """
+        set I := {a, b};
+        param cap{I} := a 10, b 20;
+        var x{I} >= 0;
+        minimize o: sum{i in I} x[i];
+        subject to c{i in I}: x[i] <= if i == a then cap[a] else cap[b];
+        """
+    )
+    by_name = {c.name: c.expression for c in prob.constraints}
+    assert by_name["c_a"] == "x_a <= 10"
+    assert by_name["c_b"] == "x_b <= 20"
+
+
+def test_if_variable_in_condition_rejected():
+    with pytest.raises(JModelError, match="variable"):
+        compile_jmodel("var x >= 0;\nminimize o: if x >= 1 then x;\nsubject to c: x >= 1;")
+
+
+def test_if_indexed_param_without_subscripts_rejected():
+    with pytest.raises(JModelError, match="subscript it"):
+        compile_jmodel(
+            "set I := {a};\nparam w{I} := a 5;\nvar x{I} binary;\n"
+            "minimize o: sum{i in I} if w >= 1 then x[i];\nsubject to c: x[a] >= 0;"
+        )
+
+
+def test_if_unknown_condition_term_rejected():
+    with pytest.raises(JModelError, match="if-condition"):
+        compile_jmodel("var x >= 0;\nminimize o: if ghost == 1 then x;\nsubject to c: x >= 1;")
+
+
+def test_if_missing_then_rejected():
+    with pytest.raises(JModelError, match="then"):
+        compile_jmodel("var x >= 0;\nminimize o: if 1 == 1 x;\nsubject to c: x >= 1;")
+
+
+def test_if_then_else_reserved_as_names():
+    for word in ("then", "else"):
+        with pytest.raises(JModelError, match="reserved word"):
+            compile_jmodel(f"var {word} >= 0;\nminimize o: {word};\nsubject to c: {word} >= 1;")
+
+
+def test_if_quadratic_branch_composes_with_expressivity_1():
+    prob = compile_jmodel(
+        """
+        set I := {a, b};
+        param quad{I} := a 1, b 0;
+        var x{I} >= 0;
+        minimize o: sum{i in I} if quad[i] == 1 then x[i]^2 else x[i];
+        subject to c: sum{i in I} x[i] >= 2;
+        """
+    )
+    assert prob.objective.expression == "x_b + x_a^2"
+
+
+def test_if_lowering_is_deterministic():
+    src = (
+        "set I := {a, b, c};\nparam w{I} := a 1, b 2, c 3;\nvar x{I} binary;\n"
+        "minimize o: sum{i in I} if w[i] >= 2 then w[i] * x[i] else x[i];\n"
+        "subject to c: sum{i in I} x[i] >= 1;"
+    )
+    assert compile_jmodel(src).model_dump() == compile_jmodel(src).model_dump()
+
+
+def test_if_model_solves_to_known_optimum():
+    from app.domains.solver.adapters.scip import SCIPAdapter
+
+    # setup costs only where setup[i] == 1: picking b (no setup) is free -> cost 1
+    result = SCIPAdapter().solve(
+        compile_jmodel(
+            """
+            set I := {a, b};
+            param setup{I} := a 1, b 0;
+            var y{I} binary;
+            minimize total: sum{i in I} y[i] + sum{i in I} if setup[i] == 1 then 100 * y[i];
+            subject to pick_one: sum{i in I} y[i] >= 1;
+            """
+        )
+    )
+    assert result.status.value == "optimal"
+    assert result.objective_value is not None
+    assert abs(result.objective_value - 1.0) < 1e-6
