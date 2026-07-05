@@ -605,7 +605,7 @@ def solve_model_async(
         if not execution:
             raise ValueError(f"Execution {execution_id} not found")
 
-        execution.status = ExecutionStatus.RUNNING.value
+        execution_writer.apply_running(execution)
         db.commit()
 
         update_task_progress(0.0, "starting", "Loading model configuration...")
@@ -680,16 +680,16 @@ def solve_model_async(
             if hasattr(result, "objective_value") and result.objective_value is not None:
                 metrics["incumbent"] = result.objective_value
 
-        # Store rendered problem so parse_problem() / file-export works
+        # Store rendered problem so parse_problem() / file-export works, then let
+        # the single writer own the terminal-success columns (ADR-007 S3).
         execution.input_data = problem.model_dump(mode="json")
-        execution.status = ExecutionStatus.COMPLETED.value
-        execution.result_data = result.to_result_data()
-        execution.execution_time_ms = execution_time_ms
-        execution.solver_status = result.status.value
-        execution.objective_value = result.objective_value
-        execution.credits_consumed = total_credits
+        execution_writer.apply_completed(
+            execution,
+            result=result,
+            execution_time_seconds=execution_time_seconds,
+            credits_recorded=total_credits,
+        )
         execution.credits_compute = 0
-        execution.completed_at = utcnow()
 
         # Deduct credits via CreditsService (row-locked, idempotent, with notification)
         CreditsService.deduct_credits(
@@ -780,19 +780,19 @@ def solve_model_async(
             # on another session while this task was running.
             db.refresh(execution)
 
-            if execution.status == ExecutionStatus.CANCELLED.value:
+            # The single writer's terminal-wins guard: apply_failed is a no-op
+            # (returns False) when the row is already CANCELLED — a user cancel is
+            # not a solver failure, so preserve it and skip the credit settlement.
+            if not execution_writer.apply_failed(execution, error=str(e)):
                 logger.info(
-                    "Execution %s was cancelled by user; skipping failure-path credit deduction.",
+                    "Execution %s already terminal (user cancel); "
+                    "skipping failure-path credit settlement.",
                     execution_id,
                 )
                 execution.error_message = execution.error_message or "Cancelled by user"
                 execution.completed_at = execution.completed_at or utcnow()
                 # credits_consumed stays at its pre-cancel value (typically None)
             else:
-                execution.status = ExecutionStatus.FAILED.value
-                execution.error_message = str(e)
-                execution.completed_at = utcnow()
-
                 # When the producer has pre-paid credits (the execute_model
                 # async branch does this to match /solve/async), a solver
                 # failure must refund — not re-deduct. Refund is idempotent

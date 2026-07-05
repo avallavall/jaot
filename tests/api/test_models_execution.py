@@ -252,6 +252,159 @@ class TestExecuteModel:
         db_session.refresh(test_organization)
         assert test_organization.credits_balance == initial_credits
 
+    def _seed_exec_model(self, db_session, test_organization, suffix: str):
+        """Activate a trivial generic catalog model for the org. Returns its id."""
+        catalog = ModelCatalog(
+            id=f"cat_{suffix}",
+            name=f"cat_{suffix}",
+            display_name="Ledger Catalog",
+            description="For credit-ledger CONTRACT-TESTs",
+            category=ModelCategory.GENERAL,
+            generator_type="generic",
+            input_schema={},
+            input_fields=[],
+            example_input={},
+            version="1.0.0",
+            status="published",
+            is_official=False,
+            is_public=True,
+            price_eur=0.0,
+            credits_per_execution=5,
+        )
+        db_session.add(catalog)
+        org_model = OrganizationModel(
+            id=f"om_{suffix}",
+            organization_id=test_organization.id,
+            catalog_id=f"cat_{suffix}",
+            is_active=True,
+        )
+        db_session.add(org_model)
+        db_session.commit()
+        return org_model.id
+
+    def test_execute_model_sync_error_prepays_then_refunds(
+        self, authenticated_client, db_session, test_organization
+    ):
+        """# CONTRACT-TEST: ADR-007 S3 — execute_model sync rides pre-pay + refund.
+
+        A solver ERROR must leave the balance unchanged AND the ledger must show
+        the pre-pay + refund pair (proving it is NOT the old "never charge" path):
+        one EXECUTION deduction and one REFUND for the execution, same amount.
+        """
+        from app.domains.solver.services.solver_service import get_solver_service
+        from app.models import CreditTransaction, TransactionType
+        from app.schemas.optimization import SolverStatus
+
+        model_id = self._seed_exec_model(db_session, test_organization, "err")
+        initial_credits = test_organization.credits_balance
+
+        error_result = MagicMock()
+        error_result.status = SolverStatus.ERROR
+        error_result.error_message = "boom"
+        error_result.objective_value = None
+        error_result.to_result_data.return_value = {"solver_status": "error"}
+        fake_solver = MagicMock()
+        fake_solver.solve.return_value = error_result
+
+        app = authenticated_client.app
+        app.dependency_overrides[get_solver_service] = lambda: fake_solver
+        try:
+            response = authenticated_client.post(
+                f"/api/v2/models/{model_id}/execute",
+                json={
+                    "input_data": {
+                        "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
+                        "objective": {"sense": "maximize", "expression": "x"},
+                    }
+                },
+            )
+        finally:
+            app.dependency_overrides.pop(get_solver_service, None)
+
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert data["status"] == "failed"
+        assert data["credits_consumed"] == 0
+
+        db_session.refresh(test_organization)
+        assert test_organization.credits_balance == initial_credits
+
+        txns = (
+            db_session.query(CreditTransaction)
+            .filter(
+                CreditTransaction.organization_id == test_organization.id,
+                CreditTransaction.reference_type == "execution",
+                CreditTransaction.reference_id == data["id"],
+            )
+            .all()
+        )
+        by_type = {t.transaction_type: t for t in txns}
+        assert TransactionType.EXECUTION.value in by_type, txns
+        assert TransactionType.REFUND.value in by_type, txns
+        # Net zero: the refund exactly reverses the pre-pay.
+        assert by_type[TransactionType.EXECUTION.value].credits_amount == -(
+            by_type[TransactionType.REFUND.value].credits_amount
+        )
+
+    def test_execute_model_sync_success_charges_exactly_once(
+        self, authenticated_client, db_session, test_organization
+    ):
+        """# CONTRACT-TEST: a successful sync execute charges exactly one pre-pay,
+        with no refund — the pre-pay is the only deduction (no deduct-after)."""
+        from app.domains.solver.services.solver_service import get_solver_service
+        from app.models import CreditTransaction, TransactionType
+        from app.schemas.optimization import SolverStatus
+
+        model_id = self._seed_exec_model(db_session, test_organization, "ok")
+        initial_credits = test_organization.credits_balance
+
+        ok_result = MagicMock()
+        ok_result.status = SolverStatus.OPTIMAL
+        ok_result.objective_value = 7.0
+        ok_result.solve_time_seconds = 0.1
+        ok_result.to_result_data.return_value = {"solver_status": "optimal", "objective_value": 7.0}
+        fake_solver = MagicMock()
+        fake_solver.solve.return_value = ok_result
+
+        app = authenticated_client.app
+        app.dependency_overrides[get_solver_service] = lambda: fake_solver
+        try:
+            response = authenticated_client.post(
+                f"/api/v2/models/{model_id}/execute",
+                json={
+                    "input_data": {
+                        "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
+                        "objective": {"sense": "maximize", "expression": "x"},
+                    }
+                },
+            )
+        finally:
+            app.dependency_overrides.pop(get_solver_service, None)
+
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert data["status"] == "completed"
+        charged = data["credits_consumed"]
+        assert charged >= 1
+
+        db_session.refresh(test_organization)
+        assert test_organization.credits_balance == initial_credits - charged
+
+        txns = (
+            db_session.query(CreditTransaction)
+            .filter(
+                CreditTransaction.organization_id == test_organization.id,
+                CreditTransaction.reference_type == "execution",
+                CreditTransaction.reference_id == data["id"],
+            )
+            .all()
+        )
+        deductions = [t for t in txns if t.transaction_type == TransactionType.EXECUTION.value]
+        refunds = [t for t in txns if t.transaction_type == TransactionType.REFUND.value]
+        assert len(deductions) == 1, txns
+        assert refunds == []
+        assert deductions[0].credits_amount == -charged
+
     def test_execute_model_insufficient_credits(
         self, authenticated_client, db_session, test_organization
     ):

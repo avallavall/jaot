@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.api.v2.auth import get_current_user
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
 from app.api.v2.solve import calculate_credits
+from app.domains.solver import execution_writer
 from app.domains.solver.adapters.base import (
     DEFAULT_SOLVER_NAME,
     SolverNotFoundError,
@@ -212,9 +213,7 @@ async def execute_model(
         try:
             target_queue = resolve_queue(effective_solver_name)
         except SolverNotFoundError as exc:
-            execution.status = ExecutionStatus.FAILED.value
-            execution.error_message = str(exc)
-            execution.completed_at = utcnow()
+            execution_writer.apply_failed(execution, error=str(exc))
             db.commit()
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -233,9 +232,7 @@ async def execute_model(
             )
             db.commit()
         except InsufficientCreditsError as e:
-            execution.status = ExecutionStatus.FAILED.value
-            execution.error_message = "Insufficient credits"
-            execution.completed_at = utcnow()
+            execution_writer.apply_failed(execution, error="Insufficient credits")
             db.commit()
             raise HTTPException(
                 status_code=402,
@@ -295,9 +292,7 @@ async def execute_model(
                     exc_info=True,
                 )
                 db.rollback()
-            execution.status = ExecutionStatus.FAILED.value
-            execution.error_message = f"Failed to enqueue task: {exc}"
-            execution.completed_at = utcnow()
+            execution_writer.apply_failed(execution, error=f"Failed to enqueue task: {exc}")
             try:
                 db.commit()
             except Exception:
@@ -325,51 +320,91 @@ async def execute_model(
             "message": "Task queued for processing",
         }
 
+    # ADR-007 S3: unify the sync path onto ONE credit model — pre-pay + refund,
+    # exactly like the async branch above. Deduct BEFORE solving; any failure
+    # (solver error, crash, bad solver) refunds the exact prepay under the same
+    # idempotent ``(execution, id)`` key the worker uses, so a failed solve nets
+    # to zero — the historic "no charge on failure" behavior, now expressed as
+    # one credit model instead of deduct-after.
+    try:
+        CreditsService.deduct_credits(
+            db=db,
+            organization_id=org.id,
+            credits=base_credits,
+            description=f"Model execution pre-pay: {execution.id}",
+            reference_type="execution",
+            reference_id=execution.id,
+        )
+        db.commit()
+    except InsufficientCreditsError as e:
+        execution_writer.apply_failed(execution, error="Insufficient credits", credits_recorded=0)
+        db.commit()
+        raise HTTPException(
+            status_code=402,
+            detail={
+                "error": "insufficient_credits",
+                "credits_needed": e.credits_needed,
+                "credits_available": e.credits_available,
+            },
+        ) from e
+
+    def _refund_prepay(detail: str) -> None:
+        """Refund the sync prepay in its own transaction (row already committed).
+
+        Idempotent via the ``(org, REFUND, execution, id)`` scope; a refund
+        failure logs and rolls back only the refund, never the FAILED row.
+        """
+        try:
+            CreditsService(db).refund_credits(
+                organization_id=org.id,
+                credits=base_credits,
+                description=(
+                    f"{RefundReason.MODEL_EXECUTION_FAILED.value} "
+                    f"(execution {execution.id}): {str(detail)[:200]}"
+                ),
+                reference_type="execution",
+                reference_id=execution.id,
+            )
+            db.commit()
+        except Exception:
+            logger.warning(
+                "Failed to refund prepaid credits for execution %s", execution.id, exc_info=True
+            )
+            db.rollback()
+
     try:
         # Synchronous execution (problem already generated above for credit calc)
         start_time = utcnow()
         result = solver.solve(problem)
         end_time = utcnow()
-
-        execution_time_ms = int((end_time - start_time).total_seconds() * 1000)
+        execution_time_seconds = (end_time - start_time).total_seconds()
 
         # A solver-internal error comes back as status=ERROR WITHOUT raising
-        # (SolverService.solve swallows exceptions into an ERROR result). Treat
-        # it as a failure and do NOT charge — parity with /api/v2/solve (which
-        # refunds on ERROR) and with solve_model_async (which refunds pre-paid
-        # credits on failure). Charging for a solve that produced no result is
-        # exactly the bug reported ("Créditos consumidos: 3" on a FAILED solve).
+        # (SolverService.solve swallows exceptions into an ERROR result). Refund
+        # the prepay so a solve that produced no result is not charged — parity
+        # with /api/v2/solve and solve_model_async.
         if result.status == SolverStatus.ERROR:
-            execution.status = ExecutionStatus.FAILED.value
-            execution.error_message = result.error_message or "Solver returned an error"
+            execution_writer.apply_failed(
+                execution,
+                error=result.error_message or "Solver returned an error",
+                credits_recorded=0,
+            )
             execution.result_data = result.to_result_data()
-            execution.execution_time_ms = execution_time_ms
+            execution.execution_time_ms = int(execution_time_seconds * 1000)
             execution.solver_status = result.status.value
-            execution.credits_consumed = 0
-            execution.completed_at = end_time
             db.commit()
+            _refund_prepay(result.error_message or "solver error")
             db.refresh(execution)
             return ModelExecutionResponse.model_validate(execution)
 
         total_credits = base_credits
-
-        execution.status = ExecutionStatus.COMPLETED.value
-        execution.result_data = result.to_result_data()
-        execution.execution_time_ms = execution_time_ms
-        execution.solver_status = result.status.value
-        execution.objective_value = result.objective_value
-        execution.credits_consumed = total_credits
-        execution.credits_compute = 0
-        execution.completed_at = end_time
-
-        CreditsService.deduct_credits(
-            db=db,
-            organization_id=org.id,
-            credits=total_credits,
-            description=f"Model execution: {execution.id}",
-            reference_type="execution",
-            reference_id=execution.id,
+        execution_writer.apply_completed(
+            execution,
+            result=result,
+            execution_time_seconds=execution_time_seconds,
+            credits_recorded=total_credits,
         )
+        execution.credits_compute = 0
         org.credits_used_month += total_credits
 
         model.total_executions += 1
@@ -385,24 +420,20 @@ async def execute_model(
         return ModelExecutionResponse.model_validate(execution)
 
     except (SolverNotFoundError, SolverUnavailableError) as exc:
-        # Unknown/unavailable solver — surface 422 like /api/v2/solve and do
-        # NOT charge. After auto-routing this is only reachable via an explicit
-        # bad solver_name query param.
-        execution.status = ExecutionStatus.FAILED.value
-        execution.error_message = str(exc)
-        execution.completed_at = utcnow()
-        execution.credits_consumed = 0
+        # Unknown/unavailable solver — surface 422 like /api/v2/solve and refund
+        # the prepay (no result delivered). After auto-routing this is only
+        # reachable via an explicit bad solver_name query param.
+        execution_writer.apply_failed(execution, error=str(exc), credits_recorded=0)
         db.commit()
+        _refund_prepay(str(exc))
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     except Exception as e:
-        # Any other solve failure: record it, but never charge for a solve that
-        # did not deliver a result (the pre-fix path deducted base_credits here).
-        execution.status = ExecutionStatus.FAILED.value
-        execution.error_message = str(e)
-        execution.completed_at = utcnow()
-        execution.credits_consumed = 0
+        # Any other solve failure: record it and refund — never charge for a
+        # solve that did not deliver a result.
+        execution_writer.apply_failed(execution, error=str(e), credits_recorded=0)
         db.commit()
+        _refund_prepay(str(e))
         db.refresh(execution)
         return ModelExecutionResponse.model_validate(execution)
 
@@ -537,9 +568,7 @@ async def cancel_model_execution(
     cancelled_input = {**(execution.input_data or {})}
     clear_prepaid_credits(cancelled_input)
     execution.input_data = cancelled_input
-    execution.status = ExecutionStatus.CANCELLED.value
-    execution.error_message = "Cancelled by user"
-    execution.completed_at = utcnow()
+    execution_writer.apply_cancelled(execution)
     try:
         db.commit()
     except Exception:
