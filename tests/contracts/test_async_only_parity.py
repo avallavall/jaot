@@ -188,6 +188,40 @@ class TestWaitErrorMapping:
         assert body["credits_used"] == 0  # refunded by the worker
         assert body["execution_id"].startswith("exe_")
 
+    def test_solver_level_error_in_success_envelope_reports_zero_credits(
+        self, authenticated_client, monkeypatch
+    ):
+        """# CONTRACT-TEST: a NON-raising solver error rides the worker's "success"
+        envelope with an inner status=error; the worker already refunded the
+        prepay, so the wait-backed result must report credits_used=0 (net-zero) —
+        not the prepaid amount. Regression for the audit finding where /solve
+        reported credits_used=1 for a refunded EXPR_PARSE_ERROR solve."""
+
+        class _SolverErrorInSuccess:
+            id = "parity-solver-error-envelope-task"
+
+            def get(self, **kwargs):
+                return {
+                    "status": "success",
+                    "task_id": self.id,
+                    "result": {
+                        "status": "error",
+                        "solve_time_seconds": 0.0,
+                        "error_message": "EXPR_PARSE_ERROR: Division by zero",
+                    },
+                }
+
+        monkeypatch.setattr(
+            solve_tasks_mod.solve_async, "apply_async", lambda **opts: _SolverErrorInSuccess()
+        )
+
+        res = authenticated_client.post("/api/v2/solve/async?wait=true", json=_lp_problem_payload())
+        assert res.status_code == 200, res.text
+        body = res.json()
+        assert body["status"] == "error"
+        assert body["credits_used"] == 0  # refunded — must NOT report the prepay
+        assert "EXPR_PARSE_ERROR" in (body["error_message"] or "")
+
     def test_task_crash_maps_to_error_result(self, authenticated_client, monkeypatch):
         class _CrashedTask:
             id = "parity-crash-task"

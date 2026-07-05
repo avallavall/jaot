@@ -989,9 +989,15 @@ def _shape_sync_result(
         )
     elif payload.get("status") == "success":
         result = OptimizationResult(**payload["result"])
-        result.credits_used = credits_needed
+        # A non-raising solver error (e.g. EXPR_PARSE_ERROR) rides the worker's
+        # "success" envelope with an INNER status=error — the worker already
+        # refunded the prepay, so report 0 charged (net-zero), matching the
+        # persisted row (credits_consumed=0) and the ledger. Only a real answer
+        # (optimal/feasible/infeasible/unbounded) is charged.
+        result.credits_used = 0 if result.status == SolverStatus.ERROR else credits_needed
     else:
-        # Solver-level error: the worker already refunded the prepaid credits.
+        # Task-level error: the worker returned {"status": "error"} (an exception
+        # it caught) and already refunded the prepaid credits.
         result = OptimizationResult(
             status=SolverStatus.ERROR,
             solve_time_seconds=0.0,
