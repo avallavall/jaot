@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 
 from app.api.v2.auth import get_current_user
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
-from app.api.v2.solve import calculate_credits
 from app.domains.solver import execution_writer
 from app.domains.solver.adapters.base import (
     DEFAULT_SOLVER_NAME,
@@ -17,6 +16,7 @@ from app.domains.solver.adapters.base import (
     SolverUnavailableError,
 )
 from app.domains.solver.prepaid import clear_prepaid_credits
+from app.domains.solver.pricing import calculate_credits
 from app.domains.solver.queue_routing import resolve_queue
 from app.domains.solver.services.availability_gate import ensure_hexaly_worker_or_503
 from app.domains.solver.services.solver_service import SolverService, get_solver_service

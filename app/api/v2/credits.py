@@ -481,7 +481,7 @@ async def calculate_credits_endpoint(body: CreditCalculatorRequest) -> CreditCal
     Uses the same ``compute_credits`` formula as the solve endpoint
     (sqrt scaling + per-solve cap) to guarantee consistent estimates.
     """
-    from app.api.v2.solve import compute_credits
+    from app.domains.solver.pricing import compute_credits
 
     num_integer_binary = body.num_integer_vars + body.num_binary_vars
     total, breakdown = compute_credits(

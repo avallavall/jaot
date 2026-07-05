@@ -297,14 +297,16 @@ class TestTriggerSolveWorkspaceCredits:
 
         assert result["status"] == "completed"
 
-        # The real pool used_credits must have grown by the deducted amount
+        # ADR-007 S3: the trigger pre-pays calculate_credits(problem), NOT the
+        # result's credits_used. The fixture problem (1 continuous var, no
+        # constraints) prices at 1 credit.
         fresh_pool = (
             db_session.query(WorkspaceCreditPool)
             .filter(WorkspaceCreditPool.id == initial_pool_id)
             .first()
         )
         assert fresh_pool is not None
-        assert fresh_pool.used_credits == initial_pool_used + 2
+        assert fresh_pool.used_credits == initial_pool_used + 1
 
         # Org balance must be untouched (the pool absorbed the cost)
         db_session.refresh(org)
@@ -361,9 +363,10 @@ class TestTriggerSolveOrgFallback:
 
         assert result["status"] == "completed"
 
-        # Real assertion: org.credits_balance decreased by exactly 3
+        # ADR-007 S3: pre-pay is calculate_credits(problem) = 1 for the trivial
+        # fixture problem (not the result's credits_used).
         db_session.refresh(org)
-        assert org.credits_balance == initial_balance - 3
+        assert org.credits_balance == initial_balance - 1
 
     @patch("app.tasks.trigger_tasks._deliver_webhook")
     @patch("app.domains.solver.services.solver_service.SolverService.solve")
@@ -437,6 +440,64 @@ class TestTriggerSolveOrgFallback:
         db_session.refresh(pool)
         assert pool.used_credits == initial_pool_used
 
-        # Org balance was decremented by the fallback path
+        # Org balance decremented by the fallback path (calculate_credits = 1)
         db_session.refresh(org)
-        assert org.credits_balance == initial_balance - 5
+        assert org.credits_balance == initial_balance - 1
+
+    @patch("app.tasks.trigger_tasks._deliver_webhook")
+    @patch("app.domains.solver.services.solver_service.SolverService.solve")
+    @patch("app.tasks.trigger_tasks.SessionLocal")
+    def test_failed_solve_refunds_prepay(
+        self, mock_session_local, mock_solve, mock_webhook, db_session, org, trigger_no_ws
+    ):
+        """# CONTRACT-TEST: ADR-007 S3 — a failed trigger solve refunds its prepay.
+
+        The trigger pre-pays before solving; a solver failure must refund under
+        the idempotent (trigger, run_id) key so the run nets to zero.
+        """
+        from app.models import CreditTransaction, TransactionType
+
+        run = TriggerRun(
+            id="run_refund",
+            trigger_id=trigger_no_ws.id,
+            organization_id=org.id,
+            status="pending",
+            credits_consumed=0,
+            webhook_attempts=0,
+            created_at=utcnow(),
+        )
+        db_session.add(run)
+        db_session.commit()
+
+        initial_balance = org.credits_balance
+        mock_solve.side_effect = RuntimeError("solver boom")
+        mock_session_local.return_value = db_session
+
+        with patch.object(db_session, "close", lambda: None):
+            from app.tasks.trigger_tasks import trigger_solve_task
+
+            result = trigger_solve_task(
+                run_id=run.id,
+                trigger_id=trigger_no_ws.id,
+                override_data=None,
+            )
+
+        assert result["status"] == "failed"
+
+        # Net zero: pre-pay was refunded, balance unchanged.
+        db_session.refresh(org)
+        assert org.credits_balance == initial_balance
+
+        # The ledger shows the pre-pay + refund pair under the (trigger, run) key.
+        txns = (
+            db_session.query(CreditTransaction)
+            .filter(
+                CreditTransaction.organization_id == org.id,
+                CreditTransaction.reference_type == "trigger",
+                CreditTransaction.reference_id == run.id,
+            )
+            .all()
+        )
+        by_type = {t.transaction_type: t for t in txns}
+        assert TransactionType.EXECUTION.value in by_type, txns
+        assert TransactionType.REFUND.value in by_type, txns

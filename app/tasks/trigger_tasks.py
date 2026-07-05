@@ -126,12 +126,64 @@ def trigger_solve_task(
             _deliver_webhook(trigger, run, "trigger.execution.failed")
             return {"status": "failed"}
 
+        # ADR-007 S3: pre-pay BEFORE solving (one credit model). Pool-first when
+        # the trigger names a workspace, else org balance; a shortfall fails the
+        # run without solving. A solve failure refunds under the idempotent
+        # (trigger, run_id) key, so a failed trigger nets to zero. This replaces
+        # the old deduct-after-solve, which under-charged: it read credits_used
+        # from the result (~0 for a real solve) and swallowed errors.
+        from app.domains.solver.pricing import calculate_credits  # noqa: PLC0415
+        from app.models import Organization  # noqa: PLC0415
+        from app.services.credits_service import (  # noqa: PLC0415
+            CreditsService,
+            InsufficientCreditsError,
+        )
+
+        org = db.query(Organization).filter(Organization.id == trigger.organization_id).first()
+        if org is None:
+            _fail_run(db, run, "Organization not found")
+            _deliver_webhook(trigger, run, "trigger.execution.failed")
+            return {"status": "failed"}
+
+        base_credits = calculate_credits(problem, solver_name="scip", db=db)
+        prepaid_from_pool = False
+        try:
+            if trigger.workspace_id:
+                try:
+                    from app.services import workspace_credits_service  # noqa: PLC0415
+
+                    workspace_credits_service.deduct_credits_for_solve(
+                        db=db,
+                        org=org,
+                        workspace_id=trigger.workspace_id,
+                        credits_needed=base_credits,
+                    )
+                    db.commit()
+                    prepaid_from_pool = True
+                except ValueError:
+                    pass  # pool exhausted -> org fallback below
+            if not prepaid_from_pool:
+                CreditsService.deduct_credits(
+                    db=db,
+                    organization_id=org.id,
+                    credits=base_credits,
+                    description=f"Trigger solve pre-pay: {trigger.name} (run {run_id})",
+                    reference_type="trigger",
+                    reference_id=run_id,
+                )
+                db.commit()
+        except InsufficientCreditsError:
+            _fail_run(db, run, "Insufficient credits")
+            _deliver_webhook(trigger, run, "trigger.execution.failed")
+            return {"status": "failed"}
+
         from app.domains.solver.services.solver_service import SolverService  # noqa: PLC0415
         from app.shared.core.prometheus_metrics import (  # noqa: PLC0415
             ACTIVE_SOLVES,
             CREDITS_CONSUMED,
             SOLVE_DURATION,
             SOLVE_TOTAL,
+            RefundReason,
         )
 
         solver = SolverService()
@@ -191,7 +243,7 @@ def trigger_solve_task(
             execution_time_ms=elapsed_ms,
             solver_status=(result_data or {}).get("status"),
             objective_value=(result_data or {}).get("objective_value"),
-            credits_consumed=0,
+            credits_consumed=(base_credits if solve_status == "completed" else 0),
             trigger_id=trigger.id,
             origin="triggered",
             # Provenance: navigates back to the trigger that fired this run.
@@ -213,59 +265,32 @@ def trigger_solve_task(
         run.completed_at = now
         db.commit()
 
-        # 9. Deduct credits (best-effort — don't fail run on credit error)
-        #    Workspace pool first when trigger.workspace_id is set,
-        #    org balance fallback otherwise.
+        # 9. Settle the pre-paid credits (ADR-007 S3). A completed run keeps the
+        #    charge; a failed run refunds it under the idempotent (trigger,
+        #    run_id) REFUND key so the failure nets to zero. Best-effort: a
+        #    settlement error must not fail the run.
         credits_used = 0
         if solve_status == "completed":
+            run.credits_consumed = base_credits
+            credits_used = base_credits
+            CREDITS_CONSUMED.inc(base_credits)
+            db.commit()
+        else:
             try:
-                from app.models import Organization  # noqa: PLC0415
-                from app.services.credits_service import CreditsService  # noqa: PLC0415
-
-                org = (
-                    db.query(Organization)
-                    .filter(Organization.id == trigger.organization_id)
-                    .first()
+                CreditsService(db).refund_credits(
+                    organization_id=org.id,
+                    credits=base_credits,
+                    description=(
+                        f"{RefundReason.TASK_EXCEPTION.value} "
+                        f"(trigger run {run_id}): {(error_msg or 'solve failed')[:200]}"
+                    ),
+                    reference_type="trigger",
+                    reference_id=run_id,
                 )
-                if org:
-                    credits_to_deduct = (result_data or {}).get("credits_used", 1)
-                    credits_to_deduct = int(credits_to_deduct)
-
-                    if trigger.workspace_id:
-                        # Try workspace pool first, fall back to org balance
-                        try:
-                            from app.services import workspace_credits_service  # noqa: PLC0415
-
-                            workspace_credits_service.deduct_credits_for_solve(
-                                db=db,
-                                org=org,
-                                workspace_id=trigger.workspace_id,
-                                credits_needed=credits_to_deduct,
-                            )
-                            db.commit()
-                        except ValueError:
-                            # Pool exhausted — fall back to org-level deduction
-                            CreditsService.deduct_credits(
-                                db=db,
-                                organization_id=org.id,
-                                credits=credits_to_deduct,
-                                description=f"Trigger solve: {trigger.name} (run {run_id})",
-                            )
-                    else:
-                        CreditsService.deduct_credits(
-                            db=db,
-                            organization_id=org.id,
-                            credits=credits_to_deduct,
-                            description=f"Trigger solve: {trigger.name} (run {run_id})",
-                        )
-
-                    run.credits_consumed = credits_to_deduct
-                    model_execution.credits_consumed = credits_to_deduct
-                    credits_used = credits_to_deduct
-                    CREDITS_CONSUMED.inc(credits_to_deduct)
-                    db.commit()
+                db.commit()
             except Exception as exc:
-                logger.warning("Credit deduction failed for trigger run %s: %s", run_id, exc)
+                logger.warning("Credit refund failed for trigger run %s: %s", run_id, exc)
+                db.rollback()
 
         if trigger.created_by:
             try:
