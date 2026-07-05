@@ -781,3 +781,50 @@ def enable_monetization(db_session):
 
     PlatformSettingsService.set(db_session, "MONETIZATION_ENABLED", "true")
     db_session.commit()
+
+
+@pytest.fixture(autouse=True)
+def eager_solve_async_pipeline(request, monkeypatch):
+    """ADR-007 S2: POST /solve is async-under-the-hood — without a worker the
+    wrapped endpoint would block for the whole wait budget and then 202.
+
+    Run the REAL ``solve_async`` task body eagerly in-process (real solver, real
+    DB writes, real refund logic) whenever the route enqueues it, so every
+    pre-existing sync-contract test keeps observing inline results.
+
+    Opt-out: the real-worker integration suite (anything using the
+    ``celery_worker_available`` fixture) must exercise the actual broker/worker
+    path, so it is left untouched. Tests that stub ``apply_async`` themselves
+    simply override this patch (their monkeypatch runs later).
+    """
+    if "celery_worker_available" in request.fixturenames:
+        yield
+        return
+
+    import celery.result as _celery_result_mod
+
+    import app.domains.solver.tasks.solve_tasks as _solve_tasks_mod
+
+    # Registry of eager results so AsyncResult(task_id) resolves them too: the
+    # idempotent-retry "attach to in-flight" path (ADR-007 S2) looks the task up
+    # by id, and under the SAVEPOINT test-session pattern the worker's own
+    # completed-row write is invisible — without this, attach would dial the
+    # (nonexistent) result backend.
+    eager_results: dict[str, object] = {}
+
+    def _eager_apply_async(**opts):
+        res = _solve_tasks_mod.solve_async.apply(kwargs=opts["kwargs"])
+        eager_results[res.id] = res
+        return res
+
+    _original_async_result = _celery_result_mod.AsyncResult
+
+    def _eager_aware_async_result(task_id, *args, **kwargs):
+        hit = eager_results.get(task_id)
+        if hit is not None:
+            return hit
+        return _original_async_result(task_id, *args, **kwargs)
+
+    monkeypatch.setattr(_solve_tasks_mod.solve_async, "apply_async", _eager_apply_async)
+    monkeypatch.setattr(_celery_result_mod, "AsyncResult", _eager_aware_async_result)
+    yield

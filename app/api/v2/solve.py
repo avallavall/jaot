@@ -7,6 +7,7 @@ import math
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -15,7 +16,6 @@ from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
 from app.domains.solver.adapters.base import (
     DEFAULT_SOLVER_NAME,
     SolverNotFoundError,
-    SolverUnavailableError,
 )
 from app.domains.solver.prepaid import clear_prepaid_credits, set_prepaid_credits
 from app.domains.solver.queue_routing import resolve_queue
@@ -42,7 +42,6 @@ from app.services.platform_settings_service import (
 from app.services.solve_orchestrator import (
     ExecutionSource,
     SolveOrchestrator,
-    load_warm_start_solution,
     validate_problem,
 )
 from app.shared.core.prometheus_metrics import SOLVER_AUTO_ROUTE_DECISIONS
@@ -291,7 +290,7 @@ class MultiObjectiveSolveRequest(BaseModel):
     response_model=OptimizationResult,
     dependencies=[Depends(solve_maintenance_gate)],
 )
-async def solve_optimization_problem(
+def solve_optimization_problem(  # def: blocks on the queued result (ADR-007 S2)
     problem: OptimizationProblem,
     request: Request,
     db: Session = Depends(get_db),
@@ -301,12 +300,17 @@ async def solve_optimization_problem(
     origin: str | None = Query(default=None, max_length=32),
     source_kind: str | None = Query(default=None, max_length=32),
     source_id: str | None = Query(default=None, max_length=64),
-) -> OptimizationResult:
+) -> Any:
     """Solve an optimization problem (universal endpoint).
 
-    Supports client-side idempotency via the ``Idempotency-Key`` header. A
-    retry with the same key returns the previously persisted result without
-    re-solving or deducting credits twice.
+    ADR-007 S2 — async-under-the-hood: the request rides the ONE async pipeline
+    (pre-paid credits, pending ModelExecution row, Celery worker) and waits for
+    the result in the threadpool. The contract is unchanged: the classic
+    ``OptimizationResult`` on completion, ``Idempotency-Key`` honored (a retry
+    returns the persisted result without re-solving or double-charging). A solve
+    that outlives the wait budget returns 202 + the task envelope — poll or
+    subscribe like any async client (previously such solves died at proxy or
+    orchestrator timeouts).
     """
     org: Organization | None = getattr(request.state, "organization", None)
     if not org:
@@ -338,6 +342,11 @@ async def solve_optimization_problem(
             .first()
         )
         if existing is not None:
+            # NEW under async-under-the-hood: the pending row exists from enqueue
+            # time, so an idempotent retry can race the original IN FLIGHT.
+            # Attach to its task instead of reporting a bogus incomplete result.
+            if existing.status in ("pending", "running") and existing.celery_task_id:
+                return _attach_to_inflight_execution(db=db, org=org, existing=existing)
             rd = existing.result_data or {}
             # Default to ERROR on missing status: a cached execution with no
             # solver_status in result_data is by definition incomplete (the
@@ -355,90 +364,86 @@ async def solve_optimization_problem(
                 credits_remaining=org.credits_balance,
             )
 
-    problem = _enforce_tier_caps(db, org, problem)
-
-    # Resolve solver_name: problem body takes precedence over query param
-    requested_solver_name = problem.solver_name or solver_name
-
-    # Resolve "auto" to a concrete solver BEFORE the orchestrator runs the
-    # pre-enqueue gate + credit debit. The reason code is propagated into the
-    # response for UI transparency (D-08 / D-13).
-    auto_route_reason: str | None = None
-    fallback_triggered: bool = False
-    if requested_solver_name == "auto":
-        from app.domains.solver.services.auto_router import select_solver  # noqa: PLC0415
-
-        effective_solver_name, auto_route_reason, fallback_triggered = select_solver(
-            problem, solver.parser
-        )
-        # D-13: structured log + Prometheus counter per auto-route decision.
-        logger.info(
-            "auto_route_decision",
-            extra={
-                "solver_used": effective_solver_name,
-                "auto_route_reason": auto_route_reason,
-                "execution_id": idem_exe_id or "(pre-solve)",
-                "organization_id": org.id,
-                "fallback_triggered": fallback_triggered,
+    enqueued = _enqueue_async_solve(
+        db=db,
+        org=org,
+        user=getattr(request.state, "user", None),
+        problem=problem,
+        workspace_id=workspace_member.workspace_id if workspace_member else None,
+        solver_name_param=solver_name,
+        origin=origin,
+        source_kind=source_kind,
+        source_id=source_id,
+        dataset_id=None,
+        execution_id_override=idem_exe_id,
+        parser=solver.parser,
+    )
+    payload = _wait_for_task(enqueued.task)
+    if payload is None:
+        return JSONResponse(
+            status_code=status.HTTP_202_ACCEPTED,
+            content={
+                **enqueued.envelope,
+                "message": (
+                    "Solve still running after the wait budget — poll poll_url or "
+                    "subscribe to ws_url for the result."
+                ),
             },
         )
-        SOLVER_AUTO_ROUTE_DECISIONS.labels(
-            solver_used=effective_solver_name, reason=auto_route_reason
-        ).inc()
-    else:
-        effective_solver_name = requested_solver_name
-
-    # D-11 / WR-04: direct hexaly + worker down → 503 BEFORE credit debit.
-    # Shared helper enforces D-11 contract uniformly across all four solve entry
-    # points (sync solve / async solve / file_io import / template solve).
-    ensure_hexaly_worker_or_503(effective_solver_name)
-
-    # PRC-01 / D-02: multiply base credits by PSS-resolved per-
-    # solver multiplier AFTER auto-routing. effective_solver_name holds the
-    # post-routing concrete solver (not "auto").
-    base_credits = calculate_credits(problem, solver_name=effective_solver_name, db=db)
-    credits_needed = max(1, round(base_credits * 0.5)) if problem.warm_start else base_credits
-
-    validate_problem(problem)
-
-    ws_id = workspace_member.workspace_id if workspace_member else None
-    user = getattr(request.state, "user", None)
-    warm_start_solution = (
-        load_warm_start_solution(db, problem.warm_start.execution_id, org.id)
-        if problem.warm_start
-        else None
+    return _shape_sync_result(
+        payload,
+        db=db,
+        org_id=org.id,
+        execution_id=enqueued.execution_id,
+        credits_needed=enqueued.credits_needed,
+        solver_used=enqueued.effective_solver,
+        auto_route_reason=enqueued.auto_route_reason,
+        fallback_triggered=enqueued.fallback_triggered,
     )
 
-    orchestrator = SolveOrchestrator(db, solver, get_solver_pool())
-    try:
-        result = await orchestrator.solve_single(
-            problem=problem,
-            org=org,
-            user=user,
-            request=request,
-            credits_needed=credits_needed,
-            workspace_id=ws_id,
-            warm_start_solution=warm_start_solution,
-            execution_id=idem_exe_id,
-            solver_name=effective_solver_name,
-            auto_route_reason=auto_route_reason,
-            source=ExecutionSource.from_request(origin, source_kind, source_id),
-        )
-    except (SolverNotFoundError, SolverUnavailableError) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(exc),
-        ) from exc
 
-    # D-08 / D-13 transparency: expose effective solver + routing reason.
-    result.solver_used = effective_solver_name or DEFAULT_SOLVER_NAME
-    result.auto_route_reason = auto_route_reason
-    # D-11: surface warning when Hexaly fell back to SCIP.
-    if fallback_triggered:
-        result.warning = (
-            "Hexaly temporarily unavailable; solved with SCIP (quadratic quality may differ)"
+def _attach_to_inflight_execution(
+    *, db: Session, org: Organization, existing: ModelExecution
+) -> Any:
+    """An idempotent retry raced its in-flight original: wait on THAT task.
+
+    No new enqueue, no new charge — the retry observes the original solve.
+    The prepaid amount travels in the pending row's ``input_data`` side-channel.
+    """
+    from celery.result import AsyncResult  # noqa: PLC0415
+
+    from app.domains.solver.prepaid import get_prepaid_credits  # noqa: PLC0415
+    from app.shared.core.celery_app import celery_app  # noqa: PLC0415
+
+    prepaid = get_prepaid_credits(existing.input_data or {}) or 0
+    task = AsyncResult(existing.celery_task_id, app=celery_app)
+    payload = _wait_for_task(task)
+    if payload is None:
+        return JSONResponse(
+            status_code=status.HTTP_202_ACCEPTED,
+            content={
+                "task_id": existing.celery_task_id,
+                "execution_id": existing.id,
+                "status": "pending",
+                "message": (
+                    "The original solve for this Idempotency-Key is still running — "
+                    "poll poll_url for the result."
+                ),
+                "ws_url": f"/api/v2/ws/executions/{existing.celery_task_id}",
+                "poll_url": f"/api/v2/solve/async/{existing.celery_task_id}",
+                "estimated_credits": prepaid,
+            },
         )
-    return result
+    return _shape_sync_result(
+        payload,
+        db=db,
+        org_id=org.id,
+        execution_id=existing.id,
+        credits_needed=prepaid,
+        solver_used=existing.solver_name or DEFAULT_SOLVER_NAME,
+        auto_route_reason=existing.auto_route_reason,
+        fallback_triggered=False,
+    )
 
 
 @router.post("/validate", operation_id="validate_problem")
@@ -625,6 +630,39 @@ async def solve_multi_objective_endpoint(
     )
 
 
+class _EnqueuedSolve:
+    """Handle for a solve queued through the ONE async pipeline (ADR-007)."""
+
+    __slots__ = (
+        "task",
+        "execution_id",
+        "credits_needed",
+        "effective_solver",
+        "auto_route_reason",
+        "fallback_triggered",
+        "envelope",
+    )
+
+    def __init__(
+        self,
+        *,
+        task: Any,
+        execution_id: str,
+        credits_needed: int,
+        effective_solver: str,
+        auto_route_reason: str | None,
+        fallback_triggered: bool,
+        envelope: dict[str, Any],
+    ) -> None:
+        self.task = task
+        self.execution_id = execution_id
+        self.credits_needed = credits_needed
+        self.effective_solver = effective_solver
+        self.auto_route_reason = auto_route_reason
+        self.fallback_triggered = fallback_triggered
+        self.envelope = envelope
+
+
 @router.post("/async", dependencies=[Depends(solve_maintenance_gate)])
 def solve_optimization_problem_async(  # sync ON PURPOSE -> FastAPI threadpool
     # This handler awaits nothing and does real CPU work (tier caps, auto-routing,
@@ -647,20 +685,12 @@ def solve_optimization_problem_async(  # sync ON PURPOSE -> FastAPI threadpool
 
     ``dataset_id`` (§8 Scenarios / S1) records which named dataset the model was
     compiled against — provenance only, the problem body is already grounded.
-    Async-only on purpose: the studio always solves async, and the sync path is
-    slated for consolidation (async-only direction, 2026-06-30).
 
     ``wait=true`` (ADR-007 §4) blocks in the threadpool for up to
     ``ASYNC_WAIT_TIMEOUT_SECONDS`` and returns the exact synchronous
     ``OptimizationResult`` contract; past the budget it degrades to
     202 + the normal task envelope.
     """
-    from app.domains.solver.tasks.solve_tasks import solve_async
-    from app.services import workspace_credits_service
-    from app.services.credits_service import CreditsService, InsufficientCreditsError
-    from app.shared.core.prometheus_metrics import RefundReason
-    from app.shared.utils.id_generator import generate_id
-
     org: Organization | None = getattr(request.state, "organization", None)
     user = getattr(request.state, "user", None)
     if not org:
@@ -672,10 +702,77 @@ def solve_optimization_problem_async(  # sync ON PURPOSE -> FastAPI threadpool
     if not allowed:
         raise HTTPException(status_code=429, detail=rate_info)
 
+    enqueued = _enqueue_async_solve(
+        db=db,
+        org=org,
+        user=user,
+        problem=problem,
+        workspace_id=workspace_member.workspace_id if workspace_member else None,
+        solver_name_param=solver_name,
+        origin=origin,
+        source_kind=source_kind,
+        source_id=source_id,
+        dataset_id=dataset_id,
+    )
+    if not wait:
+        return enqueued.envelope
+
+    payload = _wait_for_task(enqueued.task)
+    if payload is None:
+        # Degrade to the plain async envelope: the solve keeps running, the
+        # caller polls/reconnects like any async client (ADR-007 §4).
+        response.status_code = status.HTTP_202_ACCEPTED
+        return {
+            **enqueued.envelope,
+            "message": (
+                "Solve still running after the wait budget — poll poll_url or "
+                "subscribe to ws_url for the result."
+            ),
+        }
+    return _shape_sync_result(
+        payload,
+        db=db,
+        org_id=org.id,
+        execution_id=enqueued.execution_id,
+        credits_needed=enqueued.credits_needed,
+        solver_used=enqueued.effective_solver,
+        auto_route_reason=enqueued.auto_route_reason,
+        fallback_triggered=enqueued.fallback_triggered,
+    )
+
+
+def _enqueue_async_solve(
+    *,
+    db: Session,
+    org: Organization,
+    user: Any,
+    problem: OptimizationProblem,
+    workspace_id: str | None,
+    solver_name_param: str | None,
+    origin: str | None,
+    source_kind: str | None,
+    source_id: str | None,
+    dataset_id: str | None,
+    execution_id_override: str | None = None,
+    parser: Any = None,
+) -> _EnqueuedSolve:
+    """The ONE enqueue path every solve rides (ADR-007): tier caps, provenance,
+    auto-routing, pre-paid credits, queue routing, Celery time limits, the
+    pending ``ModelExecution`` row, and the task envelope.
+
+    ``execution_id_override`` binds the row to an idempotency-derived id so a
+    retry with the same ``Idempotency-Key`` finds it (the wrapped ``POST /solve``).
+    """
+    from app.domains.solver.tasks.solve_tasks import solve_async
+    from app.services import workspace_credits_service
+    from app.services.credits_service import CreditsService, InsufficientCreditsError
+    from app.shared.core.prometheus_metrics import RefundReason
+    from app.shared.utils.id_generator import generate_id
+
     problem = _enforce_tier_caps(db, org, problem)
 
-    ws_id = workspace_member.workspace_id if workspace_member else None
-    execution_id = generate_id("exe_")
+    ws_id = workspace_id
+    execution_id = execution_id_override or generate_id("exe_")
 
     # Provenance is sanitized up front: it scopes the dataset lookup below, and
     # the execution INSERT at the end reuses these values.
@@ -725,7 +822,7 @@ def solve_optimization_problem_async(  # sync ON PURPOSE -> FastAPI threadpool
     # Resolve "auto" to a concrete solver BEFORE pre-paying credits or
     # enqueuing. D-11 / D-13: uses worker-health probe instead
     # of BYOL license-state DB query.
-    requested_async_solver = problem.solver_name or solver_name
+    requested_async_solver = problem.solver_name or solver_name_param
     async_auto_reason: str | None = None
     async_fallback_triggered: bool = False
     if requested_async_solver == "auto":
@@ -734,9 +831,8 @@ def solve_optimization_problem_async(  # sync ON PURPOSE -> FastAPI threadpool
             get_solver_service as _get_svc,
         )
 
-        _svc = _get_svc()
         async_effective, async_auto_reason, async_fallback_triggered = select_solver(
-            problem, _svc.parser
+            problem, parser if parser is not None else _get_svc().parser
         )
         # D-13: structured log + counter on async path.
         logger.info(
@@ -951,61 +1047,51 @@ def solve_optimization_problem_async(  # sync ON PURPOSE -> FastAPI threadpool
         "poll_url": f"/api/v2/solve/async/{task.id}",
         "estimated_credits": credits_needed,
     }
-    if not wait:
-        return task_envelope
-    return _wait_for_async_result(
-        db=db,
-        org_id=org.id,
+    return _EnqueuedSolve(
         task=task,
         execution_id=execution_id,
         credits_needed=credits_needed,
-        solver_used=effective_async_solver,
+        effective_solver=effective_async_solver,
         auto_route_reason=async_auto_reason,
         fallback_triggered=async_fallback_triggered,
-        task_envelope=task_envelope,
-        response=response,
+        envelope=task_envelope,
     )
 
 
-def _wait_for_async_result(
+def _wait_for_task(task: Any) -> dict[str, Any] | BaseException | None:
+    """Bounded blocking wait on a queued solve; ``None`` means the budget ran out.
+
+    Runs in the threadpool — every caller is a sync ``def`` handler on purpose;
+    a blocking ``get`` must never sit on the event loop. With ``propagate=False``
+    a hard task failure comes back as the exception OBJECT, never raises.
+    """
+    from celery.exceptions import TimeoutError as CeleryTimeoutError  # noqa: PLC0415
+
+    try:
+        return task.get(timeout=ASYNC_WAIT_TIMEOUT_SECONDS, propagate=False)
+    except CeleryTimeoutError:
+        return None
+
+
+def _shape_sync_result(
+    payload: dict[str, Any] | BaseException,
     *,
     db: Session,
     org_id: str,
-    task: Any,
     execution_id: str,
     credits_needed: int,
     solver_used: str,
     auto_route_reason: str | None,
     fallback_triggered: bool,
-    task_envelope: dict[str, Any],
-    response: Response,
 ) -> dict[str, Any]:
-    """Bounded server-side wait mapping the worker envelope to the SYNC contract.
+    """Map the worker envelope to the SYNC ``OptimizationResult`` contract.
 
     ADR-007 §4: the caller ran the exact enqueue path (pre-pay, provenance,
-    pending row); this helper only waits and reshapes. The worker's
-    ``OptimizationResult`` carries schema defaults for ``execution_id`` /
-    ``credits_used`` / ``credits_remaining`` (the sync orchestrator used to inject
-    them), so they are injected here. Runs in the threadpool — the enclosing
-    handler is a sync ``def`` on purpose; a blocking ``get`` must never sit on
-    the event loop.
+    pending row); this helper only reshapes. The worker's ``OptimizationResult``
+    carries schema defaults for ``execution_id`` / ``credits_used`` /
+    ``credits_remaining`` (the sync orchestrator used to inject them), so they
+    are injected here.
     """
-    from celery.exceptions import TimeoutError as CeleryTimeoutError  # noqa: PLC0415
-
-    try:
-        payload = task.get(timeout=ASYNC_WAIT_TIMEOUT_SECONDS, propagate=False)
-    except CeleryTimeoutError:
-        # Degrade to the plain async envelope: the solve keeps running, the
-        # caller polls/reconnects like any async client (ADR-007 §4).
-        response.status_code = status.HTTP_202_ACCEPTED
-        return {
-            **task_envelope,
-            "message": (
-                "Solve still running after the wait budget — poll poll_url or "
-                "subscribe to ws_url for the result."
-            ),
-        }
-
     if isinstance(payload, BaseException):
         # Task hard-killed or crashed before its own error handling: the reaper
         # reconciles the row + refund idempotently; report the sync error shape.

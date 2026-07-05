@@ -3894,9 +3894,14 @@ export interface paths {
          * Solve Optimization Problem
          * @description Solve an optimization problem (universal endpoint).
          *
-         *     Supports client-side idempotency via the ``Idempotency-Key`` header. A
-         *     retry with the same key returns the previously persisted result without
-         *     re-solving or deducting credits twice.
+         *     ADR-007 S2 — async-under-the-hood: the request rides the ONE async pipeline
+         *     (pre-paid credits, pending ModelExecution row, Celery worker) and waits for
+         *     the result in the threadpool. The contract is unchanged: the classic
+         *     ``OptimizationResult`` on completion, ``Idempotency-Key`` honored (a retry
+         *     returns the persisted result without re-solving or double-charging). A solve
+         *     that outlives the wait budget returns 202 + the task envelope — poll or
+         *     subscribe like any async client (previously such solves died at proxy or
+         *     orchestrator timeouts).
          */
         post: operations["solve_problem"];
         delete?: never;
@@ -3918,9 +3923,14 @@ export interface paths {
          * Solve Optimization Problem
          * @description Solve an optimization problem (universal endpoint).
          *
-         *     Supports client-side idempotency via the ``Idempotency-Key`` header. A
-         *     retry with the same key returns the previously persisted result without
-         *     re-solving or deducting credits twice.
+         *     ADR-007 S2 — async-under-the-hood: the request rides the ONE async pipeline
+         *     (pre-paid credits, pending ModelExecution row, Celery worker) and waits for
+         *     the result in the threadpool. The contract is unchanged: the classic
+         *     ``OptimizationResult`` on completion, ``Idempotency-Key`` honored (a retry
+         *     returns the persisted result without re-solving or double-charging). A solve
+         *     that outlives the wait budget returns 202 + the task envelope — poll or
+         *     subscribe like any async client (previously such solves died at proxy or
+         *     orchestrator timeouts).
          */
         post: operations["solve_optimization_problem_api_v2_solve__post"];
         delete?: never;
@@ -4034,8 +4044,6 @@ export interface paths {
          *
          *     ``dataset_id`` (§8 Scenarios / S1) records which named dataset the model was
          *     compiled against — provenance only, the problem body is already grounded.
-         *     Async-only on purpose: the studio always solves async, and the sync path is
-         *     slated for consolidation (async-only direction, 2026-06-30).
          *
          *     ``wait=true`` (ADR-007 §4) blocks in the threadpool for up to
          *     ``ASYNC_WAIT_TIMEOUT_SECONDS`` and returns the exact synchronous
