@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import OptionalRequireSolver
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
+from app.domains.solver import execution_writer
 from app.domains.solver.adapters.base import (
     DEFAULT_SOLVER_NAME,
     SolverNotFoundError,
@@ -23,7 +24,7 @@ from app.domains.solver.services import SolverService, get_solver_service
 from app.domains.solver.services.availability_gate import ensure_hexaly_worker_or_503
 from app.domains.solver.services.pool import get_solver_pool
 from app.domains.solver.time_limits import compute_celery_time_limits
-from app.models import ExecutionStatus, ModelExecution, ModelProject, Organization
+from app.models import ModelExecution, ModelProject, Organization
 from app.schemas.optimization import (
     InfeasibilityAnalysis,
     MultiObjectiveConfig,
@@ -47,7 +48,6 @@ from app.services.solve_orchestrator import (
 from app.shared.core.prometheus_metrics import SOLVER_AUTO_ROUTE_DECISIONS
 from app.shared.core.rate_limiter import check_rate_limit
 from app.shared.db import get_db
-from app.shared.utils.datetime_helpers import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -999,19 +999,17 @@ def _enqueue_async_solve(
 
     # Minimal execution record so /async/{task_id} can verify ownership (prevents IDOR).
     # Provenance (async_source / typed_model_project_id / dataset) was resolved and
-    # validated up front, before the credit deduction.
-    pending_exec = ModelExecution(
-        id=execution_id,
+    # validated up front, before the credit deduction. ADR-007 S3: the ONE writer owns
+    # the row so the insert shape stays identical across every enqueue site.
+    execution_writer.insert_pending(
+        db,
+        execution_id=execution_id,
         organization_id=org.id,
-        executed_by_user_id=user.id if user else None,
         celery_task_id=task.id,
-        is_async=True,
-        status="pending",
         input_data=problem_data,
-        created_at=utcnow(),
         solver_name=effective_solver_name or DEFAULT_SOLVER_NAME,
-        # D-13: persist auto-routing slug at enqueue time.
-        # DB column added by Plan 09 migration.
+        executed_by_user_id=user.id if user else None,
+        # D-13: persist auto-routing slug at enqueue time (Plan 09 migration column).
         auto_route_reason=async_auto_reason,
         origin=async_source.origin,
         source_kind=async_source.source_kind,
@@ -1024,7 +1022,6 @@ def _enqueue_async_solve(
         dataset_id=dataset_id,
         dataset_name=dataset_name,
     )
-    db.add(pending_exec)
     try:
         db.commit()
     except Exception:
@@ -1274,9 +1271,7 @@ async def cancel_async_task(
     cancelled_input = {**(execution.input_data or {})}
     clear_prepaid_credits(cancelled_input)
     execution.input_data = cancelled_input
-    execution.status = ExecutionStatus.CANCELLED.value
-    execution.error_message = "Cancelled by user"
-    execution.completed_at = utcnow()
+    execution_writer.apply_cancelled(execution)
     try:
         db.commit()
     except Exception:

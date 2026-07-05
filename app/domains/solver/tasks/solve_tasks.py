@@ -10,6 +10,7 @@ from typing import Any
 from celery import current_task
 from celery.exceptions import SoftTimeLimitExceeded
 
+from app.domains.solver import execution_writer
 from app.domains.solver.adapters.base import (
     DEFAULT_SOLVER_NAME,
     SolverNotFoundError,
@@ -263,104 +264,6 @@ def _refund_prepaid_credits(
         return False
 
 
-def _mark_execution_failed(task_id: str, organization_id: str, error: str) -> None:
-    """Mark the ModelExecution row for this task as failed (W1 sibling fix).
-
-    ``solve_async`` historically never updated its ModelExecution row —
-    status truth lived only in the Celery result backend, so every failure
-    (including ``SoftTimeLimitExceeded`` from the worker-level soft time
-    limit, W15/F-01) left a zombie 'pending' row in user-visible execution
-    history. Best-effort: opens its own session, preserves terminal states
-    (a user CANCELLED row is not a failure), and never raises — the task's
-    own result/refund path must not be disturbed by a bookkeeping error.
-    """
-    try:
-        db = SessionLocal()
-        try:
-            execution = (
-                db.query(ModelExecution)
-                .filter(
-                    ModelExecution.celery_task_id == task_id,
-                    ModelExecution.organization_id == organization_id,
-                )
-                .first()
-            )
-            if execution is None:
-                return
-            if execution.status in (
-                ExecutionStatus.CANCELLED.value,
-                ExecutionStatus.COMPLETED.value,
-                ExecutionStatus.FAILED.value,
-            ):
-                return
-            execution.status = ExecutionStatus.FAILED.value
-            execution.error_message = str(error)[:2000]
-            execution.completed_at = utcnow()
-            db.commit()
-        finally:
-            db.close()
-    except Exception as exc:
-        logger.warning("Failed to mark execution failed for task %s: %s", task_id, exc)
-
-
-def _mark_execution_completed(
-    task_id: str,
-    organization_id: str,
-    result: Any,
-    execution_time_seconds: float,
-    solver_name: str | None,
-    prepaid_credits: int,
-) -> None:
-    """Persist a SUCCESSFUL async solve onto its ModelExecution row.
-
-    ``solve_async`` historically returned the result only to the Celery result
-    backend, leaving the DB row ``status='pending'`` with ``result_data`` NULL
-    forever — so user-visible execution history showed every completed solve as
-    pending and the detail page showed no result (the reaper lags ~30 min and
-    never persists ``result_data``). This writes the terminal success state
-    directly, mirroring ``solve_model_async``. Credits were already PRE-PAID at
-    enqueue, so we only RECORD ``credits_consumed`` here — never re-deduct.
-    Best-effort: preserves terminal states (a CANCELLED/FAILED row wins), never
-    raises (a bookkeeping error must not disturb the task result/refund path).
-    """
-    try:
-        db = SessionLocal()
-        try:
-            execution = (
-                db.query(ModelExecution)
-                .filter(
-                    ModelExecution.celery_task_id == task_id,
-                    ModelExecution.organization_id == organization_id,
-                )
-                .first()
-            )
-            if execution is None:
-                return
-            if execution.status in (
-                ExecutionStatus.CANCELLED.value,
-                ExecutionStatus.COMPLETED.value,
-                ExecutionStatus.FAILED.value,
-            ):
-                return
-            execution.status = ExecutionStatus.COMPLETED.value
-            if hasattr(result, "to_result_data"):
-                execution.result_data = result.to_result_data()
-            result_status = getattr(result, "status", None)
-            if result_status is not None:
-                execution.solver_status = getattr(result_status, "value", str(result_status))
-            execution.objective_value = getattr(result, "objective_value", None)
-            execution.execution_time_ms = int(execution_time_seconds * 1000)
-            if solver_name:
-                execution.solver_name = solver_name
-            execution.credits_consumed = prepaid_credits
-            execution.completed_at = utcnow()
-            db.commit()
-        finally:
-            db.close()
-    except Exception as exc:
-        logger.warning("Failed to mark execution completed for task %s: %s", task_id, exc)
-
-
 @celery_app.task(bind=True, name="solve_async")  # type: ignore[misc]
 def solve_async(
     self: Any,
@@ -489,7 +392,7 @@ def solve_async(
             )
             # W1: keep the DB row truthful — without this the execution
             # stays 'pending' forever in user-visible history.
-            _mark_execution_failed(task_id, organization_id, str(err_detail))
+            execution_writer.mark_failed_by_task(task_id, organization_id, str(err_detail))
 
         # Extract solver metrics if available (MIP gap, bounds)
         metrics = None
@@ -547,13 +450,13 @@ def solve_async(
         # 'pending' zombie until the ~30-min reaper (which never persists result_data).
         # A status_label=='error' row was already marked failed above; skip it here.
         if status_label != "error":
-            _mark_execution_completed(
+            execution_writer.mark_completed_by_task(
                 task_id=task_id,
                 organization_id=organization_id,
                 result=result,
                 execution_time_seconds=execution_time,
                 solver_name=_async_solver_used,
-                prepaid_credits=prepaid_credits,
+                credits_recorded=prepaid_credits,
             )
 
         return result_payload
@@ -591,7 +494,7 @@ def solve_async(
 
         # W1: mark the row failed (no-op for CANCELLED — user cancel is
         # preserved). Covers SoftTimeLimitExceeded and every other raise.
-        _mark_execution_failed(task_id, organization_id, error_detail)
+        execution_writer.mark_failed_by_task(task_id, organization_id, error_detail)
 
         update_task_progress(1.0, "failed", str(e))
         _publish_ws_event(

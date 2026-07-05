@@ -47,6 +47,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.domains.solver import execution_writer
 from app.domains.solver.prepaid import get_prepaid_credits
 from app.models import (
     CreditTransaction,
@@ -186,7 +187,14 @@ def _refund_if_owed(db: Session, execution: ModelExecution, detail: str) -> int:
 
 
 def _fail_and_refund(db: Session, execution: ModelExecution, error_message: str) -> int:
-    """Refund (idempotently) then mark the row failed. Returns credits refunded."""
+    """Refund (idempotently) then mark the row failed. Returns credits refunded.
+
+    ADR-007 S3: terminal-wins is enforced by the single writer. A row the worker
+    completed (or the user cancelled) between this sweep's SELECT and now must not
+    be refunded or overwritten — bail before touching the ledger.
+    """
+    if execution_writer.is_terminal(execution):
+        return 0
     refunded = 0
     try:
         refunded = _refund_if_owed(db, execution, error_message)
@@ -198,25 +206,30 @@ def _fail_and_refund(db: Session, execution: ModelExecution, error_message: str)
         logger.error("Reaper refund failed for execution %s: %s", execution.id, exc)
         db.rollback()
 
-    execution.status = ExecutionStatus.FAILED.value
-    execution.error_message = error_message[:2000]
-    execution.completed_at = execution.completed_at or utcnow()
+    execution_writer.apply_failed(execution, error=error_message, preserve_completed_at=True)
     return refunded
 
 
 def _mark_completed(db: Session, execution: ModelExecution, result: Any) -> None:
-    """Reconcile a Celery-SUCCESS row the task never wrote back (W1 gap)."""
-    execution.status = ExecutionStatus.COMPLETED.value
-    execution.completed_at = execution.completed_at or utcnow()
-    execution.error_message = None
+    """Reconcile a Celery-SUCCESS row the task never wrote back (W1 gap).
+
+    Only the result envelope is available (not the ``OptimizationResult`` object),
+    so ``result_data`` cannot be reconstructed here — the single writer records
+    the loose solver_status/objective fields it can recover.
+    """
     inner = result.get("result") if isinstance(result, dict) else None
+    solver_status: str | None = None
+    objective: float | None = None
     if isinstance(inner, dict):
-        solver_status = inner.get("status")
-        if isinstance(solver_status, str):
-            execution.solver_status = solver_status[:32]
-        objective = inner.get("objective_value")
-        if isinstance(objective, (int, float)):
-            execution.objective_value = float(objective)
+        raw_status = inner.get("status")
+        if isinstance(raw_status, str):
+            solver_status = raw_status
+        raw_objective = inner.get("objective_value")
+        if isinstance(raw_objective, (int, float)):
+            objective = float(raw_objective)
+    execution_writer.apply_completed_fields(
+        execution, solver_status=solver_status, objective_value=objective
+    )
 
 
 def _reap_one(

@@ -1,0 +1,289 @@
+"""The single writer of ``ModelExecution`` state (ADR-007 S3).
+
+Solving grew ``>=6`` independent ``ModelExecution`` writers (the orchestrator,
+the two async workers, the marketplace ``execute_model``, the trigger task and
+the reaper), each duplicating the insert-pending -> running -> completed/failed
+/cancelled transitions with subtly divergent terminal-state guards. That is the
+direct cause of the "pending zombie / empty detail / clobbered cancel" bug class
+this codebase documents.
+
+This module owns EVERY ``ModelExecution`` status/result/timing column
+transition. Two layers:
+
+* **Pure mutators** (``apply_*``) operate on an ALREADY-LOADED row inside the
+  caller's transaction and DO NOT commit — the caller owns the session. They
+  return ``True`` when the transition was applied, ``False`` when a terminal
+  state won (terminal-state-wins is enforced in exactly one place). These are
+  what the request-scoped writers (routes, reaper sweep, marketplace worker)
+  use.
+* **Own-session best-effort wrappers** (``mark_*_by_task``) open their own
+  ``SessionLocal``, look the row up by ``celery_task_id`` + org, apply the
+  transition, commit, and NEVER raise — a bookkeeping error must not disturb the
+  task's own result/refund path. These are what the ``solve_async`` worker uses,
+  because it writes the terminal row AFTER its main solve transaction closed.
+
+The module writes ``ModelExecution`` columns only. It never touches the credit
+ledger (``CreditTransaction`` / org balance) — that is the single credit model's
+job (:mod:`app.domains.solver.execution_credits`). ``credits_consumed`` is a
+``ModelExecution`` column, so the writer RECORDS it from a caller-supplied value;
+it never deducts or refunds.
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+from app.models import ExecutionStatus, ModelExecution
+from app.shared.db.session import SessionLocal
+from app.shared.utils.datetime_helpers import utcnow
+
+logger = logging.getLogger(__name__)
+
+# A row in any of these states has reached a user-visible verdict; no automatic
+# transition may overwrite it (a worker completing a row the user just cancelled,
+# the reaper failing a row the worker just completed, an acks_late redelivery).
+_TERMINAL_STATES = frozenset(
+    {
+        ExecutionStatus.CANCELLED.value,
+        ExecutionStatus.COMPLETED.value,
+        ExecutionStatus.FAILED.value,
+    }
+)
+
+
+def is_terminal(execution: ModelExecution) -> bool:
+    """Whether the row has already reached a terminal (verdict) state."""
+    return execution.status in _TERMINAL_STATES
+
+
+def insert_pending(
+    db: Any,
+    *,
+    execution_id: str,
+    organization_id: str,
+    celery_task_id: str,
+    input_data: dict[str, Any],
+    solver_name: str,
+    executed_by_user_id: str | None = None,
+    auto_route_reason: str | None = None,
+    origin: str | None = None,
+    source_kind: str | None = None,
+    source_id: str | None = None,
+    model_project_id: str | None = None,
+    dataset_id: str | None = None,
+    dataset_name: str | None = None,
+) -> ModelExecution:
+    """Add (not commit) the pending row for a queued async solve.
+
+    The caller owns the transaction: the enqueue path commits it best-effort so a
+    failed history write never fails an already-queued, already-charged solve.
+    """
+    execution = ModelExecution(
+        id=execution_id,
+        organization_id=organization_id,
+        executed_by_user_id=executed_by_user_id,
+        celery_task_id=celery_task_id,
+        is_async=True,
+        status=ExecutionStatus.PENDING.value,
+        input_data=input_data,
+        created_at=utcnow(),
+        solver_name=solver_name,
+        auto_route_reason=auto_route_reason,
+        origin=origin,
+        source_kind=source_kind,
+        source_id=source_id,
+        model_project_id=model_project_id,
+        dataset_id=dataset_id,
+        dataset_name=dataset_name,
+    )
+    db.add(execution)
+    return execution
+
+
+def apply_running(execution: ModelExecution) -> bool:
+    """Move a loaded row to RUNNING (terminal-wins). No commit."""
+    if is_terminal(execution):
+        return False
+    execution.status = ExecutionStatus.RUNNING.value
+    if execution.started_at is None:
+        execution.started_at = utcnow()
+    return True
+
+
+def apply_completed(
+    execution: ModelExecution,
+    *,
+    result: Any,
+    execution_time_seconds: float | None = None,
+    solver_name: str | None = None,
+    credits_recorded: int | None = None,
+) -> bool:
+    """Persist a SUCCESSFUL solve onto a loaded row (terminal-wins). No commit.
+
+    ``result`` is an ``OptimizationResult``-like object: ``result_data`` comes
+    from ``to_result_data()``, ``solver_status`` from ``result.status``. Credits
+    were charged elsewhere (pre-pay); ``credits_recorded`` only sets the column.
+    """
+    if is_terminal(execution):
+        return False
+    execution.status = ExecutionStatus.COMPLETED.value
+    if hasattr(result, "to_result_data"):
+        execution.result_data = result.to_result_data()
+    result_status = getattr(result, "status", None)
+    if result_status is not None:
+        execution.solver_status = getattr(result_status, "value", str(result_status))
+    execution.objective_value = getattr(result, "objective_value", None)
+    if execution_time_seconds is not None:
+        execution.execution_time_ms = int(execution_time_seconds * 1000)
+    if solver_name:
+        execution.solver_name = solver_name
+    if credits_recorded is not None:
+        execution.credits_consumed = credits_recorded
+    execution.completed_at = utcnow()
+    return True
+
+
+def apply_completed_fields(
+    execution: ModelExecution,
+    *,
+    solver_status: str | None = None,
+    objective_value: float | None = None,
+) -> bool:
+    """Complete a loaded row from loose fields, not a result object (terminal-wins).
+
+    The reaper reconciles a Celery-SUCCESS row the worker never wrote back and
+    only has the result envelope, not the ``OptimizationResult`` object — so it
+    cannot produce ``result_data``. No commit.
+    """
+    if is_terminal(execution):
+        return False
+    execution.status = ExecutionStatus.COMPLETED.value
+    execution.completed_at = execution.completed_at or utcnow()
+    execution.error_message = None
+    if solver_status is not None:
+        execution.solver_status = solver_status[:32]
+    if objective_value is not None:
+        execution.objective_value = objective_value
+    return True
+
+
+def apply_failed(
+    execution: ModelExecution,
+    *,
+    error: str,
+    credits_recorded: int | None = None,
+    preserve_completed_at: bool = False,
+) -> bool:
+    """Move a loaded row to FAILED (terminal-wins). No commit.
+
+    ``preserve_completed_at`` keeps a pre-set ``completed_at`` (the reaper stamps
+    it before the mutation so a partial-refund rollback still leaves it set).
+    """
+    if is_terminal(execution):
+        return False
+    execution.status = ExecutionStatus.FAILED.value
+    execution.error_message = str(error)[:2000]
+    if credits_recorded is not None:
+        execution.credits_consumed = credits_recorded
+    if preserve_completed_at:
+        execution.completed_at = execution.completed_at or utcnow()
+    else:
+        execution.completed_at = utcnow()
+    return True
+
+
+def apply_cancelled(execution: ModelExecution, *, message: str = "Cancelled by user") -> bool:
+    """Move a loaded row to CANCELLED. No commit.
+
+    Cancellation wins over a live (pending/running) row but never over an
+    already-COMPLETED/FAILED verdict.
+    """
+    if execution.status in (
+        ExecutionStatus.COMPLETED.value,
+        ExecutionStatus.FAILED.value,
+    ):
+        return False
+    execution.status = ExecutionStatus.CANCELLED.value
+    execution.error_message = message
+    execution.completed_at = utcnow()
+    return True
+
+
+def _lookup_by_task(db: Any, task_id: str, organization_id: str) -> ModelExecution | None:
+    return (
+        db.query(ModelExecution)
+        .filter(
+            ModelExecution.celery_task_id == task_id,
+            ModelExecution.organization_id == organization_id,
+        )
+        .first()
+    )
+
+
+def mark_completed_by_task(
+    task_id: str,
+    organization_id: str,
+    *,
+    result: Any,
+    execution_time_seconds: float,
+    solver_name: str | None,
+    credits_recorded: int,
+) -> None:
+    """Own-session, best-effort COMPLETED write keyed by ``celery_task_id``.
+
+    Used by the ``solve_async`` worker, which persists its terminal row after the
+    main solve transaction closed. Preserves terminal states; never raises.
+    """
+    try:
+        db = SessionLocal()
+        try:
+            execution = _lookup_by_task(db, task_id, organization_id)
+            if execution is None:
+                return
+            if apply_completed(
+                execution,
+                result=result,
+                execution_time_seconds=execution_time_seconds,
+                solver_name=solver_name,
+                credits_recorded=credits_recorded,
+            ):
+                db.commit()
+        finally:
+            db.close()
+    except Exception as exc:  # noqa: BLE001 — bookkeeping must not disturb the task
+        logger.warning("Failed to mark execution completed for task %s: %s", task_id, exc)
+
+
+def mark_failed_by_task(task_id: str, organization_id: str, error: str) -> None:
+    """Own-session, best-effort FAILED write keyed by ``celery_task_id``.
+
+    Used by the ``solve_async`` worker (solver-level error branch + except
+    branch). Preserves terminal states (a user CANCELLED row is not a failure);
+    never raises.
+    """
+    try:
+        db = SessionLocal()
+        try:
+            execution = _lookup_by_task(db, task_id, organization_id)
+            if execution is None:
+                return
+            if apply_failed(execution, error=error):
+                db.commit()
+        finally:
+            db.close()
+    except Exception as exc:  # noqa: BLE001 — bookkeeping must not disturb the task
+        logger.warning("Failed to mark execution failed for task %s: %s", task_id, exc)
+
+
+__all__ = [
+    "apply_cancelled",
+    "apply_completed",
+    "apply_completed_fields",
+    "apply_failed",
+    "apply_running",
+    "insert_pending",
+    "is_terminal",
+    "mark_completed_by_task",
+    "mark_failed_by_task",
+]
