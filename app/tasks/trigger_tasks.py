@@ -193,15 +193,24 @@ def trigger_solve_task(
             result = solver.solve(problem)
             _solve_elapsed = time.time() - _solve_start
             SOLVE_DURATION.observe(_solve_elapsed)
-            solve_status = "completed"
             # Always use model_dump() — result is OptimizationResult (Pydantic model), not a dict
             result_data = result.model_dump()
-            error_msg = None
             result_status_val = getattr(
                 result.status,
                 "value",
                 "optimal",
             )
+            # A non-raising solver error (e.g. EXPR_PARSE_ERROR) comes back as
+            # status=error WITHOUT raising — treat it as a failure so the prepay
+            # is refunded, matching /solve and execute_model (ADR-007 S3). Before
+            # this, a trigger charged for an errored solve it recorded as
+            # "completed".
+            if result_status_val == "error":
+                solve_status = "failed"
+                error_msg = getattr(result, "error_message", None) or "Solver returned an error"
+            else:
+                solve_status = "completed"
+                error_msg = None
             SOLVE_TOTAL.labels(
                 status=result_status_val,
                 generator="trigger",

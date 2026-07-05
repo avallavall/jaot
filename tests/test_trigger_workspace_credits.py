@@ -501,3 +501,68 @@ class TestTriggerSolveOrgFallback:
         by_type = {t.transaction_type: t for t in txns}
         assert TransactionType.EXECUTION.value in by_type, txns
         assert TransactionType.REFUND.value in by_type, txns
+
+    @patch("app.tasks.trigger_tasks._deliver_webhook")
+    @patch("app.domains.solver.services.solver_service.SolverService.solve")
+    @patch("app.tasks.trigger_tasks.SessionLocal")
+    def test_nonraising_solver_error_refunds_prepay(
+        self, mock_session_local, mock_solve, mock_webhook, db_session, org, trigger_no_ws
+    ):
+        """# CONTRACT-TEST: ADR-007 S3 — a NON-raising solver error (status=error,
+        e.g. EXPR_PARSE_ERROR) must fail the run and refund the prepay.
+
+        Found by the S3 E2E audit: the trigger only caught RAISED exceptions, so a
+        status=error result was recorded as 'completed' and charged. It must now
+        net to zero like /solve and execute_model.
+        """
+        from app.models import CreditTransaction, TransactionType
+
+        run = TriggerRun(
+            id="run_solver_err",
+            trigger_id=trigger_no_ws.id,
+            organization_id=org.id,
+            status="pending",
+            credits_consumed=0,
+            webhook_attempts=0,
+            created_at=utcnow(),
+        )
+        db_session.add(run)
+        db_session.commit()
+
+        initial_balance = org.credits_balance
+        err_result = MagicMock()
+        err_result.status.value = "error"  # non-raising solver error
+        err_result.error_message = "EXPR_PARSE_ERROR: Division by zero"
+        err_result.model_dump.return_value = {
+            "status": "error",
+            "objective_value": None,
+            "error_message": "EXPR_PARSE_ERROR: Division by zero",
+        }
+        mock_solve.return_value = err_result
+        mock_session_local.return_value = db_session
+
+        with patch.object(db_session, "close", lambda: None):
+            from app.tasks.trigger_tasks import trigger_solve_task
+
+            result = trigger_solve_task(
+                run_id=run.id, trigger_id=trigger_no_ws.id, override_data=None
+            )
+
+        assert result["status"] == "failed", result
+
+        # Net zero: the errored solve was refunded.
+        db_session.refresh(org)
+        assert org.credits_balance == initial_balance
+
+        txns = (
+            db_session.query(CreditTransaction)
+            .filter(
+                CreditTransaction.organization_id == org.id,
+                CreditTransaction.reference_type == "trigger",
+                CreditTransaction.reference_id == run.id,
+            )
+            .all()
+        )
+        by_type = {t.transaction_type for t in txns}
+        assert TransactionType.EXECUTION.value in by_type, txns
+        assert TransactionType.REFUND.value in by_type, txns
