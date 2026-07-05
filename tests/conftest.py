@@ -817,6 +817,12 @@ def eager_solve_async_pipeline(request, monkeypatch):
         eager_results[res.id] = res
         return res
 
+    def _eager_multi_objective_apply_async(**opts):
+        # ADR-007 S4b: POST /solve/multi-objective is async-under-the-hood too.
+        res = _solve_tasks_mod.solve_multi_objective_async.apply(kwargs=opts["kwargs"])
+        eager_results[res.id] = res
+        return res
+
     _original_async_result = _celery_result_mod.AsyncResult
 
     def _eager_aware_async_result(task_id, *args, **kwargs):
@@ -826,5 +832,10 @@ def eager_solve_async_pipeline(request, monkeypatch):
         return _original_async_result(task_id, *args, **kwargs)
 
     monkeypatch.setattr(_solve_tasks_mod.solve_async, "apply_async", _eager_apply_async)
+    monkeypatch.setattr(
+        _solve_tasks_mod.solve_multi_objective_async,
+        "apply_async",
+        _eager_multi_objective_apply_async,
+    )
     monkeypatch.setattr(_celery_result_mod, "AsyncResult", _eager_aware_async_result)
     yield

@@ -20,7 +20,11 @@ from app.domains.solver.prepaid import get_prepaid_credits, get_prepaid_referenc
 from app.domains.solver.queue_routing import resolve_queue
 from app.domains.solver.services import get_solver_service
 from app.models import ExecutionStatus, ModelExecution, Organization, OrganizationModel
-from app.schemas.optimization import OptimizationProblem
+from app.schemas.optimization import (
+    MultiObjectiveConfig,
+    MultiObjectiveResult,
+    OptimizationProblem,
+)
 from app.services.credits_service import CreditsService
 from app.shared.core.celery_app import celery_app
 from app.shared.core.prometheus_metrics import (
@@ -521,6 +525,152 @@ def solve_async(
             "status": "error",
             "task_id": task_id,
             "error": str(e),
+        }
+
+
+@celery_app.task(bind=True, name="solve_multi_objective_async")  # type: ignore[misc]
+def solve_multi_objective_async(
+    self: Any,
+    problem_data: dict[str, Any],
+    config_data: dict[str, Any],
+    organization_id: str,
+    user_id: str | None = None,
+    workspace_id: str | None = None,
+) -> dict[str, Any]:
+    """Async multi-objective solve (ADR-007 S4b).
+
+    Runs the self-contained scalarization loop (``SolverService.solve_multi_objective``,
+    always SCIP) and persists the Pareto front under the nested ``multi_objective``
+    result_data. Pre-paid credits are refunded only on a raised failure/timeout — an
+    empty front (infeasible) is a completed run and stays charged, matching the sync
+    contract. Mirrors ``solve_async``'s credit / refund / writer discipline.
+    """
+    task_id = self.request.id
+    logger.info(f"Starting async multi-objective solve {task_id} for org {organization_id}")
+    prepaid_credits = get_prepaid_credits(problem_data)
+
+    try:
+        _assert_queue_match("scip")  # scalarization always runs on the SCIP queue
+
+        _publish_ws_event(
+            task_id,
+            {
+                "type": "progress",
+                "execution_id": task_id,
+                "progress": 0.0,
+                "status": "starting",
+                "message": "Initializing multi-objective solve...",
+                "timestamp": utcnow().isoformat(),
+            },
+        )
+
+        problem = OptimizationProblem(**problem_data)
+        config = MultiObjectiveConfig(**config_data)
+        solver = get_solver_service()
+
+        start_time = time.time()
+        ACTIVE_SOLVES.inc()
+        try:
+            pareto_points = solver.solve_multi_objective(problem, config)
+        finally:
+            ACTIVE_SOLVES.dec()
+        execution_time = time.time() - start_time
+        SOLVE_DURATION.observe(execution_time)
+
+        labels = [obj.label or f"Objective {i + 1}" for i, obj in enumerate(config.objectives)]
+        mo_result = MultiObjectiveResult(
+            pareto_points=pareto_points,
+            total_credits_used=prepaid_credits,
+            mode=config.mode,
+            n_solved=len(pareto_points),
+            labels=labels,
+        )
+        # Nested result_data: single-solve keys stay null (a Pareto front, not one answer).
+        result_data = {
+            "multi_objective": mo_result.model_dump(mode="json"),
+            "objective_value": None,
+            "solver_status": "optimal",
+        }
+
+        SOLVE_TOTAL.labels(status="optimal", generator="multi_objective").inc()
+        if prepaid_credits > 0:
+            CREDITS_CONSUMED.inc(prepaid_credits)
+
+        # Persist the terminal row (parity with solve_async's W1 sibling) so the run
+        # shows up in history immediately instead of staying a 'pending' zombie.
+        execution_writer.mark_multi_objective_completed_by_task(
+            task_id=task_id,
+            organization_id=organization_id,
+            result_data=result_data,
+            execution_time_seconds=execution_time,
+            credits_recorded=prepaid_credits,
+        )
+
+        _publish_ws_event(
+            task_id,
+            {
+                "type": "completed",
+                "execution_id": task_id,
+                "progress": 1.0,
+                "status": "completed",
+                "message": "Pareto front computed",
+                "timestamp": utcnow().isoformat(),
+                "metrics": {"n_solved": mo_result.n_solved},
+            },
+        )
+        logger.info(f"Multi-objective task {task_id} completed in {execution_time:.2f}s")
+
+        return {
+            "status": "success",
+            "task_id": task_id,
+            "multi_objective": True,
+            "result": mo_result.model_dump(mode="json"),
+            "execution_time_seconds": execution_time,
+        }
+
+    except Exception as e:
+        logger.error(f"Multi-objective task {task_id} failed: {e!s}")
+        SOLVE_TOTAL.labels(status="error", generator="multi_objective").inc()
+
+        # SoftTimeLimitExceeded carries no useful message; give a clear reason.
+        if isinstance(e, SoftTimeLimitExceeded):
+            error_detail = (
+                "Multi-objective solve exceeded the worker time limit and was terminated. "
+                "Pre-paid credits have been refunded."
+            )
+        else:
+            error_detail = str(e)
+
+        # Refund pre-paid credits on a raised failure (keyed on the stable reference
+        # so concurrent retries dedupe to one refund — audit F1). A user cancel that
+        # zeroed the prepay is respected via check_cancellation.
+        _refund_prepaid_credits(
+            task_id=task_id,
+            organization_id=organization_id,
+            prepaid_credits=prepaid_credits,
+            reason=RefundReason.TASK_EXCEPTION,
+            detail=error_detail,
+            check_cancellation=True,
+            reference_id=get_prepaid_reference(problem_data),
+        )
+        execution_writer.mark_failed_by_task(task_id, organization_id, error_detail)
+
+        _publish_ws_event(
+            task_id,
+            {
+                "type": "failed",
+                "execution_id": task_id,
+                "progress": 1.0,
+                "status": "failed",
+                "message": str(e),
+                "error": str(e),
+                "timestamp": utcnow().isoformat(),
+            },
+        )
+        return {
+            "status": "error",
+            "task_id": task_id,
+            "error": error_detail,
         }
 
 

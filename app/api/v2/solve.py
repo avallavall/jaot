@@ -1,4 +1,4 @@
-"""Universal Solve Endpoint -- thin route wrappers delegating to SolveOrchestrator."""
+"""Universal Solve Endpoint -- thin route wrappers over the ONE async pipeline (ADR-007)."""
 
 from __future__ import annotations
 
@@ -26,7 +26,6 @@ from app.domains.solver.pricing import calculate_credits
 from app.domains.solver.queue_routing import resolve_queue
 from app.domains.solver.services import SolverService, get_solver_service
 from app.domains.solver.services.availability_gate import ensure_hexaly_worker_or_503
-from app.domains.solver.services.pool import get_solver_pool
 from app.domains.solver.time_limits import compute_celery_time_limits
 from app.models import ModelExecution, ModelProject, Organization
 from app.schemas.optimization import (
@@ -42,7 +41,6 @@ from app.services.idempotency import idempotency_execution_id
 from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.services.solve_orchestrator import (
     ExecutionSource,
-    SolveOrchestrator,
     validate_problem,
 )
 from app.shared.core.prometheus_metrics import SOLVER_AUTO_ROUTE_DECISIONS
@@ -477,17 +475,23 @@ def analyze_infeasibility(
     response_model=MultiObjectiveResult,
     operation_id="solve_multi_objective",
 )
-async def solve_multi_objective_endpoint(
+def solve_multi_objective_endpoint(  # def: blocks on the queued result in the threadpool (S4b)
     body: MultiObjectiveSolveRequest,
     request: Request,
     db: Session = Depends(get_db),
-    solver: SolverService = Depends(get_solver_service),
     workspace_member: OptionalRequireSolver = None,
     origin: str | None = Query(default=None, max_length=32),
     source_kind: str | None = Query(default=None, max_length=32),
     source_id: str | None = Query(default=None, max_length=64),
-) -> MultiObjectiveResult:
-    """Solve a multi-objective problem. Returns a Pareto front."""
+) -> Any:
+    """Solve a multi-objective problem. Returns a Pareto front.
+
+    ADR-007 S4b — async-under-the-hood: the SCIP scalarization loop runs in the
+    dedicated ``solve_multi_objective_async`` worker (pre-paid credits = base x
+    n_points, a durable execution record, refund on failure); the handler waits in
+    the threadpool and returns the classic ``MultiObjectiveResult``, degrading to
+    202 + the task envelope past the wait budget.
+    """
     org: Organization | None = getattr(request.state, "organization", None)
     if not org:
         raise HTTPException(
@@ -498,29 +502,30 @@ async def solve_multi_objective_endpoint(
     if not allowed:
         raise HTTPException(status_code=429, detail=rate_info)
 
-    problem, config = body.problem, body.config
-    problem = _enforce_tier_caps(db, org, problem)
-
-    # D-02: multi-objective uses SCIP scalarization (no auto-routing
-    # at this tier — the orchestrator dispatches to SCIP for scalarized subproblems).
-    # Hexaly multi-objective is out of scope for this phase.
-    total_credits = calculate_credits(problem, solver_name="scip", db=db) * config.n_points
-
-    validate_problem(problem)
-    ws_id = workspace_member.workspace_id if workspace_member else None
-    user = getattr(request.state, "user", None)
-
-    orchestrator = SolveOrchestrator(db, solver, get_solver_pool())
-    return await orchestrator.solve_multi_objective(
-        problem=problem,
-        config=config,
+    enqueued = _enqueue_multi_objective_async(
+        db=db,
         org=org,
-        user=user,
-        request=request,
-        total_credits=total_credits,
-        workspace_id=ws_id,
-        source=ExecutionSource.from_request(origin, source_kind, source_id),
+        user=getattr(request.state, "user", None),
+        problem=body.problem,
+        config=body.config,
+        workspace_id=workspace_member.workspace_id if workspace_member else None,
+        origin=origin,
+        source_kind=source_kind,
+        source_id=source_id,
     )
+    payload = _wait_for_task(enqueued.task)
+    if payload is None:
+        return JSONResponse(
+            status_code=status.HTTP_202_ACCEPTED,
+            content={
+                **enqueued.envelope,
+                "message": (
+                    "Multi-objective solve still running after the wait budget — poll "
+                    "poll_url or subscribe to ws_url for the result."
+                ),
+            },
+        )
+    return _shape_multi_objective_result(payload, credits_needed=enqueued.credits_needed)
 
 
 class _EnqueuedSolve:
@@ -967,6 +972,189 @@ def _enqueue_async_solve(
     )
 
 
+def _enqueue_multi_objective_async(
+    *,
+    db: Session,
+    org: Organization,
+    user: Any,
+    problem: OptimizationProblem,
+    config: MultiObjectiveConfig,
+    workspace_id: str | None,
+    origin: str | None,
+    source_kind: str | None,
+    source_id: str | None,
+) -> _EnqueuedSolve:
+    """Enqueue a multi-objective solve (ADR-007 S4b).
+
+    Multi-objective can't ride ``_enqueue_async_solve`` (that hardcodes the
+    single-solve task + auto-routing). It always runs SCIP scalarization, so credits
+    are ``base(scip) x n_points`` with no routing, and it dispatches the dedicated
+    ``solve_multi_objective_async`` task. Same pre-pay + refund + pending-row + queue
+    time-limit discipline as the single-solve path.
+    """
+    from app.domains.solver.tasks.solve_tasks import solve_multi_objective_async
+    from app.services import workspace_credits_service
+    from app.services.credits_service import CreditsService, InsufficientCreditsError
+    from app.shared.core.prometheus_metrics import RefundReason
+    from app.shared.utils.id_generator import generate_id
+
+    problem = _enforce_tier_caps(db, org, problem)
+    execution_id = generate_id("exe_")
+
+    # Provenance up front (sanitized) — mirrors the single-solve enqueue; the typed
+    # project column is only set when source_id names a real in-org project.
+    mo_source = ExecutionSource.from_request(origin, source_kind, source_id)
+    typed_model_project_id: str | None = None
+    if mo_source.source_kind == "model_project" and mo_source.source_id:
+        owns_project = (
+            db.query(ModelProject.id)
+            .filter(
+                ModelProject.id == mo_source.source_id,
+                ModelProject.organization_id == org.id,
+            )
+            .first()
+        )
+        if owns_project:
+            typed_model_project_id = mo_source.source_id
+
+    # D-02: multi-objective uses SCIP scalarization — no auto-routing at this tier.
+    total_credits = calculate_credits(problem, solver_name="scip", db=db) * config.n_points
+
+    # Validate BEFORE charging (parity with the single-solve enqueue).
+    validate_problem(problem)
+
+    # Pre-pay: workspace pool first, org balance fallback (keyed per-solve).
+    prepaid = False
+    if workspace_id:
+        try:
+            workspace_credits_service.deduct_credits_for_solve(
+                db=db,
+                org=org,
+                workspace_id=workspace_id,
+                credits_needed=total_credits,
+                reference_id=execution_id,
+            )
+            db.commit()
+            prepaid = True
+        except ValueError:
+            pass  # Pool exhausted -- fall through to org balance
+    if not prepaid:
+        try:
+            CreditsService.deduct_credits(
+                db=db,
+                organization_id=org.id,
+                credits=total_credits,
+                description=f"Async multi-objective solve: {execution_id}",
+                reference_type="solve",
+                reference_id=execution_id,
+            )
+            db.commit()
+        except InsufficientCreditsError as e:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail={
+                    "error": "insufficient_credits",
+                    "credits_needed": e.credits_needed,
+                    "credits_available": e.credits_available,
+                },
+            ) from e
+
+    problem_data = problem.model_dump(mode="json")
+    set_prepaid_credits(problem_data, total_credits)
+    set_prepaid_reference(problem_data, execution_id)
+    config_data = config.model_dump(mode="json")
+
+    soft_limit, hard_limit = compute_celery_time_limits(db, problem.options.time_limit_seconds)
+    target_queue = resolve_queue("scip")
+
+    try:
+        task = solve_multi_objective_async.apply_async(
+            kwargs={
+                "problem_data": problem_data,
+                "config_data": config_data,
+                "organization_id": org.id,
+                "user_id": user.id if user else None,
+                "workspace_id": workspace_id,
+            },
+            queue=target_queue,
+            soft_time_limit=soft_limit,
+            time_limit=hard_limit,
+        )
+    except Exception as exc:
+        logger.error(
+            "apply_async failed for multi-objective solve %s; refunding %d credits: %s",
+            execution_id,
+            total_credits,
+            exc,
+        )
+        try:
+            CreditsService(db).refund_credits(
+                organization_id=org.id,
+                credits=total_credits,
+                description=f"{RefundReason.ENQUEUE_FAILED.value}: {execution_id}",
+                reference_type="solve",
+                reference_id=execution_id,
+            )
+            db.commit()
+        except Exception:
+            logger.warning(
+                "Failed to refund credits after apply_async failure for %s",
+                execution_id,
+                exc_info=True,
+            )
+            db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "error": "enqueue_failed",
+                "message": "Failed to enqueue multi-objective solve. Please retry shortly.",
+            },
+        ) from exc
+
+    execution_writer.insert_pending(
+        db,
+        execution_id=execution_id,
+        organization_id=org.id,
+        celery_task_id=task.id,
+        input_data=problem_data,
+        solver_name="scip",
+        executed_by_user_id=user.id if user else None,
+        origin=mo_source.origin,
+        source_kind=mo_source.source_kind,
+        source_id=mo_source.source_id,
+        model_project_id=typed_model_project_id,
+    )
+    try:
+        db.commit()
+    except Exception:
+        logger.warning(
+            "Failed to create pending ModelExecution %s for multi-objective task %s",
+            execution_id,
+            task.id,
+            exc_info=True,
+        )
+        db.rollback()  # Non-critical: poll will still work via Celery
+
+    task_envelope = {
+        "task_id": task.id,
+        "execution_id": execution_id,
+        "status": "pending",
+        "message": "Multi-objective task queued for processing",
+        "ws_url": f"/api/v2/ws/executions/{task.id}",
+        "poll_url": f"/api/v2/solve/async/{task.id}",
+        "estimated_credits": total_credits,
+    }
+    return _EnqueuedSolve(
+        task=task,
+        execution_id=execution_id,
+        credits_needed=total_credits,
+        effective_solver="scip",
+        auto_route_reason=None,
+        fallback_triggered=False,
+        envelope=task_envelope,
+    )
+
+
 def _wait_for_task(task: Any) -> dict[str, Any] | BaseException | None:
     """Bounded blocking wait on a queued solve; ``None`` means the budget ran out.
 
@@ -1041,6 +1229,33 @@ def _shape_sync_result(
         warning = "Hexaly temporarily unavailable; solved with SCIP (quadratic quality may differ)"
     if warning is not None:
         result.warning = warning
+    return result.model_dump(mode="json")
+
+
+def _shape_multi_objective_result(
+    payload: dict[str, Any] | BaseException,
+    *,
+    credits_needed: int,
+) -> dict[str, Any]:
+    """Map the worker envelope to the sync ``MultiObjectiveResult`` contract (S4b).
+
+    Multi-objective has no error result shape (a Pareto front, not a status), so a
+    worker error / crash surfaces as HTTP 422 — the worker already refunded the
+    prepay. An empty front (infeasible) rides the success envelope unchanged and
+    stays charged, matching the synchronous contract.
+    """
+    if isinstance(payload, BaseException):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Multi-objective solve failed: {payload}",
+        )
+    if payload.get("status") != "success":
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(payload.get("error") or "Multi-objective solve failed"),
+        )
+    result = MultiObjectiveResult(**payload["result"])
+    result.total_credits_used = credits_needed
     return result.model_dump(mode="json")
 
 

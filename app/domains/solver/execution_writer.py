@@ -146,6 +146,35 @@ def apply_completed(
     return True
 
 
+def apply_multi_objective_completed(
+    execution: ModelExecution,
+    *,
+    result_data: dict[str, Any],
+    execution_time_seconds: float | None = None,
+    credits_recorded: int | None = None,
+) -> bool:
+    """Persist a SUCCESSFUL multi-objective solve onto a loaded row (terminal-wins).
+
+    Multi-objective yields a Pareto front, not a single ``OptimizationResult``, so the
+    caller passes the already-shaped nested ``result_data`` — ``{"multi_objective": …,
+    "objective_value": None, "solver_status": "optimal"}`` — directly instead of
+    ``to_result_data()``. An empty front (infeasible) is still a completed run: credits
+    stay charged, matching the synchronous contract. No commit.
+    """
+    if is_terminal(execution):
+        return False
+    execution.status = ExecutionStatus.COMPLETED.value
+    execution.result_data = result_data
+    execution.solver_status = str(result_data.get("solver_status") or "optimal")[:32]
+    execution.objective_value = result_data.get("objective_value")
+    if execution_time_seconds is not None:
+        execution.execution_time_ms = int(execution_time_seconds * 1000)
+    if credits_recorded is not None:
+        execution.credits_consumed = credits_recorded
+    execution.completed_at = utcnow()
+    return True
+
+
 def apply_completed_fields(
     execution: ModelExecution,
     *,
@@ -257,6 +286,38 @@ def mark_completed_by_task(
         logger.warning("Failed to mark execution completed for task %s: %s", task_id, exc)
 
 
+def mark_multi_objective_completed_by_task(
+    task_id: str,
+    organization_id: str,
+    *,
+    result_data: dict[str, Any],
+    execution_time_seconds: float,
+    credits_recorded: int,
+) -> None:
+    """Own-session, best-effort COMPLETED write for a multi-objective run keyed by
+    ``celery_task_id`` (the ``solve_multi_objective_async`` worker). Preserves terminal
+    states; never raises."""
+    try:
+        db = SessionLocal()
+        try:
+            execution = _lookup_by_task(db, task_id, organization_id)
+            if execution is None:
+                return
+            if apply_multi_objective_completed(
+                execution,
+                result_data=result_data,
+                execution_time_seconds=execution_time_seconds,
+                credits_recorded=credits_recorded,
+            ):
+                db.commit()
+        finally:
+            db.close()
+    except Exception as exc:  # noqa: BLE001 — bookkeeping must not disturb the task
+        logger.warning(
+            "Failed to mark multi-objective execution completed for task %s: %s", task_id, exc
+        )
+
+
 def mark_failed_by_task(task_id: str, organization_id: str, error: str) -> None:
     """Own-session, best-effort FAILED write keyed by ``celery_task_id``.
 
@@ -283,9 +344,11 @@ __all__ = [
     "apply_completed",
     "apply_completed_fields",
     "apply_failed",
+    "apply_multi_objective_completed",
     "apply_running",
     "insert_pending",
     "is_terminal",
     "mark_completed_by_task",
     "mark_failed_by_task",
+    "mark_multi_objective_completed_by_task",
 ]
