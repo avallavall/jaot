@@ -12,22 +12,17 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import OptionalRequireSolver
-from app.api.v2.solve import _enforce_tier_caps, calculate_credits
+from app.api.v2.solve import _enqueue_async_solve, _shape_sync_result, _wait_for_task
 from app.data.templates import load_all_templates
-from app.domains.solver.adapters.base import (
-    DEFAULT_SOLVER_NAME,
-    SolverNotFoundError,
-    SolverUnavailableError,
-)
 from app.domains.solver.services import SolverService, get_solver_service
-from app.domains.solver.services.availability_gate import ensure_hexaly_worker_or_503
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
 from app.models import Organization
 from app.schemas.optimization import OptimizationProblem
-from app.services.solve_orchestrator import SolveOrchestrator, validate_problem
+from app.services.solve_orchestrator import ORIGIN_TEMPLATE
 from app.services.template_resolver import (
     catalog_model_to_dict as _catalog_model_to_dict,
     resolve_template as _resolve_template,
@@ -146,7 +141,7 @@ async def preview_template(
 
 
 @router.post("/templates/{template_id}/solve", operation_id="solve_with_template")
-async def solve_with_template(
+def solve_with_template(  # def: blocks on the queued result in the threadpool (ADR-007 S4a)
     template_id: str,
     user_input: dict[str, Any],
     request: Request,
@@ -156,6 +151,14 @@ async def solve_with_template(
     solver_name: str | None = Query(default=None, max_length=32),
 ) -> Any:
     """Solve a problem using a template.
+
+    ADR-007 S4a — async-under-the-hood: renders the template into an
+    OptimizationProblem server-side, then rides the ONE async pipeline
+    (``_enqueue_async_solve``) exactly like ``POST /solve`` — tier caps,
+    auto-routing, per-solver credit pricing (pre-paid), the pending
+    ModelExecution row (tagged ``template`` provenance), and the Celery worker.
+    The classic ``OptimizationResult`` comes back on completion; a solve that
+    outlives the wait budget returns 202 + the task envelope (poll or subscribe).
 
     The template transforms user-friendly input into an optimization problem.
     Optional ``solver_name`` selects the solver (e.g. ``scip``, ``highs``,
@@ -204,59 +207,74 @@ async def solve_with_template(
             detail=f"Failed to process input: {e!s}",
         ) from e
 
-    # Resolve the solver (query param; templates carry no body solver field).
-    # "auto" routes via the auto-router; otherwise the named solver (or default).
-    # Mirrors /api/v2/solve so template solves can target HiGHS/Hexaly/etc.
-    if solver_name == "auto":
-        from app.domains.solver.services.auto_router import select_solver
+    # Tier caps, "auto" routing, per-solver credit pricing (pre-pay), the pending
+    # row, and Celery time limits all happen inside the ONE enqueue path.
+    enqueued = _enqueue_async_solve(
+        db=db,
+        org=org,
+        user=getattr(request.state, "user", None),
+        problem=problem,
+        workspace_id=workspace_member.workspace_id if workspace_member else None,
+        solver_name_param=solver_name,
+        origin=ORIGIN_TEMPLATE,
+        source_kind="template",
+        source_id=template_id,
+        dataset_id=None,
+        parser=solver.parser,
+    )
+    # Template-specific analytics (the ONE thing the async pipeline doesn't carry):
+    # fire the TEMPLATE_USE event so template-popularity analytics survive the
+    # async migration. Fire-and-forget at submit time — a template was used
+    # regardless of whether the solve completes inline or degrades to 202.
+    _log_template_use(db, request, org, template_id, enqueued.credits_needed)
 
-        effective_solver_name, _auto_reason, _fallback = select_solver(problem, solver.parser)
-    else:
-        effective_solver_name = solver_name or DEFAULT_SOLVER_NAME
-
-    # D-11 / WR-04: direct hexaly + worker down → 503 BEFORE credit debit.
-    ensure_hexaly_worker_or_503(effective_solver_name)
-
-    # PRC-01 / D-02: per-solver credit multiplier applied via the resolved solver.
-    credits_needed = calculate_credits(problem, solver_name=effective_solver_name, db=db)
-
-    # Quick balance pre-check (the orchestrator will do the atomic deduction)
-    if org.credits_balance < credits_needed:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail=(f"Insufficient credits. Need {credits_needed}, have {org.credits_balance}"),
+    payload = _wait_for_task(enqueued.task)
+    if payload is None:
+        return JSONResponse(
+            status_code=status.HTTP_202_ACCEPTED,
+            content={
+                **enqueued.envelope,
+                "message": (
+                    "Solve still running after the wait budget — poll poll_url or "
+                    "subscribe to ws_url for the result."
+                ),
+            },
         )
+    return _shape_sync_result(
+        payload,
+        db=db,
+        org_id=org.id,
+        execution_id=enqueued.execution_id,
+        credits_needed=enqueued.credits_needed,
+        solver_used=enqueued.effective_solver,
+        auto_route_reason=enqueued.auto_route_reason,
+        fallback_triggered=enqueued.fallback_triggered,
+    )
 
-    # Validate & enforce tier caps
 
-    _enforce_tier_caps(db, org, problem)
-    validate_problem(problem)
-
-    # Extract workspace_id
-    ws_id = workspace_member.workspace_id if workspace_member else None
-
-    user = getattr(request.state, "user", None)
-
-    # Delegate to orchestrator (handles pre-pay, solve, refund, analytics)
-    from app.domains.solver.services.pool import get_solver_pool
-
-    orchestrator = SolveOrchestrator(db, solver, get_solver_pool())
+def _log_template_use(
+    db: Session,
+    request: Request,
+    org: Organization,
+    template_id: str,
+    credits_needed: int,
+) -> None:
+    """Fire-and-forget TEMPLATE_USE analytics (preserved from the old orchestrator
+    path so template-popularity analytics survive the async-only migration)."""
     try:
-        return await orchestrator.solve_with_template(
-            problem=problem,
-            template_id=template_id,
-            org=org,
-            user=user,
-            request=request,
-            credits_needed=credits_needed,
-            workspace_id=ws_id,
-            solver_name=effective_solver_name,
+        from app.services.analytics_service import AnalyticsService
+        from app.shared.constants import event_types as evt
+
+        user = getattr(request.state, "user", None)
+        AnalyticsService(db).log_event(
+            user_id=getattr(user, "id", "anonymous"),
+            org_id=org.id,
+            event_type=evt.TEMPLATE_USE,
+            ip_address=request.client.host if request.client else None,
+            metadata={"template_id": template_id, "credits_used": credits_needed},
         )
-    except (SolverNotFoundError, SolverUnavailableError) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(exc),
-        ) from exc
+    except Exception:
+        logger.debug("Failed to log TEMPLATE_USE analytics event", exc_info=True)
 
 
 @router.get("/examples", operation_id="get_example_problems")

@@ -1,14 +1,15 @@
 """ModelProject API (P1a) — first-class model entity, commit-grade versions, solve.
 
-The project solve routes through the SAME ``SolveOrchestrator.solve_single`` as the
-universal ``/solve`` endpoint (no parallel solve path), tagging the run with
-``source_kind="model_project"`` provenance and the typed
+The project solve rides the SAME async pipeline (``_enqueue_async_solve``) as the
+universal ``POST /solve`` endpoint (ADR-007: no parallel solve path), tagging the
+run with ``source_kind="model_project"`` provenance and the typed
 ``model_project_id``/``model_project_version_id`` columns.
 """
 
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from fastapi import (
     APIRouter,
@@ -22,6 +23,7 @@ from fastapi import (
     UploadFile,
     status,
 )
+from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
@@ -34,16 +36,9 @@ from app.api.deps import (
     OptionalRequireSolver,
     OptionalRequireViewer,
 )
-from app.api.v2.solve import _enforce_tier_caps, calculate_credits
+from app.api.v2.solve import _enqueue_async_solve, _shape_sync_result, _wait_for_task
 from app.domains.dsl import JModelError
-from app.domains.solver.adapters.base import (
-    DEFAULT_SOLVER_NAME,
-    SolverNotFoundError,
-    SolverUnavailableError,
-)
 from app.domains.solver.services import SolverService, get_solver_service
-from app.domains.solver.services.availability_gate import ensure_hexaly_worker_or_503
-from app.domains.solver.services.pool import get_solver_pool
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
 from app.models.audit_log import AuditAction
 from app.models.builder_document import ModelBuilderDocument
@@ -72,12 +67,7 @@ from app.services import model_project_service as svc
 from app.services.audit_service import log_action
 from app.services.model_project_service import ProjectConflictError
 from app.services.model_stats_service import compute_cached
-from app.services.solve_orchestrator import (
-    ORIGIN_VISUAL_BUILDER,
-    ExecutionSource,
-    SolveOrchestrator,
-    validate_problem,
-)
+from app.services.solve_orchestrator import ORIGIN_VISUAL_BUILDER
 from app.services.template_resolver import resolve_template_dict
 from app.shared.core.rate_limiter import check_rate_limit
 from app.shared.db import get_db
@@ -795,12 +785,12 @@ def restore_project_version(
 
 
 # --------------------------------------------------------------------------- #
-# Solve (routes through the single SolveOrchestrator path)
+# Solve (rides the single async pipeline — ADR-007 S4a)
 # --------------------------------------------------------------------------- #
 @router.post(
     "/{project_id}/solve", response_model=OptimizationResult, operation_id="solve_model_project"
 )
-async def solve_model_project(
+def solve_model_project(  # def: blocks on the queued result in the threadpool (ADR-007 S4a)
     project_id: str,
     request: Request,
     db: Session = Depends(get_db),
@@ -809,12 +799,16 @@ async def solve_model_project(
     version_id: str | None = Query(default=None),
     solver_name: str | None = Query(default=None, max_length=32),
     origin: str | None = Query(default=None, max_length=32),
-) -> OptimizationResult:
+) -> Any:
     """Solve a ModelProject's draft (or a specific committed version).
 
-    Mirrors the universal ``/solve`` flow exactly — tier caps, auto-routing,
-    credit calc, and ``SolveOrchestrator.solve_single`` — adding only the
-    ``model_project`` provenance + typed project/version columns on the row.
+    ADR-007 S4a — async-under-the-hood: resolves the project/version model
+    server-side, then rides the ONE async pipeline (``_enqueue_async_solve``)
+    exactly like ``POST /solve`` — tier caps, auto-routing, pre-paid credits, the
+    pending ModelExecution row (tagged ``model_project`` provenance + typed
+    project/version columns), and the Celery worker. The classic
+    ``OptimizationResult`` comes back on completion; a solve that outlives the
+    wait budget returns 202 + the task envelope (poll or subscribe).
 
     ``origin`` lets a programmatic caller (API/MCP/ERP) label the run honestly;
     it is sanitized server-side and falls back to ``visual_builder`` (the studio),
@@ -856,56 +850,42 @@ async def solve_model_project(
             detail=f"Stored model is not a valid optimization problem: {exc.errors()[:3]}",
         ) from exc
 
-    problem = _enforce_tier_caps(db, org, problem)
-
-    requested_solver_name = problem.solver_name or solver_name
-    auto_route_reason: str | None = None
-    fallback_triggered = False
-    if requested_solver_name == "auto":
-        from app.domains.solver.services.auto_router import select_solver  # noqa: PLC0415
-
-        effective_solver_name, auto_route_reason, fallback_triggered = select_solver(
-            problem, solver.parser
+    # Tier caps, auto-routing, credit pre-pay, provenance, and the pending row all
+    # happen inside the ONE enqueue path — the typed model_project_id resolves from
+    # source_id ownership (project is in-org above), and mpv_id rides alongside it.
+    enqueued = _enqueue_async_solve(
+        db=db,
+        org=org,
+        user=getattr(request.state, "user", None),
+        problem=problem,
+        workspace_id=workspace_member.workspace_id if workspace_member else None,
+        solver_name_param=solver_name,
+        origin=origin or ORIGIN_VISUAL_BUILDER,
+        source_kind="model_project",
+        source_id=project.id,
+        dataset_id=None,
+        model_project_version_id=mpv_id,
+        parser=solver.parser,
+    )
+    payload = _wait_for_task(enqueued.task)
+    if payload is None:
+        return JSONResponse(
+            status_code=status.HTTP_202_ACCEPTED,
+            content={
+                **enqueued.envelope,
+                "message": (
+                    "Solve still running after the wait budget — poll poll_url or "
+                    "subscribe to ws_url for the result."
+                ),
+            },
         )
-    else:
-        effective_solver_name = requested_solver_name
-
-    ensure_hexaly_worker_or_503(effective_solver_name)
-
-    base_credits = calculate_credits(problem, solver_name=effective_solver_name, db=db)
-    credits_needed = max(1, round(base_credits * 0.5)) if problem.warm_start else base_credits
-
-    validate_problem(problem)
-
-    ws_id = workspace_member.workspace_id if workspace_member else None
-    user = getattr(request.state, "user", None)
-
-    orchestrator = SolveOrchestrator(db, solver, get_solver_pool())
-    try:
-        result = await orchestrator.solve_single(
-            problem=problem,
-            org=org,
-            user=user,
-            request=request,
-            credits_needed=credits_needed,
-            workspace_id=ws_id,
-            solver_name=effective_solver_name,
-            auto_route_reason=auto_route_reason,
-            source=ExecutionSource.from_request(
-                origin or ORIGIN_VISUAL_BUILDER, "model_project", project.id
-            ),
-            model_project_id=project.id,
-            model_project_version_id=mpv_id,
-        )
-    except (SolverNotFoundError, SolverUnavailableError) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
-        ) from exc
-
-    result.solver_used = effective_solver_name or DEFAULT_SOLVER_NAME
-    result.auto_route_reason = auto_route_reason
-    if fallback_triggered:
-        result.warning = (
-            "Hexaly temporarily unavailable; solved with SCIP (quadratic quality may differ)"
-        )
-    return result
+    return _shape_sync_result(
+        payload,
+        db=db,
+        org_id=org.id,
+        execution_id=enqueued.execution_id,
+        credits_needed=enqueued.credits_needed,
+        solver_used=enqueued.effective_solver,
+        auto_route_reason=enqueued.auto_route_reason,
+        fallback_triggered=enqueued.fallback_triggered,
+    )

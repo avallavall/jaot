@@ -226,7 +226,7 @@ class TestSolve:
         return pid
 
     # CONTRACT-TEST: a project solve persists a ModelExecution with source_kind="model_project"
-    # and model_project_id set, going through the single SolveOrchestrator path.
+    # and model_project_id set, riding the single async pipeline (_enqueue_async_solve, ADR-007 S4a).
     def test_solve_persists_model_project_provenance(
         self,
         authenticated_client: TestClient,
@@ -243,6 +243,33 @@ class TestSolve:
         assert execution.source_kind == "model_project"
         assert execution.source_id == pid
         assert execution.organization_id == test_organization.id
+        # A draft solve carries no version id.
+        assert execution.model_project_version_id is None
+
+    # CONTRACT-TEST: solving a committed version persists the typed model_project_version_id
+    # provenance (ADR-007 S4a additive fix) alongside model_project_id — the studio version
+    # history + P1.5 rely on knowing which version a run came from.
+    def test_solve_version_persists_version_provenance(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization: Organization,
+    ):
+        pid = self._fund_and_arm(authenticated_client, db_session, test_organization)
+        vid = authenticated_client.post(
+            f"/api/v2/projects/{pid}/commit", json={"summary": "v1"}
+        ).json()["id"]
+        resp = authenticated_client.post(f"/api/v2/projects/{pid}/solve?version_id={vid}")
+        assert resp.status_code == 200, resp.text
+        execution = (
+            db_session.query(ModelExecution)
+            .filter(ModelExecution.model_project_id == pid)
+            .order_by(ModelExecution.created_at.desc())
+            .first()
+        )
+        assert execution is not None
+        assert execution.model_project_version_id == vid
+        assert execution.source_kind == "model_project"
 
     def test_solve_requires_auth(self, client: TestClient, db_session: Session):
         # An unauthenticated solve against any id must 401 (no org on request state).

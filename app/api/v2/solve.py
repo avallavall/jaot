@@ -646,6 +646,7 @@ def _enqueue_async_solve(
     source_kind: str | None,
     source_id: str | None,
     dataset_id: str | None,
+    model_project_version_id: str | None = None,
     execution_id_override: str | None = None,
     parser: Any = None,
 ) -> _EnqueuedSolve:
@@ -923,6 +924,11 @@ def _enqueue_async_solve(
         # Typed per-project column for fast per-project history + the §14 durable
         # reconcile + P1.5 — populated only when validated as an in-org project above.
         model_project_id=typed_model_project_id,
+        # Version provenance rides ONLY alongside a validated in-org project id so a
+        # client can never stamp a dangling version id (S4a: project-solve passes it).
+        model_project_version_id=(
+            model_project_version_id if typed_model_project_id is not None else None
+        ),
         # §8/S1: dataset provenance — name is a snapshot so history survives
         # dataset deletion. Both None unless the id resolved in-org above.
         dataset_id=dataset_id,

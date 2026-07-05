@@ -71,6 +71,7 @@ def insert_pending(
     source_kind: str | None = None,
     source_id: str | None = None,
     model_project_id: str | None = None,
+    model_project_version_id: str | None = None,
     dataset_id: str | None = None,
     dataset_name: str | None = None,
 ) -> ModelExecution:
@@ -94,6 +95,7 @@ def insert_pending(
         source_kind=source_kind,
         source_id=source_id,
         model_project_id=model_project_id,
+        model_project_version_id=model_project_version_id,
         dataset_id=dataset_id,
         dataset_name=dataset_name,
     )
