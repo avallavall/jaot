@@ -17,12 +17,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Changed
+
+- **Scheduled triggers are now priced (2026-07-05)** — a trigger solve now costs the standard per-solve credits like any other solve; previously a pricing bug made triggered solves effectively free.
+
 ### Fixed
 
+- **Credit correctness across the solve paths (2026-07-05)** — several credit bugs found by an end-to-end audit: concurrent retries with the same `Idempotency-Key` can no longer refund more than they charged; a solve that errors (e.g. a bad expression) is never charged, on the marketplace and in triggers as well as `/solve`; every solve in a workspace without a credit pool is charged (not just the first); an invalid problem is rejected before any charge; and a refunded solver error now reports 0 credits used.
 - **Large scenarios failed to launch through the web app (2026-07-04)** — solve payloads over 10 MB (the biggest TFM scenarios) were silently truncated by the frontend proxy's default body cap and surfaced as opaque "NetworkError"/500 rows in Solve-all; the proxy now allows up to the API's own 50 MB limit.
 
 ### Added
 
+- **One credit model + one execution writer for every solve (ADR-007 S3, 2026-07-05)** — the marketplace model execution and scheduled triggers now pre-pay and refund exactly like the main solve, so a failed solve never leaves a charge, and a single writer keeps every execution's history consistent.
 - **`POST /solve` now rides the async pipeline (ADR-007 S2, 2026-07-05)** — the classic synchronous endpoint keeps its exact contract (result shape, `Idempotency-Key`, error codes) but executes through the one async pipeline: pre-paid credits, a durable execution record from the start, progress/cancel/history for free, and no more solves dying at proxy timeouts — a solve that outlives the wait budget returns `202 + task_id` to poll instead. An idempotent retry that races the original now attaches to the same run instead of erroring.
 - **`?wait=true` on the async solve (ADR-007, 2026-07-04)** — `POST /solve/async?wait=true` waits server-side (up to 100s) and returns the classic synchronous result directly — the "just give me the answer" contract for ERP/MCP callers — degrading to the normal task envelope if the solve needs longer; async responses now also carry the `execution_id` alongside the `task_id`.
 - **Conditional expressions in JModel (DSL #5, 2026-07-04)** — `if <condition> then <term> [else <term>]` selects coefficients and terms at compile time from indices and param values (`if setup[i] == 1 then fixed[i] * y[i]`); only the taken branch is evaluated, so sparse conditional data just works, and a missing `else` is 0.
