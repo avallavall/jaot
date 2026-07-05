@@ -27,9 +27,10 @@ Refunds reuse the EXACT idempotency keys of the task-side refund paths so a
 reaped task that later resolves (acks_late redelivery) can never
 double-refund:
 
-- ``solve_async`` rows:       ``(org, REFUND, 'solve_task', celery_task_id)``
-  — same scope as ``solve_tasks._refund_prepaid_credits`` and DB-enforced by
-  the ``ux_credit_txn_refund_solve_task`` partial unique index.
+- ``solve_async`` rows:       ``(org, REFUND, 'solve_refund', execution_id)``
+  — the STABLE per-solve reference stamped in the payload (audit F1), same scope
+  as ``solve_tasks._refund_prepaid_credits``. Legacy rows with no stamped
+  reference fall back to ``(org, REFUND, 'solve_task', celery_task_id)``.
 - ``solve_model_async`` rows: ``(org, REFUND, 'execution', execution_id)``
   — same scope as the task's failure-path refund.
 
@@ -48,7 +49,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.domains.solver import execution_writer
-from app.domains.solver.prepaid import get_prepaid_credits
+from app.domains.solver.prepaid import get_prepaid_credits, get_prepaid_reference
 from app.models import (
     CreditTransaction,
     ExecutionStatus,
@@ -118,7 +119,16 @@ def _resolve_refund(db: Session, execution: ModelExecution) -> tuple[int, str, s
         # /solve/async path: amount travels in the payload (D-19 contract);
         # the cancel endpoint zeroes it, so cancelled rows refund nothing.
         prepaid = get_prepaid_credits(execution.input_data)
-        if prepaid > 0 and execution.celery_task_id:
+        if prepaid <= 0:
+            return None
+        # Key on the STABLE per-solve reference (execution_id) so a reap and a
+        # late task redelivery — or two tasks sharing one idempotency-derived
+        # execution_id — dedupe to ONE refund (audit F1). Fall back to the task
+        # id for legacy rows with no stamped reference.
+        ref = get_prepaid_reference(execution.input_data)
+        if ref:
+            return prepaid, "solve_refund", ref
+        if execution.celery_task_id:
             return prepaid, "solve_task", execution.celery_task_id
         return None
 

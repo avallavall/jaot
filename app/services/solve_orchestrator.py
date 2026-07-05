@@ -711,6 +711,7 @@ class SolveOrchestrator:
                     org=org,
                     workspace_id=workspace_id,
                     credits_needed=credits_needed,
+                    reference_id=execution_id,
                 )
                 self.db.commit()
                 return

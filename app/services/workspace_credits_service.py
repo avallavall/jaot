@@ -138,6 +138,7 @@ def deduct_credits_for_solve(
     org: Organization,
     workspace_id: str | None,
     credits_needed: int,
+    reference_id: str | None = None,
 ) -> str:
     """Deduct credits for a solve operation.
 
@@ -153,6 +154,10 @@ def deduct_credits_for_solve(
         org: Organization whose balance may be used as fallback.
         workspace_id: Workspace context for the solve. None = org-level solve.
         credits_needed: Credits to deduct. Must be > 0.
+        reference_id: Per-solve idempotency id (execution_id / trigger run_id) for
+            the org-balance fallback txn. MUST be unique per solve — a constant id
+            (e.g. workspace_id) makes repeated solves dedupe to a free no-op. None
+            disables idempotency (always charges), which is safe.
 
     Returns:
         "pool" if the workspace pool was charged.
@@ -201,7 +206,12 @@ def deduct_credits_for_solve(
             credits_amount=-credits_needed,
             description="Workspace pool fallback: org balance deduction for solve",
             reference_type="workspace_solve",
-            reference_id=workspace_id if workspace_id else None,
+            # Idempotency scope MUST be per-solve. Keying by workspace_id made the
+            # 2nd+ solve in a pool-less/exhausted workspace a no-op (free solve),
+            # since record_transaction returns the existing txn for a repeated key.
+            # None (legacy callers) means "no idempotency" -> always charges, which
+            # is safe; the per-solve id gives idempotent retry protection.
+            reference_id=reference_id,
             created_by="system",
         )
     except InsufficientCreditsError as e:

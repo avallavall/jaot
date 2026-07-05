@@ -155,6 +155,50 @@ def run_pending(db_session, trigger_with_ws):
     return r
 
 
+class TestOrgFallbackPerSolveIdempotency:
+    """# CONTRACT-TEST: the workspace org-fallback deduction is keyed PER-SOLVE.
+
+    Keying by workspace_id made the 2nd+ solve in a pool-less/exhausted workspace
+    dedupe to a free no-op (record_transaction returns the existing txn). Each
+    solve with a distinct reference_id must charge.
+    """
+
+    def test_pool_less_workspace_charges_every_solve(self, db_session, org, test_workspace):
+        from app.services import workspace_credits_service
+
+        start = org.credits_balance
+        # No pool exists for test_workspace -> org-balance fallback each time.
+        for ref in ("exe_solve_A", "exe_solve_B"):
+            workspace_credits_service.deduct_credits_for_solve(
+                db=db_session,
+                org=org,
+                workspace_id=test_workspace.id,
+                credits_needed=3,
+                reference_id=ref,
+            )
+        db_session.commit()
+        db_session.refresh(org)
+        # Both charged: 6 total. The old workspace_id key would have charged only 3.
+        assert org.credits_balance == start - 6
+
+    def test_same_reference_id_is_idempotent(self, db_session, org, test_workspace):
+        from app.services import workspace_credits_service
+
+        start = org.credits_balance
+        for _ in range(2):
+            workspace_credits_service.deduct_credits_for_solve(
+                db=db_session,
+                org=org,
+                workspace_id=test_workspace.id,
+                credits_needed=2,
+                reference_id="exe_same",
+            )
+        db_session.commit()
+        db_session.refresh(org)
+        # A genuine retry (same reference_id) charges once.
+        assert org.credits_balance == start - 2
+
+
 class TestSolveTriggerWorkspaceId:
     """SolveTrigger model correctly handles workspace_id."""
 

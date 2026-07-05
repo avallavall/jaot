@@ -17,7 +17,11 @@ from app.domains.solver.adapters.base import (
     DEFAULT_SOLVER_NAME,
     SolverNotFoundError,
 )
-from app.domains.solver.prepaid import clear_prepaid_credits, set_prepaid_credits
+from app.domains.solver.prepaid import (
+    clear_prepaid_credits,
+    set_prepaid_credits,
+    set_prepaid_reference,
+)
 from app.domains.solver.pricing import calculate_credits
 from app.domains.solver.queue_routing import resolve_queue
 from app.domains.solver.services import SolverService, get_solver_service
@@ -756,12 +760,23 @@ def _enqueue_async_solve(
     base_credits = calculate_credits(problem, solver_name=effective_async_solver, db=db)
     credits_needed = max(1, round(base_credits * 0.5)) if problem.warm_start else base_credits
 
-    # Pre-pay credits BEFORE queueing (refund happens in Celery on failure)
+    # Validate BEFORE charging: a parseable-but-semantically-invalid problem
+    # (undefined var refs, inverted bounds) raises HTTP 400 here — running the
+    # deduct first would strand a charge on a solve that never enqueues.
+    validate_problem(problem)
+
+    # Pre-pay credits BEFORE queueing (refund happens in Celery on failure).
+    # The org-fallback is keyed per-solve (execution_id) so repeated solves in a
+    # pool-less/exhausted workspace each charge — not once per workspace.
     prepaid = False
     if ws_id:
         try:
             workspace_credits_service.deduct_credits_for_solve(
-                db=db, org=org, workspace_id=ws_id, credits_needed=credits_needed
+                db=db,
+                org=org,
+                workspace_id=ws_id,
+                credits_needed=credits_needed,
+                reference_id=execution_id,
             )
             db.commit()
             prepaid = True
@@ -788,13 +803,15 @@ def _enqueue_async_solve(
                 },
             ) from e
 
-    validate_problem(problem)
-
     problem_data = problem.model_dump(mode="json")
     # Pass the prepaid amount through so the Celery task can refund it on
     # failure (D-19). Without this, solve_tasks.solve_async cannot know how
     # much was pre-paid and silently loses the credits on any exception.
     set_prepaid_credits(problem_data, credits_needed)
+    # Stamp the STABLE refund reference (execution_id) so the worker + reaper key
+    # the failure refund on it, not the per-task id — concurrent same-key retries
+    # then dedupe to one refund instead of minting credits (audit F1).
+    set_prepaid_reference(problem_data, execution_id)
     # Phase 7.4: use the post-auto-routing effective solver (computed above).
     # Thread the auto-route reason + fallback flag through to the worker for
     # result-dict construction (D-13 async parity).

@@ -16,7 +16,7 @@ from app.domains.solver.adapters.base import (
     SolverNotFoundError,
     SolverQueueMismatchError,
 )
-from app.domains.solver.prepaid import get_prepaid_credits
+from app.domains.solver.prepaid import get_prepaid_credits, get_prepaid_reference
 from app.domains.solver.queue_routing import resolve_queue
 from app.domains.solver.services import get_solver_service
 from app.models import ExecutionStatus, ModelExecution, Organization, OrganizationModel
@@ -188,6 +188,7 @@ def _refund_prepaid_credits(
     detail: str,
     *,
     check_cancellation: bool = False,
+    reference_id: str | None = None,
 ) -> bool:
     """Refund pre-paid credits for a failed async solve task, idempotently.
 
@@ -198,9 +199,7 @@ def _refund_prepaid_credits(
     or when ``prepaid_credits <= 0``).
 
     Args:
-        task_id: Celery task id — doubles as the ``reference_id`` for
-            idempotency (a retry with the same task id returns the
-            existing transaction instead of double-crediting).
+        task_id: Celery task id (log/description context).
         organization_id: Refund target.
         prepaid_credits: Amount to refund. A value <= 0 is a no-op.
         reason: Closed-enum :class:`RefundReason` that keys the metric
@@ -213,6 +212,12 @@ def _refund_prepaid_credits(
             the ModelExecution is already in CANCELLED state. Used by
             the except-branch so SIGTERM from a user-cancel does not
             refund automatically.
+        reference_id: STABLE per-solve refund key (the execution_id). When
+            present the refund keys on ``(REFUND, "solve_refund", execution_id)``
+            so N Celery tasks sharing one idempotency-derived execution_id
+            (concurrent same-Idempotency-Key retry) dedupe to ONE refund
+            instead of minting credits (audit F1). Falls back to the task id
+            for legacy payloads with no reference.
 
     Returns:
         True if refund was issued, False if skipped (cancel / zero /
@@ -230,6 +235,7 @@ def _refund_prepaid_credits(
         )
         return False
 
+    ref_type, ref_id = ("solve_refund", reference_id) if reference_id else ("solve_task", task_id)
     try:
         refund_db = SessionLocal()
         try:
@@ -238,8 +244,8 @@ def _refund_prepaid_credits(
                 organization_id=organization_id,
                 credits=prepaid_credits,
                 description=f"{reason.value} (task {task_id}): {str(detail)[:200]}",
-                reference_type="solve_task",
-                reference_id=task_id,
+                reference_type=ref_type,
+                reference_id=ref_id,
             )
             refund_db.commit()
             # E-19 — bump the bounded-label refund counter AFTER the DB
@@ -389,6 +395,7 @@ def solve_async(
                 prepaid_credits=prepaid_credits,
                 reason=RefundReason.SOLVER_LEVEL_ERROR,
                 detail=err_detail,
+                reference_id=get_prepaid_reference(problem_data),
             )
             # W1: keep the DB row truthful — without this the execution
             # stays 'pending' forever in user-visible history.
@@ -490,6 +497,7 @@ def solve_async(
             reason=RefundReason.TASK_EXCEPTION,
             detail=error_detail,
             check_cancellation=True,
+            reference_id=get_prepaid_reference(problem_data),
         )
 
         # W1: mark the row failed (no-op for CANCELLED — user cancel is

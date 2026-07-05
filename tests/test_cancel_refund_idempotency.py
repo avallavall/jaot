@@ -142,6 +142,52 @@ class TestCancelRefundIdempotency:
         finally:
             verify.close()
 
+    # Test A2: TWO Celery tasks sharing ONE execution_id refund exactly once (audit F1)
+    def test_two_tasks_one_reference_refund_exactly_once(self, db_engine, race_org):
+        """# CONTRACT-TEST: audit F1 — a concurrent same-Idempotency-Key retry can
+        enqueue N Celery tasks (distinct task_ids) that all share ONE
+        idempotency-derived execution_id and all fail. Keying the refund on that
+        stable execution_id (reference_id) instead of the per-task id makes the N
+        refunds dedupe to ONE, so 1 deduct + 1 refund nets to zero — not 1 deduct
+        + N refunds minting credits.
+        """
+        from app.domains.solver.tasks.solve_tasks import _refund_prepaid_credits
+        from app.shared.core.prometheus_metrics import RefundReason
+
+        org_id = race_org.id
+        shared_exe = "exe_f1_shared_reference"
+
+        # Two DIFFERENT Celery task ids, one shared execution_id reference.
+        for task in ("celery_task_f1_A", "celery_task_f1_B"):
+            _refund_prepaid_credits(
+                task_id=task,
+                organization_id=org_id,
+                prepaid_credits=7,
+                reason=RefundReason.TASK_EXCEPTION,
+                detail="both tasks failed",
+                reference_id=shared_exe,
+            )
+
+        Session = sessionmaker(bind=db_engine)
+        verify = Session()
+        try:
+            rows = (
+                verify.query(CreditTransaction)
+                .filter(
+                    CreditTransaction.organization_id == org_id,
+                    CreditTransaction.transaction_type == TransactionType.REFUND.value,
+                    CreditTransaction.reference_type == "solve_refund",
+                    CreditTransaction.reference_id == shared_exe,
+                )
+                .all()
+            )
+            assert len(rows) == 1, f"Expected 1 refund (deduped by execution_id), got {len(rows)}"
+            org = verify.query(Organization).filter(Organization.id == org_id).first()
+            # +7 once, not +14 — no credits minted.
+            assert org.credits_balance == 7, f"Expected +7 (one refund), got {org.credits_balance}"
+        finally:
+            verify.close()
+
     # Test B: direct refund called twice (same session) returns existing row
     def test_direct_refund_called_twice_is_noop(self, db_session, race_org):
         """Second call with same reference_id returns the existing transaction."""

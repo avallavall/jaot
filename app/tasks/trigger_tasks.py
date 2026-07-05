@@ -57,6 +57,12 @@ def trigger_solve_task(
     from app.shared.utils.datetime_helpers import utcnow as _utcnow  # noqa: PLC0415
 
     start_datetime = _utcnow()
+    # ADR-007 S3: track a COMMITTED pre-pay so an UNEXPECTED failure between the
+    # deduct and the settle still refunds it. Trigger rows carry no celery_task_id
+    # and are inserted terminal, so the execution reaper never backstops them.
+    _prepaid_refund = 0
+    _prepaid_org_id: str | None = None
+    _settled = False
 
     try:
         from app.models.trigger import SolveTrigger, TriggerRun  # noqa: PLC0415
@@ -157,6 +163,7 @@ def trigger_solve_task(
                         org=org,
                         workspace_id=trigger.workspace_id,
                         credits_needed=base_credits,
+                        reference_id=run_id,
                     )
                     db.commit()
                     prepaid_from_pool = True
@@ -176,6 +183,10 @@ def trigger_solve_task(
             _fail_run(db, run, "Insufficient credits")
             _deliver_webhook(trigger, run, "trigger.execution.failed")
             return {"status": "failed"}
+
+        # Pre-pay committed — arm the outer-except refund backstop.
+        _prepaid_refund = base_credits
+        _prepaid_org_id = org.id
 
         from app.domains.solver.services.solver_service import SolverService  # noqa: PLC0415
         from app.shared.core.prometheus_metrics import (  # noqa: PLC0415
@@ -300,6 +311,9 @@ def trigger_solve_task(
             except Exception as exc:
                 logger.warning("Credit refund failed for trigger run %s: %s", run_id, exc)
                 db.rollback()
+        # Prepay settled (charge kept on completed / refunded on failed): the
+        # outer-except backstop must NOT refund again.
+        _settled = True
 
         if trigger.created_by:
             try:
@@ -349,6 +363,28 @@ def trigger_solve_task(
 
     except Exception as exc:
         logger.exception("Unexpected error in trigger_solve_task for run %s: %s", run_id, exc)
+        try:
+            db.rollback()
+        except Exception:
+            logger.debug("DB rollback failed in trigger outer handler", exc_info=True)
+        # Refund a stranded pre-pay: the deduct committed but the run failed
+        # before the settle ran. Idempotent via (org, REFUND, trigger, run_id),
+        # so it is safe even if a partial settle already refunded.
+        if _prepaid_refund > 0 and _prepaid_org_id and not _settled:
+            try:
+                from app.services.credits_service import CreditsService  # noqa: PLC0415
+
+                CreditsService(db).refund_credits(
+                    organization_id=_prepaid_org_id,
+                    credits=_prepaid_refund,
+                    description=f"trigger_prepay_stranded (run {run_id}): {str(exc)[:160]}",
+                    reference_type="trigger",
+                    reference_id=run_id,
+                )
+                db.commit()
+            except Exception:
+                logger.warning("Failed to refund stranded trigger prepay for %s", run_id)
+                db.rollback()
         # Mark run as failed if we can
         try:
             from app.models.trigger import TriggerRun  # noqa: PLC0415

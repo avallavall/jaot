@@ -32,6 +32,29 @@ from typing import Any
 # only.
 _PREPAID_CREDITS_KEY = "_prepaid_credits"
 
+# Private key — the STABLE per-solve refund reference (the execution_id). The
+# worker and the reaper key the failure refund on this instead of the Celery
+# task id, so N Celery tasks that share one idempotency-derived execution_id
+# (a concurrent same-Idempotency-Key retry) all refund the SAME key and dedupe
+# to a single refund — closing the "1 deduct, N refunds -> minted credits" hole.
+_PREPAID_REF_KEY = "_prepaid_ref"
+
+
+def get_prepaid_reference(payload: dict[str, Any] | None) -> str | None:
+    """Return the per-solve refund reference (execution_id) carried on ``payload``.
+
+    ``None`` when absent (legacy payloads) — callers fall back to the task id.
+    """
+    if not payload:
+        return None
+    value = payload.get(_PREPAID_REF_KEY)
+    return value if isinstance(value, str) and value else None
+
+
+def set_prepaid_reference(payload: dict[str, Any], reference_id: str) -> None:
+    """Stamp ``payload`` with the stable per-solve refund reference (execution_id)."""
+    payload[_PREPAID_REF_KEY] = reference_id
+
 
 def get_prepaid_credits(payload: dict[str, Any] | None) -> int:
     """Return the prepaid credit count carried on ``payload``.
@@ -72,5 +95,7 @@ def clear_prepaid_credits(payload: dict[str, Any]) -> None:
 __all__ = [
     "clear_prepaid_credits",
     "get_prepaid_credits",
+    "get_prepaid_reference",
     "set_prepaid_credits",
+    "set_prepaid_reference",
 ]
