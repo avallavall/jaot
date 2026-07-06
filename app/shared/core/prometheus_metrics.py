@@ -27,8 +27,6 @@ class RefundReason(StrEnum):
     SOLVER_LEVEL_ERROR = "solver_level_error"
     # Celery task raised (except-branch refund).
     TASK_EXCEPTION = "task_exception"
-    # SolveOrchestrator sync-path refund (timeout or solver-level error).
-    ORCHESTRATOR_FAILURE = "orchestrator_failure"
     # solve_model_async failure-path refund when the producer pre-paid.
     MODEL_EXECUTION_FAILED = "model_execution_failed"
     # apply_async / routing failure AFTER a pre-pay committed (solve.py

@@ -20,7 +20,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 import app.domains.solver.tasks.solve_tasks as solve_tasks_mod
-from app.models import Organization
+from app.models import ModelExecution, Organization
 from app.models.analytics_event import AnalyticsEvent
 
 pytestmark = pytest.mark.contract
@@ -89,6 +89,32 @@ class TestTemplateWrapperParity:
         )
         assert event is not None, "template solve must log a TEMPLATE_USE analytics event"
         assert event.event_metadata["template_id"] == "knapsack"
+
+    # CONTRACT-TEST: template solves leave a navigable execution row (origin=template).
+    # Re-encodes the invariant from the deleted sync-orchestrator test (ADR-007 S6): the
+    # enqueue writes the pending row with the template provenance so history + "open origin"
+    # navigation work.
+    def test_template_solve_persists_template_provenance(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization: Organization,
+    ):
+        _fund(db_session, test_organization)
+        res = authenticated_client.post(
+            "/api/v2/solve/templates/knapsack/solve", json=_KNAPSACK_INPUT
+        )
+        assert res.status_code == 200, res.text
+        row = (
+            db_session.query(ModelExecution)
+            .filter(ModelExecution.organization_id == test_organization.id)
+            .order_by(ModelExecution.created_at.desc())
+            .first()
+        )
+        assert row is not None
+        assert row.origin == "template"
+        assert row.source_kind == "template"
+        assert row.source_id == "knapsack"
 
 
 class TestWrapperWaitDegradation:

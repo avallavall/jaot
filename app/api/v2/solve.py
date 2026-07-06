@@ -639,6 +639,35 @@ def solve_optimization_problem_async(  # sync ON PURPOSE -> FastAPI threadpool
     )
 
 
+def _log_solve_analytics(
+    db: Session, org: Organization, user: Any, problem: OptimizationProblem, credits: int
+) -> None:
+    """Fire-and-forget SOLVER_SOLVE analytics for every async solve.
+
+    ADR-007 S6: restores the signal the deleted sync orchestrator used to emit, now
+    uniform across ALL solve entry points (they all funnel through the two enqueue
+    helpers). No request context at the enqueue layer, so ``ip_address`` is None —
+    geo is the only thing lost versus the old sync emission.
+    """
+    try:
+        from app.services.analytics_service import AnalyticsService  # noqa: PLC0415
+        from app.shared.constants import event_types as evt  # noqa: PLC0415
+
+        AnalyticsService(db).log_event(
+            user_id=getattr(user, "id", "anonymous"),
+            org_id=org.id,
+            event_type=evt.SOLVER_SOLVE,
+            ip_address=None,
+            metadata={
+                "num_variables": len(problem.variables),
+                "num_constraints": len(problem.constraints),
+                "credits": credits,
+            },
+        )
+    except Exception:
+        logger.debug("Failed to log SOLVER_SOLVE analytics event", exc_info=True)
+
+
 def _enqueue_async_solve(
     *,
     db: Session,
@@ -950,6 +979,8 @@ def _enqueue_async_solve(
         )
         db.rollback()  # Non-critical: poll will still work via Celery
 
+    _log_solve_analytics(db, org, user, problem, credits_needed)
+
     task_envelope = {
         "task_id": task.id,
         # ADR-007 §6: the ModelExecution row id is first-class in the async contract
@@ -1134,6 +1165,8 @@ def _enqueue_multi_objective_async(
             exc_info=True,
         )
         db.rollback()  # Non-critical: poll will still work via Celery
+
+    _log_solve_analytics(db, org, user, problem, total_credits)
 
     task_envelope = {
         "task_id": task.id,

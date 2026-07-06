@@ -53,8 +53,10 @@ def _fund(db: Session, org: Organization) -> None:
 
 
 class TestMultiObjectiveProvenance:
-    # CONTRACT-TEST: the enqueue pre-pays a pending ModelExecution row tagged scip so
-    # the run is durable + shows up in history from the start (parity with solve_async).
+    # CONTRACT-TEST: multi-objective solves leave a navigable execution row in history
+    # (re-encodes the invariant from the deleted sync-orchestrator test, ADR-007 S6). The
+    # enqueue pre-pays a pending ModelExecution row tagged scip so the run is durable +
+    # shows up in history from the start (parity with solve_async).
     def test_pending_row_persisted_with_scip_solver(
         self,
         authenticated_client: TestClient,
@@ -62,7 +64,9 @@ class TestMultiObjectiveProvenance:
         test_organization: Organization,
     ):
         _fund(db_session, test_organization)
-        res = authenticated_client.post("/api/v2/solve/multi-objective", json=_body())
+        res = authenticated_client.post(
+            "/api/v2/solve/multi-objective?origin=visual_builder", json=_body()
+        )
         assert res.status_code == 200, res.text
         execution_id = res.json().get("execution_id") or None
         # The pending row is written by the enqueue in the request session (visible),
@@ -76,6 +80,7 @@ class TestMultiObjectiveProvenance:
         assert row is not None
         assert row.solver_name == "scip"
         assert row.is_async is True
+        assert row.origin == "visual_builder"
         if execution_id:
             assert row.id == execution_id
 

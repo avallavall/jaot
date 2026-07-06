@@ -2,7 +2,7 @@
 
 Covers create/get/list (org-scoped + anti-oracle 404), draft optimistic
 concurrency, commit-grade versioning (required message, immutability, dedup),
-and the project solve routing through SolveOrchestrator with model_project
+and the project solve riding the single async pipeline with model_project
 provenance.
 """
 
