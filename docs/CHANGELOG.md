@@ -23,6 +23,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Fixed
 
+- **The web app no longer breaks on a long solve (ADR-007 S5, 2026-07-06)** — now that a solve which outlives the server-side wait returns `202 + task_id`, the app's solve, multi-objective, template and file-import flows transparently wait for the queued result to finish (polling in the background) instead of rendering a broken/empty result; the studio was already resilient via its live-progress sessions.
 - **Credit correctness across the solve paths (2026-07-05)** — several credit bugs found by an end-to-end audit: concurrent retries with the same `Idempotency-Key` can no longer refund more than they charged; a solve that errors (e.g. a bad expression) is never charged, on the marketplace and in triggers as well as `/solve`; every solve in a workspace without a credit pool is charged (not just the first); an invalid problem is rejected before any charge; and a refunded solver error now reports 0 credits used.
 - **Large scenarios failed to launch through the web app (2026-07-04)** — solve payloads over 10 MB (the biggest TFM scenarios) were silently truncated by the frontend proxy's default body cap and surfaced as opaque "NetworkError"/500 rows in Solve-all; the proxy now allows up to the API's own 50 MB limit.
 

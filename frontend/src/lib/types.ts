@@ -365,6 +365,23 @@ export interface AsyncTask {
   status: string;
 }
 
+/**
+ * The 202 "still running" envelope a solve endpoint returns when a solve outlives
+ * the server-side wait budget (ADR-007). The sync client methods resolve it
+ * transparently by polling the async task to completion, so callers keep receiving
+ * a plain result. `execution_id` is carried here because the polled worker result
+ * dump doesn't include it (the sync shaper used to inject it).
+ */
+export interface AsyncSolveEnvelope {
+  task_id: string;
+  execution_id: string;
+  status: string;
+  poll_url?: string;
+  ws_url?: string;
+  estimated_credits?: number;
+  message?: string;
+}
+
 export interface AsyncTaskStatus {
   task_id: string;
   status: ExecutionStatus;

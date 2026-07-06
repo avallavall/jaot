@@ -12,6 +12,8 @@ import type {
   ModelExecution,
   AsyncTask,
   AsyncTaskStatus,
+  AsyncSolveEnvelope,
+  AsyncSolveResultEnvelope,
   SolveAsyncStatus,
   OptimizationProblem,
   SolveResult,
@@ -370,13 +372,21 @@ export type RequestOptions = RequestInit & {
   _retried?: boolean;
   /** Set to false to disable automatic retry on 5xx / network errors */
   retry?: boolean | RetryConfig;
+  /**
+   * Solve-family endpoints only (ADR-007 S5): when the server degrades a long
+   * solve to `202 + task envelope` (it outlived the ~100s server-side wait), the
+   * client transparently polls the async task to completion and returns the final
+   * result — so the sync callers keep receiving a plain result of any solve length.
+   * Off for every other endpoint.
+   */
+  resolveAsync?: boolean;
 };
 
 async function request<T>(
   path: string,
   options: RequestOptions = {}
 ): Promise<T> {
-  const { params, _retried, retry, ...fetchOptions } = options;
+  const { params, _retried, retry, resolveAsync, ...fetchOptions } = options;
   const url = buildUrl(path, params);
 
   const headers: Record<string, string> = {
@@ -498,10 +508,76 @@ async function request<T>(
       return undefined as T;
     }
 
+    // ADR-007 S5: a solve that outlived the server-side wait budget degrades to
+    // 202 + task envelope. For solve-family callers (resolveAsync) resolve it
+    // transparently by polling to completion, so the sync contract holds for a
+    // solve of any length; every other endpoint returns the 202 body verbatim.
+    if (res.status === 202 && resolveAsync) {
+      const envelope = (await res.json()) as AsyncSolveEnvelope;
+      return awaitAsyncSolveResult<T>(envelope);
+    }
+
     return res.json();
   }
 
   throw lastError;
+}
+
+/** Poll interval + client patience cap while resolving a degraded (202) solve. */
+const ASYNC_RESOLVE_POLL_MS = 1500;
+const ASYNC_RESOLVE_MAX_WAIT_MS = 10 * 60 * 1000; // 10 min
+
+/**
+ * Resolve a degraded (202) solve by polling `/solve/async/{task_id}` to a terminal
+ * state and returning the unwrapped result (ADR-007 S5). Mirrors the studio's
+ * completion poller. Throws on failure or once the client patience cap is hit (the
+ * solve keeps running server-side — its row is in the executions history).
+ */
+async function awaitAsyncSolveResult<T>(envelope: AsyncSolveEnvelope): Promise<T> {
+  const taskId = envelope.task_id;
+  const deadline = Date.now() + ASYNC_RESOLVE_MAX_WAIT_MS;
+  for (;;) {
+    await sleep(ASYNC_RESOLVE_POLL_MS);
+    let status: SolveAsyncStatus;
+    try {
+      status = await request<SolveAsyncStatus>(`/api/v2/solve/async/${taskId}`);
+    } catch (err) {
+      if (Date.now() > deadline) throw err;
+      continue; // transient poll error — keep trying until the deadline
+    }
+    if (status.status === "completed") {
+      return unwrapAsyncSolveBody<T>(status, envelope.execution_id);
+    }
+    if (status.status === "failed") {
+      throw new ApiError(500, status.error || "Solve failed");
+    }
+    if (Date.now() > deadline) {
+      throw new ApiError(
+        504,
+        "The solve is taking longer than expected — it is still running; check the executions history for the result."
+      );
+    }
+  }
+}
+
+/**
+ * Unwrap a completed async-solve poll into the plain result the sync callers expect.
+ * The poll nests the real result at `status.result.result` (the worker envelope);
+ * some paths return it directly at `status.result`. The `execution_id` from the
+ * original 202 envelope is injected because the worker's raw result dump omits it.
+ */
+function unwrapAsyncSolveBody<T>(status: SolveAsyncStatus, executionId: string): T {
+  const envelope = status.result as AsyncSolveResultEnvelope | undefined;
+  const base = ((envelope?.result ?? envelope) ?? {}) as Record<string, unknown>;
+  const merged: Record<string, unknown> = {
+    ...base,
+    execution_id: (base.execution_id as string | undefined) ?? executionId,
+  };
+  // Single-solve telemetry the poll hoists to the top level (absent/harmless for multi-obj).
+  if (status.solver_used !== undefined) merged.solver_used = status.solver_used;
+  if (status.auto_route_reason !== undefined) merged.auto_route_reason = status.auto_route_reason;
+  if (status.warning !== undefined) merged.warning = status.warning;
+  return merged as T;
 }
 
 export const api = {
@@ -765,6 +841,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify(problem),
       params: buildSolveParams(workspaceId, source),
+      resolveAsync: true,
     });
   },
 
@@ -834,6 +911,7 @@ export const api = {
       method: "POST",
       params: buildSolveParams(workspaceId, source),
       body: JSON.stringify({ problem, config }),
+      resolveAsync: true,
     });
   },
 
@@ -1394,6 +1472,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify(input),
       params: workspaceId ? { workspace_id: workspaceId } : undefined,
+      resolveAsync: true,
     });
   },
 
@@ -1643,6 +1722,13 @@ export const api = {
         const body = await res.json().catch(() => ({}));
         const detail = typeof body.detail === "string" ? body.detail : undefined;
         throw new ApiError(res.status, detail || `Import failed (${res.status})`, detail);
+      }
+
+      // ADR-007 S5: a long import solve degrades to 202 — resolve it transparently
+      // like the request()-based solve methods (this route uses a bespoke fetch).
+      if (res.status === 202) {
+        const envelope = (await res.json()) as AsyncSolveEnvelope;
+        return awaitAsyncSolveResult<SolveResult>(envelope);
       }
 
       return res.json();

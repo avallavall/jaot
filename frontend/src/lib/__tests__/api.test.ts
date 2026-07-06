@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { api } from "../api";
 
 // Helper to set up fetch mock
@@ -188,6 +188,79 @@ describe("ApiClient", () => {
       const url = spy.mock.calls[0][0] as string;
       expect(url).not.toContain("origin=");
       expect(url).not.toContain("source_kind=");
+    });
+  });
+
+  describe("solve - 202 async degrade (ADR-007 S5)", () => {
+    const problem = {
+      name: "test",
+      variables: [],
+      objective: { sense: "minimize" as const, expression: "x" },
+      constraints: [],
+    };
+
+    // A long solve degrades to 202 + envelope; the poll GET then returns terminal.
+    function mock202ThenPoll(pollBody: unknown) {
+      const envelope = {
+        task_id: "task-abc",
+        execution_id: "exe_deg",
+        status: "pending",
+        poll_url: "/api/v2/solve/async/task-abc",
+      };
+      return vi.spyOn(global, "fetch").mockImplementation((input: RequestInfo | URL) => {
+        const url = String(input);
+        const body = url.includes("/solve/async/task-abc") ? pollBody : envelope;
+        const status = url.includes("/solve/async/task-abc") ? 200 : 202;
+        return Promise.resolve({ ok: true, status, json: async () => body } as Response);
+      });
+    }
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("polls a degraded solve to completion and injects execution_id", async () => {
+      localStorage.setItem("jaot_api_key", "ok_test_key");
+      mock202ThenPoll({
+        task_id: "task-abc",
+        status: "completed",
+        solver_used: "scip",
+        result: { status: "success", result: { status: "optimal", objective_value: 10, solution: {} } },
+      });
+
+      const result = await api.solve(problem);
+
+      expect(result.status).toBe("optimal");
+      expect(result.objective_value).toBe(10);
+      // The worker's raw result dump omits execution_id; it's injected from the 202 envelope.
+      expect(result.execution_id).toBe("exe_deg");
+      expect(result.solver_used).toBe("scip");
+    });
+
+    it("throws when a degraded solve ends failed", async () => {
+      localStorage.setItem("jaot_api_key", "ok_test_key");
+      mock202ThenPoll({ task_id: "task-abc", status: "failed", error: "solver exploded" });
+
+      await expect(api.solve(problem)).rejects.toThrow("solver exploded");
+    });
+
+    it("resolves a degraded multi-objective solve to its Pareto result", async () => {
+      localStorage.setItem("jaot_api_key", "ok_test_key");
+      mock202ThenPoll({
+        task_id: "task-abc",
+        status: "completed",
+        result: {
+          status: "success",
+          multi_objective: true,
+          result: { n_solved: 3, pareto_points: [1, 2, 3], mode: "epsilon", labels: [], total_credits_used: 3 },
+        },
+      });
+
+      const config = { mode: "epsilon" as const, objectives: [], n_points: 3 };
+      const result = await api.solveMultiObjective(problem, config);
+
+      expect(result.n_solved).toBe(3);
+      expect(result.pareto_points).toHaveLength(3);
     });
   });
 
