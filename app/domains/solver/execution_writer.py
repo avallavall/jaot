@@ -241,15 +241,28 @@ def apply_cancelled(execution: ModelExecution, *, message: str = "Cancelled by u
     return True
 
 
-def _lookup_by_task(db: Any, task_id: str, organization_id: str) -> ModelExecution | None:
-    return (
-        db.query(ModelExecution)
-        .filter(
-            ModelExecution.celery_task_id == task_id,
-            ModelExecution.organization_id == organization_id,
-        )
-        .first()
+def _lookup_by_task(
+    db: Any, task_id: str, organization_id: str, *, lock: bool = False
+) -> ModelExecution | None:
+    """Load the execution for a task, optionally taking a row lock.
+
+    ADR-007 S6b: the terminal writers (``mark_*_by_task`` + the reaper) load the row
+    ``FOR UPDATE`` so the worker↔reaper terminal transition is serialized at the DB —
+    the loser blocks, then reads the now-terminal status and its ``is_terminal`` guard
+    correctly bails, instead of clobbering the winner (or issuing a stray refund). A
+    lock on ONE side alone does not serialize against an unlocked read on the other,
+    so BOTH sides lock.
+    """
+    query = db.query(ModelExecution).filter(
+        ModelExecution.celery_task_id == task_id,
+        ModelExecution.organization_id == organization_id,
     )
+    if lock:
+        # ``of=ModelExecution``: lock ONLY the executions row. ModelExecution eager-joins
+        # its (nullable) marketplace relations, and a bare FOR UPDATE errors on the
+        # nullable side of that outer join ("FOR UPDATE cannot be applied...").
+        query = query.with_for_update(of=ModelExecution)
+    return query.first()
 
 
 def mark_completed_by_task(
@@ -269,7 +282,7 @@ def mark_completed_by_task(
     try:
         db = SessionLocal()
         try:
-            execution = _lookup_by_task(db, task_id, organization_id)
+            execution = _lookup_by_task(db, task_id, organization_id, lock=True)
             if execution is None:
                 return
             if apply_completed(
@@ -300,7 +313,7 @@ def mark_multi_objective_completed_by_task(
     try:
         db = SessionLocal()
         try:
-            execution = _lookup_by_task(db, task_id, organization_id)
+            execution = _lookup_by_task(db, task_id, organization_id, lock=True)
             if execution is None:
                 return
             if apply_multi_objective_completed(
@@ -328,7 +341,7 @@ def mark_failed_by_task(task_id: str, organization_id: str, error: str) -> None:
     try:
         db = SessionLocal()
         try:
-            execution = _lookup_by_task(db, task_id, organization_id)
+            execution = _lookup_by_task(db, task_id, organization_id, lock=True)
             if execution is None:
                 return
             if apply_failed(execution, error=error):

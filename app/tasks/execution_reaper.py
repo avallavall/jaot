@@ -199,22 +199,28 @@ def _refund_if_owed(db: Session, execution: ModelExecution, detail: str) -> int:
 def _fail_and_refund(db: Session, execution: ModelExecution, error_message: str) -> int:
     """Refund (idempotently) then mark the row failed. Returns credits refunded.
 
-    ADR-007 S3: terminal-wins is enforced by the single writer. A row the worker
-    completed (or the user cancelled) between this sweep's SELECT and now must not
-    be refunded or overwritten — bail before touching the ledger.
+    ADR-007 S3/S6b: terminal-wins is enforced by the single writer. A row the worker
+    completed (or the user cancelled) between this sweep's UNLOCKED SELECT and now must
+    not be refunded or overwritten. Lock + refresh the row so the terminal check sees
+    its CURRENT state (not the stale sweep copy): this serializes against the worker's
+    FOR-UPDATE terminal write — whichever commits first wins, and the loser bails here.
     """
+    # Row lock + fresh state. Blocks until a concurrent worker terminal write commits;
+    # then is_terminal sees the winner and we bail — no double write, no stray refund.
+    db.refresh(execution, with_for_update={"of": ModelExecution})
     if execution_writer.is_terminal(execution):
         return 0
     refunded = 0
     try:
-        refunded = _refund_if_owed(db, execution, error_message)
+        # SAVEPOINT so a refund failure (frozen org, transient DB error) rolls back ONLY
+        # the partial refund — the outer transaction (and its FOR-UPDATE row lock) survive,
+        # so the row is still marked failed below (no zombie) under the same lock. The next
+        # sweep retries the refund via the idempotent key.
+        with db.begin_nested():
+            refunded = _refund_if_owed(db, execution, error_message)
     except Exception as exc:
-        # Refund failure (frozen org, transient DB error) must not leave the
-        # zombie row in place — roll back the partial refund work and still
-        # mark the row failed below. The next sweep retries the refund via
-        # the idempotent key.
         logger.error("Reaper refund failed for execution %s: %s", execution.id, exc)
-        db.rollback()
+        refunded = 0
 
     execution_writer.apply_failed(execution, error=error_message, preserve_completed_at=True)
     return refunded
@@ -227,6 +233,12 @@ def _mark_completed(db: Session, execution: ModelExecution, result: Any) -> None
     so ``result_data`` cannot be reconstructed here — the single writer records
     the loose solver_status/objective fields it can recover.
     """
+    # ADR-007 S6b: lock + refresh so apply_completed_fields' terminal-wins guard below
+    # sees the row's CURRENT state — a worker that just wrote the terminal row wins and
+    # this reconcile becomes a no-op (serialized against the worker's FOR-UPDATE write).
+    db.refresh(execution, with_for_update={"of": ModelExecution})
+    if execution_writer.is_terminal(execution):
+        return
     inner = result.get("result") if isinstance(result, dict) else None
     solver_status: str | None = None
     objective: float | None = None

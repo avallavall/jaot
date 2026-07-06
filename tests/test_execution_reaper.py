@@ -440,6 +440,47 @@ class TestExecutionReaper:
         db_session.refresh(execution)
         assert execution.status == ExecutionStatus.RUNNING.value
 
+    def test_reaper_bails_when_worker_completes_row_mid_sweep(
+        self, db_session, reaper_org, monkeypatch
+    ):
+        """# CONTRACT-TEST: the worker↔reaper terminal-wins race (ADR-007 S6b).
+
+        The sweep loaded a pending row, but the worker committed it COMPLETED before
+        the reaper acted on it. The reaper must lock + refresh, see the terminal
+        status, and BAIL — no refund, no overwrite to failed. Without the FOR-UPDATE
+        refresh the reaper would refund a row that actually completed (credit leak) and
+        clobber the worker's verdict to failed.
+        """
+        from sqlalchemy import update as sa_update
+
+        from app.tasks.execution_reaper import _fail_and_refund
+
+        execution = _make_solve_execution(db_session, reaper_org, age_seconds=3600, prepaid=7)
+        db_session.refresh(reaper_org)
+        balance_before = reaper_org.credits_balance
+
+        # Worker completes the SAME row via a Core UPDATE with synchronize_session=False,
+        # so the DB row is COMPLETED while the ORM `execution` stays stale (pending) in
+        # memory — exactly the TOCTOU the fix must close.
+        db_session.execute(
+            sa_update(ModelExecution)
+            .where(ModelExecution.id == execution.id)
+            .values(status=ExecutionStatus.COMPLETED.value)
+            .execution_options(synchronize_session=False)
+        )
+        assert execution.status == ExecutionStatus.PENDING.value  # in-memory still stale
+
+        refunded = _fail_and_refund(db_session, execution, "reaper stale message")
+        db_session.commit()
+
+        # Refreshed under lock, saw COMPLETED, bailed: no refund, verdict preserved.
+        assert refunded == 0
+        db_session.refresh(execution)
+        assert execution.status == ExecutionStatus.COMPLETED.value
+        assert _refunds_for(db_session, reaper_org.id, "solve", execution.id) == []
+        db_session.refresh(reaper_org)
+        assert reaper_org.credits_balance == balance_before
+
 
 class TestSoftTimeLimitHandling:
     """W15/F-01 (c): the soft-limit exception inside solve_async must mark the
