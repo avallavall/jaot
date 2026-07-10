@@ -1,22 +1,20 @@
 """Admin marketplace management routes.
 
 Provides admin endpoints for platform-wide seller analytics,
-per-seller drill-down, seller leaderboard, promotion management,
-and verification request queue.
+per-seller drill-down, seller leaderboard, feature usage analytics,
+and the verification request queue.
+
+ADR-008: promotion (featured placement) management left with the money layer;
+seller analytics are non-monetary (adoption, not revenue) and no longer gated.
 """
 
 from fastapi import APIRouter, Depends, Query, Request
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_monetization_enabled
-from app.models.optimization_model import ModelCatalog
-from app.models.organization import Organization
 from app.schemas.analytics import (
     FeatureAnalyticsOverview,
     PaginatedRecentEventsResponse,
 )
-from app.schemas.featured_placement import AdminPlacementResponse
 from app.schemas.seller_analytics import (
     AdminAnalyticsResponse,
     AnalyticsSummaryResponse,
@@ -26,7 +24,6 @@ from app.schemas.verification import (
     AdminVerificationEntry,
 )
 from app.services.analytics_service import AnalyticsService
-from app.services.featured_placement_service import FeaturedPlacementService
 from app.services.seller_analytics_service import SellerAnalyticsService
 from app.services.verification_service import VerificationService
 from app.shared.db.base import get_db
@@ -34,11 +31,7 @@ from app.shared.db.base import get_db
 router = APIRouter(prefix="/marketplace", tags=["admin-marketplace"])
 
 
-@router.get(
-    "/seller-analytics",
-    response_model=AdminAnalyticsResponse,
-    dependencies=[Depends(require_monetization_enabled)],
-)
+@router.get("/seller-analytics", response_model=AdminAnalyticsResponse)
 async def get_admin_seller_analytics(
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
     db: Session = Depends(get_db),
@@ -46,7 +39,7 @@ async def get_admin_seller_analytics(
     """Get platform-wide analytics with seller leaderboard.
 
     Returns aggregated platform totals (org_id=None) and a ranked list
-    of sellers by revenue.
+    of model authors by adoption.
     """
     analytics = SellerAnalyticsService(db)
     platform_totals = analytics.get_summary(org_id=None, period=period)
@@ -54,11 +47,7 @@ async def get_admin_seller_analytics(
     return AdminAnalyticsResponse(platform_totals=platform_totals, sellers=sellers)
 
 
-@router.get(
-    "/seller-analytics/{org_id}",
-    response_model=AnalyticsSummaryResponse,
-    dependencies=[Depends(require_monetization_enabled)],
-)
+@router.get("/seller-analytics/{org_id}", response_model=AnalyticsSummaryResponse)
 async def get_admin_seller_detail(
     org_id: str,
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
@@ -118,99 +107,6 @@ async def get_admin_feature_analytics_events(
         event_type=event_type,
         country_code=country_code,
     )
-
-
-@router.get(
-    "/promotions",
-    response_model=list[AdminPlacementResponse],
-    dependencies=[Depends(require_monetization_enabled)],
-)
-async def get_admin_promotions(
-    db: Session = Depends(get_db),
-) -> list[AdminPlacementResponse]:
-    """List all active and recent placements with org/model names."""
-    service = FeaturedPlacementService(db)
-    placements = service.get_active_placements(org_id=None)
-
-    # Batch pre-fetch organizations and models to avoid N+1 queries
-    org_ids = list({p.organization_id for p in placements if p.organization_id})
-    model_ids = list({p.catalog_model_id for p in placements if p.catalog_model_id})
-    orgs = (
-        {o.id: o for o in db.query(Organization).filter(Organization.id.in_(org_ids)).all()}
-        if org_ids
-        else {}
-    )
-    catalog_models = (
-        {m.id: m for m in db.query(ModelCatalog).filter(ModelCatalog.id.in_(model_ids)).all()}
-        if model_ids
-        else {}
-    )
-
-    result: list[AdminPlacementResponse] = []
-    for p in placements:
-        org = orgs.get(p.organization_id)
-        model = catalog_models.get(p.catalog_model_id)
-        result.append(
-            AdminPlacementResponse(
-                id=p.id,
-                catalog_model_id=p.catalog_model_id,
-                placement_type=p.placement_type,
-                status=p.status,
-                credits_paid=p.credits_paid,
-                duration_days=p.duration_days,
-                starts_at=p.starts_at,
-                expires_at=p.expires_at,
-                created_at=p.created_at,
-                org_name=org.name if org else None,
-                model_name=model.display_name if model else None,
-                revoked_at=p.revoked_at,
-                revoked_by=p.revoked_by,
-            )
-        )
-    return result
-
-
-@router.post(
-    "/promotions/{placement_id}/revoke",
-    status_code=204,
-    dependencies=[Depends(require_monetization_enabled)],
-)
-async def revoke_promotion(
-    placement_id: str,
-    request: Request,
-    db: Session = Depends(get_db),
-) -> None:
-    """Revoke an active placement (admin action)."""
-    admin_user = getattr(request.state, "user", None)
-    admin_user_id = admin_user.id if admin_user else "admin"
-    service = FeaturedPlacementService(db)
-    service.revoke(placement_id, admin_user_id, admin_user=admin_user)
-    db.commit()
-
-
-class ExtendPlacementRequest(BaseModel):
-    """Request body for extending a placement."""
-
-    extra_days: int
-
-
-@router.post(
-    "/promotions/{placement_id}/extend",
-    dependencies=[Depends(require_monetization_enabled)],
-)
-async def extend_promotion(
-    placement_id: str,
-    body: ExtendPlacementRequest,
-    request: Request,
-    db: Session = Depends(get_db),
-) -> dict[str, str]:
-    """Extend a placement's expiration (admin action)."""
-    admin_user = getattr(request.state, "user", None)
-    admin_user_id = admin_user.id if admin_user else "admin"
-    service = FeaturedPlacementService(db)
-    service.extend(placement_id, body.extra_days, admin_user_id)
-    db.commit()
-    return {"status": "extended"}
 
 
 @router.get("/verification", response_model=list[AdminVerificationEntry])

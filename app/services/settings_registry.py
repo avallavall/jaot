@@ -317,17 +317,6 @@ SETTINGS_REGISTRY.extend(
             max_value=100000,
         ),
         SettingDefinition(
-            key="LLM_CREDIT_COST_PER_MESSAGE",
-            label="Credit Cost per Message",
-            description="Credits charged per LLM message",
-            category=SettingCategory.LLM,
-            setting_type=SettingType.INT,
-            default_value="2",
-            min_value=0,
-            max_value=100,
-            unit="credits",
-        ),
-        SettingDefinition(
             key="LLM_MONTHLY_BUDGET_EUR",
             label="Monthly Anthropic Budget",
             description=(
@@ -650,10 +639,10 @@ SETTINGS_REGISTRY.append(
 )
 
 _PLAN_TIERS = ["free", "starter", "pro", "business"]
+# ADR-008: plan tiers are LIMIT PROFILES only — the credits/monthly_quota
+# fields left with the credit system.
 _PLAN_FIELDS: list[tuple[str, str, SettingType, float | None, float | None, str | None]] = [
     # (field, label, type, min, max, unit)
-    ("credits", "Credits", SettingType.INT, 0, 1000000, "credits"),
-    ("monthly_quota", "Monthly Quota", SettingType.INT, 0, 1000000, "credits"),
     ("rate_limit_per_minute", "Rate Limit/Min", SettingType.INT, 0, 10000, None),
     ("rate_limit_per_day", "Rate Limit/Day", SettingType.INT, 0, 1000000, None),
     (
@@ -682,8 +671,6 @@ _PLAN_DEFAULTS: dict[tuple[str, str], str] = {
     # monthly LLM budget remains the only real cost ceiling. Mirrored here so
     # fresh installs / DB reseeds match. (starter/pro/business kept as legacy,
     # also relaxed for consistency.)
-    ("free", "credits"): "20000",
-    ("free", "monthly_quota"): "20000",
     ("free", "rate_limit_per_minute"): "120",
     ("free", "rate_limit_per_day"): "50000",
     ("free", "max_solve_time_seconds"): "86400",
@@ -692,8 +679,6 @@ _PLAN_DEFAULTS: dict[tuple[str, str], str] = {
     ("free", "max_cron_schedules"): "50",
     ("free", "allowed_features"): _ALLOWED_FEATURES_DEFAULT,
     # Starter tier
-    ("starter", "credits"): "600",
-    ("starter", "monthly_quota"): "600",
     ("starter", "rate_limit_per_minute"): "20",
     ("starter", "rate_limit_per_day"): "500",
     ("starter", "max_solve_time_seconds"): "86400",
@@ -702,8 +687,6 @@ _PLAN_DEFAULTS: dict[tuple[str, str], str] = {
     ("starter", "max_cron_schedules"): "5",
     ("starter", "allowed_features"): _ALLOWED_FEATURES_DEFAULT,
     # Pro tier
-    ("pro", "credits"): "2500",
-    ("pro", "monthly_quota"): "2500",
     ("pro", "rate_limit_per_minute"): "60",
     ("pro", "rate_limit_per_day"): "5000",
     ("pro", "max_solve_time_seconds"): "86400",
@@ -712,8 +695,6 @@ _PLAN_DEFAULTS: dict[tuple[str, str], str] = {
     ("pro", "max_cron_schedules"): "15",
     ("pro", "allowed_features"): _ALLOWED_FEATURES_DEFAULT,
     # Business tier
-    ("business", "credits"): "20000",
-    ("business", "monthly_quota"): "20000",
     ("business", "rate_limit_per_minute"): "120",
     ("business", "rate_limit_per_day"): "50000",
     ("business", "max_solve_time_seconds"): "86400",
@@ -997,17 +978,6 @@ SETTINGS_REGISTRY.extend(
             max_value=2592000,
             unit="seconds",
         ),
-        SettingDefinition(
-            key="CRON_DEFAULT_CREDIT_ESTIMATE",
-            label="Cron Default Credit Estimate",
-            description=("Default credit estimate for cron runs without prior run history"),
-            category=SettingCategory.CELERY,
-            setting_type=SettingType.INT,
-            default_value="1",
-            min_value=0,
-            max_value=1000,
-            unit="credits",
-        ),
     ]
 )
 
@@ -1032,77 +1002,6 @@ SETTINGS_REGISTRY.extend(
             default_value="10",
             min_value=1,
             max_value=1000,
-        ),
-    ]
-)
-
-# Additional BILLING entries — pricing, holding, thresholds
-SETTINGS_REGISTRY.extend(
-    [
-        SettingDefinition(
-            key="LOW_CREDITS_THRESHOLD_PCT",
-            label="Low Credits Threshold",
-            description=("Percentage threshold for low credits warning"),
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.INT,
-            default_value="10",
-            min_value=0,
-            max_value=100,
-            unit="%",
-        ),
-    ]
-)
-
-# BILLING — Phase 7.4 / PRC-01 / D-02 / D-03 (3 entries)
-#
-# Per-solver credit multiplier. Applied in calculate_credits() AFTER the
-# auto-router decides the effective solver. Hexaly solves cost 5x more in
-# credits than SCIP solves; HiGHS sits in the middle at 1.2x. Runtime-
-# configurable via the platform_settings admin panel.
-SETTINGS_REGISTRY.extend(
-    [
-        SettingDefinition(
-            key="pricing.solver_multiplier.scip",
-            label="SCIP credit multiplier",
-            description=(
-                "Per-solve credit multiplier applied when the effective "
-                "solver is SCIP. Default 1.0 — SCIP is the baseline. "
-                "Phase 7.4 / PRC-01 / D-02."
-            ),
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.FLOAT,
-            default_value="1.0",
-            min_value=0.1,
-            max_value=100.0,
-        ),
-        SettingDefinition(
-            key="pricing.solver_multiplier.highs",
-            label="HiGHS credit multiplier",
-            description=(
-                "Per-solve credit multiplier applied when the effective "
-                "solver is HiGHS. Default 1.0 — open-source self-hosted: all "
-                "solvers priced equally. Phase 7.4 / PRC-01 / D-02."
-            ),
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.FLOAT,
-            default_value="1.0",
-            min_value=0.1,
-            max_value=100.0,
-        ),
-        SettingDefinition(
-            key="pricing.solver_multiplier.hexaly",
-            label="Hexaly credit multiplier",
-            description=(
-                "Per-solve credit multiplier applied when the effective "
-                "solver is Hexaly. Default 1.0 — open-source self-hosted: all "
-                "solvers priced equally. The deployment mounts a single "
-                "instance-level Hexaly .lic (BYOL) per D-01. Phase 7.4 / PRC-01 / D-02."
-            ),
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.FLOAT,
-            default_value="1.0",
-            min_value=0.1,
-            max_value=100.0,
         ),
     ]
 )
@@ -1213,17 +1112,9 @@ SETTINGS_REGISTRY.append(
     ),
 )
 
-# Additional SYSTEM entries — problem types, integrations
+# Additional SYSTEM entries — integrations
 SETTINGS_REGISTRY.extend(
     [
-        SettingDefinition(
-            key="PROBLEM_TYPE_MANUAL_CREDIT_ADDITION",
-            label="Manual Credit Addition Problem Type",
-            description=("Problem type identifier for manual credit additions"),
-            category=SettingCategory.SYSTEM,
-            setting_type=SettingType.STRING,
-            default_value="manual_credit_addition",
-        ),
         SettingDefinition(
             key="STORAGE_ACCOUNT_ID",
             label="Storage Account ID",

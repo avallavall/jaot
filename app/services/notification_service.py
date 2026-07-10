@@ -125,43 +125,6 @@ class NotificationService:
             link=f"/solve/executions/{execution_id}",
         )
 
-    def notify_credits_low(
-        self,
-        user_id: str,
-        organization_id: str,
-        current_balance: int,
-        threshold: int = 10,
-    ) -> Notification:
-        """Notify user that credits are running low."""
-        return self.create_notification(
-            user_id=user_id,
-            organization_id=organization_id,
-            notification_type=NotificationType.CREDITS_LOW,
-            title="Credits Running Low",
-            message=f"You have {current_balance} credits remaining. Consider adding more credits to avoid interruptions.",
-            data={
-                "current_balance": current_balance,
-                "threshold": threshold,
-            },
-            link="/workspace/credits",
-        )
-
-    def notify_credits_depleted(
-        self,
-        user_id: str,
-        organization_id: str,
-    ) -> Notification:
-        """Notify user that credits are depleted."""
-        return self.create_notification(
-            user_id=user_id,
-            organization_id=organization_id,
-            notification_type=NotificationType.CREDITS_DEPLETED,
-            title="Credits Depleted",
-            message="You have run out of credits. Add more credits to continue using optimization models.",
-            link="/workspace/credits",
-            channel=NotificationChannel.BOTH,
-        )
-
     def get_user_notifications(
         self,
         user_id: str,
@@ -248,11 +211,11 @@ class NotificationService:
         )
 
     # --- Event type to NotificationType mapping ---
+    # ADR-008: sale/payout/promotion events left with the money layer; the
+    # adoption signal ("someone activated your model") stays, money-neutral.
     _SELLER_EVENT_MAP: dict[str, NotificationType] = {
-        "sale": NotificationType.NEW_SALE,
         "review": NotificationType.NEW_REVIEW,
-        "payout": NotificationType.PAYOUT_COMPLETED,
-        "promotion_expiring": NotificationType.PROMOTION_EXPIRING,
+        "activation": NotificationType.MODEL_ACTIVATED,
     }
 
     # Default preferences: in_app ON, email OFF (missing-row-means-default pattern)

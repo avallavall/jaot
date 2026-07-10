@@ -7,7 +7,6 @@ from app.api.v2 import (
     builder,
     community,
     contact,
-    credits,
     dsl,
     feedback,
     gdpr,
@@ -18,7 +17,6 @@ from app.api.v2 import (
     llm,
     notifications,
     org_settings,
-    pricing,
     projects,
     schedules,
     seller,
@@ -49,7 +47,6 @@ api_v2_router.include_router(solvers.router, tags=["solvers"])
 api_v2_router.include_router(solve_templates_router, prefix="/solve", tags=["solve"])
 
 # Credits - Credit management, withdrawals, exchange rates
-api_v2_router.include_router(credits.router, tags=["credits"])
 
 # API Keys - Key management
 api_v2_router.include_router(keys.router, tags=["api-keys"])
@@ -102,8 +99,6 @@ api_v2_router.include_router(schedules.router, tags=["schedules"])
 # Seller — seller earnings dashboard endpoints
 api_v2_router.include_router(seller.router, tags=["seller"])
 
-# Pricing — public pricing data (no auth required)
-api_v2_router.include_router(pricing.router, tags=["pricing"])
 
 # Home — public announcement banner (no auth required)
 api_v2_router.include_router(home.router, tags=["home"])

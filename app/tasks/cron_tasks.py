@@ -1,8 +1,8 @@
 """Celery task for cron-scheduled trigger fires.
 
-Beat calls cron_fire_task at each scheduled tick. The task performs pre-checks
-(overlap detection, credit balance) before delegating to the existing
-fire_trigger() pipeline, ensuring version pinning is inherited.
+Beat calls cron_fire_task at each scheduled tick. The task performs an overlap
+pre-check before delegating to the existing fire_trigger() pipeline, ensuring
+version pinning is inherited.
 """
 
 import logging
@@ -29,9 +29,8 @@ def cron_fire_task(self: Any, trigger_id: str) -> dict[str, Any]:
     Steps:
     1. Load trigger and schedule; skip if disabled or missing
     2. Overlap check: skip if previous cron run still active
-    3. Credit pre-check: skip if insufficient balance
-    4. Fire via existing pipeline (fire_trigger)
-    5. Handle success/failure counters
+    3. Fire via existing pipeline (fire_trigger)
+    4. Handle success/failure counters
     """
     db = SessionLocal()
     try:
@@ -77,31 +76,7 @@ def cron_fire_task(self: Any, trigger_id: str) -> dict[str, Any]:
             )
             return {"status": "skipped_overlap", "run_id": run.id}
 
-        # 3. Credit pre-check (CRON-07)
-        estimated_credits = _estimate_credits(db, trigger)
-
-        from app.models import Organization  # noqa: PLC0415
-
-        org = db.query(Organization).filter(Organization.id == trigger.organization_id).first()
-        if org and org.credits_balance < estimated_credits:
-            run = trigger_service.create_run(db, trigger, None, "skipped_credits")
-            run.source = "cron"
-            run.credits_consumed = 0
-            db.commit()
-
-            _send_insufficient_credits_webhook(trigger, run, estimated_credits)
-            _increment_failure_counter(db, schedule, trigger)
-            db.commit()
-
-            logger.info(
-                "cron_fire_task: insufficient credits for trigger %s (balance=%d, estimate=%d)",
-                trigger_id,
-                org.credits_balance,
-                estimated_credits,
-            )
-            return {"status": "skipped_credits", "run_id": run.id}
-
-        # 4. Fire via existing pipeline (CRON-08)
+        # 3. Fire via existing pipeline (CRON-08)
         run, error = trigger_service.fire_trigger(db, trigger, None)
         run.source = "cron"
 
@@ -135,62 +110,6 @@ def cron_fire_task(self: Any, trigger_id: str) -> dict[str, Any]:
 
     finally:
         db.close()
-
-
-def _estimate_credits(db: Any, trigger: Any) -> int:
-    """Estimate credits needed for a cron fire.
-
-    Uses the most recent completed run's credits_consumed. Falls back to
-    CRON_DEFAULT_CREDIT_ESTIMATE from settings.
-    """
-    from app.models.trigger import TriggerRun  # noqa: PLC0415
-    from app.services.platform_settings_service import (  # noqa: PLC0415
-        PlatformSettingsService as PSS,
-    )
-
-    last_run = (
-        db.query(TriggerRun)
-        .filter(
-            TriggerRun.trigger_id == trigger.id,
-            TriggerRun.status == "completed",
-            TriggerRun.credits_consumed > 0,
-        )
-        .order_by(TriggerRun.created_at.desc())
-        .first()
-    )
-    if last_run:
-        return int(last_run.credits_consumed)
-
-    return PSS.get_int(db, "CRON_DEFAULT_CREDIT_ESTIMATE")
-
-
-def _send_insufficient_credits_webhook(trigger: Any, run: Any, estimated_credits: int) -> None:
-    """Send webhook notification for insufficient credits."""
-    try:
-        from app.services.webhook_service import build_webhook_payload  # noqa: PLC0415
-        from app.tasks.webhook_tasks import deliver_webhook_task  # noqa: PLC0415
-
-        payload = build_webhook_payload(
-            event_type="trigger.schedule.insufficient_credits",
-            organization_id=trigger.organization_id,
-            data={
-                "run_id": run.id,
-                "trigger_id": trigger.id,
-                "trigger_name": trigger.name,
-                "estimated_credits": estimated_credits,
-            },
-        )
-        deliver_webhook_task.delay(
-            str(trigger.webhook_url),
-            payload,
-            trigger.webhook_secret,
-        )
-    except Exception as exc:
-        logger.warning(
-            "Failed to send insufficient_credits webhook for trigger %s: %s",
-            trigger.id,
-            exc,
-        )
 
 
 def _increment_failure_counter(db: Any, schedule: Any, trigger: Any) -> None:

@@ -3,7 +3,7 @@
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.shared.db.base import Base
@@ -19,15 +19,6 @@ class Plan(str, Enum):
     BUSINESS = "business"
 
 
-class Currency(str, Enum):
-    """Supported currencies."""
-
-    EUR = "EUR"  # Euro (base currency)
-    USD = "USD"  # US Dollar
-    GBP = "GBP"  # British Pound
-    CHF = "CHF"  # Swiss Franc
-
-
 class Organization(Base):
     """Organization/Company that uses the platform."""
 
@@ -37,33 +28,9 @@ class Organization(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     plan: Mapped[str] = mapped_column(String, default="free")  # free, starter, pro, business
 
-    # Credits — three separate pools that sum to credits_balance:
-    #   credits_subscription: refreshed monthly (use-it-or-lose-it at renewal)
-    #   credits_purchased:    from top-ups, never expire, never withdrawable
-    #   credits_earned:       from marketplace sales, withdrawable after hold period
-    credits_balance: Mapped[int] = mapped_column(Integer, default=50)
-    credits_subscription: Mapped[int] = mapped_column(Integer, default=50)
-    credits_purchased: Mapped[int] = mapped_column(Integer, default=0)
-    credits_used_month: Mapped[int] = mapped_column(Integer, default=0)
-    monthly_quota: Mapped[int] = mapped_column(Integer, default=50)
-
-    # Credits earned from marketplace sales (can be withdrawn)
-    credits_earned: Mapped[int] = mapped_column(Integer, default=0)
-
-    # Low-credits notification tracking (reset on any positive credit transaction)
-    low_credits_notified: Mapped[bool] = mapped_column(default=False)
-
     # Rate limits (requests per minute)
     rate_limit_per_minute: Mapped[int] = mapped_column(Integer, default=60)
     rate_limit_per_day: Mapped[int] = mapped_column(Integer, default=2000)
-
-    # Billing & Currency — ADR-008 transition: billing_email/currency/is_frozen
-    # survive ONLY because the not-yet-removed credits surface reads them; they
-    # go with the credits-removal slice. (The stripe_* / chargeback DB columns
-    # still exist but are unmapped — additive rule, dropped in a later release.)
-    billing_email: Mapped[str | None] = mapped_column(String, nullable=True)
-    currency: Mapped[str] = mapped_column(String, default="EUR")  # EUR, USD, GBP, CHF
-    is_frozen: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Webhooks
     webhook_url: Mapped[str | None] = mapped_column(String(500), nullable=True)

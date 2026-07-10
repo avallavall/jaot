@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 
 from app.models import (
     APIKey,
-    CreditTransaction,
     ModelExecution,
     Organization,
     OrganizationModel,
@@ -25,7 +24,6 @@ from app.schemas.admin import (
     OrgExecutionSummary,
     OrgModelSummary,
     OrgOwnerSummary,
-    OrgTransactionSummary,
     UserResponse,
 )
 from app.shared.db.base import get_db
@@ -164,12 +162,6 @@ async def get_organization_overview(
         .all()
     )
     status_counts = dict(status_rows)
-    credits_consumed_total = (
-        db.query(func.coalesce(func.sum(ModelExecution.credits_consumed), 0))
-        .filter(ModelExecution.organization_id == org_id)
-        .scalar()
-        or 0
-    )
 
     # organization_model (and its catalog_model) are relationship(lazy="joined"),
     # so reading e.organization_model.display_name below is eager — no N+1.
@@ -177,13 +169,6 @@ async def get_organization_overview(
         db.query(ModelExecution)
         .filter(ModelExecution.organization_id == org_id)
         .order_by(ModelExecution.created_at.desc())
-        .limit(20)
-        .all()
-    )
-    recent_transactions = (
-        db.query(CreditTransaction)
-        .filter(CreditTransaction.organization_id == org_id)
-        .order_by(CreditTransaction.created_at.desc())
         .limit(20)
         .all()
     )
@@ -213,7 +198,6 @@ async def get_organization_overview(
         + status_counts.get("timeout", 0)
         + status_counts.get("cancelled", 0),
         running=status_counts.get("running", 0) + status_counts.get("pending", 0),
-        credits_consumed_total=int(credits_consumed_total),
     )
 
     return OrganizationOverviewResponse(
@@ -231,7 +215,6 @@ async def get_organization_overview(
                 source="marketplace" if m.catalog_id else "custom",
                 is_active=m.is_active,
                 total_executions=m.total_executions,
-                total_credits_used=m.total_credits_used,
                 last_executed_at=m.last_executed_at,
                 created_at=m.created_at,
             )
@@ -242,7 +225,6 @@ async def get_organization_overview(
                 id=e.id,
                 status=e.status,
                 solver_name=e.solver_name,
-                credits_consumed=e.credits_consumed,
                 execution_time_ms=e.execution_time_ms,
                 objective_value=e.objective_value,
                 model_display_name=(
@@ -252,17 +234,6 @@ async def get_organization_overview(
                 created_at=e.created_at,
             )
             for e in recent_executions
-        ],
-        recent_transactions=[
-            OrgTransactionSummary(
-                id=t.id,
-                transaction_type=t.transaction_type,
-                credits_amount=t.credits_amount,
-                balance_after=t.balance_after,
-                description=t.description,
-                created_at=t.created_at,
-            )
-            for t in recent_transactions
         ],
     )
 
@@ -278,8 +249,6 @@ async def create_organization(
         id=generate_id("org_"),
         name=data.name,
         plan=data.plan,
-        credits_balance=data.credits_balance,
-        monthly_quota=data.monthly_quota,
         rate_limit_per_minute=data.rate_limit_per_minute,
         rate_limit_per_day=data.rate_limit_per_day,
         ai_builder_enabled=data.ai_builder_enabled,

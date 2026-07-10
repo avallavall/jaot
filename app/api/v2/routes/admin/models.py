@@ -3,7 +3,6 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models import APIKey, ModelCatalog, Organization, OrganizationModel, User
@@ -34,9 +33,6 @@ async def get_admin_stats(db: Session = Depends(get_db)) -> dict[str, Any]:
             "catalog_total": db.query(ModelCatalog).count(),
             "catalog_public": db.query(ModelCatalog).filter(ModelCatalog.is_public == True).count(),  # noqa: E712
             "activated_total": db.query(OrganizationModel).count(),
-        },
-        "credits": {
-            "total_balance": db.query(func.sum(Organization.credits_balance)).scalar() or 0,
         },
     }
 
@@ -73,7 +69,6 @@ async def list_all_models(
                 "is_public": model.is_public,
                 "is_official": model.is_official,
                 "is_featured": model.is_featured,
-                "credits_per_execution": model.credits_per_execution,
                 "created_at": model.created_at.isoformat() if model.created_at else None,
             }
         )

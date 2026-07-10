@@ -32,7 +32,6 @@ class OrganizationUpdate(BaseModel):
     website: str | None = None
     plan: str | None = None
     is_active: bool | None = None
-    credits_balance: int | None = None
 
 
 class OrganizationResponse(BaseModel):
@@ -45,9 +44,6 @@ class OrganizationResponse(BaseModel):
     website: str | None = None
     plan: str
     is_active: bool
-    credits_balance: int
-    credits_earned: int
-    credits_used_month: int
     created_at: datetime
     updated_at: datetime | None = None
 

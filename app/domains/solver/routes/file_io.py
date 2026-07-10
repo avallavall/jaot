@@ -17,7 +17,6 @@ from app.api.v2.solve import (
     _enqueue_async_solve,
     _shape_sync_result,
     _wait_for_task,
-    calculate_credits,
 )
 from app.domains.solver.services.file_import import (
     FileImportError,
@@ -99,12 +98,6 @@ def _build_metadata(
         num_integer=num_integer,
         num_binary=num_binary,
         num_continuous=num_continuous,
-        # D-02: this builder feeds ONLY /import/preview, which doesn't solve
-        # or debit. Estimate is base cost so customers compare workloads
-        # independent of solver; multiplier is applied at real debit sites
-        # (import_and_solve, /solve, solve_with_template) where solver name
-        # is known.
-        estimated_credits=calculate_credits(problem),
         file_size_bytes=len(file_bytes),
         original_filename=filename,
     )

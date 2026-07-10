@@ -1,4 +1,8 @@
-"""Pydantic schemas for seller analytics API responses."""
+"""Pydantic schemas for seller analytics API responses.
+
+ADR-008: all metrics are non-monetary — "activation" means an org activated
+the author's catalog model, not a credit sale.
+"""
 
 from pydantic import BaseModel
 
@@ -9,7 +13,6 @@ class AnalyticsSummaryResponse(BaseModel):
     total_views: int
     total_impressions: int
     total_activations: int
-    total_revenue: int  # credits earned
     conversion_rate: float  # views -> activations
     period: str  # "7d", "30d", "90d", "all"
 
@@ -21,7 +24,6 @@ class TimeSeriesDataPoint(BaseModel):
     views: int
     impressions: int
     activations: int
-    revenue: int
 
 
 class TimeSeriesResponse(BaseModel):
@@ -51,7 +53,6 @@ class ModelPerformanceRow(BaseModel):
     model_name: str
     views: int
     activations: int
-    revenue: int
     conversion_rate: float
 
 
@@ -64,12 +65,11 @@ class ConversionFunnelResponse(BaseModel):
 
 
 class SellerLeaderboardEntry(BaseModel):
-    """Leaderboard entry for a seller (admin view)."""
+    """Leaderboard entry for a model author (admin view)."""
 
     org_id: str
     org_name: str
-    total_sales: int
-    total_revenue: int
+    total_activations: int
     models_published: int
     avg_rating: float | None
 

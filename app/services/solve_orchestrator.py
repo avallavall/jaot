@@ -1,15 +1,9 @@
-"""Solve orchestration service.
+"""Solve support module — validation, provenance and warm-start helpers.
 
-Coordinates the full solve lifecycle:
-  1. Pre-pay credits (deduct BEFORE solving)
-  2. Execute solve in ThreadPoolExecutor
-  3. Refund credits on failure
-  4. Record execution and audit log
-  5. Update metrics
-
-This service extracts business logic from the solve route handlers,
-keeping routes as thin wrappers. Follows the pre-pay + refund credit
-pattern established in llm.py.
+The in-request orchestrator class died with ADR-007 (async-only executions);
+what remains here are the shared pieces the async pipeline itself imports:
+``validate_problem``, ``ExecutionSource``/``ORIGIN_*`` provenance, variable
+name extraction and warm-start loading.
 """
 
 import logging

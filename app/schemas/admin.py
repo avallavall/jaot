@@ -14,8 +14,6 @@ class OrganizationCreate(BaseModel):
 
     name: str
     plan: str = "free"
-    credits_balance: int = 100
-    monthly_quota: int = 100
     rate_limit_per_minute: int = 2
     rate_limit_per_day: int = 10
     ai_builder_enabled: bool = False
@@ -27,8 +25,6 @@ class OrganizationUpdate(BaseModel):
 
     name: str | None = None
     plan: str | None = None
-    credits_balance: int | None = None
-    monthly_quota: int | None = None
     rate_limit_per_minute: int | None = None
     rate_limit_per_day: int | None = None
     ai_builder_enabled: bool | None = None
@@ -43,9 +39,6 @@ class OrganizationResponse(BaseModel):
     id: str
     name: str
     plan: str
-    credits_balance: int
-    credits_used_month: int
-    monthly_quota: int
     rate_limit_per_minute: int
     rate_limit_per_day: int
     ai_builder_enabled: bool
@@ -168,12 +161,6 @@ class OrgDetail(BaseModel):
     id: str
     name: str
     plan: str
-    credits_balance: int
-    credits_subscription: int
-    credits_purchased: int
-    credits_earned: int
-    credits_used_month: int
-    monthly_quota: int
     rate_limit_per_minute: int
     rate_limit_per_day: int
     ai_builder_enabled: bool
@@ -185,8 +172,6 @@ class OrgDetail(BaseModel):
     is_verified: bool
     is_public_profile: bool
     slug: str | None = None
-    billing_email: str | None = None
-    currency: str
     website_url: str | None = None
     created_at: datetime
     owner_user_id: str | None = None
@@ -212,7 +197,6 @@ class OrgExecutionStats(BaseModel):
     completed: int
     failed: int
     running: int
-    credits_consumed_total: int
 
 
 class OrgModelSummary(BaseModel):
@@ -224,7 +208,6 @@ class OrgModelSummary(BaseModel):
     source: str  # "marketplace" | "custom"
     is_active: bool
     total_executions: int
-    total_credits_used: int
     last_executed_at: datetime | None = None
     created_at: datetime
 
@@ -235,22 +218,10 @@ class OrgExecutionSummary(BaseModel):
     id: str
     status: str
     solver_name: str | None = None
-    credits_consumed: int
     execution_time_ms: int | None = None
     objective_value: float | None = None
     model_display_name: str | None = None
     executed_by_user_id: str | None = None
-    created_at: datetime
-
-
-class OrgTransactionSummary(BaseModel):
-    """A recent credit transaction for an organization."""
-
-    id: str
-    transaction_type: str
-    credits_amount: int
-    balance_after: int
-    description: str
     created_at: datetime
 
 
@@ -265,4 +236,3 @@ class OrganizationOverviewResponse(BaseModel):
     api_keys: list[APIKeyResponse]
     models: list[OrgModelSummary]
     recent_executions: list[OrgExecutionSummary]
-    recent_transactions: list[OrgTransactionSummary]

@@ -333,7 +333,6 @@ class MultiObjectiveResult(BaseModel):
     """Result of a multi-objective optimization solve."""
 
     pareto_points: list[ParetoPoint] = Field(..., description="Points on the Pareto front")
-    total_credits_used: int = Field(..., description="Total credits consumed")
     mode: str = Field(..., description="Solving mode used (epsilon or weighted)")
     n_solved: int = Field(..., description="Number of Pareto points found")
     labels: list[str] = Field(..., description="Labels for each objective")
@@ -441,10 +440,6 @@ class OptimizationResult(BaseModel):
 
     # Error info
     error_message: str | None = Field(default=None, description="Error details if failed")
-
-    # Credits
-    credits_used: int = Field(default=1, description="Credits charged for this solve")
-    credits_remaining: int | None = Field(default=None, description="Remaining credits")
 
     # Auto-routing transparency (D-08). ``solver_used`` is the effective
     # solver that ran after ``solver_name="auto"`` resolves; ``auto_route_reason``

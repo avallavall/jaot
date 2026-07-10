@@ -38,11 +38,10 @@ def trigger_solve_task(
     5. Parse merged model into OptimizationProblem
     6. Solve via SolverService
     7. Create ModelExecution row with origin='triggered'
-    8. Update TriggerRun record (status, result, timing, credits)
-    9. Deduct credits from organization
-    10. Send in-app notification to trigger creator
-    11. Deliver outbound webhook
-    12. Close DB session
+    8. Update TriggerRun record (status, result, timing)
+    9. Send in-app notification to trigger creator
+    10. Deliver outbound webhook
+    11. Close DB session
 
     Args:
         run_id: TriggerRun PK to update.
@@ -57,12 +56,6 @@ def trigger_solve_task(
     from app.shared.utils.datetime_helpers import utcnow as _utcnow  # noqa: PLC0415
 
     start_datetime = _utcnow()
-    # ADR-007 S3: track a COMMITTED pre-pay so an UNEXPECTED failure between the
-    # deduct and the settle still refunds it. Trigger rows carry no celery_task_id
-    # and are inserted terminal, so the execution reaper never backstops them.
-    _prepaid_refund = 0
-    _prepaid_org_id: str | None = None
-    _settled = False
 
     try:
         from app.models.trigger import SolveTrigger, TriggerRun  # noqa: PLC0415
@@ -132,69 +125,11 @@ def trigger_solve_task(
             _deliver_webhook(trigger, run, "trigger.execution.failed")
             return {"status": "failed"}
 
-        # ADR-007 S3: pre-pay BEFORE solving (one credit model). Pool-first when
-        # the trigger names a workspace, else org balance; a shortfall fails the
-        # run without solving. A solve failure refunds under the idempotent
-        # (trigger, run_id) key, so a failed trigger nets to zero. This replaces
-        # the old deduct-after-solve, which under-charged: it read credits_used
-        # from the result (~0 for a real solve) and swallowed errors.
-        from app.domains.solver.pricing import calculate_credits  # noqa: PLC0415
-        from app.models import Organization  # noqa: PLC0415
-        from app.services.credits_service import (  # noqa: PLC0415
-            CreditsService,
-            InsufficientCreditsError,
-        )
-
-        org = db.query(Organization).filter(Organization.id == trigger.organization_id).first()
-        if org is None:
-            _fail_run(db, run, "Organization not found")
-            _deliver_webhook(trigger, run, "trigger.execution.failed")
-            return {"status": "failed"}
-
-        base_credits = calculate_credits(problem, solver_name="scip", db=db)
-        prepaid_from_pool = False
-        try:
-            if trigger.workspace_id:
-                try:
-                    from app.services import workspace_credits_service  # noqa: PLC0415
-
-                    workspace_credits_service.deduct_credits_for_solve(
-                        db=db,
-                        org=org,
-                        workspace_id=trigger.workspace_id,
-                        credits_needed=base_credits,
-                        reference_id=run_id,
-                    )
-                    db.commit()
-                    prepaid_from_pool = True
-                except ValueError:
-                    pass  # pool exhausted -> org fallback below
-            if not prepaid_from_pool:
-                CreditsService.deduct_credits(
-                    db=db,
-                    organization_id=org.id,
-                    credits=base_credits,
-                    description=f"Trigger solve pre-pay: {trigger.name} (run {run_id})",
-                    reference_type="trigger",
-                    reference_id=run_id,
-                )
-                db.commit()
-        except InsufficientCreditsError:
-            _fail_run(db, run, "Insufficient credits")
-            _deliver_webhook(trigger, run, "trigger.execution.failed")
-            return {"status": "failed"}
-
-        # Pre-pay committed — arm the outer-except refund backstop.
-        _prepaid_refund = base_credits
-        _prepaid_org_id = org.id
-
         from app.domains.solver.services.solver_service import SolverService  # noqa: PLC0415
         from app.shared.core.prometheus_metrics import (  # noqa: PLC0415
             ACTIVE_SOLVES,
-            CREDITS_CONSUMED,
             SOLVE_DURATION,
             SOLVE_TOTAL,
-            RefundReason,
         )
 
         solver = SolverService()
@@ -212,10 +147,8 @@ def trigger_solve_task(
                 "optimal",
             )
             # A non-raising solver error (e.g. EXPR_PARSE_ERROR) comes back as
-            # status=error WITHOUT raising — treat it as a failure so the prepay
-            # is refunded, matching /solve and execute_model (ADR-007 S3). Before
-            # this, a trigger charged for an errored solve it recorded as
-            # "completed".
+            # status=error WITHOUT raising — treat it as a failure, matching
+            # /solve and execute_model (ADR-007 S3).
             if result_status_val == "error":
                 solve_status = "failed"
                 error_msg = getattr(result, "error_message", None) or "Solver returned an error"
@@ -263,7 +196,6 @@ def trigger_solve_task(
             execution_time_ms=elapsed_ms,
             solver_status=(result_data or {}).get("status"),
             objective_value=(result_data or {}).get("objective_value"),
-            credits_consumed=(base_credits if solve_status == "completed" else 0),
             trigger_id=trigger.id,
             origin="triggered",
             # Provenance: navigates back to the trigger that fired this run.
@@ -284,36 +216,6 @@ def trigger_solve_task(
         run.execution_time_ms = elapsed_ms
         run.completed_at = now
         db.commit()
-
-        # 9. Settle the pre-paid credits (ADR-007 S3). A completed run keeps the
-        #    charge; a failed run refunds it under the idempotent (trigger,
-        #    run_id) REFUND key so the failure nets to zero. Best-effort: a
-        #    settlement error must not fail the run.
-        credits_used = 0
-        if solve_status == "completed":
-            run.credits_consumed = base_credits
-            credits_used = base_credits
-            CREDITS_CONSUMED.inc(base_credits)
-            db.commit()
-        else:
-            try:
-                CreditsService(db).refund_credits(
-                    organization_id=org.id,
-                    credits=base_credits,
-                    description=(
-                        f"{RefundReason.TASK_EXCEPTION.value} "
-                        f"(trigger run {run_id}): {(error_msg or 'solve failed')[:200]}"
-                    ),
-                    reference_type="trigger",
-                    reference_id=run_id,
-                )
-                db.commit()
-            except Exception as exc:
-                logger.warning("Credit refund failed for trigger run %s: %s", run_id, exc)
-                db.rollback()
-        # Prepay settled (charge kept on completed / refunded on failed): the
-        # outer-except backstop must NOT refund again.
-        _settled = True
 
         if trigger.created_by:
             try:
@@ -349,14 +251,13 @@ def trigger_solve_task(
             if solve_status == "completed"
             else "trigger.execution.failed"
         )
-        _deliver_webhook(trigger, run, event_type, credits_used=credits_used)
+        _deliver_webhook(trigger, run, event_type)
 
         logger.info(
-            "TriggerRun %s completed: status=%s elapsed_ms=%d credits=%d execution_id=%s",
+            "TriggerRun %s completed: status=%s elapsed_ms=%d execution_id=%s",
             run_id,
             solve_status,
             elapsed_ms,
-            credits_used,
             model_execution.id,
         )
         return {"status": solve_status, "run_id": run_id, "execution_id": model_execution.id}
@@ -367,24 +268,6 @@ def trigger_solve_task(
             db.rollback()
         except Exception:
             logger.debug("DB rollback failed in trigger outer handler", exc_info=True)
-        # Refund a stranded pre-pay: the deduct committed but the run failed
-        # before the settle ran. Idempotent via (org, REFUND, trigger, run_id),
-        # so it is safe even if a partial settle already refunded.
-        if _prepaid_refund > 0 and _prepaid_org_id and not _settled:
-            try:
-                from app.services.credits_service import CreditsService  # noqa: PLC0415
-
-                CreditsService(db).refund_credits(
-                    organization_id=_prepaid_org_id,
-                    credits=_prepaid_refund,
-                    description=f"trigger_prepay_stranded (run {run_id}): {str(exc)[:160]}",
-                    reference_type="trigger",
-                    reference_id=run_id,
-                )
-                db.commit()
-            except Exception:
-                logger.warning("Failed to refund stranded trigger prepay for %s", run_id)
-                db.rollback()
         # Mark run as failed if we can
         try:
             from app.models.trigger import TriggerRun  # noqa: PLC0415
@@ -417,7 +300,6 @@ def _deliver_webhook(
     trigger: Any,
     run: Any,
     event_type: str,
-    credits_used: int = 0,
 ) -> None:
     """Queue the outbound webhook for a trigger run completion."""
     try:
@@ -432,7 +314,6 @@ def _deliver_webhook(
                 "trigger_id": trigger.id,
                 "trigger_name": trigger.name,
                 "status": run.status,
-                "credits_consumed": credits_used,
                 "execution_time_ms": run.execution_time_ms,
                 "error_message": run.error_message,
                 "execution_id": getattr(run, "execution_id", None),

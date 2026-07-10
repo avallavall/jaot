@@ -17,8 +17,6 @@ from app.domains.solver.adapters.base import (
     SolverNotFoundError,
     SolverUnavailableError,
 )
-from app.domains.solver.prepaid import clear_prepaid_credits
-from app.domains.solver.pricing import calculate_credits
 from app.domains.solver.queue_routing import resolve_queue
 from app.domains.solver.services.availability_gate import ensure_hexaly_worker_or_503
 from app.domains.solver.services.solver_service import SolverService, get_solver_service
@@ -32,9 +30,7 @@ from app.schemas.model import (
     ModelExecutionResponse,
 )
 from app.schemas.optimization import OptimizationProblem
-from app.services.credits_service import CreditsService, InsufficientCreditsError
 from app.services.solve_orchestrator import ORIGIN_MARKETPLACE
-from app.shared.core.prometheus_metrics import RefundReason
 from app.shared.db.base import get_db
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
@@ -151,12 +147,11 @@ def execute_model(
     # Render the problem first — auto-routing classification needs it.
     problem = template_engine.render(template, body.input_data)
 
-    # Resolve "auto" to a concrete solver BEFORE pricing, queueing, or solving.
+    # Resolve "auto" to a concrete solver BEFORE queueing or solving.
     # Parity with /api/v2/solve (Phase 7.4 / D-11 / D-13): this endpoint used to
     # pass "auto" straight through to the registry, which raised
-    # SolverNotFoundError("Solver 'auto' is not registered.") and — on the sync
-    # path — still charged the user. Resolve it here so the rest of the flow
-    # only ever sees a concrete solver name.
+    # SolverNotFoundError("Solver 'auto' is not registered."). Resolve it here so
+    # the rest of the flow only ever sees a concrete solver name.
     auto_route_reason: str | None = None
     fallback_triggered: bool = False
     if solver_name == "auto":
@@ -168,7 +163,7 @@ def execute_model(
     else:
         effective_solver_name = solver_name
 
-    # D-11: direct hexaly selection + worker down → 503 BEFORE any credit op.
+    # D-11: direct hexaly selection + worker down → 503 up front.
     # No-op when the auto-router already fell back to SCIP.
     if not fallback_triggered:
         ensure_hexaly_worker_or_503(effective_solver_name)
@@ -181,17 +176,6 @@ def execute_model(
         except (SolverNotFoundError, SolverUnavailableError) as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    # Phase 7.4 / D-02 / PRC-01: pre-pay the multiplier-adjusted credit cost
-    # using the post-routing concrete solver (never "auto").
-    effective_solver_for_pricing = effective_solver_name or DEFAULT_SOLVER_NAME
-    base_credits = calculate_credits(problem, solver_name=effective_solver_for_pricing, db=db)
-
-    if org.credits_balance < base_credits:
-        raise HTTPException(
-            status_code=402,
-            detail=f"Insufficient credits. Need {base_credits}, have {org.credits_balance}",
-        )
-
     problem_data = problem.model_dump(mode="json")
 
     execution = ModelExecution(
@@ -201,7 +185,6 @@ def execute_model(
         executed_by_user_id=current_user.id,
         input_data=problem_data,
         status=ExecutionStatus.PENDING.value,
-        credits_base=base_credits,
         started_at=utcnow(),
         solver_name=effective_solver_name or DEFAULT_SOLVER_NAME,
         auto_route_reason=auto_route_reason,
@@ -227,37 +210,10 @@ def execute_model(
         db.commit()
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    # WR-07 (Phase 6): pre-pay credits BEFORE apply_async so this
-    # endpoint matches the /api/v2/solve/async contract (D-19). The
-    # Celery task refunds on solver failure; a broker failure here
-    # surfaces HTTP 500 and leaves a refunded, cancelled execution.
-    try:
-        CreditsService.deduct_credits(
-            db=db,
-            organization_id=current_user.organization_id,
-            credits=base_credits,
-            description=f"Async model execution pre-pay: {execution.id}",
-            reference_type="execution",
-            reference_id=execution.id,
-        )
-        db.commit()
-    except InsufficientCreditsError as e:
-        execution_writer.apply_failed(execution, error="Insufficient credits")
-        db.commit()
-        raise HTTPException(
-            status_code=402,
-            detail={
-                "error": "insufficient_credits",
-                "credits_needed": e.credits_needed,
-                "credits_available": e.credits_available,
-            },
-        ) from e
-
     # W15/F-01: derive Celery soft/hard kill limits from the rendered
     # problem's own solver time limit so a hung worker child cannot pin
-    # the queue forever (the soft-limit except-branch refunds + marks
-    # the execution failed; the hard limit SIGKILLs and the reaper
-    # reconciles).
+    # the queue forever (the soft-limit except-branch marks the execution
+    # failed; the hard limit SIGKILLs and the reaper reconciles).
     soft_limit, hard_limit = compute_celery_time_limits(db, problem.options.time_limit_seconds)
 
     try:
@@ -268,40 +224,16 @@ def execute_model(
                 "template": template,
                 "input_data": body.input_data,
                 "organization_id": current_user.organization_id,
-                "base_credits": base_credits,
                 "solver_name": effective_solver_name,
-                "_prepaid_credits": base_credits,
             },
             queue=target_queue,
             soft_time_limit=soft_limit,
             time_limit=hard_limit,
         )
     except Exception as exc:
-        # Broker down or routing error after pre-pay — refund idempotently
-        # to avoid orphan deductions. The ModelExecution is marked failed
+        # Broker down or routing error — the ModelExecution is marked failed
         # so the dashboard reflects the outcome.
-        logger.error(
-            "apply_async failed for execution %s; refunding %d credits: %s",
-            execution.id,
-            base_credits,
-            exc,
-        )
-        try:
-            CreditsService(db).refund_credits(
-                organization_id=current_user.organization_id,
-                credits=base_credits,
-                description=f"{RefundReason.ENQUEUE_FAILED.value}: {execution.id}",
-                reference_type="execution",
-                reference_id=execution.id,
-            )
-            db.commit()
-        except Exception:
-            logger.warning(
-                "Failed to refund credits after apply_async failure for %s",
-                execution.id,
-                exc_info=True,
-            )
-            db.rollback()
+        logger.error("apply_async failed for execution %s: %s", execution.id, exc)
         execution_writer.apply_failed(execution, error=f"Failed to enqueue task: {exc}")
         try:
             db.commit()
@@ -370,17 +302,15 @@ def _shape_model_execution_response(
 
     if isinstance(payload, BaseException):
         # Hard task failure (propagate=False hands back the exception object);
-        # the worker's except-branch already refunded — mirror its row shape.
+        # mirror the worker's row shape.
         dynamic: dict[str, Any] = {
             "status": ExecutionStatus.FAILED.value,
             "error_message": str(payload),
-            "credits_consumed": 0,
         }
     elif payload.get("status") == "error":
         dynamic = {
             "status": ExecutionStatus.FAILED.value,
             "error_message": str(payload.get("error") or "Solver returned an error"),
-            "credits_consumed": 0,
             "result_data": payload.get("result_data"),
             "execution_time_ms": payload.get("execution_time_ms"),
             "solver_status": payload.get("solver_status"),
@@ -396,7 +326,6 @@ def _shape_model_execution_response(
             "execution_time_ms": payload.get("execution_time_ms"),
             "solver_status": inner.get("solver_status"),
             "objective_value": float(objective) if isinstance(objective, (int, float)) else None,
-            "credits_consumed": int(payload.get("credits_used") or 0),
         }
     return ModelExecutionResponse(
         id=execution.id,
@@ -463,20 +392,15 @@ async def get_async_execution_status(
         if isinstance(celery_result, dict):
             inner_result = celery_result.get("result", celery_result)
             exec_time = celery_result.get("execution_time_ms")
-            credits = celery_result.get("credits_used")
             exec_id = celery_result.get("execution_id") or execution.id
         else:
             inner_result = celery_result
             exec_time = None
-            credits = None
             exec_id = execution.id
 
-        if credits is None or exec_time is None:
+        if exec_time is None:
             db.refresh(execution)
-            if credits is None:
-                credits = execution.credits_consumed
-            if exec_time is None:
-                exec_time = execution.execution_time_ms
+            exec_time = execution.execution_time_ms
 
         return {
             "task_id": task_id,
@@ -484,7 +408,6 @@ async def get_async_execution_status(
             "status": "completed",
             "result": inner_result,
             "execution_time_ms": exec_time,
-            "credits_used": credits,
         }
     if result.state == "FAILURE":
         return {
@@ -534,13 +457,8 @@ async def cancel_model_execution(
         }
 
     # Mark the execution cancelled BEFORE revoking the Celery task so
-    # solve_model_async's except handler can detect the user-triggered
-    # cancellation and suppress the failure-path credit deduction. Using
-    # an immutable copy on input_data satisfies the project immutability
-    # rule.
-    cancelled_input = {**(execution.input_data or {})}
-    clear_prepaid_credits(cancelled_input)
-    execution.input_data = cancelled_input
+    # solve_model_async's except handler sees the terminal row and preserves
+    # the user-triggered cancellation.
     execution_writer.apply_cancelled(execution)
     try:
         db.commit()

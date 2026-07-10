@@ -93,8 +93,6 @@ class WorkspaceResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     member_count: int = 0
-    pool_allocated: int | None = None
-    pool_used: int | None = None
 
 
 class WorkspaceMemberResponse(BaseModel):
@@ -170,26 +168,3 @@ class AuditLogResponse(BaseModel):
         )
 
 
-class CreditPoolResponse(BaseModel):
-    """Response schema for a workspace credit pool."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    workspace_id: str
-    allocated_credits: int
-    used_credits: int
-    available_credits: int
-    last_alert_threshold: int | None = None
-    updated_at: datetime
-
-    @classmethod
-    def from_pool(cls, pool: Any) -> "CreditPoolResponse":
-        """Build response from WorkspaceCreditPool ORM object with computed available."""
-        return cls(
-            workspace_id=pool.workspace_id,
-            allocated_credits=pool.allocated_credits,
-            used_credits=pool.used_credits,
-            available_credits=pool.allocated_credits - pool.used_credits,
-            last_alert_threshold=pool.last_alert_threshold,
-            updated_at=pool.updated_at,
-        )

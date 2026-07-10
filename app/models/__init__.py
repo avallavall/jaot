@@ -6,10 +6,7 @@ from app.models.audit_log import AuditAction, AuditLog
 from app.models.builder_document import ModelBuilderDocument
 from app.models.contact_message import ContactMessage
 from app.models.conversation_attachment import ConversationAttachment
-from app.models.credit_transaction import CreditTransaction, TransactionType
-from app.models.exchange_rate import CREDITS_PER_EUR, ExchangeRate
 from app.models.favorite import RecentModel, UserFavorite
-from app.models.featured_placement import FeaturedPlacement, PlacementStatus, PlacementType
 from app.models.formulation_rating import FormulationRating
 from app.models.llm_conversation import LLMConversation, LLMMessage
 from app.models.model_project import ModelProject, ModelProjectDataset, ModelProjectVersion
@@ -26,22 +23,13 @@ from app.models.optimization_model import (
     ModelStatus,
     OrganizationModel,
 )
-from app.models.organization import Currency, Organization, Plan
+from app.models.organization import Organization, Plan
 from app.models.platform_setting import PlatformSetting
 from app.models.platform_setting_audit import PlatformSettingAudit
 from app.models.refresh_token import RefreshToken
-from app.models.seller_tos_acceptance import SellerToSAcceptance
 from app.models.trigger import SolveTrigger, TriggerRun, TriggerSchedule
 from app.models.user import User
 from app.models.verification_request import VerificationRequest, VerificationStatus
-from app.models.withdrawal import (
-    ScheduleAmountType,
-    ScheduleFrequency,
-    Withdrawal,
-    WithdrawalSchedule,
-    WithdrawalStatus,
-    WithdrawalType,
-)
 from app.models.workspace import (
     InviteMethod,
     Workspace,
@@ -49,13 +37,11 @@ from app.models.workspace import (
     WorkspaceMember,
     WorkspaceRole,
 )
-from app.models.workspace_credits import WorkspaceCreditPool
 
 __all__ = [
     # Core
     "Organization",
     "Plan",
-    "Currency",
     "User",
     "APIKey",
     # Optimization Models
@@ -69,18 +55,6 @@ __all__ = [
     # Favorites & Recents
     "UserFavorite",
     "RecentModel",
-    # Credits & Transactions
-    "CreditTransaction",
-    "TransactionType",
-    "ExchangeRate",
-    "CREDITS_PER_EUR",
-    # Withdrawals
-    "Withdrawal",
-    "WithdrawalSchedule",
-    "WithdrawalStatus",
-    "WithdrawalType",
-    "ScheduleFrequency",
-    "ScheduleAmountType",
     # Notifications
     "Notification",
     "NotificationType",
@@ -110,8 +84,6 @@ __all__ = [
     # Audit Log
     "AuditLog",
     "AuditAction",
-    # Workspace Credits
-    "WorkspaceCreditPool",
     # Auth
     "RefreshToken",
     # Document Attachments
@@ -121,16 +93,11 @@ __all__ = [
     "PlatformSettingAudit",
     # Seller Experience
     "ModelViewEvent",
-    "FeaturedPlacement",
-    "PlacementType",
-    "PlacementStatus",
     "VerificationRequest",
     "VerificationStatus",
     "NotificationPreference",
     # Feature Usage Analytics
     "AnalyticsEvent",
-    # Seller ToS
-    "SellerToSAcceptance",
     # Contact Form
     "ContactMessage",
 ]

@@ -85,7 +85,6 @@ def get_or_create_org(
     db: "Session",
     name: str,
     prefix: str,
-    credits_balance: int,
 ) -> tuple["Organization", bool]:
     """Return ``(org, created)`` for the named organization.
 
@@ -102,7 +101,6 @@ def get_or_create_org(
     org = Organization(
         id=generate_id(prefix),
         name=name,
-        credits_balance=credits_balance,
         is_active=True,
     )
     db.add(org)

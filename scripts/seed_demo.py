@@ -2,7 +2,7 @@
 """Seed a rich showcase environment with realistic demo data.
 
 Creates a complete demo environment with:
-- 1 organization ("JAOT Showcase", Pro plan, 50K credits)
+- 1 organization ("JAOT Showcase", Pro plan)
 - 3 users (admin, solver, viewer)
 - 1 API key for the admin
 - 5 activated catalog models
@@ -150,10 +150,6 @@ def _get_or_create_org(db: Session) -> tuple[Organization, bool]:
         id=generate_id("org_"),
         name=DEMO_ORG_NAME,
         plan="pro",
-        credits_balance=50000,
-        credits_subscription=20000,
-        credits_purchased=30000,
-        monthly_quota=20000,
         rate_limit_per_minute=60,
         rate_limit_per_day=1000,
         is_active=True,
@@ -254,8 +250,6 @@ def _activate_catalog_models(
             organization_id=org.id,
             catalog_id=catalog_id,
             is_active=True,
-            purchased_at=utcnow(),
-            purchase_price_eur=0.0,
         )
         db.add(org_model)
         db.flush()
@@ -263,52 +257,6 @@ def _activate_catalog_models(
         print(f"  Activated catalog model: {catalog_id}")
 
     return org_models
-
-
-def _ensure_credit_transactions(db: Session, org: Organization, admin_user: User) -> None:
-    """Create credit transactions for existing executions (for Usage analytics)."""
-    from app.models.credit_transaction import CreditTransaction
-
-    existing_txns = (
-        db.query(CreditTransaction)
-        .filter(
-            CreditTransaction.organization_id == org.id,
-            CreditTransaction.transaction_type == "execution_charge",
-        )
-        .count()
-    )
-    if existing_txns > 0:
-        print(f"  Credit transactions already exist ({existing_txns} found), skipping")
-        return
-
-    balance = 50000
-    txn_count = 0
-    all_execs = (
-        db.query(ModelExecution)
-        .filter(ModelExecution.organization_id == org.id)
-        .order_by(ModelExecution.created_at)
-        .all()
-    )
-    for ex in all_execs:
-        if ex.credits_consumed and ex.credits_consumed > 0:
-            balance -= ex.credits_consumed
-            txn = CreditTransaction(
-                id=generate_id("txn_"),
-                organization_id=org.id,
-                transaction_type="execution_charge",
-                credits_amount=-ex.credits_consumed,
-                balance_after=balance,
-                earned_balance_after=0,
-                description=f"Model execution {ex.id}",
-                reference_type="execution",
-                reference_id=ex.id,
-                created_at=ex.created_at,
-                created_by=admin_user.id,
-            )
-            db.add(txn)
-            txn_count += 1
-    db.flush()
-    print(f"  Created {txn_count} credit transactions for analytics")
 
 
 def _build_execution_records(
@@ -327,7 +275,6 @@ def _build_execution_records(
     )
     if existing_count >= 8:
         print(f"  Executions already exist ({existing_count} found), skipping creation")
-        _ensure_credit_transactions(db, org, admin_user)
         return
 
     now = utcnow()
@@ -355,7 +302,6 @@ def _build_execution_records(
             "execution_time_ms": 112,
             "objective_value": 1650.0,
             "solver_status": "optimal",
-            "credits_consumed": 1,
             "created_at": now - timedelta(days=3, hours=2),
         },
         {
@@ -379,7 +325,6 @@ def _build_execution_records(
             "execution_time_ms": 98,
             "objective_value": 1180.0,
             "solver_status": "optimal",
-            "credits_consumed": 1,
             "created_at": now - timedelta(days=2, hours=5),
         },
         {
@@ -393,7 +338,6 @@ def _build_execution_records(
             "execution_time_ms": 15,
             "objective_value": None,
             "solver_status": None,
-            "credits_consumed": 0,
             "created_at": now - timedelta(days=2, hours=1),
         },
     ]
@@ -435,7 +379,6 @@ def _build_execution_records(
             "execution_time_ms": 1876,
             "objective_value": 45.32,
             "solver_status": "optimal",
-            "credits_consumed": 3,
             "created_at": now - timedelta(days=1, hours=8),
         },
         {
@@ -454,7 +397,6 @@ def _build_execution_records(
             "execution_time_ms": 300000,
             "objective_value": None,
             "solver_status": "timelimit",
-            "credits_consumed": 10,
             "created_at": now - timedelta(days=1, hours=3),
         },
     ]
@@ -490,7 +432,6 @@ def _build_execution_records(
             "execution_time_ms": 534,
             "objective_value": 1200.0,
             "solver_status": "optimal",
-            "credits_consumed": 2,
             "created_at": now - timedelta(hours=18),
         },
         {
@@ -529,7 +470,6 @@ def _build_execution_records(
             "execution_time_ms": 4892,
             "objective_value": 4720.0,
             "solver_status": "optimal",
-            "credits_consumed": 5,
             "created_at": now - timedelta(hours=6),
         },
         {
@@ -545,7 +485,6 @@ def _build_execution_records(
             "execution_time_ms": 42,
             "objective_value": None,
             "solver_status": "infeasible",
-            "credits_consumed": 0,
             "created_at": now - timedelta(hours=4),
         },
     ]
@@ -578,9 +517,6 @@ def _build_execution_records(
                 execution_time_ms=exec_data.get("execution_time_ms"),
                 solver_status=exec_data.get("solver_status"),
                 objective_value=exec_data.get("objective_value"),
-                credits_consumed=exec_data.get("credits_consumed", 0),
-                credits_base=1,
-                credits_compute=max(0, exec_data.get("credits_consumed", 0) - 1),
                 origin="manual",
                 created_at=now_ts,
                 started_at=started_at,
@@ -590,13 +526,10 @@ def _build_execution_records(
             created += 1
 
         org_model.total_executions = (org_model.total_executions or 0) + len(executions)
-        total_credits = sum(e.get("credits_consumed", 0) for e in executions)
-        org_model.total_credits_used = (org_model.total_credits_used or 0) + total_credits
         org_model.last_executed_at = utcnow()
 
     db.flush()
     print(f"  Created {created} execution records")
-    _ensure_credit_transactions(db, org, admin_user)
 
 
 def _create_reviews(

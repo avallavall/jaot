@@ -40,7 +40,6 @@ class SignupResponse(BaseModel):
     user_id: str
     organization_id: str
     api_key: str
-    credits_balance: int
     plan: str
     message: str
 
@@ -63,7 +62,6 @@ class MeResponse(BaseModel):
     organization_id: str
     organization_name: str
     plan: str
-    credits_balance: int
     is_admin: bool
     # READ-ONLY signal derived server-side from Organization.owner_user_id == user.id.
     # FE uses this for UI gating (mutating controls); actual authorization checks
@@ -120,7 +118,6 @@ class EmailSignupResponse(BaseModel):
     user_id: str
     organization_id: str
     api_key: str
-    credits_balance: int
     plan: str
     message: str
     email_verified: bool

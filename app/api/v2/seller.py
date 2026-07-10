@@ -1,45 +1,26 @@
-"""Seller earnings, analytics, placements, verification, notifications, and onboarding API endpoints.
+"""Seller analytics, verification, notifications, and onboarding API endpoints.
 
-Provides seller-facing endpoints for viewing earnings summary,
-detailed sales history with commission breakdown, analytics
-dashboards (views, activations, revenue, geo distribution, funnel),
-featured placement purchasing, verification badge requests,
+Provides seller-facing endpoints for analytics dashboards (views, impressions,
+activations, geo distribution, funnel), verification badge requests,
 notification preference management, and onboarding checklist status.
+
+ADR-008: the earnings/sales and featured-placement endpoints were removed with
+the money layer; analytics metrics are non-monetary (an "activation" is another
+org adopting the model, not a sale).
 """
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy import func
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_monetization_enabled
 from app.api.v2.auth import get_current_user
-from app.models import (
-    CreditTransaction,
-    ModelCatalog,
-    NotificationPreference,
-    Organization,
-    TransactionType,
-    User,
-    Withdrawal,
-    WithdrawalSchedule,
-    WithdrawalStatus,
-)
-from app.schemas.featured_placement import (
-    ActivePlacementsResponse,
-    FeaturedPlacementResponse,
-    PlacementPricingResponse,
-    PurchasePlacementRequest,
-)
+from app.models import ModelCatalog, NotificationPreference, Organization, User
 from app.schemas.seller import (
-    EarningsSummaryResponse,
     NotificationPreferenceEntry,
     NotificationPreferencesResponse,
     OnboardingStatusResponse,
     OnboardingStep,
-    SaleRecord,
-    SalesHistoryResponse,
     UpdatePreferenceRequest,
 )
 from app.schemas.seller_analytics import (
@@ -50,8 +31,6 @@ from app.schemas.seller_analytics import (
     TimeSeriesResponse,
 )
 from app.schemas.verification import VerificationRequestResponse
-from app.services.featured_placement_service import FeaturedPlacementService
-from app.services.platform_settings_service import PlatformSettingsService
 from app.services.seller_analytics_service import SellerAnalyticsService
 from app.services.verification_service import VerificationService
 from app.shared.db.base import get_db
@@ -61,207 +40,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/seller", tags=["seller"])
 
 
-@router.get(
-    "/earnings/summary",
-    response_model=EarningsSummaryResponse,
-    dependencies=[Depends(require_monetization_enabled)],
-)
-async def get_earnings_summary(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> EarningsSummaryResponse:
-    """Get seller earnings summary for the authenticated user's organization."""
-    org_id = current_user.organization_id
-
-    # Total sales count and total earned from SALE_EARNING transactions
-    sale_stats = (
-        db.query(
-            func.count(CreditTransaction.id).label("total_sales"),
-            func.coalesce(func.sum(CreditTransaction.credits_amount), 0).label("total_earned"),
-        )
-        .filter(
-            CreditTransaction.organization_id == org_id,
-            CreditTransaction.transaction_type == TransactionType.SALE_EARNING.value,
-        )
-        .one()
-    )
-
-    total_sales: int = sale_stats.total_sales
-    total_earned: int = int(sale_stats.total_earned)
-
-    # Total commission from COMMISSION transactions (stored in amount_eur)
-    commission_sum = (
-        db.query(func.coalesce(func.sum(CreditTransaction.amount_eur), 0.0))
-        .filter(
-            CreditTransaction.organization_id == org_id,
-            CreditTransaction.transaction_type == TransactionType.COMMISSION.value,
-        )
-        .scalar()
-    )
-    total_commission: int = int(commission_sum)
-
-    # Withdrawable balance from matured SALE_EARNING minus withdrawals
-    from app.services.credits_service import CreditsService
-
-    credits_service = CreditsService(db)
-    withdrawable_balance: int = credits_service.get_withdrawable_balance(org_id)
-
-    # Pending maturation: total earned minus withdrawable minus already withdrawn
-    total_withdrawn = abs(
-        int(
-            db.query(func.coalesce(func.sum(CreditTransaction.credits_amount), 0))
-            .filter(
-                CreditTransaction.organization_id == org_id,
-                CreditTransaction.transaction_type == TransactionType.WITHDRAWAL.value,
-            )
-            .scalar()
-        )
-    )
-    pending_maturation: int = max(0, total_earned - withdrawable_balance - total_withdrawn)
-
-    # Pending withdrawals
-    pending_sum = (
-        db.query(func.coalesce(func.sum(Withdrawal.credits_amount), 0))
-        .filter(
-            Withdrawal.organization_id == org_id,
-            Withdrawal.status == WithdrawalStatus.PENDING.value,
-        )
-        .scalar()
-    )
-    pending_withdrawals: int = int(pending_sum)
-
-    # Current commission rate
-    commission_rate = PlatformSettingsService.get_commission_rate(db)
-
-    return EarningsSummaryResponse(
-        total_sales=total_sales,
-        total_earned=total_earned,
-        total_commission=total_commission,
-        withdrawable_balance=withdrawable_balance,
-        pending_maturation=pending_maturation,
-        pending_withdrawals=pending_withdrawals,
-        commission_rate=commission_rate,
-    )
-
-
-@router.get(
-    "/earnings/sales",
-    response_model=SalesHistoryResponse,
-    dependencies=[Depends(require_monetization_enabled)],
-)
-async def get_sales_history(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> SalesHistoryResponse:
-    """Get detailed sales history with commission breakdown."""
-    org_id = current_user.organization_id
-
-    # Total count of SALE_EARNING transactions for this org
-    total = (
-        db.query(func.count(CreditTransaction.id))
-        .filter(
-            CreditTransaction.organization_id == org_id,
-            CreditTransaction.transaction_type == TransactionType.SALE_EARNING.value,
-        )
-        .scalar()
-    )
-
-    # Paginated SALE_EARNING transactions
-    offset = (page - 1) * page_size
-    sale_txns = (
-        db.query(CreditTransaction)
-        .filter(
-            CreditTransaction.organization_id == org_id,
-            CreditTransaction.transaction_type == TransactionType.SALE_EARNING.value,
-        )
-        .order_by(CreditTransaction.created_at.desc())
-        .offset(offset)
-        .limit(page_size)
-        .all()
-    )
-
-    # Batch pre-fetch commission transactions, models, and buyer orgs to avoid N+1
-    ref_ids = list({tx.reference_id for tx in sale_txns if tx.reference_id})
-    buyer_org_ids = list({tx.buyer_organization_id for tx in sale_txns if tx.buyer_organization_id})
-
-    # Batch fetch COMMISSION transactions keyed by (reference_id, buyer_organization_id)
-    commission_txns_raw = (
-        (
-            db.query(CreditTransaction)
-            .filter(
-                CreditTransaction.organization_id == org_id,
-                CreditTransaction.transaction_type == TransactionType.COMMISSION.value,
-                CreditTransaction.reference_id.in_(ref_ids),
-            )
-            .all()
-        )
-        if ref_ids
-        else []
-    )
-    commission_map: dict[tuple[str | None, str | None], CreditTransaction] = {
-        (ct.reference_id, ct.buyer_organization_id): ct for ct in commission_txns_raw
-    }
-
-    # Batch fetch models
-    models_map = (
-        {m.id: m for m in db.query(ModelCatalog).filter(ModelCatalog.id.in_(ref_ids)).all()}
-        if ref_ids
-        else {}
-    )
-
-    # Batch fetch buyer organizations
-    buyer_orgs = (
-        {o.id: o for o in db.query(Organization).filter(Organization.id.in_(buyer_org_ids)).all()}
-        if buyer_org_ids
-        else {}
-    )
-
-    items: list[SaleRecord] = []
-    for tx in sale_txns:
-        seller_earning = tx.credits_amount
-
-        commission_tx = commission_map.get((tx.reference_id, tx.buyer_organization_id))
-        commission_amount = (
-            int(commission_tx.amount_eur) if commission_tx and commission_tx.amount_eur else 0
-        )
-        credits_price = seller_earning + commission_amount
-
-        catalog = models_map.get(tx.reference_id) if tx.reference_id else None
-        model_name = catalog.display_name if catalog else None
-
-        buyer_org = buyer_orgs.get(tx.buyer_organization_id) if tx.buyer_organization_id else None
-        buyer_name = buyer_org.name if buyer_org else None
-
-        items.append(
-            SaleRecord(
-                sale_id=tx.id,
-                model_id=tx.reference_id,
-                model_name=model_name,
-                buyer_organization_name=buyer_name,
-                credits_price=credits_price,
-                commission_amount=commission_amount,
-                seller_earning=seller_earning,
-                created_at=tx.created_at,
-            )
-        )
-
-    return SalesHistoryResponse(
-        items=items,
-        total=total,
-        page=page,
-        page_size=page_size,
-    )
-
-
 @router.get("/analytics/summary", response_model=AnalyticsSummaryResponse)
 async def get_analytics_summary(
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> AnalyticsSummaryResponse:
-    """Get seller analytics summary: views, impressions, activations, revenue, conversion rate."""
+    """Get seller analytics summary: views, impressions, activations, conversion rate."""
     analytics = SellerAnalyticsService(db)
     return analytics.get_summary(org_id=current_user.organization_id, period=period)
 
@@ -272,7 +57,7 @@ async def get_analytics_time_series(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> TimeSeriesResponse:
-    """Get daily time series of views, impressions, activations, and revenue."""
+    """Get daily time series of views, impressions, and activations."""
     analytics = SellerAnalyticsService(db)
     return analytics.get_time_series(org_id=current_user.organization_id, period=period)
 
@@ -308,120 +93,6 @@ async def get_analytics_funnel(
     """Get conversion funnel: impressions -> views -> activations."""
     analytics = SellerAnalyticsService(db)
     return analytics.get_conversion_funnel(org_id=current_user.organization_id, period=period)
-
-
-@router.get(
-    "/placements/pricing",
-    response_model=list[PlacementPricingResponse],
-    dependencies=[Depends(require_monetization_enabled)],
-)
-async def get_placement_pricing(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> list[PlacementPricingResponse]:
-    """Get featured placement pricing tiers for all placement types."""
-    service = FeaturedPlacementService(db)
-    return service.get_pricing()
-
-
-@router.post(
-    "/placements/purchase",
-    response_model=FeaturedPlacementResponse,
-    status_code=201,
-    dependencies=[Depends(require_monetization_enabled)],
-)
-async def purchase_placement(
-    body: PurchasePlacementRequest,
-    request: Request,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> FeaturedPlacementResponse:
-    """Purchase a featured placement for one of the seller's models.
-
-    Validates model ownership, checks credits, and creates the placement.
-    """
-    from app.services.credits_service import InsufficientCreditsError
-
-    service = FeaturedPlacementService(db)
-    try:
-        placement = service.purchase(
-            org_id=current_user.organization_id,
-            user_id=current_user.id,
-            catalog_model_id=body.catalog_model_id,
-            placement_type=body.placement_type,
-            duration_days=body.duration_days,
-        )
-    except InsufficientCreditsError as exc:
-        db.rollback()
-        raise HTTPException(
-            status_code=402,
-            detail={
-                "error": "insufficient_credits",
-                "credits_needed": exc.credits_needed,
-                "credits_available": exc.credits_available,
-            },
-        ) from exc
-    db.commit()
-
-    # Fire-and-forget: log placement.purchase analytics event
-    try:
-        from app.services.analytics_service import AnalyticsService
-        from app.shared.constants import event_types as evt
-
-        analytics = AnalyticsService(db)
-        analytics.log_event(
-            user_id=current_user.id,
-            org_id=current_user.organization_id,
-            event_type=evt.PLACEMENT_PURCHASE,
-            ip_address=request.client.host if request.client else None,
-            metadata={
-                "placement_type": placement.placement_type,
-                "duration_days": placement.duration_days,
-            },
-        )
-    except Exception:
-        logger.debug("Failed to log analytics event", exc_info=True)
-
-    return FeaturedPlacementResponse(
-        id=placement.id,
-        catalog_model_id=placement.catalog_model_id,
-        placement_type=placement.placement_type,
-        status=placement.status,
-        credits_paid=placement.credits_paid,
-        duration_days=placement.duration_days,
-        starts_at=placement.starts_at,
-        expires_at=placement.expires_at,
-        created_at=placement.created_at,
-    )
-
-
-@router.get(
-    "/placements/active",
-    response_model=ActivePlacementsResponse,
-    dependencies=[Depends(require_monetization_enabled)],
-)
-async def get_active_placements(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> ActivePlacementsResponse:
-    """Get the seller's currently active featured placements."""
-    service = FeaturedPlacementService(db)
-    placements = service.get_active_placements(org_id=current_user.organization_id)
-    items = [
-        FeaturedPlacementResponse(
-            id=p.id,
-            catalog_model_id=p.catalog_model_id,
-            placement_type=p.placement_type,
-            status=p.status,
-            credits_paid=p.credits_paid,
-            duration_days=p.duration_days,
-            starts_at=p.starts_at,
-            expires_at=p.expires_at,
-            created_at=p.created_at,
-        )
-        for p in placements
-    ]
-    return ActivePlacementsResponse(items=items, total=len(items))
 
 
 @router.post(
@@ -479,7 +150,9 @@ async def get_verification_status(
     )
 
 
-SELLER_EVENT_TYPES = ["sale", "review", "payout", "promotion_expiring"]
+# ADR-008: "sale"/"payout"/"promotion_expiring" notification events left with the
+# money layer; reviews and the money-neutral adoption signal remain.
+SELLER_EVENT_TYPES = ["review", "activation"]
 NOTIFICATION_CHANNELS = ["in_app", "email"]
 # Default preferences: in_app ON, email OFF (missing-row-means-default pattern)
 DEFAULT_PREFERENCES: dict[str, bool] = {"in_app": True, "email": False}
@@ -492,8 +165,8 @@ async def get_notification_preferences(
 ) -> NotificationPreferencesResponse:
     """Get notification preferences for the current user.
 
-    Returns all 8 entries (4 event types x 2 channels).
-    Missing rows default to in_app=True, email=False.
+    Returns one entry per event type x channel; missing rows default to
+    in_app=True, email=False.
     """
     existing = (
         db.query(NotificationPreference)
@@ -559,13 +232,10 @@ async def get_onboarding_status(
 ) -> OnboardingStatusResponse:
     """Get onboarding checklist status for the current creator.
 
-    Returns up to 4 steps with completion detection:
+    Returns 3 steps with completion detection:
     - complete_profile: org has name AND bio filled
     - publish_model: at least 1 published model in catalog
     - add_rich_media: at least 1 published model has logo_url or screenshot_urls
-    - setup_payouts: org has credits_earned > 0 OR has a withdrawal schedule
-      (only present when monetization is enabled; omitted in the free,
-      collaborative deployment where there are no payouts)
     """
     org_id = current_user.organization_id
     org = db.query(Organization).filter(Organization.id == org_id).first()
@@ -607,30 +277,6 @@ async def get_onboarding_status(
             link="/workspace/models",
         ),
     ]
-
-    # Step 4 (payouts) only exists in the paid deployment. In the free,
-    # collaborative mode there are no earnings or withdrawals, so the step is
-    # omitted entirely rather than shown as a permanently-incomplete item.
-    if PlatformSettingsService.is_monetization_enabled(db):
-        has_earnings = bool(org and org.credits_earned > 0)
-        has_schedule = (
-            (
-                db.query(WithdrawalSchedule)
-                .filter(WithdrawalSchedule.organization_id == org_id)
-                .first()
-                is not None
-            )
-            if not has_earnings
-            else False
-        )
-        payouts_setup = has_earnings or has_schedule
-        steps.append(
-            OnboardingStep(
-                key="setup_payouts",
-                completed=payouts_setup,
-                link="/workspace/credits/seller-earnings",
-            )
-        )
 
     all_complete = all(s.completed for s in steps)
     return OnboardingStatusResponse(steps=steps, all_complete=all_complete)

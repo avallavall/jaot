@@ -2,6 +2,11 @@
 
 Handles view/impression logging with geoIP lookup, and provides aggregation
 queries for seller dashboards and admin analytics.
+
+ADR-008: metrics are non-monetary — an "activation" is an ``OrganizationModel``
+row created for a catalog model (someone adopted it), not a credit sale.
+Self-activations (the author's own org) are excluded so the metric keeps its
+"someone else adopted my model" meaning.
 """
 
 import logging
@@ -10,10 +15,8 @@ from datetime import datetime, timedelta
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models.credit_transaction import CreditTransaction, TransactionType
 from app.models.model_view_event import ModelViewEvent
-from app.models.optimization_model import ModelCatalog
-from app.models.organization import Organization
+from app.models.optimization_model import ModelCatalog, OrganizationModel
 from app.schemas.seller_analytics import (
     AnalyticsSummaryResponse,
     ConversionFunnelResponse,
@@ -123,31 +126,30 @@ class SellerAnalyticsService:
             q = q.filter(ModelViewEvent.created_at >= since)
         return q
 
+    def _base_activation_query(self, org_id: str | None, since: datetime | None):  # noqa: ANN202
+        """Activations = OrganizationModel rows on the org's catalog models.
+
+        Excludes the author org activating its own model.
+        """
+        q = self.db.query(OrganizationModel).join(
+            ModelCatalog, ModelCatalog.id == OrganizationModel.catalog_id
+        )
+        if org_id is not None:
+            q = q.filter(ModelCatalog.author_organization_id == org_id)
+        q = q.filter(OrganizationModel.organization_id != ModelCatalog.author_organization_id)
+        if since is not None:
+            q = q.filter(OrganizationModel.created_at >= since)
+        return q
+
     def get_summary(self, org_id: str | None, period: str) -> AnalyticsSummaryResponse:
-        """Aggregate views, impressions, activations, and revenue."""
+        """Aggregate views, impressions, and activations."""
         since = _period_since(period)
 
-        # Views and impressions from model_view_events
         view_q = self._base_view_query(org_id, since)
         total_views = view_q.filter(ModelViewEvent.event_type == "view").count()
         total_impressions = view_q.filter(ModelViewEvent.event_type == "impression").count()
 
-        # Activations and revenue from CreditTransaction (SALE_EARNING)
-        tx_q = self.db.query(CreditTransaction).filter(
-            CreditTransaction.transaction_type == TransactionType.SALE_EARNING.value
-        )
-        if org_id is not None:
-            tx_q = tx_q.filter(CreditTransaction.organization_id == org_id)
-        if since is not None:
-            tx_q = tx_q.filter(CreditTransaction.created_at >= since)
-
-        result = tx_q.with_entities(
-            func.count().label("count"),
-            func.coalesce(func.sum(CreditTransaction.credits_amount), 0).label("total"),
-        ).first()
-
-        total_activations = result.count if result else 0  # type: ignore[union-attr]
-        total_revenue = result.total if result else 0  # type: ignore[union-attr]
+        total_activations = self._base_activation_query(org_id, since).count()
 
         conversion_rate = (total_activations / total_views * 100) if total_views > 0 else 0.0
 
@@ -155,13 +157,12 @@ class SellerAnalyticsService:
             total_views=total_views,
             total_impressions=total_impressions,
             total_activations=total_activations,
-            total_revenue=int(total_revenue),
             conversion_rate=round(conversion_rate, 2),
             period=period,
         )
 
     def get_time_series(self, org_id: str | None, period: str) -> TimeSeriesResponse:
-        """Daily aggregation of views, impressions, activations, revenue."""
+        """Daily aggregation of views, impressions, and activations."""
         since = _period_since(period)
 
         # Views + impressions per day
@@ -176,22 +177,14 @@ class SellerAnalyticsService:
             .all()
         )
 
-        # Activations + revenue per day
-        tx_q = self.db.query(CreditTransaction).filter(
-            CreditTransaction.transaction_type == TransactionType.SALE_EARNING.value
-        )
-        if org_id is not None:
-            tx_q = tx_q.filter(CreditTransaction.organization_id == org_id)
-        if since is not None:
-            tx_q = tx_q.filter(CreditTransaction.created_at >= since)
-
-        daily_tx = (
-            tx_q.with_entities(
-                func.date(CreditTransaction.created_at).label("day"),
+        # Activations per day
+        daily_activations = (
+            self._base_activation_query(org_id, since)
+            .with_entities(
+                func.date(OrganizationModel.created_at).label("day"),
                 func.count().label("activations"),
-                func.coalesce(func.sum(CreditTransaction.credits_amount), 0).label("revenue"),
             )
-            .group_by(func.date(CreditTransaction.created_at))
+            .group_by(func.date(OrganizationModel.created_at))
             .all()
         )
 
@@ -200,18 +193,17 @@ class SellerAnalyticsService:
         for row in daily_events:
             d = str(row.day)
             if d not in day_map:
-                day_map[d] = {"views": 0, "impressions": 0, "activations": 0, "revenue": 0}
+                day_map[d] = {"views": 0, "impressions": 0, "activations": 0}
             if row.event_type == "view":
                 day_map[d]["views"] = row.cnt
             else:
                 day_map[d]["impressions"] = row.cnt
 
-        for row in daily_tx:
+        for row in daily_activations:
             d = str(row.day)
             if d not in day_map:
-                day_map[d] = {"views": 0, "impressions": 0, "activations": 0, "revenue": 0}
+                day_map[d] = {"views": 0, "impressions": 0, "activations": 0}
             day_map[d]["activations"] = row.activations
-            day_map[d]["revenue"] = int(row.revenue)
 
         data = [TimeSeriesDataPoint(date=d, **vals) for d, vals in sorted(day_map.items())]
 
@@ -257,22 +249,19 @@ class SellerAnalyticsService:
         view_rows = view_q.group_by(ModelViewEvent.catalog_model_id).all()
         views_map = {r.catalog_model_id: r.views for r in view_rows}
 
-        # Activations + revenue per model
-        tx_q = self.db.query(
-            CreditTransaction.reference_id,
-            func.count().label("activations"),
-            func.coalesce(func.sum(CreditTransaction.credits_amount), 0).label("revenue"),
-        ).filter(
-            CreditTransaction.organization_id == org_id,
-            CreditTransaction.transaction_type == TransactionType.SALE_EARNING.value,
-            CreditTransaction.reference_type == "model",
+        # Activations per model
+        activation_rows = (
+            self._base_activation_query(org_id, since)
+            .with_entities(
+                OrganizationModel.catalog_id,
+                func.count().label("activations"),
+            )
+            .group_by(OrganizationModel.catalog_id)
+            .all()
         )
-        if since is not None:
-            tx_q = tx_q.filter(CreditTransaction.created_at >= since)
-        tx_rows = tx_q.group_by(CreditTransaction.reference_id).all()
-        tx_map = {r.reference_id: (r.activations, int(r.revenue)) for r in tx_rows}
+        activations_map = {r.catalog_id: r.activations for r in activation_rows}
 
-        all_model_ids = set(views_map.keys()) | set(tx_map.keys())
+        all_model_ids = set(views_map.keys()) | set(activations_map.keys())
         if not all_model_ids:
             return []
 
@@ -286,7 +275,7 @@ class SellerAnalyticsService:
         result = []
         for model_id in all_model_ids:
             views = views_map.get(model_id, 0)
-            activations, revenue = tx_map.get(model_id, (0, 0))
+            activations = activations_map.get(model_id, 0)
             conv = (activations / views * 100) if views > 0 else 0.0
             result.append(
                 ModelPerformanceRow(
@@ -294,12 +283,11 @@ class SellerAnalyticsService:
                     model_name=name_map.get(model_id, "Unknown"),
                     views=views,
                     activations=activations,
-                    revenue=revenue,
                     conversion_rate=round(conv, 2),
                 )
             )
 
-        return sorted(result, key=lambda r: r.revenue, reverse=True)
+        return sorted(result, key=lambda r: r.activations, reverse=True)
 
     def get_conversion_funnel(self, org_id: str | None, period: str) -> ConversionFunnelResponse:
         """Impressions -> views -> activations funnel."""
@@ -308,41 +296,34 @@ class SellerAnalyticsService:
 
         impressions = view_q.filter(ModelViewEvent.event_type == "impression").count()
         views = view_q.filter(ModelViewEvent.event_type == "view").count()
-
-        # Activations from CreditTransaction
-        tx_q = self.db.query(CreditTransaction).filter(
-            CreditTransaction.transaction_type == TransactionType.SALE_EARNING.value
-        )
-        if org_id is not None:
-            tx_q = tx_q.filter(CreditTransaction.organization_id == org_id)
-        if since is not None:
-            tx_q = tx_q.filter(CreditTransaction.created_at >= since)
-        activations = tx_q.count()
+        activations = self._base_activation_query(org_id, since).count()
 
         return ConversionFunnelResponse(
             impressions=impressions, views=views, activations=activations
         )
 
     def get_seller_leaderboard(self, period: str) -> list[SellerLeaderboardEntry]:
-        """Admin-only leaderboard: top sellers by revenue."""
+        """Admin-only leaderboard: top authors by adoption (activations)."""
         since = _period_since(period)
 
-        # Revenue per seller org
-        tx_q = self.db.query(
-            CreditTransaction.organization_id,
-            func.count().label("total_sales"),
-            func.coalesce(func.sum(CreditTransaction.credits_amount), 0).label("total_revenue"),
-        ).filter(CreditTransaction.transaction_type == TransactionType.SALE_EARNING.value)
-        if since is not None:
-            tx_q = tx_q.filter(CreditTransaction.created_at >= since)
-        tx_rows = tx_q.group_by(CreditTransaction.organization_id).all()
+        activation_rows = (
+            self._base_activation_query(org_id=None, since=since)
+            .with_entities(
+                ModelCatalog.author_organization_id.label("org_id"),
+                func.count().label("total_activations"),
+            )
+            .group_by(ModelCatalog.author_organization_id)
+            .all()
+        )
 
-        if not tx_rows:
+        if not activation_rows:
             return []
 
-        org_ids = [r.organization_id for r in tx_rows]
+        org_ids = [r.org_id for r in activation_rows]
 
         # Org names
+        from app.models.organization import Organization  # noqa: PLC0415
+
         orgs = (
             self.db.query(Organization.id, Organization.name)
             .filter(Organization.id.in_(org_ids))
@@ -381,16 +362,15 @@ class SellerAnalyticsService:
         rating_map = {r.author_organization_id: round(float(r.avg_r), 2) for r in rating_rows}
 
         result = []
-        for row in tx_rows:
+        for row in activation_rows:
             result.append(
                 SellerLeaderboardEntry(
-                    org_id=row.organization_id,
-                    org_name=org_name_map.get(row.organization_id, "Unknown"),
-                    total_sales=row.total_sales,
-                    total_revenue=int(row.total_revenue),
-                    models_published=models_map.get(row.organization_id, 0),
-                    avg_rating=rating_map.get(row.organization_id),
+                    org_id=row.org_id,
+                    org_name=org_name_map.get(row.org_id, "Unknown"),
+                    total_activations=row.total_activations,
+                    models_published=models_map.get(row.org_id, 0),
+                    avg_rating=rating_map.get(row.org_id),
                 )
             )
 
-        return sorted(result, key=lambda r: r.total_revenue, reverse=True)
+        return sorted(result, key=lambda r: r.total_activations, reverse=True)

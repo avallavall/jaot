@@ -98,7 +98,6 @@ class TriggerRun(Base):
     - failed: Solve errored or timed out
     - timeout: Solve exceeded time limit
     - validation_failed: Override data failed schema validation (no solve queued)
-    - skipped_credits: Skipped due to insufficient credits (cron runs)
     - skipped_overlap: Skipped because previous run still in progress (cron runs)
     """
 
@@ -126,7 +125,6 @@ class TriggerRun(Base):
     execution_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     result_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
-    credits_consumed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     execution_time_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     webhook_delivered: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     webhook_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

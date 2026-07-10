@@ -131,8 +131,6 @@ class ModelCatalog(Base):
     is_official: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
     # Pricing
-    price_eur: Mapped[float] = mapped_column(Float, default=0.0)
-    credits_per_execution: Mapped[int] = mapped_column(Integer, default=1)
 
     # Statistics
     total_activations: Mapped[int] = mapped_column(Integer, default=0)
@@ -214,16 +212,11 @@ class OrganizationModel(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_favorite: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    # Usage Stats
+    # Usage Stats (ADR-008: total_credits_used unmapped — column stays, additive rule)
     total_executions: Mapped[int] = mapped_column(Integer, default=0)
-    total_credits_used: Mapped[int] = mapped_column(Integer, default=0)
     last_executed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-
-    # Purchase Info
-    purchased_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    purchase_price_eur: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
@@ -318,11 +311,6 @@ class ModelExecution(Base):
     auto_route_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
     objective_value: Mapped[float | None] = mapped_column(Float, nullable=True)
 
-    # Credits
-    credits_consumed: Mapped[int] = mapped_column(Integer, default=0)
-    credits_base: Mapped[int] = mapped_column(Integer, default=1)
-    credits_compute: Mapped[int] = mapped_column(Integer, default=0)
-
     # Provenance — how the execution was created and what it traces back to.
     # origin values: visual_builder | ai_builder | template | import |
     #   marketplace | trigger | api | mcp | manual (legacy default).
@@ -375,9 +363,7 @@ class ModelExecution(Base):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<ModelExecution(id={self.id}, status={self.status}, credits={self.credits_consumed})>"
-        )
+        return f"<ModelExecution(id={self.id}, status={self.status})>"
 
 
 class ModelReview(Base):

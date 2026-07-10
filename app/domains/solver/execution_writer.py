@@ -19,14 +19,8 @@ transition. Two layers:
 * **Own-session best-effort wrappers** (``mark_*_by_task``) open their own
   ``SessionLocal``, look the row up by ``celery_task_id`` + org, apply the
   transition, commit, and NEVER raise — a bookkeeping error must not disturb the
-  task's own result/refund path. These are what the ``solve_async`` worker uses,
+  task's own result path. These are what the ``solve_async`` worker uses,
   because it writes the terminal row AFTER its main solve transaction closed.
-
-The module writes ``ModelExecution`` columns only. It never touches the credit
-ledger (``CreditTransaction`` / org balance) — that is the single credit model's
-job (:mod:`app.domains.solver.execution_credits`). ``credits_consumed`` is a
-``ModelExecution`` column, so the writer RECORDS it from a caller-supplied value;
-it never deducts or refunds.
 """
 
 from __future__ import annotations
@@ -119,13 +113,11 @@ def apply_completed(
     result: Any,
     execution_time_seconds: float | None = None,
     solver_name: str | None = None,
-    credits_recorded: int | None = None,
 ) -> bool:
     """Persist a SUCCESSFUL solve onto a loaded row (terminal-wins). No commit.
 
     ``result`` is an ``OptimizationResult``-like object: ``result_data`` comes
-    from ``to_result_data()``, ``solver_status`` from ``result.status``. Credits
-    were charged elsewhere (pre-pay); ``credits_recorded`` only sets the column.
+    from ``to_result_data()``, ``solver_status`` from ``result.status``.
     """
     if is_terminal(execution):
         return False
@@ -140,8 +132,6 @@ def apply_completed(
         execution.execution_time_ms = int(execution_time_seconds * 1000)
     if solver_name:
         execution.solver_name = solver_name
-    if credits_recorded is not None:
-        execution.credits_consumed = credits_recorded
     execution.completed_at = utcnow()
     return True
 
@@ -151,15 +141,14 @@ def apply_multi_objective_completed(
     *,
     result_data: dict[str, Any],
     execution_time_seconds: float | None = None,
-    credits_recorded: int | None = None,
 ) -> bool:
     """Persist a SUCCESSFUL multi-objective solve onto a loaded row (terminal-wins).
 
     Multi-objective yields a Pareto front, not a single ``OptimizationResult``, so the
     caller passes the already-shaped nested ``result_data`` — ``{"multi_objective": …,
     "objective_value": None, "solver_status": "optimal"}`` — directly instead of
-    ``to_result_data()``. An empty front (infeasible) is still a completed run: credits
-    stay charged, matching the synchronous contract. No commit.
+    ``to_result_data()``. An empty front (infeasible) is still a completed run,
+    matching the synchronous contract. No commit.
     """
     if is_terminal(execution):
         return False
@@ -169,8 +158,6 @@ def apply_multi_objective_completed(
     execution.objective_value = result_data.get("objective_value")
     if execution_time_seconds is not None:
         execution.execution_time_ms = int(execution_time_seconds * 1000)
-    if credits_recorded is not None:
-        execution.credits_consumed = credits_recorded
     execution.completed_at = utcnow()
     return True
 
@@ -203,20 +190,17 @@ def apply_failed(
     execution: ModelExecution,
     *,
     error: str,
-    credits_recorded: int | None = None,
     preserve_completed_at: bool = False,
 ) -> bool:
     """Move a loaded row to FAILED (terminal-wins). No commit.
 
     ``preserve_completed_at`` keeps a pre-set ``completed_at`` (the reaper stamps
-    it before the mutation so a partial-refund rollback still leaves it set).
+    it before the mutation).
     """
     if is_terminal(execution):
         return False
     execution.status = ExecutionStatus.FAILED.value
     execution.error_message = str(error)[:2000]
-    if credits_recorded is not None:
-        execution.credits_consumed = credits_recorded
     if preserve_completed_at:
         execution.completed_at = execution.completed_at or utcnow()
     else:
@@ -272,7 +256,6 @@ def mark_completed_by_task(
     result: Any,
     execution_time_seconds: float,
     solver_name: str | None,
-    credits_recorded: int,
 ) -> None:
     """Own-session, best-effort COMPLETED write keyed by ``celery_task_id``.
 
@@ -290,7 +273,6 @@ def mark_completed_by_task(
                 result=result,
                 execution_time_seconds=execution_time_seconds,
                 solver_name=solver_name,
-                credits_recorded=credits_recorded,
             ):
                 db.commit()
         finally:
@@ -305,7 +287,6 @@ def mark_multi_objective_completed_by_task(
     *,
     result_data: dict[str, Any],
     execution_time_seconds: float,
-    credits_recorded: int,
 ) -> None:
     """Own-session, best-effort COMPLETED write for a multi-objective run keyed by
     ``celery_task_id`` (the ``solve_multi_objective_async`` worker). Preserves terminal
@@ -320,7 +301,6 @@ def mark_multi_objective_completed_by_task(
                 execution,
                 result_data=result_data,
                 execution_time_seconds=execution_time_seconds,
-                credits_recorded=credits_recorded,
             ):
                 db.commit()
         finally:

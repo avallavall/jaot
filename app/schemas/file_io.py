@@ -26,7 +26,6 @@ class FileImportMetadata(BaseModel):
     num_integer: int = Field(..., description="Number of integer variables")
     num_binary: int = Field(..., description="Number of binary variables")
     num_continuous: int = Field(..., description="Number of continuous variables")
-    estimated_credits: int = Field(..., description="Estimated credits for solving")
     file_size_bytes: int = Field(..., description="Size of uploaded file in bytes")
     original_filename: str = Field(..., description="Original filename")
 

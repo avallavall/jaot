@@ -18,7 +18,6 @@ from app.api.deps import CurrentOrg, CurrentUser, DBSession, RequireAdmin, Requi
 from app.api.v2.routes.workspaces._common import get_workspace_or_404
 from app.models.audit_log import AuditAction
 from app.models.workspace import Workspace, WorkspaceMember, WorkspaceRole
-from app.models.workspace_credits import WorkspaceCreditPool
 from app.schemas.workspace import (
     WorkspaceCreate,
     WorkspaceResponse,
@@ -42,7 +41,6 @@ def _build_workspace_response(db: DBSession, ws: Workspace) -> WorkspaceResponse
         .scalar()
         or 0
     )
-    pool = db.query(WorkspaceCreditPool).filter(WorkspaceCreditPool.workspace_id == ws.id).first()
     return WorkspaceResponse(
         id=ws.id,
         name=ws.name,
@@ -52,8 +50,6 @@ def _build_workspace_response(db: DBSession, ws: Workspace) -> WorkspaceResponse
         created_at=ws.created_at,
         updated_at=ws.updated_at,
         member_count=member_count,
-        pool_allocated=pool.allocated_credits if pool else None,
-        pool_used=pool.used_credits if pool else None,
     )
 
 
@@ -72,7 +68,6 @@ def create_workspace(
     """Create a workspace. Only the org owner can create workspaces.
 
     The creator is automatically added as an admin member.
-    A WorkspaceCreditPool with 0 credits is created automatically.
     """
     if getattr(org, "owner_user_id", None) != user.id:
         raise HTTPException(
@@ -106,17 +101,6 @@ def create_workspace(
     )
     db.add(member)
 
-    pool = WorkspaceCreditPool(
-        id=generate_id("wcp_"),
-        workspace_id=ws.id,
-        organization_id=org.id,
-        allocated_credits=0,
-        used_credits=0,
-        last_alert_threshold=None,
-        created_at=now,
-        updated_at=now,
-    )
-    db.add(pool)
 
     # Audit log
     log_action(

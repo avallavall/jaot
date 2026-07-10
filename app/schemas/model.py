@@ -20,8 +20,6 @@ class ModelCatalogResponse(BaseModel):
     version: str
     is_official: bool
     is_featured: bool
-    price_eur: float
-    credits_per_execution: int
     total_activations: int
     total_executions: int
     avg_execution_time_ms: float | None = None
@@ -69,9 +67,7 @@ class OrganizationModelResponse(BaseModel):
     is_active: bool
     is_favorite: bool
     total_executions: int
-    total_credits_used: int
     last_executed_at: datetime | None = None
-    credits_per_execution: int
     created_at: datetime
     is_official: bool | None = None
     tags: list[str] | None = None
@@ -126,7 +122,6 @@ class PublishModelRequest(BaseModel):
     short_description: str | None = Field(None, max_length=500)
     category: str = "general"
     tags: list[str] | None = None
-    price_eur: float = 0.0
     is_public: bool = True
     # Rich description sections
     section_overview: str | None = None
@@ -165,7 +160,6 @@ class ModelExecutionResponse(BaseModel):
     execution_time_ms: int | None = None
     solver_status: str | None = None
     objective_value: float | None = None
-    credits_consumed: int
     origin: str | None = None
     trigger_id: str | None = None
     # Provenance: the object this execution traces back to (builder_document,

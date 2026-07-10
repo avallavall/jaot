@@ -37,34 +37,6 @@ from app.shared.db.base import get_db
 router = APIRouter(prefix="/settings", tags=["admin-settings"])
 
 
-@router.get("/commission")
-async def get_commission_rate(db: Session = Depends(get_db)) -> dict[str, Any]:
-    """Get the current marketplace commission rate."""
-    rate = PlatformSettingsService.get_commission_rate(db)
-    return {
-        "commission_rate": rate,
-        "key": "marketplace_commission_rate",
-    }
-
-
-@router.put("/commission")
-async def update_commission_rate(
-    rate: float = Query(..., ge=0.0, le=0.50, description="Commission rate (0.0 to 0.50)"),
-    db: Session = Depends(get_db),
-) -> dict[str, Any]:
-    """Update the marketplace commission rate.
-
-    Rate must be between 0.0 (0%) and 0.50 (50%).
-    """
-    PlatformSettingsService.set(db, "marketplace_commission_rate", str(rate), updated_by="admin")
-    db.commit()
-    return {
-        "commission_rate": rate,
-        "key": "marketplace_commission_rate",
-        "updated": True,
-    }
-
-
 @router.get("/registry", response_model=SettingsRegistryResponse)
 async def get_registry() -> SettingsRegistryResponse:
     """Return full settings registry grouped by category.

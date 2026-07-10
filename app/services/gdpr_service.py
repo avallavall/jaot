@@ -3,12 +3,12 @@
 import logging
 from typing import Any
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.models import (
     APIKey,
     AuditLog,
-    CreditTransaction,
     FormulationRating,
     LLMConversation,
     LLMMessage,
@@ -24,10 +24,7 @@ from app.models import (
     TriggerRun,
     User,
     UserFavorite,
-    Withdrawal,
-    WithdrawalSchedule,
     Workspace,
-    WorkspaceCreditPool,
     WorkspaceInvite,
     WorkspaceMember,
 )
@@ -61,7 +58,6 @@ def export_user_data(db: Session, user: User, org: Organization) -> dict[str, An
         "id": org.id,
         "name": org.name,
         "plan": org.plan,
-        "credits_balance": org.credits_balance,
     }
 
     # Organization models
@@ -84,23 +80,8 @@ def export_user_data(db: Session, user: User, org: Organization) -> dict[str, An
             "organization_model_id": e.organization_model_id,
             "status": e.status,
             "created_at": str(e.created_at),
-            "credits_consumed": e.credits_consumed,
         }
         for e in executions
-    ]
-
-    # Credit transactions
-    txns = db.query(CreditTransaction).filter_by(organization_id=org.id).all()
-    txns_data = [
-        {
-            "id": t.id,
-            "credits_amount": t.credits_amount,
-            "balance_after": t.balance_after,
-            "description": t.description,
-            "transaction_type": t.transaction_type,
-            "created_at": str(t.created_at),
-        }
-        for t in txns
     ]
 
     # API keys -- id + name + created_at only, NO hashes
@@ -126,7 +107,6 @@ def export_user_data(db: Session, user: User, org: Organization) -> dict[str, An
         "organization": org_data,
         "models": models_data,
         "executions": executions_data,
-        "credit_transactions": txns_data,
         "api_keys": keys_data,
         "notifications": notifs_data,
     }
@@ -203,19 +183,32 @@ def delete_user_account(db: Session, user: User) -> None:
         db.query(ModelExecution).filter_by(organization_id=org_id).delete()
         db.query(OrganizationModel).filter_by(organization_id=org_id).delete()
 
-        # Financial records (legacy tables kept per the additive rule — ADR-008)
-        db.query(CreditTransaction).filter_by(organization_id=org_id).delete()
-        db.query(WithdrawalSchedule).filter_by(organization_id=org_id).delete()
-        db.query(Withdrawal).filter_by(organization_id=org_id).delete()
+        # Legacy money-era tables (ADR-008): the ORM models are gone but the
+        # tables remain under the additive rule — the right to erasure still
+        # applies to their historic rows, so purge them with raw SQL.
+        for legacy_table in (
+            "credit_transactions",
+            "withdrawal_schedules",
+            "withdrawals",
+            "invoices",
+            "usage_records",
+            "featured_placements",
+            "seller_tos_acceptances",
+        ):
+            db.execute(
+                text(f"DELETE FROM {legacy_table} WHERE organization_id = :org_id"),  # noqa: S608
+                {"org_id": org_id},
+            )
 
-        # Workspace credit pools & workspaces
+        # Workspaces (legacy per-workspace credit pools purged raw as above)
         workspace_ids = [
             w.id for w in db.query(Workspace.id).filter_by(organization_id=org_id).all()
         ]
         if workspace_ids:
-            db.query(WorkspaceCreditPool).filter(
-                WorkspaceCreditPool.workspace_id.in_(workspace_ids)
-            ).delete(synchronize_session=False)
+            db.execute(
+                text("DELETE FROM workspace_credit_pools WHERE workspace_id = ANY(:ws_ids)"),
+                {"ws_ids": workspace_ids},
+            )
             db.query(WorkspaceInvite).filter(
                 WorkspaceInvite.workspace_id.in_(workspace_ids)
             ).delete(synchronize_session=False)

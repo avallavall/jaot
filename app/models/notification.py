@@ -15,18 +15,18 @@ if TYPE_CHECKING:
 
 
 class NotificationType(str, Enum):
-    """Types of notifications."""
+    """Types of notifications.
+
+    ADR-008: credit/sale/payout/promotion types left with the money layer;
+    historic rows keep their raw string type (this enum is Python-side only).
+    """
 
     EXECUTION_COMPLETED = "execution_completed"
     EXECUTION_FAILED = "execution_failed"
-    CREDITS_LOW = "credits_low"
-    CREDITS_DEPLETED = "credits_depleted"
     SYSTEM = "system"
     # Seller experience events
-    NEW_SALE = "new_sale"
-    PAYOUT_COMPLETED = "payout_completed"
     NEW_REVIEW = "new_review"
-    PROMOTION_EXPIRING = "promotion_expiring"
+    MODEL_ACTIVATED = "model_activated"
 
 
 class NotificationChannel(str, Enum):

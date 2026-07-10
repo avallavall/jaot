@@ -58,13 +58,9 @@ PUBLIC_PATHS: list[tuple[str, str | None]] = [
     ("/api/v2/solve/templates", "GET"),
     ("/api/v2/solve/validate", "POST"),
     ("/api/v2/contact", "POST"),
-    ("/api/v2/credits/calculator", None),
-    ("/api/v2/credits/rates", "GET"),
     ("/api/v2/community/status", None),
     # Catalog browsing (public, read-only)
     ("/api/v2/models/catalog", "GET"),
-    # Public pricing data
-    ("/api/v2/pricing", "GET"),
     # Public home page announcement banner
     ("/api/v2/home/announcement", "GET"),
 ]
@@ -237,7 +233,6 @@ class ASGIAuthMiddleware:
                 if message["type"] == "http.response.start":
                     extra_headers = [
                         (b"x-organization-id", org.id.encode()),
-                        (b"x-credits-balance", str(org.credits_balance).encode()),
                     ]
                     existing = list(message.get("headers", []))
                     existing.extend(extra_headers)

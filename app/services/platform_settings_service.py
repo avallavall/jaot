@@ -537,22 +537,3 @@ class PlatformSettingsService:
                     updates[key] = value
 
         return cls.bulk_set(db, updates, changed_by)
-
-    @classmethod
-    def get_commission_rate(cls, db: Session) -> float:
-        """ADR-008 transition shim: monetization is removed; no commission exists.
-
-        Kept only until the remaining monetized call sites (credits/seller) are
-        deleted in the credits-removal slice — then this method goes too.
-        """
-        return 0.0
-
-    @classmethod
-    def is_monetization_enabled(cls, db: Session) -> bool:
-        """ADR-008 transition shim: monetization is REMOVED, not configurable.
-
-        Always False — the ``MONETIZATION_ENABLED`` setting no longer exists.
-        Kept only so the not-yet-deleted gated endpoints keep responding 404
-        until the credits-removal slice deletes them and this shim.
-        """
-        return False

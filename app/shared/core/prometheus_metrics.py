@@ -4,61 +4,12 @@ All metric names are prefixed with `jaot_` for namespace clarity.
 These are global metrics only -- no per-organization labels to avoid cardinality explosion.
 """
 
-from enum import StrEnum
-
 from prometheus_client import Counter, Gauge, Histogram, Info
-
-
-class RefundReason(StrEnum):
-    """Bounded-cardinality label values for credit-refund audit/metric calls.
-
-    Q-29 — collapses free-form ``description=`` strings that the refund
-    path emitted into a closed enum. Prometheus counter
-    ``CREDITS_REFUNDED`` labels by this enum; audit / log messages also
-    key off the same value so ops has a single vocabulary for
-    "why did this refund fire".
-
-    Add a new value here (not a new string) whenever a new refund path
-    lands — keeps dashboards / alerts in sync by grep.
-    """
-
-    # Solver returned status=error without raising (D-19 success-with-error
-    # branch — EXPR_PARSE_ERROR etc.).
-    SOLVER_LEVEL_ERROR = "solver_level_error"
-    # Celery task raised (except-branch refund).
-    TASK_EXCEPTION = "task_exception"
-    # solve_model_async failure-path refund when the producer pre-paid.
-    MODEL_EXECUTION_FAILED = "model_execution_failed"
-    # apply_async / routing failure AFTER a pre-pay committed (solve.py
-    # async-enqueue path, execution.py model-async path).
-    ENQUEUE_FAILED = "enqueue_failed"
-    # Post-pre-pay rejection because the requested solver name did not
-    # resolve to a queue (unknown solver at dispatch time).
-    UNKNOWN_SOLVER = "unknown_solver"
-    # Periodic execution reaper (W1/F-01) refunded a stale pending/running
-    # execution whose task never resolved (lost, hung, or hard-killed).
-    EXECUTION_REAPED = "execution_reaped"
-
 
 SOLVE_TOTAL = Counter(
     "jaot_solve_total",
     "Total optimization solve requests",
     labelnames=["status", "generator"],
-)
-
-CREDITS_CONSUMED = Counter(
-    "jaot_credits_consumed_total",
-    "Total credits consumed across all organizations",
-)
-
-# E-19 — pre-paid solve credits refunded on task failure. Bounded label by
-# RefundReason (closed enum). Total credit movement on the refund side is
-# visible in Grafana even when CREDITS_CONSUMED is flat (ops can distinguish
-# "nothing ran" from "lots ran but all refunded due to solver crash").
-CREDITS_REFUNDED = Counter(
-    "jaot_credits_refunded_total",
-    "Pre-paid solve credits refunded on task failure.",
-    labelnames=["reason"],  # RefundReason enum — closed vocabulary
 )
 
 SOLVE_DURATION = Histogram(

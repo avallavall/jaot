@@ -104,7 +104,6 @@ def seed_official_models(db: Session) -> int:
             existing.input_fields = [f.model_dump() for f in template.input_fields]
             existing.example_input = template.example_input
             existing.version = template.version
-            existing.credits_per_execution = 1
             existing.is_featured = template.is_featured
             existing.status = "published"
             existing.updated_at = utcnow()
@@ -128,8 +127,6 @@ def seed_official_models(db: Session) -> int:
                 is_official=True,
                 is_featured=template.is_featured,
                 is_public=True,
-                price_eur=0.0,
-                credits_per_execution=1,
                 published_at=utcnow(),
             )
             db.add(model)

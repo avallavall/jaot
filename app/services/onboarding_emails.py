@@ -5,7 +5,6 @@ Sequence:
     Day 0  — Welcome + first solve guide
     Day 1  — API key setup + code examples
     Day 3  — Model catalog tour + templates
-    Day 7  — Credit system + upgrade prompt
     Day 14 — Success stories + feedback request
 
 Each function returns (subject, html_body) for the email service.
@@ -229,59 +228,6 @@ def day3_catalog(user_name: str, locale: str | None = None) -> tuple[str, str]:
     return subject, html
 
 
-def day7_credits(
-    user_name: str, credits_balance: int, locale: str | None = None
-) -> tuple[str, str]:
-    """Day 7: Credit system explanation + upgrade prompt."""
-
-    def t(key: str) -> str:
-        return get_email_string("day7", key, locale)
-
-    safe_name = _safe_name(user_name)
-    subject = t("subject")
-    html = _wrap(
-        f"""
-    <h1 style="color:{BRAND_COLOR};">{t("heading").format(user_name=safe_name)}</h1>
-    <p style="font-size:16px;color:#374151;">
-        {t("bodyIntro")}
-    </p>
-
-    <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:16px;border-radius:8px;margin:24px 0;text-align:center;">
-        <p style="font-size:14px;color:#166534;margin:0;">{t("balanceLabel")}</p>
-        <p style="font-size:36px;font-weight:700;color:#15803d;margin:8px 0;">{credits_balance} {t("creditsUnit")}</p>
-    </div>
-
-    <h2 style="color:#111827;">{t("howCreditsWork")}</h2>
-    <ul style="color:#374151;line-height:1.8;">
-        <li>{t("creditTip1")}</li>
-        <li>{t("creditTip2")}</li>
-        <li>{t("creditTip3")}</li>
-        <li>{t("creditTip4")}</li>
-    </ul>
-
-    <h2 style="color:#111827;">{t("plansHeading")}</h2>
-    <table style="width:100%;border-collapse:collapse;margin:16px 0;">
-        <tr style="background:#f0f9ff;">
-            <th style="padding:8px;border-bottom:2px solid #e5e7eb;">Plan</th>
-            <th style="padding:8px;border-bottom:2px solid #e5e7eb;">Credits</th>
-            <th style="padding:8px;border-bottom:2px solid #e5e7eb;">Price</th>
-        </tr>
-        <tr><td style="padding:8px;border-bottom:1px solid #f3f4f6;">Free</td><td style="padding:8px;border-bottom:1px solid #f3f4f6;">50/mo</td><td style="padding:8px;border-bottom:1px solid #f3f4f6;">€0</td></tr>
-        <tr><td style="padding:8px;border-bottom:1px solid #f3f4f6;">Starter</td><td style="padding:8px;border-bottom:1px solid #f3f4f6;">600/mo</td><td style="padding:8px;border-bottom:1px solid #f3f4f6;">€19/mo</td></tr>
-        <tr><td style="padding:8px;border-bottom:1px solid #f3f4f6;">Pro</td><td style="padding:8px;border-bottom:1px solid #f3f4f6;">2,500/mo</td><td style="padding:8px;border-bottom:1px solid #f3f4f6;">€49/mo</td></tr>
-        <tr><td style="padding:8px;">Business</td><td style="padding:8px;">10,000/mo</td><td style="padding:8px;">€149/mo</td></tr>
-    </table>
-
-    <a href="https://jaot.io/workspace/credits"
-       style="display:inline-block;background:{BRAND_COLOR};color:white;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-top:16px;">
-        {t("ctaText")}
-    </a>
-    """,
-        locale=locale,
-    )
-    return subject, html
-
-
 def day14_feedback(user_name: str, locale: str | None = None) -> tuple[str, str]:
     """Day 14: Success stories + feedback request."""
 
@@ -338,10 +284,10 @@ def day14_feedback(user_name: str, locale: str | None = None) -> tuple[str, str]
 
 
 # Registry of all onboarding emails by day offset
+# ADR-008: the day-7 credit/pricing explainer left with the money layer.
 ONBOARDING_SEQUENCE: dict[int, Callable[..., tuple[str, str]]] = {
     0: day0_welcome,
     1: day1_api_setup,
     3: day3_catalog,
-    7: day7_credits,
     14: day14_feedback,
 }

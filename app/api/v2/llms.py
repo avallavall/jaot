@@ -28,15 +28,14 @@ LLMS_TXT = """\
 - [Authentication](/docs/api/authentication): API key and JWT auth guide
 
 ## MCP
-- [MCP Endpoint](/mcp): Model Context Protocol server with 17 optimization tools
-- Tools: solve_problem, validate_problem, solve_multi_objective, list_available_solvers, list_templates, get_template, solve_with_template, import_preview, import_and_solve, list_catalog_models, get_catalog_model, get_catalog_model_schema, activate_catalog_model, execute_model, get_execution, get_execution_insights, get_credit_balance
+- [MCP Endpoint](/mcp): Model Context Protocol server with 16 optimization tools
+- Tools: solve_problem, validate_problem, solve_multi_objective, list_available_solvers, list_templates, get_template, solve_with_template, import_preview, import_and_solve, list_catalog_models, get_catalog_model, get_catalog_model_schema, activate_catalog_model, execute_model, get_execution, get_execution_insights
 
 ## API
 - Base URL: /api/v2
 - [Solve](/api/v2/solve): POST — Solve any optimization problem (JSON definition)
 - [Templates](/api/v2/solve/templates): GET — List available problem templates
 - [Catalog](/api/v2/models/catalog): GET — Browse marketplace models
-- [Credits](/api/v2/credits/balance): GET — Check credit balance
 """
 
 # llms-full.txt — comprehensive inlined documentation
@@ -81,8 +80,6 @@ Authorization: Bearer ok_live_a1b2c3d4e5f6789012345678901234567890abcdef
 | GET | /api/v2/health | Health check |
 | GET | /api/v2/solve/templates | List problem templates |
 | GET | /api/v2/models/catalog | Browse marketplace |
-| GET | /api/v2/credits/rates | Exchange rates |
-| GET | /api/v2/credits/calculator | Estimate credits for a problem |
 | POST | /api/v2/auth/signup | Create account |
 | POST | /api/v2/auth/login | Validate key |
 
@@ -91,7 +88,6 @@ Authorization: Bearer ok_live_a1b2c3d4e5f6789012345678901234567890abcdef
 | Code | Meaning |
 |------|---------|
 | 401 | Missing, invalid, or expired API key |
-| 402 | Insufficient credits |
 | 403 | Admin endpoint accessed by non-admin |
 | 429 | Rate limited |
 
@@ -150,9 +146,7 @@ Solve an optimization problem synchronously. Requires authentication.
     {"name": "gadgets", "value": 60, "type": "integer"}
   ],
   "solution": {"widgets": 30, "gadgets": 60},
-  "solve_time_seconds": 0.045,
-  "credits_used": 2,
-  "credits_remaining": 93
+  "solve_time_seconds": 0.045
 }
 ```
 
@@ -160,13 +154,12 @@ Solver status values: `optimal`, `feasible`, `infeasible`, `unbounded`, `time_li
 
 ### Validate — POST /api/v2/solve/validate
 
-Check a problem without solving. No credits charged.
+Check a problem without solving.
 
 **Response (valid):**
 ```json
 {
   "valid": true,
-  "estimated_credits": 3,
   "num_variables": 5,
   "num_constraints": 8
 }
@@ -250,19 +243,6 @@ Execute an activated model with input data. Requires auth.
 
 List execution results. Requires auth. Query: `page`, `page_size`, `status`.
 
-### Credits Balance — GET /api/v2/credits/balance
-
-Get current credit balance. Requires auth.
-
-```json
-{
-  "credits_balance": 950,
-  "credits_earned": 200,
-  "currency": "EUR",
-  "local_balance": 95.0
-}
-```
-
 ## MCP Usage
 
 JAOT exposes a Model Context Protocol server at `/mcp` using HTTP+SSE transport.
@@ -276,14 +256,14 @@ https://jaot.io/mcp
 
 The MCP endpoint is public (no auth to connect). Individual tools that require authentication will return an error with instructions if called without a Bearer API key.
 
-### Available Tools (17)
+### Available Tools (16)
 
 | Tool | Auth | Description |
 |------|------|-------------|
 | solve_problem | Yes | Solve an optimization problem (optional solver choice or auto routing) |
-| validate_problem | Yes | Validate without solving (no credits) |
+| validate_problem | Yes | Validate without solving |
 | solve_multi_objective | Yes | Solve a multi-objective problem (Pareto front) |
-| list_available_solvers | Yes | List available solvers and their credit multipliers |
+| list_available_solvers | Yes | List available solvers and their capabilities |
 | list_templates | No | List available problem templates |
 | get_template | No | Get template details and input schema |
 | solve_with_template | Yes | Solve using a template (optional solver choice) |
@@ -296,7 +276,6 @@ The MCP endpoint is public (no auth to connect). Individual tools that require a
 | execute_model | Yes | Execute an activated model |
 | get_execution | Yes | Get execution results |
 | get_execution_insights | Yes | Get auto-insights (gap, time, quality) for an execution |
-| get_credit_balance | Yes | Check credit balance |
 
 ### Example Workflow: Template Path
 

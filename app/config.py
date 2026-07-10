@@ -90,7 +90,6 @@ class Settings(BaseSettings):
     SEED_ADMIN_PASSWORD: str = ""  # min 12 chars, same as public signup
     SEED_ADMIN_NAME: str = "Admin"
     SEED_ADMIN_ORG_NAME: str = ""  # default: "<name>'s Organization"
-    SEED_ORG_CREDITS: int = 0  # 0 = use the pro plan's default credits
 
     @model_validator(mode="after")
     def _validate_production_config(self) -> Self:

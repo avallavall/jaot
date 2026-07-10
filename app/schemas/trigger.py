@@ -138,7 +138,6 @@ class TriggerRunResponse(BaseModel):
     execution_id: str | None
     result_data: dict[str, Any] | None
     error_message: str | None
-    credits_consumed: int
     execution_time_ms: int | None
     webhook_delivered: bool | None
     webhook_attempts: int

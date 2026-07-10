@@ -32,7 +32,6 @@ from app.schemas.llm import (
     ExplainSolutionRequest,
     ExplainVersionDiffRequest,
 )
-from app.services.credits_service import CreditsService, InsufficientCreditsError
 from app.services.document_extraction import MAX_FILE_SIZE, extract_text
 from app.services.llm import (
     explain_infeasibility,
@@ -354,23 +353,20 @@ async def _stream_llm_response(
     conv: LLMConversation,
     org_id: str,
     model: str,
-    llm_credit_cost: int,
-    llm_message_id: str,
     request_id: str,
     is_explanation: bool,
     bill_platform: bool = True,
 ) -> AsyncGenerator[dict[str, str], None]:
-    """Forward an LLM event stream as SSE, with credit + cost accounting.
+    """Forward an LLM event stream as SSE, with EUR cost accounting.
 
     Shared by the chat (``send_message``) and ``explain-*`` endpoints so the SSE
-    event contract, credit refund-on-failure, and real-token cost persistence stay
-    byte-for-byte identical across all of them. On success the assistant message is
-    persisted with its token usage and EUR cost; on any upstream error the pre-paid
-    credits are refunded before the terminal event.
+    event contract and real-token cost persistence stay byte-for-byte identical
+    across all of them. On success the assistant message is persisted with its
+    token usage and EUR cost.
 
-    When ``bill_platform`` is False (BYOK — the org ran on its own Anthropic key) no
-    platform credits were charged, so none are refunded, and ``cost_eur`` is left NULL
-    so the run never counts against the platform's monthly AI budget.
+    When ``bill_platform`` is False (BYOK — the org ran on its own Anthropic key)
+    ``cost_eur`` is left NULL so the run never counts against the platform's
+    monthly AI budget.
     """
     accumulated_text = ""
     formulation_data = None
@@ -455,27 +451,11 @@ async def _stream_llm_response(
                     "data": json.dumps({"code": code.value, "request_id": request_id}),
                 }
             elif event_type == "done":
-                # If we saw an upstream error event, refund credits BEFORE
-                # emitting done. The done event always fires after error
-                # because generate_formulation yields {"type": "done"}
+                # The done event always fires after error because
+                # generate_formulation yields {"type": "done"}
                 # unconditionally even on failure.
                 LLM_REQUESTS_TOTAL.labels(outcome="error" if stream_failed else "success").inc()
-                if stream_failed:
-                    # BYOK runs charge no platform credits, so there is nothing to refund.
-                    if bill_platform:
-                        try:
-                            credits_svc = CreditsService(db)
-                            credits_svc.refund_credits(
-                                organization_id=org_id,
-                                credits=llm_credit_cost,
-                                description=f"LLM stream failed, refunding: {llm_message_id}",
-                                reference_type="llm_message_refund",
-                                reference_id=llm_message_id,
-                            )
-                            db.commit()
-                        except Exception as refund_err:
-                            logger.error("Failed to refund credits: %s", refund_err)
-                else:
+                if not stream_failed:
                     # Persist assistant message after stream completes
                     try:
                         # W17: price the real token usage via the
@@ -536,20 +516,6 @@ async def _stream_llm_response(
             request_id=request_id,
         )
         code = error_event["code"]
-        # Refund pre-paid credits on stream failure (BYOK charged none → skip).
-        if bill_platform:
-            try:
-                credits_svc = CreditsService(db)
-                credits_svc.refund_credits(
-                    organization_id=org_id,
-                    credits=llm_credit_cost,
-                    description=f"LLM stream failed, refunding: {llm_message_id}",
-                    reference_type="llm_message_refund",
-                    reference_id=llm_message_id,
-                )
-                db.commit()
-            except Exception as refund_err:
-                logger.error("Failed to refund credits: %s", refund_err)
         yield {
             "event": "error",
             "data": json.dumps({"code": code.value, "request_id": request_id}),
@@ -578,7 +544,7 @@ async def send_message(
     conv = _get_conversation_or_404(db, conversation_id, org.id, user.id)
 
     # BYOK: when the org has its own Anthropic key, the call runs on their account —
-    # so the platform budget guardrail and credit charge below are skipped.
+    # so the platform budget guardrail below is skipped.
     byok_client, is_byok = resolve_anthropic_client(org)
 
     # W17 budget guardrail: pause the assistant gracefully when the
@@ -610,31 +576,6 @@ async def send_message(
         retry_after = rate_info.get("retry_after") if isinstance(rate_info, dict) else None
         headers = {"Retry-After": str(retry_after)} if retry_after is not None else None
         raise HTTPException(status_code=429, detail=rate_info, headers=headers)
-
-    # Pre-pay LLM credits before streaming (refunded on failure). BYOK runs on the
-    # org's own key, so they cost the platform nothing and are not charged credits.
-    llm_credit_cost = 0 if is_byok else PSS.get_int(db, "LLM_CREDIT_COST_PER_MESSAGE")
-    llm_message_id = generate_id("msg_")  # Idempotency key for this LLM charge
-    if not is_byok:
-        try:
-            CreditsService.deduct_credits(
-                db=db,
-                organization_id=org.id,
-                credits=llm_credit_cost,
-                description=f"LLM message: {llm_message_id}",
-                reference_type="llm_message",
-                reference_id=llm_message_id,
-            )
-            db.commit()
-        except InsufficientCreditsError as e:
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail={
-                    "error": "insufficient_credits",
-                    "credits_needed": e.credits_needed,
-                    "credits_available": e.credits_available,
-                },
-            ) from None
 
     # Content moderation pre-check
     is_allowed, rejection_msg = moderate_message(body.message)
@@ -753,8 +694,6 @@ async def send_message(
             conv=conv,
             org_id=org.id,
             model=model,
-            llm_credit_cost=llm_credit_cost,
-            llm_message_id=llm_message_id,
             request_id=request_id,
             is_explanation=is_explanation,
             bill_platform=not is_byok,
@@ -819,7 +758,7 @@ async def explain_solution_endpoint(
 
     Loads the solution + sensitivity from a persisted ModelExecution
     (``execution_id``, org ownership enforced) or from inline fields, then reuses
-    the chat streaming pipeline — budget guardrail, org rate limit, pre-paid credits
+    the chat streaming pipeline — budget guardrail, org rate limit
     (refunded on failure), a persisted user/assistant turn pair — driven by
     ``explain_solution`` rather than formulation generation. Moderation is skipped
     because the prompt content is system-generated, not free user text.
@@ -827,7 +766,7 @@ async def explain_solution_endpoint(
     # Verify conversation ownership and expiry
     conv = _get_conversation_or_404(db, conversation_id, org.id, user.id)
 
-    # BYOK: org with its own key runs on their account — skip budget + credit charge.
+    # BYOK: org with its own key runs on their account — skip the budget guardrail.
     byok_client, is_byok = resolve_anthropic_client(org)
 
     # W17 budget guardrail — pause gracefully when the monthly Anthropic budget
@@ -857,38 +796,14 @@ async def explain_solution_endpoint(
         headers = {"Retry-After": str(retry_after)} if retry_after is not None else None
         raise HTTPException(status_code=429, detail=rate_info, headers=headers)
 
-    # Resolve what to explain (execution ownership enforced here) BEFORE charging
-    # credits, so an invalid execution_id never costs the user anything.
+    # Resolve what to explain (execution ownership enforced here) up front, so an
+    # invalid execution_id fails cleanly.
     formulation, solution, sensitivity = _resolve_explanation_context(db, org.id, body)
     if not solution and not formulation:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="No solution to explain — provide execution_id or inline solution.",
         )
-
-    # Pre-pay LLM credits before streaming (refunded on failure). BYOK is free.
-    llm_credit_cost = 0 if is_byok else PSS.get_int(db, "LLM_CREDIT_COST_PER_MESSAGE")
-    llm_message_id = generate_id("msg_")  # Idempotency key for this LLM charge
-    if not is_byok:
-        try:
-            CreditsService.deduct_credits(
-                db=db,
-                organization_id=org.id,
-                credits=llm_credit_cost,
-                description=f"LLM explanation: {llm_message_id}",
-                reference_type="llm_message",
-                reference_id=llm_message_id,
-            )
-            db.commit()
-        except InsufficientCreditsError as e:
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail={
-                    "error": "insufficient_credits",
-                    "credits_needed": e.credits_needed,
-                    "credits_available": e.credits_available,
-                },
-            ) from None
 
     # Persist a user turn marking the explanation request. The content is
     # system-generated scaffolding (the grounded prompt is built server-side),
@@ -924,8 +839,6 @@ async def explain_solution_endpoint(
             conv=conv,
             org_id=org.id,
             model=model,
-            llm_credit_cost=llm_credit_cost,
-            llm_message_id=llm_message_id,
             request_id=request_id,
             is_explanation=True,
             bill_platform=not is_byok,
@@ -983,7 +896,7 @@ async def explain_infeasibility_endpoint(
 
     Loads the formulation + persisted IIS from a ModelExecution (``execution_id``,
     org ownership enforced) or from inline fields, then reuses the chat streaming
-    pipeline — budget guardrail, org rate limit, pre-paid credits (refunded on
+    pipeline — budget guardrail, org rate limit (refusals surface on
     failure), a persisted user/assistant turn pair — driven by
     ``explain_infeasibility``. When no IIS is available the explanation is heuristic
     and clearly flagged. Moderation is skipped because the prompt content is
@@ -992,7 +905,7 @@ async def explain_infeasibility_endpoint(
     # Verify conversation ownership and expiry
     conv = _get_conversation_or_404(db, conversation_id, org.id, user.id)
 
-    # BYOK: org with its own key runs on their account — skip budget + credit charge.
+    # BYOK: org with its own key runs on their account — skip the budget guardrail.
     byok_client, is_byok = resolve_anthropic_client(org)
 
     # W17 budget guardrail — pause gracefully when the monthly Anthropic budget
@@ -1022,38 +935,14 @@ async def explain_infeasibility_endpoint(
         headers = {"Retry-After": str(retry_after)} if retry_after is not None else None
         raise HTTPException(status_code=429, detail=rate_info, headers=headers)
 
-    # Resolve what to explain (execution ownership enforced here) BEFORE charging
-    # credits, so an invalid execution_id never costs the user anything.
+    # Resolve what to explain (execution ownership enforced here) up front, so an
+    # invalid execution_id fails cleanly.
     formulation, infeasibility = _resolve_infeasibility_context(db, org.id, body)
     if not formulation and not infeasibility:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Nothing to explain — provide execution_id or inline formulation.",
         )
-
-    # Pre-pay LLM credits before streaming (refunded on failure). BYOK is free.
-    llm_credit_cost = 0 if is_byok else PSS.get_int(db, "LLM_CREDIT_COST_PER_MESSAGE")
-    llm_message_id = generate_id("msg_")  # Idempotency key for this LLM charge
-    if not is_byok:
-        try:
-            CreditsService.deduct_credits(
-                db=db,
-                organization_id=org.id,
-                credits=llm_credit_cost,
-                description=f"LLM infeasibility explanation: {llm_message_id}",
-                reference_type="llm_message",
-                reference_id=llm_message_id,
-            )
-            db.commit()
-        except InsufficientCreditsError as e:
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail={
-                    "error": "insufficient_credits",
-                    "credits_needed": e.credits_needed,
-                    "credits_available": e.credits_available,
-                },
-            ) from None
 
     # Persist a user turn marking the explanation request. The content is
     # system-generated scaffolding (the grounded prompt is built server-side),
@@ -1088,8 +977,6 @@ async def explain_infeasibility_endpoint(
             conv=conv,
             org_id=org.id,
             model=model,
-            llm_credit_cost=llm_credit_cost,
-            llm_message_id=llm_message_id,
             request_id=request_id,
             is_explanation=True,
             bill_platform=not is_byok,
@@ -1152,7 +1039,7 @@ async def explain_model_endpoint(
     Loads the formulation + the Python-computed ``ModelStats`` from a ModelProject
     (``project_id``, draft or a committed ``version_id``, org ownership enforced) or
     from inline fields, then reuses the chat streaming pipeline — budget guardrail,
-    org rate limit, pre-paid credits (refunded on failure), a persisted user/assistant
+    org rate limit, a persisted user/assistant
     turn pair — driven by ``explain_model``. The statistics are authoritative, so the
     explanation has nothing to fabricate. Moderation is skipped because the prompt
     content is system-generated, not free user text.
@@ -1160,7 +1047,7 @@ async def explain_model_endpoint(
     # Verify conversation ownership and expiry
     conv = _get_conversation_or_404(db, conversation_id, org.id, user.id)
 
-    # BYOK: org with its own key runs on their account — skip budget + credit charge.
+    # BYOK: org with its own key runs on their account — skip the budget guardrail.
     byok_client, is_byok = resolve_anthropic_client(org)
 
     # W17 budget guardrail — pause gracefully when the monthly Anthropic budget is exhausted.
@@ -1189,38 +1076,14 @@ async def explain_model_endpoint(
         headers = {"Retry-After": str(retry_after)} if retry_after is not None else None
         raise HTTPException(status_code=429, detail=rate_info, headers=headers)
 
-    # Resolve what to explain (project/version ownership enforced here) BEFORE charging
-    # credits, so an invalid project/version never costs the user anything.
+    # Resolve what to explain (project/version ownership enforced here) up front,
+    # so an invalid project/version fails cleanly.
     formulation, stats = _resolve_model_explanation_context(db, org.id, body)
     if not formulation:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="No model to explain — provide project_id or inline formulation.",
         )
-
-    # Pre-pay LLM credits before streaming (refunded on failure). BYOK is free.
-    llm_credit_cost = 0 if is_byok else PSS.get_int(db, "LLM_CREDIT_COST_PER_MESSAGE")
-    llm_message_id = generate_id("msg_")
-    if not is_byok:
-        try:
-            CreditsService.deduct_credits(
-                db=db,
-                organization_id=org.id,
-                credits=llm_credit_cost,
-                description=f"LLM model explanation: {llm_message_id}",
-                reference_type="llm_message",
-                reference_id=llm_message_id,
-            )
-            db.commit()
-        except InsufficientCreditsError as e:
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail={
-                    "error": "insufficient_credits",
-                    "credits_needed": e.credits_needed,
-                    "credits_available": e.credits_available,
-                },
-            ) from None
 
     user_msg = LLMMessage(
         id=generate_id("msg_"),
@@ -1252,8 +1115,6 @@ async def explain_model_endpoint(
             conv=conv,
             org_id=org.id,
             model=model,
-            llm_credit_cost=llm_credit_cost,
-            llm_message_id=llm_message_id,
             request_id=request_id,
             is_explanation=True,
             bill_platform=not is_byok,
@@ -1305,7 +1166,7 @@ async def explain_diff_endpoint(
 
     Loads the project + both versions (org ownership enforced), computes the structural
     diff server-side via ``model_project_service.diff_versions``, and reuses the chat
-    streaming pipeline (budget guardrail, rate limit, pre-paid credits refunded on
+    streaming pipeline (budget guardrail, rate limit, refusals surfaced on
     failure, persisted turn pair) driven by ``explain_version_diff``. The LLM narrates
     ONLY the pre-computed diff. Moderation is skipped (system-generated prompt content).
     """
@@ -1337,33 +1198,11 @@ async def explain_diff_endpoint(
         headers = {"Retry-After": str(retry_after)} if retry_after is not None else None
         raise HTTPException(status_code=429, detail=rate_info, headers=headers)
 
-    # Resolve + compute the diff (ownership enforced) BEFORE charging credits.
+    # Resolve + compute the diff (ownership enforced) up front — an invalid
+    # version reference fails cleanly before any message is persisted.
     old_problem, new_problem, structural_diff, old_summary, new_summary = (
         _resolve_diff_explanation_context(db, org.id, body)
     )
-
-    llm_credit_cost = 0 if is_byok else PSS.get_int(db, "LLM_CREDIT_COST_PER_MESSAGE")
-    llm_message_id = generate_id("msg_")
-    if not is_byok:
-        try:
-            CreditsService.deduct_credits(
-                db=db,
-                organization_id=org.id,
-                credits=llm_credit_cost,
-                description=f"LLM version-diff explanation: {llm_message_id}",
-                reference_type="llm_message",
-                reference_id=llm_message_id,
-            )
-            db.commit()
-        except InsufficientCreditsError as e:
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail={
-                    "error": "insufficient_credits",
-                    "credits_needed": e.credits_needed,
-                    "credits_available": e.credits_available,
-                },
-            ) from None
 
     user_msg = LLMMessage(
         id=generate_id("msg_"),
@@ -1398,8 +1237,6 @@ async def explain_diff_endpoint(
             conv=conv,
             org_id=org.id,
             model=model,
-            llm_credit_cost=llm_credit_cost,
-            llm_message_id=llm_message_id,
             request_id=request_id,
             is_explanation=True,
             bill_platform=not is_byok,

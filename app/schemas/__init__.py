@@ -25,21 +25,6 @@ from app.schemas.common import (
     TimestampMixin,
 )
 
-# Credits
-from app.schemas.credits import (
-    AllRatesResponse,
-    CreditAdjustment,
-    CreditBalanceResponse,
-    CurrencyRequest,
-    ExchangeRateResponse,
-    ScheduleRequest,
-    ScheduleResponse,
-    TransactionListResponse,
-    TransactionResponse,
-    WithdrawalRequest,
-    WithdrawalResponse,
-)
-
 # Health
 from app.schemas.health import (
     HealthResponse,
@@ -144,17 +129,6 @@ __all__ = [
     "ReviewResponse",
     "ReviewListResponse",
     # Credits
-    "ExchangeRateResponse",
-    "AllRatesResponse",
-    "CreditBalanceResponse",
-    "TransactionResponse",
-    "TransactionListResponse",
-    "WithdrawalRequest",
-    "WithdrawalResponse",
-    "ScheduleRequest",
-    "ScheduleResponse",
-    "CurrencyRequest",
-    "CreditAdjustment",
     # API Keys
     "CreateKeyRequest",
     "APIKeyInfo",
