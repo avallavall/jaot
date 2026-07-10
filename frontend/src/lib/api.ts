@@ -1316,6 +1316,27 @@ export const api = {
     });
   },
 
+  /**
+   * S7: server-side scenario solve — the backend compiles the project's persisted
+   * JModel source against the named dataset and enqueues the async solve, so the
+   * client sends a URL instead of a compiled problem (up to ~31MB pre-S7).
+   * Compile failures surface as a 422 whose message is the structured compiler error.
+   */
+  solveProjectDataset(
+    projectId: string,
+    datasetId: string,
+    solverName?: string,
+    workspaceId?: string
+  ): Promise<AsyncTask> {
+    return request(`/api/v2/projects/${projectId}/datasets/${datasetId}/solve`, {
+      method: "POST",
+      params: {
+        ...(solverName ? { solver_name: solverName } : {}),
+        ...(workspaceId ? { workspace_id: workspaceId } : {}),
+      },
+    });
+  },
+
   /** Replace the HEAD draft. `lockVersion` becomes the `If-Match` optimistic-concurrency token. */
   updateProjectDraft(
     id: string,

@@ -16,10 +16,9 @@ import { useProjectDatasets } from "../../datasets/useProjectDatasets";
 
 const POLL_MS = 5000;
 const DIFF_ROW_CAP = 50;
-// Launching is CLIENT-side work (compile -> download compiled problem -> upload to
-// /solve/async — up to ~31MB each way for the big TFM scenarios). Firing 16 at once
-// queued them behind the browser's ~6-connection limit for minutes; capping the
-// batch keeps each launch's vulnerable window short (live report 2026-07-04).
+// Each launch is one tiny request (ADR-007 S7: the SERVER compiles source+dataset),
+// but that compile is CPU-bound API work — up to ~6s for the largest TFM scenario —
+// so the cap keeps a 17-dataset batch from monopolizing the API threadpool.
 const CONCURRENT_LAUNCHES = 3;
 
 interface DiffRow {
@@ -58,12 +57,13 @@ function variableMap(result: unknown): Map<string, number> {
  * The Solve tab's "Scenarios" section (S3): run the project's JModel against N
  * selected datasets in one click and compare the outcomes side by side.
  *
- * Each dataset compiles client-side (`/dsl/compile?dataset_id`) — a dataset that
- * does not fill the model becomes a failed ROW with the structured compiler
- * message, never a crash — and solves through the universal async path tagged
- * with `dataset_id` (S1). The comparison table is SERVER-DERIVED (latest
- * execution per dataset from `GET /projects/{id}/executions`), so it is durable
- * across tabs/devices/reloads by construction, refreshed while any run is live.
+ * Each dataset solves SERVER-side (ADR-007 S7): one request per dataset and the
+ * backend compiles the persisted draft source against it, then enqueues the
+ * async solve tagged with `dataset_id` (S1). A dataset that does not fill the
+ * model becomes a failed ROW with the structured compiler message (422), never
+ * a crash. The comparison table is SERVER-DERIVED (latest execution per dataset
+ * from `GET /projects/{id}/executions`), so it is durable across
+ * tabs/devices/reloads by construction, refreshed while any run is live.
  */
 export function ScenariosSection({ solverName }: { solverName: string }) {
   const t = useTranslations("studio");
@@ -76,10 +76,10 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [launching, setLaunching] = useState(false);
-  // Per-dataset transient launch phase. Large scenarios spend 10-30s in
-  // compile+upload before a ModelExecution row exists server-side; without this
-  // the table showed NOTHING while the browser worked (live report 2026-07-04).
-  const [launchPhases, setLaunchPhases] = useState<Record<string, "compiling" | "queueing">>({});
+  // Per-dataset transient launch phase. A large scenario spends a few seconds in
+  // the server-side compile before its ModelExecution row exists; without this
+  // the table showed NOTHING while a launch was in flight (live report 2026-07-04).
+  const [launchPhases, setLaunchPhases] = useState<Record<string, "compiling">>({});
   const [compileFailures, setCompileFailures] = useState<Record<string, string>>({});
   const [runs, setRuns] = useState<ProjectExecutionItem[]>([]);
   const [diff, setDiff] = useState<DiffState | null>(null);
@@ -138,27 +138,23 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
     setLaunchPhases(Object.fromEntries([...selected].map((id) => [id, "compiling"] as const)));
     const launchOne = async (dsId: string) => {
         try {
-          const compiled = await api.compileDsl(draftDslSource, dsId);
-          if (!compiled.ok || !compiled.problem) {
-            failures[dsId] = compiled.error?.message ?? t("scenariosCompileFailed");
-            return;
-          }
-          setLaunchPhases((prev) => ({ ...prev, [dsId]: "queueing" }));
-          await api.solveAsync(
-            { ...compiled.problem, solver_name: solverName },
+          // S7: the server compiles the PERSISTED draft source against the
+          // dataset and enqueues — provenance identical to the old client-side
+          // launch. (A just-typed, not-yet-autosaved edit — <1s window — solves
+          // the previous source; the row is server truth either way.)
+          await api.solveProjectDataset(
+            modelId,
+            dsId,
+            solverName,
             activeWorkspaceId ?? undefined,
-            {
-              origin: "visual_builder",
-              sourceKind: "model_project",
-              sourceId: modelId,
-              datasetId: dsId,
-            },
           );
           // Refresh per launch: this dataset's row flips to pending/running as
           // soon as IT is queued, instead of waiting for every sibling (a big
           // scenario compiling must not hide a small one already solving).
           void refreshRuns();
         } catch (err: unknown) {
+          // A 422 carries the structured compiler message (request() unwraps
+          // detail.message); anything else falls back to the generic label.
           failures[dsId] = getErrorMessage(err, t("scenariosLaunchFailed"));
         } finally {
           setLaunchPhases((prev) => {
@@ -321,9 +317,7 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
                         data-testid="studio-scenario-launching"
                       >
                         <span className="h-2.5 w-2.5 animate-spin rounded-full border border-current border-t-transparent" />
-                        {launchPhases[ds.id] === "compiling"
-                          ? t("scenariosCompiling")
-                          : t("scenariosQueueing")}
+                        {t("scenariosCompiling")}
                       </span>
                     ) : failure ? (
                       <span

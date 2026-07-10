@@ -2368,6 +2368,12 @@ export interface paths {
          *
          *     Optional ``solver_name`` selects the solver (``scip``, ``highs``,
          *     ``hexaly``) or ``auto`` routing; omit for the default.
+         *
+         *     ADR-007 S6: both modes run on the async pipeline (``solve_model_async``).
+         *     ``async_mode=false`` enqueues, waits up to the shared budget and returns
+         *     the historic ``ModelExecutionResponse``; past the budget it degrades to
+         *     202 + the async envelope (poll ``poll_url``). Sync ``def`` on purpose —
+         *     the blocking wait belongs in the threadpool, never on the event loop.
          */
         post: operations["execute_model"];
         delete?: never;
@@ -3208,6 +3214,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/projects/{project_id}/datasets/{dataset_id}/solve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Solve Project Dataset
+         * @description Solve one named dataset against the project's JModel source — SERVER-side.
+         *
+         *     ADR-007 S7: the scenario launch used to compile in the BROWSER and upload the
+         *     flat problem (~31MB each way for the large TFM scenarios) through the Next
+         *     proxy; this endpoint compiles the persisted ``draft_dsl_source`` + dataset on
+         *     the server and rides the ONE async pipeline, so the client sends a URL and
+         *     nothing else. Async-only on purpose — scenario launches are batch and the
+         *     client derives row state from the server. A compile failure is a 422
+         *     ``{message, position}`` resolved BEFORE any credit charge; the dataset is
+         *     org- and project-scoped (404 otherwise, anti-oracle).
+         */
+        post: operations["solve_project_dataset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/projects/{project_id}/datasets/import": {
         parameters: {
             query?: never;
@@ -3295,9 +3330,13 @@ export interface paths {
          * Solve Model Project
          * @description Solve a ModelProject's draft (or a specific committed version).
          *
-         *     Mirrors the universal ``/solve`` flow exactly — tier caps, auto-routing,
-         *     credit calc, and ``SolveOrchestrator.solve_single`` — adding only the
-         *     ``model_project`` provenance + typed project/version columns on the row.
+         *     ADR-007 S4a — async-under-the-hood: resolves the project/version model
+         *     server-side, then rides the ONE async pipeline (``_enqueue_async_solve``)
+         *     exactly like ``POST /solve`` — tier caps, auto-routing, pre-paid credits, the
+         *     pending ModelExecution row (tagged ``model_project`` provenance + typed
+         *     project/version columns), and the Celery worker. The classic
+         *     ``OptimizationResult`` comes back on completion; a solve that outlives the
+         *     wait budget returns 202 + the task envelope (poll or subscribe).
          *
          *     ``origin`` lets a programmatic caller (API/MCP/ERP) label the run honestly;
          *     it is sanitized server-side and falls back to ``visual_builder`` (the studio),
@@ -4178,11 +4217,15 @@ export interface paths {
         put?: never;
         /**
          * Import And Solve
-         * @description Import an optimization file and solve it immediately.
+         * @description Import an optimization file and solve it.
          *
-         *     Parses the file, applies solver options, deducts credits, and returns
-         *     the solve result. Follows the same credit/tier/rate-limit flow as
-         *     the standard /solve endpoint.
+         *     ADR-007 S4a — async-under-the-hood: parses the uploaded file + applies solver
+         *     options server-side, then rides the ONE async pipeline
+         *     (``_enqueue_async_solve``) exactly like ``POST /solve`` — tier caps,
+         *     auto-routing, per-solver credit pricing (pre-paid), the pending
+         *     ModelExecution row (tagged ``imported_file`` provenance), and the Celery
+         *     worker. The classic ``OptimizationResult`` comes back on completion; a solve
+         *     that outlives the wait budget returns 202 + the task envelope (poll/subscribe).
          */
         post: operations["import_and_solve"];
         delete?: never;
@@ -4269,6 +4312,12 @@ export interface paths {
         /**
          * Solve Multi Objective Endpoint
          * @description Solve a multi-objective problem. Returns a Pareto front.
+         *
+         *     ADR-007 S4b — async-under-the-hood: the SCIP scalarization loop runs in the
+         *     dedicated ``solve_multi_objective_async`` worker (pre-paid credits = base x
+         *     n_points, a durable execution record, refund on failure); the handler waits in
+         *     the threadpool and returns the classic ``MultiObjectiveResult``, degrading to
+         *     202 + the task envelope past the wait budget.
          */
         post: operations["solve_multi_objective"];
         delete?: never;
@@ -4351,6 +4400,14 @@ export interface paths {
         /**
          * Solve With Template
          * @description Solve a problem using a template.
+         *
+         *     ADR-007 S4a — async-under-the-hood: renders the template into an
+         *     OptimizationProblem server-side, then rides the ONE async pipeline
+         *     (``_enqueue_async_solve``) exactly like ``POST /solve`` — tier caps,
+         *     auto-routing, per-solver credit pricing (pre-paid), the pending
+         *     ModelExecution row (tagged ``template`` provenance), and the Celery worker.
+         *     The classic ``OptimizationResult`` comes back on completion; a solve that
+         *     outlives the wait budget returns 202 + the task envelope (poll or subscribe).
          *
          *     The template transforms user-friendly input into an optimization problem.
          *     Optional ``solver_name`` selects the solver (e.g. ``scip``, ``highs``,
@@ -16919,6 +16976,43 @@ export interface operations {
             };
         };
     };
+    solve_project_dataset: {
+        parameters: {
+            query?: {
+                solver_name?: string | null;
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                dataset_id: string;
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     import_project_dataset: {
         parameters: {
             query?: {
@@ -18376,7 +18470,6 @@ export interface operations {
         parameters: {
             query?: {
                 origin?: string | null;
-                solver_name?: string | null;
                 source_id?: string | null;
                 source_kind?: string | null;
                 workspace_id?: string | null;

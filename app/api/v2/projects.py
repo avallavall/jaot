@@ -36,8 +36,10 @@ from app.api.deps import (
     OptionalRequireSolver,
     OptionalRequireViewer,
 )
+from app.api.v2.deps.dsl_feature_gate import dsl_feature_gate
+from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
 from app.api.v2.solve import _enqueue_async_solve, _shape_sync_result, _wait_for_task
-from app.domains.dsl import JModelError
+from app.domains.dsl import JModelData, JModelError, compile_jmodel
 from app.domains.solver.services import SolverService, get_solver_service
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
 from app.models.audit_log import AuditAction
@@ -889,3 +891,80 @@ def solve_model_project(  # def: blocks on the queued result in the threadpool (
         auto_route_reason=enqueued.auto_route_reason,
         fallback_triggered=enqueued.fallback_triggered,
     )
+
+
+@router.post(
+    "/{project_id}/datasets/{dataset_id}/solve",
+    operation_id="solve_project_dataset",
+    dependencies=[Depends(dsl_feature_gate), Depends(solve_maintenance_gate)],
+)
+def solve_project_dataset(  # def: the CPU-bound compile belongs in the threadpool
+    project_id: str,
+    dataset_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    solver: SolverService = Depends(get_solver_service),
+    workspace_member: OptionalRequireSolver = None,
+    solver_name: str | None = Query(default=None, max_length=32),
+) -> dict[str, Any]:
+    """Solve one named dataset against the project's JModel source — SERVER-side.
+
+    ADR-007 S7: the scenario launch used to compile in the BROWSER and upload the
+    flat problem (~31MB each way for the large TFM scenarios) through the Next
+    proxy; this endpoint compiles the persisted ``draft_dsl_source`` + dataset on
+    the server and rides the ONE async pipeline, so the client sends a URL and
+    nothing else. Async-only on purpose — scenario launches are batch and the
+    client derives row state from the server. A compile failure is a 422
+    ``{message, position}`` resolved BEFORE any credit charge; the dataset is
+    org- and project-scoped (404 otherwise, anti-oracle).
+    """
+    org = getattr(request.state, "organization", None)
+    if not org:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required."
+        )
+
+    project = _project_or_404(db, project_id, org.id)
+    source = project.draft_dsl_source
+    if not source or not source.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                "This project has no JModel source — scenarios recompile the "
+                "JModel source against each dataset."
+            ),
+        )
+
+    dataset = svc.get_dataset_or_404(db, dataset_id, org.id, project_id=project_id)
+    if dataset is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
+
+    allowed, rate_info = check_rate_limit(org.id, org.rate_limit_per_minute, org.rate_limit_per_day)
+    if not allowed:
+        raise HTTPException(status_code=429, detail=rate_info)
+
+    try:
+        problem = compile_jmodel(source, data=JModelData.from_json(dataset.data_json))
+    except JModelError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"message": exc.message, "position": exc.position},
+        ) from exc
+
+    # Same enqueue path and provenance the browser-side launch produced (origin
+    # visual_builder + model_project source + S1 dataset snapshot), so history
+    # rows are indistinguishable from pre-S7 scenario runs.
+    enqueued = _enqueue_async_solve(
+        db=db,
+        org=org,
+        user=getattr(request.state, "user", None),
+        problem=problem,
+        workspace_id=workspace_member.workspace_id if workspace_member else None,
+        solver_name_param=solver_name,
+        origin=ORIGIN_VISUAL_BUILDER,
+        source_kind="model_project",
+        source_id=project.id,
+        dataset_id=dataset.id,
+        parser=solver.parser,
+    )
+    return enqueued.envelope

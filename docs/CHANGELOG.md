@@ -19,6 +19,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Changed
 
+- **All platform timestamps are timezone-aware UTC (ADR-007 S6c, 2026-07-10)** — every stored date/time column is now `timestamptz` and API responses carry an explicit UTC offset, so clients no longer have to guess (the root fix behind the earlier "hace 2 horas" display bug).
+- **Marketplace model execution rides the async pipeline in both modes (ADR-007 S6d, 2026-07-10)** — the last in-request solver call is gone; the sync mode waits on the queued run and keeps its exact response, degrading to `202 + task_id` on a long solve. A solver-internal error is now refunded consistently in async mode too.
+- **Scenario runs compile on the server (ADR-007 S7, 2026-07-10)** — "Solve all" sends one small request per dataset and the server compiles the JModel source against it, instead of uploading multi-MB compiled models from the browser (which a reload could abort mid-flight).
 - **Scheduled triggers are now priced (2026-07-05)** — a trigger solve now costs the standard per-solve credits like any other solve; previously a pricing bug made triggered solves effectively free.
 
 ### Fixed
