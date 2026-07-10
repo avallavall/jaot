@@ -13,6 +13,7 @@
 | **ADR-005** | Maintenance mode migration via DB flag (no header, no env var) | 2026-04-17 | Phase 06 decisions D-19..D-22 |
 | **ADR-006** | `ModelProject`: a single first-class model entity (full fusion of builder docs + marketplace models) | 2026-06-28 | [`ADR-006-model-project-unification.md`](ADR-006-model-project-unification.md) |
 | **ADR-007** | Async-only executions: one pipeline, one `ModelExecution` writer, one credit model, `?wait=true` for answer-only callers | 2026-07-04 | [`ADR-007-async-only-executions.md`](ADR-007-async-only-executions.md) |
+| **ADR-008** | Remove monetization and the credit system entirely (rate limits + LLM EUR budget remain as the protection model) | 2026-07-10 | [`ADR-008-remove-monetization-and-credits.md`](ADR-008-remove-monetization-and-credits.md) |
 
 ## Decisions by phase
 
