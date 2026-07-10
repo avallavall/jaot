@@ -8,8 +8,6 @@ These tests verify the execution functionality:
 - Async status polling
 """
 
-from unittest.mock import MagicMock
-
 from app.models import (
     ExecutionStatus,
     ModelCatalog,
@@ -37,9 +35,11 @@ class TestExecuteModel:
         Pins status_code == 200 and asserts that credits_balance strictly
         decreased by the calculated credits amount. No conditional assertions:
         if the endpoint returns anything other than 200, the test fails loudly.
-        """
-        from app.domains.solver.services.solver_service import get_solver_service
 
+        ADR-007 S6: sync mode now rides the async pipeline (the worker binds
+        the real solver itself, so no dependency mock can intercept it) — the
+        solve is a REAL bounded LP through the eager worker.
+        """
         initial_credits = test_organization.credits_balance
 
         catalog = ModelCatalog(
@@ -71,36 +71,21 @@ class TestExecuteModel:
         db_session.add(org_model)
         db_session.commit()
 
-        # Override the solver dependency to return a successful result
-        from app.schemas.optimization import SolverStatus
-
-        fake_result = MagicMock()
-        fake_result.status = SolverStatus.OPTIMAL
-        fake_result.objective_value = 100.0
-        fake_result.solve_time_seconds = 0.1
-        fake_result.to_result_data.return_value = {"x": 1}
-
-        fake_solver = MagicMock()
-        fake_solver.solve.return_value = fake_result
-
-        # Use FastAPI dependency override (the proper integration test pattern)
-        app = authenticated_client.app
-        app.dependency_overrides[get_solver_service] = lambda: fake_solver
-        try:
-            response = authenticated_client.post(
-                "/api/v2/models/test_exec_org_model/execute",
-                json={
-                    "input_data": {
-                        "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
-                        "objective": {"sense": "maximize", "expression": "x"},
-                    }
-                },
-            )
-        finally:
-            app.dependency_overrides.pop(get_solver_service, None)
+        response = authenticated_client.post(
+            "/api/v2/models/test_exec_org_model/execute",
+            json={
+                "input_data": {
+                    "variables": [
+                        {"name": "x", "type": "continuous", "lower_bound": 0, "upper_bound": 10}
+                    ],
+                    "objective": {"sense": "maximize", "expression": "x"},
+                }
+            },
+        )
 
         # Pin status code: must be exactly 200
         assert response.status_code == 200, response.text
+        assert response.json()["status"] == "completed", response.text
 
         # Credits must have been deducted (not asserted conditionally)
         db_session.refresh(test_organization)
@@ -184,10 +169,11 @@ class TestExecuteModel:
         solve. The pre-fix sync path deducted ``base_credits`` in its except
         handler; now a solver-internal ERROR (or any exception) leaves the
         balance untouched, matching /api/v2/solve and solve_model_async.
-        """
-        from app.domains.solver.services.solver_service import get_solver_service
-        from app.schemas.optimization import SolverStatus
 
+        ADR-007 S6: the error is forced through the REAL pipeline — ``x/0``
+        passes validation but the solver swallows the parse failure into a
+        non-raising ERROR result inside the (eager) worker.
+        """
         initial_credits = test_organization.credits_balance
 
         catalog = ModelCatalog(
@@ -217,31 +203,15 @@ class TestExecuteModel:
         db_session.add(org_model)
         db_session.commit()
 
-        # Solver returns an ERROR result WITHOUT raising (SolverService.solve
-        # swallows exceptions into an ERROR result).
-        error_result = MagicMock()
-        error_result.status = SolverStatus.ERROR
-        error_result.error_message = "boom"
-        error_result.objective_value = None
-        error_result.to_result_data.return_value = {"solver_status": "error"}
-
-        fake_solver = MagicMock()
-        fake_solver.solve.return_value = error_result
-
-        app = authenticated_client.app
-        app.dependency_overrides[get_solver_service] = lambda: fake_solver
-        try:
-            response = authenticated_client.post(
-                "/api/v2/models/test_fail_org_model/execute",
-                json={
-                    "input_data": {
-                        "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
-                        "objective": {"sense": "maximize", "expression": "x"},
-                    }
-                },
-            )
-        finally:
-            app.dependency_overrides.pop(get_solver_service, None)
+        response = authenticated_client.post(
+            "/api/v2/models/test_fail_org_model/execute",
+            json={
+                "input_data": {
+                    "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
+                    "objective": {"sense": "maximize", "expression": "x/0"},
+                }
+            },
+        )
 
         assert response.status_code == 200, response.text
         data = response.json()
@@ -290,36 +260,25 @@ class TestExecuteModel:
         A solver ERROR must leave the balance unchanged AND the ledger must show
         the pre-pay + refund pair (proving it is NOT the old "never charge" path):
         one EXECUTION deduction and one REFUND for the execution, same amount.
+
+        ADR-007 S6: solver error forced through the real (eager) worker via
+        ``x/0`` — the wrapper's response and the worker's ledger writes are
+        what this pins now, not an in-request mock.
         """
-        from app.domains.solver.services.solver_service import get_solver_service
         from app.models import CreditTransaction, TransactionType
-        from app.schemas.optimization import SolverStatus
 
         model_id = self._seed_exec_model(db_session, test_organization, "err")
         initial_credits = test_organization.credits_balance
 
-        error_result = MagicMock()
-        error_result.status = SolverStatus.ERROR
-        error_result.error_message = "boom"
-        error_result.objective_value = None
-        error_result.to_result_data.return_value = {"solver_status": "error"}
-        fake_solver = MagicMock()
-        fake_solver.solve.return_value = error_result
-
-        app = authenticated_client.app
-        app.dependency_overrides[get_solver_service] = lambda: fake_solver
-        try:
-            response = authenticated_client.post(
-                f"/api/v2/models/{model_id}/execute",
-                json={
-                    "input_data": {
-                        "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
-                        "objective": {"sense": "maximize", "expression": "x"},
-                    }
-                },
-            )
-        finally:
-            app.dependency_overrides.pop(get_solver_service, None)
+        response = authenticated_client.post(
+            f"/api/v2/models/{model_id}/execute",
+            json={
+                "input_data": {
+                    "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
+                    "objective": {"sense": "maximize", "expression": "x/0"},
+                }
+            },
+        )
 
         assert response.status_code == 200, response.text
         data = response.json()
@@ -350,36 +309,26 @@ class TestExecuteModel:
         self, authenticated_client, db_session, test_organization
     ):
         """# CONTRACT-TEST: a successful sync execute charges exactly one pre-pay,
-        with no refund — the pre-pay is the only deduction (no deduct-after)."""
-        from app.domains.solver.services.solver_service import get_solver_service
+        with no refund — the pre-pay is the only deduction (no deduct-after).
+
+        ADR-007 S6: real bounded LP through the eager worker (no solver mock —
+        the worker binds the solver itself)."""
         from app.models import CreditTransaction, TransactionType
-        from app.schemas.optimization import SolverStatus
 
         model_id = self._seed_exec_model(db_session, test_organization, "ok")
         initial_credits = test_organization.credits_balance
 
-        ok_result = MagicMock()
-        ok_result.status = SolverStatus.OPTIMAL
-        ok_result.objective_value = 7.0
-        ok_result.solve_time_seconds = 0.1
-        ok_result.to_result_data.return_value = {"solver_status": "optimal", "objective_value": 7.0}
-        fake_solver = MagicMock()
-        fake_solver.solve.return_value = ok_result
-
-        app = authenticated_client.app
-        app.dependency_overrides[get_solver_service] = lambda: fake_solver
-        try:
-            response = authenticated_client.post(
-                f"/api/v2/models/{model_id}/execute",
-                json={
-                    "input_data": {
-                        "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
-                        "objective": {"sense": "maximize", "expression": "x"},
-                    }
-                },
-            )
-        finally:
-            app.dependency_overrides.pop(get_solver_service, None)
+        response = authenticated_client.post(
+            f"/api/v2/models/{model_id}/execute",
+            json={
+                "input_data": {
+                    "variables": [
+                        {"name": "x", "type": "continuous", "lower_bound": 0, "upper_bound": 7}
+                    ],
+                    "objective": {"sense": "maximize", "expression": "x"},
+                }
+            },
+        )
 
         assert response.status_code == 200, response.text
         data = response.json()

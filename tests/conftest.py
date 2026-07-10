@@ -205,6 +205,9 @@ def db_engine():
         pool_size=30,
         max_overflow=10,
         pool_pre_ping=True,
+        # Same UTC anchor as the app engine: naive test timestamps are
+        # interpreted as UTC by the timestamptz columns (ADR-007 S6).
+        connect_args={"options": "-c timezone=utc"},
     )
 
     alembic_cfg = AlembicConfig("infra/alembic.ini")
@@ -823,6 +826,13 @@ def eager_solve_async_pipeline(request, monkeypatch):
         eager_results[res.id] = res
         return res
 
+    def _eager_model_apply_async(**opts):
+        # ADR-007 S6: execute_model (marketplace) is async-under-the-hood too —
+        # its sync mode enqueues solve_model_async and waits.
+        res = _solve_tasks_mod.solve_model_async.apply(kwargs=opts["kwargs"])
+        eager_results[res.id] = res
+        return res
+
     _original_async_result = _celery_result_mod.AsyncResult
 
     def _eager_aware_async_result(task_id, *args, **kwargs):
@@ -837,5 +847,6 @@ def eager_solve_async_pipeline(request, monkeypatch):
         "apply_async",
         _eager_multi_objective_apply_async,
     )
+    monkeypatch.setattr(_solve_tasks_mod.solve_model_async, "apply_async", _eager_model_apply_async)
     monkeypatch.setattr(_celery_result_mod, "AsyncResult", _eager_aware_async_result)
     yield

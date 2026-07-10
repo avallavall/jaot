@@ -24,6 +24,7 @@ from app.schemas.optimization import (
     MultiObjectiveConfig,
     MultiObjectiveResult,
     OptimizationProblem,
+    SolverStatus,
 )
 from app.services.credits_service import CreditsService
 from app.shared.core.celery_app import celery_app
@@ -827,6 +828,60 @@ def solve_model_async(
         execution_time_seconds = time.time() - start_time
         execution_time_ms = int(execution_time_seconds * 1000)
         SOLVE_DURATION.observe(execution_time_seconds)
+
+        # ADR-007 S6: a solver-internal error comes back as status=ERROR WITHOUT
+        # raising (SolverService.solve swallows exceptions into an ERROR result).
+        # Mirror the historic sync contract: mark failed + refund the prepay —
+        # never charge for a solve that delivered no result. Without this branch
+        # the row was marked completed and CHARGED (same class as the S3-audit
+        # trigger fix).
+        if result.status == SolverStatus.ERROR:
+            error_message = result.error_message or "Solver returned an error"
+            execution.input_data = problem.model_dump(mode="json")
+            if execution_writer.apply_failed(execution, error=error_message, credits_recorded=0):
+                execution.result_data = result.to_result_data()
+                execution.execution_time_ms = execution_time_ms
+                execution.solver_status = result.status.value
+                if _prepaid_credits > 0:
+                    try:
+                        CreditsService(db).refund_credits(
+                            organization_id=organization_id,
+                            credits=_prepaid_credits,
+                            description=(
+                                f"{RefundReason.MODEL_EXECUTION_FAILED.value} "
+                                f"(execution {execution_id}): {error_message[:200]}"
+                            ),
+                            reference_type="execution",
+                            reference_id=execution_id,
+                        )
+                    except Exception as credit_err:
+                        logger.warning(
+                            "Failed to refund pre-paid credits on solver error: %s", credit_err
+                        )
+            db.commit()
+            SOLVE_TOTAL.labels(status="error", generator="model_async").inc()
+            update_task_progress(1.0, "failed", error_message)
+            _publish_ws_event(
+                execution_id,
+                {
+                    "type": "failed",
+                    "execution_id": execution_id,
+                    "progress": 1.0,
+                    "status": "failed",
+                    "message": error_message,
+                    "error": error_message,
+                    "timestamp": utcnow().isoformat(),
+                },
+            )
+            return {
+                "status": "error",
+                "execution_id": execution_id,
+                "task_id": task_id,
+                "error": error_message,
+                "result_data": result.to_result_data(),
+                "execution_time_ms": execution_time_ms,
+                "solver_status": result.status.value,
+            }
 
         # Credits already calculated dynamically via calculate_credits() at pre-pay
         total_credits = base_credits
