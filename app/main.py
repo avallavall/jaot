@@ -100,40 +100,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
         init_redis(settings.REDIS_URL)
 
-        # Configure Stripe if keys are set
-        stripe_key = PSS.get_str(startup_db, "STRIPE_SECRET_KEY")
-        if stripe_key:
-            try:
-                from app.services.stripe_service import StripeService
-
-                webhook_secret = PSS.get_str(startup_db, "STRIPE_WEBHOOK_SECRET")
-
-                plan_prices = {}
-                for plan in ("starter", "pro", "business"):
-                    key = f"STRIPE_PRICE_{plan.upper()}_MONTHLY"
-                    val = PSS.get_str(startup_db, key)
-                    if val:
-                        plan_prices[plan] = val
-
-                topup_prices = {}
-                for amount in (500, 2000, 5000, 20000):
-                    key = f"STRIPE_PRICE_TOPUP_{amount}"
-                    val = PSS.get_str(startup_db, key)
-                    if val:
-                        topup_prices[amount] = val
-
-                StripeService.configure(
-                    secret_key=stripe_key,
-                    webhook_secret=webhook_secret,
-                    plan_price_ids=plan_prices,
-                    topup_price_ids=topup_prices,
-                )
-                logger.info("💳 Stripe billing configured")
-            except Exception as e:
-                logger.warning(f"⚠️ Stripe configuration failed: {e}")
-        else:
-            logger.info("💳 Stripe not configured (STRIPE_SECRET_KEY not set)")
-
         # Configure email service
         try:
             from app.services.email_service import EmailService

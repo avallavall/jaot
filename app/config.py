@@ -30,7 +30,7 @@ else:
 class Settings(BaseSettings):
     """Infrastructure settings loaded from environment variables.
 
-    Business configuration (plans, LLM, Stripe, email, etc.) has been
+    Business configuration (plans, LLM, email, etc.) has been
     moved to the ``platform_settings`` DB table.  Only variables needed
     before the DB is available remain here.
     """

@@ -53,7 +53,6 @@ from app.schemas.verification import VerificationRequestResponse
 from app.services.featured_placement_service import FeaturedPlacementService
 from app.services.platform_settings_service import PlatformSettingsService
 from app.services.seller_analytics_service import SellerAnalyticsService
-from app.services.stripe_connect_service import StripeConnectService
 from app.services.verification_service import VerificationService
 from app.shared.db.base import get_db
 
@@ -635,85 +634,3 @@ async def get_onboarding_status(
 
     all_complete = all(s.completed for s in steps)
     return OnboardingStatusResponse(steps=steps, all_complete=all_complete)
-
-
-@router.post("/connect/onboard", dependencies=[Depends(require_monetization_enabled)])
-async def start_connect_onboarding(
-    request: Request,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Start or resume Stripe Connect Express onboarding (per D-05).
-
-    Creates a Connect account if needed, then returns an onboarding URL.
-    Seller is redirected to Stripe Express to complete KYC.
-    """
-    org = db.query(Organization).filter(Organization.id == current_user.organization_id).first()
-    if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
-
-    service = StripeConnectService(db)
-
-    if not org.stripe_connect_account_id:
-        service.create_connect_account(org)
-
-    # Generate fresh onboarding link (Pitfall 4: links are single-use)
-    base_url = str(request.base_url).rstrip("/")
-    onboarding_url = service.create_onboarding_link(
-        org=org,
-        return_url=f"{base_url}/seller/connect/return",
-        refresh_url=f"{base_url}/seller/connect/refresh",
-    )
-
-    db.commit()
-    return {"onboarding_url": onboarding_url}
-
-
-@router.get("/connect/status", dependencies=[Depends(require_monetization_enabled)])
-async def get_connect_status(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Check Stripe Connect onboarding status."""
-    org = db.query(Organization).filter(Organization.id == current_user.organization_id).first()
-    if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
-
-    service = StripeConnectService(db)
-    status = service.get_account_status(org)
-    db.commit()
-    return status
-
-
-@router.post("/tos/accept", dependencies=[Depends(require_monetization_enabled)])
-async def accept_seller_tos(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Accept the Seller Terms of Service (per D-16).
-
-    Required before first withdrawal, not before publishing.
-    """
-    service = StripeConnectService(db)
-    acceptance = service.accept_seller_tos(
-        organization_id=current_user.organization_id,
-        user_id=current_user.id,
-        tos_version="1.0",
-    )
-    db.commit()
-    return {
-        "accepted": True,
-        "tos_version": acceptance.tos_version,
-        "accepted_at": acceptance.accepted_at.isoformat(),
-    }
-
-
-@router.get("/tos/status", dependencies=[Depends(require_monetization_enabled)])
-async def get_seller_tos_status(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Check if seller has accepted the current ToS version."""
-    service = StripeConnectService(db)
-    accepted = service.has_accepted_seller_tos(current_user.organization_id)
-    return {"accepted": accepted}

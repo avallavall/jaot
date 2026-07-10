@@ -58,7 +58,6 @@ PUBLIC_PATHS: list[tuple[str, str | None]] = [
     ("/api/v2/solve/templates", "GET"),
     ("/api/v2/solve/validate", "POST"),
     ("/api/v2/contact", "POST"),
-    ("/api/v2/billing/webhook", "POST"),
     ("/api/v2/credits/calculator", None),
     ("/api/v2/credits/rates", "GET"),
     ("/api/v2/community/status", None),

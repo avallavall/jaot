@@ -57,23 +57,13 @@ class Organization(Base):
     rate_limit_per_minute: Mapped[int] = mapped_column(Integer, default=60)
     rate_limit_per_day: Mapped[int] = mapped_column(Integer, default=2000)
 
-    # Billing & Currency
+    # Billing & Currency — ADR-008 transition: billing_email/currency/is_frozen
+    # survive ONLY because the not-yet-removed credits surface reads them; they
+    # go with the credits-removal slice. (The stripe_* / chargeback DB columns
+    # still exist but are unmapped — additive rule, dropped in a later release.)
     billing_email: Mapped[str | None] = mapped_column(String, nullable=True)
     currency: Mapped[str] = mapped_column(String, default="EUR")  # EUR, USD, GBP, CHF
-
-    # Stripe
-    stripe_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
-    stripe_subscription_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
-
-    # Stripe Connect (seller payouts)
-    stripe_connect_account_id: Mapped[str | None] = mapped_column(
-        String(255), nullable=True, index=True
-    )
-    stripe_connect_onboarding_complete: Mapped[bool] = mapped_column(Boolean, default=False)
-
-    # Chargeback fraud protection (per D-09)
     is_frozen: Mapped[bool] = mapped_column(Boolean, default=False)
-    chargeback_count: Mapped[int] = mapped_column(Integer, default=0)
 
     # Webhooks
     webhook_url: Mapped[str | None] = mapped_column(String(500), nullable=True)

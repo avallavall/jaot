@@ -25,7 +25,6 @@ from app.api.v2.routes.admin.organizations import router as organizations_router
 from app.api.v2.routes.admin.scorecard import router as scorecard_router
 from app.api.v2.routes.admin.settings import router as settings_router
 from app.api.v2.routes.admin.users import router as users_router
-from app.api.v2.routes.admin.withdrawals import router as withdrawals_router
 
 
 async def get_admin_user(request: Request) -> Any:
@@ -55,11 +54,6 @@ router.include_router(marketplace_router)
 router.include_router(models_router)
 router.include_router(scorecard_router)
 router.include_router(settings_router)
-# Withdrawal routes are payouts of marketplace earnings (monetization-only) and
-# are gated per-route inside withdrawals.py. The /reconciliation/run route in the
-# same module stays open — credit-balance integrity matters even in free mode,
-# where credits are a usage quota.
-router.include_router(withdrawals_router)
 router.include_router(platform_analytics_router)
 
 __all__ = ["router"]

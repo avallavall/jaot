@@ -88,11 +88,9 @@ class TestIsPublicStaticPaths:
             assert _is_public(path, "POST") is True, f"{path} POST should be public"
             assert _is_public(path, "GET") is True, f"{path} GET should be public"
 
-    def test_billing_webhook_post_only(self):
-        assert _is_public("/api/v2/billing/webhook", "POST") is True
-        # method is "POST" so GET should also match since it's prefix with None... wait
-        # Actually billing webhook has method="POST", so only POST is public
-        # Nope, checking the code: ("/api/v2/billing/webhook", "POST") — only POST
+    def test_billing_webhook_no_longer_public(self):
+        """ADR-008: the Stripe webhook is gone — nothing under /billing is public."""
+        assert _is_public("/api/v2/billing/webhook", "POST") is False
         assert _is_public("/api/v2/billing/webhook", "GET") is False
 
     def test_credits_rates_get_only(self):

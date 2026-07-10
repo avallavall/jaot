@@ -636,28 +636,7 @@ SETTINGS_REGISTRY.extend(
     ]
 )
 
-# BILLING category (38 entries: MONETIZATION_ENABLED + DEFAULT_PLAN + 4 tiers x 9 fields)
-
-SETTINGS_REGISTRY.append(
-    SettingDefinition(
-        key="MONETIZATION_ENABLED",
-        label="Monetization Enabled",
-        description=(
-            "Master switch for every paid feature. When OFF (the default), the "
-            "platform is fully free and collaborative: marketplace models are "
-            "free to publish and use, no commission is charged, and billing, "
-            "payouts, Stripe Connect onboarding, and featured-placement "
-            "purchases are disabled (their endpoints respond 404). Turn ON only "
-            "on a self-hosted deployment that brings its own Stripe keys to "
-            "restore the paid marketplace."
-        ),
-        category=SettingCategory.BILLING,
-        setting_type=SettingType.BOOL,
-        default_value="false",
-        is_secret=False,
-        is_readonly=False,
-    ),
-)
+# BILLING category — legacy tier LIMIT profiles (DEFAULT_PLAN + 4 tiers x 9 fields; ADR-008 removed all money settings)
 
 SETTINGS_REGISTRY.append(
     SettingDefinition(
@@ -761,69 +740,12 @@ for _tier in _PLAN_TIERS:
         )
 
 
-SETTINGS_REGISTRY.append(
-    SettingDefinition(
-        key="marketplace_commission_rate",
-        label="Commission Rate",
-        description="Marketplace commission rate (0.0 to 0.50)",
-        category=SettingCategory.MARKETPLACE,
-        setting_type=SettingType.FLOAT,
-        default_value="0.10",
-        min_value=0.0,
-        max_value=0.50,
-        unit="%",
-    ),
-)
-
-_PLACEMENT_TYPES = [
-    "homepage_carousel",
-    "category_spotlight",
-    "search_boost",
-    "promoted_badge",
-]
-_PLACEMENT_DURATIONS = ["7d", "14d", "30d"]
-
-# Default pricing for featured placements
-_PLACEMENT_DEFAULTS: dict[str, str] = {
-    "featured_placement_homepage_carousel_7d": "500",
-    "featured_placement_homepage_carousel_14d": "900",
-    "featured_placement_homepage_carousel_30d": "1200",
-    "featured_placement_category_spotlight_7d": "300",
-    "featured_placement_category_spotlight_14d": "550",
-    "featured_placement_category_spotlight_30d": "750",
-    "featured_placement_search_boost_7d": "200",
-    "featured_placement_search_boost_14d": "350",
-    "featured_placement_search_boost_30d": "500",
-    "featured_placement_promoted_badge_7d": "100",
-    "featured_placement_promoted_badge_14d": "175",
-    "featured_placement_promoted_badge_30d": "250",
-}
-
-for _ptype in _PLACEMENT_TYPES:
-    for _dur in _PLACEMENT_DURATIONS:
-        _key = f"featured_placement_{_ptype}_{_dur}"
-        SETTINGS_REGISTRY.append(
-            SettingDefinition(
-                key=_key,
-                label=(f"{_ptype.replace('_', ' ').title()} ({_dur})"),
-                description=(f"Pricing for {_ptype.replace('_', ' ')} placement ({_dur})"),
-                category=SettingCategory.MARKETPLACE,
-                setting_type=SettingType.INT,
-                default_value=_PLACEMENT_DEFAULTS.get(_key),
-                min_value=0,
-                max_value=100000,
-                unit="credits",
-            ),
-        )
-
-# SECRETS category (10 entries — all readonly, masked)
+# SECRETS category (all readonly, masked)
 
 _SECRET_KEYS = [
     ("DATABASE_URL", "Database URL", "PostgreSQL connection string"),
     ("JWT_SECRET", "JWT Secret", "Secret key for JWT signing"),
     ("ANTHROPIC_API_KEY", "Anthropic API Key", "API key for Claude LLM"),
-    ("STRIPE_SECRET_KEY", "Stripe Secret Key", "Stripe API secret key"),
-    ("STRIPE_WEBHOOK_SECRET", "Stripe Webhook Secret", "Stripe webhook signing secret"),
     ("SMTP_PASSWORD", "SMTP Password", "SMTP authentication password"),
     ("DISCOURSE_SSO_SECRET", "Discourse SSO Secret", "Discourse single sign-on secret"),
     ("STORAGE_ACCESS_KEY", "Storage Access Key", "Object storage access key"),
@@ -1118,17 +1040,6 @@ SETTINGS_REGISTRY.extend(
 SETTINGS_REGISTRY.extend(
     [
         SettingDefinition(
-            key="HOLDING_PERIOD_DAYS",
-            label="Holding Period",
-            description=("Days before earned credits can be withdrawn"),
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.INT,
-            default_value="14",
-            min_value=0,
-            max_value=365,
-            unit="days",
-        ),
-        SettingDefinition(
             key="LOW_CREDITS_THRESHOLD_PCT",
             label="Low Credits Threshold",
             description=("Percentage threshold for low credits warning"),
@@ -1138,139 +1049,6 @@ SETTINGS_REGISTRY.extend(
             min_value=0,
             max_value=100,
             unit="%",
-        ),
-        SettingDefinition(
-            key="plan_free_monthly_price",
-            label="Free Monthly Price",
-            description="Monthly price for Free plan",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.INT,
-            default_value="0",
-            min_value=0,
-            max_value=100000,
-            unit="USD cents",
-        ),
-        SettingDefinition(
-            key="plan_starter_monthly_price",
-            label="Starter Monthly Price",
-            description="Monthly price for Starter plan",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.INT,
-            default_value="19",
-            min_value=0,
-            max_value=100000,
-            unit="USD",
-        ),
-        SettingDefinition(
-            key="plan_pro_monthly_price",
-            label="Pro Monthly Price",
-            description="Monthly price for Pro plan",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.INT,
-            default_value="49",
-            min_value=0,
-            max_value=100000,
-            unit="USD",
-        ),
-        SettingDefinition(
-            key="plan_business_monthly_price",
-            label="Business Monthly Price",
-            description="Monthly price for Business plan",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.INT,
-            default_value="149",
-            min_value=0,
-            max_value=100000,
-            unit="USD",
-        ),
-        SettingDefinition(
-            key="plan_starter_annual_price",
-            label="Starter Annual Price",
-            description="Annual price for Starter plan",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.INT,
-            default_value="190",
-            min_value=0,
-            max_value=1000000,
-            unit="USD",
-        ),
-        SettingDefinition(
-            key="plan_pro_annual_price",
-            label="Pro Annual Price",
-            description="Annual price for Pro plan",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.INT,
-            default_value="490",
-            min_value=0,
-            max_value=1000000,
-            unit="USD",
-        ),
-        SettingDefinition(
-            key="plan_business_annual_price",
-            label="Business Annual Price",
-            description="Annual price for Business plan",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.INT,
-            default_value="1490",
-            min_value=0,
-            max_value=1000000,
-            unit="USD",
-        ),
-        SettingDefinition(
-            key="STRIPE_PRICE_STARTER_MONTHLY",
-            label="Stripe Starter Monthly Price ID",
-            description="Stripe Price ID for Starter monthly",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.STRING,
-            default_value="",
-        ),
-        SettingDefinition(
-            key="STRIPE_PRICE_PRO_MONTHLY",
-            label="Stripe Pro Monthly Price ID",
-            description="Stripe Price ID for Pro monthly",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.STRING,
-            default_value="",
-        ),
-        SettingDefinition(
-            key="STRIPE_PRICE_BUSINESS_MONTHLY",
-            label="Stripe Business Monthly Price ID",
-            description="Stripe Price ID for Business monthly",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.STRING,
-            default_value="",
-        ),
-        SettingDefinition(
-            key="STRIPE_PRICE_TOPUP_500",
-            label="Stripe Topup 500 Price ID",
-            description="Stripe Price ID for 500 credit topup",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.STRING,
-            default_value="",
-        ),
-        SettingDefinition(
-            key="STRIPE_PRICE_TOPUP_2000",
-            label="Stripe Topup 2000 Price ID",
-            description="Stripe Price ID for 2000 credit topup",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.STRING,
-            default_value="",
-        ),
-        SettingDefinition(
-            key="STRIPE_PRICE_TOPUP_5000",
-            label="Stripe Topup 5000 Price ID",
-            description="Stripe Price ID for 5000 credit topup",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.STRING,
-            default_value="",
-        ),
-        SettingDefinition(
-            key="STRIPE_PRICE_TOPUP_20000",
-            label="Stripe Topup 20000 Price ID",
-            description="Stripe Price ID for 20000 credit topup",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.STRING,
-            default_value="",
         ),
     ]
 )

@@ -10,7 +10,6 @@ from app.models import (  # noqa: F401
     ModelExecution,
     Organization,
     OrganizationModel,
-    UsageRecord,
     User,
     Withdrawal,
     WithdrawalSchedule,

@@ -32,7 +32,6 @@ celery_app = Celery(
         "app.tasks.webhook_tasks",
         "app.tasks.trigger_tasks",
         "app.tasks.cron_tasks",
-        "app.tasks.financial_tasks",  # Scheduled withdrawals + reconciliation
         "app.tasks.hexaly_platform_license_expiry",  # Phase 7.4 / HEX-09 - platform license sweep
         "app.tasks.contact_tasks",  # Phase 9 — public contact-form SMTP delivery
         "app.tasks.execution_reaper",  # W1/F-01 — stale async execution sweep + refund
@@ -67,7 +66,7 @@ celery_app.conf.update(
     worker_send_task_events=True,
     task_send_sent_event=True,
     # Solve tasks route dynamically at the producer call site via
-    # resolve_queue(). Generic tasks (email, webhooks, financial, contact,
+    # resolve_queue(). Generic tasks (email, webhooks, contact,
     # cron, hexaly-expiry) inherit task_default_queue='jaot_default' below
     # — the queue consumed by celery_worker_default per docker-compose
     # `-Q jaot_default`. Boot-time audit (worker_init signal, plan 10-02 +
@@ -87,19 +86,9 @@ _DAILY_SECONDS: int = 86400
 # smallest reap threshold (EXECUTION_REAPER_PENDING_MAX_SECONDS, default 30 min).
 _REAPER_INTERVAL_SECONDS: int = 900
 
-# Beat schedule for financial tasks (D-25, D-27) + Phase 7 solver license sweep (D-25).
+# Beat schedule — Phase 7 solver license sweep (D-25) + execution reaper.
 # Static fallback -- also works alongside sqlalchemy_celery_beat DB-backed schedules.
 celery_app.conf.beat_schedule = {
-    "process-scheduled-withdrawals": {
-        "task": "process_scheduled_withdrawals",
-        "schedule": _DAILY_SECONDS,
-        "options": {"queue": _GENERIC_QUEUE},
-    },
-    "run-balance-reconciliation": {
-        "task": "run_balance_reconciliation",
-        "schedule": _DAILY_SECONDS,
-        "options": {"queue": _GENERIC_QUEUE},
-    },
     # Phase 7.4 / D-07 / HEX-09 — daily sweep of /etc/jaot/hexaly.lic.
     # Updates the HEXALY_LICENSE_DAYS_REMAINING gauge (label license_fingerprint)
     # so Alertmanager fires HexalyPlatformLicenseExpiringSoon when < 30 days.

@@ -4,7 +4,6 @@ from fastapi import APIRouter
 
 from app.api.v2 import (
     auth,
-    billing,
     builder,
     community,
     contact,
@@ -66,9 +65,6 @@ api_v2_router.include_router(health.router, tags=["health"])
 
 # Notifications
 api_v2_router.include_router(notifications.router, tags=["notifications"])
-
-# Billing (Stripe)
-api_v2_router.include_router(billing.router, tags=["billing"])
 
 # Builder — visual model builder CRUD
 api_v2_router.include_router(builder.router, tags=["builder"])

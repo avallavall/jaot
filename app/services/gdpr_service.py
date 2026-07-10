@@ -22,7 +22,6 @@ from app.models import (
     RefreshToken,
     SolveTrigger,
     TriggerRun,
-    UsageRecord,
     User,
     UserFavorite,
     Withdrawal,
@@ -32,7 +31,6 @@ from app.models import (
     WorkspaceInvite,
     WorkspaceMember,
 )
-from app.models.invoice import Invoice
 from app.shared.utils.datetime_helpers import utcnow
 
 logger = logging.getLogger(__name__)
@@ -195,9 +193,6 @@ def delete_user_account(db: Session, user: User) -> None:
     db.query(UserFavorite).filter_by(user_id=user_id).delete()
     db.query(RecentModel).filter_by(user_id=user_id).delete()
 
-    # Usage records
-    db.query(UsageRecord).filter_by(user_id=user_id).delete()
-
     # Auth tokens
     db.query(RefreshToken).filter_by(user_id=user_id).delete()
     db.query(APIKey).filter_by(user_id=user_id).delete()
@@ -208,8 +203,7 @@ def delete_user_account(db: Session, user: User) -> None:
         db.query(ModelExecution).filter_by(organization_id=org_id).delete()
         db.query(OrganizationModel).filter_by(organization_id=org_id).delete()
 
-        # Financial records
-        db.query(Invoice).filter_by(organization_id=org_id).delete()
+        # Financial records (legacy tables kept per the additive rule — ADR-008)
         db.query(CreditTransaction).filter_by(organization_id=org_id).delete()
         db.query(WithdrawalSchedule).filter_by(organization_id=org_id).delete()
         db.query(Withdrawal).filter_by(organization_id=org_id).delete()

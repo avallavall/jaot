@@ -11,7 +11,6 @@ from app.models.exchange_rate import CREDITS_PER_EUR, ExchangeRate
 from app.models.favorite import RecentModel, UserFavorite
 from app.models.featured_placement import FeaturedPlacement, PlacementStatus, PlacementType
 from app.models.formulation_rating import FormulationRating
-from app.models.invoice import Invoice, InvoiceStatus, InvoiceType
 from app.models.llm_conversation import LLMConversation, LLMMessage
 from app.models.model_project import ModelProject, ModelProjectDataset, ModelProjectVersion
 from app.models.model_version import ModelVersion
@@ -33,7 +32,6 @@ from app.models.platform_setting_audit import PlatformSettingAudit
 from app.models.refresh_token import RefreshToken
 from app.models.seller_tos_acceptance import SellerToSAcceptance
 from app.models.trigger import SolveTrigger, TriggerRun, TriggerSchedule
-from app.models.usage_record import UsageRecord
 from app.models.user import User
 from app.models.verification_request import VerificationRequest, VerificationStatus
 from app.models.withdrawal import (
@@ -60,7 +58,6 @@ __all__ = [
     "Currency",
     "User",
     "APIKey",
-    "UsageRecord",
     # Optimization Models
     "ModelCatalog",
     "OrganizationModel",
@@ -88,10 +85,6 @@ __all__ = [
     "Notification",
     "NotificationType",
     "NotificationChannel",
-    # Invoices
-    "Invoice",
-    "InvoiceStatus",
-    "InvoiceType",
     # Builder
     "ModelBuilderDocument",
     "ModelVersion",

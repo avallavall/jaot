@@ -42,11 +42,10 @@ class SecurityHeadersMiddleware:
                     headers.append((b"cache-control", b"no-store"))
                 csp = (
                     f"default-src 'self'; "
-                    f"script-src 'self' 'nonce-{nonce}' https://js.stripe.com; "
+                    f"script-src 'self' 'nonce-{nonce}'; "
                     f"style-src 'self' 'nonce-{nonce}' 'unsafe-inline'; "
                     f"img-src 'self' data: https:; "
-                    f"connect-src 'self' https://api.stripe.com; "
-                    f"frame-src https://js.stripe.com; "
+                    f"connect-src 'self'; "
                     f"font-src 'self'; "
                     f"frame-ancestors 'none'"
                 )

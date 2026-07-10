@@ -540,29 +540,19 @@ class PlatformSettingsService:
 
     @classmethod
     def get_commission_rate(cls, db: Session) -> float:
-        """Get the marketplace commission rate as a float.
+        """ADR-008 transition shim: monetization is removed; no commission exists.
 
-        Returns:
-            Commission rate (e.g. 0.10 for 10%). Defaults to 0.10.
-
-        Note:
-            Only meaningful when :meth:`is_monetization_enabled` is True. With
-            monetization off (the default) the marketplace is free and no
-            commission is ever charged regardless of this value.
+        Kept only until the remaining monetized call sites (credits/seller) are
+        deleted in the credits-removal slice — then this method goes too.
         """
-        return float(cls.get(db, "marketplace_commission_rate"))
+        return 0.0
 
     @classmethod
     def is_monetization_enabled(cls, db: Session) -> bool:
-        """Whether paid features (marketplace sales, payouts, billing) are active.
+        """ADR-008 transition shim: monetization is REMOVED, not configurable.
 
-        Defaults to ``False`` — the platform runs as a free, collaborative
-        deployment where marketplace models are free to publish and use and no
-        money changes hands. A self-hosted deployment can set
-        ``MONETIZATION_ENABLED=true`` to restore the paid marketplace
-        ("bring-your-own Stripe").
-
-        Returns:
-            True when the ``MONETIZATION_ENABLED`` flag is on, else False.
+        Always False — the ``MONETIZATION_ENABLED`` setting no longer exists.
+        Kept only so the not-yet-deleted gated endpoints keep responding 404
+        until the credits-removal slice deletes them and this shim.
         """
-        return cls.get_bool(db, "MONETIZATION_ENABLED")
+        return False
