@@ -160,7 +160,7 @@ def _get_conversation_or_404(
             detail="Conversation not found",
         )
 
-    if conv.expires_at < utcnow().replace(tzinfo=None):
+    if conv.expires_at < utcnow():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Conversation has expired",
@@ -240,10 +240,8 @@ def create_conversation(
         template_id=body.template_id,
         model_id=body.model_id,
         model_project_id=body.model_project_id,
-        created_at=utcnow().replace(tzinfo=None),
-        expires_at=(
-            utcnow() + timedelta(hours=PSS.get_int(db, "LLM_CONVERSATION_TTL_HOURS"))
-        ).replace(tzinfo=None),
+        created_at=utcnow(),
+        expires_at=utcnow() + timedelta(hours=PSS.get_int(db, "LLM_CONVERSATION_TTL_HOURS")),
     )
 
     # If template_id is provided, load template formulation as the first assistant message
@@ -256,7 +254,7 @@ def create_conversation(
                 role="assistant",
                 content=json.dumps(template_formulation),
                 formulation_json=template_formulation,
-                created_at=utcnow().replace(tzinfo=None),
+                created_at=utcnow(),
             )
             conv.messages.append(msg)
             conv.current_formulation = template_formulation
@@ -285,7 +283,7 @@ def list_conversations(
     model_project_id: str | None = Query(None, description="Filter by ModelProject id (studio)"),
 ) -> dict[str, Any]:
     """List active (non-expired) conversations for the current user."""
-    now = utcnow().replace(tzinfo=None)
+    now = utcnow()
     query = (
         db.query(LLMConversation)
         .filter(
@@ -505,7 +503,7 @@ async def _stream_llm_response(
                             input_tokens=total_input_tokens if has_usage else None,
                             output_tokens=total_output_tokens if has_usage else None,
                             cost_eur=message_cost,
-                            created_at=utcnow().replace(tzinfo=None),
+                            created_at=utcnow(),
                         )
                         db.add(assistant_msg)
 
@@ -652,7 +650,7 @@ async def send_message(
         conversation_id=conv.id,
         role="user",
         content=body.message,
-        created_at=utcnow().replace(tzinfo=None),
+        created_at=utcnow(),
     )
     db.add(user_msg)
     db.commit()
@@ -900,7 +898,7 @@ async def explain_solution_endpoint(
         conversation_id=conv.id,
         role="user",
         content="Explain this solution",
-        created_at=utcnow().replace(tzinfo=None),
+        created_at=utcnow(),
     )
     db.add(user_msg)
     db.commit()
@@ -1065,7 +1063,7 @@ async def explain_infeasibility_endpoint(
         conversation_id=conv.id,
         role="user",
         content="Explain why this model is infeasible",
-        created_at=utcnow().replace(tzinfo=None),
+        created_at=utcnow(),
     )
     db.add(user_msg)
     db.commit()
@@ -1229,7 +1227,7 @@ async def explain_model_endpoint(
         conversation_id=conv.id,
         role="user",
         content="Explain this model",
-        created_at=utcnow().replace(tzinfo=None),
+        created_at=utcnow(),
     )
     db.add(user_msg)
     db.commit()
@@ -1372,7 +1370,7 @@ async def explain_diff_endpoint(
         conversation_id=conv.id,
         role="user",
         content="Explain the change between these versions",
-        created_at=utcnow().replace(tzinfo=None),
+        created_at=utcnow(),
     )
     db.add(user_msg)
     db.commit()

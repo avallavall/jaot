@@ -73,13 +73,15 @@ class Notification(Base):
     reference_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
-    read_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     channel: Mapped[str] = mapped_column(String(16), default="in_app")
     email_sent: Mapped[bool] = mapped_column(Boolean, default=False)
-    email_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    email_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, index=True
+    )
 
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id], lazy="joined")
 

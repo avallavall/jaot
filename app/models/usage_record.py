@@ -33,7 +33,7 @@ class UsageRecord(Base):
     request_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     # Timestamp
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
 
     def __repr__(self) -> str:
         return (

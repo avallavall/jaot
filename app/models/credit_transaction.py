@@ -91,7 +91,7 @@ class CreditTransaction(Base):
 
     # Metadata
     created_at: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
         default=utcnow,
         nullable=False,
         index=True,
@@ -99,7 +99,9 @@ class CreditTransaction(Base):
     created_by: Mapped[str | None] = mapped_column(String, nullable=True)  # user_id or "system"
 
     # Holding period: when SALE_EARNING becomes withdrawable (per D-10)
-    available_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
+    available_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
 
     # Commission rate snapshot at time of sale (for audit, per success criterion 14)
     commission_rate: Mapped[float | None] = mapped_column(Float, nullable=True)

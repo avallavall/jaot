@@ -59,7 +59,7 @@ def test_create_api_key_with_expiration(db_session, test_user, test_organization
     assert that verify_key returns None — i.e. the expiration is not just
     stored, it is actually honored by the verification path.
     """
-    expires = (utcnow() + timedelta(days=30)).replace(tzinfo=None)
+    expires = utcnow() + timedelta(days=30)
 
     api_key, plaintext = APIKeyService.create_api_key(
         db=db_session,
@@ -71,7 +71,7 @@ def test_create_api_key_with_expiration(db_session, test_user, test_organization
     assert api_key.expires_at == expires
 
     # Now fast-forward expires_at into the past and verify the key is rejected.
-    api_key.expires_at = (utcnow() - timedelta(days=1)).replace(tzinfo=None)
+    api_key.expires_at = utcnow() - timedelta(days=1)
     db_session.commit()
     assert APIKeyService.verify_key(db_session, plaintext) is None
 

@@ -37,7 +37,9 @@ class AnalyticsEvent(Base):
     event_type: Mapped[str] = mapped_column(String(64), nullable=False)
     country_code: Mapped[str | None] = mapped_column(String(2), nullable=True)
     event_metadata: Mapped[dict | None] = mapped_column("metadata", JSON, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
 
     __table_args__ = (
         Index("ix_ae_event_type_created", "event_type", "created_at"),

@@ -156,7 +156,7 @@ def create_schedule(
     try:
         next_run = next(it)
         # Convert to UTC for storage
-        next_run_utc = next_run.astimezone(timezone.utc).replace(tzinfo=None)
+        next_run_utc = next_run.astimezone(timezone.utc)
     except StopIteration:
         next_run_utc = None
 
@@ -253,7 +253,7 @@ def update_schedule(
             now = datetime.now(tz)
             it = CronSim(schedule.cron_expression, now)
             next_run = next(it)
-            schedule.next_run_at = next_run.astimezone(timezone.utc).replace(tzinfo=None)
+            schedule.next_run_at = next_run.astimezone(timezone.utc)
         except (StopIteration, Exception):
             schedule.next_run_at = None
 

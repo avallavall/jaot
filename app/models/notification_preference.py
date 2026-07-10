@@ -37,7 +37,7 @@ class NotificationPreference(Base):
     channel: Mapped[str] = mapped_column(String(16), nullable=False)  # "in_app" or "email"
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=utcnow, onupdate=utcnow
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
     )
 
     __table_args__ = (

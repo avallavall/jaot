@@ -98,7 +98,7 @@ class TestAccountLockout:
 
     def test_locked_account_returns_423(self, test_client, lockout_user, db_session):
         """A user with locked_until in the future gets 423."""
-        lockout_user.locked_until = (utcnow() + timedelta(minutes=10)).replace(tzinfo=None)
+        lockout_user.locked_until = utcnow() + timedelta(minutes=10)
         lockout_user.failed_login_attempts = 5
         db_session.commit()
 
@@ -108,7 +108,7 @@ class TestAccountLockout:
 
     def test_lockout_expires(self, test_client, lockout_user, db_session):
         """Expired lockout allows login with correct password."""
-        lockout_user.locked_until = (utcnow() - timedelta(minutes=1)).replace(tzinfo=None)
+        lockout_user.locked_until = utcnow() - timedelta(minutes=1)
         lockout_user.failed_login_attempts = 5
         db_session.commit()
 
@@ -132,7 +132,7 @@ class TestAccountLockout:
 
     def test_lockout_message_includes_minutes(self, test_client, lockout_user, db_session):
         """Lockout response includes minutes remaining."""
-        lockout_user.locked_until = (utcnow() + timedelta(minutes=10)).replace(tzinfo=None)
+        lockout_user.locked_until = utcnow() + timedelta(minutes=10)
         lockout_user.failed_login_attempts = 5
         db_session.commit()
 

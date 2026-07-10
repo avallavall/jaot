@@ -334,7 +334,7 @@ def reap_stale_executions(db: Session) -> dict[str, Any]:
     """
     pending_max = PSS.get_int(db, "EXECUTION_REAPER_PENDING_MAX_SECONDS")
     running_max = PSS.get_int(db, "EXECUTION_REAPER_RUNNING_MAX_SECONDS")
-    now = utcnow().replace(tzinfo=None)
+    now = utcnow()
     min_age = min(pending_max, running_max)
 
     candidates = (

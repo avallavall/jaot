@@ -46,9 +46,11 @@ class WorkspaceCreditPool(Base):
     # Last usage-percentage threshold for which workspace admins were notified.
     # Prevents repeat alerts for the same threshold crossing.
     last_alert_threshold: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=utcnow, onupdate=utcnow
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
     )
 
     def __repr__(self) -> str:

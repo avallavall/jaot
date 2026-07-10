@@ -18,6 +18,9 @@ def utcnow() -> datetime:
 def is_expired(expires_at: datetime | None) -> bool:
     """Check if datetime is expired.
 
+    DB columns are timestamptz (aware UTC) since the S6 migration; a naive
+    value can only come from legacy external input and is treated as UTC.
+
     Args:
         expires_at: Optional expiration datetime
 
@@ -27,10 +30,7 @@ def is_expired(expires_at: datetime | None) -> bool:
     if expires_at is None:
         return False
 
-    # Handle both timezone-aware and naive datetimes
-    now = utcnow()
     if expires_at.tzinfo is None:
-        # expires_at is naive, compare with naive datetime
-        now = now.replace(tzinfo=None)
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
 
-    return expires_at < now
+    return expires_at < utcnow()

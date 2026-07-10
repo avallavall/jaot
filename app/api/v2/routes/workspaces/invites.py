@@ -267,18 +267,7 @@ def accept_invite(
         )
 
     now = utcnow()
-    # Handle timezone-aware vs naive datetime comparison
-    expires_at = invite.expires_at
-    if hasattr(expires_at, "tzinfo") and expires_at.tzinfo is not None:
-        from datetime import timezone
-
-        now_cmp = now.replace(tzinfo=timezone.utc)
-    else:
-        now_cmp = now.replace(tzinfo=None)
-        if hasattr(expires_at, "tzinfo"):
-            expires_at = expires_at.replace(tzinfo=None)
-
-    if expires_at < now_cmp:
+    if invite.expires_at < now:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This invite has expired",
@@ -381,7 +370,7 @@ def list_invites(
     pending = [
         inv
         for inv in invites
-        if inv.expires_at.replace(tzinfo=None) > now.replace(tzinfo=None)
+        if inv.expires_at > now
         and (inv.method == InviteMethod.LINK.value or inv.accepted_at is None)
     ]
     return [_invite_to_response(inv) for inv in pending]

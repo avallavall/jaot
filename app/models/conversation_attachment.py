@@ -35,7 +35,9 @@ class ConversationAttachment(Base):
     char_count: Mapped[int] = mapped_column(Integer, nullable=False)
     preview: Mapped[str] = mapped_column(String(250), nullable=False)
     extracted_text: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
 
     def __repr__(self) -> str:
         return f"<ConversationAttachment(id={self.id}, file={self.filename})>"

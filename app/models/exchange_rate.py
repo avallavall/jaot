@@ -39,7 +39,7 @@ class ExchangeRate(Base):
     source: Mapped[str] = mapped_column(String, default="manual")  # manual, ecb, api
 
     # Metadata
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     def __repr__(self) -> str:
         return f"<ExchangeRate(EUR/{self.currency}={self.rate} on {self.rate_date})>"

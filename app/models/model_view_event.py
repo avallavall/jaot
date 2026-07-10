@@ -35,7 +35,7 @@ class ModelViewEvent(Base):
         String(2), nullable=True
     )  # ISO 3166-1 alpha-2
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utcnow, nullable=False, index=True
+        DateTime(timezone=True), default=utcnow, nullable=False, index=True
     )
 
     __table_args__ = (

@@ -74,7 +74,7 @@ def _create_admin_with_org(
         role="admin",
         password_hash=PasswordService.hash_password(password),
         email_verified=True,
-        tos_accepted_at=utcnow().replace(tzinfo=None),
+        tos_accepted_at=utcnow(),
     )
     db.add(user)
     db.flush()

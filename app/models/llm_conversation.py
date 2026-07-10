@@ -68,9 +68,11 @@ class LLMConversation(Base):
     # ephemeral and would otherwise couple project lifetime to a 24h TTL).
     model_project_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
     expires_at: Mapped[datetime] = mapped_column(
-        DateTime, default=_default_expires_at, nullable=False, index=True
+        DateTime(timezone=True), default=_default_expires_at, nullable=False, index=True
     )
 
     # Relationships
@@ -116,7 +118,9 @@ class LLMMessage(Base):
     output_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
     cost_eur: Mapped[Decimal | None] = mapped_column(Numeric(12, 6), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
 
     # Relationships
     conversation: Mapped["LLMConversation"] = relationship(

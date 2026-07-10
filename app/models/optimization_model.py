@@ -157,9 +157,13 @@ class ModelCatalog(Base):
     section_changelog: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
-    published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         Index("ix_model_catalog_category_status", "category", "status"),
@@ -213,15 +217,21 @@ class OrganizationModel(Base):
     # Usage Stats
     total_executions: Mapped[int] = mapped_column(Integer, default=0)
     total_credits_used: Mapped[int] = mapped_column(Integer, default=0)
-    last_executed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_executed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Purchase Info
-    purchased_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    purchased_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     purchase_price_eur: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
 
     # Relationships
     catalog_model: Mapped[ModelCatalog | None] = relationship(
@@ -348,9 +358,11 @@ class ModelExecution(Base):
     is_async: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
-    started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, index=True
+    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     organization_model: Mapped[OrganizationModel | None] = relationship(
@@ -399,8 +411,12 @@ class ModelReview(Base):
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Metadata
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
 
     # Moderation
     is_visible: Mapped[bool] = mapped_column(Boolean, default=True)

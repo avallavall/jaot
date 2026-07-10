@@ -83,15 +83,19 @@ class ModelProject(Base):
     draft_canvas_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     draft_dsl_source: Mapped[str | None] = mapped_column(Text, nullable=True)
     draft_content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    draft_updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    draft_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     # Optimistic-concurrency token for the HEAD draft (If-Match); bumped on every write.
     draft_lock_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=utcnow, onupdate=utcnow
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
     )
-    archived_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+    )
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     versions: Mapped[list["ModelProjectVersion"]] = relationship(
         "ModelProjectVersion",
@@ -180,7 +184,9 @@ class ModelProjectVersion(Base):
     stats_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     problem_class: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
 
     project: Mapped["ModelProject"] = relationship("ModelProject", back_populates="versions")
 
@@ -237,9 +243,11 @@ class ModelProjectDataset(Base):
     # Validated as JModelData (shape + members/values) on every write.
     data_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=utcnow, onupdate=utcnow
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
     )
 
     project: Mapped["ModelProject"] = relationship("ModelProject", back_populates="datasets")

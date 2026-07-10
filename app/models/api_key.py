@@ -30,9 +30,9 @@ class APIKey(Base):
     name: Mapped[str | None] = mapped_column(String, nullable=True)  # User-friendly name
     description: Mapped[str | None] = mapped_column(String, nullable=True)  # Description
     is_active: Mapped[bool] = mapped_column(default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
-    last_used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     def __repr__(self) -> str:
         return f"<APIKey(id={self.id}, prefix={self.key_prefix}, active={self.is_active})>"

@@ -216,10 +216,8 @@ async def login_email(
     user = db.query(User).filter(User.email == body.email).first()
 
     # Check account lockout (before password verification)
-    if user and user.locked_until and user.locked_until > utcnow().replace(tzinfo=None):
-        minutes_left = (
-            int((user.locked_until - utcnow().replace(tzinfo=None)).total_seconds() / 60) + 1
-        )
+    if user and user.locked_until and user.locked_until > utcnow():
+        minutes_left = int((user.locked_until - utcnow()).total_seconds() / 60) + 1
         raise HTTPException(
             status_code=status.HTTP_423_LOCKED,
             detail=f"Account temporarily locked. Try again in {minutes_left} minutes.",
@@ -238,9 +236,7 @@ async def login_email(
         # Increment failed attempts
         user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
         if user.failed_login_attempts >= MAX_FAILED_ATTEMPTS:
-            user.locked_until = utcnow().replace(tzinfo=None) + timedelta(
-                minutes=LOCKOUT_DURATION_MINUTES
-            )
+            user.locked_until = utcnow() + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
         db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -284,7 +280,7 @@ async def login_email(
     rt_record = RefreshToken(
         user_id=user.id,
         jti=jti,
-        expires_at=utcnow().replace(tzinfo=None) + timedelta(days=days),
+        expires_at=utcnow() + timedelta(days=days),
     )
     db.add(rt_record)
     db.commit()
@@ -379,7 +375,7 @@ async def signup_email(
         role="member",
         password_hash=password_hash,
         email_verified=False,
-        tos_accepted_at=utcnow().replace(tzinfo=None) if body.tos_accepted else None,
+        tos_accepted_at=utcnow() if body.tos_accepted else None,
     )
     db.add(user)
     db.flush()
@@ -407,8 +403,7 @@ async def signup_email(
     rt_record = RefreshToken(
         user_id=user.id,
         jti=jti,
-        expires_at=utcnow().replace(tzinfo=None)
-        + timedelta(days=PSS.get_int(db, "JWT_REFRESH_TOKEN_EXPIRE_DAYS")),
+        expires_at=utcnow() + timedelta(days=PSS.get_int(db, "JWT_REFRESH_TOKEN_EXPIRE_DAYS")),
     )
     db.add(rt_record)
 
@@ -528,7 +523,7 @@ async def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)) 
         )
 
     user.email_verified = True
-    user.email_verified_at = utcnow().replace(tzinfo=None)
+    user.email_verified_at = utcnow()
     db.commit()
 
     return {"success": True, "message": "Email verified successfully"}
@@ -702,8 +697,7 @@ async def refresh_token(request: Request, db: Session = Depends(get_db)) -> Resp
     new_rt_record = RefreshToken(
         user_id=user.id,
         jti=new_jti,
-        expires_at=utcnow().replace(tzinfo=None)
-        + timedelta(days=PSS.get_int(db, "JWT_REFRESH_TOKEN_EXPIRE_DAYS")),
+        expires_at=utcnow() + timedelta(days=PSS.get_int(db, "JWT_REFRESH_TOKEN_EXPIRE_DAYS")),
     )
     db.add(new_rt_record)
     db.commit()

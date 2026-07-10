@@ -87,7 +87,7 @@ def compute_message_cost_eur(
 
 def get_month_cost_eur(db: Session) -> float:
     """SUM(llm_messages.cost_eur) for the current calendar month (UTC)."""
-    now = utcnow().replace(tzinfo=None)
+    now = utcnow()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     total = (
         db.query(func.coalesce(func.sum(LLMMessage.cost_eur), 0))

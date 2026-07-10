@@ -69,10 +69,12 @@ class SolveTrigger(Base):
     webhook_secret: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     total_runs: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    last_fired_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+    last_fired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=utcnow, onupdate=utcnow
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
     )
 
     def __repr__(self) -> str:
@@ -129,9 +131,9 @@ class TriggerRun(Base):
     webhook_delivered: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     webhook_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=utcnow, index=True
+        DateTime(timezone=True), nullable=False, default=utcnow, index=True
     )
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     def __repr__(self) -> str:
         return (
@@ -169,13 +171,15 @@ class TriggerSchedule(Base):
     timezone: Mapped[str] = mapped_column(String(64), nullable=False, default="UTC")
     is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     consecutive_failures: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    last_run_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    next_run_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    next_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     # Reference to sqlalchemy-celery-beat's PeriodicTask row
     beat_task_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=utcnow, onupdate=utcnow
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
     )
 
     def __repr__(self) -> str:

@@ -71,14 +71,16 @@ class WithdrawalSchedule(Base):
     min_threshold: Mapped[int] = mapped_column(Integer, default=100)
 
     # Next scheduled execution
-    next_execution: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    next_execution: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     # Status
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Metadata
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
 
     def __repr__(self) -> str:
         return f"<WithdrawalSchedule(org={self.organization_id}, freq={self.frequency}, active={self.is_active})>"
@@ -128,7 +130,7 @@ class Withdrawal(Base):
     )  # pending, processing, completed, failed, cancelled
 
     # Processing details
-    processed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     failure_reason: Mapped[str | None] = mapped_column(String, nullable=True)
     transaction_reference: Mapped[str | None] = mapped_column(
         String, nullable=True
@@ -138,7 +140,7 @@ class Withdrawal(Base):
     stripe_transfer_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Metadata
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     def __repr__(self) -> str:
         return f"<Withdrawal(id={self.id}, credits={self.credits_amount}, status={self.status})>"

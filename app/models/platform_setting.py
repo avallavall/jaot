@@ -22,7 +22,7 @@ class PlatformSetting(Base):
     value: Mapped[str] = mapped_column(String(500), nullable=False)
     description: Mapped[str | None] = mapped_column(String(500), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utcnow, onupdate=utcnow, nullable=False
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False
     )
     updated_by: Mapped[str | None] = mapped_column(String, nullable=True)
 

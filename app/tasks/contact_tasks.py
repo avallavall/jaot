@@ -108,7 +108,7 @@ def send_contact_email(self: Any, message_id: str) -> dict[str, Any]:
             )
             if success:
                 msg.status = "sent"
-                msg.sent_at = utcnow().replace(tzinfo=None)
+                msg.sent_at = utcnow()
                 db.commit()
                 CONTACT_SEND_ATTEMPTS.labels(result="sent").inc()
                 # T-09-09: NEVER log msg.body, msg.email, msg.name, recipient.

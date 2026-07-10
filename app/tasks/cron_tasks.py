@@ -298,7 +298,7 @@ def _update_next_run(schedule: Any) -> None:
         now = datetime.now(tz)
         it = CronSim(schedule.cron_expression, now)
         next_run = next(it)
-        schedule.next_run_at = next_run.astimezone(timezone.utc).replace(tzinfo=None)
+        schedule.next_run_at = next_run.astimezone(timezone.utc)
     except Exception as exc:
         logger.warning(
             "Failed to compute next_run_at for schedule %s: %s",

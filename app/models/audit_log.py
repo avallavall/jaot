@@ -89,7 +89,7 @@ class AuditLog(Base):
     reference_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
     reference_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=utcnow, index=True
+        DateTime(timezone=True), nullable=False, default=utcnow, index=True
     )
 
     def __repr__(self) -> str:

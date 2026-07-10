@@ -38,9 +38,11 @@ class Invoice(Base):
     status: Mapped[str] = mapped_column(String(20), default="issued", nullable=False)
 
     # Dates
-    issued_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
-    due_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    paid_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    issued_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+    due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Organization details (snapshot at time of invoice)
     org_name: Mapped[str] = mapped_column(String(200), nullable=False)

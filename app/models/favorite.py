@@ -17,7 +17,7 @@ class UserFavorite(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     model_id = Column(String, ForeignKey("model_catalog.id", ondelete="CASCADE"), nullable=False)
-    created_at = Column(DateTime, default=utcnow)
+    created_at = Column(DateTime(timezone=True), default=utcnow)
 
     # Relationships
     user = relationship("User", backref="favorites")
@@ -34,7 +34,7 @@ class RecentModel(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     model_id = Column(String, ForeignKey("model_catalog.id", ondelete="CASCADE"), nullable=False)
-    last_accessed = Column(DateTime, default=utcnow, onupdate=utcnow)
+    last_accessed = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
     access_count = Column(String, default="1")
 
     # Relationships

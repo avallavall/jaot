@@ -17,6 +17,9 @@ engine = create_engine(
     pool_pre_ping=True,
     pool_recycle=settings.DB_POOL_RECYCLE,
     echo=False,  # Set to True for SQL debugging
+    # Anchor the session timezone so naive timestamps (legacy callers, tests)
+    # are interpreted as UTC by timestamptz columns regardless of server config.
+    connect_args={"options": "-c timezone=utc"},
 ).execution_options(
     # sqlalchemy-celery-beat hardcodes schema='celery_schema' in its models.
     # Map it to None (public schema) so the API can access Beat tables.

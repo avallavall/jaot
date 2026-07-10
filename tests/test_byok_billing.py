@@ -92,8 +92,8 @@ def _conversation(db_session, org_id, user_id):
         id=generate_id("conv_"),
         organization_id=org_id,
         user_id=user_id,
-        created_at=utcnow().replace(tzinfo=None),
-        expires_at=(utcnow() + timedelta(hours=24)).replace(tzinfo=None),
+        created_at=utcnow(),
+        expires_at=utcnow() + timedelta(hours=24),
     )
     db_session.add(conv)
     db_session.commit()
@@ -125,7 +125,7 @@ def _exhaust_platform_budget(db_session, conv_id):
             input_tokens=100,
             output_tokens=100,
             cost_eur=0.10,
-            created_at=utcnow().replace(tzinfo=None),
+            created_at=utcnow(),
         )
     )
     db_session.commit()

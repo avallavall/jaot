@@ -22,7 +22,9 @@ class SellerToSAcceptance(Base):
         index=True,
     )
     tos_version: Mapped[str] = mapped_column(String(50), nullable=False)
-    accepted_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    accepted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
     accepted_by_user_id: Mapped[str] = mapped_column(String, nullable=False)
 
     def __repr__(self) -> str:
