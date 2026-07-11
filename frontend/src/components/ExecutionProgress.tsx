@@ -35,7 +35,6 @@ export function ExecutionProgress({
   const [progressHistory, setProgressHistory] = useState<ProgressPoint[]>([]);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [, setCreditsUsed] = useState<number | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const prevStatusRef = useRef<string>('pending');
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
@@ -141,7 +140,6 @@ export function ExecutionProgress({
     setProgressHistory([]);
     setResult(null);
     setError(null);
-    setCreditsUsed(null);
 
     const poll = async () => {
       if (hasCompletedRef.current) return;
@@ -151,7 +149,7 @@ export function ExecutionProgress({
         
         if (statusData.status === 'completed') {
           // statusData now has flattened structure:
-          // { status, execution_id, task_id, result: {model data}, execution_time_ms, credits_used }
+          // { status, execution_id, task_id, result: {model data}, execution_time_ms }
           handleCompletion(statusData as unknown as Record<string, unknown>);
           disconnectWs();
         } else if (statusData.status === 'failed') {

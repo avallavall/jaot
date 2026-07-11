@@ -48,7 +48,6 @@ export const docsNavigation: DocsNavItem[] = [
       { title: "Solve", slug: "api/solve" },
       { title: "Models", slug: "api/models" },
       { title: "Executions", slug: "api/executions" },
-      { title: "Credits", slug: "api/credits-billing" },
       { title: "API Keys", slug: "api/api-keys" },
       { title: "Notifications", slug: "api/notifications" },
       { title: "Triggers", slug: "api/triggers" },
@@ -63,7 +62,7 @@ export const docsNavigation: DocsNavItem[] = [
     title: "Reference",
     children: [
       { title: "Error Reference", slug: "reference/errors" },
-      { title: "Rate Limits & Credits", slug: "reference/rate-limits-credits" },
+      { title: "Usage Limits", slug: "reference/usage-limits" },
     ],
   },
   {

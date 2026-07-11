@@ -32,7 +32,6 @@ import {
   Shield,
 } from "lucide-react";
 import type { Review } from "@/lib/types";
-import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { ModelTabs } from "@/components/marketplace/ModelTabs";
 import { ImageGallery } from "@/components/marketplace/ImageGallery";
 import { apiDate } from "@/lib/dates";
@@ -144,9 +143,7 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
     } catch (err) {
       const status = getErrorStatus(err);
       let msg: string;
-      if (status === 402) {
-        msg = t("insufficientCredits");
-      } else if (status === 409) {
+      if (status === 409) {
         msg = t("alreadyActivated");
       } else {
         msg = getErrorMessage(err, t("failedToActivate"));
@@ -304,14 +301,6 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
 
           <div className="text-left sm:text-right">
             <div className="text-sm text-muted-foreground mb-4">
-              {model.credits_per_execution > 0 ? (
-                t("creditsPerRun", { credits: model.credits_per_execution })
-              ) : (
-                <span className="inline-flex items-center gap-1">
-                  {t("dynamicCredits")}
-                  <HelpTooltip content={t("dynamicCreditsTooltip")} side="left" size={14} />
-                </span>
-              )}
             </div>
             <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
               {isAuthenticated && (

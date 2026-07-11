@@ -139,7 +139,6 @@ const MCP_TOOL_GROUPS = [
     ],
   },
   { key: "execution", tools: ["execute_model", "get_execution", "get_execution_insights"] },
-  { key: "account", tools: ["get_credit_balance"] },
 ] as const;
 
 export default async function HomePage() {

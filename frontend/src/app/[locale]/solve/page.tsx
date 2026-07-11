@@ -16,7 +16,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { Coins, Truck, Factory, Wheat, Hospital, Users, Settings, Code, Star, Upload, Trash2, Package, MoreHorizontal, Clock, FileUp } from "lucide-react";
 import { EmptyState } from "@/components/guidance/EmptyState";
 import { FileImportDialog } from "@/components/solve/FileImportDialog";
@@ -290,7 +289,6 @@ function ModelCard({
 
       <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
         <span>{t("runs", { count: model.total_executions })}</span>
-        <span>{t("creditsUsed", { count: model.total_credits_used })}</span>
       </div>
 
       {model.last_executed_at && (
@@ -301,7 +299,6 @@ function ModelCard({
 
       <div className="flex items-center justify-between pt-3 border-t">
         <div className="text-sm">
-          <CreditsCostLabel model={model} t={t} />
         </div>
         <div className="flex items-center gap-2">
           <DropdownMenu>
@@ -346,37 +343,3 @@ function ModelCard({
   );
 }
 
-function CreditsCostLabel({
-  model,
-  t,
-}: {
-  model: OrganizationModel;
-  t: ReturnType<typeof useTranslations>;
-}) {
-  // Fixed price per execution
-  if (model.credits_per_execution > 0) {
-    return (
-      <span className="text-muted-foreground text-xs">
-        {t("creditsPerRun", { credits: model.credits_per_execution })}
-      </span>
-    );
-  }
-
-  // Dynamic pricing: show average if we have execution history
-  if (model.total_executions > 0 && model.total_credits_used > 0) {
-    const avg = Math.round(model.total_credits_used / model.total_executions);
-    return (
-      <span className="text-muted-foreground text-xs">
-        {t("avgCreditsPerRun", { avg })}
-      </span>
-    );
-  }
-
-  // Dynamic pricing: no history yet, show label + tooltip
-  return (
-    <span className="inline-flex items-center gap-1 text-muted-foreground text-xs">
-      {t("dynamicCredits")}
-      <HelpTooltip content={t("dynamicCreditsTooltip")} side="top" size={12} />
-    </span>
-  );
-}

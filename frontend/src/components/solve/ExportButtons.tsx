@@ -32,7 +32,6 @@ interface ExportLabels {
   status: string;
   solverStatus: string;
   objectiveValue: string;
-  creditsLabel: string;
   origin: string;
   nameHeader: string;
   typeHeader: string;
@@ -45,7 +44,6 @@ interface ExportLabels {
   objectiveTrend: string;
   generated: string;
   solveTime: string;
-  creditsUsed: string;
   triggerIdLabel: string;
   noVariables: string;
   printSaveAsPdf: string;
@@ -62,13 +60,12 @@ function exportSolutionCSV(execution: ModelExecution, labels: ExportLabels): voi
 
   const rows: (string | number | null | undefined)[][] = [];
 
-  rows.push([labels.executionId, labels.status, labels.solverStatus, labels.objectiveValue, labels.creditsLabel, labels.origin]);
+  rows.push([labels.executionId, labels.status, labels.solverStatus, labels.objectiveValue, labels.origin]);
   rows.push([
     execution.id,
     execution.status,
     execution.solver_status ?? "",
     execution.objective_value ?? "",
-    execution.credits_consumed,
     execution.origin ?? "manual",
   ]);
 
@@ -141,7 +138,6 @@ async function exportPDF(
 
   const dateStr = apiDate(execution.created_at).toLocaleString();
   const duration = execution.execution_time_ms != null ? `${execution.execution_time_ms} ms` : "\u2014";
-  const credits = execution.credits_consumed;
   const objValue =
     execution.objective_value != null
       ? execution.objective_value.toLocaleString(undefined, { maximumFractionDigits: 6 })
@@ -388,9 +384,6 @@ async function exportPDF(
       <div class="meta-value">${duration}</div>
     </div>
     <div class="meta-item">
-      <div class="meta-label">${labels.creditsUsed}</div>
-      <div class="meta-value">${credits}</div>
-    </div>
     <div class="meta-item">
       <div class="meta-label">${labels.origin}</div>
       <div class="meta-value">${execution.origin ?? "manual"}</div>
@@ -455,7 +448,6 @@ export function ExportButtons({ execution, chartRef, trendChartRef }: ExportButt
     status: t("status"),
     solverStatus: t("solverStatus"),
     objectiveValue: t("objectiveValue"),
-    creditsLabel: t("creditsLabel"),
     origin: t("origin"),
     nameHeader: t("nameHeader"),
     typeHeader: t("typeHeader"),
@@ -468,7 +460,6 @@ export function ExportButtons({ execution, chartRef, trendChartRef }: ExportButt
     objectiveTrend: t("objectiveTrend"),
     generated: t("generated"),
     solveTime: t("solveTime"),
-    creditsUsed: t("creditsUsed"),
     triggerIdLabel: t("triggerIdLabel"),
     noVariables: t("noVariables"),
     printSaveAsPdf: t("printSaveAsPdf"),

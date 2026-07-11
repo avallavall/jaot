@@ -344,8 +344,6 @@ test.describe("Template Flow", () => {
       const solveTimeLabel = drawer.getByText(/solve time|ms/i);
       await expect(solveTimeLabel.first()).toBeVisible();
 
-      const creditsLabel = drawer.getByText(/credits/i);
-      await expect(creditsLabel.first()).toBeVisible();
     } else {
       // Non-optimal result — verify status explanation is shown
       const statusExplanation = drawer.locator(".rounded-md.border");

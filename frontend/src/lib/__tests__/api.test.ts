@@ -86,7 +86,7 @@ describe("ApiClient", () => {
       mockFetch({
         success: true,
         user: { id: "u1", name: "Test", email: "t@t.com", is_admin: false },
-        organization: { id: "o1", name: "Org", plan: "free", credits_balance: 100 },
+        organization: { id: "o1", name: "Org", plan: "free" },
         permissions: { can_build_plugins: false, ai_builder_enabled: false },
       });
 
@@ -252,7 +252,7 @@ describe("ApiClient", () => {
         result: {
           status: "success",
           multi_objective: true,
-          result: { n_solved: 3, pareto_points: [1, 2, 3], mode: "epsilon", labels: [], total_credits_used: 3 },
+          result: { n_solved: 3, pareto_points: [1, 2, 3], mode: "epsilon", labels: [] },
         },
       });
 

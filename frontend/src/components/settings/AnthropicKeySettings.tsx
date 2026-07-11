@@ -13,8 +13,8 @@ import type { AnthropicKeyStatus } from "@/lib/llm-types";
 /**
  * BYOK: manage the organization's own Anthropic API key.
  *
- * When set, all of the org's AI calls run on its own Anthropic account (free of
- * JAOT credits, independent of the platform's shared budget). Only the org owner
+ * When set, all of the org's AI calls run on its own Anthropic account
+ * (independent of the platform's shared EUR budget). Only the org owner
  * can set or clear the key; other members see read-only status. The plaintext key
  * is never displayed back — only a masked hint to the owner.
  */

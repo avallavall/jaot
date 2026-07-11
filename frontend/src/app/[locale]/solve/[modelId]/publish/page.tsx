@@ -78,7 +78,6 @@ export default function PublishModelPage() {
       // Pre-fill form with existing data
       setDisplayName(data.display_name || data.custom_name || "");
       setDescription(data.description || "");
-      // credits_per_execution removed — credits calculated dynamically
 
       // If already published, fetch catalog data for edit mode
       if (data.catalog_id) {
@@ -115,8 +114,6 @@ export default function PublishModelPage() {
         short_description: shortDescription.trim() || undefined,
         category,
         tags: tags.split(",").map((s) => s.trim()).filter(Boolean),
-        price_eur: 0,
-        // credits_per_execution removed — calculated dynamically
         // Include section content in publish request
         section_overview: sectionOverview.trim() || undefined,
         section_features: sectionFeatures.trim() || undefined,
@@ -455,14 +452,6 @@ export default function PublishModelPage() {
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            {t("creditsPerRun")}
-          </label>
-          <p className="text-sm text-muted-foreground">
-            {t("dynamicCreditsDescription")}
-          </p>
-        </div>
 
         {/* Images (disabled in publish mode) */}
         <div className="bg-card border rounded-lg p-6">

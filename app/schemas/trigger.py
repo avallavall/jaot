@@ -41,7 +41,7 @@ class TriggerCreate(BaseModel):
     webhook_secret: str | None = Field(
         default=None, description="Secret for signing outbound webhook payloads"
     )
-    workspace_id: str | None = Field(default=None, description="Workspace to deduct credits from")
+    workspace_id: str | None = Field(default=None, description="Workspace this run belongs to")
 
 
 class TriggerUpdate(BaseModel):

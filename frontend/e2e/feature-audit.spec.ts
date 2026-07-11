@@ -51,13 +51,6 @@ test("03 — API keys page", async ({ page }) => {
   await screenshot(page, "03-api-keys-page");
 });
 
-// ===== 4. CREDITS & BILLING =====
-test("04 — credits page with balance", async ({ page }) => {
-  await page.goto("/workspace/credits");
-  await waitForContent(page);
-  await screenshot(page, "04-credits-billing");
-});
-
 // ===== 5. USAGE ANALYTICS =====
 test("05 — usage analytics charts", async ({ page }) => {
   await page.goto("/workspace/usage");
@@ -326,14 +319,6 @@ test("27 — multi-objective solve", async ({ page }) => {
   await page.goto("/solve/multi-objective");
   await waitForContent(page);
   await screenshot(page, "27-multi-objective");
-});
-
-// ===== 28. SELLER ANALYTICS =====
-test("28 — seller analytics dashboard", async ({ page }) => {
-  await page.goto("/workspace/credits/seller-analytics");
-  await waitForContent(page);
-  await page.waitForTimeout(2_000);
-  await screenshot(page, "28-seller-analytics");
 });
 
 // ===== 29. SIDEBAR NAVIGATION =====

@@ -131,8 +131,6 @@ export function ExecutionComparisonView({ executionA, executionB }: ExecutionCom
       ? executionB.execution_time_ms - executionA.execution_time_ms
       : null;
 
-  const creditsDelta = executionB.credits_consumed - executionA.credits_consumed;
-
   const objDeltaFormatted =
     objDelta != null ? formatObjDelta(objDelta, objectiveSense) : null;
 
@@ -186,14 +184,6 @@ export function ExecutionComparisonView({ executionA, executionB }: ExecutionCom
             ) : (
               <div className="text-lg font-bold text-muted-foreground">—</div>
             )}
-          </div>
-
-          <div>
-            <div className="text-xs text-muted-foreground mb-1">{t("creditsDifference")}</div>
-            <div className={`text-lg font-bold ${creditsDelta > 0 ? "text-red-600 dark:text-red-400" : creditsDelta < 0 ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
-              {creditsDelta >= 0 ? "+" : ""}
-              {creditsDelta}
-            </div>
           </div>
         </div>
       </div>

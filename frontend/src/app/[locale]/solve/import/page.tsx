@@ -248,10 +248,6 @@ export default function FileImportPage() {
               </div>
             )}
 
-            <PreviewStat
-              label={t("estimatedCredits")}
-              value={String(preview.metadata.estimated_credits)}
-            />
           </div>
 
           <SolverSelect

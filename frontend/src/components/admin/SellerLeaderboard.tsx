@@ -10,7 +10,14 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslations } from "next-intl";
-import type { SellerLeaderboardEntry } from "@/lib/types";
+
+export interface SellerLeaderboardEntry {
+  org_id: string;
+  org_name: string;
+  total_activations: number;
+  models_published: number;
+  avg_rating: number | null;
+}
 
 interface SellerLeaderboardProps {
   sellers: SellerLeaderboardEntry[];
@@ -37,10 +44,7 @@ export function SellerLeaderboard({ sellers }: SellerLeaderboardProps) {
               <TableRow>
                 <TableHead className="w-12">{t("rank")}</TableHead>
                 <TableHead>{t("sellerName")}</TableHead>
-                <TableHead className="text-right">{t("totalSales")}</TableHead>
-                <TableHead className="text-right">
-                  {t("totalRevenue")}
-                </TableHead>
+                <TableHead className="text-right">{t("totalActivations")}</TableHead>
                 <TableHead className="text-right">
                   {t("modelsPublished")}
                 </TableHead>
@@ -56,10 +60,7 @@ export function SellerLeaderboard({ sellers }: SellerLeaderboardProps) {
                       and this table already lives on the only analytics page. */}
                   <TableCell className="font-medium">{seller.org_name}</TableCell>
                   <TableCell className="text-right">
-                    {seller.total_sales.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {seller.total_revenue.toLocaleString()} {t("creditsUnit")}
+                    {seller.total_activations.toLocaleString()}
                   </TableCell>
                   <TableCell className="text-right">
                     {seller.models_published}

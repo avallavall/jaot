@@ -95,14 +95,6 @@ export function QuickStartGuide() {
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="billing">
-              <AccordionTrigger className="text-sm py-3">
-                {t("billing")}
-              </AccordionTrigger>
-              <AccordionContent className="text-sm text-muted-foreground">
-                {t("billingDescription")}
-              </AccordionContent>
-            </AccordionItem>
           </Accordion>
         </div>
       </div>

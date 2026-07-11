@@ -15,7 +15,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   BarChart2,
   Clock,
-  Coins,
   CheckCircle,
   Plus,
   X,
@@ -24,8 +23,6 @@ import {
 import {
   BarChart,
   Bar,
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -309,16 +306,9 @@ export default function SolveAnalyticsPage() {
               </div>
               <div className="text-2xl font-bold">{formatMs(summary.avg_solve_time_ms)}</div>
             </div>
-            <div className="bg-card border border-border rounded-lg p-4">
-              <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                <Coins className="w-4 h-4" />
-                <span className="text-sm">{t("totalCredits")}</span>
-              </div>
-              <div className="text-2xl font-bold">{summary.total_credits}</div>
-            </div>
           </div>
 
-          <div className="grid grid-cols-3 md:grid-cols-5 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <div className="bg-card border border-border rounded-lg p-3 text-center">
               <div className="text-xs text-muted-foreground">{t("completed")}</div>
               <div className="text-lg font-semibold text-green-600">{summary.completed}</div>
@@ -334,10 +324,6 @@ export default function SolveAnalyticsPage() {
             <div className="bg-card border border-border rounded-lg p-3 text-center">
               <div className="text-xs text-muted-foreground">{t("medianSolveTime")}</div>
               <div className="text-lg font-semibold">{formatMs(summary.median_solve_time_ms)}</div>
-            </div>
-            <div className="bg-card border border-border rounded-lg p-3 text-center">
-              <div className="text-xs text-muted-foreground">{t("avgCredits")}</div>
-              <div className="text-lg font-semibold">{summary.avg_credits.toFixed(1)}</div>
             </div>
           </div>
 
@@ -403,29 +389,6 @@ export default function SolveAnalyticsPage() {
                       </ResponsiveContainer>
                     </div>
 
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-2">{t("credits")}</h4>
-                      <ResponsiveContainer width="100%" height={200}>
-                        <LineChart data={trends.data}>
-                          <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                          <XAxis
-                            dataKey="date"
-                            tick={{ fontSize: 11 }}
-                            tickFormatter={(d) => d.slice(5)}
-                          />
-                          <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                          <Tooltip contentStyle={{ fontSize: 12 }} />
-                          <Line
-                            type="monotone"
-                            dataKey="credits"
-                            stroke="#6366f1"
-                            strokeWidth={2}
-                            dot={{ r: 3 }}
-                            name={t("credits")}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
                   </div>
                 ) : (
                   <p className="text-muted-foreground text-sm py-8 text-center">{t("noData")}</p>
@@ -521,7 +484,6 @@ export default function SolveAnalyticsPage() {
                           <th className="text-left p-2 text-muted-foreground font-medium">{t("solverStatus")}</th>
                           <th className="text-right p-2 text-muted-foreground font-medium">{t("objectiveValue")}</th>
                           <th className="text-right p-2 text-muted-foreground font-medium">{t("solveTime")}</th>
-                          <th className="text-right p-2 text-muted-foreground font-medium">{t("creditsUsed")}</th>
                           <th className="text-right p-2 text-muted-foreground font-medium">{t("variables")}</th>
                           <th className="text-right p-2 text-muted-foreground font-medium">{t("constraints")}</th>
                           <th className="text-right p-2 text-muted-foreground font-medium">{t("gap")}</th>
@@ -554,7 +516,6 @@ export default function SolveAnalyticsPage() {
                               {exe.objective_value?.toLocaleString(undefined, { maximumFractionDigits: 4 }) ?? "-"}
                             </td>
                             <td className="p-2 text-right">{formatMs(exe.execution_time_ms)}</td>
-                            <td className="p-2 text-right">{exe.credits_consumed}</td>
                             <td className="p-2 text-right">{exe.num_variables ?? "-"}</td>
                             <td className="p-2 text-right">{exe.num_constraints ?? "-"}</td>
                             <td className="p-2 text-right">

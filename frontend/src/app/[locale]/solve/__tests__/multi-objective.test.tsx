@@ -10,13 +10,9 @@ vi.mock("@/contexts/AuthContext", () => ({
 
 // Mock api
 const mockSolveMultiObjective = vi.fn();
-const mockGetPoolStats = vi.fn();
-const mockGetCreditBalance = vi.fn();
 vi.mock("@/lib/api", () => ({
   api: {
     solveMultiObjective: (...args: unknown[]) => mockSolveMultiObjective(...args),
-    getPoolStats: (...args: unknown[]) => mockGetPoolStats(...args),
-    getCreditBalance: (...args: unknown[]) => mockGetCreditBalance(...args),
   },
   ApiError: class ApiError extends Error {
     status: number;
@@ -67,7 +63,7 @@ function defaultAuthReturn(overrides = {}) {
     activeWorkspaceId: null,
     activeWorkspaceName: null,
     user: { id: "u1", name: "Test", email: "t@t.com", is_admin: false },
-    organization: { id: "o1", name: "Org", plan: "free", credits_balance: 100 },
+    organization: { id: "o1", name: "Org", plan: "free" },
     isAuthenticated: true,
     isLoading: false,
     workspaceRole: null,
@@ -82,8 +78,6 @@ function defaultAuthReturn(overrides = {}) {
 describe("MultiObjectivePage - workspace wiring", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetCreditBalance.mockResolvedValue({ credits_balance: 500 });
-    mockGetPoolStats.mockResolvedValue({ available_credits: 200 });
   });
 
   it("passes workspace ID to solveMultiObjective when workspace is active", async () => {
@@ -104,9 +98,8 @@ describe("MultiObjectivePage - workspace wiring", () => {
 
     render(<MultiObjectivePage />);
 
-    // Wait for credit source to load (translation mock returns key paths)
+    // Wait for the page to settle (translation mock returns key paths)
     await waitFor(() => {
-      expect(screen.getByText(/creditSourceWorkspace/)).toBeInTheDocument();
     });
 
     // Fill in both objective expressions — they are inside the mocked config form,
@@ -120,36 +113,11 @@ describe("MultiObjectivePage - workspace wiring", () => {
 
     // Instead, let's just call the solve handler directly by making expressions non-empty.
     // We need to render without the mock or update state. Let's just verify the
-    // credit source indicator is correct for now, and test API call via unit test.
+    // page renders for now, and test the API call via unit test.
 
     // The page renders with default config that has empty expressions, so the button is disabled.
     // This confirms workspace context is wired. The API test covers the param passing.
     const solveButton = screen.getByRole("button", { name: /generateParetoFront/i });
     expect(solveButton).toBeDisabled();
-  });
-
-  it("shows personal credit source when no workspace is active", async () => {
-    mockUseAuth.mockReturnValue(defaultAuthReturn());
-
-    render(<MultiObjectivePage />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/creditSourcePersonal/)).toBeInTheDocument();
-    });
-  });
-
-  it("shows workspace credit source when workspace is active", async () => {
-    mockUseAuth.mockReturnValue(
-      defaultAuthReturn({
-        activeWorkspaceId: "ws_abc123",
-        activeWorkspaceName: "Marketing",
-      })
-    );
-
-    render(<MultiObjectivePage />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/creditSourceWorkspace/)).toBeInTheDocument();
-    });
   });
 });

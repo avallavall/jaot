@@ -6,13 +6,11 @@ import { api } from "@/lib/api";
 import type { NotificationPreferenceEntry } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DollarSign, Wallet, Star, Clock } from "lucide-react";
+import { Star, Zap } from "lucide-react";
 
 const EVENT_TYPES = [
-  { key: "sale", icon: DollarSign },
-  { key: "payout", icon: Wallet },
   { key: "review", icon: Star },
-  { key: "promotion_expiring", icon: Clock },
+  { key: "activation", icon: Zap },
 ] as const;
 
 const CHANNELS = ["in_app", "email"] as const;
@@ -71,10 +69,8 @@ export function NotificationPreferences() {
 
   const eventLabel = (key: string): string => {
     const map: Record<string, string> = {
-      sale: t("eventNewSale"),
-      payout: t("eventPayoutCompleted"),
       review: t("eventNewReview"),
-      promotion_expiring: t("eventPromotionExpiring"),
+      activation: t("eventModelActivated"),
     };
     return map[key] ?? key;
   };

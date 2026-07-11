@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { api, ApiError } from "@/lib/api";
+import { useState, useMemo } from "react";
+import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { downloadCSV } from "@/lib/csv-utils";
 import type {
@@ -47,41 +47,7 @@ function uid(): string {
 export default function MultiObjectivePage() {
   const t = useTranslations("solve.multiObjective");
   const tHelp = useTranslations("solve.helpTooltips");
-  const { activeWorkspaceId, activeWorkspaceName } = useAuth();
-
-  // Credit source state
-  const [creditSourceLabel, setCreditSourceLabel] = useState<string>("");
-
-  useEffect(() => {
-    let cancelled = false;
-    async function fetchBalance() {
-      try {
-        if (activeWorkspaceId) {
-          const pool = await api.getPoolStats(activeWorkspaceId);
-          if (!cancelled) {
-            setCreditSourceLabel(
-              t("creditSourceWorkspace", { name: activeWorkspaceName ?? "", remaining: pool.available_credits })
-            );
-          }
-        } else {
-          const bal = await api.getCreditBalance();
-          if (!cancelled) {
-            setCreditSourceLabel(t("creditSourcePersonal", { remaining: bal.credits_balance }));
-          }
-        }
-      } catch {
-        if (!cancelled) {
-          setCreditSourceLabel(
-            activeWorkspaceId
-              ? t("creditSourceWorkspaceShort", { name: activeWorkspaceName ?? "" })
-              : t("creditSourcePersonalShort")
-          );
-        }
-      }
-    }
-    fetchBalance();
-    return () => { cancelled = true; };
-  }, [activeWorkspaceId, activeWorkspaceName, t]);
+  const { activeWorkspaceId } = useAuth();
 
   // Import state
   const [importedFrom, setImportedFrom] = useState<string | null>(null);
@@ -115,8 +81,6 @@ export default function MultiObjectivePage() {
 
   // Derived cost estimate
   const nPoints = config.n_points ?? 10;
-  const perSolveCost = 1;
-  const estimatedCredits = nPoints * perSolveCost;
 
   // Labels for pair selector
   const objectiveLabels = useMemo(
@@ -175,20 +139,10 @@ export default function MultiObjectivePage() {
       setResult(res);
       toast.success(t("paretoComputed", { count: res.n_solved }));
 
-      // Credit source feedback
-      if (!activeWorkspaceId) {
-        toast(t("usingPersonalCredits"));
-      }
     } catch (err) {
-      if (err instanceof ApiError && err.status === 402 && activeWorkspaceId) {
-        const msg = t("insufficientCredits");
-        setError(msg);
-        toast.error(msg);
-      } else {
-        const msg = getErrorMessage(err, t("solveFailed"));
-        setError(msg);
-        toast.error(msg);
-      }
+      const msg = getErrorMessage(err, t("solveFailed"));
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -450,19 +404,7 @@ export default function MultiObjectivePage() {
       </div>
 
       <div className="bg-card border border-border rounded-lg p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="text-sm text-muted-foreground">
-          {t("estimatedCost")}{" "}
-          <span className="font-semibold text-foreground tabular-nums">
-            {t("estimatedCreditsValue", { credits: estimatedCredits })}
-          </span>{" "}
-          <span className="text-xs">
-            {t("solvesBreakdown", { nPoints, perSolve: perSolveCost })}
-          </span>
-        </div>
         <div className="flex flex-col items-end gap-1">
-          {creditSourceLabel && (
-            <span className="text-xs text-muted-foreground">{creditSourceLabel}</span>
-          )}
           <Button
             onClick={handleSolve}
             disabled={!canSolve}
@@ -525,11 +467,6 @@ export default function MultiObjectivePage() {
             </div>
           </div>
           <ParetoChart result={result} axisPair={axisPair} />
-          <p className="mt-4 text-xs text-muted-foreground">
-            {activeWorkspaceId
-              ? t("chargedFromWorkspace", { name: activeWorkspaceName ?? "" })
-              : t("chargedFromPersonal")}
-          </p>
         </div>
       )}
     </div>

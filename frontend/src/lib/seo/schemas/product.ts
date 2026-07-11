@@ -6,7 +6,6 @@ interface ProductInput {
   url: string;
   /** Optional: only include if category is visibly rendered in the DOM (D-03). */
   category?: string;
-  priceEur: number;
   authorName?: string;
 }
 
@@ -25,7 +24,7 @@ export function buildProductSchema(input: ProductInput): WithContext<Product> {
     } as WithContext<Product>["brand"],
     offers: {
       "@type": "Offer",
-      price: input.priceEur.toString(),
+      price: "0",
       priceCurrency: "EUR",
       availability: "https://schema.org/InStock",
     } as WithContext<Product>["offers"],

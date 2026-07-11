@@ -15,12 +15,6 @@ test.describe("Workspace", () => {
   });
 
   test.describe("Workspace sections", () => {
-    test("credits page loads", async ({ page }) => {
-      const ws = new WorkspacePage(page);
-      await ws.gotoCredits();
-      await expect(page).toHaveURL(/\/workspace\/credits/);
-    });
-
     test("API keys page loads", async ({ page }) => {
       const ws = new WorkspacePage(page);
       await ws.gotoApiKeys();
@@ -59,14 +53,6 @@ test.describe("Workspace", () => {
   });
 
   test.describe("Workspace Operations (E2E-07, E2E-09)", () => {
-    test("credits page displays balance or pool information", async ({ page }) => {
-      const ws = new WorkspacePage(page);
-      await ws.gotoCredits();
-
-      const content = page.locator("#main-content");
-      await expect(content).toBeVisible();
-    });
-
     test("team page shows member list or invite option", async ({ page }) => {
       const ws = new WorkspacePage(page);
       await ws.gotoTeam();

@@ -143,10 +143,6 @@ export default function ModelHistoryPage() {
             <div className="text-sm text-muted-foreground">{t("totalRuns")}</div>
           </div>
           <div className="bg-card border border-border rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-foreground">{model.total_credits_used}</div>
-            <div className="text-sm text-muted-foreground">{t("creditsUsed")}</div>
-          </div>
-          <div className="bg-card border border-border rounded-lg p-4 text-center">
             <div className="text-2xl font-bold text-foreground">
               {model.last_executed_at ? formatDate(model.last_executed_at) : t("never")}
             </div>
@@ -213,7 +209,6 @@ export default function ModelHistoryPage() {
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t("tableHeaders.origin")}</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t("tableHeaders.objective")}</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t("tableHeaders.duration")}</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t("tableHeaders.credits")}</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t("tableHeaders.actions")}</th>
                 </tr>
               </thead>
@@ -275,9 +270,6 @@ export default function ModelHistoryPage() {
                         {execution.execution_time_ms
                           ? `${execution.execution_time_ms}ms`
                           : "-"}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        {execution.credits_consumed}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-2">

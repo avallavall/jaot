@@ -6,7 +6,6 @@ import { api } from "@/lib/api";
 import type { SolveResult, AsyncTask } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -16,7 +15,6 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  Coins,
   Code,
   FileJson,
 } from "lucide-react";
@@ -58,7 +56,6 @@ export default function CustomSolvePage() {
   const [validationResult, setValidationResult] = useState<{
     valid: boolean;
     errors?: string[];
-    estimated_credits?: number;
   } | null>(null);
 
   const handleValidate = async () => {
@@ -128,9 +125,6 @@ export default function CustomSolvePage() {
             {t("subtitle")}
           </p>
         </div>
-        <Badge variant="secondary" className="text-lg px-3 py-1">
-          {t("credits", { count: validationResult?.estimated_credits || "1+" })}
-        </Badge>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -211,11 +205,6 @@ export default function CustomSolvePage() {
                     {validationResult.valid ? t("validProblem") : t("invalidProblem")}
                   </span>
                 </div>
-                {validationResult.valid && validationResult.estimated_credits && (
-                  <p className="mt-2 text-sm text-green-700">
-                    {t("estimatedCost", { credits: validationResult.estimated_credits })}
-                  </p>
-                )}
                 {validationResult.errors && validationResult.errors.length > 0 && (
                   <ul className="mt-2 text-sm text-red-700 list-disc list-inside">
                     {validationResult.errors.map((err, i) => (
@@ -274,15 +263,6 @@ export default function CustomSolvePage() {
                     </div>
                     <p className="font-semibold mt-1">
                       {(result.solve_time_seconds * 1000).toFixed(2)} ms
-                    </p>
-                  </div>
-                  <div className="p-3 bg-muted rounded-lg">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                      <Coins className="h-4 w-4" />
-                      {t("creditsLabel")}
-                    </div>
-                    <p className="font-semibold mt-1">
-                      {t("creditsUsedRemaining", { used: result.credits_used, remaining: result.credits_remaining ?? 0 })}
                     </p>
                   </div>
                 </div>

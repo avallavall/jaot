@@ -44,9 +44,6 @@ export default function RunModelPage() {
   const [error, setError] = useState<string | null>(null);
   const [asyncExecutionId, setAsyncExecutionId] = useState<string | null>(null);
   const [useAsyncMode, setUseAsyncMode] = useState(false);
-  // Live credit estimate for the run button. null = unknown (invalid/partial
-  // input or estimate in flight) → button shows just the mode label.
-  const [estimatedCredits, setEstimatedCredits] = useState<number | null>(null);
   const [selectedWarmStartId, setSelectedWarmStartId] = useState<string | null>(null);
   const [selectedWarmStartInfo, setSelectedWarmStartInfo] = useState<WarmStartCandidateInfo | null>(null);
   const [warmStartRefreshKey, setWarmStartRefreshKey] = useState(0);
@@ -210,9 +207,7 @@ export default function RunModelPage() {
     } catch (err) {
       const status = getErrorStatus(err);
       let msg: string;
-      if (status === 402) {
-        msg = t("insufficientCredits");
-      } else if (status === 422) {
+      if (status === 422) {
         msg = t("invalidInput", { detail: getErrorMessage(err, t("executionFailed")) });
       } else if (status === 408) {
         msg = t("solverTimeout");
@@ -248,7 +243,6 @@ export default function RunModelPage() {
     }
 
     const modelResult = statusData.result as Record<string, unknown> | undefined;
-    const creditsUsed = statusData.credits_used as number;
     const executionTimeMs = statusData.execution_time_ms as number;
 
     setResult({
@@ -258,7 +252,6 @@ export default function RunModelPage() {
       // infeasibility gating still works in this degraded fallback path.
       solver_status: (modelResult?.solver_status as string) ?? null,
       result_data: modelResult || {},
-      credits_consumed: creditsUsed || 0,
       execution_time_ms: executionTimeMs,
     } as unknown as ModelExecution);
     setWarmStartRefreshKey((k) => k + 1);
@@ -270,39 +263,6 @@ export default function RunModelPage() {
     setError(errorMsg);
   };
 
-  // Estimate the dynamic credit cost for the run button: render the problem
-  // (preview) then price it (validate → estimated_credits). Debounced and
-  // best-effort — any failure (invalid/partial JSON, render error) clears the
-  // estimate so the button falls back to just the mode label.
-  useEffect(() => {
-    let cancelled = false;
-    let inputData: Record<string, unknown>;
-    try {
-      inputData = JSON.parse(inputJson);
-    } catch {
-      setEstimatedCredits(null);
-      return;
-    }
-    const handle = setTimeout(async () => {
-      try {
-        const problem = await api.previewModel(modelId, inputData);
-        const validation = await api.validateProblem(problem);
-        if (!cancelled) {
-          setEstimatedCredits(
-            typeof validation.estimated_credits === "number"
-              ? validation.estimated_credits
-              : null,
-          );
-        }
-      } catch {
-        if (!cancelled) setEstimatedCredits(null);
-      }
-    }, 500);
-    return () => {
-      cancelled = true;
-      clearTimeout(handle);
-    };
-  }, [inputJson, modelId]);
 
   if (loading) {
     return (
@@ -375,21 +335,6 @@ export default function RunModelPage() {
             <Upload className="w-4 h-4 mr-1.5" />
             {model.catalog_id ? t("updateListing") : t("publish")}
           </Button>
-        </div>
-      </div>
-      <div className="flex items-center justify-between mb-6">
-        <div />
-        <div className="text-right">
-          {model.credits_per_execution > 0 ? (
-            <div className="text-sm text-muted-foreground">
-              {t("credits", { count: model.credits_per_execution })} {t("perExecution")}
-            </div>
-          ) : (
-            <div className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-              {t("dynamicCredits")}
-              <HelpTooltip content={t("dynamicCreditsTooltip")} side="left" size={14} />
-            </div>
-          )}
         </div>
       </div>
 
@@ -472,9 +417,6 @@ export default function RunModelPage() {
             />
             {selectedWarmStartId && selectedWarmStartInfo && (
               <div className="mt-2 flex items-center gap-3 text-xs">
-                <span className="text-primary font-medium">
-                  {tWarm("creditDiscount")}
-                </span>
                 {selectedWarmStartInfo.variable_count > 0 && (
                   <span className="text-muted-foreground">
                     {tWarm("variables", { count: selectedWarmStartInfo.variable_count })}
@@ -507,7 +449,6 @@ export default function RunModelPage() {
                 <Play className="w-4 h-4 mr-2" />
                 {t("runModel", {
                   mode: useAsyncMode ? t("modeAsync") : t("modeSync"),
-                  credits: estimatedCredits ?? 0,
                 })}
               </>
             )}
@@ -625,7 +566,6 @@ export default function RunModelPage() {
               )}
 
               <div className="pt-4 border-t text-sm text-muted-foreground">
-                {t("creditsConsumed", { credits: result.credits_consumed })}
                 {result.execution_time_ms && (
                   <span className="ml-4">
                     {t("executionTime", { time: result.execution_time_ms })}

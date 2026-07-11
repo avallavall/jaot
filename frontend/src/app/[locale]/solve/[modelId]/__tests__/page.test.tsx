@@ -86,8 +86,6 @@ const model: OrganizationModel = {
   is_active: true,
   is_favorite: false,
   total_executions: 0,
-  total_credits_used: 0,
-  credits_per_execution: 0,
   created_at: "2024-01-01T00:00:00Z",
 } as unknown as OrganizationModel;
 
@@ -108,7 +106,6 @@ const asyncStatusPayload = {
     solver_status: "optimal",
     solve_time_seconds: 0.002,
   },
-  credits_used: 8,
   execution_time_ms: 4,
 };
 
@@ -130,7 +127,7 @@ describe("RunModelPage — async completion explainers", () => {
     mockApi.getMyModel.mockResolvedValue(model);
     mockApi.getMyModelSchema.mockResolvedValue(schema);
     mockApi.previewModel.mockResolvedValue({});
-    mockApi.validateProblem.mockResolvedValue({ estimated_credits: 8 });
+    mockApi.validateProblem.mockResolvedValue({ valid: true });
     mockApi.executeModelAsync.mockResolvedValue({ task_id: "task_1" });
   });
 
@@ -148,7 +145,6 @@ describe("RunModelPage — async completion explainers", () => {
         solve_time_seconds: 0.002,
         variables: [{ name: "x", value: 1 }],
       },
-      credits_consumed: 8,
       execution_time_ms: 4,
     } as unknown as ModelExecution);
 
@@ -177,7 +173,6 @@ describe("RunModelPage — async completion explainers", () => {
         solver_status: "infeasible",
         variables: [],
       },
-      credits_consumed: 8,
       execution_time_ms: 4,
     } as unknown as ModelExecution);
 

@@ -19,7 +19,6 @@ export default function robots(): MetadataRoute.Robots {
           "/solve/",
           "/triggers/",
           "/workspace/",
-          "/billing/",
           // Real auth + org + maintenance pages (D-01 extensivo)
           // REQ DRIFT: SEO-02 lists /[locale]/auth/ as if an /auth/ route group existed
           // — it does NOT. Real auth pages are individual routes listed below, and their
@@ -35,18 +34,17 @@ export default function robots(): MetadataRoute.Robots {
           "/maintenance",
           // Locale-prefixed variants — covers /es/login, /ca/signup, etc. (D-01)
           // Defense-in-depth: these routes are not in the sitemap, but are discoverable
-          // via external backlinks (Stripe receipts, support emails, marketing collateral)
+          // via external backlinks (support emails, marketing collateral)
           // and should not be indexed. WR-02: enumerated against the real route tree under
           // src/app/[locale] — every non-public top-level segment now has both a bare and a
           // locale-prefixed disallow. (No /dashboard, /onboarding, /api-keys, /settings,
-          // /notifications or /credits top-level routes exist — those surfaces are nested
+          // /notifications top-level route exists — those surfaces are nested
           // under /workspace/ and /admin/, already covered by the prefix entries above.)
           "/*/admin/",
           "/*/builder/",
           "/*/solve/",
           "/*/triggers/",
           "/*/workspace/",
-          "/*/billing/",
           "/*/login",
           "/*/signup",
           "/*/forgot-password",

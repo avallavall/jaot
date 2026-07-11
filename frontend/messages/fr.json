@@ -128,7 +128,6 @@
     "liveIncumbents": "Solutions",
     "liveElapsed": "Temps",
     "liveCancel": "Annuler",
-    "solveInsufficientCredits": "Crédits insuffisants pour résoudre.",
     "solveInvalid": "Le modèle est invalide. Vérifiez sa définition.",
     "solveFailed": "La résolution a échoué. Veuillez réessayer.",
     "statsTitle": "Le modèle en un coup d'œil",
@@ -319,7 +318,6 @@
     "date": "Date",
     "type": "Type",
     "amount": "Montant",
-    "credits": "{count, plural, one {# crédit} other {# crédits}}",
     "itemCount": "{count, plural, one {# élément} other {# éléments}}",
     "perMonth": "/mois",
     "perYear": "/an",
@@ -327,11 +325,9 @@
     "custom": "Personnalisé",
     "getStartedFree": "Commencer Gratuitement",
     "getStarted": "Commencer",
-    "contactSales": "Contacter les Ventes",
     "mostPopular": "Le Plus Populaire",
     "poweredByScip": "Propulsé par SCIP",
     "readyToOptimize": "Prêt à optimiser ?",
-    "startFreeCredits": "Commencez gratuitement. Open source, sans limites artificielles.",
     "jaot": "JAOT",
     "optimizationAsAService": "L'Optimisation en tant que Service",
     "sidebar": {
@@ -371,8 +367,6 @@
       "dashboard": "Tableau de Bord",
       "myProfile": "Mon Profil",
       "apiKeys": "Clés API",
-      "credits": "Crédits",
-      "usage": "Utilisation",
       "team": "Équipe",
       "organization": "Organisation",
       "workspaces": "Espaces de Travail",
@@ -387,7 +381,6 @@
       "settings": "Paramètres",
       "customSolve": "Résoudre JSON",
       "marketplaceAdmin": "Marketplace",
-      "promotions": "Promotions",
       "verification": "Vérification",
       "sellerAnalytics": "Analytiques vendeur",
       "marketplaceAnalytics": "Analytiques",
@@ -412,13 +405,9 @@
       "workspaces": "Espaces de Travail",
       "organizations": "Organisations",
       "users": "Utilisateurs",
-      "credits": "Crédits",
       "executions": "Exécutions",
       "reviews": "Avis",
       "favorites": "Favoris",
-      "billing": "Facturation",
-      "invoices": "Factures",
-      "usage": "Utilisation",
       "apiKeys": "Clés API",
       "new": "Nouveau",
       "aiAssistant": "Assistant IA",
@@ -426,11 +415,9 @@
       "analytics": "Analyses fonctionnalités",
       "sellerAnalytics": "Analyses vendeurs",
       "verification": "Vérification",
-      "promotions": "Promotions",
       "create": "Créer",
       "custom": "Personnalisé",
       "myProfile": "Mon Profil",
-      "sellerEarnings": "Revenus Vendeur",
       "docs": "Documentation",
       "licenses": "Licences",
       "history": "Historique"
@@ -492,7 +479,6 @@
       "modelCatalog": "Catalogue de Modèles",
       "visualBuilder": "Constructeur Visuel",
       "executions": "Exécutions",
-      "credits": "Crédits",
       "communityVerbose": "Rejoignez notre communauté pour poser des questions, partager des solutions et voter pour de nouvelles fonctionnalités :",
       "communityBrief": "Connectez-vous avec la communauté :",
       "communityForum": "Forum Communautaire",
@@ -507,8 +493,7 @@
     "tier": {
       "viewPlans": "Voir les Plans",
       "plan": "Plan {plan}",
-      "solvesPerDay": "{count} résolutions/jour",
-      "creditsRemaining": "{count} crédits"
+      "solvesPerDay": "{count} résolutions/jour"
     },
     "filters": {
       "filtersActive": "{count} filtres actifs",
@@ -574,8 +559,6 @@
       "admin_adjustment": "Ajustement administrateur",
       "execution_charge": "Frais d'exécution",
       "execution_refund": "Remboursement d'exécution",
-      "publisher_earning": "Gain éditeur",
-      "withdrawal": "Retrait",
       "purchase": "Achat"
     },
     "siteDescription": "Créez, utilisez et automatisez des modèles d'optimisation : indépendant du solveur, assisté par IA, sans doctorat requis.",
@@ -591,7 +574,6 @@
       "signIn": "Se Connecter",
       "goToDashboard": "Tableau de Bord"
     },
-    "meta": {},
     "hero": {
       "badge": "Plateforme d'Optimisation propulsée par l'IA",
       "titleLine1": "Construis, Utilise ou Automatise",
@@ -845,7 +827,7 @@
         "intro": "Nous nous appuyons sur un petit nombre de services tiers pour exploiter l’instance hébergée :",
         "anthropic": "<strong>Anthropic (API Claude) :</strong> alimente l’assistant IA optionnel. Vos invites et descriptions de modèle ne sont envoyées à Anthropic que lorsque vous utilisez l’assistant, et sont traitées conformément aux conditions d’Anthropic. Vous pouvez utiliser votre propre clé Anthropic à la place.",
         "analytics": "<strong>Plausible Analytics :</strong> un outil d’analyse auto-hébergé et respectueux de la vie privée, utilisé pour comprendre l’usage agrégé. Il est sans cookie, ne vous suit pas d’un site à l’autre et ne collecte pas de données personnelles.",
-        "payments": "<strong>Stripe (paiements) :</strong> utilisé uniquement si un exploitant active la monétisation sur son instance. Sur jaot.io, la monétisation est désactivée, de sorte qu’aucune donnée de paiement n’est traitée. Lorsqu’elle est activée, Stripe gère directement les données de paiement et nous ne stockons jamais les données de carte.",
+        "payments": "<strong>Paiements :</strong> JAOT ne traite aucun paiement — la plateforme est gratuite et ne collecte aucune donnée de paiement ou de facturation.",
         "note": "La recherche, les embeddings et tous les calculs du solveur s’exécutent localement sur le Service et ne sont envoyés à aucun tiers."
       },
       "section4": {
@@ -903,8 +885,8 @@
       },
       "section4": {
         "title": "4. Quotas d’utilisation",
-        "body1": "L’instance hébergée utilise un système de crédits comme quota d’utilisation équitable : les crédits sont consommés lors de l’exécution des modèles, et le coût d’une exécution dépend de la complexité du modèle : nombre de variables, de contraintes, types de variables et temps de solveur. Il existe pour partager équitablement la capacité finie du solveur entre tous les utilisateurs de l’instance partagée, et non pour vous facturer.",
-        "body2": "Par défaut, JAOT est entièrement gratuit : la place de marché est gratuite à l’usage et à la publication, aucune commission n’est prélevée, et toutes les fonctions payantes — facturation, recharges de crédits et traitement des paiements via Stripe — sont désactivées. Sur jaot.io, ces fonctions payantes sont désactivées et vous ne serez jamais facturé. Un exploitant auto-hébergeant JAOT peut choisir d’activer la monétisation sur sa propre instance, auquel cas ses propres conditions commerciales s’appliquent."
+        "body1": "L'usage raisonnable de l'instance hébergée est garanti par des limites de requêtes, un quota quotidien de résolutions et des plafonds de temps et de taille par résolution ; l'assistant IA fonctionne dans un budget mensuel de la plateforme (ou sans limite avec votre propre clé d'API).",
+        "body2": "JAOT est entièrement gratuit : résoudre, publier et utiliser les modèles de la marketplace ne coûte rien, et aucune commission n'est prélevée."
       },
       "section5": {
         "title": "5. Assistant IA",
@@ -972,8 +954,6 @@
         "secondaryCta": "Voir le Marketplace"
       },
       "stats": {
-        "revenueShare": "90%",
-        "revenueShareDesc": "Part des revenus sur chaque activation. Tu gardes la plus grande part.",
         "globalReach": "Portée Mondiale",
         "globalReachDesc": "Tes modèles sont découvrables par des équipes et agents IA dans le monde entier.",
         "simplePayouts": "Paiements Simples",
@@ -987,7 +967,7 @@
         },
         "step2": {
           "title": "Gagner",
-          "description": "Quand des équipes activent ton modèle, tu gagnes 90% du prix. On gère la facturation et la livraison."
+          "description": "Quand une équipe active votre modèle, elle obtient sa propre copie à exécuter et adapter — publier et activer est entièrement gratuit."
         },
         "step3": {
           "title": "Retirer",
@@ -1001,8 +981,8 @@
           "description": "Publie tes modèles et gagne à chaque activation — tu fixes le prix, JAOT gère la livraison et les paiements."
         },
         "lowCommission": {
-          "title": "Commission Faible",
-          "description": "On ne prend que 10%. Tu gardes 90% de chaque vente. C'est tout."
+          "title": "Aucuns frais, jamais",
+          "description": "JAOT est gratuit et open source. Publier ne coûte rien et il n'y a aucune commission — votre travail atteint directement la communauté."
         },
         "professionalSolver": {
           "title": "Solveur Professionnel",
@@ -1015,11 +995,10 @@
       },
       "revenue": {
         "title": "Transparence des Revenus",
-        "youSetPrice": "Tu fixes le prix",
         "customerActivates": "Le client active ton modèle",
-        "platformCommission": "La plateforme prend 10% de commission",
+        "platformCommission": "Aucune commission — la marketplace est gratuite",
         "youReceive": "Tu reçois 90%",
-        "example": "Exemple : Modèle à 50 crédits — Tu gagnes 45 crédits, la Plateforme gagne 5 crédits"
+        "example": "Publiez une fois et toute équipe pourra activer votre modèle gratuitement, avec attribution."
       },
       "cta": {
         "title": "Prêt à Commencer à Vendre ?",
@@ -1226,7 +1205,6 @@
       "addVariableFirst": "Ajoutez au moins une variable avant de résoudre.",
       "objectiveRequired": "Un nœud objectif est requis.",
       "connectToObjective": "Connectez au moins une variable à l'objectif.",
-      "insufficientCredits": "Crédits insuffisants. Veuillez recharger votre compte.",
       "invalidProblem": "Problème invalide : {message}",
       "checkModelDefinition": "Vérifiez la définition de votre modèle.",
       "solverError": "Erreur du solveur. Veuillez vérifier votre modèle.",
@@ -1315,8 +1293,6 @@
       "type": "Type",
       "performance": "Performance",
       "solveTime": "Temps de résolution",
-      "creditsUsed": "Crédits utilisés",
-      "creditsRemaining": "Crédits restants",
       "mipGap": "Écart MIP",
       "errorDetails": "Détails de l'erreur",
       "sensitivityAnalysis": "Analyse de sensibilité",
@@ -1335,8 +1311,6 @@
       "useTemplate": "Utiliser le modèle",
       "solves": "{count} résolutions",
       "new": "Nouveau",
-      "creditsPerRun": "{credits} crédits/exécution",
-      "dynamicCredits": "Tarification dynamique",
       "categories": {
         "hr": "RH",
         "logistics": "Logistique",
@@ -1362,7 +1336,6 @@
       "addItem": "+ Ajouter un élément",
       "noRows": "Aucune ligne. Cliquez sur « + Ajouter une ligne » pour commencer.",
       "noItems": "Aucun élément. Cliquez sur « + Ajouter un élément » pour commencer.",
-      "insufficientCredits": "Crédits insuffisants. Veuillez recharger votre compte.",
       "invalidInput": "Données d'entrée invalides. Veuillez vérifier les valeurs du formulaire.",
       "solveFailed": "Échec de la résolution. Veuillez réessayer.",
       "fieldRequired": "{field} est obligatoire",
@@ -1431,8 +1404,7 @@
       "canvasSaveFailed": "Échec de la sauvegarde du canevas : {message}",
       "unknownError": "Erreur inconnue",
       "waitForGeneration": "Veuillez attendre la fin de la génération en cours",
-      "solveFailed": "Échec de la résolution : {message}",
-      "insufficientCredits": "Crédits insuffisants. Veuillez recharger votre compte."
+      "solveFailed": "Échec de la résolution : {message}"
     },
     "nodes": {
       "variable": "Variable",
@@ -1459,13 +1431,6 @@
         "errorPrefix": "Désolé, une erreur s'est produite : {error}",
         "errorWithRequestId": "Désolé, une erreur s'est produite : {error} (réf : {requestId})",
         "waitForGeneration": "Veuillez attendre la fin de la génération en cours"
-      },
-      "creditEstimate": {
-        "solveCost": "Coût de résolution :",
-        "aiGeneration": "Génération IA :",
-        "messageCount": "({count} messages)",
-        "totalSessionCost": "Coût total de la session :",
-        "credits": "crédits"
       },
       "examplePrompts": {
         "title": "Décrivez votre problème d'optimisation",
@@ -1517,7 +1482,6 @@
         "internalError": "Une erreur interne s'est produite. Veuillez réessayer.",
         "validationFailed": "Votre formulation n'a pas pu être validée. Vérifiez-la et réessayez.",
         "contentModeration": "Votre message a été rejeté par la modération. Reformulez-le et réessayez.",
-        "insufficientCredits": "Vous n'avez pas assez de crédits pour envoyer ce message.",
         "parametricUnsupported": "Les formulations paramétriques ne sont pas encore prises en charge pour cette action."
       },
       "validation": {
@@ -1565,7 +1529,6 @@
       "organization": "Organisation",
       "orgName": "Nom",
       "plan": "Plan",
-      "creditsBalance": "Solde de crédits",
       "organizationId": "ID de l'organisation",
       "yourAccount": "Votre compte",
       "name": "Nom",
@@ -1576,11 +1539,7 @@
       "permissions": "Permissions",
       "canBuildPlugins": "Peut créer des plugins",
       "standard": "Standard",
-      "credits": "Crédits",
-      "availableCredits": "Crédits disponibles",
-      "manageCredits": "Gérer les crédits",
       "quickLinks": "Liens rapides",
-      "creditsAndWithdrawals": "Crédits et retraits",
       "executions": "Exécutions",
       "modelCatalog": "Catalogue de modèles",
       "ourModels": "Mes Modèles",
@@ -1669,95 +1628,6 @@
       "loadError": "Échec du chargement du journal d'audit",
       "createWorkspace": "Créer un espace de travail"
     },
-    "credits": {
-      "title": "Crédits et retraits",
-      "backToWorkspace": "Retour à l'espace de travail",
-      "totalBalance": "Solde total",
-      "credits": "crédits",
-      "earned": "Gagnés (retirables)",
-      "exchangeRate": "Taux de change",
-      "exchangeRateValue": "10 crédits = 1 €",
-      "subscriptionCredits": "Abonnement",
-      "subscriptionCreditsNote": "Renouvelé chaque mois avec votre plan. Les crédits non utilisés ne s'accumulent pas.",
-      "purchasedCredits": "Achetés (Top-ups)",
-      "purchasedCreditsNote": "Achetés avec de l'argent réel. N'expirent jamais. Non retirables.",
-      "earnedCredits": "Gagnés (Marketplace)",
-      "earnedCreditsNote": "Des ventes marketplace. Retirables après 14 jours.",
-      "buyCredits": "Acheter des crédits",
-      "calculatedDescriptionSqrt": "Les crédits suivent la racine carrée de la complexité. Max 500 crédits par résolution.",
-      "maxCreditsNote": "Max. 500 crédits par résolution – même pour des problèmes d'entreprise à 10 M de variables",
-      "howCalculated": "Comment les crédits sont calculés",
-      "calculatedDescription": "Chaque demande de résolution coûte des crédits en fonction de la complexité du problème :",
-      "currency": "Devise",
-      "bankDetails": "Coordonnées bancaires",
-      "paymentSettingsStripe": "Les paiements sont traités via Stripe Connect. Configurez votre compte dans le tableau de bord vendeur.",
-      "noBankDetails": "Aucune coordonnée bancaire configurée",
-      "withdrawCredits": "Retirer des crédits",
-      "amountCredits": "Montant (crédits)",
-      "enterAmount": "Saisir le montant",
-      "maxCredits": "Max : {count} crédits",
-      "youReceive": "Vous recevez",
-      "withdraw": "Retirer",
-      "scheduledWithdrawals": "Retraits programmés",
-      "addSchedule": "+ Ajouter un programme",
-      "frequency": "Fréquence",
-      "amountType": "Type de montant",
-      "createSchedule": "Créer un programme",
-      "noSchedules": "Aucun retrait programmé",
-      "allCredits": "Tous les crédits",
-      "minThreshold": "Min : {threshold} crédits",
-      "recentWithdrawals": "Retraits récents",
-      "noWithdrawals": "Aucun retrait pour le moment",
-      "transactionHistory": "Historique des transactions",
-      "creditTransaction": "Transaction de crédits",
-      "noActivityTitle": "Aucune activité de crédits pour le moment",
-      "noActivityDescription": "L'historique de vos transactions de crédits apparaîtra ici après votre première résolution ou achat de crédits.",
-      "noActivityExpert": "Aucune transaction enregistrée pour le moment.",
-      "viewPricing": "Voir les tarifs",
-      "loadingCredits": "Chargement des données de crédits",
-      "withdrawalSuccess": "Demande de retrait créée avec succès !",
-      "bankSaved": "Coordonnées bancaires enregistrées !",
-      "scheduleSaved": "Programme de retrait créé !",
-      "deleteScheduleConfirm": "Supprimer ce programme de retrait ?",
-      "invalidAmount": "Veuillez saisir un montant valide",
-      "bankRequired": "Veuillez d'abord configurer vos coordonnées bancaires",
-      "ibanRequired": "L'IBAN et le nom du titulaire sont requis",
-      "frequencies": {
-        "weekly": "Hebdomadaire",
-        "biweekly": "Toutes les 2 semaines",
-        "monthly": "Mensuel",
-        "quarterly": "Trimestriel"
-      },
-      "amountTypes": {
-        "all": "Tous les crédits disponibles",
-        "percentage": "Pourcentage des crédits",
-        "fixed": "Montant fixe"
-      },
-      "iban": "IBAN",
-      "swift": "SWIFT/BIC",
-      "swiftOptional": "SWIFT/BIC (facultatif)",
-      "holderName": "Nom du titulaire du compte",
-      "percentagePlaceholder": "Pourcentage (1-100)",
-      "fixedPlaceholder": "Montant en crédits",
-      "minThresholdPlaceholder": "Seuil minimum (crédits)",
-      "baseCost": "Coût de base",
-      "variableCost": "Coût variable",
-      "integerPenalty": "Pénalité entier",
-      "constraintCost": "Coût par contrainte",
-      "timeBonus": "Bonus de temps",
-      "failedWithdrawal": "Échec de la création du retrait",
-      "failedBankSave": "Échec de l'enregistrement des coordonnées bancaires",
-      "failedCurrencyUpdate": "Échec de la mise à jour de la devise",
-      "failedCreateSchedule": "Échec de la création du programme",
-      "failedDeleteSchedule": "Échec de la suppression du programme",
-      "confirmWithdrawal": "Confirmer le retrait",
-      "withdrawConfirmMessage": "Retirer {amount} crédits (env. {currencySymbol}{fiatAmount}) ?",
-      "ibanLabel": "IBAN :",
-      "swiftLabel": "SWIFT :",
-      "nameLabel": "Nom :",
-      "amountCreditsFixed": "{value} crédits",
-      "viewSellerEarnings": "Voir les Gains Vendeur"
-    },
     "myProfile": {
       "title": "Mon profil",
       "viewPublicProfile": "Voir le profil public",
@@ -1826,7 +1696,7 @@
         "title": "Premiers Pas avec les Espaces de Travail",
         "dismiss": "Compris",
         "whatIs": "Qu'est-ce qu'un espace de travail ?",
-        "whatIsDescription": "Un espace de travail est un environnement isolé pour votre équipe. Les modèles, déclencheurs et crédits sont liés à un espace de travail, afin que chaque équipe puisse travailler de manière indépendante.",
+        "whatIsDescription": "Un espace de travail est un environnement isolé pour votre équipe. Les modèles et les déclencheurs sont rattachés à un espace de travail.",
         "howToInvite": "Inviter des membres",
         "howToInviteDescription": "Cliquez sur « Inviter un Membre » ci-dessus pour envoyer des invitations par e-mail ou générer un lien d'invitation partageable. Seuls les administrateurs peuvent inviter de nouveaux membres.",
         "roles": "Rôles et permissions",
@@ -1834,27 +1704,9 @@
         "roleViewer": "Lecteur -- Peut consulter les modèles et les résultats, mais ne peut rien créer ni modifier.",
         "roleEditor": "Éditeur -- Peut créer, modifier et supprimer des modèles et des déclencheurs.",
         "roleSolver": "Solveur -- Peut exécuter des résolutions et créer des modèles (inclut les permissions de Lecteur).",
-        "roleAdmin": "Administrateur -- Accès complet incluant l'invitation de membres, la gestion des paramètres et l'allocation de crédits.",
-        "billing": "Espaces de travail et facturation",
-        "billingDescription": "Chaque espace de travail peut avoir son propre solde de crédits. Les administrateurs allouent des crédits à partir du solde de l'organisation, et toutes les résolutions au sein de l'espace de travail puisent dans ce solde."
+        "roleAdmin": "Admin -- Accès complet, y compris les invitations et la gestion des paramètres."
       },
       "createWorkspace": "Créer un espace de travail"
-    },
-    "usage": {
-      "title": "Utilisation",
-      "subtitle": "Consommation de crédits et analytiques d'exécution pour votre organisation.",
-      "creditsUsedAllTime": "Crédits utilisés (total)",
-      "totalExecutions": "Total des exécutions",
-      "activeModels": "Modèles actifs",
-      "creditUsage30Days": "Utilisation des crédits — 30 derniers jours",
-      "creditsUsed": "Crédits utilisés",
-      "executions14Days": "Exécutions — 14 derniers jours",
-      "executionsLabel": "Exécutions",
-      "topModels": "Modèles les plus utilisés",
-      "noModelsUsed": "Aucun modèle utilisé pour le moment.",
-      "modelColumn": "Modèle",
-      "runsColumn": "Exécutions",
-      "creditsUsedColumn": "Crédits utilisés"
     },
     "workspaces": {
       "title": "Espaces de travail",
@@ -1865,7 +1717,6 @@
       "noWorkspacesUser": "Vous n'avez encore été ajouté à aucun espace de travail. Demandez à un administrateur de vous inviter.",
       "inactive": "Inactif",
       "memberCount": "{count, plural, one {# membre} other {# membres}}",
-      "creditsLabel": "Crédits",
       "percentUsed": "{percent} % utilisés",
       "createdDate": "Créé le {date}",
       "loadError": "Échec du chargement des espaces de travail"
@@ -1910,24 +1761,6 @@
       "description": "Ce lien est pour l'espace de travail <b>{name}</b>. Voulez-vous y accéder ?",
       "stayHere": "Rester ici",
       "switchWorkspace": "Changer d'espace de travail"
-    },
-    "creditPool": {
-      "title": "Pool de crédits",
-      "noPool": "Aucun pool de crédits configuré pour cet espace de travail.",
-      "allocateCredits": "Allouer des crédits",
-      "adminRequired": "Vous devez avoir le rôle d'administrateur pour allouer des crédits",
-      "allocated": "Alloués",
-      "used": "Utilisés",
-      "available": "Disponibles",
-      "percentUsed": "{percent} % utilisés",
-      "remaining": "{count} restants",
-      "amountLabel": "Montant à allouer",
-      "amountPlaceholder": "ex. 500",
-      "allocating": "Allocation...",
-      "confirm": "Confirmer",
-      "allocateError": "Veuillez saisir un montant positif valide",
-      "allocateSuccess": "{amount} crédits alloués au pool de l'espace de travail",
-      "allocateFailed": "Échec de l'allocation des crédits"
     },
     "invite": {
       "title": "Inviter des membres",
@@ -2031,17 +1864,13 @@
       "organizations": "Organisations",
       "users": "Utilisateurs",
       "models": "Modèles",
-      "creditBalance": "Solde de crédits",
       "active": "{count} actives",
       "activated": "{count} activés",
       "acrossAllOrgs": "toutes organisations confondues",
-      "creditsOverview": "Aperçu des crédits",
-      "totalCreditsAllOrgs": "Total des crédits de toutes les organisations",
       "quickActions": "Actions rapides",
       "manageOrganizations": "Gérer les organisations",
       "manageUsers": "Gérer les utilisateurs",
       "manageApiKeys": "Gérer les clés API",
-      "adjustCredits": "Ajuster les crédits",
       "maintenanceMode": "Mode de maintenance",
       "maintenanceDescription": "Lorsqu'il est activé, les utilisateurs non administrateurs voient une page de maintenance au lieu de la plateforme.",
       "maintenanceActive": "La maintenance est actuellement active",
@@ -2093,39 +1922,10 @@
       "createFailed": "Échec de la création de la clé API. Veuillez réessayer.",
       "operationFailed": "L'opération a échoué. Veuillez réessayer."
     },
-    "credits": {
-      "title": "Gestion des crédits",
-      "subtitle": "Consultez et ajustez les crédits des organisations",
-      "orgBalances": "Soldes des organisations",
-      "clickToAdjust": "Cliquez pour ajuster",
-      "credits": "crédits",
-      "adjustCredits": "Ajuster les crédits",
-      "currentBalance": "Solde actuel",
-      "amountLabel": "Montant (positif pour ajouter, négatif pour soustraire)",
-      "amountPlaceholder": "ex. 1000 ou -500",
-      "reason": "Motif",
-      "reasonPlaceholder": "ex. Recharge mensuelle, Remboursement, Bonus",
-      "newBalance": "Le nouveau solde sera : <b>{amount}</b> crédits",
-      "applyAdjustment": "Appliquer l'ajustement",
-      "transactionHistory": "Historique des transactions",
-      "allOrganizations": "Toutes les organisations",
-      "tableHeaders": {
-        "date": "Date",
-        "organization": "Organisation",
-        "type": "Type",
-        "amount": "Montant",
-        "balanceAfter": "Solde après",
-        "description": "Description"
-      },
-      "noTransactions": "Aucune transaction trouvée",
-      "pageOf": "Page {page} sur {totalPages}",
-      "adjustFailed": "Échec de l'ajustement des crédits. Veuillez réessayer."
-    },
     "executions": {
       "title": "Exécutions",
       "subtitle": "Surveillez toutes les exécutions de modèles sur la plateforme",
       "totalShown": "Total affiché",
-      "creditsUsed": "Crédits utilisés",
       "avgTime": "Temps moyen",
       "allStatus": "Tous les statuts",
       "completed": "Terminée",
@@ -2137,7 +1937,6 @@
         "model": "Modèle",
         "organization": "Organisation",
         "status": "Statut",
-        "credits": "Crédits",
         "duration": "Durée",
         "date": "Date"
       },
@@ -2179,7 +1978,6 @@
       "tableHeaders": {
         "name": "Nom",
         "plan": "Plan",
-        "credits": "Crédits",
         "users": "Utilisateurs",
         "verified": "Vérifié",
         "status": "Statut",
@@ -2200,7 +1998,6 @@
         "pro": "Pro",
         "business": "Business"
       },
-      "initialCredits": "Crédits initiaux",
       "enableAiBuilder": "Activer le constructeur IA",
       "create": "Créer",
       "saveChanges": "Enregistrer les modifications",
@@ -2264,10 +2061,8 @@
       "users": "Utilisateurs",
       "activeUsers": "Utilisateurs actifs",
       "catalogModels": "Modèles du catalogue",
-      "creditBalance": "Solde de crédits",
       "tabs": {
         "system": "Système",
-        "billing": "Facturation",
         "solver": "Solveur",
         "llm": "LLM",
         "email": "E-mail",
@@ -2275,7 +2070,8 @@
         "marketplace": "Marketplace",
         "secrets": "Secrets",
         "auditLog": "Journal d'Audit",
-        "systemSettings": "Parametres système"
+        "systemSettings": "Parametres système",
+        "billing": "Plans et limites"
       },
       "saveChanges": "Enregistrer les modifications",
       "saving": "Enregistrement...",
@@ -2332,7 +2128,6 @@
         "allowedFeaturesHelp": "Tableau JSON de chaînes de fonctionnalités, ex. [\"basic\", \"export\"]",
         "headers": {
           "plan": "Plan",
-          "credits": "Crédits",
           "monthlyQuota": "Quota Mensuel",
           "rateLimitMin": "Limite/min",
           "rateLimitDay": "Limite/jour",
@@ -2397,18 +2192,13 @@
       "sellerLeaderboard": "Classement des Vendeurs",
       "rank": "#",
       "sellerName": "Vendeur",
-      "totalSales": "Ventes Totales",
-      "totalRevenue": "Revenus Totaux",
       "modelsPublished": "Modèles Publiés",
       "avgRating": "Note Moyenne",
       "drillDown": "Voir les Détails",
-      "promotions": "Promotions Actives",
-      "promotionsDesc": "Gérer les promotions de placement en vedette sur le marketplace",
       "verificationRequests": "Demandes de Vérification",
       "verificationDesc": "Examiner et approuver les demandes de badge de vérification vendeur",
       "modelName": "Modèle",
       "type": "Type",
-      "creditsPaid": "Crédits Payés",
       "startDate": "Date de Début",
       "endDate": "Date de Fin",
       "status": "Statut",
@@ -2426,9 +2216,8 @@
       "approved": "Approuvé",
       "pending": "En attente",
       "noRequests": "Aucune demande de vérification en attente",
-      "noPromotions": "Aucune promotion active",
       "noSellerData": "Aucune donnée vendeur disponible.",
-      "creditsUnit": "crédits"
+      "totalActivations": "Activations"
     },
     "featureAnalytics": {
       "title": "Analytiques d'Utilisation des Fonctionnalités",
@@ -2475,12 +2264,10 @@
         "apiKeys": "Clés API",
         "executions": "Exécutions",
         "reportedReviews": "Avis signalés",
-        "credits": "Crédits",
         "marketplace": "Marketplace",
         "sellerAnalytics": "Analyses vendeurs",
         "featureAnalytics": "Analyses fonctionnalités",
         "verification": "Vérification",
-        "promotions": "Promotions",
         "settings": "Paramètres",
         "backToApp": "Retour à l'application",
         "platformAnalytics": "Plateforme"
@@ -2567,20 +2354,16 @@
       "sections": {
         "overview": "Aperçu",
         "configuration": "Configuration et limites",
-        "credits": "Crédits",
         "users": "Utilisateurs",
         "apiKeys": "Clés API",
         "models": "Modèles",
-        "executions": "Exécutions récentes",
-        "transactions": "Mouvements de crédits récents"
+        "executions": "Exécutions récentes"
       },
       "kpi": {
         "users": "Utilisateurs",
         "apiKeys": "Clés API",
         "models": "Modèles",
-        "executions": "Exécutions",
-        "creditsBalance": "Solde de crédits",
-        "creditsUsedMonth": "Utilisés ce mois-ci"
+        "executions": "Exécutions"
       },
       "config": {
         "plan": "Forfait",
@@ -2593,19 +2376,11 @@
         "currency": "Devise",
         "createdAt": "Créée",
         "slug": "Slug public",
-        "billingEmail": "E-mail de facturation",
         "website": "Site web",
         "owner": "Propriétaire",
         "verified": "Éditeur vérifié",
         "active": "Active",
         "publicProfile": "Profil public"
-      },
-      "credits": {
-        "balance": "Solde total",
-        "subscription": "Abonnement",
-        "purchased": "Achetés",
-        "earned": "Gagnés (marketplace)",
-        "usedMonth": "Utilisés ce mois-ci"
       },
       "executionStats": {
         "completed": "Terminées",
@@ -2631,7 +2406,6 @@
         "name": "Nom",
         "source": "Source",
         "executions": "Exécutions",
-        "creditsUsed": "Crédits utilisés",
         "lastRun": "Dernière exécution",
         "status": "Statut"
       },
@@ -2639,7 +2413,6 @@
         "model": "Modèle",
         "status": "Statut",
         "solver": "Solveur",
-        "credits": "Crédits",
         "time": "Durée",
         "objective": "Objectif",
         "date": "Date"
@@ -2687,11 +2460,9 @@
       "official": "OFFICIEL",
       "featuredBadge": "EN VEDETTE",
       "free": "Gratuit",
-      "credits": "{count} cr",
       "newModel": "Nouveau",
       "viewSeller": "par {seller}",
       "verified": "Vérifié",
-      "activationPrice": "{price} crédits",
       "open": "Ouvrir",
       "activate": "Activer",
       "removeFromFavorites": "Retirer des favoris",
@@ -2706,9 +2477,6 @@
       "modelNotFound": "Modèle introuvable",
       "failedToLoad": "Échec du chargement du modèle",
       "free": "Gratuit",
-      "creditsPerRun": "{credits} crédits/exécution",
-      "dynamicCredits": "Tarification dynamique",
-      "dynamicCreditsTooltip": "Le coût dépend de la taille du problème (variables x contraintes)",
       "openModel": "Ouvrir le modèle",
       "useInStudio": "Utiliser dans le studio",
       "openingStudio": "Ouverture…",
@@ -2763,14 +2531,12 @@
         "changelogEmpty": "Aucune entrée dans le journal des modifications",
         "emptyHint": "L'éditeur n'a pas encore ajouté de contenu pour cette section."
       },
-      "insufficientCredits": "Crédits insuffisants pour activer ce modèle. Veuillez recharger votre solde.",
       "alreadyActivated": "Ce modèle est déjà activé dans votre compte.",
       "activateModal": {
         "title": "Activer le Modèle",
         "description": "L'activation ajoute ce modèle à votre espace de travail.",
         "bringToWorkspace": "Ce modèle sera ajouté à votre espace de travail.",
         "ownCopy": "Vous obtiendrez votre propre copie pour exécuter, modifier ou republier.",
-        "cost": "Cela coûtera {price} crédits.",
         "customNameLabel": "Nom personnalisé (facultatif)",
         "customNameHint": "Donnez-lui un nom personnalisé dans votre espace de travail, ou laissez vide pour utiliser l'original.",
         "confirm": "Confirmer l'Activation"
@@ -2799,11 +2565,8 @@
       "sort": {
         "popular": "Les plus populaires",
         "newest": "Les plus récents",
-        "rating": "Les mieux notés",
-        "priceAsc": "Prix : croissant",
-        "priceDesc": "Prix : décroissant"
+        "rating": "Les mieux notés"
       },
-      "insufficientCredits": "Crédits insuffisants pour activer ce modèle. Veuillez recharger votre solde.",
       "alreadyActivated": "Ce modèle est déjà activé dans votre compte."
     },
     "categories": {
@@ -2816,9 +2579,6 @@
       "featured": "En vedette",
       "noDescription": "Aucune description disponible",
       "moreTag": "+{count} de plus",
-      "creditsPerRun": "{credits} crédits/exécution",
-      "dynamicCredits": "Tarification dynamique",
-      "dynamicCreditsTooltip": "Le coût dépend de la taille du problème (variables x contraintes)",
       "activationsCount": "{count} activations",
       "successPercent": "{percent} % de réussite",
       "by": "par {author}",
@@ -2836,8 +2596,7 @@
       "viewModel": "Voir le Modèle",
       "activations": "{count} activations",
       "rating": "{rating} étoiles",
-      "goToSlide": "Aller à la diapositive {number}",
-      "promoted": "Promu"
+      "goToSlide": "Aller à la diapositive {number}"
     },
     "search": {
       "models": "Modèles",
@@ -2850,12 +2609,7 @@
       "sortPopular": "Les Plus Populaires",
       "sortRating": "Les Mieux Notés",
       "sortNewest": "Les Plus Récents",
-      "sortPriceAsc": "Prix : Croissant",
-      "sortPriceDesc": "Prix : Décroissant",
       "categories": "Catégories",
-      "priceRange": "Gamme de Prix",
-      "priceCredits": "{value} cr",
-      "clearPrice": "Effacer",
       "rating": "Note Minimum",
       "ratingUp": "{stars} et plus",
       "anyRating": "Toute note",
@@ -2864,7 +2618,8 @@
       "clearAll": "Effacer tous les filtres",
       "activeCount": "{count, plural, one {# filtre actif} other {# filtres actifs}}",
       "showFilters": "Filtres",
-      "closeFilters": "Fermer"
+      "closeFilters": "Fermer",
+      "clearCategory": "Effacer la catégorie"
     },
     "sellerProfile": {
       "title": "Profil Vendeur",
@@ -2880,46 +2635,9 @@
       "backToMarketplace": "Retour au Marketplace",
       "failedToLoad": "Échec du chargement du profil du vendeur",
       "sellerNotFound": "Vendeur introuvable"
-    },
-    "meta": {}
+    }
   },
   "seller": {
-    "earnings": {
-      "title": "Revenus du vendeur",
-      "totalSales": "Ventes totales",
-      "totalEarned": "Total gagné",
-      "commissionPaid": "Commission payée",
-      "withdrawableBalance": "Solde disponible",
-      "commissionRate": "{rate}% de commission",
-      "salesHistory": "Historique des ventes",
-      "date": "Date",
-      "model": "Modèle",
-      "buyer": "Acheteur",
-      "salePrice": "Prix de vente",
-      "commission": "Commission",
-      "yourEarning": "Ton gain",
-      "noSales": "Pas encore de ventes. Publie un modèle sur le marketplace pour commencer à gagner.",
-      "credits": "{amount} crédits",
-      "payoutConfig": "Configuration des paiements",
-      "addSchedule": "Ajouter une programmation",
-      "frequency": "Fréquence",
-      "amountType": "Type de montant",
-      "amountValue": "Montant",
-      "minThreshold": "Seuil minimum",
-      "nextExecution": "Prochaine exécution",
-      "deleteSchedule": "Supprimer",
-      "noSchedules": "Aucune programmation de retrait automatique configurée.",
-      "backToCredits": "Retour aux crédits",
-      "viewEarnings": "Voir les revenus du vendeur",
-      "weekly": "Hebdomadaire",
-      "biweekly": "Bimensuel",
-      "monthly": "Mensuel",
-      "quarterly": "Trimestriel",
-      "all": "Tous les revenus",
-      "percentage": "Pourcentage",
-      "fixed": "Montant fixe",
-      "failedToLoad": "Échec du chargement des données de revenus du vendeur. Veuillez réessayer."
-    },
     "analytics": {
       "title": "Analytiques Vendeur",
       "description": "Suis tes performances sur le marketplace",
@@ -2930,13 +2648,11 @@
       "totalViews": "Vues Totales",
       "totalImpressions": "Impressions Totales",
       "totalActivations": "Activations Totales",
-      "totalRevenue": "Revenus Totaux",
       "conversionRate": "Taux de Conversion",
-      "revenueChart": "Vues et Activations",
+      "revenueChart": "Activations dans le temps",
       "views": "Vues",
       "activations": "Activations",
       "impressions": "Impressions",
-      "revenue": "Revenus",
       "conversionFunnel": "Entonnoir de Conversion",
       "funnelImpressions": "Impressions",
       "funnelViews": "Vues Détaillées",
@@ -2951,11 +2667,8 @@
     },
     "promotions": {
       "title": "Promouvoir ton Modèle",
-      "promoteModel": "Promouvoir le Modèle",
       "selectModel": "Sélectionner un modèle",
-      "placementType": "Type de Placement",
       "duration": "Durée",
-      "creditsCost": "crédits",
       "purchase": "Acheter",
       "purchaseSuccess": "Placement acheté avec succès !",
       "homepageCarousel": "Carrousel de la Page d'Accueil",
@@ -2964,14 +2677,9 @@
       "categorySpotlightDesc": "Mis en avant dans la page de catégorie de ton modèle",
       "searchBoost": "Boost de Recherche",
       "searchBoostDesc": "Classement amélioré dans les résultats de recherche",
-      "promotedBadge": "Badge Promu",
-      "promotedBadgeDesc": "Label Promu sur ta carte de modèle",
       "days7": "7 jours",
       "days14": "14 jours",
-      "days30": "30 jours",
-      "activePlacements": "Placements Actifs",
-      "noActivePlacements": "Aucune promotion active. Promeus un modèle pour augmenter ta visibilité.",
-      "promoted": "Promu"
+      "days30": "30 jours"
     },
     "verification": {
       "title": "Badge de Vérification",
@@ -2987,15 +2695,13 @@
     "notifications": {
       "title": "Préférences de Notifications",
       "description": "Choisis comment tu veux être notifié des événements vendeur",
-      "eventNewSale": "Nouvelle Vente",
-      "eventPayoutCompleted": "Paiement Effectué",
       "eventNewReview": "Nouvel Avis",
-      "eventPromotionExpiring": "Promotion Expirante",
       "channelInApp": "Dans l'App",
       "channelEmail": "E-mail",
       "enabled": "Activé",
       "disabled": "Désactivé",
-      "preferencesUpdated": "Préférences mises à jour"
+      "preferencesUpdated": "Préférences mises à jour",
+      "eventModelActivated": "Modèle activé"
     },
     "onboarding": {
       "title": "Démarrer en tant que Vendeur",
@@ -3024,12 +2730,7 @@
       "otherModels": "Autres modèles",
       "allModels": "Tous les modèles",
       "runs": "{count} exécutions",
-      "creditsUsed": "{count} crédits utilisés",
       "lastRun": "Dernière exécution : {date}",
-      "creditsPerRun": "{credits} crédits/exécution",
-      "dynamicCredits": "Tarification dynamique",
-      "dynamicCreditsTooltip": "Le coût dépend de la taille du problème (variables x contraintes)",
-      "avgCreditsPerRun": "~{avg} crédits/exécution",
       "publish": "Publier",
       "publishToMarketplace": "Publier sur le marketplace",
       "history": "Historique",
@@ -3054,10 +2755,7 @@
       "backToModels": "Retour à Mes modèles",
       "modelNotFound": "Modèle introuvable",
       "failedToLoad": "Échec du chargement du modèle",
-      "credits": "{count} crédits",
       "perExecution": "par exécution",
-      "dynamicCredits": "Tarification dynamique",
-      "dynamicCreditsTooltip": "Le coût dépend de la taille du problème (variables x contraintes)",
       "inputData": "Données d'entrée",
       "loadExample": "Charger l'exemple",
       "enterJsonDescription": "Entrez les données de votre problème au format JSON",
@@ -3066,8 +2764,8 @@
       "syncDescription": "Attendre le résultat (plus rapide pour les problèmes simples)",
       "warmStart": "Démarrage à chaud",
       "warmStartHint": "(facultatif — utilise une solution précédente pour accélérer la résolution)",
-      "warmStartSelected": "Démarrage à chaud sélectionné — le solveur utilisera cette solution comme point de départ (réduction de 50 % sur les crédits).",
-      "runModel": "{credits, plural, =0 {Exécuter {mode}} one {Exécuter {mode} (# crédit)} other {Exécuter {mode} (# crédits)}}",
+      "warmStartSelected": "Warm start sélectionné — le solveur utilisera cette solution comme point de départ.",
+      "runModel": "Exécuter {mode}",
       "modeAsync": "Asynchrone",
       "modeSync": "Modèle",
       "starting": "Démarrage...",
@@ -3079,13 +2777,11 @@
       "modelLabel": "Modèle",
       "variable": "Variable",
       "value": "Valeur",
-      "creditsConsumed": "Crédits consommés : {credits}",
       "executionTime": "Temps d'exécution : {time} ms",
       "inputParametersReference": "Référence des paramètres d'entrée",
       "invalidJsonSyntax": "Syntaxe JSON invalide. Veuillez vérifier votre saisie.",
       "validationErrors": "Erreurs de validation :",
       "executionFailed": "Échec de l'exécution",
-      "insufficientCredits": "Crédits insuffisants pour exécuter ce modèle. Veuillez recharger votre solde.",
       "invalidInput": "Entrée invalide : {detail}",
       "solverTimeout": "Le solveur a dépassé le délai. Essayez de réduire la taille du problème ou d'augmenter la limite de temps.",
       "history": "Historique",
@@ -3097,7 +2793,6 @@
       "title": "Historique des exécutions : {modelName}",
       "subtitle": "Consultez toutes les exécutions passées de ce modèle",
       "totalRuns": "Total des exécutions",
-      "creditsUsed": "Crédits utilisés",
       "lastRun": "Dernière exécution",
       "never": "Jamais",
       "allOrigins": "Toutes les origines",
@@ -3117,7 +2812,6 @@
         "origin": "Origine",
         "objective": "Objectif",
         "duration": "Durée",
-        "credits": "Crédits",
         "actions": "Actions"
       },
       "view": "Voir",
@@ -3146,10 +2840,7 @@
       "category": "Catégorie",
       "tags": "Tags",
       "tagsPlaceholder": "optimisation, budget, planification (séparés par des virgules)",
-      "priceEur": "Prix (EUR)",
       "freeToActivate": "0 = Gratuit à activer",
-      "creditsPerRun": "Crédits par exécution",
-      "dynamicCreditsDescription": "Les crédits sont calculés dynamiquement en fonction de la taille de votre problème (variables, contraintes, complexité).",
       "publishToMarketplace": "Publier sur le marketplace",
       "publishing": "Publication...",
       "published": "Publié",
@@ -3234,7 +2925,6 @@
       "backToTemplates": "Retour aux modèles",
       "title": "Problème personnalisé",
       "subtitle": "Définissez votre propre problème d'optimisation avec des variables, des contraintes et un objectif personnalisés",
-      "credits": "{count} crédits",
       "problemDefinition": "Définition du problème",
       "defineInJson": "Définissez votre problème d'optimisation au format JSON",
       "loadExample": "Charger l'exemple",
@@ -3244,7 +2934,6 @@
       "solving": "Résolution...",
       "validProblem": "Problème valide",
       "invalidProblem": "Problème invalide",
-      "estimatedCost": "Coût estimé : {credits} crédits",
       "invalidJsonFormat": "Format JSON invalide",
       "validationFailed": "Échec de la validation",
       "error": "Erreur",
@@ -3252,8 +2941,6 @@
       "result": "Résultat",
       "resultDescription": "Métriques du modèle et de performance",
       "solveTime": "Temps de résolution",
-      "creditsLabel": "Crédits",
-      "creditsUsedRemaining": "{used} utilisés / {remaining} restants",
       "modelLabel": "Modèle",
       "runSolverToSeeResults": "Lancez le solveur pour voir les résultats",
       "formatReference": "Référence du format de problème",
@@ -3282,7 +2969,6 @@
         "origin": "Origine",
         "model": "Modèle",
         "result": "Résultat",
-        "credits": "Crédits",
         "time": "Durée",
         "date": "Date",
         "actions": "Actions"
@@ -3308,7 +2994,6 @@
       "started": "Démarrée",
       "duration": "Durée",
       "durationMs": "{ms} ms",
-      "creditsUsed": "Crédits utilisés",
       "solverStatus": "Statut du solveur",
       "solver": "Solveur",
       "error": "Erreur",
@@ -3384,9 +3069,6 @@
       "constraintPlaceholder": "ex. x + y <= 10",
       "noConstraints": "Aucune contrainte — le problème peut être non borné.",
       "objectiveConfiguration": "Configuration de l'objectif",
-      "estimatedCost": "Coût estimé :",
-      "estimatedCreditsValue": "~{credits} crédits",
-      "solvesBreakdown": "({nPoints} résolutions x ~{perSolve} crédit/résolution)",
       "generateParetoFront": "Générer le front de Pareto",
       "paretoFrontResults": "Résultats du front de Pareto",
       "downloadCsv": "Télécharger le CSV",
@@ -3396,19 +3078,11 @@
       "weightsMustSumToOne": "Les poids doivent totaliser 1,0 (actuel : {sum}).",
       "noConstraintsWarning": "Aucune contrainte définie. Le problème peut être non borné.",
       "paretoComputed": "Front de Pareto calculé : {count} solutions trouvées.",
-      "chargedFromWorkspace": "Facturé depuis l'espace de travail « {name} »",
-      "chargedFromPersonal": "Facturé depuis les crédits personnels",
-      "usingPersonalCredits": "Utilisation des crédits personnels — aucun espace de travail sélectionné",
-      "insufficientCredits": "L'espace de travail n'a pas assez de crédits",
       "solveFailed": "Échec de la résolution",
       "solving": "Résolution...",
       "description": "Explorez les compromis <tooltip>Pareto-optimaux</tooltip> entre deux objectifs.",
       "defaultObjective1": "Objectif 1",
       "defaultObjective2": "Objectif 2",
-      "creditSourceWorkspace": "Crédits : Espace de travail ''{name}'' ({remaining} restants)",
-      "creditSourcePersonal": "Crédits : Personnels ({remaining} restants)",
-      "creditSourceWorkspaceShort": "Crédits : Espace de travail ''{name}''",
-      "creditSourcePersonalShort": "Crédits : Personnels",
       "allExpressionsRequired": "Toutes les expressions d'objectif sont requises.",
       "defaultObjectiveN": "Objectif {n}",
       "gettingStartedTitle": "Comment ça marche",
@@ -3447,7 +3121,6 @@
       "objectiveDelta": "Delta de l'objectif",
       "variablesChanged": "Variables modifiées",
       "timeDifference": "Différence de temps",
-      "creditsDifference": "Différence de crédits",
       "variableName": "Nom de la variable",
       "type": "Type",
       "runA": "Exécution A",
@@ -3473,7 +3146,6 @@
       "status": "Statut",
       "solverStatus": "Statut du solveur",
       "objectiveValue": "Valeur de l'objectif",
-      "creditsLabel": "Crédits",
       "origin": "Origine",
       "nameHeader": "Nom",
       "typeHeader": "Type",
@@ -3486,7 +3158,6 @@
       "objectiveTrend": "Tendance de l'objectif",
       "generated": "Généré",
       "solveTime": "Temps de résolution",
-      "creditsUsed": "Crédits utilisés",
       "triggerIdLabel": "ID du déclencheur",
       "noVariables": "Aucune variable",
       "printSaveAsPdf": "Imprimer / Enregistrer en PDF",
@@ -3515,7 +3186,6 @@
         "scatter": "Nuage de points",
         "bar": "Barres",
         "objective": "Objectif : {value}",
-        "creditsUsed": "Crédits utilisés : {credits}",
         "origin": "Origine : {origin}",
         "legendManual": "Manuelle",
         "legendTriggered": "Déclenchée"
@@ -3524,7 +3194,6 @@
         "paretoFront": "Front de Pareto",
         "paretoSolutions": "Solutions de Pareto :",
         "mode": "Mode :",
-        "creditsUsed": "Crédits utilisés :",
         "pointNumber": "Point n°{number}",
         "clickToHighlight": "Cliquez sur un point pour mettre en surbrillance la ligne correspondante dans le tableau ci-dessous.",
         "clickToSelect": "Cliquez sur les points pour explorer les compromis. Sélectionnez jusqu'à 2 points pour comparer.",
@@ -3556,18 +3225,15 @@
       "totalExecutions": "Total d'exécutions",
       "successRate": "Taux de réussite",
       "avgSolveTime": "Temps moyen",
-      "totalCredits": "Crédits totaux",
       "completed": "Terminées",
       "failed": "Échouées",
       "timedOut": "Expirées",
-      "avgCredits": "Crédits moyens",
       "medianSolveTime": "Temps médian",
       "trends": "Tendances",
       "trendsDescription": "Volume d'exécutions et performance au fil du temps.",
       "daily": "Quotidien",
       "weekly": "Hebdomadaire",
       "executions": "Exécutions",
-      "credits": "Crédits",
       "statusDistribution": "Distribution des statuts",
       "originDistribution": "Distribution des origines",
       "solverStatusDistribution": "Statut du solveur",
@@ -3580,7 +3246,6 @@
       "selectExecutions": "Sélectionner des exécutions à comparer",
       "objectiveValue": "Objectif",
       "solveTime": "Temps",
-      "creditsUsed": "Crédits",
       "variables": "Variables",
       "constraints": "Contraintes",
       "gap": "Écart",
@@ -3719,7 +3384,6 @@
       "id": "ID : {id}",
       "variables": "{count} vars",
       "activeLabel": "Démarrage à chaud actif",
-      "creditDiscount": "50 % de réduction sur les crédits",
       "selectedDetail": "Utilisation de la solution du {date} (obj : {objective}) comme point de départ."
     },
     "progress": {
@@ -3787,8 +3451,7 @@
       "previewFailed": "Echec de analyse. Verifiez le format.",
       "previewTitle": "Apercu du Modele",
       "title": "Importer un Fichier",
-      "variables": "Variables",
-      "estimatedCredits": "Cred. Est."
+      "variables": "Variables"
     },
     "visualization": {
       "variableValues": "Valeurs des variables",
@@ -3797,21 +3460,6 @@
       "noInsights": "Aucune analyse disponible pour cette exécution.",
       "showingTop": "Affichage des {count} sur {total} variables principales par magnitude"
     }
-  },
-  "billing": {
-    "title": "Facturation et Plan",
-    "currentPlan": "Plan Actuel",
-    "creditBalance": "Solde de Crédits",
-    "freePlanUpgrade": "Vous êtes sur le plan <strong>Gratuit</strong>. Passez à un plan supérieur pour débloquer des limites de résolution plus élevées, des fonctionnalités avancées et un support prioritaire.",
-    "contactUpgrade": "Contactez-nous pour passer à un plan supérieur",
-    "managedPlanMessage": "Vous êtes sur le plan <strong>{planName}</strong>. Pour gérer votre abonnement ou changer de plan, contactez <link>support@jaot.io</link>.",
-    "buyCredits": "Acheter des crédits",
-    "topupDescription": "Achetez des packs de crédits pour continuer à résoudre lorsque vos crédits mensuels sont épuisés. Les crédits achetés n'expirent jamais.",
-    "creditsUnit": "crédits",
-    "eurPerCredit": "EUR/crédit",
-    "redirectingToStripe": "Redirection vers Stripe...",
-    "priceEur": "{price} EUR",
-    "checkoutUnavailable": "Les paiements ne sont pas disponibles sur ce serveur."
   },
   "triggers": {
     "list": {
@@ -3946,11 +3594,9 @@
       "statusFailed": "Échouée",
       "statusTimeout": "Délai dépassé",
       "statusValidationFailed": "Validation échouée",
-      "statusSkippedCredits": "Ignoré (Crédits)",
       "statusSkippedOverlap": "Ignoré (Chevauchement)",
       "headerStatus": "Statut",
       "headerRunId": "ID d'exécution",
-      "headerCredits": "Crédits",
       "headerDuration": "Durée",
       "headerOverrides": "Surcharges",
       "headerWebhook": "Webhook",
@@ -3966,7 +3612,6 @@
       "pageInfo": "Page {page} sur {totalPages}",
       "runDetails": "Détails de l'exécution",
       "runId": "ID d'exécution",
-      "creditsConsumed": "Crédits consommés",
       "duration": "Durée",
       "webhookDelivered": "Webhook livré",
       "webhookYes": "Oui",
@@ -4080,25 +3725,6 @@
     },
     "objectiveValue": {
       "definition": "La valeur finale de la fonction optimisée (minimisée ou maximisée)."
-    },
-    "baseCost": {
-      "definition": "Le coût minimum en crédits pour toute requête de résolution, quelle que soit la taille du problème.",
-      "example": "Chaque résolution coûte au moins 1 crédit."
-    },
-    "variableCost": {
-      "definition": "Crédits supplémentaires facturés par variable de décision dans le modèle.",
-      "example": "Chaque variable ajoute 0,1 crédit au coût total."
-    },
-    "integerPenalty": {
-      "definition": "Crédits supplémentaires facturés pour les variables entières et binaires, qui rendent le problème plus difficile à résoudre.",
-      "example": "Les variables entières ajoutent 0,3 crédit chacune ; les binaires ajoutent 0,2."
-    },
-    "constraintCost": {
-      "definition": "Crédits supplémentaires facturés par contrainte dans le modèle.",
-      "example": "Chaque contrainte ajoute 0,05 crédit."
-    },
-    "timeBonus": {
-      "definition": "Crédits supplémentaires facturés lorsqu'une limite de temps plus élevée est demandée."
     },
     "formulation": {
       "definition": "La représentation mathématique d'un problème réel, incluant les variables de décision, les contraintes et une fonction objectif.",
@@ -4883,7 +4509,7 @@
     "description": "Gère tes préférences d'espace de travail et de notifications",
     "byok": {
       "title": "Votre propre clé API Anthropic",
-      "description": "Ajoutez la clé API Anthropic de votre organisation pour exécuter toutes les fonctions d'IA sur votre propre compte — sans crédits JAOT et indépendamment du budget partagé de la plateforme.",
+      "description": "Ajoutez la clé d'API Anthropic de votre organisation pour exécuter toutes les fonctions d'IA sur votre propre compte, indépendamment du budget partagé de la plateforme.",
       "active": "Active — avec votre propre clé",
       "inactive": "Non configurée — utilise le budget IA partagé de la plateforme.",
       "placeholder": "sk-ant-...",
@@ -4944,7 +4570,6 @@
   "contact": {
     "title": "Contactez-nous",
     "subtitle": "Une question, un retour ou une idée de partenariat ? Envoyez-nous un message et nous vous répondrons.",
-    "meta": {},
     "form": {
       "fields": {
         "name": {

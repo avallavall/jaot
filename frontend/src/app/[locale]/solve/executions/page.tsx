@@ -133,7 +133,6 @@ export default function ExecutionsPage() {
                 <th className="text-left px-4 py-3 text-sm font-medium">{t("tableHeaders.origin")}</th>
                 <th className="text-left px-4 py-3 text-sm font-medium">{t("tableHeaders.model")}</th>
                 <th className="text-left px-4 py-3 text-sm font-medium">{t("tableHeaders.result")}</th>
-                <th className="text-right px-4 py-3 text-sm font-medium">{t("tableHeaders.credits")}</th>
                 <th className="text-right px-4 py-3 text-sm font-medium">{t("tableHeaders.time")}</th>
                 <th className="text-right px-4 py-3 text-sm font-medium">{t("tableHeaders.date")}</th>
                 <th className="text-right px-4 py-3 text-sm font-medium">{t("tableHeaders.actions")}</th>
@@ -205,9 +204,6 @@ export default function ExecutionsPage() {
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
-                  </td>
-                  <td className="px-4 py-3 text-right text-sm">
-                    {exec.credits_consumed}
                   </td>
                   <td className="px-4 py-3 text-right text-sm text-muted-foreground">
                     {exec.execution_time_ms ? `${exec.execution_time_ms}ms` : "-"}

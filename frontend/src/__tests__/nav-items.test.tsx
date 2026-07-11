@@ -243,7 +243,7 @@ describe("useNavItems", () => {
   });
 
   describe("NAV-03: Admin section", () => {
-    it("Admin Panel collapsible has exactly 12 children with correct hrefs and is collapsed by default", () => {
+    it("Admin Panel collapsible has exactly 11 children with correct hrefs and is collapsed by default", () => {
       setAuthState({ isAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
       // Find Admin Panel collapsible by checking for a child with href "/admin"
@@ -253,7 +253,7 @@ describe("useNavItems", () => {
 
       expect(adminPanel).toBeDefined();
       expect(adminPanel!.collapsedByDefault).toBe(true);
-      expect(adminPanel!.children).toHaveLength(12);
+      expect(adminPanel!.children).toHaveLength(11);
 
       const expectedHrefs = [
         "/admin",
@@ -264,7 +264,6 @@ describe("useNavItems", () => {
         "/admin/api-keys",
         "/admin/executions",
         "/admin/reviews",
-        "/admin/credits",
         "/admin/marketplace/analytics",
         "/admin/marketplace/verification",
         "/admin/settings",
@@ -293,7 +292,7 @@ describe("useNavItems", () => {
       expect(team!.collapsedByDefault).toBe(true);
     });
 
-    it("Account collapsible includes personal items (Dashboard, Profile, API Keys, Credits, Usage, Settings)", () => {
+    it("Account collapsible includes personal items (Dashboard, Profile, API Keys, Settings)", () => {
       setAuthState({ isAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
 
@@ -304,8 +303,6 @@ describe("useNavItems", () => {
       expect(childLabels).toContain("common.nav.dashboard");
       expect(childLabels).toContain("common.nav.myProfile");
       expect(childLabels).toContain("common.nav.apiKeys");
-      expect(childLabels).toContain("common.nav.credits");
-      expect(childLabels).toContain("common.nav.usage");
       expect(childLabels).toContain("common.nav.settings");
     });
 

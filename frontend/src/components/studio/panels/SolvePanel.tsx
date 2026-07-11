@@ -110,8 +110,7 @@ export function SolvePanel() {
       startSolveSession(task.task_id, solverName, new Date().toISOString());
     } catch (err: unknown) {
       const status = getErrorStatus(err);
-      if (status === 402) toast.error(t("solveInsufficientCredits"));
-      else if (status === 422) toast.error(getErrorMessage(err, t("solveInvalid")));
+      if (status === 422) toast.error(getErrorMessage(err, t("solveInvalid")));
       else toast.error(getErrorMessage(err, t("solveFailed")));
     } finally {
       setSubmitting(false);

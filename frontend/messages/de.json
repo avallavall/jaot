@@ -128,7 +128,6 @@
     "liveIncumbents": "Lösungen",
     "liveElapsed": "Zeit",
     "liveCancel": "Abbrechen",
-    "solveInsufficientCredits": "Nicht genügend Credits zum Lösen.",
     "solveInvalid": "Das Modell ist ungültig. Überprüfen Sie seine Definition.",
     "solveFailed": "Lösen fehlgeschlagen. Bitte versuchen Sie es erneut.",
     "statsTitle": "Modell auf einen Blick",
@@ -319,7 +318,6 @@
     "date": "Datum",
     "type": "Typ",
     "amount": "Betrag",
-    "credits": "{count, plural, one {# Credit} other {# Credits}}",
     "itemCount": "{count, plural, one {# Element} other {# Elemente}}",
     "perMonth": "/Monat",
     "perYear": "/Jahr",
@@ -327,11 +325,9 @@
     "custom": "Benutzerdefiniert",
     "getStartedFree": "Kostenlos starten",
     "getStarted": "Jetzt starten",
-    "contactSales": "Vertrieb kontaktieren",
     "mostPopular": "Am beliebtesten",
     "poweredByScip": "Angetrieben von SCIP",
     "readyToOptimize": "Bereit zur Optimierung?",
-    "startFreeCredits": "Kostenlos starten. Open Source, ohne künstliche Grenzen.",
     "jaot": "JAOT",
     "optimizationAsAService": "Optimierung als Service",
     "sidebar": {
@@ -371,8 +367,6 @@
       "dashboard": "Dashboard",
       "myProfile": "Mein Profil",
       "apiKeys": "API-Schlüssel",
-      "credits": "Credits",
-      "usage": "Nutzung",
       "team": "Team",
       "organization": "Organisation",
       "workspaces": "Arbeitsbereiche",
@@ -387,7 +381,6 @@
       "settings": "Einstellungen",
       "customSolve": "JSON lösen",
       "marketplaceAdmin": "Marketplace",
-      "promotions": "Aktionen",
       "verification": "Verifizierung",
       "sellerAnalytics": "Verkäufer-Analytik",
       "marketplaceAnalytics": "Analytik",
@@ -412,13 +405,9 @@
       "workspaces": "Arbeitsbereiche",
       "organizations": "Organisationen",
       "users": "Benutzer",
-      "credits": "Credits",
       "executions": "Ausführungen",
       "reviews": "Bewertungen",
       "favorites": "Favoriten",
-      "billing": "Abrechnung",
-      "invoices": "Rechnungen",
-      "usage": "Nutzung",
       "apiKeys": "API-Schlüssel",
       "new": "Neu",
       "aiAssistant": "KI-Assistent",
@@ -426,11 +415,9 @@
       "analytics": "Funktionsanalysen",
       "sellerAnalytics": "Verkäuferanalysen",
       "verification": "Verifizierung",
-      "promotions": "Aktionen",
       "create": "Erstellen",
       "custom": "Benutzerdefiniert",
       "myProfile": "Mein Profil",
-      "sellerEarnings": "Verkäufereinnahmen",
       "docs": "Dokumentation",
       "licenses": "Lizenzen",
       "history": "Verlauf"
@@ -492,7 +479,6 @@
       "modelCatalog": "Modellkatalog",
       "visualBuilder": "Visueller Builder",
       "executions": "Ausführungen",
-      "credits": "Credits",
       "communityVerbose": "Treten Sie unserer Community bei, um Fragen zu stellen, Lösungen zu teilen und über neue Funktionen abzustimmen:",
       "communityBrief": "Verbinden Sie sich mit der Community:",
       "communityForum": "Community-Forum",
@@ -507,8 +493,7 @@
     "tier": {
       "viewPlans": "Pläne anzeigen",
       "plan": "{plan}-Plan",
-      "solvesPerDay": "{count} Lösungen/Tag",
-      "creditsRemaining": "{count} Credits"
+      "solvesPerDay": "{count} Lösungen/Tag"
     },
     "filters": {
       "filtersActive": "{count} Filter aktiv",
@@ -574,8 +559,6 @@
       "admin_adjustment": "Admin-Anpassung",
       "execution_charge": "Ausführungsgebühr",
       "execution_refund": "Ausführungserstattung",
-      "publisher_earning": "Herausgeber-Einnahme",
-      "withdrawal": "Auszahlung",
       "purchase": "Kauf"
     },
     "siteDescription": "Optimierungsmodelle erstellen, nutzen und automatisieren – solver-unabhängig, KI-gestützt, ohne Doktortitel.",
@@ -591,7 +574,6 @@
       "signIn": "Anmelden",
       "goToDashboard": "Dashboard"
     },
-    "meta": {},
     "hero": {
       "badge": "KI-gestützte Optimierungsplattform",
       "titleLine1": "Erstellen, nutzen oder automatisieren",
@@ -845,7 +827,7 @@
         "intro": "Wir stützen uns auf eine kleine Zahl von Drittanbieter-Diensten, um die gehostete Instanz zu betreiben:",
         "anthropic": "<strong>Anthropic (Claude-API):</strong> betreibt den optionalen KI-Assistenten. Ihre Eingabeaufforderungen und Modellbeschreibungen werden nur dann an Anthropic gesendet, wenn Sie den Assistenten nutzen, und werden gemäß den Bedingungen von Anthropic verarbeitet. Sie können stattdessen Ihren eigenen Anthropic-Schlüssel verwenden.",
         "analytics": "<strong>Plausible Analytics:</strong> ein selbst gehostetes, datenschutzfreundliches Analysetool, das zum Verständnis der aggregierten Nutzung verwendet wird. Es ist cookielos, verfolgt Sie nicht über Websites hinweg und erhebt keine personenbezogenen Daten.",
-        "payments": "<strong>Stripe (Zahlungen):</strong> wird nur verwendet, wenn ein Betreiber die Monetarisierung auf seiner Instanz aktiviert. Auf jaot.io ist die Monetarisierung deaktiviert, sodass keine Zahlungsdaten verarbeitet werden. Wo aktiviert, verarbeitet Stripe die Zahlungsdaten direkt, und wir speichern niemals Kartendaten.",
+        "payments": "<strong>Zahlungen:</strong> JAOT verarbeitet keine Zahlungen — die Plattform ist kostenlos und erhebt keine Zahlungs- oder Abrechnungsdaten.",
         "note": "Retrieval, Embeddings und alle Solver-Berechnungen laufen lokal auf dem Dienst und werden an keinen Dritten gesendet."
       },
       "section4": {
@@ -903,8 +885,8 @@
       },
       "section4": {
         "title": "4. Nutzungskontingente",
-        "body1": "Die gehostete Instanz verwendet ein Kreditsystem als faires Nutzungskontingent: Credits werden beim Ausführen von Modellen verbraucht, und die Kosten eines Laufs richten sich nach der Modellkomplexität – Anzahl der Variablen, Nebenbedingungen, Variablentypen und Solver-Zeit. Es dient dazu, die endliche Solver-Kapazität fair auf alle Nutzer der gemeinsam genutzten Instanz zu verteilen, nicht dazu, Ihnen etwas in Rechnung zu stellen.",
-        "body2": "Standardmäßig ist JAOT vollständig kostenlos: Der Marktplatz ist kostenlos nutzbar und zur Veröffentlichung offen, es wird keine Provision erhoben, und alle kostenpflichtigen Funktionen – Abrechnung, Credit-Aufladungen und Zahlungsabwicklung über Stripe – sind deaktiviert. Auf jaot.io sind diese kostenpflichtigen Funktionen ausgeschaltet, und es werden Ihnen niemals Kosten berechnet. Ein Betreiber, der JAOT selbst hostet, kann die Monetarisierung auf seiner eigenen Instanz aktivieren; in diesem Fall gelten seine eigenen kommerziellen Bedingungen."
+        "body1": "Fair Use auf der gehosteten Instanz wird durch Rate-Limits, ein tägliches Solve-Kontingent sowie Zeit- und Größenobergrenzen pro Solve sichergestellt; der KI-Assistent läuft innerhalb eines monatlichen Plattform-Budgets (oder unbegrenzt mit eigenem API-Schlüssel).",
+        "body2": "JAOT ist völlig kostenlos: Lösen, Veröffentlichen und die Nutzung von Marketplace-Modellen kosten nichts, und nirgendwo wird eine Provision erhoben."
       },
       "section5": {
         "title": "5. KI-Assistent",
@@ -972,8 +954,6 @@
         "secondaryCta": "Marktplatz ansehen"
       },
       "stats": {
-        "revenueShare": "90%",
-        "revenueShareDesc": "Umsatzbeteiligung bei jeder Aktivierung. Du behältst den Löwenanteil.",
         "globalReach": "Globale Reichweite",
         "globalReachDesc": "Deine Modelle sind weltweit für Teams und KI-Agenten auffindbar.",
         "simplePayouts": "Einfache Auszahlungen",
@@ -987,7 +967,7 @@
         },
         "step2": {
           "title": "Verdienen",
-          "description": "Wenn Teams dein Modell aktivieren, verdienst du 90% des Preises. Wir uebernehmen Abrechnung und Lieferung."
+          "description": "Wenn ein Team dein Modell aktiviert, erhält es eine eigene Kopie zum Ausführen und Anpassen — Veröffentlichen und Aktivieren sind völlig kostenlos."
         },
         "step3": {
           "title": "Auszahlen",
@@ -1001,8 +981,8 @@
           "description": "Veröffentliche deine Modelle und verdiene bei jeder Aktivierung — du setzt den Preis, JAOT übernimmt Lieferung und Auszahlungen."
         },
         "lowCommission": {
-          "title": "Niedrige Provision",
-          "description": "Wir nehmen nur 10%. Du behältst 90% jedes Verkaufs. Das ist alles."
+          "title": "Keine Gebühren, niemals",
+          "description": "JAOT ist kostenlos und Open Source. Veröffentlichen kostet nichts und es gibt keine Provision — deine Arbeit erreicht die Community direkt."
         },
         "professionalSolver": {
           "title": "Professioneller Solver",
@@ -1015,11 +995,10 @@
       },
       "revenue": {
         "title": "Umsatz-Transparenz",
-        "youSetPrice": "Du legst den Preis fest",
         "customerActivates": "Kunde aktiviert dein Modell",
-        "platformCommission": "Plattform nimmt 10% Provision",
+        "platformCommission": "Keine Provision — der Marketplace ist kostenlos",
         "youReceive": "Du erhst 90%",
-        "example": "Beispiel: Modell zum Preis von 50 Credits -- Du verdienst 45 Credits, Plattform verdient 5 Credits"
+        "example": "Einmal veröffentlichen — jedes Team kann dein Modell kostenlos aktivieren, mit Namensnennung."
       },
       "cta": {
         "title": "Bereit zum Verkaufen?",
@@ -1226,7 +1205,6 @@
       "addVariableFirst": "Fügen Sie mindestens eine Variable hinzu, bevor Sie lösen.",
       "objectiveRequired": "Ein Zielknoten ist erforderlich.",
       "connectToObjective": "Verbinden Sie mindestens eine Variable mit dem Ziel.",
-      "insufficientCredits": "Nicht genügend Credits. Bitte laden Sie Ihr Konto auf.",
       "invalidProblem": "Ungültiges Problem: {message}",
       "checkModelDefinition": "Überprüfen Sie Ihre Modelldefinition.",
       "solverError": "Solver-Fehler. Bitte überprüfen Sie Ihr Modell auf Fehler.",
@@ -1315,8 +1293,6 @@
       "type": "Typ",
       "performance": "Leistung",
       "solveTime": "Lösungszeit",
-      "creditsUsed": "Verbrauchte Credits",
-      "creditsRemaining": "Verbleibende Credits",
       "mipGap": "MIP-Lücke",
       "errorDetails": "Fehlerdetails",
       "sensitivityAnalysis": "Sensitivitätsanalyse",
@@ -1335,7 +1311,6 @@
       "useTemplate": "Vorlage verwenden",
       "solves": "{count} Lösungen",
       "new": "Neu",
-      "dynamicCredits": "Dynamische Preise",
       "categories": {
         "hr": "Personal",
         "logistics": "Logistik",
@@ -1344,8 +1319,7 @@
         "agriculture": "Landwirtschaft",
         "health": "Gesundheit",
         "general": "Allgemein"
-      },
-      "creditsPerRun": "{credits} Credits/Ausführung"
+      }
     },
     "templateForm": {
       "failedToLoad": "Vorlage konnte nicht geladen werden",
@@ -1362,7 +1336,6 @@
       "addItem": "+ Element hinzufügen",
       "noRows": "Keine Zeilen. Klicken Sie auf „+ Zeile hinzufügen“, um zu beginnen.",
       "noItems": "Keine Elemente. Klicken Sie auf „+ Element hinzufügen“, um zu beginnen.",
-      "insufficientCredits": "Nicht genügend Credits. Bitte laden Sie Ihr Konto auf.",
       "invalidInput": "Ungültige Eingabedaten. Bitte überprüfen Sie die Formularwerte.",
       "solveFailed": "Lösung fehlgeschlagen. Bitte versuchen Sie es erneut.",
       "fieldRequired": "{field} ist erforderlich",
@@ -1431,8 +1404,7 @@
       "canvasSaveFailed": "Leinwand konnte nicht gespeichert werden: {message}",
       "unknownError": "Unbekannter Fehler",
       "waitForGeneration": "Bitte warten Sie, bis die aktuelle Generierung abgeschlossen ist",
-      "solveFailed": "Lösung fehlgeschlagen: {message}",
-      "insufficientCredits": "Nicht genügend Credits. Bitte laden Sie Ihr Konto auf."
+      "solveFailed": "Lösung fehlgeschlagen: {message}"
     },
     "nodes": {
       "variable": "Variable",
@@ -1459,13 +1431,6 @@
         "errorPrefix": "Entschuldigung, etwas ist schiefgelaufen: {error}",
         "errorWithRequestId": "Entschuldigung, etwas ist schiefgelaufen: {error} (Ref: {requestId})",
         "waitForGeneration": "Bitte warten Sie, bis die aktuelle Generierung abgeschlossen ist"
-      },
-      "creditEstimate": {
-        "solveCost": "LösungsKosten:",
-        "aiGeneration": "KI-Generierung:",
-        "messageCount": "({count} Nachrichten)",
-        "totalSessionCost": "GesamtKosten der Sitzung:",
-        "credits": "Credits"
       },
       "examplePrompts": {
         "title": "Beschreiben Sie Ihr Optimierungsproblem",
@@ -1517,7 +1482,6 @@
         "internalError": "Es ist ein interner Fehler aufgetreten. Bitte versuchen Sie es erneut.",
         "validationFailed": "Ihre Formulierung konnte nicht validiert werden. Überprüfen Sie sie und versuchen Sie es erneut.",
         "contentModeration": "Ihre Nachricht wurde von der Inhaltsmoderation abgelehnt. Formulieren Sie sie um und versuchen Sie es erneut.",
-        "insufficientCredits": "Sie haben nicht genügend Credits, um diese Nachricht zu senden.",
         "parametricUnsupported": "Parametrische Formulierungen werden für diese Aktion noch nicht unterstützt."
       },
       "validation": {
@@ -1565,7 +1529,6 @@
       "organization": "Organisation",
       "orgName": "Name",
       "plan": "Tarif",
-      "creditsBalance": "Guthaben",
       "organizationId": "Organisations-ID",
       "yourAccount": "Ihr Konto",
       "name": "Name",
@@ -1576,11 +1539,7 @@
       "permissions": "Berechtigungen",
       "canBuildPlugins": "Kann Plugins erstellen",
       "standard": "Standard",
-      "credits": "Credits",
-      "availableCredits": "Verfügbare Credits",
-      "manageCredits": "Credits verwalten",
       "quickLinks": "Schnelllinks",
-      "creditsAndWithdrawals": "Credits & Auszahlungen",
       "executions": "Ausführungen",
       "modelCatalog": "Modellkatalog",
       "ourModels": "Meine Modelle",
@@ -1669,95 +1628,6 @@
       "loadError": "Audit-Protokoll konnte nicht geladen werden",
       "createWorkspace": "Arbeitsbereich erstellen"
     },
-    "credits": {
-      "title": "Credits & Auszahlungen",
-      "backToWorkspace": "Zurück zum Arbeitsbereich",
-      "totalBalance": "Gesamtguthaben",
-      "credits": "Credits",
-      "earned": "Verdient (auszahlbar)",
-      "exchangeRate": "Wechselkurs",
-      "exchangeRateValue": "10 Credits = 1€",
-      "subscriptionCredits": "Abonnement",
-      "subscriptionCreditsNote": "Wird monatlich mit Ihrem Plan erneuert. Nicht genutzte Credits werden nicht übertragen.",
-      "purchasedCredits": "Gekauft (Top-ups)",
-      "purchasedCreditsNote": "Mit echtem Geld gekauft. Verfallen nie. Nicht auszahlbar.",
-      "earnedCredits": "Verdient (Marketplace)",
-      "earnedCreditsNote": "Aus Marketplace-Verkäufen. Auszahlbar nach 14 Tagen.",
-      "buyCredits": "Credits kaufen",
-      "calculatedDescriptionSqrt": "Credits skalieren mit der Quadratwurzel der Komplexität. Max. 500 Credits pro Lösung.",
-      "maxCreditsNote": "Max. 500 Credits pro Lösung – selbst bei Enterprise-Problemen mit 10 Mio. Variablen",
-      "howCalculated": "Wie werden Credits berechnet",
-      "calculatedDescription": "Jede Lösungsanfrage kostet Credits basierend auf der Problemkomplexität:",
-      "currency": "Währung",
-      "bankDetails": "Bankdaten",
-      "paymentSettingsStripe": "Auszahlungen werden über Stripe Connect abgewickelt. Richten Sie Ihr Konto im Verkäufer-Dashboard ein.",
-      "noBankDetails": "Keine Bankdaten konfiguriert",
-      "withdrawCredits": "Credits auszahlen",
-      "amountCredits": "Betrag (Credits)",
-      "enterAmount": "Betrag eingeben",
-      "maxCredits": "Max: {count} Credits",
-      "youReceive": "Sie erhalten",
-      "withdraw": "Auszahlen",
-      "scheduledWithdrawals": "Geplante Auszahlungen",
-      "addSchedule": "+ Zeitplan hinzufügen",
-      "frequency": "Häufigkeit",
-      "amountType": "Betragstyp",
-      "createSchedule": "Zeitplan erstellen",
-      "noSchedules": "Keine geplanten Auszahlungen",
-      "allCredits": "Alle Credits",
-      "minThreshold": "Min: {threshold} Credits",
-      "recentWithdrawals": "Letzte Auszahlungen",
-      "noWithdrawals": "Noch keine Auszahlungen",
-      "transactionHistory": "Transaktionsverlauf",
-      "creditTransaction": "Credit-Transaktion",
-      "noActivityTitle": "Noch keine Credit-Aktivität",
-      "noActivityDescription": "Ihr Credit-Transaktionsverlauf wird hier angezeigt, nachdem Sie Ihre erste Lösung ausgeführt oder Credits gekauft haben.",
-      "noActivityExpert": "Noch keine Transaktionen aufgezeichnet.",
-      "viewPricing": "Preise ansehen",
-      "loadingCredits": "Credits-Daten werden geladen",
-      "withdrawalSuccess": "Auszahlungsanfrage erfolgreich erstellt!",
-      "bankSaved": "Bankdaten gespeichert!",
-      "scheduleSaved": "Auszahlungszeitplan erstellt!",
-      "deleteScheduleConfirm": "Diesen Auszahlungszeitplan löschen?",
-      "invalidAmount": "Bitte geben Sie einen gültigen Betrag ein",
-      "bankRequired": "Bitte konfigurieren Sie zuerst Ihre Bankdaten",
-      "ibanRequired": "IBAN und Kontoinhabername sind erforderlich",
-      "frequencies": {
-        "weekly": "Wöchentlich",
-        "biweekly": "Alle 2 Wochen",
-        "monthly": "Monatlich",
-        "quarterly": "Vierteljährlich"
-      },
-      "amountTypes": {
-        "all": "Alle verfügbaren Credits",
-        "percentage": "Prozentsatz der Credits",
-        "fixed": "Fester Betrag"
-      },
-      "iban": "IBAN",
-      "swift": "SWIFT/BIC",
-      "swiftOptional": "SWIFT/BIC (optional)",
-      "holderName": "Kontoinhabername",
-      "percentagePlaceholder": "Prozentsatz (1-100)",
-      "fixedPlaceholder": "Credits-Betrag",
-      "minThresholdPlaceholder": "Mindestschwelle (Credits)",
-      "baseCost": "GrundKosten",
-      "variableCost": "Variable Kosten",
-      "integerPenalty": "Ganzzahl-Aufschlag",
-      "constraintCost": "NebenbedingungsKosten",
-      "timeBonus": "Zeitbonus",
-      "failedWithdrawal": "Auszahlung konnte nicht erstellt werden",
-      "failedBankSave": "Bankdaten konnten nicht gespeichert werden",
-      "failedCurrencyUpdate": "Währung konnte nicht aktualisiert werden",
-      "failedCreateSchedule": "Zeitplan konnte nicht erstellt werden",
-      "failedDeleteSchedule": "Zeitplan konnte nicht gelöscht werden",
-      "confirmWithdrawal": "Auszahlung bestätigen",
-      "withdrawConfirmMessage": "{amount} Credits auszahlen (ca. {currencySymbol}{fiatAmount})?",
-      "ibanLabel": "IBAN:",
-      "swiftLabel": "SWIFT:",
-      "nameLabel": "Name:",
-      "amountCreditsFixed": "{value} Credits",
-      "viewSellerEarnings": "Verkäufer-Einnahmen anzeigen"
-    },
     "myProfile": {
       "title": "Mein Profil",
       "viewPublicProfile": "Öffentliches Profil ansehen",
@@ -1826,7 +1696,7 @@
         "title": "Erste Schritte mit Arbeitsbereichen",
         "dismiss": "Verstanden",
         "whatIs": "Was ist ein Arbeitsbereich?",
-        "whatIsDescription": "Ein Arbeitsbereich ist eine isolierte Umgebung für Ihr Team. Modelle, Trigger und Credits sind an einen Arbeitsbereich gebunden, sodass jedes Team unabhängig arbeiten kann.",
+        "whatIsDescription": "Ein Workspace ist eine isolierte Umgebung für dein Team. Modelle und Trigger gehören zu einem Workspace.",
         "howToInvite": "Teammitglieder einladen",
         "howToInviteDescription": "Klicken Sie oben auf „Mitglied Einladen“, um E-Mail-Einladungen zu senden oder einen teilbaren Einladungslink zu generieren. Nur Administratoren können neue Mitglieder einladen.",
         "roles": "Rollen und Berechtigungen",
@@ -1834,27 +1704,9 @@
         "roleViewer": "Betrachter -- Kann Modelle und Ergebnisse einsehen, aber nichts erstellen oder bearbeiten.",
         "roleEditor": "Editor -- Kann Modelle und Trigger erstellen, bearbeiten und löschen.",
         "roleSolver": "Solver -- Kann Lösungen ausführen und Modelle erstellen (beinhaltet Betrachter-Berechtigungen).",
-        "roleAdmin": "Administrator -- Vollzugriff einschließlich Mitglieder einladen, Einstellungen verwalten und Credits zuweisen.",
-        "billing": "Arbeitsbereiche und Abrechnung",
-        "billingDescription": "Jeder Arbeitsbereich kann sein eigenes Credit-Guthaben haben. Administratoren weisen Credits aus dem Organisationsguthaben zu, und alle Lösungen innerhalb des Arbeitsbereichs werden daraus verbraucht."
+        "roleAdmin": "Admin -- Voller Zugriff, einschließlich Einladungen und Verwaltung der Einstellungen."
       },
       "createWorkspace": "Arbeitsbereich erstellen"
-    },
-    "usage": {
-      "title": "Nutzung",
-      "subtitle": "Credit-Verbrauch und Ausführungsanalysen für Ihre Organisation.",
-      "creditsUsedAllTime": "Verbrauchte Credits (gesamt)",
-      "totalExecutions": "Ausführungen gesamt",
-      "activeModels": "Aktive Modelle",
-      "creditUsage30Days": "Credit-Verbrauch — Letzte 30 Tage",
-      "creditsUsed": "Verbrauchte Credits",
-      "executions14Days": "Ausführungen — Letzte 14 Tage",
-      "executionsLabel": "Ausführungen",
-      "topModels": "Top-Modelle nach Nutzung",
-      "noModelsUsed": "Noch keine Modelle verwendet.",
-      "modelColumn": "Modell",
-      "runsColumn": "Ausführungen",
-      "creditsUsedColumn": "Verbrauchte Credits"
     },
     "workspaces": {
       "title": "Arbeitsbereiche",
@@ -1865,7 +1717,6 @@
       "noWorkspacesUser": "Sie wurden noch keinem Arbeitsbereich hinzugefügt. Bitten Sie einen Admin, Sie einzuladen.",
       "inactive": "Inaktiv",
       "memberCount": "{count, plural, one {# Mitglied} other {# Mitglieder}}",
-      "creditsLabel": "Credits",
       "percentUsed": "{percent}% verwendet",
       "createdDate": "Erstellt am {date}",
       "loadError": "Arbeitsbereiche konnten nicht geladen werden"
@@ -1910,24 +1761,6 @@
       "description": "Dieser Link gehört zum Arbeitsbereich <b>{name}</b>. Dorthin wechseln?",
       "stayHere": "Hier bleiben",
       "switchWorkspace": "Arbeitsbereich wechseln"
-    },
-    "creditPool": {
-      "title": "Credit-Pool",
-      "noPool": "Kein Credit-Pool für diesen Arbeitsbereich konfiguriert.",
-      "allocateCredits": "Credits zuweisen",
-      "adminRequired": "Sie benötigen die Admin-Rolle, um Credits zuzuweisen",
-      "allocated": "Zugewiesen",
-      "used": "Verwendet",
-      "available": "Verfügbar",
-      "percentUsed": "{percent}% verwendet",
-      "remaining": "{count} verbleibend",
-      "amountLabel": "Zuzuweisender Betrag",
-      "amountPlaceholder": "z.B. 500",
-      "allocating": "Wird zugewiesen...",
-      "confirm": "Bestätigen",
-      "allocateError": "Bitte geben Sie einen gültigen positiven Betrag ein",
-      "allocateSuccess": "{amount} Credits dem Arbeitsbereich-Pool zugewiesen",
-      "allocateFailed": "Credits konnten nicht zugewiesen werden"
     },
     "invite": {
       "title": "Mitglieder einladen",
@@ -2031,17 +1864,13 @@
       "organizations": "Organisationen",
       "users": "Benutzer",
       "models": "Modelle",
-      "creditBalance": "Guthaben",
       "active": "{count} aktiv",
       "activated": "{count} aktiviert",
       "acrossAllOrgs": "über alle Organisationen",
-      "creditsOverview": "Guthaben-Übersicht",
-      "totalCreditsAllOrgs": "Gesamtguthaben aller Organisationen",
       "quickActions": "Schnellaktionen",
       "manageOrganizations": "Organisationen verwalten",
       "manageUsers": "Benutzer verwalten",
       "manageApiKeys": "API-Schlüssel verwalten",
-      "adjustCredits": "Guthaben anpassen",
       "maintenanceMode": "Wartungsmodus",
       "maintenanceDescription": "Wenn aktiviert, sehen Nicht-Admin-Benutzer eine Wartungsseite anstelle der Plattform.",
       "maintenanceActive": "Die Wartung ist derzeit aktiv",
@@ -2093,39 +1922,10 @@
       "createFailed": "API-Schlüssel konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
       "operationFailed": "Vorgang fehlgeschlagen. Bitte versuchen Sie es erneut."
     },
-    "credits": {
-      "title": "Guthaben-Verwaltung",
-      "subtitle": "Organisations-Guthaben anzeigen und anpassen",
-      "orgBalances": "Organisations-Guthaben",
-      "clickToAdjust": "Klicken zum Anpassen",
-      "credits": "Credits",
-      "adjustCredits": "Guthaben anpassen",
-      "currentBalance": "Aktuelles Guthaben",
-      "amountLabel": "Betrag (positiv zum Hinzufügen, negativ zum Abziehen)",
-      "amountPlaceholder": "z.B. 1000 oder -500",
-      "reason": "Grund",
-      "reasonPlaceholder": "z.B. Monatliche Auffüllung, Erstattung, Bonus",
-      "newBalance": "Neues Guthaben wird sein: <b>{amount}</b> Credits",
-      "applyAdjustment": "Anpassung anwenden",
-      "transactionHistory": "Transaktionsverlauf",
-      "allOrganizations": "Alle Organisationen",
-      "tableHeaders": {
-        "date": "Datum",
-        "organization": "Organisation",
-        "type": "Typ",
-        "amount": "Betrag",
-        "balanceAfter": "Guthaben danach",
-        "description": "Beschreibung"
-      },
-      "noTransactions": "Keine Transaktionen gefunden",
-      "pageOf": "Seite {page} von {totalPages}",
-      "adjustFailed": "Guthaben konnte nicht angepasst werden. Bitte versuchen Sie es erneut."
-    },
     "executions": {
       "title": "Ausführungen",
       "subtitle": "Alle Modellausführungen plattformweit überwachen",
       "totalShown": "Angezeigt gesamt",
-      "creditsUsed": "Verbrauchte Credits",
       "avgTime": "Durchschn. Zeit",
       "allStatus": "Alle Status",
       "completed": "Abgeschlossen",
@@ -2137,7 +1937,6 @@
         "model": "Modell",
         "organization": "Organisation",
         "status": "Status",
-        "credits": "Credits",
         "duration": "Dauer",
         "date": "Datum"
       },
@@ -2179,7 +1978,6 @@
       "tableHeaders": {
         "name": "Name",
         "plan": "Tarif",
-        "credits": "Guthaben",
         "users": "Benutzer",
         "verified": "Verifiziert",
         "status": "Status",
@@ -2200,7 +1998,6 @@
         "pro": "Pro",
         "business": "Business"
       },
-      "initialCredits": "Anfangsguthaben",
       "enableAiBuilder": "KI-Builder aktivieren",
       "create": "Erstellen",
       "saveChanges": "Änderungen speichern",
@@ -2264,10 +2061,8 @@
       "users": "Benutzer",
       "activeUsers": "Aktive Benutzer",
       "catalogModels": "Katalogmodelle",
-      "creditBalance": "Guthaben",
       "tabs": {
         "system": "System",
-        "billing": "Abrechnung",
         "solver": "Solver",
         "llm": "LLM",
         "email": "E-Mail",
@@ -2275,7 +2070,8 @@
         "marketplace": "Marktplatz",
         "secrets": "Secrets",
         "auditLog": "Audit-Log",
-        "systemSettings": "Systemeinstellungen"
+        "systemSettings": "Systemeinstellungen",
+        "billing": "Pläne & Limits"
       },
       "saveChanges": "Änderungen speichern",
       "saving": "Speichern...",
@@ -2332,7 +2128,6 @@
         "allowedFeaturesHelp": "JSON-Array von Feature-Strings, z.B. [\"basic\", \"export\"]",
         "headers": {
           "plan": "Tarif",
-          "credits": "Credits",
           "monthlyQuota": "Monatliches Kontingent",
           "rateLimitMin": "Limit/Min",
           "rateLimitDay": "Limit/Tag",
@@ -2397,18 +2192,13 @@
       "sellerLeaderboard": "Verkäufer-Rangliste",
       "rank": "#",
       "sellerName": "Verkäufer",
-      "totalSales": "Gesamtverkäufe",
-      "totalRevenue": "Gesamtumsatz",
       "modelsPublished": "Veröffentlichte Modelle",
       "avgRating": "Durchschnittsbewertung",
       "drillDown": "Details anzeigen",
-      "promotions": "Aktive Aktionen",
-      "promotionsDesc": "Verwalte Aktionen Für bevorzugte Platzierungen im Marktplatz",
       "verificationRequests": "Verifizierungsanfragen",
       "verificationDesc": "Verifizierungsabzeichen-Anfragen Prüfen und genehmigen",
       "modelName": "Modell",
       "type": "Typ",
-      "creditsPaid": "Bezahlte Credits",
       "startDate": "Startdatum",
       "endDate": "Enddatum",
       "status": "Status",
@@ -2426,9 +2216,8 @@
       "approved": "Genehmigt",
       "pending": "Ausstehend",
       "noRequests": "Keine ausstehenden Verifizierungsanfragen",
-      "noPromotions": "Keine aktiven Aktionen",
       "noSellerData": "Keine Verkäuferdaten verfügbar.",
-      "creditsUnit": "Credits"
+      "totalActivations": "Aktivierungen"
     },
     "featureAnalytics": {
       "title": "Feature-Nutzungsanalysen",
@@ -2475,12 +2264,10 @@
         "apiKeys": "API-Schlüssel",
         "executions": "Ausführungen",
         "reportedReviews": "Gemeldete Bewertungen",
-        "credits": "Credits",
         "marketplace": "Marktplatz",
         "sellerAnalytics": "Verkäuferanalysen",
         "featureAnalytics": "Funktionsanalysen",
         "verification": "Verifizierung",
-        "promotions": "Aktionen",
         "settings": "Einstellungen",
         "backToApp": "Zurück zur App",
         "platformAnalytics": "Plattform"
@@ -2567,20 +2354,16 @@
       "sections": {
         "overview": "Übersicht",
         "configuration": "Konfiguration & Limits",
-        "credits": "Credits",
         "users": "Benutzer",
         "apiKeys": "API-Schlüssel",
         "models": "Modelle",
-        "executions": "Letzte Ausführungen",
-        "transactions": "Letzte Credit-Bewegungen"
+        "executions": "Letzte Ausführungen"
       },
       "kpi": {
         "users": "Benutzer",
         "apiKeys": "API-Schlüssel",
         "models": "Modelle",
-        "executions": "Ausführungen",
-        "creditsBalance": "Credit-Guthaben",
-        "creditsUsedMonth": "Diesen Monat genutzt"
+        "executions": "Ausführungen"
       },
       "config": {
         "plan": "Tarif",
@@ -2593,19 +2376,11 @@
         "currency": "Währung",
         "createdAt": "Erstellt",
         "slug": "Öffentlicher Slug",
-        "billingEmail": "Rechnungs-E-Mail",
         "website": "Webseite",
         "owner": "Eigentümer",
         "verified": "Verifizierter Anbieter",
         "active": "Aktiv",
         "publicProfile": "Öffentliches Profil"
-      },
-      "credits": {
-        "balance": "Gesamtguthaben",
-        "subscription": "Abonnement",
-        "purchased": "Gekauft",
-        "earned": "Verdient (Marktplatz)",
-        "usedMonth": "Diesen Monat genutzt"
       },
       "executionStats": {
         "completed": "Abgeschlossen",
@@ -2631,7 +2406,6 @@
         "name": "Name",
         "source": "Quelle",
         "executions": "Ausführungen",
-        "creditsUsed": "Verbrauchte Credits",
         "lastRun": "Letzte Ausführung",
         "status": "Status"
       },
@@ -2639,7 +2413,6 @@
         "model": "Modell",
         "status": "Status",
         "solver": "Solver",
-        "credits": "Credits",
         "time": "Dauer",
         "objective": "Zielwert",
         "date": "Datum"
@@ -2687,11 +2460,9 @@
       "official": "OFFIZIELL",
       "featuredBadge": "EMPFOHLEN",
       "free": "Kostenlos",
-      "credits": "{count} Cr",
       "newModel": "Neu",
       "viewSeller": "von {seller}",
       "verified": "Verifiziert",
-      "activationPrice": "{price} Credits",
       "open": "Öffnen",
       "activate": "Aktivieren",
       "removeFromFavorites": "Aus Favoriten entfernen",
@@ -2706,9 +2477,6 @@
       "modelNotFound": "Modell nicht gefunden",
       "failedToLoad": "Modell konnte nicht geladen werden",
       "free": "Kostenlos",
-      "creditsPerRun": "{credits} Credits/Ausführung",
-      "dynamicCredits": "Dynamische Preise",
-      "dynamicCreditsTooltip": "Kosten hängen von der Problemgröße ab (Variablen x Einschränkungen)",
       "openModel": "Modell öffnen",
       "useInStudio": "Im Studio verwenden",
       "openingStudio": "Wird geöffnet…",
@@ -2763,14 +2531,12 @@
         "changelogEmpty": "Noch keine Änderungsprotokoll-Einträge",
         "emptyHint": "Der Herausgeber hat für diesen Abschnitt noch keinen Inhalt hinzugefügt."
       },
-      "insufficientCredits": "Nicht genügend Credits, um dieses Modell zu aktivieren. Bitte laden Sie Ihr Guthaben auf.",
       "alreadyActivated": "Dieses Modell ist bereits in Ihrem Konto aktiviert.",
       "activateModal": {
         "title": "Modell Aktivieren",
         "description": "Durch die Aktivierung wird dieses Modell in Ihren Arbeitsbereich übernommen.",
         "bringToWorkspace": "Dieses Modell wird Ihrem Arbeitsbereich hinzugefügt.",
         "ownCopy": "Sie erhalten Ihre eigene Kopie zum Ausführen, Ändern oder erneuten Veröffentlichen.",
-        "cost": "Dies kostet {price} Credits.",
         "customNameLabel": "Benutzerdefinierter Name (optional)",
         "customNameHint": "Geben Sie ihm einen benutzerdefinierten Namen in Ihrem Arbeitsbereich, oder lassen Sie das Feld leer, um den Originalnamen zu verwenden.",
         "confirm": "Aktivierung Bestätigen"
@@ -2799,11 +2565,8 @@
       "sort": {
         "popular": "Am beliebtesten",
         "newest": "Neueste",
-        "rating": "Am besten bewertet",
-        "priceAsc": "Preis: aufsteigend",
-        "priceDesc": "Preis: absteigend"
+        "rating": "Am besten bewertet"
       },
-      "insufficientCredits": "Nicht genügend Credits, um dieses Modell zu aktivieren. Bitte laden Sie Ihr Guthaben auf.",
       "alreadyActivated": "Dieses Modell ist bereits in Ihrem Konto aktiviert."
     },
     "categories": {
@@ -2816,9 +2579,6 @@
       "featured": "Empfohlen",
       "noDescription": "Keine Beschreibung verfügbar",
       "moreTag": "+{count} weitere",
-      "creditsPerRun": "{credits} Credits/Ausführung",
-      "dynamicCredits": "Dynamische Preise",
-      "dynamicCreditsTooltip": "Kosten hängen von der Problemgröße ab (Variablen x Einschränkungen)",
       "activationsCount": "{count} Aktivierungen",
       "successPercent": "{percent} % Erfolg",
       "by": "von {author}",
@@ -2836,8 +2596,7 @@
       "viewModel": "Modell ansehen",
       "activations": "{count} Aktivierungen",
       "rating": "{rating} Sterne",
-      "goToSlide": "Zu Folie {number}",
-      "promoted": "Beworben"
+      "goToSlide": "Zu Folie {number}"
     },
     "search": {
       "models": "Modelle",
@@ -2850,12 +2609,7 @@
       "sortPopular": "Beliebteste",
       "sortRating": "Beste Bewertung",
       "sortNewest": "Neueste",
-      "sortPriceAsc": "Preis: aufsteigend",
-      "sortPriceDesc": "Preis: absteigend",
       "categories": "Kategorien",
-      "priceRange": "Preisbereich",
-      "priceCredits": "{value} Cr",
-      "clearPrice": "löschen",
       "rating": "Mindestbewertung",
       "ratingUp": "{stars} & mehr",
       "anyRating": "Alle Bewertungen",
@@ -2864,7 +2618,8 @@
       "clearAll": "Alle Filter löschen",
       "activeCount": "{count, plural, one {# aktiver Filter} other {# aktive Filter}}",
       "showFilters": "Filter",
-      "closeFilters": "Schliessen"
+      "closeFilters": "Schliessen",
+      "clearCategory": "Kategorie zurücksetzen"
     },
     "sellerProfile": {
       "title": "Verkäufer-Profil",
@@ -2880,46 +2635,9 @@
       "backToMarketplace": "Zurück zum Marktplatz",
       "failedToLoad": "Fehler beim Laden des Verkäuferprofils",
       "sellerNotFound": "Verkäufer nicht gefunden"
-    },
-    "meta": {}
+    }
   },
   "seller": {
-    "earnings": {
-      "title": "Verkäufereinnahmen",
-      "totalSales": "Gesamtverkäufe",
-      "totalEarned": "Gesamt verdient",
-      "commissionPaid": "Gezahlte Provision",
-      "withdrawableBalance": "Verfügbares Guthaben",
-      "commissionRate": "{rate}% Provision",
-      "salesHistory": "Verkaufshistorie",
-      "date": "Datum",
-      "model": "Modell",
-      "buyer": "Käufer",
-      "salePrice": "Verkaufspreis",
-      "commission": "Provision",
-      "yourEarning": "Dein Verdienst",
-      "noSales": "Noch keine Verkäufe. Veröffentliche ein Modell auf dem Marketplace, um Geld zu verdienen.",
-      "credits": "{amount} Credits",
-      "payoutConfig": "Auszahlungskonfiguration",
-      "addSchedule": "Zeitplan Hinzufügen",
-      "frequency": "Häufigkeit",
-      "amountType": "Betragstyp",
-      "amountValue": "Betrag",
-      "minThreshold": "Mindestschwelle",
-      "nextExecution": "Nächste Ausführung",
-      "deleteSchedule": "löschen",
-      "noSchedules": "Keine automatischen AuszahlungsPläne konfiguriert.",
-      "backToCredits": "Zurück zu Credits",
-      "viewEarnings": "Verkäufereinnahmen anzeigen",
-      "weekly": "Wöchentlich",
-      "biweekly": "Zweiwöchentlich",
-      "monthly": "Monatlich",
-      "quarterly": "ViertelJährlich",
-      "all": "Alle Einnahmen",
-      "percentage": "Prozentsatz",
-      "fixed": "Fester Betrag",
-      "failedToLoad": "Fehler beim Laden der Verkäufer-Einnahmedaten. Bitte versuchen Sie es erneut."
-    },
     "analytics": {
       "title": "Verkäufer-Analysen",
       "description": "Verfolge deine Marktplatz-Performance",
@@ -2930,13 +2648,11 @@
       "totalViews": "Aufrufe gesamt",
       "totalImpressions": "Impressionen gesamt",
       "totalActivations": "Aktivierungen gesamt",
-      "totalRevenue": "Gesamtumsatz",
       "conversionRate": "Konversionsrate",
-      "revenueChart": "Aufrufe & Aktivierungen",
+      "revenueChart": "Aktivierungen im Zeitverlauf",
       "views": "Aufrufe",
       "activations": "Aktivierungen",
       "impressions": "Impressionen",
-      "revenue": "Umsatz",
       "conversionFunnel": "Conversion-Funnel",
       "funnelImpressions": "Impressionen",
       "funnelViews": "Detailaufrufe",
@@ -2951,11 +2667,8 @@
     },
     "promotions": {
       "title": "Dein Modell bewerben",
-      "promoteModel": "Modell bewerben",
       "selectModel": "Modell auswählen",
-      "placementType": "Platzierungstyp",
       "duration": "Dauer",
-      "creditsCost": "Credits",
       "purchase": "Kaufen",
       "purchaseSuccess": "Platzierung erfolgreich gekauft!",
       "homepageCarousel": "Startseiten-Karussell",
@@ -2964,14 +2677,9 @@
       "categorySpotlightDesc": "Hervorgehoben auf der Kategorieseite deines Modells",
       "searchBoost": "Such-Boost",
       "searchBoostDesc": "Verbessertes Ranking in den Suchergebnissen",
-      "promotedBadge": "Beworben-Abzeichen",
-      "promotedBadgeDesc": "Beworben-Label auf deiner Modellkarte",
       "days7": "7 Tage",
       "days14": "14 Tage",
-      "days30": "30 Tage",
-      "activePlacements": "Aktive Platzierungen",
-      "noActivePlacements": "Keine aktiven Aktionen. Bewirb ein Modell, um die Sichtbarkeit zu erhöhen.",
-      "promoted": "Beworben"
+      "days30": "30 Tage"
     },
     "verification": {
       "title": "Verifizierungs-Abzeichen",
@@ -2987,15 +2695,13 @@
     "notifications": {
       "title": "Benachrichtigungseinstellungen",
       "description": "Wähle, wie du über Verkäufer-Ereignisse benachrichtigt werden mst",
-      "eventNewSale": "Neuer Verkauf",
-      "eventPayoutCompleted": "Auszahlung abgeschlossen",
       "eventNewReview": "Neue Rezension",
-      "eventPromotionExpiring": "Aktion läuft ab",
       "channelInApp": "In-App",
       "channelEmail": "E-Mail",
       "enabled": "Aktiviert",
       "disabled": "Deaktiviert",
-      "preferencesUpdated": "Einstellungen aktualisiert"
+      "preferencesUpdated": "Einstellungen aktualisiert",
+      "eventModelActivated": "Modell aktiviert"
     },
     "onboarding": {
       "title": "Als Verkäufer starten",
@@ -3024,12 +2730,7 @@
       "otherModels": "Andere Modelle",
       "allModels": "Alle Modelle",
       "runs": "{count} Ausführungen",
-      "creditsUsed": "{count} Credits verbraucht",
       "lastRun": "Letzte Ausführung: {date}",
-      "creditsPerRun": "{credits} Credits/Ausführung",
-      "dynamicCredits": "Dynamische Preise",
-      "dynamicCreditsTooltip": "Kosten hängen von der Problemgröße ab (Variablen x Einschränkungen)",
-      "avgCreditsPerRun": "~{avg} Credits/Ausführung",
       "publish": "Veröffentlichen",
       "publishToMarketplace": "Im Marktplatz veröffentlichen",
       "history": "Verlauf",
@@ -3054,10 +2755,7 @@
       "backToModels": "Zurück zu Meine Modelle",
       "modelNotFound": "Modell nicht gefunden",
       "failedToLoad": "Modell konnte nicht geladen werden",
-      "credits": "{count} Credits",
       "perExecution": "pro Ausführung",
-      "dynamicCredits": "Dynamische Preise",
-      "dynamicCreditsTooltip": "Kosten hängen von der Problemgröße ab (Variablen x Einschränkungen)",
       "inputData": "Eingabedaten",
       "loadExample": "Beispiel laden",
       "enterJsonDescription": "Geben Sie Ihre Problemdaten im JSON-Format ein",
@@ -3066,8 +2764,8 @@
       "syncDescription": "Auf Ergebnis warten (schneller für einfache Probleme)",
       "warmStart": "Warmstart",
       "warmStartHint": "(optional — verwenden Sie eine vorherige Lösung zur Beschleunigung)",
-      "warmStartSelected": "Warmstart ausgewählt — der Solver verwendet diese Lösung als Ausgangspunkt (50% Credit-Rabatt).",
-      "runModel": "{credits, plural, =0 {{mode} ausführen} one {{mode} ausführen (# Credit)} other {{mode} ausführen (# Credits)}}",
+      "warmStartSelected": "Warm Start ausgewählt — der Solver nutzt diese Lösung als Startpunkt.",
+      "runModel": "{mode} ausführen",
       "modeAsync": "Async",
       "modeSync": "Modell",
       "starting": "Wird gestartet...",
@@ -3079,13 +2777,11 @@
       "modelLabel": "Modell",
       "variable": "Variable",
       "value": "Wert",
-      "creditsConsumed": "Verbrauchte Credits: {credits}",
       "executionTime": "Ausführungszeit: {time}ms",
       "inputParametersReference": "Eingabeparameter-Referenz",
       "invalidJsonSyntax": "Ungültige JSON-Syntax. Bitte überprüfen Sie Ihre Eingabe.",
       "validationErrors": "Validierungsfehler:",
       "executionFailed": "Ausführung fehlgeschlagen",
-      "insufficientCredits": "Nicht genügend Credits, um dieses Modell auszuführen. Bitte laden Sie Ihr Guthaben auf.",
       "invalidInput": "Ungültige Eingabe: {detail}",
       "solverTimeout": "Der Solver hat das Zeitlimit überschritten. Versuchen Sie, die Problemgröße zu reduzieren oder das Zeitlimit zu erhöhen.",
       "history": "Verlauf",
@@ -3097,7 +2793,6 @@
       "title": "Ausführungsverlauf: {modelName}",
       "subtitle": "Alle vergangenen Ausführungen für dieses Modell anzeigen",
       "totalRuns": "Ausführungen gesamt",
-      "creditsUsed": "Verbrauchte Credits",
       "lastRun": "Letzte Ausführung",
       "never": "Nie",
       "allOrigins": "Alle Quellen",
@@ -3117,7 +2812,6 @@
         "origin": "Quelle",
         "objective": "Zielfunktion",
         "duration": "Dauer",
-        "credits": "Credits",
         "actions": "Aktionen"
       },
       "view": "Anzeigen",
@@ -3146,10 +2840,7 @@
       "category": "Kategorie",
       "tags": "Tags",
       "tagsPlaceholder": "Optimierung, Budget, Planung (kommagetrennt)",
-      "priceEur": "Preis (EUR)",
       "freeToActivate": "0 = Kostenlos zu aktivieren",
-      "creditsPerRun": "Credits pro Ausführung",
-      "dynamicCreditsDescription": "Die Credits werden dynamisch basierend auf der Größe Ihres Problems berechnet (Variablen, Einschränkungen, Komplexität).",
       "publishToMarketplace": "Im Marktplatz veröffentlichen",
       "publishing": "Wird veröffentlicht...",
       "published": "Veröffentlicht",
@@ -3234,7 +2925,6 @@
       "backToTemplates": "Zurück zu Vorlagen",
       "title": "Benutzerdefiniertes Problem",
       "subtitle": "Definieren Sie Ihr eigenes Optimierungsproblem mit benutzerdefinierten Variablen, Nebenbedingungen und Zielfunktion",
-      "credits": "{count} Credits",
       "problemDefinition": "Problemdefinition",
       "defineInJson": "Definieren Sie Ihr Optimierungsproblem im JSON-Format",
       "loadExample": "Beispiel laden",
@@ -3244,7 +2934,6 @@
       "solving": "Wird gelöst...",
       "validProblem": "Gültiges Problem",
       "invalidProblem": "Ungültiges Problem",
-      "estimatedCost": "Geschätzte Kosten: {credits} Credits",
       "invalidJsonFormat": "Ungültiges JSON-Format",
       "validationFailed": "Validierung fehlgeschlagen",
       "error": "Fehler",
@@ -3252,8 +2941,6 @@
       "result": "Ergebnis",
       "resultDescription": "Modell- und Leistungskennzahlen",
       "solveTime": "Lösungszeit",
-      "creditsLabel": "Credits",
-      "creditsUsedRemaining": "{used} verbraucht / {remaining} verbleibend",
       "modelLabel": "Modell",
       "runSolverToSeeResults": "Führen Sie den Solver aus, um Ergebnisse zu sehen",
       "formatReference": "Problemformat-Referenz",
@@ -3282,7 +2969,6 @@
         "origin": "Quelle",
         "model": "Modell",
         "result": "Ergebnis",
-        "credits": "Credits",
         "time": "Zeit",
         "date": "Datum",
         "actions": "Aktionen"
@@ -3308,7 +2994,6 @@
       "started": "Gestartet",
       "duration": "Dauer",
       "durationMs": "{ms}ms",
-      "creditsUsed": "Verbrauchte Credits",
       "solverStatus": "Solver-Status",
       "solver": "Solver",
       "error": "Fehler",
@@ -3384,9 +3069,6 @@
       "constraintPlaceholder": "z.B. x + y <= 10",
       "noConstraints": "Keine Nebenbedingungen — Problem könnte unbeschränkt sein.",
       "objectiveConfiguration": "Zielfunktions-Konfiguration",
-      "estimatedCost": "Geschätzte Kosten:",
-      "estimatedCreditsValue": "~{credits} Credits",
-      "solvesBreakdown": "({nPoints} Lösungen x ~{perSolve} Credit/Lösung)",
       "generateParetoFront": "Pareto-Front generieren",
       "paretoFrontResults": "Pareto-Front-Ergebnisse",
       "downloadCsv": "CSV herunterladen",
@@ -3396,19 +3078,11 @@
       "weightsMustSumToOne": "Gewichte müssen sich zu 1,0 summieren (aktuell: {sum}).",
       "noConstraintsWarning": "Keine Nebenbedingungen definiert. Das Problem könnte unbeschränkt sein.",
       "paretoComputed": "Pareto-Front berechnet: {count} Lösungen gefunden.",
-      "chargedFromWorkspace": "Abgebucht vom Arbeitsbereich '{name}'",
-      "chargedFromPersonal": "Von persönlichem Guthaben abgebucht",
-      "usingPersonalCredits": "Persönliches Guthaben wird verwendet — kein Arbeitsbereich ausgewählt",
-      "insufficientCredits": "Arbeitsbereich hat unzureichendes Guthaben",
       "solveFailed": "Lösung fehlgeschlagen",
       "solving": "Wird gelöst...",
       "description": "Erkunden Sie <tooltip>Pareto-optimale</tooltip> Kompromisse zwischen zwei Zielfunktionen.",
       "defaultObjective1": "Zielfunktion 1",
       "defaultObjective2": "Zielfunktion 2",
-      "creditSourceWorkspace": "Credits: Arbeitsbereich ''{name}'' ({remaining} verbleibend)",
-      "creditSourcePersonal": "Credits: Persönlich ({remaining} verbleibend)",
-      "creditSourceWorkspaceShort": "Credits: Arbeitsbereich ''{name}''",
-      "creditSourcePersonalShort": "Credits: Persönlich",
       "allExpressionsRequired": "Alle Zielfunktionsausdrücke sind erforderlich.",
       "defaultObjectiveN": "Zielfunktion {n}",
       "gettingStartedTitle": "So funktioniert es",
@@ -3447,7 +3121,6 @@
       "objectiveDelta": "Zielfunktions-Delta",
       "variablesChanged": "Geänderte Variablen",
       "timeDifference": "Zeitunterschied",
-      "creditsDifference": "Credit-Unterschied",
       "variableName": "Variablenname",
       "type": "Typ",
       "runA": "Lauf A",
@@ -3473,7 +3146,6 @@
       "status": "Status",
       "solverStatus": "Solver-Status",
       "objectiveValue": "Zielfunktionswert",
-      "creditsLabel": "Credits",
       "origin": "Quelle",
       "nameHeader": "Name",
       "typeHeader": "Typ",
@@ -3486,7 +3158,6 @@
       "objectiveTrend": "Zielfunktions-Trend",
       "generated": "Generiert",
       "solveTime": "Lösungszeit",
-      "creditsUsed": "Verbrauchte Credits",
       "triggerIdLabel": "Trigger-ID",
       "noVariables": "Keine Variablen",
       "printSaveAsPdf": "Drucken / Als PDF speichern",
@@ -3515,7 +3186,6 @@
         "scatter": "Streudiagramm",
         "bar": "Balken",
         "objective": "Zielfunktion: {value}",
-        "creditsUsed": "Verbrauchte Credits: {credits}",
         "origin": "Quelle: {origin}",
         "legendManual": "Manuell",
         "legendTriggered": "Getriggert"
@@ -3524,7 +3194,6 @@
         "paretoFront": "Pareto-Front",
         "paretoSolutions": "Pareto-Lösungen:",
         "mode": "Modus:",
-        "creditsUsed": "Verbrauchte Credits:",
         "pointNumber": "Punkt #{number}",
         "clickToHighlight": "Klicken Sie auf einen Punkt, um die entsprechende Zeile in der Tabelle unten hervorzuheben.",
         "clickToSelect": "Klicken Sie auf Punkte, um Kompromisse zu erkunden. Wählen Sie bis zu 2 Punkte zum Vergleichen.",
@@ -3556,18 +3225,15 @@
       "totalExecutions": "Gesamte Ausführungen",
       "successRate": "Erfolgsquote",
       "avgSolveTime": "Durchschn. Zeit",
-      "totalCredits": "Gesamte Credits",
       "completed": "Abgeschlossen",
       "failed": "Fehlgeschlagen",
       "timedOut": "Abgelaufen",
-      "avgCredits": "Durchschn. Credits",
       "medianSolveTime": "Median-Zeit",
       "trends": "Trends",
       "trendsDescription": "Ausführungsvolumen und Leistung im Zeitverlauf.",
       "daily": "Täglich",
       "weekly": "Wöchentlich",
       "executions": "Ausführungen",
-      "credits": "Credits",
       "statusDistribution": "Statusverteilung",
       "originDistribution": "Ursprungsverteilung",
       "solverStatusDistribution": "Solver-Status",
@@ -3580,7 +3246,6 @@
       "selectExecutions": "Ausführungen zum Vergleichen auswählen",
       "objectiveValue": "Zielfunktion",
       "solveTime": "Lösungszeit",
-      "creditsUsed": "Credits",
       "variables": "Variablen",
       "constraints": "Nebenbedingungen",
       "gap": "Gap",
@@ -3719,7 +3384,6 @@
       "id": "ID: {id}",
       "variables": "{count} Vars",
       "activeLabel": "Warmstart aktiv",
-      "creditDiscount": "50 % Credit-Rabatt",
       "selectedDetail": "Lösung vom {date} (Ziel: {objective}) als Ausgangspunkt verwenden."
     },
     "progress": {
@@ -3787,8 +3451,7 @@
       "previewFailed": "Analyse fehlgeschlagen. Format ueberPrüfen.",
       "previewTitle": "Modellvorschau",
       "title": "Datei importieren",
-      "variables": "Variablen",
-      "estimatedCredits": "Gesch. Credits"
+      "variables": "Variablen"
     },
     "visualization": {
       "variableValues": "Variablenwerte",
@@ -3797,21 +3460,6 @@
       "noInsights": "Keine Analysen für diese Ausführung verfügbar.",
       "showingTop": "Anzeige der Top {count} von {total} Variablen nach Größe"
     }
-  },
-  "billing": {
-    "title": "Abrechnung & Plan",
-    "currentPlan": "Aktueller Plan",
-    "creditBalance": "Guthaben",
-    "freePlanUpgrade": "Sie nutzen den <strong>Kostenlos</strong>-Plan. Upgraden Sie, um höhere Lösungslimits, erweiterte Funktionen und bevorzugten Support freizuschalten.",
-    "contactUpgrade": "Kontaktieren Sie uns für ein Upgrade",
-    "managedPlanMessage": "Sie nutzen den <strong>{planName}</strong>-Plan. Um Ihr Abonnement zu verwalten oder den Plan zu wechseln, kontaktieren Sie <link>support@jaot.io</link>.",
-    "buyCredits": "Credits kaufen",
-    "topupDescription": "Kaufen Sie Credit-Pakete, um weiter zu optimieren, wenn Ihre monatlichen Credits aufgebraucht sind. Gekaufte Credits verfallen nie.",
-    "creditsUnit": "Credits",
-    "eurPerCredit": "EUR/Credit",
-    "redirectingToStripe": "Weiterleitung zu Stripe...",
-    "priceEur": "{price} EUR",
-    "checkoutUnavailable": "Zahlungen sind auf diesem Server nicht verfügbar."
   },
   "triggers": {
     "list": {
@@ -3946,11 +3594,9 @@
       "statusFailed": "Fehlgeschlagen",
       "statusTimeout": "Zeitüberschreitung",
       "statusValidationFailed": "Validierung fehlgeschlagen",
-      "statusSkippedCredits": "Übersprungen (Guthaben)",
       "statusSkippedOverlap": "Übersprungen (Überlappung)",
       "headerStatus": "Status",
       "headerRunId": "Ausführungs-ID",
-      "headerCredits": "Credits",
       "headerDuration": "Dauer",
       "headerOverrides": "Überschreibungen",
       "headerWebhook": "Webhook",
@@ -3966,7 +3612,6 @@
       "pageInfo": "Seite {page} von {totalPages}",
       "runDetails": "Ausführungsdetails",
       "runId": "Ausführungs-ID",
-      "creditsConsumed": "Verbrauchte Credits",
       "duration": "Dauer",
       "webhookDelivered": "Webhook zugestellt",
       "webhookYes": "Ja",
@@ -4080,25 +3725,6 @@
     },
     "objectiveValue": {
       "definition": "Der Endwert der zu optimierenden Funktion (minimiert oder maximiert)."
-    },
-    "baseCost": {
-      "definition": "Die Mindest-Credits für jede Lösungsanfrage, unabhängig von der Problemgröße.",
-      "example": "Jede Lösung kostet mindestens 1 Credit."
-    },
-    "variableCost": {
-      "definition": "Zusätzliche Credits pro Entscheidungsvariable im Modell.",
-      "example": "Jede Variable fügt 0,1 Credits zu den GesamtKosten hinzu."
-    },
-    "integerPenalty": {
-      "definition": "Zusätzliche Credits für ganzzahlige und binäre Variablen, die das Problem schwieriger lösbar machen.",
-      "example": "Ganzzahlige Variablen Kosten 0,3 Credits zusätzlich; binäre Variablen 0,2."
-    },
-    "constraintCost": {
-      "definition": "Zusätzliche Credits pro Nebenbedingung im Modell.",
-      "example": "Jede Nebenbedingung fügt 0,05 Credits hinzu."
-    },
-    "timeBonus": {
-      "definition": "Zusätzliche Credits bei Anforderung eines höheren Zeitlimits."
     },
     "formulation": {
       "definition": "Die mathematische Darstellung eines realen Problems, einschließlich Entscheidungsvariablen, Nebenbedingungen und einer Zielfunktion.",
@@ -4883,7 +4509,7 @@
     "description": "Verwalte deine Arbeitsbereich- und Benachrichtigungseinstellungen",
     "byok": {
       "title": "Dein eigener Anthropic-API-Schlüssel",
-      "description": "Füge den Anthropic-API-Schlüssel deiner Organisation hinzu, um alle KI-Funktionen über dein eigenes Konto laufen zu lassen — ohne JAOT-Credits und unabhängig vom geteilten Plattform-Budget.",
+      "description": "Füge den Anthropic-API-Schlüssel deiner Organisation hinzu, um alle KI-Funktionen über dein eigenes Konto auszuführen, unabhängig vom gemeinsamen Budget der Plattform.",
       "active": "Aktiv — mit deinem eigenen Schlüssel",
       "inactive": "Nicht gesetzt — nutzt das geteilte KI-Budget der Plattform.",
       "placeholder": "sk-ant-...",
@@ -4944,7 +4570,6 @@
   "contact": {
     "title": "Kontakt aufnehmen",
     "subtitle": "Haben Sie eine Frage, Rückmeldung oder Partnerschaftsidee? Schreiben Sie uns — wir melden uns zurück.",
-    "meta": {},
     "form": {
       "fields": {
         "name": {

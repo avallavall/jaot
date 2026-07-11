@@ -47,11 +47,10 @@ def setup_mcp(app: FastAPI) -> FastApiMCP:
             "get_catalog_model",
             "get_catalog_model_schema",
             "activate_catalog_model",
-            # Execution, analysis & credits
+            # Execution & analysis
             "execute_model",
             "get_execution",
             "get_execution_insights",
-            "get_credit_balance",
             # Model projects — create, version, analyze & solve a first-class model
             "create_model_project",
             "get_model_project",

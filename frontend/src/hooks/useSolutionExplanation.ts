@@ -41,7 +41,7 @@ export interface SolutionExplanationState {
  *
  * Mirrors useFormulationStream's fetch + ReadableStream wiring but consumes only
  * the text-explanation event set (delta / status / error / done) — there is no
- * formulation/validation payload here. Pre-stream HTTP failures (402/403/429/5xx)
+ * formulation/validation payload here. Pre-stream HTTP failures (403/429/5xx)
  * map to stable error codes so the UI never renders raw upstream detail.
  */
 export function useSolutionExplanation(): SolutionExplanationState {
@@ -143,9 +143,7 @@ export function useSolutionExplanation(): SolutionExplanationState {
 
         if (!response.ok) {
           setRequestId(response.headers.get("x-request-id"));
-          if (response.status === 402) {
-            setErrorCode("insufficient_credits");
-          } else if (response.status === 429 || response.status >= 500) {
+          if (response.status === 429 || response.status >= 500) {
             setErrorCode("service_unavailable");
           } else {
             setErrorCode("internal_error");

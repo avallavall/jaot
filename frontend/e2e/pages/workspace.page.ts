@@ -14,10 +14,6 @@ export class WorkspacePage {
     await this.page.goto(localePath("/workspace", locale));
   }
 
-  async gotoCredits(locale?: string) {
-    await this.page.goto(localePath("/workspace/credits", locale));
-  }
-
   async gotoApiKeys(locale?: string) {
     await this.page.goto(localePath("/workspace/api-keys", locale));
   }

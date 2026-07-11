@@ -22,10 +22,9 @@ interface SolverSelectProps {
 }
 
 /**
- * Solver picker with multiplier badge per Phase 7.4 / D-12.
+ * Solver picker.
  *
  * - Each entry shows "Name · N×" where N comes from
- *   `solver.multiplier` (Plan 07 backend response).
  * - Disabled when `solver.available === false` (D-11 — Hexaly worker
  *   down → greyed-out option). The frontend does not render a maintenance
  *   tooltip; the disabled state is the contract.
@@ -88,11 +87,6 @@ export function SolverSelect({
               disabled={solver.available === false}
             >
               <span>{solverDisplayName(solver.name)}</span>
-              {solver.multiplier != null && (
-                <span className="text-xs font-mono ml-2 text-muted-foreground">
-                  {`${solver.multiplier}×`}
-                </span>
-              )}
               {solver.description && (
                 <span className="text-muted-foreground text-xs ml-2">
                   {solver.description}

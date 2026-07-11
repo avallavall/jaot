@@ -42,8 +42,6 @@ function makeModel(
     version: "1.0.0",
     is_official: false,
     is_featured: true,
-    price_eur: 0,
-    credits_per_execution: 0,
     total_activations: 42,
     total_executions: 100,
     avg_rating: 4.5,

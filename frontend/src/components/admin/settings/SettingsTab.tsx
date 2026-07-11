@@ -24,7 +24,6 @@ const SETTING_GROUPS: Record<string, Record<string, string>> = {
     LLM_MAX_OUTPUT_TOKENS_LIMIT: "Limits",
     LLM_RATE_LIMIT_PER_MINUTE: "Rate Limits",
     LLM_RATE_LIMIT_PER_DAY: "Rate Limits",
-    LLM_CREDIT_COST_PER_MESSAGE: "Credits",
     LLM_CONVERSATION_TTL_HOURS: "Conversations",
   },
   email: {
@@ -60,11 +59,6 @@ function getGroupName(category: string, key: string): string {
   const categoryMap = SETTING_GROUPS[category];
   if (categoryMap && categoryMap[key]) {
     return categoryMap[key];
-  }
-
-  // Marketplace: featured_placement_* -> "Featured Placements"
-  if (category === "marketplace" && key.startsWith("featured_placement_")) {
-    return "Featured Placements";
   }
 
   // Fallback: derive group from key prefix (first segment before _)

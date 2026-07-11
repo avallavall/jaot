@@ -173,10 +173,6 @@ export default function ExecutionDetailPage() {
           </div>
         </div>
         <div className="bg-card border border-border rounded-lg p-4">
-          <div className="text-sm text-muted-foreground">{t("creditsUsed")}</div>
-          <div className="font-medium">{execution.credits_consumed}</div>
-        </div>
-        <div className="bg-card border border-border rounded-lg p-4">
           <div className="text-sm text-muted-foreground">{t("solverStatus")}</div>
           <div className="font-medium">{execution.solver_status || "-"}</div>
         </div>

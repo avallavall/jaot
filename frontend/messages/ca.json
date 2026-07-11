@@ -128,7 +128,6 @@
     "liveIncumbents": "Solucions",
     "liveElapsed": "Temps",
     "liveCancel": "Cancel·la",
-    "solveInsufficientCredits": "Crèdits insuficients per resoldre.",
     "solveInvalid": "El model no és vàlid. Comprova'n la definició.",
     "solveFailed": "La resolució ha fallat. Torna-ho a provar.",
     "statsTitle": "El model d'un cop d'ull",
@@ -319,7 +318,6 @@
     "date": "Data",
     "type": "Tipus",
     "amount": "Quantitat",
-    "credits": "{count, plural, one {# crèdit} other {# crèdits}}",
     "itemCount": "{count, plural, one {# element} other {# elements}}",
     "perMonth": "/mes",
     "perYear": "/any",
@@ -327,11 +325,9 @@
     "custom": "Personalitzat",
     "getStartedFree": "Comença gratuïtament",
     "getStarted": "Començar",
-    "contactSales": "Contactar vendes",
     "mostPopular": "Més popular",
     "poweredByScip": "Powered by SCIP",
     "readyToOptimize": "Preparat per optimitzar?",
-    "startFreeCredits": "Comença gratis. Codi obert, sense límits artificials.",
     "jaot": "JAOT",
     "optimizationAsAService": "Optimització com a servei",
     "sidebar": {
@@ -371,8 +367,6 @@
       "dashboard": "Tauler",
       "myProfile": "El meu perfil",
       "apiKeys": "Claus API",
-      "credits": "Crèdits",
-      "usage": "Ús",
       "team": "Equip",
       "organization": "Organització",
       "workspaces": "Espais de treball",
@@ -387,7 +381,6 @@
       "settings": "Configuració",
       "customSolve": "Resoldre JSON",
       "marketplaceAdmin": "Marketplace",
-      "promotions": "Promocions",
       "verification": "Verificació",
       "sellerAnalytics": "Analítiques venedor",
       "marketplaceAnalytics": "Analítiques",
@@ -412,13 +405,9 @@
       "workspaces": "Espais de treball",
       "organizations": "Organitzacions",
       "users": "Usuaris",
-      "credits": "Crèdits",
       "executions": "Execucions",
       "reviews": "Ressenyes",
       "favorites": "Preferits",
-      "billing": "Facturació",
-      "invoices": "Factures",
-      "usage": "Ús",
       "apiKeys": "Claus API",
       "new": "Nou",
       "aiAssistant": "Assistent IA",
@@ -426,11 +415,9 @@
       "analytics": "Anàlisi de funcions",
       "sellerAnalytics": "Anàlisi de venedors",
       "verification": "Verificació",
-      "promotions": "Promocions",
       "create": "Crear",
       "custom": "Personalitzat",
       "myProfile": "El meu perfil",
-      "sellerEarnings": "Ingressos del venedor",
       "docs": "Documentació",
       "licenses": "Llicències",
       "history": "Historial"
@@ -492,7 +479,6 @@
       "modelCatalog": "Catàleg de models",
       "visualBuilder": "Constructor visual",
       "executions": "Execucions",
-      "credits": "Crèdits",
       "communityVerbose": "Uneix-te a la nostra comunitat per fer preguntes, compartir solucions i votar noves funcions:",
       "communityBrief": "Connecta amb la comunitat:",
       "communityForum": "Fòrum de la comunitat",
@@ -507,8 +493,7 @@
     "tier": {
       "viewPlans": "Veure plans",
       "plan": "Pla {plan}",
-      "solvesPerDay": "{count} resolucions/dia",
-      "creditsRemaining": "{count} crèdits"
+      "solvesPerDay": "{count} resolucions/dia"
     },
     "filters": {
       "filtersActive": "{count} filtres actius",
@@ -574,8 +559,6 @@
       "admin_adjustment": "Ajust d'administrador",
       "execution_charge": "Càrrec per execució",
       "execution_refund": "Reemborsament d'execució",
-      "publisher_earning": "Guany de publicador",
-      "withdrawal": "Retirada",
       "purchase": "Compra"
     },
     "siteDescription": "Crea, usa i automatitza models d'optimització: agnòstic al solver, assistit per IA i sense necessitat d'un doctorat.",
@@ -591,7 +574,6 @@
       "signIn": "Iniciar sessió",
       "goToDashboard": "Tauler"
     },
-    "meta": {},
     "hero": {
       "badge": "Plataforma d'optimització amb IA",
       "titleLine1": "Crea, usa o automatitza",
@@ -845,7 +827,7 @@
         "intro": "Ens recolzem en un nombre reduït de serveis de tercers per operar la instància allotjada:",
         "anthropic": "<strong>Anthropic (API de Claude):</strong> dona suport a l’assistent d’IA opcional. Les teves indicacions i descripcions de model s’envien a Anthropic només quan fas servir l’assistent, i es tracten d’acord amb els termes d’Anthropic. Pots fer servir la teva pròpia clau d’Anthropic en lloc seu.",
         "analytics": "<strong>Plausible Analytics:</strong> una eina d’analítica autoallotjada i respectuosa amb la privadesa que es fa servir per entendre l’ús agregat. No fa servir cookies, no et rastreja entre llocs i no recopila dades personals.",
-        "payments": "<strong>Stripe (pagaments):</strong> es fa servir únicament si un operador activa la monetització a la seva instància. A jaot.io la monetització està desactivada, de manera que no es processen dades de pagament. Quan està activa, Stripe gestiona les dades de pagament directament i mai no emmagatzemem dades de targetes.",
+        "payments": "<strong>Pagaments:</strong> JAOT no processa pagaments — la plataforma és gratuïta i no recull dades de pagament ni de facturació.",
         "note": "La recuperació, els embeddings i tots els càlculs del solver s’executen localment al Servei i no s’envien a cap tercer."
       },
       "section4": {
@@ -903,8 +885,8 @@
       },
       "section4": {
         "title": "4. Quotes d’ús",
-        "body1": "La instància allotjada fa servir un sistema de crèdits com a quota d’ús just: els crèdits es consumeixen quan s’executen models, i el cost d’una execució depèn de la complexitat del model: nombre de variables, restriccions, tipus de variable i temps de solver. Existeix per repartir de manera equitativa la capacitat finita del solver entre tots els usuaris de la instància compartida, no per cobrar-te.",
-        "body2": "Per defecte, JAOT és totalment gratuït: el marketplace és gratis per fer servir i publicar-hi, no es cobra cap comissió, i totes les funcions de pagament —facturació, recàrregues de crèdits i processament de pagaments amb Stripe— estan desactivades. A jaot.io aquestes funcions de pagament estan desactivades i mai no se’t cobrarà. Un operador que autoallotgi JAOT pot optar per activar la monetització a la seva pròpia instància, cas en què s’apliquen els seus propis termes comercials."
+        "body1": "L'ús raonable a la instància allotjada es garanteix mitjançant límits de peticions, una quota diària de resolucions i topalls de temps i mida per resolució; l'assistent d'IA opera dins d'un pressupost mensual de la plataforma (o sense límit amb la teva pròpia clau d'API).",
+        "body2": "JAOT és totalment gratuït: resoldre, publicar i usar models del marketplace no costa res, i no es cobra comissió enlloc."
       },
       "section5": {
         "title": "5. Assistent d’IA",
@@ -972,8 +954,6 @@
         "secondaryCta": "Veure Marketplace"
       },
       "stats": {
-        "revenueShare": "90%",
-        "revenueShareDesc": "Percentatge d'ingressos en cada activació. Tu t'emportes la major part.",
         "globalReach": "Abast global",
         "globalReachDesc": "Els teus models són descoberts per equips i agents IA de tot el món.",
         "simplePayouts": "Pagaments senzills",
@@ -987,7 +967,7 @@
         },
         "step2": {
           "title": "Guanya",
-          "description": "Quan els equips activen el teu model, guanyes el 90% del preu. Nosaltres ens encarreguem de la facturació i el lliurament."
+          "description": "Quan un equip activa el teu model, obté la seva pròpia còpia per executar-lo i adaptar-lo — publicar i activar és totalment gratuït."
         },
         "step3": {
           "title": "Retira",
@@ -1001,8 +981,8 @@
           "description": "Publica els teus models i guanya en cada activació — tu fixes el preu, JAOT gestiona el lliurament i els pagaments."
         },
         "lowCommission": {
-          "title": "Comissió baixa",
-          "description": "Només ens quedem amb el 10%. Tu t'emportes el 90% de cada venda. Així de senzill."
+          "title": "Sense comissions, mai",
+          "description": "JAOT és gratuït i de codi obert. Publicar no costa res i no hi ha comissió — la teva feina arriba directa a la comunitat."
         },
         "professionalSolver": {
           "title": "Solver professional",
@@ -1015,11 +995,10 @@
       },
       "revenue": {
         "title": "Transparència d'ingressos",
-        "youSetPrice": "Tu fixes el preu",
         "customerActivates": "El client activa el teu model",
-        "platformCommission": "La plataforma cobra el 10% de comissió",
+        "platformCommission": "Sense comissió — el marketplace és gratuït",
         "youReceive": "Tu reps el 90%",
-        "example": "Exemple: Model a 50 crèdits — Tu guanyes 45 crèdits, la plataforma guanya 5 crèdits"
+        "example": "Publica un cop i qualsevol equip podrà activar el teu model gratis, amb atribució al teu nom."
       },
       "cta": {
         "title": "Preparat per començar a vendre?",
@@ -1226,7 +1205,6 @@
       "addVariableFirst": "Afegiu almenys una variable abans de resoldre.",
       "objectiveRequired": "Es requereix un node d'objectiu.",
       "connectToObjective": "Connecteu almenys una variable a l'objectiu.",
-      "insufficientCredits": "Crèdits insuficients. Si us plau, recarregueu el vostre compte.",
       "invalidProblem": "Problema no vàlid: {message}",
       "checkModelDefinition": "Comproveu la definició del vostre model.",
       "solverError": "Error del solucionador. Si us plau, comproveu el vostre model per errors.",
@@ -1315,8 +1293,6 @@
       "type": "Tipus",
       "performance": "Rendiment",
       "solveTime": "Temps de resolució",
-      "creditsUsed": "Crèdits utilitzats",
-      "creditsRemaining": "Crèdits restants",
       "mipGap": "Gap MIP",
       "errorDetails": "Detalls de l'Error",
       "sensitivityAnalysis": "Anàlisi de Sensibilitat",
@@ -1335,7 +1311,6 @@
       "useTemplate": "Utilitzar Plantilla",
       "solves": "{count} resolucions",
       "new": "Nou",
-      "dynamicCredits": "Preu dinàmic",
       "categories": {
         "hr": "RRHH",
         "logistics": "Logística",
@@ -1344,8 +1319,7 @@
         "agriculture": "Agricultura",
         "health": "Salut",
         "general": "General"
-      },
-      "creditsPerRun": "{credits} crèdits/execució"
+      }
     },
     "templateForm": {
       "failedToLoad": "Error en Carregar la Plantilla",
@@ -1362,7 +1336,6 @@
       "addItem": "+ Afegir Element",
       "noRows": "No hi ha files. Feu clic a \"+ Afegir Fila\" per començar.",
       "noItems": "No hi ha elements. Feu clic a \"+ Afegir Element\" per començar.",
-      "insufficientCredits": "Crèdits insuficients. Si us plau, recarregueu el vostre compte.",
       "invalidInput": "Dades d'entrada no vàlides. Si us plau, comproveu els valors del formulari.",
       "solveFailed": "Error en resoldre. Si us plau, torneu-ho a provar.",
       "fieldRequired": "{field} és obligatori",
@@ -1431,8 +1404,7 @@
       "canvasSaveFailed": "Error en desar el llenç: {message}",
       "unknownError": "Error desconegut",
       "waitForGeneration": "Si us plau, espereu que la generació actual es completi",
-      "solveFailed": "Error en resoldre: {message}",
-      "insufficientCredits": "Crèdits insuficients. Si us plau, recarregueu el vostre compte."
+      "solveFailed": "Error en resoldre: {message}"
     },
     "nodes": {
       "variable": "Variable",
@@ -1459,13 +1431,6 @@
         "errorPrefix": "Ho sentim, alguna cosa ha anat malament: {error}",
         "errorWithRequestId": "Ho sentim, alguna cosa ha anat malament: {error} (ref: {requestId})",
         "waitForGeneration": "Si us plau, espereu que la generació actual es completi"
-      },
-      "creditEstimate": {
-        "solveCost": "Cost de resolució:",
-        "aiGeneration": "Generació IA:",
-        "messageCount": "({count} missatges)",
-        "totalSessionCost": "Cost total de la sessió:",
-        "credits": "crèdits"
       },
       "examplePrompts": {
         "title": "Descriviu el vostre problema d'optimització",
@@ -1517,7 +1482,6 @@
         "internalError": "Ha ocorregut un error intern. Torneu-ho a provar.",
         "validationFailed": "No s'ha pogut validar la vostra formulació. Reviseu-la i torneu-ho a provar.",
         "contentModeration": "El vostre missatge ha estat rebutjat pel filtre de contingut. Reformuleu-lo i torneu-ho a provar.",
-        "insufficientCredits": "No teniu crèdits suficients per enviar aquest missatge.",
         "parametricUnsupported": "Les formulacions paramètriques encara no s'admeten per a aquesta acció."
       },
       "validation": {
@@ -1565,7 +1529,6 @@
       "organization": "Organització",
       "orgName": "Nom",
       "plan": "Pla",
-      "creditsBalance": "Saldo de Crèdits",
       "organizationId": "ID de l'Organització",
       "yourAccount": "El Teu Compte",
       "name": "Nom",
@@ -1576,11 +1539,7 @@
       "permissions": "Permisos",
       "canBuildPlugins": "Pot crear connectors",
       "standard": "Estàndard",
-      "credits": "Crèdits",
-      "availableCredits": "Crèdits disponibles",
-      "manageCredits": "Gestionar Crèdits",
       "quickLinks": "Enllaços Ràpids",
-      "creditsAndWithdrawals": "Crèdits i Retirades",
       "executions": "Execucions",
       "modelCatalog": "Catàleg de Models",
       "ourModels": "Els Meus Models",
@@ -1669,95 +1628,6 @@
       "loadError": "Error en carregar el registre d'auditoria",
       "createWorkspace": "Crear Espai de Treball"
     },
-    "credits": {
-      "title": "Crèdits i Retirades",
-      "backToWorkspace": "Tornar a l'Espai de Treball",
-      "totalBalance": "Saldo Total",
-      "credits": "crèdits",
-      "earned": "Guanyats (Retirables)",
-      "exchangeRate": "Tipus de Canvi",
-      "exchangeRateValue": "10 crèdits = 1€",
-      "subscriptionCredits": "Subscripció",
-      "subscriptionCreditsNote": "Es renova cada mes amb el teu pla. Els crèdits no usats no s'acumulen.",
-      "purchasedCredits": "Comprats (Top-ups)",
-      "purchasedCreditsNote": "Comprats amb diners reals. No expiren mai. No retirables.",
-      "earnedCredits": "Guanyats (Marketplace)",
-      "earnedCreditsNote": "De vendes al marketplace. Retirables després de 14 dies.",
-      "buyCredits": "Comprar crèdits",
-      "calculatedDescriptionSqrt": "Els crèdits escalen amb l'arrel quadrada de la complexitat. Màx. 500 crèdits per solve.",
-      "maxCreditsNote": "Màxim 500 crèdits per solve, fins i tot per a problemes empresarials de 10M de variables",
-      "howCalculated": "Com es Calculen els Crèdits",
-      "calculatedDescription": "Cada sol·licitud de resolució costa crèdits segons la complexitat del problema:",
-      "currency": "Moneda",
-      "bankDetails": "Detalls Bancaris",
-      "paymentSettingsStripe": "Els pagaments es processen a través de Stripe Connect. Configura el teu compte al panell de venedor.",
-      "noBankDetails": "No hi ha detalls bancaris configurats",
-      "withdrawCredits": "Retirar Crèdits",
-      "amountCredits": "Import (crèdits)",
-      "enterAmount": "Introduïu l'import",
-      "maxCredits": "Màx: {count} crèdits",
-      "youReceive": "Rebreu",
-      "withdraw": "Retirar",
-      "scheduledWithdrawals": "Retirades Programades",
-      "addSchedule": "+ Afegir Programació",
-      "frequency": "Freqüència",
-      "amountType": "Tipus d'Import",
-      "createSchedule": "Crear Programació",
-      "noSchedules": "No hi ha retirades programades",
-      "allCredits": "Tots els crèdits",
-      "minThreshold": "Mín: {threshold} crèdits",
-      "recentWithdrawals": "Retirades Recents",
-      "noWithdrawals": "Encara no hi ha retirades",
-      "transactionHistory": "Historial de Transaccions",
-      "creditTransaction": "Transacció de crèdits",
-      "noActivityTitle": "Encara no hi ha activitat de crèdits",
-      "noActivityDescription": "El vostre historial de transaccions de crèdits apareixerà aquí després de la primera resolució o compra de crèdits.",
-      "noActivityExpert": "Encara no s'han registrat transaccions.",
-      "viewPricing": "Veure preus",
-      "loadingCredits": "Carregant dades de crèdits",
-      "withdrawalSuccess": "Sol·licitud de retirada creada correctament!",
-      "bankSaved": "Detalls bancaris desats!",
-      "scheduleSaved": "Programació de retirada creada!",
-      "deleteScheduleConfirm": "Eliminar aquesta programació de retirada?",
-      "invalidAmount": "Si us plau, introduïu un import vàlid",
-      "bankRequired": "Si us plau, configureu primer els detalls bancaris",
-      "ibanRequired": "L'IBAN i el nom del titular són obligatoris",
-      "frequencies": {
-        "weekly": "Setmanal",
-        "biweekly": "Cada 2 setmanes",
-        "monthly": "Mensual",
-        "quarterly": "Trimestral"
-      },
-      "amountTypes": {
-        "all": "Tots els crèdits disponibles",
-        "percentage": "Percentatge de crèdits",
-        "fixed": "Import fix"
-      },
-      "iban": "IBAN",
-      "swift": "SWIFT/BIC",
-      "swiftOptional": "SWIFT/BIC (opcional)",
-      "holderName": "Nom del Titular del Compte",
-      "percentagePlaceholder": "Percentatge (1-100)",
-      "fixedPlaceholder": "Import en crèdits",
-      "minThresholdPlaceholder": "Llindar mínim (crèdits)",
-      "baseCost": "Cost base",
-      "variableCost": "Cost variable",
-      "integerPenalty": "Penalització per enters",
-      "constraintCost": "Cost per restricció",
-      "timeBonus": "Bonificació per temps",
-      "failedWithdrawal": "Error en crear la retirada",
-      "failedBankSave": "Error en desar els detalls bancaris",
-      "failedCurrencyUpdate": "Error en actualitzar la moneda",
-      "failedCreateSchedule": "Error en crear la programació",
-      "failedDeleteSchedule": "Error en eliminar la programació",
-      "confirmWithdrawal": "Confirmar Retirada",
-      "withdrawConfirmMessage": "Retirar {amount} crèdits (aprox. {currencySymbol}{fiatAmount})?",
-      "ibanLabel": "IBAN:",
-      "swiftLabel": "SWIFT:",
-      "nameLabel": "Nom:",
-      "amountCreditsFixed": "{value} crèdits",
-      "viewSellerEarnings": "Veure guanys de venedor"
-    },
     "myProfile": {
       "title": "El Meu Perfil",
       "viewPublicProfile": "Veure Perfil Públic",
@@ -1826,7 +1696,7 @@
         "title": "Primers Passos amb Espais de Treball",
         "dismiss": "Entès",
         "whatIs": "Què és un espai de treball?",
-        "whatIsDescription": "Un espai de treball és un entorn aïllat per al teu equip. Els models, activadors i crèdits estan vinculats a un espai de treball, perquè cada equip pugui treballar de manera independent.",
+        "whatIsDescription": "Un espai de treball és un entorn aïllat per al teu equip. Els models i els triggers pertanyen a un espai de treball.",
         "howToInvite": "Convidar membres de l'equip",
         "howToInviteDescription": "Fes clic a \"Convidar Membre\" a dalt per enviar invitacions per correu electrònic o generar un enllaç d'invitació compartible. Només els administradors poden convidar nous membres.",
         "roles": "Rols i permisos",
@@ -1834,27 +1704,9 @@
         "roleViewer": "Visualitzador -- Pot veure models i resultats, però no pot crear ni editar res.",
         "roleEditor": "Editor -- Pot crear, editar i eliminar models i activadors.",
         "roleSolver": "Solucionador -- Pot executar resolucions i crear models (inclou permisos de Visualitzador).",
-        "roleAdmin": "Administrador -- Accés complet incloent convidar membres, gestionar configuracions i assignar crèdits.",
-        "billing": "Espais de treball i facturació",
-        "billingDescription": "Cada espai de treball pot tenir el seu propi saldo de crèdits. Els administradors assignen crèdits del balanç de l'organització, i totes les resolucions dins l'espai de treball consumeixen d'aquest saldo."
+        "roleAdmin": "Admin -- Accés complet, incloses invitacions i gestió de la configuració."
       },
       "createWorkspace": "Crear Espai de Treball"
-    },
-    "usage": {
-      "title": "Ús",
-      "subtitle": "Consum de crèdits i analítiques d'execució per a la vostra organització.",
-      "creditsUsedAllTime": "Crèdits Utilitzats (total)",
-      "totalExecutions": "Execucions Totals",
-      "activeModels": "Models Actius",
-      "creditUsage30Days": "Ús de Crèdits — Últims 30 Dies",
-      "creditsUsed": "Crèdits utilitzats",
-      "executions14Days": "Execucions — Últims 14 Dies",
-      "executionsLabel": "Execucions",
-      "topModels": "Models Principals per Ús",
-      "noModelsUsed": "Encara no s'han utilitzat models.",
-      "modelColumn": "Model",
-      "runsColumn": "Execucions",
-      "creditsUsedColumn": "Crèdits Utilitzats"
     },
     "workspaces": {
       "title": "Espais de Treball",
@@ -1865,7 +1717,6 @@
       "noWorkspacesUser": "Encara no heu estat afegit a cap espai de treball. Demaneu a un administrador que us convidi.",
       "inactive": "Inactiu",
       "memberCount": "{count, plural, one {# membre} other {# membres}}",
-      "creditsLabel": "Crèdits",
       "percentUsed": "{percent}% utilitzat",
       "createdDate": "Creat {date}",
       "loadError": "Error en carregar els espais de treball"
@@ -1910,24 +1761,6 @@
       "description": "Aquest enllaç és per a l'espai de treball <b>{name}</b>. Voleu canviar-hi?",
       "stayHere": "Quedar-se Aquí",
       "switchWorkspace": "Canviar d'Espai de Treball"
-    },
-    "creditPool": {
-      "title": "Reserva de Crèdits",
-      "noPool": "No hi ha cap reserva de crèdits configurada per a aquest espai de treball.",
-      "allocateCredits": "Assignar Crèdits",
-      "adminRequired": "Necessiteu rol d'administrador per assignar crèdits",
-      "allocated": "Assignats",
-      "used": "Utilitzats",
-      "available": "Disponibles",
-      "percentUsed": "{percent}% utilitzat",
-      "remaining": "{count} restants",
-      "amountLabel": "Import a assignar",
-      "amountPlaceholder": "p. ex. 500",
-      "allocating": "Assignant...",
-      "confirm": "Confirmar",
-      "allocateError": "Si us plau, introduïu un import positiu vàlid",
-      "allocateSuccess": "S'han assignat {amount} crèdits a la reserva de l'espai de treball",
-      "allocateFailed": "Error en assignar crèdits"
     },
     "invite": {
       "title": "Convidar Membres",
@@ -2031,17 +1864,13 @@
       "organizations": "Organitzacions",
       "users": "Usuaris",
       "models": "Models",
-      "creditBalance": "Saldo de Crèdits",
       "active": "{count} actives",
       "activated": "{count} activats",
       "acrossAllOrgs": "a totes les organitzacions",
-      "creditsOverview": "Resum de Crèdits",
-      "totalCreditsAllOrgs": "Total de crèdits a totes les organitzacions",
       "quickActions": "Accions Ràpides",
       "manageOrganizations": "Gestionar Organitzacions",
       "manageUsers": "Gestionar Usuaris",
       "manageApiKeys": "Gestionar Claus API",
-      "adjustCredits": "Ajustar Crèdits",
       "maintenanceMode": "Mode de manteniment",
       "maintenanceDescription": "Quan està activat, els usuaris no administradors veuen una pàgina de manteniment en lloc de la plataforma.",
       "maintenanceActive": "El manteniment està actiu actualment",
@@ -2093,39 +1922,10 @@
       "createFailed": "Error en crear la clau API. Torna-ho a provar.",
       "operationFailed": "L'operació ha fallat. Torna-ho a provar."
     },
-    "credits": {
-      "title": "Gestió de Crèdits",
-      "subtitle": "Visualitzeu i ajusteu els crèdits de les organitzacions",
-      "orgBalances": "Saldos de les Organitzacions",
-      "clickToAdjust": "Feu clic per ajustar",
-      "credits": "crèdits",
-      "adjustCredits": "Ajustar Crèdits",
-      "currentBalance": "Saldo Actual",
-      "amountLabel": "Import (positiu per afegir, negatiu per restar)",
-      "amountPlaceholder": "p. ex., 1000 o -500",
-      "reason": "Motiu",
-      "reasonPlaceholder": "p. ex., Recàrrega mensual, Reemborsament, Bonificació",
-      "newBalance": "El nou saldo serà: <b>{amount}</b> crèdits",
-      "applyAdjustment": "Aplicar Ajust",
-      "transactionHistory": "Historial de Transaccions",
-      "allOrganizations": "Totes les Organitzacions",
-      "tableHeaders": {
-        "date": "Data",
-        "organization": "Organització",
-        "type": "Tipus",
-        "amount": "Import",
-        "balanceAfter": "Saldo Posterior",
-        "description": "Descripció"
-      },
-      "noTransactions": "No s'han trobat transaccions",
-      "pageOf": "Pàgina {page} de {totalPages}",
-      "adjustFailed": "Error en ajustar els crèdits. Torna-ho a provar."
-    },
     "executions": {
       "title": "Execucions",
       "subtitle": "Monitoritzeu totes les execucions de models a la plataforma",
       "totalShown": "Total Mostrat",
-      "creditsUsed": "Crèdits Utilitzats",
       "avgTime": "Temps Mitjà",
       "allStatus": "Tots els Estats",
       "completed": "Completada",
@@ -2137,7 +1937,6 @@
         "model": "Model",
         "organization": "Organització",
         "status": "Estat",
-        "credits": "Crèdits",
         "duration": "Durada",
         "date": "Data"
       },
@@ -2179,7 +1978,6 @@
       "tableHeaders": {
         "name": "Nom",
         "plan": "Pla",
-        "credits": "Crèdits",
         "users": "Usuaris",
         "verified": "Verificat",
         "status": "Estat",
@@ -2200,7 +1998,6 @@
         "pro": "Pro",
         "business": "Business"
       },
-      "initialCredits": "Crèdits Inicials",
       "enableAiBuilder": "Activar Constructor IA",
       "create": "Crear",
       "saveChanges": "Desar Canvis",
@@ -2264,10 +2061,8 @@
       "users": "Usuaris",
       "activeUsers": "Usuaris Actius",
       "catalogModels": "Models del Catàleg",
-      "creditBalance": "Saldo de Crèdits",
       "tabs": {
         "system": "Sistema",
-        "billing": "Facturacio",
         "solver": "Solver",
         "llm": "LLM",
         "email": "Correu electronic",
@@ -2275,7 +2070,8 @@
         "marketplace": "Marketplace",
         "secrets": "Secrets",
         "auditLog": "Registre d'auditoria",
-        "systemSettings": "Configuració del sistema"
+        "systemSettings": "Configuració del sistema",
+        "billing": "Plans i límits"
       },
       "saveChanges": "Desar canvis",
       "saving": "Desant...",
@@ -2332,7 +2128,6 @@
         "allowedFeaturesHelp": "Array JSON de cadenes de funcionalitats, p. ex. [\"basic\", \"export\"]",
         "headers": {
           "plan": "Pla",
-          "credits": "Crèdits",
           "monthlyQuota": "Quota mensual",
           "rateLimitMin": "Limit/min",
           "rateLimitDay": "Limit/dia",
@@ -2397,18 +2192,13 @@
       "sellerLeaderboard": "Classificacio de venedors",
       "rank": "#",
       "sellerName": "Venedor",
-      "totalSales": "Vendes totals",
-      "totalRevenue": "Ingressos totals",
       "modelsPublished": "Models publicats",
       "avgRating": "Valoració mitjana",
       "drillDown": "Veure detalls",
-      "promotions": "Promocions actives",
-      "promotionsDesc": "Gestionar promocions de posicionament destacat al marketplace",
       "verificationRequests": "Sol·licituds de verificacio",
       "verificationDesc": "Revisar i aprovar sol·licituds d'insiglia de verificacio de venedors",
       "modelName": "Model",
       "type": "Tipus",
-      "creditsPaid": "Crèdits pagats",
       "startDate": "Data d'inici",
       "endDate": "Data de fi",
       "status": "Estat",
@@ -2426,9 +2216,8 @@
       "approved": "Aprovat",
       "pending": "Pendent",
       "noRequests": "No hi ha sol·licituds de verificacio pendents",
-      "noPromotions": "No hi ha promocions actives",
       "noSellerData": "No hi ha dades de venedors disponibles.",
-      "creditsUnit": "crèdits"
+      "totalActivations": "Activacions"
     },
     "featureAnalytics": {
       "title": "Analitiques d'us de funcionalitats",
@@ -2475,12 +2264,10 @@
         "apiKeys": "Claus API",
         "executions": "Execucions",
         "reportedReviews": "Ressenyes reportades",
-        "credits": "Crèdits",
         "marketplace": "Marketplace",
         "sellerAnalytics": "Anàlisi de venedors",
         "featureAnalytics": "Anàlisi de funcions",
         "verification": "Verificació",
-        "promotions": "Promocions",
         "settings": "Configuració",
         "backToApp": "Tornar a l'app",
         "platformAnalytics": "Plataforma"
@@ -2567,20 +2354,16 @@
       "sections": {
         "overview": "Resum",
         "configuration": "Configuració i límits",
-        "credits": "Crèdits",
         "users": "Usuaris",
         "apiKeys": "Claus API",
         "models": "Models",
-        "executions": "Execucions recents",
-        "transactions": "Moviments de crèdits recents"
+        "executions": "Execucions recents"
       },
       "kpi": {
         "users": "Usuaris",
         "apiKeys": "Claus API",
         "models": "Models",
-        "executions": "Execucions",
-        "creditsBalance": "Saldo de crèdits",
-        "creditsUsedMonth": "Usats aquest mes"
+        "executions": "Execucions"
       },
       "config": {
         "plan": "Pla",
@@ -2593,19 +2376,11 @@
         "currency": "Moneda",
         "createdAt": "Creada",
         "slug": "Slug públic",
-        "billingEmail": "Correu de facturació",
         "website": "Lloc web",
         "owner": "Propietari",
         "verified": "Editor verificat",
         "active": "Activa",
         "publicProfile": "Perfil públic"
-      },
-      "credits": {
-        "balance": "Saldo total",
-        "subscription": "Subscripció",
-        "purchased": "Comprats",
-        "earned": "Guanyats (marketplace)",
-        "usedMonth": "Usats aquest mes"
       },
       "executionStats": {
         "completed": "Completades",
@@ -2631,7 +2406,6 @@
         "name": "Nom",
         "source": "Origen",
         "executions": "Execucions",
-        "creditsUsed": "Crèdits usats",
         "lastRun": "Última execució",
         "status": "Estat"
       },
@@ -2639,7 +2413,6 @@
         "model": "Model",
         "status": "Estat",
         "solver": "Solver",
-        "credits": "Crèdits",
         "time": "Temps",
         "objective": "Objectiu",
         "date": "Data"
@@ -2687,11 +2460,9 @@
       "official": "OFICIAL",
       "featuredBadge": "DESTACAT",
       "free": "Gratis",
-      "credits": "{count} cr",
       "newModel": "Nou",
       "viewSeller": "per {seller}",
       "verified": "Verificat",
-      "activationPrice": "{price} crèdits",
       "open": "Obrir",
       "activate": "Activar",
       "removeFromFavorites": "Treure de favorits",
@@ -2706,9 +2477,6 @@
       "modelNotFound": "Model no trobat",
       "failedToLoad": "Error en carregar el model",
       "free": "Gratuït",
-      "creditsPerRun": "{credits} crèdits/execució",
-      "dynamicCredits": "Preu dinàmic",
-      "dynamicCreditsTooltip": "El cost depèn de la mida del problema (variables x restriccions)",
       "openModel": "Obrir Model",
       "useInStudio": "Usa a l'estudi",
       "openingStudio": "Obrint…",
@@ -2763,14 +2531,12 @@
         "changelogEmpty": "Encara no hi ha entrades al registre de canvis",
         "emptyHint": "L'editor encara no ha afegit contingut per a aquesta secció."
       },
-      "insufficientCredits": "Crèdits insuficients per activar aquest model. Si us plau, recarrega el teu saldo.",
       "alreadyActivated": "Aquest model ja està activat al teu compte.",
       "activateModal": {
         "title": "Activar Model",
         "description": "Activar porta aquest model al teu espai de treball.",
         "bringToWorkspace": "Aquest model s'afegirà al teu espai de treball.",
         "ownCopy": "Obtindràs la teva pròpia còpia per executar, modificar o tornar a publicar.",
-        "cost": "Això costarà {price} crèdits.",
         "customNameLabel": "Nom personalitzat (opcional)",
         "customNameHint": "Dona-li un nom personalitzat al teu espai de treball, o deixa'l en blanc per utilitzar l'original.",
         "confirm": "Confirmar Activació"
@@ -2799,11 +2565,8 @@
       "sort": {
         "popular": "Més Populars",
         "newest": "Més Recents",
-        "rating": "Millor Valorats",
-        "priceAsc": "Preu: de baix a alt",
-        "priceDesc": "Preu: d'alt a baix"
+        "rating": "Millor Valorats"
       },
-      "insufficientCredits": "Crèdits insuficients per activar aquest model. Si us plau, recarrega el teu saldo.",
       "alreadyActivated": "Aquest model ja està activat al teu compte."
     },
     "categories": {
@@ -2816,9 +2579,6 @@
       "featured": "Destacat",
       "noDescription": "No hi ha descripció disponible",
       "moreTag": "+{count} més",
-      "creditsPerRun": "{credits} crèdits/execució",
-      "dynamicCredits": "Preu dinàmic",
-      "dynamicCreditsTooltip": "El cost depèn de la mida del problema (variables x restriccions)",
       "activationsCount": "{count} activacions",
       "successPercent": "{percent}% èxit",
       "by": "per {author}",
@@ -2836,8 +2596,7 @@
       "viewModel": "Veure model",
       "activations": "{count} activacions",
       "rating": "{rating} estrelles",
-      "goToSlide": "Anar a la diapositiva {number}",
-      "promoted": "Promocionat"
+      "goToSlide": "Anar a la diapositiva {number}"
     },
     "search": {
       "models": "Models",
@@ -2850,12 +2609,7 @@
       "sortPopular": "Més populars",
       "sortRating": "Millor valorats",
       "sortNewest": "Més recents",
-      "sortPriceAsc": "Preu: menor a major",
-      "sortPriceDesc": "Preu: major a menor",
       "categories": "Categories",
-      "priceRange": "Rang de preu",
-      "priceCredits": "{value} cr",
-      "clearPrice": "Esborra",
       "rating": "Valoració mínima",
       "ratingUp": "{stars} i mes",
       "anyRating": "Qualsevol valoració",
@@ -2864,7 +2618,8 @@
       "clearAll": "Esborra tots els filtres",
       "activeCount": "{count, plural, one {# filtre actiu} other {# filtres actius}}",
       "showFilters": "Filtres",
-      "closeFilters": "Tanca"
+      "closeFilters": "Tanca",
+      "clearCategory": "Treu la categoria"
     },
     "sellerProfile": {
       "title": "Perfil de venedor",
@@ -2880,46 +2635,9 @@
       "backToMarketplace": "Tornar al Marketplace",
       "failedToLoad": "Error en carregar el perfil del venedor",
       "sellerNotFound": "Venedor no trobat"
-    },
-    "meta": {}
+    }
   },
   "seller": {
-    "earnings": {
-      "title": "Guanys del venedor",
-      "totalSales": "Vendes totals",
-      "totalEarned": "Total guanyat",
-      "commissionPaid": "Comissio pagada",
-      "withdrawableBalance": "Saldo disponible",
-      "commissionRate": "{rate}% de comissio",
-      "salesHistory": "Historial de vendes",
-      "date": "Data",
-      "model": "Model",
-      "buyer": "Comprador",
-      "salePrice": "Preu de venda",
-      "commission": "Comissio",
-      "yourEarning": "El teu guany",
-      "noSales": "Encara no hi ha vendes. Publica un model al marketplace per comencar a guanyar.",
-      "credits": "{amount} crèdits",
-      "payoutConfig": "Configuració de pagaments",
-      "addSchedule": "Afegir programació",
-      "frequency": "Frequencia",
-      "amountType": "Tipus d'import",
-      "amountValue": "Import",
-      "minThreshold": "Llindar mínim",
-      "nextExecution": "Propera execucio",
-      "deleteSchedule": "Eliminar",
-      "noSchedules": "No hi ha programacions de retirada automàtica configurades.",
-      "backToCredits": "Tornar a crèdits",
-      "viewEarnings": "Veure guanys del venedor",
-      "weekly": "Setmanal",
-      "biweekly": "Quinzenal",
-      "monthly": "Mensual",
-      "quarterly": "Trimestral",
-      "all": "Tots els guanys",
-      "percentage": "Percentatge",
-      "fixed": "Import fix",
-      "failedToLoad": "Error en carregar les dades de guanys del venedor. Si us plau, torna-ho a provar."
-    },
     "analytics": {
       "title": "Analitiques de venedor",
       "description": "Fes seguiment del teu rendiment al marketplace",
@@ -2930,13 +2648,11 @@
       "totalViews": "Visites totals",
       "totalImpressions": "Impressions totals",
       "totalActivations": "Activacions totals",
-      "totalRevenue": "Ingressos totals",
       "conversionRate": "Taxa de conversio",
-      "revenueChart": "Visites i activacions",
+      "revenueChart": "Activacions al llarg del temps",
       "views": "Visites",
       "activations": "Activacions",
       "impressions": "Impressions",
-      "revenue": "Ingressos",
       "conversionFunnel": "Embut de conversio",
       "funnelImpressions": "Impressions",
       "funnelViews": "Visites detallades",
@@ -2951,11 +2667,8 @@
     },
     "promotions": {
       "title": "Promociona el teu model",
-      "promoteModel": "Promocionar model",
       "selectModel": "Selecciona un model",
-      "placementType": "Tipus de posicionament",
       "duration": "Durada",
-      "creditsCost": "crèdits",
       "purchase": "Comprar",
       "purchaseSuccess": "Posicionament comprat correctament!",
       "homepageCarousel": "Carrusel de la pàgina principal",
@@ -2964,14 +2677,9 @@
       "categorySpotlightDesc": "Ressaltat a la pàgina de categoria del teu model",
       "searchBoost": "Impuls en cerca",
       "searchBoostDesc": "Posicionament millorat als resultats de cerca",
-      "promotedBadge": "Insiglia de promocio",
-      "promotedBadgeDesc": "Etiqueta de promocionat a la targeta del teu model",
       "days7": "7 dies",
       "days14": "14 dies",
-      "days30": "30 dies",
-      "activePlacements": "Posicionaments actius",
-      "noActivePlacements": "No hi ha promocions actives. Promociona un model per augmentar-ne la visibilitat.",
-      "promoted": "Promocionat"
+      "days30": "30 dies"
     },
     "verification": {
       "title": "Insiglia de verificacio",
@@ -2987,15 +2695,13 @@
     "notifications": {
       "title": "Preferències de notificacions",
       "description": "Tria com vols rebre notificacions sobre esdeveniments de venedor",
-      "eventNewSale": "Nova venda",
-      "eventPayoutCompleted": "Pagament completat",
       "eventNewReview": "Nova ressenya",
-      "eventPromotionExpiring": "Promocio a punt de caducar",
       "channelInApp": "A l'app",
       "channelEmail": "Correu electronic",
       "enabled": "Activat",
       "disabled": "Desactivat",
-      "preferencesUpdated": "Preferències actualitzades"
+      "preferencesUpdated": "Preferències actualitzades",
+      "eventModelActivated": "Model activat"
     },
     "onboarding": {
       "title": "Comenca com a venedor",
@@ -3024,12 +2730,7 @@
       "otherModels": "Altres Models",
       "allModels": "Tots els Models",
       "runs": "{count} execucions",
-      "creditsUsed": "{count} crèdits utilitzats",
       "lastRun": "Última execució: {date}",
-      "creditsPerRun": "{credits} crèdits/execució",
-      "dynamicCredits": "Preu dinàmic",
-      "dynamicCreditsTooltip": "El cost depèn de la mida del problema (variables x restriccions)",
-      "avgCreditsPerRun": "~{avg} crèdits/execució",
       "publish": "Publicar",
       "publishToMarketplace": "Publicar al marketplace",
       "history": "Historial",
@@ -3054,10 +2755,7 @@
       "backToModels": "Tornar als Meus Models",
       "modelNotFound": "Model no trobat",
       "failedToLoad": "Error en carregar el model",
-      "credits": "{count} crèdits",
       "perExecution": "per execució",
-      "dynamicCredits": "Preu dinàmic",
-      "dynamicCreditsTooltip": "El cost depèn de la mida del problema (variables x restriccions)",
       "inputData": "Dades d'Entrada",
       "loadExample": "Carregar Exemple",
       "enterJsonDescription": "Introduïu les dades del problema en format JSON",
@@ -3066,8 +2764,8 @@
       "syncDescription": "Esperar el resultat (més ràpid per a problemes simples)",
       "warmStart": "Inici en Calent",
       "warmStartHint": "(opcional — utilitzeu una solució anterior per accelerar la resolució)",
-      "warmStartSelected": "Inici en calent seleccionat — el solucionador utilitzarà aquesta solució com a punt de partida (s'aplica un 50% de descompte en crèdits).",
-      "runModel": "{credits, plural, =0 {Executar {mode}} one {Executar {mode} (# crèdit)} other {Executar {mode} (# crèdits)}}",
+      "warmStartSelected": "Warm start seleccionat — el solver usarà aquesta solució com a punt de partida.",
+      "runModel": "Executa {mode}",
       "modeAsync": "Asíncron",
       "modeSync": "Model",
       "starting": "Iniciant...",
@@ -3079,13 +2777,11 @@
       "modelLabel": "Model",
       "variable": "Variable",
       "value": "Valor",
-      "creditsConsumed": "Crèdits consumits: {credits}",
       "executionTime": "Temps d'execució: {time}ms",
       "inputParametersReference": "Referència de Paràmetres d'Entrada",
       "invalidJsonSyntax": "Sintaxi JSON no vàlida. Si us plau, comproveu l'entrada.",
       "validationErrors": "Errors de validació:",
       "executionFailed": "L'execució ha fallat",
-      "insufficientCredits": "Crèdits insuficients per executar aquest model. Si us plau, recarrega el teu saldo.",
       "invalidInput": "Entrada invàlida: {detail}",
       "solverTimeout": "El solucionador ha esgotat el temps. Prova de reduir la mida del problema o augmentar el límit de temps.",
       "history": "Historial",
@@ -3097,7 +2793,6 @@
       "title": "Historial d'Execucions: {modelName}",
       "subtitle": "Visualitzeu totes les execucions passades d'aquest model",
       "totalRuns": "Execucions Totals",
-      "creditsUsed": "Crèdits Utilitzats",
       "lastRun": "Última Execució",
       "never": "Mai",
       "allOrigins": "Tots els Orígens",
@@ -3117,7 +2812,6 @@
         "origin": "Origen",
         "objective": "Objectiu",
         "duration": "Durada",
-        "credits": "Crèdits",
         "actions": "Accions"
       },
       "view": "Veure",
@@ -3146,10 +2840,7 @@
       "category": "Categoria",
       "tags": "Etiquetes",
       "tagsPlaceholder": "optimització, pressupost, planificació (separades per comes)",
-      "priceEur": "Preu (EUR)",
       "freeToActivate": "0 = Gratuït per activar",
-      "creditsPerRun": "Crèdits per Execució",
-      "dynamicCreditsDescription": "Els crèdits es calculen dinàmicament segons la mida del teu problema (variables, restriccions, complexitat).",
       "publishToMarketplace": "Publicar al Marketplace",
       "publishing": "Publicant...",
       "published": "Publicat",
@@ -3234,7 +2925,6 @@
       "backToTemplates": "Tornar a les Plantilles",
       "title": "Problema Personalitzat",
       "subtitle": "Definiu el vostre propi problema d'optimització amb variables, restriccions i objectiu personalitzats",
-      "credits": "{count} crèdits",
       "problemDefinition": "Definició del Problema",
       "defineInJson": "Definiu el vostre problema d'optimització en format JSON",
       "loadExample": "Carregar Exemple",
@@ -3244,7 +2934,6 @@
       "solving": "Resolent...",
       "validProblem": "Problema Vàlid",
       "invalidProblem": "Problema No Vàlid",
-      "estimatedCost": "Cost estimat: {credits} crèdits",
       "invalidJsonFormat": "Format JSON no vàlid",
       "validationFailed": "Validació fallida",
       "error": "Error",
@@ -3252,8 +2941,6 @@
       "result": "Resultat",
       "resultDescription": "Mètriques del model i rendiment",
       "solveTime": "Temps de Resolució",
-      "creditsLabel": "Crèdits",
-      "creditsUsedRemaining": "{used} utilitzats / {remaining} restants",
       "modelLabel": "Model",
       "runSolverToSeeResults": "Executeu el solucionador per veure els resultats",
       "formatReference": "Referència del Format del Problema",
@@ -3282,7 +2969,6 @@
         "origin": "Origen",
         "model": "Model",
         "result": "Resultat",
-        "credits": "Crèdits",
         "time": "Temps",
         "date": "Data",
         "actions": "Accions"
@@ -3308,7 +2994,6 @@
       "started": "Iniciada",
       "duration": "Durada",
       "durationMs": "{ms}ms",
-      "creditsUsed": "Crèdits Utilitzats",
       "solverStatus": "Estat del Solucionador",
       "solver": "Solver",
       "error": "Error",
@@ -3384,9 +3069,6 @@
       "constraintPlaceholder": "p. ex., x + y <= 10",
       "noConstraints": "Sense restriccions — el problema pot ser il·limitat.",
       "objectiveConfiguration": "Configuració de l'Objectiu",
-      "estimatedCost": "Cost estimat:",
-      "estimatedCreditsValue": "~{credits} crèdits",
-      "solvesBreakdown": "({nPoints} resolucions x ~{perSolve} crèdit/resolució)",
       "generateParetoFront": "Generar Front de Pareto",
       "paretoFrontResults": "Resultats del Front de Pareto",
       "downloadCsv": "Descarregar CSV",
@@ -3396,19 +3078,11 @@
       "weightsMustSumToOne": "Els pesos han de sumar 1.0 (actual: {sum}).",
       "noConstraintsWarning": "No hi ha restriccions definides. El problema pot ser il·limitat.",
       "paretoComputed": "Front de Pareto calculat: {count} solucions trobades.",
-      "chargedFromWorkspace": "Carregat des de l'Espai de Treball '{name}'",
-      "chargedFromPersonal": "Carregat des de crèdits personals",
-      "usingPersonalCredits": "Utilitzant crèdits personals — cap espai de treball seleccionat",
-      "insufficientCredits": "L'espai de treball no té prou crèdits",
       "solveFailed": "Error en resoldre",
       "solving": "Resolent...",
       "description": "Exploreu compromisos <tooltip>Pareto-òptims</tooltip> entre dos objectius.",
       "defaultObjective1": "Objectiu 1",
       "defaultObjective2": "Objectiu 2",
-      "creditSourceWorkspace": "Crèdits: Espai de Treball ''{name}'' ({remaining} restants)",
-      "creditSourcePersonal": "Crèdits: Personals ({remaining} restants)",
-      "creditSourceWorkspaceShort": "Crèdits: Espai de Treball ''{name}''",
-      "creditSourcePersonalShort": "Crèdits: Personals",
       "allExpressionsRequired": "Totes les expressions d'objectiu són obligatòries.",
       "defaultObjectiveN": "Objectiu {n}",
       "gettingStartedTitle": "Com funciona",
@@ -3447,7 +3121,6 @@
       "objectiveDelta": "Delta de l'Objectiu",
       "variablesChanged": "Variables Canviades",
       "timeDifference": "Diferència de Temps",
-      "creditsDifference": "Diferència de Crèdits",
       "variableName": "Nom de la Variable",
       "type": "Tipus",
       "runA": "Execució A",
@@ -3473,7 +3146,6 @@
       "status": "Estat",
       "solverStatus": "Estat del Solucionador",
       "objectiveValue": "Valor de l'Objectiu",
-      "creditsLabel": "Crèdits",
       "origin": "Origen",
       "nameHeader": "Nom",
       "typeHeader": "Tipus",
@@ -3486,7 +3158,6 @@
       "objectiveTrend": "Tendència de l'Objectiu",
       "generated": "Generat",
       "solveTime": "Temps de Resolució",
-      "creditsUsed": "Crèdits Utilitzats",
       "triggerIdLabel": "ID del Trigger",
       "noVariables": "Sense variables",
       "printSaveAsPdf": "Imprimir / Desar com a PDF",
@@ -3515,7 +3186,6 @@
         "scatter": "Dispersió",
         "bar": "Barres",
         "objective": "Objectiu: {value}",
-        "creditsUsed": "Crèdits utilitzats: {credits}",
         "origin": "Origen: {origin}",
         "legendManual": "Manual",
         "legendTriggered": "Per trigger"
@@ -3524,7 +3194,6 @@
         "paretoFront": "Front de Pareto",
         "paretoSolutions": "Solucions Pareto:",
         "mode": "Mode:",
-        "creditsUsed": "Crèdits utilitzats:",
         "pointNumber": "Punt #{number}",
         "clickToHighlight": "Feu clic en un punt per ressaltar la fila corresponent a la taula de sota.",
         "clickToSelect": "Feu clic als punts per explorar compromisos. Seleccioneu fins a 2 punts per comparar.",
@@ -3556,18 +3225,15 @@
       "totalExecutions": "Total d'execucions",
       "successRate": "Taxa d'èxit",
       "avgSolveTime": "Temps mitjà",
-      "totalCredits": "Crèdits totals",
       "completed": "Completades",
       "failed": "Fallides",
       "timedOut": "Expirades",
-      "avgCredits": "Crèdits mitjans",
       "medianSolveTime": "Temps medià",
       "trends": "Tendències",
       "trendsDescription": "Volum d'execucions i rendiment al llarg del temps.",
       "daily": "Diari",
       "weekly": "Setmanal",
       "executions": "Execucions",
-      "credits": "Crèdits",
       "statusDistribution": "Distribució d'estat",
       "originDistribution": "Distribució d'origen",
       "solverStatusDistribution": "Estat del solver",
@@ -3580,7 +3246,6 @@
       "selectExecutions": "Seleccionar execucions per comparar",
       "objectiveValue": "Objectiu",
       "solveTime": "Temps",
-      "creditsUsed": "Crèdits",
       "variables": "Variables",
       "constraints": "Restriccions",
       "gap": "Gap",
@@ -3719,7 +3384,6 @@
       "id": "ID: {id}",
       "variables": "{count} vars",
       "activeLabel": "Inici en calent actiu",
-      "creditDiscount": "50% descompte en crèdits",
       "selectedDetail": "Utilitzant solució de {date} (obj: {objective}) com a punt de partida."
     },
     "progress": {
@@ -3787,8 +3451,7 @@
       "previewFailed": "Error en analitzar el fitxer. Revisa el format.",
       "previewTitle": "Vista Previa del Model",
       "title": "Importar Fitxer",
-      "variables": "Variables",
-      "estimatedCredits": "Cred. Est."
+      "variables": "Variables"
     },
     "visualization": {
       "variableValues": "Valors de variables",
@@ -3797,21 +3460,6 @@
       "noInsights": "No hi ha anàlisi disponible per a aquesta execució.",
       "showingTop": "Mostrant les {count} de {total} variables principals per magnitud"
     }
-  },
-  "billing": {
-    "title": "Facturació i pla",
-    "currentPlan": "Pla actual",
-    "creditBalance": "Saldo de crèdits",
-    "freePlanUpgrade": "Estàs al pla <strong>Gratuït</strong>. Millora per desbloquejar límits de resolució més alts, funcions avançades i suport prioritari.",
-    "contactUpgrade": "Contacta'ns per millorar",
-    "managedPlanMessage": "Estàs al pla <strong>{planName}</strong>. Per gestionar la teva subscripció o canviar de pla, contacta amb <link>support@jaot.io</link>.",
-    "buyCredits": "Comprar crèdits",
-    "topupDescription": "Compra paquets de crèdits per continuar resolent quan s'esgotin els teus crèdits mensuals. Els crèdits comprats no caduquen mai.",
-    "creditsUnit": "crèdits",
-    "eurPerCredit": "EUR/crèdit",
-    "redirectingToStripe": "Redirigint a Stripe...",
-    "priceEur": "{price} EUR",
-    "checkoutUnavailable": "Els pagaments no estan disponibles en aquest servidor."
   },
   "triggers": {
     "list": {
@@ -3946,11 +3594,9 @@
       "statusFailed": "Fallit",
       "statusTimeout": "Temps excedit",
       "statusValidationFailed": "Validació Fallida",
-      "statusSkippedCredits": "Omès (Crèdits)",
       "statusSkippedOverlap": "Omès (Solapament)",
       "headerStatus": "Estat",
       "headerRunId": "ID d'Execució",
-      "headerCredits": "Crèdits",
       "headerDuration": "Durada",
       "headerOverrides": "Sobreescriptures",
       "headerWebhook": "Webhook",
@@ -3966,7 +3612,6 @@
       "pageInfo": "Pàgina {page} de {totalPages}",
       "runDetails": "Detalls de l'Execució",
       "runId": "ID d'Execució",
-      "creditsConsumed": "Crèdits Consumits",
       "duration": "Durada",
       "webhookDelivered": "Webhook Lliurat",
       "webhookYes": "Sí",
@@ -4080,25 +3725,6 @@
     },
     "objectiveValue": {
       "definition": "El valor final de la funció que s'està optimitzant (minimitzant o maximitzant)."
-    },
-    "baseCost": {
-      "definition": "El càrrec mínim de crèdits per qualsevol sol·licitud de resolució, independentment de la mida del problema.",
-      "example": "Cada resolució costa com a mínim 1 crèdit."
-    },
-    "variableCost": {
-      "definition": "Crèdits addicionals cobrats per cada variable de decisió al model.",
-      "example": "Cada variable afegeix 0.1 crèdits al cost total."
-    },
-    "integerPenalty": {
-      "definition": "Crèdits extra cobrats per variables enteres i binàries, que fan el problema més difícil de resoldre.",
-      "example": "Les variables enteres afegeixen 0.3 crèdits cadascuna; les binàries afegeixen 0.2."
-    },
-    "constraintCost": {
-      "definition": "Crèdits addicionals cobrats per cada restricció al model.",
-      "example": "Cada restricció afegeix 0.05 crèdits."
-    },
-    "timeBonus": {
-      "definition": "Crèdits extra cobrats quan es sol·licita un límit de temps més alt."
     },
     "formulation": {
       "definition": "La representació matemàtica d'un problema del món real, incloent variables de decisió, restriccions i una funció objectiu.",
@@ -4883,7 +4509,7 @@
     "description": "Gestiona les preferències del teu espai de treball i notificacions",
     "byok": {
       "title": "La teva pròpia API key d'Anthropic",
-      "description": "Afegeix l'API key d'Anthropic de la teva organització per executar totes les funcions d'IA al teu propi compte — sense crèdits de JAOT i independent del pressupost compartit de la plataforma.",
+      "description": "Afegeix la clau d'API d'Anthropic de la teva organització per executar totes les funcions d'IA al teu propi compte, independent del pressupost compartit de la plataforma.",
       "active": "Activa — usant la teva pròpia key",
       "inactive": "Sense configurar — usant el pressupost d'IA compartit de la plataforma.",
       "placeholder": "sk-ant-...",
@@ -4944,7 +4570,6 @@
   "contact": {
     "title": "Contacta amb nosaltres",
     "subtitle": "Tens alguna pregunta, comentari o idea de col·laboració? Envia'ns un missatge i et respondrem.",
-    "meta": {},
     "form": {
       "fields": {
         "name": {

@@ -31,7 +31,6 @@ List all executions across all models for your organization.
 | `items[].model_id` | string | The model that was executed |
 | `items[].status` | string | Execution status (see table below) |
 | `items[].result_data` | object | Optimization result (when completed) |
-| `items[].credits_used` | number | Credits consumed |
 | `items[].created_at` | string | ISO 8601 timestamp when submitted |
 | `items[].completed_at` | string | ISO 8601 timestamp when finished (null if pending/running) |
 | `total` | integer | Total matching executions |
@@ -67,7 +66,6 @@ data = response.json()
 for execution in data["items"]:
     print(f"Status: {execution['status']}")
     print(f"Objective: {execution['result_data']['objective_value']}")
-    print(f"Credits used: {execution['credits_used']}")
 ```
 
 ```bash
@@ -107,7 +105,6 @@ items.forEach((exec) => {
         ],
         "solve_time_seconds": 2.34
       },
-      "credits_used": 3,
       "created_at": "2026-02-19T10:05:00Z",
       "completed_at": "2026-02-19T10:05:12Z"
     }
@@ -140,7 +137,6 @@ Get the status and result of a specific execution.
 | `model_id` | string | Model ID |
 | `status` | string | Current status |
 | `result_data` | object | Full optimization result (null if not completed) |
-| `credits_used` | number | Credits consumed |
 | `created_at` | string | Submission timestamp |
 | `completed_at` | string | Completion timestamp |
 
@@ -154,7 +150,7 @@ import time
 API_URL = "https://jaot.io/api/v2"
 headers = {
     "Authorization": "Bearer ok_live_your_key_here",
-    "Content-Type": "application/json",
+    "Content-Type": "application/json"
 }
 
 # Execute a model

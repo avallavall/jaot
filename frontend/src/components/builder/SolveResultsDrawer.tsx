@@ -173,16 +173,6 @@ export function SolveResultsDrawer({ result, isOpen, onClose }: SolveResultsDraw
                     : "—"}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{t("results.creditsUsed")}</span>
-                <span className="tabular-nums font-medium">{result.credits_used}</span>
-              </div>
-              {result.credits_remaining !== undefined && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t("results.creditsRemaining")}</span>
-                  <span className="tabular-nums font-medium">{result.credits_remaining}</span>
-                </div>
-              )}
               {result.gap !== undefined && result.gap !== null && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{t("results.mipGap")}</span>

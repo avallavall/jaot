@@ -505,7 +505,7 @@ test.describe("Marketplace Purchase Flow", () => {
         .filter({ hasText: /COMPLETED|FAILED|TIMEOUT|INFEASIBLE/i });
 
       const resultData = page.getByText(
-        /objective.*value|solve.*time|credits|result/i
+        /objective.*value|solve.*time|result/i
       );
 
       // Either a status badge or result data should appear
@@ -681,33 +681,6 @@ test.describe("Marketplace Purchase Flow", () => {
       expect(hasErrorState).toBe(true);
 
       await context.close();
-    });
-
-    test("insufficient credits shows appropriate error", async ({ page }) => {
-      // This test verifies the error handling path for paid models.
-      // We attempt to activate a paid model (if any exist) and verify the
-      // error message is user-friendly when credits are insufficient.
-      await page.goto("/marketplace");
-      await expect(page).toHaveURL(/\/marketplace/);
-
-      const content = page.locator("#main-content");
-      await expect(content).toBeVisible({ timeout: NAV_TIMEOUT });
-
-      // Look for paid model indicators (price badge showing non-zero EUR)
-      const paidModelIndicator = page.getByText(/\d+\.\d+\s*€|EUR/);
-      const hasPaidModels = (await paidModelIndicator.count()) > 0;
-
-      if (!hasPaidModels) {
-        test.info().annotations.push({
-          type: "skip-reason",
-          description: "No paid models in catalog to test insufficient credits",
-        });
-        return;
-      }
-
-      // We don't actually click activate for a paid model (would consume credits).
-      // Instead, verify the catalog page correctly displays pricing information.
-      await expect(paidModelIndicator.first()).toBeVisible();
     });
 
     test("self-purchase prevention for own published models", async ({

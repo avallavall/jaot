@@ -30,10 +30,6 @@ export class AdminPage {
     await this.page.goto(localePath("/admin/executions", locale));
   }
 
-  async gotoCredits(locale?: string) {
-    await this.page.goto(localePath("/admin/credits", locale));
-  }
-
   async gotoApiKeys(locale?: string) {
     await this.page.goto(localePath("/admin/api-keys", locale));
   }

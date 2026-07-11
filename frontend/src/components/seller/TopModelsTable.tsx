@@ -19,8 +19,8 @@ interface TopModelsTableProps {
 export function TopModelsTable({ data }: TopModelsTableProps) {
   const t = useTranslations("seller.analytics");
 
-  // Sort by revenue descending
-  const sorted = [...data].sort((a, b) => b.revenue - a.revenue);
+  // Sort by activations descending
+  const sorted = [...data].sort((a, b) => b.activations - a.activations);
 
   return (
     <Card>
@@ -43,7 +43,6 @@ export function TopModelsTable({ data }: TopModelsTableProps) {
                 <TableHead className="text-right">
                   {t("activations")}
                 </TableHead>
-                <TableHead className="text-right">{t("revenue")}</TableHead>
                 <TableHead className="text-right">
                   {t("conversionRate")}
                 </TableHead>
@@ -60,9 +59,6 @@ export function TopModelsTable({ data }: TopModelsTableProps) {
                   </TableCell>
                   <TableCell className="text-right">
                     {row.activations.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {row.revenue.toLocaleString()}
                   </TableCell>
                   <TableCell className="text-right">
                     {row.conversion_rate}%

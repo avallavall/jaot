@@ -64,7 +64,6 @@ export default function SignupPage() {
         email,
         name,
         organization_name: organizationName,
-        // Self-serve signup is free-tier only; paid plans go through Stripe checkout.
         plan: "free",
         password,
         confirm_password: confirmPassword,

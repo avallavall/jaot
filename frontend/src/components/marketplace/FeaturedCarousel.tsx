@@ -39,10 +39,9 @@ const DEFAULT_GRADIENT = "from-primary/10 to-primary/5";
 
 interface FeaturedCarouselProps {
   models: ModelCatalogItem[];
-  promotedModelIds?: string[];
 }
 
-export function FeaturedCarousel({ models, promotedModelIds = [] }: FeaturedCarouselProps) {
+export function FeaturedCarousel({ models }: FeaturedCarouselProps) {
   const t = useTranslations("marketplace.hero");
   const { categoryLabel } = useCommonLabels();
   const [api, setApi] = useState<CarouselApi>();
@@ -82,7 +81,6 @@ export function FeaturedCarousel({ models, promotedModelIds = [] }: FeaturedCaro
           {models.map((model) => {
             const gradient =
               CATEGORY_GRADIENTS[model.category] ?? DEFAULT_GRADIENT;
-            const isPromoted = promotedModelIds.includes(model.id);
 
             return (
               <CarouselItem key={model.id}>
@@ -92,15 +90,6 @@ export function FeaturedCarousel({ models, promotedModelIds = [] }: FeaturedCaro
                     gradient
                   )}
                 >
-                  {isPromoted && (
-                    <Badge
-                      variant="secondary"
-                      className="absolute top-4 right-4 text-xs"
-                    >
-                      {t("promoted")}
-                    </Badge>
-                  )}
-
                   <div className="flex items-center justify-between w-full gap-8">
                     {/* Left side: model info */}
                     <div className="flex items-center gap-6 flex-1 min-w-0">

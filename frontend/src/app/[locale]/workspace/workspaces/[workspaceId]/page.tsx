@@ -4,7 +4,7 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import type { Workspace, WorkspaceMember, CreditPool } from "@/lib/types";
+import type { Workspace, WorkspaceMember } from "@/lib/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRoleDisplayName } from "@/components/workspaces/PermissionTooltip";
@@ -16,7 +16,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MemberTable } from "@/components/workspaces/MemberTable";
 import { InviteDialog } from "@/components/workspaces/InviteDialog";
-import { CreditPoolCard } from "@/components/workspaces/CreditPoolCard";
 import {
   Tooltip,
   TooltipContent,
@@ -40,7 +39,6 @@ export default function WorkspaceDetailPage({ params }: WorkspaceDetailPageProps
   const t = useTranslations("workspace.workspaceDetail");
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
-  const [pool, setPool] = useState<CreditPool | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -62,14 +60,6 @@ export default function WorkspaceDetailPage({ params }: WorkspaceDetailPageProps
         setMembers(memberList);
         setEditName(ws.name);
         setEditDescription(ws.description ?? "");
-
-        // Load pool stats
-        try {
-          const poolData = await api.getPoolStats(workspaceId);
-          setPool(poolData);
-        } catch {
-          // Pool may not exist yet
-        }
 
         // Set as active workspace
         await setActiveWorkspace(workspaceId);
@@ -142,11 +132,6 @@ export default function WorkspaceDetailPage({ params }: WorkspaceDetailPageProps
 
           <TabsContent value="overview">
             <div className="grid gap-6 lg:grid-cols-2">
-              <CreditPoolCard
-                workspaceId={workspaceId}
-                pool={pool}
-                onPoolChange={setPool}
-              />
               <div className="border rounded-lg p-6 bg-card">
                 <h3 className="font-semibold mb-4">{t("team")}</h3>
                 <p className="text-3xl font-bold text-primary mb-1">{members.length}</p>

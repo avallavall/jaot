@@ -37,7 +37,7 @@ export interface ExplanationStreamState {
  * (explain-model / explain-diff). Same fetch + ReadableStream wiring as
  * `useSolutionExplanation`, but the endpoint path is a parameter so one hook serves
  * every studio explainer. Consumes only the text-explanation events
- * (delta / status / error / done). Pre-stream HTTP failures (402/403/429/5xx) map to
+ * (delta / status / error / done). Pre-stream HTTP failures (403/429/5xx) map to
  * stable error codes so the UI never renders raw upstream detail.
  */
 export function useExplanationStream(): ExplanationStreamState {
@@ -144,9 +144,7 @@ export function useExplanationStream(): ExplanationStreamState {
 
         if (!response.ok) {
           setRequestId(response.headers.get("x-request-id"));
-          if (response.status === 402) {
-            setErrorCode("insufficient_credits");
-          } else if (response.status === 429 || response.status >= 500) {
+          if (response.status === 429 || response.status >= 500) {
             setErrorCode("service_unavailable");
           } else {
             setErrorCode("internal_error");

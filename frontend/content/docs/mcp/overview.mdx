@@ -17,7 +17,7 @@ For JAOT, this means any MCP-compatible AI assistant can:
 - Solve optimization problems by describing them in conversation
 - Browse the template library and marketplace
 - Execute activated models with user data
-- Check credit balances and execution results
+- Check execution results
 
 ## Connecting to JAOT via MCP
 
@@ -29,7 +29,7 @@ JAOT runs an MCP server at the `/mcp` endpoint using HTTP (Streamable HTTP) tran
 https://jaot.io/mcp
 ```
 
-The MCP endpoint is publicly accessible — no authentication is needed to connect and discover tools. Individual tools that modify data or consume credits require a Bearer API key, which is passed as a header on tool invocations.
+The MCP endpoint is publicly accessible — no authentication is needed to connect and discover tools. Individual tools that modify data require a Bearer API key, which is passed as a header on tool invocations.
 
 > **Self-hosters:** replace `https://jaot.io/mcp` with `http://localhost:8001/mcp` or your own domain.
 
@@ -155,14 +155,14 @@ Create or edit `.vscode/mcp.json` in your workspace. VS Code uses a `"servers"` 
 
 ## Available Tools
 
-JAOT exposes **26 MCP tools** organized into seven categories:
+JAOT exposes **25 MCP tools** organized into six categories:
 
 ### Solve Tools
 
 | Tool | Auth | Description |
 |------|------|-------------|
 | `solve_problem` | Yes | Solve an optimization problem defined as variables, constraints, and an objective. Optionally choose a solver (`scip`, `highs`, `hexaly`) or `auto` routing |
-| `validate_problem` | Yes | Validate a problem definition without solving (no credits charged) |
+| `validate_problem` | Yes | Validate a problem definition without solving |
 | `solve_multi_objective` | Yes | Solve a multi-objective problem and return a Pareto front |
 | `list_available_solvers` | Yes | List the solvers available to your organization |
 
@@ -200,11 +200,6 @@ JAOT exposes **26 MCP tools** organized into seven categories:
 | `get_execution` | Yes | Retrieve execution results and status |
 | `get_execution_insights` | Yes | Get auto-generated insights (gap, solve time, quality flags) for a completed execution |
 
-### Credits Tools
-
-| Tool | Auth | Description |
-|------|------|-------------|
-| `get_credit_balance` | Yes | Check your organization's current credit balance |
 
 ### Model Project Tools
 
@@ -287,8 +282,3 @@ JAOT also provides standardized discovery documents for AI agents at well-known 
 
 These documents follow the [llms.txt specification](https://llmstxt.org/) and allow AI agents to understand JAOT's capabilities without parsing HTML documentation.
 
-## Credit Consumption
-
-MCP tool calls that trigger optimization solves draw from your organization's credit quota, following the same usage formula as direct API calls. Use `get_credit_balance` to check your balance, and the `validate_problem` tool to estimate the cost before solving.
-
-See [Rate Limits and Credits](/docs/reference/rate-limits-credits) for the complete credit usage formula.

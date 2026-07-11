@@ -131,7 +131,7 @@ async def get_organization_overview(
     """Rich read-only overview of one organization for platform admins.
 
     Aggregates everything an admin needs to "see" an org without editing it:
-    members, API keys, models, recent solve executions, credit movements, and
+    members, API keys, models, recent solve executions, and
     usage/limit configuration. Read-only — no row is mutated here.
     """
     org = db.query(Organization).filter(Organization.id == org_id).first()

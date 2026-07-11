@@ -168,12 +168,6 @@ export function SystemTab({ health, stats, loading }: SystemTabProps) {
               <p className="text-2xl font-bold text-foreground">{stats.models.catalog_total}</p>
               <p className="text-xs text-muted-foreground">{t("catalogModels")}</p>
             </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">
-                {stats.credits.total_balance.toLocaleString()}
-              </p>
-              <p className="text-xs text-muted-foreground">{t("creditBalance")}</p>
-            </div>
           </div>
         )}
       </CardContent>

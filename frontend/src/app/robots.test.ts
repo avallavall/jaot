@@ -37,7 +37,6 @@ describe("robots.ts (SC1 shape contract)", () => {
     expect(disallow).toContain("/solve/");
     expect(disallow).toContain("/triggers/");
     expect(disallow).toContain("/workspace/");
-    expect(disallow).toContain("/billing/");
 
     // Real auth + org + maintenance pages (D-01 extensivo)
     // NOTE: SEO-02 listed /[locale]/auth/ — that route does NOT exist.

@@ -31,14 +31,13 @@ library and not a hosted SaaS** — you run it yourself with `docker compose up`
 - **102 templates + 27 problem generators** — knapsack, vehicle routing,
   scheduling, production planning, portfolio, a full MDPDP-TW formulation, and
   more.
-- **Credits ledger, multi-tenant auth, admin panel, i18n (en/es/ca/fr/de),
+- **Multi-tenant auth, admin panel, i18n (en/es/ca/fr/de),
   and a Prometheus/Grafana/Alertmanager monitoring stack** — included.
 
-Monetization is **off by default** (`MONETIZATION_ENABLED=false`): the
-marketplace is free and collaborative. A self-hosted deployment can enable the
-paid marketplace by flipping the flag and bringing its own Stripe keys — that
-billing code is complete but **has never been exercised against live Stripe**,
-so test before you charge real money.
+JAOT is **free and collaborative** — there is no billing, no credits, no paid
+tier (ADR-008). Fair use is enforced with per-organization rate limits and
+configurable solve quotas/caps; the AI assistant is bounded by a monthly EUR
+budget with bring-your-own-key support.
 
 ---
 
@@ -84,7 +83,7 @@ Returns `{"status":"optimal","objective_value":15.0,...}`. Full setup guide →
                 │ REST + SSE + WebSocket
 ┌───────────────▼──────────────────────────────┐
 │  FastAPI (Python 3.12)                        │
-│  auth · solve · LLM/RAG · credits ·           │
+│  auth · solve · LLM/RAG ·           │
 │  marketplace · triggers · MCP server          │
 └──┬─────────┬──────────┬──────────┬────────────┘
    │         │          │          │

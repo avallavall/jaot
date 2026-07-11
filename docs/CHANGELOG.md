@@ -17,6 +17,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Removed
+
+- **The paid marketplace and the entire credit system (ADR-008, 2026-07-10)** — Stripe/billing/invoices, seller earnings/withdrawals/featured placements, and credits (grants, per-solve/per-message charges, balances, 402s) are gone: every solve and assistant message is free. Fair use is enforced by rate limits, a daily solve quota, per-solve time/size caps and a monthly EUR budget for the AI assistant (BYOK remains unlimited). Marketplace activation is always free; catalog price filters were removed, and the `get_credit_balance` MCP tool is gone (26 → 25 tools).
+
 ### Changed
 
 - **All platform timestamps are timezone-aware UTC (ADR-007 S6c, 2026-07-10)** — every stored date/time column is now `timestamptz` and API responses carry an explicit UTC offset, so clients no longer have to guess (the root fix behind the earlier "hace 2 horas" display bug).

@@ -33,7 +33,6 @@ interface AdminOrganization {
   id: string;
   name: string;
   plan: string;
-  credits_balance: number;
   user_count?: number;
   is_verified: boolean;
   is_active: boolean;
@@ -81,7 +80,6 @@ export default function OrganizationsPage() {
       await api.admin.createOrganization({
         name: formData.get("name") as string,
         plan: formData.get("plan") as string || "free",
-        credits_balance: parseInt(formData.get("credits") as string) || 100,
         ai_builder_enabled: formData.get("ai_builder") === "on",
       });
       setIsCreateOpen(false);
@@ -177,10 +175,6 @@ export default function OrganizationsPage() {
                   <option value="business">{t("plans.business")}</option>
                 </select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="credits">{t("initialCredits")}</Label>
-                <Input id="credits" name="credits" type="number" defaultValue={100} />
-              </div>
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="ai_builder" name="ai_builder" />
                 <Label htmlFor="ai_builder">{t("enableAiBuilder")}</Label>
@@ -211,7 +205,6 @@ export default function OrganizationsPage() {
               <TableRow className="border-border">
                 <TableHead>{t("tableHeaders.name")}</TableHead>
                 <TableHead>{t("tableHeaders.plan")}</TableHead>
-                <TableHead>{t("tableHeaders.credits")}</TableHead>
                 <TableHead>{t("tableHeaders.users")}</TableHead>
                 <TableHead>{t("tableHeaders.verified")}</TableHead>
                 <TableHead>{t("tableHeaders.status")}</TableHead>
@@ -249,7 +242,6 @@ export default function OrganizationsPage() {
                         {org.plan}
                       </Badge>
                     </TableCell>
-                    <TableCell>{org.credits_balance.toLocaleString()}</TableCell>
                     <TableCell>{org.user_count || 0}</TableCell>
                     <TableCell>
                       <button

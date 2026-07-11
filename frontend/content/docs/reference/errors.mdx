@@ -49,7 +49,6 @@ Validation errors (422) include additional detail about which fields failed:
 |------|------|-------------|
 | **400** | Bad Request | Invalid input, missing required fields, or malformed request body |
 | **401** | Unauthorized | API key is invalid, expired, or missing from the request |
-| **402** | Payment Required | Insufficient credits to perform the operation |
 | **403** | Forbidden | Valid credentials but insufficient permissions (not admin, wrong organization) |
 | **404** | Not Found | The requested resource does not exist |
 | **409** | Conflict | Resource already exists (e.g., duplicate API key name) |
@@ -66,7 +65,6 @@ Validation errors (422) include additional detail about which fields failed:
 |---------------|-------|-----|
 | "Invalid API key" | API key has been revoked or is mistyped | Create a new API key in the dashboard |
 | "Not authenticated" | No Authorization header in request | Add `Authorization: Bearer <api_key>` header |
-| "Insufficient credits" | Organization usage quota is exhausted | Wait for the quota to reset, or ask your org admin (self-hosters can raise the quota cap) |
 | "Model not found" | Wrong model ID or model not activated for your org | Verify the model ID with `list_models()` and activate it first |
 | "Infeasible problem" | The constraints have no valid solution | Review constraints for conflicts -- try relaxing bounds |
 | "Solver timeout" | `time_limit` is too short for problem complexity | Increase `time_limit` or simplify the problem |
@@ -94,7 +92,6 @@ Some errors are transient and can be resolved by retrying. Others indicate probl
 |------|----------------|
 | **400** | Fix the request payload |
 | **401** | Check your API key |
-| **402** | Usage quota exhausted — wait for it to reset or raise the cap |
 | **403** | Check your permissions |
 | **404** | Verify the resource ID |
 | **422** | Fix the validation errors |

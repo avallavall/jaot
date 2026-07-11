@@ -220,16 +220,13 @@ test.describe("Model Execution — Functional Tests", () => {
         const solveTimeLabel = page.locator("text=Solve Time").first();
         await expect(solveTimeLabel).toBeVisible();
 
-        // -- Credits consumed line --
-        const creditsLine = page.getByText(/credits consumed/i).first();
-        await expect(creditsLine).toBeVisible();
 
         // Capture execution ID for the detail page test
         capturedExecutionId = executionIdFromApi;
       }
     }
 
-    // If it was an error (e.g., insufficient credits), that's still a valid
+    // If it was an error, that's still a valid
     // outcome — the test verifies the system handles it gracefully
     if (hasErrorBox && !hasStatusBadge) {
       const errorText = await errorBox.textContent();
@@ -441,7 +438,7 @@ test.describe("Model Execution — Functional Tests", () => {
     const idText = page.getByText(/ID:\s*[0-9a-f\-]{36}/i);
     await expect(idText).toBeVisible();
 
-    // -- Stats grid: Started, Duration, Credits Used, Solver Status --
+    // -- Stats grid: Started, Duration, Solver Status --
     const statsGrid = page.locator(".grid.grid-cols-2.md\\:grid-cols-4");
     await expect(statsGrid).toBeVisible();
 
@@ -449,9 +446,6 @@ test.describe("Model Execution — Functional Tests", () => {
     const startedLabel = page.getByText(/^(Started|Iniciado|Iniciat|Démarré|Gestartet)$/i);
     await expect(startedLabel).toBeVisible();
 
-    // "Credits Used" card (multi-locale)
-    const creditsLabel = page.getByText(/^(Credits Used|Créditos usados|Crèdits usats|Crédits utilisés|Credits verbraucht)$/i);
-    await expect(creditsLabel).toBeVisible();
 
     // "Duration" card (multi-locale)
     const durationLabel = page.getByText(/^(Duration|Duración|Durada|Durée|Dauer)$/i);

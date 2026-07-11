@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import type { AdminAnalytics } from "@/lib/types";
 import { AnalyticsKPICards } from "@/components/seller/AnalyticsKPICards";
-import { SellerLeaderboard } from "@/components/admin/SellerLeaderboard";
+import { SellerLeaderboard, type SellerLeaderboardEntry } from "@/components/admin/SellerLeaderboard";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Period = "7d" | "30d" | "90d" | "all";
@@ -24,14 +24,14 @@ export default function AdminSellerAnalyticsPage() {
   const { user, isLoading: authLoading } = useAuth();
 
   const [period, setPeriod] = useState<Period>("30d");
-  const [data, setData] = useState<AdminAnalytics | null>(null);
+  const [data, setData] = useState<(AdminAnalytics & { sellers: SellerLeaderboardEntry[] }) | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async (p: Period) => {
     setLoading(true);
     try {
       const result = await api.getAdminSellerAnalytics(p);
-      setData(result);
+      setData(result as AdminAnalytics & { sellers: SellerLeaderboardEntry[] });
     } catch (err) {
       console.warn('Failed to load admin seller analytics:', err);
     } finally {

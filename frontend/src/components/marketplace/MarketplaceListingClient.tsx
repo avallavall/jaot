@@ -35,7 +35,6 @@ function MarketplaceListingInner() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [promotedIds, setPromotedIds] = useState<string[]>([]);
 
   // Auth-only state: activated models and favorites
   const [myModels, setMyModels] = useState<OrganizationModel[]>([]);
@@ -60,21 +59,6 @@ function MarketplaceListingInner() {
   useEffect(() => {
     setSearchInput(filters.search);
   }, [filters.search]);
-
-  // Fetch promoted model IDs once on mount (independent of model loading)
-  useEffect(() => {
-    api
-      .request("/api/v2/models/catalog/promoted-ids")
-      .then((data) => {
-        const result = data as { model_ids: string[] };
-        if (Array.isArray(result.model_ids)) {
-          setPromotedIds(result.model_ids);
-        }
-      })
-      .catch(() => {
-        // Graceful degradation: leave promoted IDs empty
-      });
-  }, []);
 
   // Load user's activated models and favorites (auth only)
   const loadAuthData = useCallback(async () => {
@@ -172,9 +156,7 @@ function MarketplaceListingInner() {
     } catch (err) {
       const status = getErrorStatus(err);
       let msg: string;
-      if (status === 402) {
-        msg = tCatalog("insufficientCredits");
-      } else if (status === 409) {
+      if (status === 409) {
         msg = tCatalog("alreadyActivated");
       } else {
         msg = getErrorMessage(err, tCatalog("failedToActivate"));
@@ -211,7 +193,7 @@ function MarketplaceListingInner() {
       {loading ? (
         <CarouselSkeleton />
       ) : (
-        <FeaturedCarousel models={featuredModels} promotedModelIds={promotedIds} />
+        <FeaturedCarousel models={featuredModels} />
       )}
 
       {error && (

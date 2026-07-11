@@ -65,7 +65,6 @@ export type {
 } from "./generated/api";
 
 export type {
-  CreditPoolResponse as CreditPool,
 } from "./generated/api";
 
 // Frontend-only types live below. Some have backend counterparts with slightly different shapes;
@@ -92,24 +91,14 @@ export type ExecutionStatus =
   | "failed"
   | "cancelled"
   | "timeout";
-export type TransactionType =
-  | "signup_bonus"
-  | "monthly_grant"
-  | "admin_adjustment"
-  | "execution_charge"
-  | "execution_refund"
-  | "publisher_earning"
-  | "withdrawal";
-export type WithdrawalStatus = "pending" | "processing" | "completed" | "failed" | "cancelled";
 export type NotificationType =
   | "execution_completed"
   | "execution_failed"
-  | "credits_low"
   | "model_published"
   | "system_announcement";
 export type TriggerRunStatus =
   | "pending" | "running" | "completed" | "failed" | "timeout" | "validation_failed"
-  | "skipped_credits" | "skipped_overlap";
+  | "skipped_overlap";
 export type WorkspaceRole = "viewer" | "solver" | "editor" | "admin";
 
 export interface PaginatedResponse<T> {
@@ -151,7 +140,6 @@ export interface UserInfo {
   organization_id: string;
   organization_name: string;
   plan: Plan;
-  credits_balance: number;
   is_admin: boolean;
   is_org_owner?: boolean;
   can_build_plugins: boolean;
@@ -169,9 +157,6 @@ export interface Organization {
   plan: Plan;
   is_active: boolean;
   is_verified: boolean;
-  credits_balance: number;
-  credits_earned: number;
-  credits_used_month: number;
   total_users: number;
   total_models: number;
   total_executions: number;
@@ -252,8 +237,6 @@ export interface ModelCatalogItem {
   version: string;
   is_official: boolean;
   is_featured: boolean;
-  price_eur: number;
-  credits_per_execution: number;
   total_activations: number;
   total_executions: number;
   avg_execution_time_ms?: number;
@@ -284,9 +267,7 @@ export interface OrganizationModel {
   is_active: boolean;
   is_favorite: boolean;
   total_executions: number;
-  total_credits_used: number;
   last_executed_at?: string;
-  credits_per_execution: number;
   created_at: string;
 }
 
@@ -297,7 +278,6 @@ export interface FileImportMetadata {
   num_integer: number;
   num_binary: number;
   num_continuous: number;
-  estimated_credits: number;
   file_size_bytes: number;
   original_filename: string;
 }
@@ -320,7 +300,6 @@ export interface ModelExecution {
   execution_time_ms?: number;
   solver_status?: _SolverStatus;
   objective_value?: number;
-  credits_consumed: number;
   created_at: string;
   completed_at?: string;
   origin?: ExecutionOrigin;
@@ -378,7 +357,6 @@ export interface AsyncSolveEnvelope {
   status: string;
   poll_url?: string;
   ws_url?: string;
-  estimated_credits?: number;
   message?: string;
 }
 
@@ -428,90 +406,21 @@ export interface ValidationResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
-  // Present on POST /api/v2/solve/validate — base credit estimate (no solver
-  // multiplier). Optional because other validators reuse this shape.
-  estimated_credits?: number;
 }
 
-// Generated CreditBalanceResponse has different fields (currency, exchange_rate, etc.)
 
-export interface CreditBalance {
-  credits_balance: number;
-  credits_earned: number;
-  credits_used_month: number;
-  plan: Plan;
-  monthly_limit?: number;
-}
 
-export interface CreditSettings {
-  low_balance_threshold: number;
-  auto_topup_enabled: boolean;
-  auto_topup_amount?: number;
-}
 
-export interface CreditTransaction {
-  id: string;
-  transaction_type: TransactionType;
-  credits_amount: number;
-  balance_after: number;
-  description: string;
-  reference_type?: string;
-  reference_id?: string;
-  created_at: string;
-}
 
-export interface Withdrawal {
-  id: string;
-  credits_amount: number;
-  currency: Currency;
-  amount_fiat: number;
-  status: WithdrawalStatus;
-  created_at: string;
-  processed_at?: string;
-}
 
-export interface WithdrawalSchedule {
-  id: string;
-  credits_amount: number;
-  currency: Currency;
-  frequency: string;
-  next_execution: string;
-  is_active: boolean;
-  created_at: string;
-}
 
-export interface EarningsSummary {
-  total_sales: number;
-  total_earned: number;
-  total_commission: number;
-  withdrawable_balance: number;
-  pending_withdrawals: number;
-  commission_rate: number;
-}
 
-export interface SaleRecord {
-  sale_id: string;
-  model_id: string | null;
-  model_name: string | null;
-  buyer_organization_name: string | null;
-  credits_price: number;
-  commission_amount: number;
-  seller_earning: number;
-  created_at: string;
-}
 
-export interface SalesHistoryResponse {
-  items: SaleRecord[];
-  total: number;
-  page: number;
-  page_size: number;
-}
 
 export interface AnalyticsSummary {
   total_views: number;
   total_impressions: number;
   total_activations: number;
-  total_revenue: number;
   conversion_rate: number;
   period: string;
 }
@@ -521,7 +430,6 @@ export interface TimeSeriesDataPoint {
   views: number;
   impressions: number;
   activations: number;
-  revenue: number;
 }
 
 export interface GeoDistributionEntry {
@@ -534,7 +442,6 @@ export interface ModelPerformanceRow {
   model_name: string;
   views: number;
   activations: number;
-  revenue: number;
   conversion_rate: number;
 }
 
@@ -544,48 +451,14 @@ export interface ConversionFunnel {
   activations: number;
 }
 
-export interface SellerLeaderboardEntry {
-  org_id: string;
-  org_name: string;
-  total_sales: number;
-  total_revenue: number;
-  models_published: number;
-  avg_rating: number | null;
-}
 
 export interface AdminAnalytics {
   platform_totals: AnalyticsSummary;
-  sellers: SellerLeaderboardEntry[];
 }
 
-export interface PlacementPricingTier {
-  duration_days: number;
-  credits_cost: number;
-}
 
-export interface PlacementPricing {
-  placement_type: string;
-  tiers: PlacementPricingTier[];
-}
 
-export interface FeaturedPlacement {
-  id: string;
-  catalog_model_id: string;
-  placement_type: string;
-  status: string;
-  credits_paid: number;
-  duration_days: number;
-  starts_at: string;
-  expires_at: string;
-  created_at: string;
-}
 
-export interface AdminPlacement extends FeaturedPlacement {
-  org_name: string | null;
-  model_name: string | null;
-  revoked_at: string | null;
-  revoked_by: string | null;
-}
 
 export interface VerificationRequestStatus {
   id: string;
@@ -934,14 +807,12 @@ export interface AdminStats {
   users: { total: number; active: number };
   api_keys: { total: number; active: number };
   models: { catalog_total: number; catalog_public: number; activated_total: number };
-  credits: { total_balance: number };
 }
 
 export interface AdminOrganizationSummary {
   id: string;
   name: string;
   plan: string;
-  credits_balance: number;
   user_count: number;
   created_at: string;
 }
@@ -1010,7 +881,6 @@ export interface TriggerRun {
   override_data?: Record<string, unknown>;
   result_data?: Record<string, unknown>;
   error_message?: string;
-  credits_consumed: number;
   execution_time_ms?: number;
   webhook_delivered?: boolean;
   webhook_attempts: number;
@@ -1108,8 +978,6 @@ export interface SolveAnalyticsSummary {
   success_rate: number;
   avg_solve_time_ms: number | null;
   median_solve_time_ms: number | null;
-  total_credits: number;
-  avg_credits: number;
   avg_objective_value: number | null;
   executions_by_status: Record<string, number>;
   executions_by_origin: Record<string, number>;
@@ -1121,7 +989,6 @@ export interface TrendBucket {
   executions: number;
   completed: number;
   failed: number;
-  credits: number;
   avg_solve_time_ms: number | null;
 }
 
@@ -1137,7 +1004,6 @@ export interface ComparedExecution {
   solver_status: string | null;
   objective_value: number | null;
   execution_time_ms: number | null;
-  credits_consumed: number;
   created_at: string;
   origin: string;
   num_variables: number | null;

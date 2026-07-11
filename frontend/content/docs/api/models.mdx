@@ -33,7 +33,6 @@ Browse the public model marketplace. This endpoint is public and does not requir
 | `items[].display_name` | string | Human-readable display name |
 | `items[].description` | string | Model description |
 | `items[].category` | string | Model category |
-| `items[].credits_per_execution` | number | Credits consumed per execution |
 | `items[].tags` | array | Searchable tags |
 | `items[].status` | string | Publication status |
 | `items[].created_at` | string | ISO 8601 timestamp |
@@ -59,7 +58,6 @@ response = httpx.get(
 data = response.json()
 for model in data["items"]:
     print(f"{model['display_name']}: {model['description']}")
-    print(f"  Cost: {model['credits_per_execution']} credits/run")
 ```
 
 ```bash
@@ -89,7 +87,6 @@ console.log(`Found ${total} logistics models`);
       "display_name": "Warehouse Allocation Optimizer",
       "description": "Optimize product allocation across warehouse locations to minimize picking time",
       "category": "logistics",
-      "credits_per_execution": 3,
       "tags": ["warehouse", "allocation", "logistics"],
       "status": "published",
       "created_at": "2026-01-15T09:00:00Z"
@@ -150,7 +147,7 @@ const response = await fetch(
   "https://jaot.io/api/v2/models/catalog/b9c1d2e3-abcd-1234-5678-f0a1b2c3d4e5/activate",
   {
     method: "POST",
-    headers: { "Authorization": "Bearer ok_live_your_key_here" },
+    headers: { "Authorization": "Bearer ok_live_your_key_here" }
   }
 );
 
@@ -379,14 +376,14 @@ response = httpx.post(
     "https://jaot.io/api/v2/models",
     headers={
         "Authorization": "Bearer ok_live_your_key_here",
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
     },
     json={
         "name": "supply_chain_optimizer",
         "description": "Internal supply chain routing optimizer",
         "category": "supply_chain",
         "generator_type": "template",
-        "tags": ["internal", "supply-chain"],
+        "tags": ["internal", "supply-chain"]
     },
 )
 model = response.json()
@@ -411,15 +408,15 @@ const response = await fetch("https://jaot.io/api/v2/models", {
   method: "POST",
   headers: {
     "Authorization": "Bearer ok_live_your_key_here",
-    "Content-Type": "application/json",
+    "Content-Type": "application/json"
   },
   body: JSON.stringify({
     name: "supply_chain_optimizer",
     description: "Internal supply chain routing optimizer",
     category: "supply_chain",
     generator_type: "template",
-    tags: ["internal", "supply-chain"],
-  }),
+    tags: ["internal", "supply-chain"]
+  })
 });
 const model = await response.json();
 ```
@@ -454,7 +451,7 @@ response = httpx.patch(
     "https://jaot.io/api/v2/models/a3f8b2c1-1234-5678-abcd-ef0123456789",
     headers={
         "Authorization": "Bearer ok_live_your_key_here",
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
     },
     json={"custom_name": "My Warehouse Optimizer", "is_favorite": True},
 )
@@ -475,9 +472,9 @@ const response = await fetch(
     method: "PATCH",
     headers: {
       "Authorization": "Bearer ok_live_your_key_here",
-      "Content-Type": "application/json",
+      "Content-Type": "application/json"
     },
-    body: JSON.stringify({ custom_name: "My Warehouse Optimizer", is_favorite: true }),
+    body: JSON.stringify({ custom_name: "My Warehouse Optimizer", is_favorite: true })
   }
 );
 ```
@@ -520,7 +517,7 @@ const response = await fetch(
   "https://jaot.io/api/v2/models/a3f8b2c1-1234-5678-abcd-ef0123456789",
   {
     method: "DELETE",
-    headers: { "Authorization": "Bearer ok_live_your_key_here" },
+    headers: { "Authorization": "Bearer ok_live_your_key_here" }
   }
 );
 ```
@@ -559,7 +556,7 @@ import httpx
 API_URL = "https://jaot.io/api/v2"
 headers = {
     "Authorization": "Bearer ok_live_your_key_here",
-    "Content-Type": "application/json",
+    "Content-Type": "application/json"
 }
 
 response = httpx.post(
@@ -569,12 +566,12 @@ response = httpx.post(
         "input_data": {
             "warehouses": [
                 {"name": "East Hub", "capacity": 500, "cost_per_unit": 2.50},
-                {"name": "West Hub", "capacity": 300, "cost_per_unit": 3.00},
+                {"name": "West Hub", "capacity": 300, "cost_per_unit": 3.00}
             ],
             "products": [
                 {"name": "Widget A", "demand": 200, "weight": 1.5},
-                {"name": "Widget B", "demand": 150, "weight": 2.0},
-            ],
+                {"name": "Widget B", "demand": 150, "weight": 2.0}
+            ]
         }
     },
 )
@@ -609,20 +606,20 @@ const response = await fetch(
     method: "POST",
     headers: {
       "Authorization": "Bearer ok_live_your_key_here",
-      "Content-Type": "application/json",
+      "Content-Type": "application/json"
     },
     body: JSON.stringify({
       input_data: {
         warehouses: [
           { name: "East Hub", capacity: 500, cost_per_unit: 2.50 },
-          { name: "West Hub", capacity: 300, cost_per_unit: 3.00 },
+          { name: "West Hub", capacity: 300, cost_per_unit: 3.00 }
         ],
         products: [
           { name: "Widget A", demand: 200, weight: 1.5 },
-          { name: "Widget B", demand: 150, weight: 2.0 },
-        ],
-      },
-    }),
+          { name: "Widget B", demand: 150, weight: 2.0 }
+        ]
+      }
+    })
   }
 );
 
@@ -636,5 +633,4 @@ const result = await response.json();
 |-----------|-------|-------------|
 | 400 | `bad_request` | Invalid input data for this model |
 | 401 | `unauthorized` | Missing or invalid API key |
-| 402 | `insufficient_credits` | Not enough credits |
 | 404 | `not_found` | Model not found or not activated |

@@ -48,12 +48,6 @@ test.describe("Admin Dashboard", () => {
       await expect(page).toHaveURL(/\/admin\/executions/);
     });
 
-    test("credits page loads", async ({ page }) => {
-      const adminPage = new AdminPage(page);
-      await adminPage.gotoCredits();
-      await expect(page).toHaveURL(/\/admin\/credits/);
-    });
-
     test("API keys page loads", async ({ page }) => {
       const adminPage = new AdminPage(page);
       await adminPage.gotoApiKeys();
@@ -99,16 +93,6 @@ test.describe("Admin Dashboard", () => {
     test("models admin page shows catalog entries", async ({ page }) => {
       const adminPage = new AdminPage(page);
       await adminPage.gotoModels();
-
-      const content = page.locator("#main-content");
-      await expect(content).toBeVisible();
-    });
-
-    test("credits admin page shows transaction data or controls", async ({
-      page,
-    }) => {
-      const adminPage = new AdminPage(page);
-      await adminPage.gotoCredits();
 
       const content = page.locator("#main-content");
       await expect(content).toBeVisible();

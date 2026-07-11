@@ -25,7 +25,6 @@ interface TrendPoint {
   date: string;
   dateMs: number;
   objective: number;
-  credits: number;
   executionId: string;
   origin: "manual" | "triggered";
 }
@@ -93,7 +92,6 @@ function CustomTooltip({
       <p className="text-muted-foreground">
         Objective: {d.objective.toFixed(4)}
       </p>
-      <p className="text-muted-foreground">Credits used: {d.credits}</p>
     </div>
   );
 }
@@ -124,7 +122,6 @@ function ScatterCustomTooltip({
       <p className="text-muted-foreground">
         Objective: {d.objective.toFixed(4)}
       </p>
-      <p className="text-muted-foreground">Credits used: {d.credits}</p>
       <p className="text-muted-foreground capitalize">Origin: {d.origin}</p>
     </div>
   );
@@ -150,7 +147,6 @@ export default function ObjectiveTrendChart({ executions, chartRef }: Props) {
         }),
         dateMs: apiDate(e.created_at).getTime(),
         objective: e.objective_value as number,
-        credits: e.credits_consumed,
         executionId: e.id,
         origin: (e.origin ?? "manual") as "manual" | "triggered",
       }))

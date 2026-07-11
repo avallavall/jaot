@@ -8,8 +8,6 @@ export interface SolverInfo {
   name: string;
   available: boolean;
   description?: string;
-  /** Credit multiplier badge. */
-  multiplier?: number;
   /** Present when available=false. */
   reason?: string;
   /** Seconds until re-check. */

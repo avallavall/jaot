@@ -52,8 +52,6 @@ const makeModel = (overrides: Partial<OrganizationModel> = {}): OrganizationMode
   is_active: true,
   is_favorite: false,
   total_executions: 5,
-  total_credits_used: 50,
-  credits_per_execution: 10,
   created_at: "2024-01-01T00:00:00Z",
   ...overrides,
 });

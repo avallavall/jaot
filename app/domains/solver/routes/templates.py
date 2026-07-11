@@ -155,7 +155,7 @@ def solve_with_template(  # def: blocks on the queued result in the threadpool (
     ADR-007 S4a — async-under-the-hood: renders the template into an
     OptimizationProblem server-side, then rides the ONE async pipeline
     (``_enqueue_async_solve``) exactly like ``POST /solve`` — tier caps,
-    auto-routing, per-solver credit pricing (pre-paid), the pending
+    auto-routing, the pending
     ModelExecution row (tagged ``template`` provenance), and the Celery worker.
     The classic ``OptimizationResult`` comes back on completion; a solve that
     outlives the wait budget returns 202 + the task envelope (poll or subscribe).

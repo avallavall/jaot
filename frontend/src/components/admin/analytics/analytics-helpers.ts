@@ -13,8 +13,6 @@ export const EVENT_TYPES = [
   "marketplace.publish",
   "template.use",
   "schedule.create",
-  "credit.withdrawal",
-  "placement.purchase",
 ] as const;
 
 export const DOMAIN_COLORS: Record<string, string> = {
@@ -25,12 +23,9 @@ export const DOMAIN_COLORS: Record<string, string> = {
   mcp: "#f97316",
   scheduling: "#eab308",
   schedule: "#eab308",
-  credits: "#06b6d4",
-  credit: "#06b6d4",
   user: "#ec4899",
   org: "#8b5cf6",
   template: "#3b82f6",
-  placement: "#06b6d4",
 };
 
 export const TOOLTIP_STYLE = {

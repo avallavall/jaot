@@ -229,7 +229,7 @@ class PlatformSettingsService:
     def get_plan_config_dynamic(cls, db: Session, plan_name: str) -> dict[str, Any]:
         """Get plan configuration from DB for a given plan name.
 
-        Returns a dict with keys: credits, monthly_quota, rate_limit_per_minute,
+        Returns a dict with keys: rate_limit_per_minute,
         rate_limit_per_day, max_solve_time_seconds, max_variables,
         max_daily_solves, max_cron_schedules, allowed_features.
 
@@ -243,8 +243,6 @@ class PlatformSettingsService:
             Dict of plan configuration values.
         """
         fields = [
-            "credits",
-            "monthly_quota",
             "rate_limit_per_minute",
             "rate_limit_per_day",
             "max_solve_time_seconds",
@@ -488,12 +486,10 @@ class PlatformSettingsService:
         """Return plan configs grouped by tier name.
 
         Returns:
-            Dict of tier_name -> {field: value} for all 4 tiers x 9 fields.
+            Dict of tier_name -> {field: value} for all 4 tiers x 7 fields.
         """
         tiers = ["free", "starter", "pro", "business"]
         fields = [
-            "credits",
-            "monthly_quota",
             "rate_limit_per_minute",
             "rate_limit_per_day",
             "max_solve_time_seconds",

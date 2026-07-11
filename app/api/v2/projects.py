@@ -806,7 +806,7 @@ def solve_model_project(  # def: blocks on the queued result in the threadpool (
 
     ADR-007 S4a — async-under-the-hood: resolves the project/version model
     server-side, then rides the ONE async pipeline (``_enqueue_async_solve``)
-    exactly like ``POST /solve`` — tier caps, auto-routing, pre-paid credits, the
+    exactly like ``POST /solve`` — tier caps, auto-routing, the
     pending ModelExecution row (tagged ``model_project`` provenance + typed
     project/version columns), and the Celery worker. The classic
     ``OptimizationResult`` comes back on completion; a solve that outlives the
@@ -915,7 +915,7 @@ def solve_project_dataset(  # def: the CPU-bound compile belongs in the threadpo
     the server and rides the ONE async pipeline, so the client sends a URL and
     nothing else. Async-only on purpose — scenario launches are batch and the
     client derives row state from the server. A compile failure is a 422
-    ``{message, position}`` resolved BEFORE any credit charge; the dataset is
+    ``{message, position}``; the dataset is
     org- and project-scoped (404 otherwise, anti-oracle).
     """
     org = getattr(request.state, "organization", None)

@@ -193,7 +193,7 @@ export default function SettingsPage() {
             />
           </TabsContent>
 
-          {/* Billing Tab - Plan Tier Table + billing settings */}
+          {/* Plans & limits tab — plan tier table + the backend's `billing` settings category (limits only, ADR-008) */}
           <TabsContent value="billing" className="space-y-6">
             <PlanTierTable data={planTiers} onRefresh={fetchSettingsData} />
             <SettingsTab

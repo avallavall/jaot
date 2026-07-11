@@ -216,7 +216,7 @@ async def get_plan_tiers(
 ) -> PlanTiersResponse:
     """Return all plan tier configurations.
 
-    Returns all 4 plans (free, starter, pro, business) with 9 fields each.
+    Returns all 4 plans (free, starter, pro, business) with 7 fields each.
     """
     plans = PlatformSettingsService.get_plan_tiers(db)
     return PlanTiersResponse(plans=plans)

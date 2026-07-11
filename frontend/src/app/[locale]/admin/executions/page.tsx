@@ -35,7 +35,6 @@ interface AdminExecution {
   organization_id: string;
   organization_name?: string;
   status: string;
-  credits_consumed: number;
   execution_time_ms: number | null;
   created_at: string;
 }
@@ -105,7 +104,6 @@ export default function AdminExecutionsPage() {
   };
 
   // Calculate stats
-  const totalCredits = executions.reduce((sum, e) => sum + (e.credits_consumed || 0), 0);
   const avgTime = executions.length > 0
     ? executions.reduce((sum, e) => sum + (e.execution_time_ms || 0), 0) / executions.length
     : 0;
@@ -135,10 +133,6 @@ export default function AdminExecutionsPage() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <Coins className="w-8 h-8 text-primary" />
-              <div>
-                <p className="text-sm text-muted-foreground">{t("creditsUsed")}</p>
-                <p className="text-2xl font-bold">{totalCredits}</p>
-              </div>
             </div>
           </CardContent>
         </Card>
@@ -179,7 +173,6 @@ export default function AdminExecutionsPage() {
                 <TableHead>{t("tableHeaders.model")}</TableHead>
                 <TableHead>{t("tableHeaders.organization")}</TableHead>
                 <TableHead>{t("tableHeaders.status")}</TableHead>
-                <TableHead>{t("tableHeaders.credits")}</TableHead>
                 <TableHead>{t("tableHeaders.duration")}</TableHead>
                 <TableHead>{t("tableHeaders.date")}</TableHead>
               </TableRow>
@@ -225,7 +218,6 @@ export default function AdminExecutionsPage() {
                       </Link>
                     </TableCell>
                     <TableCell>{getStatusBadge(exec.status)}</TableCell>
-                    <TableCell>{exec.credits_consumed}</TableCell>
                     <TableCell>{formatDuration(exec.execution_time_ms)}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {formatDate(exec.created_at)}

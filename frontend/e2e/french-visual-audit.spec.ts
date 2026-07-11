@@ -507,13 +507,6 @@ test("Group 5: Workspace pages (FR)", async ({ page }) => {
   );
   await auditPage(
     page,
-    "/workspace/credits",
-    "workspace",
-    "Credits",
-    "04-credits.png"
-  );
-  await auditPage(
-    page,
     "/workspace/usage",
     "workspace",
     "Usage",
@@ -611,7 +604,6 @@ test("Group 7: Admin pages (FR)", async ({ page }) => {
     "Executions",
     "06-executions.png"
   );
-  await auditPage(page, "/admin/credits", "admin", "Credits", "07-credits.png");
   await auditPage(
     page,
     "/admin/settings",
@@ -636,7 +628,7 @@ test("Group 7: Admin pages (FR)", async ({ page }) => {
 });
 
 /* ------------------------------------------------------------------ */
-/* Group 8: Billing & misc                                             */
+/* Group 8: Misc                                             */
 /* ------------------------------------------------------------------ */
 
 /* ------------------------------------------------------------------ */

@@ -18,11 +18,6 @@ import type {
   OptimizationProblem,
   SolveResult,
   ValidationResult,
-  CreditBalance,
-  CreditSettings,
-  CreditTransaction,
-  Withdrawal,
-  WithdrawalSchedule,
   NotificationList,
   NotificationPreferencesResponse,
   OnboardingStatus,
@@ -54,7 +49,6 @@ import type {
   WorkspaceInvite,
   WorkspaceRole,
   AuditLogEntry,
-  CreditPool,
   MultiObjectiveConfig,
   MultiObjectiveResult,
   GuidanceState,
@@ -63,17 +57,12 @@ import type {
   ScheduleCreateRequest,
   ScheduleUpdateRequest,
   CronValidationResponse,
-  EarningsSummary,
-  SalesHistoryResponse,
   AnalyticsSummary,
   TimeSeriesDataPoint,
   GeoDistributionEntry,
   ModelPerformanceRow,
   ConversionFunnel,
   AdminAnalytics,
-  PlacementPricing,
-  FeaturedPlacement,
-  AdminPlacement,
   VerificationRequestStatus,
   AdminVerificationEntry,
   FileImportPreviewResponse,
@@ -111,11 +100,6 @@ export type {
   OptimizationResult,
   SolveResult,
   ValidationResult,
-  CreditBalance,
-  CreditSettings,
-  CreditTransaction,
-  Withdrawal,
-  WithdrawalSchedule,
   Notification,
   NotificationList,
   NotificationPreferenceEntry,
@@ -151,7 +135,6 @@ export type {
   WorkspaceInvite,
   WorkspaceRole,
   AuditLogEntry,
-  CreditPool,
   MultiObjectiveConfig,
   MultiObjectiveResult,
   ObjectiveSpec,
@@ -165,19 +148,12 @@ export type {
   ScheduleCreateRequest,
   ScheduleUpdateRequest,
   CronValidationResponse,
-  EarningsSummary,
-  SaleRecord,
-  SalesHistoryResponse,
   AnalyticsSummary,
   TimeSeriesDataPoint,
   GeoDistributionEntry,
   ModelPerformanceRow,
   ConversionFunnel,
-  SellerLeaderboardEntry,
   AdminAnalytics,
-  PlacementPricing,
-  FeaturedPlacement,
-  AdminPlacement,
   VerificationRequestStatus,
   AdminVerificationEntry,
   FileImportPreviewResponse,
@@ -259,7 +235,7 @@ export class ApiError extends Error {
 export interface AuthTokenResponse {
   success: boolean;
   user: { id: string; name: string; email: string; is_admin: boolean; is_org_owner?: boolean };
-  organization: { id: string; name: string; plan: string; credits_balance: number };
+  organization: { id: string; name: string; plan: string };
   permissions: { can_build_plugins: boolean; ai_builder_enabled: boolean };
   email_verified: boolean;
 }
@@ -268,7 +244,6 @@ export interface EmailSignupResponse {
   user_id: string;
   organization_id: string;
   api_key: string;
-  credits_balance: number;
   plan: string;
   message: string;
   email_verified: boolean;
@@ -931,69 +906,17 @@ export const api = {
     return request("/api/v2/models/recents", { params });
   },
 
-  getCreditBalance(): Promise<CreditBalance> {
-    return request("/api/v2/credits/balance");
-  },
 
-  getCreditSettings(): Promise<CreditSettings> {
-    return request("/api/v2/credits/settings");
-  },
 
-  getCreditTransactions(params?: QueryParams): Promise<CreditTransaction[]> {
-    return request("/api/v2/credits/transactions", { params });
-  },
 
-  getWithdrawals(): Promise<Withdrawal[]> {
-    return request("/api/v2/credits/withdrawals");
-  },
 
-  createWithdrawal(data: { credits_amount: number; currency: string }): Promise<Withdrawal> {
-    return request("/api/v2/credits/withdrawals", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  },
 
-  getWithdrawalSchedules(): Promise<WithdrawalSchedule[]> {
-    return request("/api/v2/credits/schedules");
-  },
 
-  createWithdrawalSchedule(data: Record<string, unknown>): Promise<WithdrawalSchedule> {
-    return request("/api/v2/credits/schedules", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  },
 
-  deleteWithdrawalSchedule(id: string): Promise<void> {
-    return request(`/api/v2/credits/schedules/${id}`, { method: "DELETE" });
-  },
 
-  updateCurrency(data: { currency: string }): Promise<void> {
-    return request("/api/v2/credits/settings/currency", {
-      method: "PUT",
-      body: JSON.stringify(data),
-    });
-  },
 
-  createTopupCheckout(data: {
-    credits: number;
-    success_url: string;
-    cancel_url: string;
-  }): Promise<{ checkout_url: string; session_id: string }> {
-    return request("/api/v2/billing/checkout/topup", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  },
 
-  getSellerEarningsSummary(): Promise<EarningsSummary> {
-    return request("/api/v2/seller/earnings/summary");
-  },
 
-  getSellerSalesHistory(params?: { page?: number; page_size?: number }): Promise<SalesHistoryResponse> {
-    return request("/api/v2/seller/earnings/sales", { params });
-  },
 
   getSellerAnalyticsSummary(period: string = "30d"): Promise<AnalyticsSummary> {
     return request("/api/v2/seller/analytics/summary", { params: { period } });
@@ -1019,20 +942,8 @@ export const api = {
     return request("/api/v2/admin/marketplace/seller-analytics", { params: { period } });
   },
 
-  getPlacementPricing(): Promise<PlacementPricing[]> {
-    return request("/api/v2/seller/placements/pricing");
-  },
 
-  purchasePlacement(data: { catalog_model_id: string; placement_type: string; duration_days: number }): Promise<FeaturedPlacement> {
-    return request("/api/v2/seller/placements/purchase", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  },
 
-  getActivePlacements(): Promise<{ items: FeaturedPlacement[]; total: number }> {
-    return request("/api/v2/seller/placements/active");
-  },
 
   requestVerification(): Promise<VerificationRequestStatus> {
     return request("/api/v2/seller/verification/request", {
@@ -1060,20 +971,8 @@ export const api = {
     return request("/api/v2/seller/onboarding/status");
   },
 
-  getAdminPromotions(): Promise<AdminPlacement[]> {
-    return request("/api/v2/admin/marketplace/promotions");
-  },
 
-  revokePromotion(id: string): Promise<void> {
-    return request(`/api/v2/admin/marketplace/promotions/${id}/revoke`, { method: "POST" });
-  },
 
-  extendPromotion(id: string, extraDays: number): Promise<{ status: string }> {
-    return request(`/api/v2/admin/marketplace/promotions/${id}/extend`, {
-      method: "POST",
-      body: JSON.stringify({ extra_days: extraDays }),
-    });
-  },
 
   getAdminVerificationRequests(): Promise<AdminVerificationEntry[]> {
     return request("/api/v2/admin/marketplace/verification");
@@ -1911,17 +1810,6 @@ export const api = {
     return request(`/api/v2/workspaces/${workspaceId}/audit/`, { params });
   },
 
-  getPoolStats(workspaceId: string): Promise<CreditPool> {
-    return request(`/api/v2/workspaces/${workspaceId}/credits/`);
-  },
-
-  allocateCredits(workspaceId: string, amount: number): Promise<CreditPool> {
-    return request(`/api/v2/workspaces/${workspaceId}/credits/allocate`, {
-      method: "POST",
-      body: JSON.stringify({ amount }),
-    });
-  },
-
   getGuidance(): Promise<GuidanceState> {
     return request("/api/v2/guidance");
   },
@@ -2011,17 +1899,6 @@ export const api = {
 
     deleteApiKey(id: string): Promise<void> {
       return request(`/api/v2/admin/api-keys/${id}`, { method: "DELETE" });
-    },
-
-    adjustCredits(data: Record<string, unknown>): Promise<void> {
-      return request("/api/v2/admin/credits/adjust", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-    },
-
-    getTransactions(params?: QueryParams): Promise<PaginatedResponse<CreditTransaction>> {
-      return request("/api/v2/admin/credits/transactions", { params });
     },
 
     getModels(params?: QueryParams): Promise<PaginatedResponse<ModelCatalogItem>> {

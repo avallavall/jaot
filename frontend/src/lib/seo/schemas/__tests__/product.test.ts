@@ -6,7 +6,6 @@ const baseInput = {
   description: "Y",
   url: "https://jaot.io/marketplace/abc",
   category: "linear",
-  priceEur: 9.99,
 };
 
 describe("buildProductSchema", () => {
@@ -55,11 +54,10 @@ describe("buildProductSchema", () => {
   it("offers has @type Offer with price string, priceCurrency and availability", () => {
     const result = buildProductSchema({
       ...baseInput,
-      priceEur: 9.99,
     }) as unknown as Record<string, unknown>;
     const offers = result.offers as Record<string, unknown>;
     expect(offers["@type"]).toBe("Offer");
-    expect(offers.price).toBe("9.99");
+    expect(offers.price).toBe("0");  // ADR-008: marketplace is free
     expect(offers.priceCurrency).toBe("EUR");
     expect(offers.availability).toBe("https://schema.org/InStock");
   });
