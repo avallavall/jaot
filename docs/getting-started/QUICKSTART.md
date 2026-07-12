@@ -310,7 +310,7 @@ See [Deployment Guide](../operations/DEPLOYMENT.md) and [Disaster Recovery](../.
 
 <!-- AUTO-GENERATED: from .env.example — do not edit by hand. Regenerate via /update-docs. -->
 
-Only **infrastructure** variables live in `.env`. Business configuration (plans, LLM, Stripe, SMTP, feature flags, rate limits) is stored in the `platform_settings` DB table and edited via the admin panel.
+Only **infrastructure** variables live in `.env`. Business configuration (plans, LLM, SMTP, feature flags, rate limits) is stored in the `platform_settings` DB table and edited via the admin panel.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|

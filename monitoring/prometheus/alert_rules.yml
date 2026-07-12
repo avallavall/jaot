@@ -111,7 +111,7 @@ groups:
           severity: warning
         annotations:
           summary: "PostgreSQL deadlocks detected"
-          description: "Deadlocks occurring in jaot database -- check credit locking contention"
+          description: "Deadlocks occurring in jaot database -- check row-locking contention (executions, workspaces)"
 
   - name: jaot-rabbitmq
     rules:

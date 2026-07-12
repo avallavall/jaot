@@ -1,7 +1,8 @@
 # Bounded Contexts — Quick Reference
 
-> Navigable index of the 8 bounded contexts in JAOT.
-> This file is the authoritative day-to-day map of the 8 bounded contexts.
+> Navigable index of the bounded contexts in JAOT (8 identified; BC3 Billing
+> was removed entirely by ADR-008).
+> This file is the authoritative day-to-day map of the bounded contexts.
 > The modular-monolith decision behind them is recorded in ADR-001.
 
 ## Context-at-a-glance
@@ -9,8 +10,8 @@
 | BC | Role | Coupling | Where it lives today | Extracted? |
 |---|---|---|---|---|
 | **BC1: Solver** | Core | 2/5 | `app/domains/solver/` | ✅ Phase 3 (2026-04-13) |
-| **BC2: Marketplace** | Core sub | 3/5 | `app/services/` (seller_analytics, featured_placement, verification, storage, template_scorecard), `app/api/v2/routes/models/` | ❌ Planned §6 |
-| **BC3: Billing** | Core sub | 4/5 | `app/services/` (credits_service, stripe_service, stripe_connect, invoice, workspace_credits, reconciliation) | ❌ Planned §6 |
+| **BC2: Marketplace** | Core sub | 3/5 | `app/services/` (seller_analytics, verification, storage, template_scorecard), `app/api/v2/routes/models/` | ❌ Planned §6 |
+| **BC3: Billing** | — | — | **Removed (ADR-008)** — the money layer and the credit system were deleted; fair use = rate limits + quotas | n/a |
 | **BC4: Identity** | Generic | 2/5 | `app/services/auth/`, `app/services/gdpr/`, User/Organization/APIKey/RefreshToken models | ❌ Planned §6 |
 | **BC5: AI Assistant** | Supporting | 2/5 | `app/services/llm/`, `app/services/rag/`, document_extraction | ❌ Planned §6 |
 | **BC6: Automation** | Supporting | 4/5 | `app/services/` (trigger, schedule, webhook, version), `app/tasks/` (trigger_tasks, webhook_tasks) | ❌ Planned §6 |
@@ -21,9 +22,7 @@
 
 **Adding solver logic** → `app/domains/solver/` (adapters, services, routes, schemas, tasks all under this tree).
 
-**Adding model catalog / marketplace features** → `app/api/v2/routes/models/` + `app/services/seller_*` / `featured_placement` / `template_scorecard`.
-
-**Adding billing / Stripe / credits** → `app/services/credits_service.py`, `stripe_service.py`, `stripe_connect.py`.
+**Adding model catalog / marketplace features** → `app/api/v2/routes/models/` + `app/services/seller_*` / `template_scorecard`.
 
 **Adding auth / signup / API keys / GDPR** → `app/services/auth/`, `app/services/gdpr/`.
 
@@ -40,9 +39,7 @@
 Enforced by `lint-imports` (`pyproject.toml`). 6 KEPT contracts today.
 
 **Allowed synchronous cross-context calls:**
-- `solve_orchestrator` → `credits_service` (deduct / refund on solve)
-- `trigger_tasks` → Solver + Credits (orchestrates solver runs)
-- `featured_placement` → `credits_service` (deduct promotion fee)
+- `trigger_tasks` → Solver (orchestrates solver runs)
 
 **Everything else must be fire-and-forget:**
 - Any context → `audit_service`, `analytics_service`, `notification_service` (leaf; no response contract)
@@ -58,9 +55,9 @@ The roadmap plans extractions in this sequence:
 2. **Observability** — pure leaf. Lowest risk. Good next extraction.
 3. **AI Assistant** — already independent (PSS-only outbound). Low risk.
 4. **Identity** — high fan-in (32+ importers). Breaks the Organization god model.
-5. **Billing** — coupled to Organization. Depends on Identity extraction.
-6. **Marketplace** — depends on Billing + Identity.
-7. **Automation** — orchestrates 4 domains. Last.
+5. ~~**Billing**~~ — removed entirely by ADR-008; nothing left to extract.
+6. **Marketplace** — depends on Identity.
+7. **Automation** — orchestrates the remaining domains. Last.
 8. **Platform Admin** — never extracted. Stays in `app/shared/`.
 
 ## Don't treat this as physical separation

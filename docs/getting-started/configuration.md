@@ -5,7 +5,7 @@ JAOT keeps configuration in **two layers**, on purpose:
 | Layer | Where | What | When |
 |---|---|---|---|
 | **Infrastructure** | `.env` file | DB, Redis, Celery broker, JWT secret, frontend URL | Loaded at boot, before the database is available |
-| **Business config** | `platform_settings` table | LLM, email/SMTP, billing, security & rate limits, feature flags, object storage… | Managed at runtime from the **admin panel** (Settings) |
+| **Business config** | `platform_settings` table | LLM, email/SMTP, plans & limits, security & rate limits, feature flags, object storage… | Managed at runtime from the **admin panel** (Settings) |
 
 You only edit `.env` once (infra). Everything else is changed live from the admin
 panel — no redeploy. The source of truth for every business setting (type,
@@ -48,8 +48,6 @@ Open `/admin → Settings` in the app and configure, at minimum:
 
 Optional, enable only if you need them:
 
-- **Billing** — only relevant when `MONETIZATION_ENABLED` is on; then you must
-  provide Stripe keys. Off by default (the marketplace is free).
 - **Object storage** — `STORAGE_*` for image uploads.
 - **Security / rate limits** — sensible defaults ship out of the box; tune login
   and other limits under the Security category if needed.

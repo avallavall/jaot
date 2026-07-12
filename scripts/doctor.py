@@ -38,10 +38,6 @@ CRITICAL = "critical"
 RECOMMENDED = "recommended"
 
 
-def _truthy(value: str | None) -> bool:
-    return (value or "").strip().lower() in {"true", "1", "yes", "on"}
-
-
 def main() -> int:
     db = SessionLocal()
     try:
@@ -103,29 +99,11 @@ def main() -> int:
             )
         )
 
-    # --- Billing (only relevant when monetization is enabled) ---
-    stripe_secrets = [d.key for d in SETTINGS_REGISTRY if d.is_secret and "STRIPE" in d.key.upper()]
-    if _truthy(value("MONETIZATION_ENABLED")):
-        missing = [k for k in stripe_secrets if not is_set(k)]
-        if missing:
-            findings.append(
-                (
-                    CRITICAL,
-                    "Billing",
-                    f"MONETIZATION_ENABLED is on but Stripe secrets are missing: "
-                    f"{', '.join(missing)}.",
-                )
-            )
-        else:
-            ok.append("Billing: monetization on, Stripe configured")
-    else:
-        ok.append("Billing: monetization off — Stripe not required")
-
     # --- Any other secrets left empty (informational) ---
     # Infra secrets come from .env, not the admin panel — if the app is running
     # they're already set, so don't nag about them here.
     infra_keys = {"DATABASE_URL", "JWT_SECRET", "REDIS_URL", "CELERY_BROKER_URL"}
-    handled = {"ANTHROPIC_API_KEY", *stripe_secrets} | infra_keys
+    handled = {"ANTHROPIC_API_KEY"} | infra_keys
     for definition in SETTINGS_REGISTRY:
         if not definition.is_secret or definition.key in handled:
             continue

@@ -13,7 +13,7 @@ from app.shared.utils.id_generator import generate_id
 class NotificationPreference(Base):
     """Per-user notification preference for a specific event type and channel.
 
-    Event types: "sale", "review", "payout", "promotion_expiring"
+    Event types: "review", "activation" (money-related types died with ADR-008)
     Channels: "in_app", "email"
 
     Each row represents whether a user has enabled/disabled a specific
@@ -31,9 +31,7 @@ class NotificationPreference(Base):
         nullable=False,
         index=True,
     )
-    event_type: Mapped[str] = mapped_column(
-        String(32), nullable=False
-    )  # "sale", "review", "payout", "promotion_expiring"
+    event_type: Mapped[str] = mapped_column(String(32), nullable=False)  # "review", "activation"
     channel: Mapped[str] = mapped_column(String(16), nullable=False)  # "in_app" or "email"
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     updated_at: Mapped[datetime] = mapped_column(

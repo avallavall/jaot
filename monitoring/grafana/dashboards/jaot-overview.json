@@ -122,23 +122,6 @@
     },
     {
       "type": "timeseries",
-      "title": "Credit Consumption Rate",
-      "datasource": "Prometheus",
-      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 10 },
-      "fieldConfig": {
-        "defaults": { "unit": "short" },
-        "overrides": []
-      },
-      "targets": [
-        {
-          "expr": "rate(jaot_credits_consumed_total[5m])",
-          "legendFormat": "credits/s",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "type": "timeseries",
       "title": "Solve Duration P50 / P95 / P99",
       "datasource": "Prometheus",
       "gridPos": { "h": 8, "w": 6, "x": 12, "y": 10 },

@@ -482,11 +482,11 @@ The following items were explicitly scoped OUT of Phase 8 and remain DEFERRED. T
 enumerated here so they do not become silent tech debt. Each has a trigger that determines
 when it should be reconsidered.
 
-- **Custom event tracking** (signup, pricing-to-signup CTA click, marketplace model purchase
+- **Custom event tracking** (signup, CTA clicks, marketplace model activation
   events). Deferred to a future "Conversion funnel telemetry" phase. **Revisit trigger:**
   product asks for funnel metrics or A/B test instrumentation.
 - **Tracking logged-in surfaces** (`/workspace/*`, `/builder/*`, `/solve/*`, `/admin/*`,
-  `/billing/*`, `/triggers/*`). Requires privacy review and per-user opt-in. **Revisit
+  `/triggers/*`). Requires privacy review and per-user opt-in. **Revisit
   trigger:** product asks for usage analytics on authenticated workflows.
 - **Anti-adblocker script proxying** through `jaot.io/js/script.js` instead of the dedicated
   subdomain. Phase 8 accepts ~30% adblock loss. **Revisit trigger:** Section 9.1 weekly

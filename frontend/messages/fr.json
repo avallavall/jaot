@@ -946,66 +946,6 @@
       "acceptAll": "Tout Accepter"
     },
     "solverDisclaimer": "Les résultats dépendent de la formulation du modèle. Le solveur SCIP fournit des solutions au meilleur effort. Vérifiez les décisions critiques de manière indépendante.",
-    "sellers": {
-      "hero": {
-        "title": "Monétise ton Expertise en Optimisation",
-        "subtitle": "Publie tes modèles sur le marketplace de modèles d'optimisation. Atteins des équipes partout, gagne à chaque activation.",
-        "cta": "Commencer à Vendre",
-        "secondaryCta": "Voir le Marketplace"
-      },
-      "stats": {
-        "globalReach": "Portée Mondiale",
-        "globalReachDesc": "Tes modèles sont découvrables par des équipes et agents IA dans le monde entier.",
-        "simplePayouts": "Paiements Simples",
-        "simplePayoutsDesc": "Suis tes gains dans ton tableau de bord. Retire quand tu veux."
-      },
-      "howItWorks": {
-        "title": "Comment ça marche",
-        "step1": {
-          "title": "Publier",
-          "description": "Crée ton modèle avec le constructeur visuel ou l'assistant IA. Ajoute des descriptions, captures d'écran et tarifs."
-        },
-        "step2": {
-          "title": "Gagner",
-          "description": "Quand une équipe active votre modèle, elle obtient sa propre copie à exécuter et adapter — publier et activer est entièrement gratuit."
-        },
-        "step3": {
-          "title": "Retirer",
-          "description": "Suis tes gains dans ton tableau de bord vendeur. Définis ton seuil de paiement et retire quand tu veux."
-        }
-      },
-      "whyJAOT": {
-        "title": "Pourquoi Vendre sur JAOT",
-        "firstMarketplace": {
-          "title": "Vends tes modèles d'optimisation",
-          "description": "Publie tes modèles et gagne à chaque activation — tu fixes le prix, JAOT gère la livraison et les paiements."
-        },
-        "lowCommission": {
-          "title": "Aucuns frais, jamais",
-          "description": "JAOT est gratuit et open source. Publier ne coûte rien et il n'y a aucune commission — votre travail atteint directement la communauté."
-        },
-        "professionalSolver": {
-          "title": "Solveur Professionnel",
-          "description": "Tes modèles tournent sur SCIP, gérant jusqu'à 100 000+ variables. Performance de niveau entreprise."
-        },
-        "aiDistribution": {
-          "title": "Distribution via Agents IA",
-          "description": "Tes modèles sont découvrables par les agents IA via MCP. Claude, GPT et d'autres peuvent trouver et activer tes modèles de manière programmatique."
-        }
-      },
-      "revenue": {
-        "title": "Transparence des Revenus",
-        "customerActivates": "Le client active ton modèle",
-        "platformCommission": "Aucune commission — la marketplace est gratuite",
-        "youReceive": "Tu reçois 90%",
-        "example": "Publiez une fois et toute équipe pourra activer votre modèle gratuitement, avec attribution."
-      },
-      "cta": {
-        "title": "Prêt à Commencer à Vendre ?",
-        "subtitle": "Rejoins le marketplace de modèles JAOT.",
-        "button": "Commencer à Vendre"
-      }
-    },
     "mcp": {
       "title": "Les Agents IA Rencontrent l'Optimisation",
       "subtitle": "JAOT est une plateforme d'optimisation nativement accessible aux agents IA. Connecte n'importe quel agent compatible MCP pour résoudre des problèmes d'optimisation de bout en bout.",
@@ -2709,7 +2649,6 @@
       "completeProfile": "Compléter ton profil d'organisation",
       "publishModel": "Publier ton premier modèle",
       "addRichMedia": "Ajouter des médias riches et une description",
-      "setupPayouts": "Configurer les paiements",
       "stepsComplete": "{completed}/{total} étapes terminées",
       "progressLabel": "Progression"
     }
@@ -4628,10 +4567,6 @@
       "title": "Contact — JAOT",
       "description": "Envoyez un message à l'équipe JAOT — questions, retours, idées de partenariat."
     },
-    "sellers": {
-      "title": "Vendre des Modèles d'Optimisation - Marketplace JAOT",
-      "description": "Monétise ton expertise en optimisation sur le marketplace de modèles JAOT. 90% de part des revenus, portée mondiale, paiements simples."
-    },
     "licenses": {
       "title": "Licences Tierces - JAOT",
       "description": "Attributions des licences logicielles tierces pour les composants utilisés par JAOT."
@@ -4643,6 +4578,10 @@
     "dynamic": {
       "titleTemplate": "{name} — JAOT",
       "sellerDescriptionFallback": "Parcourez les modèles d'optimisation de {name} sur JAOT"
+    },
+    "sellers": {
+      "title": "Éditeurs de modèles - Marketplace JAOT",
+      "description": "Découvrez les organisations qui publient des modèles d'optimisation sur le marketplace communautaire JAOT — gratuit à activer et à utiliser."
     }
   },
   "images": {

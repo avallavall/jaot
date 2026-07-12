@@ -816,66 +816,6 @@
       "subtitle": "Free and open source. Create an account and solve your first model in minutes — or self-host the whole platform yourself.",
       "button": "Create account"
     },
-    "sellers": {
-      "hero": {
-        "title": "Monetize Your Optimization Expertise",
-        "subtitle": "Publish your models to the optimization model marketplace. Reach teams worldwide, earn with every activation.",
-        "cta": "Start Selling",
-        "secondaryCta": "See Marketplace"
-      },
-      "stats": {
-        "globalReach": "Global Reach",
-        "globalReachDesc": "Your models are discoverable by teams and AI agents worldwide.",
-        "simplePayouts": "Simple Payouts",
-        "simplePayoutsDesc": "Track earnings in your dashboard. Withdraw anytime."
-      },
-      "howItWorks": {
-        "title": "How It Works",
-        "step1": {
-          "title": "Publish",
-          "description": "Create your model using the visual builder or AI assistant. Add descriptions, screenshots, and pricing."
-        },
-        "step2": {
-          "title": "Earn",
-          "description": "When teams activate your model, they get their own copy to run and adapt — publishing and activating are completely free."
-        },
-        "step3": {
-          "title": "Withdraw",
-          "description": "Track earnings in your seller dashboard. Set your payout threshold and withdraw anytime."
-        }
-      },
-      "whyJAOT": {
-        "title": "Why Sell on JAOT",
-        "firstMarketplace": {
-          "title": "Sell your optimization models",
-          "description": "Publish your models and earn on every activation — you set the price, JAOT handles delivery and payouts."
-        },
-        "lowCommission": {
-          "title": "No fees, ever",
-          "description": "JAOT is free and open source. Publishing costs nothing and there is no commission — your work reaches the community directly."
-        },
-        "professionalSolver": {
-          "title": "Professional Solver",
-          "description": "Your models run on SCIP, handling up to 100,000+ variables. Enterprise-grade performance."
-        },
-        "aiDistribution": {
-          "title": "AI Agent Distribution",
-          "description": "Your models are discoverable by AI agents via MCP. Claude, GPT, and others can find and activate your models programmatically."
-        }
-      },
-      "revenue": {
-        "title": "Revenue Transparency",
-        "customerActivates": "Customer activates your model",
-        "platformCommission": "No commission — the marketplace is free",
-        "youReceive": "You receive 90%",
-        "example": "Publish once and any team can activate your model for free, with attribution to you."
-      },
-      "cta": {
-        "title": "Ready to Start Selling?",
-        "subtitle": "Join the JAOT model marketplace.",
-        "button": "Start Selling"
-      }
-    },
     "footer": {
       "product": "Product",
       "marketplace": "Marketplace",
@@ -2709,7 +2649,6 @@
       "completeProfile": "Complete your organization profile",
       "publishModel": "Publish your first model",
       "addRichMedia": "Add rich media and description",
-      "setupPayouts": "Set up payouts",
       "stepsComplete": "{completed}/{total} steps complete",
       "progressLabel": "Progress"
     }
@@ -4628,10 +4567,6 @@
       "title": "Contact — JAOT",
       "description": "Send a message to the JAOT team — questions, feedback, partnership ideas."
     },
-    "sellers": {
-      "title": "Sell Optimization Models - JAOT Marketplace",
-      "description": "Monetize your optimization expertise on the JAOT model marketplace. 90% revenue share, global reach, simple payouts."
-    },
     "licenses": {
       "title": "Third-Party Licenses - JAOT",
       "description": "Third-party software license attributions for components used by JAOT."
@@ -4643,6 +4578,10 @@
     "dynamic": {
       "titleTemplate": "{name} — JAOT",
       "sellerDescriptionFallback": "Browse optimization models by {name} on JAOT"
+    },
+    "sellers": {
+      "title": "Model Publishers - JAOT Marketplace",
+      "description": "Discover organizations publishing optimization models on the JAOT community marketplace — free to activate and use."
     }
   },
   "images": {

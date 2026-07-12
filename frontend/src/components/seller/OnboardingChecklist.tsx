@@ -38,7 +38,6 @@ export function OnboardingChecklist() {
       complete_profile: t("completeProfile"),
       publish_model: t("publishModel"),
       add_rich_media: t("addRichMedia"),
-      setup_payouts: t("setupPayouts"),
     };
     return map[key] ?? key;
   };

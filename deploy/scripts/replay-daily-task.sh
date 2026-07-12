@@ -9,19 +9,19 @@ set -euo pipefail
 #
 # Usage (typical, from operator workstation):
 #   ssh jaot@<VPS_IP> \
-#     'docker exec jaot_prod_api bash /opt/jaot/deploy/scripts/replay-daily-task.sh process_scheduled_withdrawals'
+#     'docker exec jaot_prod_api bash /opt/jaot/deploy/scripts/replay-daily-task.sh hexaly_platform_license_expiry_sweep'
 #
 # Sanctioned tasks:
-#   - process_scheduled_withdrawals
-#   - run_balance_reconciliation
 #   - hexaly_platform_license_expiry_sweep
+#   (process_scheduled_withdrawals / run_balance_reconciliation died with the
+#   money layer, ADR-008)
 #
 # Exits non-zero if no task name or broker send fails. Prints the new task id
 # on stdout on success (single UUID-like line).
 
 if [ "$#" -lt 1 ] || [ -z "${1:-}" ]; then
   echo "usage: $0 <celery-task-name>" >&2
-  echo "       e.g. $0 process_scheduled_withdrawals" >&2
+  echo "       e.g. $0 hexaly_platform_license_expiry_sweep" >&2
   exit 2
 fi
 

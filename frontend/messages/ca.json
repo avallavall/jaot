@@ -946,66 +946,6 @@
       "acceptAll": "Acceptar totes"
     },
     "solverDisclaimer": "Els resultats depenen de la formulació del model. El solver SCIP proporciona solucions de millor esforç. Verifica les decisions crítiques de forma independent.",
-    "sellers": {
-      "hero": {
-        "title": "Monetitza la teva experiència en optimització",
-        "subtitle": "Publica els teus models al marketplace de models d'optimització. Arriba a equips de tot el món i guanya amb cada activació.",
-        "cta": "Comença a vendre",
-        "secondaryCta": "Veure Marketplace"
-      },
-      "stats": {
-        "globalReach": "Abast global",
-        "globalReachDesc": "Els teus models són descoberts per equips i agents IA de tot el món.",
-        "simplePayouts": "Pagaments senzills",
-        "simplePayoutsDesc": "Fes seguiment dels teus guanys al teu dashboard. Retira en qualsevol moment."
-      },
-      "howItWorks": {
-        "title": "Com funciona",
-        "step1": {
-          "title": "Publica",
-          "description": "Crea el teu model amb el constructor visual o l'assistent IA. Afegeix descripcions, captures de pantalla i preus."
-        },
-        "step2": {
-          "title": "Guanya",
-          "description": "Quan un equip activa el teu model, obté la seva pròpia còpia per executar-lo i adaptar-lo — publicar i activar és totalment gratuït."
-        },
-        "step3": {
-          "title": "Retira",
-          "description": "Fes seguiment dels teus guanys al teu dashboard de venedor. Estableix el teu llindar de pagament i retira en qualsevol moment."
-        }
-      },
-      "whyJAOT": {
-        "title": "Per què vendre a JAOT",
-        "firstMarketplace": {
-          "title": "Ven els teus models d'optimització",
-          "description": "Publica els teus models i guanya en cada activació — tu fixes el preu, JAOT gestiona el lliurament i els pagaments."
-        },
-        "lowCommission": {
-          "title": "Sense comissions, mai",
-          "description": "JAOT és gratuït i de codi obert. Publicar no costa res i no hi ha comissió — la teva feina arriba directa a la comunitat."
-        },
-        "professionalSolver": {
-          "title": "Solver professional",
-          "description": "Els teus models s'executen a SCIP, gestionant fins a més de 100.000 variables. Rendiment de nivell empresarial."
-        },
-        "aiDistribution": {
-          "title": "Distribució a agents IA",
-          "description": "Els teus models són descoberts per agents IA via MCP. Claude, GPT i d'altres poden trobar i activar els teus models programàticament."
-        }
-      },
-      "revenue": {
-        "title": "Transparència d'ingressos",
-        "customerActivates": "El client activa el teu model",
-        "platformCommission": "Sense comissió — el marketplace és gratuït",
-        "youReceive": "Tu reps el 90%",
-        "example": "Publica un cop i qualsevol equip podrà activar el teu model gratis, amb atribució al teu nom."
-      },
-      "cta": {
-        "title": "Preparat per començar a vendre?",
-        "subtitle": "Uneix-te al marketplace de models de JAOT.",
-        "button": "Comença a vendre"
-      }
-    },
     "mcp": {
       "title": "Els agents IA coneixen l'optimització",
       "subtitle": "JAOT és una plataforma d'optimització accessible de forma nativa per a agents IA. Connecta qualsevol agent compatible amb MCP per resoldre problemes d'optimització d'extrem a extrem.",
@@ -2709,7 +2649,6 @@
       "completeProfile": "Completa el perfil de la teva organitzacio",
       "publishModel": "Publica el teu primer model",
       "addRichMedia": "Afegeix multimèdia i descripció",
-      "setupPayouts": "Configura els pagaments",
       "stepsComplete": "{completed}/{total} passos completats",
       "progressLabel": "Progres"
     }
@@ -4628,10 +4567,6 @@
       "title": "Contacte — JAOT",
       "description": "Envia un missatge a l'equip de JAOT — preguntes, comentaris, idees de col·laboració."
     },
-    "sellers": {
-      "title": "Ven models d'optimització - JAOT Marketplace",
-      "description": "Monetitza la teva experiència en optimització al marketplace de models de JAOT. 90% d'ingressos, abast global, pagaments senzills."
-    },
     "licenses": {
       "title": "Llicències de tercers - JAOT",
       "description": "Atribucions de llicències de programari de tercers per a components utilitzats per JAOT."
@@ -4643,6 +4578,10 @@
     "dynamic": {
       "titleTemplate": "{name} — JAOT",
       "sellerDescriptionFallback": "Explora els models d'optimització de {name} a JAOT"
+    },
+    "sellers": {
+      "title": "Publicadors de models - Marketplace JAOT",
+      "description": "Descobreix organitzacions que publiquen models d'optimització al marketplace comunitari de JAOT — gratuït per activar i utilitzar."
     }
   },
   "images": {

@@ -127,7 +127,7 @@ See `deploy/.env.production.example` for the full list.
 
 ### Tier 2 — `platform_settings` DB table (business config)
 
-All business configuration (plans, pricing, LLM keys, Stripe, SMTP, feature flags, rate limits, storage, etc.) is stored in the `platform_settings` database table and managed via the admin panel at runtime. The source of truth for defaults is `app/services/settings_registry.py` (84 entries).
+All business configuration (plans, LLM keys, SMTP, feature flags, rate limits, storage, etc.) is stored in the `platform_settings` database table and managed via the admin panel at runtime. The source of truth for defaults is `app/services/settings_registry.py` (124 entries).
 
 Access business config at runtime through `PlatformSettingsService` (PSS), not `settings.*` or environment variables.
 

@@ -46,9 +46,6 @@ const SETTING_GROUPS: Record<string, Record<string, string>> = {
     RATE_LIMIT_WINDOW_SECONDS: "Rate Limits",
     RATE_LIMIT_DAILY_WINDOW_SECONDS: "Rate Limits",
   },
-  marketplace: {
-    marketplace_commission_rate: "Commission",
-  },
 };
 
 /** Threshold: categories with this many settings or fewer render flat (no accordion) */
