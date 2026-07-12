@@ -9,7 +9,12 @@ from app.models.conversation_attachment import ConversationAttachment
 from app.models.favorite import RecentModel, UserFavorite
 from app.models.formulation_rating import FormulationRating
 from app.models.llm_conversation import LLMConversation, LLMMessage
-from app.models.model_project import ModelProject, ModelProjectDataset, ModelProjectVersion
+from app.models.model_project import (
+    ModelProject,
+    ModelProjectDataset,
+    ModelProjectListing,
+    ModelProjectVersion,
+)
 from app.models.model_version import ModelVersion
 from app.models.model_view_event import ModelViewEvent
 from app.models.notification import Notification, NotificationChannel, NotificationType
@@ -65,6 +70,7 @@ __all__ = [
     # Model Projects (first-class model entity + commit-grade versions)
     "ModelProject",
     "ModelProjectDataset",
+    "ModelProjectListing",
     "ModelProjectVersion",
     # Triggers
     "SolveTrigger",

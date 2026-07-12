@@ -382,6 +382,14 @@ class ModelReview(Base):
     catalog_id: Mapped[str] = mapped_column(
         String(64), ForeignKey("model_catalog.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    # P1.5 fusion: additive forward link to the unified Model. Nullable during the
+    # transition (legacy reviews keep only catalog_id); dual-written by F4.
+    model_project_id: Mapped[str | None] = mapped_column(
+        String(64),
+        ForeignKey("model_projects.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
 
     # Who is reviewing
     user_id: Mapped[str] = mapped_column(

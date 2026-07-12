@@ -17,6 +17,10 @@ class UserFavorite(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     model_id = Column(String, ForeignKey("model_catalog.id", ondelete="CASCADE"), nullable=False)
+    # P1.5 fusion: additive forward link to the unified Model (nullable during transition).
+    model_project_id = Column(
+        String, ForeignKey("model_projects.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
     # Relationships
@@ -34,6 +38,10 @@ class RecentModel(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     model_id = Column(String, ForeignKey("model_catalog.id", ondelete="CASCADE"), nullable=False)
+    # P1.5 fusion: additive forward link to the unified Model (nullable during transition).
+    model_project_id = Column(
+        String, ForeignKey("model_projects.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     last_accessed = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
     access_count = Column(String, default="1")
 

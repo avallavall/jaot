@@ -29,6 +29,13 @@ class ModelViewEvent(Base):
         nullable=False,
         index=True,
     )
+    # P1.5 fusion: additive forward link to the unified Model (nullable during transition).
+    model_project_id: Mapped[str | None] = mapped_column(
+        String(64),
+        ForeignKey("model_projects.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     event_type: Mapped[str] = mapped_column(String(16), nullable=False)  # "impression" or "view"
     viewer_organization_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     viewer_country: Mapped[str | None] = mapped_column(

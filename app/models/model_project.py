@@ -9,7 +9,7 @@ append-only list of immutable, commit-grade ``ModelProjectVersion`` snapshots.
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.shared.db.base import Base
@@ -264,4 +264,107 @@ class ModelProjectDataset(Base):
         return (
             f"<ModelProjectDataset(id={self.id!r}, project={self.model_project_id!r}, "
             f"name={self.name!r})>"
+        )
+
+
+class ModelProjectListing(Base):
+    """The marketplace FACET of a ModelProject (P1.5 fusion, D4).
+
+    A 1:1 extension keyed by the project id: "publishing to the marketplace"
+    attaches ONE of these (the listing presentation + the generator facet that
+    parametric officials execute through) instead of copying the model into a
+    separate ``model_catalog`` row. The model CONTENT lives only in the
+    project/version; this table holds only the marketplace-specific presentation +
+    rollups. Columns mirror the surviving ``ModelCatalog`` columns so the F3
+    backfill is a near-direct copy (``generator_type`` and friends are nullable
+    here because a plain published project has no generator — it runs from its
+    versioned problem).
+    """
+
+    __tablename__ = "model_project_listings"
+
+    # PK == FK: exactly one listing per project, sharing its id.
+    model_project_id: Mapped[str] = mapped_column(
+        String(64),
+        ForeignKey("model_projects.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    # Basic listing info (marketplace presentation; may differ from the project name)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    display_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    short_description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    scenario_description: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Classification
+    category: Mapped[str] = mapped_column(String(64), default="general", index=True)
+    tags: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+
+    # Generator facet — parametric officials execute via generate(inputs); a plain
+    # published project leaves these null and runs from its versioned problem.
+    generator_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    input_schema: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    input_fields: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
+    example_input: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+
+    # Versioning + publication status
+    version: Mapped[str] = mapped_column(String(16), default="1.0.0")
+    status: Mapped[str] = mapped_column(String(32), default="draft", index=True)
+    # The committed version pinned as the public one (publish pins a version, never
+    # the dirty draft). App-enforced link; SET NULL if the version is ever removed.
+    pinned_version_id: Mapped[str | None] = mapped_column(
+        String(64),
+        ForeignKey("model_project_versions.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    # Ownership & origin
+    author_organization_id: Mapped[str | None] = mapped_column(
+        String(64), ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    is_official: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+    # Statistics (rollups mirrored from the catalog)
+    total_activations: Mapped[int] = mapped_column(Integer, default=0)
+    total_executions: Mapped[int] = mapped_column(Integer, default=0)
+    avg_execution_time_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
+    success_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
+    avg_rating: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    # Visibility
+    is_featured: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_public: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    # Media
+    logo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    screenshot_urls: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+
+    # Rich description sections — markdown stored as text
+    section_overview: Mapped[str | None] = mapped_column(Text, nullable=True)
+    section_features: Mapped[str | None] = mapped_column(Text, nullable=True)
+    section_how_it_works: Mapped[str | None] = mapped_column(Text, nullable=True)
+    section_example_io: Mapped[str | None] = mapped_column(Text, nullable=True)
+    section_changelog: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Index names mirror the migration (20260712_p15_listings) exactly so
+    # `alembic --autogenerate` stays a no-op for this table.
+    __table_args__ = (
+        Index("ix_mpl_category_status", "category", "status"),
+        Index("ix_mpl_official_featured", "is_official", "is_featured"),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<ModelProjectListing(project={self.model_project_id!r}, "
+            f"status={self.status!r}, is_official={self.is_official})>"
         )
