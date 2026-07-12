@@ -16,8 +16,11 @@ from app.models import (
     ModelCatalog,
     ModelCategory,
     ModelExecution,
+    ModelProject,
+    ModelProjectListing,
     OrganizationModel,
 )
+from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.shared.utils.model_helpers import build_org_model_response
 
 pytestmark = pytest.mark.contract
@@ -302,6 +305,84 @@ class TestMarketplaceTenantIsolation:
             "/api/v2/models/p15_x_org_model/execute", json={"input_data": {}}
         )
         assert res.status_code == 404, res.text
+
+
+def _make_listing(db, org, *, pid, **ov):
+    """A published ModelProject + its marketplace listing facet (no catalog row)."""
+    db.add(ModelProject(id=pid, organization_id=org.id, name="Proj " + pid, status="active"))
+    db.flush()
+    fields = {
+        "model_project_id": pid,
+        "name": pid,
+        "display_name": "Disp " + pid,
+        "description": "listing desc",
+        "category": ModelCategory.LOGISTICS.value,
+        "generator_type": "knapsack",
+        "input_schema": {"type": "object"},
+        "input_fields": [{"name": "cap"}],
+        "example_input": {"cap": 10},
+        "version": "1.0.0",
+        "status": "published",
+        "is_official": False,
+        "is_public": True,
+        "total_activations": 0,
+        "total_executions": 0,
+        "is_featured": False,
+    }
+    fields.update(ov)
+    db.add(ModelProjectListing(**fields))
+    db.commit()
+
+
+class TestFusionReadCutover:
+    """With MARKETPLACE_FUSION_ENABLED on, browse/detail/schema serve from the listing
+    facet with the SAME wire shape (parity ON) — no catalog row involved, proving the
+    read source switched."""
+
+    def _enable(self, db):
+        PSS.set(db, "MARKETPLACE_FUSION_ENABLED", "true")
+        db.commit()
+
+    # CONTRACT-TEST: browse returns the listing with the exact ModelCatalogResponse shape.
+    def test_browse_serves_from_listings(self, authenticated_client, db_session, test_organization):
+        _make_listing(
+            db_session, test_organization, pid="p15_fus_browse", display_name="From Listing"
+        )
+        self._enable(db_session)
+        res = authenticated_client.get("/api/v2/models/catalog?category=logistics")
+        assert res.status_code == 200, res.text
+        item = next(i for i in res.json()["items"] if i["id"] == "p15_fus_browse")
+        assert set(item.keys()) == _CATALOG_KEYS
+        assert item["display_name"] == "From Listing"
+
+    # CONTRACT-TEST: detail serves the listing (id = project id) with the same shape.
+    def test_detail_serves_from_listings(self, authenticated_client, db_session, test_organization):
+        _make_listing(
+            db_session, test_organization, pid="p15_fus_detail", description="LISTING ONLY"
+        )
+        self._enable(db_session)
+        res = authenticated_client.get("/api/v2/models/catalog/p15_fus_detail")
+        assert res.status_code == 200, res.text
+        body = res.json()
+        assert set(body.keys()) == _CATALOG_KEYS
+        assert body["id"] == "p15_fus_detail"
+        assert body["description"] == "LISTING ONLY"
+
+    # CONTRACT-TEST: schema serves the listing's generator facet.
+    def test_schema_serves_from_listings(self, authenticated_client, db_session, test_organization):
+        _make_listing(db_session, test_organization, pid="p15_fus_schema", generator_type="vrp")
+        self._enable(db_session)
+        res = authenticated_client.get("/api/v2/models/catalog/p15_fus_schema/schema")
+        assert res.status_code == 200, res.text
+        body = res.json()
+        assert body["id"] == "p15_fus_schema"
+        assert body["generator_type"] == "vrp"
+
+    # CONTRACT-TEST: an unpublished listing 404s (same as an unpublished catalog row).
+    def test_unpublished_listing_404(self, authenticated_client, db_session, test_organization):
+        _make_listing(db_session, test_organization, pid="p15_fus_draft", status="draft")
+        self._enable(db_session)
+        assert authenticated_client.get("/api/v2/models/catalog/p15_fus_draft").status_code == 404
 
 
 class TestExecuteProvenance:

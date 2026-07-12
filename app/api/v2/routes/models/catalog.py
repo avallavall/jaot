@@ -15,13 +15,14 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.api.v2.auth import get_current_user
-from app.models import ModelCatalog, Organization, OrganizationModel, User
+from app.models import ModelCatalog, ModelProjectListing, Organization, OrganizationModel, User
 from app.schemas.model import (
     ActivateModelRequest,
     ModelCatalogListResponse,
     ModelCatalogResponse,
     OrganizationModelResponse,
 )
+from app.services.marketplace_fusion import is_fusion_enabled, listing_to_catalog_response
 from app.services.notification_service import NotificationService
 from app.services.seller_analytics_service import SellerAnalyticsService
 from app.shared.db.base import get_db
@@ -45,37 +46,43 @@ async def list_catalog_models(
     db: Session = Depends(get_db),
 ) -> ModelCatalogListResponse:
     """List models available in the marketplace catalog."""
-    query = db.query(ModelCatalog).filter(
-        ModelCatalog.status == "published",
-        ModelCatalog.is_public == True,  # noqa: E712
+    # P1.5 cutover: serve from the unified listing facet when the flag is on. The
+    # facet shares column names with the catalog, so only the queried class + the
+    # id/response mapping differ (ids were preserved by the backfill).
+    fusion = is_fusion_enabled(db)
+    model_cls = ModelProjectListing if fusion else ModelCatalog
+
+    query = db.query(model_cls).filter(
+        model_cls.status == "published",
+        model_cls.is_public == True,  # noqa: E712
     )
 
     if category:
-        query = query.filter(ModelCatalog.category == category)
+        query = query.filter(model_cls.category == category)
 
     if search:
         search_term = f"%{search}%"
         query = query.filter(
             or_(
-                ModelCatalog.name.ilike(search_term),
-                ModelCatalog.display_name.ilike(search_term),
-                ModelCatalog.description.ilike(search_term),
+                model_cls.name.ilike(search_term),
+                model_cls.display_name.ilike(search_term),
+                model_cls.description.ilike(search_term),
             )
         )
 
     if is_official is not None:
-        query = query.filter(ModelCatalog.is_official == is_official)
+        query = query.filter(model_cls.is_official == is_official)
 
     if min_rating is not None:
-        query = query.filter(ModelCatalog.avg_rating >= min_rating)
+        query = query.filter(model_cls.avg_rating >= min_rating)
 
     # Sorting
     if sort_by == "popular":
-        query = query.order_by(ModelCatalog.total_executions.desc())
+        query = query.order_by(model_cls.total_executions.desc())
     elif sort_by == "newest":
-        query = query.order_by(ModelCatalog.created_at.desc())
+        query = query.order_by(model_cls.created_at.desc())
     elif sort_by == "rating":
-        query = query.order_by(ModelCatalog.avg_rating.desc().nullslast())
+        query = query.order_by(model_cls.avg_rating.desc().nullslast())
 
     total = query.count()
     offset = (page - 1) * page_size
@@ -91,7 +98,7 @@ async def list_catalog_models(
 
     items = []
     for s in models:
-        item = ModelCatalogResponse.model_validate(s)
+        item = listing_to_catalog_response(s) if fusion else ModelCatalogResponse.model_validate(s)
         if s.author_organization_id:
             author_org = orgs.get(s.author_organization_id)
             if author_org:
@@ -99,11 +106,12 @@ async def list_catalog_models(
                 item.author_verified = author_org.is_verified
         items.append(item)
 
-    # Fire-and-forget: log impressions for returned models
+    # Fire-and-forget: log impressions for returned models (ids preserved → catalog
+    # rows still exist, so ModelViewEvent.catalog_model_id stays valid).
     try:
         if models:
             analytics = SellerAnalyticsService(db)
-            model_ids = [m.id for m in models]
+            model_ids = [i.id for i in items]
             # Catalog list is public -- viewer may not be authenticated
             viewer_user = getattr(request.state, "user", None)
             viewer_org_id = getattr(viewer_user, "organization_id", None) if viewer_user else None
@@ -130,20 +138,33 @@ async def get_catalog_model(
     db: Session = Depends(get_db),
 ) -> ModelCatalogResponse:
     """Get details of a specific model in the catalog."""
-    model = (
-        db.query(ModelCatalog)
-        .filter(
-            ModelCatalog.id == model_id,
-            ModelCatalog.status == "published",
-            ModelCatalog.is_public == True,  # noqa: E712
+    fusion = is_fusion_enabled(db)
+    if fusion:
+        listing = (
+            db.query(ModelProjectListing)
+            .filter(
+                ModelProjectListing.model_project_id == model_id,
+                ModelProjectListing.status == "published",
+                ModelProjectListing.is_public == True,  # noqa: E712
+            )
+            .first()
         )
-        .first()
-    )
+        model = listing
+        response = listing_to_catalog_response(listing) if listing else None
+    else:
+        model = (
+            db.query(ModelCatalog)
+            .filter(
+                ModelCatalog.id == model_id,
+                ModelCatalog.status == "published",
+                ModelCatalog.is_public == True,  # noqa: E712
+            )
+            .first()
+        )
+        response = ModelCatalogResponse.model_validate(model) if model else None
 
-    if not model:
+    if not model or response is None:
         raise HTTPException(status_code=404, detail="Model not found")
-
-    response = ModelCatalogResponse.model_validate(model)
 
     if model.author_organization_id:
         author_org = (
@@ -171,12 +192,39 @@ async def get_catalog_model_schema(
     model_id: str,
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
-    """Get the input schema and example for a catalog model."""
+    """Get the input schema and example for a catalog model.
+
+    Requires ``is_public`` (like the detail endpoint): the schema exposes the
+    generator + input fields, so a published-but-unlisted model must not leak it.
+    """
+    if is_fusion_enabled(db):
+        listing = (
+            db.query(ModelProjectListing)
+            .filter(
+                ModelProjectListing.model_project_id == model_id,
+                ModelProjectListing.status == "published",
+                ModelProjectListing.is_public == True,  # noqa: E712
+            )
+            .first()
+        )
+        if not listing:
+            raise HTTPException(status_code=404, detail="Model not found")
+        return {
+            "id": listing.model_project_id,
+            "name": listing.name,
+            "generator_type": listing.generator_type,
+            "input_schema": listing.input_schema,
+            "input_fields": listing.input_fields,
+            "example_input": listing.example_input,
+            "scenario_description": listing.scenario_description,
+        }
+
     model = (
         db.query(ModelCatalog)
         .filter(
             ModelCatalog.id == model_id,
             ModelCatalog.status == "published",
+            ModelCatalog.is_public == True,  # noqa: E712
         )
         .first()
     )
