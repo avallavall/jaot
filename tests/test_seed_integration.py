@@ -105,8 +105,6 @@ class TestSeedOfficialModels:
             is_official=True,
             is_featured=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
         )
         db_session.add(fake)
         db_session.flush()

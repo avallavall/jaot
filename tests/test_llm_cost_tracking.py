@@ -11,7 +11,7 @@ Covers:
 
 The Anthropic client is mocked at the provider boundary (established
 pattern from tests/test_llm.py); conversations, messages, settings, and
-credits all run against the real PostgreSQL database.
+run against the real PostgreSQL database.
 """
 
 import json
@@ -328,7 +328,6 @@ class TestBudgetGuardrail:
         db_session.commit()
         _add_costed_message(db_session, test_conversation, 0.10)
 
-        balance_before = test_organization.credits_balance
         response = authenticated_client.post(
             f"/api/v2/llm/conversations/{test_conversation.id}/messages",
             json={"message": "Minimize x"},
@@ -343,7 +342,6 @@ class TestBudgetGuardrail:
         # Blocked BEFORE pre-pay and BEFORE persisting the user message.
         db_session.expire_all()
         db_session.refresh(test_organization)
-        assert test_organization.credits_balance == balance_before
         user_msgs = (
             db_session.query(LLMMessage)
             .filter(

@@ -3,7 +3,7 @@
 # CONTRACT-TEST: POST /solve and POST /solve/async?wait=true must return the SAME
 OptimizationResult contract for the same problem — field set and semantic fields
 alike. These tests pin the wait-wrapper mapping (envelope flattening, execution_id /
-credits_used / credits_remaining injection, telemetry hoisting, 202 degradation)
+telemetry hoisting, 202 degradation)
 BEFORE the legacy sync endpoints become async-backed wrappers (ADR-007 S2). If a
 test here breaks, the async-under-the-hood migration is NOT safe to proceed.
 
@@ -84,7 +84,6 @@ class TestSyncAsyncParity:
         assert wait["objective_value"] == pytest.approx(10.0)
         assert wait["solution"] == sync["solution"]
         assert wait["variables"] == sync["variables"]
-        assert wait["credits_used"] == sync["credits_used"]
         assert wait["solver_used"] == sync["solver_used"] == "scip"
         assert wait["auto_route_reason"] == sync["auto_route_reason"]
         assert wait["error_message"] is None and sync["error_message"] is None
@@ -96,9 +95,6 @@ class TestSyncAsyncParity:
         assert wait["execution_id"] != sync["execution_id"]
 
         # Both runs charge: the second balance is exactly one solve below the first.
-        assert isinstance(sync["credits_remaining"], int)
-        assert isinstance(wait["credits_remaining"], int)
-        assert wait["credits_remaining"] == sync["credits_remaining"] - wait["credits_used"]
 
         # Timing fields are present and sane, never compared for equality.
         assert wait["solve_time_seconds"] >= 0 and sync["solve_time_seconds"] >= 0
@@ -113,7 +109,6 @@ class TestSyncAsyncParity:
         assert wait["status"] == sync["status"] == "infeasible"
         assert wait["objective_value"] == sync["objective_value"]
         # An infeasible result is a real (charged) answer on both paths.
-        assert wait["credits_used"] == sync["credits_used"]
 
 
 class TestWaitDegradation:
@@ -173,7 +168,7 @@ class TestWaitErrorMapping:
             id = "parity-error-task"
 
             def get(self, **kwargs):
-                # The worker's error envelope (it already refunded the prepaid credits).
+                # The worker's error envelope.
                 return {"status": "error", "task_id": self.id, "error": "boom from solver"}
 
         monkeypatch.setattr(
@@ -185,17 +180,15 @@ class TestWaitErrorMapping:
         body = res.json()
         assert body["status"] == "error"
         assert "boom from solver" in body["error_message"]
-        assert body["credits_used"] == 0  # refunded by the worker
         assert body["execution_id"].startswith("exe_")
 
-    def test_solver_level_error_in_success_envelope_reports_zero_credits(
+    def test_solver_level_error_in_success_envelope_maps_to_error(
         self, authenticated_client, monkeypatch
     ):
         """# CONTRACT-TEST: a NON-raising solver error rides the worker's "success"
         envelope with an inner status=error; the worker already refunded the
-        prepay, so the wait-backed result must report credits_used=0 (net-zero) —
         not the prepaid amount. Regression for the audit finding where /solve
-        reported credits_used=1 for a refunded EXPR_PARSE_ERROR solve."""
+        (historic BUG-1 surface)."""
 
         class _SolverErrorInSuccess:
             id = "parity-solver-error-envelope-task"
@@ -219,7 +212,6 @@ class TestWaitErrorMapping:
         assert res.status_code == 200, res.text
         body = res.json()
         assert body["status"] == "error"
-        assert body["credits_used"] == 0  # refunded — must NOT report the prepay
         assert "EXPR_PARSE_ERROR" in (body["error_message"] or "")
 
     def test_task_crash_maps_to_error_result(self, authenticated_client, monkeypatch):
@@ -239,4 +231,3 @@ class TestWaitErrorMapping:
         body = res.json()
         assert body["status"] == "error"
         assert "worker killed" in body["error_message"]
-        assert body["credits_used"] == 0

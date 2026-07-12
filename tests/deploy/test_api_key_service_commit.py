@@ -34,9 +34,7 @@ def seeded_user_and_org():
     session = SessionLocal()
     org_id = generate_id("org_")
     user_id = generate_id("usr_")
-    org = Organization(
-        id=org_id, name=f"deploy-06-test-{org_id}", credits_balance=0, is_active=True
-    )
+    org = Organization(id=org_id, name=f"deploy-06-test-{org_id}", is_active=True)
     user = User(
         id=user_id,
         email=f"{user_id}@deploy-06-test.local",

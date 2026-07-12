@@ -391,15 +391,11 @@ class TestSolveDatasetProvenance:
 
         monkeypatch.setattr(_solve_tasks_mod.solve_async, "apply_async", _record_enqueue)
         pid = _create_project(authenticated_client)["id"]
-        db_session.refresh(test_organization)
-        credits_before = test_organization.credits_balance
         resp = authenticated_client.post(
             _solve_async_url(pid, "mpd_does_not_exist_anywhere"), json=_TINY_PROBLEM
         )
         assert resp.status_code == 404, resp.text
         assert enqueued == []
-        db_session.refresh(test_organization)
-        assert test_organization.credits_balance == credits_before
         assert db_session.query(ModelExecution).filter_by(model_project_id=pid).first() is None
 
     # CONTRACT-TEST: a cross-org dataset_id on the solve request 404s with no oracle —

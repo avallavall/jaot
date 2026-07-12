@@ -1,14 +1,14 @@
 """Tests for POST /llm/conversations/{id}/explain-solution (P1 — solution explainer).
 
-Covers the auth + billing + persistence contract, reusing the chat pipeline:
+Covers the auth + budget + persistence contract, reusing the chat pipeline:
 - happy path (execution_id) streams SSE and persists the assistant message + cost
 - inline solution (no execution_id) also works
 - 401 without auth, 404 for a cross-org execution (rejection path)
-- 402 insufficient credits, 403 monthly-budget exhausted
+- 403 monthly-budget exhausted
 - 422 when no solution context is supplied
 
 The Anthropic client is mocked at the provider boundary; conversations, messages,
-settings, credits, and executions all run against the real PostgreSQL database.
+settings, and executions all run against the real PostgreSQL database.
 """
 
 from datetime import timedelta
@@ -126,7 +126,6 @@ def _create_execution(db_session, org_id, result_data=RESULT_DATA) -> ModelExecu
         input_data=FORMULATION,
         result_data=result_data,
         status=ExecutionStatus.COMPLETED.value,
-        credits_consumed=1,
         solver_status="optimal",
         objective_value=9.0,
     )
@@ -217,19 +216,6 @@ class TestExplainSolutionEndpoint:
             .count()
         )
         assert assistant == 0
-
-    def test_insufficient_credits_returns_402(
-        self, authenticated_client, db_session, test_conversation, test_organization
-    ):
-        test_organization.credits_balance = 0
-        db_session.commit()
-
-        response = authenticated_client.post(
-            _url(test_conversation.id),
-            json={"solution": {"objective_value": 9.0, "solution": {"x": 1.0}}},
-        )
-        assert response.status_code == 402
-        assert response.json()["detail"]["error"] == "insufficient_credits"
 
     def test_budget_exceeded_returns_403(self, authenticated_client, db_session, test_conversation):
         PSS.set(db_session, "LLM_MONTHLY_BUDGET_EUR", "0.05")

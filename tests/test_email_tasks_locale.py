@@ -51,7 +51,6 @@ class TestSendOnboardingEmailLocale:
                     user_email="test@test.com",
                     user_name="Bob",
                     day=7,
-                    credits_balance=500,
                     locale="fr",
                 )
                 assert result["status"] == "sent"
@@ -133,9 +132,9 @@ class TestScheduleOnboardingSequenceLocale:
                 user_name="New User",
             )
             assert result["status"] == "scheduled"
-            assert len(result["days"]) == 5
+            assert len(result["days"]) == 4
             # All 5 days should have been enqueued
-            assert mock_task.apply_async.call_count == 5
+            assert mock_task.apply_async.call_count == 4
             # No call should set a non-None locale (locale absent or explicitly None)
             for c in mock_task.apply_async.call_args_list:
                 kwargs_dict = c[1].get("kwargs", {})

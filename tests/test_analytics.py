@@ -29,22 +29,22 @@ class TestEventTypes:
         assert len(ALL_EVENT_TYPES) == len(set(ALL_EVENT_TYPES))
 
     def test_event_types_count(self) -> None:
-        """Should have ~14 event types at launch."""
+        """Should have ~12 event types (ADR-008 removed the credit ones)."""
         from app.shared.constants.event_types import ALL_EVENT_TYPES
 
-        assert len(ALL_EVENT_TYPES) >= 13
+        assert len(ALL_EVENT_TYPES) >= 12
 
-    def test_event_domains_has_six_domains(self) -> None:
-        """EVENT_DOMAINS should group events into 6 radar domains."""
+    def test_event_domains_has_five_domains(self) -> None:
+        """EVENT_DOMAINS should group events into 5 radar domains (ADR-008 dropped Credits)."""
         from app.shared.constants.event_types import EVENT_DOMAINS
 
-        assert len(EVENT_DOMAINS) == 6
+        assert len(EVENT_DOMAINS) == 5
 
     def test_event_domains_keys(self) -> None:
-        """Verify the 6 domain names."""
+        """Verify the 5 domain names."""
         from app.shared.constants.event_types import EVENT_DOMAINS
 
-        expected = {"Solver", "AI Builder", "Marketplace", "MCP", "Scheduling", "Credits"}
+        expected = {"Solver", "AI Builder", "Marketplace", "MCP", "Scheduling"}
         assert set(EVENT_DOMAINS.keys()) == expected
 
     def test_event_domains_values_are_lists_of_event_types(self) -> None:
@@ -100,7 +100,7 @@ class TestAnalyticsEventModel:
             org_id="org_test001",
             event_type="solver.solve",
             country_code="US",
-            event_metadata={"model_id": "mdl_123", "credits_used": 5},
+            event_metadata={"model_id": "mdl_123", "solve_ms": 5},
         )
         db_session.add(event)
         db_session.flush()
@@ -110,7 +110,7 @@ class TestAnalyticsEventModel:
         assert event.org_id == "org_test001"
         assert event.event_type == "solver.solve"
         assert event.country_code == "US"
-        assert event.event_metadata == {"model_id": "mdl_123", "credits_used": 5}
+        assert event.event_metadata == {"model_id": "mdl_123", "solve_ms": 5}
         assert event.created_at is not None
 
     def test_analytics_event_id_has_ae_prefix(self, db_session) -> None:
@@ -209,7 +209,7 @@ class TestAnalyticsService:
                 user_id="user_a",
                 org_id="org_a",
                 event_type="solver.solve",
-                event_metadata={"credits_used": 5},
+                event_metadata={"solve_ms": 5},
                 created_at=now - timedelta(hours=12),
             ),
             AnalyticsEvent(
@@ -223,7 +223,7 @@ class TestAnalyticsService:
                 user_id="user_b",
                 org_id="org_b",
                 event_type="solver.solve",
-                event_metadata={"credits_used": 10},
+                event_metadata={"solve_ms": 10},
                 created_at=now - timedelta(hours=6),
             ),
             AnalyticsEvent(
@@ -253,7 +253,7 @@ class TestAnalyticsService:
             user_id="user_test001",
             org_id="org_test001",
             event_type="solver.solve",
-            metadata={"credits_used": 5},
+            metadata={"solve_ms": 5},
         )
 
         events = db_session.query(AnalyticsEvent).all()
@@ -261,7 +261,7 @@ class TestAnalyticsService:
         assert events[0].user_id == "user_test001"
         assert events[0].org_id == "org_test001"
         assert events[0].event_type == "solver.solve"
-        assert events[0].event_metadata == {"credits_used": 5}
+        assert events[0].event_metadata == {"solve_ms": 5}
         assert events[0].id.startswith("ae_")
 
     def test_log_event_uses_geoip_for_country(self, db_session, monkeypatch) -> None:
@@ -575,12 +575,10 @@ class TestEndpointInstrumentation:
             "org.create",
             "ai_builder.message",
             "schedule.create",
-            "credit.withdrawal",
             "marketplace.purchase",
             "marketplace.activate",
             "marketplace.publish",
             "model.create",
-            "placement.purchase",
         ],
     )
     def test_log_event_round_trips_event_type(

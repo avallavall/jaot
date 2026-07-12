@@ -30,8 +30,6 @@ class TestFavoritesList:
             status="published",
             is_official=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
         )
         db_session.add(model)
         db_session.commit()
@@ -69,8 +67,6 @@ class TestAddFavorite:
             status="published",
             is_official=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
         )
         db_session.add(model)
         db_session.commit()
@@ -109,8 +105,6 @@ class TestAddFavorite:
             status="published",
             is_official=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
         )
         db_session.add(model)
 
@@ -164,8 +158,6 @@ class TestRemoveFavorite:
             status="published",
             is_official=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
         )
         db_session.add(model)
 
@@ -232,8 +224,6 @@ class TestFavoriteStatus:
             status="published",
             is_official=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
         )
         db_session.add(model)
 

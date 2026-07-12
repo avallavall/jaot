@@ -440,7 +440,6 @@ class TestIDOR:
         org_a = Organization(
             id="org_idor_a",
             name="Org A",
-            credits_balance=100,
             is_active=True,
         )
         db_session.add(org_a)
@@ -476,7 +475,6 @@ class TestIDOR:
         other_org = Organization(
             id="org_other_cancel",
             name="Other Org",
-            credits_balance=100,
             is_active=True,
         )
         db_session.add(other_org)

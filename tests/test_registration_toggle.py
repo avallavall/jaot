@@ -122,7 +122,6 @@ class TestLoginUnaffectedByRegistrationToggle:
         org = Organization(
             id="org_logintest01",
             name="Login Test Org",
-            credits_balance=100,
         )
         db_session.add(org)
         user = User(

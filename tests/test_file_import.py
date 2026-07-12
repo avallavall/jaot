@@ -969,15 +969,3 @@ class TestImportAndSolveEndpoint:
             files={"file": ("simple.lp", file_bytes, "application/octet-stream")},
         )
         assert resp.status_code == 401
-
-    def test_solve_insufficient_credits(self, authenticated_client, test_organization, db_session):
-        """Import with zero credits returns 402."""
-        test_organization.credits_balance = 0
-        db_session.commit()
-
-        file_bytes = _read_fixture("simple.lp")
-        resp = authenticated_client.post(
-            "/api/v2/solve/import",
-            files={"file": ("simple.lp", file_bytes, "application/octet-stream")},
-        )
-        assert resp.status_code == 402

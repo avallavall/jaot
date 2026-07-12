@@ -26,17 +26,15 @@ from app.models.workspace import (
     WorkspaceMember,
     WorkspaceRole,
 )
-from app.models.workspace_credits import WorkspaceCreditPool
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
 
 
-def _create_org(db, org_id="org_mgmt001", balance=1000):
+def _create_org(db, org_id="org_mgmt001"):
     """Create a test organization."""
     org = Organization(
         id=org_id,
         name="Mgmt Test Org",
-        credits_balance=balance,
         is_active=True,
     )
     db.add(org)
@@ -62,7 +60,7 @@ def _create_user(db, org, user_id, email, name="Test User", role="member"):
 
 
 def _create_workspace(db, org, owner):
-    """Create a workspace with owner as admin member and an empty credit pool."""
+    """Create a workspace with owner as admin member."""
     now = utcnow()
     ws = Workspace(
         id=generate_id("wks_"),
@@ -85,17 +83,6 @@ def _create_workspace(db, org, owner):
         joined_at=now,
     )
     db.add(member)
-
-    pool = WorkspaceCreditPool(
-        id=generate_id("wcp_"),
-        workspace_id=ws.id,
-        organization_id=org.id,
-        allocated_credits=0,
-        used_credits=0,
-        created_at=now,
-        updated_at=now,
-    )
-    db.add(pool)
     db.commit()
     db.refresh(ws)
     return ws
@@ -557,16 +544,6 @@ class TestOwnerProtections:
             joined_at=now,
         )
         db_session.add(other_member)
-        pool = WorkspaceCreditPool(
-            id=generate_id("wcp_"),
-            workspace_id=ws2.id,
-            organization_id=org.id,
-            allocated_credits=0,
-            used_credits=0,
-            created_at=now,
-            updated_at=now,
-        )
-        db_session.add(pool)
         db_session.commit()
 
         mock_auth(owner)
@@ -611,16 +588,6 @@ class TestOwnerProtections:
                 joined_at=now,
             )
             db_session.add(member)
-            pool = WorkspaceCreditPool(
-                id=generate_id("wcp_"),
-                workspace_id=ws.id,
-                organization_id=org.id,
-                allocated_credits=0,
-                used_credits=0,
-                created_at=now,
-                updated_at=now,
-            )
-            db_session.add(pool)
         db_session.commit()
 
         mock_auth(owner)
@@ -666,72 +633,3 @@ class TestRemoveMemberCascade:
     to the workspace rather than the member, so both should survive the
     removal with consistent values.
     """
-
-    def test_remove_member_with_open_invites_and_credit_pool(
-        self, client, mock_auth, org_with_members, db_session
-    ):
-        owner = org_with_members["owner"]
-        admin = org_with_members["admin"]
-        ws = org_with_members["ws"]
-
-        # Admin (who will be removed) creates two pending invites.
-        mock_auth(admin)
-        resp1 = client.post(
-            f"/api/v2/workspaces/{ws.id}/invites/email",
-            json={"email": "cascade1@example.com", "role": "viewer"},
-        )
-        assert resp1.status_code == 201
-        invite1_id = resp1.json()["id"]
-
-        resp2 = client.post(
-            f"/api/v2/workspaces/{ws.id}/invites/email",
-            json={"email": "cascade2@example.com", "role": "editor"},
-        )
-        assert resp2.status_code == 201
-        invite2_id = resp2.json()["id"]
-
-        # Capture the workspace credit pool for this workspace
-        pool_before = (
-            db_session.query(WorkspaceCreditPool)
-            .filter(WorkspaceCreditPool.workspace_id == ws.id)
-            .one()
-        )
-        pool_id = pool_before.id
-
-        # Owner removes the admin from the workspace
-        mock_auth(owner)
-        resp = client.delete(f"/api/v2/workspaces/{ws.id}/members/{admin.id}")
-        assert resp.status_code == 204
-
-        # The workspace member row is gone
-        removed = (
-            db_session.query(WorkspaceMember)
-            .filter(
-                WorkspaceMember.workspace_id == ws.id,
-                WorkspaceMember.user_id == admin.id,
-            )
-            .first()
-        )
-        assert removed is None
-
-        # Both invites still exist (not cascaded) and are NOT revoked
-        invite1 = db_session.query(WorkspaceInvite).filter(WorkspaceInvite.id == invite1_id).one()
-        invite2 = db_session.query(WorkspaceInvite).filter(WorkspaceInvite.id == invite2_id).one()
-        assert invite1.is_revoked is False
-        assert invite2.is_revoked is False
-        # created_by still points at the now-removed admin (string, not FK)
-        assert invite1.created_by == admin.id
-        assert invite2.created_by == admin.id
-
-        # The credit pool still exists with the same id — not orphaned, not doubled
-        pools = (
-            db_session.query(WorkspaceCreditPool)
-            .filter(WorkspaceCreditPool.workspace_id == ws.id)
-            .all()
-        )
-        assert len(pools) == 1
-        assert pools[0].id == pool_id
-
-        # The removed admin user row itself is untouched (the FK is member-only)
-        user_still_there = db_session.query(User).filter(User.id == admin.id).one()
-        assert user_still_there.id == admin.id

@@ -46,8 +46,6 @@ api_v2_router.include_router(solvers.router, tags=["solvers"])
 # Solve sub-router - Template endpoints (metadata, templates list/detail/solve)
 api_v2_router.include_router(solve_templates_router, prefix="/solve", tags=["solve"])
 
-# Credits - Credit management, withdrawals, exchange rates
-
 # API Keys - Key management
 api_v2_router.include_router(keys.router, tags=["api-keys"])
 
@@ -96,7 +94,7 @@ api_v2_router.include_router(gdpr.router, tags=["gdpr"])
 # Schedules — cron scheduling for triggers (CRUD + validation)
 api_v2_router.include_router(schedules.router, tags=["schedules"])
 
-# Seller — seller earnings dashboard endpoints
+# Seller — non-monetary analytics, verification, notification prefs, onboarding
 api_v2_router.include_router(seller.router, tags=["seller"])
 
 
@@ -106,7 +104,7 @@ api_v2_router.include_router(home.router, tags=["home"])
 # Contact — public contact form submission (no auth required, opportunistic auth via middleware)
 api_v2_router.include_router(contact.router, tags=["contact"])
 
-# Workspaces — team collaboration, member management, invites, audit, credit pools
+# Workspaces — team collaboration, member management, invites, audit
 api_v2_router.include_router(workspaces_router, prefix="/workspaces", tags=["workspaces"])
 
 # Profiles — public org/user profiles, reviews, admin profile management

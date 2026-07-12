@@ -219,7 +219,6 @@ def import_and_solve(  # def: blocks on the queued result in the threadpool (ADR
         db=db,
         org_id=org.id,
         execution_id=enqueued.execution_id,
-        credits_needed=enqueued.credits_needed,
         solver_used=enqueued.effective_solver,
         auto_route_reason=enqueued.auto_route_reason,
         fallback_triggered=enqueued.fallback_triggered,

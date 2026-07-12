@@ -155,7 +155,7 @@ class TestDatabaseConnectionFailure:
         try:
             # The OperationalError propagates -- verify it does NOT hang
             with pytest.raises(OperationalError):
-                client.get("/api/v2/credits/balance")
+                client.get("/api/v2/models/my")
         finally:
             # Restore normal DB dependency
             app.dependency_overrides[get_db] = lambda: db_session
@@ -195,35 +195,6 @@ class TestDatabaseConnectionFailure:
 
 class TestExternalServiceFailure:
     """Tests for external service unavailability."""
-
-    def test_stripe_service_unavailable(
-        self, client, app, db_session, test_organization, test_user, mock_auth, enable_monetization
-    ):
-        """Billing endpoint returns 503 when Stripe is not configured.
-
-        The _require_stripe() guard raises HTTPException(503) when
-        Stripe is not configured, providing a clean error instead of
-        an unhandled exception. Monetization must be enabled for the request
-        to reach that guard — otherwise the paid endpoint is gated (404).
-        """
-        mock_auth(test_user)
-
-        # Patch StripeService.is_configured to return False
-        with patch(
-            "app.services.stripe_service.StripeService.is_configured",
-            return_value=False,
-        ):
-            resp = client.post(
-                "/api/v2/billing/checkout/subscription",
-                json={
-                    "plan": "pro",
-                    "success_url": "http://localhost:3000/success",
-                    "cancel_url": "http://localhost:3000/cancel",
-                },
-            )
-            # Should get 503 (Stripe not configured) rather than 500
-            assert resp.status_code == 503
-            assert "Stripe" in resp.json().get("detail", "")
 
     def test_anthropic_client_factory_requires_api_key(
         self, client, app, db_session, test_organization, test_user, mock_auth

@@ -55,7 +55,6 @@ class LLMErrorCode(str, Enum):
     # --- Public (user-actionable) ---
     VALIDATION_FAILED = "validation_failed"
     CONTENT_MODERATION = "content_moderation"
-    INSUFFICIENT_CREDITS = "insufficient_credits"
     PARAMETRIC_UNSUPPORTED = "parametric_unsupported"
 
     # --- Internal (generic message to user, detail in logs) ---
@@ -67,7 +66,6 @@ PUBLIC_CODES: frozenset[LLMErrorCode] = frozenset(
     {
         LLMErrorCode.VALIDATION_FAILED,
         LLMErrorCode.CONTENT_MODERATION,
-        LLMErrorCode.INSUFFICIENT_CREDITS,
         LLMErrorCode.PARAMETRIC_UNSUPPORTED,
     }
 )

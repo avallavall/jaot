@@ -3,7 +3,6 @@ Tests for Model Execution API.
 
 These tests verify the execution functionality:
 - Executing models (sync and async)
-- Credit deduction
 - Execution history
 - Async status polling
 """
@@ -27,70 +26,6 @@ class TestExecuteModel:
         )
         assert response.status_code == 404
 
-    def test_execute_model_deducts_credits(
-        self, authenticated_client, db_session, test_organization
-    ):
-        """Test that execution deducts credits from organization.
-
-        Pins status_code == 200 and asserts that credits_balance strictly
-        decreased by the calculated credits amount. No conditional assertions:
-        if the endpoint returns anything other than 200, the test fails loudly.
-
-        ADR-007 S6: sync mode now rides the async pipeline (the worker binds
-        the real solver itself, so no dependency mock can intercept it) — the
-        solve is a REAL bounded LP through the eager worker.
-        """
-        initial_credits = test_organization.credits_balance
-
-        catalog = ModelCatalog(
-            id="test_exec_catalog",
-            name="exec_catalog",
-            display_name="Exec Catalog",
-            description="For execution testing",
-            category=ModelCategory.GENERAL,
-            generator_type="generic",
-            input_schema={},
-            input_fields=[],
-            example_input={},
-            version="1.0.0",
-            status="published",
-            is_official=False,
-            is_public=True,
-            price_eur=0.0,
-            credits_per_execution=5,
-        )
-        db_session.add(catalog)
-
-        # Create org model linked to catalog
-        org_model = OrganizationModel(
-            id="test_exec_org_model",
-            organization_id=test_organization.id,
-            catalog_id="test_exec_catalog",
-            is_active=True,
-        )
-        db_session.add(org_model)
-        db_session.commit()
-
-        response = authenticated_client.post(
-            "/api/v2/models/test_exec_org_model/execute",
-            json={
-                "input_data": {
-                    "variables": [
-                        {"name": "x", "type": "continuous", "lower_bound": 0, "upper_bound": 10}
-                    ],
-                    "objective": {"sense": "maximize", "expression": "x"},
-                }
-            },
-        )
-
-        # Pin status code: must be exactly 200
-        assert response.status_code == 200, response.text
-        assert response.json()["status"] == "completed", response.text
-
-        # Credits must have been deducted (not asserted conditionally)
-        db_session.refresh(test_organization)
-        assert test_organization.credits_balance < initial_credits
-
     def test_execute_model_auto_solver_resolves(
         self, authenticated_client, db_session, test_organization
     ):
@@ -102,8 +37,6 @@ class TestExecuteModel:
         uses the REAL solver registry (no mock) so it actually exercises
         auto-routing end to end — exactly the gap that let the bug ship.
         """
-        initial_credits = test_organization.credits_balance
-
         catalog = ModelCatalog(
             id="test_auto_catalog",
             name="auto_catalog",
@@ -118,8 +51,6 @@ class TestExecuteModel:
             status="published",
             is_official=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=5,
         )
         db_session.add(catalog)
         org_model = OrganizationModel(
@@ -157,78 +88,13 @@ class TestExecuteModel:
         assert execution.solver_name != "auto"
         assert execution.auto_route_reason is not None
 
-        db_session.refresh(test_organization)
-        assert test_organization.credits_balance < initial_credits
-
-    def test_execute_model_failed_solve_does_not_charge(
-        self, authenticated_client, db_session, test_organization
-    ):
-        """A failed solve must NOT consume credits.
-
-        Regression for the user-reported "Créditos consumidos: 3" on a FAILED
-        solve. The pre-fix sync path deducted ``base_credits`` in its except
-        handler; now a solver-internal ERROR (or any exception) leaves the
-        balance untouched, matching /api/v2/solve and solve_model_async.
-
-        ADR-007 S6: the error is forced through the REAL pipeline — ``x/0``
-        passes validation but the solver swallows the parse failure into a
-        non-raising ERROR result inside the (eager) worker.
-        """
-        initial_credits = test_organization.credits_balance
-
-        catalog = ModelCatalog(
-            id="test_fail_catalog",
-            name="fail_catalog",
-            display_name="Fail Catalog",
-            description="For failure no-charge regression",
-            category=ModelCategory.GENERAL,
-            generator_type="generic",
-            input_schema={},
-            input_fields=[],
-            example_input={},
-            version="1.0.0",
-            status="published",
-            is_official=False,
-            is_public=True,
-            price_eur=0.0,
-            credits_per_execution=5,
-        )
-        db_session.add(catalog)
-        org_model = OrganizationModel(
-            id="test_fail_org_model",
-            organization_id=test_organization.id,
-            catalog_id="test_fail_catalog",
-            is_active=True,
-        )
-        db_session.add(org_model)
-        db_session.commit()
-
-        response = authenticated_client.post(
-            "/api/v2/models/test_fail_org_model/execute",
-            json={
-                "input_data": {
-                    "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
-                    "objective": {"sense": "maximize", "expression": "x/0"},
-                }
-            },
-        )
-
-        assert response.status_code == 200, response.text
-        data = response.json()
-        assert data["status"] == "failed", data
-        assert data["credits_consumed"] == 0, data
-
-        # Balance must be exactly unchanged — no charge for a failed solve.
-        db_session.refresh(test_organization)
-        assert test_organization.credits_balance == initial_credits
-
     def _seed_exec_model(self, db_session, test_organization, suffix: str):
         """Activate a trivial generic catalog model for the org. Returns its id."""
         catalog = ModelCatalog(
             id=f"cat_{suffix}",
             name=f"cat_{suffix}",
             display_name="Ledger Catalog",
-            description="For credit-ledger CONTRACT-TESTs",
+            description="For execution CONTRACT-TESTs",
             category=ModelCategory.GENERAL,
             generator_type="generic",
             input_schema={},
@@ -238,8 +104,6 @@ class TestExecuteModel:
             status="published",
             is_official=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=5,
         )
         db_session.add(catalog)
         org_model = OrganizationModel(
@@ -251,158 +115,6 @@ class TestExecuteModel:
         db_session.add(org_model)
         db_session.commit()
         return org_model.id
-
-    def test_execute_model_sync_error_prepays_then_refunds(
-        self, authenticated_client, db_session, test_organization
-    ):
-        """# CONTRACT-TEST: ADR-007 S3 — execute_model sync rides pre-pay + refund.
-
-        A solver ERROR must leave the balance unchanged AND the ledger must show
-        the pre-pay + refund pair (proving it is NOT the old "never charge" path):
-        one EXECUTION deduction and one REFUND for the execution, same amount.
-
-        ADR-007 S6: solver error forced through the real (eager) worker via
-        ``x/0`` — the wrapper's response and the worker's ledger writes are
-        what this pins now, not an in-request mock.
-        """
-        from app.models import CreditTransaction, TransactionType
-
-        model_id = self._seed_exec_model(db_session, test_organization, "err")
-        initial_credits = test_organization.credits_balance
-
-        response = authenticated_client.post(
-            f"/api/v2/models/{model_id}/execute",
-            json={
-                "input_data": {
-                    "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
-                    "objective": {"sense": "maximize", "expression": "x/0"},
-                }
-            },
-        )
-
-        assert response.status_code == 200, response.text
-        data = response.json()
-        assert data["status"] == "failed"
-        assert data["credits_consumed"] == 0
-
-        db_session.refresh(test_organization)
-        assert test_organization.credits_balance == initial_credits
-
-        txns = (
-            db_session.query(CreditTransaction)
-            .filter(
-                CreditTransaction.organization_id == test_organization.id,
-                CreditTransaction.reference_type == "execution",
-                CreditTransaction.reference_id == data["id"],
-            )
-            .all()
-        )
-        by_type = {t.transaction_type: t for t in txns}
-        assert TransactionType.EXECUTION.value in by_type, txns
-        assert TransactionType.REFUND.value in by_type, txns
-        # Net zero: the refund exactly reverses the pre-pay.
-        assert by_type[TransactionType.EXECUTION.value].credits_amount == -(
-            by_type[TransactionType.REFUND.value].credits_amount
-        )
-
-    def test_execute_model_sync_success_charges_exactly_once(
-        self, authenticated_client, db_session, test_organization
-    ):
-        """# CONTRACT-TEST: a successful sync execute charges exactly one pre-pay,
-        with no refund — the pre-pay is the only deduction (no deduct-after).
-
-        ADR-007 S6: real bounded LP through the eager worker (no solver mock —
-        the worker binds the solver itself)."""
-        from app.models import CreditTransaction, TransactionType
-
-        model_id = self._seed_exec_model(db_session, test_organization, "ok")
-        initial_credits = test_organization.credits_balance
-
-        response = authenticated_client.post(
-            f"/api/v2/models/{model_id}/execute",
-            json={
-                "input_data": {
-                    "variables": [
-                        {"name": "x", "type": "continuous", "lower_bound": 0, "upper_bound": 7}
-                    ],
-                    "objective": {"sense": "maximize", "expression": "x"},
-                }
-            },
-        )
-
-        assert response.status_code == 200, response.text
-        data = response.json()
-        assert data["status"] == "completed"
-        charged = data["credits_consumed"]
-        assert charged >= 1
-
-        db_session.refresh(test_organization)
-        assert test_organization.credits_balance == initial_credits - charged
-
-        txns = (
-            db_session.query(CreditTransaction)
-            .filter(
-                CreditTransaction.organization_id == test_organization.id,
-                CreditTransaction.reference_type == "execution",
-                CreditTransaction.reference_id == data["id"],
-            )
-            .all()
-        )
-        deductions = [t for t in txns if t.transaction_type == TransactionType.EXECUTION.value]
-        refunds = [t for t in txns if t.transaction_type == TransactionType.REFUND.value]
-        assert len(deductions) == 1, txns
-        assert refunds == []
-        assert deductions[0].credits_amount == -charged
-
-    def test_execute_model_insufficient_credits(
-        self, authenticated_client, db_session, test_organization
-    ):
-        """Test execution fails with exact 402 Payment Required."""
-        # Set credits to 0
-        test_organization.credits_balance = 0
-        db_session.commit()
-
-        catalog = ModelCatalog(
-            id="test_no_credits_catalog",
-            name="no_credits_catalog",
-            display_name="No Credits Catalog",
-            description="For insufficient-credit testing",
-            category=ModelCategory.GENERAL,
-            generator_type="generic",
-            input_schema={},
-            input_fields=[],
-            example_input={},
-            version="1.0.0",
-            status="published",
-            is_official=False,
-            is_public=True,
-            price_eur=0.0,
-            credits_per_execution=5,
-        )
-        db_session.add(catalog)
-
-        org_model = OrganizationModel(
-            id="test_no_credits_model",
-            organization_id=test_organization.id,
-            catalog_id="test_no_credits_catalog",
-            is_active=True,
-        )
-        db_session.add(org_model)
-        db_session.commit()
-
-        response = authenticated_client.post(
-            "/api/v2/models/test_no_credits_model/execute",
-            json={
-                "input_data": {
-                    "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
-                    "objective": {"sense": "maximize", "expression": "x"},
-                }
-            },
-        )
-
-        # Endpoint contract: exactly 402 Payment Required
-        assert response.status_code == 402, response.text
-        assert "credit" in response.json().get("detail", "").lower()
 
     def test_execute_inactive_model(self, authenticated_client, db_session, test_organization):
         """Test cannot execute inactive model — endpoint returns 404."""
@@ -460,7 +172,6 @@ class TestExecutionHistory:
                 organization_id=test_organization.id,
                 input_data={"iteration": i},
                 status=ExecutionStatus.COMPLETED.value,
-                credits_consumed=1,
             )
             db_session.add(execution)
         db_session.commit()
@@ -490,7 +201,6 @@ class TestExecutionHistory:
                 organization_id=test_organization.id,
                 input_data={},
                 status=ExecutionStatus.COMPLETED.value,
-                credits_consumed=1,
             )
             db_session.add(execution)
         db_session.commit()
@@ -525,7 +235,6 @@ class TestExecutionHistory:
             organization_id=test_organization.id,
             input_data={},
             status=ExecutionStatus.COMPLETED.value,
-            credits_consumed=1,
         )
         failed = ModelExecution(
             id="test_failed_exec",
@@ -533,7 +242,6 @@ class TestExecutionHistory:
             organization_id=test_organization.id,
             input_data={},
             status=ExecutionStatus.FAILED.value,
-            credits_consumed=1,
         )
         db_session.add_all([completed, failed])
         db_session.commit()

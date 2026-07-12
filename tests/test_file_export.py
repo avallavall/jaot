@@ -70,7 +70,6 @@ def _create_test_execution(
         input_data=_simple_problem().model_dump() if input_data is None else input_data,
         result_data=_sample_result_data() if result_data is None else result_data,
         status=status,
-        credits_consumed=1,
         solver_status="optimal",
         objective_value=3.0,
     )
@@ -393,7 +392,6 @@ class TestExportEndpoint:
         foreign_org = Organization(
             id=generate_id("org_"),
             name="Foreign Corp",
-            credits_balance=100,
             is_active=True,
         )
         db_session.add(foreign_org)
@@ -628,7 +626,6 @@ class TestExportEdgeCases:
             input_data={},
             result_data=_sample_result_data(),
             status=ExecutionStatus.COMPLETED.value,
-            credits_consumed=1,
         )
         db_session.add(exe)
         db_session.commit()

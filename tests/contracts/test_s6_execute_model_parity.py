@@ -9,13 +9,11 @@ path guaranteed and the worker previously got wrong (completed + charged).
 """
 
 from app.models import (
-    CreditTransaction,
     ExecutionStatus,
     ModelCatalog,
     ModelCategory,
     ModelExecution,
     OrganizationModel,
-    TransactionType,
 )
 
 BOUNDED_LP_INPUT = {
@@ -47,8 +45,6 @@ def _seed_model(db_session, organization, suffix: str) -> str:
         status="published",
         is_official=False,
         is_public=True,
-        price_eur=0.0,
-        credits_per_execution=5,
     )
     db_session.add(catalog)
     org_model = OrganizationModel(
@@ -67,7 +63,7 @@ class TestS6ExecuteModelParity:
         self, authenticated_client, db_session, test_organization
     ):
         """# CONTRACT-TEST: ADR-007 S6 — wrapped sync execute returns the exact
-        historic ModelExecutionResponse shape (completed, objective, credits)."""
+        historic ModelExecutionResponse shape (completed, objective)."""
         model_id = _seed_model(db_session, test_organization, "sync")
 
         response = authenticated_client.post(
@@ -77,11 +73,10 @@ class TestS6ExecuteModelParity:
 
         assert response.status_code == 200, response.text
         data = response.json()
-        for field in ("id", "status", "input_data", "credits_consumed", "created_at"):
+        for field in ("id", "status", "input_data", "created_at"):
             assert field in data, f"missing {field}: {data}"
         assert data["status"] == "completed", data
         assert data["objective_value"] == 4.0, data
-        assert data["credits_consumed"] >= 1, data
         assert data["solver_status"] in ("optimal", "feasible"), data
         assert data["organization_model_id"] == model_id
 
@@ -138,16 +133,16 @@ class TestS6ExecuteModelParity:
         assert envelope["status"] == "pending"
         assert envelope["organization_model_id"] == model_id
 
-    def test_worker_internal_solver_error_fails_row_and_nets_zero(
+    def test_worker_internal_solver_error_fails_row(
         self, authenticated_client, db_session, test_organization
     ):
         """# CONTRACT-TEST: ADR-007 S6 — a non-raising solver ERROR in the worker
-        marks the row FAILED and the ledger nets to zero (pre-pay + refund pair).
+        marks the row FAILED (a solve that delivered no result must never look
+        completed).
 
         Async mode on purpose: it pins the WORKER branch directly (the sync
         wrapper shape is covered by test_models_execution.py)."""
         model_id = _seed_model(db_session, test_organization, "werr")
-        initial_credits = test_organization.credits_balance
 
         response = authenticated_client.post(
             f"/api/v2/models/{model_id}/execute",
@@ -165,23 +160,4 @@ class TestS6ExecuteModelParity:
         row = db_session.query(ModelExecution).filter(ModelExecution.id == execution_id).first()
         assert row is not None
         assert row.status == ExecutionStatus.FAILED.value, row.status
-        assert (row.credits_consumed or 0) == 0
-
-        db_session.refresh(test_organization)
-        assert test_organization.credits_balance == initial_credits
-
-        txns = (
-            db_session.query(CreditTransaction)
-            .filter(
-                CreditTransaction.organization_id == test_organization.id,
-                CreditTransaction.reference_type == "execution",
-                CreditTransaction.reference_id == execution_id,
-            )
-            .all()
-        )
-        by_type = {t.transaction_type: t for t in txns}
-        assert TransactionType.EXECUTION.value in by_type, txns
-        assert TransactionType.REFUND.value in by_type, txns
-        assert by_type[TransactionType.EXECUTION.value].credits_amount == -(
-            by_type[TransactionType.REFUND.value].credits_amount
-        )
+        assert row.error_message

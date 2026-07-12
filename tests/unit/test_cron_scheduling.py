@@ -4,7 +4,7 @@ Covers:
 - Cron validation: valid, invalid, too-frequent expressions
 - Credit pre-check: skip on insufficient balance, estimate from last run, default estimate
 - Overlap detection: active cron run causes skip, manual runs not affected
-- Failure escalation: webhook on insufficient credits, auto-disable after 5, success resets
+- Failure escalation: auto-disable after 5 consecutive failures, success resets
 - Tier limits: FREE cannot create, STARTER limited to 3
 - Schedule CRUD: create, read, update, delete via service
 - Disabled trigger skip
@@ -178,97 +178,6 @@ class TestCronValidation:
         assert result["valid"] is True
 
 
-class TestCreditPrecheck:
-    """Test credit pre-check in cron_fire_task with real DB rows."""
-
-    @patch("app.tasks.cron_tasks._send_insufficient_credits_webhook")
-    @patch("app.tasks.cron_tasks.SessionLocal")
-    def test_credit_precheck_skips(
-        self, mock_session_local, mock_webhook, db_session, test_organization, test_user
-    ):
-        """When org credits < estimated, creates skipped_credits run + increments failures."""
-        from app.tasks.cron_tasks import cron_fire_task
-
-        # Drop balance below the threshold so the precheck triggers
-        test_organization.credits_balance = 0
-        doc = _make_real_doc(db_session, test_organization, test_user)
-        ver = _make_real_version(db_session, doc)
-        trigger = _make_real_trigger(db_session, test_organization, test_user, doc, ver)
-        schedule = _make_real_schedule(db_session, trigger)
-        db_session.commit()
-
-        # cron_fire_task closes its db in finally; patch close to a no-op so
-        # the test session stays alive for assertions afterwards.
-        mock_session_local.return_value = db_session
-        with (
-            patch.object(db_session, "close", lambda: None),
-            patch("app.tasks.cron_tasks._estimate_credits", return_value=5),
-        ):
-            result = cron_fire_task(trigger_id=trigger.id)
-
-        assert result["status"] == "skipped_credits"
-        mock_webhook.assert_called_once()
-
-        # A skipped run was persisted
-        skipped_run = (
-            db_session.query(TriggerRun)
-            .filter(TriggerRun.trigger_id == trigger.id)
-            .filter(TriggerRun.status == "skipped_credits")
-            .first()
-        )
-        assert skipped_run is not None
-        assert skipped_run.source == "cron"
-        # Failure counter incremented (read fresh from DB)
-        fresh_schedule = (
-            db_session.query(TriggerSchedule).filter(TriggerSchedule.id == schedule.id).first()
-        )
-        assert fresh_schedule is not None
-        assert fresh_schedule.consecutive_failures == 1
-
-    def test_credit_estimate_from_last_run(self, db_session, test_organization, test_user):
-        """Uses most recent completed run's credits_consumed."""
-        from app.tasks.cron_tasks import _estimate_credits
-
-        doc = _make_real_doc(db_session, test_organization, test_user)
-        ver = _make_real_version(db_session, doc)
-        trigger = _make_real_trigger(db_session, test_organization, test_user, doc, ver)
-
-        # Insert a completed run with credits_consumed=42
-        run = TriggerRun(
-            id=generate_id("trun_"),
-            trigger_id=trigger.id,
-            organization_id=trigger.organization_id,
-            status="completed",
-            source="manual",
-            credits_consumed=42,
-            override_data=None,
-            execution_id=None,
-            created_at=utcnow(),
-        )
-        db_session.add(run)
-        db_session.commit()
-
-        result = _estimate_credits(db_session, trigger)
-        assert result == 42
-
-    def test_credit_estimate_default(self, db_session, test_organization, test_user):
-        """Falls back to CRON_DEFAULT_CREDIT_ESTIMATE when no prior runs exist."""
-        from app.tasks.cron_tasks import _estimate_credits
-
-        doc = _make_real_doc(db_session, test_organization, test_user)
-        ver = _make_real_version(db_session, doc)
-        trigger = _make_real_trigger(db_session, test_organization, test_user, doc, ver)
-        db_session.commit()
-
-        with patch(
-            "app.services.platform_settings_service.PlatformSettingsService.get_int",
-            return_value=7,
-        ):
-            result = _estimate_credits(db_session, trigger)
-
-        assert result == 7
-
-
 class TestOverlapDetection:
     """Test overlap detection in cron_fire_task with real DB rows."""
 
@@ -316,38 +225,6 @@ class TestOverlapDetection:
 
 class TestFailureEscalation:
     """Test failure escalation logic (CRON-06) with real DB rows."""
-
-    def test_failure_webhook_sent(self, db_session, test_organization, test_user):
-        """Insufficient credits sends webhook with correct event type."""
-        from app.tasks.cron_tasks import _send_insufficient_credits_webhook
-
-        doc = _make_real_doc(db_session, test_organization, test_user)
-        ver = _make_real_version(db_session, doc)
-        trigger = _make_real_trigger(db_session, test_organization, test_user, doc, ver)
-        run = TriggerRun(
-            id=generate_id("trun_"),
-            trigger_id=trigger.id,
-            organization_id=trigger.organization_id,
-            status="skipped_credits",
-            source="cron",
-            override_data=None,
-            execution_id=None,
-            created_at=utcnow(),
-        )
-        db_session.add(run)
-        db_session.commit()
-
-        with (
-            patch("app.services.webhook_service.build_webhook_payload") as mock_build,
-            patch("app.tasks.webhook_tasks.deliver_webhook_task") as mock_deliver,
-        ):
-            mock_build.return_value = {"event": "trigger.schedule.insufficient_credits"}
-            _send_insufficient_credits_webhook(trigger, run, 10)
-
-        mock_build.assert_called_once()
-        call_args = mock_build.call_args
-        assert call_args[1]["event_type"] == "trigger.schedule.insufficient_credits"
-        mock_deliver.delay.assert_called_once()
 
     def test_auto_disable_after_5_failures(self, db_session, test_organization, test_user):
         """5 consecutive failures disables schedule + sends webhook + notification."""
@@ -402,7 +279,6 @@ class TestFailureEscalation:
         """Successful fire resets consecutive_failures to 0."""
         from app.tasks.cron_tasks import cron_fire_task
 
-        test_organization.credits_balance = 1000
         doc = _make_real_doc(db_session, test_organization, test_user)
         ver = _make_real_version(db_session, doc)
         trigger = _make_real_trigger(db_session, test_organization, test_user, doc, ver)
@@ -423,7 +299,6 @@ class TestFailureEscalation:
         mock_session_local.return_value = db_session
         with (
             patch.object(db_session, "close", lambda: None),
-            patch("app.tasks.cron_tasks._estimate_credits", return_value=1),
             patch("app.services.trigger_service.fire_trigger", return_value=(ok_run, None)),
         ):
             cron_fire_task(trigger_id=trigger.id)

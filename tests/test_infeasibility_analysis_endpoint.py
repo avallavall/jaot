@@ -37,7 +37,6 @@ def _create_infeasible_execution(
         input_data=INFEASIBLE_PROBLEM,
         result_data={"solver_status": solver_status, "model": None, "objective_value": None},
         status=ExecutionStatus.COMPLETED.value,
-        credits_consumed=1,
         solver_status=solver_status,
         solver_name="scip",
     )

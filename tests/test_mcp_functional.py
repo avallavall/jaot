@@ -37,8 +37,6 @@ def published_catalog_model(db_session):
         status="published",
         is_official=True,
         is_public=True,
-        price_eur=0.0,
-        credits_per_execution=1,
     )
     db_session.add(model)
     db_session.commit()
@@ -63,8 +61,6 @@ def draft_catalog_model(db_session):
         status="draft",
         is_official=False,
         is_public=True,
-        price_eur=0.0,
-        credits_per_execution=1,
     )
     db_session.add(model)
     db_session.commit()
@@ -89,8 +85,6 @@ def private_catalog_model(db_session):
         status="published",
         is_official=False,
         is_public=False,
-        price_eur=0.0,
-        credits_per_execution=1,
     )
     db_session.add(model)
     db_session.commit()
@@ -466,7 +460,6 @@ class TestValidateProblem:
 
         data = response.json()
         assert data["valid"] is True
-        assert "estimated_credits" in data
         assert data["num_variables"] == 2
         assert data["num_constraints"] == 2
 
@@ -518,47 +511,6 @@ class TestValidateProblem:
         }
         response = client.post("/api/v2/solve/validate", json=incomplete)
         assert response.status_code == 422
-
-    def test_validate_credits_estimate_scales_with_complexity(self, client):
-        """Larger problems should have higher credit estimates."""
-        small_problem = {
-            "name": "small",
-            "objective": {"sense": "minimize", "expression": "x"},
-            "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
-            "constraints": [{"name": "c1", "expression": "x >= 1"}],
-        }
-        large_problem = {
-            "name": "large",
-            "objective": {
-                "sense": "minimize",
-                "expression": " + ".join(f"v{i}" for i in range(20)),
-            },
-            "variables": [
-                {"name": f"v{i}", "type": "integer", "lower_bound": 0, "upper_bound": 100}
-                for i in range(20)
-            ],
-            "constraints": [{"name": f"c{i}", "expression": f"v{i} <= 50"} for i in range(20)],
-        }
-
-        small_resp = client.post("/api/v2/solve/validate", json=small_problem)
-        large_resp = client.post("/api/v2/solve/validate", json=large_problem)
-
-        assert small_resp.status_code == 200
-        assert large_resp.status_code == 200
-
-        small_credits = small_resp.json()["estimated_credits"]
-        large_credits = large_resp.json()["estimated_credits"]
-        assert large_credits > small_credits, (
-            f"Large problem ({large_credits} credits) should cost more than "
-            f"small problem ({small_credits} credits)"
-        )
-
-
-# 4. list_catalog_models — returns published models
-
-
-class TestListCatalogModels:
-    """Tests for GET /api/v2/models/catalog (list_catalog_models MCP tool)."""
 
     def test_list_catalog_returns_published_models(
         self, client, db_session, published_catalog_model

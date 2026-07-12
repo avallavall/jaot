@@ -9,8 +9,7 @@ Covers:
 
 import pytest
 
-from app.models import ModelCatalog, Organization, User
-from app.models.credit_transaction import CreditTransaction, TransactionType
+from app.models import ModelCatalog, Organization, OrganizationModel, User
 from app.models.model_view_event import ModelViewEvent
 from app.services.seller_analytics_service import SellerAnalyticsService
 from app.shared.utils.datetime_helpers import utcnow
@@ -23,8 +22,6 @@ def seller_org(db_session):
     org = Organization(
         id="org_seller001",
         name="Seller Corp",
-        credits_balance=5000,
-        credits_earned=1000,
         is_active=True,
         is_verified=True,
     )
@@ -65,7 +62,6 @@ def catalog_model(db_session, seller_org):
         example_input={},
         status="published",
         is_public=True,
-        price_eur=10.0,
         author_organization_id=seller_org.id,
         total_activations=0,
         total_executions=0,
@@ -116,25 +112,26 @@ def view_events(db_session, catalog_model):
 
 
 @pytest.fixture
-def sale_transaction(db_session, seller_org, catalog_model):
-    """Create a SALE_EARNING transaction for the seller."""
-    tx = CreditTransaction(
-        id=generate_id("ctx_"),
-        organization_id=seller_org.id,
-        transaction_type=TransactionType.SALE_EARNING.value,
-        credits_amount=85,
-        balance_after=seller_org.credits_balance,
-        earned_balance_after=seller_org.credits_earned + 85,
-        amount_eur=8.5,
-        description="Model sale",
-        reference_type="model",
-        reference_id=catalog_model.id,
-        created_by="system",
-        created_at=utcnow(),
+def activation(db_session, seller_org, catalog_model):
+    """Another org activates the seller's model (ADR-008: the analytics event)."""
+    buyer_org = Organization(
+        id=generate_id("org_"),
+        name="Buyer Org",
+        slug=f"buyer-{generate_id('x_')[2:10]}",
+        is_active=True,
     )
-    db_session.add(tx)
+    db_session.add(buyer_org)
+    db_session.flush()
+    org_model = OrganizationModel(
+        id=generate_id("om_"),
+        organization_id=buyer_org.id,
+        catalog_id=catalog_model.id,
+        is_active=True,
+        is_favorite=False,
+    )
+    db_session.add(org_model)
     db_session.commit()
-    return tx
+    return org_model
 
 
 class TestAnalyticsSummary:
@@ -147,7 +144,7 @@ class TestAnalyticsSummary:
         seller_org,
         catalog_model,
         view_events,
-        sale_transaction,
+        activation,
         mock_auth,
         seller_user,
     ):
@@ -162,7 +159,6 @@ class TestAnalyticsSummary:
         assert "total_views" in data
         assert "total_impressions" in data
         assert "total_activations" in data
-        assert "total_revenue" in data
         assert "conversion_rate" in data
         assert "period" in data
         assert data["period"] == "30d"
@@ -302,7 +298,7 @@ class TestAnalyticsService:
     """Test SellerAnalyticsService directly."""
 
     def test_get_summary_platform_wide(
-        self, db_session, seller_org, catalog_model, view_events, sale_transaction
+        self, db_session, seller_org, catalog_model, view_events, activation
     ):
         """Platform-wide summary (org_id=None) includes all events."""
         service = SellerAnalyticsService(db_session)
@@ -319,7 +315,7 @@ class TestAnalyticsService:
         assert "US" in countries
 
     def test_get_conversion_funnel(
-        self, db_session, seller_org, catalog_model, view_events, sale_transaction
+        self, db_session, seller_org, catalog_model, view_events, activation
     ):
         """Conversion funnel returns impressions, views, activations."""
         service = SellerAnalyticsService(db_session)
@@ -328,13 +324,13 @@ class TestAnalyticsService:
         assert funnel.views >= 0
         assert funnel.activations >= 0
 
-    def test_get_seller_leaderboard(self, db_session, seller_org, catalog_model, sale_transaction):
-        """Leaderboard returns seller entries sorted by revenue."""
+    def test_get_seller_leaderboard(self, db_session, seller_org, catalog_model, activation):
+        """Leaderboard returns seller entries sorted by activations."""
         service = SellerAnalyticsService(db_session)
         leaderboard = service.get_seller_leaderboard(period="all")
         assert len(leaderboard) >= 1
         assert leaderboard[0].org_id == seller_org.id
-        assert leaderboard[0].total_revenue > 0
+        assert leaderboard[0].total_activations > 0
 
 
 class TestSellerAnalyticsCrossOrgIsolation:
@@ -342,7 +338,7 @@ class TestSellerAnalyticsCrossOrgIsolation:
 
     The seller endpoints (/api/v2/seller/analytics/...) MUST only return
     data for the authenticated user's own organization. A user from org A
-    must never see counts/revenue belonging to org B's models, regardless
+    must never see counts belonging to org B's models, regardless
     of how many events org B has accumulated.
     """
 
@@ -353,7 +349,7 @@ class TestSellerAnalyticsCrossOrgIsolation:
         seller_org,
         catalog_model,
         view_events,
-        sale_transaction,
+        activation,
         seller_user,
         mock_auth,
     ):
@@ -367,8 +363,6 @@ class TestSellerAnalyticsCrossOrgIsolation:
         foreign_org = Organization(
             id="org_foreign_seller",
             name="Foreign Seller",
-            credits_balance=5000,
-            credits_earned=2000,
             is_active=True,
             is_verified=True,
         )
@@ -387,7 +381,6 @@ class TestSellerAnalyticsCrossOrgIsolation:
             example_input={},
             status="published",
             is_public=True,
-            price_eur=20.0,
             author_organization_id=foreign_org.id,
         )
         db_session.add(foreign_model)
@@ -405,21 +398,14 @@ class TestSellerAnalyticsCrossOrgIsolation:
                 )
             )
 
-        # And a foreign sale to make sure revenue does not leak either
+        # And a foreign activation to make sure counts do not leak either
         db_session.add(
-            CreditTransaction(
-                id=generate_id("ctx_"),
+            OrganizationModel(
+                id=generate_id("om_"),
                 organization_id=foreign_org.id,
-                transaction_type=TransactionType.SALE_EARNING.value,
-                credits_amount=999,
-                balance_after=foreign_org.credits_balance,
-                earned_balance_after=foreign_org.credits_earned + 999,
-                amount_eur=99.9,
-                description="Foreign sale (must not leak to seller_org)",
-                reference_type="model",
-                reference_id=foreign_model.id,
-                created_by="system",
-                created_at=utcnow(),
+                catalog_id=foreign_model.id,
+                is_active=True,
+                is_favorite=False,
             )
         )
         db_session.commit()
@@ -438,10 +424,12 @@ class TestSellerAnalyticsCrossOrgIsolation:
         assert data["total_views"] == 2, (
             f"Cross-org view leak: expected 2 own views, got {data['total_views']}"
         )
-        # seller_org's sale_transaction is 8.5 EUR (85 credits).
-        # foreign_org's sale is 99.9 EUR. If it leaked, revenue would jump.
-        assert data["total_revenue"] < 99.0, (
-            f"Cross-org revenue leak: got {data['total_revenue']} (foreign sale was 99.9)"
+        # seller_org's own model has exactly ONE activation (the `activation`
+        # fixture: a buyer org activating cat_model001). foreign_org's
+        # activation of its own model must NOT leak in — a leak reads 2.
+        assert data["total_activations"] == 1, (
+            f"Cross-org activation leak: expected 1 own-model activation, "
+            f"got {data['total_activations']}"
         )
 
     def test_seller_service_filters_by_org_id_at_service_layer(
@@ -458,7 +446,6 @@ class TestSellerAnalyticsCrossOrgIsolation:
         sibling = Organization(
             id=gid("org_"),
             name="Sibling Without Events",
-            credits_balance=10,
             is_active=True,
         )
         db_session.add(sibling)
@@ -473,4 +460,3 @@ class TestSellerAnalyticsCrossOrgIsolation:
         assert sibling_summary.total_views == 0
         assert sibling_summary.total_impressions == 0
         assert sibling_summary.total_activations == 0
-        assert sibling_summary.total_revenue == 0

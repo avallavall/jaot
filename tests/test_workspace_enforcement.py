@@ -9,8 +9,6 @@ Verifies that:
   - Builder endpoints enforce viewer/solver/editor roles via workspace_id
   - Without workspace_id, builder endpoints fall through to org-level access
 
-Note: solve endpoint returns 402 when credits are insufficient — that means
-the workspace role check PASSED (403 would indicate role enforcement).
 For viewer tests we get 403 directly.
 """
 
@@ -19,7 +17,6 @@ import pytest
 from app.models.organization import Organization
 from app.models.user import User
 from app.models.workspace import Workspace, WorkspaceMember, WorkspaceRole
-from app.models.workspace_credits import WorkspaceCreditPool
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
 
@@ -28,7 +25,6 @@ def _make_org(db, org_id, balance=500):
     org = Organization(
         id=org_id,
         name=f"Enforcement Org {org_id}",
-        credits_balance=balance,
         is_active=True,
     )
     db.add(org)
@@ -64,16 +60,6 @@ def _make_workspace(db, org, owner):
     )
     db.add(ws)
     db.flush()
-    pool = WorkspaceCreditPool(
-        id=generate_id("wcp_"),
-        workspace_id=ws.id,
-        organization_id=org.id,
-        allocated_credits=500,
-        used_credits=0,
-        created_at=now,
-        updated_at=now,
-    )
-    db.add(pool)
     db.commit()
     db.refresh(ws)
     return ws
@@ -300,11 +286,7 @@ class TestTemplateSolveEnforcement:
     def test_template_solve_with_workspace_as_solver_passes(
         self, client, db_session, mock_auth, enforcement_setup
     ):
-        """POST /solve/templates/{id}/solve?workspace_id=X as solver passes role check.
-
-        Template solve may legitimately return 200 or 402 (insufficient pool/org
-        credits after dynamic credit calc) but must never return 403 or 5xx.
-        """
+        """POST /solve/templates/{id}/solve?workspace_id=X as solver passes role check."""
         solver = enforcement_setup["solver"]
         ws = enforcement_setup["ws"]
         mock_auth(solver)
@@ -312,8 +294,8 @@ class TestTemplateSolveEnforcement:
             f"/api/v2/solve/templates/knapsack/solve?workspace_id={ws.id}",
             json={"capacity": 10, "items": [{"name": "a", "value": 5, "weight": 3}]},
         )
-        assert resp.status_code in (200, 402), (
-            f"Solver template solve expected 200 or 402, got {resp.status_code}: {resp.text}"
+        assert resp.status_code == 200, (
+            f"Solver template solve expected 200, got {resp.status_code}: {resp.text}"
         )
 
     def test_template_solve_with_workspace_as_viewer_returns_403(
@@ -359,214 +341,3 @@ class TestOrgOwnerBypass:
             json={"name": "Owner Updated"},
         )
         assert resp.status_code == 200, f"Owner got {resp.status_code}: {resp.text}"
-
-
-class TestWorkspacePoolConcurrency:
-    """Workspace credit pool depletion under concurrent solves.
-
-    Gap filled per audit missing-test #3 ("Workspace credit pool depletion
-    under concurrency"). 20 concurrent deductions against one pool must
-    each succeed atomically (no over-deduction, no lost updates).
-    """
-
-    def test_20_concurrent_pool_deducts_no_over_spend(self, db_session, db_engine):
-        import queue
-        import threading
-
-        from sqlalchemy.orm import sessionmaker
-
-        from app.models import Organization
-        from app.models.workspace import Workspace
-        from app.models.workspace_credits import WorkspaceCreditPool
-        from app.services import workspace_credits_service
-
-        # Seed an org + workspace + pool with exactly 20*50=1000 credits.
-        org = _make_org(db_session, generate_id("org_"), balance=100_000)
-        owner = _make_user(db_session, org, generate_id("usr_"), "poolowner@test.local")
-        org.owner_user_id = owner.id
-        now = utcnow()
-        ws = Workspace(
-            id=generate_id("wks_"),
-            organization_id=org.id,
-            name="Pool Concurrency WS",
-            is_active=True,
-            created_by=owner.id,
-            created_at=now,
-            updated_at=now,
-        )
-        db_session.add(ws)
-        db_session.flush()
-        pool = WorkspaceCreditPool(
-            id=generate_id("wcp_"),
-            workspace_id=ws.id,
-            organization_id=org.id,
-            allocated_credits=1000,
-            used_credits=0,
-            created_at=now,
-            updated_at=now,
-        )
-        db_session.add(pool)
-        db_session.commit()
-
-        SessionFactory = sessionmaker(bind=db_engine)
-        results: queue.Queue = queue.Queue()
-        barrier = threading.Barrier(20, timeout=30)
-        org_id = org.id
-        ws_id = ws.id
-
-        def worker(thread_id: int) -> None:
-            session = SessionFactory()
-            try:
-                # Re-fetch the org inside this session.
-                local_org = session.get(Organization, org_id)
-                barrier.wait()
-                source = workspace_credits_service.deduct_credits_for_solve(
-                    db=session,
-                    org=local_org,
-                    workspace_id=ws_id,
-                    credits_needed=50,
-                )
-                session.commit()
-                results.put(("success", thread_id, source))
-            except ValueError as exc:
-                session.rollback()
-                results.put(("insufficient", thread_id, str(exc)))
-            except Exception as exc:
-                session.rollback()
-                results.put(("error", thread_id, str(exc)))
-            finally:
-                session.close()
-
-        threads = [threading.Thread(target=worker, args=(i,), name=f"pool-{i}") for i in range(20)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join(timeout=60)
-        alive = [t.name for t in threads if t.is_alive()]
-        assert not alive, f"Threads still alive after 60s: {alive}"
-
-        pool_successes = 0
-        errors: list = []
-        while not results.empty():
-            r = results.get()
-            if r[0] == "success" and r[2] == "pool":
-                pool_successes += 1
-            elif r[0] == "error":
-                errors.append(r)
-
-        assert not errors, f"Unexpected errors: {errors}"
-        # All 20 must have hit the pool path and succeeded (pool=20*50=1000).
-        assert pool_successes == 20, f"Expected 20 pool deductions, got {pool_successes}"
-
-        # Pool must be fully used with no drift.
-        fresh = SessionFactory()
-        try:
-            fresh_pool = (
-                fresh.query(WorkspaceCreditPool).filter(WorkspaceCreditPool.id == pool.id).one()
-            )
-            assert fresh_pool.used_credits == 1000, (
-                f"Pool used_credits drift: expected 1000, got {fresh_pool.used_credits}"
-            )
-            assert fresh_pool.allocated_credits == 1000
-            # Org balance must NOT have been touched — pool fully absorbed the deductions.
-            fresh_org = fresh.get(Organization, org_id)
-            assert fresh_org.credits_balance == 100_000, (
-                f"Org balance leak: expected 100000, got {fresh_org.credits_balance}"
-            )
-        finally:
-            fresh.close()
-
-    def test_concurrent_first_get_or_create_pool_no_duplicate(self, db_session, db_engine):
-        """Concurrent first-GETs must not 500 on the unique(workspace_id) race.
-
-        Phase 12 finding #13: _get_or_create_pool committed in a GET. Two
-        concurrent first-GETs both find no pool and both INSERT; the loser's
-        commit hits the unique(workspace_id) constraint. The handler now catches
-        IntegrityError, rolls back, and re-fetches the winner's row, so
-        get-or-create is idempotent: exactly ONE pool row, no uncaught error,
-        and every caller returns that same id. (The invariant holds whether or
-        not the race physically manifests — serialized runs also create once.)
-        """
-        import queue
-        import threading
-
-        from sqlalchemy.orm import sessionmaker
-
-        from app.api.v2.routes.workspaces.credits import _get_or_create_pool
-        from app.models.workspace import Workspace
-        from app.models.workspace_credits import WorkspaceCreditPool
-
-        # Workspace exists (FK satisfied) but has NO pool yet — force the race.
-        org = _make_org(db_session, generate_id("org_"), balance=100_000)
-        owner = _make_user(db_session, org, generate_id("usr_"), "getorcreate@test.local")
-        org.owner_user_id = owner.id
-        now = utcnow()
-        ws = Workspace(
-            id=generate_id("wks_"),
-            organization_id=org.id,
-            name="GetOrCreate Race WS",
-            is_active=True,
-            created_by=owner.id,
-            created_at=now,
-            updated_at=now,
-        )
-        db_session.add(ws)
-        db_session.commit()
-        org_id = org.id
-        ws_id = ws.id
-
-        SessionFactory = sessionmaker(bind=db_engine)
-        results: queue.Queue = queue.Queue()
-        n = 12
-        barrier = threading.Barrier(n, timeout=30)
-
-        def worker(thread_id: int) -> None:
-            session = SessionFactory()
-            try:
-                barrier.wait()
-                pool = _get_or_create_pool(session, ws_id, org_id)
-                results.put(("ok", thread_id, pool.id))
-            except Exception as exc:  # noqa: BLE001 — record, assert below
-                session.rollback()
-                results.put(("error", thread_id, repr(exc)))
-            finally:
-                session.close()
-
-        threads = [threading.Thread(target=worker, args=(i,), name=f"goc-{i}") for i in range(n)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join(timeout=60)
-        alive = [t.name for t in threads if t.is_alive()]
-        assert not alive, f"Threads still alive after 60s: {alive}"
-
-        outcomes = []
-        while not results.empty():
-            outcomes.append(results.get())
-
-        errors = [o for o in outcomes if o[0] == "error"]
-        assert not errors, (
-            f"_get_or_create_pool raised under concurrent first-create — the "
-            f"unique(workspace_id) race is not handled (would surface as a 500): {errors}"
-        )
-        assert len(outcomes) == n, f"Expected {n} outcomes, got {len(outcomes)}"
-
-        # Exactly ONE pool row, and every caller returned that single id.
-        fresh = SessionFactory()
-        try:
-            rows = (
-                fresh.query(WorkspaceCreditPool)
-                .filter(WorkspaceCreditPool.workspace_id == ws_id)
-                .all()
-            )
-            assert len(rows) == 1, (
-                f"Expected exactly 1 pool row after the race, got {len(rows)}; "
-                f"get-or-create is not idempotent under concurrency."
-            )
-            returned_ids = {o[2] for o in outcomes}
-            assert returned_ids == {rows[0].id}, (
-                f"All callers must return the single committed pool id "
-                f"{rows[0].id}, got {returned_ids}"
-            )
-        finally:
-            fresh.close()

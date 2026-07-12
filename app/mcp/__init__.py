@@ -1,10 +1,10 @@
 """MCP server integration for JAOT Optimization Platform.
 
-Exposes 26 curated optimization tools via the Model Context Protocol (MCP),
+Exposes 25 curated optimization tools via the Model Context Protocol (MCP),
 enabling AI agents (Claude, GPT, etc.) to discover and use JAOT's
 optimization capabilities: multi-solver solving, multi-objective (Pareto),
 templates, standard-format import/export (MPS/LP/CIP/JSON), the model
-marketplace, execution insights, credits, and first-class **model projects**
+marketplace, execution insights, and first-class **model projects**
 (create, version with commit messages, analyze stats/health, and solve).
 """
 

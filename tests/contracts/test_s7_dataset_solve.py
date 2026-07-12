@@ -96,14 +96,13 @@ class TestS7DatasetSolve:
         solver_result = body["result"]["result"]
         assert solver_result["objective_value"] == 3.0  # pick "b" (w=3) under the <=1 cap
 
-    def test_compile_error_is_422_and_never_charges(
+    def test_compile_error_is_422_and_never_solves(
         self, authenticated_client, db_session, test_organization, enable_dsl
     ):
         """# CONTRACT-TEST: a dataset that does not fill the model is a structured
-        422 {message, position} resolved BEFORE any credit charge or row insert."""
+        422 {message, position} resolved BEFORE any enqueue or row insert."""
         pid = _seed_project(authenticated_client, db_session)
         dsid = _seed_dataset(authenticated_client, pid, data=INCOMPLETE_DATASET_JSON)
-        initial_credits = test_organization.credits_balance
         before_rows = db_session.query(ModelExecution).count()
 
         resp = authenticated_client.post(f"/api/v2/projects/{pid}/datasets/{dsid}/solve")
@@ -114,8 +113,6 @@ class TestS7DatasetSolve:
 
         db_session.expire_all()
         assert db_session.query(ModelExecution).count() == before_rows
-        db_session.refresh(test_organization)
-        assert test_organization.credits_balance == initial_credits
 
     def test_project_without_source_is_422(
         self, authenticated_client, db_session, test_organization, enable_dsl
@@ -132,7 +129,7 @@ class TestS7DatasetSolve:
         self, authenticated_client, db_session, test_organization, enable_dsl
     ):
         """# CONTRACT-TEST: the dataset is project-pinned — another project's
-        dataset (or a nonexistent id) 404s without touching credits."""
+        dataset (or a nonexistent id) 404s without solving anything."""
         pid = _seed_project(authenticated_client, db_session)
         other_pid = _seed_project(authenticated_client, db_session)
         foreign_dsid = _seed_dataset(authenticated_client, other_pid, name="foreign")

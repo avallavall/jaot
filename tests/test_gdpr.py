@@ -1,11 +1,11 @@
 """GDPR compliance tests: data export, account deletion, ToS acceptance."""
 
 import pytest
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.models import (
     APIKey,
-    CreditTransaction,
     Notification,
     Organization,
     RefreshToken,
@@ -53,21 +53,22 @@ def _seed_related_records(db: Session, user: User, org: Organization) -> None:
             type="info",
         )
     )
-    db.add(
-        CreditTransaction(
-            id="txn_gdpr01",
-            organization_id=org.id,
-            credits_amount=10,
-            balance_after=10,
-            description="seed",
-            transaction_type="credit",
-        )
+    # ADR-008: the legacy credit_transactions table has no ORM model; seed via
+    # raw SQL so the deletion test still proves the raw-SQL purge empties it.
+    db.execute(
+        text(
+            "INSERT INTO credit_transactions "
+            "(id, organization_id, credits_amount, balance_after, earned_balance_after, "
+            "description, transaction_type, created_at) "
+            "VALUES ('txn_gdpr01', :org, 10, 10, 0, 'seed', 'credit', now())"
+        ),
+        {"org": org.id},
     )
     db.add(
         RefreshToken(
             user_id=user.id,
             jti="jti_gdpr01",
-            expires_at=utcnow().replace(tzinfo=None),
+            expires_at=utcnow(),
         )
     )
     db.flush()
@@ -104,7 +105,6 @@ class TestDataExport:
             "organization",
             "models",
             "executions",
-            "credit_transactions",
             "api_keys",
             "notifications",
         ]:
@@ -170,7 +170,6 @@ class TestAccountDeletion:
         org = Organization(
             id="org_sole01",
             name="Sole Org",
-            credits_balance=100,
             is_active=True,
         )
         db_session.add(org)
@@ -222,7 +221,6 @@ class TestAccountDeletion:
         org = Organization(
             id="org_casc01",
             name="Cascade Org",
-            credits_balance=100,
             is_active=True,
         )
         db_session.add(org)
@@ -244,6 +242,12 @@ class TestAccountDeletion:
         assert db_session.query(APIKey).filter_by(user_id="usr_gdprcasc1").count() == 0
         assert db_session.query(Notification).filter_by(user_id="usr_gdprcasc1").count() == 0
         assert db_session.query(RefreshToken).filter_by(user_id="usr_gdprcasc1").count() == 0
+        # ADR-008: legacy (ORM-less) money tables are purged via raw SQL — the
+        # right-to-erasure must keep covering historic rows.
+        remaining_txns = db_session.execute(
+            text("SELECT count(*) FROM credit_transactions WHERE id = 'txn_gdpr01'")
+        ).scalar()
+        assert remaining_txns == 0
 
 
 @pytest.mark.usefixtures("enable_registration")

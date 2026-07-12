@@ -31,11 +31,8 @@ MARKETPLACE_PUBLISH = "marketplace.publish"
 SCHEDULE_CREATE = "schedule.create"
 
 
-CREDIT_WITHDRAWAL = "credit.withdrawal"
-
-
-PLACEMENT_PURCHASE = "placement.purchase"
-
+# ADR-008: credit.withdrawal / placement.purchase event types removed with the
+# money layer (never emitted again; no dead "Credits" analytics domain).
 
 ALL_EVENT_TYPES: list[str] = [
     USER_SIGNUP,
@@ -50,8 +47,6 @@ ALL_EVENT_TYPES: list[str] = [
     MARKETPLACE_ACTIVATE,
     MARKETPLACE_PUBLISH,
     SCHEDULE_CREATE,
-    CREDIT_WITHDRAWAL,
-    PLACEMENT_PURCHASE,
 ]
 
 
@@ -61,7 +56,6 @@ EVENT_DOMAINS: dict[str, list[str]] = {
     "Marketplace": [MARKETPLACE_PURCHASE, MARKETPLACE_ACTIVATE, MARKETPLACE_PUBLISH],
     "MCP": [MCP_TOOL_CALL],
     "Scheduling": [SCHEDULE_CREATE],
-    "Credits": [CREDIT_WITHDRAWAL, PLACEMENT_PURCHASE],
 }
 
 

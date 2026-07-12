@@ -93,10 +93,6 @@ class TestIsPublicStaticPaths:
         assert _is_public("/api/v2/billing/webhook", "POST") is False
         assert _is_public("/api/v2/billing/webhook", "GET") is False
 
-    def test_credits_rates_get_only(self):
-        assert _is_public("/api/v2/credits/rates", "GET") is True
-        assert _is_public("/api/v2/credits/rates", "POST") is False
-
     def test_solve_templates_get_only(self):
         assert _is_public("/api/v2/solve/templates", "GET") is True
         assert _is_public("/api/v2/solve/templates", "POST") is False
@@ -278,7 +274,6 @@ class TestMiddlewarePassthrough:
         header_keys = {k for k, _ in start["headers"]}
         # Public endpoint must NOT have auth-injected headers
         assert b"x-organization-id" not in header_keys
-        assert b"x-credits-balance" not in header_keys
 
 
 class TestAuthRejection:
@@ -327,7 +322,7 @@ class TestAuthRejection:
 
         fake_api_key = SimpleNamespace(id="key_fallback")
         fake_user = SimpleNamespace(id="user_fallback")
-        fake_org = SimpleNamespace(id="org_fallback", credits_balance=42)
+        fake_org = SimpleNamespace(id="org_fallback")
 
         middleware = ASGIAuthMiddleware(dummy_app)
         scope = _http_scope("/api/v2/solve", "POST")
@@ -383,7 +378,7 @@ class TestAuthRejection:
             responses.append(message)
 
         fake_user = SimpleNamespace(id="user_123")
-        fake_org = SimpleNamespace(id="org_123", credits_balance=500)
+        fake_org = SimpleNamespace(id="org_123")
 
         middleware = ASGIAuthMiddleware(dummy_app)
         scope = _http_scope("/api/v2/solve", "POST")
@@ -405,7 +400,6 @@ class TestAuthRejection:
         start = next(r for r in responses if r["type"] == "http.response.start")
         header_dict = {k: v for k, v in start["headers"]}
         assert header_dict[b"x-organization-id"] == b"org_123"
-        assert header_dict[b"x-credits-balance"] == b"500"
 
     @pytest.mark.asyncio
     async def test_auth_injects_user_and_org_into_scope_state(self):
@@ -418,7 +412,7 @@ class TestAuthRejection:
             await send({"type": "http.response.body", "body": b""})
 
         fake_user = SimpleNamespace(id="user_456")
-        fake_org = SimpleNamespace(id="org_456", credits_balance=100)
+        fake_org = SimpleNamespace(id="org_456")
         fake_api_key = SimpleNamespace(id="key_456")
 
         middleware = ASGIAuthMiddleware(dummy_app)

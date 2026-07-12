@@ -47,11 +47,6 @@ def _body(n_points: int = 3, mode: str = "epsilon") -> dict:
     }
 
 
-def _fund(db: Session, org: Organization) -> None:
-    db.query(Organization).filter(Organization.id == org.id).update({"credits_balance": 1_000_000})
-    db.commit()
-
-
 class TestMultiObjectiveProvenance:
     # CONTRACT-TEST: multi-objective solves leave a navigable execution row in history
     # (re-encodes the invariant from the deleted sync-orchestrator test, ADR-007 S6). The
@@ -63,7 +58,6 @@ class TestMultiObjectiveProvenance:
         db_session: Session,
         test_organization: Organization,
     ):
-        _fund(db_session, test_organization)
         res = authenticated_client.post(
             "/api/v2/solve/multi-objective?origin=visual_builder", json=_body()
         )
@@ -96,8 +90,6 @@ class TestMultiObjectiveWaitContract:
     ):
         from celery.exceptions import TimeoutError as CeleryTimeoutError
 
-        _fund(db_session, test_organization)
-
         class _NeverDone:
             id = "s4b-wait-timeout-task"
 
@@ -127,7 +119,6 @@ class TestMultiObjectiveWaitContract:
         test_organization: Organization,
         monkeypatch,
     ):
-        _fund(db_session, test_organization)
 
         class _FailedTask:
             id = "s4b-error-task"

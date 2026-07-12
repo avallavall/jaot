@@ -226,7 +226,7 @@ def solve_with_template(  # def: blocks on the queued result in the threadpool (
     # fire the TEMPLATE_USE event so template-popularity analytics survive the
     # async migration. Fire-and-forget at submit time — a template was used
     # regardless of whether the solve completes inline or degrades to 202.
-    _log_template_use(db, request, org, template_id, enqueued.credits_needed)
+    _log_template_use(db, request, org, template_id)
 
     payload = _wait_for_task(enqueued.task)
     if payload is None:
@@ -245,7 +245,6 @@ def solve_with_template(  # def: blocks on the queued result in the threadpool (
         db=db,
         org_id=org.id,
         execution_id=enqueued.execution_id,
-        credits_needed=enqueued.credits_needed,
         solver_used=enqueued.effective_solver,
         auto_route_reason=enqueued.auto_route_reason,
         fallback_triggered=enqueued.fallback_triggered,
@@ -257,7 +256,6 @@ def _log_template_use(
     request: Request,
     org: Organization,
     template_id: str,
-    credits_needed: int,
 ) -> None:
     """Fire-and-forget TEMPLATE_USE analytics (preserved from the old orchestrator
     path so template-popularity analytics survive the async-only migration)."""
@@ -271,7 +269,7 @@ def _log_template_use(
             org_id=org.id,
             event_type=evt.TEMPLATE_USE,
             ip_address=request.client.host if request.client else None,
-            metadata={"template_id": template_id, "credits_used": credits_needed},
+            metadata={"template_id": template_id},
         )
     except Exception:
         logger.debug("Failed to log TEMPLATE_USE analytics event", exc_info=True)

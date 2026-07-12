@@ -22,7 +22,6 @@ class TestListMyModels:
             custom_name="My Test Model",
             is_active=True,
             total_executions=0,
-            total_credits_used=0,
         )
         db_session.add(org_model)
         db_session.commit()
@@ -102,7 +101,6 @@ class TestGetMyModel:
             custom_name="Get Test Model",
             is_active=True,
             total_executions=5,
-            total_credits_used=10,
         )
         db_session.add(org_model)
         db_session.commit()

@@ -2,4 +2,4 @@
 
 from .auth.api_key_service import APIKeyService
 
-__all__ = ["APIKeyService", "CreditsService"]
+__all__ = ["APIKeyService"]

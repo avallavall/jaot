@@ -199,12 +199,10 @@ class TestEventBuilders:
             status="optimal",
             objective_value=1800.0,
             execution_time_ms=247,
-            credits_consumed=2,
         )
         assert event["event"] == "execution.completed"
         assert event["data"]["execution_id"] == "exe_456"
         assert event["data"]["objective_value"] == 1800.0
-        assert event["data"]["credits_consumed"] == 2
 
     def test_execution_failed_event(self):
         event = execution_failed_event(

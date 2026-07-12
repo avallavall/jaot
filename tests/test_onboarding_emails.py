@@ -17,7 +17,6 @@ from app.services.onboarding_emails import (
     day0_welcome,
     day1_api_setup,
     day3_catalog,
-    day7_credits,
     day14_feedback,
 )
 
@@ -45,10 +44,10 @@ class TestEmailServiceBackends:
 
 class TestOnboardingSequenceRegistry:
     def test_sequence_has_5_emails(self):
-        assert len(ONBOARDING_SEQUENCE) == 5
+        assert len(ONBOARDING_SEQUENCE) == 4
 
     def test_sequence_days(self):
-        assert set(ONBOARDING_SEQUENCE.keys()) == {0, 1, 3, 7, 14}
+        assert set(ONBOARDING_SEQUENCE.keys()) == {0, 1, 3, 14}
 
 
 class TestDay0Welcome:
@@ -97,55 +96,6 @@ class TestDay3Catalog:
         assert "Knapsack" in html
         assert "Vehicle Routing" in html
         assert "Portfolio" in html
-
-
-class TestDay7Credits:
-    def test_shows_credit_balance(self):
-        _, html = day7_credits("Alice", 1234)
-        # Balance must appear in a labelled context, not as a stray "1234"
-        assert "1234 credits" in html.lower() or ">1234 " in html
-
-    def test_shows_pricing_table(self):
-        _, html = day7_credits("Alice", 200)
-        assert "Free" in html
-        assert "Starter" in html
-        assert "Pro" in html
-
-    def test_zero_balance(self):
-        """Strengthened TA-06 (12.4 Plan 05 LOW, D-08 relaxation): structured DOM + edge.
-
-        Before: single substring check (`"0 credits" in html.lower()` or `">0 "`) T3.
-        After: assert the balance line renders the full labelled value in a
-        unique HTML tag context, the credits unit appears next to it, and the
-        pricing-tier table is also present (proving the full template ran).
-        Plus negative-balance edge.
-        """
-        _, html = day7_credits("Alice", 0)
-        html_lower = html.lower()
-
-        # Balance line: the template renders `<p ...>{balance} {creditsUnit}</p>`
-        # with creditsUnit defaulting to "credits". Must appear together to
-        # rule out the stray "0" trap the legacy assertion guarded against.
-        assert "0 credits" in html_lower or ">0 " in html, (
-            "Balance line missing labelled zero (expected '0 credits' or '>0 ')"
-        )
-
-        # Structural: the balance must appear inside a styled <p> block
-        # (not as a stray digit in CSS). The template uses
-        # 'font-size:36px;font-weight:700' for the balance line.
-        assert "font-weight:700" in html
-        # Pricing table proves the full template ran end-to-end.
-        assert "Free" in html and "Starter" in html and "Pro" in html
-        # Currency / plan column header present.
-        assert "Price" in html
-
-        # Edge: negative balance must still render without crashing and must
-        # display the negative value (template does not clamp at 0).
-        _, neg_html = day7_credits("Alice", -50)
-        neg_lower = neg_html.lower()
-        assert ("-50 credits" in neg_lower) or (">-50 " in neg_html) or ("-50" in neg_html), (
-            "Negative balance line missing labelled value"
-        )
 
 
 class TestDay14Feedback:
@@ -257,25 +207,6 @@ class TestEmailTasks:
             call_kwargs = mock_send.call_args
             assert call_kwargs[1]["to"] == "test@test.com"
 
-    def test_send_onboarding_email_day7(self):
-        """Day 7 task must render credits balance into the HTML body."""
-        with patch.object(EmailService, "send", return_value=True) as mock_send:
-            from app.tasks.email_tasks import send_onboarding_email
-
-            result = send_onboarding_email(
-                user_email="test@test.com",
-                user_name="Bob",
-                day=7,
-                credits_balance=500,
-            )
-            assert result["status"] == "sent"
-            # Capture the rendered HTML and assert the balance was substituted in
-            mock_send.assert_called_once()
-            call_kwargs = mock_send.call_args.kwargs
-            assert "500" in call_kwargs["html"]
-            # Confirm the balance is in a labelled context (not stray digit)
-            assert "500 credits" in call_kwargs["html"].lower() or ">500 " in call_kwargs["html"]
-
     def test_send_onboarding_email_invalid_day(self):
         """Invalid day should return error."""
         from app.tasks.email_tasks import send_onboarding_email
@@ -299,5 +230,5 @@ class TestEmailTasks:
                 api_key_prefix="ok_live_",
             )
             assert result["status"] == "scheduled"
-            assert len(result["days"]) == 5
-            assert mock_task.apply_async.call_count == 5
+            assert len(result["days"]) == 4
+            assert mock_task.apply_async.call_count == 4

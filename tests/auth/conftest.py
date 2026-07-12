@@ -21,7 +21,6 @@ def auth_organization(db_session):
     org = Organization(
         id="org_auth_test",
         name="Auth Test Company",
-        credits_balance=1000,
         is_active=True,
     )
     db_session.add(org)

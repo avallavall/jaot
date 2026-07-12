@@ -40,11 +40,10 @@ EXPECTED_OPERATIONS = [
     "get_catalog_model",
     "get_catalog_model_schema",
     "activate_catalog_model",
-    # Execution, analysis & credits
+    # Execution & analysis
     "execute_model",
     "get_execution",
     "get_execution_insights",
-    "get_credit_balance",
     # Model projects — create, version, analyze & solve a first-class model
     "create_model_project",
     "get_model_project",
@@ -192,9 +191,9 @@ def test_mcp_auth_protected_endpoint(mcp_app):
     # solve_problem requires auth
     assert not _is_public("/api/v2/solve", "POST"), "/api/v2/solve POST should NOT be public"
 
-    # get_credit_balance requires auth
-    assert not _is_public("/api/v2/credits/balance", "GET"), (
-        "/api/v2/credits/balance GET should NOT be public"
+    # get_execution requires auth
+    assert not _is_public("/api/v2/models/executions/all", "GET"), (
+        "/api/v2/models/executions/all GET should NOT be public"
     )
 
 

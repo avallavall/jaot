@@ -1,7 +1,7 @@
 """BYOK billing behavior in the LLM endpoints.
 
 Proves the money-saving contract: when an org has its own Anthropic key, an LLM call
-(a) bypasses the platform monthly-budget guardrail, (b) charges no JAOT credits, and
+(a) bypasses the platform monthly-budget guardrail, and
 (c) records no platform ``cost_eur``. The contrast (no key + budget exhausted → 403)
 confirms the guardrail still applies to platform-key orgs.
 
@@ -136,9 +136,7 @@ def _url(conv_id):
     return f"/api/v2/llm/conversations/{conv_id}/explain-infeasibility"
 
 
-def test_byok_bypasses_budget_and_charges_no_credits(
-    authenticated_client, db_session, test_organization, test_user
-):
+def test_byok_bypasses_budget(authenticated_client, db_session, test_organization, test_user):
     conv = _conversation(db_session, test_organization.id, test_user.id)
     exe = _infeasible_execution(db_session, test_organization.id)
     # Seed the platform-budget-exhausting cost in a *separate* conversation so the
@@ -149,7 +147,6 @@ def test_byok_bypasses_budget_and_charges_no_credits(
     # Org sets its own key → BYOK-first resolution applies.
     test_organization.anthropic_api_key_encrypted = byok.encrypt_api_key("sk-ant-byok-test-123456")
     db_session.commit()
-    credits_before = test_organization.credits_balance
 
     with patch(
         "app.services.llm.anthropic_client._get_or_create_client",
@@ -163,8 +160,6 @@ def test_byok_bypasses_budget_and_charges_no_credits(
 
     db_session.expire_all()
     db_session.refresh(test_organization)
-    # No platform credits charged.
-    assert test_organization.credits_balance == credits_before
     # Assistant message recorded, but with no platform EUR cost (BYOK spend is the org's).
     assistant = (
         db_session.query(LLMMessage)

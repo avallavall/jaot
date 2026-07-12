@@ -103,17 +103,6 @@ def test_patch_admin_reviews_visibility_returns_422_for_missing_query_param(admi
     assert resp.status_code == 422
 
 
-def test_put_admin_settings_commission_returns_422_for_missing_query_param(admin_client):
-    """SC3 (cell #10, owner=PLAN_05): PUT /api/v2/admin/settings/commission -> 422.
-
-    ``update_commission_rate`` at app/api/v2/routes/admin/settings.py:50 declares
-    ``rate: float = Query(..., ge=0.0, le=0.50)``. Missing the required query
-    param triggers 422.
-    """
-    resp = admin_client.put("/api/v2/admin/settings/commission")
-    assert resp.status_code == 422
-
-
 def test_put_admin_settings_plans_returns_422_for_malformed_body(admin_client):
     """SC3 (cell #11, owner=PLAN_05): PUT /api/v2/admin/settings/plans -> 422.
 

@@ -84,14 +84,13 @@ class TestTerminalWins:
 
 
 class TestCompleted:
-    def test_records_result_fields_and_recorded_credits(self) -> None:
+    def test_records_result_fields(self) -> None:
         row = _row()
         applied = execution_writer.apply_completed(
             row,
             result=_optimal_result(),
             execution_time_seconds=1.5,
             solver_name="scip",
-            credits_recorded=7,
         )
         assert applied is True
         assert row.status == ExecutionStatus.COMPLETED.value
@@ -100,7 +99,6 @@ class TestCompleted:
         assert row.execution_time_ms == 1500
         assert row.solver_name == "scip"
         # Credits are RECORDED, never deducted here (the ledger is elsewhere).
-        assert row.credits_consumed == 7
         assert row.completed_at is not None
         assert isinstance(row.result_data, dict)
 

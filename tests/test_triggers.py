@@ -131,7 +131,6 @@ def _create_run(
         organization_id=trigger.organization_id,
         override_data=override_data,
         status=status,
-        credits_consumed=1,
         webhook_attempts=0,
         created_at=utcnow(),
     )

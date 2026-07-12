@@ -101,7 +101,6 @@ def create_workspace(
     )
     db.add(member)
 
-
     # Audit log
     log_action(
         db=db,

@@ -166,5 +166,3 @@ class AuditLogResponse(BaseModel):
             metadata=log.log_metadata,
             created_at=log.created_at,
         )
-
-

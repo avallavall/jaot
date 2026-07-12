@@ -44,8 +44,6 @@ class TestPreviewModel:
             status="published",
             is_official=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
         )
         db_session.add(catalog)
 
@@ -72,7 +70,6 @@ class TestPreviewModel:
             id="some_other_org_id",
             name="Other Org",
             plan="free",
-            credits_balance=0,
             created_at=utcnow(),
         )
         db_session.add(other_org)
@@ -93,8 +90,6 @@ class TestPreviewModel:
             status="published",
             is_official=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
         )
         db_session.add(catalog)
 
@@ -140,8 +135,6 @@ class TestPreviewModel:
             status="published",
             is_official=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
         )
         db_session.add(catalog)
 
@@ -181,58 +174,3 @@ class TestPreviewModel:
         for var in data["variables"]:
             assert "name" in var
             assert "type" in var
-
-    def test_preview_does_not_deduct_credits(
-        self, authenticated_client, db_session, test_organization
-    ):
-        """Test that preview does NOT deduct credits (read-only operation)."""
-        initial_credits = test_organization.credits_balance
-
-        catalog = ModelCatalog(
-            id="test_preview_no_credits_catalog",
-            name="preview_no_credits",
-            display_name="Preview No Credits",
-            description="For credit testing",
-            category=ModelCategory.FINANCE,
-            generator_type="budget_allocation",
-            input_schema={},
-            input_fields=[
-                {"name": "total_budget", "type": "number", "label": "Budget"},
-                {"name": "departments", "type": "array", "label": "Departments"},
-            ],
-            example_input={},
-            version="1.0.0",
-            status="published",
-            is_official=False,
-            is_public=True,
-            price_eur=0.0,
-            credits_per_execution=5,
-        )
-        db_session.add(catalog)
-
-        org_model = OrganizationModel(
-            id="test_preview_no_credits_model",
-            organization_id=test_organization.id,
-            catalog_id="test_preview_no_credits_catalog",
-            is_active=True,
-        )
-        db_session.add(org_model)
-        db_session.commit()
-
-        response = authenticated_client.post(
-            "/api/v2/models/test_preview_no_credits_model/preview",
-            json={
-                "input_data": {
-                    "total_budget": 50000,
-                    "departments": [
-                        {"name": "Sales", "min_pct": 0.3, "max_pct": 0.7},
-                    ],
-                }
-            },
-        )
-
-        assert response.status_code == 200
-
-        # Credits should be unchanged
-        db_session.refresh(test_organization)
-        assert test_organization.credits_balance == initial_credits

@@ -51,7 +51,7 @@ class TestMaintenanceModeDefault:
         db_session,
     ):
         """Authenticated endpoint works normally with default settings."""
-        resp = authenticated_client.get("/api/v2/credits/balance")
+        resp = authenticated_client.get("/api/v2/projects")
         assert resp.status_code == 200
 
     def test_default_setting_is_false(self, db_session):
@@ -73,7 +73,7 @@ class TestMaintenanceModeEnabled:
 
     def test_non_admin_gets_503(self, client, db_session):
         """An unauthenticated request to a non-bypass path gets 503."""
-        resp = client.get("/api/v2/credits/balance")
+        resp = client.get("/api/v2/projects")
         assert resp.status_code == 503
 
         body = resp.json()
@@ -82,13 +82,13 @@ class TestMaintenanceModeEnabled:
 
     def test_503_has_retry_after_header(self, client, db_session):
         """503 response includes Retry-After header."""
-        resp = client.get("/api/v2/credits/balance")
+        resp = client.get("/api/v2/projects")
         assert resp.status_code == 503
         assert resp.headers.get("retry-after") == "300"
 
     def test_503_response_body_structure(self, client, db_session):
         """503 response has the expected JSON structure."""
-        resp = client.get("/api/v2/credits/balance")
+        resp = client.get("/api/v2/projects")
         assert resp.status_code == 503
 
         body = resp.json()
@@ -121,16 +121,7 @@ class TestMaintenanceModeEnabled:
         the DB-backed PlatformSetting row, so we assert the override flag
         rather than the PlatformSetting row state.
         """
-        from app.models import Organization
-
-        pre_balance = (
-            db_session.query(Organization)
-            .filter(Organization.id == "org_test001")
-            .one()
-            .credits_balance
-        )
-
-        resp = authenticated_client.get("/api/v2/credits/balance")
+        resp = authenticated_client.get("/api/v2/projects")
 
         # SC1a: status
         assert resp.status_code == 503
@@ -149,17 +140,6 @@ class TestMaintenanceModeEnabled:
 
         # Retry-After header is part of the 503 contract (RFC 7231 6.6.4).
         assert resp.headers.get("retry-after") == "300"
-
-        # SC1c side-effect: the gate fires before the credits handler.
-        post_balance = (
-            db_session.query(Organization)
-            .filter(Organization.id == "org_test001")
-            .one()
-            .credits_balance
-        )
-        assert post_balance == pre_balance, (
-            f"Maintenance leaked: balance moved from {pre_balance} to {post_balance}"
-        )
 
         # Verify the precondition: maintenance ON via in-memory override.
         assert maint_mw._force_maintenance is True
@@ -212,7 +192,7 @@ class TestMaintenanceModeEnabled:
     def test_multiple_non_bypass_paths_get_503(self, client, db_session):
         """Various non-bypass paths all get 503 during maintenance."""
         paths = [
-            "/api/v2/credits/balance",
+            "/api/v2/projects",
             "/api/v2/models",
             "/api/v2/solve",
         ]
@@ -291,7 +271,7 @@ class TestMaintenanceModeAdminBypass:
         """Admin JWT cookie lets the request through during maintenance."""
         token = self._make_admin_jwt()
         resp = client.get(
-            "/api/v2/credits/balance",
+            "/api/v2/projects",
             cookies={"jaot_access_token": token},
         )
         # Should NOT be 503. It may be 401 because auth is disabled in tests,
@@ -306,7 +286,7 @@ class TestMaintenanceModeAdminBypass:
         """Non-admin JWT cookie does NOT bypass maintenance."""
         token = self._make_non_admin_jwt()
         resp = client.get(
-            "/api/v2/credits/balance",
+            "/api/v2/projects",
             cookies={"jaot_access_token": token},
         )
         assert resp.status_code == 503
@@ -319,7 +299,7 @@ class TestMaintenanceModeAdminBypass:
         """Expired admin JWT is treated as non-admin -- gets 503."""
         token = self._make_expired_admin_jwt()
         resp = client.get(
-            "/api/v2/credits/balance",
+            "/api/v2/projects",
             cookies={"jaot_access_token": token},
         )
         assert resp.status_code == 503
@@ -331,7 +311,7 @@ class TestMaintenanceModeAdminBypass:
     ):
         """Malformed JWT is treated as non-admin -- gets 503."""
         resp = client.get(
-            "/api/v2/credits/balance",
+            "/api/v2/projects",
             cookies={"jaot_access_token": "not-a-valid-jwt"},
         )
         assert resp.status_code == 503
@@ -353,7 +333,7 @@ class TestMaintenanceModeAdminBypass:
         }
         token = pyjwt.encode(payload, "wrong-secret", algorithm="HS256")
         resp = client.get(
-            "/api/v2/credits/balance",
+            "/api/v2/projects",
             cookies={"jaot_access_token": token},
         )
         assert resp.status_code == 503
@@ -378,7 +358,7 @@ class TestMaintenanceModeAdminBypass:
             algorithm="HS256",
         )
         resp = client.get(
-            "/api/v2/credits/balance",
+            "/api/v2/projects",
             cookies={"jaot_access_token": token},
         )
         assert resp.status_code == 503
@@ -394,17 +374,17 @@ class TestMaintenanceSettingToggle:
     ):
         """Maintenance can be flipped and takes effect immediately."""
         # Default: off
-        resp = client.get("/api/v2/credits/balance")
+        resp = client.get("/api/v2/projects")
         assert resp.status_code != 503
 
         # Turn on
         maint_mw._force_maintenance = True
-        resp = client.get("/api/v2/credits/balance")
+        resp = client.get("/api/v2/projects")
         assert resp.status_code == 503
 
         # Turn off
         maint_mw._force_maintenance = False
-        resp = client.get("/api/v2/credits/balance")
+        resp = client.get("/api/v2/projects")
         assert resp.status_code != 503
 
         # Cleanup
@@ -418,13 +398,13 @@ class TestMaintenanceSettingToggle:
         """Clearing the override falls back to default (off)."""
         maint_mw._force_maintenance = True
 
-        resp = client.get("/api/v2/credits/balance")
+        resp = client.get("/api/v2/projects")
         assert resp.status_code == 503
 
         # Clear override → default off
         maint_mw._force_maintenance = None
 
-        resp = client.get("/api/v2/credits/balance")
+        resp = client.get("/api/v2/projects")
         assert resp.status_code != 503
 
 

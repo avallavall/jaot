@@ -24,8 +24,6 @@ from unittest.mock import patch
 
 from app.models import (
     APIKey,
-    CreditTransaction,
-    Invoice,
     LLMConversation,
     ModelBuilderDocument,
     ModelCatalog,
@@ -86,8 +84,6 @@ def _create_execution(db_session, org, user, org_model=None) -> ModelExecution:
         result_data={"solution": {"x": 1.0}},
         solver_status="optimal",
         objective_value=42.0,
-        credits_consumed=1,
-        credits_base=1,
         execution_time_ms=100,
         created_at=utcnow(),
         completed_at=utcnow(),
@@ -113,48 +109,6 @@ def _create_api_key(db_session, user, org) -> APIKey:
     db_session.add(api_key)
     db_session.flush()
     return api_key
-
-
-def _create_credit_transaction(db_session, org) -> CreditTransaction:
-    """Create a test credit transaction for an org."""
-    txn = CreditTransaction(
-        id=f"txn_{uuid.uuid4().hex[:12]}",
-        organization_id=org.id,
-        transaction_type="purchase",
-        credits_amount=100,
-        balance_after=1100,
-        description="Test purchase",
-        created_at=utcnow(),
-    )
-    db_session.add(txn)
-    db_session.flush()
-    return txn
-
-
-def _create_invoice(db_session, org) -> Invoice:
-    """Create a test invoice for an org."""
-    invoice = Invoice(
-        id=f"inv_{uuid.uuid4().hex[:12]}",
-        invoice_number=f"INV-{uuid.uuid4().hex[:8].upper()}",
-        organization_id=org.id,
-        invoice_type="topup",
-        status="paid",
-        org_name=org.name,
-        org_plan="free",
-        subtotal_eur=10.0,
-        tax_rate=0.0,
-        tax_amount_eur=0.0,
-        total_eur=10.0,
-        currency="EUR",
-        exchange_rate=1.0,
-        total_local=10.0,
-        credits_granted=500,
-        issued_at=utcnow(),
-        paid_at=utcnow(),
-    )
-    db_session.add(invoice)
-    db_session.flush()
-    return invoice
 
 
 def _create_llm_conversation(db_session, org, user) -> LLMConversation:
@@ -387,32 +341,6 @@ class TestCrossTenantAsyncExecution:
 class TestCrossTenantCredits:
     """Org B cannot see Org A's credit transactions."""
 
-    def test_cross_tenant_credit_transactions(
-        self,
-        app,
-        client,
-        db_session,
-        mock_auth,
-        test_user,
-        test_user_2,
-        test_organization,
-        test_organization_2,
-    ):
-        """GET /api/v2/credits/transactions returns empty list for cross-tenant access."""
-        # Create transaction for org_a
-        mock_auth(test_user)
-        _create_credit_transaction(db_session, test_organization)
-        db_session.commit()
-
-        # Switch to org_b user
-        mock_auth(test_user_2)
-
-        # Org B should see empty transaction list (not org A's data)
-        response = client.get("/api/v2/credits/transactions")
-        assert response.status_code == 200
-        data = response.json()
-        assert data == [] or len(data) == 0
-
 
 class TestCrossTenantAPIKeys:
     """Org B cannot delete Org A's API keys."""
@@ -471,57 +399,6 @@ class TestCrossTenantAPIKeys:
 
 class TestCrossTenantBilling:
     """Org B cannot access Org A's invoices."""
-
-    def test_cross_tenant_invoice_access(
-        self,
-        app,
-        client,
-        db_session,
-        mock_auth,
-        test_user,
-        test_user_2,
-        test_organization,
-        test_organization_2,
-    ):
-        """GET /api/v2/billing/invoices/{id} returns 404 for cross-tenant access."""
-        # Create invoice for org_a
-        mock_auth(test_user)
-        invoice = _create_invoice(db_session, test_organization)
-        db_session.commit()
-
-        # Switch to org_b user
-        mock_auth(test_user_2)
-
-        # Attempt to access org_a's invoice
-        response = client.get(f"/api/v2/billing/invoices/{invoice.id}")
-        assert response.status_code == 404
-
-    def test_cross_tenant_invoice_list_isolation(
-        self,
-        app,
-        client,
-        db_session,
-        mock_auth,
-        test_user,
-        test_user_2,
-        test_organization,
-        test_organization_2,
-    ):
-        """GET /api/v2/billing/invoices returns only the requesting org's invoices."""
-        # Create invoice for org_a
-        mock_auth(test_user)
-        _create_invoice(db_session, test_organization)
-        db_session.commit()
-
-        # Switch to org_b user
-        mock_auth(test_user_2)
-
-        # Org B should see empty invoice list
-        response = client.get("/api/v2/billing/invoices")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["total"] == 0
-        assert data["items"] == []
 
 
 class TestCrossTenantModelExecution:

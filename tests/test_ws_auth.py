@@ -29,7 +29,6 @@ def org_a(db_session):
     org = Organization(
         id="org_wsa",
         name="Org A",
-        credits_balance=1000,
         is_active=True,
     )
     db_session.add(org)
@@ -44,7 +43,6 @@ def org_b(db_session):
     org = Organization(
         id="org_wsb",
         name="Org B",
-        credits_balance=500,
         is_active=True,
     )
     db_session.add(org)

@@ -217,10 +217,6 @@ class TestCommit:
 
 class TestSolve:
     def _fund_and_arm(self, client: TestClient, db: Session, org: Organization) -> str:
-        db.query(Organization).filter(Organization.id == org.id).update(
-            {"credits_balance": 1_000_000}
-        )
-        db.commit()
         pid = _create_project(client)["id"]
         client.put(f"/api/v2/projects/{pid}/draft", json={"model_json": _VALID_PROBLEM})
         return pid

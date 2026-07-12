@@ -1,42 +1,8 @@
-"""Phase 7.4 / D-12 / D-11 — /solvers/available exposes multiplier + worker health."""
+"""Phase 7.4 / D-12 / D-11 — /solvers/available exposes worker health."""
 
 from __future__ import annotations
 
 import pytest
-
-
-class TestSolversAvailableMultiplier:
-    def test_lists_multipliers_per_solver(self, authenticated_client) -> None:
-        """V-04: each solver entry includes a 'multiplier' float field.
-        (Phase 7.4 / Plan 07 Task 1)"""
-        response = authenticated_client.get("/api/v2/solvers/available")
-        assert response.status_code == 200
-        for solver in response.json()["solvers"]:
-            assert "multiplier" in solver
-            assert isinstance(solver["multiplier"], (int, float))
-        # Defaults from settings_registry: scip=1.0, highs=1.0, hexaly=1.0
-        by_name = {s["name"]: s for s in response.json()["solvers"]}
-        if "scip" in by_name:
-            assert by_name["scip"]["multiplier"] == 1.0
-        if "highs" in by_name:
-            assert by_name["highs"]["multiplier"] == 1.0
-        if "hexaly" in by_name:
-            assert by_name["hexaly"]["multiplier"] == 1.0
-
-    def test_hexaly_availability_reflects_worker_health(
-        self, authenticated_client, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """V-04: when Hexaly worker probe returns False, hexaly entry has
-        available=False and reason='maintenance'. (Phase 7.4 / Plan 07 Task 1)"""
-        from app.domains.solver.services import worker_health
-
-        monkeypatch.setattr(worker_health, "_probe_hexaly_worker", lambda: (False, "test_off"))
-        response = authenticated_client.get("/api/v2/solvers/available")
-        assert response.status_code == 200
-        by_name = {s["name"]: s for s in response.json()["solvers"]}
-        if "hexaly" in by_name:
-            assert by_name["hexaly"]["available"] is False
-            assert by_name["hexaly"]["reason"] == "maintenance"
 
 
 class TestSolversAvailableOptionalSdk:
@@ -60,7 +26,6 @@ class TestSolversAvailableOptionalSdk:
         by_name = {s["name"]: s for s in response.json()["solvers"]}
         assert "hexaly" in by_name
         assert by_name["hexaly"]["available"] is True
-        assert by_name["hexaly"]["multiplier"] == 1.0
 
     def test_no_worker_and_no_sdk_hides_hexaly(
         self, authenticated_client, monkeypatch: pytest.MonkeyPatch

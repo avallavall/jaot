@@ -3,14 +3,14 @@ async pipeline: ``POST /projects/{id}/solve``, ``POST /import``, and
 ``POST /solve/templates/{id}/solve``.
 
 # CONTRACT-TEST: each wrapper returns the classic sync ``OptimizationResult``
-contract on completion (execution_id + credits_used + credits_remaining injected),
-degrades to 202 past the wait budget, and preserves the endpoint-specific side
-effect the old orchestrator path carried (the TEMPLATE_USE analytics event). If
-these break, the S4a conversion changed the observable contract.
+contract on completion (execution_id injected), degrades to 202 past the wait
+budget, and preserves the endpoint-specific side effect the old orchestrator path
+carried (the TEMPLATE_USE analytics event). If these break, the S4a conversion
+changed the observable contract.
 
 The async task runs EAGERLY via the autouse ``eager_solve_async_pipeline`` fixture
-(real SCIP, real DB, real refunds), so the observed payload is the genuine worker
-envelope reshaped by the wait wrapper — never a stub.
+(real SCIP, real DB), so the observed payload is the genuine worker envelope
+reshaped by the wait wrapper — never a stub.
 """
 
 from __future__ import annotations
@@ -33,14 +33,9 @@ _KNAPSACK_INPUT = {
     ],
 }
 
-# The four fields the sync orchestrator used to inject that the async envelope does
+# The fields the sync orchestrator used to inject that the async envelope does
 # not carry natively — the wait wrapper must add them back.
-_SYNC_RESULT_KEYS = {"status", "execution_id", "credits_used", "credits_remaining"}
-
-
-def _fund(db: Session, org: Organization) -> None:
-    db.query(Organization).filter(Organization.id == org.id).update({"credits_balance": 1_000_000})
-    db.commit()
+_SYNC_RESULT_KEYS = {"status", "execution_id"}
 
 
 class TestTemplateWrapperParity:
@@ -52,7 +47,6 @@ class TestTemplateWrapperParity:
         db_session: Session,
         test_organization: Organization,
     ):
-        _fund(db_session, test_organization)
         res = authenticated_client.post(
             "/api/v2/solve/templates/knapsack/solve", json=_KNAPSACK_INPUT
         )
@@ -61,9 +55,6 @@ class TestTemplateWrapperParity:
         assert _SYNC_RESULT_KEYS <= set(body)
         assert body["execution_id"].startswith("exe_")
         assert body["status"] in ("optimal", "feasible")
-        # A real answer is charged; the balance is a concrete int.
-        assert body["credits_used"] >= 1
-        assert isinstance(body["credits_remaining"], int)
 
     # CONTRACT-TEST: the TEMPLATE_USE analytics event the old orchestrator fired must
     # survive the async-only conversion (template-popularity analytics). It is the ONE
@@ -74,7 +65,6 @@ class TestTemplateWrapperParity:
         db_session: Session,
         test_organization: Organization,
     ):
-        _fund(db_session, test_organization)
         res = authenticated_client.post(
             "/api/v2/solve/templates/knapsack/solve", json=_KNAPSACK_INPUT
         )
@@ -100,7 +90,6 @@ class TestTemplateWrapperParity:
         db_session: Session,
         test_organization: Organization,
     ):
-        _fund(db_session, test_organization)
         res = authenticated_client.post(
             "/api/v2/solve/templates/knapsack/solve", json=_KNAPSACK_INPUT
         )
@@ -130,8 +119,6 @@ class TestWrapperWaitDegradation:
         monkeypatch,
     ):
         from celery.exceptions import TimeoutError as CeleryTimeoutError
-
-        _fund(db_session, test_organization)
 
         class _NeverDone:
             id = "s4a-wait-timeout-task"

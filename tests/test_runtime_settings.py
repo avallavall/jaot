@@ -115,34 +115,6 @@ class TestLLMIntegration:
             )
             assert resp2.status_code == 429
 
-    def test_llm_credit_cost_uses_db_value(
-        self, authenticated_client, db_session, test_organization
-    ):
-        """Set LLM_CREDIT_COST_PER_MESSAGE to 5000 in DB. A user with fewer
-        credits should get 402 Payment Required."""
-        test_organization.plan = "starter"
-        test_organization.credits_balance = 100  # Less than 5000
-        PSS.set(db_session, "LLM_CREDIT_COST_PER_MESSAGE", "5000")
-        PSS.set(
-            db_session,
-            "plan_starter_allowed_features",
-            json.dumps(["llm_assistant"]),
-        )
-        db_session.commit()
-
-        resp = authenticated_client.post("/api/v2/llm/conversations", json={})
-        if resp.status_code == 201:
-            conv_id = resp.json()["id"]
-            resp2 = authenticated_client.post(
-                f"/api/v2/llm/conversations/{conv_id}/messages",
-                json={"message": "Solve my problem", "response_type": "formulation"},
-            )
-            assert resp2.status_code == 402
-            detail = resp2.json()["detail"]
-            assert detail["error"] == "insufficient_credits"
-            assert detail["credits_needed"] == 5000
-            assert detail["credits_available"] == 100
-
     def test_formulation_service_uses_db_model(self, db_session):
         """select_model reads LLM_DEFAULT_MODEL from DB when a session is provided."""
         from app.services.llm.formulation_service import select_model
@@ -252,13 +224,13 @@ class TestPlanConfigIntegration:
     actual application behavior (tier caps, feature gates)."""
 
     def test_plan_config_dynamic_overrides_static(self, db_session):
-        """Set plan_free_credits to 9999 in DB, verify get_plan_config_dynamic
-        returns 9999 (not the env default)."""
-        PSS.set(db_session, "plan_free_credits", "9999")
+        """Set plan_free_rate_limit_per_minute to 9999 in DB, verify
+        get_plan_config_dynamic returns 9999 (not the registry default)."""
+        PSS.set(db_session, "plan_free_rate_limit_per_minute", "9999")
         db_session.flush()
 
         config = PSS.get_plan_config_dynamic(db_session, "free")
-        assert config["credits"] == 9999
+        assert config["rate_limit_per_minute"] == 9999
 
     def test_plan_config_allowed_features_from_db(self, db_session):
         """Set plan_free_allowed_features to a custom JSON list in DB."""
@@ -273,8 +245,6 @@ class TestPlanConfigIntegration:
         """get_plan_config_dynamic returns all 9 expected fields."""
         config = PSS.get_plan_config_dynamic(db_session, "free")
         expected_fields = {
-            "credits",
-            "monthly_quota",
             "rate_limit_per_minute",
             "rate_limit_per_day",
             "max_solve_time_seconds",
@@ -414,7 +384,7 @@ class TestAdminAPIE2E:
                 "updates": {
                     "SOLVER_TIMEOUT_SECONDS": "100",
                     "LLM_RATE_LIMIT_PER_MINUTE": "42",
-                    "LLM_CREDIT_COST_PER_MESSAGE": "7",
+                    "LLM_MONTHLY_BUDGET_EUR": "77",
                 }
             },
         )
@@ -422,14 +392,14 @@ class TestAdminAPIE2E:
         updated = resp.json()["updated"]
         assert "SOLVER_TIMEOUT_SECONDS" in updated
         assert "LLM_RATE_LIMIT_PER_MINUTE" in updated
-        assert "LLM_CREDIT_COST_PER_MESSAGE" in updated
+        assert "LLM_MONTHLY_BUDGET_EUR" in updated
 
         # Audit log should have entries for each
         resp = admin_client.get("/api/v2/admin/settings/audit")
         keys_in_audit = {e["setting_key"] for e in resp.json()["items"]}
         assert "SOLVER_TIMEOUT_SECONDS" in keys_in_audit
         assert "LLM_RATE_LIMIT_PER_MINUTE" in keys_in_audit
-        assert "LLM_CREDIT_COST_PER_MESSAGE" in keys_in_audit
+        assert "LLM_MONTHLY_BUDGET_EUR" in keys_in_audit
 
     def test_validation_rejects_non_integer(self, admin_client, db_session):
         """PUT SOLVER_TIMEOUT_SECONDS with 'abc' is rejected."""
@@ -529,15 +499,3 @@ class TestFallbackChain:
         val = PSS.get_int(db_session, "LLM_RATE_LIMIT_PER_MINUTE")
         assert val > 0
         assert val != 99
-
-    def test_marketplace_defaults_fallback(self, db_session):
-        """Marketplace commission rate falls back to registry default_value
-        when no DB row exists."""
-        # Ensure no DB row
-        db_session.query(PlatformSetting).filter(
-            PlatformSetting.key == "marketplace_commission_rate"
-        ).delete()
-        db_session.flush()
-
-        val = PSS.get(db_session, "marketplace_commission_rate")
-        assert val == "0.10"  # Registry default_value fallback

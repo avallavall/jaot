@@ -32,7 +32,6 @@ def lockout_org(db_session):
     org = Organization(
         id="org_lockout01",
         name="Lockout Test Org",
-        credits_balance=100,
         is_active=True,
     )
     db_session.add(org)

@@ -101,7 +101,6 @@ def test_health_endpoint_skips_auth(middleware_client: TestClient) -> None:
     # No auth ran for a public endpoint, so middleware must not inject
     # the X-Organization-Id header (that only happens for authenticated req).
     assert "X-Organization-Id" not in response.headers
-    assert "X-Credits-Balance" not in response.headers
 
 
 # Auth Rejection (401)
@@ -158,7 +157,7 @@ def test_valid_api_key_injects_state_and_headers(
     fake_api_key = SimpleNamespace(id="key_123")
     fake_user = SimpleNamespace(id="user_123")
     fake_user.is_admin = False
-    fake_org = SimpleNamespace(id="org_123", credits_balance=2500)
+    fake_org = SimpleNamespace(id="org_123")
 
     monkeypatch.setattr(
         "app.services.auth.credentials.APIKeyService.verify_key",
@@ -172,7 +171,6 @@ def test_valid_api_key_injects_state_and_headers(
     assert response.status_code == 200
     assert response.json() == {"user_id": "user_123", "org_id": "org_123"}
     assert response.headers["X-Organization-Id"] == "org_123"
-    assert response.headers["X-Credits-Balance"] == "2500"
 
 
 def test_valid_auth_on_post_endpoint(
@@ -181,7 +179,7 @@ def test_valid_auth_on_post_endpoint(
     """POST to a protected endpoint with valid auth works."""
     fake_api_key = SimpleNamespace(id="key_456")
     fake_user = SimpleNamespace(id="user_456")
-    fake_org = SimpleNamespace(id="org_456", credits_balance=100)
+    fake_org = SimpleNamespace(id="org_456")
 
     monkeypatch.setattr(
         "app.services.auth.credentials.APIKeyService.verify_key",

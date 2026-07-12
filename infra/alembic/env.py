@@ -26,38 +26,29 @@ except ImportError:
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://jaot:jaot@localhost:5432/jaot_dev")
 
 # Base no longer eagerly imports session.py, so this is safe with the DB down.
-from app.shared.db.base import Base
-
 from app.models import (  # noqa: F401
     APIKey,
-    CreditTransaction,
-    ExchangeRate,
-    FeaturedPlacement,
+    AuditLog,
+    LLMConversation,
+    LLMMessage,
+    ModelCatalog,
+    ModelExecution,
+    ModelReview,
     ModelViewEvent,
     Notification,
     NotificationPreference,
     Organization,
-    PlatformSetting,
-    SellerToSAcceptance,
-    UsageRecord,
-    User,
-    ModelCatalog,
     OrganizationModel,
-    ModelExecution,
-    ModelReview,
-    VerificationRequest,
-    Withdrawal,
-    WithdrawalSchedule,
-    UserFavorite,
+    PlatformSetting,
     RecentModel,
+    User,
+    UserFavorite,
+    VerificationRequest,
     Workspace,
-    WorkspaceMember,
     WorkspaceInvite,
-    AuditLog,
-    WorkspaceCreditPool,
-    LLMConversation,
-    LLMMessage,
+    WorkspaceMember,
 )
+from app.shared.db.base import Base
 
 config = context.config
 

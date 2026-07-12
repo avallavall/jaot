@@ -22,8 +22,6 @@ def verify_org(db_session):
     org = Organization(
         id="org_verify001",
         name="Verify Corp",
-        credits_balance=1000,
-        credits_earned=0,
         is_active=True,
         is_verified=False,
     )

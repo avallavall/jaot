@@ -122,15 +122,7 @@ class TestMultiObjectiveIntegration:
         db_session,
         test_organization,
     ):
-        """Multi-objective solve deducts credits via API endpoint."""
-        from app.api.v2.solve import calculate_credits
-        from app.models import Organization
-        from app.schemas.optimization import OptimizationProblem as OP
-
-        # Ensure org has credits
-        test_organization.credits_balance = 1000
-        db_session.commit()
-
+        """Multi-objective solve completes via API endpoint."""
         body = _make_solve_request_body(n_points=3, mode="epsilon")
 
         resp = authenticated_client.post(
@@ -143,23 +135,7 @@ class TestMultiObjectiveIntegration:
         assert "pareto_points" in data
         assert data["n_solved"] >= 1
 
-        # Verify credits were deducted
-        db_session.expire_all()
-        updated_org = db_session.get(Organization, test_organization.id)
-        assert updated_org.credits_balance < 1000, (
-            f"Credits not deducted: balance is still {updated_org.credits_balance}"
-        )
-
-        # Verify expected credit cost
-        problem = OP.model_validate(body["problem"])
-        expected_per_solve = calculate_credits(problem)
-        expected_total = expected_per_solve * 3
-        actual_deduction = 1000 - updated_org.credits_balance
-        assert actual_deduction == expected_total, (
-            f"Expected {expected_total} credits deducted, got {actual_deduction}"
-        )
-
-    def test_credits_deducted_on_infeasible_multi_objective(
+    def test_infeasible_multi_objective_completes(
         self,
         authenticated_client,
         db_session,
@@ -172,14 +148,6 @@ class TestMultiObjectiveIntegration:
         Pareto front (status 200, n_solved=0) and credits stay deducted.
         If this contract changes, this test must be updated to match.
         """
-        from app.api.v2.solve import calculate_credits
-        from app.models import Organization
-        from app.schemas.optimization import OptimizationProblem as OP
-
-        initial_balance = 1000
-        test_organization.credits_balance = initial_balance
-        db_session.commit()
-
         # Infeasible: x <= 5 AND x >= 100
         body = {
             "problem": {
@@ -214,13 +182,6 @@ class TestMultiObjectiveIntegration:
         assert len(data["pareto_points"]) == 0
 
         # Credits are NOT refunded on infeasibility (only on ERROR status).
-        # Expected deduction = calculate_credits(problem) * n_points.
-        expected_per_solve = calculate_credits(OP.model_validate(body["problem"]))
-        expected_total = expected_per_solve * body["config"]["n_points"]
-
-        db_session.expire_all()
-        updated_org = db_session.get(Organization, test_organization.id)
-        assert updated_org.credits_balance == initial_balance - expected_total
 
     def test_single_point_pareto(self):
         """Trivial feasible region produces consistent Pareto points."""

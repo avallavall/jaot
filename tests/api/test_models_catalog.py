@@ -31,8 +31,6 @@ class TestCatalogList:
             status="published",
             is_official=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
         )
         db_session.add(model)
         db_session.commit()
@@ -62,8 +60,6 @@ class TestCatalogList:
             status="draft",  # Not published
             is_official=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
         )
         db_session.add(model)
         db_session.commit()
@@ -92,8 +88,6 @@ class TestCatalogList:
             status="published",
             is_official=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
         )
         logistics_model = ModelCatalog(
             id="test_logistics_model",
@@ -109,8 +103,6 @@ class TestCatalogList:
             status="published",
             is_official=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
         )
         db_session.add_all([finance_model, logistics_model])
         db_session.commit()
@@ -140,8 +132,6 @@ class TestCatalogList:
             status="published",
             is_official=True,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
         )
         db_session.add(official)
         db_session.commit()
@@ -169,8 +159,6 @@ class TestCatalogList:
             status="published",
             is_official=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
         )
         db_session.add(model)
         db_session.commit()
@@ -201,8 +189,6 @@ class TestCatalogList:
                 status="published",
                 is_official=False,
                 is_public=True,
-                price_eur=0.0,
-                credits_per_execution=1,
             )
             db_session.add(model)
         db_session.commit()
@@ -239,8 +225,6 @@ class TestCatalogDetail:
             is_official=True,
             is_featured=True,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=2,
         )
         db_session.add(model)
         db_session.commit()
@@ -252,7 +236,6 @@ class TestCatalogDetail:
         assert data["id"] == "test_detail_model"
         assert data["display_name"] == "Detail Model"
         assert data["is_official"]
-        assert data["credits_per_execution"] == 2
 
     def test_get_catalog_model_not_found(self, authenticated_client):
         """Test getting non-existent model returns 404."""
@@ -281,8 +264,6 @@ class TestCatalogSchema:
             status="published",
             is_official=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
         )
         db_session.add(model)
         db_session.commit()
@@ -316,8 +297,6 @@ class TestActivateModel:
             status="published",
             is_official=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
         )
         db_session.add(model)
         db_session.commit()
@@ -349,8 +328,6 @@ class TestActivateModel:
             status="published",
             is_official=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
         )
         db_session.add(model)
         db_session.commit()
