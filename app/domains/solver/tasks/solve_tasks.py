@@ -562,7 +562,7 @@ def solve_model_async(
     from app.domains.solver.services.template_engine import get_template_engine
 
     task_id = self.request.id
-    logger.info(f"Starting model execution task {task_id} for execution {execution_id}")
+    logger.info("Starting model execution task %s for execution %s", task_id, execution_id)
 
     db = SessionLocal()
     execution = None

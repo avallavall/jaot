@@ -90,8 +90,10 @@ class TestMultiObjectiveWaitContract:
     ):
         from celery.exceptions import TimeoutError as CeleryTimeoutError
 
+        # P1.5 F0: the enqueue pre-generates + submits the task id (task_id=); echo it.
         class _NeverDone:
-            id = "s4b-wait-timeout-task"
+            def __init__(self, task_id):
+                self.id = task_id
 
             def get(self, **kwargs):
                 raise CeleryTimeoutError("still running")
@@ -99,13 +101,13 @@ class TestMultiObjectiveWaitContract:
         monkeypatch.setattr(
             solve_tasks_mod.solve_multi_objective_async,
             "apply_async",
-            lambda **opts: _NeverDone(),
+            lambda **opts: _NeverDone(opts["task_id"]),
         )
 
         res = authenticated_client.post("/api/v2/solve/multi-objective", json=_body())
         assert res.status_code == 202, res.text
         body = res.json()
-        assert body["task_id"] == "s4b-wait-timeout-task"
+        assert body["task_id"]  # the pre-generated id shared by envelope + row + task
         assert body["execution_id"].startswith("exe_")
         assert body["status"] == "pending"
         assert body["poll_url"].endswith(body["task_id"])

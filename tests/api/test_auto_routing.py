@@ -145,8 +145,11 @@ def test_async_hoist(authenticated_client, monkeypatch) -> None:
         def __init__(self, task_id: str) -> None:
             self.id = task_id
 
-    def _fake_apply_async(**kwargs: object) -> _FakeAsyncResult:  # noqa: ARG001
-        return _FakeAsyncResult(_FAKE_TASK_ID)
+    def _fake_apply_async(**kwargs: object) -> _FakeAsyncResult:
+        # P1.5 F0: the enqueue pre-generates the id and submits it via task_id=;
+        # mirror real celery by echoing it back (the GET AsyncResult stub below is
+        # id-agnostic, so the exact value doesn't matter — the hoist shape does).
+        return _FakeAsyncResult(kwargs.get("task_id") or _FAKE_TASK_ID)
 
     monkeypatch.setattr(_solve_tasks_mod.solve_async, "apply_async", _fake_apply_async)
 
@@ -181,7 +184,7 @@ def test_async_hoist(authenticated_client, monkeypatch) -> None:
         f"POST /async returned {response.status_code}: {response.text}"
     )
     task_id = response.json()["task_id"]
-    assert task_id == _FAKE_TASK_ID, f"Expected fake task id, got {task_id!r}"
+    assert task_id, "async response missing task_id"
 
     # Poll once — assertion is on shape, not on completion.
     poll = authenticated_client.get(f"/api/v2/solve/async/{task_id}")

@@ -171,7 +171,14 @@ def trigger_solve_task(
         finally:
             ACTIVE_SOLVES.dec()
 
-        # 7. Create ModelExecution row with origin='triggered'
+        # 7. Record the run's ModelExecution via the single writer (ADR-007 / P1.5 F0).
+        # Build the pending row with the trigger-specific provenance, then let
+        # execution_writer apply the terminal transition — so triggers store the SAME
+        # canonical ``to_result_data()`` shape as every other execution (instead of a
+        # divergent ``model_dump()`` blob whose ``.get("status")`` never matched the
+        # canonical ``solver_status`` key) and share the terminal-state guard.
+        from app.domains.solver import execution_writer  # noqa: PLC0415
+        from app.models import ExecutionStatus  # noqa: PLC0415
         from app.models.optimization_model import ModelExecution  # noqa: PLC0415
         from app.shared.utils.datetime_helpers import utcnow  # noqa: PLC0415
 
@@ -190,24 +197,33 @@ def trigger_solve_task(
                 "trigger_name": trigger.name,
                 "override_data": override_data or {},
             },
-            status=solve_status,
-            result_data=result_data,
-            error_message=error_msg,
-            execution_time_ms=elapsed_ms,
-            solver_status=(result_data or {}).get("status"),
-            objective_value=(result_data or {}).get("objective_value"),
+            status=ExecutionStatus.PENDING.value,
             trigger_id=trigger.id,
             origin="triggered",
             # Provenance: navigates back to the trigger that fired this run.
             source_kind="trigger",
             source_id=trigger.id,
             started_at=start_datetime,
-            completed_at=now,
         )
         db.add(model_execution)
         db.flush()
 
-        # Link execution back to the TriggerRun
+        if solve_status == "completed":
+            # ``result`` is a valid OptimizationResult here (completed ⇒ the solve ran
+            # and did not return status=error). The writer sets solver_status,
+            # objective_value, result_data and completed_at from it.
+            execution_writer.apply_completed(
+                model_execution,
+                result=result,
+                execution_time_seconds=elapsed_ms / 1000.0,
+            )
+        else:
+            execution_writer.apply_failed(
+                model_execution, error=error_msg or "Solver returned an error"
+            )
+
+        # Link execution back to the TriggerRun. TriggerRun keeps its own result_data
+        # shape (its API contract); only the shared ModelExecution row is canonicalized.
         run.execution_id = model_execution.id
 
         run.status = solve_status

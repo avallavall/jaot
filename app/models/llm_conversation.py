@@ -52,7 +52,11 @@ class LLMConversation(Base):
         String(64), ForeignKey("users.id"), nullable=False, index=True
     )
     organization_model_id: Mapped[str | None] = mapped_column(
-        String(64), ForeignKey("organization_models.id"), nullable=True
+        String(64),
+        # SET NULL so deleting an OrganizationModel detaches (not blocks) its
+        # conversations — required by the P1.5 fusion (migration 20260712_llmconv_ondelete).
+        ForeignKey("organization_models.id", ondelete="SET NULL"),
+        nullable=True,
     )
 
     # Current formulation state (latest structured output from LLM)

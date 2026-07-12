@@ -291,6 +291,10 @@ def _stub_enqueue(monkeypatch, task_id: str = "fake-task-s1") -> None:
 
     Same broker-independent pattern as tests/api/test_auto_routing.py::test_async_hoist —
     the handler imports the task object locally, so patching its attribute is enough.
+    P1.5 F0: the enqueue pre-generates the task id and submits it via ``task_id=``
+    (insert-before-enqueue); the stub echoes that id back like real celery, so the
+    pending row's celery_task_id == the id in the response. Assert against the
+    response's ``execution_id`` (the row PK), not a hardcoded task id.
     """
     import app.domains.solver.tasks.solve_tasks as _solve_tasks_mod
 
@@ -301,7 +305,7 @@ def _stub_enqueue(monkeypatch, task_id: str = "fake-task-s1") -> None:
     monkeypatch.setattr(
         _solve_tasks_mod.solve_async,
         "apply_async",
-        lambda **kwargs: _FakeAsyncResult(task_id),
+        lambda **kwargs: _FakeAsyncResult(kwargs.get("task_id") or task_id),
     )
 
 
@@ -327,7 +331,7 @@ class TestSolveDatasetProvenance:
         assert resp.status_code == 200, resp.text
         row = (
             db_session.query(ModelExecution)
-            .filter(ModelExecution.celery_task_id == "fake-task-s1")
+            .filter(ModelExecution.id == resp.json()["execution_id"])
             .first()
         )
         assert row is not None
@@ -346,7 +350,7 @@ class TestSolveDatasetProvenance:
         assert resp.status_code == 200, resp.text
         row = (
             db_session.query(ModelExecution)
-            .filter(ModelExecution.celery_task_id == "fake-task-s1-nods")
+            .filter(ModelExecution.id == resp.json()["execution_id"])
             .first()
         )
         assert row is not None

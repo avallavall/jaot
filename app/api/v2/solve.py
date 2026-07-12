@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import JSONResponse
@@ -640,6 +641,21 @@ def _log_solve_analytics(
         logger.debug("Failed to log SOLVER_SOLVE analytics event", exc_info=True)
 
 
+def _mark_enqueue_failed(db: Session, execution: ModelExecution, error: str) -> None:
+    """Mark an already-committed pending row FAILED after a broker enqueue error.
+
+    P1.5 F0 (insert-before-enqueue): the pending row is committed before
+    ``apply_async``, so a broker failure would otherwise leave a 'pending' zombie
+    until the reaper. Marking it failed here keeps history truthful immediately.
+    """
+    try:
+        if execution_writer.apply_failed(execution, error=error):
+            db.commit()
+    except Exception:
+        logger.warning("Failed to mark enqueue-failed row %s", execution.id, exc_info=True)
+        db.rollback()
+
+
 def _enqueue_async_solve(
     *,
     db: Session,
@@ -787,43 +803,25 @@ def _enqueue_async_solve(
     # hung worker child is killed, the refund fires, and the slot frees up.
     soft_limit, hard_limit = compute_celery_time_limits(db, problem.options.time_limit_seconds)
 
-    # WR-07: if the broker is unreachable, apply_async raises and the client
-    # sees a clean 503 with nothing queued.
-    try:
-        task = solve_async.apply_async(
-            kwargs={
-                "problem_data": problem_data,
-                "organization_id": org.id,
-                "user_id": user.id if user else None,
-                "workspace_id": ws_id,
-                "warm_start_execution_id": (
-                    problem.warm_start.execution_id if problem.warm_start else None
-                ),
-                "solver_name": effective_solver_name,
-            },
-            queue=target_queue,
-            soft_time_limit=soft_limit,
-            time_limit=hard_limit,
-        )
-    except Exception as exc:
-        logger.error("apply_async failed for solve %s: %s", execution_id, exc)
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={
-                "error": "enqueue_failed",
-                "message": "Failed to enqueue solve task. Please retry shortly.",
-            },
-        ) from exc
+    # P1.5 F0 (ADR-007 debt) — insert the pending row BEFORE enqueuing so a
+    # broker-accepted task can never briefly exist with no history row: the reaper
+    # reconciles a crashed worker BY its row, and the idempotent-retry attach path
+    # (S2) needs the row present from enqueue time. ``solve_async`` keys its terminal
+    # write off ``celery_task_id``, so the id is generated here and passed to
+    # ``apply_async(task_id=...)`` — the row and the task share it from birth (the
+    # execute_model insert-first pattern keys off execution_id instead, so it never
+    # needed this).
+    celery_task_id = str(uuid4())
 
     # Minimal execution record so /async/{task_id} can verify ownership (prevents IDOR).
     # Provenance (async_source / typed_model_project_id / dataset) was resolved and
     # validated up front. ADR-007 S3: the ONE writer owns
     # the row so the insert shape stays identical across every enqueue site.
-    execution_writer.insert_pending(
+    execution = execution_writer.insert_pending(
         db,
         execution_id=execution_id,
         organization_id=org.id,
-        celery_task_id=task.id,
+        celery_task_id=celery_task_id,
         input_data=problem_data,
         solver_name=effective_solver_name or DEFAULT_SOLVER_NAME,
         executed_by_user_id=user.id if user else None,
@@ -845,28 +843,67 @@ def _enqueue_async_solve(
         dataset_id=dataset_id,
         dataset_name=dataset_name,
     )
+    pending_committed = False
     try:
         db.commit()
+        pending_committed = True
     except Exception:
+        # Best-effort (mirrors the historic behavior): a duplicate id from a racing
+        # idempotent retry, or a transient DB error, must not fail an otherwise-valid
+        # solve — the racer's row (or the reaper) still tracks it and the caller still
+        # gets the result from the task itself.
         logger.warning(
-            "Failed to create pending ModelExecution %s for task %s",
+            "Failed to commit pending ModelExecution %s before enqueue",
             execution_id,
-            task.id,
             exc_info=True,
         )
-        db.rollback()  # Non-critical: poll will still work via Celery
+        db.rollback()
+
+    # WR-07: if the broker is unreachable, apply_async raises and the client
+    # sees a clean 503 with nothing queued (bar the pending row, marked failed below).
+    try:
+        task = solve_async.apply_async(
+            kwargs={
+                "problem_data": problem_data,
+                "organization_id": org.id,
+                "user_id": user.id if user else None,
+                "workspace_id": ws_id,
+                "warm_start_execution_id": (
+                    problem.warm_start.execution_id if problem.warm_start else None
+                ),
+                "solver_name": effective_solver_name,
+            },
+            task_id=celery_task_id,
+            queue=target_queue,
+            soft_time_limit=soft_limit,
+            time_limit=hard_limit,
+        )
+    except Exception as exc:
+        logger.error("apply_async failed for solve %s: %s", execution_id, exc)
+        if pending_committed:
+            _mark_enqueue_failed(db, execution, f"Failed to enqueue task: {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "error": "enqueue_failed",
+                "message": "Failed to enqueue solve task. Please retry shortly.",
+            },
+        ) from exc
 
     _log_solve_analytics(db, org, user, problem)
 
     task_envelope = {
-        "task_id": task.id,
+        # P1.5 F0: report the id we pre-generated and submitted (celery honors
+        # task_id=), so the envelope, the pending row's celery_task_id, and the id
+        # the worker runs under are the SAME by construction.
+        "task_id": celery_task_id,
         # ADR-007 §6: the ModelExecution row id is first-class in the async contract
         # (additive) — task_id keys Celery/WS, execution_id keys history.
         "execution_id": execution_id,
         "status": "pending",
         "message": "Task queued for processing",
-        "ws_url": f"/api/v2/ws/executions/{task.id}",
-        "poll_url": f"/api/v2/solve/async/{task.id}",
+        "ws_url": f"/api/v2/ws/executions/{celery_task_id}",
+        "poll_url": f"/api/v2/solve/async/{celery_task_id}",
     }
     return _EnqueuedSolve(
         task=task,
@@ -928,6 +965,35 @@ def _enqueue_multi_objective_async(
     soft_limit, hard_limit = compute_celery_time_limits(db, problem.options.time_limit_seconds)
     target_queue = resolve_queue("scip")
 
+    # P1.5 F0 (ADR-007 debt): insert-before-enqueue with a pre-generated task id — same
+    # rationale as the single-solve enqueue (the worker keys off ``celery_task_id``).
+    celery_task_id = str(uuid4())
+
+    execution = execution_writer.insert_pending(
+        db,
+        execution_id=execution_id,
+        organization_id=org.id,
+        celery_task_id=celery_task_id,
+        input_data=problem_data,
+        solver_name="scip",
+        executed_by_user_id=user.id if user else None,
+        origin=mo_source.origin,
+        source_kind=mo_source.source_kind,
+        source_id=mo_source.source_id,
+        model_project_id=typed_model_project_id,
+    )
+    pending_committed = False
+    try:
+        db.commit()
+        pending_committed = True
+    except Exception:
+        logger.warning(
+            "Failed to commit pending ModelExecution %s before multi-objective enqueue",
+            execution_id,
+            exc_info=True,
+        )
+        db.rollback()
+
     try:
         task = solve_multi_objective_async.apply_async(
             kwargs={
@@ -937,12 +1003,15 @@ def _enqueue_multi_objective_async(
                 "user_id": user.id if user else None,
                 "workspace_id": workspace_id,
             },
+            task_id=celery_task_id,
             queue=target_queue,
             soft_time_limit=soft_limit,
             time_limit=hard_limit,
         )
     except Exception as exc:
         logger.error("apply_async failed for multi-objective solve %s: %s", execution_id, exc)
+        if pending_committed:
+            _mark_enqueue_failed(db, execution, f"Failed to enqueue task: {exc}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={
@@ -951,39 +1020,17 @@ def _enqueue_multi_objective_async(
             },
         ) from exc
 
-    execution_writer.insert_pending(
-        db,
-        execution_id=execution_id,
-        organization_id=org.id,
-        celery_task_id=task.id,
-        input_data=problem_data,
-        solver_name="scip",
-        executed_by_user_id=user.id if user else None,
-        origin=mo_source.origin,
-        source_kind=mo_source.source_kind,
-        source_id=mo_source.source_id,
-        model_project_id=typed_model_project_id,
-    )
-    try:
-        db.commit()
-    except Exception:
-        logger.warning(
-            "Failed to create pending ModelExecution %s for multi-objective task %s",
-            execution_id,
-            task.id,
-            exc_info=True,
-        )
-        db.rollback()  # Non-critical: poll will still work via Celery
-
     _log_solve_analytics(db, org, user, problem)
 
     task_envelope = {
-        "task_id": task.id,
+        # P1.5 F0: the pre-generated id (submitted via task_id=) is the single id
+        # shared by the envelope, the pending row and the running task.
+        "task_id": celery_task_id,
         "execution_id": execution_id,
         "status": "pending",
         "message": "Multi-objective task queued for processing",
-        "ws_url": f"/api/v2/ws/executions/{task.id}",
-        "poll_url": f"/api/v2/solve/async/{task.id}",
+        "ws_url": f"/api/v2/ws/executions/{celery_task_id}",
+        "poll_url": f"/api/v2/solve/async/{celery_task_id}",
     }
     return _EnqueuedSolve(
         task=task,

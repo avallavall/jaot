@@ -117,18 +117,23 @@ class TestWaitDegradation:
     def test_timeout_returns_202_with_task_envelope(self, authenticated_client, monkeypatch):
         from celery.exceptions import TimeoutError as CeleryTimeoutError
 
+        # P1.5 F0: the enqueue pre-generates the task id and submits it via task_id=;
+        # the stub echoes it back like real celery does.
         class _NeverDone:
-            id = "parity-wait-timeout-task"
+            def __init__(self, task_id):
+                self.id = task_id
 
             def get(self, **kwargs):
                 raise CeleryTimeoutError("still running")
 
-        monkeypatch.setattr(solve_tasks_mod.solve_async, "apply_async", lambda **opts: _NeverDone())
+        monkeypatch.setattr(
+            solve_tasks_mod.solve_async, "apply_async", lambda **opts: _NeverDone(opts["task_id"])
+        )
 
         res = authenticated_client.post("/api/v2/solve/async?wait=true", json=_lp_problem_payload())
         assert res.status_code == 202, res.text
         body = res.json()
-        assert body["task_id"] == "parity-wait-timeout-task"
+        assert body["task_id"]  # the pre-generated id shared by envelope + row + task
         assert body["execution_id"].startswith("exe_")
         assert body["status"] == "pending"
         assert body["poll_url"].endswith(body["task_id"])
@@ -140,16 +145,24 @@ class TestAsyncEnvelopeAdditions:
     def test_plain_async_response_carries_execution_id(
         self, authenticated_client, monkeypatch, db_session
     ):
+        # P1.5 F0 insert-before-enqueue: the enqueue PRE-GENERATES the celery task id
+        # and submits it via ``apply_async(task_id=...)``. Mirror real celery, which
+        # runs the task under exactly that id, by echoing it back.
         class _Queued:
-            id = "parity-envelope-task"
+            def __init__(self, task_id):
+                self.id = task_id
 
-        monkeypatch.setattr(solve_tasks_mod.solve_async, "apply_async", lambda **opts: _Queued())
+        monkeypatch.setattr(
+            solve_tasks_mod.solve_async,
+            "apply_async",
+            lambda **opts: _Queued(opts["task_id"]),
+        )
 
         res = authenticated_client.post("/api/v2/solve/async", json=_lp_problem_payload())
         assert res.status_code == 200, res.text
         body = res.json()
         assert body["execution_id"].startswith("exe_")
-        assert body["task_id"] == "parity-envelope-task"
+        assert body["task_id"]  # the pre-generated id shared by envelope + row + task
 
         from app.models import ModelExecution
 

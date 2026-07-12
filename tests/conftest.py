@@ -797,21 +797,31 @@ def eager_solve_async_pipeline(request, monkeypatch):
     # (nonexistent) result backend.
     eager_results: dict[str, object] = {}
 
+    # P1.5 F0: the single-solve + multi-objective enqueue paths pre-generate the
+    # celery task id and pass it via ``apply_async(task_id=...)`` (insert-before-enqueue,
+    # the worker keys its terminal write off celery_task_id). Honor that id under eager
+    # so the pending row's celery_task_id matches the returned envelope's task_id AND
+    # the eager worker finds+completes its own row. execute_model passes no task_id →
+    # ``.apply(task_id=None)`` generates one, exactly as before.
     def _eager_apply_async(**opts):
-        res = _solve_tasks_mod.solve_async.apply(kwargs=opts["kwargs"])
+        res = _solve_tasks_mod.solve_async.apply(kwargs=opts["kwargs"], task_id=opts.get("task_id"))
         eager_results[res.id] = res
         return res
 
     def _eager_multi_objective_apply_async(**opts):
         # ADR-007 S4b: POST /solve/multi-objective is async-under-the-hood too.
-        res = _solve_tasks_mod.solve_multi_objective_async.apply(kwargs=opts["kwargs"])
+        res = _solve_tasks_mod.solve_multi_objective_async.apply(
+            kwargs=opts["kwargs"], task_id=opts.get("task_id")
+        )
         eager_results[res.id] = res
         return res
 
     def _eager_model_apply_async(**opts):
         # ADR-007 S6: execute_model (marketplace) is async-under-the-hood too —
         # its sync mode enqueues solve_model_async and waits.
-        res = _solve_tasks_mod.solve_model_async.apply(kwargs=opts["kwargs"])
+        res = _solve_tasks_mod.solve_model_async.apply(
+            kwargs=opts["kwargs"], task_id=opts.get("task_id")
+        )
         eager_results[res.id] = res
         return res
 
