@@ -21,9 +21,9 @@ JAOT is a multi-tenant optimization-as-a-service platform. Users build, buy, and
 │               4 Uvicorn workers                           │
 │                    localhost:8001                          │
 │  ┌────────┬────────┬────────┬────────┬────────┬───────┐  │
-│  │ Auth   │ Solver │ LLM/   │Credits │Market- │Trigger│  │
-│  │  ASGI  │Orchest.│  RAG   │Service │ place  │Service│  │
-│  │Middlew.│        │        │        │        │       │  │
+│  │ Auth   │ Solver │ LLM/   │ Model  │Market- │Trigger│  │
+│  │  ASGI  │Pipeline│  RAG   │Projects│ place  │Service│  │
+│  │Middlew.│(async) │        │(studio)│        │       │  │
 │  └────────┴────────┴────────┴────────┴────────┴───────┘  │
 └──┬───────────┬───────────┬───────────┬───────────┬───────┘
    │           │           │           │           │
@@ -43,15 +43,14 @@ JAOT is a multi-tenant optimization-as-a-service platform. Users build, buy, and
 ├── models/            # Catalog, my models, executions, publish, favorites, media
 ├── llm/               # AI formulation assistant (SSE streaming)
 ├── builder/           # Visual model builder documents
-├── credits/           # Balance, transactions, withdrawals, exchange rates
-├── billing/           # Stripe checkout, subscriptions, webhooks
+├── projects/          # ModelProject (studio): versions, stats, datasets, solve
 ├── keys/              # API key management
 ├── triggers/          # Automated solve triggers + cron schedules
 ├── notifications/     # In-app notifications + preferences
-├── workspaces/        # Workspace management, members, invites, audit, credits
+├── workspaces/        # Workspace management, members, invites, audit
 ├── profiles/          # User/org public profiles, reviews
 ├── gdpr/              # Data export, account deletion
-├── admin/             # Users, orgs, models, credits, settings, analytics, marketplace
+├── admin/             # Users, orgs, models, settings, analytics, marketplace
 ├── health/            # Health check
 ├── metrics/           # Prometheus metrics
 ├── mcp/               # MCP server (Model Context Protocol)
@@ -72,7 +71,7 @@ JAOT is a multi-tenant optimization-as-a-service platform. Users build, buy, and
 | `/builder/templates` | Template gallery |
 | `/marketplace` | Model catalog |
 | `/triggers` | Automated triggers |
-| `/workspace` | Dashboard, credits, API keys, settings |
+| `/workspace` | Dashboard, API keys, settings |
 | `/admin` | Admin panel |
 
 ## Authentication
@@ -103,7 +102,7 @@ Supporting components:
 - **27 problem generators** in `app/domains/solver/generators/` — produce solver-agnostic `OptimizationProblem`
 - **Expression parser** (`app/domains/solver/services/expression_parser.py`) — recursive descent, produces `ParsedExpression` IR. Imports without pyscipopt (TD-3 closed in Phase 4)
 - **Template engine** — dispatches to generators based on template category
-- **Solve orchestrator** (`app/domains/solver/services/solve_orchestrator.py`) — coordinates credit deduction, solving, result recording
+- **Async solve pipeline** (ADR-007) — every entry point enqueues the same `solve_async` Celery task; `execution_writer` is the single ModelExecution writer (the `solve_orchestrator.py` module survives only as a helper home: `validate_problem`, `ExecutionSource`, warm-start loading)
 - **File import/export** — MPS, LP, CIP, JSON upload; MPS, LP, CIP, SOL, CSV, JSON download
 
 Import boundary enforced by `pyproject.toml` [tool.importlinter] contract `solver-services-no-pyscipopt`: any `from pyscipopt` outside `app/domains/solver/adapters/` fails CI (6/6 contracts KEPT).
@@ -113,7 +112,6 @@ Import boundary enforced by `pyproject.toml` [tool.importlinter] contract `solve
 Broker: RabbitMQ. Task modules:
 - `solve_tasks` — async solver execution
 - `trigger_tasks` — triggered solve execution
-- `financial_tasks` — reconciliation, scheduled withdrawals
 - `email_tasks` — onboarding email sequence
 - `webhook_tasks` — outbound webhook delivery
 - `rag_tasks` — RAG document indexing

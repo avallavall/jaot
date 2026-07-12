@@ -83,7 +83,7 @@ Returns `{"status":"optimal","objective_value":15.0,...}`. Full setup guide →
                 │ REST + SSE + WebSocket
 ┌───────────────▼──────────────────────────────┐
 │  FastAPI (Python 3.12)                        │
-│  auth · solve · LLM/RAG ·           │
+│  auth · solve · studio · LLM/RAG ·            │
 │  marketplace · triggers · MCP server          │
 └──┬─────────┬──────────┬──────────┬────────────┘
    │         │          │          │

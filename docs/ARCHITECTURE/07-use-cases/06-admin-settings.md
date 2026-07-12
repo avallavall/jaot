@@ -27,12 +27,12 @@ sequenceDiagram
     PSS->>DB: SELECT * FROM platform_settings
     DB-->>PSS: [{key, value, updated_at}, ...]
     PSS->>PSS: group_by_category()
-    PSS->>Cache: SET platform_settings:* {all 84 settings} EX 3600
-    PSS-->>API: {categories: {billing: [...], feature_flags: [...], rate_limits: [...]}}
+    PSS->>Cache: SET platform_settings:* {all 124 settings} EX 3600
+    PSS-->>API: {categories: {plans: [...], feature_flags: [...], rate_limits: [...]}}
     
     API->>Frontend: 200 {settings}
     Frontend->>Frontend: Render form grouped by category:
-    note over Frontend: Billing: solve_maintenance_gate, solve_credits_per_var, ...
+    note over Frontend: Plans & limits: plan_free_max_variables, plan_free_max_daily_solves, ...
     note over Frontend: Feature Flags: enable_marketplace, enable_triggers, ...
     note over Frontend: Rate Limits: rate_limit_free_plan, daily_solves_starter, ...
     
@@ -78,16 +78,15 @@ sequenceDiagram
 
 ## Critical Points
 
-### 84 Settings Categories
+### Settings Categories (124 entries)
 
 | Category | Examples | Type |
 |---|---|---|
-| **Billing** | solve_credits_per_var, max_credits_per_solve, chargeback_threshold | int/float |
+| **Plans & limits** | plan_free_max_variables, plan_free_max_daily_solves, max_solve_time_seconds | int/float |
 | **Feature Flags** | enable_marketplace, enable_triggers, enable_seller_analytics | bool |
 | **Rate Limits** | max_daily_solves_free, max_api_calls_per_minute_starter | int |
 | **Solver** | solve_maintenance_gate, scip_enabled, highs_enabled, default_solver | bool/string |
-| **LLM** | llm_model_name, llm_temperature, rag_top_k | string/int |
-| **Marketplace** | marketplace_commission_percentage, featured_placement_price_eur | float |
+| **LLM** | llm_model_name, llm_temperature, rag_top_k, llm_monthly_budget_eur | string/int |
 | **Notifications** | notification_batch_interval_minutes, email_enabled | int/bool |
 
 ### Cache Invalidation

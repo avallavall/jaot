@@ -9,7 +9,7 @@ sequenceDiagram
     participant Client as Client
     participant API as FastAPI<br/>/solve
     participant Gate as solve_maintenance_gate
-    participant Credits as CreditsService
+    participant Writer as execution_writer
     participant Resolve as resolve_queue()
     participant Broker as RabbitMQ
     participant Worker as Worker SCIP<br/>SOLVER_QUEUE=solve_scip
@@ -20,8 +20,8 @@ sequenceDiagram
     Client->>API: POST /solve (problem, solver='scip')
     API->>Gate: Depends(solve_maintenance_gate)
     Gate-->>API: ok (flag=false)
-    API->>Credits: deduct prepayment
-    Credits-->>API: ok
+    API->>Writer: insert_pending(execution_id, org, provenance)
+    Writer-->>API: ok
     API->>Resolve: resolve_queue('scip')
     Resolve-->>API: 'solve_scip'
     API->>Broker: apply_async(queue='solve_scip')
@@ -121,4 +121,4 @@ flowchart TB
 - **`_assert_queue_match`:** first statement inside the outer `try` in `solve_async` and `solve_model_async` (`solve_tasks.py`). Reads `os.getenv("SOLVER_QUEUE")` — env var injected by `docker-compose.prod.yml`. Raises `SolverQueueMismatchError` on mismatch, with a non-leaking message.
 - **WebSocket:** Redis relays `ws:execution:{execution_id}` events for real-time updates to the client.
 - **Retry TTL:** results expire after 7 days → GET returns 404.
-- **Transactionality:** Credits pre-deducted; automatic refund on `SolverError` + entry in `audit_log`.
+- **Transactionality:** `execution_writer` owns every ModelExecution state change; a `SolverError` marks the row failed (atomic `UPDATE … WHERE status IN ('pending','running')` — terminal-wins vs the reaper).

@@ -41,33 +41,37 @@ infra/alembic/versions/
 ├── 20260324_rename_enterprise_to_business.py  ← RENAME (historical — already ran; no current risk)
 ├── 20260326_add_credit_pools.py
 ├── 20260327_seed_platform_settings.py
-└── 20260416_add_solver_name_to_model_executions.py  ← Latest
+├── ... (2026-04 → 2026-07: provenance, model projects, datasets, timestamptz, ...)
+└── 20260711_money_columns_nullable.py  ← Latest
 ```
+
+> **Note (ADR-008):** the money/credit migrations in the history above (idempotency
+> constraint, credit pools, financial hardening) built tables and columns that are now
+> **dead** — the application no longer maps them. They stay in the chain untouched
+> (additive-only policy); a later release drops the schema.
 
 ### Last 5 Migrations
 
-1. **20260416_add_solver_name_to_model_executions.py**
-   - Adds `solver_name` column to `model_executions` table
-   - Enables routable async queue per solver (SCIP vs HiGHS)
-   - Default: 'scip'
+1. **20260711_money_columns_nullable.py**
+   - ADR-008: drops NOT NULL from the orphaned money columns (credits/currency/quota on
+     `organizations`, `model_executions`, `model_catalog`, `organization_models`, `trigger_runs`)
+   - Required so inserts into those live tables work with the columns unmapped
 
-2. **20260327_seed_platform_settings.py**
-   - Inserts 84 default settings into `platform_settings`
-   - Categories: billing, feature_flags, rate_limits, marketplace
-   - Runs `PlatformSettingsService.register_defaults()`
+2. **20260710_timestamptz.py**
+   - Introspective ALTER of every DateTime column to `timestamptz` (UTC), reversible
+   - Pairs with `timezone=True` across all ORM models (ADR-007 S6c)
 
-3. **20260326_add_credit_pools.py**
-   - Creates `workspace_credit_pools` table (workspace_id, allocated, consumed)
-   - Enables per-workspace credit pooling vs org-level
+3. **20260703_add_model_project_datasets.py** / **20260703_add_execution_dataset.py**
+   - Datasets attached to a ModelProject (Scenarios: one model, many datasets)
+   - Execution rows record which dataset a run came from
 
-4. **20260324_rename_enterprise_to_business.py**
-   - Renames plan `enterprise` → `business`
-   - **Note**: This RENAME already ran in production. It is historical; no current risk from it.
+4. **20260629_add_model_projects.py**
+   - First-class `model_projects` + `model_project_versions` tables (`mp_`/`mpv_`)
+   - Commit-grade versions with required messages — the studio backend
 
-5. **20260322_financial_hardening_schema.py**
-   - Adds financial integrity constraints:
-     - Unique(organization_id, transaction_type, reference_type, reference_id) on credit_transactions
-     - Indexes on (organization_id, created_at) for query efficiency
+5. **20260628_add_execution_provenance.py**
+   - `origin` / `source_kind` / `source_id` provenance on `model_executions`
+   - Every solve records where it came from (builder, template, import, project, trigger)
 
 ## Conventions + Rules
 

@@ -35,8 +35,7 @@ flowchart TB
     end
 
     subgraph ServiceLayer["Business Logic (app/services/ + app/domains/solver/)"]
-        SolveOrch["SolveOrchestrator"]
-        CreditsService["CreditsService"]
+        SolveEnqueue["_enqueue_async_solve<br/>+ execution_writer"]
         SolverService["SolverService"]
         SettingsService["PlatformSettingsService"]
         Analytics["AnalyticsService"]
@@ -78,18 +77,16 @@ flowchart TB
     CurrentUser --> Solve
     DBSession --> Models
     RateLimiter --> Admin
-    Solve --> SolveOrch
+    Solve --> SolveEnqueue
     Models --> SolverService
     Admin --> SettingsService
     Profiles --> Analytics
 
-    SolveOrch --> CreditsService
-    SolveOrch --> SolverService
     SolverService --> Protocol
     Protocol --> SCIP
     Protocol --> Highs
 
-    SolveOrch --> Producer
+    SolveEnqueue --> Producer
     Producer --> RabbitMQ
 
     SolveOrch --> SQLAlchemy

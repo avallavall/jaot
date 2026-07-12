@@ -34,7 +34,7 @@ flowchart TB
     Dashboard --> Builder["builder/* · model builder"]
     Dashboard --> Solve["solve/* · solver UI"]
     Dashboard --> Triggers["triggers/* · automation"]
-    Dashboard --> Billing["billing/* · credits + plan"]
+    Dashboard --> Studio["studio/* · Model, Analyze & Solve"]
     Dashboard --> User["user/* · settings, API keys"]
     Dashboard --> Org["org/* · members + plan"]
 

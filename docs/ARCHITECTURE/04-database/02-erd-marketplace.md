@@ -1,8 +1,11 @@
 # ERD Marketplace — Community + Catalog + Reviews
 
-> Marketplace entities: ModelCatalog (global), Favorites, FeaturedPlacements, FormulationRatings, Verification, ViewEvents.
+> Marketplace entities: ModelCatalog (global), Favorites, FormulationRatings, Verification, ViewEvents.
 
-> **Note (2026-06-25):** Monetized fields/entities below (`price_eur`, `stripe_connect_*`, `FeaturedPlacement`) are **dormant by default** — the marketplace is free and collaborative (`MONETIZATION_ENABLED=false`). They remain in the schema (additive-only) and only become active in a self-hosted deployment that enables monetization.
+> **Note (ADR-008, 2026-07-10):** the marketplace is **free and collaborative** — the monetized
+> entities that used to appear here (`price_eur`, `stripe_connect_*`, `FeaturedPlacement`,
+> `SellerToSAcceptance`) were removed from the application. Their tables/columns stay in the
+> schema (additive-only, dead and unmapped) until a later release drops them.
 
 ## Diagram
 
@@ -17,14 +20,13 @@ erDiagram
     
     MODEL_CATALOG ||--o{ USER_FAVORITE : "favorited_by"
     MODEL_CATALOG ||--o{ MODEL_VIEW_EVENT : "gets_viewed"
-    MODEL_CATALOG ||--o{ FEATURED_PLACEMENT : "has_placements"
     MODEL_CATALOG ||--o{ MODEL_REVIEW : "receives_reviews"
     
     LLM_CONVERSATION ||--o{ FORMULATION_RATING : "triggers_feedback"
     
     ORGANIZATION : string id (pk)
     ORGANIZATION : string name
-    ORGANIZATION : bool stripe_connect_onboarding_complete "seller status"
+    ORGANIZATION : bool is_verified "seller badge"
     
     USER : string id (pk)
     USER : string email
@@ -64,19 +66,10 @@ erDiagram
     FORMULATION_RATING : string rating "up|down"
     FORMULATION_RATING : string comment "nullable"
     
-    FEATURED_PLACEMENT : string id (pk)
-    FEATURED_PLACEMENT : string model_id (fk)
-    FEATURED_PLACEMENT : string placement_type "home_hero|category_featured|..."
-    FEATURED_PLACEMENT : datetime starts_at
-    FEATURED_PLACEMENT : datetime ends_at
-    
     VERIFICATION_REQUEST : string id (pk)
     VERIFICATION_REQUEST : string organization_id (fk)
     VERIFICATION_REQUEST : string status "pending|approved|rejected"
     VERIFICATION_REQUEST : datetime created_at
-    
-    SELLER_TOS_ACCEPTANCE : string organization_id (pk/fk)
-    SELLER_TOS_ACCEPTANCE : datetime accepted_at
     
     LLM_CONVERSATION : string id (pk)
     LLM_CONVERSATION : string organization_id (fk)
@@ -85,17 +78,15 @@ erDiagram
 
 ## Critical points
 
-- **ModelCatalog**: global entity (not org-scoped). `created_by_org_id` references the seller.
+- **ModelCatalog**: global entity (not org-scoped). `author_organization_id` references the publisher.
 - **Ratings**: tied to LLM conversations, not to executions. Feedback on formulation quality.
-- **FeaturedPlacement**: purchased with credits. `placement_type` controls placement in the UI.
-- **Verification**: decoupled from subscription. Badge only for verified sellers (anti-spam).
+- **Verification**: badge only for verified publishers (anti-spam).
 
 ## Relevant files
 
 - `app/models/optimization_model.py:ModelCatalog` — the global catalog
 - `app/models/favorite.py:UserFavorite` — user bookmarks
-- `app/models/featured_placement.py:FeaturedPlacement` — marketing boosts
 - `app/models/formulation_rating.py:FormulationRating` — LLM feedback
-- `app/models/verification_request.py:VerificationRequest` — seller verification
+- `app/models/verification_request.py:VerificationRequest` — publisher verification
 - `app/models/seller_tos_acceptance.py:SellerTosAcceptance` — compliance
 - `app/models/model_view_event.py:ModelViewEvent` — analytics (phase 79)

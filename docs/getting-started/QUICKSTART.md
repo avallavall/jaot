@@ -98,8 +98,7 @@ Expected response (abbreviated):
     {"name": "y", "value": 4.666, "type": "continuous"}
   ],
   "solution": {"x": 2.666, "y": 4.666},
-  "solve_time_seconds": 0.003,
-  "credits_used": 1
+  "solve_time_seconds": 0.003
 }
 ```
 

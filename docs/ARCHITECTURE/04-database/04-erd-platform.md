@@ -1,6 +1,9 @@
 # ERD Platform — Admin, Observability, Settings
 
-> Infrastructure entities: PlatformSetting, PlatformSettingAudit, AuditLog, AnalyticsEvent, Notification, UsageRecord.
+> Infrastructure entities: PlatformSetting, PlatformSettingAudit, AuditLog, AnalyticsEvent, Notification.
+
+> **Note (ADR-008):** `UsageRecord` (credit-based usage aggregation) was removed with the
+> credit system; its dead table stays in the schema until a later release drops it.
 
 ## Diagram
 
@@ -8,7 +11,6 @@
 erDiagram
     ORGANIZATION ||--o{ AUDIT_LOG : "workspace_audits"
     ORGANIZATION ||--o{ NOTIFICATION : "receives_notifications"
-    ORGANIZATION ||--o{ USAGE_RECORD : "has_usage"
     ORGANIZATION ||--o{ ANALYTICS_EVENT : "generates_events"
     
     USER ||--o{ AUDIT_LOG : "actor_in_audit"
@@ -44,7 +46,7 @@ erDiagram
     NOTIFICATION : string id (pk) "notif_*"
     NOTIFICATION : string organization_id (fk)
     NOTIFICATION : string user_id (fk)
-    NOTIFICATION : string type "low_credits|execution_complete|..."
+    NOTIFICATION : string type "execution_complete|review|..."
     NOTIFICATION : string title
     NOTIFICATION : string body
     NOTIFICATION : string action_url "nullable"
@@ -54,14 +56,6 @@ erDiagram
     NOTIFICATION_PREFERENCE : string user_id (pk/fk)
     NOTIFICATION_PREFERENCE : string notification_type (pk)
     NOTIFICATION_PREFERENCE : bool enabled
-    
-    USAGE_RECORD : string id (pk) "usage_*"
-    USAGE_RECORD : string organization_id (fk)
-    USAGE_RECORD : string problem_type "linear|mip|qp|..."
-    USAGE_RECORD : int credits_used
-    USAGE_RECORD : float execution_time_ms
-    USAGE_RECORD : string status "success|timeout|infeasible"
-    USAGE_RECORD : datetime created_at "indexed"
     
     ANALYTICS_EVENT : string id (pk) "ae_*"
     ANALYTICS_EVENT : string user_id (fk)
@@ -89,9 +83,8 @@ erDiagram
 - **PlatformSetting**: global singletons (not org-scoped). E.g.: `solve_maintenance_gate=true` takes all solves offline.
 - **PlatformSettingAudit**: full change history. Immutable trail for compliance + rollback.
 - **AuditLog**: workspace-scoped. Records per-user actions: create model, share trigger, etc. GDPR retention.
-- **Notification + NotificationPreference**: user-scoped. Types: low_credits, execution_complete, payment_received.
+- **Notification + NotificationPreference**: user-scoped. Types: execution_complete, review, activation.
 - **AnalyticsEvent**: org-scoped + user-scoped. Geolocation (country_code via IP). For seller/admin reports.
-- **UsageRecord**: aggregation of executions for usage dashboards. Periodic snapshot (not real-time).
 
 ## Relevant files
 
@@ -100,7 +93,6 @@ erDiagram
 - `app/models/audit_log.py:AuditLog, AuditAction`
 - `app/models/notification.py:Notification, NotificationType, NotificationChannel`
 - `app/models/notification_preference.py:NotificationPreference`
-- `app/models/usage_record.py:UsageRecord`
 - `app/models/analytics_event.py:AnalyticsEvent`
 - `app/services/platform_settings_service.py:PlatformSettingsService` — read cache + write audit
 - `app/services/audit_service.py:log_action()` — wrapper for AuditLog creation

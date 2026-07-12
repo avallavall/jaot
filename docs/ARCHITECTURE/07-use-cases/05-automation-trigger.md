@@ -39,9 +39,8 @@ sequenceDiagram
     DB-->>Worker: SolveTrigger + version_id
     Worker->>Worker: Load model_json from ModelVersion (pinned)
     Worker->>Worker: Apply override_schema inputs (if applicable)
-    Worker->>Worker: validate_problem() + compute_credits()
+    Worker->>Worker: validate_problem()
     
-    Worker->>DB: Deduct credits: CreditTransaction(type=EXECUTION, org_id)
     Worker->>DB: CREATE ModelExecution(status='pending', trigger_id, ...)
     Worker->>RabbitMQ: apply_async(queue=resolve_queue(solver_name), task=solve_)
     
@@ -103,9 +102,8 @@ sequenceDiagram
 3. **Timeout**: 30s per attempt
 4. **Destination**: any URL (N8N, Zapier, custom endpoint)
 
-### Credits
-- **Pre-deduct**: same pattern as manual solve
-- **Refund on failure**: if the execution fails, automatic refund
+### Fair use
+- **Free**: trigger solves cost nothing (ADR-008) — same as manual solves
 - **Rate limiting**: the `daily_solves` limit still applies
 
 ## Relevant Files

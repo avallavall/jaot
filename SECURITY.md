@@ -17,7 +17,7 @@ the monitoring stack configuration.
 Especially interesting areas:
 
 - Authentication / authorization (API keys, JWT, org-scoped data isolation)
-- The credits ledger and marketplace payout logic
+- Rate limiting and solve-quota enforcement (the platform's fair-use boundary)
 - Solver input parsing (uploaded model files, LLM-generated formulations)
 - The LLM assistant boundary (prompt-injection hardening lives in
   `app/services/llm/prompt_templates.py` and is contract-tested)
