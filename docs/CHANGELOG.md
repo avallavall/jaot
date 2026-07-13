@@ -17,7 +17,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Changed
+
+- **One model entity: the marketplace fused into the studio's ModelProject (P1.5 / ADR-006 D4, 2026-07-13)** — the historic split between "catalog models", "activated models" and studio projects is gone. A marketplace listing is now a *facet* of a ModelProject (publish pins a committed version; officials keep their parametric generator on the listing), and **using a marketplace model means forking it into your studio** — one "Use in studio" button seeds a ModelProject (optionally with your own inputs for parametric officials), which you then edit, version, solve and re-publish like any other model. `POST /models/{id}/execute` executes one of your ModelProjects (generator-backed forks render inputs; plain models solve their content directly); executions, reviews, favorites, history, analytics and admin views are all keyed on the project. Legacy `/solve` model pages redirect to the studio and old marketplace/model ids keep resolving (they were preserved as project ids).
+
 ### Removed
+
+- **The legacy "activate" flow and the separate organization-model entity (P1.5, 2026-07-13)** — `POST /models/catalog/{id}/activate`, the my-models CRUD (`/api/v2/models` list/detail/schema/create/update/deactivate), the legacy `/models/{id}/publish`, and the private generator-definition model type are gone; their MCP tool `activate_catalog_model` is replaced by `create_model_project_from_marketplace` (25 tools). Adoption signals (author notification + activation counter) now fire when someone forks a listing.
 
 - **The paid marketplace and the entire credit system (ADR-008, 2026-07-10)** — Stripe/billing/invoices, seller earnings/withdrawals/featured placements, and credits (grants, per-solve/per-message charges, balances, 402s) are gone: every solve and assistant message is free. Fair use is enforced by rate limits, a daily solve quota, per-solve time/size caps and a monthly EUR budget for the AI assistant (BYOK remains unlimited). Marketplace activation is always free; catalog price filters were removed, and the `get_credit_balance` MCP tool is gone (26 → 25 tools).
 

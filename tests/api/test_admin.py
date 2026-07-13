@@ -10,8 +10,8 @@ These tests verify the admin CRUD functionality:
 
 from app.models import (
     APIKey,
-    ModelCatalog,
     ModelCategory,
+    ModelProjectListing,
     Organization,
     User,
 )
@@ -604,27 +604,40 @@ class TestAdminAPIKeys:
 
 
 class TestAdminModels:
-    """Tests for admin models endpoints."""
+    """Tests for admin models endpoints (marketplace listings, P1.5 fusion)."""
 
-    def test_list_catalog_models(self, admin_client, db_session):
-        """Test listing catalog models."""
-        model = ModelCatalog(
-            id="admin_test_model",
-            name="admin_test",
-            display_name="Admin Test Model",
+    def _make_listing(self, db_session, test_organization, pid: str) -> ModelProjectListing:
+        from app.models import ModelProject
+
+        db_session.add(
+            ModelProject(
+                id=pid,
+                organization_id=test_organization.id,
+                name="Admin " + pid,
+                status="active",
+            )
+        )
+        db_session.flush()
+        listing = ModelProjectListing(
+            model_project_id=pid,
+            name=pid,
+            display_name="Admin Listing " + pid,
             description="For admin testing",
-            category=ModelCategory.GENERAL,
-            generator_type="generic",
-            input_schema={},
-            input_fields=[],
-            example_input={},
+            category=ModelCategory.GENERAL.value,
             version="1.0.0",
             status="published",
             is_official=False,
+            is_featured=False,
             is_public=True,
+            author_organization_id=test_organization.id,
         )
-        db_session.add(model)
+        db_session.add(listing)
         db_session.commit()
+        return listing
+
+    def test_list_catalog_models(self, admin_client, db_session, test_organization):
+        """Test listing marketplace listings."""
+        self._make_listing(db_session, test_organization, "admin_test_model")
 
         response = admin_client.get("/api/v2/admin/models")
         assert response.status_code == 200
@@ -632,36 +645,33 @@ class TestAdminModels:
 
         assert "items" in data
         assert data["total"] >= 1
+        assert "admin_test_model" in [m["id"] for m in data["items"]]
 
-    def test_update_model_badges(self, admin_client, db_session):
-        """Test updating model badges (official, featured)."""
-        model = ModelCatalog(
-            id="admin_badge_model",
-            name="badge_test",
-            display_name="Badge Test Model",
-            description="For badge testing",
-            category=ModelCategory.GENERAL,
-            generator_type="generic",
-            input_schema={},
-            input_fields=[],
-            example_input={},
-            version="1.0.0",
-            status="published",
-            is_official=False,
-            is_featured=False,
-            is_public=True,
-        )
-        db_session.add(model)
-        db_session.commit()
+    def test_update_model_badges(self, admin_client, db_session, test_organization):
+        """Test updating listing badges (official, featured)."""
+        listing = self._make_listing(db_session, test_organization, "admin_badge_model")
 
         response = admin_client.patch(
-            f"/api/v2/admin/models/{model.id}", json={"is_official": True, "is_featured": True}
+            "/api/v2/admin/models/admin_badge_model",
+            json={"is_official": True, "is_featured": True},
         )
         assert response.status_code == 200
 
-        db_session.refresh(model)
-        assert model.is_official
-        assert model.is_featured
+        db_session.refresh(listing)
+        assert listing.is_official
+        assert listing.is_featured
+
+    def test_toggle_visibility(self, admin_client, db_session, test_organization):
+        """Test toggling listing visibility."""
+        listing = self._make_listing(db_session, test_organization, "admin_vis_model")
+
+        response = admin_client.patch(
+            "/api/v2/admin/models/admin_vis_model/visibility?is_public=false"
+        )
+        assert response.status_code == 200
+
+        db_session.refresh(listing)
+        assert listing.is_public is False
 
 
 class TestAdminRequiresAuth:

@@ -46,6 +46,7 @@ EXPECTED_OPERATIONS = [
     "get_execution_insights",
     # Model projects — create, version, analyze & solve a first-class model
     "create_model_project",
+    "create_model_project_from_marketplace",
     "get_model_project",
     "list_model_projects",
     "commit_model_version",
