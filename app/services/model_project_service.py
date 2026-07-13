@@ -12,7 +12,13 @@ from typing import Any
 from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
 
-from app.models.model_project import ModelProject, ModelProjectDataset, ModelProjectVersion
+from app.models.model_project import (
+    ModelProject,
+    ModelProjectDataset,
+    ModelProjectListing,
+    ModelProjectVersion,
+)
+from app.schemas.model import PublishModelRequest
 from app.schemas.model_project import DiffEntry, VersionDiff
 from app.shared.utils.datetime_helpers import utcnow
 
@@ -283,6 +289,61 @@ def commit_version(
     db.refresh(version)
     logger.info("Committed version %s (seq=%d) of project %s", version.id, next_seq, locked.id)
     return version
+
+
+class ProjectNotPublishableError(Exception):
+    """Publishing a project with no committed version — routes map this to 400."""
+
+
+def publish_listing(
+    db: Session,
+    project: ModelProject,
+    *,
+    author_org_id: str,
+    req: PublishModelRequest,
+) -> ModelProjectListing:
+    """Publish a project to the marketplace: upsert its listing facet + pin the HEAD version.
+
+    Publishing pins the committed HEAD version (``current_version_id``), never the
+    dirty draft (P1.5 §2.1), so a project must have at least one commit — otherwise
+    :class:`ProjectNotPublishableError`. Re-publishing updates the same 1:1 listing and
+    re-pins the current HEAD. The model CONTENT stays on the project/version; the listing
+    holds only presentation (no generator facet — a published project runs from its
+    versioned problem).
+    """
+    if project.current_version_id is None:
+        raise ProjectNotPublishableError("Commit a version before publishing.")
+
+    now = utcnow()
+    listing = (
+        db.query(ModelProjectListing)
+        .filter(ModelProjectListing.model_project_id == project.id)
+        .first()
+    )
+    if listing is None:
+        listing = ModelProjectListing(model_project_id=project.id, published_at=now)
+        db.add(listing)
+
+    listing.name = req.display_name.lower().replace(" ", "_")
+    listing.display_name = req.display_name
+    listing.description = req.description
+    listing.short_description = req.short_description
+    listing.category = req.category
+    listing.tags = req.tags
+    listing.is_public = req.is_public
+    listing.status = "published"
+    listing.is_official = False
+    listing.author_organization_id = author_org_id
+    listing.pinned_version_id = project.current_version_id
+    listing.section_overview = req.section_overview
+    listing.section_features = req.section_features
+    listing.section_how_it_works = req.section_how_it_works
+    listing.section_example_io = req.section_example_io
+    listing.section_changelog = req.section_changelog
+    if listing.published_at is None:
+        listing.published_at = now
+    db.flush()
+    return listing
 
 
 def list_versions(

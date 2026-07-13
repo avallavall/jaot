@@ -42,10 +42,12 @@ from app.api.v2.solve import _enqueue_async_solve, _shape_sync_result, _wait_for
 from app.domains.dsl import JModelData, JModelError, compile_jmodel
 from app.domains.solver.services import SolverService, get_solver_service
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
+from app.models import Organization
 from app.models.audit_log import AuditAction
 from app.models.builder_document import ModelBuilderDocument
 from app.models.model_project import ModelProject, ModelProjectDataset, ModelProjectVersion
 from app.models.optimization_model import ModelExecution
+from app.schemas.model import ModelCatalogResponse, PublishModelRequest
 from app.schemas.model_project import (
     CommitRequest,
     DatasetCreate,
@@ -67,7 +69,8 @@ from app.schemas.model_stats import ModelStats
 from app.schemas.optimization import OptimizationProblem, OptimizationResult
 from app.services import model_project_service as svc
 from app.services.audit_service import log_action
-from app.services.model_project_service import ProjectConflictError
+from app.services.marketplace_fusion import listing_to_catalog_response
+from app.services.model_project_service import ProjectConflictError, ProjectNotPublishableError
 from app.services.model_stats_service import compute_cached
 from app.services.solve_orchestrator import ORIGIN_VISUAL_BUILDER
 from app.services.template_resolver import resolve_template_dict
@@ -283,6 +286,49 @@ def create_from_marketplace(
     db.commit()
     db.refresh(project)
     return project
+
+
+@router.post(
+    "/{project_id}/publish",
+    response_model=ModelCatalogResponse,
+    operation_id="publish_model_project",
+)
+def publish_model_project(
+    project_id: str,
+    body: PublishModelRequest,
+    db: DBSession,
+    user: CurrentUser,
+    org: CurrentOrg,
+    _ws: OptionalRequireEditor,
+) -> ModelCatalogResponse:
+    """Publish a project to the marketplace (upsert its listing facet + pin HEAD version).
+
+    P1.5 fusion: publishing attaches a ``ModelProjectListing`` to the project instead of
+    copying the model into a separate catalog row. Requires a committed version (the
+    listing pins HEAD, never the dirty draft).
+    """
+    project = _project_or_404(db, project_id, org.id)
+    try:
+        listing = svc.publish_listing(db, project, author_org_id=org.id, req=body)
+    except ProjectNotPublishableError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    log_action(
+        db=db,
+        organization_id=org.id,
+        actor=user,
+        action=AuditAction.MODEL_EDIT,
+        target_type="model_project",
+        target_id=project.id,
+        target_name=project.name,
+    )
+    db.commit()
+    db.refresh(listing)
+    response = listing_to_catalog_response(listing)
+    author = db.query(Organization).filter(Organization.id == org.id).first()
+    if author:
+        response.author_name = author.name
+        response.author_verified = author.is_verified
+    return response
 
 
 @router.get("", response_model=list[ProjectListItem], operation_id="list_model_projects")
