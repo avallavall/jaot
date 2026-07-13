@@ -75,43 +75,10 @@ class OrganizationModelResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class OrganizationModelListResponse(BaseModel):
-    """Paginated list of organization models."""
-
-    items: list[OrganizationModelResponse]
-    total: int
-    page: int
-    page_size: int
-
-
 class ActivateModelRequest(BaseModel):
     """Request to activate a model from the catalog."""
 
     custom_name: str | None = None
-
-
-class CreatePrivateModelRequest(BaseModel):
-    """Request to create a private model."""
-
-    name: str = Field(..., min_length=1, max_length=255)
-    description: str = Field(..., min_length=1)
-    category: str = "general"
-    generator_type: str = Field(
-        ..., description="Type: budget_allocation, knapsack, fertilizer, etc."
-    )
-    input_schema: dict[str, Any] = Field(default_factory=dict)
-    input_fields: list[dict[str, Any]] = Field(default_factory=list)
-    example_input: dict[str, Any] = Field(default_factory=dict)
-    tags: list[str] | None = None
-
-
-class UpdateModelRequest(BaseModel):
-    """Request to update an organization model."""
-
-    custom_name: str | None = None
-    custom_config: dict[str, Any] | None = None
-    is_active: bool | None = None
-    is_favorite: bool | None = None
 
 
 class PublishModelRequest(BaseModel):

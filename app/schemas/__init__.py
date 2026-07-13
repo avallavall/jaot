@@ -36,7 +36,6 @@ from app.schemas.health import (
 from app.schemas.model import (
     ActivateModelRequest,
     AsyncExecutionResponse,
-    CreatePrivateModelRequest,
     ExecuteModelRequest,
     ExecutionListResponse,
     ExecutionStatusResponse,
@@ -44,13 +43,11 @@ from app.schemas.model import (
     ModelCatalogListResponse,
     ModelCatalogResponse,
     ModelExecutionResponse,
-    OrganizationModelListResponse,
     OrganizationModelResponse,
     PublishModelRequest,
     ReviewCreate,
     ReviewListResponse,
     ReviewResponse,
-    UpdateModelRequest,
 )
 
 # Optimization (solver)
@@ -114,10 +111,7 @@ __all__ = [
     "ModelCatalogResponse",
     "ModelCatalogListResponse",
     "OrganizationModelResponse",
-    "OrganizationModelListResponse",
     "ActivateModelRequest",
-    "CreatePrivateModelRequest",
-    "UpdateModelRequest",
     "PublishModelRequest",
     "ExecuteModelRequest",
     "ModelExecutionResponse",

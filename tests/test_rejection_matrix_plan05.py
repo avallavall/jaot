@@ -283,16 +283,16 @@ def test_delete_models_reviews_returns_404_for_nonexistent_id(authenticated_clie
 
 
 def test_patch_models_returns_rejection(authenticated_client):
-    """SC3 (cell #24, owner=PLAN_05): PATCH /api/v2/models/{model_id} -> rejection (404/422).
+    """SC3 (cell #24, owner=PLAN_05): PATCH the model entity -> rejection (404/422).
 
-    ``update_my_model`` at app/api/v2/routes/models/my_models.py:197 takes an
-    Optional-field body schema. A wrong-type list-payload value triggers
-    Pydantic 422; if all body fields coerce, the handler raises 404 on the
-    missing id. Both are valid rejection paths.
+    P1.5 fusion: the my-models CRUD is retired; the fused model entity is the
+    ModelProject (``update_model_project`` in app/api/v2/projects.py). A
+    wrong-type body value triggers Pydantic 422; if all body fields coerce,
+    the handler raises 404 on the missing id. Both are valid rejection paths.
     """
     resp = authenticated_client.patch(
-        "/api/v2/models/mod_does_not_exist",
-        json={"is_active": ["not", "a", "bool"]},
+        "/api/v2/projects/mp_does_not_exist",
+        json={"status": ["not", "a", "string"]},
     )
     assert resp.status_code in (404, 422), (
         f"PATCH model must reject; got {resp.status_code} {resp.text[:200]}"
@@ -300,13 +300,13 @@ def test_patch_models_returns_rejection(authenticated_client):
 
 
 def test_delete_models_returns_404_for_nonexistent_id(authenticated_client):
-    """SC3 (cell #25, owner=PLAN_05): DELETE /api/v2/models/{model_id} -> 404.
+    """SC3 (cell #25, owner=PLAN_05): DELETE the model entity -> 404.
 
-    Reclassified from 422 to 404: ``delete_my_model``
-    (app/api/v2/routes/models/my_models.py:232) takes only a path id and no
-    Pydantic-validated body.
+    P1.5 fusion: the my-models CRUD is retired; the fused model entity is the
+    ModelProject (``archive_model_project`` in app/api/v2/projects.py), which
+    takes only a path id and no Pydantic-validated body.
     """
-    resp = authenticated_client.delete("/api/v2/models/mod_does_not_exist")
+    resp = authenticated_client.delete("/api/v2/projects/mp_does_not_exist")
     assert resp.status_code == 404
 
 

@@ -155,7 +155,7 @@ class TestDatabaseConnectionFailure:
         try:
             # The OperationalError propagates -- verify it does NOT hang
             with pytest.raises(OperationalError):
-                client.get("/api/v2/models/my")
+                client.get("/api/v2/projects")
         finally:
             # Restore normal DB dependency
             app.dependency_overrides[get_db] = lambda: db_session

@@ -26,50 +26,14 @@ from app.models import (
     APIKey,
     LLMConversation,
     ModelBuilderDocument,
-    ModelCatalog,
     ModelExecution,
     ModelVersion,
     Notification,
-    OrganizationModel,
     SolveTrigger,
 )
 from app.shared.utils.datetime_helpers import utcnow
 
 # HELPERS: Create test data for an organization
-
-
-def _create_catalog_model(db_session) -> ModelCatalog:
-    """Create a shared catalog model (not org-specific)."""
-    catalog = ModelCatalog(
-        id=f"cat_{uuid.uuid4().hex[:12]}",
-        name="test_model",
-        display_name="Test Model",
-        description="A test model",
-        generator_type="generic",
-        input_schema={},
-        input_fields=[],
-        example_input={},
-        category="general",
-        is_official=True,
-        status="published",
-    )
-    db_session.add(catalog)
-    db_session.flush()
-    return catalog
-
-
-def _create_org_model(db_session, org, catalog) -> OrganizationModel:
-    """Create an organization model linked to a catalog entry."""
-    model = OrganizationModel(
-        id=f"orgm_{uuid.uuid4().hex[:12]}",
-        organization_id=org.id,
-        catalog_id=catalog.id,
-        custom_name="Test Org Model",
-        is_active=True,
-    )
-    db_session.add(model)
-    db_session.flush()
-    return model
 
 
 def _create_execution(db_session, org, user, org_model=None) -> ModelExecution:
@@ -433,7 +397,7 @@ class TestCrossTenantModelExecution:
 
 
 class TestCrossTenantMyModels:
-    """Org B cannot access Org A's private models."""
+    """Org B cannot access Org A's models (ModelProject — the fused entity)."""
 
     def test_cross_tenant_my_model_access(
         self,
@@ -446,18 +410,25 @@ class TestCrossTenantMyModels:
         test_organization,
         test_organization_2,
     ):
-        """GET /api/v2/models/{id} returns 404 for cross-tenant model access."""
+        """GET /api/v2/projects/{id} returns 404 for cross-tenant model access."""
+        from app.models import ModelProject
+
         # Create model for org_a
         mock_auth(test_user)
-        catalog = _create_catalog_model(db_session)
-        org_model = _create_org_model(db_session, test_organization, catalog)
+        project = ModelProject(
+            id=f"mp_{uuid.uuid4().hex[:12]}",
+            organization_id=test_organization.id,
+            name="Org A Model",
+            status="active",
+        )
+        db_session.add(project)
         db_session.commit()
 
         # Switch to org_b user
         mock_auth(test_user_2)
 
         # Attempt to access org_a's model
-        response = client.get(f"/api/v2/models/{org_model.id}")
+        response = client.get(f"/api/v2/projects/{project.id}")
         assert response.status_code == 404
 
     def test_cross_tenant_model_list_isolation(
@@ -471,22 +442,28 @@ class TestCrossTenantMyModels:
         test_organization,
         test_organization_2,
     ):
-        """GET /api/v2/models/ returns only the requesting org's models."""
+        """GET /api/v2/projects returns only the requesting org's models."""
+        from app.models import ModelProject
+
         # Create model for org_a
         mock_auth(test_user)
-        catalog = _create_catalog_model(db_session)
-        _create_org_model(db_session, test_organization, catalog)
+        project = ModelProject(
+            id=f"mp_{uuid.uuid4().hex[:12]}",
+            organization_id=test_organization.id,
+            name="Org A Only Model",
+            status="active",
+        )
+        db_session.add(project)
         db_session.commit()
 
         # Switch to org_b user
         mock_auth(test_user_2)
 
-        # Org B should see empty model list
-        response = client.get("/api/v2/models/")
+        # Org B must not see org A's model in its list (plain list response)
+        response = client.get("/api/v2/projects")
         assert response.status_code == 200
         data = response.json()
-        assert data["total"] == 0
-        assert data["items"] == []
+        assert project.id not in [p["id"] for p in data]
 
 
 class TestCrossTenantLLMConversation:

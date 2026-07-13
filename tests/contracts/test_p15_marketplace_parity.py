@@ -229,36 +229,31 @@ class TestMarketplaceResponseShapes:
         assert res.status_code == 200, res.text
         assert set(res.json().keys()) == _CATALOG_KEYS
 
-    # CONTRACT-TEST: my-models list envelope + item = OrganizationModelResponse.
-    def test_my_models_list_shape(self, authenticated_client, db_session, test_organization):
+    # CONTRACT-TEST: the legacy my-models CRUD is RETIRED (P1.5 G6b) — the single
+    # model entity is ModelProject, managed via /api/v2/projects. These routes
+    # must stay gone; resurrecting them would reintroduce the second entity.
+    def test_my_models_routes_retired(self, authenticated_client, db_session, test_organization):
         om = OrganizationModel(
-            id="p15_my_list",
+            id="p15_my_retired",
             organization_id=test_organization.id,
-            custom_name="Listed",
+            custom_name="Legacy row",
             is_active=True,
         )
         db_session.add(om)
         db_session.commit()
-        res = authenticated_client.get("/api/v2/models")
-        assert res.status_code == 200, res.text
-        body = res.json()
-        assert {"items", "total", "page", "page_size"} <= set(body.keys())
-        item = next(i for i in body["items"] if i["id"] == "p15_my_list")
-        assert set(item.keys()) == _ORG_MODEL_KEYS
-
-    # CONTRACT-TEST: my-model detail shape.
-    def test_my_model_detail_shape(self, authenticated_client, db_session, test_organization):
-        om = OrganizationModel(
-            id="p15_my_detail",
-            organization_id=test_organization.id,
-            custom_name="Detailed",
-            is_active=True,
+        assert authenticated_client.get("/api/v2/models").status_code == 404
+        assert authenticated_client.get("/api/v2/models/p15_my_retired").status_code == 404
+        assert authenticated_client.get("/api/v2/models/p15_my_retired/schema").status_code == 404
+        assert authenticated_client.post("/api/v2/models", json={"name": "x"}).status_code == 404
+        assert (
+            authenticated_client.patch(
+                "/api/v2/models/p15_my_retired", json={"custom_name": "y"}
+            ).status_code
+            == 404
         )
-        db_session.add(om)
-        db_session.commit()
-        res = authenticated_client.get("/api/v2/models/p15_my_detail")
-        assert res.status_code == 200, res.text
-        assert set(res.json().keys()) == _ORG_MODEL_KEYS
+        assert authenticated_client.delete("/api/v2/models/p15_my_retired").status_code == 404
+        # The project-native replacement answers on /api/v2/projects.
+        assert authenticated_client.get("/api/v2/projects").status_code == 200
 
     # CONTRACT-TEST: activate creates an OrganizationModel and returns its response shape.
     def test_activate_creates_org_model(self, authenticated_client, db_session, test_organization):
@@ -281,19 +276,6 @@ class TestMarketplaceResponseShapes:
 
 class TestMarketplaceTenantIsolation:
     """Org-scoped surfaces must 404 across orgs (no cross-tenant leak)."""
-
-    # CONTRACT-TEST: another org's activated model is invisible (404, not 403).
-    def test_my_model_cross_org_404(self, authenticated_client, db_session, test_organization_2):
-        other = OrganizationModel(
-            id="p15_other_org_model",
-            organization_id=test_organization_2.id,
-            custom_name="Theirs",
-            is_active=True,
-        )
-        db_session.add(other)
-        db_session.commit()
-        res = authenticated_client.get("/api/v2/models/p15_other_org_model")
-        assert res.status_code == 404, res.text
 
     # CONTRACT-TEST: executing another org's model 404s.
     def test_execute_cross_org_404(self, authenticated_client, db_session, test_organization_2):

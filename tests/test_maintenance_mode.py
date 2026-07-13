@@ -193,7 +193,7 @@ class TestMaintenanceModeEnabled:
         """Various non-bypass paths all get 503 during maintenance."""
         paths = [
             "/api/v2/projects",
-            "/api/v2/models",
+            "/api/v2/models/catalog",
             "/api/v2/solve",
         ]
         for path in paths:
