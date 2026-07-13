@@ -10,11 +10,6 @@ are generator-backed — the listing holds ``generator_type``/``input_schema``/
 
 Templates that are no longer present in the YAML source get
 ``status='deprecated'`` on their listing (never deleted).
-
-P1.5 bridge: a legacy ``ModelCatalog`` row is still upserted alongside so the
-not-yet-migrated legacy paths (activate / execute / reviews) keep resolving
-during the fusion. The bridge is removed in the final collapse slice; the DROP
-of ``model_catalog`` itself lands in the following contract release.
 """
 
 import logging
@@ -24,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.data.templates import load_all_templates
 from app.data.templates._schema import TemplateDefinition
-from app.models import ModelCatalog, ModelProject, ModelProjectListing, Organization
+from app.models import ModelProject, ModelProjectListing, Organization
 from app.shared.db.p15_backfill import SYSTEM_ORG_ID, SYSTEM_ORG_NAME
 from app.shared.db.session import SessionLocal
 from app.shared.utils.datetime_helpers import utcnow
@@ -113,26 +108,6 @@ def _apply_listing_fields(
     listing.status = "published"
 
 
-def _apply_catalog_fields(
-    model: ModelCatalog, template: TemplateDefinition, merged_tags: list[str]
-) -> None:
-    """P1.5 bridge: keep the legacy catalog row in sync for not-yet-migrated paths."""
-    model.name = template.name
-    model.display_name = template.display_name
-    model.description = template.description
-    model.short_description = template.short_description
-    model.scenario_description = template.scenario_description
-    model.category = template.category
-    model.tags = merged_tags
-    model.generator_type = template.generator_type
-    model.input_schema = build_input_schema(template)
-    model.input_fields = [f.model_dump() for f in template.input_fields]
-    model.example_input = template.example_input
-    model.version = template.version
-    model.is_featured = template.is_featured
-    model.status = "published"
-
-
 def seed_official_models(db: Session) -> int:
     """Upsert official models from YAML template files into the unified entity.
 
@@ -192,21 +167,6 @@ def seed_official_models(db: Session) -> int:
             if listing.published_at is None:
                 listing.published_at = now
 
-        # P1.5 bridge: keep the legacy catalog row in sync (removed in the collapse slice).
-        catalog = db.query(ModelCatalog).filter(ModelCatalog.id == official_id).first()
-        if catalog is None:
-            catalog = ModelCatalog(
-                id=official_id,
-                status="published",
-                is_official=True,
-                is_public=True,
-                published_at=now,
-            )
-            _apply_catalog_fields(catalog, template, merged_tags)
-            db.add(catalog)
-        else:
-            _apply_catalog_fields(catalog, template, merged_tags)
-
         logger.info("  Seeded official: %s", template.id)
         count += 1
 
@@ -217,7 +177,7 @@ def seed_official_models(db: Session) -> int:
 
 
 def _deprecate_stale(db: Session, seen_ids: set[str]) -> None:
-    """Deprecate official listings (+ bridge catalog rows) no longer in the YAML source."""
+    """Deprecate official listings no longer in the YAML source."""
     stale_listings = db.query(ModelProjectListing).filter(
         ModelProjectListing.is_official.is_(True),
         ModelProjectListing.status != "deprecated",
@@ -229,16 +189,6 @@ def _deprecate_stale(db: Session, seen_ids: set[str]) -> None:
     for listing in stale_listings.all():
         listing.status = "deprecated"
         logger.info("  Deprecated: %s", listing.model_project_id)
-
-    stale_catalog = db.query(ModelCatalog).filter(
-        ModelCatalog.is_official.is_(True),
-        ModelCatalog.status != "deprecated",
-    )
-    if seen_ids:
-        stale_catalog = stale_catalog.filter(ModelCatalog.id.notin_(seen_ids))
-    for model in stale_catalog.all():
-        model.status = "deprecated"
-        model.updated_at = utcnow()
 
 
 def seed_models() -> None:

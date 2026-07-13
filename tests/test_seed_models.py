@@ -7,7 +7,7 @@ JSON Schema generation from TemplateDefinition objects.
 from unittest.mock import patch
 
 from app.data.templates._schema import TemplateDefinition
-from app.models import ModelCatalog, ModelProject, ModelProjectListing
+from app.models import ModelProject, ModelProjectListing
 from app.shared.db.p15_backfill import SYSTEM_ORG_ID
 from app.shared.db.seed_models import build_input_schema, seed_official_models
 
@@ -38,7 +38,7 @@ def _make_template(**overrides) -> TemplateDefinition:
 
 
 class TestSeedOfficialModelsCreate:
-    """Test that seed creates the unified ModelProject + listing (+ bridge catalog)."""
+    """Test that seed creates the unified ModelProject + listing."""
 
     def test_creates_new_entries(self, db_session):
         tpl = _make_template(id="alpha")
@@ -56,10 +56,6 @@ class TestSeedOfficialModelsCreate:
         assert listing.is_official is True
         assert listing.status == "published"
         assert listing.generator_type == "generic"
-        # Bridge catalog row (removed in the collapse slice).
-        entry = db_session.get(ModelCatalog, "official_alpha")
-        assert entry is not None
-        assert entry.status == "published"
 
     def test_creates_multiple_entries(self, db_session):
         tpl1 = _make_template(id="one", name="One")
@@ -68,8 +64,8 @@ class TestSeedOfficialModelsCreate:
             count = seed_official_models(db_session)
 
         assert count == 2
-        assert db_session.get(ModelCatalog, "official_one") is not None
-        assert db_session.get(ModelCatalog, "official_two") is not None
+        assert db_session.get(ModelProjectListing, "official_one") is not None
+        assert db_session.get(ModelProjectListing, "official_two") is not None
 
 
 class TestSeedOfficialModelsUpsert:
@@ -84,7 +80,7 @@ class TestSeedOfficialModelsUpsert:
         with patch("app.shared.db.seed_models.load_all_templates", return_value=[tpl_v2]):
             seed_official_models(db_session)
 
-        entry = db_session.get(ModelCatalog, "official_upsert_test")
+        entry = db_session.get(ModelProjectListing, "official_upsert_test")
         assert entry.name == "New Name"
         assert entry.description == "Updated"
 
@@ -99,7 +95,9 @@ class TestSeedIdempotency:
             seed_official_models(db_session)
 
         results = (
-            db_session.query(ModelCatalog).filter(ModelCatalog.id == "official_idempotent").all()
+            db_session.query(ModelProjectListing)
+            .filter(ModelProjectListing.model_project_id == "official_idempotent")
+            .all()
         )
         assert len(results) == 1
 
@@ -134,7 +132,7 @@ class TestSeedDeprecation:
             seed_official_models(db_session)
             seed_official_models(db_session)
 
-        entry = db_session.get(ModelCatalog, "official_will_deprecate")
+        entry = db_session.get(ModelProjectListing, "official_will_deprecate")
         assert entry is not None
         assert entry.status == "deprecated"
 

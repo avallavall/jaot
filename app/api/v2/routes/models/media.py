@@ -1,4 +1,9 @@
-"""Model media upload endpoints (logo, screenshots, sections)."""
+"""Listing media upload endpoints (logo, screenshots, sections).
+
+P1.5 fusion: media lives on the ``ModelProjectListing`` facet (the marketplace
+presentation of a ModelProject). Routes keep their historic ``/catalog/{id}``
+shape — the id IS the project id.
+"""
 
 import logging
 
@@ -6,8 +11,9 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.api.v2.auth import get_current_user
-from app.models import ModelCatalog, User
+from app.models import ModelProjectListing, User
 from app.schemas.model import ModelCatalogResponse, UpdateCatalogSectionsRequest
+from app.services.marketplace_fusion import listing_to_catalog_response
 from app.services.storage_service import get_storage_service
 from app.shared.db.base import get_db
 
@@ -23,18 +29,22 @@ LOGO_SIZE = 256  # square resize dimension
 SCREENSHOT_MAX_WIDTH = 1920
 
 
-def _get_catalog_model_for_owner(
+def _get_listing_for_owner(
     model_id: str,
     current_user: User,
     db: Session,
-) -> ModelCatalog:
-    """Fetch a catalog model and verify ownership."""
-    model = db.query(ModelCatalog).filter(ModelCatalog.id == model_id).first()
-    if not model:
+) -> ModelProjectListing:
+    """Fetch a marketplace listing and verify author-org ownership."""
+    listing = (
+        db.query(ModelProjectListing)
+        .filter(ModelProjectListing.model_project_id == model_id)
+        .first()
+    )
+    if not listing:
         raise HTTPException(status_code=404, detail="Model not found")
-    if model.author_organization_id != current_user.organization_id:
+    if listing.author_organization_id != current_user.organization_id:
         raise HTTPException(status_code=403, detail="Not authorized to modify this model")
-    return model
+    return listing
 
 
 async def _validate_image(file: UploadFile) -> bytes:
@@ -73,7 +83,7 @@ async def upload_logo(
 ) -> dict[str, str]:
     """Upload or replace a model logo image."""
     storage = _get_storage()
-    model = _get_catalog_model_for_owner(model_id, current_user, db)
+    model = _get_listing_for_owner(model_id, current_user, db)
     content = await _validate_image(file)
 
     if model.logo_url:
@@ -104,7 +114,7 @@ async def delete_logo(
 ) -> None:
     """Delete the model logo image."""
     storage = _get_storage()
-    model = _get_catalog_model_for_owner(model_id, current_user, db)
+    model = _get_listing_for_owner(model_id, current_user, db)
 
     if model.logo_url:
         try:
@@ -127,7 +137,7 @@ async def upload_screenshot(
 ) -> dict[str, str | list[str]]:
     """Upload a screenshot image for a model (max 6)."""
     storage = _get_storage()
-    model = _get_catalog_model_for_owner(model_id, current_user, db)
+    model = _get_listing_for_owner(model_id, current_user, db)
     content = await _validate_image(file)
 
     current_urls: list[str] = model.screenshot_urls or []
@@ -155,7 +165,7 @@ async def delete_screenshot(
 ) -> dict[str, list[str]]:
     """Delete a screenshot by index (0-based)."""
     storage = _get_storage()
-    model = _get_catalog_model_for_owner(model_id, current_user, db)
+    model = _get_listing_for_owner(model_id, current_user, db)
 
     current_urls: list[str] = model.screenshot_urls or []
     if index < 0 or index >= len(current_urls):
@@ -182,7 +192,7 @@ async def update_sections(
     db: Session = Depends(get_db),
 ) -> ModelCatalogResponse:
     """Update rich description sections on a published model."""
-    model = _get_catalog_model_for_owner(model_id, current_user, db)
+    model = _get_listing_for_owner(model_id, current_user, db)
 
     # Only update fields that were explicitly provided (not None)
     update_data = body.model_dump(exclude_none=True)
@@ -192,4 +202,4 @@ async def update_sections(
     db.commit()
     db.refresh(model)
 
-    return ModelCatalogResponse.model_validate(model)
+    return listing_to_catalog_response(model)
