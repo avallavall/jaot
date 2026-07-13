@@ -9,11 +9,41 @@ Covers:
 
 import pytest
 
-from app.models import ModelCatalog, Organization, OrganizationModel, User
+from app.models import (
+    ModelCatalog,
+    ModelProject,
+    ModelProjectListing,
+    Organization,
+    OrganizationModel,
+    User,
+)
 from app.models.model_view_event import ModelViewEvent
 from app.services.seller_analytics_service import SellerAnalyticsService
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
+
+
+def _add_listing(db, *, pid, author_org_id) -> None:
+    """Add a ModelProject anchor + its marketplace listing (view-side of analytics)."""
+    db.add(ModelProject(id=pid, organization_id=author_org_id, name="Proj " + pid, status="active"))
+    db.flush()
+    db.add(
+        ModelProjectListing(
+            model_project_id=pid,
+            name=pid,
+            display_name="Model " + pid,
+            description="A listing for analytics",
+            category="linear",
+            generator_type="linear_programming",
+            input_schema={"type": "object"},
+            input_fields=[],
+            example_input={},
+            version="1.0.0",
+            status="published",
+            is_public=True,
+            author_organization_id=author_org_id,
+        )
+    )
 
 
 @pytest.fixture
@@ -67,6 +97,9 @@ def catalog_model(db_session, seller_org):
         total_executions=0,
     )
     db_session.add(model)
+    # The marketplace facet (view-side of analytics) + the bridge catalog row
+    # (activation-side) share the id and author org.
+    _add_listing(db_session, pid=model.id, author_org_id=seller_org.id)
     db_session.commit()
     db_session.refresh(model)
     return model
@@ -79,28 +112,28 @@ def view_events(db_session, catalog_model):
     events = [
         ModelViewEvent(
             id=generate_id("mve_"),
-            catalog_model_id=catalog_model.id,
+            model_project_id=catalog_model.id,
             event_type="impression",
             viewer_country="US",
             created_at=now,
         ),
         ModelViewEvent(
             id=generate_id("mve_"),
-            catalog_model_id=catalog_model.id,
+            model_project_id=catalog_model.id,
             event_type="impression",
             viewer_country="DE",
             created_at=now,
         ),
         ModelViewEvent(
             id=generate_id("mve_"),
-            catalog_model_id=catalog_model.id,
+            model_project_id=catalog_model.id,
             event_type="view",
             viewer_country="US",
             created_at=now,
         ),
         ModelViewEvent(
             id=generate_id("mve_"),
-            catalog_model_id=catalog_model.id,
+            model_project_id=catalog_model.id,
             event_type="view",
             viewer_country="ES",
             created_at=now,
@@ -279,19 +312,19 @@ class TestViewEventLogging:
     def test_view_event_has_correct_model_id(
         self, client, db_session, catalog_model, override_db_dependency
     ):
-        """View event references the correct catalog model."""
+        """View event references the correct model (by model_project_id)."""
         client.get(f"/api/v2/models/catalog/{catalog_model.id}")
 
         event = (
             db_session.query(ModelViewEvent)
             .filter(
                 ModelViewEvent.event_type == "view",
-                ModelViewEvent.catalog_model_id == catalog_model.id,
+                ModelViewEvent.model_project_id == catalog_model.id,
             )
             .first()
         )
         assert event is not None
-        assert event.catalog_model_id == catalog_model.id
+        assert event.model_project_id == catalog_model.id
 
 
 class TestAnalyticsService:
@@ -384,6 +417,7 @@ class TestSellerAnalyticsCrossOrgIsolation:
             author_organization_id=foreign_org.id,
         )
         db_session.add(foreign_model)
+        _add_listing(db_session, pid=foreign_model.id, author_org_id=foreign_org.id)
         db_session.flush()
 
         # 99 view events on the foreign model (large enough to be obvious if leaked)
@@ -391,7 +425,7 @@ class TestSellerAnalyticsCrossOrgIsolation:
             db_session.add(
                 ModelViewEvent(
                     id=generate_id("mve_"),
-                    catalog_model_id=foreign_model.id,
+                    model_project_id=foreign_model.id,
                     event_type="view",
                     viewer_country="JP",
                     created_at=utcnow(),

@@ -20,7 +20,6 @@ from app.models import (
     ModelProjectListing,
     OrganizationModel,
 )
-from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.shared.utils.model_helpers import build_org_model_response
 
 pytestmark = pytest.mark.contract
@@ -207,19 +206,25 @@ class TestBuildOrgModelResponseParity:
 class TestMarketplaceResponseShapes:
     """The wire shapes served to the marketplace UI + API/MCP consumers."""
 
-    # CONTRACT-TEST: catalog browse envelope + item shape.
-    def test_catalog_list_shape(self, authenticated_client, db_session):
-        _make_catalog(db_session, cid="p15_list_shape")
-        res = authenticated_client.get("/api/v2/models/catalog")
+    # CONTRACT-TEST: catalog browse envelope + item shape (served from listings).
+    def test_catalog_list_shape(self, authenticated_client, db_session, test_organization):
+        _make_listing(
+            db_session,
+            test_organization,
+            pid="p15_list_shape",
+            name="p15listshapeuniq",
+            display_name="p15listshapeuniq",
+        )
+        res = authenticated_client.get("/api/v2/models/catalog?search=p15listshapeuniq")
         assert res.status_code == 200, res.text
         body = res.json()
         assert set(body.keys()) == {"items", "total", "page", "page_size", "total_pages"}
         item = next(i for i in body["items"] if i["id"] == "p15_list_shape")
         assert set(item.keys()) == _CATALOG_KEYS
 
-    # CONTRACT-TEST: catalog detail shape.
-    def test_catalog_detail_shape(self, authenticated_client, db_session):
-        _make_catalog(db_session, cid="p15_detail_shape")
+    # CONTRACT-TEST: catalog detail shape (served from listings).
+    def test_catalog_detail_shape(self, authenticated_client, db_session, test_organization):
+        _make_listing(db_session, test_organization, pid="p15_detail_shape")
         res = authenticated_client.get("/api/v2/models/catalog/p15_detail_shape")
         assert res.status_code == 200, res.text
         assert set(res.json().keys()) == _CATALOG_KEYS
@@ -335,20 +340,14 @@ def _make_listing(db, org, *, pid, **ov):
 
 
 class TestFusionReadCutover:
-    """With MARKETPLACE_FUSION_ENABLED on, browse/detail/schema serve from the listing
-    facet with the SAME wire shape (parity ON) — no catalog row involved, proving the
-    read source switched."""
-
-    def _enable(self, db):
-        PSS.set(db, "MARKETPLACE_FUSION_ENABLED", "true")
-        db.commit()
+    """The marketplace serves browse/detail/schema from the ModelProjectListing facet
+    (the model content lives on the project/version; no catalog row involved)."""
 
     # CONTRACT-TEST: browse returns the listing with the exact ModelCatalogResponse shape.
     def test_browse_serves_from_listings(self, authenticated_client, db_session, test_organization):
         _make_listing(
             db_session, test_organization, pid="p15_fus_browse", display_name="From Listing"
         )
-        self._enable(db_session)
         res = authenticated_client.get("/api/v2/models/catalog?category=logistics")
         assert res.status_code == 200, res.text
         item = next(i for i in res.json()["items"] if i["id"] == "p15_fus_browse")
@@ -360,7 +359,6 @@ class TestFusionReadCutover:
         _make_listing(
             db_session, test_organization, pid="p15_fus_detail", description="LISTING ONLY"
         )
-        self._enable(db_session)
         res = authenticated_client.get("/api/v2/models/catalog/p15_fus_detail")
         assert res.status_code == 200, res.text
         body = res.json()
@@ -371,7 +369,6 @@ class TestFusionReadCutover:
     # CONTRACT-TEST: schema serves the listing's generator facet.
     def test_schema_serves_from_listings(self, authenticated_client, db_session, test_organization):
         _make_listing(db_session, test_organization, pid="p15_fus_schema", generator_type="vrp")
-        self._enable(db_session)
         res = authenticated_client.get("/api/v2/models/catalog/p15_fus_schema/schema")
         assert res.status_code == 200, res.text
         body = res.json()
@@ -381,7 +378,6 @@ class TestFusionReadCutover:
     # CONTRACT-TEST: an unpublished listing 404s (same as an unpublished catalog row).
     def test_unpublished_listing_404(self, authenticated_client, db_session, test_organization):
         _make_listing(db_session, test_organization, pid="p15_fus_draft", status="draft")
-        self._enable(db_session)
         assert authenticated_client.get("/api/v2/models/catalog/p15_fus_draft").status_code == 404
 
 

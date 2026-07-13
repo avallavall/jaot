@@ -105,21 +105,6 @@ SETTINGS_REGISTRY.extend(
             is_secret=False,
             is_readonly=False,
         ),
-        SettingDefinition(
-            key="MARKETPLACE_FUSION_ENABLED",
-            label="Marketplace fusion (P1.5)",
-            description=(
-                "When enabled, the marketplace serves from the unified Model entity "
-                "(model_project_listings + model_projects) instead of the legacy "
-                "model_catalog / organization_models tables. Reversible cutover for the "
-                "full-fusion backfill; the legacy tables stay for dual-read. Off by default."
-            ),
-            category=SettingCategory.SYSTEM,
-            setting_type=SettingType.BOOL,
-            default_value="false",
-            is_secret=False,
-            is_readonly=False,
-        ),
     ]
 )
 

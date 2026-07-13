@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.models.model_project import ModelProjectListing
 from app.models.model_view_event import ModelViewEvent
 from app.models.optimization_model import ModelCatalog, OrganizationModel
 from app.schemas.seller_analytics import (
@@ -76,37 +77,37 @@ class SellerAnalyticsService:
 
     def log_impression(
         self,
-        catalog_model_ids: list[str],
+        model_project_ids: list[str],
         viewer_org_id: str | None = None,
         viewer_ip: str | None = None,
     ) -> None:
-        """Batch-insert impression events for models shown in a listing."""
+        """Batch-insert impression events for listings shown in a marketplace page."""
         country = _get_geoip_country(viewer_ip)
         events = [
             ModelViewEvent(
                 id=generate_id("mve_"),
-                catalog_model_id=model_id,
+                model_project_id=model_id,
                 event_type="impression",
                 viewer_organization_id=viewer_org_id,
                 viewer_country=country,
                 created_at=utcnow(),
             )
-            for model_id in catalog_model_ids
+            for model_id in model_project_ids
         ]
         self.db.add_all(events)
         self.db.flush()
 
     def log_view(
         self,
-        catalog_model_id: str,
+        model_project_id: str,
         viewer_org_id: str | None = None,
         viewer_ip: str | None = None,
     ) -> None:
-        """Insert a single view event (user clicked into model detail)."""
+        """Insert a single view event (user clicked into a marketplace detail page)."""
         country = _get_geoip_country(viewer_ip)
         event = ModelViewEvent(
             id=generate_id("mve_"),
-            catalog_model_id=catalog_model_id,
+            model_project_id=model_project_id,
             event_type="view",
             viewer_organization_id=viewer_org_id,
             viewer_country=country,
@@ -116,12 +117,13 @@ class SellerAnalyticsService:
         self.db.flush()
 
     def _base_view_query(self, org_id: str | None, since: datetime | None):  # noqa: ANN202
-        """Build base query on model_view_events, optionally scoped to org."""
+        """Build base query on model_view_events, optionally scoped to the author org."""
         q = self.db.query(ModelViewEvent)
         if org_id is not None:
-            q = q.join(ModelCatalog, ModelCatalog.id == ModelViewEvent.catalog_model_id).filter(
-                ModelCatalog.author_organization_id == org_id
-            )
+            q = q.join(
+                ModelProjectListing,
+                ModelProjectListing.model_project_id == ModelViewEvent.model_project_id,
+            ).filter(ModelProjectListing.author_organization_id == org_id)
         if since is not None:
             q = q.filter(ModelViewEvent.created_at >= since)
         return q
@@ -235,19 +237,22 @@ class SellerAnalyticsService:
         # Views per model
         view_q = (
             self.db.query(
-                ModelViewEvent.catalog_model_id,
+                ModelViewEvent.model_project_id,
                 func.count().label("views"),
             )
-            .join(ModelCatalog, ModelCatalog.id == ModelViewEvent.catalog_model_id)
+            .join(
+                ModelProjectListing,
+                ModelProjectListing.model_project_id == ModelViewEvent.model_project_id,
+            )
             .filter(
-                ModelCatalog.author_organization_id == org_id,
+                ModelProjectListing.author_organization_id == org_id,
                 ModelViewEvent.event_type == "view",
             )
         )
         if since is not None:
             view_q = view_q.filter(ModelViewEvent.created_at >= since)
-        view_rows = view_q.group_by(ModelViewEvent.catalog_model_id).all()
-        views_map = {r.catalog_model_id: r.views for r in view_rows}
+        view_rows = view_q.group_by(ModelViewEvent.model_project_id).all()
+        views_map = {r.model_project_id: r.views for r in view_rows}
 
         # Activations per model
         activation_rows = (
@@ -266,11 +271,11 @@ class SellerAnalyticsService:
             return []
 
         models = (
-            self.db.query(ModelCatalog.id, ModelCatalog.display_name)
-            .filter(ModelCatalog.id.in_(all_model_ids))
+            self.db.query(ModelProjectListing.model_project_id, ModelProjectListing.display_name)
+            .filter(ModelProjectListing.model_project_id.in_(all_model_ids))
             .all()
         )
-        name_map = {m.id: m.display_name for m in models}
+        name_map = {m.model_project_id: m.display_name for m in models}
 
         result = []
         for model_id in all_model_ids:

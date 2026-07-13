@@ -7,7 +7,8 @@ JSON Schema generation from TemplateDefinition objects.
 from unittest.mock import patch
 
 from app.data.templates._schema import TemplateDefinition
-from app.models import ModelCatalog
+from app.models import ModelCatalog, ModelProject, ModelProjectListing
+from app.shared.db.p15_backfill import SYSTEM_ORG_ID
 from app.shared.db.seed_models import build_input_schema, seed_official_models
 
 
@@ -37,7 +38,7 @@ def _make_template(**overrides) -> TemplateDefinition:
 
 
 class TestSeedOfficialModelsCreate:
-    """Test that seed creates new ModelCatalog entries."""
+    """Test that seed creates the unified ModelProject + listing (+ bridge catalog)."""
 
     def test_creates_new_entries(self, db_session):
         tpl = _make_template(id="alpha")
@@ -45,10 +46,19 @@ class TestSeedOfficialModelsCreate:
             count = seed_official_models(db_session)
 
         assert count == 1
+        # The unified entity: an anchor ModelProject (system org) + published listing.
+        project = db_session.get(ModelProject, "official_alpha")
+        assert project is not None
+        assert project.organization_id == SYSTEM_ORG_ID
+        listing = db_session.get(ModelProjectListing, "official_alpha")
+        assert listing is not None
+        assert listing.name == "Test Template"
+        assert listing.is_official is True
+        assert listing.status == "published"
+        assert listing.generator_type == "generic"
+        # Bridge catalog row (removed in the collapse slice).
         entry = db_session.get(ModelCatalog, "official_alpha")
         assert entry is not None
-        assert entry.name == "Test Template"
-        assert entry.is_official is True
         assert entry.status == "published"
 
     def test_creates_multiple_entries(self, db_session):
@@ -107,11 +117,11 @@ class TestSeedDeprecation:
         with patch("app.shared.db.seed_models.load_all_templates", return_value=[tpl1]):
             seed_official_models(db_session)
 
-        removed = db_session.get(ModelCatalog, "official_remove_me")
+        removed = db_session.get(ModelProjectListing, "official_remove_me")
         assert removed is not None  # NOT deleted
         assert removed.status == "deprecated"
 
-        kept = db_session.get(ModelCatalog, "official_keep_me")
+        kept = db_session.get(ModelProjectListing, "official_keep_me")
         assert kept.status == "published"
 
     def test_deprecated_templates_not_deleted(self, db_session):

@@ -1,10 +1,20 @@
-"""
-Seed the model_catalog with official JAOT models.
+"""Seed the official JAOT models from the YAML templates.
 
 Reads YAML template files from ``app/data/templates/``, validates them with
-Pydantic, and upserts into the ``model_catalog`` table.  Templates that are
-no longer present in the YAML files get ``status='deprecated'`` in the DB
-(never deleted).
+Pydantic, and upserts them as the unified marketplace entity: a thin anchor
+``ModelProject`` (owned by the system org ``org_jaot_official``) plus its
+``ModelProjectListing`` facet carrying the generator + presentation. Officials
+are generator-backed — the listing holds ``generator_type``/``input_schema``/
+``input_fields``/``example_input`` and the generator is rendered at consume-time
+(``/projects/from-marketplace/{id}``), so the anchor project needs no draft.
+
+Templates that are no longer present in the YAML source get
+``status='deprecated'`` on their listing (never deleted).
+
+P1.5 bridge: a legacy ``ModelCatalog`` row is still upserted alongside so the
+not-yet-migrated legacy paths (activate / execute / reviews) keep resolving
+during the fusion. The bridge is removed in the final collapse slice; the DROP
+of ``model_catalog`` itself lands in the following contract release.
 """
 
 import logging
@@ -14,7 +24,8 @@ from sqlalchemy.orm import Session
 
 from app.data.templates import load_all_templates
 from app.data.templates._schema import TemplateDefinition
-from app.models import ModelCatalog
+from app.models import ModelCatalog, ModelProject, ModelProjectListing, Organization
+from app.shared.db.p15_backfill import SYSTEM_ORG_ID, SYSTEM_ORG_NAME
 from app.shared.db.session import SessionLocal
 from app.shared.utils.datetime_helpers import utcnow
 
@@ -66,89 +77,168 @@ def build_input_schema(template: TemplateDefinition) -> dict[str, Any]:
     }
 
 
-def seed_official_models(db: Session) -> int:
-    """Upsert official models from YAML template files.
+def ensure_official_org(db: Session) -> str:
+    """Return the id of the officials-owning system org, creating it if absent.
 
-    * New templates are created with ``status='published'``.
-    * Existing templates are updated in-place (upsert).
-    * Templates that no longer appear in the YAML source get
-      ``status='deprecated'``.
+    Idempotent (flush-only, caller-commits). Shares the id/name with the P1.5
+    backfill so an existing backfilled DB and a fresh install converge on the
+    same ``org_jaot_official`` row.
+    """
+    org = db.query(Organization).filter(Organization.id == SYSTEM_ORG_ID).first()
+    if org is None:
+        db.add(Organization(id=SYSTEM_ORG_ID, name=SYSTEM_ORG_NAME, is_public_profile=False))
+        db.flush()
+    return SYSTEM_ORG_ID
+
+
+def _apply_listing_fields(
+    listing: ModelProjectListing, template: TemplateDefinition, merged_tags: list[str]
+) -> None:
+    """Copy a template's presentation + generator facet onto a listing row."""
+    listing.name = template.name
+    listing.display_name = template.display_name
+    listing.description = template.description
+    listing.short_description = template.short_description
+    listing.scenario_description = template.scenario_description
+    listing.category = template.category
+    listing.tags = merged_tags
+    listing.generator_type = template.generator_type
+    listing.input_schema = build_input_schema(template)
+    listing.input_fields = [f.model_dump() for f in template.input_fields]
+    listing.example_input = template.example_input
+    listing.version = template.version
+    listing.is_official = True
+    listing.is_featured = template.is_featured
+    listing.is_public = True
+    listing.status = "published"
+
+
+def _apply_catalog_fields(
+    model: ModelCatalog, template: TemplateDefinition, merged_tags: list[str]
+) -> None:
+    """P1.5 bridge: keep the legacy catalog row in sync for not-yet-migrated paths."""
+    model.name = template.name
+    model.display_name = template.display_name
+    model.description = template.description
+    model.short_description = template.short_description
+    model.scenario_description = template.scenario_description
+    model.category = template.category
+    model.tags = merged_tags
+    model.generator_type = template.generator_type
+    model.input_schema = build_input_schema(template)
+    model.input_fields = [f.model_dump() for f in template.input_fields]
+    model.example_input = template.example_input
+    model.version = template.version
+    model.is_featured = template.is_featured
+    model.status = "published"
+
+
+def seed_official_models(db: Session) -> int:
+    """Upsert official models from YAML template files into the unified entity.
+
+    * New templates create an anchor ``ModelProject`` (system org) + published
+      ``ModelProjectListing``.
+    * Existing ones are updated in-place (upsert, id ``official_{template.id}``).
+    * Templates that no longer appear in the YAML source get ``status='deprecated'``
+      on their listing.
 
     Uses ``db.flush()`` (caller-commits pattern) so the function is composable
     inside a larger transaction such as the app lifespan.
 
     Returns the number of templates processed.
     """
+    org_id = ensure_official_org(db)
     templates = load_all_templates()
     seen_ids: set[str] = set()
     count = 0
 
     for template in templates:
-        catalog_id = f"official_{template.id}"
-        seen_ids.add(catalog_id)
-
-        existing = db.query(ModelCatalog).filter(ModelCatalog.id == catalog_id).first()
-
+        official_id = f"official_{template.id}"
+        seen_ids.add(official_id)
         merged_tags = template.tags + template.problem_type_tags
+        now = utcnow()
 
-        if existing:
-            existing.name = template.name
-            existing.display_name = template.display_name
-            existing.description = template.description
-            existing.short_description = template.short_description
-            existing.scenario_description = template.scenario_description
-            existing.category = template.category
-            existing.tags = merged_tags
-            existing.generator_type = template.generator_type
-            existing.input_schema = build_input_schema(template)
-            existing.input_fields = [f.model_dump() for f in template.input_fields]
-            existing.example_input = template.example_input
-            existing.version = template.version
-            existing.is_featured = template.is_featured
-            existing.status = "published"
-            existing.updated_at = utcnow()
-            logger.info("  Updated: %s", template.id)
-        else:
-            model = ModelCatalog(
-                id=catalog_id,
-                name=template.name,
-                display_name=template.display_name,
+        # Anchor ModelProject (thin — the model content is the generator facet on
+        # the listing, rendered at consume-time; no draft needed).
+        project = db.query(ModelProject).filter(ModelProject.id == official_id).first()
+        if project is None:
+            project = ModelProject(
+                id=official_id,
+                organization_id=org_id,
+                name=template.display_name,
                 description=template.description,
-                short_description=template.short_description,
-                scenario_description=template.scenario_description,
-                category=template.category,
-                tags=merged_tags,
-                generator_type=template.generator_type,
-                input_schema=build_input_schema(template),
-                input_fields=[f.model_dump() for f in template.input_fields],
-                example_input=template.example_input,
-                version=template.version,
+                status="active",
+                source_type="official",
+            )
+            db.add(project)
+        else:
+            project.organization_id = org_id
+            project.name = template.display_name
+            project.description = template.description
+            project.status = "active"
+
+        # Marketplace listing facet.
+        listing = (
+            db.query(ModelProjectListing)
+            .filter(ModelProjectListing.model_project_id == official_id)
+            .first()
+        )
+        if listing is None:
+            listing = ModelProjectListing(model_project_id=official_id, published_at=now)
+            _apply_listing_fields(listing, template, merged_tags)
+            db.add(listing)
+        else:
+            _apply_listing_fields(listing, template, merged_tags)
+            if listing.published_at is None:
+                listing.published_at = now
+
+        # P1.5 bridge: keep the legacy catalog row in sync (removed in the collapse slice).
+        catalog = db.query(ModelCatalog).filter(ModelCatalog.id == official_id).first()
+        if catalog is None:
+            catalog = ModelCatalog(
+                id=official_id,
                 status="published",
                 is_official=True,
-                is_featured=template.is_featured,
                 is_public=True,
-                published_at=utcnow(),
+                published_at=now,
             )
-            db.add(model)
-            logger.info("  Created: %s", template.id)
+            _apply_catalog_fields(catalog, template, merged_tags)
+            db.add(catalog)
+        else:
+            _apply_catalog_fields(catalog, template, merged_tags)
 
+        logger.info("  Seeded official: %s", template.id)
         count += 1
 
-    # Deprecate official models that are no longer in the YAML source
-    stale = db.query(ModelCatalog).filter(
+    _deprecate_stale(db, seen_ids)
+
+    db.flush()
+    return count
+
+
+def _deprecate_stale(db: Session, seen_ids: set[str]) -> None:
+    """Deprecate official listings (+ bridge catalog rows) no longer in the YAML source."""
+    stale_listings = db.query(ModelProjectListing).filter(
+        ModelProjectListing.is_official.is_(True),
+        ModelProjectListing.status != "deprecated",
+    )
+    if seen_ids:
+        stale_listings = stale_listings.filter(
+            ModelProjectListing.model_project_id.notin_(seen_ids)
+        )
+    for listing in stale_listings.all():
+        listing.status = "deprecated"
+        logger.info("  Deprecated: %s", listing.model_project_id)
+
+    stale_catalog = db.query(ModelCatalog).filter(
         ModelCatalog.is_official.is_(True),
         ModelCatalog.status != "deprecated",
     )
     if seen_ids:
-        stale = stale.filter(ModelCatalog.id.notin_(seen_ids))
-
-    for model in stale.all():
+        stale_catalog = stale_catalog.filter(ModelCatalog.id.notin_(seen_ids))
+    for model in stale_catalog.all():
         model.status = "deprecated"
         model.updated_at = utcnow()
-        logger.info("  Deprecated: %s", model.id)
-
-    db.flush()
-    return count
 
 
 def seed_models() -> None:

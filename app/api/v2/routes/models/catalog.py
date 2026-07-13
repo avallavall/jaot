@@ -22,7 +22,7 @@ from app.schemas.model import (
     ModelCatalogResponse,
     OrganizationModelResponse,
 )
-from app.services.marketplace_fusion import is_fusion_enabled, listing_to_catalog_response
+from app.services.marketplace_fusion import listing_to_catalog_response
 from app.services.notification_service import NotificationService
 from app.services.seller_analytics_service import SellerAnalyticsService
 from app.shared.db.base import get_db
@@ -46,11 +46,9 @@ async def list_catalog_models(
     db: Session = Depends(get_db),
 ) -> ModelCatalogListResponse:
     """List models available in the marketplace catalog."""
-    # P1.5 cutover: serve from the unified listing facet when the flag is on. The
-    # facet shares column names with the catalog, so only the queried class + the
-    # id/response mapping differ (ids were preserved by the backfill).
-    fusion = is_fusion_enabled(db)
-    model_cls = ModelProjectListing if fusion else ModelCatalog
+    # P1.5 fusion: the marketplace serves from the unified ModelProjectListing facet
+    # (the model content lives on the project/version; the listing is its presentation).
+    model_cls = ModelProjectListing
 
     query = db.query(model_cls).filter(
         model_cls.status == "published",
@@ -98,7 +96,7 @@ async def list_catalog_models(
 
     items = []
     for s in models:
-        item = listing_to_catalog_response(s) if fusion else ModelCatalogResponse.model_validate(s)
+        item = listing_to_catalog_response(s)
         if s.author_organization_id:
             author_org = orgs.get(s.author_organization_id)
             if author_org:
@@ -106,8 +104,8 @@ async def list_catalog_models(
                 item.author_verified = author_org.is_verified
         items.append(item)
 
-    # Fire-and-forget: log impressions for returned models (ids preserved → catalog
-    # rows still exist, so ModelViewEvent.catalog_model_id stays valid).
+    # Fire-and-forget: log impressions for the returned listings (keyed by their
+    # model_project_id — the marketplace identity).
     try:
         if models:
             analytics = SellerAnalyticsService(db)
@@ -138,37 +136,24 @@ async def get_catalog_model(
     db: Session = Depends(get_db),
 ) -> ModelCatalogResponse:
     """Get details of a specific model in the catalog."""
-    fusion = is_fusion_enabled(db)
-    if fusion:
-        listing = (
-            db.query(ModelProjectListing)
-            .filter(
-                ModelProjectListing.model_project_id == model_id,
-                ModelProjectListing.status == "published",
-                ModelProjectListing.is_public == True,  # noqa: E712
-            )
-            .first()
+    listing = (
+        db.query(ModelProjectListing)
+        .filter(
+            ModelProjectListing.model_project_id == model_id,
+            ModelProjectListing.status == "published",
+            ModelProjectListing.is_public == True,  # noqa: E712
         )
-        model = listing
-        response = listing_to_catalog_response(listing) if listing else None
-    else:
-        model = (
-            db.query(ModelCatalog)
-            .filter(
-                ModelCatalog.id == model_id,
-                ModelCatalog.status == "published",
-                ModelCatalog.is_public == True,  # noqa: E712
-            )
-            .first()
-        )
-        response = ModelCatalogResponse.model_validate(model) if model else None
+        .first()
+    )
 
-    if not model or response is None:
+    if not listing:
         raise HTTPException(status_code=404, detail="Model not found")
 
-    if model.author_organization_id:
+    response = listing_to_catalog_response(listing)
+
+    if listing.author_organization_id:
         author_org = (
-            db.query(Organization).filter(Organization.id == model.author_organization_id).first()
+            db.query(Organization).filter(Organization.id == listing.author_organization_id).first()
         )
         if author_org:
             response.author_name = author_org.name
@@ -197,49 +182,25 @@ async def get_catalog_model_schema(
     Requires ``is_public`` (like the detail endpoint): the schema exposes the
     generator + input fields, so a published-but-unlisted model must not leak it.
     """
-    if is_fusion_enabled(db):
-        listing = (
-            db.query(ModelProjectListing)
-            .filter(
-                ModelProjectListing.model_project_id == model_id,
-                ModelProjectListing.status == "published",
-                ModelProjectListing.is_public == True,  # noqa: E712
-            )
-            .first()
-        )
-        if not listing:
-            raise HTTPException(status_code=404, detail="Model not found")
-        return {
-            "id": listing.model_project_id,
-            "name": listing.name,
-            "generator_type": listing.generator_type,
-            "input_schema": listing.input_schema,
-            "input_fields": listing.input_fields,
-            "example_input": listing.example_input,
-            "scenario_description": listing.scenario_description,
-        }
-
-    model = (
-        db.query(ModelCatalog)
+    listing = (
+        db.query(ModelProjectListing)
         .filter(
-            ModelCatalog.id == model_id,
-            ModelCatalog.status == "published",
-            ModelCatalog.is_public == True,  # noqa: E712
+            ModelProjectListing.model_project_id == model_id,
+            ModelProjectListing.status == "published",
+            ModelProjectListing.is_public == True,  # noqa: E712
         )
         .first()
     )
-
-    if not model:
+    if not listing:
         raise HTTPException(status_code=404, detail="Model not found")
-
     return {
-        "id": model.id,
-        "name": model.name,
-        "generator_type": model.generator_type,
-        "input_schema": model.input_schema,
-        "input_fields": model.input_fields,
-        "example_input": model.example_input,
-        "scenario_description": model.scenario_description,
+        "id": listing.model_project_id,
+        "name": listing.name,
+        "generator_type": listing.generator_type,
+        "input_schema": listing.input_schema,
+        "input_fields": listing.input_fields,
+        "example_input": listing.example_input,
+        "scenario_description": listing.scenario_description,
     }
 
 

@@ -15,7 +15,49 @@ These tests use the real PostgreSQL test database (not mocks).
 import pytest
 
 from app.domains.solver.services.generators import GENERATOR_REGISTRY
-from app.models import ModelCatalog, ModelCategory
+from app.models import (
+    ModelCatalog,
+    ModelCategory,
+    ModelProject,
+    ModelProjectListing,
+    Organization,
+)
+
+
+def _mirror_listing(db, model: ModelCatalog) -> None:
+    """Mirror a catalog row into the unified ModelProject + listing (P1.5 fusion).
+
+    The marketplace/MCP catalog tools serve from the listing facet, so a test that
+    plants a ``ModelCatalog`` must also plant the listing that the endpoint reads.
+    """
+    org_id = "org_mcp_test"
+    if not db.query(Organization).filter(Organization.id == org_id).first():
+        db.add(Organization(id=org_id, name="MCP Test Org"))
+        db.flush()
+    db.add(
+        ModelProject(id=model.id, organization_id=org_id, name=model.display_name, status="active")
+    )
+    db.flush()
+    category = model.category.value if hasattr(model.category, "value") else model.category
+    db.add(
+        ModelProjectListing(
+            model_project_id=model.id,
+            name=model.name,
+            display_name=model.display_name,
+            description=model.description,
+            short_description=model.short_description,
+            category=category,
+            tags=model.tags,
+            generator_type=model.generator_type,
+            input_schema=model.input_schema,
+            input_fields=model.input_fields,
+            example_input=model.example_input,
+            version=model.version,
+            status=model.status,
+            is_official=model.is_official,
+            is_public=model.is_public,
+        )
+    )
 
 
 @pytest.fixture
@@ -39,6 +81,7 @@ def published_catalog_model(db_session):
         is_public=True,
     )
     db_session.add(model)
+    _mirror_listing(db_session, model)
     db_session.commit()
     db_session.refresh(model)
     return model
@@ -63,6 +106,7 @@ def draft_catalog_model(db_session):
         is_public=True,
     )
     db_session.add(model)
+    _mirror_listing(db_session, model)
     db_session.commit()
     db_session.refresh(model)
     return model
@@ -87,6 +131,7 @@ def private_catalog_model(db_session):
         is_public=False,
     )
     db_session.add(model)
+    _mirror_listing(db_session, model)
     db_session.commit()
     db_session.refresh(model)
     return model

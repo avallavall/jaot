@@ -1,26 +1,14 @@
-"""P1.5 marketplace-fusion read cutover, behind ``MARKETPLACE_FUSION_ENABLED``.
+"""P1.5 marketplace-fusion — the listing → marketplace-wire mapper.
 
-When the flag is on, the marketplace read endpoints serve from the unified
-``ModelProjectListing`` facet instead of the legacy ``ModelCatalog`` table. The two
-share column names (category / name / is_official / avg_rating / status / is_public /
-…), so callers only need to swap the queried class and map the id: a listing's PK is
-``model_project_id`` and the backfill PRESERVED ids, so ``model_project_id`` equals the
-original catalog id — every downstream reference (impressions, detail links, activation)
-keeps working unchanged.
+The marketplace serves from the unified ``ModelProjectListing`` facet. Its PK is
+``model_project_id`` (the marketplace identity); this module maps a listing onto the
+public ``ModelCatalogResponse`` wire shape the frontend + API/MCP consumers expect.
 """
 
 from __future__ import annotations
 
-from typing import Any
-
 from app.models import ModelProjectListing
 from app.schemas.model import ModelCatalogResponse
-from app.services.platform_settings_service import PlatformSettingsService as PSS
-
-
-def is_fusion_enabled(db: Any) -> bool:
-    """Whether the marketplace serves from the fused entities (flag, cached in PSS)."""
-    return PSS.get_bool(db, "MARKETPLACE_FUSION_ENABLED")
 
 
 def listing_to_catalog_response(listing: ModelProjectListing) -> ModelCatalogResponse:
