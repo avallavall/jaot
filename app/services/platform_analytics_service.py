@@ -27,10 +27,10 @@ from app.models import (
     FormulationRating,
     LLMConversation,
     LLMMessage,
-    ModelCatalog,
     ModelExecution,
+    ModelProject,
+    ModelProjectListing,
     Organization,
-    OrganizationModel,
     SolveTrigger,
     TriggerRun,
     TriggerSchedule,
@@ -130,10 +130,15 @@ def compute_platform_overview(db: Session, days: int) -> dict[str, Any]:
         .scalar()
     )
 
-    # Builder / ad-hoc solves: executions with no catalog/org model attached
-    # (organization_model_id NULL — the /solve path used by the visual builder and
-    # the LLM "Solve"), as opposed to catalog/marketplace model executions.
-    builder_filter = [*exec_window, ModelExecution.organization_model_id.is_(None)]
+    # Builder / ad-hoc solves: executions with no model attached at all — neither
+    # a ModelProject (studio/marketplace, post-fusion) nor a legacy org model
+    # (historic rows) — i.e. the raw /solve path used by the visual builder and
+    # the LLM "Solve".
+    builder_filter = [
+        *exec_window,
+        ModelExecution.model_project_id.is_(None),
+        ModelExecution.organization_model_id.is_(None),
+    ]
     builder_total = db.query(func.count(ModelExecution.id)).filter(*builder_filter).scalar() or 0
     builder_completed = (
         db.query(func.count(ModelExecution.id))
@@ -147,8 +152,19 @@ def compute_platform_overview(db: Session, days: int) -> dict[str, Any]:
         .scalar()
     )
 
-    # ── Per-category breakdown (executions → org_model → catalog.category) ─
-    category_col = func.coalesce(ModelCatalog.category, "custom")
+    # ── Per-category breakdown (executions → project → listing.category) ──
+    # Category lives on the marketplace listing. Executions link to a project via
+    # the typed model_project_id; historic rows carry the legacy org-model id,
+    # which the P1.5 backfill preserved as the project id — coalesce covers both.
+    # A fork project (seeded from-marketplace) takes its source listing's category.
+    exec_project_id = func.coalesce(
+        ModelExecution.model_project_id, ModelExecution.organization_model_id
+    )
+    listing_key = case(
+        (ModelProject.source_type == "marketplace", ModelProject.source_ref),
+        else_=ModelProject.id,
+    )
+    category_col = func.coalesce(ModelProjectListing.category, "custom")
     completed_sum = func.sum(case((ModelExecution.status == "completed", 1), else_=0))
     cat_rows = (
         db.query(
@@ -158,11 +174,8 @@ def compute_platform_overview(db: Session, days: int) -> dict[str, Any]:
             completed_sum.label("completed"),
         )
         .select_from(ModelExecution)
-        .outerjoin(
-            OrganizationModel,
-            ModelExecution.organization_model_id == OrganizationModel.id,
-        )
-        .outerjoin(ModelCatalog, OrganizationModel.catalog_id == ModelCatalog.id)
+        .outerjoin(ModelProject, ModelProject.id == exec_project_id)
+        .outerjoin(ModelProjectListing, ModelProjectListing.model_project_id == listing_key)
         .filter(*exec_window)
         .group_by(category_col)
         .order_by(func.count(ModelExecution.id).desc())
@@ -316,18 +329,18 @@ def compute_reliability(db: Session, days: int) -> dict[str, Any]:
 
     low_rows = (
         db.query(
-            ModelCatalog.id,
-            ModelCatalog.display_name,
-            ModelCatalog.category,
-            ModelCatalog.success_rate,
-            ModelCatalog.total_executions,
+            ModelProjectListing.model_project_id,
+            ModelProjectListing.display_name,
+            ModelProjectListing.category,
+            ModelProjectListing.success_rate,
+            ModelProjectListing.total_executions,
         )
         .filter(
-            ModelCatalog.success_rate.isnot(None),
-            ModelCatalog.success_rate < _LOW_SUCCESS_THRESHOLD,
-            ModelCatalog.total_executions >= _LOW_SUCCESS_MIN_EXECUTIONS,
+            ModelProjectListing.success_rate.isnot(None),
+            ModelProjectListing.success_rate < _LOW_SUCCESS_THRESHOLD,
+            ModelProjectListing.total_executions >= _LOW_SUCCESS_MIN_EXECUTIONS,
         )
-        .order_by(ModelCatalog.success_rate.asc())
+        .order_by(ModelProjectListing.success_rate.asc())
         .limit(10)
         .all()
     )
@@ -376,9 +389,12 @@ def compute_ai_usage(db: Session, days: int) -> dict[str, Any]:
         .scalar()
         or 0
     )
+    # "Accepted" = the conversation got linked to a ModelProject (the studio
+    # writes model_project_id; the legacy organization_model_id column was
+    # never written by any flow).
     accepted = (
         db.query(func.count(LLMConversation.id))
-        .filter(*conv_window, LLMConversation.organization_model_id.isnot(None))
+        .filter(*conv_window, LLMConversation.model_project_id.isnot(None))
         .scalar()
         or 0
     )

@@ -11,7 +11,7 @@ from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from app.models.audit_log import AuditAction
-from app.models.optimization_model import ModelCatalog
+from app.models.model_project import ModelProjectListing
 from app.models.organization import Organization
 from app.models.verification_request import VerificationRequest, VerificationStatus
 from app.schemas.verification import AdminVerificationEntry
@@ -93,17 +93,17 @@ class VerificationService:
         orgs = self.db.query(Organization).filter(Organization.id.in_(org_ids)).all()
         org_map = {o.id: o for o in orgs}
 
-        # Published model counts
+        # Published listing counts
         model_counts = (
             self.db.query(
-                ModelCatalog.author_organization_id,
+                ModelProjectListing.author_organization_id,
                 func.count().label("cnt"),
             )
             .filter(
-                ModelCatalog.author_organization_id.in_(org_ids),
-                ModelCatalog.status == "published",
+                ModelProjectListing.author_organization_id.in_(org_ids),
+                ModelProjectListing.status == "published",
             )
-            .group_by(ModelCatalog.author_organization_id)
+            .group_by(ModelProjectListing.author_organization_id)
             .all()
         )
         models_map = {r.author_organization_id: r.cnt for r in model_counts}

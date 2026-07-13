@@ -14,7 +14,6 @@ from app.models import (
     ModelProject,
     ModelProjectListing,
     Organization,
-    OrganizationModel,
     User,
 )
 from app.models.model_view_event import ModelViewEvent
@@ -146,7 +145,8 @@ def view_events(db_session, catalog_model):
 
 @pytest.fixture
 def activation(db_session, seller_org, catalog_model):
-    """Another org activates the seller's model (ADR-008: the analytics event)."""
+    """Another org adopts the seller's model (a fork ModelProject seeded
+    from-marketplace — the post-fusion analytics event)."""
     buyer_org = Organization(
         id=generate_id("org_"),
         name="Buyer Org",
@@ -155,16 +155,17 @@ def activation(db_session, seller_org, catalog_model):
     )
     db_session.add(buyer_org)
     db_session.flush()
-    org_model = OrganizationModel(
-        id=generate_id("om_"),
+    fork = ModelProject(
+        id=generate_id("mp_"),
         organization_id=buyer_org.id,
-        catalog_id=catalog_model.id,
-        is_active=True,
-        is_favorite=False,
+        name="Forked Test Model",
+        status="active",
+        source_type="marketplace",
+        source_ref=catalog_model.id,
     )
-    db_session.add(org_model)
+    db_session.add(fork)
     db_session.commit()
-    return org_model
+    return fork
 
 
 class TestAnalyticsSummary:
@@ -432,14 +433,16 @@ class TestSellerAnalyticsCrossOrgIsolation:
                 )
             )
 
-        # And a foreign activation to make sure counts do not leak either
+        # And a foreign self-activation (the author org forking its OWN listing)
+        # to make sure counts do not leak either
         db_session.add(
-            OrganizationModel(
-                id=generate_id("om_"),
+            ModelProject(
+                id=generate_id("mp_"),
                 organization_id=foreign_org.id,
-                catalog_id=foreign_model.id,
-                is_active=True,
-                is_favorite=False,
+                name="Foreign Self Fork",
+                status="active",
+                source_type="marketplace",
+                source_ref=foreign_model.id,
             )
         )
         db_session.commit()

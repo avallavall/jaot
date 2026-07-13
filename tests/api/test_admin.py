@@ -188,7 +188,7 @@ class TestAdminOrganizations:
         from app.models import (
             APIKey,
             ModelExecution,
-            OrganizationModel,
+            ModelProject,
             User,
         )
         from app.shared.utils.datetime_helpers import utcnow
@@ -202,7 +202,7 @@ class TestAdminOrganizations:
         db_session.add(org)
         db_session.flush()
 
-        # Seed: 1 user, 1 api key, 1 org-model, 1 execution
+        # Seed: 1 user, 1 api key, 1 model project, 1 execution
         user = User(
             id=generate_id("usr_"),
             email="cascade@example.com",
@@ -225,19 +225,19 @@ class TestAdminOrganizations:
         )
         db_session.add(api_key)
 
-        org_model = OrganizationModel(
-            id=generate_id("om_"),
+        project = ModelProject(
+            id=generate_id("mp_"),
             organization_id=org.id,
-            custom_name="Cascade Model",
-            is_active=True,
+            name="Cascade Model",
+            status="active",
         )
-        db_session.add(org_model)
+        db_session.add(project)
         db_session.flush()
 
         execution = ModelExecution(
             id=generate_id("exe_"),
             organization_id=org.id,
-            organization_model_id=org_model.id,
+            model_project_id=project.id,
             input_data={},
             status="completed",
         )
@@ -249,7 +249,7 @@ class TestAdminOrganizations:
         seeded_ids = {
             "user": user.id,
             "key": api_key.id,
-            "model": org_model.id,
+            "model": project.id,
             "execution": execution.id,
         }
 
@@ -270,11 +270,9 @@ class TestAdminOrganizations:
             db_session.query(APIKey).filter(APIKey.id == seeded_ids["key"]).first() is not None
         ), "APIKey row was wiped — soft delete contract violated"
         assert (
-            db_session.query(OrganizationModel)
-            .filter(OrganizationModel.id == seeded_ids["model"])
-            .first()
+            db_session.query(ModelProject).filter(ModelProject.id == seeded_ids["model"]).first()
             is not None
-        ), "OrganizationModel row was wiped — soft delete contract violated"
+        ), "ModelProject row was wiped — soft delete contract violated"
         assert (
             db_session.query(ModelExecution)
             .filter(ModelExecution.id == seeded_ids["execution"])
@@ -290,23 +288,22 @@ class TestAdminOrganizationOverview:
         self, admin_client, db_session, test_organization, test_user, test_api_key
     ):
         """Overview aggregates the org's members, keys, models and stats."""
-        from app.models import ModelExecution, OrganizationModel
+        from app.models import ModelExecution, ModelProject
         from app.shared.utils.id_generator import generate_id
 
-        org_model = OrganizationModel(
-            id=generate_id("om_"),
+        project = ModelProject(
+            id=generate_id("mp_"),
             organization_id=test_organization.id,
-            custom_name="Overview Model",
-            is_active=True,
-            total_executions=2,
+            name="Overview Model",
+            status="active",
         )
-        db_session.add(org_model)
+        db_session.add(project)
         db_session.flush()
 
         execution = ModelExecution(
             id=generate_id("exe_"),
             organization_id=test_organization.id,
-            organization_model_id=org_model.id,
+            model_project_id=project.id,
             input_data={},
             status="completed",
         )
@@ -328,9 +325,14 @@ class TestAdminOrganizationOverview:
         assert data["counts"]["users"] >= 1
         assert data["counts"]["api_keys"] >= 1
 
-        # Models + executions + transactions surfaced
-        assert org_model.id in [m["id"] for m in data["models"]]
-        assert execution.id in [e["id"] for e in data["recent_executions"]]
+        # Models + executions surfaced (per-project rollups computed from executions)
+        models_by_id = {m["id"]: m for m in data["models"]}
+        assert project.id in models_by_id
+        assert models_by_id[project.id]["display_name"] == "Overview Model"
+        assert models_by_id[project.id]["total_executions"] == 1
+        recent = {e["id"]: e for e in data["recent_executions"]}
+        assert execution.id in recent
+        assert recent[execution.id]["model_display_name"] == "Overview Model"
         assert data["counts"]["executions"] >= 1
         assert data["execution_stats"]["completed"] >= 1
 

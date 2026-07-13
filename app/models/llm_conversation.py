@@ -38,8 +38,10 @@ class LLMConversation(Base):
     """A conversation thread for LLM-powered formulation generation.
 
     Each conversation belongs to an organization/user pair and may optionally
-    be linked to an OrganizationModel once the user accepts the formulation.
-    Conversations auto-expire after a configurable TTL (default 24h).
+    be linked to a ModelProject (``model_project_id``, written by the studio).
+    The legacy ``organization_model_id`` column was never written by any flow
+    and drops in the contract release. Conversations auto-expire after a
+    configurable TTL (default 24h).
     """
 
     __tablename__ = "llm_conversations"

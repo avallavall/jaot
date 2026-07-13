@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.v2.auth import get_current_user
-from app.models import ModelCatalog, NotificationPreference, Organization, User
+from app.models import ModelProjectListing, NotificationPreference, Organization, User
 from app.schemas.seller import (
     NotificationPreferenceEntry,
     NotificationPreferencesResponse,
@@ -243,22 +243,19 @@ async def get_onboarding_status(
     # Step 1: Complete profile - org has name and bio filled
     profile_complete = bool(org and org.name and org.bio and org.bio.strip())
 
-    # Step 2: Publish a model
+    # Step 2: Publish a model (a published marketplace listing)
     published_models = (
-        db.query(ModelCatalog)
+        db.query(ModelProjectListing)
         .filter(
-            ModelCatalog.author_organization_id == org_id,
-            ModelCatalog.status == "published",
+            ModelProjectListing.author_organization_id == org_id,
+            ModelProjectListing.status == "published",
         )
         .all()
     )
     has_published = len(published_models) > 0
 
-    # Step 3: Add rich media (logo or screenshots on a published model)
-    has_rich_media = any(
-        m.logo_url or (hasattr(m, "screenshot_urls") and m.screenshot_urls)
-        for m in published_models
-    )
+    # Step 3: Add rich media (logo or screenshots on a published listing)
+    has_rich_media = any(m.logo_url or m.screenshot_urls for m in published_models)
 
     steps = [
         OnboardingStep(

@@ -3,10 +3,10 @@
 Handles view/impression logging with geoIP lookup, and provides aggregation
 queries for seller dashboards and admin analytics.
 
-ADR-008: metrics are non-monetary — an "activation" is an ``OrganizationModel``
-row created for a catalog model (someone adopted it), not a credit sale.
-Self-activations (the author's own org) are excluded so the metric keeps its
-"someone else adopted my model" meaning.
+ADR-008: metrics are non-monetary — an "activation" is a fork ``ModelProject``
+seeded from a listing via from-marketplace (someone adopted the model), not a
+credit sale. Self-activations (the author's own org forking its own listing)
+are excluded so the metric keeps its "someone else adopted my model" meaning.
 """
 
 import logging
@@ -15,9 +15,8 @@ from datetime import datetime, timedelta
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models.model_project import ModelProjectListing
+from app.models.model_project import ModelProject, ModelProjectListing
 from app.models.model_view_event import ModelViewEvent
-from app.models.optimization_model import ModelCatalog, OrganizationModel
 from app.schemas.seller_analytics import (
     AnalyticsSummaryResponse,
     ConversionFunnelResponse,
@@ -129,18 +128,25 @@ class SellerAnalyticsService:
         return q
 
     def _base_activation_query(self, org_id: str | None, since: datetime | None):  # noqa: ANN202
-        """Activations = OrganizationModel rows on the org's catalog models.
+        """Activations = fork ModelProjects seeded from the org's listings.
 
-        Excludes the author org activating its own model.
+        A fork is a project seeded via from-marketplace (``source_type="marketplace"``,
+        ``source_ref`` = the listing's project id). Excludes the author org forking
+        its own listing.
         """
-        q = self.db.query(OrganizationModel).join(
-            ModelCatalog, ModelCatalog.id == OrganizationModel.catalog_id
+        q = (
+            self.db.query(ModelProject)
+            .join(
+                ModelProjectListing,
+                ModelProjectListing.model_project_id == ModelProject.source_ref,
+            )
+            .filter(ModelProject.source_type == "marketplace")
         )
         if org_id is not None:
-            q = q.filter(ModelCatalog.author_organization_id == org_id)
-        q = q.filter(OrganizationModel.organization_id != ModelCatalog.author_organization_id)
+            q = q.filter(ModelProjectListing.author_organization_id == org_id)
+        q = q.filter(ModelProject.organization_id != ModelProjectListing.author_organization_id)
         if since is not None:
-            q = q.filter(OrganizationModel.created_at >= since)
+            q = q.filter(ModelProject.created_at >= since)
         return q
 
     def get_summary(self, org_id: str | None, period: str) -> AnalyticsSummaryResponse:
@@ -183,10 +189,10 @@ class SellerAnalyticsService:
         daily_activations = (
             self._base_activation_query(org_id, since)
             .with_entities(
-                func.date(OrganizationModel.created_at).label("day"),
+                func.date(ModelProject.created_at).label("day"),
                 func.count().label("activations"),
             )
-            .group_by(func.date(OrganizationModel.created_at))
+            .group_by(func.date(ModelProject.created_at))
             .all()
         )
 
@@ -254,17 +260,18 @@ class SellerAnalyticsService:
         view_rows = view_q.group_by(ModelViewEvent.model_project_id).all()
         views_map = {r.model_project_id: r.views for r in view_rows}
 
-        # Activations per model
+        # Activations per model (keyed by the forked listing's project id — the
+        # same id space as views, since a fork's source_ref IS the listing id)
         activation_rows = (
             self._base_activation_query(org_id, since)
             .with_entities(
-                OrganizationModel.catalog_id,
+                ModelProject.source_ref,
                 func.count().label("activations"),
             )
-            .group_by(OrganizationModel.catalog_id)
+            .group_by(ModelProject.source_ref)
             .all()
         )
-        activations_map = {r.catalog_id: r.activations for r in activation_rows}
+        activations_map = {r.source_ref: r.activations for r in activation_rows}
 
         all_model_ids = set(views_map.keys()) | set(activations_map.keys())
         if not all_model_ids:
@@ -314,10 +321,10 @@ class SellerAnalyticsService:
         activation_rows = (
             self._base_activation_query(org_id=None, since=since)
             .with_entities(
-                ModelCatalog.author_organization_id.label("org_id"),
+                ModelProjectListing.author_organization_id.label("org_id"),
                 func.count().label("total_activations"),
             )
-            .group_by(ModelCatalog.author_organization_id)
+            .group_by(ModelProjectListing.author_organization_id)
             .all()
         )
 
@@ -336,17 +343,17 @@ class SellerAnalyticsService:
         )
         org_name_map = {o.id: o.name for o in orgs}
 
-        # Published models count per org
+        # Published listings count per org
         model_counts = (
             self.db.query(
-                ModelCatalog.author_organization_id,
+                ModelProjectListing.author_organization_id,
                 func.count().label("cnt"),
             )
             .filter(
-                ModelCatalog.author_organization_id.in_(org_ids),
-                ModelCatalog.status == "published",
+                ModelProjectListing.author_organization_id.in_(org_ids),
+                ModelProjectListing.status == "published",
             )
-            .group_by(ModelCatalog.author_organization_id)
+            .group_by(ModelProjectListing.author_organization_id)
             .all()
         )
         models_map = {r.author_organization_id: r.cnt for r in model_counts}
@@ -354,14 +361,14 @@ class SellerAnalyticsService:
         # Avg rating per org
         rating_rows = (
             self.db.query(
-                ModelCatalog.author_organization_id,
-                func.avg(ModelCatalog.avg_rating).label("avg_r"),
+                ModelProjectListing.author_organization_id,
+                func.avg(ModelProjectListing.avg_rating).label("avg_r"),
             )
             .filter(
-                ModelCatalog.author_organization_id.in_(org_ids),
-                ModelCatalog.avg_rating.isnot(None),
+                ModelProjectListing.author_organization_id.in_(org_ids),
+                ModelProjectListing.avg_rating.isnot(None),
             )
-            .group_by(ModelCatalog.author_organization_id)
+            .group_by(ModelProjectListing.author_organization_id)
             .all()
         )
         rating_map = {r.author_organization_id: round(float(r.avg_r), 2) for r in rating_rows}

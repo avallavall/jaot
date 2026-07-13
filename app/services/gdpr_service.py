@@ -14,6 +14,7 @@ from app.models import (
     LLMMessage,
     ModelBuilderDocument,
     ModelExecution,
+    ModelProject,
     ModelReview,
     Notification,
     Organization,
@@ -60,16 +61,18 @@ def export_user_data(db: Session, user: User, org: Organization) -> dict[str, An
         "plan": org.plan,
     }
 
-    # Organization models
-    org_models = db.query(OrganizationModel).filter_by(organization_id=org.id).all()
+    # Model projects (the single model entity post-fusion; legacy org-model rows
+    # were backfilled into projects with the same id, so this covers them too)
+    projects = db.query(ModelProject).filter_by(organization_id=org.id).all()
     models_data = [
         {
-            "id": m.id,
-            "catalog_id": m.catalog_id,
-            "is_active": m.is_active,
-            "created_at": str(m.created_at),
+            "id": p.id,
+            "name": p.name,
+            "status": p.status,
+            "source_type": p.source_type,
+            "created_at": str(p.created_at),
         }
-        for m in org_models
+        for p in projects
     ]
 
     # Executions
@@ -77,7 +80,7 @@ def export_user_data(db: Session, user: User, org: Organization) -> dict[str, An
     executions_data = [
         {
             "id": e.id,
-            "organization_model_id": e.organization_model_id,
+            "model_project_id": e.model_project_id or e.organization_model_id,
             "status": e.status,
             "created_at": str(e.created_at),
         }
@@ -179,8 +182,12 @@ def delete_user_account(db: Session, user: User) -> None:
 
     # ---- If sole member, delete org-scoped records + org ----
     if sole_member:
-        # Executions and org models
+        # Executions, model projects (DB-level CASCADE removes their versions,
+        # datasets, listings, reviews, favorites and recents), and legacy
+        # org-model rows (inert since the P1.5 fusion, dropped next release —
+        # the right to erasure still applies to them).
         db.query(ModelExecution).filter_by(organization_id=org_id).delete()
+        db.query(ModelProject).filter_by(organization_id=org_id).delete(synchronize_session=False)
         db.query(OrganizationModel).filter_by(organization_id=org_id).delete()
 
         # Legacy money-era tables (ADR-008): the ORM models are gone but the

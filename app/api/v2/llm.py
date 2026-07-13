@@ -203,8 +203,9 @@ def create_conversation(
 ) -> dict[str, Any]:
     """Create a new LLM conversation.
 
-    Optionally initializes with a template formulation as the first assistant message.
-    Requires the ``llm_assistant`` feature in the organization's plan.
+    A studio conversation (``model_project_id``) is seeded with the project's
+    current model so the first message refines it. Requires the
+    ``llm_assistant`` feature in the organization's plan.
     """
     from datetime import timedelta
 
@@ -243,21 +244,7 @@ def create_conversation(
         expires_at=utcnow() + timedelta(hours=PSS.get_int(db, "LLM_CONVERSATION_TTL_HOURS")),
     )
 
-    # If template_id is provided, load template formulation as the first assistant message
-    if body.template_id:
-        template_formulation = _load_template_formulation(db, body.template_id)
-        if template_formulation:
-            msg = LLMMessage(
-                id=generate_id("msg_"),
-                conversation_id=conv.id,
-                role="assistant",
-                content=json.dumps(template_formulation),
-                formulation_json=template_formulation,
-                created_at=utcnow(),
-            )
-            conv.messages.append(msg)
-            conv.current_formulation = template_formulation
-    elif project is not None:
+    if project is not None:
         # Seed the conversation with the project's current model so the first chat
         # message refines the EXISTING model rather than generating from scratch.
         draft = project.draft_model_json or {}
@@ -1355,19 +1342,3 @@ def delete_attachment(
     db.delete(attachment)
     db.commit()
     return
-
-
-def _load_template_formulation(db: Session, template_id: str) -> dict[str, Any] | None:
-    """Load a template formulation from the model catalog.
-
-    Returns the formulation dict or None if template not found.
-    """
-    from app.models.optimization_model import ModelCatalog
-
-    template = db.query(ModelCatalog).filter(ModelCatalog.id == template_id).first()
-    if not template:
-        return None
-
-    # If the template has a default_formulation JSON field, use it.
-    # Otherwise return None — the template exists but has no pre-built formulation.
-    return getattr(template, "default_formulation", None)
