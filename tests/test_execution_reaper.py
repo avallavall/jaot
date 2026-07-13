@@ -13,8 +13,8 @@ import pytest
 from app.models import (
     ExecutionStatus,
     ModelExecution,
+    ModelProject,
     Organization,
-    OrganizationModel,
 )
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
@@ -73,20 +73,20 @@ def _make_model_execution(
     age_seconds: int,
     status: str = ExecutionStatus.PENDING.value,
 ):
-    """Create an execute-model-async-style row (organization_model_id set)."""
-    model = OrganizationModel(
-        id=generate_id("om_"),
+    """Create an execute-model-async-style row (model_project_id set, P1.5)."""
+    project = ModelProject(
+        id=generate_id("mp_"),
         organization_id=org.id,
-        private_definition={"generator_type": "generic", "input_fields": []},
-        is_active=True,
+        name="Reaper model",
+        status="active",
     )
-    db_session.add(model)
+    db_session.add(project)
     db_session.flush()
 
     execution_id = generate_id("exe_")
     execution = ModelExecution(
         id=execution_id,
-        organization_model_id=model.id,
+        model_project_id=project.id,
         organization_id=org.id,
         celery_task_id=f"task_{execution_id}",
         is_async=True,

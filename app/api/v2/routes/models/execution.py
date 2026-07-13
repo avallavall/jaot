@@ -5,7 +5,8 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.api.v2.auth import get_current_user
@@ -22,8 +23,8 @@ from app.domains.solver.services.availability_gate import ensure_hexaly_worker_o
 from app.domains.solver.services.solver_service import SolverService, get_solver_service
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
 from app.domains.solver.time_limits import compute_celery_time_limits
-from app.models import ExecutionStatus, ModelExecution, Organization, OrganizationModel, User
-from app.models.model_project import ModelProject
+from app.models import ExecutionStatus, ModelExecution, Organization, User
+from app.models.model_project import ModelProject, ModelProjectListing
 from app.schemas.model import (
     ExecuteModelRequest,
     ExecutionListResponse,
@@ -31,6 +32,7 @@ from app.schemas.model import (
 )
 from app.schemas.optimization import OptimizationProblem
 from app.services.solve_orchestrator import ORIGIN_MARKETPLACE
+from app.services.template_resolver import listing_to_template_dict
 from app.shared.db.base import get_db
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
@@ -45,6 +47,45 @@ class PreviewRequest(BaseModel):
     input_data: dict[str, Any]
 
 
+def _project_or_404(db: Session, model_id: str, org_id: str) -> ModelProject:
+    """The org's active ModelProject, or 404 (identical detail cross-org — anti-oracle)."""
+    project = (
+        db.query(ModelProject)
+        .filter(
+            ModelProject.id == model_id,
+            ModelProject.organization_id == org_id,
+            ModelProject.status == "active",
+        )
+        .first()
+    )
+    if not project:
+        raise HTTPException(status_code=404, detail="Model not found or inactive")
+    return project
+
+
+def _resolve_generator_template(db: Session, project: ModelProject) -> dict[str, Any] | None:
+    """The generator template a project executes through, if any.
+
+    A fork (seeded from-marketplace) parametrizes through its SOURCE listing's
+    generator facet; a project whose own listing carries a generator (officials)
+    uses that. A plain project returns None and executes its draft content.
+    """
+    listing_id = (
+        project.source_ref
+        if project.source_type == "marketplace" and project.source_ref
+        else project.id
+    )
+    listing = (
+        db.query(ModelProjectListing)
+        .filter(
+            ModelProjectListing.model_project_id == listing_id,
+            ModelProjectListing.generator_type.isnot(None),
+        )
+        .first()
+    )
+    return listing_to_template_dict(listing) if listing else None
+
+
 @router.post("/{model_id}/preview", response_model=OptimizationProblem)
 async def preview_model(
     model_id: str,
@@ -53,31 +94,18 @@ async def preview_model(
     db: Session = Depends(get_db),
     template_engine: TemplateEngine = Depends(get_template_engine),
 ) -> OptimizationProblem:
-    """Render a model template and return the OptimizationProblem without solving."""
-    model = (
-        db.query(OrganizationModel)
-        .filter(
-            OrganizationModel.id == model_id,
-            OrganizationModel.organization_id == current_user.organization_id,
-            OrganizationModel.is_active == True,  # noqa: E712
-        )
-        .first()
-    )
-    if not model:
-        raise HTTPException(status_code=404, detail="Model not found or inactive")
+    """Render a generator-backed model and return the OptimizationProblem without solving."""
+    project = _project_or_404(db, model_id, current_user.organization_id)
 
-    if model.catalog_model:
-        template = {
-            "generator": model.catalog_model.generator_type,
-            "input_fields": model.catalog_model.input_fields,
-        }
-    elif model.private_definition:
-        template = {
-            "generator": model.private_definition.get("generator_type", "generic"),
-            "input_fields": (model.private_definition or {}).get("input_fields", []),
-        }
-    else:
-        raise HTTPException(status_code=500, detail="Model has no definition")
+    template = _resolve_generator_template(db, project)
+    if template is None:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Model is not generator-backed — it has no input schema to preview. "
+                "Open it in the studio to inspect its content."
+            ),
+        )
 
     return template_engine.render(template, body.input_data)
 
@@ -96,7 +124,13 @@ def execute_model(
     template_engine: TemplateEngine = Depends(get_template_engine),
     solver_name: str | None = Query(default=None, max_length=32),
 ) -> ModelExecutionResponse | dict[str, Any]:
-    """Execute an activated model with the provided input data.
+    """Execute one of the organization's models with the provided input data.
+
+    P1.5 fusion: ``model_id`` is a ModelProject. A generator-backed model (a
+    fork of an official, or a project whose own listing carries a generator)
+    renders ``input_data`` through the TemplateEngine; a plain model solves
+    its draft content directly (``input_data`` must be empty — there is no
+    input schema to fill).
 
     Optional ``solver_name`` selects the solver (``scip``, ``highs``,
     ``hexaly``) or ``auto`` routing; omit for the default.
@@ -107,45 +141,42 @@ def execute_model(
     202 + the async envelope (poll ``poll_url``). Sync ``def`` on purpose —
     the blocking wait belongs in the threadpool, never on the event loop.
     """
-    model = (
-        db.query(OrganizationModel)
-        .filter(
-            OrganizationModel.id == model_id,
-            OrganizationModel.organization_id == current_user.organization_id,
-            OrganizationModel.is_active == True,  # noqa: E712
-        )
-        .first()
-    )
-
-    if not model:
-        raise HTTPException(status_code=404, detail="Model not found or inactive")
+    project = _project_or_404(db, model_id, current_user.organization_id)
 
     org = db.query(Organization).filter(Organization.id == current_user.organization_id).first()
 
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    # Determine generator type
-    if model.catalog_model:
-        generator_type = model.catalog_model.generator_type
-    elif model.private_definition:
-        generator_type = model.private_definition.get("generator_type", "generic")
+    template = _resolve_generator_template(db, project)
+    problem_data: dict[str, Any] | None = None
+    if template is not None:
+        # Render the problem first — auto-routing classification needs it.
+        problem = template_engine.render(template, body.input_data)
     else:
-        raise HTTPException(status_code=500, detail="Model has no definition")
-
-    if model.catalog_model:
-        template = {
-            "generator": generator_type,
-            "input_fields": model.catalog_model.input_fields,
-        }
-    else:
-        template = {
-            "generator": generator_type,
-            "input_fields": (model.private_definition or {}).get("input_fields", []),
-        }
-
-    # Render the problem first — auto-routing classification needs it.
-    problem = template_engine.render(template, body.input_data)
+        if body.input_data:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "Model is not generator-backed — it takes no input_data. "
+                    "Send an empty input_data to solve its current content, or "
+                    "edit the model in the studio."
+                ),
+            )
+        model_json = project.draft_model_json
+        if not model_json:
+            raise HTTPException(
+                status_code=422,
+                detail="Model has no content to solve. Build it in the studio first.",
+            )
+        try:
+            problem = OptimizationProblem.model_validate(model_json)
+        except ValidationError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Stored model is not a valid optimization problem: {exc.errors()[:3]}",
+            ) from exc
+        problem_data = problem.model_dump(mode="json")
 
     # Resolve "auto" to a concrete solver BEFORE queueing or solving.
     # Parity with /api/v2/solve (Phase 7.4 / D-11 / D-13): this endpoint used to
@@ -176,21 +207,19 @@ def execute_model(
         except (SolverNotFoundError, SolverUnavailableError) as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    problem_data = problem.model_dump(mode="json")
-
     execution = ModelExecution(
         id=generate_id("exe_"),
-        organization_model_id=model_id,
+        model_project_id=model_id,
         organization_id=current_user.organization_id,
         executed_by_user_id=current_user.id,
-        input_data=problem_data,
+        input_data=problem.model_dump(mode="json"),
         status=ExecutionStatus.PENDING.value,
         started_at=utcnow(),
         solver_name=effective_solver_name or DEFAULT_SOLVER_NAME,
         auto_route_reason=auto_route_reason,
-        # Provenance: marketplace/catalog execution navigates back to the org model.
+        # Provenance: a model execution navigates back to its ModelProject.
         origin=ORIGIN_MARKETPLACE,
-        source_kind="organization_model",
+        source_kind="model_project",
         source_id=model_id,
     )
     db.add(execution)
@@ -225,6 +254,9 @@ def execute_model(
                 "input_data": body.input_data,
                 "organization_id": current_user.organization_id,
                 "solver_name": effective_solver_name,
+                # Static (non-generator) models ship the validated problem —
+                # the worker solves it directly instead of rendering a template.
+                "problem_data": problem_data,
             },
             queue=target_queue,
             soft_time_limit=soft_limit,
@@ -254,7 +286,7 @@ def execute_model(
     envelope = {
         "id": execution.id,
         "execution_id": execution.id,
-        "organization_model_id": model_id,
+        "model_project_id": model_id,
         "status": "pending",
         "task_id": task.id,
         "ws_url": f"/api/v2/ws/executions/{execution.id}",
@@ -329,6 +361,7 @@ def _shape_model_execution_response(
         }
     return ModelExecutionResponse(
         id=execution.id,
+        model_project_id=execution.model_project_id,
         organization_model_id=execution.organization_model_id,
         input_data=execution.input_data or {},
         origin=execution.origin,
@@ -490,21 +523,27 @@ async def list_model_executions(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ExecutionListResponse:
-    """List execution history for a specific model."""
-    model = (
-        db.query(OrganizationModel)
+    """List execution history for a specific model (ModelProject)."""
+    project = (
+        db.query(ModelProject)
         .filter(
-            OrganizationModel.id == model_id,
-            OrganizationModel.organization_id == current_user.organization_id,
+            ModelProject.id == model_id,
+            ModelProject.organization_id == current_user.organization_id,
         )
         .first()
     )
 
-    if not model:
+    if not project:
         raise HTTPException(status_code=404, detail="Model not found")
 
+    # Typed column for new rows; the legacy org-model column still matches
+    # historic executions because the P1.5 backfill preserved ids.
     query = db.query(ModelExecution).filter(
-        ModelExecution.organization_model_id == model_id,
+        ModelExecution.organization_id == current_user.organization_id,
+        or_(
+            ModelExecution.model_project_id == model_id,
+            ModelExecution.organization_model_id == model_id,
+        ),
     )
 
     if status:
@@ -531,24 +570,27 @@ def _attach_model_names(
     executions: list[ModelExecution],
     items: list[ModelExecutionResponse],
 ) -> None:
-    """Batch-fill each row's ``model_name``/``model_author`` (studio project or org model).
+    """Batch-fill each row's ``model_name``/``model_author`` from its ModelProject.
 
-    The ModelExecution row carries ids/provenance, not a display name. Studio runs
-    trace to a ModelProject (typed ``model_project_id``, or ``source_kind="model_project"``
-    + ``source_id`` for the universal async path); marketplace/activated runs trace to an
-    OrganizationModel. Resolved in two batch queries so the history table shows a name +
-    author instead of an opaque id.
+    The ModelExecution row carries ids/provenance, not a display name. Every run
+    traces to a ModelProject: the typed ``model_project_id``, the generic
+    ``source_kind="model_project"`` + ``source_id`` (the universal async path), or —
+    for historic rows — the legacy ``organization_model_id``, which the P1.5
+    backfill preserved as the project id. One batch query fills names + authors.
 
-    Both lookups are scoped to ``organization_id``: ``source_id`` is client-supplied on
-    the solve request, so a cross-org id must NOT resolve to another org's project name
-    or author — it simply stays opaque.
+    The lookup is scoped to ``organization_id``: ``source_id`` is client-supplied on
+    the solve request, so a cross-org id must NOT resolve to another org's project
+    name or author — it simply stays opaque.
     """
 
     def _mp_id(e: ModelExecution) -> str | None:
-        return e.model_project_id or (e.source_id if e.source_kind == "model_project" else None)
+        return (
+            e.model_project_id
+            or (e.source_id if e.source_kind == "model_project" else None)
+            or e.organization_model_id
+        )
 
     mp_ids = {mp_id for e in executions if (mp_id := _mp_id(e))}
-    om_ids = {e.organization_model_id for e in executions if e.organization_model_id}
 
     mp_info: dict[str, tuple[str, str | None]] = {}
     if mp_ids:
@@ -562,25 +604,11 @@ def _attach_model_names(
         )
         for mp in rows:
             mp_info[mp.id] = (mp.name, mp.created_by_name)
-    om_names: dict[str, str] = {}
-    if om_ids:
-        rows_om = (
-            db.query(OrganizationModel)
-            .filter(
-                OrganizationModel.id.in_(om_ids),
-                OrganizationModel.organization_id == organization_id,
-            )
-            .all()
-        )
-        for om in rows_om:
-            om_names[om.id] = om.display_name
 
     for e, item in zip(executions, items, strict=True):
         mp_id = _mp_id(e)
         if mp_id and mp_id in mp_info:
             item.model_name, item.model_author = mp_info[mp_id]
-        elif e.organization_model_id and e.organization_model_id in om_names:
-            item.model_name = om_names[e.organization_model_id]
 
 
 @router.get("/executions/all", response_model=ExecutionListResponse)

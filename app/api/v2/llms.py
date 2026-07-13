@@ -29,7 +29,7 @@ LLMS_TXT = """\
 
 ## MCP
 - [MCP Endpoint](/mcp): Model Context Protocol server with 16 optimization tools
-- Tools: solve_problem, validate_problem, solve_multi_objective, list_available_solvers, list_templates, get_template, solve_with_template, import_preview, import_and_solve, list_catalog_models, get_catalog_model, get_catalog_model_schema, activate_catalog_model, execute_model, get_execution, get_execution_insights
+- Tools: solve_problem, validate_problem, solve_multi_objective, list_available_solvers, list_templates, get_template, solve_with_template, import_preview, import_and_solve, list_catalog_models, get_catalog_model, get_catalog_model_schema, execute_model, get_execution, get_execution_insights
 
 ## API
 - Base URL: /api/v2
@@ -256,7 +256,7 @@ https://jaot.io/mcp
 
 The MCP endpoint is public (no auth to connect). Individual tools that require authentication will return an error with instructions if called without a Bearer API key.
 
-### Available Tools (16)
+### Available Tools (15)
 
 | Tool | Auth | Description |
 |------|------|-------------|
@@ -272,8 +272,7 @@ The MCP endpoint is public (no auth to connect). Individual tools that require a
 | list_catalog_models | No | Browse marketplace models |
 | get_catalog_model | No | Get model details |
 | get_catalog_model_schema | No | Get model input schema |
-| activate_catalog_model | Yes | Activate a marketplace model |
-| execute_model | Yes | Execute an activated model |
+| execute_model | Yes | Execute one of your models (a ModelProject) |
 | get_execution | Yes | Get execution results |
 | get_execution_insights | Yes | Get auto-insights (gap, time, quality) for an execution |
 
@@ -288,8 +287,8 @@ The MCP endpoint is public (no auth to connect). Individual tools that require a
 1. `list_catalog_models` — browse marketplace
 2. `get_catalog_model("mdl_abc")` — check details
 3. `get_catalog_model_schema("mdl_abc")` — see required inputs
-4. `activate_catalog_model("mdl_abc")` — activate for your org
-5. `execute_model("orgmdl_xyz", {"input_data": {...}})` — run it
+4. `POST /api/v2/projects/from-marketplace/mdl_abc` — fork it into your studio
+5. `execute_model("<project id>", {"input_data": {...}})` — run it
 6. `get_execution` — check results
 
 ## Optimization Concepts

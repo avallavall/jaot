@@ -18,7 +18,8 @@ from app.domains.solver.adapters.base import (
 )
 from app.domains.solver.queue_routing import resolve_queue
 from app.domains.solver.services import get_solver_service
-from app.models import ExecutionStatus, ModelExecution, OrganizationModel
+from app.models import ExecutionStatus, ModelExecution
+from app.models.model_project import ModelProject, ModelProjectListing
 from app.schemas.optimization import (
     MultiObjectiveConfig,
     MultiObjectiveResult,
@@ -540,21 +541,25 @@ def solve_model_async(
     self: Any,
     execution_id: str,
     model_id: str,
-    template: dict[str, Any],
+    template: dict[str, Any] | None,
     input_data: dict[str, Any],
     organization_id: str,
     solver_name: str | None = None,
+    problem_data: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
-    Async task to execute a model from the catalog.
+    Async task to execute one of the organization's models (ModelProject).
 
     Args:
         execution_id: ID of the ModelExecution record
-        model_id: ID of the OrganizationModel
-        template: Template configuration for the solver
-        input_data: Input parameters for the model
+        model_id: ID of the ModelProject being executed
+        template: Generator template to render with ``input_data`` (generator-backed
+            models); None for a static model
+        input_data: Input parameters for the generator (ignored for static models)
         organization_id: Organization making the request
         solver_name: Optional solver name (defaults to SCIP if None)
+        problem_data: The validated OptimizationProblem payload of a static model
+            (used when ``template`` is None)
 
     Returns:
         Execution result dictionary
@@ -590,7 +595,7 @@ def solve_model_async(
             },
         )
 
-        model = db.query(OrganizationModel).filter(OrganizationModel.id == model_id).first()
+        model = db.query(ModelProject).filter(ModelProject.id == model_id).first()
 
         if not model:
             raise ValueError(f"Model {model_id} not found")
@@ -608,9 +613,15 @@ def solve_model_async(
             },
         )
 
-        # Transform input to optimization problem using template engine
-        template_engine = get_template_engine()
-        problem = template_engine.render(template, input_data)
+        # Generator-backed models render input through the template engine;
+        # static models ship their validated problem payload directly.
+        if template is not None:
+            template_engine = get_template_engine()
+            problem = template_engine.render(template, input_data)
+        elif problem_data is not None:
+            problem = OptimizationProblem.model_validate(problem_data)
+        else:
+            raise ValueError(f"Model {model_id} has neither a template nor problem_data")
 
         # Create solver (uses requested solver or default SCIP)
         solver = get_solver_service(solver_name=solver_name)
@@ -695,11 +706,23 @@ def solve_model_async(
             generator="model_async",
         ).inc()
 
-        model.total_executions += 1
-        model.last_executed_at = utcnow()
-
-        if model.catalog_model:
-            model.catalog_model.total_executions += 1
+        # Roll the execution count onto the marketplace listing (a fork bumps its
+        # SOURCE listing; a project with its own listing bumps that). Per-project
+        # counts are computed from model_executions — no per-project counter.
+        listing_id = (
+            model.source_ref
+            if model.source_type == "marketplace" and model.source_ref
+            else model.id
+        )
+        listing = (
+            db.query(ModelProjectListing)
+            .filter(ModelProjectListing.model_project_id == listing_id)
+            .first()
+        )
+        if listing is not None:
+            # SQL-expression assignment → atomic UPDATE (concurrent workers
+            # bumping the same listing must not lose increments).
+            listing.total_executions = ModelProjectListing.total_executions + 1
 
         db.commit()
 
@@ -711,7 +734,7 @@ def solve_model_async(
                 user_id=execution.executed_by_user_id or "",
                 organization_id=organization_id,
                 execution_id=execution_id,
-                model_name=model.display_name,
+                model_name=model.name,
                 objective_value=result.objective_value,
             )
         except Exception as notify_error:

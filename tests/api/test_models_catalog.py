@@ -2,11 +2,11 @@
 Tests for Models Catalog API (Marketplace).
 
 P1.5 fusion: the marketplace serves from the unified ``ModelProjectListing`` facet
-(browse / detail / schema). Activation still creates an ``OrganizationModel`` from a
-``ModelCatalog`` row during the transition (bridge), so those tests keep using it.
+(browse / detail / schema). The legacy activate flow is retired — using a model
+means seeding a fork ModelProject via ``POST /projects/from-marketplace/{id}``.
 """
 
-from app.models import ModelCatalog, ModelCategory, ModelProject, ModelProjectListing
+from app.models import ModelCategory, ModelProject, ModelProjectListing
 
 
 def _make_listing(db, org, *, pid, **overrides) -> ModelProjectListing:
@@ -198,65 +198,17 @@ class TestCatalogSchema:
 
 
 class TestActivateModel:
-    """Tests for POST /api/v2/models/catalog/{model_id}/activate.
+    """The legacy activate flow is RETIRED (P1.5 G6c).
 
-    Activation still resolves the legacy ``ModelCatalog`` row during the fusion
-    transition (bridge) — collapsed to a seeded fork ModelProject in a later slice.
+    Using a marketplace model = seeding a fork ModelProject via
+    ``POST /projects/from-marketplace/{id}`` (covered by test_project_seeding).
     """
 
-    def _make_catalog(self, db, *, cid) -> ModelCatalog:
-        model = ModelCatalog(
-            id=cid,
-            name=cid,
-            display_name="Model " + cid,
-            description="A free model for activation testing",
-            category=ModelCategory.GENERAL,
-            generator_type="generic",
-            input_schema={},
-            input_fields=[],
-            example_input={},
-            version="1.0.0",
-            status="published",
-            is_official=False,
-            is_public=True,
-        )
-        db.add(model)
-        db.commit()
-        return model
-
-    def test_activate_free_model(self, authenticated_client, db_session, test_organization):
-        """Test activating a free model."""
-        self._make_catalog(db_session, cid="test_free_activate_model")
+    def test_activate_route_retired(self, authenticated_client, db_session, test_organization):
+        """POST /catalog/{id}/activate must stay gone — even for a real listing."""
+        _make_listing(db_session, test_organization, pid="test_activate_retired")
 
         response = authenticated_client.post(
-            "/api/v2/models/catalog/test_free_activate_model/activate", json={}
-        )
-        assert response.status_code == 200
-        data = response.json()
-
-        assert data["catalog_id"] == "test_free_activate_model"
-        assert data["is_active"]
-
-    def test_activate_model_already_activated(
-        self, authenticated_client, db_session, test_organization
-    ):
-        """Test activating an already activated model returns error."""
-        self._make_catalog(db_session, cid="test_already_activated_model")
-
-        response1 = authenticated_client.post(
-            "/api/v2/models/catalog/test_already_activated_model/activate", json={}
-        )
-        assert response1.status_code == 200
-
-        response2 = authenticated_client.post(
-            "/api/v2/models/catalog/test_already_activated_model/activate", json={}
-        )
-        assert response2.status_code == 400
-        assert "already activated" in response2.json()["detail"].lower()
-
-    def test_activate_nonexistent_model(self, authenticated_client):
-        """Test activating non-existent model returns 404."""
-        response = authenticated_client.post(
-            "/api/v2/models/catalog/nonexistent_model/activate", json={}
+            "/api/v2/models/catalog/test_activate_retired/activate", json={}
         )
         assert response.status_code == 404

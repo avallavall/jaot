@@ -35,11 +35,11 @@ EXPECTED_OPERATIONS = [
     "import_and_solve",
     "export_model",
     "export_execution",
-    # Marketplace
+    # Marketplace (P1.5 fusion: activate_catalog_model retired — using a model
+    # means seeding a fork ModelProject)
     "list_catalog_models",
     "get_catalog_model",
     "get_catalog_model_schema",
-    "activate_catalog_model",
     # Execution & analysis
     "execute_model",
     "get_execution",
@@ -95,7 +95,7 @@ def test_mcp_route_exists(mcp_app):
 
 
 def test_mcp_tool_count(openapi_schema):
-    """MCP server exposes exactly 26 curated tools (not 40+)."""
+    """MCP server exposes exactly the curated tool list (not 40+)."""
     all_op_ids = _extract_op_ids(openapi_schema)
 
     # All expected operations must be present
@@ -158,7 +158,6 @@ def test_marketplace_path_tools_present(openapi_schema):
         "list_catalog_models",
         "get_catalog_model",
         "get_catalog_model_schema",
-        "activate_catalog_model",
         "execute_model",
         "get_execution",
     ]

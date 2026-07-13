@@ -53,34 +53,6 @@ class ModelCatalogListResponse(BaseModel):
     total_pages: int
 
 
-class OrganizationModelResponse(BaseModel):
-    """Response for an organization's activated model."""
-
-    id: str
-    organization_id: str
-    catalog_id: str | None = None
-    custom_name: str | None = None
-    display_name: str
-    description: str | None = None
-    category: str | None = None
-    generator_type: str | None = None
-    is_active: bool
-    is_favorite: bool
-    total_executions: int
-    last_executed_at: datetime | None = None
-    created_at: datetime
-    is_official: bool | None = None
-    tags: list[str] | None = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class ActivateModelRequest(BaseModel):
-    """Request to activate a model from the catalog."""
-
-    custom_name: str | None = None
-
-
 class PublishModelRequest(BaseModel):
     """Request to publish a model to the marketplace."""
 
@@ -119,6 +91,10 @@ class ModelExecutionResponse(BaseModel):
     """Response for a model execution."""
 
     id: str
+    # The ModelProject this run executed (P1.5 fusion). The legacy
+    # organization_model_id is served for HISTORIC rows only and drops in the
+    # contract release (its value equals the backfilled project id anyway).
+    model_project_id: str | None = None
     organization_model_id: str | None = None
     status: str
     input_data: dict[str, Any]

@@ -2,31 +2,26 @@
 
 ADR-008: the marketplace is free — price filters/sorts, the paid-activation
 commission flow and the promoted-placement carousel left with the money layer.
-Activation creates the OrganizationModel and notifies the author (adoption
-signal), nothing is charged.
+P1.5 fusion: the legacy "activate" flow is retired — using a marketplace model
+means seeding a fork ModelProject via ``POST /projects/from-marketplace/{id}``
+(the adoption signal + activation counter live there now).
 """
 
 import logging
-import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.api.v2.auth import get_current_user
-from app.models import ModelCatalog, ModelProjectListing, Organization, OrganizationModel, User
+from app.models import ModelProjectListing, Organization
 from app.schemas.model import (
-    ActivateModelRequest,
     ModelCatalogListResponse,
     ModelCatalogResponse,
-    OrganizationModelResponse,
 )
 from app.services.marketplace_fusion import listing_to_catalog_response
-from app.services.notification_service import NotificationService
 from app.services.seller_analytics_service import SellerAnalyticsService
 from app.shared.db.base import get_db
-from app.shared.utils.model_helpers import build_org_model_response
 
 logger = logging.getLogger(__name__)
 
@@ -202,111 +197,3 @@ async def get_catalog_model_schema(
         "example_input": listing.example_input,
         "scenario_description": listing.scenario_description,
     }
-
-
-@router.post(
-    "/catalog/{model_id}/activate",
-    response_model=OrganizationModelResponse,
-    operation_id="activate_catalog_model",
-)
-async def activate_catalog_model(
-    model_id: str,
-    body: ActivateModelRequest,
-    request: Request,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> OrganizationModelResponse:
-    """Activate a model from the catalog for the user's organization (free)."""
-    catalog_model = (
-        db.query(ModelCatalog)
-        .filter(
-            ModelCatalog.id == model_id,
-            ModelCatalog.status == "published",
-        )
-        .first()
-    )
-
-    if not catalog_model:
-        raise HTTPException(status_code=404, detail="Model not found")
-
-    existing = (
-        db.query(OrganizationModel)
-        .filter(
-            OrganizationModel.organization_id == current_user.organization_id,
-            OrganizationModel.catalog_id == model_id,
-            OrganizationModel.is_active == True,  # noqa: E712
-        )
-        .first()
-    )
-
-    if existing:
-        raise HTTPException(status_code=400, detail="Model already activated")
-
-    org_model = OrganizationModel(
-        id=str(uuid.uuid4()),
-        organization_id=current_user.organization_id,
-        catalog_id=model_id,
-        custom_name=body.custom_name,
-        is_active=True,
-    )
-
-    db.add(org_model)
-    catalog_model.total_activations += 1
-
-    db.commit()
-    db.refresh(org_model)
-
-    # Fire-and-forget: log marketplace analytics event (separate from seller analytics)
-    try:
-        from app.services.analytics_service import AnalyticsService
-        from app.shared.constants import event_types as evt
-
-        analytics = AnalyticsService(db)
-        ip_address = request.client.host if request.client else None
-        analytics.log_event(
-            user_id=current_user.id,
-            org_id=current_user.organization_id,
-            event_type=evt.MARKETPLACE_ACTIVATE,
-            ip_address=ip_address,
-            metadata={"model_id": model_id},
-        )
-        # MCP origin detection: log additional mcp.tool_call event
-        if request.url.path.startswith("/mcp"):
-            analytics.log_event(
-                user_id=current_user.id,
-                org_id=current_user.organization_id,
-                event_type=evt.MCP_TOOL_CALL,
-                ip_address=ip_address,
-                metadata={"tool_name": "activate_model"},
-            )
-    except Exception:
-        logger.debug("Failed to log analytics event", exc_info=True)
-
-    # Notify the creator that their model was activated (fire-and-forget: never
-    # block activation). Money-neutral adoption signal (ADR-008).
-    if catalog_model.author_organization_id:
-        try:
-            seller_users = (
-                db.query(User)
-                .filter(
-                    User.organization_id == catalog_model.author_organization_id,
-                    User.is_active == True,  # noqa: E712
-                )
-                .all()
-            )
-            notification_svc = NotificationService(db)
-            for seller_user in seller_users:
-                notification_svc.send_seller_notification(
-                    user_id=seller_user.id,
-                    organization_id=catalog_model.author_organization_id,
-                    event_type="activation",
-                    title="Model activated",
-                    message=f"Your model '{catalog_model.display_name}' was activated by another team",
-                    data={"model_id": catalog_model.id},
-                    link="/workspace/models",
-                )
-            db.commit()
-        except Exception:
-            logger.debug("Failed to send activation notification", exc_info=True)
-
-    return build_org_model_response(org_model)

@@ -1,19 +1,19 @@
-"""ADR-007 S6 — execute_model (marketplace) rides the async pipeline in BOTH modes.
+"""ADR-007 S6 — execute_model rides the async pipeline in BOTH modes.
 
 The sync mode is a thin wrapper: enqueue ``solve_model_async``, wait up to the
 shared budget, shape the historic ``ModelExecutionResponse``; past the budget it
 degrades to 202 + the async envelope. These tests pin that conversion — plus the
 worker-side fix this conversion required: a solver-internal ERROR (non-raising)
-must mark the row FAILED and net the ledger to zero, which the old inline sync
-path guaranteed and the worker previously got wrong (completed + charged).
+must mark the row FAILED, which the old inline sync path guaranteed and the
+worker previously got wrong. P1.5 fusion: the executed model is a ModelProject
+(here a fork of a generator-backed listing — the fused "activated model").
 """
 
 from app.models import (
     ExecutionStatus,
-    ModelCatalog,
-    ModelCategory,
     ModelExecution,
-    OrganizationModel,
+    ModelProject,
+    ModelProjectListing,
 )
 
 BOUNDED_LP_INPUT = {
@@ -30,32 +30,42 @@ SOLVER_ERROR_INPUT = {
 
 
 def _seed_model(db_session, organization, suffix: str) -> str:
-    """Activate a trivial generic catalog model for the org. Returns its id."""
-    catalog = ModelCatalog(
-        id=f"s6cat_{suffix}",
-        name=f"s6cat_{suffix}",
-        display_name="S6 Parity Catalog",
-        description="ADR-007 S6 wrapper parity",
-        category=ModelCategory.GENERAL,
-        generator_type="generic",
-        input_schema={},
-        input_fields=[],
-        example_input={},
-        version="1.0.0",
-        status="published",
-        is_official=False,
-        is_public=True,
+    """A fork ModelProject of a trivial generic listing for the org. Returns its id."""
+    db_session.add(
+        ModelProject(
+            id=f"s6src_{suffix}",
+            organization_id=organization.id,
+            name=f"s6src_{suffix}",
+            status="active",
+        )
     )
-    db_session.add(catalog)
-    org_model = OrganizationModel(
-        id=f"s6om_{suffix}",
+    db_session.flush()
+    db_session.add(
+        ModelProjectListing(
+            model_project_id=f"s6src_{suffix}",
+            name=f"s6src_{suffix}",
+            display_name="S6 Parity Listing",
+            description="ADR-007 S6 wrapper parity",
+            generator_type="generic",
+            input_schema={},
+            input_fields=[],
+            example_input={},
+            status="published",
+            is_public=True,
+            author_organization_id=organization.id,
+        )
+    )
+    fork = ModelProject(
+        id=f"s6fork_{suffix}",
         organization_id=organization.id,
-        catalog_id=catalog.id,
-        is_active=True,
+        name="S6 fork",
+        status="active",
+        source_type="marketplace",
+        source_ref=f"s6src_{suffix}",
     )
-    db_session.add(org_model)
+    db_session.add(fork)
     db_session.commit()
-    return org_model.id
+    return fork.id
 
 
 class TestS6ExecuteModelParity:
@@ -78,7 +88,7 @@ class TestS6ExecuteModelParity:
         assert data["status"] == "completed", data
         assert data["objective_value"] == 4.0, data
         assert data["solver_status"] in ("optimal", "feasible"), data
-        assert data["organization_model_id"] == model_id
+        assert data["model_project_id"] == model_id
 
         # The row went through the pipeline: a celery task id was stamped.
         row = db_session.query(ModelExecution).filter(ModelExecution.id == data["id"]).first()
@@ -124,14 +134,14 @@ class TestS6ExecuteModelParity:
         for field in (
             "id",
             "execution_id",
-            "organization_model_id",
+            "model_project_id",
             "task_id",
             "ws_url",
             "poll_url",
         ):
             assert field in envelope, f"missing {field}: {envelope}"
         assert envelope["status"] == "pending"
-        assert envelope["organization_model_id"] == model_id
+        assert envelope["model_project_id"] == model_id
 
     def test_worker_internal_solver_error_fails_row(
         self, authenticated_client, db_session, test_organization

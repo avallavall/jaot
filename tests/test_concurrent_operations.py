@@ -19,10 +19,10 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.models import (
-    ModelCatalog,
     ModelExecution,
+    ModelProject,
+    ModelProjectListing,
     Organization,
-    OrganizationModel,
     User,
 )
 from app.models.builder_document import ModelBuilderDocument
@@ -92,10 +92,18 @@ def user_b(db_session: Session, org_b: Organization) -> User:
 
 
 @pytest.fixture
-def catalog_model(db_session: Session) -> ModelCatalog:
-    """Published catalog model for marketplace tests."""
-    model = ModelCatalog(
-        id=generate_id("cat_"),
+def listed_project(db_session: Session) -> ModelProjectListing:
+    """Published marketplace listing (project + facet) for marketplace tests."""
+    author = Organization(id=generate_id("org_"), name="Listing Author", is_active=True)
+    db_session.add(author)
+    db_session.flush()
+    pid = generate_id("mp_")
+    db_session.add(
+        ModelProject(id=pid, organization_id=author.id, name="Concurrent Source", status="active")
+    )
+    db_session.flush()
+    listing = ModelProjectListing(
+        model_project_id=pid,
         name="test_concurrent_model",
         display_name="Concurrent Test Model",
         description="A model for concurrent testing",
@@ -105,14 +113,16 @@ def catalog_model(db_session: Session) -> ModelCatalog:
         input_fields=[{"name": "x", "type": "number"}],
         example_input={"x": 1},
         status="published",
+        is_public=True,
         is_official=True,
+        author_organization_id=author.id,
         total_activations=0,
         total_executions=0,
     )
-    db_session.add(model)
+    db_session.add(listing)
     db_session.commit()
-    db_session.refresh(model)
-    return model
+    db_session.refresh(listing)
+    return listing
 
 
 def _join_threads(threads: list, timeout: int = 30) -> None:
@@ -209,57 +219,62 @@ class TestConcurrentSolves:
         fresh.close()
 
 
-class TestConcurrentModelActivation:
-    """Two users purchasing the same marketplace model get their own copy."""
+class TestConcurrentModelFork:
+    """Two users adopting the same marketplace model get their own fork
+    ModelProject (P1.5 fusion: activate collapsed into from-marketplace seeding)."""
 
-    def test_two_orgs_activate_same_free_model(
+    @staticmethod
+    def _fork_worker(Session, results, org_id: str, listing_id: str) -> None:
+        session = Session()
+        try:
+            fork = ModelProject(
+                id=str(uuid.uuid4()),
+                organization_id=org_id,
+                name="Concurrent fork",
+                status="active",
+                source_type="marketplace",
+                source_ref=listing_id,
+            )
+            session.add(fork)
+            # Adoption counter bump — same statement the from-marketplace route runs.
+            session.query(ModelProjectListing).filter(
+                ModelProjectListing.model_project_id == listing_id
+            ).update(
+                {ModelProjectListing.total_activations: ModelProjectListing.total_activations + 1}
+            )
+            session.commit()
+            results.put(("success", org_id, fork.id))
+        except Exception as exc:
+            session.rollback()
+            results.put(("error", org_id, str(exc)))
+        finally:
+            session.close()
+
+    def test_two_orgs_fork_same_listing(
         self,
         db_engine,
         db_session: Session,
         org_a: Organization,
         org_b: Organization,
-        catalog_model: ModelCatalog,
+        listed_project: ModelProjectListing,
     ):
-        """Two orgs activate the same free catalog model: both get their own OrganizationModel."""
+        """Two orgs fork the same published listing: both get their own project
+        and the adoption counter absorbs both bumps without corruption."""
         results: queue.Queue = queue.Queue()
         Session = sessionmaker(bind=db_engine)
+        listing_id = listed_project.model_project_id
 
-        def activate_worker(org_id: str) -> None:
-            session = Session()
-            try:
-                # Check if already activated (same check as the API endpoint)
-                existing = (
-                    session.query(OrganizationModel)
-                    .filter(
-                        OrganizationModel.organization_id == org_id,
-                        OrganizationModel.catalog_id == catalog_model.id,
-                        OrganizationModel.is_active == True,  # noqa: E712
-                    )
-                    .first()
-                )
-                if existing:
-                    results.put(("already_exists", org_id))
-                    return
-
-                org_model = OrganizationModel(
-                    id=str(uuid.uuid4()),
-                    organization_id=org_id,
-                    catalog_id=catalog_model.id,
-                    is_active=True,
-                )
-                session.add(org_model)
-                session.commit()
-                results.put(("success", org_id, org_model.id))
-            except Exception as exc:
-                session.rollback()
-                results.put(("error", org_id, str(exc)))
-            finally:
-                session.close()
-
-        # Both orgs activate simultaneously
         threads = [
-            threading.Thread(target=activate_worker, args=(org_a.id,), name="activate-a"),
-            threading.Thread(target=activate_worker, args=(org_b.id,), name="activate-b"),
+            threading.Thread(
+                target=self._fork_worker,
+                args=(Session, results, org_a.id, listing_id),
+                name="fork-a",
+            ),
+            threading.Thread(
+                target=self._fork_worker,
+                args=(Session, results, org_b.id, listing_id),
+                name="fork-b",
+            ),
         ]
         for t in threads:
             t.start()
@@ -273,88 +288,50 @@ class TestConcurrentModelActivation:
             successes[r[1]] = r[2]
 
         assert len(successes) == 2
-        assert org_a.id in successes
-        assert org_b.id in successes
-        # Each org got a different model instance
         assert successes[org_a.id] != successes[org_b.id]
 
-        # Verify in DB
+        # Verify in DB: one fork per org, counter absorbed both increments
         fresh = Session()
-        a_models = (
-            fresh.query(OrganizationModel)
-            .filter(
-                OrganizationModel.organization_id == org_a.id,
-                OrganizationModel.catalog_id == catalog_model.id,
+        for org_id in (org_a.id, org_b.id):
+            forks = (
+                fresh.query(ModelProject)
+                .filter(
+                    ModelProject.organization_id == org_id,
+                    ModelProject.source_ref == listing_id,
+                    ModelProject.source_type == "marketplace",
+                )
+                .all()
             )
-            .all()
+            assert len(forks) == 1
+        counter = (
+            fresh.query(ModelProjectListing.total_activations)
+            .filter(ModelProjectListing.model_project_id == listing_id)
+            .scalar()
         )
-        b_models = (
-            fresh.query(OrganizationModel)
-            .filter(
-                OrganizationModel.organization_id == org_b.id,
-                OrganizationModel.catalog_id == catalog_model.id,
-            )
-            .all()
-        )
-        assert len(a_models) == 1
-        assert len(b_models) == 1
-        assert a_models[0].id != b_models[0].id
+        assert counter == 2, f"Adoption counter lost an increment: {counter}"
         fresh.close()
 
-    def test_same_org_cannot_activate_model_twice(
+    def test_same_org_can_fork_twice(
         self,
         db_engine,
         db_session: Session,
         org_a: Organization,
-        catalog_model: ModelCatalog,
+        listed_project: ModelProjectListing,
     ):
-        """Same org activating same model concurrently: only one should succeed.
-
-        The second activation should detect the existing record and skip.
-        We rely on the application-level uniqueness check rather than a
-        DB constraint, so under high concurrency both might succeed. This
-        test documents the current behavior.
-        """
+        """Same org forking the same listing concurrently gets TWO independent
+        projects — allowed by design post-fusion (like using a template twice);
+        the legacy 'already activated' uniqueness died with the activate flow."""
         results: queue.Queue = queue.Queue()
         Session = sessionmaker(bind=db_engine)
+        listing_id = listed_project.model_project_id
         barrier = threading.Barrier(2, timeout=10)
 
-        def activate_worker(thread_id: int) -> None:
-            session = Session()
-            try:
-                barrier.wait()
-
-                # Application-level uniqueness check
-                existing = (
-                    session.query(OrganizationModel)
-                    .filter(
-                        OrganizationModel.organization_id == org_a.id,
-                        OrganizationModel.catalog_id == catalog_model.id,
-                        OrganizationModel.is_active == True,  # noqa: E712
-                    )
-                    .first()
-                )
-                if existing:
-                    results.put(("already_exists", thread_id))
-                    return
-
-                org_model = OrganizationModel(
-                    id=str(uuid.uuid4()),
-                    organization_id=org_a.id,
-                    catalog_id=catalog_model.id,
-                    is_active=True,
-                )
-                session.add(org_model)
-                session.commit()
-                results.put(("success", thread_id))
-            except Exception as exc:
-                session.rollback()
-                results.put(("error", thread_id, str(exc)))
-            finally:
-                session.close()
+        def fork_with_barrier(thread_id: int) -> None:
+            barrier.wait()
+            self._fork_worker(Session, results, org_a.id, listing_id)
 
         threads = [
-            threading.Thread(target=activate_worker, args=(i,), name=f"dup-activate-{i}")
+            threading.Thread(target=fork_with_barrier, args=(i,), name=f"dup-fork-{i}")
             for i in range(2)
         ]
         for t in threads:
@@ -362,28 +339,22 @@ class TestConcurrentModelActivation:
         _join_threads(threads)
 
         successes = 0
-        already_exists = 0
         while not results.empty():
             r = results.get()
-            if r[0] == "success":
-                successes += 1
-            elif r[0] == "already_exists":
-                already_exists += 1
+            assert r[0] == "success", f"Expected success, got {r}"
+            successes += 1
 
-        # At least one should succeed. Under high concurrency both might
-        # succeed due to TOCTOU (no DB constraint). Document this.
-        assert successes >= 1
-        total_models = (
+        assert successes == 2
+        total_forks = (
             Session()
-            .query(OrganizationModel)
+            .query(ModelProject)
             .filter(
-                OrganizationModel.organization_id == org_a.id,
-                OrganizationModel.catalog_id == catalog_model.id,
+                ModelProject.organization_id == org_a.id,
+                ModelProject.source_ref == listing_id,
             )
             .count()
         )
-        # Regardless, the data should be consistent (no corruption)
-        assert total_models >= 1
+        assert total_forks == 2
 
 
 class TestConcurrentModelUpdate:

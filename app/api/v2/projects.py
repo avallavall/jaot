@@ -42,10 +42,15 @@ from app.api.v2.solve import _enqueue_async_solve, _shape_sync_result, _wait_for
 from app.domains.dsl import JModelData, JModelError, compile_jmodel
 from app.domains.solver.services import SolverService, get_solver_service
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
-from app.models import Organization
+from app.models import Organization, User
 from app.models.audit_log import AuditAction
 from app.models.builder_document import ModelBuilderDocument
-from app.models.model_project import ModelProject, ModelProjectDataset, ModelProjectVersion
+from app.models.model_project import (
+    ModelProject,
+    ModelProjectDataset,
+    ModelProjectListing,
+    ModelProjectVersion,
+)
 from app.models.optimization_model import ModelExecution
 from app.schemas.model import ModelCatalogResponse, PublishModelRequest
 from app.schemas.model_project import (
@@ -223,6 +228,10 @@ def _seed_from_template(
             ) from exc
         name = template_dict.get("display_name") or template_dict.get("name") or "Untitled Model"
         problem_json = problem.model_dump(mode="json")
+        # Normalize the provenance ref to the RESOLVED id — the resolver also
+        # matches "official_{id}", so the caller-supplied id may differ from the
+        # listing's. Analytics + execute resolve forks through source_ref.
+        source_ref = str(template_dict.get("id") or template_id)
     elif source_type == ORIGIN_MARKETPLACE:
         static = resolve_static_listing(template_id, db)
         if static is None:
@@ -230,6 +239,7 @@ def _seed_from_template(
         listing, version = static
         problem_json = version.model_json
         name = listing.display_name
+        source_ref = listing.model_project_id
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
 
@@ -241,7 +251,7 @@ def _seed_from_template(
         name=name,
         problem_json=problem_json,
         source_type=source_type,
-        source_ref=template_id,
+        source_ref=source_ref,
         auto_commit_summary=f"Created from {label} '{name}'",
     )
 
@@ -302,6 +312,10 @@ def create_from_marketplace(
 
     Optional ``user_input`` customizes a generator-backed (official) model instead of
     its example input; a static community model ignores it (its pinned version is copied).
+
+    This is THE "use a marketplace model" path (P1.5 fusion — the legacy activate
+    flow collapsed into it), so the adoption side-effects live here: the listing's
+    activation counter and the author notification.
     """
     project = _seed_from_template(
         db,
@@ -321,8 +335,70 @@ def create_from_marketplace(
         target_id=project.id,
         target_name=project.name,
     )
+
+    # Adoption side-effects on the source listing (source_ref is the resolved id).
+    # SQL-expression assignment → an atomic UPDATE (no lost increments when two
+    # orgs fork the same listing concurrently).
+    listing = (
+        db.query(ModelProjectListing)
+        .filter(ModelProjectListing.model_project_id == project.source_ref)
+        .first()
+    )
+    if listing is not None:
+        listing.total_activations = ModelProjectListing.total_activations + 1
+
     db.commit()
     db.refresh(project)
+
+    # Fire-and-forget: usage analytics + author notification (never block seeding).
+    try:
+        from app.services.analytics_service import AnalyticsService  # noqa: PLC0415
+        from app.shared.constants import event_types as evt  # noqa: PLC0415
+
+        analytics = AnalyticsService(db)
+        analytics.log_event(
+            user_id=user.id,
+            org_id=org.id,
+            event_type=evt.MARKETPLACE_ACTIVATE,
+            ip_address=None,
+            metadata={"model_id": project.source_ref, "project_id": project.id},
+        )
+    except Exception:
+        logger.debug("Failed to log analytics event", exc_info=True)
+
+    if (
+        listing is not None
+        and listing.author_organization_id
+        and listing.author_organization_id != org.id
+    ):
+        try:
+            from app.services.notification_service import NotificationService  # noqa: PLC0415
+
+            author_users = (
+                db.query(User)
+                .filter(
+                    User.organization_id == listing.author_organization_id,
+                    User.is_active == True,  # noqa: E712
+                )
+                .all()
+            )
+            notification_svc = NotificationService(db)
+            for author_user in author_users:
+                notification_svc.send_seller_notification(
+                    user_id=author_user.id,
+                    organization_id=listing.author_organization_id,
+                    event_type="activation",
+                    title="Model adopted",
+                    message=(
+                        f"Your model '{listing.display_name}' was added to another team's studio"
+                    ),
+                    data={"model_id": listing.model_project_id},
+                    link="/workspace/models",
+                )
+            db.commit()
+        except Exception:
+            logger.debug("Failed to send adoption notification", exc_info=True)
+
     return project
 
 
