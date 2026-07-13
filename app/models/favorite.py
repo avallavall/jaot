@@ -2,7 +2,7 @@
 
 import uuid
 
-from sqlalchemy import Column, DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Column, DateTime, ForeignKey, Index, String
 from sqlalchemy.orm import relationship
 
 from app.shared.db.base import Base
@@ -16,8 +16,9 @@ class UserFavorite(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    model_id = Column(String, ForeignKey("model_catalog.id", ondelete="CASCADE"), nullable=False)
-    # P1.5 fusion: additive forward link to the unified Model (nullable during transition).
+    # P1.5 fusion: favorites are keyed on the unified Model (model_project_id). The legacy
+    # model_id is now nullable (new rows omit it) and drops in the contract release.
+    model_id = Column(String, ForeignKey("model_catalog.id", ondelete="CASCADE"), nullable=True)
     model_project_id = Column(
         String, ForeignKey("model_projects.id", ondelete="CASCADE"), nullable=True, index=True
     )
@@ -27,7 +28,9 @@ class UserFavorite(Base):
     user = relationship("User", backref="favorites")
     model = relationship("ModelCatalog", backref="favorited_by")
 
-    __table_args__ = (UniqueConstraint("user_id", "model_id", name="uq_user_model_favorite"),)
+    __table_args__ = (
+        Index("uq_user_project_favorite", "user_id", "model_project_id", unique=True),
+    )
 
 
 class RecentModel(Base):
@@ -37,8 +40,9 @@ class RecentModel(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    model_id = Column(String, ForeignKey("model_catalog.id", ondelete="CASCADE"), nullable=False)
-    # P1.5 fusion: additive forward link to the unified Model (nullable during transition).
+    # P1.5 fusion: recents are keyed on the unified Model (model_project_id). The legacy
+    # model_id is now nullable (new rows omit it) and drops in the contract release.
+    model_id = Column(String, ForeignKey("model_catalog.id", ondelete="CASCADE"), nullable=True)
     model_project_id = Column(
         String, ForeignKey("model_projects.id", ondelete="CASCADE"), nullable=True, index=True
     )
@@ -49,4 +53,4 @@ class RecentModel(Base):
     user = relationship("User", backref="recent_models")
     model = relationship("ModelCatalog", backref="recently_viewed_by")
 
-    __table_args__ = (UniqueConstraint("user_id", "model_id", name="uq_user_model_recent"),)
+    __table_args__ = (Index("uq_user_project_recent", "user_id", "model_project_id", unique=True),)

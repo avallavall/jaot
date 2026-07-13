@@ -1,19 +1,26 @@
-"""Model review endpoints."""
+"""Model review endpoints.
+
+P1.5 fusion: reviews are keyed on the unified Model (``model_project_id`` — the
+marketplace identity a ``ModelProjectListing`` is published under). The public route
+path keeps ``/models/catalog/{catalog_id}`` for URL stability, but the id it carries is
+the model-project id. A user may review a model only after their org has *used* it —
+seeded a fork ModelProject from the listing (``source_ref``) and completed an execution.
+"""
 
 import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
 from app.api.v2.auth import get_current_user
 from app.models import (
-    ModelCatalog,
     ModelExecution,
+    ModelProject,
+    ModelProjectListing,
     ModelReview,
     Organization,
-    OrganizationModel,
     User,
 )
 from app.schemas.profile import (
@@ -28,6 +35,31 @@ from app.shared.utils.pagination import paginate_query
 router = APIRouter(tags=["reviews"])
 
 
+def _listing_or_404(db: Session, model_id: str) -> ModelProjectListing:
+    listing = (
+        db.query(ModelProjectListing)
+        .filter(ModelProjectListing.model_project_id == model_id)
+        .first()
+    )
+    if not listing:
+        raise HTTPException(status_code=404, detail="Model not found")
+    return listing
+
+
+def _recompute_avg_rating(db: Session, listing: ModelProjectListing, model_id: str) -> None:
+    """Roll the visible reviews' average up onto the listing (None when there are none)."""
+    ratings = [
+        r[0]
+        for r in db.query(ModelReview.rating)
+        .filter(
+            ModelReview.model_project_id == model_id,
+            ModelReview.is_visible == True,  # noqa: E712
+        )
+        .all()
+    ]
+    listing.avg_rating = (sum(ratings) / len(ratings)) if ratings else None
+
+
 @router.get("/models/catalog/{catalog_id}/reviews", response_model=ReviewListResponse)
 async def get_model_reviews(
     catalog_id: str,
@@ -35,16 +67,13 @@ async def get_model_reviews(
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
 ) -> ReviewListResponse:
-    """Get reviews for a model."""
-    model = db.query(ModelCatalog).filter(ModelCatalog.id == catalog_id).first()
-
-    if not model:
-        raise HTTPException(status_code=404, detail="Model not found")
+    """Get reviews for a model (``catalog_id`` is the model-project id)."""
+    listing = _listing_or_404(db, catalog_id)
 
     query = (
         db.query(ModelReview)
         .filter(
-            ModelReview.catalog_id == catalog_id,
+            ModelReview.model_project_id == catalog_id,
             ModelReview.is_visible == True,  # noqa: E712
         )
         .order_by(ModelReview.created_at.desc())
@@ -72,7 +101,7 @@ async def get_model_reviews(
         items.append(
             ReviewResponse(
                 id=r.id,
-                catalog_id=r.catalog_id,
+                catalog_id=r.model_project_id,
                 user_id=r.user_id,
                 user_name=user.display_name or user.name if user else "Anonymous",
                 user_avatar_url=user.avatar_url if user else None,
@@ -89,7 +118,7 @@ async def get_model_reviews(
     rating_counts = (
         db.query(ModelReview.rating, func.count(ModelReview.rating))
         .filter(
-            ModelReview.catalog_id == catalog_id,
+            ModelReview.model_project_id == catalog_id,
             ModelReview.is_visible == True,  # noqa: E712
         )
         .group_by(ModelReview.rating)
@@ -103,7 +132,7 @@ async def get_model_reviews(
         total=total,
         page=page,
         page_size=page_size,
-        avg_rating=model.avg_rating,
+        avg_rating=listing.avg_rating,
         rating_distribution=distribution,
     )
 
@@ -115,16 +144,13 @@ async def create_review(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ReviewResponse:
-    """Create a review for a model. User must have executed the model."""
-    model = db.query(ModelCatalog).filter(ModelCatalog.id == catalog_id).first()
-
-    if not model:
-        raise HTTPException(status_code=404, detail="Model not found")
+    """Create a review for a model. The org must have used it (seeded fork + solved)."""
+    listing = _listing_or_404(db, catalog_id)
 
     existing = (
         db.query(ModelReview)
         .filter(
-            ModelReview.catalog_id == catalog_id,
+            ModelReview.model_project_id == catalog_id,
             ModelReview.user_id == current_user.id,
         )
         .first()
@@ -133,37 +159,45 @@ async def create_review(
     if existing:
         raise HTTPException(status_code=400, detail="You have already reviewed this model")
 
-    org_model = (
-        db.query(OrganizationModel)
+    # "Used it" = the org seeded a fork ModelProject from this listing and ran it.
+    fork_ids = [
+        pid
+        for (pid,) in db.query(ModelProject.id)
         .filter(
-            OrganizationModel.catalog_id == catalog_id,
-            OrganizationModel.organization_id == current_user.organization_id,
+            ModelProject.organization_id == current_user.organization_id,
+            ModelProject.source_ref == catalog_id,
         )
-        .first()
-    )
-
-    if not org_model:
+        .all()
+    ]
+    if not fork_ids:
         raise HTTPException(
-            status_code=403, detail="You must activate and use this model before reviewing"
+            status_code=403, detail="You must use this model in the studio before reviewing"
         )
 
-    execution = (
+    executed = (
         db.query(ModelExecution)
         .filter(
-            ModelExecution.organization_model_id == org_model.id,
+            ModelExecution.organization_id == current_user.organization_id,
             ModelExecution.status == "completed",
+            or_(
+                ModelExecution.model_project_id.in_(fork_ids),
+                and_(
+                    ModelExecution.source_kind == "model_project",
+                    ModelExecution.source_id.in_(fork_ids),
+                ),
+            ),
         )
         .first()
     )
 
-    if not execution:
+    if not executed:
         raise HTTPException(
-            status_code=403, detail="You must successfully execute this model before reviewing"
+            status_code=403, detail="You must successfully run this model before reviewing"
         )
 
     review = ModelReview(
         id=str(uuid.uuid4()),
-        catalog_id=catalog_id,
+        model_project_id=catalog_id,
         user_id=current_user.id,
         organization_id=current_user.organization_id,
         rating=body.rating,
@@ -172,18 +206,8 @@ async def create_review(
     )
 
     db.add(review)
-
-    all_ratings = (
-        db.query(ModelReview.rating)
-        .filter(
-            ModelReview.catalog_id == catalog_id,
-            ModelReview.is_visible == True,  # noqa: E712
-        )
-        .all()
-    )
-
-    ratings = [r[0] for r in all_ratings] + [body.rating]
-    model.avg_rating = sum(ratings) / len(ratings)
+    db.flush()
+    _recompute_avg_rating(db, listing, catalog_id)
 
     db.commit()
     db.refresh(review)
@@ -192,7 +216,7 @@ async def create_review(
 
     return ReviewResponse(
         id=review.id,
-        catalog_id=review.catalog_id,
+        catalog_id=review.model_project_id,
         user_id=review.user_id,
         user_name=current_user.display_name or current_user.name,
         user_avatar_url=current_user.avatar_url,
@@ -223,26 +247,18 @@ async def delete_review(
     if not review:
         raise HTTPException(status_code=404, detail="Review not found")
 
-    catalog_id = review.catalog_id
+    model_id = review.model_project_id
     db.delete(review)
+    db.flush()
 
-    # Recalculate avg_rating
-    model = db.query(ModelCatalog).filter(ModelCatalog.id == catalog_id).first()
-
-    if model:
-        all_ratings = (
-            db.query(ModelReview.rating)
-            .filter(
-                ModelReview.catalog_id == catalog_id,
-                ModelReview.is_visible == True,  # noqa: E712
-            )
-            .all()
-        )
-
-        if all_ratings:
-            model.avg_rating = sum(r[0] for r in all_ratings) / len(all_ratings)
-        else:
-            model.avg_rating = None
+    # Recompute the listing's rolled-up average.
+    listing = (
+        db.query(ModelProjectListing)
+        .filter(ModelProjectListing.model_project_id == model_id)
+        .first()
+    )
+    if listing:
+        _recompute_avg_rating(db, listing, model_id)
 
     db.commit()
 
