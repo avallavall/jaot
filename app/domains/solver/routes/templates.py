@@ -23,10 +23,7 @@ from app.domains.solver.services.template_engine import TemplateEngine, get_temp
 from app.models import Organization
 from app.schemas.optimization import OptimizationProblem
 from app.services.solve_orchestrator import ORIGIN_TEMPLATE
-from app.services.template_resolver import (
-    catalog_model_to_dict as _catalog_model_to_dict,
-    resolve_template as _resolve_template,
-)
+from app.services.template_resolver import resolve_template_dict as _resolve_template_dict
 from app.shared.core.rate_limiter import check_rate_limit
 from app.shared.db import get_db
 
@@ -38,7 +35,7 @@ router = APIRouter()
 # Template resolution (id → engine-ready dict) lives in
 # ``app/services/template_resolver.py`` so the ModelProject "create from template /
 # marketplace" endpoints (P2) share ONE resolution path. Imported above as
-# ``_resolve_template`` / ``_yaml_template_to_dict`` / ``_catalog_model_to_dict``.
+# ``_resolve_template_dict`` (YAML template or published marketplace listing → dict).
 
 
 @router.get("/metadata", operation_id="get_solve_metadata")
@@ -101,17 +98,14 @@ async def get_template(
 ) -> dict[str, Any]:
     """Get a specific template with full details including input schema and example.
 
-    Resolution order: YAML templates → DB ModelCatalog.
+    Resolution order: YAML templates → published marketplace listing.
     """
-    yaml_dict, model = _resolve_template(template_id, db)
+    tmpl_dict, _origin = _resolve_template_dict(template_id, db)
 
-    if yaml_dict:
-        return yaml_dict
-
-    if not model:
+    if tmpl_dict is None:
         raise HTTPException(status_code=404, detail="Template not found")
 
-    return _catalog_model_to_dict(model)
+    return tmpl_dict
 
 
 @router.post(
@@ -126,17 +120,12 @@ async def preview_template(
     template_engine: TemplateEngine = Depends(get_template_engine),
 ) -> OptimizationProblem:
     """Render a template with input data and return the OptimizationProblem without solving."""
-    yaml_dict, model = _resolve_template(template_id, db)
+    tmpl_dict, _origin = _resolve_template_dict(template_id, db)
 
-    if yaml_dict:
-        input_data = user_input or yaml_dict.get("example_input") or {}
-        return template_engine.render(yaml_dict, input_data)
-
-    if not model:
+    if tmpl_dict is None:
         raise HTTPException(status_code=404, detail="Template not found")
 
-    tmpl_dict = _catalog_model_to_dict(model)
-    input_data = user_input or model.example_input or {}
+    input_data = user_input or tmpl_dict.get("example_input") or {}
     return template_engine.render(tmpl_dict, input_data)
 
 
@@ -174,14 +163,8 @@ def solve_with_template(  # def: blocks on the queued result in the threadpool (
             ]
         }
     """
-    yaml_dict, model = _resolve_template(template_id, db)
-
-    template: dict[str, Any]
-    if yaml_dict:
-        template = yaml_dict
-    elif model is not None:
-        template = _catalog_model_to_dict(model)
-    else:
+    template, _origin = _resolve_template_dict(template_id, db)
+    if template is None:
         raise HTTPException(status_code=404, detail="Template not found")
 
     # Get auth context

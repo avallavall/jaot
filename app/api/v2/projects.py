@@ -24,7 +24,7 @@ from fastapi import (
     status,
 )
 from fastapi.responses import JSONResponse
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
@@ -73,13 +73,27 @@ from app.services.marketplace_fusion import listing_to_catalog_response
 from app.services.model_project_service import ProjectConflictError, ProjectNotPublishableError
 from app.services.model_stats_service import compute_cached
 from app.services.solve_orchestrator import ORIGIN_VISUAL_BUILDER
-from app.services.template_resolver import resolve_template_dict
+from app.services.template_resolver import (
+    ORIGIN_MARKETPLACE,
+    resolve_static_listing,
+    resolve_template_dict,
+)
 from app.shared.core.rate_limiter import check_rate_limit
 from app.shared.db import get_db
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects", tags=["projects"])
+
+
+class FromMarketplaceRequest(BaseModel):
+    """Optional custom input when seeding a generator-backed marketplace model.
+
+    A generator-backed listing (official) renders ``user_input`` instead of its
+    ``example_input`` (parametric "use in studio"); a static listing ignores it.
+    """
+
+    user_input: dict[str, Any] | None = None
 
 
 def _project_or_404(db: DBSession, project_id: str, org_id: str):
@@ -179,35 +193,53 @@ def _seed_from_template(
     template_engine: TemplateEngine,
     template_id: str,
     source_type: str,
+    user_input: dict[str, Any] | None = None,
 ) -> ModelProject:
     """Resolve a template/marketplace id, materialize it, and seed a ModelProject.
 
-    Shared by the from-template and from-marketplace routes (P2 centralization).
-    The template is rendered with its own ``example_input`` — a one-click starting
-    point — and the new project is born with a v1 commit so it has history from the
-    first moment, exactly like ``create_from_builder``. Materialization reuses the
-    existing ``TemplateEngine`` (the same path the template-solve routes use), so no
-    new generator code is introduced.
+    Shared by the from-template and from-marketplace routes (P2 centralization). Two
+    materialization paths (P1.5 fusion):
+
+    * **generator-backed** (YAML template or an official listing) → render through the
+      ``TemplateEngine`` with ``user_input`` (or the source's ``example_input`` for a
+      one-click start). No new generator code is introduced.
+    * **static** published listing (a plain community project) → copy its pinned
+      committed version's ``model_json`` directly (nothing to render).
+
+    Either way the new project is born with a v1 commit so it has history from the
+    first moment, exactly like ``create_from_builder``.
     """
     template_dict, _origin = resolve_template_dict(template_id, db)
-    if template_dict is None:
+    if template_dict is not None:
+        input_data = (
+            user_input if user_input is not None else (template_dict.get("example_input") or {})
+        )
+        try:
+            problem = template_engine.render(template_dict, input_data)
+        except Exception as exc:  # noqa: BLE001 — any generator failure → 422, not 500
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Could not build a model from this template: {exc}",
+            ) from exc
+        name = template_dict.get("display_name") or template_dict.get("name") or "Untitled Model"
+        problem_json = problem.model_dump(mode="json")
+    elif source_type == ORIGIN_MARKETPLACE:
+        static = resolve_static_listing(template_id, db)
+        if static is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+        listing, version = static
+        problem_json = version.model_json
+        name = listing.display_name
+    else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
-    input_data = template_dict.get("example_input") or {}
-    try:
-        problem = template_engine.render(template_dict, input_data)
-    except Exception as exc:  # noqa: BLE001 — any generator failure → 422, not 500
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Could not build a model from this template: {exc}",
-        ) from exc
-    name = template_dict.get("display_name") or template_dict.get("name") or "Untitled Model"
+
     label = "template" if source_type == "template" else "marketplace model"
     return svc.create_seeded(
         db,
         org_id=org_id,
         user_id=user_id,
         name=name,
-        problem_json=problem.model_dump(mode="json"),
+        problem_json=problem_json,
         source_type=source_type,
         source_ref=template_id,
         auto_commit_summary=f"Created from {label} '{name}'",
@@ -263,9 +295,14 @@ def create_from_marketplace(
     user: CurrentUser,
     org: CurrentOrg,
     _ws: OptionalRequireSolver,
+    body: FromMarketplaceRequest | None = None,
     template_engine: TemplateEngine = Depends(get_template_engine),
 ) -> ModelProject:
-    """Seed a ModelProject from a published marketplace model → workspace."""
+    """Seed a ModelProject from a published marketplace model → workspace.
+
+    Optional ``user_input`` customizes a generator-backed (official) model instead of
+    its example input; a static community model ignores it (its pinned version is copied).
+    """
     project = _seed_from_template(
         db,
         org_id=org.id,
@@ -273,6 +310,7 @@ def create_from_marketplace(
         template_engine=template_engine,
         template_id=model_id,
         source_type="marketplace",
+        user_input=body.user_input if body else None,
     )
     log_action(
         db=db,
