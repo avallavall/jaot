@@ -7,7 +7,7 @@ import type {
   Constraint,
   BuilderDocumentListItem,
   TemplateSummary,
-  OrganizationModel,
+  ProjectListItem,
   OptimizationProblem,
 } from "@/lib/types";
 import type { VariableNodeData, ConstraintNodeData } from "@/lib/builder/types";
@@ -65,7 +65,7 @@ export function ImportSourcePanel({ onImport, importedFrom, onClear }: ImportSou
 
   // Data for each tab
   const [builderDocs, setBuilderDocs] = useState<BuilderDocumentListItem[]>([]);
-  const [models, setModels] = useState<OrganizationModel[]>([]);
+  const [models, setModels] = useState<ProjectListItem[]>([]);
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const loadedTabs = useRef(new Set<TabId>());
   const [tabLoading, setTabLoading] = useState(false);
@@ -83,8 +83,9 @@ export function ImportSourcePanel({ onImport, importedFrom, onClear }: ImportSou
           const docs = await api.listBuilderDocuments(activeWorkspaceId ?? undefined);
           if (!cancelled) setBuilderDocs(docs);
         } else if (activeTab === "models") {
-          const res = await api.getMyModels({ page_size: 100 });
-          if (!cancelled) setModels(res.items);
+          // P1.5 fusion: "My Models" are ModelProjects.
+          const res = await api.listProjects({ status: "active", limit: 100 });
+          if (!cancelled) setModels(res);
         } else {
           const res = await api.listTemplates();
           if (!cancelled) setTemplates(res.templates);
@@ -111,7 +112,7 @@ export function ImportSourcePanel({ onImport, importedFrom, onClear }: ImportSou
   );
 
   const filteredModels = useMemo(
-    () => models.filter((m) => (m.display_name || m.custom_name || "").toLowerCase().includes(lowerSearch)),
+    () => models.filter((m) => m.name.toLowerCase().includes(lowerSearch)),
     [models, lowerSearch],
   );
 
@@ -180,18 +181,18 @@ export function ImportSourcePanel({ onImport, importedFrom, onClear }: ImportSou
     }
   }
 
-  async function importFromModel(model: OrganizationModel) {
+  async function importFromModel(model: ProjectListItem) {
     setLoading(true);
     try {
-      const schema = await api.getMyModelSchema(model.id);
-      const inputData = schema.example_input ?? {};
-      if (Object.keys(inputData).length > 0) {
-        toast.info(t("needsInputData"));
+      // P1.5 fusion: a model is a ModelProject — import its draft content.
+      const project = await api.getProject(model.id, activeWorkspaceId ?? undefined);
+      const draft = project.draft_model_json as OptimizationProblem | null;
+      if (!draft?.variables || draft.variables.length === 0) {
+        toast.error(t("importFailed"));
+        return;
       }
-      const problem = await api.previewModel(model.id, inputData);
-      const name = model.display_name || model.custom_name || model.id;
-      onImport(problem.variables, problem.constraints ?? [], name);
-      toast.success(t("importSuccess", { name }));
+      onImport(draft.variables, draft.constraints ?? [], model.name);
+      toast.success(t("importSuccess", { name: model.name }));
     } catch {
       toast.error(t("importFailed"));
     } finally {
@@ -306,8 +307,8 @@ export function ImportSourcePanel({ onImport, importedFrom, onClear }: ImportSou
             {filteredModels.map((model) => (
               <ListItem
                 key={model.id}
-                name={model.display_name || model.custom_name || model.id}
-                subtitle={model.catalog_id ? `Catalog: ${model.catalog_id}` : "Private model"}
+                name={model.name}
+                subtitle={apiDate(model.updated_at).toLocaleDateString()}
                 onImport={() => importFromModel(model)}
                 loading={loading}
                 t={t}

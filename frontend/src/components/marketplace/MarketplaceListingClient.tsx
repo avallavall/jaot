@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Filter, X } from "lucide-react";
 import { api } from "@/lib/api";
-import type { ModelCatalogItem, OrganizationModel, PaginatedResponse } from "@/lib/types";
+import type { ModelCatalogItem, PaginatedResponse } from "@/lib/types";
 import { useUrlFilters } from "@/hooks/useUrlFilters";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDialog } from "@/components/ui/dialog-custom";
@@ -36,8 +36,7 @@ function MarketplaceListingInner() {
   const [error, setError] = useState<string | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  // Auth-only state: activated models and favorites
-  const [myModels, setMyModels] = useState<OrganizationModel[]>([]);
+  // Auth-only state: favorites
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
   // URL-persisted filters
@@ -60,20 +59,14 @@ function MarketplaceListingInner() {
     setSearchInput(filters.search);
   }, [filters.search]);
 
-  // Load user's activated models and favorites (auth only)
+  // Load user's favorites (auth only)
   const loadAuthData = useCallback(async () => {
     if (!isAuthenticated) return;
     try {
-      const [modelsResult, favsResult] = await Promise.allSettled([
-        api.getMyModels({ is_active: true }),
-        api.request("/api/v2/models/favorites") as Promise<{ items: { id: string }[] }>,
-      ]);
-      if (modelsResult.status === "fulfilled") {
-        setMyModels(modelsResult.value.items);
-      }
-      if (favsResult.status === "fulfilled") {
-        setFavorites(new Set(favsResult.value.items.map((f) => f.id)));
-      }
+      const favs = (await api.request("/api/v2/models/favorites")) as {
+        items: { id: string }[];
+      };
+      setFavorites(new Set(favs.items.map((f) => f.id)));
     } catch {
       // Graceful degradation: auth data unavailable → render unauthenticated state.
     }
@@ -136,32 +129,19 @@ function MarketplaceListingInner() {
     return Array.from(cats).sort();
   }, [models]);
 
-  // Auth-only: check if model is already activated
-  const isActivated = (catalogId: string) =>
-    myModels.some((s) => s.catalog_id === catalogId);
-
-  // Auth-only: get the activated model's org ID
-  const getActivatedModelId = (catalogId: string) => {
-    const found = myModels.find((s) => s.catalog_id === catalogId);
-    return found?.id;
-  };
-
-  // Auth-only: activate a model
-  const handleActivate = async (model: ModelCatalogItem) => {
+  // Auth-only: seed a fork ModelProject and open it in the studio (P1.5 fusion —
+  // THE way to use a marketplace model; the legacy activate flow is gone).
+  const handleUseInStudio = async (model: ModelCatalogItem) => {
     try {
-      await api.activateCatalogModel(model.id);
-      dialog.showSuccess(tCatalog("activatedSuccess"), tCatalog("activated"));
-      loadAuthData();
-      setTimeout(() => router.push("/solve"), 1500);
+      const project = await api.createProjectFromMarketplace(model.id);
+      router.push(`/studio/${project.id}/build`);
     } catch (err) {
       const status = getErrorStatus(err);
-      let msg: string;
-      if (status === 409) {
-        msg = tCatalog("alreadyActivated");
-      } else {
-        msg = getErrorMessage(err, tCatalog("failedToActivate"));
-      }
-      dialog.showError(msg);
+      dialog.showError(
+        status === 422
+          ? tCatalog("useInStudioUnavailable")
+          : getErrorMessage(err, tCatalog("useInStudioFailed"))
+      );
     }
   };
 
@@ -281,14 +261,9 @@ function MarketplaceListingInner() {
                   key={model.id}
                   model={model}
                   isAuthenticated={isAuthenticated}
-                  isActivated={isActivated(model.id)}
                   isFavorite={favorites.has(model.id)}
                   onToggleFavorite={(e) => toggleFavorite(model.id, e)}
-                  onActivate={() => handleActivate(model)}
-                  onGoToModel={() => {
-                    const modelId = getActivatedModelId(model.id);
-                    if (modelId) router.push(`/solve/${modelId}`);
-                  }}
+                  onUseInStudio={() => handleUseInStudio(model)}
                 />
               ))}
             </div>

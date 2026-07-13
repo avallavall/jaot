@@ -34,7 +34,7 @@ export default function AdminLayout({
     { label: t("nav.verification"), href: "/admin/marketplace/verification", icon: <Shield className="w-4 h-4" /> },
     { label: "─────────", href: "#", icon: null },
     { label: t("nav.settings"), href: "/admin/settings", icon: <Settings className="w-4 h-4" /> },
-    { label: t("nav.backToApp"), href: "/solve", icon: <ArrowLeft className="w-4 h-4" /> },
+    { label: t("nav.backToApp"), href: "/studio", icon: <ArrowLeft className="w-4 h-4" /> },
   ], [t]);
   const [maintenanceActive, setMaintenanceActive] = useState(false);
 

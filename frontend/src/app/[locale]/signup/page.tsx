@@ -79,8 +79,8 @@ export default function SignupPage() {
       // AuthContext state (this will use the cookies already set)
       await loginWithEmail(email, password);
 
-      // Redirect to main app
-      router.push("/solve");
+      // Redirect to main app (the studio - "My Models")
+      router.push("/studio");
     } catch (err) {
       if (err instanceof ApiError && err.status === 503) {
         setRegistrationDisabled(true);

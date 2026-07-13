@@ -18,28 +18,22 @@ import {
 
 interface MarketplaceModelCardProps {
   model: ModelCatalogItem;
-  /** When true, show activate/favorite/open controls */
+  /** When true, show use-in-studio/favorite controls */
   isAuthenticated?: boolean;
-  /** Whether the model is already activated for the user's org */
-  isActivated?: boolean;
   /** Whether the model is in the user's favorites */
   isFavorite?: boolean;
   /** Toggle favorite handler */
   onToggleFavorite?: (e: React.MouseEvent) => void;
-  /** Activate model handler */
-  onActivate?: () => void;
-  /** Navigate to user's activated copy */
-  onGoToModel?: () => void;
+  /** Seed a fork ModelProject and open it in the studio (P1.5 fusion) */
+  onUseInStudio?: () => void;
 }
 
 export function MarketplaceModelCard({
   model,
   isAuthenticated = false,
-  isActivated = false,
   isFavorite = false,
   onToggleFavorite,
-  onActivate,
-  onGoToModel,
+  onUseInStudio,
 }: MarketplaceModelCardProps) {
   const t = useTranslations("marketplace.card");
   const { categoryLabel } = useCommonLabels();
@@ -154,33 +148,18 @@ export function MarketplaceModelCard({
             {/* Action buttons (auth only) */}
             {isAuthenticated && (
               <div className="flex gap-2 pt-1 border-t mt-1">
-                {isActivated ? (
-                  <Button
-                    size="sm"
-                    variant="default"
-                    className="flex-1"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onGoToModel?.();
-                    }}
-                  >
-                    {t("open")}
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="default"
-                    className="flex-1"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onActivate?.();
-                    }}
-                  >
-                    {t("activate")}
-                  </Button>
-                )}
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="flex-1"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onUseInStudio?.();
+                  }}
+                >
+                  {t("useInStudio")}
+                </Button>
               </div>
             )}
           </div>

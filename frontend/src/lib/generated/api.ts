@@ -1454,8 +1454,9 @@ export interface paths {
          * Create Conversation
          * @description Create a new LLM conversation.
          *
-         *     Optionally initializes with a template formulation as the first assistant message.
-         *     Requires the ``llm_assistant`` feature in the organization's plan.
+         *     A studio conversation (``model_project_id``) is seeded with the project's
+         *     current model so the first message refines it. Requires the
+         *     ``llm_assistant`` feature in the organization's plan.
          */
         post: operations["create_conversation_api_v2_llm_conversations_post"];
         delete?: never;
@@ -1667,58 +1668,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v2/models/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List My Models
-         * @description List models belonging to the user's organization.
-         */
-        get: operations["list_my_models_api_v2_models__get"];
-        put?: never;
-        /**
-         * Create Private Model
-         * @description Create a private model for the organization.
-         */
-        post: operations["create_private_model_api_v2_models__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/models/{model_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get My Model
-         * @description Get details of a specific organization model.
-         */
-        get: operations["get_my_model_api_v2_models__model_id__get"];
-        put?: never;
-        post?: never;
-        /**
-         * Deactivate My Model
-         * @description Deactivate (soft delete) a model.
-         */
-        delete: operations["deactivate_my_model_api_v2_models__model_id__delete"];
-        options?: never;
-        head?: never;
-        /**
-         * Update My Model
-         * @description Update a model's custom settings.
-         */
-        patch: operations["update_my_model_api_v2_models__model_id__patch"];
-        trace?: never;
-    };
     "/api/v2/models/{model_id}/execute": {
         parameters: {
             query?: never;
@@ -1730,7 +1679,13 @@ export interface paths {
         put?: never;
         /**
          * Execute Model
-         * @description Execute an activated model with the provided input data.
+         * @description Execute one of the organization's models with the provided input data.
+         *
+         *     P1.5 fusion: ``model_id`` is a ModelProject. A generator-backed model (a
+         *     fork of an official, or a project whose own listing carries a generator)
+         *     renders ``input_data`` through the TemplateEngine; a plain model solves
+         *     its draft content directly (``input_data`` must be empty — there is no
+         *     input schema to fill).
          *
          *     Optional ``solver_name`` selects the solver (``scip``, ``highs``,
          *     ``hexaly``) or ``auto`` routing; omit for the default.
@@ -1757,7 +1712,7 @@ export interface paths {
         };
         /**
          * List Model Executions
-         * @description List execution history for a specific model.
+         * @description List execution history for a specific model (ModelProject).
          */
         get: operations["list_model_executions_api_v2_models__model_id__executions_get"];
         put?: never;
@@ -1779,49 +1734,9 @@ export interface paths {
         put?: never;
         /**
          * Preview Model
-         * @description Render a model template and return the OptimizationProblem without solving.
+         * @description Render a generator-backed model and return the OptimizationProblem without solving.
          */
         post: operations["preview_model_api_v2_models__model_id__preview_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/models/{model_id}/publish": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Publish Model To Marketplace
-         * @description Publish a private model to the marketplace.
-         */
-        post: operations["publish_model_to_marketplace_api_v2_models__model_id__publish_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/models/{model_id}/schema": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get My Model Schema
-         * @description Get the input schema and example for executing a model.
-         */
-        get: operations["get_my_model_schema_api_v2_models__model_id__schema_get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1897,13 +1812,13 @@ export interface paths {
         };
         /**
          * Get Model Reviews
-         * @description Get reviews for a model.
+         * @description Get reviews for a model (``catalog_id`` is the model-project id).
          */
         get: operations["get_model_reviews_api_v2_models_catalog__catalog_id__reviews_get"];
         put?: never;
         /**
          * Create Review
-         * @description Create a review for a model. User must have executed the model.
+         * @description Create a review for a model. The org must have used it (seeded fork + solved).
          */
         post: operations["create_review_api_v2_models_catalog__catalog_id__reviews_post"];
         delete?: never;
@@ -1926,26 +1841,6 @@ export interface paths {
         get: operations["get_catalog_model"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/models/catalog/{model_id}/activate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Activate Catalog Model
-         * @description Activate a model from the catalog for the user's organization (free).
-         */
-        post: operations["activate_catalog_model"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1986,6 +1881,9 @@ export interface paths {
         /**
          * Get Catalog Model Schema
          * @description Get the input schema and example for a catalog model.
+         *
+         *     Requires ``is_public`` (like the detail endpoint): the schema exposes the
+         *     generator + input fields, so a published-but-unlisted model must not leak it.
          */
         get: operations["get_catalog_model_schema"];
         put?: never;
@@ -2643,6 +2541,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/projects/{project_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish Model Project
+         * @description Publish a project to the marketplace (upsert its listing facet + pin HEAD version).
+         *
+         *     P1.5 fusion: publishing attaches a ``ModelProjectListing`` to the project instead of
+         *     copying the model into a separate catalog row. Requires a committed version (the
+         *     listing pins HEAD, never the dirty draft).
+         */
+        post: operations["publish_model_project"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/projects/{project_id}/solve": {
         parameters: {
             query?: never;
@@ -2807,6 +2729,13 @@ export interface paths {
         /**
          * Create From Marketplace
          * @description Seed a ModelProject from a published marketplace model → workspace.
+         *
+         *     Optional ``user_input`` customizes a generator-backed (official) model instead of
+         *     its example input; a static community model ignores it (its pinned version is copied).
+         *
+         *     This is THE "use a marketplace model" path (P1.5 fusion — the legacy activate
+         *     flow collapsed into it), so the adoption side-effects live here: the listing's
+         *     activation counter and the author notification.
          */
         post: operations["create_model_project_from_marketplace"];
         delete?: never;
@@ -3493,7 +3422,7 @@ export interface paths {
          * Get Template
          * @description Get a specific template with full details including input schema and example.
          *
-         *     Resolution order: YAML templates → DB ModelCatalog.
+         *     Resolution order: YAML templates → published marketplace listing.
          */
         get: operations["get_template"];
         put?: never;
@@ -4224,14 +4153,6 @@ export interface components {
             confirmation: string;
             /** Password */
             password: string;
-        };
-        /**
-         * ActivateModelRequest
-         * @description Request to activate a model from the catalog.
-         */
-        ActivateModelRequest: {
-            /** Custom Name */
-            custom_name?: string | null;
         };
         /**
          * AdminAnalyticsResponse
@@ -5038,40 +4959,6 @@ export interface components {
             name: string;
         };
         /**
-         * CreatePrivateModelRequest
-         * @description Request to create a private model.
-         */
-        CreatePrivateModelRequest: {
-            /**
-             * Category
-             * @default general
-             */
-            category: string;
-            /** Description */
-            description: string;
-            /** Example Input */
-            example_input?: {
-                [key: string]: unknown;
-            };
-            /**
-             * Generator Type
-             * @description Type: budget_allocation, knapsack, fertilizer, etc.
-             */
-            generator_type: string;
-            /** Input Fields */
-            input_fields?: {
-                [key: string]: unknown;
-            }[];
-            /** Input Schema */
-            input_schema?: {
-                [key: string]: unknown;
-            };
-            /** Name */
-            name: string;
-            /** Tags */
-            tags?: string[] | null;
-        };
-        /**
          * CreateReviewRequest
          * @description Request to create a review.
          */
@@ -5856,6 +5743,19 @@ export interface components {
             email: string;
         };
         /**
+         * FromMarketplaceRequest
+         * @description Optional custom input when seeding a generator-backed marketplace model.
+         *
+         *     A generator-backed listing (official) renders ``user_input`` instead of its
+         *     ``example_input`` (parametric "use in studio"); a static listing ignores it.
+         */
+        FromMarketplaceRequest: {
+            /** User Input */
+            user_input?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
          * GeoDistributionEntry
          * @description Geographic distribution entry.
          */
@@ -6355,6 +6255,8 @@ export interface components {
             model_author?: string | null;
             /** Model Name */
             model_name?: string | null;
+            /** Model Project Id */
+            model_project_id?: string | null;
             /** Objective Value */
             objective_value?: number | null;
             /** Organization Model Id */
@@ -6974,59 +6876,6 @@ export interface components {
              * @default 2
              */
             rate_limit_per_minute: number;
-        };
-        /**
-         * OrganizationModelListResponse
-         * @description Paginated list of organization models.
-         */
-        OrganizationModelListResponse: {
-            /** Items */
-            items: components["schemas"]["OrganizationModelResponse"][];
-            /** Page */
-            page: number;
-            /** Page Size */
-            page_size: number;
-            /** Total */
-            total: number;
-        };
-        /**
-         * OrganizationModelResponse
-         * @description Response for an organization's activated model.
-         */
-        OrganizationModelResponse: {
-            /** Catalog Id */
-            catalog_id?: string | null;
-            /** Category */
-            category?: string | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Custom Name */
-            custom_name?: string | null;
-            /** Description */
-            description?: string | null;
-            /** Display Name */
-            display_name: string;
-            /** Generator Type */
-            generator_type?: string | null;
-            /** Id */
-            id: string;
-            /** Is Active */
-            is_active: boolean;
-            /** Is Favorite */
-            is_favorite: boolean;
-            /** Is Official */
-            is_official?: boolean | null;
-            /** Last Executed At */
-            last_executed_at?: string | null;
-            /** Organization Id */
-            organization_id: string;
-            /** Tags */
-            tags?: string[] | null;
-            /** Total Executions */
-            total_executions: number;
         };
         /**
          * OrganizationOverviewResponse
@@ -8766,22 +8615,6 @@ export interface components {
             is_public?: boolean | null;
         };
         /**
-         * UpdateModelRequest
-         * @description Request to update an organization model.
-         */
-        UpdateModelRequest: {
-            /** Custom Config */
-            custom_config?: {
-                [key: string]: unknown;
-            } | null;
-            /** Custom Name */
-            custom_name?: string | null;
-            /** Is Active */
-            is_active?: boolean | null;
-            /** Is Favorite */
-            is_favorite?: boolean | null;
-        };
-        /**
          * UpdateOrgProfileRequest
          * @description Request to update organization profile.
          */
@@ -9264,7 +9097,6 @@ export interface components {
     pathItems: never;
 }
 export type AccountDeleteRequest = components['schemas']['AccountDeleteRequest'];
-export type ActivateModelRequest = components['schemas']['ActivateModelRequest'];
 export type AdminAnalyticsResponse = components['schemas']['AdminAnalyticsResponse'];
 export type AdminPaginatedResponse = components['schemas']['AdminPaginatedResponse'];
 export type AdminVerificationDecision = components['schemas']['AdminVerificationDecision'];
@@ -9311,7 +9143,6 @@ export type CreateCheckpointRequest = components['schemas']['CreateCheckpointReq
 export type CreateConversationRequest = components['schemas']['CreateConversationRequest'];
 export type CreateKeyRequest = components['schemas']['CreateKeyRequest'];
 export type CreateKeyResponse = components['schemas']['CreateKeyResponse'];
-export type CreatePrivateModelRequest = components['schemas']['CreatePrivateModelRequest'];
 export type CreateReviewRequest = components['schemas']['CreateReviewRequest'];
 export type CronValidationResponse = components['schemas']['CronValidationResponse'];
 export type DailyPoint = components['schemas']['DailyPoint'];
@@ -9355,6 +9186,7 @@ export type FeedbackStatsResponse = components['schemas']['FeedbackStatsResponse
 export type FileImportMetadata = components['schemas']['FileImportMetadata'];
 export type FileImportPreviewResponse = components['schemas']['FileImportPreviewResponse'];
 export type ForgotPasswordRequest = components['schemas']['ForgotPasswordRequest'];
+export type FromMarketplaceRequest = components['schemas']['FromMarketplaceRequest'];
 export type GeoDistributionEntry = components['schemas']['GeoDistributionEntry'];
 export type GeoDistributionResponse = components['schemas']['GeoDistributionResponse'];
 export type GroupedTimeSeriesPoint = components['schemas']['GroupedTimeSeriesPoint'];
@@ -9404,8 +9236,6 @@ export type OptimizationProblemInput = components['schemas']['OptimizationProble
 export type OptimizationProblemOutput = components['schemas']['OptimizationProblem-Output'];
 export type OptimizationResult = components['schemas']['OptimizationResult'];
 export type OrganizationCreate = components['schemas']['OrganizationCreate'];
-export type OrganizationModelListResponse = components['schemas']['OrganizationModelListResponse'];
-export type OrganizationModelResponse = components['schemas']['OrganizationModelResponse'];
 export type OrganizationOverviewResponse = components['schemas']['OrganizationOverviewResponse'];
 export type OrganizationPublicProfile = components['schemas']['OrganizationPublicProfile'];
 export type OrganizationResponse = components['schemas']['OrganizationResponse'];
@@ -9481,7 +9311,6 @@ export type TriggerUpdate = components['schemas']['TriggerUpdate'];
 export type UnreadCountResponse = components['schemas']['UnreadCountResponse'];
 export type UpdateCatalogSectionsRequest = components['schemas']['UpdateCatalogSectionsRequest'];
 export type UpdateModelBadgesRequest = components['schemas']['UpdateModelBadgesRequest'];
-export type UpdateModelRequest = components['schemas']['UpdateModelRequest'];
 export type UpdateOrgProfileRequest = components['schemas']['UpdateOrgProfileRequest'];
 export type UpdatePreferenceRequest = components['schemas']['UpdatePreferenceRequest'];
 export type UpdateUserProfileRequest = components['schemas']['UpdateUserProfileRequest'];
@@ -12431,176 +12260,6 @@ export interface operations {
             };
         };
     };
-    list_my_models_api_v2_models__get: {
-        parameters: {
-            query?: {
-                category?: string | null;
-                is_active?: boolean | null;
-                is_favorite?: boolean | null;
-                page?: number;
-                page_size?: number;
-                search?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrganizationModelListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_private_model_api_v2_models__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreatePrivateModelRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrganizationModelResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_my_model_api_v2_models__model_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                model_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrganizationModelResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    deactivate_my_model_api_v2_models__model_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                model_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_my_model_api_v2_models__model_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                model_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateModelRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     execute_model: {
         parameters: {
             query?: {
@@ -12698,74 +12357,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OptimizationProblem-Output"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    publish_model_to_marketplace_api_v2_models__model_id__publish_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                model_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PublishModelRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ModelCatalogResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_my_model_schema_api_v2_models__model_id__schema_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                model_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
                 };
             };
             /** @description Validation Error */
@@ -12973,41 +12564,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelCatalogResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    activate_catalog_model: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                model_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ActivateModelRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrganizationModelResponse"];
                 };
             };
             /** @description Validation Error */
@@ -14353,6 +13909,43 @@ export interface operations {
             };
         };
     };
+    publish_model_project: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishModelRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelCatalogResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     solve_model_project: {
         parameters: {
             query?: {
@@ -14605,7 +14198,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["FromMarketplaceRequest"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             201: {

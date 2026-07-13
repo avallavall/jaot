@@ -14,8 +14,8 @@ describe("executionOriginHref", () => {
     expect(executionOriginHref("template", "mcat_9")).toBe("/builder/templates/mcat_9");
   });
 
-  it("routes a marketplace run to the model run page", () => {
-    expect(executionOriginHref("marketplace", "org_model_3")).toBe("/solve/org_model_3");
+  it("routes a marketplace run to its project workspace (P1.5 fusion)", () => {
+    expect(executionOriginHref("marketplace", "mp_3")).toBe("/studio/mp_3/build");
   });
 
   it("returns null for imports (no persistent origin)", () => {

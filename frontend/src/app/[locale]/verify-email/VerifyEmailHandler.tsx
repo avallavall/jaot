@@ -78,7 +78,7 @@ export function VerifyEmailHandler() {
               </div>
               <p className="text-center text-sm text-muted-foreground">
                 <Link
-                  href="/solve"
+                  href="/studio"
                   className="text-primary hover:underline"
                 >
                   {t("verifyEmail.continueToDashboard")}

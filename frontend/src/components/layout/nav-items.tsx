@@ -53,8 +53,8 @@ export function useNavItems() {
 
     { label: t("nav.discover"), href: "#", icon: null },
     { label: t("nav.marketplace"), href: "/marketplace", icon: <ShoppingBag className="w-4 h-4" /> },
-    // Marketplace-activated / owned models (distinct data from /studio until the fusion).
-    { label: t("nav.activatedModels"), href: "/solve", icon: <Package className="w-4 h-4" /> },
+    // P1.5 fusion: the legacy "Activated Models" entry is gone — a marketplace
+    // model is used by forking it into the studio ("My Models" above).
     { label: t("nav.favorites"), href: "/solve/favorites", icon: <Heart className="w-4 h-4" /> },
 
     { label: t("nav.activity"), href: "#", icon: null },

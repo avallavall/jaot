@@ -24,7 +24,10 @@ export function executionOriginHref(
     case "template":
       return `/builder/templates/${sourceId}`;
     case "marketplace":
-      return `/solve/${sourceId}`;
+      // P1.5 fusion: a marketplace run executes a ModelProject. Historic rows
+      // carry the legacy org-model id, which the backfill preserved as the
+      // project id — so the studio route is valid for them too.
+      return `/studio/${sourceId}/build`;
     default:
       return null;
   }

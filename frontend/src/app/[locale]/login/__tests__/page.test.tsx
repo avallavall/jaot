@@ -97,13 +97,13 @@ describe("LoginPage", () => {
   // Bug B2: the redirect must go through next-intl's router so the locale chosen
   // on the public home survives into the dashboard. If LoginPage regressed to
   // next/navigation's useRouter, intlRouterPush would never be called.
-  it("redirects an authenticated non-admin to /solve via next-intl router (B2)", () => {
+  it("redirects an authenticated non-admin to /studio via next-intl router (B2)", () => {
     mockAuthState.isAuthenticated = true;
     mockAuthState.user = { is_admin: false };
 
     render(<LoginPage />);
 
-    expect(intlRouterPush).toHaveBeenCalledWith("/solve");
+    expect(intlRouterPush).toHaveBeenCalledWith("/studio");
   });
 
   it("redirects an authenticated admin to /admin via next-intl router (B2)", () => {

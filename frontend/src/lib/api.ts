@@ -671,35 +671,8 @@ export const api = {
     });
   },
 
-  getMyModels(params?: QueryParams): Promise<PaginatedResponse<OrganizationModel>> {
-    return request("/api/v2/models/", { params });
-  },
-
-  getMyModel(modelId: string): Promise<OrganizationModel> {
-    return request(`/api/v2/models/${modelId}`);
-  },
-
-  getMyModelSchema(modelId: string): Promise<{ input_fields: InputField[]; example_input: Record<string, unknown> }> {
-    return request(`/api/v2/models/${modelId}/schema`);
-  },
-
-  updateMyModel(modelId: string, data: Partial<OrganizationModel>): Promise<OrganizationModel> {
-    return request(`/api/v2/models/${modelId}`, {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    });
-  },
-
-  deactivateMyModel(modelId: string): Promise<void> {
-    return request(`/api/v2/models/${modelId}`, { method: "DELETE" });
-  },
-
-  createModel(data: Record<string, unknown>): Promise<OrganizationModel> {
-    return request("/api/v2/models/", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  },
+  // P1.5 fusion: the legacy my-models CRUD is retired — the single model entity
+  // is the ModelProject (listProjects/getProject/updateProject/archiveProject).
 
   getCatalog(params?: QueryParams): Promise<PaginatedResponse<ModelCatalogItem>> {
     return request("/api/v2/models/catalog", { params });
@@ -711,17 +684,6 @@ export const api = {
 
   getCatalogModelSchema(modelId: string): Promise<{ input_fields: InputField[]; example_input: Record<string, unknown> }> {
     return request(`/api/v2/models/catalog/${modelId}/schema`);
-  },
-
-  activateCatalogModel(modelId: string, options?: { customName?: string }): Promise<OrganizationModel> {
-    const body: Record<string, unknown> = {};
-    if (options?.customName) {
-      body.custom_name = options.customName;
-    }
-    return request(`/api/v2/models/catalog/${modelId}/activate`, {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
   },
 
   executeModel(modelId: string, data: Record<string, unknown>, solverName?: string): Promise<ModelExecution> {
@@ -1017,8 +979,10 @@ export const api = {
     return request("/api/v2/notifications/read-all", { method: "POST" });
   },
 
-  publishModel(modelId: string, data: Record<string, unknown>): Promise<ModelCatalogItem> {
-    return request(`/api/v2/models/${modelId}/publish`, {
+  // P1.5 fusion: publishing pins a committed version of a ModelProject as its
+  // marketplace listing (the id is the project id).
+  publishModel(projectId: string, data: Record<string, unknown>): Promise<ModelCatalogItem> {
+    return request(`/api/v2/projects/${projectId}/publish`, {
       method: "POST",
       body: JSON.stringify(data),
     });

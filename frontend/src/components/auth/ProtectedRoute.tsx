@@ -26,7 +26,7 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
     }
 
     if (requireAdmin && !user?.is_admin) {
-      router.push("/solve");
+      router.push("/studio");
     }
   }, [isAuthenticated, isLoading, requireAdmin, user, router]);
 

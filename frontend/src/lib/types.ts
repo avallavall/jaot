@@ -292,6 +292,9 @@ export interface FileImportPreviewResponse {
 
 export interface ModelExecution {
   id: string;
+  // P1.5 fusion: the ModelProject this run executed. organization_model_id is
+  // served for HISTORIC rows only (its value equals the backfilled project id).
+  model_project_id?: string | null;
   organization_model_id: string | null;
   status: ExecutionStatus;
   input_data?: Record<string, unknown>;

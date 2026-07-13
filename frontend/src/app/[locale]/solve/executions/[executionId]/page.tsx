@@ -19,7 +19,7 @@ import { InfeasibilityPanel } from "@/components/solve/InfeasibilityPanel";
 import { OriginBadge } from "@/components/solve/OriginBadge";
 import { GapConvergenceChart } from "@/components/solve/GapConvergenceChart";
 import { useTranslations } from "next-intl";
-import { Database, RotateCcw } from "lucide-react";
+import { Database } from "lucide-react";
 
 export default function ExecutionDetailPage() {
   const t = useTranslations("solve.execution");
@@ -112,10 +112,14 @@ export default function ExecutionDetailPage() {
     );
   }
 
-  // Show "Use as warm start" only for completed optimal/feasible executions
-  const canUseAsWarmStart =
+  // Explain only completed optimal/feasible executions
+  const canExplain =
     execution.status === "completed" &&
     (execution.solver_status === "optimal" || execution.solver_status === "feasible");
+
+  // P1.5 fusion: the run's model is a ModelProject; historic rows carry the
+  // legacy org-model id, which the backfill preserved as the project id.
+  const projectId = execution.model_project_id ?? execution.organization_model_id;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -216,7 +220,7 @@ export default function ExecutionDetailPage() {
           <TabsContent value="results">
             {variables.length > 0 && (
               <div className="mb-6">
-                <SolutionExplainer executionId={executionId} canExplain={canUseAsWarmStart} />
+                <SolutionExplainer executionId={executionId} canExplain={canExplain} />
               </div>
             )}
 
@@ -314,34 +318,13 @@ export default function ExecutionDetailPage() {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        {execution.organization_model_id ? (
-          <>
-            <Button
-              variant="outline"
-              onClick={() => router.push(`/solve/${execution.organization_model_id}`)}
-            >
-              {t("runAgain")}
-            </Button>
-            {canUseAsWarmStart && (
-              <Button
-                variant="outline"
-                onClick={() =>
-                  router.push(
-                    `/solve/${execution.organization_model_id}?warm_start_id=${execution.id}`
-                  )
-                }
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                {t("useAsWarmStart")}
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              onClick={() => router.push(`/solve/${execution.organization_model_id}/history`)}
-            >
-              {t("viewAllExecutions")}
-            </Button>
-          </>
+        {projectId ? (
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/studio/${projectId}/solve`)}
+          >
+            {t("runAgain")}
+          </Button>
         ) : (
           <p className="text-sm text-muted-foreground py-1">
             {t("externalExecution")}

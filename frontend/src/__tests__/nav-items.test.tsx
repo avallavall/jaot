@@ -190,7 +190,7 @@ describe("useNavItems", () => {
       expect(collapsibles).toHaveLength(3);
     });
 
-    it("has a single 'My Models' (-> /studio); /solve is relabeled 'Activated Models' under Discover", () => {
+    it("has a single 'My Models' (-> /studio); the legacy /solve entry is gone (P1.5 fusion)", () => {
       setAuthState({ isAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
 
@@ -201,10 +201,9 @@ describe("useNavItems", () => {
       expect(myModels).toHaveLength(1);
       expect(myModels[0].href).toBe("/studio");
 
-      // Legacy /solve is kept (no redirect, not hidden), relabeled "Activated Models".
-      const activated = findItemByHref(result.current, "/solve");
-      expect(activated).toBeDefined();
-      expect(activated!.label).toBe("common.nav.activatedModels");
+      // P1.5 fusion: the legacy "Activated Models" (/solve) entry is retired —
+      // a marketplace model is used by forking it into the studio.
+      expect(findItemByHref(result.current, "/solve")).toBeUndefined();
 
       // The classic builder routes stay reachable from the hub until /studio parity.
       expect(findItemByHref(result.current, "/builder")).toBeDefined();
