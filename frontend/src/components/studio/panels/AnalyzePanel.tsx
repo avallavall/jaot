@@ -2,8 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { Store } from "lucide-react";
+import { useRouter } from "@/i18n/navigation";
 import { api } from "@/lib/api";
 import type { ModelStats } from "@/lib/types";
+import { Button } from "@/components/ui/button";
 import { useModelProjectStore } from "../store/useModelProjectStore";
 import { selectModelStats } from "../store/stats";
 import { ModelExplanationPanel } from "../ModelExplanationPanel";
@@ -25,6 +28,7 @@ const HEALTH_TONE: Record<string, string> = {
  */
 export function AnalyzePanel() {
   const t = useTranslations("studio");
+  const router = useRouter();
   const problem = useModelProjectStore((s) => s.problem);
   const modelId = useModelProjectStore((s) => s.modelId);
   const saveState = useModelProjectStore((s) => s.saveState);
@@ -137,6 +141,26 @@ export function AnalyzePanel() {
         {isPersisted && (
           <div className="mt-6">
             <ModelExplanationPanel />
+          </div>
+        )}
+
+        {/* Model I/O lives in Analyze (ADR-006) — publishing ships the model OUT
+            to the marketplace by pinning its latest committed version. */}
+        {isPersisted && (
+          <div className="mt-6 rounded-lg border p-4 flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-semibold">{t("analyzePublishTitle")}</h3>
+              <p className="text-sm text-muted-foreground">{t("analyzePublishHelp")}</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="studio-analyze-publish"
+              onClick={() => router.push(`/studio/${modelId}/publish`)}
+            >
+              <Store className="h-4 w-4 mr-1" />
+              {t("analyzePublishCta")}
+            </Button>
           </div>
         )}
       </div>

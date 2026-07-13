@@ -271,7 +271,10 @@
     "datasetTableArity": "{count} índices",
     "datasetTableValue": "valor",
     "datasetTableAddRow": "Añadir fila",
-    "datasetTableRemoveRow": "Quitar fila"
+    "datasetTableRemoveRow": "Quitar fila",
+    "analyzePublishTitle": "Marketplace",
+    "analyzePublishHelp": "Comparte este modelo con la comunidad — publicar fija tu última versión commiteada.",
+    "analyzePublishCta": "Publicar en el marketplace"
   },
   "common": {
     "loading": "Cargando...",
@@ -2696,7 +2699,14 @@
       "validationFailed": "Error de validación: {detail}",
       "confirmPublishTitle": "Confirmar Publicación",
       "confirmPublishMessage": "Esto hará que tu modelo sea visible públicamente en el marketplace. Puedes despublicarlo en cualquier momento desde la configuración del modelo.",
-      "publishInfoText": "Una vez publicado, tu modelo será visible en el marketplace tras una breve revisión. Los usuarios podrán activarlo y ejecutarlo. Puedes actualizar tu publicación o despublicar en cualquier momento desde la configuración del modelo."
+      "publishInfoText": "Una vez publicado, tu modelo será visible en el marketplace tras una breve revisión. Los usuarios podrán activarlo y ejecutarlo. Puedes actualizar tu publicación o despublicar en cualquier momento desde la configuración del modelo.",
+      "commitFirstTitle": "Primero haz un commit",
+      "commitFirstHelp": "Publicar fija tu última versión commiteada — el marketplace nunca ve tu borrador de trabajo. Haz commit del modelo en el workspace y vuelve aquí.",
+      "goToBuild": "Ir al workspace",
+      "updateListing": "Actualizar publicación",
+      "updating": "Actualizando...",
+      "listingUpdated": "Publicación actualizada",
+      "publishPinsVersion": "Publicar comparte tu última versión commiteada en el marketplace. Los commits posteriores no se publican hasta que actualices la publicación aquí."
     },
     "custom": {
       "backToTemplates": "Volver a plantillas",

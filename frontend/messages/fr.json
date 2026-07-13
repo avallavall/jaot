@@ -271,7 +271,10 @@
     "datasetTableArity": "{count} indices",
     "datasetTableValue": "valeur",
     "datasetTableAddRow": "Ajouter une ligne",
-    "datasetTableRemoveRow": "Supprimer la ligne"
+    "datasetTableRemoveRow": "Supprimer la ligne",
+    "analyzePublishTitle": "Marketplace",
+    "analyzePublishHelp": "Partagez ce modèle avec la communauté — la publication épingle votre dernière version committée.",
+    "analyzePublishCta": "Publier sur le marketplace"
   },
   "common": {
     "loading": "Chargement...",
@@ -2696,7 +2699,14 @@
       "validationFailed": "Erreur de validation : {detail}",
       "confirmPublishTitle": "Confirmer la Publication",
       "confirmPublishMessage": "Cela rendra votre modèle publiquement visible sur le marketplace. Vous pouvez le dépublier à tout moment depuis les paramètres du modèle.",
-      "publishInfoText": "Une fois publié, votre modèle sera visible sur le marketplace après une brève vérification. Les utilisateurs pourront l'activer et l'exécuter. Vous pouvez mettre à jour votre annonce ou dépublier à tout moment depuis les paramètres du modèle."
+      "publishInfoText": "Une fois publié, votre modèle sera visible sur le marketplace après une brève vérification. Les utilisateurs pourront l'activer et l'exécuter. Vous pouvez mettre à jour votre annonce ou dépublier à tout moment depuis les paramètres du modèle.",
+      "commitFirstTitle": "Committez d'abord une version",
+      "commitFirstHelp": "La publication épingle votre dernière version committée — le marketplace ne voit jamais votre brouillon de travail. Committez le modèle dans le workspace, puis revenez ici.",
+      "goToBuild": "Aller au workspace",
+      "updateListing": "Mettre à jour la publication",
+      "updating": "Mise à jour...",
+      "listingUpdated": "Publication mise à jour",
+      "publishPinsVersion": "La publication partage votre dernière version committée sur le marketplace. Les commits ultérieurs ne sont pas publiés tant que vous ne mettez pas à jour la publication ici."
     },
     "custom": {
       "backToTemplates": "Retour aux modèles",

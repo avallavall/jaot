@@ -271,7 +271,10 @@
     "datasetTableArity": "{count} indices",
     "datasetTableValue": "value",
     "datasetTableAddRow": "Add row",
-    "datasetTableRemoveRow": "Remove row"
+    "datasetTableRemoveRow": "Remove row",
+    "analyzePublishTitle": "Marketplace",
+    "analyzePublishHelp": "Share this model with the community — publishing pins your latest committed version.",
+    "analyzePublishCta": "Publish to marketplace"
   },
   "common": {
     "loading": "Loading...",
@@ -2721,7 +2724,14 @@
       "continueEditing": "Continue Editing",
       "confirmPublishTitle": "Confirm Publish",
       "confirmPublishMessage": "This will make your model publicly visible on the marketplace. You can unpublish anytime from your model settings.",
-      "publishInfoText": "Once published, your model will be visible in the marketplace after a brief review. Users will be able to activate and run it. You can update your listing or unpublish at any time from your model settings."
+      "publishInfoText": "Once published, your model will be visible in the marketplace after a brief review. Users will be able to activate and run it. You can update your listing or unpublish at any time from your model settings.",
+      "commitFirstTitle": "Commit a version first",
+      "commitFirstHelp": "Publishing pins your latest committed version — the marketplace never sees your working draft. Commit your model in the workspace, then come back.",
+      "goToBuild": "Go to the workspace",
+      "updateListing": "Update listing",
+      "updating": "Updating...",
+      "listingUpdated": "Listing updated",
+      "publishPinsVersion": "Publishing shares your latest committed version on the marketplace. Later commits are not published until you update the listing here."
     },
     "custom": {
       "backToTemplates": "Back to Templates",

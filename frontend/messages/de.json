@@ -271,7 +271,10 @@
     "datasetTableArity": "{count} Indizes",
     "datasetTableValue": "Wert",
     "datasetTableAddRow": "Zeile hinzufügen",
-    "datasetTableRemoveRow": "Zeile entfernen"
+    "datasetTableRemoveRow": "Zeile entfernen",
+    "analyzePublishTitle": "Marketplace",
+    "analyzePublishHelp": "Teilen Sie dieses Modell mit der Community — beim Veröffentlichen wird Ihre letzte committete Version angeheftet.",
+    "analyzePublishCta": "Im Marketplace veröffentlichen"
   },
   "common": {
     "loading": "Wird geladen...",
@@ -2696,7 +2699,14 @@
       "validationFailed": "Validierungsfehler: {detail}",
       "confirmPublishTitle": "Veröffentlichung Bestätigen",
       "confirmPublishMessage": "Dadurch wird Ihr Modell öffentlich im Marketplace sichtbar. Sie können es jederzeit über die Modelleinstellungen zurückziehen.",
-      "publishInfoText": "Nach der Veröffentlichung wird Ihr Modell nach einer kurzen Überprüfung im Marketplace sichtbar. Benutzer können es aktivieren und ausführen. Sie können Ihren Eintrag jederzeit über die Modelleinstellungen aktualisieren oder zurückziehen."
+      "publishInfoText": "Nach der Veröffentlichung wird Ihr Modell nach einer kurzen Überprüfung im Marketplace sichtbar. Benutzer können es aktivieren und ausführen. Sie können Ihren Eintrag jederzeit über die Modelleinstellungen aktualisieren oder zurückziehen.",
+      "commitFirstTitle": "Zuerst eine Version committen",
+      "commitFirstHelp": "Beim Veröffentlichen wird Ihre letzte committete Version angeheftet — der Marketplace sieht nie Ihren Arbeitsentwurf. Committen Sie das Modell im Workspace und kommen Sie dann zurück.",
+      "goToBuild": "Zum Workspace",
+      "updateListing": "Eintrag aktualisieren",
+      "updating": "Wird aktualisiert...",
+      "listingUpdated": "Eintrag aktualisiert",
+      "publishPinsVersion": "Beim Veröffentlichen wird Ihre letzte committete Version im Marketplace geteilt. Spätere Commits werden erst veröffentlicht, wenn Sie den Eintrag hier aktualisieren."
     },
     "custom": {
       "backToTemplates": "Zurück zu Vorlagen",

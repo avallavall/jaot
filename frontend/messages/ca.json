@@ -271,7 +271,10 @@
     "datasetTableArity": "{count} índexs",
     "datasetTableValue": "valor",
     "datasetTableAddRow": "Afegir fila",
-    "datasetTableRemoveRow": "Treure fila"
+    "datasetTableRemoveRow": "Treure fila",
+    "analyzePublishTitle": "Marketplace",
+    "analyzePublishHelp": "Comparteix aquest model amb la comunitat — publicar fixa la teva última versió commitejada.",
+    "analyzePublishCta": "Publicar al marketplace"
   },
   "common": {
     "loading": "Carregant...",
@@ -2696,7 +2699,14 @@
       "validationFailed": "Error de validació: {detail}",
       "confirmPublishTitle": "Confirmar Publicació",
       "confirmPublishMessage": "Això farà que el teu model sigui visible públicament al marketplace. Pots despublicar-lo en qualsevol moment des de la configuració del model.",
-      "publishInfoText": "Un cop publicat, el teu model serà visible al marketplace després d'una breu revisió. Els usuaris podran activar-lo i executar-lo. Pots actualitzar la teva publicació o despublicar en qualsevol moment des de la configuració del model."
+      "publishInfoText": "Un cop publicat, el teu model serà visible al marketplace després d'una breu revisió. Els usuaris podran activar-lo i executar-lo. Pots actualitzar la teva publicació o despublicar en qualsevol moment des de la configuració del model.",
+      "commitFirstTitle": "Primer fes un commit",
+      "commitFirstHelp": "Publicar fixa la teva última versió commitejada — el marketplace mai veu el teu esborrany de treball. Fes commit del model al workspace i torna aquí.",
+      "goToBuild": "Anar al workspace",
+      "updateListing": "Actualitzar la publicació",
+      "updating": "Actualitzant...",
+      "listingUpdated": "Publicació actualitzada",
+      "publishPinsVersion": "Publicar comparteix la teva última versió commitejada al marketplace. Els commits posteriors no es publiquen fins que actualitzis la publicació aquí."
     },
     "custom": {
       "backToTemplates": "Tornar a les Plantilles",
