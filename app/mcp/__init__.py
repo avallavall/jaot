@@ -1,16 +1,20 @@
 """MCP server integration for JAOT Optimization Platform.
 
-Exposes 25 curated optimization tools via the Model Context Protocol (MCP),
+Exposes 26 curated optimization tools via the Model Context Protocol (MCP),
 enabling AI agents (Claude, GPT, etc.) to discover and use JAOT's
 optimization capabilities: multi-solver solving, multi-objective (Pareto),
 templates, standard-format import/export (MPS/LP/CIP/JSON), the model
 marketplace, execution insights, and first-class **model projects**
-(create, version with commit messages, analyze stats/health, and solve).
+(create, author the draft, version with commit messages, analyze
+stats/health, and solve).
 
 P1.5 fusion: the legacy ``activate_catalog_model`` tool is retired — using a
 marketplace model means seeding a fork ModelProject
 (``create_model_project_from_marketplace``); ``execute_model`` executes a
-ModelProject.
+ModelProject. G7d closes the agent-authoring loop:
+``update_model_project_draft`` lets an agent WRITE the model (not just
+create/commit/solve), and the solve tools accept ``solution_filter=nonzero``
+for a compact solution that fits an MCP client's token budget.
 """
 
 from fastapi import FastAPI
@@ -55,11 +59,12 @@ def setup_mcp(app: FastAPI) -> FastApiMCP:
             "execute_model",
             "get_execution",
             "get_execution_insights",
-            # Model projects — create, version, analyze & solve a first-class model
+            # Model projects — create, author, version, analyze & solve a first-class model
             "create_model_project",
             "create_model_project_from_marketplace",
             "get_model_project",
             "list_model_projects",
+            "update_model_project_draft",
             "commit_model_version",
             "list_project_versions",
             "get_model_stats",

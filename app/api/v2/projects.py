@@ -9,7 +9,7 @@ run with ``source_kind="model_project"`` provenance and the typed
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import (
     APIRouter,
@@ -38,7 +38,12 @@ from app.api.deps import (
 )
 from app.api.v2.deps.dsl_feature_gate import dsl_feature_gate
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
-from app.api.v2.solve import _enqueue_async_solve, _shape_sync_result, _wait_for_task
+from app.api.v2.solve import (
+    _apply_solution_filter,
+    _enqueue_async_solve,
+    _shape_sync_result,
+    _wait_for_task,
+)
 from app.domains.dsl import JModelData, JModelError, compile_jmodel
 from app.domains.solver.services import SolverService, get_solver_service
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
@@ -961,6 +966,14 @@ def solve_model_project(  # def: blocks on the queued result in the threadpool (
     version_id: str | None = Query(default=None),
     solver_name: str | None = Query(default=None, max_length=32),
     origin: str | None = Query(default=None, max_length=32),
+    solution_filter: Literal["nonzero"] | None = Query(
+        default=None,
+        description=(
+            "Compact solution: 'nonzero' omits near-zero variables from the "
+            "response (variables_omitted reports the count). The persisted "
+            "execution keeps the full solution."
+        ),
+    ),
 ) -> Any:
     """Solve a ModelProject's draft (or a specific committed version).
 
@@ -1041,14 +1054,17 @@ def solve_model_project(  # def: blocks on the queued result in the threadpool (
                 ),
             },
         )
-    return _shape_sync_result(
-        payload,
-        db=db,
-        org_id=org.id,
-        execution_id=enqueued.execution_id,
-        solver_used=enqueued.effective_solver,
-        auto_route_reason=enqueued.auto_route_reason,
-        fallback_triggered=enqueued.fallback_triggered,
+    return _apply_solution_filter(
+        _shape_sync_result(
+            payload,
+            db=db,
+            org_id=org.id,
+            execution_id=enqueued.execution_id,
+            solver_used=enqueued.effective_solver,
+            auto_route_reason=enqueued.auto_route_reason,
+            fallback_triggered=enqueued.fallback_triggered,
+        ),
+        solution_filter,
     )
 
 

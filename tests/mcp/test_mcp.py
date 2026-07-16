@@ -44,11 +44,12 @@ EXPECTED_OPERATIONS = [
     "execute_model",
     "get_execution",
     "get_execution_insights",
-    # Model projects — create, version, analyze & solve a first-class model
+    # Model projects — create, author, version, analyze & solve a first-class model
     "create_model_project",
     "create_model_project_from_marketplace",
     "get_model_project",
     "list_model_projects",
+    "update_model_project_draft",
     "commit_model_version",
     "list_project_versions",
     "get_model_stats",

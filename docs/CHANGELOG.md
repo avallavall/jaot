@@ -17,6 +17,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Added
+
+- **Agents can author models end-to-end over MCP (P1.5 G7d, 2026-07-16)** — the `update_model_project_draft` tool joins the MCP surface (25 → 26 tools), closing the loop an external agent needs to *write* a versioned model, not just create/commit/solve it (previously it had to fall back to the REST API). The solve tools (`solve_problem`, `solve_model_project`) accept `solution_filter=nonzero` for a compact response that omits near-zero variables and reports the omitted count — a few hundred zero binaries no longer blow an MCP client's context; the stored execution keeps the full solution.
+
+### Fixed
+
+- **Favorites/recents attribution and action (P1.5, 2026-07-16)** — favorites showed "by Unknown" for every seeded/backfilled listing (the legacy catalog never carried an author organization): the official seed now stamps its org on the listing and the favorites/recents endpoints fall back to the owning project's organization. Their primary action now forks the model into the studio ("Use in studio") instead of driving the retired activate-era execution page.
+
 ### Changed
 
 - **One model entity: the marketplace fused into the studio's ModelProject (P1.5 / ADR-006 D4, 2026-07-13)** — the historic split between "catalog models", "activated models" and studio projects is gone. A marketplace listing is now a *facet* of a ModelProject (publish pins a committed version; officials keep their parametric generator on the listing), and **using a marketplace model means forking it into your studio** — one "Use in studio" button seeds a ModelProject (optionally with your own inputs for parametric officials), which you then edit, version, solve and re-publish like any other model. `POST /models/{id}/execute` executes one of your ModelProjects (generator-backed forks render inputs; plain models solve their content directly); executions, reviews, favorites, history, analytics and admin views are all keyed on the project. Legacy `/solve` model pages redirect to the studio and old marketplace/model ids keep resolving (they were preserved as project ids).

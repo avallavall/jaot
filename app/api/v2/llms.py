@@ -28,8 +28,8 @@ LLMS_TXT = """\
 - [Authentication](/docs/api/authentication): API key and JWT auth guide
 
 ## MCP
-- [MCP Endpoint](/mcp): Model Context Protocol server with 16 optimization tools
-- Tools: solve_problem, validate_problem, solve_multi_objective, list_available_solvers, list_templates, get_template, solve_with_template, import_preview, import_and_solve, list_catalog_models, get_catalog_model, get_catalog_model_schema, execute_model, get_execution, get_execution_insights
+- [MCP Endpoint](/mcp): Model Context Protocol server with 26 optimization tools
+- Tools: solve_problem, validate_problem, solve_multi_objective, list_available_solvers, list_templates, get_template, solve_with_template, import_preview, import_and_solve, export_model, export_execution, list_catalog_models, get_catalog_model, get_catalog_model_schema, execute_model, get_execution, get_execution_insights, create_model_project, create_model_project_from_marketplace, get_model_project, list_model_projects, update_model_project_draft, commit_model_version, list_project_versions, get_model_stats, solve_model_project
 
 ## API
 - Base URL: /api/v2
@@ -256,11 +256,11 @@ https://jaot.io/mcp
 
 The MCP endpoint is public (no auth to connect). Individual tools that require authentication will return an error with instructions if called without a Bearer API key.
 
-### Available Tools (15)
+### Available Tools (26)
 
 | Tool | Auth | Description |
 |------|------|-------------|
-| solve_problem | Yes | Solve an optimization problem (optional solver choice or auto routing) |
+| solve_problem | Yes | Solve an optimization problem (optional solver choice or auto routing; `solution_filter=nonzero` for a compact solution) |
 | validate_problem | Yes | Validate without solving |
 | solve_multi_objective | Yes | Solve a multi-objective problem (Pareto front) |
 | list_available_solvers | Yes | List available solvers and their capabilities |
@@ -269,12 +269,23 @@ The MCP endpoint is public (no auth to connect). Individual tools that require a
 | solve_with_template | Yes | Solve using a template (optional solver choice) |
 | import_preview | Yes | Preview how a CSV file is parsed into a problem |
 | import_and_solve | Yes | Import data from a CSV and solve in one step |
+| export_model | Yes | Export a model in a standard format (MPS/LP/CIP/JSON) |
+| export_execution | Yes | Export an execution's result |
 | list_catalog_models | No | Browse marketplace models |
 | get_catalog_model | No | Get model details |
 | get_catalog_model_schema | No | Get model input schema |
 | execute_model | Yes | Execute one of your models (a ModelProject) |
 | get_execution | Yes | Get execution results |
 | get_execution_insights | Yes | Get auto-insights (gap, time, quality) for an execution |
+| create_model_project | Yes | Create a first-class model project (versioned workspace) |
+| create_model_project_from_marketplace | Yes | Fork a marketplace model into your studio |
+| get_model_project | Yes | Get a project (metadata + draft + committed HEAD) |
+| list_model_projects | Yes | List your organization's model projects |
+| update_model_project_draft | Yes | Write the project's draft model (agent authoring; optimistic lock via If-Match) |
+| commit_model_version | Yes | Commit the draft as an immutable, message-bearing version |
+| list_project_versions | Yes | List a project's committed versions |
+| get_model_stats | Yes | Structural stats + health score for the draft |
+| solve_model_project | Yes | Solve the draft or a committed version (`solution_filter=nonzero` for a compact solution) |
 
 ### Example Workflow: Template Path
 
@@ -290,6 +301,15 @@ The MCP endpoint is public (no auth to connect). Individual tools that require a
 4. `POST /api/v2/projects/from-marketplace/mdl_abc` — fork it into your studio
 5. `execute_model("<project id>", {"input_data": {...}})` — run it
 6. `get_execution` — check results
+
+### Example Workflow: Agent Authoring Path
+
+1. `create_model_project({"name": "Line scheduling"})` — a fresh versioned project
+2. `update_model_project_draft("<project id>", {"model_json": {...}})` — write the model
+3. `commit_model_version("<project id>", {"summary": "v1 — initial model"})` — commit it
+4. `solve_model_project("<project id>", solution_filter="nonzero")` — solve; the compact
+   solution omits near-zero variables (`variables_omitted` reports how many)
+5. `get_execution_insights` — quality/gap/time insights on the run
 
 ## Optimization Concepts
 

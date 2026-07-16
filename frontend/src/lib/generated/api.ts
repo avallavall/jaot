@@ -245,7 +245,7 @@ export interface paths {
         };
         /**
          * List All Models
-         * @description List all models in the catalog (admin view).
+         * @description List all marketplace listings (admin view).
          */
         get: operations["list_all_models_api_v2_admin_models_get"];
         put?: never;
@@ -271,7 +271,7 @@ export interface paths {
         head?: never;
         /**
          * Update Model Badges
-         * @description Update model badges (official, featured, public).
+         * @description Update listing badges (official, featured, public).
          */
         patch: operations["update_model_badges_api_v2_admin_models__model_id__patch"];
         trace?: never;
@@ -291,7 +291,7 @@ export interface paths {
         head?: never;
         /**
          * Toggle Model Visibility
-         * @description Toggle model public visibility.
+         * @description Toggle listing public visibility.
          */
         patch: operations["toggle_model_visibility_api_v2_admin_models__model_id__visibility_patch"];
         trace?: never;
@@ -6832,6 +6832,11 @@ export interface components {
              * @description Variable values
              */
             variables?: components["schemas"]["VariableSolution"][] | null;
+            /**
+             * Variables Omitted
+             * @description Count of near-zero variables omitted by solution_filter=nonzero.
+             */
+            variables_omitted?: number | null;
             /**
              * Warm Start Used
              * @description True if warm start solution was injected
@@ -13950,6 +13955,8 @@ export interface operations {
         parameters: {
             query?: {
                 origin?: string | null;
+                /** @description Compact solution: 'nonzero' omits near-zero variables from the response (variables_omitted reports the count). The persisted execution keeps the full solution. */
+                solution_filter?: "nonzero" | null;
                 solver_name?: string | null;
                 version_id?: string | null;
                 workspace_id?: string | null;
@@ -14562,6 +14569,8 @@ export interface operations {
         parameters: {
             query?: {
                 origin?: string | null;
+                /** @description Compact solution: 'nonzero' omits near-zero variables from the response (variables_omitted reports the count). The persisted execution keeps the full solution. */
+                solution_filter?: "nonzero" | null;
                 solver_name?: string | null;
                 source_id?: string | null;
                 source_kind?: string | null;
@@ -14601,6 +14610,8 @@ export interface operations {
         parameters: {
             query?: {
                 origin?: string | null;
+                /** @description Compact solution: 'nonzero' omits near-zero variables from the response (variables_omitted reports the count). The persisted execution keeps the full solution. */
+                solution_filter?: "nonzero" | null;
                 solver_name?: string | null;
                 source_id?: string | null;
                 source_kind?: string | null;

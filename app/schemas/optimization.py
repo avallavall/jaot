@@ -432,6 +432,14 @@ class OptimizationResult(BaseModel):
     # As a simple dict for easy access
     solution: dict[str, float] | None = Field(default=None, description="Variable name -> value")
 
+    # Set only when the caller asked for a compact solution (solution_filter=nonzero):
+    # how many near-zero variables were omitted from `variables`/`solution`. The
+    # persisted execution always keeps the full solution.
+    variables_omitted: int | None = Field(
+        default=None,
+        description="Count of near-zero variables omitted by solution_filter=nonzero.",
+    )
+
     # Performance metrics
     solve_time_seconds: float = Field(..., description="Time to solve")
     gap: float | None = Field(default=None, description="MIP gap (if applicable)")

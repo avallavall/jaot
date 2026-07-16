@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
@@ -181,6 +181,14 @@ def solve_optimization_problem(  # def: blocks on the queued result (ADR-007 S2)
     origin: str | None = Query(default=None, max_length=32),
     source_kind: str | None = Query(default=None, max_length=32),
     source_id: str | None = Query(default=None, max_length=64),
+    solution_filter: Literal["nonzero"] | None = Query(
+        default=None,
+        description=(
+            "Compact solution: 'nonzero' omits near-zero variables from the "
+            "response (variables_omitted reports the count). The persisted "
+            "execution keeps the full solution."
+        ),
+    ),
 ) -> Any:
     """Solve an optimization problem (universal endpoint).
 
@@ -227,20 +235,26 @@ def solve_optimization_problem(  # def: blocks on the queued result (ADR-007 S2)
             # time, so an idempotent retry can race the original IN FLIGHT.
             # Attach to its task instead of reporting a bogus incomplete result.
             if existing.status in ("pending", "running") and existing.celery_task_id:
-                return _attach_to_inflight_execution(db=db, org=org, existing=existing)
+                return _apply_solution_filter(
+                    _attach_to_inflight_execution(db=db, org=org, existing=existing),
+                    solution_filter,
+                )
             rd = existing.result_data or {}
             # Default to ERROR on missing status: a cached execution with no
             # solver_status in result_data is by definition incomplete (the
             # task crashed before persisting), and returning a fake "optimal"
             # would mask the failure on retry.
-            return OptimizationResult(
-                status=SolverStatus(rd.get("solver_status", SolverStatus.ERROR.value)),
-                objective_value=rd.get("objective_value"),
-                solution=rd.get("model"),
-                solve_time_seconds=rd.get("solve_time_seconds", 0.0),
-                gap=rd.get("gap"),
-                error_message=existing.error_message,
-                execution_id=existing.id,
+            return _apply_solution_filter(
+                OptimizationResult(
+                    status=SolverStatus(rd.get("solver_status", SolverStatus.ERROR.value)),
+                    objective_value=rd.get("objective_value"),
+                    solution=rd.get("model"),
+                    solve_time_seconds=rd.get("solve_time_seconds", 0.0),
+                    gap=rd.get("gap"),
+                    error_message=existing.error_message,
+                    execution_id=existing.id,
+                ),
+                solution_filter,
             )
 
     enqueued = _enqueue_async_solve(
@@ -269,14 +283,17 @@ def solve_optimization_problem(  # def: blocks on the queued result (ADR-007 S2)
                 ),
             },
         )
-    return _shape_sync_result(
-        payload,
-        db=db,
-        org_id=org.id,
-        execution_id=enqueued.execution_id,
-        solver_used=enqueued.effective_solver,
-        auto_route_reason=enqueued.auto_route_reason,
-        fallback_triggered=enqueued.fallback_triggered,
+    return _apply_solution_filter(
+        _shape_sync_result(
+            payload,
+            db=db,
+            org_id=org.id,
+            execution_id=enqueued.execution_id,
+            solver_used=enqueued.effective_solver,
+            auto_route_reason=enqueued.auto_route_reason,
+            fallback_triggered=enqueued.fallback_triggered,
+        ),
+        solution_filter,
     )
 
 
@@ -1104,6 +1121,44 @@ def _shape_sync_result(
     if warning is not None:
         result.warning = warning
     return result.model_dump(mode="json")
+
+
+_NEAR_ZERO = 1e-9
+
+
+def _apply_solution_filter(result: Any, solution_filter: str | None) -> Any:
+    """Compact-solution presentation for programmatic callers (MCP agents, ERPs).
+
+    ``solution_filter="nonzero"`` drops near-zero variables from the response's
+    ``variables``/``solution`` and records how many were omitted in
+    ``variables_omitted`` — a few hundred binaries otherwise blow an MCP
+    client's token budget. Presentation-only: the persisted ModelExecution
+    keeps the full solution. Passthrough for 202 envelopes, error shapes, and
+    anything without a solution.
+    """
+    if solution_filter != "nonzero":
+        return result
+    if isinstance(result, OptimizationResult):
+        payload = result.model_dump(mode="json")
+    elif isinstance(result, dict):
+        payload = result
+    else:
+        return result
+
+    omitted = 0
+    variables = payload.get("variables")
+    if isinstance(variables, list):
+        kept_vars = [v for v in variables if abs(v.get("value") or 0.0) > _NEAR_ZERO]
+        omitted = max(omitted, len(variables) - len(kept_vars))
+        payload["variables"] = kept_vars
+    solution = payload.get("solution")
+    if isinstance(solution, dict):
+        kept_sol = {k: v for k, v in solution.items() if abs(v or 0.0) > _NEAR_ZERO}
+        omitted = max(omitted, len(solution) - len(kept_sol))
+        payload["solution"] = kept_sol
+    if omitted:
+        payload["variables_omitted"] = omitted
+    return payload
 
 
 def _shape_multi_objective_result(
