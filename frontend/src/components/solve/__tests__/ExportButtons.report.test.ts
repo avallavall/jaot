@@ -143,6 +143,31 @@ describe("buildReportHtml", () => {
     expect(html).not.toContain("Geist");
   });
 
+  it("escapes user-controlled values — a hostile model name/variable cannot inject markup", () => {
+    // Model authors control these strings, and the fused marketplace means the
+    // author may be a third party; the report runs on a same-origin blob URL.
+    const payload = '<img src=x onerror="window.__pwned=1">';
+    const execution = makeExecution({
+      model_name: `Evil ${payload}`,
+      result_data: {
+        status: "optimal",
+        variables: [{ name: payload, type: `t${payload}`, value: 1 }],
+      } as unknown as ModelExecution["result_data"],
+      input_data: {
+        name: "Evil",
+        constraints: [{ name: payload, expression: `x <= 1 ${payload}` }],
+      },
+    });
+    const html = buildReportHtml(execution, labels, "en");
+    expect(html).not.toContain(payload);
+
+    const doc = parse(html);
+    // Nothing materialized as an element…
+    expect(doc.querySelector("img")).toBeNull();
+    // …and the hostile string survives as visible TEXT.
+    expect(doc.body.textContent).toContain(payload);
+  });
+
   it("renders honest empty states", () => {
     const execution = makeExecution({
       result_data: { status: "optimal", variables: [] } as unknown as ModelExecution["result_data"],

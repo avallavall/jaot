@@ -131,6 +131,19 @@ async function captureChartAsImage(
 const REPORT_NEAR_ZERO = 1e-9;
 const REPORT_VARIABLE_CAP = 500;
 
+/** The report is a hand-built HTML document served from a same-origin blob URL,
+ * and variable/constraint names come from the MODEL AUTHOR — with the fused
+ * marketplace that may be a third party. Everything user-controlled must be
+ * escaped before interpolation. */
+function escapeHtml(value: unknown): string {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 /** Build the printable solution report (pure — unit-testable). */
 export function buildReportHtml(
   execution: ModelExecution,
@@ -164,9 +177,9 @@ export function buildReportHtml(
     .map(
       (v) =>
         `<tr>
-          <td><span class="var-name">${v.name}</span></td>
-          <td><span class="var-type">${v.type}</span></td>
-          <td class="var-value">${typeof v.value === "number" ? v.value.toLocaleString(locale, { maximumFractionDigits: 6 }) : v.value}</td>
+          <td><span class="var-name">${escapeHtml(v.name)}</span></td>
+          <td><span class="var-type">${escapeHtml(v.type)}</span></td>
+          <td class="var-value">${typeof v.value === "number" ? v.value.toLocaleString(locale, { maximumFractionDigits: 6 }) : escapeHtml(v.value)}</td>
         </tr>`
     )
     .join("\n");
@@ -175,8 +188,8 @@ export function buildReportHtml(
     .map(
       (c) =>
         `<tr>
-          <td><span class="var-name">${c.name ?? "—"}</span></td>
-          <td class="constraint-expr">${c.expression ?? "—"}</td>
+          <td><span class="var-name">${escapeHtml(c.name ?? "—")}</span></td>
+          <td class="constraint-expr">${escapeHtml(c.expression ?? "—")}</td>
         </tr>`
     )
     .join("\n");
@@ -210,7 +223,7 @@ export function buildReportHtml(
       : "\u2014";
 
   return `<!DOCTYPE html>
-<html lang="${locale}">
+<html lang="${escapeHtml(locale)}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -448,17 +461,17 @@ export function buildReportHtml(
       <div class="label">${labels.objectiveValue}</div>
       <div class="value">${objValue}</div>
     </div>
-    <div class="status">${execution.solver_status ?? "\u2014"}</div>
+    <div class="status">${escapeHtml(execution.solver_status ?? "\u2014")}</div>
   </div>
 
   <div class="meta-grid">
     <div class="meta-item">
       <div class="meta-label">${labels.modelLabel}</div>
-      <div class="meta-value">${modelName}</div>
+      <div class="meta-value">${escapeHtml(modelName)}</div>
     </div>
     <div class="meta-item">
       <div class="meta-label">${labels.solverLabel}</div>
-      <div class="meta-value">${solverName}</div>
+      <div class="meta-value">${escapeHtml(solverName)}</div>
     </div>
     <div class="meta-item">
       <div class="meta-label">${labels.gapLabel}</div>
@@ -466,7 +479,7 @@ export function buildReportHtml(
     </div>
     <div class="meta-item">
       <div class="meta-label">${labels.executionId}</div>
-      <div class="meta-value mono">${execution.id}</div>
+      <div class="meta-value mono">${escapeHtml(execution.id)}</div>
     </div>
     <div class="meta-item">
       <div class="meta-label">${labels.dateLabel}</div>
@@ -478,15 +491,15 @@ export function buildReportHtml(
     </div>
     <div class="meta-item">
       <div class="meta-label">${labels.origin}</div>
-      <div class="meta-value">${execution.origin ?? "manual"}</div>
+      <div class="meta-value">${escapeHtml(execution.origin ?? "manual")}</div>
     </div>
     <div class="meta-item">
       <div class="meta-label">${labels.solverStatus}</div>
-      <div class="meta-value">${execution.solver_status ?? "\u2014"}</div>
+      <div class="meta-value">${escapeHtml(execution.solver_status ?? "\u2014")}</div>
     </div>
     ${execution.trigger_id ? `<div class="meta-item">
       <div class="meta-label">${labels.triggerIdLabel}</div>
-      <div class="meta-value mono">${execution.trigger_id}</div>
+      <div class="meta-value mono">${escapeHtml(execution.trigger_id)}</div>
     </div>` : ""}
   </div>
 
