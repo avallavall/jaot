@@ -87,9 +87,13 @@ def ensure_official_org(db: Session) -> str:
 
 
 def _apply_listing_fields(
-    listing: ModelProjectListing, template: TemplateDefinition, merged_tags: list[str]
+    listing: ModelProjectListing,
+    template: TemplateDefinition,
+    merged_tags: list[str],
+    author_org_id: str,
 ) -> None:
     """Copy a template's presentation + generator facet onto a listing row."""
+    listing.author_organization_id = author_org_id
     listing.name = template.name
     listing.display_name = template.display_name
     listing.description = template.description
@@ -160,10 +164,10 @@ def seed_official_models(db: Session) -> int:
         )
         if listing is None:
             listing = ModelProjectListing(model_project_id=official_id, published_at=now)
-            _apply_listing_fields(listing, template, merged_tags)
+            _apply_listing_fields(listing, template, merged_tags, org_id)
             db.add(listing)
         else:
-            _apply_listing_fields(listing, template, merged_tags)
+            _apply_listing_fields(listing, template, merged_tags, org_id)
             if listing.published_at is None:
                 listing.published_at = now
 

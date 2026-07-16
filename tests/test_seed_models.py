@@ -56,6 +56,8 @@ class TestSeedOfficialModelsCreate:
         assert listing.is_official is True
         assert listing.status == "published"
         assert listing.generator_type == "generic"
+        # The listing carries its author org (frontends render "by {author}").
+        assert listing.author_organization_id == SYSTEM_ORG_ID
 
     def test_creates_multiple_entries(self, db_session):
         tpl1 = _make_template(id="one", name="One")

@@ -2829,7 +2829,6 @@
       "hoursAgo": "hace {count}h",
       "daysAgo": "hace {count}d",
       "accessCount": "{count} ejecuciones",
-      "run": "Ejecutar",
       "removeFailed": "Error al eliminar favorito. Por favor, inténtalo de nuevo."
     },
     "multiObjective": {

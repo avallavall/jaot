@@ -2829,7 +2829,6 @@
       "hoursAgo": "Fa {count}h",
       "daysAgo": "Fa {count}d",
       "accessCount": "{count} execucions",
-      "run": "Executar",
       "removeFailed": "Error en eliminar el favorit. Si us plau, torna-ho a provar."
     },
     "multiObjective": {

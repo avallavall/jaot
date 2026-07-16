@@ -7,7 +7,8 @@ These tests verify the favorites/recents functionality:
 - Getting favorite status
 """
 
-from app.models import ModelCategory, ModelProject, ModelProjectListing, UserFavorite
+from app.models import ModelCategory, ModelProject, ModelProjectListing, Organization, UserFavorite
+from app.shared.utils.id_generator import generate_id
 
 
 def _listing(db, org, *, pid) -> None:
@@ -52,6 +53,57 @@ class TestFavoritesList:
         assert data["total"] >= 1
         model_ids = [s["id"] for s in data["items"]]
         assert "test_fav_model" in model_ids
+
+
+class TestFavoriteAuthor:
+    """Author attribution on the favorites list (P1.5 fusion).
+
+    Backfilled/legacy listings carry no ``author_organization_id`` (the legacy
+    catalog never did) — the author must resolve through the owning project's
+    organization instead of rendering "Unknown".
+    """
+
+    def test_author_falls_back_to_project_org(
+        self, authenticated_client, db_session, test_organization
+    ):
+        _listing(db_session, test_organization, pid="test_fav_author_fallback")
+
+        assert (
+            authenticated_client.post(
+                "/api/v2/models/favorites/test_fav_author_fallback"
+            ).status_code
+            == 200
+        )
+
+        data = authenticated_client.get("/api/v2/models/favorites").json()
+        item = next(i for i in data["items"] if i["id"] == "test_fav_author_fallback")
+        assert item["author_name"] == test_organization.name
+
+    def test_author_from_listing_when_present(
+        self, authenticated_client, db_session, test_organization
+    ):
+        """An explicit listing author (the fused publish path sets it) wins."""
+        author_org = Organization(id=generate_id("org_"), name="Listing Author Org")
+        db_session.add(author_org)
+        _listing(db_session, test_organization, pid="test_fav_author_explicit")
+        listing = (
+            db_session.query(ModelProjectListing)
+            .filter(ModelProjectListing.model_project_id == "test_fav_author_explicit")
+            .one()
+        )
+        listing.author_organization_id = author_org.id
+        db_session.commit()
+
+        assert (
+            authenticated_client.post(
+                "/api/v2/models/favorites/test_fav_author_explicit"
+            ).status_code
+            == 200
+        )
+
+        data = authenticated_client.get("/api/v2/models/favorites").json()
+        item = next(i for i in data["items"] if i["id"] == "test_fav_author_explicit")
+        assert item["author_name"] == "Listing Author Org"
 
 
 class TestAddFavorite:

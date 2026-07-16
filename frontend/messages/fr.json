@@ -2829,7 +2829,6 @@
       "hoursAgo": "Il y a {count} h",
       "daysAgo": "Il y a {count} j",
       "accessCount": "{count} exécutions",
-      "run": "Exécuter",
       "removeFailed": "Échec de la suppression du favori. Veuillez réessayer."
     },
     "multiObjective": {

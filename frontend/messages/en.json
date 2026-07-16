@@ -2854,7 +2854,6 @@
       "hoursAgo": "{count}h ago",
       "daysAgo": "{count}d ago",
       "accessCount": "{count} runs",
-      "run": "Run",
       "removeFailed": "Failed to remove favorite. Please try again."
     },
     "multiObjective": {
