@@ -322,10 +322,11 @@ test("Group 2: Auth pages (FR)", async ({ page }) => {
 test("Group 3: Solve pages (FR)", async ({ page }) => {
   await loginAsAdmin(page);
 
-  await auditPage(page, "/solve", "solve", "My Models", "01-my-models.png");
+  // P1.5 fusion: My Models + model creation live in the studio now.
+  await auditPage(page, "/studio", "solve", "My Models", "01-my-models.png");
   await auditPage(
     page,
-    "/solve/create",
+    "/studio/new",
     "solve",
     "Create Model",
     "02-create.png"

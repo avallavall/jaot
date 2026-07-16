@@ -56,12 +56,12 @@ test.describe("Edge Cases", () => {
       });
       const page = await context.newPage();
 
-      await page.goto("/solve");
+      await page.goto("/studio");
       await page.waitForLoadState("networkidle");
 
       // On mobile, sidebar should either be hidden or behind a hamburger menu
       // We just verify the page loads without error at mobile width
-      await expect(page).toHaveURL(/\/solve/);
+      await expect(page).toHaveURL(/\/studio/);
 
       await context.close();
     });
@@ -83,10 +83,11 @@ test.describe("Edge Cases", () => {
 
   test.describe("Error Handling Extended (E2E-15)", () => {
     test("API error on invalid model ID shows user-friendly message", async ({ page }) => {
-      await page.goto("/solve/mdl_nonexistent_12345");
+      // P1.5 fusion: the model workspace is the studio; a bad id must not crash.
+      await page.goto("/studio/mp_nonexistent_12345/build");
       const bodyText = await page.textContent("body");
       const handled = /not found|error|404|model/i.test(bodyText || "")
-        || (await page.url()).includes("/solve");
+        || (await page.url()).includes("/studio");
       expect(handled).toBe(true);
     });
 
@@ -199,8 +200,8 @@ test.describe("Edge Cases", () => {
       expect(critical).toEqual([]);
     });
 
-    test("solve dashboard has no critical a11y violations", async ({ page }) => {
-      await page.goto("/solve");
+    test("studio dashboard has no critical a11y violations", async ({ page }) => {
+      await page.goto("/studio");
       await page.waitForLoadState("networkidle");
 
       const results = await new AxeBuilder({ page })

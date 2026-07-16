@@ -29,13 +29,13 @@ test.describe("Error Handling & Edge Cases — Functional Tests", () => {
   });
 
   // -------------------------------------------------------------------------
-  // 1. 404 for non-existent model in /solve
+  // 1. 404 for non-existent model in the studio (P1.5 fusion)
   // -------------------------------------------------------------------------
 
-  test("non-existent model in /solve shows error, not crash", async ({
+  test("non-existent model in the studio shows error, not crash", async ({
     page,
   }) => {
-    await page.goto("/solve/nonexistent_model_12345");
+    await page.goto("/studio/nonexistent_model_12345/build");
     await page.waitForLoadState("domcontentloaded");
 
     const bodyText = await page.textContent("body", { timeout: NAV_TIMEOUT });
@@ -50,11 +50,11 @@ test.describe("Error Handling & Edge Cases — Functional Tests", () => {
       "Page should have meaningful content (not blank)"
     ).toBe(true);
 
-    // Should show an error indicator or redirect to /solve
+    // Should show an error indicator or land somewhere sane in the studio
     const handled =
       /not found|error|404|model|does not exist/i.test(bodyText || "") ||
-      page.url().includes("/solve");
-    expect(handled, "Should show error message or redirect to /solve").toBe(
+      page.url().includes("/studio");
+    expect(handled, "Should show error message or redirect to /studio").toBe(
       true
     );
   });
@@ -207,7 +207,7 @@ test.describe("Error Handling & Edge Cases — Functional Tests", () => {
     const context = await browser.newContext({ storageState: undefined });
     const page = await context.newPage();
 
-    await page.goto("/solve");
+    await page.goto("/studio");
 
     // Should redirect to login page
     await expect(page).toHaveURL(/\/login/, { timeout: NAV_TIMEOUT });
@@ -408,10 +408,10 @@ test.describe("Error Handling & Edge Cases — Functional Tests", () => {
   }) => {
     // Navigate through multiple authenticated routes in sequence
     const routes = [
-      { path: "/solve", urlPattern: /\/solve/ },
+      { path: "/studio", urlPattern: /\/studio/ },
       { path: "/workspace", urlPattern: /\/workspace/ },
       { path: "/marketplace", urlPattern: /\/marketplace/ },
-      { path: "/solve", urlPattern: /\/solve/ },
+      { path: "/studio", urlPattern: /\/studio/ },
     ];
 
     for (const route of routes) {

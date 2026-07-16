@@ -143,11 +143,11 @@ test("12 — review form toggle", async ({ page }) => {
   }
 });
 
-// ===== 13. MY MODELS (SOLVE) =====
-test("13 — solve page model list", async ({ page }) => {
-  await page.goto("/solve");
+// ===== 13. MY MODELS (STUDIO) =====
+test("13 — studio model list", async ({ page }) => {
+  await page.goto("/studio");
   await waitForContent(page);
-  await screenshot(page, "13-solve-models-list");
+  await screenshot(page, "13-studio-models-list");
 });
 
 // ===== 14. FAVORITES =====
@@ -157,33 +157,25 @@ test("14 — favorites page", async ({ page }) => {
   await screenshot(page, "14-favorites-page");
 });
 
-// ===== 15. SOLVE MODEL INPUT FORM =====
-test("15 — solve model input form", async ({ page }) => {
-  await page.goto("/solve");
+// ===== 15. MODEL WORKSPACE (STUDIO) =====
+test("15 — studio model workspace", async ({ page }) => {
+  await page.goto("/studio");
   await waitForContent(page);
-  const modelCard = page.locator('a[href*="/solve/mdl_"]').first();
+  const modelCard = page.getByTestId("studio-project-card").first();
   if (await modelCard.isVisible({ timeout: 5_000 }).catch(() => false)) {
     await modelCard.click();
     await waitForContent(page);
-    await screenshot(page, "15-solve-input-form");
+    await screenshot(page, "15-studio-workspace");
   } else {
-    await screenshot(page, "15-solve-no-models");
+    await screenshot(page, "15-studio-no-models");
   }
 });
 
 // ===== 16. EXECUTION HISTORY =====
 test("16 — execution history page", async ({ page }) => {
-  await page.goto("/solve");
+  await page.goto("/solve/executions");
   await waitForContent(page);
-  const modelCard = page.locator('a[href*="/solve/mdl_"]').first();
-  if (await modelCard.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    const href = await modelCard.getAttribute("href");
-    if (href) {
-      await page.goto(href + "/history");
-      await waitForContent(page);
-      await screenshot(page, "16-execution-history");
-    }
-  }
+  await screenshot(page, "16-execution-history");
 });
 
 // ===== 17. BUILDER HOME =====
@@ -323,7 +315,7 @@ test("27 — multi-objective solve", async ({ page }) => {
 
 // ===== 29. SIDEBAR NAVIGATION =====
 test("29 — sidebar with all nav items", async ({ page }) => {
-  await page.goto("/solve");
+  await page.goto("/studio");
   await waitForContent(page);
   await screenshot(page, "29-sidebar-navigation");
 });

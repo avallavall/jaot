@@ -31,17 +31,8 @@ test.describe("Advanced Solver Features", () => {
   });
 
   test.describe("Warm Start (E2E-18)", () => {
-    test("solve create page loads with warm start option", async ({
-      page,
-    }) => {
-      await page.goto("/solve/create");
-      await expect(page).toHaveURL(/\/solve\/create/);
-
-      // Warm start controls may appear in solve configuration
-      const content = page.locator("#main-content");
-      await expect(content).toBeVisible();
-    });
-
+    // P1.5 fusion: the legacy /solve/create page (and its warm-start controls)
+    // collapsed into the studio; the custom raw-input page remains.
     test("custom solve page supports initial solution input", async ({
       page,
     }) => {

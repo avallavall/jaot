@@ -135,10 +135,10 @@ test.describe("Accessibility - Authenticated Pages", () => {
     await assertAccessible(page);
   });
 
-  test("solve page has no critical or serious a11y violations", async ({
+  test("studio page has no critical or serious a11y violations", async ({
     page,
   }) => {
-    await page.goto("/solve");
+    await page.goto("/studio");
     await page.waitForLoadState("domcontentloaded");
 
     // Wait for the solve dashboard to render

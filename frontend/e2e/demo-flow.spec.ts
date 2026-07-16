@@ -32,24 +32,8 @@ test.describe("Demo Flow — Hexaly Executive Demo", () => {
     await context.close();
   });
 
-  test("Act I: Pricing page shows plans with toggle", async ({ browser }) => {
-    const context = await browser.newContext({ storageState: undefined });
-    const page = await context.newPage();
-
-    await page.goto("/pricing");
-    await page.waitForLoadState("domcontentloaded");
-
-    // Should show plan names
-    await expect(page.getByText(/free/i).first()).toBeVisible({ timeout: NAV_TIMEOUT });
-
-    // Should have monthly/annual toggle
-    const toggle = page.getByRole("switch")
-      .or(page.getByRole("button", { name: /annual|monthly/i }))
-      .or(page.getByText(/annual|monthly/i));
-    await expect(toggle.first()).toBeVisible();
-
-    await context.close();
-  });
+  // (The old "Act I: pricing page" test is gone — SaaS pricing was removed with
+  // the OSS pivot and money left the platform entirely with ADR-008.)
 
   // Act II: AI Assistant (authenticated)
   test("Act II: AI Assistant page loads with chat interface", async ({ page }) => {
@@ -143,11 +127,11 @@ test.describe("Demo Flow — Hexaly Executive Demo", () => {
     await expect(detailHeading).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 
-  // Act V: Solve Dashboard & Execution
+  // Act V: Studio (My Models) & Execution — P1.5 fusion: /solve collapsed here.
   test("Act V: My Models page loads with models or empty state", async ({ page }) => {
-    await page.goto("/solve");
+    await page.goto("/studio");
 
-    await expect(page).toHaveURL(/\/solve/);
+    await expect(page).toHaveURL(/\/studio/);
 
     const heading = page.getByRole("heading").first();
     await expect(heading).toBeVisible({ timeout: NAV_TIMEOUT });
@@ -157,39 +141,25 @@ test.describe("Demo Flow — Hexaly Executive Demo", () => {
     await expect(sidebar).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 
-  test("Act V: Execution page loads for available model", async ({ page }) => {
-    await page.goto("/solve");
-    await expect(page).toHaveURL(/\/solve/);
+  test("Act V: Model workspace opens for an available model", async ({ page }) => {
+    await page.goto("/studio");
+    await expect(page).toHaveURL(/\/studio/);
 
-    const heading = page.getByRole("heading").first();
-    await expect(heading).toBeVisible({ timeout: NAV_TIMEOUT });
-
-    // Find a model to execute
-    const modelLinks = page.locator("a[href*='/solve/']").filter({
-      hasNotText: /catalog|executions|favorites|multi|compare|custom|create/i,
-    });
-
-    const linkCount = await modelLinks.count();
-    if (linkCount === 0) {
+    const card = page.getByTestId("studio-project-card").first();
+    if (!(await card.isVisible({ timeout: 5_000 }).catch(() => false))) {
       test.info().annotations.push({
         type: "skip-reason",
-        description: "No activated models available for execution",
+        description: "No models available for execution",
       });
       return;
     }
 
-    await modelLinks.first().click();
-    await page.waitForURL(/\/solve\/[^/]+$/, { timeout: NAV_TIMEOUT });
+    await card.click();
+    await page.waitForURL(/\/studio\/[^/]+\/build/, { timeout: NAV_TIMEOUT });
 
-    // Execution page should show run button and input area
-    const runButton = page.getByRole("button", {
-      name: /run|execute|solve|play/i,
-    });
-    await expect(runButton.first()).toBeVisible({ timeout: NAV_TIMEOUT });
-
-    // Should have textarea/code editor for input
-    const inputArea = page.locator("textarea").or(page.locator('[data-testid="code-editor"]'));
-    await expect(inputArea.first()).toBeVisible({ timeout: NAV_TIMEOUT });
+    // The workspace mounted: model name + header Solve action are present.
+    await expect(page.getByTestId("studio-name-input")).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(page.getByTestId("studio-header-solve")).toBeVisible();
   });
 
   // Act VI: Admin Dashboard
