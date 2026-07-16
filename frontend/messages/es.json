@@ -2921,7 +2921,6 @@
     },
     "export": {
       "csv": "Exportar CSV",
-      "pdf": "Exportar PDF",
       "generating": "Generando...",
       "solutionReport": "Informe de solución",
       "variableAssignments": "Asignaciones de variables",
@@ -2953,7 +2952,14 @@
       "cip": "Formato CIP",
       "sol": "Solución (.sol)",
       "json": "Formato JSON",
-      "downloadFailed": "La descarga falló. Inténtalo de nuevo."
+      "downloadFailed": "La descarga falló. Inténtalo de nuevo.",
+      "printableReport": "Informe imprimible",
+      "modelLabel": "Modelo",
+      "solverLabel": "Solver",
+      "gapLabel": "Gap",
+      "noConstraints": "Este modelo no tiene restricciones",
+      "zeroOmitted": "{count, plural, one {# variable casi cero omitida} other {# variables casi cero omitidas}}",
+      "rowsCapped": "Mostrando las primeras {shown} de {total} variables no nulas"
     },
     "charts": {
       "gapConvergence": {

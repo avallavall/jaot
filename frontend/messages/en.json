@@ -2946,7 +2946,6 @@
     },
     "export": {
       "csv": "Export CSV",
-      "pdf": "Export PDF",
       "generating": "Generating...",
       "solutionReport": "Solution Report",
       "variableAssignments": "Variable Assignments",
@@ -2978,7 +2977,14 @@
       "cip": "CIP format",
       "sol": "Solution (.sol)",
       "json": "JSON format",
-      "downloadFailed": "Download failed. Please try again."
+      "downloadFailed": "Download failed. Please try again.",
+      "printableReport": "Printable report",
+      "modelLabel": "Model",
+      "solverLabel": "Solver",
+      "gapLabel": "Gap",
+      "noConstraints": "No constraints in this model",
+      "zeroOmitted": "{count, plural, one {# near-zero variable omitted} other {# near-zero variables omitted}}",
+      "rowsCapped": "Showing the first {shown} of {total} non-zero variables"
     },
     "visualization": {
       "variableValues": "Variable Values",

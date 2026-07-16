@@ -2921,7 +2921,6 @@
     },
     "export": {
       "csv": "Exportar CSV",
-      "pdf": "Exportar PDF",
       "generating": "Generant...",
       "solutionReport": "Informe de la Solució",
       "variableAssignments": "Assignacions de Variables",
@@ -2953,7 +2952,14 @@
       "cip": "Format CIP",
       "sol": "Solució (.sol)",
       "json": "Format JSON",
-      "downloadFailed": "La descàrrega ha fallat. Torna-ho a provar."
+      "downloadFailed": "La descàrrega ha fallat. Torna-ho a provar.",
+      "printableReport": "Informe imprimible",
+      "modelLabel": "Model",
+      "solverLabel": "Solver",
+      "gapLabel": "Gap",
+      "noConstraints": "Aquest model no té restriccions",
+      "zeroOmitted": "{count, plural, one {# variable gairebé zero omesa} other {# variables gairebé zero omeses}}",
+      "rowsCapped": "Es mostren les primeres {shown} de {total} variables no nul·les"
     },
     "charts": {
       "gapConvergence": {

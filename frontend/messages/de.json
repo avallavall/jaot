@@ -2921,7 +2921,6 @@
     },
     "export": {
       "csv": "CSV exportieren",
-      "pdf": "PDF exportieren",
       "generating": "Wird generiert...",
       "solutionReport": "Lösungsbericht",
       "variableAssignments": "Variablenzuweisungen",
@@ -2953,7 +2952,14 @@
       "cip": "CIP-Format",
       "sol": "Lösung (.sol)",
       "json": "JSON-Format",
-      "downloadFailed": "Download fehlgeschlagen. Bitte versuchen Sie es erneut."
+      "downloadFailed": "Download fehlgeschlagen. Bitte versuchen Sie es erneut.",
+      "printableReport": "Druckbarer Bericht",
+      "modelLabel": "Modell",
+      "solverLabel": "Solver",
+      "gapLabel": "Gap",
+      "noConstraints": "Dieses Modell enthält keine Nebenbedingungen",
+      "zeroOmitted": "{count, plural, one {# nahezu null Variable ausgelassen} other {# nahezu null Variablen ausgelassen}}",
+      "rowsCapped": "Die ersten {shown} von {total} Nicht-Null-Variablen werden angezeigt"
     },
     "charts": {
       "gapConvergence": {

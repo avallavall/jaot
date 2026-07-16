@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import type { ModelExecution } from "@/lib/types";
@@ -24,7 +24,7 @@ interface ExportButtonsProps {
   trendChartRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-interface ExportLabels {
+export interface ExportLabels {
   solutionReport: string;
   variableAssignments: string;
   constraintDetails: string;
@@ -33,6 +33,9 @@ interface ExportLabels {
   solverStatus: string;
   objectiveValue: string;
   origin: string;
+  modelLabel: string;
+  solverLabel: string;
+  gapLabel: string;
   nameHeader: string;
   typeHeader: string;
   valueHeader: string;
@@ -46,9 +49,26 @@ interface ExportLabels {
   solveTime: string;
   triggerIdLabel: string;
   noVariables: string;
+  noConstraints: string;
   printSaveAsPdf: string;
   dateLabel: string;
   popupBlocked: string;
+  zeroOmitted: (count: number) => string;
+  rowsCapped: (shown: number, total: number) => string;
+}
+
+type InputVariable = { name?: string; lower_bound?: number | null; upper_bound?: number | null };
+
+/** Bounds live on the PROBLEM's variables (input_data), keyed by name. */
+function inputBoundsByName(
+  execution: ModelExecution
+): Map<string, { lower: number | null; upper: number | null }> {
+  const inputVars = (execution.input_data?.variables as InputVariable[] | undefined) ?? [];
+  const map = new Map<string, { lower: number | null; upper: number | null }>();
+  for (const v of inputVars) {
+    if (v.name) map.set(v.name, { lower: v.lower_bound ?? null, upper: v.upper_bound ?? null });
+  }
+  return map;
 }
 
 function exportSolutionCSV(execution: ModelExecution, labels: ExportLabels): void {
@@ -57,6 +77,7 @@ function exportSolutionCSV(execution: ModelExecution, labels: ExportLabels): voi
   const constraints =
     (execution.input_data?.constraints as { name?: string; expression?: string }[] | undefined) ??
     [];
+  const bounds = inputBoundsByName(execution);
 
   const rows: (string | number | null | undefined)[][] = [];
 
@@ -74,7 +95,8 @@ function exportSolutionCSV(execution: ModelExecution, labels: ExportLabels): voi
   rows.push([labels.variableAssignments]);
   rows.push([labels.nameHeader, labels.typeHeader, labels.valueHeader, labels.lowerBound, labels.upperBound]);
   for (const v of variables) {
-    rows.push([v.name, v.type, v.value, "", ""]);
+    const b = bounds.get(v.name);
+    rows.push([v.name, v.type, v.value, b?.lower ?? "", b?.upper ?? ""]);
   }
 
   rows.push([]);
@@ -104,22 +126,57 @@ async function captureChartAsImage(
   }
 }
 
-async function exportPDF(
+/** Near-zero threshold + row cap for the printable report's variables table:
+ * a 48k-var model would freeze the tab and print pages of zeros. */
+const REPORT_NEAR_ZERO = 1e-9;
+const REPORT_VARIABLE_CAP = 500;
+
+/** Build the printable solution report (pure — unit-testable). */
+export function buildReportHtml(
   execution: ModelExecution,
   labels: ExportLabels,
+  locale: string,
   chartImageDataUrl?: string | null,
   trendChartImageDataUrl?: string | null
-): Promise<void> {
+): string {
   const resultData = execution.result_data as Record<string, unknown> | undefined;
-  const variables = extractVariables(resultData);
+  const allVariables = extractVariables(resultData);
+  const constraints =
+    (execution.input_data?.constraints as { name?: string; expression?: string }[] | undefined) ??
+    [];
 
-  const variableRows = variables
+  // Non-zero by default + hard cap — mirror the insights presentation.
+  const nonZero = allVariables.filter(
+    (v) => typeof v.value !== "number" || Math.abs(v.value) > REPORT_NEAR_ZERO
+  );
+  const omittedZeros = allVariables.length - nonZero.length;
+  const shownVariables = nonZero.slice(0, REPORT_VARIABLE_CAP);
+  const notices: string[] = [];
+  if (omittedZeros > 0) notices.push(labels.zeroOmitted(omittedZeros));
+  if (nonZero.length > shownVariables.length) {
+    notices.push(labels.rowsCapped(shownVariables.length, nonZero.length));
+  }
+  const variablesNotice = notices.length
+    ? `<p class="table-notice">${notices.join(" · ")}</p>`
+    : "";
+
+  const variableRows = shownVariables
     .map(
       (v) =>
         `<tr>
           <td><span class="var-name">${v.name}</span></td>
           <td><span class="var-type">${v.type}</span></td>
-          <td class="var-value">${typeof v.value === "number" ? v.value.toLocaleString(undefined, { maximumFractionDigits: 6 }) : v.value}</td>
+          <td class="var-value">${typeof v.value === "number" ? v.value.toLocaleString(locale, { maximumFractionDigits: 6 }) : v.value}</td>
+        </tr>`
+    )
+    .join("\n");
+
+  const constraintRows = constraints
+    .map(
+      (c) =>
+        `<tr>
+          <td><span class="var-name">${c.name ?? "—"}</span></td>
+          <td class="constraint-expr">${c.expression ?? "—"}</td>
         </tr>`
     )
     .join("\n");
@@ -136,15 +193,24 @@ async function exportPDF(
          <img src="${trendChartImageDataUrl}" alt="${labels.objectiveTrend}" />`
       : "";
 
-  const dateStr = apiDate(execution.created_at).toLocaleString();
+  const dateStr = apiDate(execution.created_at).toLocaleString(locale);
   const duration = execution.execution_time_ms != null ? `${execution.execution_time_ms} ms` : "\u2014";
   const objValue =
     execution.objective_value != null
-      ? execution.objective_value.toLocaleString(undefined, { maximumFractionDigits: 6 })
+      ? execution.objective_value.toLocaleString(locale, { maximumFractionDigits: 6 })
       : "\u2014";
 
-  const html = `<!DOCTYPE html>
-<html lang="en">
+  const modelName =
+    execution.model_name || (execution.input_data?.name as string | undefined) || "\u2014";
+  const solverName = execution.solver_name || "\u2014";
+  const gap = (resultData?.gap as number | null | undefined) ?? null;
+  const gapStr =
+    gap != null
+      ? `${(gap * 100).toLocaleString(locale, { maximumFractionDigits: 4 })}%`
+      : "\u2014";
+
+  return `<!DOCTYPE html>
+<html lang="${locale}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -165,12 +231,16 @@ async function exportPDF(
     }
     @media print {
       .no-print { display: none !important; }
-      body { margin: 0; background: #FFFFFF; }
+      body { margin: 0; padding: 16px 20px; background: #FFFFFF; }
       .meta-grid, .table-card { box-shadow: none !important; }
+      tr { page-break-inside: avoid; }
+      thead { display: table-header-group; }
+      h2 { page-break-after: avoid; }
+      img { page-break-inside: avoid; }
     }
     * { box-sizing: border-box; }
     body {
-      font-family: "Geist", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--fg);
       margin: 0;
       padding: 40px 48px;
@@ -186,7 +256,7 @@ async function exportPDF(
       border-bottom: 2px solid var(--primary);
     }
     .brand {
-      font-family: "Geist", Georgia, "Times New Roman", serif;
+      font-family: Georgia, "Times New Roman", serif;
       font-size: 28px;
       font-weight: 800;
       color: var(--primary);
@@ -222,7 +292,7 @@ async function exportPDF(
       color: var(--muted-fg);
     }
     .objective-banner .value {
-      font-family: "Geist Mono", "JetBrains Mono", "Courier New", monospace;
+      font-family: "JetBrains Mono", Consolas, "Courier New", monospace;
       font-size: 32px;
       font-weight: 700;
       color: var(--primary);
@@ -268,7 +338,7 @@ async function exportPDF(
       word-break: break-all;
     }
     .meta-value.mono {
-      font-family: "Geist Mono", "JetBrains Mono", "Courier New", monospace;
+      font-family: "JetBrains Mono", Consolas, "Courier New", monospace;
       font-size: 12px;
     }
     h2 {
@@ -309,7 +379,7 @@ async function exportPDF(
     }
     tbody tr:nth-child(even) td { background: rgba(241, 230, 216, 0.35); }
     tbody tr:last-child td { border-bottom: none; }
-    .var-name { font-family: "Geist Mono", "JetBrains Mono", monospace; color: var(--primary); font-weight: 600; }
+    .var-name { font-family: "JetBrains Mono", Consolas, monospace; color: var(--primary); font-weight: 600; }
     .var-type {
       display: inline-block;
       padding: 2px 8px;
@@ -320,7 +390,7 @@ async function exportPDF(
       letter-spacing: 0.04em;
       color: var(--muted-fg);
     }
-    .var-value { font-family: "Geist Mono", "JetBrains Mono", monospace; text-align: right; font-weight: 600; }
+    .var-value { font-family: "JetBrains Mono", Consolas, monospace; text-align: right; font-weight: 600; }
     .print-btn {
       display: inline-block;
       margin-bottom: 24px;
@@ -346,6 +416,17 @@ async function exportPDF(
       letter-spacing: 0.04em;
     }
     img { max-width: 100%; border: 1px solid var(--border); margin-top: 12px; }
+    .table-notice {
+      margin: 0 0 8px;
+      font-size: 11px;
+      color: var(--muted-fg);
+      font-style: italic;
+    }
+    .constraint-expr {
+      font-family: "JetBrains Mono", Consolas, monospace;
+      font-size: 12px;
+      word-break: break-all;
+    }
   </style>
 </head>
 <body>
@@ -372,6 +453,18 @@ async function exportPDF(
 
   <div class="meta-grid">
     <div class="meta-item">
+      <div class="meta-label">${labels.modelLabel}</div>
+      <div class="meta-value">${modelName}</div>
+    </div>
+    <div class="meta-item">
+      <div class="meta-label">${labels.solverLabel}</div>
+      <div class="meta-value">${solverName}</div>
+    </div>
+    <div class="meta-item">
+      <div class="meta-label">${labels.gapLabel}</div>
+      <div class="meta-value mono">${gapStr}</div>
+    </div>
+    <div class="meta-item">
       <div class="meta-label">${labels.executionId}</div>
       <div class="meta-value mono">${execution.id}</div>
     </div>
@@ -383,7 +476,6 @@ async function exportPDF(
       <div class="meta-label">${labels.solveTime}</div>
       <div class="meta-value">${duration}</div>
     </div>
-    <div class="meta-item">
     <div class="meta-item">
       <div class="meta-label">${labels.origin}</div>
       <div class="meta-value">${execution.origin ?? "manual"}</div>
@@ -399,6 +491,7 @@ async function exportPDF(
   </div>
 
   <h2>${labels.variableAssignments}</h2>
+  ${variablesNotice}
   <div class="table-card">
     <table>
       <thead>
@@ -414,6 +507,21 @@ async function exportPDF(
     </table>
   </div>
 
+  <h2>${labels.constraintDetails}</h2>
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>${labels.nameHeader}</th>
+          <th>${labels.expression}</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${constraintRows || `<tr><td colspan="2" style="padding:24px 16px;color:var(--label);text-align:center;font-style:italic;">${labels.noConstraints}</td></tr>`}
+      </tbody>
+    </table>
+  </div>
+
   ${gapChartSection}
   ${trendChartSection}
 
@@ -422,22 +530,27 @@ async function exportPDF(
   </div>
 </body>
 </html>`;
+}
 
-  // Open in new tab via Blob URL — avoids popup-blocker issues. Falls back to direct download.
+/** Open the printable report in a new tab; a blocked popup falls back to a
+ * direct download (and says so — the silent fallback confused users). */
+function openPrintableReport(html: string, executionId: string, popupBlockedMsg: string): void {
   const blob = new Blob([html], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const win = window.open(url, "_blank");
   if (!win) {
     const a = document.createElement("a");
     a.href = url;
-    a.download = `solution-report-${execution.id}.html`;
+    a.download = `solution-report-${executionId}.html`;
     a.click();
+    toast.info(popupBlockedMsg);
   }
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 export function ExportButtons({ execution, chartRef, trendChartRef }: ExportButtonsProps) {
   const t = useTranslations("solve.export");
+  const locale = useLocale();
   const [pdfLoading, setPdfLoading] = useState(false);
 
   const labels: ExportLabels = {
@@ -449,6 +562,9 @@ export function ExportButtons({ execution, chartRef, trendChartRef }: ExportButt
     solverStatus: t("solverStatus"),
     objectiveValue: t("objectiveValue"),
     origin: t("origin"),
+    modelLabel: t("modelLabel"),
+    solverLabel: t("solverLabel"),
+    gapLabel: t("gapLabel"),
     nameHeader: t("nameHeader"),
     typeHeader: t("typeHeader"),
     valueHeader: t("valueHeader"),
@@ -462,21 +578,25 @@ export function ExportButtons({ execution, chartRef, trendChartRef }: ExportButt
     solveTime: t("solveTime"),
     triggerIdLabel: t("triggerIdLabel"),
     noVariables: t("noVariables"),
+    noConstraints: t("noConstraints"),
     printSaveAsPdf: t("printSaveAsPdf"),
     dateLabel: t("dateLabel"),
     popupBlocked: t("popupBlocked"),
+    zeroOmitted: (count: number) => t("zeroOmitted", { count }),
+    rowsCapped: (shown: number, total: number) => t("rowsCapped", { shown, total }),
   };
 
   const handleExportCSV = () => {
     exportSolutionCSV(execution, labels);
   };
 
-  const handleExportPDF = async () => {
+  const handleExportReport = async () => {
     setPdfLoading(true);
     try {
       const chartImg = chartRef ? await captureChartAsImage(chartRef) : null;
       const trendImg = trendChartRef ? await captureChartAsImage(trendChartRef) : null;
-      await exportPDF(execution, labels, chartImg, trendImg);
+      const html = buildReportHtml(execution, labels, locale, chartImg, trendImg);
+      openPrintableReport(html, execution.id, labels.popupBlocked);
     } finally {
       setPdfLoading(false);
     }
@@ -511,9 +631,9 @@ export function ExportButtons({ execution, chartRef, trendChartRef }: ExportButt
         <Download className="h-4 w-4 mr-2" />
         {t("csv")}
       </Button>
-      <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={pdfLoading}>
+      <Button variant="outline" size="sm" onClick={handleExportReport} disabled={pdfLoading}>
         <FileText className="h-4 w-4 mr-2" />
-        {pdfLoading ? t("generating") : t("pdf")}
+        {pdfLoading ? t("generating") : t("printableReport")}
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
