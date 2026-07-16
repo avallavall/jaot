@@ -23,6 +23,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Fixed
 
+- **The execution "PDF" export is now an honest, useful printable report (2026-07-16)** — the old export produced a visually broken page (a duplicated element nested the metadata grid), was labelled "PDF" while producing an HTML page, and printed every variable unfiltered (hundreds of zeros; huge models froze the tab). The rebuilt report carries the model name, solver, gap and a constraints section, shows non-zero variables only (with an explicit omitted count) capped at 500 rows, follows your language for text/number/date formatting, and is labelled "Printable report" (its Print button is still the way to save a PDF). The CSV export now fills the variable bound columns it always left empty.
 - **Favorites/recents attribution and action (P1.5, 2026-07-16)** — favorites showed "by Unknown" for every seeded/backfilled listing (the legacy catalog never carried an author organization): the official seed now stamps its org on the listing and the favorites/recents endpoints fall back to the owning project's organization. Their primary action now forks the model into the studio ("Use in studio") instead of driving the retired activate-era execution page.
 
 ### Changed
