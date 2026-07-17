@@ -86,6 +86,18 @@ class Variable(BaseModel):
     type: VariableType = Field(default=VariableType.CONTINUOUS, description="Variable type")
     lower_bound: float | None = Field(default=None, description="Lower bound (None = -inf)")
     upper_bound: float | None = Field(default=None, description="Upper bound (None = +inf)")
+    # Optional index structure so a flat mangled name ("assign_v3_o107") can be
+    # presented — and grouped — as the indexed family it came from
+    # (assign[v3, o107]). Set AUTHORITATIVELY by the JModel compiler when it
+    # grounds an indexed family; best-effort parsed for flat/imported models;
+    # left None for genuine scalars (they render flat). Solver-agnostic.
+    family: str | None = Field(
+        default=None, description="Indexed family this variable belongs to, if any"
+    )
+    index_tuple: list[str] | None = Field(
+        default=None,
+        description="Per-index-set members of this variable, e.g. ['v3', 'o107'].",
+    )
 
     @field_validator("name")
     @classmethod
@@ -399,6 +411,12 @@ class VariableSolution(BaseModel):
     name: str
     value: float
     type: VariableType
+    # Recovered index structure (see ``Variable.family`` / ``index_tuple``),
+    # copied through from the problem definition so the solution can be grouped
+    # by family server-side and every consumer (UI, MCP, explain_solution) sees
+    # ``assign[v3, o107]`` instead of a flat ``assign_v3_o107``. None → flat.
+    family: str | None = None
+    index_tuple: list[str] | None = None
 
 
 class ProgressPoint(BaseModel):

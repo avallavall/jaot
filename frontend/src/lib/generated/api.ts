@@ -8826,6 +8826,16 @@ export interface components {
          */
         Variable: {
             /**
+             * Family
+             * @description Indexed family this variable belongs to, if any
+             */
+            family?: string | null;
+            /**
+             * Index Tuple
+             * @description Per-index-set members of this variable, e.g. ['v3', 'o107'].
+             */
+            index_tuple?: string[] | null;
+            /**
              * Lower Bound
              * @description Lower bound (None = -inf)
              */
@@ -8878,6 +8888,10 @@ export interface components {
          * @description Solution value for a single variable.
          */
         VariableSolution: {
+            /** Family */
+            family?: string | null;
+            /** Index Tuple */
+            index_tuple?: string[] | null;
             /** Name */
             name: string;
             type: components["schemas"]["VariableType"];

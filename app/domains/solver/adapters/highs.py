@@ -306,7 +306,15 @@ class HiGHSAdapter:
             idx = col_map.get(var.name)
             if idx is not None and idx < len(col_values):
                 val = col_values[idx]
-                variable_solutions.append(VariableSolution(name=var.name, value=val, type=var.type))
+                variable_solutions.append(
+                    VariableSolution(
+                        name=var.name,
+                        value=val,
+                        type=var.type,
+                        family=var.family,
+                        index_tuple=var.index_tuple,
+                    )
+                )
                 solution_dict[var.name] = float(val)
 
         result = OptimizationResult(

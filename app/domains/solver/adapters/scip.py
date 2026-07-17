@@ -757,7 +757,13 @@ class SCIPAdapter:
             if var_def.type in (VariableType.INTEGER, VariableType.BINARY):
                 value = round(value)
             var_solutions.append(
-                VariableSolution(name=var_def.name, value=value, type=var_def.type)
+                VariableSolution(
+                    name=var_def.name,
+                    value=value,
+                    type=var_def.type,
+                    family=var_def.family,
+                    index_tuple=var_def.index_tuple,
+                )
             )
             solution_dict[var_def.name] = value
         return var_solutions, solution_dict

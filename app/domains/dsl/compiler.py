@@ -1858,12 +1858,19 @@ def _lower(model: ModelAst, max_grounded_elements: int) -> OptimizationProblem:
                     f"variable name collision after mangling: {flat!r}", position=decl.pos
                 )
             seen.add(flat)
+            # Carry the authoritative index structure onto the flat variable so
+            # the solution can be regrouped as assign[v3, o107] downstream. One
+            # index_tuple entry per index SET (a multi-component set member is
+            # joined with "_"); genuine scalars (no combo) stay unstructured.
+            index_tuple = ["_".join(member) for member in combo] if combo else None
             variables.append(
                 Variable(
                     name=flat,
                     type=VariableType(decl.vtype),
                     lower_bound=decl.lb,
                     upper_bound=decl.ub,
+                    family=name if combo else None,
+                    index_tuple=index_tuple,
                 )
             )
 
