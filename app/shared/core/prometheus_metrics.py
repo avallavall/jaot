@@ -6,6 +6,8 @@ These are global metrics only -- no per-organization labels to avoid cardinality
 
 from prometheus_client import Counter, Gauge, Histogram, Info
 
+from app.version import APP_VERSION
+
 SOLVE_TOTAL = Counter(
     "jaot_solve_total",
     "Total optimization solve requests",
@@ -101,6 +103,6 @@ APP_INFO = Info(
 )
 
 
-def init_app_info(version: str = "2.0.0") -> None:
+def init_app_info(version: str = APP_VERSION) -> None:
     """Initialize application info metric. Called once at startup."""
     APP_INFO.info({"version": version, "solver": "scip"})

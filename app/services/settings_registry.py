@@ -11,6 +11,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+from app.version import APP_VERSION
+
 
 class SettingType(str, Enum):
     """Value types for settings."""
@@ -763,7 +765,7 @@ SETTINGS_REGISTRY.extend(
             description="Current application version",
             category=SettingCategory.APP,
             setting_type=SettingType.STRING,
-            default_value="2.0.0",
+            default_value=APP_VERSION,
             is_readonly=True,
         ),
         SettingDefinition(

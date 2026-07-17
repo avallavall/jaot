@@ -17,6 +17,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ## [Unreleased]
 
+## [3.0.0] — 2026-07-17
+
+**The "Model, Analyze & Solve" release** — the repo's first tagged version. The model
+becomes the platform's protagonist: one versioned **ModelProject** workspace (canvas,
+AI assistant, JSON editor and JModel DSL as lenses over a single canonical model),
+git-style commits with health/stats, datasets & scenarios, live async solving, a
+fork-first collaborative marketplace fused into the same entity (publish = list a
+version; adopt = fork into your studio), grounded AI explainers, and a 26-tool MCP
+surface for agents. Money/credits are fully retired (ADR-008) — fair use is rate
+limits + solve caps. ~160 commits over the previous main.
+
+
 ### Added
 
 - **Docs + tooltips sweep for the fused platform (2026-07-17)** — the in-app documentation was rebuilt around the post-fusion reality (fork-first marketplace, project-native API, async-only solving, 26 MCP tools) and grew eight new pages: Visual Canvas, JSON Editor, JModel DSL, Versioning, Datasets & Scenarios, Importing & Exporting Files, Favorites & Reviews, and Authors. In-app "?" help tooltips now cover the studio flow — problem class, health score, matrix density/nonzeros, commits, datasets, scenarios, solver auto-routing and the live convergence chart — plus a "reduced cost" glossary term in the sensitivity table, in all five languages. README, the architecture docs, the ERDs and the use-case diagrams now describe the fused entity model (the ModelProjectListing facet, "Use in studio" adoption).

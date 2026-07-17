@@ -15,6 +15,7 @@ from app.shared.core.auth_middleware import ASGIAuthMiddleware
 from app.shared.core.body_limit import BodyLimitMiddleware
 from app.shared.core.maintenance_middleware import MaintenanceMiddleware
 from app.shared.core.security_headers import SecurityHeadersMiddleware
+from app.version import APP_VERSION
 
 # Configure logging
 log_level = logging.DEBUG if settings.DEBUG else logging.INFO
@@ -206,7 +207,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="JAOT",
         description="Universal optimization platform with SCIP solver",
-        version="2.0.0",
+        version=APP_VERSION,
         docs_url="/docs" if settings.DEBUG else None,
         redoc_url="/redoc" if settings.DEBUG else None,
         lifespan=lifespan,

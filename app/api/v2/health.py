@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.shared.core.metrics import metrics_collector
 from app.shared.db.base import get_db
+from app.version import APP_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +119,7 @@ async def health_check(db: Session = Depends(get_db)) -> HealthResponse:
 
     return HealthResponse(
         status="ok",
-        version="2.0.0",
+        version=APP_VERSION,
         solver="SCIP (universal)",
         system=SystemMetrics(
             cpu_percent=round(cpu_percent, 2),
@@ -342,7 +343,7 @@ async def detailed_status(db: Session = Depends(get_db)) -> DetailedStatusRespon
 
     return DetailedStatusResponse(
         status=overall,
-        version="2.0.0",
+        version=APP_VERSION,
         uptime_seconds=round(app_stats.get("uptime_seconds", 0), 2),
         components=components,
         sla_target="99.9%",
