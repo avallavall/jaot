@@ -146,16 +146,23 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
 function SolveStatusIndicator({ onGoToSolve }: { onGoToSolve: () => void }) {
   const t = useTranslations("studio");
   const format = useFormatter();
-  // Re-render once a minute so "started Xm ago" stays accurate for a long solve.
-  // `now` is also passed to relativeTime so next-intl doesn't warn about a
-  // missing reference time (ENVIRONMENT_FALLBACK).
-  const now = useNow({ updateInterval: 60_000 });
+  // Tick every 15s so "started Xs/Xm ago" stays fresh for the common
+  // sub-minute solve, not just long ones. `now` is also passed to
+  // relativeTime so next-intl doesn't warn about a missing reference time
+  // (ENVIRONMENT_FALLBACK).
+  const now = useNow({ updateInterval: 15_000 });
   const status = useModelProjectStore((s) => s.solveSession.status);
   const startedAt = useModelProjectStore((s) => s.solveSession.startedAt);
   if (status !== "running") return null;
 
-  const label = startedAt
-    ? t("solvingSince", { when: format.relativeTime(apiDate(startedAt), now) })
+  // Clamp the start to `now` so a server clock slightly ahead of this
+  // 15s-frozen snapshot can never render a FUTURE label ("dentro de 2 s")
+  // — a solve in progress is always in the past.
+  const started = startedAt
+    ? new Date(Math.min(apiDate(startedAt).getTime(), now.getTime()))
+    : null;
+  const label = started
+    ? t("solvingSince", { when: format.relativeTime(started, now) })
     : t("solveRunning");
   return (
     <button

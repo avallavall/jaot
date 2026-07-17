@@ -17,6 +17,29 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Fixed
+
+- **MCP usage analytics restored (v3.1 C1)** — the `MCP_TOOL_CALL` event lost its
+  only emitter in the async-only solve rewrite, pinning the MCP dashboard at zero.
+  Every tool call is now counted at fastapi-mcp's single dispatch choke point and
+  attributed to the caller resolved from the forwarded Bearer, so all 26 tools are
+  covered in one place (best-effort, off the tool's critical path).
+- **Startup settings self-heal is now race-safe (v3.1 C3)** — booting several API
+  workers at once made the seed's check-then-insert fail 3-of-4 workers on the
+  `platform_settings` primary key. It now inserts with `ON CONFLICT DO NOTHING`, so
+  a concurrent (or repeated) seed is a harmless no-op instead of a logged crash.
+- **The ambient "solving…" pill no longer shows a future time (v3.1 A6)** — a server
+  clock slightly ahead of the client's snapshot rendered "solving · in 2 seconds".
+  The start is clamped to now (a running solve is always in the past) and the pill
+  ticks every 15s so sub-minute solves stay fresh.
+
+### Changed
+
+- **Switching a dataset in the JModel lens compiles once (v3.1 C2)** — the panel and
+  the provider-level recompile both fired on a dataset change, double-compiling the
+  source. The panel now compiles directly only in the drifted-source window the
+  provider hook deliberately skips; the normal case is handled once by the hook.
+
 ## [3.0.0] — 2026-07-17
 
 **The "Model, Analyze & Solve" release** — the repo's first tagged version. The model

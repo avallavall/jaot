@@ -189,7 +189,13 @@ export function JModelEditorPanel() {
     storeApi.getState().setActiveDataset(row ? { id: row.id, name: row.name } : null);
     if (compileTimer.current) clearTimeout(compileTimer.current);
     compileTimer.current = null;
-    if (textRef.current.trim()) runCompile(textRef.current);
+    // The provider-level useActiveDatasetCompile already recompiles on an
+    // active-dataset change for the normal (source === "dsl") case — compiling
+    // here too would double-fire (harmless but wasteful). Only compile directly
+    // in the DRIFTED window, which that hook deliberately skips: picking a
+    // dataset after opting back into a drifted source is an explicit "apply it"
+    // act the provider hook won't perform.
+    if (drifted && textRef.current.trim()) runCompile(textRef.current);
   };
 
   return (
