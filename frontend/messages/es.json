@@ -359,9 +359,7 @@
       "build": "Construir",
       "myModels": "Mis modelos",
       "createModel": "Crear modelo",
-      "visualBuilder": "Constructor visual",
       "templates": "Plantillas",
-      "aiAssistant": "Asistente IA",
       "multiObjective": "Multiobjetivo",
       "discover": "Descubrir",
       "catalog": "Catálogo",
@@ -1969,7 +1967,7 @@
       "resetToDefault": "Restablecer al valor predeterminado",
       "resetConfirm": "Restablecer esta configuración a su valor predeterminado?",
       "modified": "Modificado",
-      "lastChanged": "Ultimo cambio {date} por {user}",
+      "lastChanged": "Último cambio {date} por {user}",
       "noChanges": "No hay cambios que guardar",
       "validationError": "Error de validación: {error}",
       "searchPlaceholder": "Buscar ajustes...",
@@ -1978,7 +1976,7 @@
       "configured": "Configurado",
       "configuredEnv": "Configurado (env)",
       "notConfigured": "No configurado",
-      "invalidJson": "Formato JSON invalido",
+      "invalidJson": "Formato JSON inválido",
       "secrets": {
         "title": "Secretos de integración",
         "description": "Gestiona las credenciales de servicios externos. Los valores secretos nunca se muestran.",
@@ -1992,9 +1990,9 @@
       },
       "audit": {
         "title": "Cambios en la configuración",
-        "filterCategory": "Filtrar por categoria",
+        "filterCategory": "Filtrar por categoría",
         "filterAdmin": "Filtrar por administrador",
-        "allCategories": "Todas las categorias",
+        "allCategories": "Todas las categorías",
         "noEntries": "No se encontraron entradas de auditoría",
         "resetToDefault": "Restablecer al valor predeterminado",
         "columns": {
@@ -2003,7 +2001,7 @@
           "oldValue": "Valor anterior",
           "newValue": "Valor nuevo",
           "changedBy": "Modificado por",
-          "category": "Categoria"
+          "category": "Categoría"
         },
         "pagination": {
           "previous": "Anterior",
@@ -2453,7 +2451,7 @@
     },
     "search": {
       "models": "Modelos",
-      "categories": "Categorias",
+      "categories": "Categorías",
       "noSuggestions": "No se encontraron coincidencias"
     },
     "filters": {
@@ -2462,7 +2460,7 @@
       "sortPopular": "Más populares",
       "sortRating": "Mejor valorados",
       "sortNewest": "Más recientes",
-      "categories": "Categorias",
+      "categories": "Categorías",
       "rating": "Valoración mínima",
       "ratingUp": "{stars} y más",
       "anyRating": "Cualquier valoración",
@@ -2531,7 +2529,7 @@
       "removeLogo": "Eliminar logo",
       "screenshots": "Capturas de pantalla",
       "screenshotsHelp": "Hasta 6 imágenes mostrando tu modelo en acción. Max. 2MB cada una.",
-      "addScreenshot": "Anadir captura de pantalla",
+      "addScreenshot": "Añadir captura de pantalla",
       "removeScreenshot": "Eliminar",
       "imagesAfterPublish": "Las imágenes se pueden añadir después de publicar tu modelo",
       "addImagesPrompt": "Tu modelo está publicado! Ahora puedes añadir imágenes desde la página del marketplace.",
@@ -2558,7 +2556,8 @@
       "updateListing": "Actualizar publicación",
       "updating": "Actualizando...",
       "listingUpdated": "Publicación actualizada",
-      "publishPinsVersion": "Publicar comparte tu última versión commiteada en el marketplace. Los commits posteriores no se publican hasta que actualices la publicación aquí."
+      "publishPinsVersion": "Publicar comparte tu última versión commiteada en el marketplace. Los commits posteriores no se publican hasta que actualices la publicación aquí.",
+      "descriptionTooShort": "La descripción completa debe tener al menos 10 caracteres."
     },
     "custom": {
       "backToTemplates": "Volver a plantillas",
@@ -2953,14 +2952,14 @@
       "upgradeMessage": "El análisis de sensibilidad muestra cómo los cambios en las restricciones afectan a tu solución óptima.",
       "noData": "No hay datos de sensibilidad disponibles para esta ejecución.",
       "approximate": "Aproximado",
-      "approximateNote": "Aproximado — basado en LP relaxation. Este problema contiene variables enteras/binarias; los shadow prices se derivan de la LP relaxation.",
-      "noShadowPrices": "No hay restricciones con shadow prices calculables.",
-      "shadowPricesByConstraint": "Shadow Prices por restricción",
-      "bindingNote": "Las restricciones binding se muestran en color primario. Ordenadas por magnitud del shadow price.",
+      "approximateNote": "Aproximado — este modelo contiene variables enteras/binarias, así que los precios sombra y costes reducidos se derivan de la relajación LP.",
+      "noShadowPrices": "No hay restricciones con precios sombra calculables.",
+      "shadowPricesByConstraint": "Precios sombra por restricción",
+      "bindingNote": "Las restricciones activas se muestran en color primario. Ordenadas por magnitud del precio sombra.",
       "constraintSensitivityDetails": "Detalles de sensibilidad de restricciones",
       "constraint": "Restricción",
-      "shadowPrice": "Shadow Price",
-      "binding": "Binding",
+      "shadowPrice": "Precio sombra",
+      "binding": "Activa",
       "yes": "Sí",
       "no": "No",
       "variableReducedCosts": "Costes Reducidos de Variables",
@@ -2969,7 +2968,8 @@
       "atBound": "En el límite",
       "rangingUnavailable": "El análisis de rangos de objetivo y de lado derecho no está disponible para este solver.",
       "nonZeroRcOnly": "Solo coste reducido distinto de cero ({shown}/{total})",
-      "allRcZero": "Todas las variables tienen coste reducido cero — desmarca el filtro para listarlas."
+      "allRcZero": "Todas las variables tienen coste reducido cero — desmarca el filtro para listarlas.",
+      "allZeroShadowPrices": "Todos los precios sombra son 0 — en este óptimo ninguna restricción limita en el margen. Es habitual en modelos enteros, donde los duales de la relajación LP aportan poca información."
     },
     "explainer": {
       "title": "Explicar esta solución",
@@ -3070,18 +3070,18 @@
       "cancel": "Cancelar",
       "constraints": "Restricciones",
       "description": "Sube un archivo de modelo (.lp, .mps, .cip, .json) para previsualizarlo o resolverlo.",
-      "dropOrClick": "Arrastra un archivo aqui o haz clic para seleccionar",
+      "dropOrClick": "Arrastra un archivo aquí o haz clic para seleccionar",
       "fileTooLarge": "El archivo supera el limite de {max} MB",
       "format": "Formato",
       "importAndSolve": "Importar y Resolver",
       "importFailed": "Error al importar el modelo. Intentalo de nuevo.",
       "importSuccess": "Modelo importado correctamente",
       "importing": "Importando modelo...",
-      "invalidFormat": "Formato no valido. Aceptados: {formats}",
+      "invalidFormat": "Formato no válido. Aceptados: {formats}",
       "maxSize": "Tamaño máximo: {size} MB",
       "objectiveType": "Objetivo",
-      "pageDescription": "Sube un archivo .lp, .mps, .cip o .json para importar un modelo de optimizacion.",
-      "pageTitle": "Importar Archivo de Optimizacion",
+      "pageDescription": "Sube un archivo .lp, .mps, .cip o .json para importar un modelo de optimización.",
+      "pageTitle": "Importar Archivo de Optimización",
       "preview": "Previsualizar",
       "previewFailed": "Error al analizar el archivo. Revisa el formato.",
       "previewTitle": "Vista Previa del Modelo",
@@ -4313,7 +4313,7 @@
     "notifications": {
       "title": "Preferencias de notificaciones",
       "description": "Elige cómo quieres recibir notificaciones sobre eventos de autor",
-      "eventNewReview": "Nueva resena",
+      "eventNewReview": "Nueva reseña",
       "channelInApp": "En la app",
       "channelEmail": "Correo electrónico",
       "enabled": "Activado",

@@ -359,9 +359,7 @@
       "build": "Construir",
       "myModels": "Els meus models",
       "createModel": "Crear model",
-      "visualBuilder": "Constructor visual",
       "templates": "Plantilles",
-      "aiAssistant": "Assistent IA",
       "multiObjective": "Multiobjectiu",
       "discover": "Descobrir",
       "catalog": "Catàleg",
@@ -923,7 +921,7 @@
         "templates": "Plantilles",
         "fileIO": "E/S de fitxers",
         "marketplace": "Marketplace",
-        "execution": "Execucio",
+        "execution": "Execució",
         "modelProjects": "Projectes de model"
       },
       "agentBadge": "Compatible amb Claude, GPT i qualsevol agent compatible amb MCP",
@@ -2008,7 +2006,7 @@
         "pagination": {
           "previous": "Anterior",
           "next": "Seguent",
-          "page": "Pagina {page} de {total}"
+          "page": "Pàgina {page} de {total}"
         }
       },
       "plans": {
@@ -2082,8 +2080,8 @@
       "modelsPublished": "Models publicats",
       "avgRating": "Valoració mitjana",
       "drillDown": "Veure detalls",
-      "verificationRequests": "Sol·licituds de verificacio",
-      "verificationDesc": "Revisar i aprovar sol·licituds d'insiglia de verificacio de autors",
+      "verificationRequests": "Sol·licituds de verificació",
+      "verificationDesc": "Revisar i aprovar sol·licituds d'insígnia de verificació d'autors",
       "modelName": "Model",
       "type": "Tipus",
       "startDate": "Data d'inici",
@@ -2096,13 +2094,13 @@
       "approve": "Aprovar",
       "reject": "Rebutjar",
       "adminNote": "Nota de l'administrador (opcional)",
-      "orgName": "Organitzacio",
+      "orgName": "Organització",
       "profileCompleteness": "Completesa del perfil",
       "memberSince": "Membre des de",
       "requestDate": "Data de sol·licitud",
       "approved": "Aprovat",
       "pending": "Pendent",
-      "noRequests": "No hi ha sol·licituds de verificacio pendents",
+      "noRequests": "No hi ha sol·licituds de verificació pendents",
       "totalActivations": "Adopcions",
       "authorAnalytics": "Analítiques d'autors",
       "authorLeaderboard": "Rànquing d'autors",
@@ -2400,7 +2398,7 @@
       "reportReview": "Reportar aquesta ressenya",
       "screenshots": "Captures de pantalla",
       "tabs": {
-        "overview": "Descripcio general",
+        "overview": "Descripció general",
         "features": "Funcionalitats",
         "howItWorks": "Com funciona",
         "exampleIo": "Exemple E/S",
@@ -2475,7 +2473,7 @@
       "clearCategory": "Treu la categoria"
     },
     "authorProfile": {
-      "title": "Perfil de autor",
+      "title": "Perfil d'autor",
       "modelsPublished": "Models publicats",
       "totalActivations": "Adopcions totals",
       "avgRating": "Valoració mitjana",
@@ -2516,7 +2514,7 @@
       "cancel": "Cancel·lar",
       "modelPageContent": "Contingut de la pàgina del model",
       "modelPageContentHelp": "Afegeix informació detallada a cada secció de la pàgina del teu model",
-      "tabOverview": "Descripcio general",
+      "tabOverview": "Descripció general",
       "tabFeatures": "Funcionalitats",
       "tabHowItWorks": "Com funciona",
       "tabExampleIo": "Exemple E/S",
@@ -2533,7 +2531,7 @@
       "screenshotsHelp": "Fins a 6 imatges mostrant el teu model en acció. Max. 2MB cadascuna.",
       "addScreenshot": "Afegir captura de pantalla",
       "removeScreenshot": "Eliminar",
-      "imagesAfterPublish": "Les imatges es poden afegir despres de publicar el teu model",
+      "imagesAfterPublish": "Les imatges es poden afegir després de publicar el teu model",
       "addImagesPrompt": "El teu model està publicat! Ara pots afegir imatges des de la pàgina del marketplace.",
       "imageTooLarge": "La imatge ha de ser menor de 2MB",
       "invalidImageType": "Només s'accepten imatges JPEG, PNG i WebP",
@@ -2558,7 +2556,8 @@
       "updateListing": "Actualitzar la publicació",
       "updating": "Actualitzant...",
       "listingUpdated": "Publicació actualitzada",
-      "publishPinsVersion": "Publicar comparteix la teva última versió commitejada al marketplace. Els commits posteriors no es publiquen fins que actualitzis la publicació aquí."
+      "publishPinsVersion": "Publicar comparteix la teva última versió commitejada al marketplace. Els commits posteriors no es publiquen fins que actualitzis la publicació aquí.",
+      "descriptionTooShort": "La descripció completa ha de tenir almenys 10 caràcters."
     },
     "custom": {
       "backToTemplates": "Tornar a les Plantilles",
@@ -2953,14 +2952,14 @@
       "upgradeMessage": "L'anàlisi de sensibilitat mostra com els canvis en les restriccions afecten la vostra solució òptima.",
       "noData": "No hi ha dades de sensibilitat disponibles per a aquesta execució.",
       "approximate": "Aproximat",
-      "approximateNote": "Aproximat — basat en la relaxació LP. Aquest problema conté variables enteres/binàries; els preus ombra es deriven de la relaxació LP.",
+      "approximateNote": "Aproximat — aquest model conté variables enteres/binàries, així que els preus ombra i costos reduïts es deriven de la relaxació LP.",
       "noShadowPrices": "No hi ha restriccions amb preus ombra calculables.",
-      "shadowPricesByConstraint": "Preus Ombra per Restricció",
-      "bindingNote": "Les restriccions vinculants es mostren en color primari. Ordenades per magnitud del preu ombra.",
+      "shadowPricesByConstraint": "Preus ombra per restricció",
+      "bindingNote": "Les restriccions actives es mostren en color primari. Ordenades per magnitud del preu ombra.",
       "constraintSensitivityDetails": "Detalls de Sensibilitat de Restriccions",
       "constraint": "Restricció",
-      "shadowPrice": "Preu Ombra",
-      "binding": "Vinculant",
+      "shadowPrice": "Preu ombra",
+      "binding": "Activa",
       "yes": "Sí",
       "no": "No",
       "variableReducedCosts": "Costos Reduïts de Variables",
@@ -2969,7 +2968,8 @@
       "atBound": "Al límit",
       "rangingUnavailable": "L'anàlisi de rangs d'objectiu i de terme independent no està disponible per a aquest solver.",
       "nonZeroRcOnly": "Només cost reduït diferent de zero ({shown}/{total})",
-      "allRcZero": "Totes les variables tenen cost reduït zero — desmarca el filtre per llistar-les."
+      "allRcZero": "Totes les variables tenen cost reduït zero — desmarca el filtre per llistar-les.",
+      "allZeroShadowPrices": "Tots els preus ombra són 0 — en aquest òptim cap restricció limita al marge. És habitual en models enters, on els duals de la relaxació LP aporten poca informació."
     },
     "explainer": {
       "title": "Explica aquesta solució",
@@ -3069,7 +3069,7 @@
       "backToModels": "Tornar a Models",
       "cancel": "Cancellar",
       "constraints": "Restriccions",
-      "description": "Puja un fitxer de model (.lp, .mps, .cip, .json) per previsualitzar-lo o resoldre-l.",
+      "description": "Puja un fitxer de model (.lp, .mps, .cip, .json) per previsualitzar-lo o resoldre'l.",
       "dropOrClick": "Arrossega un fitxer aquí o fes clic per seleccionar",
       "fileTooLarge": "El fitxer supera el límit de {max} MB",
       "format": "Format",
@@ -3613,7 +3613,7 @@
     },
     "fabric_cutting": {
       "displayName": "Tall de Tela",
-      "shortDescription": "Minimitza el malbaratament de tela optimitzant els patrons de tall per a peces de peces de vestir en rotlles de tela.",
+      "shortDescription": "Minimitza el malbaratament de tela optimitzant els patrons de tall per a peces de vestir en rotlles de tela.",
       "description": "Optimitza els patrons de tall de peces de peces de vestir sobre rotlles de tela per minimitzar el material malbaratat. Cada peça té dimensions i quantitat requerida. El model selecciona els millors patrons de tall i la quantitat de rotlles a fer servir per complir la demanda de producció al mínim malbaratament.\n",
       "scenarioDescription": "Una fàbrica de confecció necessita tallar 500 peces de 6 tipus diferents de rotlles de tela d'1,5 m d'ample. Cada tipus de peça té dimensions i quantitats específiques. El responsable de producció vol minimitzar el nombre de rotlles utilitzats i el malbaratament de tela.\n",
       "categoryDisplayName": "Tèxtil"
@@ -4273,7 +4273,7 @@
       "description": "Atribucions de llicències de programari de tercers per a components utilitzats per JAOT."
     },
     "marketplace": {
-      "title": "Mercat de Models d'Optimitzacio | JAOT",
+      "title": "Mercat de Models d'Optimització | JAOT",
       "description": "Explora, compara i usa models d'optimització per a logística, planificació, assignació de recursos i més. Models gratuïts de la comunitat i d'autors verificats."
     },
     "dynamic": {
@@ -4300,19 +4300,19 @@
       "conversionRate": "Taxa de conversio"
     },
     "verification": {
-      "title": "Insiglia de verificacio",
-      "requestVerification": "Sol·licitar verificacio",
-      "verificationPending": "Verificacio pendent",
+      "title": "Insígnia de verificació",
+      "requestVerification": "Sol·licitar verificació",
+      "verificationPending": "Verificació pendent",
       "verified": "Autor verificat",
-      "rejected": "Verificacio rebutjada",
+      "rejected": "Verificació rebutjada",
       "rejectedNote": "Motiu",
       "reRequest": "Sol·licitar de nou",
-      "requestSent": "Sol·licitud de verificacio enviada",
-      "requestDescription": "Obte una insiglia de verificacio al teu perfil de autor per generar confianca amb els usuaris."
+      "requestSent": "Sol·licitud de verificació enviada",
+      "requestDescription": "Obtén una insígnia de verificació al teu perfil d'autor per generar confiança amb els usuaris."
     },
     "notifications": {
       "title": "Preferències de notificacions",
-      "description": "Tria com vols rebre notificacions sobre esdeveniments de autor",
+      "description": "Tria com vols rebre notificacions sobre esdeveniments d'autor",
       "eventNewReview": "Nova ressenya",
       "channelInApp": "A l'app",
       "channelEmail": "Correu electronic",

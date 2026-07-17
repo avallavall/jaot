@@ -359,9 +359,7 @@
       "build": "Build",
       "myModels": "My Models",
       "createModel": "Create Model",
-      "visualBuilder": "Visual Builder",
       "templates": "Templates",
-      "aiAssistant": "AI Assistant",
       "multiObjective": "Multi-Objective",
       "discover": "Discover",
       "catalog": "Catalog",
@@ -2583,7 +2581,8 @@
       "updateListing": "Update listing",
       "updating": "Updating...",
       "listingUpdated": "Listing updated",
-      "publishPinsVersion": "Publishing shares your latest committed version on the marketplace. Later commits are not published until you update the listing here."
+      "publishPinsVersion": "Publishing shares your latest committed version on the marketplace. Later commits are not published until you update the listing here.",
+      "descriptionTooShort": "The full description must be at least 10 characters."
     },
     "custom": {
       "backToTemplates": "Back to Templates",
@@ -2986,7 +2985,7 @@
       "upgradeMessage": "Sensitivity analysis shows how changes in constraints affect your optimal solution.",
       "noData": "No sensitivity data available for this execution.",
       "approximate": "Approximate",
-      "approximateNote": "Approximate — based on LP relaxation. This problem contains integer/binary variables; shadow prices are derived from the LP relaxation.",
+      "approximateNote": "Approximate — this model contains integer/binary variables, so shadow prices and reduced costs are derived from the LP relaxation.",
       "noShadowPrices": "No constraints with computable shadow prices.",
       "shadowPricesByConstraint": "Shadow Prices by Constraint",
       "bindingNote": "Binding constraints shown in primary color. Sorted by shadow price magnitude.",
@@ -3002,7 +3001,8 @@
       "atBound": "At bound",
       "rangingUnavailable": "Objective and right-hand-side ranging are not available for this solver build.",
       "nonZeroRcOnly": "Non-zero reduced cost only ({shown}/{total})",
-      "allRcZero": "Every variable has a zero reduced cost — untick the filter to list them all."
+      "allRcZero": "Every variable has a zero reduced cost — untick the filter to list them all.",
+      "allZeroShadowPrices": "All shadow prices are 0 — at this optimum no constraint is limiting at the margin. This is common in integer models, where the LP-relaxation duals carry little information."
     },
     "explainer": {
       "title": "Explain this solution",

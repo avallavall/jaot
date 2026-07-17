@@ -359,9 +359,7 @@
       "build": "Erstellen",
       "myModels": "Meine Modelle",
       "createModel": "Modell erstellen",
-      "visualBuilder": "Visueller Builder",
       "templates": "Vorlagen",
-      "aiAssistant": "KI-Assistent",
       "multiObjective": "Multi-Objektiv",
       "discover": "Entdecken",
       "catalog": "Katalog",
@@ -1325,7 +1323,7 @@
       "examplePrompts": {
         "title": "Beschreiben Sie Ihr Optimierungsproblem",
         "subtitle": "Sagen Sie der KI, was Sie optimieren möchten, oder probieren Sie ein Beispiel unten aus",
-        "shipping": "VersandKosten über 5 Lager mit Kapazitätsgrenzen minimieren",
+        "shipping": "Versandkosten über 5 Lager mit Kapazitätsgrenzen minimieren",
         "scheduling": "20 Mitarbeiter auf 3 Schichten mit Qualifikationsanforderungen planen",
         "portfolio": "Portfoliorendite mit einem Budget von 100.000 € und Risikobeschränkungen maximieren",
         "binPacking": "Artikel in minimale Anzahl von Behältern mit Gewichtsgrenzen packen"
@@ -2515,7 +2513,7 @@
       "failedToLoad": "Modell konnte nicht geladen werden",
       "cancel": "Abbrechen",
       "modelPageContent": "Modellseiten-Inhalt",
-      "modelPageContentHelp": "F detaillierte Informationen zu jedem Abschnitt deiner Modellseite hinzu",
+      "modelPageContentHelp": "Füge detaillierte Informationen zu jedem Abschnitt deiner Modellseite hinzu",
       "tabOverview": "Übersicht",
       "tabFeatures": "Funktionen",
       "tabHowItWorks": "So funktioniert es",
@@ -2558,7 +2556,8 @@
       "updateListing": "Eintrag aktualisieren",
       "updating": "Wird aktualisiert...",
       "listingUpdated": "Eintrag aktualisiert",
-      "publishPinsVersion": "Beim Veröffentlichen wird Ihre letzte committete Version im Marketplace geteilt. Spätere Commits werden erst veröffentlicht, wenn Sie den Eintrag hier aktualisieren."
+      "publishPinsVersion": "Beim Veröffentlichen wird Ihre letzte committete Version im Marketplace geteilt. Spätere Commits werden erst veröffentlicht, wenn Sie den Eintrag hier aktualisieren.",
+      "descriptionTooShort": "Die vollständige Beschreibung muss mindestens 10 Zeichen lang sein."
     },
     "custom": {
       "backToTemplates": "Zurück zu Vorlagen",
@@ -2953,10 +2952,10 @@
       "upgradeMessage": "Die Sensitivitätsanalyse zeigt, wie Änderungen an Nebenbedingungen Ihre optimale Lösung beeinflussen.",
       "noData": "Keine Sensitivitätsdaten für diese Ausführung verfügbar.",
       "approximate": "Näherung",
-      "approximateNote": "Näherung — basierend auf LP-Relaxation. Dieses Problem enthält ganzzahlige/binäre Variablen; Schattenpreise werden aus der LP-Relaxation abgeleitet.",
-      "noShadowPrices": "Keine Nebenbedingungen mit berechenbaren Schattenpreisen.",
-      "shadowPricesByConstraint": "Schattenpreise nach Nebenbedingung",
-      "bindingNote": "Bindende Nebenbedingungen in Primärfarbe dargestellt. Sortiert nach Schattenpreisbetrag.",
+      "approximateNote": "Näherungswerte — dieses Modell enthält ganzzahlige/binäre Variablen; Schattenpreise und reduzierte Kosten stammen aus der LP-Relaxation.",
+      "noShadowPrices": "Keine Constraints mit berechenbaren Schattenpreisen.",
+      "shadowPricesByConstraint": "Schattenpreise je Constraint",
+      "bindingNote": "Bindende Constraints werden in der Primärfarbe angezeigt. Sortiert nach Betrag des Schattenpreises.",
       "constraintSensitivityDetails": "Nebenbedingung-Sensitivitätsdetails",
       "constraint": "Nebenbedingung",
       "shadowPrice": "Schattenpreis",
@@ -2969,7 +2968,8 @@
       "atBound": "An der Grenze",
       "rangingUnavailable": "Bereichsanalyse für Zielfunktion und rechte Seite ist für diesen Solver nicht verfügbar.",
       "nonZeroRcOnly": "Nur reduzierte Kosten ungleich null ({shown}/{total})",
-      "allRcZero": "Alle Variablen haben reduzierte Kosten von null — Filter abwählen, um alle aufzulisten."
+      "allRcZero": "Alle Variablen haben reduzierte Kosten von null — Filter abwählen, um alle aufzulisten.",
+      "allZeroShadowPrices": "Alle Schattenpreise sind 0 — in diesem Optimum ist keine Constraint am Rand bindend. Das ist bei ganzzahligen Modellen üblich, deren LP-Relaxations-Duale wenig Aussagekraft haben."
     },
     "explainer": {
       "title": "Diese Lösung erklären",
@@ -3380,7 +3380,7 @@
     },
     "objective": {
       "definition": "Das Ziel, das Sie optimieren möchten — entweder Kosten minimieren oder Wert maximieren.",
-      "example": "GesamtversandKosten über alle Routen minimieren."
+      "example": "Gesamtversandkosten über alle Routen minimieren."
     },
     "feasibility": {
       "definition": "Ob eine Lösung alle Nebenbedingungen gleichzeitig erfüllt. Eine zulässige Lösung verletzt keine Regeln."
@@ -3439,29 +3439,29 @@
     "ad_campaign_budget": {
       "displayName": "Werbebudget-Zuteilung",
       "shortDescription": "Verteilen Sie ein Werbebudget auf Kanäle und Kampagnen, um Reichweite und Conversions zu maximieren.",
-      "description": "Verteilt ein Marketingbudget auf WerbeKanäle (TV, digital, Print, Social Media, Radio) und Kampagnenslots, um die erwartete Gesamtreichweite oder Conversions zu maximieren. Jeder Kanal hat Kosten pro Impression, eine erwartete Conversion-Rate und eine Kapazität (Verfügbare Werbeslots). BudgetBeschränkungen, Mindestausgaben pro Kanal und Häufigkeitsbegrenzungen gelten. Das Modell findet die Ausgabenverteilung mit dem besten Return on Advertising Spend (ROAS).\n",
-      "scenarioDescription": "Ein Konsumgüterunternehmen hat ein vierteljährliches Werbebudget von 100.000 $ für Sieben Kanäle. Jeder Kanal hat eine andere Kostenstruktur und erwartete Reichweite. Digitale Kanäle erfordern Mindestausgaben. Der Marketingdirektor m die Gesamtreichweite innerhalb des Budgets maximieren.\n",
+      "description": "Verteilt ein Marketingbudget auf Werbekanäle (TV, digital, Print, Social Media, Radio) und Kampagnenslots, um die erwartete Gesamtreichweite oder Conversions zu maximieren. Jeder Kanal hat Kosten pro Impression, eine erwartete Conversion-Rate und eine Kapazität (Verfügbare Werbeslots). Budgetbeschränkungen, Mindestausgaben pro Kanal und Häufigkeitsbegrenzungen gelten. Das Modell findet die Ausgabenverteilung mit dem besten Return on Advertising Spend (ROAS).\n",
+      "scenarioDescription": "Ein Konsumgüterunternehmen hat ein vierteljährliches Werbebudget von 100.000 $ auf sieben Kanäle. Jeder Kanal hat eine andere Kostenstruktur und erwartete Reichweite. Digitale Kanäle erfordern Mindestausgaben. Der Marketingdirektor möchte die Gesamtreichweite innerhalb des Budgets maximieren.\n",
       "categoryDisplayName": "Werbung & Medien"
     },
     "assortment_planning": {
       "displayName": "Sortimentsplanung",
-      "shortDescription": "wählen Sie Produkte für ein Geschäft mit begrenztem Regalplatz aus, um den erwarteten Gewinn zu maximieren.",
-      "description": "Wählt aus einem grossen Katalog die Produkte aus, die in einem Geschäft mit begrenztem Regalplatz gef werden sollen. Jedes Produkt hat eine erwartete Marge, einen Platzbedarf und eine Nachfrageprognose. Der Solver Wählt das Sortiment, das den erwarteten Gesamtgewinn maximiert und dabei PlatzBeschränkungen sowie Mindestvertretung pro Kategorie einhalt.\n",
-      "scenarioDescription": "Ein Convenience-Store hat 50 laufende Meter Regalfläche und 15 Kandidatenprodukte in 4 Kategorien. Jedes Produkt ben 1-5 Meter. Pro Kategorie m mindestens 2 Produkte gef werden. Der Filialleiter sucht das gewinnmaximierende Sortiment.\n",
+      "shortDescription": "Wählen Sie Produkte für ein Geschäft mit begrenztem Regalplatz aus, um den erwarteten Gewinn zu maximieren.",
+      "description": "Wählt aus einem großen Katalog die Produkte aus, die in einem Geschäft mit begrenztem Regalplatz gef werden sollen. Jedes Produkt hat eine erwartete Marge, einen Platzbedarf und eine Nachfrageprognose. Der Solver wählt das Sortiment, das den erwarteten Gesamtgewinn maximiert und dabei Platzbeschränkungen sowie Mindestvertretung pro Kategorie einhalt.\n",
+      "scenarioDescription": "Ein Convenience-Store hat 50 laufende Meter Regalfläche und 15 Kandidatenprodukte in 4 Kategorien. Jedes Produkt benötigt 1-5 Meter. Pro Kategorie müssen mindestens 2 Produkte geführt werden. Der Filialleiter sucht das gewinnmaximierende Sortiment.\n",
       "categoryDisplayName": "Einzelhandel"
     },
     "bandwidth_allocation": {
       "displayName": "Bandbreitenzuteilung",
       "shortDescription": "Weisen Sie begrenzte Bandbreite Diensten und Kunden zu, um die Netzauslastung und den Umsatz zu maximieren.",
-      "description": "Verteilt bei gegebenen Netzwerkverbindungen mit endlicher Kapazität die Bandbreite auf konkurrierende Dienstanfragen (Video-Streaming, VoIP, Daten), um den Gesamtumsatz oder die DienstQualität zu maximieren. Jede Anfrage hat einen Bandbreitenbedarf und einen Priorit. Das Modell stellt sicher, dass keine Verbindung ueberlastet wird.\n",
+      "description": "Verteilt bei gegebenen Netzwerkverbindungen mit endlicher Kapazität die Bandbreite auf konkurrierende Dienstanfragen (Video-Streaming, VoIP, Daten), um den Gesamtumsatz oder die Dienstqualität zu maximieren. Jede Anfrage hat einen Bandbreitenbedarf und einen Priorit. Das Modell stellt sicher, dass keine Verbindung ueberlastet wird.\n",
       "scenarioDescription": "Ein Telekommunikationsanbieter hat 60 Mbps Backbone-Kapazität auf einer ueberlasteten Verbindung Während der Spitzenzeiten. Acht Dienstanfragen stehen in der Warteschlange mit unterschiedlichen Bandbreitenbedarfen und Umsatzbeiträgen. Der Anbieter muss entscheiden, welche Anfragen er akzeptiert.\n",
       "categoryDisplayName": "Telekommunikation"
     },
     "bin_packing": {
       "displayName": "Bin Packing",
       "shortDescription": "Packen Sie Artikel in möglichst wenige Behälter mit fester Kapazität, wobei jeder Artikel genau einmal zugewiesen wird.",
-      "description": "Minimiert die Anzahl der Behälter (Container, LKW, Kartons), die zum Verpacken einer Menge von Artikeln ben werden. Jeder Behälter hat die gleiche Kapazität und jeder Artikel hat eine bekannte Größe. Der Solver weist jeden Artikel genau einem Behälter zu, ohne dessen Kapazität zu ueberschreiten. Enthält SymmetriebrechungsBeschränkungen Für schnellere Lösung.\n",
-      "scenarioDescription": "Ein Lagerverwalter muss 12 Bestellungen unterschiedlicher Größe (10-50 Einheiten) in VersandBehälter mit je 100 Einheiten Kapazität packen. Ziel ist es, möglichst wenige Behälter zu verwenden.\n",
+      "description": "Minimiert die Anzahl der Behälter (Container, LKW, Kartons), die zum Verpacken einer Menge von Artikeln ben werden. Jeder Behälter hat die gleiche Kapazität und jeder Artikel hat eine bekannte Größe. Der Solver weist jeden Artikel genau einem Behälter zu, ohne dessen Kapazität zu ueberschreiten. Enthält Symmetriebrechungsbeschränkungen für schnellere Lösung.\n",
+      "scenarioDescription": "Ein Lagerverwalter muss 12 Bestellungen unterschiedlicher Größe (10-50 Einheiten) in Versandbehälter mit je 100 Einheiten Kapazität packen. Ziel ist es, möglichst wenige Behälter zu verwenden.\n",
       "categoryDisplayName": "Logistik & Distribution"
     },
     "budget_allocation": {
@@ -3473,107 +3473,107 @@
     },
     "capacitated_facility_location": {
       "displayName": "Kapazitierte Standortplanung",
-      "shortDescription": "Eröffnen Sie Standorte und weisen Sie Kunden unter strikten Kapazitätsgrenzen zu, um die GesamtnetzKosten zu minimieren.",
-      "description": "Entscheidet, welche Standorte aus einer Menge von Kandidaten Eröffnet werden, und weist jeden Kunden einem offenen Standort zu, wobei die maximale Kapazität eingehalten wird. Das Ziel ist die Minimierung der Summe aus fixen EröffnungsKosten und variablen TransportKosten.\n",
-      "scenarioDescription": "Ein Logistikunternehmen bewertet 5 mögliche Lagerstandorte Für 20 Kunden. Jedes Lager hat fixe EröffnungsKosten und eine maximale Kapazität. Die VersandKosten variieren je nach Entfernung. Das Unternehmen will die GesamtKosten minimieren.\n",
+      "shortDescription": "Eröffnen Sie Standorte und weisen Sie Kunden unter strikten Kapazitätsgrenzen zu, um die Gesamtnetzkosten zu minimieren.",
+      "description": "Entscheidet, welche Standorte aus einer Menge von Kandidaten eröffnet werden, und weist jeden Kunden einem offenen Standort zu, wobei die maximale Kapazität eingehalten wird. Das Ziel ist die Minimierung der Summe aus fixen Eröffnungskosten und variablen Transportkosten.\n",
+      "scenarioDescription": "Ein Logistikunternehmen bewertet 5 mögliche Lagerstandorte für 20 Kunden. Jedes Lager hat fixe Eröffnungskosten und eine maximale Kapazität. Die Versandkosten variieren je nach Entfernung. Das Unternehmen will die Gesamtkosten minimieren.\n",
       "categoryDisplayName": "Standortplanung"
     },
     "cash_flow_planning": {
       "displayName": "Cashflow-Planung",
-      "shortDescription": "Planen Sie Zahlungen und Einnahmen über Perioden, um FinanzierungsKosten zu minimieren und alle Verpflichtungen einzuhalten.",
-      "description": "Optimiert den Zeitplan von Zahlungen und Einnahmen über mehrere Perioden, um KreditKosten zu minimieren oder ZinsErträge auf freie Liquidit zu maximieren. Berücksichtigt Mindestkassensaldo, Zahlungsfristen und Kreditlinienlimits.\n",
-      "scenarioDescription": "Ein Bauunternehmen hat 15 Rechnungen zu bezahlen und 10 ausstehende Forderungen in den Nächsten 6 Monaten. Die Kreditlinie kostet 8% p.a. Der Treasurer will die Zahlungen so planen, dass die GesamtzinsKosten minimiert werden.\n",
+      "shortDescription": "Planen Sie Zahlungen und Einnahmen über Perioden, um Finanzierungskosten zu minimieren und alle Verpflichtungen einzuhalten.",
+      "description": "Optimiert den Zeitplan von Zahlungen und Einnahmen über mehrere Perioden, um Kreditkosten zu minimieren oder Zinserträge auf freie Liquidität zu maximieren. Berücksichtigt Mindestkassensaldo, Zahlungsfristen und Kreditlinienlimits.\n",
+      "scenarioDescription": "Ein Bauunternehmen hat 15 Rechnungen zu bezahlen und 10 ausstehende Forderungen in den nächsten 6 Monaten. Die Kreditlinie kostet 8% p.a. Der Treasurer will die Zahlungen so planen, dass die Gesamtzinskosten minimiert werden.\n",
       "categoryDisplayName": "Finanzen & Investition"
     },
     "cell_tower_placement": {
       "displayName": "Funkmasten-Platzierung",
-      "shortDescription": "Bestimmen Sie optimale Standorte Für Funkmasten, um die Bevölkerungsabdeckung zu maximieren und die InfrastrukturKosten zu minimieren.",
-      "description": "Wählt Standorte Für neue Funkmasten aus einer Menge von Kandidatenstandorten, um die Bevölkerungsabdeckung zu maximieren. Jeder Mast hat einen Abdeckungsradius und InstallationsKosten. Das Modell balanciert Infrastrukturausgaben mit dem Abdeckungsziel.\n",
-      "scenarioDescription": "Ein Mobilfunkbetreiber hat 10 Kandidatenstandorte Für Masten in einem Ländlichen Gebiet. Jeder Mast deckt einen 5-km-Radius ab und kostet 50.000-120.000 EUR. Der Betreiber will mindestens 95% der Bevölkerung mit einem Budget von 400.000 EUR abdecken.\n",
+      "shortDescription": "Bestimmen Sie optimale Standorte für Funkmasten, um die Bevölkerungsabdeckung zu maximieren und die Infrastrukturkosten zu minimieren.",
+      "description": "Wählt Standorte für neue Funkmasten aus einer Menge von Kandidatenstandorten, um die Bevölkerungsabdeckung zu maximieren. Jeder Mast hat einen Abdeckungsradius und Installationskosten. Das Modell balanciert Infrastrukturausgaben mit dem Abdeckungsziel.\n",
+      "scenarioDescription": "Ein Mobilfunkbetreiber hat 10 Kandidatenstandorte für Masten in einem Ländlichen Gebiet. Jeder Mast deckt einen 5-km-Radius ab und kostet 50.000-120.000 EUR. Der Betreiber will mindestens 95% der Bevölkerung mit einem Budget von 400.000 EUR abdecken.\n",
       "categoryDisplayName": "Telekommunikation"
     },
     "chemical_blending": {
       "displayName": "Chemische Mischung",
-      "shortDescription": "Mischen Sie Rohchemikalien zu Produkten, die strenge Reinheits- und Zusammensetzungsspezifikationen bei minimalen Kosten erf.",
-      "description": "Bestimmt die optimalen Mischungsverhnisse chemischer Rohstoffe, um Endprodukte herzustellen, die Zusammensetzungsspezifikationen erf. Jeder Rohstoff hat Kosten, Verfügbarkeit und ein Zusammensetzungsprofil. Das Modell minimiert die GesamtKosten unter Einhaltung der Reinheitsspezifikationen.\n",
-      "scenarioDescription": "Eine Chemiefabrik hat 6 Rohstoffe zur Herstellung von 3 Mischprodukten. Jedes Produkt erfordert spezifische Konzentrationsbereiche Für 4 Komponenten. Die Rohstoffe haben unterschiedliche Kosten und Verfügbarkeiten. Der Verfahrensingenieur sucht die Kostengünstigste Mischung.\n",
+      "shortDescription": "Mischen Sie Rohchemikalien zu Produkten, die strenge Reinheits- und Zusammensetzungsspezifikationen bei minimalen Kosten erfüllen.",
+      "description": "Bestimmt die optimalen Mischungsverhältnisse chemischer Rohstoffe, um Endprodukte herzustellen, die Zusammensetzungsspezifikationen erfüllen. Jeder Rohstoff hat Kosten, Verfügbarkeit und ein Zusammensetzungsprofil. Das Modell minimiert die Gesamtkosten unter Einhaltung der Reinheitsspezifikationen.\n",
+      "scenarioDescription": "Eine Chemiefabrik hat 6 Rohstoffe zur Herstellung von 3 Mischprodukten. Jedes Produkt erfordert spezifische Konzentrationsbereiche für 4 Komponenten. Die Rohstoffe haben unterschiedliche Kosten und Verfügbarkeiten. Der Verfahrensingenieur sucht die kostengünstigste Mischung.\n",
       "categoryDisplayName": "Chemieingenieurwesen"
     },
     "claims_adjuster_assignment": {
       "displayName": "Schadensregulierer-Zuweisung",
       "shortDescription": "Weisen Sie Versicherungsansprüche Regulierern nach Expertise, Arbeitsbelastung und Geographie zu, um die Bearbeitungszeit zu minimieren.",
       "description": "Weist eingehende Versicherungsansprüche Verfügbaren Regulierern zu, unter Berücksichtigung von Spezialisierung, aktueller Arbeitsbelastung, geographischer Nähe und Schadenkomplexit. Ziel ist die Minimierung der Gesamtbearbeitungszeit bei ausgewogener Arbeitsverteilung.\n",
-      "scenarioDescription": "Ein Versicherer hat 30 neue Schäden und 8 Verfügbare Regulierer. Jeder Regulierer hat Spezialgebiete (Kfz, Haus, Gewerbe), ein Einsatzgebiet und eine maximale WochenKapazität. Das Unternehmen will die Gesamtabwicklungszeit minimieren.\n",
+      "scenarioDescription": "Ein Versicherer hat 30 neue Schäden und 8 Verfügbare Regulierer. Jeder Regulierer hat Spezialgebiete (Kfz, Haus, Gewerbe), ein Einsatzgebiet und eine maximale Wochenkapazität. Das Unternehmen will die Gesamtabwicklungszeit minimieren.\n",
       "categoryDisplayName": "Versicherung"
     },
     "constraint_satisfaction_demo": {
       "displayName": "Constraint Satisfaction",
-      "shortDescription": "Finden Sie eine beliebige zulässige Lösung, die alle Bedingungen erf, ohne Optimierungsziel.",
-      "description": "Demonstrationsmodell, das eine beliebige Lösung sucht, die alle definierten Bedingungen erf, ohne Maximierungs- oder Minimierungsziel. Nützlich zur prüfung der Machbarkeit eines Bedingungssatzes oder als Ausgangspunkt für komplexere Modelle.\n",
+      "shortDescription": "Finden Sie eine beliebige zulässige Lösung, die alle Bedingungen erfüllt, ohne Optimierungsziel.",
+      "description": "Demonstrationsmodell, das eine beliebige Lösung sucht, die alle definierten Bedingungen erfüllt, ohne Maximierungs- oder Minimierungsziel. Nützlich zur Prüfung der Machbarkeit eines Bedingungssatzes oder als Ausgangspunkt für komplexere Modelle.\n",
       "scenarioDescription": "Ein Planer will Prüfen, ob es möglich ist, 5 Aufgaben 3 Arbeitern zuzuweisen und dabei alle Verfügbarkeits-, Qualifikations- und Ueberlappungsbedingungen einzuhalten. Es gibt kein Optimierungsziel; gesucht wird nur eine Gültige Zuweisung.\n",
       "categoryDisplayName": "Allgemein"
     },
     "container_loading": {
       "displayName": "Containerbeladung",
       "shortDescription": "Beladen Sie Frachtcontainer, um die Raumnutzung zu maximieren und dabei Gewichtsgrenzen und Stapelregeln einzuhalten.",
-      "description": "Optimiert die Beladung von Seefrachtcontainern zur Maximierung der Raumnutzung. Jeder Artikel hat Abmessungen, Gewicht und Stapelanforderungen. Das Modell beachtet Gewichtsgrenzen des Containers, StapelBeschränkungen und mögliche Zielort-Gruppierungen.\n",
+      "description": "Optimiert die Beladung von Seefrachtcontainern zur Maximierung der Raumnutzung. Jeder Artikel hat Abmessungen, Gewicht und Stapelanforderungen. Das Modell beachtet Gewichtsgrenzen des Containers, Stapelbeschränkungen und mögliche Zielort-Gruppierungen.\n",
       "scenarioDescription": "Eine Reederei muss 25 Paletten unterschiedlicher Größe und Gewichte in einen 20-Fuss-Container laden. Der Container hat ein Limit von 28 Tonnen. Einige zerbrechliche Artikel d nicht belastet werden. Der Betreiber will das genutzte Volumen maximieren.\n",
       "categoryDisplayName": "Seefahrt"
     },
     "course_scheduling": {
       "displayName": "Kursplanung",
       "shortDescription": "Weisen Sie Kurse Räumen und Zeitslots zu, um Konflikte zu vermeiden und die Raumauslastung zu maximieren.",
-      "description": "Weist Kurse Räumen und Zeitslots zu und vermeidet dabei Stundenplankonflikte Für Dozenten und Studierende. Jeder Kurs hat Anforderungen an RaumKapazität, Ausstattung und Dauer. Das Modell maximiert die Raumauslastung unter Berücksichtigung der DozentenPräferenzen.\n",
+      "description": "Weist Kurse Räumen und Zeitslots zu und vermeidet dabei Stundenplankonflikte für Dozenten und Studierende. Jeder Kurs hat Anforderungen an Raumkapazität, Ausstattung und Dauer. Das Modell maximiert die Raumauslastung unter Berücksichtigung der Dozentenpräferenzen.\n",
       "scenarioDescription": "Eine Universit hat 20 Kurse, 8 Räume und 25 Wöchentliche Zeitslots. Jeder Kurs ben einen bestimmten Raumtyp (Labor, Hörsaal, Seminarraum). Kein Dozent kann zwei Kurse gleichzeitig halten. Der Koordinator sucht einen konfliktfreien Stundenplan.\n",
       "categoryDisplayName": "Bildung & Wissenschaft"
     },
     "crop_rotation": {
       "displayName": "Fruchtfolge",
-      "shortDescription": "wählen Sie, welche Kulturen in jedem Feld und jeder Saison angebaut werden sollen, um den Gewinn zu maximieren und die Bodengesundheit zu erhalten.",
-      "description": "Plant die Fruchtfolge auf mehreren Feldern über mehrere Saisons. Jede Kultur hat einen erwarteten Gewinn, Nährstoffbedarf und Auswirkungen auf die Bodengesundheit. Das Modell maximiert den Gesamtgewinn unter Einhaltung von RotationsBeschränkungen und Bodenerholungsanforderungen.\n",
+      "shortDescription": "Wählen Sie, welche Kulturen in jedem Feld und jeder Saison angebaut werden sollen, um den Gewinn zu maximieren und die Bodengesundheit zu erhalten.",
+      "description": "Plant die Fruchtfolge auf mehreren Feldern über mehrere Saisons. Jede Kultur hat einen erwarteten Gewinn, Nährstoffbedarf und Auswirkungen auf die Bodengesundheit. Das Modell maximiert den Gesamtgewinn unter Einhaltung von Rotationsbeschränkungen und Bodenerholungsanforderungen.\n",
       "scenarioDescription": "Ein Landwirt hat 6 Felder und plant 4 Saisons. Es stehen 8 Kandidatenkulturen mit unterschiedlichen Gewinnmargen zur Verfügung. Hülsenfrüchte regenerieren Stickstoff, haben aber niedrigere Margen. Der Landwirt sucht den Rotationsplan mit maximalem Gesamtgewinn über 4 Jahre.\n",
       "categoryDisplayName": "Landwirtschaft"
     },
     "custom": {
       "displayName": "Benutzerdefiniertes Problem",
       "shortDescription": "Definieren Sie Ihr eigenes Optimierungsproblem mit benutzerdefinierten Variablen, Bedingungen und einer Zielfunktion.",
-      "description": "Leerer Ausgangspunkt zur Definition eines vollStändig benutzerdefinierten Optimierungsmodells. Definieren Sie eigene Entscheidungsvariablen, Bedingungen und Zielfunktion. Ideal Für Probleme, die in keine vordefinierte Vorlage passen, oder zum Experimentieren mit eigenen Formulierungen.\n",
-      "scenarioDescription": "Ein Analyst m ein einzigartiges Problem seiner Organisation modellieren, das in keine Standardvorlage passt. Er muss Variablen, Bedingungen und ein Ziel von Grund auf mit dem visuellen Editor definieren.\n",
+      "description": "Leerer Ausgangspunkt zur Definition eines vollständig benutzerdefinierten Optimierungsmodells. Definieren Sie eigene Entscheidungsvariablen, Bedingungen und Zielfunktion. Ideal für Probleme, die in keine vordefinierte Vorlage passen, oder zum Experimentieren mit eigenen Formulierungen.\n",
+      "scenarioDescription": "Ein Analyst möchte ein einzigartiges Problem seiner Organisation modellieren, das in keine Standardvorlage passt. Er muss Variablen, Bedingungen und ein Ziel von Grund auf mit dem visuellen Editor definieren.\n",
       "categoryDisplayName": "Allgemein"
     },
     "demand_allocation": {
       "displayName": "Nachfragezuteilung",
-      "shortDescription": "Verteilen Sie die Kundennachfrage auf Lager und Werke, um die Gesamt-Erf- und VersandKosten zu minimieren.",
-      "description": "Verteilt die Kundennachfrage auf mehrere Lager und Produktionsstätten, um die GesamtErfKosten zu minimieren. Umfasst Produktions-, Lager- und TransportKosten. Das Modell beachtet ProduktionsKapazitäten, LagerBestände und Servicelevels.\n",
-      "scenarioDescription": "Ein Unternehmen hat 3 Produktionsstätten und 5 Lager, die 15 Kunden bedienen. Jede Stätte hat unterschiedliche ProduktionsKosten und Kapazitäten. Die VersandKosten variieren je nach Route. Der Betriebsleiter sucht die Kostenminimale Zuteilung.\n",
+      "shortDescription": "Verteilen Sie die Kundennachfrage auf Lager und Werke, um die Gesamt-Erf- und Versandkosten zu minimieren.",
+      "description": "Verteilt die Kundennachfrage auf mehrere Lager und Produktionsstätten, um die Gesamterfkosten zu minimieren. Umfasst Produktions-, Lager- und Transportkosten. Das Modell beachtet Produktionskapazitäten, Lagerbestände und Servicelevels.\n",
+      "scenarioDescription": "Ein Unternehmen hat 3 Produktionsstätten und 5 Lager, die 15 Kunden bedienen. Jede Stätte hat unterschiedliche Produktionskosten und Kapazitäten. Die Versandkosten variieren je nach Route. Der Betriebsleiter sucht die kostenminimale Zuteilung.\n",
       "categoryDisplayName": "Supply Chain Management"
     },
     "diet_optimization": {
       "displayName": "Diätoptimierung",
-      "shortDescription": "Finden Sie die Kostengünstigste Lebensmittelkombination, die alle täglichen Nährstoffanforderungen erf.",
-      "description": "Wählt die Kostengünstigste Lebensmittelkombination, die alle täglichen Nährstoffanforderungen erf (Kalorien, Proteine, Fette, Vitamine, Mineralstoffe). Jedes Lebensmittel hat Kosten, ein Nährwertprofil und Portionsgrenzen. Das klassische Diätproblem der linearen Programmierung.\n",
-      "scenarioDescription": "Ein Ernährungsberater hat 15 Lebensmittel mit unterschiedlichen Kosten und Nährwertprofilen. Der Diätplan muss 2.000-2.500 kcal, mindestens 50 g Protein und die Anforderungen von 8 Mikronährstoffen erf. Ziel ist die Minimierung der täglichen ErnährungsKosten.\n",
+      "shortDescription": "Finden Sie die kostengünstigste Lebensmittelkombination, die alle täglichen Nährstoffanforderungen erfüllt.",
+      "description": "Wählt die kostengünstigste Lebensmittelkombination, die alle täglichen Nährstoffanforderungen erfüllt (Kalorien, Proteine, Fette, Vitamine, Mineralstoffe). Jedes Lebensmittel hat Kosten, ein Nährwertprofil und Portionsgrenzen. Das klassische Diätproblem der linearen Programmierung.\n",
+      "scenarioDescription": "Ein Ernährungsberater hat 15 Lebensmittel mit unterschiedlichen Kosten und Nährwertprofilen. Der Diätplan muss 2.000-2.500 kcal, mindestens 50 g Protein und die Anforderungen von 8 Mikronährstoffen erfüllen. Ziel ist die Minimierung der täglichen Ernährungskosten.\n",
       "categoryDisplayName": "Gesundheit & Ernährung"
     },
     "drug_distribution": {
       "displayName": "Pharma-Distribution",
-      "shortDescription": "Planen Sie Pharma-Lieferrouten von Lagern zu Apotheken und KrankenHäusern unter Minimierung der LogistikKosten mit TemperaturBeschränkungen.",
-      "description": "Optimiert die Distributionsrouten pharmazeutischer Produkte von Distributionszentren zu Apotheken und KrankenHäusern. Umfasst KühlkettenBeschränkungen, Lieferzeitfenster und Rückverfolgbarkeitsanforderungen. Das Modell minimiert die GesamtlogistikKosten bei Gewährleistung der Produktintegrität.\n",
-      "scenarioDescription": "Ein Pharma-Distributor muss 40 Bestellungen von 2 Lagern an Apotheken und KrankenHäuser liefern. Einige Produkte erfordern Kühlung. Krankenhauslieferungen haben strenge Zeitfenster. Der Logistikleiter will die GesamttransportKosten minimieren.\n",
+      "shortDescription": "Planen Sie Pharma-Lieferrouten von Lagern zu Apotheken und Krankenhäusern unter Minimierung der Logistikkosten mit Temperaturbeschränkungen.",
+      "description": "Optimiert die Distributionsrouten pharmazeutischer Produkte von Distributionszentren zu Apotheken und Krankenhäusern. Umfasst Kühlkettenbeschränkungen, Lieferzeitfenster und Rückverfolgbarkeitsanforderungen. Das Modell minimiert die Gesamtlogistikkosten bei Gewährleistung der Produktintegrität.\n",
+      "scenarioDescription": "Ein Pharma-Distributor muss 40 Bestellungen von 2 Lagern an Apotheken und Krankenhäuser liefern. Einige Produkte erfordern Kühlung. Krankenhauslieferungen haben strenge Zeitfenster. Der Logistikleiter will die Gesamttransportkosten minimieren.\n",
       "categoryDisplayName": "Pharmazeutik"
     },
     "drug_trial_scheduling": {
       "displayName": "Planung klinischer Studien",
-      "shortDescription": "Planen Sie Phasen klinischer Studien über Standorte und Zeiträume, um die Markteinführungszeit unter regulatorischen und RessourcenBeschränkungen zu minimieren.",
-      "description": "Plant die Phasen klinischer Studien an mehreren Forschungsstandorten. Jede Phase hat Anforderungen an Dauer, Patientenzahl und AusRung. Das Modell minimiert die Gesamtdauer unter Beachtung der Abhängigkeiten zwischen Phasen, StandortVerfügbarkeit und regulatorischen Auflagen.\n",
-      "scenarioDescription": "Ein Pharmaunternehmen plant eine 3-phasige klinische Studie an 4 Forschungsstandorten. Phase II kann erst nach Abschluss von Phase I beginnen. Jeder Standort hat begrenzte PatientenKapazität. Der klinische Entwicklungsleiter sucht den Zeitplan mit minimaler Gesamtdauer.\n",
+      "shortDescription": "Planen Sie Phasen klinischer Studien über Standorte und Zeiträume, um die Markteinführungszeit unter regulatorischen und Ressourcenbeschränkungen zu minimieren.",
+      "description": "Plant die Phasen klinischer Studien an mehreren Forschungsstandorten. Jede Phase hat Anforderungen an Dauer, Patientenzahl und Ausrung. Das Modell minimiert die Gesamtdauer unter Beachtung der Abhängigkeiten zwischen Phasen, Standortverfügbarkeit und regulatorischen Auflagen.\n",
+      "scenarioDescription": "Ein Pharmaunternehmen plant eine 3-phasige klinische Studie an 4 Forschungsstandorten. Phase II kann erst nach Abschluss von Phase I beginnen. Jeder Standort hat begrenzte Patientenkapazität. Der klinische Entwicklungsleiter sucht den Zeitplan mit minimaler Gesamtdauer.\n",
       "categoryDisplayName": "Pharmazeutik"
     },
     "dye_batch_scheduling": {
       "displayName": "Färbechargen-Planung",
-      "shortDescription": "Planen Sie TextilFärbechargen, um FarbwechselKosten und Wasserverbrauch zu minimieren und Liefertermine einzuhalten.",
-      "description": "Optimiert die Reihenfolge der Färbechargen an Färbemaschinen, um FarbwechselKosten und Wasserverbrauch zu minimieren. Jede Charge hat eine Farbe, ein Volumen und einen Liefertermin. Wechsel zwischen dunklen und hellen Farben erfordern Längere Reinigungszyklen.\n",
-      "scenarioDescription": "Eine Textilfabrik hat 3 Färbemaschinen und 20 ausstehende Chargen in 8 verschiedenen Farben. Der Wechsel von dunkler zu heller Farbe erfordert 2 Stunden Reinigung Gegenüber 30 Minuten Für aehnliche Wechsel. Alle Chargen m in 5 Tagen fertig sein.\n",
+      "shortDescription": "Planen Sie Textilfärbechargen, um Farbwechselkosten und Wasserverbrauch zu minimieren und Liefertermine einzuhalten.",
+      "description": "Optimiert die Reihenfolge der Färbechargen an Färbemaschinen, um Farbwechselkosten und Wasserverbrauch zu minimieren. Jede Charge hat eine Farbe, ein Volumen und einen Liefertermin. Wechsel zwischen dunklen und hellen Farben erfordern längere Reinigungszyklen.\n",
+      "scenarioDescription": "Eine Textilfabrik hat 3 Färbemaschinen und 20 ausstehende Chargen in 8 verschiedenen Farben. Der Wechsel von dunkler zu heller Farbe erfordert 2 Stunden Reinigung gegenüber 30 Minuten für ähnliche Wechsel. Alle Chargen müssen in 5 Tagen fertig sein.\n",
       "categoryDisplayName": "Textil"
     },
     "emergency_response_allocation": {
@@ -3585,100 +3585,100 @@
     },
     "emission_reduction_planning": {
       "displayName": "Emissionsreduktionsplanung",
-      "shortDescription": "wählen Sie Emissionsreduktionsprojekte, um ein CO2-Ziel bei minimalen GesamtinvestitionsKosten zu erreichen.",
-      "description": "Wählt Emissionsreduktionsprojekte aus einem Portfolio, um ein CO2-Reduktionsziel bei minimalen Kosten zu erreichen. Jedes Projekt hat InvestitionsKosten, eine geschätzte Emissionsreduktion und einen Umsetzungszeitraum.\n",
+      "shortDescription": "Wählen Sie Emissionsreduktionsprojekte, um ein CO2-Ziel bei minimalen Gesamtinvestitionskosten zu erreichen.",
+      "description": "Wählt Emissionsreduktionsprojekte aus einem Portfolio, um ein CO2-Reduktionsziel bei minimalen Kosten zu erreichen. Jedes Projekt hat Investitionskosten, eine geschätzte Emissionsreduktion und einen Umsetzungszeitraum.\n",
       "scenarioDescription": "Ein Industrieunternehmen hat 12 Kandidatenprojekte zur Emissionsreduktion. Jedes hat Kosten und eine geschätzte CO2-Reduktion. Das Unternehmen muss die Emissionen in 5 Jahren um 30% senken, mit einem Budget von 2 Mio. EUR. Der Nachhaltigkeitsdirektor sucht die optimale Projektkombination.\n",
       "categoryDisplayName": "Umwelt & Nachhaltigkeit"
     },
     "employee_scheduling": {
       "displayName": "Mitarbeitereinsatzplanung",
-      "shortDescription": "Erstellen Sie optimale SchichtPläne, die Abdeckungsanforderungen erf und gleichzeitig ArbeitsKosten minimieren.",
-      "description": "Erstellt SchichtPläne Für Mitarbeiter, die den Personalbedarf pro Zeitslot zu minimalen ArbeitsKosten abdecken. Umfasst Verfügbarkeiten, maximale Wochenstunden, Pflichtruhezeiten und MitarbeiterPräferenzen.\n",
-      "scenarioDescription": "Ein Geschäft hat 15 Mitarbeiter und ben Abdeckung Für 3 tägliche Schichten an 7 Tagen. Jede Schicht braucht 3-5 Personen. Die Mitarbeiter haben unterschiedliche Verfügbarkeiten und d maximal 40 Wochenstunden arbeiten. Der Filialleiter sucht den Kostengünstigsten Plan.\n",
+      "shortDescription": "Erstellen Sie optimale Schichtpläne, die Abdeckungsanforderungen erfüllen und gleichzeitig Arbeitskosten minimieren.",
+      "description": "Erstellt Schichtpläne für Mitarbeiter, die den Personalbedarf pro Zeitslot zu minimalen Arbeitskosten abdecken. Umfasst Verfügbarkeiten, maximale Wochenstunden, Pflichtruhezeiten und Mitarbeiterpräferenzen.\n",
+      "scenarioDescription": "Ein Geschäft hat 15 Mitarbeiter und ben Abdeckung für 3 tägliche Schichten an 7 Tagen. Jede Schicht braucht 3-5 Personen. Die Mitarbeiter haben unterschiedliche Verfügbarkeiten und d maximal 40 Wochenstunden arbeiten. Der Filialleiter sucht den kostengünstigsten Plan.\n",
       "categoryDisplayName": "Personal & Workforce"
     },
     "energy_storage_dispatch": {
       "displayName": "Energiespeicher-Dispatch",
-      "shortDescription": "Planen Sie Lade- und Entladezyklen eines Batteriesystems, um den Arbitragegewinn bei zeitAbhängigen Strompreisen zu maximieren.",
-      "description": "Optimiert den Lade- und Entladeplan eines Batterie-Energiespeichersystems, um den Arbitragegewinn zu maximieren. Das Modell Berücksichtigt zeitAbhängige Tarife, Lade-/Entladeeffizienz, BatterieKapazität und Degradationszyklen.\n",
+      "shortDescription": "Planen Sie Lade- und Entladezyklen eines Batteriesystems, um den Arbitragegewinn bei zeitabhängigen Strompreisen zu maximieren.",
+      "description": "Optimiert den Lade- und Entladeplan eines Batterie-Energiespeichersystems, um den Arbitragegewinn zu maximieren. Das Modell berücksichtigt zeitabhängige Tarife, Lade-/Entladeeffizienz, Batteriekapazität und Degradationszyklen.\n",
       "scenarioDescription": "Eine Anlage hat eine 500-kWh-Batterie mit 90% Effizienz. Die Strompreise variieren zwischen 0,03 und 0,25 EUR/kWh im Tagesverlauf. Die Batterie kann mit 100 kW laden oder entladen. Der Betreiber will den täglichen Arbitragegewinn maximieren.\n",
       "categoryDisplayName": "Energie & Versorgung"
     },
     "equipment_allocation": {
       "displayName": "Gerätezuteilung",
-      "shortDescription": "Weisen Sie schwere Baumaschinen Baustellen zu, um Miet- und StillstandsKosten zu minimieren.",
-      "description": "Weist schwere Baumaschinen (Kräne, Bagger, Verdichter) mehreren aktiven Baustellen zu, um GesamtKosten Für Miete, Transport zwischen Baustellen und Stillstandszeiten zu minimieren.\n",
-      "scenarioDescription": "Ein Bauunternehmen hat 8 schwere Geräte und 5 aktive Baustellen für die Nächsten 3 Monate. Jede Baustelle ben bestimmte Geräte in bestimmten Zeiträumen. Ein Gerätetransport kostet 2.000-5.000 EUR. Der Bauleiter will die GesamtGeräteKosten minimieren.\n",
+      "shortDescription": "Weisen Sie schwere Baumaschinen Baustellen zu, um Miet- und Stillstandskosten zu minimieren.",
+      "description": "Weist schwere Baumaschinen (Kräne, Bagger, Verdichter) mehreren aktiven Baustellen zu, um Gesamtkosten für Miete, Transport zwischen Baustellen und Stillstandszeiten zu minimieren.\n",
+      "scenarioDescription": "Ein Bauunternehmen hat 8 schwere Geräte und 5 aktive Baustellen für die nächsten 3 Monate. Jede Baustelle benötigt bestimmte Geräte in bestimmten Zeiträumen. Ein Gerätetransport kostet 2.000-5.000 EUR. Der Bauleiter will die Gesamtgerätekosten minimieren.\n",
       "categoryDisplayName": "Bauwesen"
     },
     "fabric_cutting": {
       "displayName": "Stoffzuschnitt",
-      "shortDescription": "Minimieren Sie Stoffabfall durch Optimierung der Schnittmuster Für Kleidungsstücke auf Stoffrollen.",
-      "description": "Optimiert Schnittmuster Für Kleidungsstücke auf Stoffrollen, um den Materialabfall zu minimieren. Jedes Teil hat Abmessungen und eine bene Menge. Das Modell Wählt die besten Schnittmuster und die Anzahl der Rollen.\n",
+      "shortDescription": "Minimieren Sie Stoffabfall durch Optimierung der Schnittmuster für Kleidungsstücke auf Stoffrollen.",
+      "description": "Optimiert Schnittmuster für Kleidungsstücke auf Stoffrollen, um den Materialabfall zu minimieren. Jedes Teil hat Abmessungen und eine benötigte Menge. Das Modell wählt die besten Schnittmuster und die Anzahl der Rollen.\n",
       "scenarioDescription": "Eine Bekleidungsfabrik muss 500 Teile in 6 verschiedenen Typen aus 1,5 m breiten Stoffrollen schneiden. Jeder Typ hat spezifische Abmessungen und Mengen. Der Produktionsleiter will den Rollenverbrauch und Abfall minimieren.\n",
       "categoryDisplayName": "Textil"
     },
     "fertilizer_mixing": {
       "displayName": "Düngemittelmischung",
-      "shortDescription": "Mischen Sie Rohstoffe zu einem Dünger, der N-P-K-Ziele bei minimalen Kosten erf.",
-      "description": "Bestimmt die optimalen Mischungsverhnisse von Rohstoffen zur Herstellung eines Düngers, der Nährstoffspezifikationen (Stickstoff, Phosphor, Kalium) erf. Das Modell minimiert die GesamtKosten unter Einhaltung der Zusammensetzungsanforderungen.\n",
-      "scenarioDescription": "Eine landwirtschaftliche Genossenschaft hat 5 Rohstoffe zur Herstellung eines Düngers mit N-P-K-Spezifikationen von 15-10-20. Jeder Rohstoff hat unterschiedliche Nährstoffkonzentrationen und Preise. Der Agronom sucht die Kostengünstigste Mischung.\n",
+      "shortDescription": "Mischen Sie Rohstoffe zu einem Dünger, der N-P-K-Ziele bei minimalen Kosten erfüllen.",
+      "description": "Bestimmt die optimalen Mischungsverhältnisse von Rohstoffen zur Herstellung eines Düngers, der Nährstoffspezifikationen (Stickstoff, Phosphor, Kalium) erfüllt. Das Modell minimiert die Gesamtkosten unter Einhaltung der Zusammensetzungsanforderungen.\n",
+      "scenarioDescription": "Eine landwirtschaftliche Genossenschaft hat 5 Rohstoffe zur Herstellung eines Düngers mit N-P-K-Spezifikationen von 15-10-20. Jeder Rohstoff hat unterschiedliche Nährstoffkonzentrationen und Preise. Der Agronom sucht die kostengünstigste Mischung.\n",
       "categoryDisplayName": "Landwirtschaft"
     },
     "fleet_dispatch_mining": {
       "displayName": "Flotten-Dispatch",
       "shortDescription": "Disponieren Sie Transportfahrzeuge zwischen Schaufeln und Halden, um den Produktionsdurchsatz zu maximieren.",
-      "description": "Optimiert die Zuteilung von Transportfahrzeugen zwischen Ladeschaufeln und Abladepunkten im Tagebau. Das Modell maximiert den Gesamtproduktionsdurchsatz (Tonnen/Stunde) unter Berücksichtigung von Zykluszeiten, FahrzeugKapazität und SchaufelProduktivit.\n",
+      "description": "Optimiert die Zuteilung von Transportfahrzeugen zwischen Ladeschaufeln und Abladepunkten im Tagebau. Das Modell maximiert den Gesamtproduktionsdurchsatz (Tonnen/Stunde) unter Berücksichtigung von Zykluszeiten, Fahrzeugkapazität und Schaufelproduktivit.\n",
       "scenarioDescription": "Ein Tagebau hat 4 Ladeschaufeln und 2 Abladepunkte mit 10 Verfügbaren LKW. Jede Route Schaufel-Halde hat eine andere Zykluszeit. Die Schaufeln haben unterschiedliche Produktivit. Der Dispatcher will die bewegten Tonnen pro Stunde maximieren.\n",
       "categoryDisplayName": "Bergbau"
     },
     "fleet_sizing": {
-      "displayName": "FlottenGrößenbestimmung",
+      "displayName": "Flottengrößenbestimmung",
       "shortDescription": "Bestimmen Sie die optimale Anzahl und Art von Fahrzeugen für eine Reihe von Lieferrouten und Nachfrageniveaus.",
-      "description": "Entscheidet, wie viele Fahrzeuge jedes Typs (Transporter, LKW, SattelZüge) eine Distributionsflotte haben sollte, um alle Routen und Nachfragen zu minimalen GesamtKosten abzudecken.\n",
-      "scenarioDescription": "Ein Distributionsunternehmen hat 12 Lieferrouten mit variablen Tagesbedarfen. Zur Auswahl stehen Transporter (500 kg), mittlere LKW (2 t) und grosse LKW (5 t). Der Logistikleiter sucht die Kostenminimale Flottenkomposition.\n",
+      "description": "Entscheidet, wie viele Fahrzeuge jedes Typs (Transporter, LKW, Sattelzüge) eine Distributionsflotte haben sollte, um alle Routen und Nachfragen zu minimalen Gesamtkosten abzudecken.\n",
+      "scenarioDescription": "Ein Distributionsunternehmen hat 12 Lieferrouten mit variablen Tagesbedarfen. Zur Auswahl stehen Transporter (500 kg), mittlere LKW (2 t) und große LKW (5 t). Der Logistikleiter sucht die kostenminimale Flottenkomposition.\n",
       "categoryDisplayName": "Logistik & Distribution"
     },
     "flight_crew_pairing": {
       "displayName": "Crew-Pairing",
-      "shortDescription": "Erstellen Sie Kostenminimale Crew-Pairings, die alle geplanten Flugsegmente abdecken und die Dienstzeitvorschriften einhalten.",
-      "description": "Generiert Flugsequenzen (Pairings) Für Cockpit- und Kabinencrews, die alle geplanten Segmente zu minimalen Kosten abdecken. Jedes Pairing beginnt und endet an derselben Basis. Das Modell beachtet Flugstundenlimits, Pflichtruhezeiten und Duty-Time-Vorschriften.\n",
-      "scenarioDescription": "Eine Fluggesellschaft hat 30 tägliche Flugsegmente zwischen 6 Städten und 3 Crew-Basen. Pairings d maximal 4 Tage und 8 Flugstunden pro Tag umfassen. Die Airline sucht die Pairing-Kombination mit minimalen GesamtKosten.\n",
+      "shortDescription": "Erstellen Sie kostenminimale Crew-Pairings, die alle geplanten Flugsegmente abdecken und die Dienstzeitvorschriften einhalten.",
+      "description": "Generiert Flugsequenzen (Pairings) für Cockpit- und Kabinencrews, die alle geplanten Segmente zu minimalen Kosten abdecken. Jedes Pairing beginnt und endet an derselben Basis. Das Modell beachtet Flugstundenlimits, Pflichtruhezeiten und Duty-Time-Vorschriften.\n",
+      "scenarioDescription": "Eine Fluggesellschaft hat 30 tägliche Flugsegmente zwischen 6 Städten und 3 Crew-Basen. Pairings dürfen maximal 4 Tage und 8 Flugstunden pro Tag umfassen. Die Airline sucht die Pairing-Kombination mit minimalen Gesamtkosten.\n",
       "categoryDisplayName": "Luft- und Raumfahrt"
     },
     "harvest_scheduling": {
       "displayName": "Ernteplanung",
-      "shortDescription": "Planen Sie den Holzeinschlag in WaldBeständen über mehrere Perioden, um die Erträge zu maximieren und die Nachhaltigkeit zu sichern.",
-      "description": "Plant den Holzeinschlag in WaldBeständen über mehrere Perioden. Jeder Bestand hat ein Holzvolumen, ein Alter und eine Wachstumsrate. Das Modell maximiert den Netto-Barwert der HolzErträge unter Einhaltung von NachhaltigkeitsBeschränkungen.\n",
+      "shortDescription": "Planen Sie den Holzeinschlag in Waldbeständen über mehrere Perioden, um die Erträge zu maximieren und die Nachhaltigkeit zu sichern.",
+      "description": "Plant den Holzeinschlag in Waldbeständen über mehrere Perioden. Jeder Bestand hat ein Holzvolumen, ein Alter und eine Wachstumsrate. Das Modell maximiert den Netto-Barwert der Holzerträge unter Einhaltung von Nachhaltigkeitsbeschränkungen.\n",
       "scenarioDescription": "Ein Forstunternehmen bewirtschaftet 15 Bestände über 4 Fünfjahresperioden. Jeder Bestand hat unterschiedliches Holzvolumen und -wert. Pro Periode d maximal 25% der Gesamtfläche geerntet werden. Der Forstingenieur sucht den Netto-Barwert-maximierenden Plan.\n",
       "categoryDisplayName": "Forstwirtschaft"
     },
     "ingredient_sourcing": {
       "displayName": "Zutaten-Beschaffung",
-      "shortDescription": "wählen Sie Lieferanten und Bestellmengen Für Lebensmittelzutaten, um die BeschaffungsKosten zu minimieren bei Gewährleistung von Qualität und LieferZuverlässigkeit.",
-      "description": "Optimiert die Lieferantenauswahl und Einkaufsmengen Für Lebensmittelzutaten. Jeder Lieferant hat einen Preis, eine Lieferzeit, ein Qualitätsniveau und eine maximale Kapazität. Das Modell minimiert die GesamtbeschaffungsKosten unter Einhaltung von Qualitäts-, Diversifikations- und Zuverlässigkeitsanforderungen.\n",
-      "scenarioDescription": "Ein Lebensmittelunternehmen ben 5 Zutaten von 8 potenziellen Lieferanten. Jeder Lieferant hat unterschiedliche Preise, Kapazitäten und Qualitätsbewertungen. Es werden mindestens 2 Lieferanten pro Zutat gefordert. Der Einkaufsleiter will die GesamtKosten minimieren.\n",
+      "shortDescription": "Wählen Sie Lieferanten und Bestellmengen für Lebensmittelzutaten, um die Beschaffungskosten zu minimieren bei Gewährleistung von Qualität und Lieferzuverlässigkeit.",
+      "description": "Optimiert die Lieferantenauswahl und Einkaufsmengen für Lebensmittelzutaten. Jeder Lieferant hat einen Preis, eine Lieferzeit, ein Qualitätsniveau und eine maximale Kapazität. Das Modell minimiert die Gesamtbeschaffungskosten unter Einhaltung von Qualitäts-, Diversifikations- und Zuverlässigkeitsanforderungen.\n",
+      "scenarioDescription": "Ein Lebensmittelunternehmen benötigt 5 Zutaten von 8 potenziellen Lieferanten. Jeder Lieferant hat unterschiedliche Preise, Kapazitäten und Qualitätsbewertungen. Es werden mindestens 2 Lieferanten pro Zutat gefordert. Der Einkaufsleiter will die Gesamtkosten minimieren.\n",
       "categoryDisplayName": "Lebensmittel & Getränke"
     },
     "inventory_optimization": {
       "displayName": "Bestandsoptimierung",
-      "shortDescription": "Bestimmen Sie optimale Nachbestellmengen und Sicherheitsbestände, um Lager- und FehlmengenKosten zu minimieren.",
-      "description": "Berechnet optimale Nachbestellmengen und Sicherheitsbestände, um die Summe aus Lager-, Bestell- und FehlmengenKosten zu minimieren. Das Modell Berücksichtigt Nachfrageschwankungen, Lieferzeiten und Servicelevels.\n",
-      "scenarioDescription": "Ein Distributor verwaltet 20 SKU mit variabler Nachfrage. Jedes SKU hat LagerKosten, BestellKosten und eine Lieferzeit. Das Servicelevel-Ziel beträgt 95%. Der Bestandsmanager sucht die Kostenminimalen Nachbestellparameter.\n",
+      "shortDescription": "Bestimmen Sie optimale Nachbestellmengen und Sicherheitsbestände, um Lager- und Fehlmengenkosten zu minimieren.",
+      "description": "Berechnet optimale Nachbestellmengen und Sicherheitsbestände, um die Summe aus Lager-, Bestell- und Fehlmengenkosten zu minimieren. Das Modell berücksichtigt Nachfrageschwankungen, Lieferzeiten und Servicelevels.\n",
+      "scenarioDescription": "Ein Distributor verwaltet 20 SKU mit variabler Nachfrage. Jedes SKU hat Lagerkosten, Bestellkosten und eine Lieferzeit. Das Servicelevel-Ziel beträgt 95%. Der Bestandsmanager sucht die kostenminimalen Nachbestellparameter.\n",
       "categoryDisplayName": "Supply Chain Management"
     },
     "inventory_replenishment": {
       "displayName": "Bestandsauff",
-      "shortDescription": "Planen Sie, wann und wie viel für jedes SKU nachzubestellen ist, um die Gesamt-Lager- und BestellKosten zu minimieren.",
-      "description": "Erstellt einen Nachbestellplan, der bestimmt, wann und wie viel für jedes SKU über einen Planungshorizont bestellt werden soll. Das Modell minimiert die GesamtKosten Für Lagerung, Bestellung und Fehlmengenstrafen.\n",
-      "scenarioDescription": "Ein Lager verwaltet 25 SKU über die Nächsten 12 Wochen. Jedes SKU hat eine Wöchentliche Bedarfsprognose, LagerKosten und eine Mindestbestellmenge. Das Lager hat begrenzte Kapazität. Der Planer sucht das Kostenminimale Auff.\n",
+      "shortDescription": "Planen Sie, wann und wie viel für jedes SKU nachzubestellen ist, um die Gesamt-Lager- und Bestellkosten zu minimieren.",
+      "description": "Erstellt einen Nachbestellplan, der bestimmt, wann und wie viel für jedes SKU über einen Planungshorizont bestellt werden soll. Das Modell minimiert die Gesamtkosten für Lagerung, Bestellung und Fehlmengenstrafen.\n",
+      "scenarioDescription": "Ein Lager verwaltet 25 SKU über die nächsten 12 Wochen. Jedes SKU hat eine wöchentliche Bedarfsprognose, Lagerkosten und eine Mindestbestellmenge. Das Lager hat begrenzte Kapazität. Der Planer sucht den kostenminimalen Auffüllplan.\n",
       "categoryDisplayName": "Lagerhaltung"
     },
     "irrigation_scheduling": {
       "displayName": "Bewässerungsplanung",
-      "shortDescription": "Planen Sie die Wasserverteilung auf Felder und Zeitslots, um den Wasserverbrauch zu minimieren und die Kulturanforderungen zu erf.",
+      "shortDescription": "Planen Sie die Wasserverteilung auf Felder und Zeitslots, um den Wasserverbrauch zu minimieren und die Kulturanforderungen zu erfüllen.",
       "description": "Optimiert die Verteilung des Bewässerungswassers auf mehrere Felder und Zeitslots. Jedes Feld hat Wasserbedarf je nach Kultur und Wachstumsstadium. Das Modell minimiert den Gesamtwasserverbrauch und stellt sicher, dass jedes Feld die bene Menge erh.\n",
-      "scenarioDescription": "Ein landwirtschaftlicher Betrieb hat 8 Felder mit verschiedenen Kulturen und ein Bewässerungssystem, das 3 Felder gleichzeitig bedienen kann. Das Verfügbare Wasser ist begrenzt. Der Landwirt sucht den Plan mit minimalem Wasserverbrauch.\n",
+      "scenarioDescription": "Ein landwirtschaftlicher Betrieb hat 8 Felder mit verschiedenen Kulturen und ein Bewässerungssystem, das 3 Felder gleichzeitig bedienen kann. Das verfügbare Wasser ist begrenzt. Der Landwirt sucht den Plan mit minimalem Wasserverbrauch.\n",
       "categoryDisplayName": "Landwirtschaft"
     },
     "job_shop_scheduling": {
@@ -3690,7 +3690,7 @@
     },
     "knapsack": {
       "displayName": "Artikelauswahl (Knapsack)",
-      "shortDescription": "wählen Sie die beste Artikelkombination, um den Wert zu maximieren und dabei eine einzelne Kapazitätsgrenze einzuhalten.",
+      "shortDescription": "Wählen Sie die beste Artikelkombination, um den Wert zu maximieren und dabei eine einzelne Kapazitätsgrenze einzuhalten.",
       "description": "Wählt eine Teilmenge von Artikeln, die den Gesamtwert maximiert, ohne eine feste Kapazität zu ueberschreiten. Jeder Artikel hat einen Wert und ein Gewicht. Das klassische Rucksackproblem (Knapsack), anwendbar auf Projektauswahl, Fahrzeugbeladung und Ressourcenzuteilung.\n",
       "scenarioDescription": "Ein Wanderer muss Gegenstände für einen 15-kg-Rucksack aus 12 Objekten mit verschiedenen Gewichten und Nutzwerten auswählen. Ziel ist die Maximierung des Gesamtnutzens ohne Ueberschreitung der Gewichtsgrenze.\n",
       "categoryDisplayName": "Logistik & Distribution"
@@ -3698,64 +3698,64 @@
     "launch_vehicle_payload": {
       "displayName": "Nutzlast-Optimierung",
       "shortDescription": "wählen und verteilen Sie Satellitennutzlasten für eine Trägerrakete, um den Gesamtmissionswert innerhalb der Masse- und Volumenlimits zu maximieren.",
-      "description": "Wählt Satelliten oder Nutzlasten für einen Raumflug aus, um den Gesamtmissionswert zu maximieren. Jede Nutzlast hat eine Masse, ein Volumen und einen Missionswert. Das Modell beachtet die Masse- und Volumengrenzen der Trägerrakete sowie KompatibilitBeschränkungen.\n",
+      "description": "Wählt Satelliten oder Nutzlasten für einen Raumflug aus, um den Gesamtmissionswert zu maximieren. Jede Nutzlast hat eine Masse, ein Volumen und einen Missionswert. Das Modell beachtet die Masse- und Volumengrenzen der Trägerrakete sowie Kompatibilitbeschränkungen.\n",
       "scenarioDescription": "Ein Startdienstleister hat 10 Kandidatennutzlasten für eine Rakete mit 5.000 kg und 30 m3 Kapazität. Jede Nutzlast hat unterschiedliche Masse, Volumen und Vertragswert. Zwei Nutzlasten sind inkompatibel. Der Planer will den Gesamtstartwert maximieren.\n",
       "categoryDisplayName": "Luft- und Raumfahrt"
     },
     "loan_portfolio": {
       "displayName": "Kreditportfolio",
-      "shortDescription": "wählen Sie zu genehmigende Kreditanträge, um die ZinsErträge zu maximieren und dabei Risiko- und Kapitalgrenzen einzuhalten.",
-      "description": "Entscheidet, welche Kreditanträge genehmigt werden, um die GesamtzinsErträge zu maximieren. Jeder Kredit hat einen Zinssatz, ein Ausfallrisiko und einen Kapitalbedarf. Das Modell beachtet Gesamtexpositionslimits, Sektordiversifikation und regulatorische Kapitalanforderungen.\n",
-      "scenarioDescription": "Eine Bank hat 50 Kreditanträge mit verschiedenen Beträgen, ZinsSätzen und Risikobewertungen. Das Verfügbare Kapital beträgt 10 Mio. EUR. Die maximale Exposition pro Sektor ist 30%. Der Kreditanalyst sucht das Portfolio mit maximalen erwarteten ZinsErträgen.\n",
+      "shortDescription": "Wählen Sie zu genehmigende Kreditanträge, um die Zinserträge zu maximieren und dabei Risiko- und Kapitalgrenzen einzuhalten.",
+      "description": "Entscheidet, welche Kreditanträge genehmigt werden, um die Gesamtzinserträge zu maximieren. Jeder Kredit hat einen Zinssatz, ein Ausfallrisiko und einen Kapitalbedarf. Das Modell beachtet Gesamtexpositionslimits, Sektordiversifikation und regulatorische Kapitalanforderungen.\n",
+      "scenarioDescription": "Eine Bank hat 50 Kreditanträge mit verschiedenen Beträgen, Zinssätzen und Risikobewertungen. Das verfügbare Kapital beträgt 10 Mio. EUR. Die maximale Exposition pro Sektor ist 30%. Der Kreditanalyst sucht das Portfolio mit maximalen erwarteten Zinserträgen.\n",
       "categoryDisplayName": "Finanzen & Investition"
     },
     "markdown_pricing": {
       "displayName": "Abschriftenpreisgestaltung",
-      "shortDescription": "Setzen Sie optimale Abverkaufspreise Für SaisonendBestände, um den Gesamtumsatz beim Räumen des Lagers zu maximieren.",
-      "description": "Bestimmt optimale Abverkaufspreise Für Saisonendprodukte, um den Gesamtumsatz zu maximieren. Jedes Produkt hat einen Restbestand, eine Preiselastizit der Nachfrage und einen Mindestpreis. Das Modell findet die Preise, die den Bestand Räumen und den Umsatz maximieren.\n",
+      "shortDescription": "Setzen Sie optimale Abverkaufspreise für Saisonendbestände, um den Gesamtumsatz beim Räumen des Lagers zu maximieren.",
+      "description": "Bestimmt optimale Abverkaufspreise für Saisonendprodukte, um den Gesamtumsatz zu maximieren. Jedes Produkt hat einen Restbestand, eine Preiselastizit der Nachfrage und einen Mindestpreis. Das Modell findet die Preise, die den Bestand Räumen und den Umsatz maximieren.\n",
       "scenarioDescription": "Ein Modegeschäft hat 20 saisonale Produkte mit Restbestand. Jedes Produkt hat 10-200 Resteinheiten. Rabatte reichen von 20% bis 70%. Das Geschäft will den gesamten Bestand in 4 Wochen Räumen und den Abverkaufsumsatz maximieren.\n",
       "categoryDisplayName": "Einzelhandel"
     },
     "material_procurement": {
       "displayName": "Materialbeschaffung",
-      "shortDescription": "wählen Sie Lieferanten und Bestellmengen Für Baumaterialien, um die GesamtbeschaffungsKosten unter LieferBeschränkungen zu minimieren.",
-      "description": "Optimiert die Einkaufsentscheidungen Für Baumaterialien durch Auswahl von Lieferanten und Bestellmengen. Jeder Lieferant hat verschiedene Preise, Lieferzeiten und Mindestbestellmengen. Das Modell minimiert die GesamtbeschaffungsKosten.\n",
-      "scenarioDescription": "Ein Bauunternehmen ben 8 Materialarten für ein 6-Monatsprojekt. Es stehen 5 Lieferanten mit unterschiedlichen Preisen und Lieferzeiten zur Verfügung. Der Einkaufsleiter will die GesamtKosten minimieren und den Bauzeitplan einhalten.\n",
+      "shortDescription": "Wählen Sie Lieferanten und Bestellmengen für Baumaterialien, um die Gesamtbeschaffungskosten unter Lieferbeschränkungen zu minimieren.",
+      "description": "Optimiert die Einkaufsentscheidungen für Baumaterialien durch Auswahl von Lieferanten und Bestellmengen. Jeder Lieferant hat verschiedene Preise, Lieferzeiten und Mindestbestellmengen. Das Modell minimiert die Gesamtbeschaffungskosten.\n",
+      "scenarioDescription": "Ein Bauunternehmen benötigt 8 Materialarten für ein 6-Monatsprojekt. Es stehen 5 Lieferanten mit unterschiedlichen Preisen und Lieferzeiten zur Verfügung. Der Einkaufsleiter will die Gesamtkosten minimieren und den Bauzeitplan einhalten.\n",
       "categoryDisplayName": "Bauwesen"
     },
     "max_flow": {
       "displayName": "Maximaler Fluss",
       "shortDescription": "Leiten Sie den maximalen Fluss von der Quelle zur Senke durch ein kapazitiertes Netzwerk.",
-      "description": "Findet den maximalen Fluss, der von einem Quellknoten zu einem Senkenknoten durch ein gerichtetes Netzwerk mit KantenKapazitäten geleitet werden kann. Ein fundamentales Problem der Netzwerkoptimierung.\n",
+      "description": "Findet den maximalen Fluss, der von einem Quellknoten zu einem Senkenknoten durch ein gerichtetes Netzwerk mit Kantenkapazitäten geleitet werden kann. Ein fundamentales Problem der Netzwerkoptimierung.\n",
       "scenarioDescription": "Ein Verteilungsnetzwerk hat 8 Knoten und 12 Kanten mit verschiedenen Kapazitäten. Wasser muss von der Pumpstation (Quelle) zur Aufbereitungsanlage (Senke) fliessen. Der Ingenieur will den maximalen Durchfluss bestimmen.\n",
       "categoryDisplayName": "Netzwerk- & Graphenoptimierung"
     },
     "media_mix_optimization": {
       "displayName": "Media-Mix-Optimierung",
       "shortDescription": "Finden Sie die optimale Medienausgaben-Verteilung über Plattformen, um den ROI bei abnehmenden Erträgen und Kanalübergreifenden Effekten zu maximieren.",
-      "description": "Bestimmt die optimale Verteilung des Werbebudgets auf Medienplattformen (Suche, Social, Display, Video, TV), um den Gesamtertrag zu maximieren. Das Modell Berücksichtigt abnehmende Erträge pro Kanal, Synergieeffekte und Budget-Beschränkungen.\n",
+      "description": "Bestimmt die optimale Verteilung des Werbebudgets auf Medienplattformen (Suche, Social, Display, Video, TV), um den Gesamtertrag zu maximieren. Das Modell berücksichtigt abnehmende Erträge pro Kanal, Synergieeffekte und Budget-Beschränkungen.\n",
       "scenarioDescription": "Eine E-Commerce-Marke hat ein Monatsbudget von 50.000 EUR Für 5 Werbeplattformen. Jede Plattform zeigt abnehmende Erträge ab einem Schwellenwert. Die Kombination Suche + Social erzeugt einen Synergieeffekt von 15%. Der Marketingdirektor sucht die ROI-maximierende Verteilung.\n",
       "categoryDisplayName": "Werbung & Medien"
     },
     "mine_production_scheduling": {
       "displayName": "Minenproduktionsplanung",
-      "shortDescription": "Planen Sie Abbaubl`öcke über Perioden, um den Netto-Barwert unter Mischungs- und KapazitätsBeschränkungen zu maximieren.",
-      "description": "Plant die Abfolge der ErzAbbaubl`öcke über mehrere Perioden, um den Netto-Barwert (NPV) zu maximieren. Jeder Block hat ein Tonnage, einen Erzgehalt und AbbauKosten. Das Modell beachtet Abbauvorrangsregeln, AnlagenKapazitäten und Erzmischungsanforderungen.\n",
-      "scenarioDescription": "Eine Mine hat ein Blockmodell mit 100 Kandidatenblöcken für den Abbau über 5 Jahre. Jeder Block hat eine Tonnage und einen Goldgehalt. Die Anlage verarbeitet 1 Mio. Tonnen/Jahr. Der F muss zwischen 2 und 4 g/t liegen. Der Planer sucht den NPV-maximierenden Abbauplan.\n",
+      "shortDescription": "Planen Sie Abbaublöcke über Perioden, um den Netto-Barwert unter Mischungs- und Kapazitätsbeschränkungen zu maximieren.",
+      "description": "Plant die Abfolge der Erzabbaublöcke über mehrere Perioden, um den Netto-Barwert (NPV) zu maximieren. Jeder Block hat ein Tonnage, einen Erzgehalt und Abbaukosten. Das Modell beachtet Abbauvorrangsregeln, Anlagenkapazitäten und Erzmischungsanforderungen.\n",
+      "scenarioDescription": "Eine Mine hat ein Blockmodell mit 100 Kandidatenblöcken für den Abbau über 5 Jahre. Jeder Block hat eine Tonnage und einen Goldgehalt. Die Anlage verarbeitet 1 Mio. Tonnen/Jahr. Der Erzgehalt muss zwischen 2 und 4 g/t liegen. Der Planer sucht den NPV-maximierenden Abbauplan.\n",
       "categoryDisplayName": "Bergbau"
     },
     "minimum_spanning_tree": {
       "displayName": "Minimaler Spannbaum",
-      "shortDescription": "Verbinden Sie alle Knoten eines Netzwerks mit minimalen GesamtkantenKosten ohne Zyklen.",
-      "description": "Findet die Teilmenge von Kanten, die alle Knoten eines Graphen mit minimalen GesamtKosten verbindet, ohne Zyklen zu bilden. Ein klassisches Problem der Netzwerkoptimierung mit Anwendungen in Telekommunikation, Stromverteilung und Infrastrukturvernetzung.\n",
-      "scenarioDescription": "Ein Telekommunikationsunternehmen muss 10 KommunikationsTürme mit Glasfaser verbinden. Es gibt 20 mögliche Verbindungen mit verschiedenen InstallationsKosten. Der Ingenieur will alle Türme zu minimalen GesamtKosten ohne redundante Verbindungen verbinden.\n",
+      "shortDescription": "Verbinden Sie alle Knoten eines Netzwerks mit minimalen Gesamtkantenkosten ohne Zyklen.",
+      "description": "Findet die Teilmenge von Kanten, die alle Knoten eines Graphen mit minimalen Gesamtkosten verbindet, ohne Zyklen zu bilden. Ein klassisches Problem der Netzwerkoptimierung mit Anwendungen in Telekommunikation, Stromverteilung und Infrastrukturvernetzung.\n",
+      "scenarioDescription": "Ein Telekommunikationsunternehmen muss 10 Kommunikationstürme mit Glasfaser verbinden. Es gibt 20 mögliche Verbindungen mit verschiedenen Installationskosten. Der Ingenieur will alle Türme zu minimalen Gesamtkosten ohne redundante Verbindungen verbinden.\n",
       "categoryDisplayName": "Netzwerk- & Graphenoptimierung"
     },
     "multi_modal_freight": {
       "displayName": "Multimodaler Frachtverkehr",
-      "shortDescription": "wählen Sie die beste Kombination von Transportmodi (Straße, Schiene, See) für jeden Versandabschnitt, um GesamtKosten und -zeit zu minimieren.",
+      "shortDescription": "Wählen Sie die beste Kombination von Transportmodi (Straße, Schiene, See) für jeden Versandabschnitt, um Gesamtkosten und -zeit zu minimieren.",
       "description": "Optimiert die Auswahl der Transportmodi (Straße, Schiene, See) für jeden Abschnitt einer Frachtsendung, um Kosten und/oder Gesamttransitzeit zu minimieren. Jeder Modus hat Kosten, Transitzeit und Kapazität.\n",
-      "scenarioDescription": "Ein Exporteur muss 200 Tonnen Produkt von einer Binnenlandfabrik zu einem ausländischen Hafen transportieren. Die Route hat 3 Abschnitte mit Straßen-, Schienen- und Seeoptionen. Der Logistikleiter sucht die Kostenminimale Kombination.\n",
+      "scenarioDescription": "Ein Exporteur muss 200 Tonnen Produkt von einer Binnenlandfabrik zu einem ausländischen Hafen transportieren. Die Route hat 3 Abschnitte mit Straßen-, Schienen- und Seeoptionen. Der Logistikleiter sucht die kostenminimale Kombination.\n",
       "categoryDisplayName": "Transport & Logistik"
     },
     "multi_objective_demo": {
@@ -3767,105 +3767,105 @@
     },
     "network_redundancy": {
       "displayName": "Netzwerkredundanz",
-      "shortDescription": "Entwerfen Sie ein Kostenminimales redundantes Netzwerk, das sicherstellt, dass jeder Knoten mindestens zwei unAbhängige Wege hat.",
-      "description": "Entwirft ein Kommunikationsnetz mit minimalen Kosten, das garantiert, dass jeder Knoten mindestens zwei unAbhängige Wege zum Zentralknoten hat. Das Modell stellt Ausfalltoleranz sicher: Fällt eine Verbindung aus, bleiben alle Knoten erreichbar.\n",
-      "scenarioDescription": "Ein Internetdienstanbieter hat 12 Netzknoten. Es gibt 25 mögliche Verbindungen mit verschiedenen Kosten. Der Netzwerkingenieur will die Kostengünstigste Topologie entwerfen, bei der der Ausfall jeder einzelnen Verbindung keinen Knoten isoliert.\n",
+      "shortDescription": "Entwerfen Sie ein kostenminimales redundantes Netzwerk, das sicherstellt, dass jeder Knoten mindestens zwei unabhängige Wege hat.",
+      "description": "Entwirft ein Kommunikationsnetz mit minimalen Kosten, das garantiert, dass jeder Knoten mindestens zwei unabhängige Wege zum Zentralknoten hat. Das Modell stellt Ausfalltoleranz sicher: Fällt eine Verbindung aus, bleiben alle Knoten erreichbar.\n",
+      "scenarioDescription": "Ein Internetdienstanbieter hat 12 Netzknoten. Es gibt 25 mögliche Verbindungen mit verschiedenen Kosten. Der Netzwerkingenieur will die kostengünstigste Topologie entwerfen, bei der der Ausfall jeder einzelnen Verbindung keinen Knoten isoliert.\n",
       "categoryDisplayName": "Telekommunikation"
     },
     "nurse_scheduling": {
       "displayName": "Pflegedienstplanung",
-      "shortDescription": "Erstellen Sie Wöchentliche SchichtPläne Für Pflegekräfte, die die Stationsbedarfe abdecken und Arbeitsrecht sowie Präferenzen Berücksichtigen.",
-      "description": "Erstellt Wöchentliche DienstPläne Für Pflegekräfte mit Schichtzuweisung (Früh, Spät, Nacht) auf verschiedenen Stationen. Das Modell erf die Mindestpersonalbedarfe pro Station und Schicht, beachtet Arbeitsrecht und Präferenzen des Personals.\n",
+      "shortDescription": "Erstellen Sie wöchentliche Schichtpläne für Pflegekräfte, die die Stationsbedarfe abdecken und Arbeitsrecht sowie Präferenzen Berücksichtigen.",
+      "description": "Erstellt wöchentliche Dienstpläne für Pflegekräfte mit Schichtzuweisung (Früh, Spät, Nacht) auf verschiedenen Stationen. Das Modell erfüllt die Mindestpersonalbedarfe pro Station und Schicht, beachtet Arbeitsrecht und Präferenzen des Personals.\n",
       "scenarioDescription": "Ein Krankenhaus hat 20 Pflegekräfte und 4 Stationen. Jede Station braucht 3 Pflegekräfte für die Frühschicht, 3 für die Spätschicht und 2 für die Nacht. Maximal 5 Schichten pro Woche und keine 2 aufeinanderfolgenden Nachtschichten. Die Pflegedienstleitung sucht einen gerechten, abdeckenden Plan.\n",
       "categoryDisplayName": "Gesundheit & Ernährung"
     },
     "one_d_cutting_stock": {
       "displayName": "1D-Zuschnittoptimierung",
-      "shortDescription": "Schneiden Sie Standardlängen-Material in KundenAufträge, um den Gesamtabfall zu minimieren.",
-      "description": "Optimiert Schnittmuster Für Stangen, Rohre oder Rollen mit Standardlänge, um Aufträge verschiedener Längen bei minimalem Materialabfall zu erf. Jeder Auftrag hat eine Länge und eine bene Menge. Das Modell Wählt Schnittmuster und deren Häufigkeiten.\n",
+      "shortDescription": "Schneiden Sie Standardlängen-Material in Kundenaufträge, um den Gesamtabfall zu minimieren.",
+      "description": "Optimiert Schnittmuster für Stangen, Rohre oder Rollen mit Standardlänge, um Aufträge verschiedener Längen bei minimalem Materialabfall zu erfüllen. Jeder Auftrag hat eine Länge und eine benötigte Menge. Das Modell wählt Schnittmuster und deren Häufigkeiten.\n",
       "scenarioDescription": "Ein Stahlunternehmen hat 6-Meter-Stangen und 15 Aufträge verschiedener Längen (0,5-4 Meter). Jeder Auftrag hat 5-50 Einheiten. Der Produktionsleiter will den Stangenverbrauch und Abfall minimieren.\n",
       "categoryDisplayName": "Zuschnitt & Verpackung"
     },
     "operating_room_scheduling": {
       "displayName": "OP-Planung",
       "shortDescription": "Planen Sie Operationen in OP-Sälen und Zeitblöcken, um den Durchsatz zu maximieren und die Verfügbarkeit von Chirurgen und Geräten zu Berücksichtigen.",
-      "description": "Weist Operationen OP-Sälen und Zeitblöcken zu, um die Anzahl der durchgefen OPs zu maximieren (oder Wartezeiten zu minimieren). Das Modell beachtet ChirurgenVerfügbarkeit, saalspezifische AusRung und Rzeiten zwischen OPs.\n",
-      "scenarioDescription": "Ein Krankenhaus hat 4 OP-Säle und 15 geplante Operationen für eine Woche. Jede OP ben einen bestimmten Chirurgen, AusRung und eine geschätzte Dauer. Die OP-Säle sind 10 Stunden pro Tag Verfügbar. Der Koordinator will alle OPs planen und Wartezeiten minimieren.\n",
+      "description": "Weist Operationen OP-Sälen und Zeitblöcken zu, um die Anzahl der durchgefen OPs zu maximieren (oder Wartezeiten zu minimieren). Das Modell beachtet Chirurgenverfügbarkeit, saalspezifische Ausrung und Rzeiten zwischen OPs.\n",
+      "scenarioDescription": "Ein Krankenhaus hat 4 OP-Säle und 15 geplante Operationen für eine Woche. Jede OP ben einen bestimmten Chirurgen, Ausrung und eine geschätzte Dauer. Die OP-Säle sind 10 Stunden pro Tag Verfügbar. Der Koordinator will alle OPs planen und Wartezeiten minimieren.\n",
       "categoryDisplayName": "Gesundheit & Ernährung"
     },
     "ore_blending": {
       "displayName": "Erzmischung",
-      "shortDescription": "Mischen Sie Erz aus mehreren Quellen, um Qualitätsspezifikationen bei minimalen Kosten zu erf.",
-      "description": "Bestimmt die optimalen Mischungsverhnisse von Erz aus verschiedenen Quellen, um ein Produkt herzustellen, das die Qualitätsspezifikationen erf (Erzgehalt, Verunreinigungen). Das Modell minimiert die GesamtmischungsKosten.\n",
-      "scenarioDescription": "Eine Hütte hat 6 Erzquellen mit verschiedenen Kupfergehalten (1-5%) und Verunreinigungsniveaus. Die Endmischung muss einen Kupfergehalt von 2,5-3,5% haben und Verunreinigungen d 0,5% nicht ueberschreiten. Der Metallurge sucht die Kostengünstigste Mischung.\n",
+      "shortDescription": "Mischen Sie Erz aus mehreren Quellen, um Qualitätsspezifikationen bei minimalen Kosten zu erfüllen.",
+      "description": "Bestimmt die optimalen Mischungsverhältnisse von Erz aus verschiedenen Quellen, um ein Produkt herzustellen, das die Qualitätsspezifikationen erfüllt (Erzgehalt, Verunreinigungen). Das Modell minimiert die Gesamtmischungskosten.\n",
+      "scenarioDescription": "Eine Hütte hat 6 Erzquellen mit verschiedenen Kupfergehalten (1-5%) und Verunreinigungsniveaus. Die Endmischung muss einen Kupfergehalt von 2,5-3,5% haben und Verunreinigungen d 0,5% nicht ueberschreiten. Der Metallurge sucht die kostengünstigste Mischung.\n",
       "categoryDisplayName": "Bergbau"
     },
     "pick_route_optimization": {
       "displayName": "Kommissionierrouten-Optimierung",
       "shortDescription": "Optimieren Sie die Kommissionierreihenfolge in einem Lagerauftrag, um die Gesamtwegestrecke zu minimieren.",
-      "description": "Bestimmt die optimale Kommissionierreihenfolge Für Artikel in einem Lager, um die vom Mitarbeiter Zurückgelegte Gesamtstrecke zu minimieren. Das Modell findet die kürzeste Route durch alle benen Standorte.\n",
+      "description": "Bestimmt die optimale Kommissionierreihenfolge für Artikel in einem Lager, um die vom Mitarbeiter Zurückgelegte Gesamtstrecke zu minimieren. Das Modell findet die kürzeste Route durch alle benen Standorte.\n",
       "scenarioDescription": "Ein Lagermitarbeiter muss 15 Artikel eines Auftrags aus verschiedenen Gängen und Ebenen kommissionieren. Das Lager hat 10 Gänge mit Regalen beidseitig. Der Betriebsleiter sucht die Kommissionierroute mit minimaler Gesamtzeit.\n",
       "categoryDisplayName": "Lagerhaltung"
     },
     "pipeline_network_flow": {
       "displayName": "Pipeline-Netzwerk",
-      "shortDescription": "Leiten Sie chemische Produkte durch ein Pipeline-Netzwerk, um die PumpKosten zu minimieren und die Lieferanforderungen zu erf.",
-      "description": "Optimiert den Fluss chemischer Produkte durch ein Pipeline-Netzwerk von Produktionsstätten zu Verbrauchspunkten. Jede Pipeline hat eine Kapazität, PumpKosten pro Einheit und ProduktKompatibilitBeschränkungen.\n",
-      "scenarioDescription": "Ein petrochemisches Pipeline-Netzwerk verbindet 3 Raffinerien mit 5 Verteilungsterminals über 15 Pipeline-Abschnitte. Jeder Abschnitt hat unterschiedliche Kapazität und PumpKosten. Der Betreiber will die GesamtverteilungsKosten minimieren.\n",
+      "shortDescription": "Leiten Sie chemische Produkte durch ein Pipeline-Netzwerk, um die Pumpkosten zu minimieren und die Lieferanforderungen zu erfüllen.",
+      "description": "Optimiert den Fluss chemischer Produkte durch ein Pipeline-Netzwerk von Produktionsstätten zu Verbrauchspunkten. Jede Pipeline hat eine Kapazität, Pumpkosten pro Einheit und Produktkompatibilitätsbeschränkungen.\n",
+      "scenarioDescription": "Ein petrochemisches Pipeline-Netzwerk verbindet 3 Raffinerien mit 5 Verteilungsterminals über 15 Pipeline-Abschnitte. Jeder Abschnitt hat unterschiedliche Kapazität und Pumpkosten. Der Betreiber will die Gesamtverteilungskosten minimieren.\n",
       "categoryDisplayName": "Chemieingenieurwesen"
     },
     "port_berth_allocation": {
       "displayName": "Liegeplatz-Zuweisung",
       "shortDescription": "Weisen Sie einlaufende Schiffe Liegeplätzen zu, um die Gesamtwarte- und Umschlagszeit zu minimieren.",
-      "description": "Weist einlaufende Schiffe HafenLiegeplätzen zu, um die Gesamtwartezeit und UmschlagsKosten zu minimieren. Jedes Schiff hat eine Ankunftszeit, eine Betriebsdauer und Tiefgangsanforderungen. Jeder Liegeplatz hat maximalen Tiefgang, Verfügbare AusRung und einen Umschlagssatz.\n",
-      "scenarioDescription": "Ein Hafen hat 4 Liegeplätze und 12 geplante Schiffe für die Woche. Jedes Schiff hat eine Ankunftszeit, eine Länge und eine geschätzte Betriebsdauer. Die Liegeplätze haben verschiedene maximale TiefGänge. Der Hafenkapitän will die Gesamtwartezeit minimieren.\n",
+      "description": "Weist einlaufende Schiffe Hafenliegeplätzen zu, um die Gesamtwartezeit und Umschlagskosten zu minimieren. Jedes Schiff hat eine Ankunftszeit, eine Betriebsdauer und Tiefgangsanforderungen. Jeder Liegeplatz hat maximalen Tiefgang, verfügbare Ausrüstung und einen Umschlagssatz.\n",
+      "scenarioDescription": "Ein Hafen hat 4 Liegeplätze und 12 geplante Schiffe für die Woche. Jedes Schiff hat eine Ankunftszeit, eine Länge und eine geschätzte Betriebsdauer. Die Liegeplätze haben verschiedene maximale Tiefgänge. Der Hafenkapitän will die Gesamtwartezeit minimieren.\n",
       "categoryDisplayName": "Seefahrt"
     },
     "portfolio_optimization": {
       "displayName": "Portfoliooptimierung",
       "shortDescription": "Erstellen Sie ein Investmentportfolio, das die erwartete Rendite für eine gegebene Risikotoleranz maximiert, mit optionalen Kardinalit- und Sektorgrenzen.",
-      "description": "Wählt die optimale Zusammensetzung eines Investmentportfolios, das die erwartete Rendite für ein gegebenes Risikoniveau (gemessen durch Varianz) maximiert. Das Markowitz-Modell umfasst optionale KardinalitBeschränkungen, Sektorlimits und Mindestpositionen.\n",
+      "description": "Wählt die optimale Zusammensetzung eines Investmentportfolios, das die erwartete Rendite für ein gegebenes Risikoniveau (gemessen durch Varianz) maximiert. Das Markowitz-Modell umfasst optionale Kardinalitbeschränkungen, Sektorlimits und Mindestpositionen.\n",
       "scenarioDescription": "Ein Fondsmanager hat 20 Kandidaten-Assets mit historischen Rendite- und Korrelationsdaten. Der Investor toleriert eine maximale Jahresvolatility von 12%. Das Portfolio soll 5-10 Assets enthalten und maximal 25% in einem Sektor. Der Manager sucht das renditesstärkste Portfolio.\n",
       "categoryDisplayName": "Finanzen & Investition"
     },
     "power_generation_mix": {
       "displayName": "Stromerzeugungsmix",
-      "shortDescription": "Bestimmen Sie die optimale Kraftwerkskombination für jede Stunde, um die Nachfrage bei minimalen Brennstoff- und EmissionsKosten zu decken.",
-      "description": "Optimiert den Kraftwerkseinsatz (Gas, Kohle, Kernkraft, Erneuerbare) stündlich, um die Nachfrage bei minimalen Gesamtbrennstoff- und EmissionsKosten zu decken. Jedes Kraftwerk hat variable Kosten, einen Betriebsbereich, An- und Abfahrzeiten und einen Emissionsfaktor.\n",
-      "scenarioDescription": "Ein Strombetreiber betreibt 8 Kraftwerke verschiedener Typen für einen Tag (24 Stunden). Die Nachfrage schwankt zwischen 500 MW (nachts) und 1.500 MW (Spitze). Jedes Kraftwerk hat variable Kosten und RampenBeschränkungen. Der Dispatcher sucht den Kostengünstigsten Erzeugungsplan.\n",
+      "shortDescription": "Bestimmen Sie die optimale Kraftwerkskombination für jede Stunde, um die Nachfrage bei minimalen Brennstoff- und Emissionskosten zu decken.",
+      "description": "Optimiert den Kraftwerkseinsatz (Gas, Kohle, Kernkraft, Erneuerbare) stündlich, um die Nachfrage bei minimalen Gesamtbrennstoff- und Emissionskosten zu decken. Jedes Kraftwerk hat variable Kosten, einen Betriebsbereich, An- und Abfahrzeiten und einen Emissionsfaktor.\n",
+      "scenarioDescription": "Ein Strombetreiber betreibt 8 Kraftwerke verschiedener Typen für einen Tag (24 Stunden). Die Nachfrage schwankt zwischen 500 MW (nachts) und 1.500 MW (Spitze). Jedes Kraftwerk hat variable Kosten und Rampenbeschränkungen. Der Dispatcher sucht den kostengünstigsten Erzeugungsplan.\n",
       "categoryDisplayName": "Energie & Versorgung"
     },
     "production_batch_planning": {
       "displayName": "Chargenplanung",
-      "shortDescription": "Planen Sie Produktionschargen mehrerer Pharmaprodukte, um die Nachfrage zu decken und RKosten sowie Ausschuss zu minimieren.",
-      "description": "Plant Reihenfolge und Größe der Produktionschargen für mehrere Pharmaprodukte. Jedes Produkt hat eine Nachfrage, eine MindestchargenGröße und RKosten. Das Modell minimiert die GesamtproduktionsKosten einschliesslich Rung, Lagerung und Verfallsausschuss.\n",
-      "scenarioDescription": "Eine Pharmaanlage produziert 6 Medikamente auf 2 Produktionslinien. Jeder Produktwechsel erfordert 4-8 Stunden Reinigung. Die Produkte haben Haltbarkeiten von 6-24 Monaten. Der Planer sucht den Kostenminimalen Quartalschargeneplan.\n",
+      "shortDescription": "Planen Sie Produktionschargen mehrerer Pharmaprodukte, um die Nachfrage zu decken und Rüstkosten sowie Ausschuss zu minimieren.",
+      "description": "Plant Reihenfolge und Größe der Produktionschargen für mehrere Pharmaprodukte. Jedes Produkt hat eine Nachfrage, eine Mindestchargengröße und Rüstkosten. Das Modell minimiert die Gesamtproduktionskosten einschließlich Rüsten, Lagerung und Verfallsausschuss.\n",
+      "scenarioDescription": "Eine Pharmaanlage produziert 6 Medikamente auf 2 Produktionslinien. Jeder Produktwechsel erfordert 4-8 Stunden Reinigung. Die Produkte haben Haltbarkeiten von 6-24 Monaten. Der Planer sucht den kostenminimalen Quartalschargenplan.\n",
       "categoryDisplayName": "Pharmazeutik"
     },
     "production_line_scheduling": {
       "displayName": "Produktionslinien-Planung",
-      "shortDescription": "Planen Sie Lebensmittelprodukte auf Produktionslinien, um UmRzeiten zu minimieren und tägliche Auftragsfristen einzuhalten.",
-      "description": "Plant die Produktionsreihenfolge von Lebensmitteln auf mehreren Linien, um UmRzeiten (Reinigung zwischen Produkten) zu minimieren und Auftragsfristen einzuhalten. Berücksichtigt Allergenreihenfolge, ZutatenVerfügbarkeit und KühlKapazität.\n",
-      "scenarioDescription": "Eine Lebensmittelfabrik hat 3 Produktionslinien und 12 Produkte diese Woche. Wechsel zwischen Milch- und milchfreien Produkten erfordern aufwändige Reinigung. Jedes Produkt hat einen Liefertermin. Der Produktionsleiter will die GesamtumRzeit minimieren.\n",
+      "shortDescription": "Planen Sie Lebensmittelprodukte auf Produktionslinien, um Umrzeiten zu minimieren und tägliche Auftragsfristen einzuhalten.",
+      "description": "Plant die Produktionsreihenfolge von Lebensmitteln auf mehreren Linien, um Umrzeiten (Reinigung zwischen Produkten) zu minimieren und Auftragsfristen einzuhalten. Berücksichtigt Allergenreihenfolge, Zutatenverfügbarkeit und Kühlkapazität.\n",
+      "scenarioDescription": "Eine Lebensmittelfabrik hat 3 Produktionslinien und 12 Produkte diese Woche. Wechsel zwischen Milch- und milchfreien Produkten erfordern aufwändige Reinigung. Jedes Produkt hat einen Liefertermin. Der Produktionsleiter will die Gesamtumrzeit minimieren.\n",
       "categoryDisplayName": "Lebensmittel & Getränke"
     },
     "production_planning": {
       "displayName": "Produktionsplanung",
-      "shortDescription": "Bestimmen Sie optimale Produktionsmengen für mehrere Produkte, um den Gewinn unter RessourcenBeschränkungen zu maximieren.",
-      "description": "Berechnet optimale Produktionsmengen für mehrere Produkte zur Gewinnmaximierung. Jedes Produkt hat eine Gewinnmarge, Ressourcenanforderungen (Material, Arbeit, Maschinenzeit) und Nachfragegrenzen. Das Modell maximiert den Gewinn unter Beachtung der RessourcenVerfügbarkeiten.\n",
+      "shortDescription": "Bestimmen Sie optimale Produktionsmengen für mehrere Produkte, um den Gewinn unter Ressourcenbeschränkungen zu maximieren.",
+      "description": "Berechnet optimale Produktionsmengen für mehrere Produkte zur Gewinnmaximierung. Jedes Produkt hat eine Gewinnmarge, Ressourcenanforderungen (Material, Arbeit, Maschinenzeit) und Nachfragegrenzen. Das Modell maximiert den Gewinn unter Beachtung der Ressourcenverfügbarkeiten.\n",
       "scenarioDescription": "Eine Fabrik produziert 4 Produkttypen mit 3 geteilten Ressourcen (Material, Arbeit, Maschinenzeit). Jedes Produkt hat verschiedene Margen und Ressourcenverbräuche. Die Verfügbaren Ressourcen sind begrenzt. Der Produktionsleiter sucht den gewinnmaximierenden Produktmix.\n",
       "categoryDisplayName": "Fertigung & Produktion"
     },
     "project_scheduling": {
       "displayName": "Projektplanung",
-      "shortDescription": "Planen Sie BauTätigkeiten gewerkeübergreifend, um die Projektdauer unter Beachtung von Abhängigkeiten und Ressourcenlimits zu minimieren.",
-      "description": "Plant BauTätigkeiten mit Startdaten und Ressourcenzuweisung, um die Gesamtprojektdauer zu minimieren. Jede Tätigkeit hat eine Dauer, einen Ressourcenbedarf und Abhängigkeiten. Das Modell beachtet Vorrangbeziehungen und begrenzte RessourcenVerfügbarkeit.\n",
-      "scenarioDescription": "Ein Bauprojekt hat 25 Tätigkeiten mit Abhängigkeiten. Es gibt 4 Ressourcentypen (Maurer, Elektriker, Klempner, KrAnführer) mit begrenzter Verfügbarkeit. Der Bauleiter sucht den Zeitplan mit minimaler Gesamtprojektdauer.\n",
+      "shortDescription": "Planen Sie Bautätigkeiten gewerkeübergreifend, um die Projektdauer unter Beachtung von Abhängigkeiten und Ressourcenlimits zu minimieren.",
+      "description": "Plant Bautätigkeiten mit Startdaten und Ressourcenzuweisung, um die Gesamtprojektdauer zu minimieren. Jede Tätigkeit hat eine Dauer, einen Ressourcenbedarf und Abhängigkeiten. Das Modell beachtet Vorrangbeziehungen und begrenzte Ressourcenverfügbarkeit.\n",
+      "scenarioDescription": "Ein Bauprojekt hat 25 Tätigkeiten mit Abhängigkeiten. Es gibt 4 Ressourcentypen (Maurer, Elektriker, Klempner, Kranführer) mit begrenzter Verfügbarkeit. Der Bauleiter sucht den Zeitplan mit minimaler Gesamtprojektdauer.\n",
       "categoryDisplayName": "Bauwesen"
     },
     "property_portfolio": {
       "displayName": "Immobilienportfolio",
-      "shortDescription": "wählen Sie den besten Immobilienmix, um risikobereinigte Renditen innerhalb eines Investitionsbudgets zu maximieren.",
+      "shortDescription": "Wählen Sie den besten Immobilienmix, um risikobereinigte Renditen innerhalb eines Investitionsbudgets zu maximieren.",
       "description": "Wählt Immobilien aus Kandidaten zur Bildung eines Portfolios, das die risikobereinigte Rendite maximiert. Jede Immobilie hat einen Preis, eine erwartete Rendite, ein Risikoniveau und einen Typ (Wohn, Gewerbe, Industrie).\n",
       "scenarioDescription": "Ein Immobilienfonds hat 15 Kandidatenimmobilien mit einem Budget von 5 Mio. EUR. Die Immobilien variieren zwischen Wohn, Gewerbe und Industrie. Maximal 40% in einem Typ. Ziel ist die Maximierung der risikobereinigten Gesamtrendite.\n",
       "categoryDisplayName": "Immobilien"
@@ -3879,49 +3879,49 @@
     },
     "public_facility_location": {
       "displayName": "Oeffentliche Standortplanung",
-      "shortDescription": "Bestimmen Sie optimale Standorte Für oeffentliche Einrichtungen (Schulen, KrankenHäuser, Feuerwachen), um eine gerechte Bevölkerungsabdeckung zu maximieren.",
-      "description": "Wählt optimale Standorte Für oeffentliche Einrichtungen wie Schulen, KrankenHäuser oder Feuerwachen. Das Modell maximiert die gerechte Bevölkerungsabdeckung und stellt sicher, dass alle Bürger Zugang innerhalb zumutbarer Entfernung haben.\n",
-      "scenarioDescription": "Eine Gemeinde will 3 neue Gesundheitszentren aus 8 Kandidatenstandorten Eröffnen. Jeder Standort hat BauKosten und eine BehandlungsKapazität. Die Bevölkerung verteilt sich auf 20 Stadtteile. Der Planer will die maximale Entfernung eines Stadtteils zum Nächsten Zentrum minimieren.\n",
+      "shortDescription": "Bestimmen Sie optimale Standorte für oeffentliche Einrichtungen (Schulen, Krankenhäuser, Feuerwachen), um eine gerechte Bevölkerungsabdeckung zu maximieren.",
+      "description": "Wählt optimale Standorte für oeffentliche Einrichtungen wie Schulen, Krankenhäuser oder Feuerwachen. Das Modell maximiert die gerechte Bevölkerungsabdeckung und stellt sicher, dass alle Bürger Zugang innerhalb zumutbarer Entfernung haben.\n",
+      "scenarioDescription": "Eine Gemeinde will 3 neue Gesundheitszentren aus 8 Kandidatenstandorten eröffnen. Jeder Standort hat Baukosten und eine Behandlungskapazität. Die Bevölkerung verteilt sich auf 20 Stadtteile. Der Planer will die maximale Entfernung eines Stadtteils zum nächsten Zentrum minimieren.\n",
       "categoryDisplayName": "Oeffentliche Verwaltung"
     },
     "quality_control_sampling": {
       "displayName": "Qualitätskontrolle-Stichproben",
-      "shortDescription": "Bestimmen Sie, wie viele Artikel pro Produktionscharge zu Prüfen sind, um Fehlererkennungsziele bei minimalen InspektionsKosten zu erreichen.",
-      "description": "Bestimmt die optimale StichprobenGröße pro Produktionscharge, um Fehlererkennungsziele bei minimalen Kosten zu erreichen. Jede Charge hat eine Größe, eine historische Fehlerquote und Kosten pro prüfeinheit. Das Modell balanciert InspektionsKosten gegen das Risiko fehlerhafter Chargen.\n",
-      "scenarioDescription": "Eine Fabrik produziert 10 tägliche Chargen mit historischen Fehlerquoten von 1-8%. Die Inspektion kostet 5 EUR pro Einheit. Ziel ist 95% Erkennungswahrscheinlichkeit. Der Qualitätsmanager sucht den Kostenminimalen Stichprobenplan.\n",
+      "shortDescription": "Bestimmen Sie, wie viele Artikel pro Produktionscharge zu prüfen sind, um Fehlererkennungsziele bei minimalen Inspektionskosten zu erreichen.",
+      "description": "Bestimmt die optimale Stichprobengröße pro Produktionscharge, um Fehlererkennungsziele bei minimalen Kosten zu erreichen. Jede Charge hat eine Größe, eine historische Fehlerquote und Kosten pro Prüfeinheit. Das Modell balanciert Inspektionskosten gegen das Risiko fehlerhafter Chargen.\n",
+      "scenarioDescription": "Eine Fabrik produziert 10 tägliche Chargen mit historischen Fehlerquoten von 1-8%. Die Inspektion kostet 5 EUR pro Einheit. Ziel ist 95% Erkennungswahrscheinlichkeit. Der Qualitätsmanager sucht den kostenminimalen Stichprobenplan.\n",
       "categoryDisplayName": "Fertigung & Produktion"
     },
     "raw_material_purchasing": {
       "displayName": "Rohstoffeinkauf",
-      "shortDescription": "Entscheiden Sie, wie viel von jedem Rohstoff bei welchem Lieferanten gekauft wird, um die Produktionsbedarfe bei niedrigsten GesamtKosten zu decken.",
-      "description": "Optimiert Rohstoffeinkaufsentscheidungen durch Lieferantenauswahl und Mengenbestimmung zur Minimierung der GesamtbeschaffungsKosten. Berücksichtigt Preise, Mengenrabatte, Lieferzeiten und Qualitätsniveaus.\n",
-      "scenarioDescription": "Eine Fabrik ben 5 Rohstoffe für die monatliche Produktion. Es gibt 4 Lieferanten mit verschiedenen Preisen und Mengenrabatten. Das Lager hat begrenzte Kapazität. Der Einkaufsleiter sucht die Kostengünstigste Beschaffungsstrategie.\n",
+      "shortDescription": "Entscheiden Sie, wie viel von jedem Rohstoff bei welchem Lieferanten gekauft wird, um die Produktionsbedarfe bei niedrigsten Gesamtkosten zu decken.",
+      "description": "Optimiert Rohstoffeinkaufsentscheidungen durch Lieferantenauswahl und Mengenbestimmung zur Minimierung der Gesamtbeschaffungskosten. Berücksichtigt Preise, Mengenrabatte, Lieferzeiten und Qualitätsniveaus.\n",
+      "scenarioDescription": "Eine Fabrik ben 5 Rohstoffe für die monatliche Produktion. Es gibt 4 Lieferanten mit verschiedenen Preisen und Mengenrabatten. Das Lager hat begrenzte Kapazität. Der Einkaufsleiter sucht die kostengünstigste Beschaffungsstrategie.\n",
       "categoryDisplayName": "Fertigung & Produktion"
     },
     "reactor_optimization": {
       "displayName": "Reaktoroptimierung",
       "shortDescription": "Optimieren Sie Zufuhrraten und Betriebsbedingungen in einem Reaktornetzwerk, um den Produktertrag bei minimalen Kosten zu maximieren.",
-      "description": "Optimiert die Betriebsparameter eines chemischen Reaktornetzwerks (Zufuhrraten, Temperaturen, DRe), um den Ertrag des geWünschten Produkts bei minimalen BetriebsKosten zu maximieren. Umfasst SicherheitsBeschränkungen, Massen- und Energiebilanzen.\n",
+      "description": "Optimiert die Betriebsparameter eines chemischen Reaktornetzwerks (Zufuhrraten, Temperaturen, Drücke), um den Ertrag des gewünschten Produkts bei minimalen Betriebskosten zu maximieren. Umfasst Sicherheitsbeschränkungen, Massen- und Energiebilanzen.\n",
       "scenarioDescription": "Eine Chemiefabrik hat ein Netzwerk aus 3 Reaktoren in Serie. Jeder Reaktor hat Temperaturbereiche (150-300 Grad C) und Druckbereiche (5-20 bar). Zufuhrraten reichen von 100-500 kg/h. Der Verfahrensingenieur sucht die ertragsmaximierenden Bedingungen.\n",
       "categoryDisplayName": "Chemieingenieurwesen"
     },
     "recipe_optimization": {
       "displayName": "Rezeptoptimierung",
-      "shortDescription": "Optimieren Sie Zutatenenanteile in Lebensmittelrezepten, um die Kosten zu minimieren und Nährwert- sowie Geschmacksspezifikationen zu erf.",
-      "description": "Passt die Zutatenanteile in Lebensmittelproduktionsrezepten an, um die GesamtKosten zu minimieren und dabei Nährwert-, Textur- und Geschmacksspezifikationen zu erf. Berücksichtigt Kennzeichnungsvorschriften und Verbrauchererwartungen.\n",
-      "scenarioDescription": "Ein Lebensmittelunternehmen hat ein Suppenrezept mit 10 Zutaten. Jede Zutat hat Kosten und ein Nährwertprofil. Die Suppe muss Mindest-Proteinwerte und Maximal-Natriumwerte einhalten. Der Formulierer sucht das Kostengünstigste konforme Rezept.\n",
+      "shortDescription": "Optimieren Sie Zutatenanteile in Lebensmittelrezepten, um die Kosten zu minimieren und Nährwert- sowie Geschmacksspezifikationen zu erfüllen.",
+      "description": "Passt die Zutatenanteile in Lebensmittelproduktionsrezepten an, um die Gesamtkosten zu minimieren und dabei Nährwert-, Textur- und Geschmacksspezifikationen zu erfüllen. Berücksichtigt Kennzeichnungsvorschriften und Verbrauchererwartungen.\n",
+      "scenarioDescription": "Ein Lebensmittelunternehmen hat ein Suppenrezept mit 10 Zutaten. Jede Zutat hat Kosten und ein Nährwertprofil. Die Suppe muss Mindest-Proteinwerte und Maximal-Natriumwerte einhalten. Der Formulierer sucht das kostengünstigste konforme Rezept.\n",
       "categoryDisplayName": "Lebensmittel & Getränke"
     },
     "renewable_curtailment": {
       "displayName": "Erneuerbare-Abregelung",
-      "shortDescription": "Weisen Sie NetzKapazität erneuerbaren Quellen zu, um die verschwendete (abgeregelte) saubere Energie zu minimieren.",
-      "description": "Optimiert die Zuweisung von NetzKapazität an erneuerbare Erzeugungsquellen, um die abgeregelte saubere Energie zu minimieren. Berücksichtigt Solar- und Windprognosen, NetzKapazität, Nachfrage und Systemstabilität\n",
-      "scenarioDescription": "Ein Netzbetreiber hat 5 Windparks und 3 Solarparks an einer 500-MW-Übertragungsleitung. Zu bestimmten Stunden übersteigt die erneuerbare Erzeugung die AbführKapazität. Der Betreiber sucht die Abregelungsstrategie mit minimalem Verlust sauberer Energie.\n",
+      "shortDescription": "Weisen Sie Netzkapazität erneuerbaren Quellen zu, um die verschwendete (abgeregelte) saubere Energie zu minimieren.",
+      "description": "Optimiert die Zuweisung von Netzkapazität an erneuerbare Erzeugungsquellen, um die abgeregelte saubere Energie zu minimieren. Berücksichtigt Solar- und Windprognosen, Netzkapazität, Nachfrage und Systemstabilität\n",
+      "scenarioDescription": "Ein Netzbetreiber hat 5 Windparks und 3 Solarparks an einer 500-MW-Übertragungsleitung. Zu bestimmten Stunden übersteigt die erneuerbare Erzeugung die Abführkapazität. Der Betreiber sucht die Abregelungsstrategie mit minimalem Verlust sauberer Energie.\n",
       "categoryDisplayName": "Energie & Versorgung"
     },
     "renovation_scheduling": {
       "displayName": "Renovierungsplanung",
-      "shortDescription": "Planen Sie Renovierungsarbeiten an mehreren Immobilien, um die Gesamtprojektdauer und HandwerkerKosten zu minimieren.",
+      "shortDescription": "Planen Sie Renovierungsarbeiten an mehreren Immobilien, um die Gesamtprojektdauer und Handwerkerkosten zu minimieren.",
       "description": "Plant Renovierungsarbeiten an mehreren Immobilien mit Zuweisung von Handwerkern und Terminen, um Gesamtdauer und Kosten zu minimieren. Jede Arbeit hat eine Dauer, einen Handwerkerbedarf und Abhängigkeiten.\n",
       "scenarioDescription": "Eine Immobiliengesellschaft muss 4 Wohnungen mit je 6 Arbeitsarten renovieren (Elektrik, Sanitär, Malerarbeiten usw.). Es stehen 3 Handwerkerteams zur Verfügung. Einige Arbeiten haben Abhängigkeiten (Elektrik vor Malerarbeiten). Der Manager will alles schnellstmöglich abschliessen.\n",
       "categoryDisplayName": "Immobilien"
@@ -3929,15 +3929,15 @@
     "reservoir_operation": {
       "displayName": "Stausee-Bewirtschaftung",
       "shortDescription": "Planen Sie Wasserabgaben eines Stausees über mehrere Perioden, um Bewässerung, Stromerzeugung und Hochwasserschutz auszubalancieren.",
-      "description": "Optimiert die Abgabeentscheidungen eines Stausees über mehrere Perioden, um mehrere Nutzungen auszubalancieren: Bewässerung, Wasserkraft, städtische Versorgung und Hochwasserschutz. Berücksichtigt saisonale Zuflüsse, Mindest- und HöChstfüllstände und Unterliegerbedarf.\n",
-      "scenarioDescription": "Ein Mehrzweckstausee muss die Abgaben für die Nächsten 12 Monate planen. Die Zuflüsse schwanken saisonal. Der Bewässerungsbedarf ist im Sommer hoch, Stromerzeugung ist im Winter wertvoller. Der F muss zwischen 30% und 90% bleiben. Der Betreiber sucht den Plan mit maximalem Gesamtnutzen.\n",
+      "description": "Optimiert die Abgabeentscheidungen eines Stausees über mehrere Perioden, um mehrere Nutzungen auszubalancieren: Bewässerung, Wasserkraft, städtische Versorgung und Hochwasserschutz. Berücksichtigt saisonale Zuflüsse, Mindest- und Höchstfüllstände und Unterliegerbedarf.\n",
+      "scenarioDescription": "Ein Mehrzweckstausee muss die Abgaben für die nächsten 12 Monate planen. Die Zuflüsse schwanken saisonal. Der Bewässerungsbedarf ist im Sommer hoch, Stromerzeugung ist im Winter wertvoller. Der Füllstand muss zwischen 30% und 90% bleiben. Der Betreiber sucht den Plan mit maximalem Gesamtnutzen.\n",
       "categoryDisplayName": "Wasserwirtschaft"
     },
     "revenue_maximization": {
       "displayName": "Umsatzmaximierung",
       "shortDescription": "Entscheiden Sie, wie viele Einheiten jedes Produkts über welchen Kanal verkauft werden, um den Gesamtumsatz unter Kapazitäts- und Nachfragegrenzen zu maximieren.",
-      "description": "Bestimmt die optimalen Verkaufsmengen jedes Produkts pro Vertriebskanal, um den Gesamtumsatz zu maximieren. Jeder Kanal hat einen Preis, eine maximale Nachfrage und VertriebsKosten. Das Modell beachtet ProduktionsKapazitäten und Mindestvolumenverpflichtungen.\n",
-      "scenarioDescription": "Ein Unternehmen hat 5 Produkte und 3 VertriebsKanäle (Online, eigenes Geschäft, Händler). Jeder Kanal hat verschiedene Preise und Nachfragen. Die Gesamtproduktion ist begrenzt. Der Vertriebsleiter sucht die umsatzmaximierende Verteilung.\n",
+      "description": "Bestimmt die optimalen Verkaufsmengen jedes Produkts pro Vertriebskanal, um den Gesamtumsatz zu maximieren. Jeder Kanal hat einen Preis, eine maximale Nachfrage und Vertriebskosten. Das Modell beachtet Produktionskapazitäten und Mindestvolumenverpflichtungen.\n",
+      "scenarioDescription": "Ein Unternehmen hat 5 Produkte und 3 Vertriebskanäle (Online, eigenes Geschäft, Händler). Jeder Kanal hat verschiedene Preise und Nachfragen. Die Gesamtproduktion ist begrenzt. Der Vertriebsleiter sucht die umsatzmaximierende Verteilung.\n",
       "categoryDisplayName": "Finanzen & Investition"
     },
     "risk_pool_optimization": {
@@ -3957,22 +3957,22 @@
     "satellite_scheduling": {
       "displayName": "Satellitenplanung",
       "shortDescription": "Planen Sie Beobachtungsaufgaben für eine Satellitenkonstellation, um die abgeschlossenen Anfragen innerhalb der Sichtfenster zu maximieren.",
-      "description": "Plant Erdbeobachtungsaufgaben für eine Satellitenkonstellation, um die Anzahl abgeschlossener Anfragen zu maximieren. Jeder Satellit hat Sichtfenster, DatenspeicherKapazität und EnergieBeschränkungen.\n",
+      "description": "Plant Erdbeobachtungsaufgaben für eine Satellitenkonstellation, um die Anzahl abgeschlossener Anfragen zu maximieren. Jeder Satellit hat Sichtfenster, Datenspeicherkapazität und Energiebeschränkungen.\n",
       "scenarioDescription": "Eine Raumfahrtagentur hat 4 Beobachtungssatelliten und 30 Bildanfragen. Jeder Satellit hat 3-5 Sichtfenster pro Tag. Jedes Bild erfordert Speicher und Energie. Der Planer will die maximale Anzahl Anfragen in einer Woche abarbeiten.\n",
       "categoryDisplayName": "Luft- und Raumfahrt"
     },
     "service_center_placement": {
       "displayName": "Servicecenter-Standortwahl",
-      "shortDescription": "wählen Sie Servicecenter-Standorte, um die durchschnittliche Kundenfahrzeit zu minimieren und dabei ein Eröffnungsbudget einzuhalten.",
-      "description": "Wählt aus Kandidatenstandorten die zu Eröffnenden Servicecenter, um die durchschnittliche Kundenfahrzeit zu minimieren. Jeder Standort hat EröffnungsKosten, eine Kapazität und ein Einzugsgebiet.\n",
-      "scenarioDescription": "Ein Dienstleistungsunternehmen bewertet 10 Kandidatenstandorte Für Kundenzentren. Es gibt 25 Nachfragezonen mit verschiedenen Volumina. Das Budget erlaubt 4 Eröffnungen. Der Betriebsleiter sucht die Standorte mit minimaler durchschnittlicher Kundenfahrzeit.\n",
+      "shortDescription": "Wählen Sie Servicecenter-Standorte, um die durchschnittliche Kundenfahrzeit zu minimieren und dabei ein Eröffnungsbudget einzuhalten.",
+      "description": "Wählt aus Kandidatenstandorten die zu eröffnenden Servicecenter, um die durchschnittliche Kundenfahrzeit zu minimieren. Jeder Standort hat Eröffnungskosten, eine Kapazität und ein Einzugsgebiet.\n",
+      "scenarioDescription": "Ein Dienstleistungsunternehmen bewertet 10 Kandidatenstandorte für Kundenzentren. Es gibt 25 Nachfragezonen mit verschiedenen Volumina. Das Budget erlaubt 4 Eröffnungen. Der Betriebsleiter sucht die Standorte mit minimaler durchschnittlicher Kundenfahrzeit.\n",
       "categoryDisplayName": "Standortplanung"
     },
     "shortest_path": {
       "displayName": "kürzester Weg",
-      "shortDescription": "Finden Sie den Kostengünstigsten Weg zwischen zwei Knoten in einem Netzwerk mit gewichteten Kanten.",
-      "description": "Findet den Kostengünstigsten (oder kürzesten) Weg zwischen einem Quell- und einem Zielknoten in einem gerichteten Netzwerk mit KantenKosten. Ein fundamentales Problem der Netzwerkoptimierung.\n",
-      "scenarioDescription": "Ein Kurierdienst muss die Kostengünstigste Route zwischen zwei Städten durch ein Straßennetz mit 15 Knoten und 25 Kanten finden. Jede Kante hat eine Maut und eine Entfernung. Der Disponent sucht die Kostenminimale Route.\n",
+      "shortDescription": "Finden Sie den kostengünstigsten Weg zwischen zwei Knoten in einem Netzwerk mit gewichteten Kanten.",
+      "description": "Findet den kostengünstigsten (oder kürzesten) Weg zwischen einem Quell- und einem Zielknoten in einem gerichteten Netzwerk mit Kantenkosten. Ein fundamentales Problem der Netzwerkoptimierung.\n",
+      "scenarioDescription": "Ein Kurierdienst muss die kostengünstigste Route zwischen zwei Städten durch ein Straßennetz mit 15 Knoten und 25 Kanten finden. Jede Kante hat eine Maut und eine Entfernung. Der Disponent sucht die kostenminimale Route.\n",
       "categoryDisplayName": "Netzwerk- & Graphenoptimierung"
     },
     "store_layout": {
@@ -3991,156 +3991,156 @@
     },
     "student_assignment": {
       "displayName": "Studentenzuteilung",
-      "shortDescription": "Weisen Sie Studenten Kurssektionen zu, um die Präferenzzufriedenheit unter Einhaltung der SektionsKapazitäten zu maximieren.",
+      "shortDescription": "Weisen Sie Studenten Kurssektionen zu, um die Präferenzzufriedenheit unter Einhaltung der Sektionskapazitäten zu maximieren.",
       "description": "Weist Studenten Kurssektionen zu, um die Präferenzzufriedenheit zu maximieren. Jeder Student hat eine Präferenzrangliste und jede Sektion eine maximale Kapazität. Das Modell maximiert die Anzahl der Studenten, die ihre Erstwahl erhalten.\n",
-      "scenarioDescription": "Eine Fakultät hat 100 Studenten, die sich in 5 Fächer mit je 2 Sektionen einschreiben m. Jede Sektion hat 25 Plätze. Jeder Student hat ZeitPräferenzen angegeben. Der Koordinator sucht die Zuteilung mit maximaler Gesamtzufriedenheit.\n",
+      "scenarioDescription": "Eine Fakultät hat 100 Studenten, die sich in 5 Fächer mit je 2 Sektionen einschreiben m. Jede Sektion hat 25 Plätze. Jeder Student hat Zeitpräferenzen angegeben. Der Koordinator sucht die Zuteilung mit maximaler Gesamtzufriedenheit.\n",
       "categoryDisplayName": "Bildung & Wissenschaft"
     },
     "supplier_selection": {
       "displayName": "Lieferantenauswahl",
-      "shortDescription": "wählen Sie Lieferanten und verteilen Sie Bestellmengen, um die GesamtbeschaffungsKosten unter Einhaltung von Qualitäts- und Lieferanforderungen zu minimieren.",
-      "description": "Wählt Lieferanten und bestimmt Bestellmengen zur Minimierung der GesamtbeschaffungsKosten. Berücksichtigt Preise, Mengenrabatte, Qualität, Lieferzeiten und Zuverlässigkeit. Umfasst DiversifikationsBeschränkungen.\n",
-      "scenarioDescription": "Ein Unternehmen muss 3 Komponenten von 6 potenziellen Lieferanten beschaffen. Jeder Lieferant hat verschiedene Preise, Rabatte und Qualitätsniveaus. Mindestens 2 Lieferanten pro Komponente sind erforderlich. Der Einkaufsleiter sucht die Kostengünstigste Strategie.\n",
+      "shortDescription": "Wählen Sie Lieferanten und verteilen Sie Bestellmengen, um die Gesamtbeschaffungskosten unter Einhaltung von Qualitäts- und Lieferanforderungen zu minimieren.",
+      "description": "Wählt Lieferanten und bestimmt Bestellmengen zur Minimierung der Gesamtbeschaffungskosten. Berücksichtigt Preise, Mengenrabatte, Qualität, Lieferzeiten und Zuverlässigkeit. Umfasst Diversifikationsbeschränkungen.\n",
+      "scenarioDescription": "Ein Unternehmen muss 3 Komponenten von 6 potenziellen Lieferanten beschaffen. Jeder Lieferant hat verschiedene Preise, Rabatte und Qualitätsniveaus. Mindestens 2 Lieferanten pro Komponente sind erforderlich. Der Einkaufsleiter sucht die kostengünstigste Strategie.\n",
       "categoryDisplayName": "Supply Chain Management"
     },
     "team_roster_optimization": {
       "displayName": "Kaderoptimierung",
-      "shortDescription": "wählen Sie Spieler für einen Sportkader, um die Gesamtfähigkeitsbewertung innerhalb der Gehaltsobergrenze und Positionsanforderungen zu maximieren.",
-      "description": "Wählt Spieler aus einem Kandidatenpool für einen Sportkader, der die Gesamtfähigkeitsbewertung maximiert. Jeder Spieler hat ein Gehalt, spielbare Positionen und Fähigkeitswerte. Beachtet Gehaltsobergrenze, Mindestpositionen und Alters-/ErfahrungsBeschränkungen.\n",
-      "scenarioDescription": "Ein Fussballclub hat ein Budget von 10 Mio. EUR und 30 Kandidatenspieler Für 25 Kaderplätze. Es werden mindestens 3 Torhüter, 8 Verteidiger, 8 Mittelfeldspieler und 6 STürmer ben. Der Sportdirektor sucht den Kader mit maximaler Gesamtleistung.\n",
+      "shortDescription": "Wählen Sie Spieler für einen Sportkader, um die Gesamtfähigkeitsbewertung innerhalb der Gehaltsobergrenze und Positionsanforderungen zu maximieren.",
+      "description": "Wählt Spieler aus einem Kandidatenpool für einen Sportkader, der die Gesamtfähigkeitsbewertung maximiert. Jeder Spieler hat ein Gehalt, spielbare Positionen und Fähigkeitswerte. Beachtet Gehaltsobergrenze, Mindestpositionen und Alters-/Erfahrungsbeschränkungen.\n",
+      "scenarioDescription": "Ein Fussballclub hat ein Budget von 10 Mio. EUR und 30 Kandidatenspieler für 25 Kaderplätze. Es werden mindestens 3 Torhüter, 8 Verteidiger, 8 Mittelfeldspieler und 6 STürmer ben. Der Sportdirektor sucht den Kader mit maximaler Gesamtleistung.\n",
       "categoryDisplayName": "Sport & Freizeit"
     },
     "tenant_mix_optimization": {
       "displayName": "Mietermix-Optimierung",
-      "shortDescription": "wählen Sie Mieter für eine Gewerbeimmobilie, um Mieteinnahmen und Passantensynergien zu maximieren.",
+      "shortDescription": "Wählen Sie Mieter für eine Gewerbeimmobilie, um Mieteinnahmen und Passantensynergien zu maximieren.",
       "description": "Wählt die optimale Mieterkombination für ein Einkaufszentrum oder eine Gewerbeimmobilie. Jeder potenzielle Mieter hat eine Miete, eine Anziehungskraft und eine Geschäftskategorie. Das Modell maximiert Mieteinnahmen plus Synergieeffekte komplementärer Mieter.\n",
       "scenarioDescription": "Ein Einkaufszentrum hat 10 Verfügbare Einheiten und 20 Kandidatenmieter verschiedener Kategorien (Mode, Gastronomie, Dienstleistungen, Freizeit). Jeder Mieter zahlt Miete und generiert Passantenverkehr. Die Kombination Mode+Gastronomie erzeugt Synergie. Der Manager sucht den umsatz- und attraktivit Mix.\n",
       "categoryDisplayName": "Immobilien"
     },
     "timber_transportation": {
       "displayName": "Holztransport",
-      "shortDescription": "Planen Sie Holzversandrouten von Walddepots zu Sägewerken, um die GesamttransportKosten zu minimieren.",
-      "description": "Optimiert die Transportrouten von Holz von Walddepots zu Sägewerken und Verarbeitungsanlagen, um die GesamttransportKosten zu minimieren. Jedes Depot hat ein Verfügbares Volumen und jedes Sägewerk hat einen Bedarf und eine Kapazität.\n",
-      "scenarioDescription": "Ein Forstunternehmen hat 4 Depots mit Verfügbarem Holz und 3 Sägewerke mit unterschiedlichem Bedarf. Es gibt 12 mögliche Routen mit verschiedenen Entfernungen und Kosten. Die LKW haben 30 Tonnen Kapazität. Der Logistikleiter sucht den Kostengünstigsten Transportplan.\n",
+      "shortDescription": "Planen Sie Holzversandrouten von Walddepots zu Sägewerken, um die Gesamttransportkosten zu minimieren.",
+      "description": "Optimiert die Transportrouten von Holz von Walddepots zu Sägewerken und Verarbeitungsanlagen, um die Gesamttransportkosten zu minimieren. Jedes Depot hat ein verfügbares Volumen und jedes Sägewerk hat einen Bedarf und eine Kapazität.\n",
+      "scenarioDescription": "Ein Forstunternehmen hat 4 Depots mit Verfügbarem Holz und 3 Sägewerke mit unterschiedlichem Bedarf. Es gibt 12 mögliche Routen mit verschiedenen Entfernungen und Kosten. Die LKW haben 30 Tonnen Kapazität. Der Logistikleiter sucht den kostengünstigsten Transportplan.\n",
       "categoryDisplayName": "Forstwirtschaft"
     },
     "tournament_scheduling": {
       "displayName": "Turnierplanung",
       "shortDescription": "Erstellen Sie einen Round-Robin-Turnierplan, der die Gesamtreisedistanz minimiert oder Heim-/Auswärtsspiele ausbalanciert.",
-      "description": "Erstellt einen Round-Robin-Turnierplan, bei dem jedes Team gegen alle anderen spielt. Das Modell minimiert die Gesamtreisedistanz oder balanciert Heim- und Auswärtsspiele. Vermeidet aufeinanderfolgende Auswärtsspiele und beachtet StadionVerfügbarkeiten.\n",
+      "description": "Erstellt einen Round-Robin-Turnierplan, bei dem jedes Team gegen alle anderen spielt. Das Modell minimiert die Gesamtreisedistanz oder balanciert Heim- und Auswärtsspiele. Vermeidet aufeinanderfolgende Auswärtsspiele und beachtet Stadionverfügbarkeiten.\n",
       "scenarioDescription": "Eine Sportliga hat 8 Teams, die ein Hin- und Rrunden-Turnier spielen. Jedes Team hat ein Stadion mit bestimmten Verfügbarkeiten. Maximal 2 aufeinanderfolgende Auswärtsspiele. Der Organisator sucht den reisedistanzminimierenden Spielplan.\n",
       "categoryDisplayName": "Sport & Freizeit"
     },
     "track_maintenance_scheduling": {
       "displayName": "Gleiswartungsplanung",
       "shortDescription": "Planen Sie Gleiswartungsfenster, um die Betriebsstörung zu minimieren und die Infrastruktursicherheit zu Gewährleisten.",
-      "description": "Plant Wartungsfenster Für Gleisabschnitte, um die Betriebsstörung des Zugverkehrs zu minimieren. Jeder Abschnitt hat ein maximales Wartungsintervall, eine Arbeitsdauer und einen Verkehrsimpakt.\n",
-      "scenarioDescription": "Ein Eisenbahnbetreiber hat 10 Gleisabschnitte, die im Nächsten Monat gewartet werden m. Jeder Abschnitt erfordert 4-12 Stunden Sperrung. Nachtarbeiten sind teurer, aber weniger störend. Der Infrastrukturmanager sucht den Plan mit minimalem Einfluss auf den Personenverkehr.\n",
+      "description": "Plant Wartungsfenster für Gleisabschnitte, um die Betriebsstörung des Zugverkehrs zu minimieren. Jeder Abschnitt hat ein maximales Wartungsintervall, eine Arbeitsdauer und einen Verkehrsimpakt.\n",
+      "scenarioDescription": "Ein Eisenbahnbetreiber hat 10 Gleisabschnitte, die im nächsten Monat gewartet werden m. Jeder Abschnitt erfordert 4-12 Stunden Sperrung. Nachtarbeiten sind teurer, aber weniger störend. Der Infrastrukturmanager sucht den Plan mit minimalem Einfluss auf den Personenverkehr.\n",
       "categoryDisplayName": "Eisenbahn"
     },
     "train_timetabling": {
       "displayName": "Fahrplanerstellung",
-      "shortDescription": "Erstellen Sie konfliktfreie ZugfahrPläne, die die Gesamtfahrzeit minimieren und die StreckenKapazität maximieren.",
-      "description": "Erstellt konfliktfreie ZugfahrPläne für ein Eisenbahnnetz, die die StreckenKapazität maximieren und Fahrzeiten minimieren. Vermeidet Konflikte auf eingleisigen Abschnitten und beachtet Mindesthaltezeiten und Anschlussanforderungen.\n",
-      "scenarioDescription": "Ein Betreiber hat 20 Zugdienste auf einer Strecke mit 8 Bahnhöfen. Es gibt 3 eingleisige Abschnitte mit Ausweichstellen. Express- und RegionalZüge haben verschiedene Geschwindigkeiten. Der Planer sucht den fahrzeitminimierenden Fahrplan.\n",
+      "shortDescription": "Erstellen Sie konfliktfreie Zugfahrpläne, die die Gesamtfahrzeit minimieren und die Streckenkapazität maximieren.",
+      "description": "Erstellt konfliktfreie Zugfahrpläne für ein Eisenbahnnetz, die die Streckenkapazität maximieren und Fahrzeiten minimieren. Vermeidet Konflikte auf eingleisigen Abschnitten und beachtet Mindesthaltezeiten und Anschlussanforderungen.\n",
+      "scenarioDescription": "Ein Betreiber hat 20 Zugdienste auf einer Strecke mit 8 Bahnhöfen. Es gibt 3 eingleisige Abschnitte mit Ausweichstellen. Express- und Regionalzüge haben verschiedene Geschwindigkeiten. Der Planer sucht den fahrzeitminimierenden Fahrplan.\n",
       "categoryDisplayName": "Eisenbahn"
     },
     "training_program_selection": {
       "displayName": "Weiterbildungsauswahl",
-      "shortDescription": "wählen Sie Weiterbildungskurse Für Mitarbeiter, um die Kompetenzabdeckung innerhalb eines begrenzten Budgets zu maximieren.",
-      "description": "Wählt Weiterbildungskurse Für Mitarbeiter, um die Abdeckung bener Kompetenzen zu maximieren. Jeder Kurs hat Kosten, Dauer und ein Kompetenzprofil. Das Modell maximiert die abgedeckten Kompetenzen unter Budget- und ZeitBeschränkungen.\n",
-      "scenarioDescription": "Ein Unternehmen hat 8 Verfügbare Kurse Für 20 Mitarbeiter. Jeder Kurs vermittelt verschiedene Kompetenzen und hat Kosten und Dauer. Das Weiterbildungsbudget beträgt 50.000 EUR. Jeder Mitarbeiter kann maximal 3 Kurse besuchen. Der Personalleiter sucht den kompetenzmaximierenden Weiterbildungsplan.\n",
+      "shortDescription": "Wählen Sie Weiterbildungskurse für Mitarbeiter, um die Kompetenzabdeckung innerhalb eines begrenzten Budgets zu maximieren.",
+      "description": "Wählt Weiterbildungskurse für Mitarbeiter, um die Abdeckung bener Kompetenzen zu maximieren. Jeder Kurs hat Kosten, Dauer und ein Kompetenzprofil. Das Modell maximiert die abgedeckten Kompetenzen unter Budget- und Zeitbeschränkungen.\n",
+      "scenarioDescription": "Ein Unternehmen hat 8 Verfügbare Kurse für 20 Mitarbeiter. Jeder Kurs vermittelt verschiedene Kompetenzen und hat Kosten und Dauer. Das Weiterbildungsbudget beträgt 50.000 EUR. Jeder Mitarbeiter kann maximal 3 Kurse besuchen. Der Personalleiter sucht den kompetenzmaximierenden Weiterbildungsplan.\n",
       "categoryDisplayName": "Personal & Workforce"
     },
     "transportation_problem": {
       "displayName": "Transportproblem",
-      "shortDescription": "Versenden Sie Waren von Angebotspunkten zu Nachfragepunkten bei minimalen GesamtversandKosten.",
-      "description": "Bestimmt optimale Versandmengen von mehreren Angebotspunkten zu mehreren Nachfragepunkten zur Minimierung der GesamttransportKosten. Jeder Ursprung hat ein Angebot und jedes Ziel eine Nachfrage. Ein klassisches lineares Programmierungsmodell.\n",
-      "scenarioDescription": "Ein Unternehmen hat 3 Fabriken und 5 Regionallager. Jede Fabrik hat eine ProduktionsKapazität und jedes Lager eine Nachfrage. Die VersandKosten variieren nach Ursprung-Ziel-Paar. Der Logistikleiter sucht den Kostenminimalen Versandplan.\n",
+      "shortDescription": "Versenden Sie Waren von Angebotspunkten zu Nachfragepunkten bei minimalen Gesamtversandkosten.",
+      "description": "Bestimmt optimale Versandmengen von mehreren Angebotspunkten zu mehreren Nachfragepunkten zur Minimierung der Gesamttransportkosten. Jeder Ursprung hat ein Angebot und jedes Ziel eine Nachfrage. Ein klassisches lineares Programmierungsmodell.\n",
+      "scenarioDescription": "Ein Unternehmen hat 3 Fabriken und 5 Regionallager. Jede Fabrik hat eine Produktionskapazität und jedes Lager eine Nachfrage. Die Versandkosten variieren nach Ursprung-Ziel-Paar. Der Logistikleiter sucht den kostenminimalen Versandplan.\n",
       "categoryDisplayName": "Transport & Logistik"
     },
     "transshipment": {
       "displayName": "Umschlagproblem",
       "shortDescription": "Leiten Sie Waren über Zwischenlager von Ursprüngen zu Zielen bei minimalen Kosten.",
-      "description": "Erweitert das klassische Transportproblem um Zwischenknoten (Umschlagzentren), durch die Waren transitieren k. Das Modell bestimmt Routen und Versandmengen durch das Netzwerk zur Kostenminimierung.\n",
-      "scenarioDescription": "Ein Unternehmen hat 2 Fabriken, 3 Zwischenlager und 6 Endkunden. Waren k direkt oder über Zwischenlager transportiert werden. Jede Verbindung hat Kosten und Kapazität. Der Planer sucht die Kostengünstigste Verteilungsroute.\n",
+      "description": "Erweitert das klassische Transportproblem um Zwischenknoten (Umschlagzentren), durch die Waren transitieren können. Das Modell bestimmt Routen und Versandmengen durch das Netzwerk zur Kostenminimierung.\n",
+      "scenarioDescription": "Ein Unternehmen hat 2 Fabriken, 3 Zwischenlager und 6 Endkunden. Waren k direkt oder über Zwischenlager transportiert werden. Jede Verbindung hat Kosten und Kapazität. Der Planer sucht die kostengünstigste Verteilungsroute.\n",
       "categoryDisplayName": "Transport & Logistik"
     },
     "two_d_cutting": {
       "displayName": "2D-Plattenzuschnitt",
       "shortDescription": "Schneiden Sie rechteckige Teile aus Standardplatten, um die Anzahl genutzter Platten zu minimieren.",
-      "description": "Optimiert Schnittmuster Für rechteckige Teile auf Standardmaterialplatten, um die Anzahl genutzter Platten (oder den Gesamtabfall) zu minimieren. Berücksichtigt mögliche Drehungen und Guillotine-Schnitte.\n",
-      "scenarioDescription": "Eine Schreinerei muss 25 Teile verschiedener Größen aus 244x122 cm Platten schneiden. Teile k um 90 Grad gedreht werden. Schnitte m Guillotine-Schnitte sein (von Kante zu Kante). Der Schreiner will die Plattenzahl minimieren.\n",
+      "description": "Optimiert Schnittmuster für rechteckige Teile auf Standardmaterialplatten, um die Anzahl genutzter Platten (oder den Gesamtabfall) zu minimieren. Berücksichtigt mögliche Drehungen und Guillotine-Schnitte.\n",
+      "scenarioDescription": "Eine Schreinerei muss 25 Teile verschiedener Größen aus 244x122 cm Platten schneiden. Teile können um 90 Grad gedreht werden. Schnitte müssen Guillotine-Schnitte sein (von Kante zu Kante). Der Schreiner will die Plattenzahl minimieren.\n",
       "categoryDisplayName": "Zuschnitt & Verpackung"
     },
     "vehicle_routing": {
       "displayName": "Fahrzeugroutenplanung (VRP)",
-      "shortDescription": "Planen Sie Lieferrouten für eine Fahrzeugflotte, um die Gesamtdistanz zu minimieren und jeden Kundenbedarf zu erf.",
+      "shortDescription": "Planen Sie Lieferrouten für eine Fahrzeugflotte, um die Gesamtdistanz zu minimieren und jeden Kundenbedarf zu erfüllen.",
       "description": "Plant optimale Routen für eine Lieferfahrzeugflotte, die eine Menge von Kunden besuchen muss. Jedes Fahrzeug hat eine Kapazität und jeder Kunde einen Bedarf und ein Zeitfenster. Das Modell minimiert die Gesamtfahrstrecke.\n",
       "scenarioDescription": "Ein Distributionsunternehmen hat 4 Transporter mit je 1.000 kg Kapazität und 20 Kunden mit 50-200 kg Bedarf. Die Kunden haben 2-Stunden-Lieferfenster. Das Zentraldepot ist von 7-19 Uhr ge. Der Disponent sucht die distanzminimierenden Routen.\n",
       "categoryDisplayName": "Logistik & Distribution"
     },
     "vessel_scheduling": {
       "displayName": "Schiffsplanung",
-      "shortDescription": "Planen Sie Frachtschiffe zwischen Häfen und Zeitfenstern, um die Auslastung zu maximieren und die ReiseKosten zu minimieren.",
-      "description": "Plant Reisen einer Frachtschiffflotte zwischen Häfen, um die Flottenauslastung zu maximieren und BetriebsKosten zu minimieren. Jedes Schiff hat Kapazität, Geschwindigkeit und BetriebsKosten. Häfen haben Lade-/Loschfenster.\n",
-      "scenarioDescription": "Eine Reederei hat 5 Schiffe und 8 Häfen mit Verfügbarer Fracht. Jeder Hafen hat Betriebsfenster von 48-72 Stunden. Die Schiffe haben verschiedene Kapazitäten und Geschwindigkeiten. Die Reederei will die transportierte Fracht maximieren und TreibstoffKosten minimieren.\n",
+      "shortDescription": "Planen Sie Frachtschiffe zwischen Häfen und Zeitfenstern, um die Auslastung zu maximieren und die Reisekosten zu minimieren.",
+      "description": "Plant Reisen einer Frachtschiffflotte zwischen Häfen, um die Flottenauslastung zu maximieren und Betriebskosten zu minimieren. Jedes Schiff hat Kapazität, Geschwindigkeit und Betriebskosten. Häfen haben Lade-/Löschfenster.\n",
+      "scenarioDescription": "Eine Reederei hat 5 Schiffe und 8 Häfen mit verfügbarer Fracht. Jeder Hafen hat Betriebsfenster von 48-72 Stunden. Die Schiffe haben verschiedene Kapazitäten und Geschwindigkeiten. Die Reederei will die transportierte Fracht maximieren und Treibstoffkosten minimieren.\n",
       "categoryDisplayName": "Seefahrt"
     },
     "warehouse_layout": {
       "displayName": "Lagerlayout",
       "shortDescription": "Weisen Sie Produktkategorien Lagerzonen zu, um die Gesamtkommissionierdistanz zu minimieren.",
-      "description": "Weist Produktkategorien Lagerzonen zu, um die Gesamtwegestrecke bei der Kommissionierung zu minimieren. Schnelldreher werden nahe der Versandzone platziert. Berücksichtigt BestellHäufigkeit, Volumen und Kompatibilit.\n",
+      "description": "Weist Produktkategorien Lagerzonen zu, um die Gesamtwegestrecke bei der Kommissionierung zu minimieren. Schnelldreher werden nahe der Versandzone platziert. Berücksichtigt Bestellhäufigkeit, Volumen und Kompatibilit.\n",
       "scenarioDescription": "Ein Lager hat 6 Zonen und 12 Produktkategorien. Jede Kategorie hat ein tägliches Bestellvolumen und einen Platzbedarf. Die Zonen haben verschiedene Entfernungen zur Versandzone. Der Betriebsleiter sucht das Layout mit minimaler täglicher Kommissionierdistanz.\n",
       "categoryDisplayName": "Logistik & Distribution"
     },
     "warehouse_location": {
       "displayName": "Lagerstandortwahl",
-      "shortDescription": "wählen Sie Kandidaten-Lagerstandorte, um die Summe aus FixKosten und VersandKosten zu minimieren und alle Kunden abzudecken.",
-      "description": "Wählt aus Kandidatenstandorten die zu Eröffnenden Lager, um die Summe aus fixen EröffnungsKosten und variablen VersandKosten zu minimieren. Jedes Lager hat FixKosten, Kapazität und variable VersandKosten pro Kunde.\n",
-      "scenarioDescription": "Ein Unternehmen bewertet 6 Kandidatenstandorte Für Lager, die 30 Kunden bedienen m. Jeder Standort hat Jährliche FixKosten und eine Kapazität. Die VersandKosten hängen von der Entfernung ab. Der Logistikleiter sucht die Kostenminimale Lagerkombination.\n",
+      "shortDescription": "Wählen Sie Kandidaten-Lagerstandorte, um die Summe aus Fixkosten und Versandkosten zu minimieren und alle Kunden abzudecken.",
+      "description": "Wählt aus Kandidatenstandorten die zu eröffnenden Lager, um die Summe aus fixen Eröffnungskosten und variablen Versandkosten zu minimieren. Jedes Lager hat Fixkosten, Kapazität und variable Versandkosten pro Kunde.\n",
+      "scenarioDescription": "Ein Unternehmen bewertet 6 Kandidatenstandorte für Lager, die 30 Kunden bedienen müssen. Jeder Standort hat jährliche Fixkosten und eine Kapazität. Die Versandkosten hängen von der Entfernung ab. Der Logistikleiter sucht die kostenminimale Lagerkombination.\n",
       "categoryDisplayName": "Standortplanung"
     },
     "warehouse_slotting": {
       "displayName": "Lagerplatz-Zuordnung",
       "shortDescription": "Weisen Sie SKU Lagerplätzen zu, um die Kommissionierdistanz zu minimieren und den Durchsatz zu maximieren.",
-      "description": "Weist SKU Lagerplätzen zu, um die Gesamtkommissionierdistanz zu minimieren und den Durchsatz zu maximieren. Jedes SKU hat eine BestellHäufigkeit, ein Volumen und ein Gewicht. Schnelldreher werden in leicht zugänglichen Positionen platziert.\n",
-      "scenarioDescription": "Ein Lager hat 200 Plätze auf 5 Ebenen und 100 aktive SKU. Die SKU haben BestellHäufigkeiten von 1-50 Mal pro Woche. Bodenplätze sind am zugänglichsten. Der Lagerleiter sucht die Zuordnung mit minimaler Gesamtkommissionierzeit.\n",
+      "description": "Weist SKU Lagerplätzen zu, um die Gesamtkommissionierdistanz zu minimieren und den Durchsatz zu maximieren. Jedes SKU hat eine Bestellhäufigkeit, ein Volumen und ein Gewicht. Schnelldreher werden in leicht zugänglichen Positionen platziert.\n",
+      "scenarioDescription": "Ein Lager hat 200 Plätze auf 5 Ebenen und 100 aktive SKU. Die SKU haben Bestellhäufigkeiten von 1-50 Mal pro Woche. Bodenplätze sind am zugänglichsten. Der Lagerleiter sucht die Zuordnung mit minimaler Gesamtkommissionierzeit.\n",
       "categoryDisplayName": "Lagerhaltung"
     },
     "waste_collection_routing": {
       "displayName": "M",
-      "shortDescription": "Planen Sie Mrouten zur Abholung an allen Sammelstellen bei minimaler Gesamtdistanz und TreibstoffKosten.",
-      "description": "Optimiert die Routen der M, um alle Sammelstellen bei minimalen Gesamt-Distanz- und TreibstoffKosten anzufahren. Jeder LKW hat eine Kapazität und jede Sammelstelle ein M. Enthält Deponieanfahrten bei vollem LKW.\n",
-      "scenarioDescription": "Eine Gemeinde hat 3 M mit 10 Tonnen Kapazität und 40 Sammelstellen mit Containern verschiedener Volumina. Die LKW starten und enden am Gemeindedepot. Bei voller Ladung m sie zur Deponie. Der Manager sucht die treibstoffminimierenden Routen.\n",
+      "shortDescription": "Planen Sie Müllrouten zur Abholung an allen Sammelstellen bei minimaler Gesamtdistanz und Treibstoffkosten.",
+      "description": "Optimiert die Routen der Müllfahrzeuge, um alle Sammelstellen bei minimalen Gesamt-Distanz- und Treibstoffkosten anzufahren. Jeder LKW hat eine Kapazität und jede Sammelstelle ein Müllvolumen. Enthält Deponieanfahrten bei vollem LKW.\n",
+      "scenarioDescription": "Eine Gemeinde hat 3 Müllfahrzeuge mit 10 Tonnen Kapazität und 40 Sammelstellen mit Containern verschiedener Volumina. Die LKW starten und enden am Gemeindedepot. Bei voller Ladung müssen sie zur Deponie. Der Manager sucht die treibstoffminimierenden Routen.\n",
       "categoryDisplayName": "Umwelt & Nachhaltigkeit"
     },
     "wastewater_treatment_allocation": {
       "displayName": "Abwasserbehandlung",
-      "shortDescription": "Leiten Sie Abwasserströme zu Kläranlagen, um die BehandlungsKosten zu minimieren und Umwelt-Einleitungsstandards einzuhalten.",
-      "description": "Optimiert die Verteilung der Abwasserströme auf Kläranlagen zur Minimierung der GesamtbehandlungsKosten. Jede Anlage hat Kapazität, Behandlungstechnologie und Kosten pro Kubikmeter. Die Einleitungen m Umweltstandards erf.\n",
-      "scenarioDescription": "Ein Gebiet hat 5 Abwasserquellen und 3 Kläranlagen mit verschiedenen Technologien und Kapazitäten. Die Einleitungen m BSB- und Schwebstoffgrenzwerte einhalten. Die BehandlungsKosten liegen bei 0,5-2 EUR/m3. Der Manager sucht die Kostengünstigste normkonforme Verteilung.\n",
+      "shortDescription": "Leiten Sie Abwasserströme zu Kläranlagen, um die Behandlungskosten zu minimieren und Umwelt-Einleitungsstandards einzuhalten.",
+      "description": "Optimiert die Verteilung der Abwasserströme auf Kläranlagen zur Minimierung der Gesamtbehandlungskosten. Jede Anlage hat Kapazität, Behandlungstechnologie und Kosten pro Kubikmeter. Die Einleitungen müssen Umweltstandards erfüllen.\n",
+      "scenarioDescription": "Ein Gebiet hat 5 Abwasserquellen und 3 Kläranlagen mit verschiedenen Technologien und Kapazitäten. Die Einleitungen müssen BSB- und Schwebstoffgrenzwerte einhalten. Die Behandlungskosten liegen bei 0,5-2 EUR/m3. Der Manager sucht die kostengünstigste normkonforme Verteilung.\n",
       "categoryDisplayName": "Wasserwirtschaft"
     },
     "water_distribution_network": {
       "displayName": "Wasserverteilungsnetz",
-      "shortDescription": "Optimieren Sie den Wasserfluss durch ein Leitungsnetz, um den Bedarf an allen Knoten bei minimalen PumpKosten zu decken.",
-      "description": "Optimiert den Wasserfluss durch ein Leitungsnetz, um den Bedarf an allen Verbrauchsknoten bei minimalen PumpKosten zu decken. Jede Leitung hat Durchmesser, Länge und Reibungskoeffizienten. Pumpen haben Leistungskennlinien.\n",
-      "scenarioDescription": "Ein städtisches Versorgungsnetz hat 2 Speicher, 3 Pumpen und 12 Verbrauchsknoten, verbunden durch 18 Leitungen. Der Bedarf variiert im Tagesverlauf. Die Pumpen haben verschiedene Wirkungsgrade. Der Ingenieur sucht den Betriebsplan mit minimalen täglichen EnergieKosten.\n",
+      "shortDescription": "Optimieren Sie den Wasserfluss durch ein Leitungsnetz, um den Bedarf an allen Knoten bei minimalen Pumpkosten zu decken.",
+      "description": "Optimiert den Wasserfluss durch ein Leitungsnetz, um den Bedarf an allen Verbrauchsknoten bei minimalen Pumpkosten zu decken. Jede Leitung hat Durchmesser, Länge und Reibungskoeffizienten. Pumpen haben Leistungskennlinien.\n",
+      "scenarioDescription": "Ein städtisches Versorgungsnetz hat 2 Speicher, 3 Pumpen und 12 Verbrauchsknoten, verbunden durch 18 Leitungen. Der Bedarf variiert im Tagesverlauf. Die Pumpen haben verschiedene Wirkungsgrade. Der Ingenieur sucht den Betriebsplan mit minimalen täglichen Energiekosten.\n",
       "categoryDisplayName": "Wasserwirtschaft"
     },
     "wildfire_resource_deployment": {
       "displayName": "Waldbrand-Ressourceneinsatz",
-      "shortDescription": "Setzen Sie L und AusRung an aktiven WaldBränden ein, um die GesamtbrandFläche zu minimieren.",
-      "description": "Optimiert den Einsatz von Waldbrandbekämpfungsressourcen (Mannschaften, Hubschrauber, Maschinen) an aktiven Bränden, um die GesamtbrandFläche zu minimieren. Jeder Brand hat eine Priorit, ein prognostiziertes Verhalten und Ressourcenanforderungen.\n",
-      "scenarioDescription": "Ein L hat 6 Mannschaften, 2 Hubschrauber und 3 Bulldozer Für 4 gleichzeitig aktive Brände. Jeder Brand hat einen geschätzten Umfang und eine Ausbreitungsgeschwindigkeit. Mannschaften ben Ruhe nach 14 Stunden. Der Koordinator sucht den Einsatzplan mit minimaler GesamtbrandFläche.\n",
+      "shortDescription": "Setzen Sie L und Ausrung an aktiven Waldbränden ein, um die Gesamtbrandfläche zu minimieren.",
+      "description": "Optimiert den Einsatz von Waldbrandbekämpfungsressourcen (Mannschaften, Hubschrauber, Maschinen) an aktiven Bränden, um die Gesamtbrandfläche zu minimieren. Jeder Brand hat eine Priorit, ein prognostiziertes Verhalten und Ressourcenanforderungen.\n",
+      "scenarioDescription": "Ein L hat 6 Mannschaften, 2 Hubschrauber und 3 Bulldozer für 4 gleichzeitig aktive Brände. Jeder Brand hat einen geschätzten Umfang und eine Ausbreitungsgeschwindigkeit. Mannschaften ben Ruhe nach 14 Stunden. Der Koordinator sucht den Einsatzplan mit minimaler Gesamtbrandfläche.\n",
       "categoryDisplayName": "Forstwirtschaft"
     },
     "workforce_assignment": {
       "displayName": "Personalzuweisung",
-      "shortDescription": "Weisen Sie Mitarbeiter Aufgaben nach Kompetenzen und Verfügbarkeit zu, um PersonalKosten zu minimieren und die Produktivit zu maximieren.",
-      "description": "Weist Mitarbeiter Aufgaben oder Projekten nach Kompetenzen, Verfügbarkeit und Präferenzen zu, um PersonalKosten zu minimieren oder die GesamtProduktivit zu maximieren. Jeder Mitarbeiter hat ein Kompetenzprofil, Kosten und eine StundenVerfügbarkeit.\n",
-      "scenarioDescription": "Eine Beratung hat 12 Mitarbeiter und 8 aktive Projekte. Jedes Projekt erfordert spezifische Kompetenzen (Datenanalyse, Projektmanagement, Entwicklung). Die Mitarbeiter haben TeilVerfügbarkeiten und verschiedene StundenSätze. Der Betriebsleiter sucht die Kostenminimale kompetenzenabdeckende Zuweisung.\n",
+      "shortDescription": "Weisen Sie Mitarbeiter Aufgaben nach Kompetenzen und Verfügbarkeit zu, um Personalkosten zu minimieren und die Produktivität zu maximieren.",
+      "description": "Weist Mitarbeiter Aufgaben oder Projekten nach Kompetenzen, Verfügbarkeit und Präferenzen zu, um Personalkosten zu minimieren oder die Gesamtproduktivität zu maximieren. Jeder Mitarbeiter hat ein Kompetenzprofil, Kosten und eine Stundenverfügbarkeit.\n",
+      "scenarioDescription": "Eine Beratung hat 12 Mitarbeiter und 8 aktive Projekte. Jedes Projekt erfordert spezifische Kompetenzen (Datenanalyse, Projektmanagement, Entwicklung). Die Mitarbeiter haben Teilverfügbarkeiten und verschiedene Stundensätze. Der Betriebsleiter sucht die kostenminimale kompetenzenabdeckende Zuweisung.\n",
       "categoryDisplayName": "Personal & Workforce"
     }
   },
