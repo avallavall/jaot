@@ -192,3 +192,73 @@ def test_async_hoist(authenticated_client, monkeypatch) -> None:
     body = poll.json()
     for key in ("solver_used", "auto_route_reason"):
         assert key in body, f"async response missing top-level {key!r}"
+
+
+def test_progress_meta_status_cannot_fake_completion(authenticated_client, monkeypatch) -> None:
+    """# CONTRACT-TEST: while Celery state is PROGRESS, the async status endpoint
+    reports status="running" — the task's own progress meta must never overwrite it.
+
+    The solve task's final progress tick is ``update_task_progress(1.0,
+    "completed", "Model found!")`` — Celery state stays PROGRESS (SUCCESS only
+    lands when the task returns) but the meta carries ``status: "completed"``.
+    The endpoint used to spread ``**result.info`` AFTER its own keys, so a poll
+    landing in that window read ``{"status": "completed"}`` with NO ``result``
+    payload and clients surfaced a false "Solve failed" (found live 2026-07-17
+    via the studio E2E critical path).
+
+    Broker-independent, same Path-A stubbing strategy as V-15 above.
+    """
+    _FAKE_TASK_ID = "test-task-progress-meta-status"
+
+    import app.domains.solver.tasks.solve_tasks as _solve_tasks_mod
+
+    class _FakeAsyncResult:
+        def __init__(self, task_id: str) -> None:
+            self.id = task_id
+
+    def _fake_apply_async(**kwargs: object) -> _FakeAsyncResult:
+        return _FakeAsyncResult(kwargs.get("task_id") or _FAKE_TASK_ID)
+
+    monkeypatch.setattr(_solve_tasks_mod.solve_async, "apply_async", _fake_apply_async)
+
+    import celery.result as _celery_result_mod
+
+    class _FakeCeleryAsyncResult:
+        """AsyncResult in the final-progress-tick window: state PROGRESS, meta
+        claims "completed"."""
+
+        def __init__(self, task_id: str, **kwargs: object) -> None:  # noqa: ARG002
+            self._task_id = task_id
+
+        @property
+        def state(self) -> str:
+            return "PROGRESS"
+
+        @property
+        def info(self) -> dict:
+            return {
+                "progress": 1.0,
+                "status": "completed",
+                "message": "Model found!",
+                "iteration": None,
+                "objective_value": None,
+                "gap": None,
+            }
+
+    monkeypatch.setattr(_celery_result_mod, "AsyncResult", _FakeCeleryAsyncResult)
+
+    response = authenticated_client.post("/api/v2/solve/async", json=_quadratic_problem_payload())
+    assert response.status_code in (200, 202), (
+        f"POST /async returned {response.status_code}: {response.text}"
+    )
+    task_id = response.json()["task_id"]
+
+    poll = authenticated_client.get(f"/api/v2/solve/async/{task_id}")
+    assert poll.status_code == 200, f"GET /async/{task_id} returned {poll.status_code}: {poll.text}"
+    body = poll.json()
+    assert body["status"] == "running", (
+        f"PROGRESS state must present as running, got {body['status']!r}: {body}"
+    )
+    assert body["task_id"] == task_id
+    # progress meta still flows through for live UIs
+    assert body.get("message") == "Model found!"

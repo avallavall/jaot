@@ -1225,7 +1225,13 @@ async def get_async_solve_status(
             "message": "Task is waiting to be processed",
         }
     if result.state == "PROGRESS":
-        return {"task_id": task_id, "status": "running", **result.info}
+        # task_id/status LAST: the task's progress meta carries its own
+        # "status" ("completed" for the final "Model found!" tick, still under
+        # Celery state PROGRESS) — spreading it after ours let it overwrite
+        # "running", and clients then read a "completed" payload with no result
+        # and surfaced a false "Solve failed"
+        info = result.info if isinstance(result.info, dict) else {}
+        return {**info, "task_id": task_id, "status": "running"}
     if result.state == "SUCCESS":
         # The task caught all exceptions and returned a dict.  Check for
         # error conditions at two levels:

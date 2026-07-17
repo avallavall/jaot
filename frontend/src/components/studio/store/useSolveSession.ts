@@ -162,6 +162,7 @@ export function useSolveSession(store: ModelProjectStore, workspaceId?: string):
   useEffect(() => {
     if (!isRunning || !taskId) return;
     let done = false;
+    let emptyCompleted = 0;
     let timer: ReturnType<typeof setInterval> | null = null;
     const stop = () => {
       done = true;
@@ -180,16 +181,20 @@ export function useSolveSession(store: ModelProjectStore, workspaceId?: string):
           return;
         }
         if (res.status === "completed") {
-          stop();
           const result = unwrapSolveResult(res);
           if (result) {
+            stop();
             const live = s.solveSession.points;
             const points: ProgressPoint[] =
               live.length > 0
                 ? live
                 : extractProgressHistory(result as unknown as Record<string, unknown>);
             s.finishSolveSession(result, points);
-          } else {
+          } else if (++emptyCompleted >= 10) {
+            // "completed" with no result payload is a transient server-side
+            // race (final progress tick vs. Celery SUCCESS) — keep polling;
+            // only give up if it never materializes
+            stop();
             s.failSolveSession("solveFailed");
           }
         } else if (res.status === "failed") {
