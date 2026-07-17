@@ -491,7 +491,9 @@ async def cancel_model_execution(
 
     # Mark the execution cancelled BEFORE revoking the Celery task so
     # solve_model_async's except handler sees the terminal row and preserves
-    # the user-triggered cancellation.
+    # the user-triggered cancellation. Locked re-read first (S6b): an unlocked
+    # stale RUNNING here would clobber a COMPLETED the worker just committed.
+    execution = execution_writer.refresh_locked(db, execution)
     execution_writer.apply_cancelled(execution)
     try:
         db.commit()

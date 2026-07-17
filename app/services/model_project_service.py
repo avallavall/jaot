@@ -10,6 +10,7 @@ import logging
 from typing import Any
 
 from sqlalchemy import desc, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.model_project import (
@@ -189,6 +190,12 @@ def update_draft(
     ``If-Match`` value); a mismatch means another tab/client wrote first and
     raises :class:`ProjectConflictError` (→ 409).
     """
+    # Serialize concurrent writers at the row before comparing: a plain
+    # read-then-compare lets two clients presenting the same If-Match both
+    # pass (neither sees the other's uncommitted bump) and the second write
+    # silently overwrites the first. FOR UPDATE makes the loser re-read the
+    # winner's bumped version and take the 409.
+    db.refresh(project, with_for_update=True)
     if expected_lock is not None and expected_lock != project.draft_lock_version:
         raise ProjectConflictError(
             f"stale draft: expected lock {expected_lock}, have {project.draft_lock_version}"
@@ -313,6 +320,16 @@ def publish_listing(
     """
     if project.current_version_id is None:
         raise ProjectNotPublishableError("Commit a version before publishing.")
+    # Owner decision 2026-07-17: an ADOPTED model (marketplace fork) may only be
+    # republished after the adopter commits their own change — derivative works
+    # are welcome, 1:1 authorship clones are not. The adoption seed auto-commits
+    # v1, and commit_version dedups no-change commits, so committed_count > 1
+    # really means "modified".
+    if project.source_type == "marketplace" and (project.committed_count or 0) <= 1:
+        raise ProjectNotPublishableError(
+            "This model was adopted from the marketplace. Commit a change of your "
+            "own before publishing it as your listing."
+        )
 
     now = utcnow()
     listing = (
@@ -577,7 +594,12 @@ def create_dataset(
         data_json=data_json,
     )
     db.add(dataset)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError as exc:
+        # A concurrent creator won the unique index (ix_mpd_project_name) — the
+        # pre-check can't see an uncommitted rival row; surface the same 409
+        raise ProjectConflictError(f"a dataset named {name!r} already exists") from exc
     db.refresh(dataset)
     logger.info("Created dataset %s (%r) for project %s", dataset.id, name, project.id)
     return dataset
@@ -602,7 +624,10 @@ def update_dataset(
     if description is not None:
         dataset.description = description
     dataset.updated_at = utcnow()
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError as exc:
+        raise ProjectConflictError(f"a dataset named {dataset.name!r} already exists") from exc
     db.refresh(dataset)
     return dataset
 

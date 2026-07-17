@@ -132,3 +132,33 @@ class TestProjectPublish:
         _committed_project(db_session, test_organization_2, test_user, pid="proj_pub_foreign")
         res = authenticated_client.post("/api/v2/projects/proj_pub_foreign/publish", json=_BODY)
         assert res.status_code == 404, res.text
+
+    # CONTRACT-TEST: an adopted marketplace fork needs an OWN commit before republish
+    # (owner decision 2026-07-17: derivative works welcome, 1:1 authorship clones not).
+    def test_publish_adopted_unmodified_400(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        project = _committed_project(db_session, test_organization, test_user, pid="proj_pub_adopt")
+        # As seeded by POST /projects/from-marketplace: provenance + the auto v1 commit.
+        project.source_type = "marketplace"
+        project.committed_count = 1
+        db_session.commit()
+
+        res = authenticated_client.post("/api/v2/projects/proj_pub_adopt/publish", json=_BODY)
+        assert res.status_code == 400, res.text
+        assert "adopted" in res.json()["detail"].lower()
+
+    def test_publish_adopted_after_own_commit_succeeds(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        project = _committed_project(
+            db_session, test_organization, test_user, pid="proj_pub_adopt_mod"
+        )
+        project.source_type = "marketplace"
+        # The adopter committed a change of their own on top of the adoption commit
+        # (commit_version dedups no-change commits, so count>1 really means modified).
+        project.committed_count = 2
+        db_session.commit()
+
+        res = authenticated_client.post("/api/v2/projects/proj_pub_adopt_mod/publish", json=_BODY)
+        assert res.status_code == 200, res.text

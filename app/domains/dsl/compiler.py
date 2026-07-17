@@ -1426,11 +1426,32 @@ def _as_number(text: str) -> float | None:
         return None
 
 
+def _num_key(text: str) -> str | None:
+    """Canonical numeric identity for member/index tokens.
+
+    Integer literals canonicalize through ``int`` (arbitrary precision), so two
+    distinct all-digit members beyond float64's ~15 significant digits never
+    collapse to one key; ``"1"``, ``"1.0"`` and ``"1e0"`` still share the key
+    ``"1"``. Returns ``None`` for non-numeric text.
+    """
+    try:
+        return repr(int(text))
+    except ValueError:
+        pass
+    num = _as_number(text)
+    if num is None:
+        return None
+    if num.is_integer() and abs(num) < 2**53:
+        return repr(int(num))
+    return repr(num)
+
+
 def _compare(left: str, op: str, right: str, position: int | None = None) -> bool:
     left_num, right_num = _as_number(left), _as_number(right)
     if op in ("==", "!="):
-        if left_num is not None and right_num is not None:
-            equal = left_num == right_num
+        left_key, right_key = _num_key(left), _num_key(right)
+        if left_key is not None and right_key is not None:
+            equal = left_key == right_key
         else:
             equal = left == right
         return equal if op == "==" else not equal
@@ -1524,8 +1545,8 @@ def _validate_filter_terms(quals: Qualifiers, base_env: dict[str, str], ctx: _Ct
 def _canon_idx(text: str) -> str:
     """Canonical form for slice-index keys, mirroring :func:`_compare`'s numeric-first
     equality (``"1"`` equals ``"1.0"`` numerically, so both must map to one key)."""
-    num = _as_number(text)
-    return repr(num) if num is not None else text
+    key = _num_key(text)
+    return key if key is not None else text
 
 
 def _sliced_members(
@@ -1791,13 +1812,20 @@ def _fmt_linform(lf: _LinForm, include_const: bool) -> str:
     return out
 
 
+# Feasibility tolerance for constant rows: parameter arithmetic leaves float
+# residues (0.1+0.1+0.1-0.3 ≈ 5.6e-17), and exact comparison would reject a
+# mathematically-satisfied model at compile time. Well below any solver's own
+# feasibility tolerance (SCIP defaults to 1e-6).
+_CONST_ROW_TOL = 1e-9
+
+
 def _constant_row_is_satisfied(const: float, op: str) -> bool:
     """Truth of a fully-constant row ``const <op> 0`` (the grounded lhs-rhs form)."""
     if op == "<=":
-        return const <= 0
+        return const <= _CONST_ROW_TOL
     if op == ">=":
-        return const >= 0
-    return const == 0
+        return const >= -_CONST_ROW_TOL
+    return abs(const) <= _CONST_ROW_TOL
 
 
 def _lower(model: ModelAst, max_grounded_elements: int) -> OptimizationProblem:

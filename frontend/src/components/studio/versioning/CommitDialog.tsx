@@ -106,19 +106,21 @@ export function CommitDialog({
   // Flush the on-screen model into the draft (so the committed version matches it),
   // refetching the lock once on a concurrency conflict.
   const flushDraft = useCallback(async () => {
-    const { nodes, edges } = useBuilderStore.getState();
-    const st = storeApi.getState();
-    const draftBody = {
-      model_json: st.problem as unknown as Record<string, unknown>,
-      canvas_json: { nodes, edges } as unknown as Record<string, unknown>,
-      // Co-version the JModel source with the model it produced. Committing inside the
-      // autosave debounce would otherwise freeze a stale source into the version.
-      ...(st.dslDirty ? { dsl_source: st.draftDslSource } : {}),
+    const buildDraftBody = () => {
+      const { nodes, edges } = useBuilderStore.getState();
+      const st = storeApi.getState();
+      return {
+        model_json: st.problem as unknown as Record<string, unknown>,
+        canvas_json: { nodes, edges } as unknown as Record<string, unknown>,
+        // Co-version the JModel source with the model it produced. Committing inside the
+        // autosave debounce would otherwise freeze a stale source into the version.
+        ...(st.dslDirty ? { dsl_source: st.draftDslSource } : {}),
+      };
     };
     try {
       const p = await api.updateProjectDraft(
         projectId,
-        draftBody,
+        buildDraftBody(),
         storeApi.getState().lockVersion,
         workspaceId
       );
@@ -126,9 +128,11 @@ export function CommitDialog({
     } catch (err: unknown) {
       if ((err as { status?: number })?.status !== 409) throw err;
       const latest = await api.getProject(projectId, workspaceId);
+      // Re-serialize on retry — the on-screen state is the commit's truth, and a
+      // stale snapshot could overwrite what a racing autosave already persisted
       const p = await api.updateProjectDraft(
         projectId,
-        draftBody,
+        buildDraftBody(),
         latest.draft_lock_version,
         workspaceId
       );

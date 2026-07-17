@@ -28,10 +28,10 @@ export function useAutosave(store: ModelProjectStore, modelId: string): void {
     if (!modelId || modelId === "new") return;
     const ws = activeWorkspaceId ?? undefined;
 
-    const persist = () => {
+    const buildBody = () => {
       const st = store.getState();
       const { nodes, edges } = useBuilderStore.getState();
-      const body = {
+      return {
         model_json: st.problem as unknown as Record<string, unknown>,
         canvas_json: { nodes, edges } as unknown as Record<string, unknown>,
         // Persist the JModel source once the user has touched it this session (`dslDirty`),
@@ -39,9 +39,12 @@ export function useAutosave(store: ModelProjectStore, modelId: string): void {
         // it is omitted so a canvas/JSON edit never wipes a not-yet-hydrated source.
         ...(st.dslDirty ? { dsl_source: st.draftDslSource } : {}),
       };
+    };
+
+    const persist = () => {
       store.getState().setSaveState("saving");
       api
-        .updateProjectDraft(modelId, body, store.getState().lockVersion, ws)
+        .updateProjectDraft(modelId, buildBody(), store.getState().lockVersion, ws)
         .then((project) => {
           store.getState().setLockVersion(project.draft_lock_version);
           store.getState().setSaveState("saved");
@@ -50,9 +53,12 @@ export function useAutosave(store: ModelProjectStore, modelId: string): void {
           if ((err as { status?: number })?.status === 409) {
             try {
               const latest = await api.getProject(modelId, ws);
+              // Re-serialize from the CURRENT store: retrying with the body from
+              // the losing attempt would overwrite a newer autosave that won the
+              // race (slow request A retrying over fast newer request B).
               const retry = await api.updateProjectDraft(
                 modelId,
-                body,
+                buildBody(),
                 latest.draft_lock_version,
                 ws
               );

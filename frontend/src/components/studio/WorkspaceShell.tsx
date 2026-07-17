@@ -11,7 +11,7 @@ import { apiDate } from "@/lib/dates";
 import { StudioTabBar } from "./StudioTabBar";
 import { LiveStatsPanel } from "./LiveStatsPanel";
 import { VersionControls } from "./versioning/VersionControls";
-import { useModelProjectStore } from "./store/useModelProjectStore";
+import { useModelProjectStore, useModelProjectStoreApi } from "./store/useModelProjectStore";
 import type { SaveState } from "./store/createModelProjectStore";
 import { commitRename } from "./rename";
 
@@ -31,6 +31,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const scratchParseError = useModelProjectStore((s) => s.parseErrors.scratch ?? false);
   const dslParseError = useModelProjectStore((s) => s.parseErrors.dsl ?? false);
   const setName = useModelProjectStore((s) => s.setName);
+  const storeApi = useModelProjectStoreApi();
   const blockSolve = scratchParseError || dslParseError;
 
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -54,6 +55,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
       next: draft,
       current: name,
       setName,
+      getName: () => storeApi.getState().name,
       update: (id, body) => api.updateProject(id, body),
       onError: () => {
         setDraft(name);

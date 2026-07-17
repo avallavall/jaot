@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from typing import Any, Literal
 from uuid import uuid4
 
@@ -23,6 +24,7 @@ from app.domains.solver.services import SolverService, get_solver_service
 from app.domains.solver.services.availability_gate import ensure_hexaly_worker_or_503
 from app.domains.solver.time_limits import compute_celery_time_limits
 from app.models import ModelExecution, ModelProject, Organization
+from app.models.audit_log import AuditAction
 from app.schemas.optimization import (
     InfeasibilityAnalysis,
     MultiObjectiveConfig,
@@ -32,6 +34,7 @@ from app.schemas.optimization import (
     SolverStatus,
 )
 from app.schemas.tier import tier_cap_detail
+from app.services.audit_service import log_action
 from app.services.idempotency import idempotency_execution_id
 from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.services.solve_orchestrator import (
@@ -469,6 +472,7 @@ def analyze_infeasibility(
     "/multi-objective",
     response_model=MultiObjectiveResult,
     operation_id="solve_multi_objective",
+    dependencies=[Depends(solve_maintenance_gate)],
 )
 def solve_multi_objective_endpoint(  # def: blocks on the queued result in the threadpool (S4b)
     body: MultiObjectiveSolveRequest,
@@ -860,6 +864,20 @@ def _enqueue_async_solve(
         dataset_id=dataset_id,
         dataset_name=dataset_name,
     )
+    # Audit who ran which solve — rides the pending row's transaction. The old
+    # in-request orchestrator emitted this; the async rewrite dropped it and every
+    # solve vanished from the org audit log.
+    log_action(
+        db,
+        organization_id=org.id,
+        actor=user,
+        action=AuditAction.SOLVE,
+        workspace_id=ws_id,
+        target_type="execution",
+        target_id=execution_id,
+        target_name=problem.name,
+        metadata={"solver": effective_solver_name or DEFAULT_SOLVER_NAME},
+    )
     pending_committed = False
     try:
         db.commit()
@@ -999,6 +1017,18 @@ def _enqueue_multi_objective_async(
         source_id=mo_source.source_id,
         model_project_id=typed_model_project_id,
     )
+    # Same audit parity as the single-solve enqueue.
+    log_action(
+        db,
+        organization_id=org.id,
+        actor=user,
+        action=AuditAction.SOLVE,
+        workspace_id=workspace_id,
+        target_type="execution",
+        target_id=execution_id,
+        target_name=str(problem_data.get("name") or "multi_objective"),
+        metadata={"solver": "scip", "multi_objective": True},
+    )
     pending_committed = False
     try:
         db.commit()
@@ -1059,19 +1089,44 @@ def _enqueue_multi_objective_async(
     )
 
 
+# Backpressure for the sync facade (restores the old orchestrator's 429): each
+# sync solve parks a threadpool thread in ``task.get`` for up to
+# ASYNC_WAIT_TIMEOUT_SECONDS. Without a cap, sustained concurrent sync load
+# exhausts Starlette's request threadpool and takes the WHOLE API down instead
+# of shedding solve load early. The cap bounds concurrent WAITERS in this
+# process — the queue itself keeps accepting async work.
+_SYNC_WAIT_CAP = 24
+_sync_wait_slots = threading.BoundedSemaphore(_SYNC_WAIT_CAP)
+
+
 def _wait_for_task(task: Any) -> dict[str, Any] | BaseException | None:
     """Bounded blocking wait on a queued solve; ``None`` means the budget ran out.
 
     Runs in the threadpool — every caller is a sync ``def`` handler on purpose;
     a blocking ``get`` must never sit on the event loop. With ``propagate=False``
     a hard task failure comes back as the exception OBJECT, never raises.
+
+    Raises:
+        HTTPException 429: all sync-wait slots are busy — the task IS queued;
+            the caller should poll it via the async endpoint instead.
     """
     from celery.exceptions import TimeoutError as CeleryTimeoutError  # noqa: PLC0415
 
+    if not _sync_wait_slots.acquire(blocking=False):
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                "Server is at capacity for synchronous solves. Your task was queued — "
+                f"poll GET /api/v2/solve/async/{task.id} for the result, or use "
+                "POST /api/v2/solve/async directly."
+            ),
+        )
     try:
         return task.get(timeout=ASYNC_WAIT_TIMEOUT_SECONDS, propagate=False)
     except CeleryTimeoutError:
         return None
+    finally:
+        _sync_wait_slots.release()
 
 
 def _shape_sync_result(
@@ -1328,7 +1383,9 @@ async def cancel_async_task(
     # Mark the execution cancelled BEFORE revoking the Celery task so the
     # worker's SIGTERM handler (the except block in solve_tasks.solve_async)
     # sees the terminal row and treats the user cancellation as such, not as
-    # a solver failure.
+    # a solver failure. Locked re-read first (S6b): an unlocked stale RUNNING
+    # here would clobber a COMPLETED the worker just committed.
+    execution = execution_writer.refresh_locked(db, execution)
     execution_writer.apply_cancelled(execution)
     try:
         db.commit()

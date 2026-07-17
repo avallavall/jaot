@@ -826,7 +826,7 @@ Backups are never deleted below the minimum keep count, even if they exceed the 
 
 **Offsite sync:** If `STORAGEBOX_USER` is set in `.env.production`, backups are synced to the offsite storage target via rsync over SSH port 23 after each backup run.
 
-**WAL archiving:** PostgreSQL is configured with `archive_mode = on`. WAL files are archived to `/var/lib/postgresql/wal_archive/` (Docker volume `jaot_wal_archive`). The backup script cleans up old WAL files after each successful backup.
+**WAL archiving: OFF (since 2026-07-17, after the 2026-07-07 disk-full incident).** `archive_mode = off` in `deploy/config/postgresql.conf` — the cp-based archive failed silently for weeks, `pg_wal` grew to 46.9G and filled the disk, and without base backups a WAL archive never provided real PITR anyway. **There is NO point-in-time recovery: the recovery path is the tiered `pg_dump` backups above** (daily/weekly/monthly + the pre-migrate dump the deploy workflow takes). Any leftover files in `/var/lib/postgresql/wal_archive/` are historical residue, not a recovery source.
 
 ### 7.4 Validate Backup System Health
 

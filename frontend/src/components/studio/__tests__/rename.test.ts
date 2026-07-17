@@ -36,6 +36,24 @@ describe("commitRename", () => {
     expect(onError).toHaveBeenCalledTimes(1);
   });
 
+  it("does not revert when another writer renamed meanwhile (getName mismatch)", async () => {
+    const setName = vi.fn();
+    const onError = vi.fn();
+    const update = vi.fn().mockRejectedValue(new Error("boom"));
+    await commitRename({
+      modelId: "mp_1",
+      next: "New name",
+      current: "Old name",
+      setName,
+      update,
+      onError,
+      // the assistant auto-rename landed while our PATCH was in flight
+      getName: () => "Assistant name",
+    });
+    expect(setName).toHaveBeenCalledTimes(1); // optimistic only — no revert
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+
   it("no-ops on blank, unchanged, or unsaved (new) projects", async () => {
     const setName = vi.fn();
     const onError = vi.fn();

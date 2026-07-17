@@ -163,6 +163,7 @@ export function useSolveSession(store: ModelProjectStore, workspaceId?: string):
     if (!isRunning || !taskId) return;
     let done = false;
     let emptyCompleted = 0;
+    let consecutiveErrors = 0;
     let timer: ReturnType<typeof setInterval> | null = null;
     const stop = () => {
       done = true;
@@ -202,8 +203,17 @@ export function useSolveSession(store: ModelProjectStore, workspaceId?: string):
           s.failSolveSession(res.error || "solveFailed");
         }
       } catch {
-        // transient poll error — keep trying
+        // Transient poll error — keep trying, but not forever: a task lost to a
+        // backend restart / Celery purge would otherwise pin the UI on
+        // "Solving…" indefinitely. ~1 min of UNINTERRUPTED failures gives up
+        // (a finished-anyway solve resurfaces via the idle reconcile's lastRun).
+        if (++consecutiveErrors >= 60) {
+          stop();
+          store.getState().failSolveSession("solveFailed");
+        }
+        return;
       }
+      consecutiveErrors = 0;
     };
     poll();
     timer = setInterval(poll, 1000);

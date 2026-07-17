@@ -955,7 +955,10 @@ def restore_project_version(
 # Solve (rides the single async pipeline — ADR-007 S4a)
 # --------------------------------------------------------------------------- #
 @router.post(
-    "/{project_id}/solve", response_model=OptimizationResult, operation_id="solve_model_project"
+    "/{project_id}/solve",
+    response_model=OptimizationResult,
+    operation_id="solve_model_project",
+    dependencies=[Depends(solve_maintenance_gate)],
 )
 def solve_model_project(  # def: blocks on the queued result in the threadpool (ADR-007 S4a)
     project_id: str,

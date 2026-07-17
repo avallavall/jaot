@@ -225,6 +225,25 @@ def apply_cancelled(execution: ModelExecution, *, message: str = "Cancelled by u
     return True
 
 
+def refresh_locked(db: Any, execution: ModelExecution) -> ModelExecution:
+    """Re-read an already-loaded row under ``FOR UPDATE`` (ADR-007 S6b).
+
+    BOTH sides of a terminal transition must lock — an unlocked read on one side
+    lets a stale in-memory status slip past the terminal-wins guard (a user
+    cancel landing as the worker commits COMPLETED would clobber the result).
+    ``populate_existing`` forces the identity-mapped instance to reload, so the
+    guard sees the winner's committed status; ``of=`` keeps the lock off the
+    nullable eager-joined marketplace relations.
+    """
+    return (
+        db.query(ModelExecution)
+        .populate_existing()
+        .with_for_update(of=ModelExecution)
+        .filter(ModelExecution.id == execution.id)
+        .one()
+    )
+
+
 def _lookup_by_task(
     db: Any, task_id: str, organization_id: str, *, lock: bool = False
 ) -> ModelExecution | None:
@@ -344,4 +363,5 @@ __all__ = [
     "mark_completed_by_task",
     "mark_failed_by_task",
     "mark_multi_objective_completed_by_task",
+    "refresh_locked",
 ]
