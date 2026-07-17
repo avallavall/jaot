@@ -45,6 +45,9 @@ _CATALOG_KEYS = {
     "author_organization_id",
     "author_name",
     "author_verified",
+    # Additive 2026-07-17: whether "Use in studio" can materialize the listing
+    # (generator facet or pinned version) — the UI disables the CTA up front.
+    "can_open_in_studio",
     "logo_url",
     "screenshot_urls",
     "section_overview",

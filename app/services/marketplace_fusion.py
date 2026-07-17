@@ -19,6 +19,16 @@ def listing_to_catalog_response(listing: ModelProjectListing) -> ModelCatalogRes
     """
     return ModelCatalogResponse(
         id=listing.model_project_id,
+        # "Use in studio" needs something to materialize: a pinned committed
+        # version (community), a real generator, or — for officials — the
+        # template YAML fallback (their 'generic' rows render from it, verified
+        # live: official generic → 201). Community 'generic' rows backfilled
+        # without content have none of these and 422 on materialize.
+        can_open_in_studio=bool(
+            listing.pinned_version_id
+            or (listing.generator_type and listing.generator_type != "generic")
+            or (listing.generator_type and listing.is_official)
+        ),
         name=listing.name,
         display_name=listing.display_name,
         description=listing.description,

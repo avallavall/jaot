@@ -45,7 +45,7 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
     );
   }
 
-  const { constraints, is_approximate, note } = sensitivity;
+  const { constraints, is_approximate } = sensitivity;
   // Additive fields — older persisted results may not carry them.
   const allVariables = sensitivity.variables ?? [];
   const variables = nonZeroRcOnly
@@ -55,10 +55,17 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
     (sensitivity.objective_ranges?.length ?? 0) === 0 &&
     (sensitivity.rhs_ranges?.length ?? 0) === 0;
 
-  // Filter to constraints with numeric shadow prices, sort by magnitude descending
+  // Chart shows NON-ZERO shadow prices only, sorted by magnitude descending —
+  // an all-zero MIP used to render a wall of invisible bars (owner live-test
+  // 2026-07-17); zeros carry no chart information, the table still lists them.
+  const computableCount = constraints.filter(
+    (c) => c.shadow_price !== null && c.shadow_price !== undefined
+  ).length;
   const chartData: ChartEntry[] = constraints
     .filter((c): c is ConstraintSensitivity & { shadow_price: number } =>
-      c.shadow_price !== null && c.shadow_price !== undefined
+      c.shadow_price !== null &&
+      c.shadow_price !== undefined &&
+      Math.abs(c.shadow_price) > 1e-9
     )
     .sort((a, b) => Math.abs(b.shadow_price) - Math.abs(a.shadow_price))
     .map((c) => ({
@@ -84,15 +91,16 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
             {t("approximate")}
           </span>
           <p className="text-sm text-yellow-700 dark:text-yellow-300">
-            {note ??
-              <>Approximate &mdash; based on <ConceptTooltip termKey="lp-relaxation">LP relaxation</ConceptTooltip>. This problem contains integer/binary variables; shadow prices are derived from the <ConceptTooltip termKey="lp-relaxation">LP relaxation</ConceptTooltip>.</>}
+            {/* Always the localized copy — the backend `note` is English-only
+                and leaked raw into every other locale (owner live-test). */}
+            {t("approximateNote")}
           </p>
         </div>
       )}
 
       {chartData.length === 0 ? (
-        <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
-          {t("noShadowPrices")}
+        <div className="flex items-center justify-center py-12 text-muted-foreground text-sm text-center px-6">
+          {computableCount > 0 ? t("allZeroShadowPrices") : t("noShadowPrices")}
         </div>
       ) : (
         <>

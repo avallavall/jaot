@@ -145,8 +145,9 @@ export function MarketplaceModelCard({
               </div>
             )}
 
-            {/* Action buttons (auth only) */}
-            {isAuthenticated && (
+            {/* Action buttons (auth only; hidden when the listing has nothing
+                to materialize — legacy demo rows without content) */}
+            {isAuthenticated && model.can_open_in_studio !== false && (
               <div className="flex gap-2 pt-1 border-t mt-1">
                 <Button
                   size="sm"

@@ -11,12 +11,10 @@ import {
   User,
   Building2,
   Heart,
-  Blocks,
   BarChart2,
   Webhook,
   Users,
   ScrollText,
-  Sparkles,
   MessageSquare,
   Bug,
   LayoutTemplate,
@@ -40,16 +38,14 @@ export function useNavItems() {
 
   return [
 
-    // The single "Model, Analyze & Solve" hub — the home of model work. The classic
-    // /builder + /solve routes stay reachable here until the /studio Build tab reaches
-    // parity; the final single "My Models" + /builder->/studio redirects land with the
-    // P1.5 entity fusion (see ADR-006).
+    // The single "Model, Analyze & Solve" hub — the home of model work. Post-P1.5
+    // fusion the studio IS the one door: canvas/assistant/editor/JModel are Build
+    // lenses and the launcher covers every creation path, so the legacy /builder
+    // entries left the nav (the routes stay reachable for deep links).
     { label: t("nav.modelAnalyzeSolve"), href: "#", icon: null },
     { label: t("nav.myModels"), href: "/studio", icon: <Zap className="w-4 h-4" /> },
     { label: t("nav.newModel"), href: "/studio/new", icon: <Plus className="w-4 h-4" /> },
-    { label: t("nav.visualBuilder"), href: "/builder", icon: <Blocks className="w-4 h-4" /> },
-    { label: t("nav.templates"), href: "/builder/templates", icon: <LayoutTemplate className="w-4 h-4" /> },
-    { label: t("nav.aiAssistant"), href: "/builder/ai-assistant", icon: <Sparkles className="w-4 h-4" /> },
+    { label: t("nav.templates"), href: "/studio/templates", icon: <LayoutTemplate className="w-4 h-4" /> },
 
     { label: t("nav.discover"), href: "#", icon: null },
     { label: t("nav.marketplace"), href: "/marketplace", icon: <ShoppingBag className="w-4 h-4" /> },

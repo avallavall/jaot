@@ -245,6 +245,9 @@ export interface ModelCatalogItem {
   author_organization_id: string;
   author_name: string;
   author_verified: boolean;
+  /** Additive: false when the listing has no generator facet nor pinned version
+   *  to materialize (legacy demo rows) — the "Use in studio" CTA is disabled. */
+  can_open_in_studio?: boolean;
   logo_url?: string | null;
   screenshot_urls?: string[] | null;
   section_overview?: string | null;

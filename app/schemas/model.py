@@ -28,6 +28,11 @@ class ModelCatalogResponse(BaseModel):
     author_organization_id: str | None = None
     author_name: str | None = None
     author_verified: bool = False
+    # Additive (2026-07-17): whether "Use in studio" can materialize this listing —
+    # it needs a generator facet OR a pinned committed version. Legacy demo rows
+    # backfilled without content have neither; the UI disables the CTA up front
+    # instead of failing the click with a 422.
+    can_open_in_studio: bool = True
     # Media
     logo_url: str | None = None
     screenshot_urls: list[str] | None = None

@@ -61,7 +61,9 @@ function project(overrides: Record<string, unknown> = {}) {
     id: "mp_pub_1",
     organization_id: "org_1",
     name: "My Model",
-    description: "A model",
+    // ≥ 10 chars — mirrors the backend's PublishModelRequest.description
+    // min_length=10, which the form now also enforces client-side.
+    description: "A demo optimization model",
     status: "active",
     committed_count: 1,
     current_version_id: "mpv_1",

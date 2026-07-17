@@ -145,7 +145,12 @@ export default function StudioPublishPage() {
         // The backend refuses to publish a project with no committed version.
         msg = t("commitFirstHelp");
       } else if (status === 422) {
-        msg = t("validationFailed", { detail: getErrorMessage(err, t("failedToPublish")) });
+        // Map the known pydantic constraint to a friendly, localized message —
+        // the raw "String should have at least 10 characters" leaked to users.
+        const detail = getErrorMessage(err, t("failedToPublish"));
+        msg = detail.includes("at least 10 characters")
+          ? t("descriptionTooShort")
+          : t("validationFailed", { detail });
       } else {
         msg = getErrorMessage(err, t("failedToPublish"));
       }
@@ -160,6 +165,12 @@ export default function StudioPublishPage() {
 
     if (!displayName.trim() || !description.trim()) {
       dialog.showError(t("fillRequiredFields"));
+      return;
+    }
+
+    // Mirror the backend's PublishModelRequest.description min_length=10 up front.
+    if (description.trim().length < 10) {
+      dialog.showError(t("descriptionTooShort"));
       return;
     }
 

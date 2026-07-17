@@ -234,16 +234,25 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
             </div>
             <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
               {isAuthenticated ? (
-                <Button
-                  onClick={handleUseInStudio}
-                  disabled={openingStudio}
-                  size="lg"
-                  className="w-full sm:w-auto"
-                  data-testid="marketplace-use-in-studio"
-                >
-                  <Package className="w-4 h-4 mr-2" />
-                  {openingStudio ? t("openingStudio") : t("useInStudio")}
-                </Button>
+                <div className="flex flex-col items-stretch sm:items-end gap-1.5">
+                  <Button
+                    onClick={handleUseInStudio}
+                    disabled={openingStudio || model.can_open_in_studio === false}
+                    size="lg"
+                    className="w-full sm:w-auto"
+                    data-testid="marketplace-use-in-studio"
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    {openingStudio ? t("openingStudio") : t("useInStudio")}
+                  </Button>
+                  {/* Disabled up front instead of failing the click with a 422 —
+                      legacy demo listings carry no materializable content. */}
+                  {model.can_open_in_studio === false && (
+                    <p className="text-xs text-muted-foreground max-w-[16rem] sm:text-right">
+                      {t("useInStudioUnavailable")}
+                    </p>
+                  )}
+                </div>
               ) : (
                 <Button
                   onClick={() => router.push(`/login?returnUrl=/marketplace/${modelId}`)}

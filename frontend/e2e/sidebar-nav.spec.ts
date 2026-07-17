@@ -7,17 +7,18 @@ import { test, expect } from "@playwright/test";
  * from global.setup.ts). Auth is provided via the user.json cookie — no API
  * mocking. See plan 11-05 (P11-REFACTOR-09).
  *
- * Current sidebar structure (as of 2026-03):
- *   BUILD: My Models, Create Model, Visual Builder, Templates, AI Assistant, Multi-Objective
- *   DISCOVER: Marketplace, For Sellers
- *   Bottom bar: Res..., EN, help, dark mode, Logout
+ * Current sidebar structure (post-P1.5 fusion, 2026-07):
+ *   MODEL, ANALYZE & SOLVE: My Models, New Model, Templates (the studio covers
+ *     canvas/assistant/editor/JModel as Build lenses — no legacy /builder entries)
+ *   DISCOVER: Marketplace, Favorites
+ *   Bottom bar: EN, help, dark mode, Logout
  */
 
 test.describe("Sidebar Navigation Structure", () => {
   // chromium project storageState (user.json) provides auth automatically —
   // no test.use({ storageState }) override needed.
 
-  test("sidebar renders the Model, Analyze & Solve hub with all 5 items", async ({ page }) => {
+  test("sidebar renders the Model, Analyze & Solve hub with its 3 items", async ({ page }) => {
     await page.goto("/studio");
 
     const sidebar = page.locator("aside");
@@ -26,12 +27,16 @@ test.describe("Sidebar Navigation Structure", () => {
     // The single hub replaced the old "Build" section (P1.5 fusion / ADR-006).
     await expect(sidebar.getByText("Model, Analyze & Solve")).toBeVisible();
 
-    // Verify all 5 hub items
+    // The studio is the one door: canvas/assistant/editor/JModel are Build
+    // lenses, so the legacy Visual Builder / AI Assistant entries are gone
+    // and Templates points at the studio gallery.
     await expect(sidebar.getByText("My Models")).toBeVisible();
     await expect(sidebar.getByText("New Model")).toBeVisible();
-    await expect(sidebar.getByText("Visual Builder")).toBeVisible();
-    await expect(sidebar.getByText("Templates", { exact: true })).toBeVisible();
-    await expect(sidebar.getByText("AI Assistant")).toBeVisible();
+    const templates = sidebar.getByRole("link", { name: "Templates", exact: true });
+    await expect(templates).toBeVisible();
+    await expect(templates).toHaveAttribute("href", /\/studio\/templates$/);
+    await expect(sidebar.getByText("Visual Builder")).not.toBeVisible();
+    await expect(sidebar.getByText("AI Assistant")).not.toBeVisible();
   });
 
   test("sidebar renders Discover section with items", async ({ page }) => {

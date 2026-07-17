@@ -6172,6 +6172,11 @@ export interface components {
             avg_execution_time_ms?: number | null;
             /** Avg Rating */
             avg_rating?: number | null;
+            /**
+             * Can Open In Studio
+             * @default true
+             */
+            can_open_in_studio: boolean;
             /** Category */
             category: string;
             /**

@@ -205,18 +205,20 @@ describe("useNavItems", () => {
       // a marketplace model is used by forking it into the studio.
       expect(findItemByHref(result.current, "/solve")).toBeUndefined();
 
-      // The classic builder routes stay reachable from the hub until /studio parity.
-      expect(findItemByHref(result.current, "/builder")).toBeDefined();
-      expect(findItemByHref(result.current, "/builder/templates")).toBeDefined();
-      expect(findItemByHref(result.current, "/builder/ai-assistant")).toBeDefined();
+      // Post-fusion the studio is the one door: the legacy /builder entries left
+      // the nav (canvas/assistant/editor/JModel are Build lenses; the routes stay
+      // reachable by URL but are no longer advertised).
+      expect(findItemByHref(result.current, "/builder")).toBeUndefined();
+      expect(findItemByHref(result.current, "/builder/templates")).toBeUndefined();
+      expect(findItemByHref(result.current, "/builder/ai-assistant")).toBeUndefined();
     });
   });
 
   describe("NAV-02: Previously missing pages", () => {
-    it("hub has Templates entry at /builder/templates", () => {
+    it("hub has Templates entry at /studio/templates (the studio gallery)", () => {
       setAuthState({ isAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
-      const templates = findItemByHref(result.current, "/builder/templates");
+      const templates = findItemByHref(result.current, "/studio/templates");
 
       expect(templates).toBeDefined();
       expect(templates!.label).toBe("common.nav.templates");
