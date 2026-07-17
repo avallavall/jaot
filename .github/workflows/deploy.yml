@@ -4,8 +4,14 @@
 name: Deploy (home)
 
 on:
-  push:
+  # Gate on CI: deploy fires when the CI workflow for a main push completes
+  # successfully — never on a red main. (Direct `push:` used to deploy even
+  # when CI failed; the two pipelines were fully decoupled.)
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
+  # Manual escape hatch (conscious override — use only when CI is known-good).
   workflow_dispatch:
 
 concurrency:
@@ -15,6 +21,9 @@ concurrency:
 jobs:
   deploy:
     runs-on: [self-hosted, home]
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     steps:
       # No actions/checkout: we operate on the canonical /opt/jaot tree
       # (where .env.production, secrets/ and the docker volumes live), not the
@@ -25,6 +34,16 @@ jobs:
           git fetch --prune origin
           git checkout main
           git reset --hard origin/main
+
+      - name: Pre-migrate database backup
+        run: |
+          cd /opt/jaot
+          # A fresh pg_dump right before touching the schema — the daily 03:00
+          # backup can be up to a day stale. Reuses the standard backup script
+          # (tiered retention + success metric); a backup failure ABORTS the
+          # deploy: no snapshot, no migration. Invoke via bash — the executable
+          # bit historically got lost on reset --hard (2026-07-07 incident).
+          bash deploy/backup.sh
 
       - name: Run DB migrations (additive-only)
         run: |

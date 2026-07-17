@@ -482,3 +482,27 @@ groups:
           summary: "jaot_default queue accumulating — possible producer/consumer routing drift"
           description: "{{ $value }} messages waiting on jaot_default for 30 minutes sustained. The boot-time audit in worker_process_init (see app/shared/core/celery_queue_audit.py) should have prevented this — check it was not bypassed and review recent changes to app/shared/core/celery_app.py task_routes / beat_schedule / task_default_queue and deploy/docker-compose.prod.yml celery_worker_default -Q flag. Phase 10 D-08 layer 2."
           runbook_url: "/opt/jaot/deploy/RUNBOOK-queue-routing-fix.md"
+
+  - name: jaot-backups
+    rules:
+      - alert: BackupTooOld
+        # backup.sh writes jaot_backup.prom via node_exporter's textfile collector
+        # after every successful pg_dump (daily 03:00 cron). 28h of slack absorbs a
+        # slow run; anything older means the cron is broken again (it once failed
+        # silently for 14 days — 2026-07-07 incident).
+        expr: time() - jaot_backup_last_success_timestamp_seconds > 100800
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database backup is older than 28 hours"
+          description: "Last successful pg_dump was {{ $value | humanizeDuration }} ago. Check the backup cron (crontab -l, must invoke via bash), /opt/jaot/backups/backup.log, and disk space."
+
+      - alert: BackupMetricAbsent
+        expr: absent(jaot_backup_last_success_timestamp_seconds)
+        for: 2h
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backup success metric is missing entirely"
+          description: "node_exporter is not exporting jaot_backup_last_success_timestamp_seconds — the textfile mount (/opt/jaot/backups/metrics) is missing/empty or backup.sh has never completed since deploy."

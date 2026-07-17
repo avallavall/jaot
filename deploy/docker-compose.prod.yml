@@ -623,9 +623,12 @@ services:
       - "--path.procfs=/host/proc"
       - "--path.sysfs=/host/sys"
       - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+      # backup.sh drops jaot_backup.prom here (stale-backup alert)
+      - "--collector.textfile.directory=/host/textfile"
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
+      - /opt/jaot/backups/metrics:/host/textfile:ro
     # Exposes host PID namespace — required for accurate per-CPU + process metrics.
     pid: host
     networks:
