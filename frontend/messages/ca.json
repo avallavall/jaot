@@ -340,7 +340,6 @@
     "getStartedFree": "Comença gratuïtament",
     "getStarted": "Començar",
     "mostPopular": "Més popular",
-    "poweredByScip": "Powered by SCIP",
     "readyToOptimize": "Preparat per optimitzar?",
     "jaot": "JAOT",
     "optimizationAsAService": "Optimització com a servei",
@@ -603,7 +602,7 @@
         },
         "mcp": {
           "title": "MCP per a agents IA",
-          "description": "Connecta Claude, GPT o qualsevol agent IA compatible amb MCP. 12 eines per a optimització d'extrem a extrem."
+          "description": "Connecta Claude, GPT o qualsevol agent compatible amb MCP — resol problemes, bifurca models del marketplace i crea models versionats de principi a fi."
         }
       },
       "ctaBuilder": "Crea amb IA",
@@ -715,60 +714,11 @@
         "description": "Quan un model és massa gran per a un conjunt exacte, JAOT ho diu i marca l'explicació com a heurística, mai una suposició amb falsa seguretat."
       }
     },
-    "features": {
-      "title": "Quatre pilars de l'optimització",
-      "subtitle": "Tot el que necessites per crear, usar, compartir i automatitzar l'optimització.",
-      "pillars": {
-        "aiBuilder": {
-          "title": "Constructor amb IA",
-          "description": "Descriu el teu problema en llenguatge natural. La nostra IA el formula, valida i resol.",
-          "naturalLanguage": "Descripció del problema en llenguatge natural",
-          "visualBuilder": "Editor visual de models amb arrossegar i deixar anar",
-          "sensitivityAnalysis": "Anàlisi de sensibilitat i escenaris hipotètics"
-        },
-        "marketplace": {
-          "title": "Marketplace de models",
-          "description": "Un marketplace de models d'optimització. Usa models provats o comparteix els teus: gratuït i obert.",
-          "sellModels": "Publica els teus models perquè la comunitat els faci servir",
-          "modelRatings": "Valoracions i ressenyes de la comunitat"
-        },
-        "mcpAgents": {
-          "title": "MCP per a agents IA",
-          "description": "Plataforma d'optimització accessible de forma nativa per a agents IA via Model Context Protocol.",
-          "twelveTools": "12 eines especialitzades per a fluxos complets",
-          "anyAgent": "Compatible amb Claude, GPT i qualsevol client MCP",
-          "endToEnd": "D'extrem a extrem: descobreix, resol, obtén resultats"
-        },
-        "professionalSolver": {
-          "title": "Solver professional",
-          "description": "El solver SCIP de nivell empresarial gestiona des de problemes acadèmics fins a models amb més de 100.000 variables.",
-          "scipPowered": "Impulsat per SCIP (codi obert, darrer estat de l'art)",
-          "scaleVariables": "Escala de 10 a més de 100.000 variables",
-          "realTimeResults": "Progrés i resultats de resolució en temps real"
-        }
-      }
-    },
-    "problemTypes": {
-      "title": "Tots els tipus de problemes d'optimització",
-      "subtitle": "Des de programes lineals simples fins a models mixtos enters complexos.",
-      "vehicleRouting": "Rutes de vehicles",
-      "employeeScheduling": "Planificació de torns",
-      "resourceAssignment": "Assignació de recursos",
-      "blendingMixing": "Mescla i combinació",
-      "knapsackPacking": "Motxilla i empaquetament",
-      "networkFlow": "Flux de xarxes",
-      "productionPlanning": "Planificació de producció",
-      "budgetAllocation": "Assignació de pressupost",
-      "facilityLocation": "Ubicació d'instal·lacions",
-      "cuttingStock": "Tall de material",
-      "portfolioOptimization": "Optimització de cartera",
-      "jobShopScheduling": "Planificació de taller"
-    },
     "howItWorks": {
       "title": "A punt en minuts",
       "step1": {
         "title": "Tria una plantilla o comença des de zero",
-        "description": "Explora més de 100 plantilles predissenyades o obre el constructor visual per crear el teu propi model des d'un llenç en blanc."
+        "description": "Explora més de 100 plantilles o comença un model en blanc a l'estudi — llenç visual, assistent d'IA, editor JSON o el DSL JModel."
       },
       "step2": {
         "title": "Defineix variables i restriccions visualment",
@@ -945,7 +895,7 @@
       "rejectNonEssential": "Rebutjar no essencials",
       "acceptAll": "Acceptar totes"
     },
-    "solverDisclaimer": "Els resultats depenen de la formulació del model. El solver SCIP proporciona solucions de millor esforç. Verifica les decisions crítiques de forma independent.",
+    "solverDisclaimer": "Els resultats depenen de la formulació del model. Els solvers retornen solucions de millor esforç — verifica les decisions crítiques de manera independent.",
     "mcp": {
       "title": "Els agents IA coneixen l'optimització",
       "subtitle": "JAOT és una plataforma d'optimització accessible de forma nativa per a agents IA. Connecta qualsevol agent compatible amb MCP per resoldre problemes d'optimització d'extrem a extrem.",
@@ -967,14 +917,14 @@
           "description": "Obtenir la solució optimitzada programàticament"
         }
       },
-      "toolsTitle": "19 eines especialitzades",
+      "toolsTitle": "26 eines",
       "tools": {
         "problemSolving": "Resolucio de problemes",
         "templates": "Plantilles",
-        "fileIO": "Importació de fitxers",
+        "fileIO": "E/S de fitxers",
         "marketplace": "Marketplace",
         "execution": "Execucio",
-        "account": "Compte"
+        "modelProjects": "Projectes de model"
       },
       "agentBadge": "Compatible amb Claude, GPT i qualsevol agent compatible amb MCP",
       "cta": "Explorar la integració MCP"
@@ -4303,8 +4253,8 @@
   },
   "metadata": {
     "home": {
-      "title": "JAOT - Plataforma d'optimització sense codi | Construeix i resol models visualment",
-      "description": "Construeix, resol i desplega models d'optimització matemàtica sense escriure codi. Constructor visual, més de 100 plantilles, powered by SCIP. Des de cadena de subministrament fins a planificació."
+      "title": "JAOT - Plataforma d'optimització amb IA i marketplace de models | Crea, usa o automatitza",
+      "description": "Plataforma d'optimització amb IA i un marketplace de models gratuït i col·laboratiu. Crea models versionats amb IA, bifurca solucions de la comunitat o connecta agents d'IA via MCP. Impulsada per SCIP i HiGHS."
     },
     "terms": {
       "title": "Termes de servei - JAOT",

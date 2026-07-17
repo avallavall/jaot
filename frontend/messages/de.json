@@ -340,7 +340,6 @@
     "getStartedFree": "Kostenlos starten",
     "getStarted": "Jetzt starten",
     "mostPopular": "Am beliebtesten",
-    "poweredByScip": "Angetrieben von SCIP",
     "readyToOptimize": "Bereit zur Optimierung?",
     "jaot": "JAOT",
     "optimizationAsAService": "Optimierung als Service",
@@ -603,7 +602,7 @@
         },
         "mcp": {
           "title": "MCP für KI-Agenten",
-          "description": "Verbinde Claude, GPT oder jeden MCP-kompatiblen KI-Agenten. 12 Tools für durchgängige Optimierung."
+          "description": "Verbinden Sie Claude, GPT oder einen beliebigen MCP-kompatiblen Agenten — Probleme lösen, Marketplace-Modelle forken und versionierte Modelle von Anfang bis Ende erstellen."
         }
       },
       "ctaBuilder": "Mit KI erstellen",
@@ -715,60 +714,11 @@
         "description": "Wenn ein Modell zu groß für eine exakte Konfliktmenge ist, sagt JAOT das und kennzeichnet die Erklärung klar als heuristisch — nie eine selbstsichere Vermutung."
       }
     },
-    "features": {
-      "title": "Vier Säulen der Optimierung",
-      "subtitle": "Alles, was du zum Erstellen, Nutzen, Teilen und Automatisieren von Optimierung brauchst.",
-      "pillars": {
-        "aiBuilder": {
-          "title": "KI-gestützter Builder",
-          "description": "Beschreibe dein Problem in einfachem Deutsch. Unsere KI formuliert, validiert und löst es.",
-          "naturalLanguage": "Problembeschreibung in natürlicher Sprache",
-          "visualBuilder": "Visueller Drag-and-Drop-Modelleditor",
-          "sensitivityAnalysis": "Sensitivit und Was-wäre-wenn-Szenarien"
-        },
-        "marketplace": {
-          "title": "Modell-Marktplatz",
-          "description": "Ein Marktplatz für Optimierungsmodelle. Nutze bewährte Modelle oder teile deine eigenen – kostenlos und offen.",
-          "sellModels": "Veröffentliche deine Modelle, damit die Community sie nutzen kann",
-          "modelRatings": "Community-Bewertungen und Rezensionen"
-        },
-        "mcpAgents": {
-          "title": "MCP für KI-Agenten",
-          "description": "Eine Optimierungsplattform, die KI-Agenten nativ über das Model Context Protocol zugänglich ist.",
-          "twelveTools": "12 kuratierte Tools für komplette Workflows",
-          "anyAgent": "Funktioniert mit Claude, GPT und jedem MCP-Client",
-          "endToEnd": "durchgängig: entdecken, l, Ergebnisse abrufen"
-        },
-        "professionalSolver": {
-          "title": "Professioneller Solver",
-          "description": "Der Enterprise-SCIP-Solver bew alles -- von Lehrbeispielen bis zu Modellen mit über 100.000 Variablen.",
-          "scipPowered": "Basiert auf SCIP (Open Source, State-of-the-Art)",
-          "scaleVariables": "Skalierung von 10 bis über 100.000 Variablen",
-          "realTimeResults": "Lösungsfortschritt und Ergebnisse in Echtzeit"
-        }
-      }
-    },
-    "problemTypes": {
-      "title": "Jeder Optimierungsproblemtyp",
-      "subtitle": "Von einfachen linearen Programmen bis zu komplexen gemischt-ganzzahligen Modellen.",
-      "vehicleRouting": "Tourenplanung",
-      "employeeScheduling": "Personalplanung",
-      "resourceAssignment": "Ressourcenzuweisung",
-      "blendingMixing": "Mischen & Mischung",
-      "knapsackPacking": "Rucksack & Packung",
-      "networkFlow": "Netzwerkfluss",
-      "productionPlanning": "Produktionsplanung",
-      "budgetAllocation": "Budgetverteilung",
-      "facilityLocation": "Standortwahl",
-      "cuttingStock": "Verschnittoptimierung",
-      "portfolioOptimization": "Portfoliooptimierung",
-      "jobShopScheduling": "Werkstattfertigung"
-    },
     "howItWorks": {
       "title": "In Minuten einsatzbereit",
       "step1": {
         "title": "Vorlage wählen oder von Grund auf starten",
-        "description": "Durchsuchen Sie 100+ vorgefertigte Vorlagen oder öffnen Sie den visuellen Builder, um Ihr eigenes Modell von einer leeren Leinwand zu erstellen."
+        "description": "Durchstöbern Sie über 100 Vorlagen oder starten Sie ein leeres Modell im Studio — visueller Canvas, KI-Assistent, JSON-Editor oder die JModel-DSL."
       },
       "step2": {
         "title": "Variablen und Nebenbedingungen visuell festlegen",
@@ -945,7 +895,7 @@
       "rejectNonEssential": "Nicht-essentielle ablehnen",
       "acceptAll": "Alle akzeptieren"
     },
-    "solverDisclaimer": "Ergebnisse hängen von der Modellformulierung ab. Der SCIP-Solver liefert Best-Effort-Lösungen. Überprüfen Sie kritische Entscheidungen unabhängig.",
+    "solverDisclaimer": "Die Ergebnisse hängen von der Modellformulierung ab. Solver liefern Best-Effort-Lösungen — überprüfen Sie kritische Entscheidungen unabhängig.",
     "mcp": {
       "title": "KI-Agenten treffen auf Optimierung",
       "subtitle": "JAOT ist eine Optimierungsplattform, die KI-Agenten nativ zugänglich ist. Verbinde jeden MCP-kompatiblen Agenten, um Optimierungsprobleme durchgängig zu lösen.",
@@ -967,14 +917,14 @@
           "description": "Optimierte Lösung programmatisch abrufen"
         }
       },
-      "toolsTitle": "19 kuratierte Tools",
+      "toolsTitle": "26 Tools",
       "tools": {
         "problemSolving": "ProblemLösung",
         "templates": "Vorlagen",
-        "fileIO": "Datei-Import",
+        "fileIO": "Datei-I/O",
         "marketplace": "Marktplatz",
         "execution": "Ausführung",
-        "account": "Konto"
+        "modelProjects": "Modellprojekte"
       },
       "agentBadge": "Funktioniert mit Claude, GPT und jedem MCP-kompatiblen Agenten",
       "cta": "MCP-Integration entdecken"
@@ -4303,8 +4253,8 @@
   },
   "metadata": {
     "home": {
-      "title": "JAOT - No-Code-Optimierungsplattform | Modelle visuell erstellen und lösen",
-      "description": "Erstellen, lösen und implementieren Sie mathematische Optimierungsmodelle ohne Code. Visueller Modell-Builder, 100+ Vorlagen, powered by SCIP. Von Supply Chain bis Planung."
+      "title": "JAOT - KI-Optimierungsplattform und Modell-Marketplace | Erstellen, nutzen oder automatisieren",
+      "description": "KI-gestützte Optimierungsplattform mit einem kostenlosen, kollaborativen Modell-Marketplace. Erstellen Sie versionierte Modelle mit KI, forken Sie fertige Community-Lösungen oder verbinden Sie KI-Agenten über MCP. Angetrieben von SCIP und HiGHS."
     },
     "terms": {
       "title": "Nutzungsbedingungen - JAOT",

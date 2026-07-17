@@ -340,7 +340,6 @@
     "getStartedFree": "Empieza gratis",
     "getStarted": "Empezar",
     "mostPopular": "Más popular",
-    "poweredByScip": "Powered by SCIP",
     "readyToOptimize": "¿Listo para optimizar?",
     "jaot": "JAOT",
     "optimizationAsAService": "Optimización como servicio",
@@ -603,7 +602,7 @@
         },
         "mcp": {
           "title": "MCP para agentes IA",
-          "description": "Conecta Claude, GPT o cualquier agente IA compatible con MCP. 12 herramientas para optimización de extremo a extremo."
+          "description": "Conecta Claude, GPT o cualquier agente compatible con MCP — resuelve problemas, bifurca modelos del marketplace y crea modelos versionados de principio a fin."
         }
       },
       "ctaBuilder": "Crea con IA",
@@ -715,60 +714,11 @@
         "description": "Cuando un modelo es demasiado grande para un conjunto exacto, JAOT lo dice y marca la explicación como heurística, nunca una suposición con falsa seguridad."
       }
     },
-    "features": {
-      "title": "Cuatro pilares de la optimización",
-      "subtitle": "Todo lo que necesitas para crear, usar, compartir y automatizar la optimización.",
-      "pillars": {
-        "aiBuilder": {
-          "title": "Constructor con IA",
-          "description": "Describe tu problema en lenguaje natural. Nuestra IA lo formula, valida y resuelve.",
-          "naturalLanguage": "Descripción del problema en lenguaje natural",
-          "visualBuilder": "Editor visual de modelos con arrastrar y soltar",
-          "sensitivityAnalysis": "Analisis de sensibilidad y escenarios hipoteticos"
-        },
-        "marketplace": {
-          "title": "Marketplace de modelos",
-          "description": "Un marketplace de modelos de optimización. Usa modelos probados o comparte los tuyos: gratis y abierto.",
-          "sellModels": "Publica tus modelos para que la comunidad los use",
-          "modelRatings": "Valoraciones y reseñas de la comunidad"
-        },
-        "mcpAgents": {
-          "title": "MCP para agentes IA",
-          "description": "Plataforma de optimización accesible de forma nativa para agentes IA vía Model Context Protocol.",
-          "twelveTools": "12 herramientas especializadas para flujos completos",
-          "anyAgent": "Compatible con Claude, GPT y cualquier cliente MCP",
-          "endToEnd": "De extremo a extremo: descubre, resuelve, obtiene resultados"
-        },
-        "professionalSolver": {
-          "title": "Solver profesional",
-          "description": "El solver SCIP de nivel empresarial gestiona desde problemas académicos hasta modelos con más de 100.000 variables.",
-          "scipPowered": "Impulsado por SCIP (código abierto, último estado del arte)",
-          "scaleVariables": "Escala de 10 a más de 100.000 variables",
-          "realTimeResults": "Progreso y resultados de resolución en tiempo real"
-        }
-      }
-    },
-    "problemTypes": {
-      "title": "Todos los tipos de problemas de optimización",
-      "subtitle": "Desde programas lineales simples hasta modelos mixtos enteros complejos.",
-      "vehicleRouting": "Rutas de vehículos",
-      "employeeScheduling": "Planificación de turnos",
-      "resourceAssignment": "Asignación de recursos",
-      "blendingMixing": "Mezcla y combinación",
-      "knapsackPacking": "Mochila y empaquetado",
-      "networkFlow": "Flujo de redes",
-      "productionPlanning": "Planificación de producción",
-      "budgetAllocation": "Asignación de presupuesto",
-      "facilityLocation": "Ubicación de instalaciones",
-      "cuttingStock": "Corte de material",
-      "portfolioOptimization": "Optimización de cartera",
-      "jobShopScheduling": "Planificación de taller"
-    },
     "howItWorks": {
       "title": "Listo en minutos",
       "step1": {
         "title": "Elige una plantilla o empieza desde cero",
-        "description": "Explora más de 100 plantillas prediseñadas o abre el constructor visual para crear tu propio modelo desde un lienzo en blanco."
+        "description": "Explora más de 100 plantillas o empieza un modelo en blanco en el estudio — lienzo visual, asistente de IA, editor JSON o el DSL JModel."
       },
       "step2": {
         "title": "Define variables y restricciones visualmente",
@@ -945,7 +895,7 @@
       "rejectNonEssential": "Rechazar no esenciales",
       "acceptAll": "Aceptar todas"
     },
-    "solverDisclaimer": "Los resultados dependen de la formulación del modelo. El solver SCIP proporciona soluciones de mejor esfuerzo. Verifica las decisiones críticas de forma independiente.",
+    "solverDisclaimer": "Los resultados dependen de la formulación del modelo. Los solvers devuelven soluciones de mejor esfuerzo — verifica las decisiones críticas de forma independiente.",
     "mcp": {
       "title": "Los agentes IA conocen la optimización",
       "subtitle": "JAOT es una plataforma de optimización accesible de forma nativa para agentes IA. Conecta cualquier agente compatible con MCP para resolver problemas de optimización de extremo a extremo.",
@@ -967,14 +917,14 @@
           "description": "Obtener la solución optimizada programáticamente"
         }
       },
-      "toolsTitle": "19 herramientas especializadas",
+      "toolsTitle": "26 herramientas",
       "tools": {
         "problemSolving": "Resolución de problemas",
         "templates": "Plantillas",
-        "fileIO": "Importación de archivos",
+        "fileIO": "E/S de ficheros",
         "marketplace": "Marketplace",
         "execution": "Ejecución",
-        "account": "Cuenta"
+        "modelProjects": "Proyectos de modelo"
       },
       "agentBadge": "Compatible con Claude, GPT y cualquier agente compatible con MCP",
       "cta": "Explorar la integración MCP"
@@ -4303,8 +4253,8 @@
   },
   "metadata": {
     "home": {
-      "title": "JAOT - Plataforma de optimización sin código | Construye y resuelve modelos visualmente",
-      "description": "Construye, resuelve y despliega modelos de optimización matemática sin escribir código. Constructor visual, más de 100 plantillas, powered by SCIP. Desde cadena de suministro hasta planificación."
+      "title": "JAOT - Plataforma de optimización con IA y marketplace de modelos | Crea, usa o automatiza",
+      "description": "Plataforma de optimización con IA y un marketplace de modelos gratuito y colaborativo. Crea modelos versionados con IA, bifurca soluciones de la comunidad o conecta agentes de IA vía MCP. Impulsada por SCIP y HiGHS."
     },
     "terms": {
       "title": "Términos de servicio - JAOT",

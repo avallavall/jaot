@@ -340,7 +340,6 @@
     "getStartedFree": "Get Started Free",
     "getStarted": "Get Started",
     "mostPopular": "Most Popular",
-    "poweredByScip": "Powered by SCIP",
     "readyToOptimize": "Ready to optimize?",
     "jaot": "JAOT",
     "optimizationAsAService": "Optimization as a Service",
@@ -603,7 +602,7 @@
         },
         "mcp": {
           "title": "MCP for AI Agents",
-          "description": "Connect Claude, GPT, or any MCP-compatible AI agent. 12 tools for end-to-end optimization."
+          "description": "Connect Claude, GPT, or any MCP-compatible agent — solve problems, fork marketplace models, and author versioned models end-to-end."
         }
       },
       "ctaBuilder": "Build with AI",
@@ -715,39 +714,6 @@
         "description": "When a model is too large for an exact conflict set, JAOT says so and clearly flags the explanation as heuristic — never a confident guess."
       }
     },
-    "features": {
-      "title": "Four pillars of optimization",
-      "subtitle": "Everything you need to build, use, share, and automate optimization.",
-      "pillars": {
-        "aiBuilder": {
-          "title": "AI-Powered Builder",
-          "description": "Describe your problem in plain English. Our AI formulates, validates, and solves it.",
-          "naturalLanguage": "Natural language problem description",
-          "visualBuilder": "Visual drag-and-drop model editor",
-          "sensitivityAnalysis": "Sensitivity analysis and what-if scenarios"
-        },
-        "marketplace": {
-          "title": "Model Marketplace",
-          "description": "An optimization model marketplace. Use proven models or share your own — free and open.",
-          "sellModels": "Publish your models for the community to use",
-          "modelRatings": "Community ratings and reviews"
-        },
-        "mcpAgents": {
-          "title": "MCP for AI Agents",
-          "description": "Optimization platform natively accessible to AI agents via Model Context Protocol.",
-          "twelveTools": "12 curated tools for complete workflows",
-          "anyAgent": "Works with Claude, GPT, and any MCP client",
-          "endToEnd": "End-to-end: discover, solve, retrieve results"
-        },
-        "professionalSolver": {
-          "title": "Professional Solver",
-          "description": "Enterprise-grade SCIP solver handles everything from classroom problems to 100,000+ variable models.",
-          "scipPowered": "Powered by SCIP (open source, state-of-the-art)",
-          "scaleVariables": "Scale from 10 to 100,000+ variables",
-          "realTimeResults": "Real-time solve progress and results"
-        }
-      }
-    },
     "mcp": {
       "title": "AI Agents Meet Optimization",
       "subtitle": "JAOT is an optimization platform natively accessible to AI agents. Connect any MCP-compatible agent to solve optimization problems end-to-end.",
@@ -769,39 +735,23 @@
           "description": "Get optimized solution programmatically"
         }
       },
-      "toolsTitle": "19 Curated Tools",
+      "toolsTitle": "26 Tools",
       "tools": {
         "problemSolving": "Problem Solving",
         "templates": "Templates",
-        "fileIO": "File Import",
+        "fileIO": "File I/O",
         "marketplace": "Marketplace",
         "execution": "Execution",
-        "account": "Account"
+        "modelProjects": "Model Projects"
       },
       "agentBadge": "Works with Claude, GPT, and any MCP-compatible agent",
       "cta": "Explore MCP Integration"
-    },
-    "problemTypes": {
-      "title": "Every optimization problem type",
-      "subtitle": "From simple linear programs to complex mixed-integer models.",
-      "vehicleRouting": "Vehicle Routing",
-      "employeeScheduling": "Employee Scheduling",
-      "resourceAssignment": "Resource Assignment",
-      "blendingMixing": "Blending & Mixing",
-      "knapsackPacking": "Knapsack & Packing",
-      "networkFlow": "Network Flow",
-      "productionPlanning": "Production Planning",
-      "budgetAllocation": "Budget Allocation",
-      "facilityLocation": "Facility Location",
-      "cuttingStock": "Cutting Stock",
-      "portfolioOptimization": "Portfolio Optimization",
-      "jobShopScheduling": "Job Shop Scheduling"
     },
     "howItWorks": {
       "title": "Up and running in minutes",
       "step1": {
         "title": "Choose a template or start from scratch",
-        "description": "Browse 100+ pre-built templates or open the visual builder to create your own model from a blank canvas."
+        "description": "Browse 100+ pre-built templates or start a blank model in the studio — visual canvas, AI assistant, JSON editor, or the JModel DSL."
       },
       "step2": {
         "title": "Set variables and constraints visually",
@@ -978,7 +928,7 @@
       "rejectNonEssential": "Reject Non-Essential",
       "acceptAll": "Accept All"
     },
-    "solverDisclaimer": "Results depend on model formulation. SCIP solver provides best-effort solutions. Verify critical decisions independently.",
+    "solverDisclaimer": "Results depend on model formulation. Solvers return best-effort solutions — verify critical decisions independently.",
     "announcement": {
       "regionLabel": "Site announcement",
       "dismiss": "Dismiss announcement"
@@ -4303,8 +4253,8 @@
   },
   "metadata": {
     "home": {
-      "title": "JAOT - AI Optimization Platform and Model Marketplace | Build, Buy, or Automate",
-      "description": "AI-powered optimization platform and an optimization model marketplace. Build models with AI, browse ready-made solutions, or connect AI agents via MCP. Powered by SCIP."
+      "title": "JAOT - AI Optimization Platform and Model Marketplace | Build, Use, or Automate",
+      "description": "AI-powered optimization platform with a free, collaborative model marketplace. Build versioned models with AI, fork ready-made community solutions, or connect AI agents via MCP. Powered by SCIP and HiGHS."
     },
     "terms": {
       "title": "Terms of Service - JAOT",

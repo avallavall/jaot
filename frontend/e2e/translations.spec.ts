@@ -1,10 +1,12 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * Phase 58: Multi-Language Translation Verification
+ * Multi-Language Translation Verification
  *
  * Tests that all 4 non-English locales render translated content,
- * not English fallback text, and that SEO/glossary features work.
+ * not English fallback text, and that SEO/i18n plumbing works.
+ * (Pricing checks removed — the pricing page died with ADR-008;
+ * hero copy tracks the post-fusion "Build, Use, or Automate".)
  */
 
 const ALL_LOCALES = ["es", "ca", "fr", "de"] as const;
@@ -19,21 +21,15 @@ const SIGN_IN: Record<string, string> = {
 
 /** Expected translated hero line 1 for each locale */
 const HERO_LINE1: Record<string, string> = {
-  es: "Crea, compra o automatiza",
-  ca: "Crea, compra o automatitza",
-  fr: "Construis, Achète ou Automatise",
-  de: "Erstellen, kaufen oder automatisieren",
+  es: "Crea, usa o automatiza",
+  ca: "Crea, usa o automatitza",
+  fr: "Construis, Utilise ou Automatise",
+  de: "Erstellen, nutzen oder automatisieren",
 };
 
-/** Expected translated "Pricing" nav text for each locale */
-const PRICING_NAV: Record<string, string> = {
-  es: "Precios",
-  ca: "Preus",
-  fr: "Tarifs",
-  de: "Preise",
-};
+const HERO_LINE1_EN = "Build, Use, or Automate";
 
-test.describe("Phase 58: Multi-Language Translations", () => {
+test.describe("Multi-Language Translations", () => {
   test.describe("Homepage renders translated content for all 4 locales", () => {
     for (const locale of ALL_LOCALES) {
       test(`${locale}: homepage shows translated hero and nav text`, async ({ page }) => {
@@ -48,32 +44,8 @@ test.describe("Phase 58: Multi-Language Translations", () => {
         const signInText = SIGN_IN[locale];
         await expect(page.getByRole("link", { name: signInText })).toBeVisible();
 
-        // "Pricing" nav link should be translated (use nav scope to avoid matching headings/footer)
-        const pricingText = PRICING_NAV[locale];
-        await expect(
-          page.getByRole("navigation").first().getByRole("link", { name: pricingText })
-        ).toBeVisible();
-
-        // English fallback text should NOT appear
-        await expect(page.getByText("Build, Buy, or Automate", { exact: true })).not.toBeVisible();
-      });
-    }
-  });
-
-  test.describe("Pricing page renders translated content for all 4 locales", () => {
-    for (const locale of ALL_LOCALES) {
-      test(`${locale}: pricing page loads with translated title`, async ({ page }) => {
-        await page.goto(`/${locale}/pricing`);
-        await expect(page).toHaveURL(new RegExp(`/${locale}/pricing`));
-
-        // Page should have JAOT in title
-        await expect(page).toHaveTitle(/JAOT/i);
-
-        // Pricing nav should be translated (not English)
-        const pricingText = PRICING_NAV[locale];
-        await expect(
-          page.getByRole("navigation").first().getByRole("link", { name: pricingText })
-        ).toBeVisible({ timeout: 10_000 });
+        // English fallback hero should NOT appear
+        await expect(page.getByText(HERO_LINE1_EN, { exact: true })).not.toBeVisible();
       });
     }
   });
@@ -95,8 +67,8 @@ test.describe("Phase 58: Multi-Language Translations", () => {
 
   test.describe("Language switcher works from non-English locales", () => {
     test("Switch from Spanish to French preserves page", async ({ page }) => {
-      await page.goto("/es/pricing");
-      await expect(page).toHaveURL(/\/es\/pricing/);
+      await page.goto("/es");
+      await expect(page).toHaveURL(/\/es/);
 
       // Open language switcher
       const switcher = page.locator('[data-slot="dropdown-menu-trigger"]').filter({ has: page.locator("svg") });
@@ -104,12 +76,10 @@ test.describe("Phase 58: Multi-Language Translations", () => {
 
       // Select French
       await page.getByRole("menuitem", { name: "Français" }).click();
-      await expect(page).toHaveURL(/\/fr\/pricing/);
+      await expect(page).toHaveURL(/\/fr/);
 
-      // French pricing nav text should appear
-      await expect(
-        page.getByRole("navigation").first().getByRole("link", { name: PRICING_NAV.fr })
-      ).toBeVisible();
+      // French hero text should appear
+      await expect(page.getByText(HERO_LINE1.fr)).toBeVisible();
     });
 
     test("Switch from German back to English removes prefix", async ({ page }) => {
@@ -121,8 +91,8 @@ test.describe("Phase 58: Multi-Language Translations", () => {
       await page.getByRole("menuitem", { name: "English" }).click();
 
       await expect(page).not.toHaveURL(/\/de/);
-      // English text should appear
-      await expect(page.getByText("Build, Buy, or Automate").first()).toBeVisible();
+      // English hero text should appear
+      await expect(page.getByText(HERO_LINE1_EN).first()).toBeVisible();
     });
   });
 
