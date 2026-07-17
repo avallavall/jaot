@@ -21,6 +21,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 - **Agents can author models end-to-end over MCP (P1.5 G7d, 2026-07-16)** — the `update_model_project_draft` tool joins the MCP surface (25 → 26 tools), closing the loop an external agent needs to *write* a versioned model, not just create/commit/solve it (previously it had to fall back to the REST API). The solve tools (`solve_problem`, `solve_model_project`) accept `solution_filter=nonzero` for a compact response that omits near-zero variables and reports the omitted count — a few hundred zero binaries no longer blow an MCP client's context; the stored execution keeps the full solution.
 
+### Changed
+
+- **Variable views hide zero values by default (2026-07-16)** — a large solution is mostly zeros, which buried the variables that actually carry the answer. The execution-detail solution explorer, the visual builder's result drawer and the A/B comparison now default to showing only non-zero (or only changed) variables, each with a toggle to bring the rest back and a shown/total count so nothing is hidden silently. The variable magnitude chart always omits zero bars (they were invisible anyway). The sensitivity table filters by non-zero *reduced cost* — the informative rows there are exactly the variables sitting at zero — and says so.
+
 ### Fixed
 
 - **The execution "PDF" export is now an honest, useful printable report (2026-07-16)** — the old export produced a visually broken page (a duplicated element nested the metadata grid), was labelled "PDF" while producing an HTML page, and printed every variable unfiltered (hundreds of zeros; huge models froze the tab). The rebuilt report carries the model name, solver, gap and a constraints section, shows non-zero variables only (with an explicit omitted count) capped at 500 rows, follows your language for text/number/date formatting, and is labelled "Printable report" (its Print button is still the way to save a PDF). The CSV export now fills the variable bound columns it always left empty.
