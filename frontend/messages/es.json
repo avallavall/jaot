@@ -3021,7 +3021,12 @@
       "yes": "Sí",
       "no": "No",
       "nonZeroOnly": "Solo distintas de cero",
-      "zerosHiddenNote": "{count, plural, one {# variable en cero oculta} other {# variables en cero ocultas}}"
+      "zerosHiddenNote": "{count, plural, one {# variable en cero oculta} other {# variables en cero ocultas}}",
+      "viewLabel": "Vista de la solución",
+      "viewGrouped": "Agrupada",
+      "viewTable": "Tabla completa",
+      "otherVariables": "Otras variables",
+      "countLabel": "{count, plural, one {# variable} other {# variables}}"
     },
     "progress": {
       "title": "Progreso de ejecución",

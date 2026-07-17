@@ -9,7 +9,7 @@ import type { InfeasibilityAnalysis } from "@/lib/llm-types";
 import { extractProgressHistory, extractObjectiveSense } from "@/lib/result-utils";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { SolutionExplorerTable } from "@/components/solve/SolutionExplorerTable";
+import { StructuredSolutionView } from "@/components/solve/StructuredSolutionView";
 import { VariableValuesChart } from "@/components/solve/VariableValuesChart";
 import { InsightsPanel } from "@/components/solve/InsightsPanel";
 import { ExportButtons } from "@/components/solve/ExportButtons";
@@ -236,7 +236,7 @@ export default function ExecutionDetailPage() {
             {variables.length > 0 && (
               <div className="mb-8">
                 <h2 className="text-lg font-semibold text-foreground mb-3">{t("solutionExplorer")}</h2>
-                <SolutionExplorerTable
+                <StructuredSolutionView
                   variables={variables}
                   sensitivity={resultData?.sensitivity ?? undefined}
                 />

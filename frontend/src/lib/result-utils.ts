@@ -9,6 +9,11 @@ interface VariableEntry {
   name: string;
   type: string;
   value: number | string;
+  // Recovered index structure (A1) — present on freshly-solved results, absent
+  // on legacy `model`-only rows. Lets consumers group `assign_v3_o107` as
+  // assign[v3, o107] instead of rendering the flat name.
+  family?: string | null;
+  index_tuple?: string[] | null;
 }
 
 export interface ProgressPoint {

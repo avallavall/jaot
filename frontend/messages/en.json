@@ -3054,7 +3054,12 @@
       "yes": "Yes",
       "no": "No",
       "nonZeroOnly": "Non-zero only",
-      "zerosHiddenNote": "{count, plural, one {# zero-valued variable hidden} other {# zero-valued variables hidden}}"
+      "zerosHiddenNote": "{count, plural, one {# zero-valued variable hidden} other {# zero-valued variables hidden}}",
+      "viewLabel": "Solution view",
+      "viewGrouped": "Grouped",
+      "viewTable": "Full table",
+      "otherVariables": "Other variables",
+      "countLabel": "{count, plural, one {# variable} other {# variables}}"
     },
     "progress": {
       "title": "Execution Progress",

@@ -3021,7 +3021,12 @@
       "yes": "Ja",
       "no": "Nein",
       "nonZeroOnly": "Nur ungleich null",
-      "zerosHiddenNote": "{count, plural, one {# Null-Variable ausgeblendet} other {# Null-Variablen ausgeblendet}}"
+      "zerosHiddenNote": "{count, plural, one {# Null-Variable ausgeblendet} other {# Null-Variablen ausgeblendet}}",
+      "viewLabel": "Lösungsansicht",
+      "viewGrouped": "Gruppiert",
+      "viewTable": "Vollständige Tabelle",
+      "otherVariables": "Weitere Variablen",
+      "countLabel": "{count, plural, one {# Variable} other {# Variablen}}"
     },
     "progress": {
       "title": "Ausführungsfortschritt",
