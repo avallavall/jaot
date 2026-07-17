@@ -2836,7 +2836,9 @@
         "changed": "Valeur modifiée",
         "addedInB": "Présent uniquement dans l'exécution B (ajouté)",
         "removedInA": "Présent uniquement dans l'exécution A (supprimé)"
-      }
+      },
+      "changesOnly": "Changements uniquement ({shown}/{total})",
+      "noChanges": "Les deux exécutions assignent des valeurs identiques à toutes les variables."
     },
     "export": {
       "csv": "Exporter en CSV",
@@ -3032,7 +3034,9 @@
       "variable": "Variable",
       "reducedCost": "Coût Réduit",
       "atBound": "À la borne",
-      "rangingUnavailable": "L'analyse de plages d'objectif et de second membre n'est pas disponible pour ce solveur."
+      "rangingUnavailable": "L'analyse de plages d'objectif et de second membre n'est pas disponible pour ce solveur.",
+      "nonZeroRcOnly": "Coût réduit non nul uniquement ({shown}/{total})",
+      "allRcZero": "Toutes les variables ont un coût réduit nul — décochez le filtre pour les lister."
     },
     "explainer": {
       "title": "Expliquer cette solution",
@@ -3081,7 +3085,9 @@
       "constraint": "Contrainte",
       "shadowPrice": "Prix dual",
       "yes": "Oui",
-      "no": "Non"
+      "no": "Non",
+      "nonZeroOnly": "Non nulles uniquement",
+      "zerosHiddenNote": "{count, plural, one {# variable nulle masquée} other {# variables nulles masquées}}"
     },
     "progress": {
       "title": "Progression de l'exécution",
@@ -3155,7 +3161,8 @@
       "insights": "Analyses",
       "loadingInsights": "Analyse de la solution...",
       "noInsights": "Aucune analyse disponible pour cette exécution.",
-      "showingTop": "Affichage des {count} sur {total} variables principales par magnitude"
+      "showingTop": "Affichage des {count} sur {total} variables principales par magnitude",
+      "zerosHidden": "{count, plural, one {# variable nulle masquée} other {# variables nulles masquées}}"
     }
   },
   "triggers": {

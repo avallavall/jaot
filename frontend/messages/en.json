@@ -2861,7 +2861,9 @@
         "changed": "Changed value",
         "addedInB": "Present only in Run B (added)",
         "removedInA": "Present only in Run A (removed)"
-      }
+      },
+      "changesOnly": "Changes only ({shown}/{total})",
+      "noChanges": "The two runs assign identical values to every variable."
     },
     "export": {
       "csv": "Export CSV",
@@ -2910,7 +2912,8 @@
       "insights": "Insights",
       "loadingInsights": "Analyzing solution...",
       "noInsights": "No insights available for this execution.",
-      "showingTop": "Showing top {count} of {total} variables by magnitude"
+      "showingTop": "Showing top {count} of {total} variables by magnitude",
+      "zerosHidden": "{count, plural, one {# zero-valued variable hidden} other {# zero-valued variables hidden}}"
     },
     "charts": {
       "gapConvergence": {
@@ -3064,7 +3067,9 @@
       "variable": "Variable",
       "reducedCost": "Reduced Cost",
       "atBound": "At bound",
-      "rangingUnavailable": "Objective and right-hand-side ranging are not available for this solver build."
+      "rangingUnavailable": "Objective and right-hand-side ranging are not available for this solver build.",
+      "nonZeroRcOnly": "Non-zero reduced cost only ({shown}/{total})",
+      "allRcZero": "Every variable has a zero reduced cost — untick the filter to list them all."
     },
     "explainer": {
       "title": "Explain this solution",
@@ -3113,7 +3118,9 @@
       "constraint": "Constraint",
       "shadowPrice": "Shadow Price",
       "yes": "Yes",
-      "no": "No"
+      "no": "No",
+      "nonZeroOnly": "Non-zero only",
+      "zerosHiddenNote": "{count, plural, one {# zero-valued variable hidden} other {# zero-valued variables hidden}}"
     },
     "progress": {
       "title": "Execution Progress",

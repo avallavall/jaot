@@ -2836,7 +2836,9 @@
         "changed": "Valor canviat",
         "addedInB": "Present només a l'Execució B (afegit)",
         "removedInA": "Present només a l'Execució A (eliminat)"
-      }
+      },
+      "changesOnly": "Només canvis ({shown}/{total})",
+      "noChanges": "Les dues execucions assignen valors idèntics a totes les variables."
     },
     "export": {
       "csv": "Exportar CSV",
@@ -3032,7 +3034,9 @@
       "variable": "Variable",
       "reducedCost": "Cost Reduït",
       "atBound": "Al límit",
-      "rangingUnavailable": "L'anàlisi de rangs d'objectiu i de terme independent no està disponible per a aquest solver."
+      "rangingUnavailable": "L'anàlisi de rangs d'objectiu i de terme independent no està disponible per a aquest solver.",
+      "nonZeroRcOnly": "Només cost reduït diferent de zero ({shown}/{total})",
+      "allRcZero": "Totes les variables tenen cost reduït zero — desmarca el filtre per llistar-les."
     },
     "explainer": {
       "title": "Explica aquesta solució",
@@ -3081,7 +3085,9 @@
       "constraint": "Restricció",
       "shadowPrice": "Preu Ombra",
       "yes": "Sí",
-      "no": "No"
+      "no": "No",
+      "nonZeroOnly": "Només diferents de zero",
+      "zerosHiddenNote": "{count, plural, one {# variable a zero oculta} other {# variables a zero ocultes}}"
     },
     "progress": {
       "title": "Progrés de l'Execució",
@@ -3155,7 +3161,8 @@
       "insights": "Anàlisi",
       "loadingInsights": "Analitzant solució...",
       "noInsights": "No hi ha anàlisi disponible per a aquesta execució.",
-      "showingTop": "Mostrant les {count} de {total} variables principals per magnitud"
+      "showingTop": "Mostrant les {count} de {total} variables principals per magnitud",
+      "zerosHidden": "{count, plural, one {# variable a zero oculta} other {# variables a zero ocultes}}"
     }
   },
   "triggers": {

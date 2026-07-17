@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { ModelExecution, OptimizationResult, VariableType } from "@/lib/types";
 import { OriginBadge } from "@/components/solve/OriginBadge";
 import { extractVariables } from "@/lib/result-utils";
@@ -123,8 +124,15 @@ export function ExecutionComparisonView({ executionA, executionB }: ExecutionCom
     (executionA.input_data?.objective as { sense?: string } | undefined)?.sense ??
     (executionB.input_data?.objective as { sense?: string } | undefined)?.sense;
 
-  const compared = buildComparedVariables(executionA, executionB);
-  const changedCount = compared.filter((v) => v.changeType !== "same").length;
+  // Default ON (owner ask 2026-07-16): the point of an A/B comparison is what
+  // CHANGED — identical rows are noise on large models.
+  const [changesOnly, setChangesOnly] = useState(true);
+
+  const allCompared = buildComparedVariables(executionA, executionB);
+  const changedCount = allCompared.filter((v) => v.changeType !== "same").length;
+  const compared = changesOnly
+    ? allCompared.filter((v) => v.changeType !== "same")
+    : allCompared;
 
   const timeDelta =
     executionA.execution_time_ms != null && executionB.execution_time_ms != null
@@ -190,6 +198,20 @@ export function ExecutionComparisonView({ executionA, executionB }: ExecutionCom
 
       {/* ── Split-Pane Comparison Table ── */}
       <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="flex justify-end px-4 py-2 border-b border-border bg-muted/30">
+          <label className="flex items-center gap-1.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={changesOnly}
+              onChange={(e) => setChangesOnly(e.target.checked)}
+              className="accent-primary w-3.5 h-3.5"
+              data-testid="comparison-changes-toggle"
+            />
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              {t("changesOnly", { shown: compared.length, total: allCompared.length })}
+            </span>
+          </label>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -224,7 +246,7 @@ export function ExecutionComparisonView({ executionA, executionB }: ExecutionCom
                     colSpan={5}
                     className="px-4 py-8 text-center text-muted-foreground text-sm"
                   >
-                    {t("noVariables")}
+                    {allCompared.length > 0 ? t("noChanges") : t("noVariables")}
                   </td>
                 </tr>
               ) : (

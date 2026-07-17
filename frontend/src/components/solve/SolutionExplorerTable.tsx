@@ -12,18 +12,26 @@ interface SolutionExplorerTableProps {
 
 type TypeFilter = "all" | VariableType;
 
+/** Below this magnitude a value renders as visual noise ("0" rows) — the same
+ * threshold the MCP solution_filter and the printable report use. */
+const NEAR_ZERO = 1e-9;
+
 export function SolutionExplorerTable({ variables, sensitivity }: SolutionExplorerTableProps) {
   const t = useTranslations("solve.explorer");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  // Default ON (owner ask 2026-07-16): big models are mostly zeros — show the
+  // variables that carry the solution; the toggle reveals the rest.
+  const [nonZeroOnly, setNonZeroOnly] = useState(true);
 
   const filtered = useMemo(() => {
     return variables.filter((v) => {
       const nameMatch = v.name.toLowerCase().includes(search.toLowerCase());
       const typeMatch = typeFilter === "all" || v.type === typeFilter;
-      return nameMatch && typeMatch;
+      const valueMatch = !nonZeroOnly || Math.abs(v.value) > NEAR_ZERO;
+      return nameMatch && typeMatch && valueMatch;
     });
-  }, [variables, search, typeFilter]);
+  }, [variables, search, typeFilter, nonZeroOnly]);
 
   const typeOptions: { label: string; value: TypeFilter }[] = [
     { label: t("all"), value: "all" },
@@ -58,6 +66,16 @@ export function SolutionExplorerTable({ variables, sensitivity }: SolutionExplor
               </label>
             ))}
           </div>
+          <label className="flex items-center gap-1.5 cursor-pointer border-l border-border pl-3">
+            <input
+              type="checkbox"
+              checked={nonZeroOnly}
+              onChange={(e) => setNonZeroOnly(e.target.checked)}
+              className="accent-primary w-3.5 h-3.5"
+              data-testid="explorer-nonzero-toggle"
+            />
+            <span className="text-sm text-foreground whitespace-nowrap">{t("nonZeroOnly")}</span>
+          </label>
         </div>
 
         <div className="px-4 py-2 border-b border-border bg-muted/10">

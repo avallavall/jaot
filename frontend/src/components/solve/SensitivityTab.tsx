@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   BarChart,
   Bar,
@@ -30,6 +31,11 @@ function formatShadowPrice(value: number | null | undefined): string {
 
 export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
   const t = useTranslations("solve.sensitivity");
+  // Default ON (owner ask 2026-07-16): in large models most BASIC variables
+  // have a zero reduced cost — the informative rows are the non-zero ones.
+  // (Filtering by variable VALUE would be wrong here: variables AT ZERO are
+  // exactly the ones whose reduced cost matters.)
+  const [nonZeroRcOnly, setNonZeroRcOnly] = useState(true);
 
   if (!sensitivity) {
     return (
@@ -41,7 +47,10 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
 
   const { constraints, is_approximate, note } = sensitivity;
   // Additive fields — older persisted results may not carry them.
-  const variables = sensitivity.variables ?? [];
+  const allVariables = sensitivity.variables ?? [];
+  const variables = nonZeroRcOnly
+    ? allVariables.filter((v) => v.reduced_cost != null && Math.abs(v.reduced_cost) > 1e-9)
+    : allVariables;
   const rangingUnavailable =
     (sensitivity.objective_ranges?.length ?? 0) === 0 &&
     (sensitivity.rhs_ranges?.length ?? 0) === 0;
@@ -202,11 +211,25 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
         </>
       )}
 
-      {variables.length > 0 && (
+      {allVariables.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-foreground mb-3">
-            {t("variableReducedCosts")}
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-foreground">
+              {t("variableReducedCosts")}
+            </h3>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={nonZeroRcOnly}
+                onChange={(e) => setNonZeroRcOnly(e.target.checked)}
+                className="accent-primary w-3.5 h-3.5"
+                data-testid="sensitivity-nonzero-rc-toggle"
+              />
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                {t("nonZeroRcOnly", { shown: variables.length, total: allVariables.length })}
+              </span>
+            </label>
+          </div>
           <div className="bg-card border border-border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -224,6 +247,13 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
+                  {variables.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="px-3 py-6 text-center text-xs text-muted-foreground">
+                        {t("allRcZero")}
+                      </td>
+                    </tr>
+                  )}
                   {variables.map((v, idx) => (
                     <tr
                       key={`${v.name}-${idx}`}

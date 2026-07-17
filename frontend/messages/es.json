@@ -2836,7 +2836,9 @@
         "changed": "Valor cambiado",
         "addedInB": "Solo presente en Ejecución B (añadido)",
         "removedInA": "Solo presente en Ejecución A (eliminado)"
-      }
+      },
+      "changesOnly": "Solo cambios ({shown}/{total})",
+      "noChanges": "Las dos ejecuciones asignan valores idénticos a todas las variables."
     },
     "export": {
       "csv": "Exportar CSV",
@@ -3032,7 +3034,9 @@
       "variable": "Variable",
       "reducedCost": "Coste Reducido",
       "atBound": "En el límite",
-      "rangingUnavailable": "El análisis de rangos de objetivo y de lado derecho no está disponible para este solver."
+      "rangingUnavailable": "El análisis de rangos de objetivo y de lado derecho no está disponible para este solver.",
+      "nonZeroRcOnly": "Solo coste reducido distinto de cero ({shown}/{total})",
+      "allRcZero": "Todas las variables tienen coste reducido cero — desmarca el filtro para listarlas."
     },
     "explainer": {
       "title": "Explicar esta solución",
@@ -3081,7 +3085,9 @@
       "constraint": "Restricción",
       "shadowPrice": "Shadow Price",
       "yes": "Sí",
-      "no": "No"
+      "no": "No",
+      "nonZeroOnly": "Solo distintas de cero",
+      "zerosHiddenNote": "{count, plural, one {# variable en cero oculta} other {# variables en cero ocultas}}"
     },
     "progress": {
       "title": "Progreso de ejecución",
@@ -3155,7 +3161,8 @@
       "insights": "Análisis",
       "loadingInsights": "Analizando solución...",
       "noInsights": "No hay análisis disponibles para esta ejecución.",
-      "showingTop": "Mostrando las {count} de {total} variables principales por magnitud"
+      "showingTop": "Mostrando las {count} de {total} variables principales por magnitud",
+      "zerosHidden": "{count, plural, one {# variable en cero oculta} other {# variables en cero ocultas}}"
     }
   },
   "triggers": {

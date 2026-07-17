@@ -30,11 +30,16 @@ function getColor(type: string): string {
 export function VariableValuesChart({ variables }: VariableValuesChartProps) {
   const t = useTranslations("solve.visualization");
 
-  const { data, hasTruncated } = useMemo(() => {
-    const sorted = [...variables].sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+  const { data, hasTruncated, zerosHidden, nonZeroCount } = useMemo(() => {
+    // A zero-length bar is invisible — rows for zero variables are pure noise
+    // in a magnitude chart, so they are always excluded (with a note below).
+    const nonZero = variables.filter((v) => Math.abs(v.value) > 1e-9);
+    const sorted = [...nonZero].sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
     return {
       data: sorted.slice(0, 40).map((v) => ({ name: v.name, value: v.value, type: v.type })),
-      hasTruncated: variables.length > 40,
+      hasTruncated: nonZero.length > 40,
+      zerosHidden: variables.length - nonZero.length,
+      nonZeroCount: nonZero.length,
     };
   }, [variables]);
 
@@ -91,9 +96,11 @@ export function VariableValuesChart({ variables }: VariableValuesChartProps) {
           </ResponsiveContainer>
         </div>
       </div>
-      {hasTruncated && (
+      {(hasTruncated || zerosHidden > 0) && (
         <p className="text-xs text-muted-foreground mt-2 text-center">
-          {t("showingTop", { count: 40, total: variables.length })}
+          {hasTruncated && t("showingTop", { count: 40, total: nonZeroCount })}
+          {hasTruncated && zerosHidden > 0 && " · "}
+          {zerosHidden > 0 && t("zerosHidden", { count: zerosHidden })}
         </p>
       )}
     </div>
