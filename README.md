@@ -24,21 +24,27 @@ library and not a hosted SaaS** — you run it yourself with `docker compose up`
   solve reports shadow prices, binding constraints, and variable reduced costs
   (exact for LP, approximate for MIP), and a one-click AI explanation translates
   the result into plain language grounded strictly in your actual numbers.
-- **Model marketplace** — a free, collaborative gallery: publish your models
-  and activate community ones. No prices or commissions.
+- **Model studio** — one versioned workspace per model: build it on a visual
+  canvas, with the AI assistant, in a JSON editor, or in the JModel DSL
+  (sets/params); analyze health and stats; solve with live progress; commit
+  versions git-style ("what changed + why"), diff and restore them; run the
+  same model against many datasets/scenarios.
+- **Model marketplace** — a free, collaborative gallery: publish a committed
+  version of your model, and bring any community model into your own studio
+  with one click ("Use in studio" creates your editable, versioned copy).
+  No prices or commissions — authors share; adoption is the metric.
 - **MCP server** — exposes solver tools to AI agents (Claude, etc.) via the
   Model Context Protocol.
 - **102 templates + 27 problem generators** — knapsack, vehicle routing,
   scheduling, production planning, portfolio, a full MDPDP-TW formulation, and
   more.
-- **Credits ledger, multi-tenant auth, admin panel, i18n (en/es/ca/fr/de),
+- **Multi-tenant auth, admin panel, i18n (en/es/ca/fr/de),
   and a Prometheus/Grafana/Alertmanager monitoring stack** — included.
 
-Monetization is **off by default** (`MONETIZATION_ENABLED=false`): the
-marketplace is free and collaborative. A self-hosted deployment can enable the
-paid marketplace by flipping the flag and bringing its own Stripe keys — that
-billing code is complete but **has never been exercised against live Stripe**,
-so test before you charge real money.
+JAOT is **free and collaborative** — there is no billing, no credits, no paid
+tier (ADR-008). Fair use is enforced with per-organization rate limits and
+configurable solve quotas/caps; the AI assistant is bounded by a monthly EUR
+budget with bring-your-own-key support.
 
 ---
 
@@ -84,7 +90,7 @@ Returns `{"status":"optimal","objective_value":15.0,...}`. Full setup guide →
                 │ REST + SSE + WebSocket
 ┌───────────────▼──────────────────────────────┐
 │  FastAPI (Python 3.12)                        │
-│  auth · solve · LLM/RAG · credits ·           │
+│  auth · solve · studio · LLM/RAG ·            │
 │  marketplace · triggers · MCP server          │
 └──┬─────────┬──────────┬──────────┬────────────┘
    │         │          │          │

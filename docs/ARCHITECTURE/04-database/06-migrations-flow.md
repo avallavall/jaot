@@ -23,7 +23,7 @@ flowchart LR
     N --> O["Rollback strategy:<br/>Container restart =<br/>prior image (prior schema)"]
 ```
 
-## Current Migration Structure (35 total)
+## Current Migration Structure (56 total)
 
 ```
 infra/alembic/versions/
@@ -41,33 +41,41 @@ infra/alembic/versions/
 ├── 20260324_rename_enterprise_to_business.py  ← RENAME (historical — already ran; no current risk)
 ├── 20260326_add_credit_pools.py
 ├── 20260327_seed_platform_settings.py
-└── 20260416_add_solver_name_to_model_executions.py  ← Latest
+├── ... (2026-04 → 2026-07: provenance, model projects, datasets, timestamptz, ...)
+├── 20260711_money_columns_nullable.py
+├── 20260712_llmconv_ondelete.py
+├── 20260712_p15_listings.py
+├── 20260712_p15_backfill.py
+├── 20260713_p15_view_events_project.py
+└── 20260713_p15_reviews_favorites_project.py  ← Latest
 ```
+
+> **Note (ADR-008):** the money/credit migrations in the history above (idempotency
+> constraint, credit pools, financial hardening) built tables and columns that are now
+> **dead** — the application no longer maps them. They stay in the chain untouched
+> (additive-only policy); a later release drops the schema.
 
 ### Last 5 Migrations
 
-1. **20260416_add_solver_name_to_model_executions.py**
-   - Adds `solver_name` column to `model_executions` table
-   - Enables routable async queue per solver (SCIP vs HiGHS)
-   - Default: 'scip'
+1. **20260713_p15_reviews_favorites_project.py**
+   - P1.5 fusion: `model_reviews.catalog_id` + `user_favorites/recent_models.model_id` →
+     nullable; uniqueness re-keyed onto `(user_id, model_project_id)`
 
-2. **20260327_seed_platform_settings.py**
-   - Inserts 84 default settings into `platform_settings`
-   - Categories: billing, feature_flags, rate_limits, marketplace
-   - Runs `PlatformSettingsService.register_defaults()`
+2. **20260713_p15_view_events_project.py**
+   - P1.5 fusion: `model_view_events.catalog_model_id` → nullable; impression/view logging
+     writes `model_project_id`
 
-3. **20260326_add_credit_pools.py**
-   - Creates `workspace_credit_pools` table (workspace_id, allocated, consumed)
-   - Enables per-workspace credit pooling vs org-level
+3. **20260712_p15_backfill.py**
+   - P1.5 fusion (R13): idempotent, count-verified backfill — every `model_catalog` row →
+     `ModelProject` + `ModelProjectListing` (ids preserved; officials → `org_jaot_official`),
+     every `organization_models` row → `ModelProject`
 
-4. **20260324_rename_enterprise_to_business.py**
-   - Renames plan `enterprise` → `business`
-   - **Note**: This RENAME already ran in production. It is historical; no current risk from it.
+4. **20260712_p15_listings.py**
+   - `model_project_listings` facet table (1:1, PK==FK to `model_projects`) + nullable
+     `model_project_id` FK columns on reviews/favorites/recents/view-events
 
-5. **20260322_financial_hardening_schema.py**
-   - Adds financial integrity constraints:
-     - Unique(organization_id, transaction_type, reference_type, reference_id) on credit_transactions
-     - Indexes on (organization_id, created_at) for query efficiency
+5. **20260712_llmconv_ondelete.py**
+   - `llm_conversations.organization_model_id` → ondelete SET NULL (ADR-007 debt)
 
 ## Conventions + Rules
 

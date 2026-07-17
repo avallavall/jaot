@@ -15,12 +15,6 @@ test.describe("Workspace", () => {
   });
 
   test.describe("Workspace sections", () => {
-    test("credits page loads", async ({ page }) => {
-      const ws = new WorkspacePage(page);
-      await ws.gotoCredits();
-      await expect(page).toHaveURL(/\/workspace\/credits/);
-    });
-
     test("API keys page loads", async ({ page }) => {
       const ws = new WorkspacePage(page);
       await ws.gotoApiKeys();
@@ -31,12 +25,6 @@ test.describe("Workspace", () => {
       const ws = new WorkspacePage(page);
       await ws.gotoTeam();
       await expect(page).toHaveURL(/\/workspace\/team/);
-    });
-
-    test("usage page loads", async ({ page }) => {
-      const ws = new WorkspacePage(page);
-      await ws.gotoUsage();
-      await expect(page).toHaveURL(/\/workspace\/usage/);
     });
 
     test("profile page loads", async ({ page }) => {
@@ -59,14 +47,6 @@ test.describe("Workspace", () => {
   });
 
   test.describe("Workspace Operations (E2E-07, E2E-09)", () => {
-    test("credits page displays balance or pool information", async ({ page }) => {
-      const ws = new WorkspacePage(page);
-      await ws.gotoCredits();
-
-      const content = page.locator("#main-content");
-      await expect(content).toBeVisible();
-    });
-
     test("team page shows member list or invite option", async ({ page }) => {
       const ws = new WorkspacePage(page);
       await ws.gotoTeam();
@@ -96,13 +76,8 @@ test.describe("Workspace", () => {
       const content = page.locator("#main-content");
       await expect(content).toBeVisible();
     });
-
-    test("usage page displays charts or usage data", async ({ page }) => {
-      const ws = new WorkspacePage(page);
-      await ws.gotoUsage();
-
-      const content = page.locator("#main-content");
-      await expect(content).toBeVisible();
-    });
   });
 });
+
+// NOTE: the /workspace/usage tests were removed — the usage analytics page was
+// deleted by ADR-008 slice 3 (f209015, money/credits removal); the route 404s.

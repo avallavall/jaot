@@ -27,7 +27,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from app.domains.solver.adapters.base import HEXALY_SOLVER_NAME
-from app.schemas.optimization import OptimizationProblem, VariableType
+from app.schemas.optimization import OptimizationProblem
 
 if TYPE_CHECKING:  # pragma: no cover
     from app.domains.solver.services.expression_parser import ExpressionParser
@@ -41,30 +41,6 @@ AUTO_REASON_LP = "lp_routed_to_highs"
 AUTO_REASON_QUADRATIC = "quadratic_routed_to_hexaly"
 AUTO_REASON_FALLBACK = "hexaly_unavailable_fallback"
 AUTO_REASON_MIP = "milp_routed_to_scip"
-
-
-def _has_quadratic(problem: OptimizationProblem, parser: ExpressionParser) -> bool:
-    """True iff any term (objective or constraint LHS) references >=2 variables.
-
-    Uses :meth:`ParsedExpression.is_linear` as the single source of truth
-    (Pitfall 5 — x*x / x**2 / 2*x*x all consolidate to one bilinear term
-    after parsing; ``is_linear`` returns False for any term with
-    ``len(variables) > 1``).
-    """
-    known = [v.name for v in problem.variables]
-    parsed_obj = parser.parse_expression(problem.objective.expression, known_variables=known)
-    if not parsed_obj.is_linear():
-        return True
-    for constraint in problem.constraints:
-        parsed_c = parser.parse_constraint(constraint.expression, known_variables=known)
-        if not parsed_c.lhs.is_linear():
-            return True
-    return False
-
-
-def _is_pure_lp(problem: OptimizationProblem) -> bool:
-    """True when every decision variable is CONTINUOUS (no INTEGER / BINARY)."""
-    return all(v.type == VariableType.CONTINUOUS for v in problem.variables)
 
 
 def select_solver(
@@ -97,11 +73,21 @@ def select_solver(
 
         parser = ExpressionParser()
 
-    has_quadratic = _has_quadratic(problem, parser)
-    pure_lp = _is_pure_lp(problem)
+    # Single source of truth for the problem class (shared with ModelStatsService).
+    # The routing below is exactly the legacy two-boolean tree: ``cls == LP`` is the
+    # old ``pure_lp and not has_quadratic``, and ``cls in QUADRATIC_CLASSES`` is the
+    # old ``has_quadratic`` — so routing + reason slugs are unchanged.
+    from app.domains.solver.services.classify import (  # noqa: PLC0415
+        QUADRATIC_CLASSES,
+        ProblemClass,
+        classify,
+    )
+
+    cls = classify(problem, parser)
+    has_quadratic = cls in QUADRATIC_CLASSES
 
     # 1. LP -> HiGHS
-    if pure_lp and not has_quadratic:
+    if cls == ProblemClass.LP:
         return ("highs", AUTO_REASON_LP, False)
 
     # 2 + 3. Quadratic — check worker, fall back to SCIP if down (D-11).

@@ -2,6 +2,13 @@
 
 > Creation flow: user sketches a model on the canvas, the LLM generates the formulation, saved as ModelBuilderDocument + ModelVersion.
 
+> **Note (ADR-006 / P1.5, 2026-07):** the primary creation surface is now the **studio**
+> (`/studio/new`): every model is a first-class `ModelProject` with commit-grade versions
+> (`ModelProjectVersion`). The canvas below survives as the studio's Build → Canvas lens
+> (backed by the same `ModelBuilderDocument` substrate for the draft), and the AI assistant
+> is the Build → Assistant lens writing into the project draft. This document describes the
+> canvas + LLM mechanics, which are unchanged.
+
 ## Diagram
 
 ```mermaid
@@ -63,11 +70,10 @@ sequenceDiagram
     API->>API: log_action(AuditAction.CREATE_VERSION, ...) → AuditLog
     API->>Frontend: 201 {version_id}
     
-    alt User publishes model
-        Frontend->>API: POST /models/{doc_id}/publish {name, category, price_eur=0}
-        API->>DB: CREATE ModelCatalog(name, category, is_published=true, created_by_org_id)
-        API->>DB: CREATE ModelVersion (snapshot of published)
-        API->>Frontend: 201 {catalog_id, url_to_marketplace}
+    alt User publishes model (from the studio)
+        Frontend->>API: POST /projects/{project_id}/publish {name, category, ...}
+        API->>DB: UPSERT ModelProjectListing (1:1 facet) + pin current_version_id
+        API->>Frontend: 200 {listing} → model visible in /marketplace
     end
 ```
 
@@ -76,7 +82,9 @@ sequenceDiagram
 ### Builder Document Lifecycle
 1. **Draft**: document created, canvas_json mutable, no ModelVersion yet
 2. **Version**: user clicks "Save as Version" → ModelVersion snapshot (immutable)
-3. **Published**: sent to ModelCatalog (global), formula locked
+3. **Published**: in the studio, publishing upserts the project's `ModelProjectListing`
+   facet and pins the current committed `ModelProjectVersion` — the marketplace serves
+   that pinned snapshot while the author keeps editing the draft
 
 ### LLM RAG
 - **Query embedding**: problem sketch → vector via local `sentence-transformers` (`BAAI/bge-small-en-v1.5`, CPU, 384 dims)
@@ -87,7 +95,7 @@ sequenceDiagram
 ### Validation
 - **Real-time**: canvas_json is validated against variable refs (constraint refs to vars that don't exist)
 - **Pre-save**: model_json passed to SolveOrchestrator.validate_problem()
-- **Pre-publish**: full execution test on SCIP/HiGHS mock
+- **Pre-publish**: the project must have at least one committed version — publish pins it (400 without a commit)
 
 ### Auto-save
 - Frontend auto-saves every 2s: PATCH /builder-documents/{doc_id}
@@ -101,7 +109,8 @@ sequenceDiagram
 - `app/api/v2/versions.py` — versioning endpoints
 - `app/models/builder_document.py:ModelBuilderDocument`
 - `app/models/model_version.py:ModelVersion`
-- `app/models/optimization_model.py:ModelCatalog`
+- `app/models/model_project.py:ModelProject, ModelProjectVersion, ModelProjectListing`
+- `app/api/v2/projects.py` — studio project CRUD, commits, publish
 - `app/services/llm/formulation_service.py:generate_formulation_resilient()`
 - `app/services/llm/prompt_templates.py` — RAG + LLM prompts
 - `app/services/solve_orchestrator.py:validate_problem()`

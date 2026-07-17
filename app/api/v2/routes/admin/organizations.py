@@ -6,10 +6,9 @@ from sqlalchemy.orm import Session
 
 from app.models import (
     APIKey,
-    CreditTransaction,
     ModelExecution,
+    ModelProject,
     Organization,
-    OrganizationModel,
     User,
 )
 from app.schemas.admin import (
@@ -25,7 +24,6 @@ from app.schemas.admin import (
     OrgExecutionSummary,
     OrgModelSummary,
     OrgOwnerSummary,
-    OrgTransactionSummary,
     UserResponse,
 )
 from app.shared.db.base import get_db
@@ -83,9 +81,9 @@ async def list_organizations(
 
     model_counts = (
         dict(
-            db.query(OrganizationModel.organization_id, func.count(OrganizationModel.id))
-            .filter(OrganizationModel.organization_id.in_(org_ids))
-            .group_by(OrganizationModel.organization_id)
+            db.query(ModelProject.organization_id, func.count(ModelProject.id))
+            .filter(ModelProject.organization_id.in_(org_ids))
+            .group_by(ModelProject.organization_id)
             .all()
         )
         if org_ids
@@ -120,7 +118,7 @@ async def get_organization(org_id: str, db: Session = Depends(get_db)) -> Organi
     response.user_count = db.query(User).filter(User.organization_id == org.id).count()
     response.api_key_count = db.query(APIKey).filter(APIKey.organization_id == org.id).count()
     response.model_count = (
-        db.query(OrganizationModel).filter(OrganizationModel.organization_id == org.id).count()
+        db.query(ModelProject).filter(ModelProject.organization_id == org.id).count()
     )
 
     return response
@@ -133,7 +131,7 @@ async def get_organization_overview(
     """Rich read-only overview of one organization for platform admins.
 
     Aggregates everything an admin needs to "see" an org without editing it:
-    members, API keys, models, recent solve executions, credit movements, and
+    members, API keys, models, recent solve executions, and
     usage/limit configuration. Read-only — no row is mutated here.
     """
     org = db.query(Organization).filter(Organization.id == org_id).first()
@@ -147,10 +145,10 @@ async def get_organization_overview(
         .order_by(APIKey.created_at.desc())
         .all()
     )
-    org_models = (
-        db.query(OrganizationModel)
-        .filter(OrganizationModel.organization_id == org_id)
-        .order_by(OrganizationModel.created_at.desc())
+    org_projects = (
+        db.query(ModelProject)
+        .filter(ModelProject.organization_id == org_id)
+        .order_by(ModelProject.created_at.desc())
         .all()
     )
 
@@ -164,26 +162,30 @@ async def get_organization_overview(
         .all()
     )
     status_counts = dict(status_rows)
-    credits_consumed_total = (
-        db.query(func.coalesce(func.sum(ModelExecution.credits_consumed), 0))
-        .filter(ModelExecution.organization_id == org_id)
-        .scalar()
-        or 0
-    )
 
-    # organization_model (and its catalog_model) are relationship(lazy="joined"),
-    # so reading e.organization_model.display_name below is eager — no N+1.
+    # Per-project execution rollups. Executions link to a project via the typed
+    # model_project_id; historic rows carry the legacy org-model id, which the
+    # P1.5 backfill preserved as the project id — coalesce covers both.
+    exec_project_id = func.coalesce(
+        ModelExecution.model_project_id, ModelExecution.organization_model_id
+    )
+    per_project_rows = (
+        db.query(
+            exec_project_id.label("pid"),
+            func.count(ModelExecution.id),
+            func.max(ModelExecution.created_at),
+        )
+        .filter(ModelExecution.organization_id == org_id, exec_project_id.isnot(None))
+        .group_by(exec_project_id)
+        .all()
+    )
+    exec_by_project = {pid: (int(cnt), last) for pid, cnt, last in per_project_rows}
+    project_names = {p.id: p.name for p in org_projects}
+
     recent_executions = (
         db.query(ModelExecution)
         .filter(ModelExecution.organization_id == org_id)
         .order_by(ModelExecution.created_at.desc())
-        .limit(20)
-        .all()
-    )
-    recent_transactions = (
-        db.query(CreditTransaction)
-        .filter(CreditTransaction.organization_id == org_id)
-        .order_by(CreditTransaction.created_at.desc())
         .limit(20)
         .all()
     )
@@ -202,7 +204,7 @@ async def get_organization_overview(
         active_users=sum(1 for u in users if u.is_active),
         api_keys=len(api_keys),
         active_api_keys=sum(1 for k in api_keys if k.is_active),
-        models=len(org_models),
+        models=len(org_projects),
         executions=execution_count,
     )
 
@@ -213,7 +215,6 @@ async def get_organization_overview(
         + status_counts.get("timeout", 0)
         + status_counts.get("cancelled", 0),
         running=status_counts.get("running", 0) + status_counts.get("pending", 0),
-        credits_consumed_total=int(credits_consumed_total),
     )
 
     return OrganizationOverviewResponse(
@@ -225,44 +226,29 @@ async def get_organization_overview(
         api_keys=[APIKeyResponse.model_validate(k) for k in api_keys],
         models=[
             OrgModelSummary(
-                id=m.id,
-                display_name=m.display_name,
-                catalog_id=m.catalog_id,
-                source="marketplace" if m.catalog_id else "custom",
-                is_active=m.is_active,
-                total_executions=m.total_executions,
-                total_credits_used=m.total_credits_used,
-                last_executed_at=m.last_executed_at,
-                created_at=m.created_at,
+                id=p.id,
+                display_name=p.name,
+                catalog_id=p.source_ref if p.source_type == "marketplace" else None,
+                source="marketplace" if p.source_type == "marketplace" else "custom",
+                is_active=p.status == "active",
+                total_executions=exec_by_project.get(p.id, (0, None))[0],
+                last_executed_at=exec_by_project.get(p.id, (0, None))[1],
+                created_at=p.created_at,
             )
-            for m in org_models
+            for p in org_projects
         ],
         recent_executions=[
             OrgExecutionSummary(
                 id=e.id,
                 status=e.status,
                 solver_name=e.solver_name,
-                credits_consumed=e.credits_consumed,
                 execution_time_ms=e.execution_time_ms,
                 objective_value=e.objective_value,
-                model_display_name=(
-                    e.organization_model.display_name if e.organization_model else None
-                ),
+                model_display_name=project_names.get(e.model_project_id or e.organization_model_id),
                 executed_by_user_id=e.executed_by_user_id,
                 created_at=e.created_at,
             )
             for e in recent_executions
-        ],
-        recent_transactions=[
-            OrgTransactionSummary(
-                id=t.id,
-                transaction_type=t.transaction_type,
-                credits_amount=t.credits_amount,
-                balance_after=t.balance_after,
-                description=t.description,
-                created_at=t.created_at,
-            )
-            for t in recent_transactions
         ],
     )
 
@@ -278,8 +264,6 @@ async def create_organization(
         id=generate_id("org_"),
         name=data.name,
         plan=data.plan,
-        credits_balance=data.credits_balance,
-        monthly_quota=data.monthly_quota,
         rate_limit_per_minute=data.rate_limit_per_minute,
         rate_limit_per_day=data.rate_limit_per_day,
         ai_builder_enabled=data.ai_builder_enabled,

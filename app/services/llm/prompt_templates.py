@@ -152,18 +152,28 @@ def format_rag_document(payload: dict[str, Any], score: float) -> str:
         header = (
             f"Linearization: {payload.get('technique_name', 'unknown')} (relevance: {score:.2f})"
         )
+    elif doc_type == DocType.WORKED_EXAMPLE.value:
+        header = (
+            f"Worked example: {payload.get('display_name', 'unknown')} "
+            f"(generator: {payload.get('generator_type', 'unknown')}, relevance: {score:.2f})"
+        )
     else:
         header = f"Reference (relevance: {score:.2f})"
 
     return f"--- {header} ---\n{text}"
 
 
-def format_rag_context(results: list[dict[str, Any]]) -> str:
+def format_rag_context(results: list[dict[str, Any]], max_tokens: int | None = None) -> str:
     """Format all retrieved documents into the RAG context block.
 
     Args:
         results: List of dicts with keys: text, score, payload.
-            From RAGRetriever.retrieve().
+            From RAGRetriever.retrieve() — already sorted by descending score.
+        max_tokens: Optional cap on the estimated tokens of the injected context.
+            Documents are added most-relevant-first until the next would exceed the
+            budget; the single most relevant document is always kept even if it alone
+            exceeds the cap. Bounds the system prompt so many/long retrieved documents
+            cannot bloat it (and the per-message LLM cost) without limit.
 
     Returns:
         Formatted RAG context string ready for system prompt injection.
@@ -172,7 +182,17 @@ def format_rag_context(results: list[dict[str, Any]]) -> str:
     if not results:
         return NO_RAG_CONTEXT
 
-    docs = [format_rag_document(result["payload"], result["score"]) for result in results]
+    from app.services.llm.token_estimation import estimate_tokens
+
+    docs: list[str] = []
+    used = 0
+    for result in results:
+        doc = format_rag_document(result["payload"], result["score"])
+        cost = estimate_tokens(doc)
+        if max_tokens is not None and docs and used + cost > max_tokens:
+            break
+        docs.append(doc)
+        used += cost
 
     return RAG_CONTEXT_TEMPLATE.format(retrieved_documents="\n\n".join(docs))
 
@@ -374,6 +394,195 @@ def build_infeasibility_explanation_prompt(
         parts.append("## Conflict analysis\n" + heuristic_line)
 
     parts.append("Produce the explanation now, using only the values above.")
+    return "\n\n".join(parts)
+
+
+MODEL_EXPLANATION_SYSTEM_PROMPT = """You are an optimization expert explaining an optimization \
+MODEL (not yet solved) to a business user of JAOT.
+
+You receive the model formulation (variables, constraints, objective) and its computed structural \
+statistics (sizes, problem class, an auditable health score, and any risk warnings). Your job is to \
+make the MODEL itself understandable — what decision it represents, what it optimizes, what limits \
+it, and whether it looks sound — BEFORE it is solved.
+
+## Grounding (critical)
+- Use ONLY the facts provided (the formulation + the statistics block). NEVER invent counts, \
+coefficients, constraints, or a problem class that is not given. The statistics are AUTHORITATIVE — \
+cite them, never recompute or estimate. If something is missing, say so plainly.
+
+## What to write
+1. **What it optimizes** — restate the objective (minimize/maximize what) in plain business terms.
+2. **The decision** — what the variables represent and the choice being made. For large/indexed \
+models, describe variable FAMILIES and their counts (from the statistics), not thousands of \
+individual variables.
+3. **The limits** — group the key constraints by role (capacity / demand-coverage / balance / \
+logical) and what they enforce.
+4. **Trade-offs** — which requirements pull against each other.
+5. **Class & tractability** — state the problem class (e.g. MILP) from the statistics and, in one \
+line, what that implies for difficulty.
+6. **Health & risks** — surface the health score/band and the warnings VERBATIM from the \
+statistics (unbounded variables, missing integer bounds, numerical conditioning, …). Do not invent \
+risks that are not listed.
+
+## Style
+- Plain business language; assume domain knowledge but not optimization jargon (briefly define a \
+term the first time it appears).
+- ALWAYS Markdown: `##` section headings, `**bold**` for key numbers/terms, `-` bullet lists. The \
+UI renders Markdown — never output raw HTML.
+- Concise. Avoid tables unless they genuinely clarify more than prose.
+"""
+
+
+# Token budget for the formulation block embedded in a model-explanation prompt.
+# Large indexed models (tens of thousands of variables + long algebraic expressions)
+# can serialize to millions of tokens and blow past the provider context window, so
+# the formulation is sampled down to a representative head when it exceeds this. The
+# statistics block stays authoritative for the complete counts.
+MODEL_EXPLANATION_FORMULATION_MAX_TOKENS = 8000
+_FORMULATION_SAMPLE_LIST_ITEMS = 30
+_FORMULATION_SAMPLE_EXPR_CHARS = 500
+
+
+def _clip_long_string(value: Any, cap: int) -> Any:
+    """Clip a long expression string to ``cap`` chars with an elision marker."""
+    if isinstance(value, str) and len(value) > cap:
+        return value[:cap] + f"… [+{len(value) - cap} chars]"
+    return value
+
+
+def _sample_formulation(formulation: dict[str, Any]) -> dict[str, Any]:
+    """Build a size-bounded copy of a large formulation for prompt grounding.
+
+    Header/scalar fields are kept verbatim; list fields (variables, constraints, …)
+    are truncated to a representative head with an ``_<key>_omitted`` note; long
+    algebraic expression strings inside items and dict fields are clipped. The
+    authoritative complete counts live in the statistics block, so the sample only
+    needs to convey naming/structure, never every item.
+    """
+    sampled: dict[str, Any] = {}
+    for key, value in formulation.items():
+        if isinstance(value, list):
+            head = value[:_FORMULATION_SAMPLE_LIST_ITEMS]
+            sampled[key] = [
+                {k: _clip_long_string(v, _FORMULATION_SAMPLE_EXPR_CHARS) for k, v in item.items()}
+                if isinstance(item, dict)
+                else item
+                for item in head
+            ]
+            omitted = len(value) - len(head)
+            if omitted > 0:
+                sampled[f"_{key}_omitted"] = (
+                    f"{omitted} more {key} omitted for size — the statistics block has the "
+                    "authoritative totals"
+                )
+        elif isinstance(value, dict):
+            sampled[key] = {
+                k: _clip_long_string(v, _FORMULATION_SAMPLE_EXPR_CHARS) for k, v in value.items()
+            }
+        else:
+            sampled[key] = _clip_long_string(value, _FORMULATION_SAMPLE_EXPR_CHARS)
+    return sampled
+
+
+def build_model_explanation_prompt(
+    formulation: dict[str, Any] | None,
+    stats: dict[str, Any] | None,
+) -> str:
+    """Assemble the grounded user turn for a MODEL explanation.
+
+    Embeds the formulation and the Python-computed ``ModelStats`` (counts, problem
+    class, health, warnings) as JSON so the model has the exact, authoritative facts
+    to ground its explanation in and nothing to fabricate.
+
+    Very large formulations (tens of thousands of variables / huge expressions) are
+    sampled to a representative head bounded by
+    ``MODEL_EXPLANATION_FORMULATION_MAX_TOKENS`` so the prompt never exceeds the
+    provider context window. The statistics block remains the authoritative source of
+    the complete counts, and the prompt header flags the sample as such.
+    """
+    import json
+
+    from app.services.llm.token_estimation import estimate_tokens
+
+    parts: list[str] = ["Explain the following optimization MODEL (not yet solved).\n"]
+
+    if formulation:
+        formulation_json = json.dumps(formulation, indent=2, default=str)
+        header = "## Formulation"
+        if estimate_tokens(formulation_json) > MODEL_EXPLANATION_FORMULATION_MAX_TOKENS:
+            formulation_json = json.dumps(_sample_formulation(formulation), indent=2, default=str)
+            header = (
+                "## Formulation (SAMPLED — too large to include in full; variable/constraint "
+                "lists are truncated to a representative head and long expressions are clipped. "
+                "The statistics block below is the AUTHORITATIVE complete picture — cite its "
+                "counts, never the sample's.)"
+            )
+        parts.append(header + "\n```json\n" + formulation_json + "\n```")
+    if stats:
+        parts.append(
+            "## Computed statistics (authoritative — ground your explanation in these)\n```json\n"
+            + json.dumps(stats, indent=2, default=str)
+            + "\n```"
+        )
+    else:
+        parts.append("## Computed statistics\nNot available for this model.")
+
+    parts.append("Produce the explanation now, using only the formulation and statistics above.")
+    return "\n\n".join(parts)
+
+
+MODEL_DIFF_EXPLANATION_SYSTEM_PROMPT = """You are an optimization expert narrating the CHANGE \
+between two versions of an optimization model for a business user of JAOT.
+
+You receive a short summary of each version and a PRE-COMPUTED structural diff: the exact list of \
+variables and constraints that were added, removed, or modified, and whether the objective \
+changed. Your job is to explain, in plain language, WHAT changed and what it MEANS.
+
+## Grounding (critical)
+- Narrate ONLY the changes present in the provided diff. NEVER claim a change that is not listed, \
+and never invent numbers. The diff is AUTHORITATIVE and complete — if a category lists nothing, \
+nothing changed there. Do not restate the whole model; focus on the delta.
+
+## What to write
+1. **In one line** — the gist of the change.
+2. **What changed** — walk through the added / removed / modified variables and constraints and \
+the objective change, grouped sensibly, citing the exact names from the diff.
+3. **What it means** — the semantic consequence (e.g. a tighter feasible region, a new capacity \
+limit, a change of problem class) and any implication for solvability or the objective, but ONLY \
+when it follows from the listed diff.
+
+## Style
+- Plain business language; ALWAYS Markdown (`##` headings, `**bold**`, `-` bullets); concise; \
+never raw HTML.
+"""
+
+
+def build_version_diff_prompt(
+    old_problem: dict[str, Any] | None,
+    new_problem: dict[str, Any] | None,
+    structural_diff: dict[str, Any] | None,
+    old_summary: str | None,
+    new_summary: str | None,
+) -> str:
+    """Assemble the grounded user turn for a version-diff explanation.
+
+    The narration is grounded in the Python-computed ``structural_diff`` (the
+    authoritative list of added/removed/modified vars & constraints + objective
+    change) plus each version's commit summary. The full models are intentionally
+    NOT dumped — the diff is the change, and keeping the prompt to the diff both
+    bounds tokens and removes any surface to hallucinate an unlisted change.
+    """
+    import json
+
+    parts: list[str] = ["Explain the change between two versions of an optimization model.\n"]
+    parts.append(f"## Previous version\nSummary: {old_summary or '(no summary)'}")
+    parts.append(f"## New version\nSummary: {new_summary or '(no summary)'}")
+    parts.append(
+        "## Structural diff (authoritative — narrate ONLY what is listed here)\n```json\n"
+        + json.dumps(structural_diff or {}, indent=2, default=str)
+        + "\n```"
+    )
+    parts.append("Produce the explanation now, using only the summaries and the diff above.")
     return "\n\n".join(parts)
 
 

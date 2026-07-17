@@ -4,11 +4,11 @@ from fastapi import APIRouter
 
 from app.api.v2 import (
     auth,
-    billing,
+    author,
     builder,
     community,
     contact,
-    credits,
+    dsl,
     feedback,
     gdpr,
     guidance,
@@ -18,9 +18,8 @@ from app.api.v2 import (
     llm,
     notifications,
     org_settings,
-    pricing,
+    projects,
     schedules,
-    seller,
     solve,
     solvers,
     triggers,
@@ -47,9 +46,6 @@ api_v2_router.include_router(solvers.router, tags=["solvers"])
 # Solve sub-router - Template endpoints (metadata, templates list/detail/solve)
 api_v2_router.include_router(solve_templates_router, prefix="/solve", tags=["solve"])
 
-# Credits - Credit management, withdrawals, exchange rates
-api_v2_router.include_router(credits.router, tags=["credits"])
-
 # API Keys - Key management
 api_v2_router.include_router(keys.router, tags=["api-keys"])
 
@@ -65,17 +61,20 @@ api_v2_router.include_router(health.router, tags=["health"])
 # Notifications
 api_v2_router.include_router(notifications.router, tags=["notifications"])
 
-# Billing (Stripe)
-api_v2_router.include_router(billing.router, tags=["billing"])
-
 # Builder — visual model builder CRUD
 api_v2_router.include_router(builder.router, tags=["builder"])
+
+# Model Projects — first-class model entity (draft + commit-grade versions + solve)
+api_v2_router.include_router(projects.router, tags=["projects"])
 
 # Triggers — HTTP event triggers for async solve runs
 api_v2_router.include_router(triggers.router, tags=["triggers"])
 
 # LLM — natural language formulation generation with SSE streaming
 api_v2_router.include_router(llm.router, tags=["llm"])
+
+# DSL — JModel declarative language compile endpoint (gated behind JAOT_DSL)
+api_v2_router.include_router(dsl.router, tags=["dsl"])
 
 # Organization settings — BYOK Anthropic API key (owner-managed)
 api_v2_router.include_router(org_settings.router, tags=["organization"])
@@ -95,11 +94,10 @@ api_v2_router.include_router(gdpr.router, tags=["gdpr"])
 # Schedules — cron scheduling for triggers (CRUD + validation)
 api_v2_router.include_router(schedules.router, tags=["schedules"])
 
-# Seller — seller earnings dashboard endpoints
-api_v2_router.include_router(seller.router, tags=["seller"])
+# Author — non-monetary analytics, verification, notification prefs, onboarding
+# Wire paths/tag stay "seller" until the contract release (API surface).
+api_v2_router.include_router(author.router, tags=["seller"])
 
-# Pricing — public pricing data (no auth required)
-api_v2_router.include_router(pricing.router, tags=["pricing"])
 
 # Home — public announcement banner (no auth required)
 api_v2_router.include_router(home.router, tags=["home"])
@@ -107,7 +105,7 @@ api_v2_router.include_router(home.router, tags=["home"])
 # Contact — public contact form submission (no auth required, opportunistic auth via middleware)
 api_v2_router.include_router(contact.router, tags=["contact"])
 
-# Workspaces — team collaboration, member management, invites, audit, credit pools
+# Workspaces — team collaboration, member management, invites, audit
 api_v2_router.include_router(workspaces_router, prefix="/workspaces", tags=["workspaces"])
 
 # Profiles — public org/user profiles, reviews, admin profile management

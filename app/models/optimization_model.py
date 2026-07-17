@@ -131,8 +131,6 @@ class ModelCatalog(Base):
     is_official: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
     # Pricing
-    price_eur: Mapped[float] = mapped_column(Float, default=0.0)
-    credits_per_execution: Mapped[int] = mapped_column(Integer, default=1)
 
     # Statistics
     total_activations: Mapped[int] = mapped_column(Integer, default=0)
@@ -157,9 +155,13 @@ class ModelCatalog(Base):
     section_changelog: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
-    published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         Index("ix_model_catalog_category_status", "category", "status"),
@@ -201,22 +203,28 @@ class OrganizationModel(Base):
     # For private models (when catalog_id is NULL)
     private_definition: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
+    # Authoring ModelProject this was published from (P1a; no FK — opaque link).
+    # Used by the full-fusion path (P1.5) to point a marketplace listing back at
+    # its source project.
+    source_model_project_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
     # Status
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_favorite: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    # Usage Stats
+    # Usage Stats (ADR-008: total_credits_used unmapped — column stays, additive rule)
     total_executions: Mapped[int] = mapped_column(Integer, default=0)
-    total_credits_used: Mapped[int] = mapped_column(Integer, default=0)
-    last_executed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-
-    # Purchase Info
-    purchased_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    purchase_price_eur: Mapped[float | None] = mapped_column(Float, nullable=True)
+    last_executed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
 
     # Relationships
     catalog_model: Mapped[ModelCatalog | None] = relationship(
@@ -303,11 +311,6 @@ class ModelExecution(Base):
     auto_route_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
     objective_value: Mapped[float | None] = mapped_column(Float, nullable=True)
 
-    # Credits
-    credits_consumed: Mapped[int] = mapped_column(Integer, default=0)
-    credits_base: Mapped[int] = mapped_column(Integer, default=1)
-    credits_compute: Mapped[int] = mapped_column(Integer, default=0)
-
     # Provenance — how the execution was created and what it traces back to.
     # origin values: visual_builder | ai_builder | template | import |
     #   marketplace | trigger | api | mcp | manual (legacy default).
@@ -321,15 +324,33 @@ class ModelExecution(Base):
     source_kind: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     source_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
 
+    # Per-project history (P1a): the ModelProject + committed version this run
+    # came from (NULL for non-project solves). The generic source_kind/source_id
+    # above also carry the "model_project" provenance for the "open origin"
+    # navigation; these typed columns power fast per-project history queries.
+    model_project_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    model_project_version_id: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, index=True
+    )
+
+    # Dataset provenance (§8 Scenarios / S1): which named dataset the model was
+    # compiled against for this run. `dataset_name` is a SNAPSHOT — datasets are
+    # hard-deletable working data, and history must survive their deletion.
+    # Not an FK on purpose (same rationale as source_kind/source_id above).
+    dataset_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    dataset_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
     # Async execution tracking
     celery_task_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     progress_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     is_async: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
-    started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, index=True
+    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     organization_model: Mapped[OrganizationModel | None] = relationship(
@@ -342,9 +363,7 @@ class ModelExecution(Base):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<ModelExecution(id={self.id}, status={self.status}, credits={self.credits_consumed})>"
-        )
+        return f"<ModelExecution(id={self.id}, status={self.status})>"
 
 
 class ModelReview(Base):
@@ -359,9 +378,17 @@ class ModelReview(Base):
     # Primary Key
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
 
-    # What is being reviewed
-    catalog_id: Mapped[str] = mapped_column(
-        String(64), ForeignKey("model_catalog.id", ondelete="CASCADE"), nullable=False, index=True
+    # What is being reviewed. P1.5 fusion: reviews are keyed on the unified Model
+    # (model_project_id); the legacy catalog_id is now nullable (new reviews omit it)
+    # and drops in the contract release.
+    catalog_id: Mapped[str | None] = mapped_column(
+        String(64), ForeignKey("model_catalog.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    model_project_id: Mapped[str | None] = mapped_column(
+        String(64),
+        ForeignKey("model_projects.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
     )
 
     # Who is reviewing
@@ -378,8 +405,12 @@ class ModelReview(Base):
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Metadata
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
 
     # Moderation
     is_visible: Mapped[bool] = mapped_column(Boolean, default=True)

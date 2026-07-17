@@ -1,11 +1,11 @@
 # Architecture Overview — JAOT
 
-> **Updated:** June 2026
+> **Updated:** July 2026
 > **Architecture:** Modular Monolith (see [Architecture Decision Records](#architecture-decision-records) below)
 
 ## Overview
 
-JAOT is a multi-tenant optimization-as-a-service platform. Users build, buy, and automate optimization models via API, visual builder, or AI assistant. Single deployable monolith evolving toward modular monolith with domain-bounded contexts.
+JAOT is a multi-tenant optimization-as-a-service platform. Users build, share, and automate optimization models via API, the model studio, or AI assistant. Single deployable monolith evolving toward modular monolith with domain-bounded contexts.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
@@ -21,9 +21,9 @@ JAOT is a multi-tenant optimization-as-a-service platform. Users build, buy, and
 │               4 Uvicorn workers                           │
 │                    localhost:8001                          │
 │  ┌────────┬────────┬────────┬────────┬────────┬───────┐  │
-│  │ Auth   │ Solver │ LLM/   │Credits │Market- │Trigger│  │
-│  │  ASGI  │Orchest.│  RAG   │Service │ place  │Service│  │
-│  │Middlew.│        │        │        │        │       │  │
+│  │ Auth   │ Solver │ LLM/   │ Model  │Market- │Trigger│  │
+│  │  ASGI  │Pipeline│  RAG   │Projects│ place  │Service│  │
+│  │Middlew.│(async) │        │(studio)│        │       │  │
 │  └────────┴────────┴────────┴────────┴────────┴───────┘  │
 └──┬───────────┬───────────┬───────────┬───────────┬───────┘
    │           │           │           │           │
@@ -40,18 +40,18 @@ JAOT is a multi-tenant optimization-as-a-service platform. Users build, buy, and
 /api/v2/
 ├── auth/              # Email signup/login, JWT, refresh, password reset
 ├── solve/             # Direct solve, templates, file import/export, insights, analytics
-├── models/            # Catalog, my models, executions, publish, favorites, media
+├── models/            # Public marketplace catalog (listings), executions, favorites, media
 ├── llm/               # AI formulation assistant (SSE streaming)
 ├── builder/           # Visual model builder documents
-├── credits/           # Balance, transactions, withdrawals, exchange rates
-├── billing/           # Stripe checkout, subscriptions, webhooks
+├── projects/          # ModelProject (studio): versions, stats, datasets, solve, publish, from-template/from-marketplace
+├── author/            # Author analytics (views, adoption of published models)
 ├── keys/              # API key management
 ├── triggers/          # Automated solve triggers + cron schedules
 ├── notifications/     # In-app notifications + preferences
-├── workspaces/        # Workspace management, members, invites, audit, credits
+├── workspaces/        # Workspace management, members, invites, audit
 ├── profiles/          # User/org public profiles, reviews
 ├── gdpr/              # Data export, account deletion
-├── admin/             # Users, orgs, models, credits, settings, analytics, marketplace
+├── admin/             # Users, orgs, models, settings, analytics, marketplace
 ├── health/            # Health check
 ├── metrics/           # Prometheus metrics
 ├── mcp/               # MCP server (Model Context Protocol)
@@ -62,17 +62,26 @@ JAOT is a multi-tenant optimization-as-a-service platform. Users build, buy, and
 
 | Route | Purpose |
 |---|---|
-| `/solve` | My activated models |
-| `/solve/executions` | Execution history |
+| `/studio` | My Models — every model is a versioned `ModelProject` |
+| `/studio/new` | Launcher: canvas, AI assistant, JSON editor, import, template, marketplace |
+| `/studio/templates` | Template gallery (seeds a project from a curated template) |
+| `/studio/{id}/build` | Workspace — Build tab (Canvas / Assistant / Editor / JModel lenses) |
+| `/studio/{id}/analyze` | Workspace — Analyze tab (stats, health, explain, I/O, publish entry) |
+| `/studio/{id}/solve` | Workspace — Solve tab (async solve, live progress, per-project history) |
+| `/studio/{id}/publish` | Publish a committed version to the marketplace |
+| `/solve` | Redirects to `/studio` (legacy "Activated Models" collapsed by the P1.5 fusion) |
+| `/solve/executions` | Global execution history (all models, org-wide) |
 | `/solve/analytics` | Solve analytics dashboard |
+| `/solve/favorites` | Favorite marketplace models |
 | `/solve/import` | File import (MPS/LP/CIP/JSON) |
 | `/solve/multi-objective` | Multi-objective optimization |
-| `/builder` | Visual model builder |
+| `/builder` | Visual model builder (canvas substrate) |
 | `/builder/ai-assistant` | AI formulation assistant |
 | `/builder/templates` | Template gallery |
-| `/marketplace` | Model catalog |
+| `/marketplace` | Model marketplace (listings; one action: "Use in studio") |
+| `/marketplace/authors/{orgId}` | Public author profile |
 | `/triggers` | Automated triggers |
-| `/workspace` | Dashboard, credits, API keys, settings |
+| `/workspace` | Dashboard, API keys, settings |
 | `/admin` | Admin panel |
 
 ## Authentication
@@ -103,7 +112,7 @@ Supporting components:
 - **27 problem generators** in `app/domains/solver/generators/` — produce solver-agnostic `OptimizationProblem`
 - **Expression parser** (`app/domains/solver/services/expression_parser.py`) — recursive descent, produces `ParsedExpression` IR. Imports without pyscipopt (TD-3 closed in Phase 4)
 - **Template engine** — dispatches to generators based on template category
-- **Solve orchestrator** (`app/domains/solver/services/solve_orchestrator.py`) — coordinates credit deduction, solving, result recording
+- **Async solve pipeline** (ADR-007) — every entry point enqueues the same `solve_async` Celery task; `execution_writer` is the single ModelExecution writer (the `solve_orchestrator.py` module survives only as a helper home: `validate_problem`, `ExecutionSource`, warm-start loading)
 - **File import/export** — MPS, LP, CIP, JSON upload; MPS, LP, CIP, SOL, CSV, JSON download
 
 Import boundary enforced by `pyproject.toml` [tool.importlinter] contract `solver-services-no-pyscipopt`: any `from pyscipopt` outside `app/domains/solver/adapters/` fails CI (6/6 contracts KEPT).
@@ -113,7 +122,6 @@ Import boundary enforced by `pyproject.toml` [tool.importlinter] contract `solve
 Broker: RabbitMQ. Task modules:
 - `solve_tasks` — async solver execution
 - `trigger_tasks` — triggered solve execution
-- `financial_tasks` — reconciliation, scheduled withdrawals
 - `email_tasks` — onboarding email sequence
 - `webhook_tasks` — outbound webhook delivery
 - `rag_tasks` — RAG document indexing

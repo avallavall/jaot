@@ -114,12 +114,18 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
-# Contract 4 — unchanged: independence contracts do not accept forbidden_modules
+# Contract 4 — independence contracts do not accept forbidden_modules.
+# Siblings listed EXPLICITLY (not the bare parent `app.domains`): import-linter's
+# `independence` type only compares the modules it is given, so a single parent
+# entry enforces nothing between the actual domains. Listing each domain guarantees
+# `solver` and `dsl` never import one another (directly or transitively). Add any
+# new bounded context here when it is extracted.
 id = "domains-independent"
 name = "domain modules are independent of each other"
 type = "independence"
 modules = [
-    "app.domains",
+    "app.domains.solver",
+    "app.domains.dsl",
 ]
 
 [[tool.importlinter.contracts]]
@@ -148,6 +154,29 @@ ignore_imports = [
     # code that uses pyscipopt is inside adapters/, which is the correct boundary.
     "app.domains.solver.services.model_builder -> app.domains.solver.adapters._scip_model_builder",
     "app.domains.solver.services.file_import -> app.domains.solver.adapters._scip_import",
+]
+
+[[tool.importlinter.contracts]]
+# Contract 6 — the DSL compiler is a PURE library: stdlib + app.schemas only.
+# Contract 4 (independence) only guards dsl <-> solver; without this contract nothing
+# stops a future import of app.services/app.api from inside the domain, which would
+# silently break the "compiler is pure" guarantee its tests and the API layer rely on.
+id = "dsl-domain-pure"
+name = "DSL domain imports only app.schemas (pure compiler)"
+type = "forbidden"
+source_modules = [
+    "app.domains.dsl",
+]
+forbidden_modules = [
+    "app.api",
+    "app.config",
+    "app.core",
+    "app.data",
+    "app.models",
+    "app.services",
+    "app.shared",
+    "app.tasks",
+    "app.utils",
 ]
 
 [tool.pytest.ini_options]

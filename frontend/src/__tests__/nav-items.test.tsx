@@ -113,11 +113,17 @@ describe("useNavItems", () => {
       const headers = getSectionHeaders(result.current);
       const headerLabels = headers.map((h) => h.label);
 
-      // 3 primary separator headers (always visible)
-      expect(headerLabels).toContain("common.nav.build");
+      // 3 primary separator headers — the legacy "Build" section was folded into
+      // the "Model, Analyze & Solve" hub (single home for model work).
+      expect(headerLabels).toContain("common.nav.modelAnalyzeSolve");
       expect(headerLabels).toContain("common.nav.discover");
       expect(headerLabels).toContain("common.nav.activity");
+      expect(headerLabels).not.toContain("common.nav.build");
       expect(headers).toHaveLength(3);
+
+      // The Model, Analyze & Solve hub funnels into the studio workspace
+      expect(findItemByHref(result.current, "/studio")).toBeDefined();
+      expect(findItemByHref(result.current, "/studio/new")).toBeDefined();
 
       // 4 collapsible groups: Community, Account, Team, Admin
       const collapsibles = getCollapsibleGroups(result.current);
@@ -136,9 +142,10 @@ describe("useNavItems", () => {
       const headerLabels = headers.map((h) => h.label);
 
       // 3 primary separator headers
-      expect(headerLabels).toContain("common.nav.build");
+      expect(headerLabels).toContain("common.nav.modelAnalyzeSolve");
       expect(headerLabels).toContain("common.nav.discover");
       expect(headerLabels).toContain("common.nav.activity");
+      expect(headerLabels).not.toContain("common.nav.build");
       expect(headers).toHaveLength(3);
 
       // 2 collapsible groups: Community, Account (no Team, no Admin)
@@ -182,13 +189,36 @@ describe("useNavItems", () => {
       expect(collapsibleLabels).not.toContain("common.nav.adminPanel");
       expect(collapsibles).toHaveLength(3);
     });
+
+    it("has a single 'My Models' (-> /studio); the legacy /solve entry is gone (P1.5 fusion)", () => {
+      setAuthState({ isAdmin: true, hasWorkspace: true });
+      const { result } = renderHook(() => useNavItems());
+
+      // Exactly one "My Models" entry, and it funnels to the studio hub (not legacy /solve).
+      const myModels = (result.current as NavItem[]).filter(
+        (i) => i.label === "common.nav.myModels"
+      );
+      expect(myModels).toHaveLength(1);
+      expect(myModels[0].href).toBe("/studio");
+
+      // P1.5 fusion: the legacy "Activated Models" (/solve) entry is retired —
+      // a marketplace model is used by forking it into the studio.
+      expect(findItemByHref(result.current, "/solve")).toBeUndefined();
+
+      // Post-fusion the studio is the one door: the legacy /builder entries left
+      // the nav (canvas/assistant/editor/JModel are Build lenses; the routes stay
+      // reachable by URL but are no longer advertised).
+      expect(findItemByHref(result.current, "/builder")).toBeUndefined();
+      expect(findItemByHref(result.current, "/builder/templates")).toBeUndefined();
+      expect(findItemByHref(result.current, "/builder/ai-assistant")).toBeUndefined();
+    });
   });
 
   describe("NAV-02: Previously missing pages", () => {
-    it("Build section has Templates entry at /builder/templates", () => {
+    it("hub has Templates entry at /studio/templates (the studio gallery)", () => {
       setAuthState({ isAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
-      const templates = findItemByHref(result.current, "/builder/templates");
+      const templates = findItemByHref(result.current, "/studio/templates");
 
       expect(templates).toBeDefined();
       expect(templates!.label).toBe("common.nav.templates");
@@ -214,7 +244,7 @@ describe("useNavItems", () => {
   });
 
   describe("NAV-03: Admin section", () => {
-    it("Admin Panel collapsible has exactly 12 children with correct hrefs and is collapsed by default", () => {
+    it("Admin Panel collapsible has exactly 11 children with correct hrefs and is collapsed by default", () => {
       setAuthState({ isAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
       // Find Admin Panel collapsible by checking for a child with href "/admin"
@@ -224,7 +254,7 @@ describe("useNavItems", () => {
 
       expect(adminPanel).toBeDefined();
       expect(adminPanel!.collapsedByDefault).toBe(true);
-      expect(adminPanel!.children).toHaveLength(12);
+      expect(adminPanel!.children).toHaveLength(11);
 
       const expectedHrefs = [
         "/admin",
@@ -235,7 +265,6 @@ describe("useNavItems", () => {
         "/admin/api-keys",
         "/admin/executions",
         "/admin/reviews",
-        "/admin/credits",
         "/admin/marketplace/analytics",
         "/admin/marketplace/verification",
         "/admin/settings",
@@ -264,7 +293,7 @@ describe("useNavItems", () => {
       expect(team!.collapsedByDefault).toBe(true);
     });
 
-    it("Account collapsible includes personal items (Dashboard, Profile, API Keys, Credits, Usage, Settings)", () => {
+    it("Account collapsible includes personal items (Dashboard, Profile, API Keys, Settings)", () => {
       setAuthState({ isAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
 
@@ -275,8 +304,6 @@ describe("useNavItems", () => {
       expect(childLabels).toContain("common.nav.dashboard");
       expect(childLabels).toContain("common.nav.myProfile");
       expect(childLabels).toContain("common.nav.apiKeys");
-      expect(childLabels).toContain("common.nav.credits");
-      expect(childLabels).toContain("common.nav.usage");
       expect(childLabels).toContain("common.nav.settings");
     });
 

@@ -45,7 +45,9 @@ class ModelVersion(Base):
     version_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     version_description: Mapped[str | None] = mapped_column(Text, nullable=True)
     sequence: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
 
     def __repr__(self) -> str:
         return (

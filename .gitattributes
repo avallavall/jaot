@@ -1,0 +1,3 @@
+# Never CRLF-convert binary fixtures (the e2e report.pdf is pure-ASCII PDF —
+# git heuristics see text, and CRLF smudging would corrupt its xref offsets)
+*.pdf binary

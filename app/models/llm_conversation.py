@@ -38,8 +38,10 @@ class LLMConversation(Base):
     """A conversation thread for LLM-powered formulation generation.
 
     Each conversation belongs to an organization/user pair and may optionally
-    be linked to an OrganizationModel once the user accepts the formulation.
-    Conversations auto-expire after a configurable TTL (default 24h).
+    be linked to a ModelProject (``model_project_id``, written by the studio).
+    The legacy ``organization_model_id`` column was never written by any flow
+    and drops in the contract release. Conversations auto-expire after a
+    configurable TTL (default 24h).
     """
 
     __tablename__ = "llm_conversations"
@@ -52,7 +54,11 @@ class LLMConversation(Base):
         String(64), ForeignKey("users.id"), nullable=False, index=True
     )
     organization_model_id: Mapped[str | None] = mapped_column(
-        String(64), ForeignKey("organization_models.id"), nullable=True
+        String(64),
+        # SET NULL so deleting an OrganizationModel detaches (not blocks) its
+        # conversations — required by the P1.5 fusion (migration 20260712_llmconv_ondelete).
+        ForeignKey("organization_models.id", ondelete="SET NULL"),
+        nullable=True,
     )
 
     # Current formulation state (latest structured output from LLM)
@@ -64,9 +70,15 @@ class LLMConversation(Base):
     # Builder document ID for conversation scoping (no FK — ephemeral conversations)
     model_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    # ModelProject this conversation belongs to (P1a; no FK — conversations are
+    # ephemeral and would otherwise couple project lifetime to a 24h TTL).
+    model_project_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
     expires_at: Mapped[datetime] = mapped_column(
-        DateTime, default=_default_expires_at, nullable=False, index=True
+        DateTime(timezone=True), default=_default_expires_at, nullable=False, index=True
     )
 
     # Relationships
@@ -112,7 +124,9 @@ class LLMMessage(Base):
     output_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
     cost_eur: Mapped[Decimal | None] = mapped_column(Numeric(12, 6), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
 
     # Relationships
     conversation: Mapped["LLMConversation"] = relationship(

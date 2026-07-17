@@ -7,7 +7,7 @@ import {
   TrendingUp,
   Zap,
   MessageSquare,
-  ShoppingCart,
+  GitFork,
   ArrowUpRight,
   ArrowDownRight,
   Minus,
@@ -86,7 +86,7 @@ export function AnalyticsKPIGrid({
   const bdMap = useBreakdownMap(breakdown);
   const solvesEntry = bdMap.get("solver.solve");
   const aiEntry = bdMap.get("ai_builder.message");
-  const purchasesEntry = bdMap.get("marketplace.purchase");
+  const adoptionsEntry = bdMap.get("marketplace.activate");
 
   const cards: KPICardConfig[] = [
     {
@@ -114,10 +114,10 @@ export function AnalyticsKPIGrid({
       icon: <MessageSquare className="h-4 w-4 text-muted-foreground" />,
     },
     {
-      label: "Purchases",
-      value: purchasesEntry?.count ?? 0,
-      previous: purchasesEntry?.prev_count,
-      icon: <ShoppingCart className="h-4 w-4 text-muted-foreground" />,
+      label: "Adoptions",
+      value: adoptionsEntry?.count ?? 0,
+      previous: adoptionsEntry?.prev_count,
+      icon: <GitFork className="h-4 w-4 text-muted-foreground" />,
     },
     {
       label: "Events Today",

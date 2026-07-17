@@ -39,12 +39,6 @@ const overview = (): AdminOrganizationOverview => ({
     id: "org_1",
     name: "Acme Inc",
     plan: "pro",
-    credits_balance: 1000,
-    credits_subscription: 500,
-    credits_purchased: 300,
-    credits_earned: 200,
-    credits_used_month: 50,
-    monthly_quota: 2000,
     rate_limit_per_minute: 120,
     rate_limit_per_day: 50000,
     ai_builder_enabled: true,
@@ -54,15 +48,13 @@ const overview = (): AdminOrganizationOverview => ({
     is_verified: false,
     is_public_profile: false,
     slug: null,
-    billing_email: null,
-    currency: "EUR",
     website_url: null,
     created_at: "2026-06-01T00:00:00Z",
     owner_user_id: "usr_1",
   },
   owner: { id: "usr_1", name: "Alice", email: "alice@acme.test" },
   counts: { users: 2, active_users: 2, api_keys: 1, active_api_keys: 1, models: 1, executions: 3 },
-  execution_stats: { total: 3, completed: 2, failed: 1, running: 0, credits_consumed_total: 9 },
+  execution_stats: { total: 3, completed: 2, failed: 1, running: 0 },
   users: [
     {
       id: "usr_1",
@@ -96,7 +88,6 @@ const overview = (): AdminOrganizationOverview => ({
       source: "custom",
       is_active: true,
       total_executions: 3,
-      total_credits_used: 9,
       last_executed_at: null,
       created_at: "2026-06-03T00:00:00Z",
     },
@@ -106,22 +97,11 @@ const overview = (): AdminOrganizationOverview => ({
       id: "exe_1",
       status: "completed",
       solver_name: "scip",
-      credits_consumed: 3,
       execution_time_ms: 12,
       objective_value: 42,
       model_display_name: "Routing Model",
       executed_by_user_id: "usr_1",
       created_at: "2026-06-04T00:00:00Z",
-    },
-  ],
-  recent_transactions: [
-    {
-      id: "ctx_1",
-      transaction_type: "purchase",
-      credits_amount: 100,
-      balance_after: 1000,
-      description: "Top-up",
-      created_at: "2026-06-05T00:00:00Z",
     },
   ],
 });
@@ -131,7 +111,7 @@ describe("OrganizationDetailPage", () => {
     vi.clearAllMocks();
   });
 
-  it("renders the org overview (header, KPIs, members, models, transactions)", async () => {
+  it("renders the org overview (header, KPIs, members, models)", async () => {
     getOrganizationOverview.mockResolvedValue(overview());
 
     render(<OrganizationDetailPage />);
@@ -139,10 +119,9 @@ describe("OrganizationDetailPage", () => {
     await waitFor(() => expect(screen.getByText("Acme Inc")).toBeInTheDocument());
     // a KPI label is rendered (translation mock echoes the namespaced key)
     expect(screen.getByText("admin.orgDetail.kpi.users")).toBeInTheDocument();
-    // the org's member, model and transaction surface in their tables
+    // the org's member and model surface in their tables
     expect(screen.getAllByText("Alice").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Routing Model").length).toBeGreaterThan(0);
-    expect(screen.getByText("Top-up")).toBeInTheDocument();
     // the API key is shown by prefix only, never a full secret
     expect(screen.getByText(/ok_live_ab/)).toBeInTheDocument();
   });

@@ -1,4 +1,9 @@
-"""Favorites and recents endpoints for models."""
+"""Favorites and recents endpoints for models.
+
+P1.5 fusion: favorites/recents are keyed on the unified Model (``model_project_id``) and
+read from the ``ModelProjectListing`` facet. The public route paths keep ``{model_id}``
+for URL stability; the id they carry is the model-project id.
+"""
 
 from typing import Any
 
@@ -6,11 +11,50 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.v2.auth import get_current_user
-from app.models import ModelCatalog, Organization, RecentModel, User, UserFavorite
+from app.models import (
+    ModelProject,
+    ModelProjectListing,
+    Organization,
+    RecentModel,
+    User,
+    UserFavorite,
+)
 from app.schemas.model import FavoriteResponse
 from app.shared.db.base import get_db
 
 router = APIRouter(tags=["favorites"])
+
+
+def _author_names(db: Session, listings: list[ModelProjectListing]) -> dict[str, str]:
+    """Resolve each listing's author-org display name, keyed by model_project_id.
+
+    Backfilled/legacy listings may lack ``author_organization_id`` (the legacy
+    catalog never carried it) — fall back to the owning project's organization,
+    which in the fused model IS the publisher.
+    """
+    project_orgs: dict[str, str] = {}
+    missing = [s.model_project_id for s in listings if not s.author_organization_id]
+    if missing:
+        rows = (
+            db.query(ModelProject.id, ModelProject.organization_id)
+            .filter(ModelProject.id.in_(missing))
+            .all()
+        )
+        project_orgs = {pid: oid for pid, oid in rows if oid}
+
+    org_ids = {s.author_organization_id for s in listings if s.author_organization_id}
+    org_ids.update(project_orgs.values())
+    orgs = (
+        {o.id: o.name for o in db.query(Organization).filter(Organization.id.in_(org_ids)).all()}
+        if org_ids
+        else {}
+    )
+
+    names: dict[str, str] = {}
+    for s in listings:
+        org_id = s.author_organization_id or project_orgs.get(s.model_project_id)
+        names[s.model_project_id] = orgs.get(org_id, "Unknown") if org_id else "Unknown"
+    return names
 
 
 @router.get("/favorites")
@@ -21,33 +65,29 @@ async def get_user_favorites(
     """Get user's favorite models."""
     favorites = db.query(UserFavorite).filter(UserFavorite.user_id == current_user.id).all()
 
-    model_ids = [f.model_id for f in favorites]
+    model_ids = [f.model_project_id for f in favorites if f.model_project_id]
 
     if not model_ids:
         return {"items": [], "total": 0}
 
-    models = db.query(ModelCatalog).filter(ModelCatalog.id.in_(model_ids)).all()
-
-    org_ids = list(set(s.author_organization_id for s in models if s.author_organization_id))
-    orgs = (
-        {o.id: o for o in db.query(Organization).filter(Organization.id.in_(org_ids)).all()}
-        if org_ids
-        else {}
+    models = (
+        db.query(ModelProjectListing)
+        .filter(ModelProjectListing.model_project_id.in_(model_ids))
+        .all()
     )
+
+    authors = _author_names(db, models)
 
     items = []
     for model in models:
-        org = orgs.get(model.author_organization_id) if model.author_organization_id else None
-        cat = model.category
-        category_str = cat.value if hasattr(cat, "value") else (cat or "general")
         items.append(
             {
-                "id": model.id,
+                "id": model.model_project_id,
                 "name": model.name,
                 "display_name": model.display_name,
                 "description": model.description,
-                "category": category_str,
-                "author_name": org.name if org else "Unknown",
+                "category": model.category or "general",
+                "author_name": authors[model.model_project_id],
                 "is_official": model.is_official,
                 "is_featured": model.is_featured,
                 "avg_rating": model.avg_rating,
@@ -64,15 +104,19 @@ async def add_favorite(
     db: Session = Depends(get_db),
 ) -> FavoriteResponse:
     """Add a model to favorites."""
-    model = db.query(ModelCatalog).filter(ModelCatalog.id == model_id).first()
-    if not model:
+    listing = (
+        db.query(ModelProjectListing)
+        .filter(ModelProjectListing.model_project_id == model_id)
+        .first()
+    )
+    if not listing:
         raise HTTPException(status_code=404, detail="Model not found in catalog")
 
     existing = (
         db.query(UserFavorite)
         .filter(
             UserFavorite.user_id == current_user.id,
-            UserFavorite.model_id == model_id,
+            UserFavorite.model_project_id == model_id,
         )
         .first()
     )
@@ -82,7 +126,7 @@ async def add_favorite(
 
     favorite = UserFavorite(
         user_id=current_user.id,
-        model_id=model_id,
+        model_project_id=model_id,
     )
     db.add(favorite)
     db.commit()
@@ -101,7 +145,7 @@ async def remove_favorite(
         db.query(UserFavorite)
         .filter(
             UserFavorite.user_id == current_user.id,
-            UserFavorite.model_id == model_id,
+            UserFavorite.model_project_id == model_id,
         )
         .first()
     )
@@ -124,7 +168,7 @@ async def get_favorite_status(
         db.query(UserFavorite)
         .filter(
             UserFavorite.user_id == current_user.id,
-            UserFavorite.model_id == model_id,
+            UserFavorite.model_project_id == model_id,
         )
         .first()
     )
@@ -147,36 +191,31 @@ async def get_recent_models(
         .all()
     )
 
-    model_ids = [r.model_id for r in recents]
+    model_ids = [r.model_project_id for r in recents if r.model_project_id]
 
     if not model_ids:
         return {"items": [], "total": 0}
 
-    models = {s.id: s for s in db.query(ModelCatalog).filter(ModelCatalog.id.in_(model_ids)).all()}
+    models = {
+        s.model_project_id: s
+        for s in db.query(ModelProjectListing)
+        .filter(ModelProjectListing.model_project_id.in_(model_ids))
+        .all()
+    }
 
-    org_ids = list(
-        set(s.author_organization_id for s in models.values() if s.author_organization_id)
-    )
-    orgs = (
-        {o.id: o for o in db.query(Organization).filter(Organization.id.in_(org_ids)).all()}
-        if org_ids
-        else {}
-    )
+    authors = _author_names(db, list(models.values()))
 
     items = []
     for recent in recents:
-        model = models.get(str(recent.model_id))
+        model = models.get(recent.model_project_id)
         if model:
-            org = orgs.get(model.author_organization_id) if model.author_organization_id else None
-            cat = model.category
-            category_str = cat.value if hasattr(cat, "value") else (cat or "general")
             items.append(
                 {
-                    "id": model.id,
+                    "id": model.model_project_id,
                     "name": model.name,
                     "display_name": model.display_name,
-                    "category": category_str,
-                    "author_name": org.name if org else "Unknown",
+                    "category": model.category or "general",
+                    "author_name": authors[model.model_project_id],
                     "last_accessed": recent.last_accessed.isoformat(),
                     "access_count": recent.access_count,
                 }

@@ -1,7 +1,7 @@
 """MCP server integration tests.
 
 Validates:
-- AI-01: MCP server mounted at /mcp with 19 curated tools
+- AI-01: MCP server mounted at /mcp with 26 curated tools
 - AI-02: Tools cover solve path and marketplace path
 - AI-03: Auth passthrough (public vs protected endpoints)
 - AI-04: llms.txt served at /.well-known/llms.txt
@@ -35,16 +35,25 @@ EXPECTED_OPERATIONS = [
     "import_and_solve",
     "export_model",
     "export_execution",
-    # Marketplace
+    # Marketplace (P1.5 fusion: activate_catalog_model retired — using a model
+    # means seeding a fork ModelProject)
     "list_catalog_models",
     "get_catalog_model",
     "get_catalog_model_schema",
-    "activate_catalog_model",
-    # Execution, analysis & credits
+    # Execution & analysis
     "execute_model",
     "get_execution",
     "get_execution_insights",
-    "get_credit_balance",
+    # Model projects — create, author, version, analyze & solve a first-class model
+    "create_model_project",
+    "create_model_project_from_marketplace",
+    "get_model_project",
+    "list_model_projects",
+    "update_model_project_draft",
+    "commit_model_version",
+    "list_project_versions",
+    "get_model_stats",
+    "solve_model_project",
 ]
 
 
@@ -84,11 +93,11 @@ def test_mcp_route_exists(mcp_app):
     assert len(mcp_routes) > 0, "No /mcp routes found in app"
 
 
-# ---- AI-01: Exactly 19 tools exposed ----
+# ---- AI-01: Exactly 26 tools exposed ----
 
 
 def test_mcp_tool_count(openapi_schema):
-    """MCP server exposes exactly 19 curated tools (not 40+)."""
+    """MCP server exposes exactly the curated tool list (not 40+)."""
     all_op_ids = _extract_op_ids(openapi_schema)
 
     # All expected operations must be present
@@ -151,7 +160,6 @@ def test_marketplace_path_tools_present(openapi_schema):
         "list_catalog_models",
         "get_catalog_model",
         "get_catalog_model_schema",
-        "activate_catalog_model",
         "execute_model",
         "get_execution",
     ]
@@ -184,9 +192,9 @@ def test_mcp_auth_protected_endpoint(mcp_app):
     # solve_problem requires auth
     assert not _is_public("/api/v2/solve", "POST"), "/api/v2/solve POST should NOT be public"
 
-    # get_credit_balance requires auth
-    assert not _is_public("/api/v2/credits/balance", "GET"), (
-        "/api/v2/credits/balance GET should NOT be public"
+    # get_execution requires auth
+    assert not _is_public("/api/v2/models/executions/all", "GET"), (
+        "/api/v2/models/executions/all GET should NOT be public"
     )
 
 

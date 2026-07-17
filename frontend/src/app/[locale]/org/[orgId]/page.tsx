@@ -235,13 +235,6 @@ export default function OrganizationProfilePage() {
                     <Users className="w-3 h-3" />
                     {t("activationCount", { count: model.total_activations ?? 0 })}
                   </span>
-                  <span>
-                    {(model.price_eur ?? 0) === 0 ? (
-                      <span className="text-green-600 font-medium">{t("free")}</span>
-                    ) : (
-                      `${(model.price_eur ?? 0).toFixed(2)} \u20ac`
-                    )}
-                  </span>
                 </div>
               </Link>
             ))}

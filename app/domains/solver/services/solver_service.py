@@ -13,6 +13,7 @@ Phase 4 Plan 03 / SOLV-04 / SOLV-05.
 """
 
 import logging
+from collections.abc import Callable
 
 import numpy as np
 from sqlalchemy.orm import Session
@@ -32,6 +33,7 @@ from app.schemas.optimization import (
     OptimizationProblem,
     OptimizationResult,
     ParetoPoint,
+    ProgressPoint,
     SolverStatus,
 )
 
@@ -180,14 +182,20 @@ class SolverService:
         problem: OptimizationProblem,
         warm_start_solution: dict[str, float] | None = None,
         solver_name: str | None = None,
+        on_progress: Callable[[ProgressPoint], None] | None = None,
     ) -> OptimizationResult:
-        """Resolve adapter via registry and delegate. Raises SolverNotFoundError if not registered."""
+        """Resolve adapter via registry and delegate. Raises SolverNotFoundError if not registered.
+
+        ``on_progress`` (optional) is forwarded to the adapter for Live Solve
+        streaming; adapters whose ``capabilities.supports_progress`` is False
+        accept and ignore it.
+        """
         name = solver_name or self._default_solver_name
         # Registry errors (not found / unavailable) are contract violations —
         # propagate them so callers can catch SolverNotFoundError explicitly.
         adapter = registry.get(name)
         try:
-            return adapter.solve(problem, warm_start=warm_start_solution)
+            return adapter.solve(problem, warm_start=warm_start_solution, on_progress=on_progress)
         except (SolverNotFoundError, SolverUnavailableError):
             raise
         except Exception as exc:

@@ -10,9 +10,17 @@ import-cheap.
 
 from __future__ import annotations
 
+from app.domains.solver.services.classify import ProblemClass, classify
 from app.domains.solver.services.expression_parser import ExpressionParser
 
-__all__ = ["SolverService", "get_solver_service", "ExpressionParser", "compute_iis"]
+__all__ = [
+    "SolverService",
+    "get_solver_service",
+    "ExpressionParser",
+    "compute_iis",
+    "classify",
+    "ProblemClass",
+]
 
 
 def __getattr__(name: str) -> object:

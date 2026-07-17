@@ -5,7 +5,7 @@ import path from "path";
 import fs from "fs";
 
 // WR-03: project-launch sentinel — the single source of truth for every "no honest
-// mtime available yet" fallback in this file (missing-MDX docs, sellers without an
+// mtime available yet" fallback in this file (missing-MDX docs, authors without an
 // exposed author_created_at, and any static path that somehow lacks a lastMod).
 // Update yearly until the backend exposes real mtimes for orgs and missing-MDX paths.
 const FALLBACK_LAST_MODIFIED = new Date("2026-01-01");
@@ -42,9 +42,9 @@ interface CatalogModel {
   author_organization_id?: string | null;
   // v2.4 TODO: expose OrganizationPublicProfile.created_at through the catalog response.
   // Organization ORM has no updated_at column. Option A (RESEARCH § Critical Backend Gap):
-  // use org.created_at as lastModified for seller entries. Currently NOT in the API response
+  // use org.created_at as lastModified for author entries. Currently NOT in the API response
   // (Plan 01 only added updated_at; author_created_at is a separate additive field).
-  // Until exposed, seller entries fall back to new Date("2026-01-01").
+  // Until exposed, author entries fall back to new Date("2026-01-01").
   author_created_at?: string | null;
 }
 
@@ -101,7 +101,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Dynamic entries from catalog API
   let modelEntries: MetadataRoute.Sitemap = [];
-  let sellerEntries: MetadataRoute.Sitemap = [];
+  let authorEntries: MetadataRoute.Sitemap = [];
 
   try {
     const apiUrl =
@@ -148,17 +148,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         alternates: { languages: buildAlternates(`/marketplace/${model.id}`) },
       }));
 
-    // Seller profile entries from unique org IDs
+    // Author profile entries from unique org IDs
     // D-06 Option A: use author_created_at (org.created_at) when available.
     // FALLBACK: new Date("2026-01-01") when author_created_at is not in the response.
     // author_created_at is NOT currently returned by the catalog endpoint (Plan 01
     // added only updated_at; Organization ORM has no updated_at column).
     // v2.4 TODO: expose OrganizationPublicProfile.created_at through the catalog response
-    // so seller entries get honest lastModified values (tracked in CatalogModel interface above).
-    // WR-01: same id-sanitization guard for seller orgIds — a malformed
-    // author_organization_id would emit an unencoded /marketplace/sellers/<bad> URL.
+    // so author entries get honest lastModified values (tracked in CatalogModel interface above).
+    // WR-01: same id-sanitization guard for author orgIds — a malformed
+    // author_organization_id would emit an unencoded /marketplace/authors/<bad> URL.
     // Capture the first model per org in the SAME pass that dedupes org IDs — the
-    // representative model supplies the seller's lastModified. Avoids a second
+    // representative model supplies the author's lastModified. Avoids a second
     // O(orgs × models) scan (a models.find per unique org) to recover data this loop
     // already walks past. Map preserves first-insertion order, matching the previous
     // Set-then-find ordering exactly.
@@ -170,17 +170,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
     }
 
-    sellerEntries = Array.from(orgFirstModel, ([orgId, orgModel]) => {
-      const sellerDate = safeDate(
+    authorEntries = Array.from(orgFirstModel, ([orgId, orgModel]) => {
+      const authorDate = safeDate(
         orgModel.author_created_at,
         FALLBACK_LAST_MODIFIED, // WR-03: shared launch sentinel
       );
       return {
-        url: `${BASE_URL}/marketplace/sellers/${orgId}`,
-        lastModified: sellerDate,
+        url: `${BASE_URL}/marketplace/authors/${orgId}`,
+        lastModified: authorDate,
         changeFrequency: "weekly" as const,
         priority: 0.6,
-        alternates: { languages: buildAlternates(`/marketplace/sellers/${orgId}`) },
+        alternates: { languages: buildAlternates(`/marketplace/authors/${orgId}`) },
       };
     });
   } catch (err) {
@@ -188,10 +188,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // WR-04: log so a silently-empty catalog block (typo'd proxy URL, backend down,
     // mid-walk failure per CR-02) surfaces in SSR logs instead of only via a Google
     // Search Console alert days later.
-    console.error("[sitemap] catalog/seller block failed — emitting static + docs only", {
+    console.error("[sitemap] catalog/author block failed — emitting static + docs only", {
       error: err instanceof Error ? err.message : String(err),
     });
   }
 
-  return [...staticEntries, ...docEntries, ...modelEntries, ...sellerEntries];
+  return [...staticEntries, ...docEntries, ...modelEntries, ...authorEntries];
 }

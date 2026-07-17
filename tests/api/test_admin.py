@@ -5,15 +5,13 @@ These tests verify the admin CRUD functionality:
 - Organizations CRUD
 - Users CRUD
 - API Keys management
-- Credits/Transactions
 - Models management
 """
 
 from app.models import (
     APIKey,
-    CreditTransaction,
-    ModelCatalog,
     ModelCategory,
+    ModelProjectListing,
     Organization,
     User,
 )
@@ -58,7 +56,6 @@ class TestAdminOrganizations:
             id="org_plan_test",
             name="Plan Test Org",
             plan="business",
-            credits_balance=1000,
             is_active=True,
         )
         db_session.add(org)
@@ -78,7 +75,6 @@ class TestAdminOrganizations:
             org = Organization(
                 id=f"org_pagination_{i}",
                 name=f"Pagination Org {i}",
-                credits_balance=100,
                 is_active=True,
             )
             db_session.add(org)
@@ -117,8 +113,6 @@ class TestAdminOrganizations:
             json={
                 "name": "New Test Organization",
                 "plan": "pro",
-                "credits_balance": 500,
-                "monthly_quota": 500,
             },
         )
         assert response.status_code == 201
@@ -128,29 +122,25 @@ class TestAdminOrganizations:
         assert data["id"].startswith("org_")
         assert data["name"] == "New Test Organization"
         assert data["plan"] == "pro"
-        assert data["credits_balance"] == 500
         # DB round-trip: row must actually exist with the returned id
         created = db_session.query(Organization).filter(Organization.id == data["id"]).first()
         assert created is not None
         assert created.name == "New Test Organization"
         assert created.plan == "pro"
-        assert created.credits_balance == 500
 
     def test_update_organization(self, admin_client, db_session, test_organization):
         """Test updating organization."""
         response = admin_client.patch(
             f"/api/v2/admin/organizations/{test_organization.id}",
-            json={"name": "Updated Org Name", "credits_balance": 2000},
+            json={"name": "Updated Org Name"},
         )
         assert response.status_code == 200
         data = response.json()
 
         assert data["name"] == "Updated Org Name"
-        assert data["credits_balance"] == 2000
         # DB round-trip: relying on response body alone is not enough
         db_session.refresh(test_organization)
         assert test_organization.name == "Updated Org Name"
-        assert test_organization.credits_balance == 2000
 
     def test_update_organization_not_found(self, admin_client):
         """Test updating non-existent organization."""
@@ -165,7 +155,6 @@ class TestAdminOrganizations:
         org = Organization(
             id="org_to_delete",
             name="Delete Me",
-            credits_balance=100,
             is_active=True,
         )
         db_session.add(org)
@@ -186,9 +175,9 @@ class TestAdminOrganizations:
         """DELETE /api/v2/admin/organizations/{id} is a soft delete and preserves child rows.
 
         Documents the current cascade contract: org delete is a SOFT delete
-        (is_active=False). Child rows — users, API keys, models, executions,
-        credit transactions — are NOT cascaded/cancelled. They remain in the
-        DB attached to the now-inactive org.
+        (is_active=False). Child rows — users, API keys, models, executions —
+        are NOT cascaded/cancelled. They remain in the DB attached to the
+        now-inactive org.
 
         If the cascade contract changes (e.g., to hard delete with CASCADE
         FKs, or to disable cron schedules / cancel running solves), this
@@ -198,9 +187,8 @@ class TestAdminOrganizations:
         """
         from app.models import (
             APIKey,
-            CreditTransaction,
             ModelExecution,
-            OrganizationModel,
+            ModelProject,
             User,
         )
         from app.shared.utils.datetime_helpers import utcnow
@@ -209,13 +197,12 @@ class TestAdminOrganizations:
         org = Organization(
             id="org_cascade_target",
             name="Cascade Target Org",
-            credits_balance=500,
             is_active=True,
         )
         db_session.add(org)
         db_session.flush()
 
-        # Seed: 1 user, 1 api key, 1 org-model, 1 execution, 1 credit transaction
+        # Seed: 1 user, 1 api key, 1 model project, 1 execution
         user = User(
             id=generate_id("usr_"),
             email="cascade@example.com",
@@ -238,43 +225,32 @@ class TestAdminOrganizations:
         )
         db_session.add(api_key)
 
-        org_model = OrganizationModel(
-            id=generate_id("om_"),
+        project = ModelProject(
+            id=generate_id("mp_"),
             organization_id=org.id,
-            custom_name="Cascade Model",
-            is_active=True,
+            name="Cascade Model",
+            status="active",
         )
-        db_session.add(org_model)
+        db_session.add(project)
         db_session.flush()
 
         execution = ModelExecution(
             id=generate_id("exe_"),
             organization_id=org.id,
-            organization_model_id=org_model.id,
+            model_project_id=project.id,
             input_data={},
             status="completed",
-            credits_consumed=1,
         )
         db_session.add(execution)
 
-        tx = CreditTransaction(
-            id=generate_id("ctx_"),
-            organization_id=org.id,
-            credits_amount=100,
-            balance_after=600,
-            transaction_type="purchase",
-            description="Cascade test transaction",
-        )
-        db_session.add(tx)
         db_session.commit()
 
         # Capture seeded ids for post-delete assertions
         seeded_ids = {
             "user": user.id,
             "key": api_key.id,
-            "model": org_model.id,
+            "model": project.id,
             "execution": execution.id,
-            "tx": tx.id,
         }
 
         # Perform admin delete
@@ -294,23 +270,15 @@ class TestAdminOrganizations:
             db_session.query(APIKey).filter(APIKey.id == seeded_ids["key"]).first() is not None
         ), "APIKey row was wiped — soft delete contract violated"
         assert (
-            db_session.query(OrganizationModel)
-            .filter(OrganizationModel.id == seeded_ids["model"])
-            .first()
+            db_session.query(ModelProject).filter(ModelProject.id == seeded_ids["model"]).first()
             is not None
-        ), "OrganizationModel row was wiped — soft delete contract violated"
+        ), "ModelProject row was wiped — soft delete contract violated"
         assert (
             db_session.query(ModelExecution)
             .filter(ModelExecution.id == seeded_ids["execution"])
             .first()
             is not None
         ), "ModelExecution row was wiped — soft delete contract violated"
-        assert (
-            db_session.query(CreditTransaction)
-            .filter(CreditTransaction.id == seeded_ids["tx"])
-            .first()
-            is not None
-        ), "CreditTransaction row was wiped — soft delete contract violated"
 
 
 class TestAdminOrganizationOverview:
@@ -320,37 +288,26 @@ class TestAdminOrganizationOverview:
         self, admin_client, db_session, test_organization, test_user, test_api_key
     ):
         """Overview aggregates the org's members, keys, models and stats."""
-        from app.models import CreditTransaction, ModelExecution, OrganizationModel
+        from app.models import ModelExecution, ModelProject
         from app.shared.utils.id_generator import generate_id
 
-        org_model = OrganizationModel(
-            id=generate_id("om_"),
+        project = ModelProject(
+            id=generate_id("mp_"),
             organization_id=test_organization.id,
-            custom_name="Overview Model",
-            is_active=True,
-            total_executions=2,
-            total_credits_used=4,
+            name="Overview Model",
+            status="active",
         )
-        db_session.add(org_model)
+        db_session.add(project)
         db_session.flush()
 
         execution = ModelExecution(
             id=generate_id("exe_"),
             organization_id=test_organization.id,
-            organization_model_id=org_model.id,
+            model_project_id=project.id,
             input_data={},
             status="completed",
-            credits_consumed=3,
         )
-        tx = CreditTransaction(
-            id=generate_id("ctx_"),
-            organization_id=test_organization.id,
-            credits_amount=100,
-            balance_after=100,
-            transaction_type="purchase",
-            description="Overview test transaction",
-        )
-        db_session.add_all([execution, tx])
+        db_session.add(execution)
         db_session.commit()
 
         response = admin_client.get(f"/api/v2/admin/organizations/{test_organization.id}/overview")
@@ -368,13 +325,16 @@ class TestAdminOrganizationOverview:
         assert data["counts"]["users"] >= 1
         assert data["counts"]["api_keys"] >= 1
 
-        # Models + executions + transactions surfaced
-        assert org_model.id in [m["id"] for m in data["models"]]
-        assert execution.id in [e["id"] for e in data["recent_executions"]]
-        assert tx.id in [t["id"] for t in data["recent_transactions"]]
+        # Models + executions surfaced (per-project rollups computed from executions)
+        models_by_id = {m["id"]: m for m in data["models"]}
+        assert project.id in models_by_id
+        assert models_by_id[project.id]["display_name"] == "Overview Model"
+        assert models_by_id[project.id]["total_executions"] == 1
+        recent = {e["id"]: e for e in data["recent_executions"]}
+        assert execution.id in recent
+        assert recent[execution.id]["model_display_name"] == "Overview Model"
         assert data["counts"]["executions"] >= 1
         assert data["execution_stats"]["completed"] >= 1
-        assert data["execution_stats"]["credits_consumed_total"] >= 3
 
         # Read-only view must never leak the API key secret material
         for key in data["api_keys"]:
@@ -417,14 +377,12 @@ class TestAdminOrganizationOverview:
         from app.models import ModelExecution
         from app.shared.utils.id_generator import generate_id
 
-        org = Organization(
-            id=generate_id("org_"), name="Stats Org", credits_balance=100, is_active=True
-        )
+        org = Organization(id=generate_id("org_"), name="Stats Org", is_active=True)
         db_session.add(org)
         db_session.flush()
 
-        # (status, credits_consumed) — one execution per terminal/active status
-        for status, credits in [
+        # one execution per terminal/active status
+        for status, _ in [
             ("completed", 1),
             ("failed", 2),
             ("timeout", 3),
@@ -438,7 +396,6 @@ class TestAdminOrganizationOverview:
                     organization_id=org.id,
                     input_data={},
                     status=status,
-                    credits_consumed=credits,
                 )
             )
         db_session.commit()
@@ -451,7 +408,6 @@ class TestAdminOrganizationOverview:
         assert stats["completed"] == 1
         assert stats["failed"] == 3  # failed + timeout + cancelled
         assert stats["running"] == 2  # running + pending
-        assert stats["credits_consumed_total"] == 21  # 1+2+3+4+5+6
 
 
 class TestAdminUsers:
@@ -647,106 +603,41 @@ class TestAdminAPIKeys:
         assert deleted is None
 
 
-class TestAdminCredits:
-    """Tests for admin credits endpoints."""
-
-    def test_list_transactions(self, admin_client, db_session, test_organization):
-        """Test listing credit transactions."""
-        tx = CreditTransaction(
-            id="tx_test_list",
-            organization_id=test_organization.id,
-            credits_amount=100,
-            balance_after=100,
-            transaction_type="purchase",
-            description="Test transaction",
-        )
-        db_session.add(tx)
-        db_session.commit()
-
-        response = admin_client.get("/api/v2/admin/credits/transactions")
-        assert response.status_code == 200
-        data = response.json()
-
-        assert "items" in data
-        assert data["total"] >= 1
-
-    def test_list_transactions_filter_by_org(
-        self, admin_client, db_session, test_organization, test_organization_2
-    ):
-        """Test filtering transactions by organization excludes other-org rows."""
-        own_tx = CreditTransaction(
-            id="tx_filter_own",
-            organization_id=test_organization.id,
-            credits_amount=100,
-            balance_after=100,
-            transaction_type="purchase",
-            description="Own transaction",
-        )
-        other_tx = CreditTransaction(
-            id="tx_filter_other",
-            organization_id=test_organization_2.id,
-            credits_amount=50,
-            balance_after=50,
-            transaction_type="purchase",
-            description="Other-org transaction",
-        )
-        db_session.add_all([own_tx, other_tx])
-        db_session.commit()
-
-        response = admin_client.get(
-            f"/api/v2/admin/credits/transactions?organization_id={test_organization.id}"
-        )
-        assert response.status_code == 200
-        data = response.json()
-
-        item_ids = [t["id"] for t in data["items"]]
-        assert "tx_filter_own" in item_ids
-        assert "tx_filter_other" not in item_ids
-        for item in data["items"]:
-            assert item["organization_id"] == test_organization.id
-
-    def test_add_credits(self, admin_client, db_session, test_organization):
-        """Test adding credits to organization."""
-        initial_balance = test_organization.credits_balance
-
-        response = admin_client.post(
-            "/api/v2/admin/credits/adjust",
-            json={
-                "organization_id": test_organization.id,
-                "amount": 500,
-                "reason": "Admin credit grant",
-            },
-        )
-        assert response.status_code == 200
-
-        db_session.refresh(test_organization)
-        assert test_organization.credits_balance == initial_balance + 500
-
-
 class TestAdminModels:
-    """Tests for admin models endpoints."""
+    """Tests for admin models endpoints (marketplace listings, P1.5 fusion)."""
 
-    def test_list_catalog_models(self, admin_client, db_session):
-        """Test listing catalog models."""
-        model = ModelCatalog(
-            id="admin_test_model",
-            name="admin_test",
-            display_name="Admin Test Model",
+    def _make_listing(self, db_session, test_organization, pid: str) -> ModelProjectListing:
+        from app.models import ModelProject
+
+        db_session.add(
+            ModelProject(
+                id=pid,
+                organization_id=test_organization.id,
+                name="Admin " + pid,
+                status="active",
+            )
+        )
+        db_session.flush()
+        listing = ModelProjectListing(
+            model_project_id=pid,
+            name=pid,
+            display_name="Admin Listing " + pid,
             description="For admin testing",
-            category=ModelCategory.GENERAL,
-            generator_type="generic",
-            input_schema={},
-            input_fields=[],
-            example_input={},
+            category=ModelCategory.GENERAL.value,
             version="1.0.0",
             status="published",
             is_official=False,
+            is_featured=False,
             is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
+            author_organization_id=test_organization.id,
         )
-        db_session.add(model)
+        db_session.add(listing)
         db_session.commit()
+        return listing
+
+    def test_list_catalog_models(self, admin_client, db_session, test_organization):
+        """Test listing marketplace listings."""
+        self._make_listing(db_session, test_organization, "admin_test_model")
 
         response = admin_client.get("/api/v2/admin/models")
         assert response.status_code == 200
@@ -754,38 +645,33 @@ class TestAdminModels:
 
         assert "items" in data
         assert data["total"] >= 1
+        assert "admin_test_model" in [m["id"] for m in data["items"]]
 
-    def test_update_model_badges(self, admin_client, db_session):
-        """Test updating model badges (official, featured)."""
-        model = ModelCatalog(
-            id="admin_badge_model",
-            name="badge_test",
-            display_name="Badge Test Model",
-            description="For badge testing",
-            category=ModelCategory.GENERAL,
-            generator_type="generic",
-            input_schema={},
-            input_fields=[],
-            example_input={},
-            version="1.0.0",
-            status="published",
-            is_official=False,
-            is_featured=False,
-            is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
-        )
-        db_session.add(model)
-        db_session.commit()
+    def test_update_model_badges(self, admin_client, db_session, test_organization):
+        """Test updating listing badges (official, featured)."""
+        listing = self._make_listing(db_session, test_organization, "admin_badge_model")
 
         response = admin_client.patch(
-            f"/api/v2/admin/models/{model.id}", json={"is_official": True, "is_featured": True}
+            "/api/v2/admin/models/admin_badge_model",
+            json={"is_official": True, "is_featured": True},
         )
         assert response.status_code == 200
 
-        db_session.refresh(model)
-        assert model.is_official
-        assert model.is_featured
+        db_session.refresh(listing)
+        assert listing.is_official
+        assert listing.is_featured
+
+    def test_toggle_visibility(self, admin_client, db_session, test_organization):
+        """Test toggling listing visibility."""
+        listing = self._make_listing(db_session, test_organization, "admin_vis_model")
+
+        response = admin_client.patch(
+            "/api/v2/admin/models/admin_vis_model/visibility?is_public=false"
+        )
+        assert response.status_code == 200
+
+        db_session.refresh(listing)
+        assert listing.is_public is False
 
 
 class TestAdminRequiresAuth:

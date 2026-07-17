@@ -25,21 +25,6 @@ from app.schemas.common import (
     TimestampMixin,
 )
 
-# Credits
-from app.schemas.credits import (
-    AllRatesResponse,
-    CreditAdjustment,
-    CreditBalanceResponse,
-    CurrencyRequest,
-    ExchangeRateResponse,
-    ScheduleRequest,
-    ScheduleResponse,
-    TransactionListResponse,
-    TransactionResponse,
-    WithdrawalRequest,
-    WithdrawalResponse,
-)
-
 # Health
 from app.schemas.health import (
     HealthResponse,
@@ -49,9 +34,7 @@ from app.schemas.health import (
 
 # Optimization Models
 from app.schemas.model import (
-    ActivateModelRequest,
     AsyncExecutionResponse,
-    CreatePrivateModelRequest,
     ExecuteModelRequest,
     ExecutionListResponse,
     ExecutionStatusResponse,
@@ -59,13 +42,10 @@ from app.schemas.model import (
     ModelCatalogListResponse,
     ModelCatalogResponse,
     ModelExecutionResponse,
-    OrganizationModelListResponse,
-    OrganizationModelResponse,
     PublishModelRequest,
     ReviewCreate,
     ReviewListResponse,
     ReviewResponse,
-    UpdateModelRequest,
 )
 
 # Optimization (solver)
@@ -128,11 +108,6 @@ __all__ = [
     # Models
     "ModelCatalogResponse",
     "ModelCatalogListResponse",
-    "OrganizationModelResponse",
-    "OrganizationModelListResponse",
-    "ActivateModelRequest",
-    "CreatePrivateModelRequest",
-    "UpdateModelRequest",
     "PublishModelRequest",
     "ExecuteModelRequest",
     "ModelExecutionResponse",
@@ -144,17 +119,6 @@ __all__ = [
     "ReviewResponse",
     "ReviewListResponse",
     # Credits
-    "ExchangeRateResponse",
-    "AllRatesResponse",
-    "CreditBalanceResponse",
-    "TransactionResponse",
-    "TransactionListResponse",
-    "WithdrawalRequest",
-    "WithdrawalResponse",
-    "ScheduleRequest",
-    "ScheduleResponse",
-    "CurrencyRequest",
-    "CreditAdjustment",
     # API Keys
     "CreateKeyRequest",
     "APIKeyInfo",

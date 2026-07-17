@@ -368,6 +368,17 @@ main() {
 
     send_success_notification "${backup_size}" "${duration}" "${offsite_status:-skipped}"
 
+    # Expose success for the stale-backup alert: node_exporter's textfile collector
+    # scrapes this file (mounted read-only in docker-compose.prod.yml). Written
+    # atomically so a partial file is never scraped.
+    mkdir -p "${BACKUP_DIR}/metrics"
+    {
+        echo "# HELP jaot_backup_last_success_timestamp_seconds Unix time of the last successful pg_dump backup"
+        echo "# TYPE jaot_backup_last_success_timestamp_seconds gauge"
+        echo "jaot_backup_last_success_timestamp_seconds ${end_epoch}"
+    } > "${BACKUP_DIR}/metrics/jaot_backup.prom.tmp"
+    mv "${BACKUP_DIR}/metrics/jaot_backup.prom.tmp" "${BACKUP_DIR}/metrics/jaot_backup.prom"
+
     log "Backup completed in ${duration}s"
     log "=========================================="
 }

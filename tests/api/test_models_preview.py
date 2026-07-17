@@ -1,17 +1,69 @@
 """
 Tests for Model Preview API.
 
-Tests the preview endpoint that renders a model template
-into an OptimizationProblem without solving it.
+Tests the preview endpoint that renders a generator-backed model (a ModelProject
+resolving a generator listing — P1.5 fusion) into an OptimizationProblem without
+solving it.
 """
 
 from app.models import (
-    ModelCatalog,
-    ModelCategory,
+    ModelProject,
+    ModelProjectListing,
     Organization,
-    OrganizationModel,
 )
 from app.shared.utils.datetime_helpers import utcnow
+
+_BUDGET_FIELDS = [
+    {"name": "total_budget", "type": "number", "label": "Budget"},
+    {"name": "departments", "type": "array", "label": "Departments"},
+]
+
+_BUDGET_INPUT = {
+    "total_budget": 100000,
+    "departments": [
+        {"name": "Engineering", "min_pct": 0.2, "max_pct": 0.5},
+        {"name": "Marketing", "min_pct": 0.1, "max_pct": 0.3},
+    ],
+}
+
+
+def _seed_budget_fork(db, org_id: str, suffix: str, *, fork_status: str = "active") -> str:
+    """A fork ModelProject of a budget_allocation generator listing. Returns its id."""
+    db.add(
+        ModelProject(
+            id=f"prevsrc_{suffix}",
+            organization_id=org_id,
+            name=f"prevsrc_{suffix}",
+            status="active",
+        )
+    )
+    db.flush()
+    db.add(
+        ModelProjectListing(
+            model_project_id=f"prevsrc_{suffix}",
+            name=f"prevsrc_{suffix}",
+            display_name="Preview Listing",
+            description="For preview testing",
+            generator_type="budget_allocation",
+            input_schema={},
+            input_fields=_BUDGET_FIELDS,
+            example_input=_BUDGET_INPUT,
+            status="published",
+            is_public=True,
+            author_organization_id=org_id,
+        )
+    )
+    fork = ModelProject(
+        id=f"prevfork_{suffix}",
+        organization_id=org_id,
+        name="Preview fork",
+        status=fork_status,
+        source_type="marketplace",
+        source_ref=f"prevsrc_{suffix}",
+    )
+    db.add(fork)
+    db.commit()
+    return fork.id
 
 
 class TestPreviewModel:
@@ -25,41 +77,14 @@ class TestPreviewModel:
         )
         assert response.status_code == 404
 
-    def test_preview_model_inactive(self, authenticated_client, db_session, test_organization):
-        """Test previewing inactive model returns 404."""
-        catalog = ModelCatalog(
-            id="test_preview_inactive_catalog",
-            name="preview_inactive",
-            display_name="Preview Inactive",
-            description="For preview testing",
-            category=ModelCategory.GENERAL,
-            generator_type="budget_allocation",
-            input_schema={},
-            input_fields=[
-                {"name": "total_budget", "type": "number", "label": "Budget"},
-                {"name": "departments", "type": "array", "label": "Departments"},
-            ],
-            example_input={},
-            version="1.0.0",
-            status="published",
-            is_official=False,
-            is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
+    def test_preview_model_archived(self, authenticated_client, db_session, test_organization):
+        """Test previewing an archived model returns 404."""
+        model_id = _seed_budget_fork(
+            db_session, test_organization.id, "inactive", fork_status="archived"
         )
-        db_session.add(catalog)
-
-        org_model = OrganizationModel(
-            id="test_preview_inactive_model",
-            organization_id=test_organization.id,
-            catalog_id="test_preview_inactive_catalog",
-            is_active=False,
-        )
-        db_session.add(org_model)
-        db_session.commit()
 
         response = authenticated_client.post(
-            "/api/v2/models/test_preview_inactive_model/preview",
+            f"/api/v2/models/{model_id}/preview",
             json={"input_data": {}},
         )
         assert response.status_code == 404
@@ -72,99 +97,52 @@ class TestPreviewModel:
             id="some_other_org_id",
             name="Other Org",
             plan="free",
-            credits_balance=0,
             created_at=utcnow(),
         )
         db_session.add(other_org)
-
-        catalog = ModelCatalog(
-            id="test_preview_other_org_catalog",
-            name="preview_other_org",
-            display_name="Preview Other Org",
-            description="For org isolation testing",
-            category=ModelCategory.GENERAL,
-            generator_type="budget_allocation",
-            input_schema={},
-            input_fields=[
-                {"name": "total_budget", "type": "number", "label": "Budget"},
-            ],
-            example_input={},
-            version="1.0.0",
-            status="published",
-            is_official=False,
-            is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
-        )
-        db_session.add(catalog)
-
-        org_model = OrganizationModel(
-            id="test_preview_other_org_model",
-            organization_id="some_other_org_id",
-            catalog_id="test_preview_other_org_catalog",
-            is_active=True,
-        )
-        db_session.add(org_model)
-        db_session.commit()
+        db_session.flush()
+        model_id = _seed_budget_fork(db_session, "some_other_org_id", "otherorg")
 
         response = authenticated_client.post(
-            "/api/v2/models/test_preview_other_org_model/preview",
+            f"/api/v2/models/{model_id}/preview",
             json={"input_data": {}},
         )
         assert response.status_code == 404
+
+    def test_preview_static_project_rejected(
+        self, authenticated_client, db_session, test_organization
+    ):
+        """A non-generator model has no input schema to preview → 422."""
+        db_session.add(
+            ModelProject(
+                id="test_preview_static",
+                organization_id=test_organization.id,
+                name="Static model",
+                status="active",
+                draft_model_json={
+                    "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
+                    "objective": {"sense": "minimize", "expression": "x"},
+                },
+            )
+        )
+        db_session.commit()
+
+        response = authenticated_client.post(
+            "/api/v2/models/test_preview_static/preview",
+            json={"input_data": {}},
+        )
+        assert response.status_code == 422
+        assert "not generator-backed" in response.json()["detail"]
 
     def test_preview_returns_optimization_problem(
         self, authenticated_client, db_session, test_organization
     ):
         """Test successful preview returns OptimizationProblem structure."""
-        catalog = ModelCatalog(
-            id="test_preview_success_catalog",
-            name="preview_success",
-            display_name="Preview Success",
-            description="For success testing",
-            category=ModelCategory.FINANCE,
-            generator_type="budget_allocation",
-            input_schema={},
-            input_fields=[
-                {"name": "total_budget", "type": "number", "label": "Budget"},
-                {"name": "departments", "type": "array", "label": "Departments"},
-            ],
-            example_input={
-                "total_budget": 100000,
-                "departments": [
-                    {"name": "Engineering", "min_pct": 0.2, "max_pct": 0.5},
-                    {"name": "Marketing", "min_pct": 0.1, "max_pct": 0.3},
-                ],
-            },
-            version="1.0.0",
-            status="published",
-            is_official=False,
-            is_public=True,
-            price_eur=0.0,
-            credits_per_execution=1,
-        )
-        db_session.add(catalog)
-
-        org_model = OrganizationModel(
-            id="test_preview_success_model",
-            organization_id=test_organization.id,
-            catalog_id="test_preview_success_catalog",
-            is_active=True,
-        )
-        db_session.add(org_model)
-        db_session.commit()
+        model_id = _seed_budget_fork(db_session, test_organization.id, "success")
 
         response = authenticated_client.post(
-            "/api/v2/models/test_preview_success_model/preview",
-            json={
-                "input_data": {
-                    "total_budget": 100000,
-                    "departments": [
-                        {"name": "Engineering", "min_pct": 0.2, "max_pct": 0.5},
-                        {"name": "Marketing", "min_pct": 0.1, "max_pct": 0.3},
-                    ],
-                }
-            },
+            f"/api/v2/models/{model_id}/preview",
+            json={"input_data": _BUDGET_INPUT},
         )
 
         assert response.status_code == 200
@@ -181,58 +159,3 @@ class TestPreviewModel:
         for var in data["variables"]:
             assert "name" in var
             assert "type" in var
-
-    def test_preview_does_not_deduct_credits(
-        self, authenticated_client, db_session, test_organization
-    ):
-        """Test that preview does NOT deduct credits (read-only operation)."""
-        initial_credits = test_organization.credits_balance
-
-        catalog = ModelCatalog(
-            id="test_preview_no_credits_catalog",
-            name="preview_no_credits",
-            display_name="Preview No Credits",
-            description="For credit testing",
-            category=ModelCategory.FINANCE,
-            generator_type="budget_allocation",
-            input_schema={},
-            input_fields=[
-                {"name": "total_budget", "type": "number", "label": "Budget"},
-                {"name": "departments", "type": "array", "label": "Departments"},
-            ],
-            example_input={},
-            version="1.0.0",
-            status="published",
-            is_official=False,
-            is_public=True,
-            price_eur=0.0,
-            credits_per_execution=5,
-        )
-        db_session.add(catalog)
-
-        org_model = OrganizationModel(
-            id="test_preview_no_credits_model",
-            organization_id=test_organization.id,
-            catalog_id="test_preview_no_credits_catalog",
-            is_active=True,
-        )
-        db_session.add(org_model)
-        db_session.commit()
-
-        response = authenticated_client.post(
-            "/api/v2/models/test_preview_no_credits_model/preview",
-            json={
-                "input_data": {
-                    "total_budget": 50000,
-                    "departments": [
-                        {"name": "Sales", "min_pct": 0.3, "max_pct": 0.7},
-                    ],
-                }
-            },
-        )
-
-        assert response.status_code == 200
-
-        # Credits should be unchanged
-        db_session.refresh(test_organization)
-        assert test_organization.credits_balance == initial_credits

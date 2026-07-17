@@ -68,46 +68,6 @@ export interface paths {
         patch: operations["toggle_api_key_api_v2_admin_api_keys__key_id__toggle_patch"];
         trace?: never;
     };
-    "/api/v2/admin/credits/adjust": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Adjust Credits
-         * @description Manually adjust organization credits.
-         */
-        post: operations["adjust_credits_api_v2_admin_credits_adjust_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/admin/credits/transactions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Transactions
-         * @description List credit transactions.
-         */
-        get: operations["list_transactions_api_v2_admin_credits_transactions_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v2/admin/feedback": {
         parameters: {
             query?: never;
@@ -193,66 +153,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v2/admin/marketplace/promotions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Admin Promotions
-         * @description List all active and recent placements with org/model names.
-         */
-        get: operations["get_admin_promotions_api_v2_admin_marketplace_promotions_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/admin/marketplace/promotions/{placement_id}/extend": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Extend Promotion
-         * @description Extend a placement's expiration (admin action).
-         */
-        post: operations["extend_promotion_api_v2_admin_marketplace_promotions__placement_id__extend_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/admin/marketplace/promotions/{placement_id}/revoke": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Revoke Promotion
-         * @description Revoke an active placement (admin action).
-         */
-        post: operations["revoke_promotion_api_v2_admin_marketplace_promotions__placement_id__revoke_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v2/admin/marketplace/seller-analytics": {
         parameters: {
             query?: never;
@@ -261,13 +161,13 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Admin Seller Analytics
-         * @description Get platform-wide analytics with seller leaderboard.
+         * Get Admin Author Analytics
+         * @description Get platform-wide analytics with the author leaderboard.
          *
          *     Returns aggregated platform totals (org_id=None) and a ranked list
-         *     of sellers by revenue.
+         *     of model authors by adoption.
          */
-        get: operations["get_admin_seller_analytics_api_v2_admin_marketplace_seller_analytics_get"];
+        get: operations["get_admin_author_analytics_api_v2_admin_marketplace_seller_analytics_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -284,10 +184,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Admin Seller Detail
-         * @description Admin drill-down: get analytics summary for a specific seller.
+         * Get Admin Author Detail
+         * @description Admin drill-down: get analytics summary for a specific author org.
          */
-        get: operations["get_admin_seller_detail_api_v2_admin_marketplace_seller_analytics__org_id__get"];
+        get: operations["get_admin_author_detail_api_v2_admin_marketplace_seller_analytics__org_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -345,7 +245,7 @@ export interface paths {
         };
         /**
          * List All Models
-         * @description List all models in the catalog (admin view).
+         * @description List all marketplace listings (admin view).
          */
         get: operations["list_all_models_api_v2_admin_models_get"];
         put?: never;
@@ -371,7 +271,7 @@ export interface paths {
         head?: never;
         /**
          * Update Model Badges
-         * @description Update model badges (official, featured, public).
+         * @description Update listing badges (official, featured, public).
          */
         patch: operations["update_model_badges_api_v2_admin_models__model_id__patch"];
         trace?: never;
@@ -391,7 +291,7 @@ export interface paths {
         head?: never;
         /**
          * Toggle Model Visibility
-         * @description Toggle model public visibility.
+         * @description Toggle listing public visibility.
          */
         patch: operations["toggle_model_visibility_api_v2_admin_models__model_id__visibility_patch"];
         trace?: never;
@@ -460,7 +360,7 @@ export interface paths {
          * @description Rich read-only overview of one organization for platform admins.
          *
          *     Aggregates everything an admin needs to "see" an org without editing it:
-         *     members, API keys, models, recent solve executions, credit movements, and
+         *     members, API keys, models, recent solve executions, and
          *     usage/limit configuration. Read-only — no row is mutated here.
          */
         get: operations["get_organization_overview_api_v2_admin_organizations__org_id__overview_get"];
@@ -550,31 +450,6 @@ export interface paths {
         get: operations["get_platform_reliability"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/admin/reconciliation/run": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Trigger Reconciliation
-         * @description Manually trigger balance reconciliation (D-25).
-         *
-         *     Runs synchronously and returns results. For async execution,
-         *     use the Celery beat task.
-         *     Uses ReconciliationService -- same logic as the Celery task
-         *     (no duplication).
-         */
-        post: operations["trigger_reconciliation_api_v2_admin_reconciliation_run_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -683,32 +558,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v2/admin/settings/commission": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Commission Rate
-         * @description Get the current marketplace commission rate.
-         */
-        get: operations["get_commission_rate_api_v2_admin_settings_commission_get"];
-        /**
-         * Update Commission Rate
-         * @description Update the marketplace commission rate.
-         *
-         *     Rate must be between 0.0 (0%) and 0.50 (50%).
-         */
-        put: operations["update_commission_rate_api_v2_admin_settings_commission_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v2/admin/settings/plans": {
         parameters: {
             query?: never;
@@ -720,7 +569,7 @@ export interface paths {
          * Get Plan Tiers
          * @description Return all plan tier configurations.
          *
-         *     Returns all 4 plans (free, starter, pro, business) with 9 fields each.
+         *     Returns all 4 plans (free, starter, pro, business) with 7 fields each.
          */
         get: operations["get_plan_tiers_api_v2_admin_settings_plans_get"];
         /**
@@ -881,73 +730,6 @@ export interface paths {
          * @description Update user.
          */
         patch: operations["update_user_api_v2_admin_users__user_id__patch"];
-        trace?: never;
-    };
-    "/api/v2/admin/withdrawals": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Withdrawals
-         * @description List withdrawals, optionally filtered by status and organization.
-         */
-        get: operations["list_withdrawals_api_v2_admin_withdrawals_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/admin/withdrawals/{withdrawal_id}/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Approve Withdrawal
-         * @description Approve a pending withdrawal and trigger Stripe Connect payout (D-26).
-         *
-         *     On approval:
-         *     1. Validate withdrawal is in pending/processing status
-         *     2. Verify org has completed Stripe Connect onboarding
-         *     3. Verify org has accepted Seller ToS
-         *     4. Create Stripe Transfer to seller's Connect account
-         *     5. Update withdrawal status to completed
-         */
-        post: operations["approve_withdrawal_api_v2_admin_withdrawals__withdrawal_id__approve_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/admin/withdrawals/{withdrawal_id}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Reject Withdrawal
-         * @description Reject a pending withdrawal and refund credits.
-         */
-        post: operations["reject_withdrawal_api_v2_admin_withdrawals__withdrawal_id__reject_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/api/v2/auth/forgot-password": {
@@ -1165,211 +947,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v2/billing/checkout/subscription": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create Subscription Checkout
-         * @description Create a Stripe Checkout session for a subscription plan.
-         */
-        post: operations["create_subscription_checkout_api_v2_billing_checkout_subscription_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/billing/checkout/topup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create Topup Checkout
-         * @description Create a Stripe Checkout session for a credit top-up.
-         */
-        post: operations["create_topup_checkout_api_v2_billing_checkout_topup_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/billing/invoices": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Invoices
-         * @description List invoices for the current organization.
-         */
-        get: operations["list_invoices_api_v2_billing_invoices_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/billing/invoices/{invoice_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Invoice
-         * @description Get a specific invoice.
-         */
-        get: operations["get_invoice_api_v2_billing_invoices__invoice_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/billing/invoices/{invoice_id}/html": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Invoice Html
-         * @description Get an invoice rendered as printable HTML (use browser Print to save as PDF).
-         */
-        get: operations["get_invoice_html_api_v2_billing_invoices__invoice_id__html_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/billing/portal": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create Billing Portal
-         * @description Create a Stripe Billing Portal session for self-service management.
-         */
-        post: operations["create_billing_portal_api_v2_billing_portal_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/billing/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Billing Status
-         * @description Get billing status for the current organization.
-         */
-        get: operations["get_billing_status_api_v2_billing_status_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/billing/subscription": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Subscription
-         * @description Get current subscription details.
-         */
-        get: operations["get_subscription_api_v2_billing_subscription_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/billing/subscription/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Cancel Subscription
-         * @description Cancel subscription at end of current billing period.
-         */
-        post: operations["cancel_subscription_api_v2_billing_subscription_cancel_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/billing/webhook": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Stripe Webhook
-         * @description Stripe webhook endpoint.
-         *
-         *     This endpoint receives events from Stripe and processes them.
-         *     It must be publicly accessible (no auth middleware).
-         *     Configure the webhook URL in Stripe Dashboard:
-         *         https://your-domain.com/api/v2/billing/webhook
-         */
-        post: operations["stripe_webhook_api_v2_billing_webhook_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v2/builder/": {
         parameters: {
             query?: never;
@@ -1576,27 +1153,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v2/credits/balance": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Credit Balance
-         * @description Get current credit balance for the organization.
-         */
-        get: operations["get_credit_balance"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/credits/calculator": {
+    "/api/v2/dsl/compile": {
         parameters: {
             query?: never;
             header?: never;
@@ -1606,84 +1163,23 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Calculate Credits Endpoint
-         * @description Public credit calculator. Estimate credits without authentication.
+         * Dsl Compile
+         * @description Compile JModel source into a flat optimization problem.
          *
-         *     Uses the same ``compute_credits`` formula as the solve endpoint
-         *     (sqrt scaling + per-solve cap) to guarantee consistent estimates.
+         *     ``dataset_id`` (optional) names an org-owned dataset whose set members / param
+         *     values fill a declaration-only source (§8 Scenarios). Returns ``ok=false`` with
+         *     a structured error on any lex/parse/dataset/grounding failure, so the editor can
+         *     surface the message and position without a 4xx round-trip — including a dataset
+         *     deleted from under an open editor.
          */
-        post: operations["calculate_credits_endpoint_api_v2_credits_calculator_post"];
+        post: operations["dsl_compile"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v2/credits/rates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Exchange Rates
-         * @description Get all exchange rates for a date.
-         */
-        get: operations["get_exchange_rates_api_v2_credits_rates_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/credits/rates/{currency}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Exchange Rate
-         * @description Get exchange rate for a specific currency.
-         */
-        get: operations["get_exchange_rate_api_v2_credits_rates__currency__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/credits/schedules": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Withdrawal Schedules
-         * @description Get all withdrawal schedules for the organization.
-         */
-        get: operations["get_withdrawal_schedules_api_v2_credits_schedules_get"];
-        put?: never;
-        /**
-         * Create Withdrawal Schedule
-         * @description Create a scheduled withdrawal.
-         */
-        post: operations["create_withdrawal_schedule_api_v2_credits_schedules_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/credits/schedules/{schedule_id}": {
+    "/api/v2/dsl/inspect": {
         parameters: {
             query?: never;
             header?: never;
@@ -1692,58 +1188,23 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post?: never;
         /**
-         * Delete Withdrawal Schedule
-         * @description Delete (deactivate) a withdrawal schedule.
+         * Dsl Inspect
+         * @description List a source's data-facing declarations — parse-only, never grounded (S2a).
+         *
+         *     Powers the dataset editor's "skeleton from the model" button and the live
+         *     dataset↔model validation (S5): it must succeed for declaration-only sources
+         *     AND for sources whose data is missing, states in which ``/dsl/compile`` errors.
+         *     Same structured-error contract as compile (no 4xx mid-keystroke).
          */
-        delete: operations["delete_withdrawal_schedule_api_v2_credits_schedules__schedule_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/credits/settings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Credit Settings
-         * @description Get organization's credit settings.
-         */
-        get: operations["get_credit_settings_api_v2_credits_settings_get"];
-        put?: never;
-        post?: never;
+        post: operations["dsl_inspect"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v2/credits/settings/currency": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Update Currency
-         * @description Update organization's preferred currency.
-         */
-        put: operations["update_currency_api_v2_credits_settings_currency_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/credits/transactions": {
+    "/api/v2/dsl/status": {
         parameters: {
             query?: never;
             header?: never;
@@ -1751,36 +1212,12 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Transactions
-         * @description Get credit transaction history.
+         * Dsl Status
+         * @description Report whether the JModel DSL feature is enabled on this instance.
          */
-        get: operations["get_transactions_api_v2_credits_transactions_get"];
+        get: operations["dsl_status"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/credits/withdrawals": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Withdrawals
-         * @description Get withdrawal history.
-         */
-        get: operations["get_withdrawals_api_v2_credits_withdrawals_get"];
-        put?: never;
-        /**
-         * Create Withdrawal
-         * @description Create a manual withdrawal request.
-         */
-        post: operations["create_withdrawal_api_v2_credits_withdrawals_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2017,8 +1454,9 @@ export interface paths {
          * Create Conversation
          * @description Create a new LLM conversation.
          *
-         *     Optionally initializes with a template formulation as the first assistant message.
-         *     Requires the ``llm_assistant`` feature in the organization's plan.
+         *     A studio conversation (``model_project_id``) is seeded with the project's
+         *     current model so the first message refines it. Requires the
+         *     ``llm_assistant`` feature in the organization's plan.
          */
         post: operations["create_conversation_api_v2_llm_conversations_post"];
         delete?: never;
@@ -2094,6 +1532,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/llm/conversations/{conversation_id}/explain-diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Explain Diff Endpoint
+         * @description Stream a plain-language narration of the CHANGE between two model versions as SSE.
+         *
+         *     Loads the project + both versions (org ownership enforced), computes the structural
+         *     diff server-side via ``model_project_service.diff_versions``, and reuses the chat
+         *     streaming pipeline (budget guardrail, rate limit, refusals surfaced on
+         *     failure, persisted turn pair) driven by ``explain_version_diff``. The LLM narrates
+         *     ONLY the pre-computed diff. Moderation is skipped (system-generated prompt content).
+         */
+        post: operations["explain_diff_endpoint_api_v2_llm_conversations__conversation_id__explain_diff_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/llm/conversations/{conversation_id}/explain-infeasibility": {
         parameters: {
             query?: never;
@@ -2109,13 +1573,41 @@ export interface paths {
          *
          *     Loads the formulation + persisted IIS from a ModelExecution (``execution_id``,
          *     org ownership enforced) or from inline fields, then reuses the chat streaming
-         *     pipeline — budget guardrail, org rate limit, pre-paid credits (refunded on
+         *     pipeline — budget guardrail, org rate limit (refusals surface on
          *     failure), a persisted user/assistant turn pair — driven by
          *     ``explain_infeasibility``. When no IIS is available the explanation is heuristic
          *     and clearly flagged. Moderation is skipped because the prompt content is
          *     system-generated, not free user text.
          */
         post: operations["explain_infeasibility_endpoint_api_v2_llm_conversations__conversation_id__explain_infeasibility_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/llm/conversations/{conversation_id}/explain-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Explain Model Endpoint
+         * @description Stream a plain-language explanation of an optimization MODEL (not yet solved) as SSE.
+         *
+         *     Loads the formulation + the Python-computed ``ModelStats`` from a ModelProject
+         *     (``project_id``, draft or a committed ``version_id``, org ownership enforced) or
+         *     from inline fields, then reuses the chat streaming pipeline — budget guardrail,
+         *     org rate limit, a persisted user/assistant
+         *     turn pair — driven by ``explain_model``. The statistics are authoritative, so the
+         *     explanation has nothing to fabricate. Moderation is skipped because the prompt
+         *     content is system-generated, not free user text.
+         */
+        post: operations["explain_model_endpoint_api_v2_llm_conversations__conversation_id__explain_model_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2137,7 +1629,7 @@ export interface paths {
          *
          *     Loads the solution + sensitivity from a persisted ModelExecution
          *     (``execution_id``, org ownership enforced) or from inline fields, then reuses
-         *     the chat streaming pipeline — budget guardrail, org rate limit, pre-paid credits
+         *     the chat streaming pipeline — budget guardrail, org rate limit
          *     (refunded on failure), a persisted user/assistant turn pair — driven by
          *     ``explain_solution`` rather than formulation generation. Moderation is skipped
          *     because the prompt content is system-generated, not free user text.
@@ -2176,58 +1668,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v2/models/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List My Models
-         * @description List models belonging to the user's organization.
-         */
-        get: operations["list_my_models_api_v2_models__get"];
-        put?: never;
-        /**
-         * Create Private Model
-         * @description Create a private model for the organization.
-         */
-        post: operations["create_private_model_api_v2_models__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/models/{model_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get My Model
-         * @description Get details of a specific organization model.
-         */
-        get: operations["get_my_model_api_v2_models__model_id__get"];
-        put?: never;
-        post?: never;
-        /**
-         * Deactivate My Model
-         * @description Deactivate (soft delete) a model.
-         */
-        delete: operations["deactivate_my_model_api_v2_models__model_id__delete"];
-        options?: never;
-        head?: never;
-        /**
-         * Update My Model
-         * @description Update a model's custom settings.
-         */
-        patch: operations["update_my_model_api_v2_models__model_id__patch"];
-        trace?: never;
-    };
     "/api/v2/models/{model_id}/execute": {
         parameters: {
             query?: never;
@@ -2239,10 +1679,22 @@ export interface paths {
         put?: never;
         /**
          * Execute Model
-         * @description Execute an activated model with the provided input data.
+         * @description Execute one of the organization's models with the provided input data.
+         *
+         *     P1.5 fusion: ``model_id`` is a ModelProject. A generator-backed model (a
+         *     fork of an official, or a project whose own listing carries a generator)
+         *     renders ``input_data`` through the TemplateEngine; a plain model solves
+         *     its draft content directly (``input_data`` must be empty — there is no
+         *     input schema to fill).
          *
          *     Optional ``solver_name`` selects the solver (``scip``, ``highs``,
          *     ``hexaly``) or ``auto`` routing; omit for the default.
+         *
+         *     ADR-007 S6: both modes run on the async pipeline (``solve_model_async``).
+         *     ``async_mode=false`` enqueues, waits up to the shared budget and returns
+         *     the historic ``ModelExecutionResponse``; past the budget it degrades to
+         *     202 + the async envelope (poll ``poll_url``). Sync ``def`` on purpose —
+         *     the blocking wait belongs in the threadpool, never on the event loop.
          */
         post: operations["execute_model"];
         delete?: never;
@@ -2260,7 +1712,7 @@ export interface paths {
         };
         /**
          * List Model Executions
-         * @description List execution history for a specific model.
+         * @description List execution history for a specific model (ModelProject).
          */
         get: operations["list_model_executions_api_v2_models__model_id__executions_get"];
         put?: never;
@@ -2282,49 +1734,9 @@ export interface paths {
         put?: never;
         /**
          * Preview Model
-         * @description Render a model template and return the OptimizationProblem without solving.
+         * @description Render a generator-backed model and return the OptimizationProblem without solving.
          */
         post: operations["preview_model_api_v2_models__model_id__preview_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/models/{model_id}/publish": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Publish Model To Marketplace
-         * @description Publish a private model to the marketplace.
-         */
-        post: operations["publish_model_to_marketplace_api_v2_models__model_id__publish_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/models/{model_id}/schema": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get My Model Schema
-         * @description Get the input schema and example for executing a model.
-         */
-        get: operations["get_my_model_schema_api_v2_models__model_id__schema_get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2400,13 +1812,13 @@ export interface paths {
         };
         /**
          * Get Model Reviews
-         * @description Get reviews for a model.
+         * @description Get reviews for a model (``catalog_id`` is the model-project id).
          */
         get: operations["get_model_reviews_api_v2_models_catalog__catalog_id__reviews_get"];
         put?: never;
         /**
          * Create Review
-         * @description Create a review for a model. User must have executed the model.
+         * @description Create a review for a model. The org must have used it (seeded fork + solved).
          */
         post: operations["create_review_api_v2_models_catalog__catalog_id__reviews_post"];
         delete?: never;
@@ -2429,26 +1841,6 @@ export interface paths {
         get: operations["get_catalog_model"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/models/catalog/{model_id}/activate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Activate Catalog Model
-         * @description Activate a model from the catalog for the user's organization.
-         */
-        post: operations["activate_catalog_model"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2489,6 +1881,9 @@ export interface paths {
         /**
          * Get Catalog Model Schema
          * @description Get the input schema and example for a catalog model.
+         *
+         *     Requires ``is_public`` (like the detail endpoint): the schema exposes the
+         *     generator + input fields, so a published-but-unlisted model must not leak it.
          */
         get: operations["get_catalog_model_schema"];
         put?: never;
@@ -2552,26 +1947,6 @@ export interface paths {
          * @description Update rich description sections on a published model.
          */
         put: operations["update_sections_api_v2_models_catalog__model_id__sections_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/models/catalog/promoted-ids": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Promoted Model Ids
-         * @description Return model IDs with active homepage_carousel placements (public, no auth).
-         */
-        get: operations["get_promoted_model_ids"];
-        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -2931,7 +2306,7 @@ export interface paths {
         patch: operations["update_organization_profile_api_v2_organizations_profile_patch"];
         trace?: never;
     };
-    "/api/v2/pricing": {
+    "/api/v2/projects": {
         parameters: {
             query?: never;
             header?: never;
@@ -2939,12 +2314,450 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get public pricing data
-         * @description Returns pricing tiers with credits, prices, limits, and features. All values are read from the platform settings database. No authentication required. Only available when monetization is enabled; the free collaborative deployment responds 404.
+         * List Model Projects
+         * @description List the organization's ModelProjects (newest-updated first).
+         *
+         *     The list is org-wide (collaborative); pass ``mine=true`` to narrow it to the
+         *     current user's own models.
          */
-        get: operations["get_pricing_api_v2_pricing_get"];
+        get: operations["list_model_projects"];
+        put?: never;
+        /**
+         * Create Model Project
+         * @description Create a new blank ModelProject for the current organization.
+         */
+        post: operations["create_model_project"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Model Project
+         * @description Get a single ModelProject (metadata + draft + committed HEAD).
+         */
+        get: operations["get_model_project"];
         put?: never;
         post?: never;
+        /**
+         * Archive Model Project
+         * @description Archive a ModelProject (soft-delete), or permanently delete it.
+         *
+         *     Default is a reversible **archive** (``status="archived"``). With
+         *     ``?permanent=true`` the project and its versions are **hard-deleted**
+         *     (irreversible) — only allowed once the project is already archived, so a
+         *     permanent delete is always a deliberate two-step action from the trash view.
+         */
+        delete: operations["archive_model_project"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Model Project
+         * @description Patch project metadata (name / description / status).
+         */
+        patch: operations["update_model_project"];
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Commit Model Version
+         * @description Commit the current draft as an immutable, message-bearing version.
+         */
+        post: operations["commit_model_version"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/datasets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Project Datasets
+         * @description List a project's datasets (values omitted — fetch one for its data_json).
+         */
+        get: operations["list_project_datasets"];
+        put?: never;
+        /**
+         * Create Project Dataset
+         * @description Create a named dataset ("scenario") for the project.
+         */
+        post: operations["create_project_dataset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/datasets/{dataset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Project Dataset
+         * @description Fetch a dataset with its full values.
+         */
+        get: operations["get_project_dataset"];
+        /**
+         * Update Project Dataset
+         * @description Update a dataset's name/description/values (only the provided fields).
+         */
+        put: operations["update_project_dataset"];
+        post?: never;
+        /**
+         * Delete Project Dataset
+         * @description Delete a dataset (working data — no archive tier).
+         */
+        delete: operations["delete_project_dataset"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/datasets/{dataset_id}/solve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Solve Project Dataset
+         * @description Solve one named dataset against the project's JModel source — SERVER-side.
+         *
+         *     ADR-007 S7: the scenario launch used to compile in the BROWSER and upload the
+         *     flat problem (~31MB each way for the large TFM scenarios) through the Next
+         *     proxy; this endpoint compiles the persisted ``draft_dsl_source`` + dataset on
+         *     the server and rides the ONE async pipeline, so the client sends a URL and
+         *     nothing else. Async-only on purpose — scenario launches are batch and the
+         *     client derives row state from the server. A compile failure is a 422
+         *     ``{message, position}``; the dataset is
+         *     org- and project-scoped (404 otherwise, anti-oracle).
+         */
+        post: operations["solve_project_dataset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/datasets/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Project Dataset
+         * @description Parse an uploaded ``.dat`` / ``.json`` / ``.csv`` file into a dataset PREVIEW (S2c).
+         *
+         *     Nothing is stored: the response carries the parsed ``data_json`` (already run
+         *     through the same validation as create, so the preview fails early with the
+         *     compiler-grade message) + a name suggestion; the user saves through the normal
+         *     create. ``param_name`` names the single CSV param (defaults from the filename).
+         */
+        post: operations["import_project_dataset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Model Project Draft
+         * @description Replace the mutable HEAD draft (optimistic concurrency via ``If-Match``).
+         */
+        put: operations["update_model_project_draft"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/executions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Project Executions
+         * @description Executions for this project (newest first).
+         *
+         *     This is the server-side anchor that lets the workspace RECONCILE a solve on
+         *     open instead of trusting browser memory: a still-running async run can be
+         *     re-attached by its ``celery_task_id``, and a finished one surfaces as the
+         *     "last run". Matches BOTH provenance shapes a project solve can carry — the
+         *     typed ``model_project_id`` column (the ``/projects/{id}/solve`` path) and the
+         *     generic ``source_kind="model_project"`` provenance (the universal
+         *     ``/solve/async`` path the studio uses for live streaming) — so no solve
+         *     entry point has to change (see the solve-contract-drift safeguard).
+         */
+        get: operations["list_project_executions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish Model Project
+         * @description Publish a project to the marketplace (upsert its listing facet + pin HEAD version).
+         *
+         *     P1.5 fusion: publishing attaches a ``ModelProjectListing`` to the project instead of
+         *     copying the model into a separate catalog row. Requires a committed version (the
+         *     listing pins HEAD, never the dirty draft).
+         */
+        post: operations["publish_model_project"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/solve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Solve Model Project
+         * @description Solve a ModelProject's draft (or a specific committed version).
+         *
+         *     ADR-007 S4a — async-under-the-hood: resolves the project/version model
+         *     server-side, then rides the ONE async pipeline (``_enqueue_async_solve``)
+         *     exactly like ``POST /solve`` — tier caps, auto-routing, the
+         *     pending ModelExecution row (tagged ``model_project`` provenance + typed
+         *     project/version columns), and the Celery worker. The classic
+         *     ``OptimizationResult`` comes back on completion; a solve that outlives the
+         *     wait budget returns 202 + the task envelope (poll or subscribe).
+         *
+         *     ``origin`` lets a programmatic caller (API/MCP/ERP) label the run honestly;
+         *     it is sanitized server-side and falls back to ``visual_builder`` (the studio),
+         *     which is the historical default for this endpoint.
+         */
+        post: operations["solve_model_project"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Model Stats
+         * @description Live structural statistics + health score for the project's working draft.
+         */
+        get: operations["get_model_stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Project Versions
+         * @description List a project's committed versions (newest first).
+         */
+        get: operations["list_project_versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/versions/{a}/diff/{b}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Diff Project Versions
+         * @description Structural diff between two committed versions of a project.
+         */
+        get: operations["diff_project_versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/versions/{version_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Project Version
+         * @description Fetch a full committed version snapshot.
+         */
+        get: operations["get_project_version"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/versions/{version_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Project Version
+         * @description Check a committed version out into the draft (history untouched).
+         */
+        post: operations["restore_project_version"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/from-builder/{document_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create From Builder
+         * @description Seed a ModelProject from an existing builder document (migration helper).
+         */
+        post: operations["create_model_project_from_builder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/from-marketplace/{model_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create From Marketplace
+         * @description Seed a ModelProject from a published marketplace model → workspace.
+         *
+         *     Optional ``user_input`` customizes a generator-backed (official) model instead of
+         *     its example input; a static community model ignores it (its pinned version is copied).
+         *
+         *     This is THE "use a marketplace model" path (P1.5 fusion — the legacy activate
+         *     flow collapsed into it), so the adoption side-effects live here: the listing's
+         *     activation counter and the author notification.
+         */
+        post: operations["create_model_project_from_marketplace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/from-template/{template_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create From Template
+         * @description Seed a ModelProject from a template (one-click "Use template" → workspace).
+         */
+        post: operations["create_model_project_from_template"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3022,7 +2835,7 @@ export interface paths {
         };
         /**
          * Get Analytics Models
-         * @description Get per-model performance comparison for the seller.
+         * @description Get per-model performance comparison for the author.
          */
         get: operations["get_analytics_models_api_v2_seller_analytics_models_get"];
         put?: never;
@@ -3042,7 +2855,7 @@ export interface paths {
         };
         /**
          * Get Analytics Summary
-         * @description Get seller analytics summary: views, impressions, activations, revenue, conversion rate.
+         * @description Get author analytics summary: views, impressions, activations, conversion rate.
          */
         get: operations["get_analytics_summary_api_v2_seller_analytics_summary_get"];
         put?: never;
@@ -3062,92 +2875,9 @@ export interface paths {
         };
         /**
          * Get Analytics Time Series
-         * @description Get daily time series of views, impressions, activations, and revenue.
+         * @description Get daily time series of views, impressions, and activations.
          */
         get: operations["get_analytics_time_series_api_v2_seller_analytics_time_series_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/seller/connect/onboard": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Start Connect Onboarding
-         * @description Start or resume Stripe Connect Express onboarding (per D-05).
-         *
-         *     Creates a Connect account if needed, then returns an onboarding URL.
-         *     Seller is redirected to Stripe Express to complete KYC.
-         */
-        post: operations["start_connect_onboarding_api_v2_seller_connect_onboard_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/seller/connect/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Connect Status
-         * @description Check Stripe Connect onboarding status.
-         */
-        get: operations["get_connect_status_api_v2_seller_connect_status_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/seller/earnings/sales": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Sales History
-         * @description Get detailed sales history with commission breakdown.
-         */
-        get: operations["get_sales_history_api_v2_seller_earnings_sales_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/seller/earnings/summary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Earnings Summary
-         * @description Get seller earnings summary for the authenticated user's organization.
-         */
-        get: operations["get_earnings_summary_api_v2_seller_earnings_summary_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3167,8 +2897,8 @@ export interface paths {
          * Get Notification Preferences
          * @description Get notification preferences for the current user.
          *
-         *     Returns all 8 entries (4 event types x 2 channels).
-         *     Missing rows default to in_app=True, email=False.
+         *     Returns one entry per event type x channel; missing rows default to
+         *     in_app=True, email=False.
          */
         get: operations["get_notification_preferences_api_v2_seller_notifications_preferences_get"];
         /**
@@ -3197,119 +2927,12 @@ export interface paths {
          * Get Onboarding Status
          * @description Get onboarding checklist status for the current creator.
          *
-         *     Returns up to 4 steps with completion detection:
+         *     Returns 3 steps with completion detection:
          *     - complete_profile: org has name AND bio filled
          *     - publish_model: at least 1 published model in catalog
          *     - add_rich_media: at least 1 published model has logo_url or screenshot_urls
-         *     - setup_payouts: org has credits_earned > 0 OR has a withdrawal schedule
-         *       (only present when monetization is enabled; omitted in the free,
-         *       collaborative deployment where there are no payouts)
          */
         get: operations["get_onboarding_status_api_v2_seller_onboarding_status_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/seller/placements/active": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Active Placements
-         * @description Get the seller's currently active featured placements.
-         */
-        get: operations["get_active_placements_api_v2_seller_placements_active_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/seller/placements/pricing": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Placement Pricing
-         * @description Get featured placement pricing tiers for all placement types.
-         */
-        get: operations["get_placement_pricing_api_v2_seller_placements_pricing_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/seller/placements/purchase": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Purchase Placement
-         * @description Purchase a featured placement for one of the seller's models.
-         *
-         *     Validates model ownership, checks credits, and creates the placement.
-         */
-        post: operations["purchase_placement_api_v2_seller_placements_purchase_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/seller/tos/accept": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Accept Seller Tos
-         * @description Accept the Seller Terms of Service (per D-16).
-         *
-         *     Required before first withdrawal, not before publishing.
-         */
-        post: operations["accept_seller_tos_api_v2_seller_tos_accept_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/seller/tos/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Seller Tos Status
-         * @description Check if seller has accepted the current ToS version.
-         */
-        get: operations["get_seller_tos_status_api_v2_seller_tos_status_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3329,7 +2952,7 @@ export interface paths {
         put?: never;
         /**
          * Request Verification
-         * @description Submit a verification badge request for the seller's organization.
+         * @description Submit a verification badge request for the author's organization.
          *
          *     Returns 409 if a request is already pending or approved.
          */
@@ -3349,7 +2972,7 @@ export interface paths {
         };
         /**
          * Get Verification Status
-         * @description Get the current verification request status for the seller's organization.
+         * @description Get the current verification request status for the author's organization.
          *
          *     Returns null if no verification request exists.
          */
@@ -3375,9 +2998,14 @@ export interface paths {
          * Solve Optimization Problem
          * @description Solve an optimization problem (universal endpoint).
          *
-         *     Supports client-side idempotency via the ``Idempotency-Key`` header. A
-         *     retry with the same key returns the previously persisted result without
-         *     re-solving or deducting credits twice.
+         *     ADR-007 S2 — async-under-the-hood: the request rides the ONE async pipeline
+         *     (pending ModelExecution row, Celery worker) and waits for
+         *     the result in the threadpool. The contract is unchanged: the classic
+         *     ``OptimizationResult`` on completion, ``Idempotency-Key`` honored (a retry
+         *     returns the persisted result without re-solving). A solve
+         *     that outlives the wait budget returns 202 + the task envelope — poll or
+         *     subscribe like any async client (previously such solves died at proxy or
+         *     orchestrator timeouts).
          */
         post: operations["solve_problem"];
         delete?: never;
@@ -3399,9 +3027,14 @@ export interface paths {
          * Solve Optimization Problem
          * @description Solve an optimization problem (universal endpoint).
          *
-         *     Supports client-side idempotency via the ``Idempotency-Key`` header. A
-         *     retry with the same key returns the previously persisted result without
-         *     re-solving or deducting credits twice.
+         *     ADR-007 S2 — async-under-the-hood: the request rides the ONE async pipeline
+         *     (pending ModelExecution row, Celery worker) and waits for
+         *     the result in the threadpool. The contract is unchanged: the classic
+         *     ``OptimizationResult`` on completion, ``Idempotency-Key`` honored (a retry
+         *     returns the persisted result without re-solving). A solve
+         *     that outlives the wait budget returns 202 + the task envelope — poll or
+         *     subscribe like any async client (previously such solves died at proxy or
+         *     orchestrator timeouts).
          */
         post: operations["solve_optimization_problem_api_v2_solve__post"];
         delete?: never;
@@ -3511,7 +3144,15 @@ export interface paths {
         put?: never;
         /**
          * Solve Optimization Problem Async
-         * @description Queue an async solve. Pre-pays credits; refund happens in Celery on failure.
+         * @description Queue an async solve on the ONE pipeline.
+         *
+         *     ``dataset_id`` (§8 Scenarios / S1) records which named dataset the model was
+         *     compiled against — provenance only, the problem body is already grounded.
+         *
+         *     ``wait=true`` (ADR-007 §4) blocks in the threadpool for up to
+         *     ``ASYNC_WAIT_TIMEOUT_SECONDS`` and returns the exact synchronous
+         *     ``OptimizationResult`` contract; past the budget it degrades to
+         *     202 + the normal task envelope.
          */
         post: operations["solve_optimization_problem_async_api_v2_solve_async_post"];
         delete?: never;
@@ -3641,11 +3282,15 @@ export interface paths {
         put?: never;
         /**
          * Import And Solve
-         * @description Import an optimization file and solve it immediately.
+         * @description Import an optimization file and solve it.
          *
-         *     Parses the file, applies solver options, deducts credits, and returns
-         *     the solve result. Follows the same credit/tier/rate-limit flow as
-         *     the standard /solve endpoint.
+         *     ADR-007 S4a — async-under-the-hood: parses the uploaded file + applies solver
+         *     options server-side, then rides the ONE async pipeline
+         *     (``_enqueue_async_solve``) exactly like ``POST /solve`` — tier caps,
+         *     auto-routing, the pending
+         *     ModelExecution row (tagged ``imported_file`` provenance), and the Celery
+         *     worker. The classic ``OptimizationResult`` comes back on completion; a solve
+         *     that outlives the wait budget returns 202 + the task envelope (poll/subscribe).
          */
         post: operations["import_and_solve"];
         delete?: never;
@@ -3667,7 +3312,7 @@ export interface paths {
          * Import Preview
          * @description Parse an uploaded optimization file and return a preview.
          *
-         *     Does NOT solve or deduct credits. Use this to inspect the imported
+         *     Does NOT solve. Use this to inspect the imported
          *     problem before committing to a solve.
          */
         post: operations["import_preview"];
@@ -3732,6 +3377,12 @@ export interface paths {
         /**
          * Solve Multi Objective Endpoint
          * @description Solve a multi-objective problem. Returns a Pareto front.
+         *
+         *     ADR-007 S4b — async-under-the-hood: the SCIP scalarization loop runs in the
+         *     dedicated ``solve_multi_objective_async`` worker (a durable execution record);
+         *     the handler waits in the threadpool and returns the classic
+         *     ``MultiObjectiveResult``, degrading to 202 + the task envelope past the wait
+         *     budget.
          */
         post: operations["solve_multi_objective"];
         delete?: never;
@@ -3771,7 +3422,7 @@ export interface paths {
          * Get Template
          * @description Get a specific template with full details including input schema and example.
          *
-         *     Resolution order: YAML templates → DB ModelCatalog.
+         *     Resolution order: YAML templates → published marketplace listing.
          */
         get: operations["get_template"];
         put?: never;
@@ -3814,6 +3465,14 @@ export interface paths {
         /**
          * Solve With Template
          * @description Solve a problem using a template.
+         *
+         *     ADR-007 S4a — async-under-the-hood: renders the template into an
+         *     OptimizationProblem server-side, then rides the ONE async pipeline
+         *     (``_enqueue_async_solve``) exactly like ``POST /solve`` — tier caps,
+         *     auto-routing, the pending
+         *     ModelExecution row (tagged ``template`` provenance), and the Celery worker.
+         *     The classic ``OptimizationResult`` comes back on completion; a solve that
+         *     outlives the wait budget returns 202 + the task envelope (poll or subscribe).
          *
          *     The template transforms user-friendly input into an optimization problem.
          *     Optional ``solver_name`` selects the solver (e.g. ``scip``, ``highs``,
@@ -3865,12 +3524,10 @@ export interface paths {
         };
         /**
          * List Available Solvers
-         * @description Return solvers available on this server with multiplier + availability.
+         * @description Return solvers available on this server with real-time availability.
          *
-         *     Phase 7.4 / D-11 / D-12: response includes per-solver credit multiplier
-         *     (from PSS ``pricing.solver_multiplier.<name>``) and real-time Hexaly
-         *     worker health. SCIP and HiGHS are always ``available=True`` (in-image
-         *     solvers); Hexaly reflects ``_probe_hexaly_worker()`` — when the
+         *     D-11: SCIP and HiGHS are always ``available=True`` (in-image solvers);
+         *     Hexaly reflects ``_probe_hexaly_worker()`` — when the
          *     celery_worker_hexaly container is unhealthy or down, ``available=False``
          *     with ``reason="maintenance"`` so the frontend can grey out the option.
          */
@@ -4237,7 +3894,6 @@ export interface paths {
          * @description Create a workspace. Only the org owner can create workspaces.
          *
          *     The creator is automatically added as an admin member.
-         *     A WorkspaceCreditPool with 0 credits is created automatically.
          */
         post: operations["create_workspace_api_v2_workspaces__post"];
         delete?: never;
@@ -4291,54 +3947,6 @@ export interface paths {
         get: operations["list_audit_logs_api_v2_workspaces__workspace_id__audit__get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/workspaces/{workspace_id}/credits/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get workspace credit pool stats (viewer+)
-         * @description Return credit pool statistics for the workspace. Requires viewer role.
-         *
-         *     Read-only, so it intentionally allows soft-deleted (is_active=False)
-         *     workspaces (``require_active=False``): soft-delete does not reclaim a
-         *     workspace's allocated pool credits, so the pool must stay viewable for
-         *     reconciliation. The org_id scope is still enforced, so cross-tenant access
-         *     remains a 404 (the IDOR guard is unaffected). Allocation stays strict.
-         */
-        get: operations["get_credit_pool_api_v2_workspaces__workspace_id__credits__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/workspaces/{workspace_id}/credits/allocate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Allocate credits from org balance to workspace pool (admin only)
-         * @description Transfer credits from the organization's balance into the workspace credit pool.
-         *
-         *     Requires admin role. Raises 400 if org has insufficient balance.
-         */
-        post: operations["allocate_credits_api_v2_workspaces__workspace_id__credits_allocate_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4547,24 +4155,6 @@ export interface components {
             password: string;
         };
         /**
-         * ActivateModelRequest
-         * @description Request to activate a model from the catalog.
-         */
-        ActivateModelRequest: {
-            /** Custom Name */
-            custom_name?: string | null;
-        };
-        /**
-         * ActivePlacementsResponse
-         * @description List of active placements.
-         */
-        ActivePlacementsResponse: {
-            /** Items */
-            items: components["schemas"]["FeaturedPlacementResponse"][];
-            /** Total */
-            total: number;
-        };
-        /**
          * AdminAnalyticsResponse
          * @description Platform-wide analytics for admin dashboard.
          */
@@ -4588,47 +4178,6 @@ export interface components {
             pages: number;
             /** Total */
             total: number;
-        };
-        /**
-         * AdminPlacementResponse
-         * @description Extended placement details for admin view.
-         */
-        AdminPlacementResponse: {
-            /** Catalog Model Id */
-            catalog_model_id: string;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Credits Paid */
-            credits_paid: number;
-            /** Duration Days */
-            duration_days: number;
-            /**
-             * Expires At
-             * Format: date-time
-             */
-            expires_at: string;
-            /** Id */
-            id: string;
-            /** Model Name */
-            model_name?: string | null;
-            /** Org Name */
-            org_name?: string | null;
-            /** Placement Type */
-            placement_type: string;
-            /** Revoked At */
-            revoked_at?: string | null;
-            /** Revoked By */
-            revoked_by?: string | null;
-            /**
-             * Starts At
-             * Format: date-time
-             */
-            starts_at: string;
-            /** Status */
-            status: string;
         };
         /**
          * AdminVerificationDecision
@@ -4699,20 +4248,6 @@ export interface components {
             /** Total Output Tokens */
             total_output_tokens: number;
         };
-        /** AllRatesResponse */
-        AllRatesResponse: {
-            /**
-             * Credits Per Eur
-             * @default 10
-             */
-            credits_per_eur: number;
-            /** Rate Date */
-            rate_date: string;
-            /** Rates */
-            rates: {
-                [key: string]: unknown;
-            };
-        };
         /**
          * AnalyticsSummaryResponse
          * @description Aggregated analytics summary for a time period.
@@ -4726,8 +4261,6 @@ export interface components {
             total_activations: number;
             /** Total Impressions */
             total_impressions: number;
-            /** Total Revenue */
-            total_revenue: number;
             /** Total Views */
             total_views: number;
         };
@@ -4796,25 +4329,6 @@ export interface components {
             /** User Id */
             user_id: string;
         };
-        /** ScheduleResponse */
-        app__api__v2__credits__ScheduleResponse: {
-            /** Amount Type */
-            amount_type: string;
-            /** Amount Value */
-            amount_value: number | null;
-            /** Created At */
-            created_at: string;
-            /** Frequency */
-            frequency: string;
-            /** Id */
-            id: string;
-            /** Is Active */
-            is_active: boolean;
-            /** Min Threshold */
-            min_threshold: number;
-            /** Next Execution */
-            next_execution: string;
-        };
         /**
          * AuditLogResponse
          * @description Paginated audit log.
@@ -4838,42 +4352,10 @@ export interface components {
             steps: components["schemas"]["ConversionFunnelStep"][];
         };
         /**
-         * ScheduleResponse
-         * @description Response schema for a cron schedule.
-         */
-        app__schemas__schedule__ScheduleResponse: {
-            /** Consecutive Failures */
-            consecutive_failures: number;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Cron Expression */
-            cron_expression: string;
-            /** Id */
-            id: string;
-            /** Is Enabled */
-            is_enabled: boolean;
-            /** Last Run At */
-            last_run_at?: string | null;
-            /** Next Run At */
-            next_run_at?: string | null;
-            /** Timezone */
-            timezone: string;
-            /** Trigger Id */
-            trigger_id: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-        };
-        /**
          * ConversionFunnelResponse
          * @description Conversion funnel: impressions -> views -> activations.
          */
-        app__schemas__seller_analytics__ConversionFunnelResponse: {
+        app__schemas__author_analytics__ConversionFunnelResponse: {
             /** Activations */
             activations: number;
             /** Impressions */
@@ -4984,14 +4466,6 @@ export interface components {
             /** Webhook Delivery Rate */
             webhook_delivery_rate: number;
         };
-        /** BillingStatusResponse */
-        BillingStatusResponse: {
-            /** Has Subscription */
-            has_subscription: boolean;
-            /** Stripe Configured */
-            stripe_configured: boolean;
-            subscription?: components["schemas"]["SubscriptionResponse"] | null;
-        };
         /** Body_import_and_solve */
         Body_import_and_solve: {
             /** File */
@@ -5016,6 +4490,13 @@ export interface components {
             file: string;
             objective_sense?: components["schemas"]["ObjectiveSense"] | null;
         };
+        /** Body_import_project_dataset */
+        Body_import_project_dataset: {
+            /** File */
+            file: string;
+            /** Param Name */
+            param_name?: string | null;
+        };
         /** Body_upload_attachment_api_v2_llm_conversations__conversation_id__attachments_post */
         Body_upload_attachment_api_v2_llm_conversations__conversation_id__attachments_post: {
             /** File */
@@ -5030,6 +4511,42 @@ export interface components {
         Body_upload_screenshot_api_v2_models_catalog__model_id__screenshots_post: {
             /** File */
             file: string;
+        };
+        /**
+         * BoundProfile
+         * @description How variable bounds are distributed.
+         */
+        BoundProfile: {
+            /**
+             * Binary
+             * @description Binary variables (0/1)
+             * @default 0
+             */
+            binary: number;
+            /**
+             * Boxed
+             * @description Both bounds finite
+             * @default 0
+             */
+            boxed: number;
+            /**
+             * Free
+             * @description Both bounds None (-inf, +inf)
+             * @default 0
+             */
+            free: number;
+            /**
+             * Integers Missing Bounds
+             * @description INTEGER vars missing a lower or upper bound (weak branch-and-bound)
+             * @default 0
+             */
+            integers_missing_bounds: number;
+            /**
+             * One Sided
+             * @description Exactly one finite bound
+             * @default 0
+             */
+            one_sided: number;
         };
         /**
          * BuilderDocumentCreate
@@ -5155,12 +4672,46 @@ export interface components {
              */
             use_advanced_model: boolean;
         };
-        /** CheckoutResponse */
-        CheckoutResponse: {
-            /** Checkout Url */
-            checkout_url: string;
-            /** Session Id */
-            session_id: string;
+        /**
+         * CoefConditioning
+         * @description Coefficient magnitude spread — a numerical-conditioning signal.
+         */
+        CoefConditioning: {
+            /**
+             * Max Abs
+             * @description Largest |coefficient|
+             */
+            max_abs?: number | null;
+            /**
+             * Min Abs
+             * @description Smallest non-zero |coefficient|
+             */
+            min_abs?: number | null;
+            /**
+             * Range Ratio
+             * @description max_abs / min_abs
+             */
+            range_ratio?: number | null;
+            /**
+             * Tier
+             * @description ok <1e6 < mild <1e9 < poor <1e12 < severe
+             * @default ok
+             * @enum {string}
+             */
+            tier: "ok" | "mild" | "poor" | "severe";
+        };
+        /**
+         * CommitRequest
+         * @description Commit the current draft as an immutable version.
+         *
+         *     ``summary`` ("What changed?") is required and non-empty; ``body`` ("Why?")
+         *     is optional context.
+         */
+        CommitRequest: {
+            /** Body */
+            body?: string | null;
+            /** Summary */
+            summary: string;
         };
         /**
          * CommunityStatusResponse
@@ -5179,8 +4730,6 @@ export interface components {
         ComparedExecutionResponse: {
             /** Created At */
             created_at: string;
-            /** Credits Consumed */
-            credits_consumed: number;
             /** Execution Time Ms */
             execution_time_ms: number | null;
             /** Gap */
@@ -5342,26 +4891,6 @@ export interface components {
             /** Country Code */
             country_code: string;
         };
-        /** CreateCheckoutRequest */
-        CreateCheckoutRequest: {
-            /**
-             * Cancel Url
-             * @description URL to redirect if user cancels
-             * @default http://localhost:3000/workspace/credits?checkout=cancelled
-             */
-            cancel_url: string;
-            /**
-             * Plan
-             * @description Plan name: starter, pro, business
-             */
-            plan: string;
-            /**
-             * Success Url
-             * @description URL to redirect after successful payment
-             * @default http://localhost:3000/workspace/credits?checkout=success
-             */
-            success_url: string;
-        };
         /**
          * CreateCheckpointRequest
          * @description Request body for creating an unnamed version checkpoint.
@@ -5385,6 +4914,11 @@ export interface components {
              * @description Builder document ID for conversation scoping
              */
             model_id?: string | null;
+            /**
+             * Model Project Id
+             * @description ModelProject id (studio) for conversation scoping
+             */
+            model_project_id?: string | null;
             /**
              * Template Id
              * @description Template ID for template-based conversations
@@ -5425,40 +4959,6 @@ export interface components {
             name: string;
         };
         /**
-         * CreatePrivateModelRequest
-         * @description Request to create a private model.
-         */
-        CreatePrivateModelRequest: {
-            /**
-             * Category
-             * @default general
-             */
-            category: string;
-            /** Description */
-            description: string;
-            /** Example Input */
-            example_input?: {
-                [key: string]: unknown;
-            };
-            /**
-             * Generator Type
-             * @description Type: budget_allocation, knapsack, fertilizer, etc.
-             */
-            generator_type: string;
-            /** Input Fields */
-            input_fields?: {
-                [key: string]: unknown;
-            }[];
-            /** Input Schema */
-            input_schema?: {
-                [key: string]: unknown;
-            };
-            /** Name */
-            name: string;
-            /** Tags */
-            tags?: string[] | null;
-        };
-        /**
          * CreateReviewRequest
          * @description Request to create a review.
          */
@@ -5470,148 +4970,6 @@ export interface components {
             /** Title */
             title?: string | null;
         };
-        /** CreateTopupRequest */
-        CreateTopupRequest: {
-            /**
-             * Cancel Url
-             * @default http://localhost:3000/workspace/credits?topup=cancelled
-             */
-            cancel_url: string;
-            /**
-             * Credits
-             * @description Credits to purchase: 500, 2000, 5000, 20000
-             */
-            credits: number;
-            /**
-             * Success Url
-             * @default http://localhost:3000/workspace/credits?topup=success
-             */
-            success_url: string;
-        };
-        /**
-         * CreditAdjustment
-         * @description Credit adjustment request.
-         */
-        CreditAdjustment: {
-            /**
-             * Amount
-             * @description Positive to add, negative to subtract
-             */
-            amount: number;
-            /** Organization Id */
-            organization_id: string;
-            /** Reason */
-            reason: string;
-        };
-        /** CreditBalanceResponse */
-        CreditBalanceResponse: {
-            /** Credits Balance */
-            credits_balance: number;
-            /**
-             * Credits Earned
-             * @default 0
-             */
-            credits_earned: number;
-            /**
-             * Credits Per Eur
-             * @default 10
-             */
-            credits_per_eur: number;
-            /**
-             * Credits Purchased
-             * @default 0
-             */
-            credits_purchased: number;
-            /**
-             * Credits Subscription
-             * @default 0
-             */
-            credits_subscription: number;
-            /** Currency */
-            currency: string;
-            /** Exchange Rate */
-            exchange_rate: number;
-            /** Local Balance */
-            local_balance: number;
-            /** Local Earned */
-            local_earned: number;
-        };
-        /** CreditCalculatorRequest */
-        CreditCalculatorRequest: {
-            /**
-             * Num Binary Vars
-             * @description Number of binary variables
-             * @default 0
-             */
-            num_binary_vars: number;
-            /**
-             * Num Constraints
-             * @description Number of constraints
-             * @default 0
-             */
-            num_constraints: number;
-            /**
-             * Num Integer Vars
-             * @description Number of integer variables
-             * @default 0
-             */
-            num_integer_vars: number;
-            /**
-             * Num Variables
-             * @description Number of decision variables
-             */
-            num_variables: number;
-            /**
-             * Time Limit Seconds
-             * @description Time limit in seconds
-             * @default 60
-             */
-            time_limit_seconds: number;
-        };
-        /** CreditCalculatorResponse */
-        CreditCalculatorResponse: {
-            /** Breakdown */
-            breakdown: {
-                [key: string]: unknown;
-            };
-            /** Cost By Plan */
-            cost_by_plan: {
-                [key: string]: unknown;
-            };
-            /** Cost Eur */
-            cost_eur: number;
-            /** Credits Required */
-            credits_required: number;
-        };
-        /**
-         * CreditPoolAllocate
-         * @description Request body for allocating credits from org balance to a workspace pool.
-         */
-        CreditPoolAllocate: {
-            /** Amount */
-            amount: number;
-        };
-        /**
-         * CreditPoolResponse
-         * @description Response schema for a workspace credit pool.
-         */
-        CreditPoolResponse: {
-            /** Allocated Credits */
-            allocated_credits: number;
-            /** Available Credits */
-            available_credits: number;
-            /** Last Alert Threshold */
-            last_alert_threshold?: number | null;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-            /** Used Credits */
-            used_credits: number;
-            /** Workspace Id */
-            workspace_id: string;
-        };
         /**
          * CronValidationResponse
          * @description Response schema for cron expression validation.
@@ -5621,11 +4979,6 @@ export interface components {
             next_runs: string[];
             /** Valid */
             valid: boolean;
-        };
-        /** CurrencyRequest */
-        CurrencyRequest: {
-            /** Currency */
-            currency: string;
         };
         /** DailyPoint */
         DailyPoint: {
@@ -5649,6 +5002,105 @@ export interface components {
             up: number;
         };
         /**
+         * DatasetCreate
+         * @description Create a named dataset ("scenario") — set members + param values for the
+         *     project's parametric JModel. ``data_json`` shape and size are validated in the
+         *     service against :class:`~app.domains.dsl.JModelData` (422 on violation).
+         */
+        DatasetCreate: {
+            /** Data Json */
+            data_json: {
+                [key: string]: unknown;
+            };
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name: string;
+        };
+        /**
+         * DatasetImportPreview
+         * @description A parsed data file (S2c) — a PREVIEW the user names and saves through the
+         *     normal dataset create (which re-validates shape and size).
+         */
+        DatasetImportPreview: {
+            /** Data Json */
+            data_json: {
+                [key: string]: unknown;
+            };
+            /** Suggested Name */
+            suggested_name: string;
+        };
+        /**
+         * DatasetRead
+         * @description Full dataset view (values included — datasets are edited as a whole).
+         */
+        DatasetRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by?: string | null;
+            /** Data Json */
+            data_json: {
+                [key: string]: unknown;
+            };
+            /** Description */
+            description?: string | null;
+            /** Id */
+            id: string;
+            /** Model Project Id */
+            model_project_id: string;
+            /** Name */
+            name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * DatasetSummary
+         * @description Compact dataset row for the list view (no values — they can be MBs).
+         */
+        DatasetSummary: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Id */
+            id: string;
+            /** Model Project Id */
+            model_project_id: string;
+            /** Name */
+            name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * DatasetUpdate
+         * @description Patch a dataset (only the provided fields change).
+         */
+        DatasetUpdate: {
+            /** Data Json */
+            data_json?: {
+                [key: string]: unknown;
+            } | null;
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name?: string | null;
+        };
+        /**
          * DetailedStatusResponse
          * @description Detailed health status for SLA monitoring.
          */
@@ -5669,6 +5121,20 @@ export interface components {
             version: string;
         };
         /**
+         * DiffEntry
+         * @description One changed element in a version-to-version structural diff.
+         */
+        DiffEntry: {
+            /** Change */
+            change: string;
+            /** Detail */
+            detail?: string | null;
+            /** Kind */
+            kind: string;
+            /** Name */
+            name: string;
+        };
+        /**
          * DomainSummaryEntry
          * @description Single entry in domain summary (radar chart).
          */
@@ -5679,27 +5145,138 @@ export interface components {
             domain: string;
         };
         /**
-         * EarningsSummaryResponse
-         * @description Summary of seller earnings.
+         * DraftUpdate
+         * @description Replace the mutable HEAD draft. Optimistic concurrency via the
+         *     ``If-Match`` header (``draft_lock_version``), handled in the route.
          */
-        EarningsSummaryResponse: {
-            /** Commission Rate */
-            commission_rate: number;
+        DraftUpdate: {
+            /** Canvas Json */
+            canvas_json?: {
+                [key: string]: unknown;
+            } | null;
+            /** Dsl Source */
+            dsl_source?: string | null;
+            /** Model Json */
+            model_json?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * DSLCompileError
+         * @description A single lex, parse, or grounding error.
+         */
+        DSLCompileError: {
             /**
-             * Pending Maturation
-             * @default 0
+             * Message
+             * @description Human-readable error message
              */
-            pending_maturation: number;
-            /** Pending Withdrawals */
-            pending_withdrawals: number;
-            /** Total Commission */
-            total_commission: number;
-            /** Total Earned */
-            total_earned: number;
-            /** Total Sales */
-            total_sales: number;
-            /** Withdrawable Balance */
-            withdrawable_balance: number;
+            message: string;
+            /**
+             * Position
+             * @description 0-based character offset in the source, when known
+             */
+            position?: number | null;
+        };
+        /**
+         * DSLCompileRequest
+         * @description A JModel source to compile, optionally against a named dataset.
+         */
+        DSLCompileRequest: {
+            /**
+             * Dataset Id
+             * @description Optional org-owned dataset (scenario) whose set members / param values fill a declaration-only source (§8 model/data separation).
+             */
+            dataset_id?: string | null;
+            /**
+             * Source
+             * @description JModel source text (sets / params / indexed families / sum / filters).
+             */
+            source: string;
+        };
+        /**
+         * DSLCompileResponse
+         * @description Result of compiling a JModel source.
+         *
+         *     On success ``ok`` is true and ``problem`` holds the lowered flat problem; on
+         *     failure ``ok`` is false and ``error`` describes the first failure.
+         */
+        DSLCompileResponse: {
+            error?: components["schemas"]["DSLCompileError"] | null;
+            /** Ok */
+            ok: boolean;
+            problem?: components["schemas"]["OptimizationProblem-Output"] | null;
+        };
+        /**
+         * DSLInspectRequest
+         * @description A JModel source whose data-facing declarations we want to list (S2a).
+         */
+        DSLInspectRequest: {
+            /**
+             * Source
+             * @description JModel source text — parsed only, never grounded.
+             */
+            source: string;
+        };
+        /**
+         * DSLInspectResponse
+         * @description Parse-only view of a source's sets/params (skeleton + live validation).
+         *
+         *     On success ``ok`` is true and ``sets``/``params`` list every declaration
+         *     (inline-valued or dataset-fillable); on a lex/parse failure ``ok`` is false
+         *     and ``error`` describes it.
+         */
+        DSLInspectResponse: {
+            error?: components["schemas"]["DSLCompileError"] | null;
+            /** Ok */
+            ok: boolean;
+            /** Params */
+            params?: components["schemas"]["DSLParamDecl"][] | null;
+            /** Sets */
+            sets?: components["schemas"]["DSLSetDecl"][] | null;
+        };
+        /**
+         * DSLParamDecl
+         * @description A declared param: its index sets define the dataset key shape.
+         */
+        DSLParamDecl: {
+            /**
+             * Arity
+             * @description Flat dataset-key arity — the sum of the index sets' dimensions (tuple sets count one per component); 0 for a scalar.
+             */
+            arity: number;
+            /**
+             * Has Inline Values
+             * @description True when the source defines values inline (:=).
+             */
+            has_inline_values: boolean;
+            /**
+             * Index Sets
+             * @description Empty for a scalar param.
+             */
+            index_sets: string[];
+            /** Name */
+            name: string;
+        };
+        /**
+         * DSLSetDecl
+         * @description A declared set, as the dataset editor needs to see it.
+         */
+        DSLSetDecl: {
+            /**
+             * Has Inline Values
+             * @description True when the source defines members inline (:=).
+             */
+            has_inline_values: boolean;
+            /** Name */
+            name: string;
+        };
+        /**
+         * DSLStatusResponse
+         * @description Whether the JModel DSL feature is enabled on this instance.
+         */
+        DSLStatusResponse: {
+            /** Enabled */
+            enabled: boolean;
         };
         /**
          * EmailInviteCreate
@@ -5782,20 +5359,6 @@ export interface components {
             event_type: string;
             /** Prev Count */
             prev_count?: number | null;
-        };
-        /** ExchangeRateResponse */
-        ExchangeRateResponse: {
-            /**
-             * Credits Per Eur
-             * @default 10
-             */
-            credits_per_eur: number;
-            /** Currency */
-            currency: string;
-            /** Rate */
-            rate: number;
-            /** Rate Date */
-            rate_date: string;
         };
         /**
          * ExecuteModelRequest
@@ -5891,6 +5454,47 @@ export interface components {
             use_advanced_model: boolean;
         };
         /**
+         * ExplainModelRequest
+         * @description Request a plain-language explanation of an optimization MODEL (not yet solved).
+         *
+         *     Provide ``project_id`` to explain a ModelProject (its mutable draft, or a specific
+         *     committed ``version_id``); organization ownership is enforced. Or pass the
+         *     ``formulation`` inline (``stats`` is computed when omitted). ``project_id`` takes
+         *     precedence when both are supplied.
+         */
+        ExplainModelRequest: {
+            /**
+             * Formulation
+             * @description Inline formulation (variables/constraints/objective)
+             */
+            formulation?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Project Id
+             * @description ModelProject id to explain (draft or a committed version)
+             */
+            project_id?: string | null;
+            /**
+             * Stats
+             * @description Inline ModelStats; computed from the formulation when omitted
+             */
+            stats?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Use Advanced Model
+             * @description Use Claude Opus with extended thinking for the explanation
+             * @default false
+             */
+            use_advanced_model: boolean;
+            /**
+             * Version Id
+             * @description Committed version id to explain; omit to explain the draft
+             */
+            version_id?: string | null;
+        };
+        /**
          * ExplainSolutionRequest
          * @description Request a plain-language explanation of a solved optimization model.
          *
@@ -5934,12 +5538,35 @@ export interface components {
             use_advanced_model: boolean;
         };
         /**
-         * ExtendPlacementRequest
-         * @description Request body for extending a placement.
+         * ExplainVersionDiffRequest
+         * @description Request a plain-language narration of the CHANGE between two model versions.
+         *
+         *     The structural diff is computed server-side (``model_project_service.diff_versions``)
+         *     and the LLM only narrates it. Organization ownership is enforced on the project and
+         *     both versions.
          */
-        ExtendPlacementRequest: {
-            /** Extra Days */
-            extra_days: number;
+        ExplainVersionDiffRequest: {
+            /**
+             * From Version Id
+             * @description The earlier (base) version id
+             */
+            from_version_id: string;
+            /**
+             * Project Id
+             * @description ModelProject id owning both versions
+             */
+            project_id: string;
+            /**
+             * To Version Id
+             * @description The later (target) version id
+             */
+            to_version_id: string;
+            /**
+             * Use Advanced Model
+             * @description Use Claude Opus with extended thinking for the explanation
+             * @default false
+             */
+            use_advanced_model: boolean;
         };
         /**
          * FavoriteResponse
@@ -5991,39 +5618,6 @@ export interface components {
             grouped_time_series?: components["schemas"]["GroupedTimeSeriesPoint"][] | null;
             kpi: components["schemas"]["FeatureAnalyticsKPI"];
             time_series: components["schemas"]["FeatureTimeSeriesResponse"];
-        };
-        /**
-         * FeaturedPlacementResponse
-         * @description Featured placement details.
-         */
-        FeaturedPlacementResponse: {
-            /** Catalog Model Id */
-            catalog_model_id: string;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Credits Paid */
-            credits_paid: number;
-            /** Duration Days */
-            duration_days: number;
-            /**
-             * Expires At
-             * Format: date-time
-             */
-            expires_at: string;
-            /** Id */
-            id: string;
-            /** Placement Type */
-            placement_type: string;
-            /**
-             * Starts At
-             * Format: date-time
-             */
-            starts_at: string;
-            /** Status */
-            status: string;
         };
         /**
          * FeatureTimeSeriesPoint
@@ -6089,11 +5683,6 @@ export interface components {
          */
         FileImportMetadata: {
             /**
-             * Estimated Credits
-             * @description Estimated credits for solving
-             */
-            estimated_credits: number;
-            /**
              * File Size Bytes
              * @description Size of uploaded file in bytes
              */
@@ -6154,6 +5743,19 @@ export interface components {
             email: string;
         };
         /**
+         * FromMarketplaceRequest
+         * @description Optional custom input when seeding a generator-backed marketplace model.
+         *
+         *     A generator-backed listing (official) renders ``user_input`` instead of its
+         *     ``example_input`` (parametric "use in studio"); a static listing ignores it.
+         */
+        FromMarketplaceRequest: {
+            /** User Input */
+            user_input?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
          * GeoDistributionEntry
          * @description Geographic distribution entry.
          */
@@ -6208,6 +5810,21 @@ export interface components {
             wizard_dismissed?: boolean | null;
             /** Wizard Step */
             wizard_step?: number | null;
+        };
+        /**
+         * HealthDeduction
+         * @description A single transparent deduction from the health score.
+         */
+        HealthDeduction: {
+            /** Code */
+            code: string;
+            /** Detail */
+            detail: string;
+            /**
+             * Points
+             * @description Points subtracted (positive number)
+             */
+            points: number;
         };
         /**
          * HealthResponse
@@ -6362,50 +5979,6 @@ export interface components {
             /** Workspace Id */
             workspace_id: string;
         };
-        /** InvoiceListResponse */
-        InvoiceListResponse: {
-            /** Items */
-            items: components["schemas"]["InvoiceResponse"][];
-            /** Total */
-            total: number;
-        };
-        /** InvoiceResponse */
-        InvoiceResponse: {
-            /** Credits Granted */
-            credits_granted: number;
-            /** Currency */
-            currency: string;
-            /** Id */
-            id: string;
-            /** Invoice Number */
-            invoice_number: string;
-            /** Invoice Type */
-            invoice_type: string;
-            /** Issued At */
-            issued_at: string;
-            /** Line Items */
-            line_items?: {
-                [key: string]: unknown;
-            }[] | null;
-            /** Notes */
-            notes?: string | null;
-            /** Org Name */
-            org_name: string;
-            /** Paid At */
-            paid_at?: string | null;
-            /** Status */
-            status: string;
-            /** Subtotal Eur */
-            subtotal_eur: number;
-            /** Tax Amount Eur */
-            tax_amount_eur: number;
-            /** Tax Rate */
-            tax_rate: number;
-            /** Total Eur */
-            total_eur: number;
-            /** Total Local */
-            total_local: number;
-        };
         /**
          * KeyListResponse
          * @description Paginated list of API keys.
@@ -6510,8 +6083,6 @@ export interface components {
         MeResponse: {
             /** Can Build Plugins */
             can_build_plugins: boolean;
-            /** Credits Balance */
-            credits_balance: number;
             /**
              * Email Verified
              * @default false
@@ -6601,6 +6172,11 @@ export interface components {
             avg_execution_time_ms?: number | null;
             /** Avg Rating */
             avg_rating?: number | null;
+            /**
+             * Can Open In Studio
+             * @default true
+             */
+            can_open_in_studio: boolean;
             /** Category */
             category: string;
             /**
@@ -6608,8 +6184,6 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
-            /** Credits Per Execution */
-            credits_per_execution: number;
             /** Description */
             description: string;
             /** Display Name */
@@ -6624,8 +6198,6 @@ export interface components {
             logo_url?: string | null;
             /** Name */
             name: string;
-            /** Price Eur */
-            price_eur: number;
             /** Scenario Description */
             scenario_description?: string | null;
             /** Screenshot Urls */
@@ -6670,8 +6242,10 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
-            /** Credits Consumed */
-            credits_consumed: number;
+            /** Dataset Id */
+            dataset_id?: string | null;
+            /** Dataset Name */
+            dataset_name?: string | null;
             /** Error Message */
             error_message?: string | null;
             /** Execution Time Ms */
@@ -6682,6 +6256,12 @@ export interface components {
             input_data: {
                 [key: string]: unknown;
             };
+            /** Model Author */
+            model_author?: string | null;
+            /** Model Name */
+            model_name?: string | null;
+            /** Model Project Id */
+            model_project_id?: string | null;
             /** Objective Value */
             objective_value?: number | null;
             /** Organization Model Id */
@@ -6704,8 +6284,28 @@ export interface components {
             trigger_id?: string | null;
         };
         /**
+         * ModelHealth
+         * @description Auditable 0-100 health score. Hard errors cap the score (band F).
+         */
+        ModelHealth: {
+            /**
+             * Band
+             * @enum {string}
+             */
+            band: "A" | "B" | "C" | "D" | "F";
+            /** Deductions */
+            deductions?: components["schemas"]["HealthDeduction"][];
+            /**
+             * Has Hard Error
+             * @default false
+             */
+            has_hard_error: boolean;
+            /** Score */
+            score: number;
+        };
+        /**
          * ModelPerformanceRow
-         * @description Per-model performance breakdown for a seller.
+         * @description Per-model performance breakdown for an author.
          */
         ModelPerformanceRow: {
             /** Activations */
@@ -6716,10 +6316,85 @@ export interface components {
             model_id: string;
             /** Model Name */
             model_name: string;
-            /** Revenue */
-            revenue: number;
             /** Views */
             views: number;
+        };
+        /**
+         * ModelStats
+         * @description Structural statistics of an optimization model.
+         */
+        ModelStats: {
+            bound_profile?: components["schemas"]["BoundProfile"];
+            conditioning?: components["schemas"]["CoefConditioning"];
+            /**
+             * Constraint Total
+             * @default 0
+             */
+            constraint_total: number;
+            /** Constraints By Operator */
+            constraints_by_operator?: {
+                [key: string]: number;
+            };
+            /**
+             * Content Hash
+             * @default
+             */
+            content_hash: string;
+            /**
+             * Density
+             * @default 0
+             */
+            density: number;
+            health: components["schemas"]["ModelHealth"];
+            /**
+             * Integrality Ratio
+             * @default 0
+             */
+            integrality_ratio: number;
+            /**
+             * Nonzeros
+             * @default 0
+             */
+            nonzeros: number;
+            /**
+             * Objective Quadratic
+             * @default false
+             */
+            objective_quadratic: boolean;
+            /** Objective Sense */
+            objective_sense?: string | null;
+            /**
+             * Objective Terms
+             * @default 0
+             */
+            objective_terms: number;
+            /**
+             * Problem Class
+             * @description LP/MILP/IP/BIP/QP/MIQP/QCP/MIQCP or None
+             */
+            problem_class?: string | null;
+            /**
+             * Var Binary
+             * @default 0
+             */
+            var_binary: number;
+            /**
+             * Var Continuous
+             * @default 0
+             */
+            var_continuous: number;
+            /**
+             * Var Integer
+             * @default 0
+             */
+            var_integer: number;
+            /**
+             * Var Total
+             * @default 0
+             */
+            var_total: number;
+            /** Warnings */
+            warnings?: string[];
         };
         /**
          * ModelVersionListItem
@@ -6836,11 +6511,6 @@ export interface components {
              * @description Points on the Pareto front
              */
             pareto_points: components["schemas"]["ParetoPoint"][];
-            /**
-             * Total Credits Used
-             * @description Total credits consumed
-             */
-            total_credits_used: number;
         };
         /**
          * MultiObjectiveSolveRequest
@@ -6876,7 +6546,7 @@ export interface components {
         };
         /**
          * NotificationPreferencesResponse
-         * @description All notification preferences for a user (4 events x 2 channels = 8 entries).
+         * @description All notification preferences for a user (event types x 2 channels).
          */
         NotificationPreferencesResponse: {
             /** Preferences */
@@ -6971,7 +6641,7 @@ export interface components {
         };
         /**
          * OnboardingStatusResponse
-         * @description Onboarding checklist status for a seller.
+         * @description Onboarding checklist status for an author.
          */
         OnboardingStatusResponse: {
             /** All Complete */
@@ -7105,17 +6775,6 @@ export interface components {
              */
             auto_route_reason?: string | null;
             /**
-             * Credits Remaining
-             * @description Remaining credits
-             */
-            credits_remaining?: number | null;
-            /**
-             * Credits Used
-             * @description Credits charged for this solve
-             * @default 1
-             */
-            credits_used: number;
-            /**
              * Error Message
              * @description Error details if failed
              */
@@ -7179,6 +6838,11 @@ export interface components {
              */
             variables?: components["schemas"]["VariableSolution"][] | null;
             /**
+             * Variables Omitted
+             * @description Count of near-zero variables omitted by solution_filter=nonzero.
+             */
+            variables_omitted?: number | null;
+            /**
              * Warm Start Used
              * @description True if warm start solution was injected
              * @default false
@@ -7201,20 +6865,10 @@ export interface components {
              */
             ai_builder_enabled: boolean;
             /**
-             * Credits Balance
-             * @default 100
-             */
-            credits_balance: number;
-            /**
              * Max Private Plugins
              * @default 5
              */
             max_private_plugins: number;
-            /**
-             * Monthly Quota
-             * @default 100
-             */
-            monthly_quota: number;
             /** Name */
             name: string;
             /**
@@ -7234,63 +6888,6 @@ export interface components {
             rate_limit_per_minute: number;
         };
         /**
-         * OrganizationModelListResponse
-         * @description Paginated list of organization models.
-         */
-        OrganizationModelListResponse: {
-            /** Items */
-            items: components["schemas"]["OrganizationModelResponse"][];
-            /** Page */
-            page: number;
-            /** Page Size */
-            page_size: number;
-            /** Total */
-            total: number;
-        };
-        /**
-         * OrganizationModelResponse
-         * @description Response for an organization's activated model.
-         */
-        OrganizationModelResponse: {
-            /** Catalog Id */
-            catalog_id?: string | null;
-            /** Category */
-            category?: string | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Credits Per Execution */
-            credits_per_execution: number;
-            /** Custom Name */
-            custom_name?: string | null;
-            /** Description */
-            description?: string | null;
-            /** Display Name */
-            display_name: string;
-            /** Generator Type */
-            generator_type?: string | null;
-            /** Id */
-            id: string;
-            /** Is Active */
-            is_active: boolean;
-            /** Is Favorite */
-            is_favorite: boolean;
-            /** Is Official */
-            is_official?: boolean | null;
-            /** Last Executed At */
-            last_executed_at?: string | null;
-            /** Organization Id */
-            organization_id: string;
-            /** Tags */
-            tags?: string[] | null;
-            /** Total Credits Used */
-            total_credits_used: number;
-            /** Total Executions */
-            total_executions: number;
-        };
-        /**
          * OrganizationOverviewResponse
          * @description Rich read-only overview of one organization for platform admins.
          */
@@ -7305,8 +6902,6 @@ export interface components {
             owner?: components["schemas"]["OrgOwnerSummary"] | null;
             /** Recent Executions */
             recent_executions: components["schemas"]["OrgExecutionSummary"][];
-            /** Recent Transactions */
-            recent_transactions: components["schemas"]["OrgTransactionSummary"][];
             /** Users */
             users: components["schemas"]["UserResponse"][];
         };
@@ -7378,10 +6973,6 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
-            /** Credits Balance */
-            credits_balance: number;
-            /** Credits Used Month */
-            credits_used_month: number;
             /** Id */
             id: string;
             /** Is Active */
@@ -7395,8 +6986,6 @@ export interface components {
             max_private_plugins: number;
             /** Model Count */
             model_count?: number | null;
-            /** Monthly Quota */
-            monthly_quota: number;
             /** Name */
             name: string;
             /** Plan */
@@ -7415,16 +7004,12 @@ export interface components {
         OrganizationUpdate: {
             /** Ai Builder Enabled */
             ai_builder_enabled?: boolean | null;
-            /** Credits Balance */
-            credits_balance?: number | null;
             /** Is Active */
             is_active?: boolean | null;
             /** Is Verified */
             is_verified?: boolean | null;
             /** Max Private Plugins */
             max_private_plugins?: number | null;
-            /** Monthly Quota */
-            monthly_quota?: number | null;
             /** Name */
             name?: string | null;
             /** Plan */
@@ -7459,8 +7044,6 @@ export interface components {
         OrgDetail: {
             /** Ai Builder Enabled */
             ai_builder_enabled: boolean;
-            /** Billing Email */
-            billing_email?: string | null;
             /**
              * Byok Configured
              * @default false
@@ -7471,18 +7054,6 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
-            /** Credits Balance */
-            credits_balance: number;
-            /** Credits Earned */
-            credits_earned: number;
-            /** Credits Purchased */
-            credits_purchased: number;
-            /** Credits Subscription */
-            credits_subscription: number;
-            /** Credits Used Month */
-            credits_used_month: number;
-            /** Currency */
-            currency: string;
             /** Id */
             id: string;
             /** Is Active */
@@ -7493,8 +7064,6 @@ export interface components {
             is_verified: boolean;
             /** Max Private Plugins */
             max_private_plugins: number;
-            /** Monthly Quota */
-            monthly_quota: number;
             /** Name */
             name: string;
             /** Owner User Id */
@@ -7517,8 +7086,6 @@ export interface components {
         OrgExecutionStats: {
             /** Completed */
             completed: number;
-            /** Credits Consumed Total */
-            credits_consumed_total: number;
             /** Failed */
             failed: number;
             /** Running */
@@ -7536,8 +7103,6 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
-            /** Credits Consumed */
-            credits_consumed: number;
             /** Executed By User Id */
             executed_by_user_id?: string | null;
             /** Execution Time Ms */
@@ -7575,8 +7140,6 @@ export interface components {
             last_executed_at?: string | null;
             /** Source */
             source: string;
-            /** Total Credits Used */
-            total_credits_used: number;
             /** Total Executions */
             total_executions: number;
         };
@@ -7591,27 +7154,6 @@ export interface components {
             id: string;
             /** Name */
             name: string;
-        };
-        /**
-         * OrgTransactionSummary
-         * @description A recent credit transaction for an organization.
-         */
-        OrgTransactionSummary: {
-            /** Balance After */
-            balance_after: number;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Credits Amount */
-            credits_amount: number;
-            /** Description */
-            description: string;
-            /** Id */
-            id: string;
-            /** Transaction Type */
-            transaction_type: string;
         };
         /**
          * OverrideFieldSchema
@@ -7856,26 +7398,6 @@ export interface components {
             p99: number | null;
         };
         /**
-         * PlacementPricingResponse
-         * @description Pricing for a specific placement type.
-         */
-        PlacementPricingResponse: {
-            /** Placement Type */
-            placement_type: string;
-            /** Tiers */
-            tiers: components["schemas"]["PlacementPricingTier"][];
-        };
-        /**
-         * PlacementPricingTier
-         * @description Pricing tier for a placement duration.
-         */
-        PlacementPricingTier: {
-            /** Credits Cost */
-            credits_cost: number;
-            /** Duration Days */
-            duration_days: number;
-        };
-        /**
          * PlanLimitsResponse
          * @description Plan tier limits exposed to the frontend.
          */
@@ -7932,104 +7454,12 @@ export interface components {
             };
             users: components["schemas"]["EntityCounts"];
         };
-        /** PortalRequest */
-        PortalRequest: {
-            /**
-             * Return Url
-             * @default http://localhost:3000/workspace/credits
-             */
-            return_url: string;
-        };
-        /** PortalResponse */
-        PortalResponse: {
-            /** Portal Url */
-            portal_url: string;
-        };
         /** PreviewRequest */
         PreviewRequest: {
             /** Input Data */
             input_data: {
                 [key: string]: unknown;
             };
-        };
-        /**
-         * PricingResponse
-         * @description Public pricing data for all plan tiers.
-         */
-        PricingResponse: {
-            /** Tiers */
-            tiers: components["schemas"]["PricingTier"][];
-        };
-        /**
-         * PricingTier
-         * @description A single plan tier with all pricing and limit data.
-         */
-        PricingTier: {
-            /**
-             * Allowed Features
-             * @description List of allowed feature slugs
-             */
-            allowed_features?: string[];
-            /**
-             * Annual Price
-             * @description Annual price in whole currency units
-             */
-            annual_price: number;
-            /**
-             * Credits
-             * @description Monthly credit allocation
-             */
-            credits: number;
-            /**
-             * Max Cron Schedules
-             * @description Maximum cron schedules
-             */
-            max_cron_schedules: number;
-            /**
-             * Max Daily Solves
-             * @description Maximum solves per day
-             */
-            max_daily_solves: number;
-            /**
-             * Max Solve Time Seconds
-             * @description Max solver time in seconds
-             */
-            max_solve_time_seconds: number;
-            /**
-             * Max Variables
-             * @description Maximum decision variables
-             */
-            max_variables: number;
-            /**
-             * Monthly Price
-             * @description Monthly price in whole currency units
-             */
-            monthly_price: number;
-            /**
-             * Monthly Quota
-             * @description Monthly usage quota
-             */
-            monthly_quota: number;
-            /**
-             * Name
-             * @description Display name
-             */
-            name: string;
-            /**
-             * Rate Limit Per Day
-             * @description API calls per day
-             */
-            rate_limit_per_day: number;
-            /**
-             * Rate Limit Per Minute
-             * @description API calls per minute
-             */
-            rate_limit_per_minute: number;
-            /**
-             * Slug
-             * @description Tier identifier
-             */
-            slug: string;
         };
         /**
          * ProgressPoint
@@ -8050,6 +7480,160 @@ export interface components {
             objective: number;
             /** Primal Bound */
             primal_bound: number;
+        };
+        /**
+         * ProjectCreate
+         * @description Create a new (blank) ModelProject.
+         */
+        ProjectCreate: {
+            /** Description */
+            description?: string | null;
+            /**
+             * Name
+             * @default Untitled Project
+             */
+            name: string;
+            /** Workspace Id */
+            workspace_id?: string | null;
+        };
+        /**
+         * ProjectExecutionItem
+         * @description Compact execution row for SERVER-DERIVED solve reconciliation (§14).
+         *
+         *     Carries exactly what the workspace needs to RECONCILE a solve from the
+         *     server when it opens — independent of browser memory, so a running solve
+         *     survives navigation, reload, a duplicated tab, a new device, or power loss:
+         *
+         *     * ``status`` + ``is_async`` + ``celery_task_id`` → re-attach a still-running
+         *       async solve (resume polling + the live WebSocket from where it is).
+         *     * terminal ``status`` + ``objective_value`` + ``completed_at`` → surface the
+         *       last run ("resuelta · objetivo X · hace Ys") instead of a blank panel.
+         */
+        ProjectExecutionItem: {
+            /** Celery Task Id */
+            celery_task_id?: string | null;
+            /** Completed At */
+            completed_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Dataset Id */
+            dataset_id?: string | null;
+            /** Dataset Name */
+            dataset_name?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Execution Time Ms */
+            execution_time_ms?: number | null;
+            /** Id */
+            id: string;
+            /** Is Async */
+            is_async: boolean;
+            /** Model Project Version Id */
+            model_project_version_id?: string | null;
+            /** Objective Value */
+            objective_value?: number | null;
+            /** Solver Name */
+            solver_name?: string | null;
+            /** Started At */
+            started_at?: string | null;
+            /** Status */
+            status: string;
+        };
+        /**
+         * ProjectListItem
+         * @description Compact project row for the list view.
+         */
+        ProjectListItem: {
+            /** Committed Count */
+            committed_count: number;
+            /** Created By */
+            created_by?: string | null;
+            /** Created By Name */
+            created_by_name?: string | null;
+            /** Current Version Id */
+            current_version_id?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Source Type */
+            source_type?: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * ProjectMetaUpdate
+         * @description Patch a project's metadata (name / description / status).
+         */
+        ProjectMetaUpdate: {
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Status */
+            status?: string | null;
+        };
+        /**
+         * ProjectRead
+         * @description Full project view: metadata + the current draft + the committed HEAD.
+         */
+        ProjectRead: {
+            /** Committed Count */
+            committed_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Current Version Id */
+            current_version_id?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Draft Canvas Json */
+            draft_canvas_json?: {
+                [key: string]: unknown;
+            } | null;
+            /** Draft Content Hash */
+            draft_content_hash?: string | null;
+            /** Draft Dsl Source */
+            draft_dsl_source?: string | null;
+            /** Draft Lock Version */
+            draft_lock_version: number;
+            /** Draft Model Json */
+            draft_model_json?: {
+                [key: string]: unknown;
+            } | null;
+            /** Draft Updated At */
+            draft_updated_at?: string | null;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Organization Id */
+            organization_id: string;
+            /** Source Ref */
+            source_ref?: string | null;
+            /** Source Type */
+            source_type?: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Workspace Id */
+            workspace_id?: string | null;
         };
         /**
          * PromoteVersionRequest
@@ -8080,11 +7664,6 @@ export interface components {
              * @default true
              */
             is_public: boolean;
-            /**
-             * Price Eur
-             * @default 0
-             */
-            price_eur: number;
             /** Section Changelog */
             section_changelog?: string | null;
             /** Section Example Io */
@@ -8099,21 +7678,6 @@ export interface components {
             short_description?: string | null;
             /** Tags */
             tags?: string[] | null;
-        };
-        /**
-         * PurchasePlacementRequest
-         * @description Request to purchase a featured placement.
-         */
-        PurchasePlacementRequest: {
-            /** Catalog Model Id */
-            catalog_model_id: string;
-            /**
-             * Duration Days
-             * @enum {integer}
-             */
-            duration_days: 7 | 14 | 30;
-            /** Placement Type */
-            placement_type: string;
         };
         /**
          * RatingCreate
@@ -8336,45 +7900,6 @@ export interface components {
             upper?: number | null;
         };
         /**
-         * SaleRecord
-         * @description Individual sale record with commission breakdown.
-         */
-        SaleRecord: {
-            /** Buyer Organization Name */
-            buyer_organization_name: string | null;
-            /** Commission Amount */
-            commission_amount: number;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Credits Price */
-            credits_price: number;
-            /** Model Id */
-            model_id: string | null;
-            /** Model Name */
-            model_name: string | null;
-            /** Sale Id */
-            sale_id: string;
-            /** Seller Earning */
-            seller_earning: number;
-        };
-        /**
-         * SalesHistoryResponse
-         * @description Paginated sales history.
-         */
-        SalesHistoryResponse: {
-            /** Items */
-            items: components["schemas"]["SaleRecord"][];
-            /** Page */
-            page: number;
-            /** Page Size */
-            page_size: number;
-            /** Total */
-            total: number;
-        };
-        /**
          * ScheduleCreateRequest
          * @description Request body for creating a cron schedule on a trigger.
          */
@@ -8393,29 +7918,37 @@ export interface components {
              */
             timezone: string;
         };
-        /** ScheduleRequest */
-        ScheduleRequest: {
+        /**
+         * ScheduleResponse
+         * @description Response schema for a cron schedule.
+         */
+        ScheduleResponse: {
+            /** Consecutive Failures */
+            consecutive_failures: number;
             /**
-             * Amount Type
-             * @description fixed, percentage, all
+             * Created At
+             * Format: date-time
              */
-            amount_type: string;
+            created_at: string;
+            /** Cron Expression */
+            cron_expression: string;
+            /** Id */
+            id: string;
+            /** Is Enabled */
+            is_enabled: boolean;
+            /** Last Run At */
+            last_run_at?: string | null;
+            /** Next Run At */
+            next_run_at?: string | null;
+            /** Timezone */
+            timezone: string;
+            /** Trigger Id */
+            trigger_id: string;
             /**
-             * Amount Value
-             * @description Credits if fixed, % if percentage
+             * Updated At
+             * Format: date-time
              */
-            amount_value?: number | null;
-            /**
-             * Frequency
-             * @description weekly, biweekly, monthly, quarterly
-             */
-            frequency: string;
-            /**
-             * Min Threshold
-             * @description Minimum credits to trigger withdrawal
-             * @default 100
-             */
-            min_threshold: number;
+            updated_at: string;
         };
         /**
          * ScheduleUpdateRequest
@@ -8437,7 +7970,7 @@ export interface components {
         };
         /**
          * SellerLeaderboardEntry
-         * @description Leaderboard entry for a seller (admin view).
+         * @description Leaderboard entry for a model author (admin view).
          */
         SellerLeaderboardEntry: {
             /** Avg Rating */
@@ -8448,10 +7981,8 @@ export interface components {
             org_id: string;
             /** Org Name */
             org_name: string;
-            /** Total Revenue */
-            total_revenue: number;
-            /** Total Sales */
-            total_sales: number;
+            /** Total Activations */
+            total_activations: number;
         };
         /**
          * SensitivityResult
@@ -8628,8 +8159,6 @@ export interface components {
         SignupResponse: {
             /** Api Key */
             api_key: string;
-            /** Credits Balance */
-            credits_balance: number;
             /** Message */
             message: string;
             /** Organization Id */
@@ -8663,8 +8192,8 @@ export interface components {
             threads: number;
             /**
              * Time Limit Seconds
-             * @description Max solve time
-             * @default 60
+             * @description Max solve time (seconds, up to 24h)
+             * @default 300
              */
             time_limit_seconds: number;
             /**
@@ -8680,28 +8209,11 @@ export interface components {
          * @enum {string}
          */
         SolverStatus: "optimal" | "feasible" | "infeasible" | "unbounded" | "time_limit" | "error";
-        /** SubscriptionResponse */
-        SubscriptionResponse: {
-            /** Cancel At Period End */
-            cancel_at_period_end?: boolean | null;
-            /** Current Period End */
-            current_period_end?: string | null;
-            /** Current Period Start */
-            current_period_start?: string | null;
-            /** Id */
-            id?: string | null;
-            /** Plan */
-            plan?: string | null;
-            /** Status */
-            status?: string | null;
-        };
         /**
          * SummaryResponse
          * @description Aggregated execution statistics.
          */
         SummaryResponse: {
-            /** Avg Credits */
-            avg_credits: number;
             /** Avg Objective Value */
             avg_objective_value: number | null;
             /** Avg Solve Time Ms */
@@ -8728,8 +8240,6 @@ export interface components {
             success_rate: number;
             /** Timed Out */
             timed_out: number;
-            /** Total Credits */
-            total_credits: number;
             /** Total Executions */
             total_executions: number;
         };
@@ -8770,8 +8280,6 @@ export interface components {
             date: string;
             /** Impressions */
             impressions: number;
-            /** Revenue */
-            revenue: number;
             /** Views */
             views: number;
         };
@@ -8785,36 +8293,6 @@ export interface components {
             /** Period */
             period: string;
         };
-        /** TransactionResponse */
-        TransactionResponse: {
-            /** Amount Eur */
-            amount_eur?: number | null;
-            /** Balance After */
-            balance_after?: number | null;
-            /** Created At */
-            created_at: string;
-            /** Credits Amount */
-            credits_amount?: number | null;
-            /** Description */
-            description?: string | null;
-            /**
-             * Earned Balance After
-             * @default 0
-             */
-            earned_balance_after: number | null;
-            /** Id */
-            id: string;
-            /** Package Name */
-            package_name?: string | null;
-            /** Reference Id */
-            reference_id?: string | null;
-            /** Reference Type */
-            reference_type?: string | null;
-            /** Total Credits */
-            total_credits?: number | null;
-            /** Transaction Type */
-            transaction_type?: string | null;
-        };
         /**
          * TrendBucketResponse
          * @description A single time-bucket in a trend series.
@@ -8824,8 +8302,6 @@ export interface components {
             avg_solve_time_ms: number | null;
             /** Completed */
             completed: number;
-            /** Credits */
-            credits: number;
             /** Date */
             date: string;
             /** Executions */
@@ -8888,7 +8364,7 @@ export interface components {
             webhook_url: string;
             /**
              * Workspace Id
-             * @description Workspace to deduct credits from
+             * @description Workspace this run belongs to
              */
             workspace_id?: string | null;
         };
@@ -9054,8 +8530,6 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
-            /** Credits Consumed */
-            credits_consumed: number;
             /** Error Message */
             error_message: string | null;
             /** Execution Id */
@@ -9149,22 +8623,6 @@ export interface components {
             is_official?: boolean | null;
             /** Is Public */
             is_public?: boolean | null;
-        };
-        /**
-         * UpdateModelRequest
-         * @description Request to update an organization model.
-         */
-        UpdateModelRequest: {
-            /** Custom Config */
-            custom_config?: {
-                [key: string]: unknown;
-            } | null;
-            /** Custom Name */
-            custom_name?: string | null;
-            /** Is Active */
-            is_active?: boolean | null;
-            /** Is Favorite */
-            is_favorite?: boolean | null;
         };
         /**
          * UpdateOrgProfileRequest
@@ -9462,6 +8920,87 @@ export interface components {
             token: string;
         };
         /**
+         * VersionDiff
+         * @description Structural diff between two ModelProjectVersions.
+         */
+        VersionDiff: {
+            /** Entries */
+            entries: components["schemas"]["DiffEntry"][];
+            /** From Version Id */
+            from_version_id: string;
+            /**
+             * Objective Changed
+             * @default false
+             */
+            objective_changed: boolean;
+            /** To Version Id */
+            to_version_id: string;
+        };
+        /**
+         * VersionRead
+         * @description Full version snapshot.
+         */
+        VersionRead: {
+            /** Canvas Json */
+            canvas_json?: {
+                [key: string]: unknown;
+            } | null;
+            /** Commit Body */
+            commit_body?: string | null;
+            /** Commit Summary */
+            commit_summary: string;
+            /** Content Hash */
+            content_hash: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by?: string | null;
+            /** Dsl Source */
+            dsl_source?: string | null;
+            /** Id */
+            id: string;
+            /** Model Json */
+            model_json: {
+                [key: string]: unknown;
+            };
+            /** Model Project Id */
+            model_project_id: string;
+            /** Parent Version Id */
+            parent_version_id?: string | null;
+            /** Problem Class */
+            problem_class?: string | null;
+            /** Sequence */
+            sequence: number;
+            /** Stats Json */
+            stats_json?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * VersionSummary
+         * @description Compact view of a committed version (for the project header / timeline).
+         */
+        VersionSummary: {
+            /** Commit Summary */
+            commit_summary: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by?: string | null;
+            /** Id */
+            id: string;
+            /** Problem Class */
+            problem_class?: string | null;
+            /** Sequence */
+            sequence: number;
+        };
+        /**
          * WarmStartConfig
          * @description Configuration for warm-starting a solve from a previous execution.
          */
@@ -9471,49 +9010,6 @@ export interface components {
              * @description ID of a previous completed execution to use as warm start
              */
             execution_id: string;
-        };
-        /**
-         * WithdrawalActionRequest
-         * @description Request body for withdrawal approve/reject.
-         */
-        WithdrawalActionRequest: {
-            /** Reason */
-            reason?: string | null;
-        };
-        /** WithdrawalRequest */
-        WithdrawalRequest: {
-            /**
-             * Credits Amount
-             * @description Amount of credits to withdraw
-             */
-            credits_amount: number;
-        };
-        /** WithdrawalResponse */
-        WithdrawalResponse: {
-            /** Created At */
-            created_at: string;
-            /** Credits Amount */
-            credits_amount: number;
-            /** Eur Amount */
-            eur_amount: number;
-            /** Exchange Rate */
-            exchange_rate: number;
-            /** Failure Reason */
-            failure_reason: string | null;
-            /** Id */
-            id: string;
-            /** Local Amount */
-            local_amount: number;
-            /** Processed At */
-            processed_at: string | null;
-            /** Status */
-            status: string;
-            /** Target Currency */
-            target_currency: string;
-            /** Transaction Reference */
-            transaction_reference: string | null;
-            /** Withdrawal Type */
-            withdrawal_type: string;
         };
         /**
          * WorkspaceCreate
@@ -9573,10 +9069,6 @@ export interface components {
             member_count: number;
             /** Name */
             name: string;
-            /** Pool Allocated */
-            pool_allocated?: number | null;
-            /** Pool Used */
-            pool_used?: number | null;
             /**
              * Updated At
              * Format: date-time
@@ -9615,34 +9107,29 @@ export interface components {
     pathItems: never;
 }
 export type AccountDeleteRequest = components['schemas']['AccountDeleteRequest'];
-export type ActivateModelRequest = components['schemas']['ActivateModelRequest'];
-export type ActivePlacementsResponse = components['schemas']['ActivePlacementsResponse'];
 export type AdminAnalyticsResponse = components['schemas']['AdminAnalyticsResponse'];
 export type AdminPaginatedResponse = components['schemas']['AdminPaginatedResponse'];
-export type AdminPlacementResponse = components['schemas']['AdminPlacementResponse'];
 export type AdminVerificationDecision = components['schemas']['AdminVerificationDecision'];
 export type AdminVerificationEntry = components['schemas']['AdminVerificationEntry'];
 export type AiUsageResponse = components['schemas']['AiUsageResponse'];
-export type AllRatesResponse = components['schemas']['AllRatesResponse'];
 export type AnalyticsSummaryResponse = components['schemas']['AnalyticsSummaryResponse'];
 export type ApiKeyCreate = components['schemas']['APIKeyCreate'];
 export type ApiKeyInfo = components['schemas']['APIKeyInfo'];
 export type ApiKeyResponse = components['schemas']['APIKeyResponse'];
-export type AppApiV2CreditsScheduleResponse = components['schemas']['app__api__v2__credits__ScheduleResponse'];
 export type AppSchemasAdminSettingsAuditLogResponse = components['schemas']['app__schemas__admin_settings__AuditLogResponse'];
 export type AppSchemasAnalyticsConversionFunnelResponse = components['schemas']['app__schemas__analytics__ConversionFunnelResponse'];
-export type AppSchemasScheduleScheduleResponse = components['schemas']['app__schemas__schedule__ScheduleResponse'];
-export type AppSchemasSellerAnalyticsConversionFunnelResponse = components['schemas']['app__schemas__seller_analytics__ConversionFunnelResponse'];
+export type AppSchemasAuthorAnalyticsConversionFunnelResponse = components['schemas']['app__schemas__author_analytics__ConversionFunnelResponse'];
 export type AppSchemasWorkspaceAuditLogResponse = components['schemas']['app__schemas__workspace__AuditLogResponse'];
 export type AttachmentResponse = components['schemas']['AttachmentResponse'];
 export type AuditEntryResponse = components['schemas']['AuditEntryResponse'];
 export type AutomationStats = components['schemas']['AutomationStats'];
-export type BillingStatusResponse = components['schemas']['BillingStatusResponse'];
 export type BodyImportAndSolve = components['schemas']['Body_import_and_solve'];
 export type BodyImportPreview = components['schemas']['Body_import_preview'];
+export type BodyImportProjectDataset = components['schemas']['Body_import_project_dataset'];
 export type BodyUploadAttachmentApiV2LlmConversationsConversationIdAttachmentsPost = components['schemas']['Body_upload_attachment_api_v2_llm_conversations__conversation_id__attachments_post'];
 export type BodyUploadLogoApiV2ModelsCatalogModelIdLogoPost = components['schemas']['Body_upload_logo_api_v2_models_catalog__model_id__logo_post'];
 export type BodyUploadScreenshotApiV2ModelsCatalogModelIdScreenshotsPost = components['schemas']['Body_upload_screenshot_api_v2_models_catalog__model_id__screenshots_post'];
+export type BoundProfile = components['schemas']['BoundProfile'];
 export type BuilderDocumentCreate = components['schemas']['BuilderDocumentCreate'];
 export type BuilderDocumentListResponse = components['schemas']['BuilderDocumentListResponse'];
 export type BuilderDocumentResponse = components['schemas']['BuilderDocumentResponse'];
@@ -9650,7 +9137,8 @@ export type BuilderDocumentUpdate = components['schemas']['BuilderDocumentUpdate
 export type BuilderSolves = components['schemas']['BuilderSolves'];
 export type CategoryStat = components['schemas']['CategoryStat'];
 export type ChatMessageRequest = components['schemas']['ChatMessageRequest'];
-export type CheckoutResponse = components['schemas']['CheckoutResponse'];
+export type CoefConditioning = components['schemas']['CoefConditioning'];
+export type CommitRequest = components['schemas']['CommitRequest'];
 export type CommunityStatusResponse = components['schemas']['CommunityStatusResponse'];
 export type ComparedExecutionResponse = components['schemas']['ComparedExecutionResponse'];
 export type CompareResponse = components['schemas']['CompareResponse'];
@@ -9661,43 +9149,46 @@ export type ContactCreate = components['schemas']['ContactCreate'];
 export type ContactResponse = components['schemas']['ContactResponse'];
 export type ConversionFunnelStep = components['schemas']['ConversionFunnelStep'];
 export type CountryDistributionEntry = components['schemas']['CountryDistributionEntry'];
-export type CreateCheckoutRequest = components['schemas']['CreateCheckoutRequest'];
 export type CreateCheckpointRequest = components['schemas']['CreateCheckpointRequest'];
 export type CreateConversationRequest = components['schemas']['CreateConversationRequest'];
 export type CreateKeyRequest = components['schemas']['CreateKeyRequest'];
 export type CreateKeyResponse = components['schemas']['CreateKeyResponse'];
-export type CreatePrivateModelRequest = components['schemas']['CreatePrivateModelRequest'];
 export type CreateReviewRequest = components['schemas']['CreateReviewRequest'];
-export type CreateTopupRequest = components['schemas']['CreateTopupRequest'];
-export type CreditAdjustment = components['schemas']['CreditAdjustment'];
-export type CreditBalanceResponse = components['schemas']['CreditBalanceResponse'];
-export type CreditCalculatorRequest = components['schemas']['CreditCalculatorRequest'];
-export type CreditCalculatorResponse = components['schemas']['CreditCalculatorResponse'];
-export type CreditPoolAllocate = components['schemas']['CreditPoolAllocate'];
-export type CreditPoolResponse = components['schemas']['CreditPoolResponse'];
 export type CronValidationResponse = components['schemas']['CronValidationResponse'];
-export type CurrencyRequest = components['schemas']['CurrencyRequest'];
 export type DailyPoint = components['schemas']['DailyPoint'];
 export type DailyTrend = components['schemas']['DailyTrend'];
+export type DatasetCreate = components['schemas']['DatasetCreate'];
+export type DatasetImportPreview = components['schemas']['DatasetImportPreview'];
+export type DatasetRead = components['schemas']['DatasetRead'];
+export type DatasetSummary = components['schemas']['DatasetSummary'];
+export type DatasetUpdate = components['schemas']['DatasetUpdate'];
 export type DetailedStatusResponse = components['schemas']['DetailedStatusResponse'];
+export type DiffEntry = components['schemas']['DiffEntry'];
 export type DomainSummaryEntry = components['schemas']['DomainSummaryEntry'];
-export type EarningsSummaryResponse = components['schemas']['EarningsSummaryResponse'];
+export type DraftUpdate = components['schemas']['DraftUpdate'];
+export type DslCompileError = components['schemas']['DSLCompileError'];
+export type DslCompileRequest = components['schemas']['DSLCompileRequest'];
+export type DslCompileResponse = components['schemas']['DSLCompileResponse'];
+export type DslInspectRequest = components['schemas']['DSLInspectRequest'];
+export type DslInspectResponse = components['schemas']['DSLInspectResponse'];
+export type DslParamDecl = components['schemas']['DSLParamDecl'];
+export type DslSetDecl = components['schemas']['DSLSetDecl'];
+export type DslStatusResponse = components['schemas']['DSLStatusResponse'];
 export type EmailInviteCreate = components['schemas']['EmailInviteCreate'];
 export type EmailLoginRequest = components['schemas']['EmailLoginRequest'];
 export type EmailSignupRequest = components['schemas']['EmailSignupRequest'];
 export type EntityCounts = components['schemas']['EntityCounts'];
 export type EventBreakdownEntry = components['schemas']['EventBreakdownEntry'];
-export type ExchangeRateResponse = components['schemas']['ExchangeRateResponse'];
 export type ExecuteModelRequest = components['schemas']['ExecuteModelRequest'];
 export type ExecutionListResponse = components['schemas']['ExecutionListResponse'];
 export type ExecutionStats = components['schemas']['ExecutionStats'];
 export type ExplainInfeasibilityRequest = components['schemas']['ExplainInfeasibilityRequest'];
+export type ExplainModelRequest = components['schemas']['ExplainModelRequest'];
 export type ExplainSolutionRequest = components['schemas']['ExplainSolutionRequest'];
-export type ExtendPlacementRequest = components['schemas']['ExtendPlacementRequest'];
+export type ExplainVersionDiffRequest = components['schemas']['ExplainVersionDiffRequest'];
 export type FavoriteResponse = components['schemas']['FavoriteResponse'];
 export type FeatureAnalyticsKpi = components['schemas']['FeatureAnalyticsKPI'];
 export type FeatureAnalyticsOverview = components['schemas']['FeatureAnalyticsOverview'];
-export type FeaturedPlacementResponse = components['schemas']['FeaturedPlacementResponse'];
 export type FeatureTimeSeriesPoint = components['schemas']['FeatureTimeSeriesPoint'];
 export type FeatureTimeSeriesResponse = components['schemas']['FeatureTimeSeriesResponse'];
 export type FeedbackListResponse = components['schemas']['FeedbackListResponse'];
@@ -9705,11 +9196,13 @@ export type FeedbackStatsResponse = components['schemas']['FeedbackStatsResponse
 export type FileImportMetadata = components['schemas']['FileImportMetadata'];
 export type FileImportPreviewResponse = components['schemas']['FileImportPreviewResponse'];
 export type ForgotPasswordRequest = components['schemas']['ForgotPasswordRequest'];
+export type FromMarketplaceRequest = components['schemas']['FromMarketplaceRequest'];
 export type GeoDistributionEntry = components['schemas']['GeoDistributionEntry'];
 export type GeoDistributionResponse = components['schemas']['GeoDistributionResponse'];
 export type GroupedTimeSeriesPoint = components['schemas']['GroupedTimeSeriesPoint'];
 export type GuidanceResponse = components['schemas']['GuidanceResponse'];
 export type GuidanceUpdate = components['schemas']['GuidanceUpdate'];
+export type HealthDeduction = components['schemas']['HealthDeduction'];
 export type HealthResponse = components['schemas']['HealthResponse'];
 export type HomeAnnouncementResponse = components['schemas']['HomeAnnouncementResponse'];
 export type HttpValidationError = components['schemas']['HTTPValidationError'];
@@ -9718,8 +9211,6 @@ export type InsightResponse = components['schemas']['InsightResponse'];
 export type InsightsResponse = components['schemas']['InsightsResponse'];
 export type InviteAccept = components['schemas']['InviteAccept'];
 export type InviteResponse = components['schemas']['InviteResponse'];
-export type InvoiceListResponse = components['schemas']['InvoiceListResponse'];
-export type InvoiceResponse = components['schemas']['InvoiceResponse'];
 export type KeyListResponse = components['schemas']['KeyListResponse'];
 export type LinkInviteCreate = components['schemas']['LinkInviteCreate'];
 export type LinkInviteResponse = components['schemas']['LinkInviteResponse'];
@@ -9733,7 +9224,9 @@ export type MetricsResponse = components['schemas']['MetricsResponse'];
 export type ModelCatalogListResponse = components['schemas']['ModelCatalogListResponse'];
 export type ModelCatalogResponse = components['schemas']['ModelCatalogResponse'];
 export type ModelExecutionResponse = components['schemas']['ModelExecutionResponse'];
+export type ModelHealth = components['schemas']['ModelHealth'];
 export type ModelPerformanceRow = components['schemas']['ModelPerformanceRow'];
+export type ModelStats = components['schemas']['ModelStats'];
 export type ModelVersionListItem = components['schemas']['ModelVersionListItem'];
 export type ModelVersionResponse = components['schemas']['ModelVersionResponse'];
 export type MultiObjectiveConfig = components['schemas']['MultiObjectiveConfig'];
@@ -9753,8 +9246,6 @@ export type OptimizationProblemInput = components['schemas']['OptimizationProble
 export type OptimizationProblemOutput = components['schemas']['OptimizationProblem-Output'];
 export type OptimizationResult = components['schemas']['OptimizationResult'];
 export type OrganizationCreate = components['schemas']['OrganizationCreate'];
-export type OrganizationModelListResponse = components['schemas']['OrganizationModelListResponse'];
-export type OrganizationModelResponse = components['schemas']['OrganizationModelResponse'];
 export type OrganizationOverviewResponse = components['schemas']['OrganizationOverviewResponse'];
 export type OrganizationPublicProfile = components['schemas']['OrganizationPublicProfile'];
 export type OrganizationResponse = components['schemas']['OrganizationResponse'];
@@ -9765,7 +9256,6 @@ export type OrgExecutionStats = components['schemas']['OrgExecutionStats'];
 export type OrgExecutionSummary = components['schemas']['OrgExecutionSummary'];
 export type OrgModelSummary = components['schemas']['OrgModelSummary'];
 export type OrgOwnerSummary = components['schemas']['OrgOwnerSummary'];
-export type OrgTransactionSummary = components['schemas']['OrgTransactionSummary'];
 export type OverrideFieldSchema = components['schemas']['OverrideFieldSchema'];
 export type PaginatedRecentEventsResponse = components['schemas']['PaginatedRecentEventsResponse'];
 export type PaginatedResponseAuditLogResponse = components['schemas']['PaginatedResponse_AuditLogResponse_'];
@@ -9773,21 +9263,19 @@ export type PaginatedResponseTriggerRunResponse = components['schemas']['Paginat
 export type PaginatedResponseWorkspaceResponse = components['schemas']['PaginatedResponse_WorkspaceResponse_'];
 export type ParetoPoint = components['schemas']['ParetoPoint'];
 export type Percentiles = components['schemas']['Percentiles'];
-export type PlacementPricingResponse = components['schemas']['PlacementPricingResponse'];
-export type PlacementPricingTier = components['schemas']['PlacementPricingTier'];
 export type PlanLimitsResponse = components['schemas']['PlanLimitsResponse'];
 export type PlanTiersResponse = components['schemas']['PlanTiersResponse'];
 export type PlanTiersUpdateRequest = components['schemas']['PlanTiersUpdateRequest'];
 export type PlatformOverviewResponse = components['schemas']['PlatformOverviewResponse'];
-export type PortalRequest = components['schemas']['PortalRequest'];
-export type PortalResponse = components['schemas']['PortalResponse'];
 export type PreviewRequest = components['schemas']['PreviewRequest'];
-export type PricingResponse = components['schemas']['PricingResponse'];
-export type PricingTier = components['schemas']['PricingTier'];
 export type ProgressPoint = components['schemas']['ProgressPoint'];
+export type ProjectCreate = components['schemas']['ProjectCreate'];
+export type ProjectExecutionItem = components['schemas']['ProjectExecutionItem'];
+export type ProjectListItem = components['schemas']['ProjectListItem'];
+export type ProjectMetaUpdate = components['schemas']['ProjectMetaUpdate'];
+export type ProjectRead = components['schemas']['ProjectRead'];
 export type PromoteVersionRequest = components['schemas']['PromoteVersionRequest'];
 export type PublishModelRequest = components['schemas']['PublishModelRequest'];
-export type PurchasePlacementRequest = components['schemas']['PurchasePlacementRequest'];
 export type RatingCreate = components['schemas']['RatingCreate'];
 export type RatingResponse = components['schemas']['RatingResponse'];
 export type RecentEventEntry = components['schemas']['RecentEventEntry'];
@@ -9799,10 +9287,8 @@ export type RestoreResponse = components['schemas']['RestoreResponse'];
 export type ReviewListResponse = components['schemas']['ReviewListResponse'];
 export type ReviewResponse = components['schemas']['ReviewResponse'];
 export type RhsRange = components['schemas']['RhsRange'];
-export type SaleRecord = components['schemas']['SaleRecord'];
-export type SalesHistoryResponse = components['schemas']['SalesHistoryResponse'];
 export type ScheduleCreateRequest = components['schemas']['ScheduleCreateRequest'];
-export type ScheduleRequest = components['schemas']['ScheduleRequest'];
+export type ScheduleResponse = components['schemas']['ScheduleResponse'];
 export type ScheduleUpdateRequest = components['schemas']['ScheduleUpdateRequest'];
 export type SellerLeaderboardEntry = components['schemas']['SellerLeaderboardEntry'];
 export type SensitivityResult = components['schemas']['SensitivityResult'];
@@ -9818,12 +9304,10 @@ export type SignupResponse = components['schemas']['SignupResponse'];
 export type SkillLevel = components['schemas']['SkillLevel'];
 export type SolverOptions = components['schemas']['SolverOptions'];
 export type SolverStatus = components['schemas']['SolverStatus'];
-export type SubscriptionResponse = components['schemas']['SubscriptionResponse'];
 export type SummaryResponse = components['schemas']['SummaryResponse'];
 export type SystemMetrics = components['schemas']['SystemMetrics'];
 export type TimeSeriesDataPoint = components['schemas']['TimeSeriesDataPoint'];
 export type TimeSeriesResponse = components['schemas']['TimeSeriesResponse'];
-export type TransactionResponse = components['schemas']['TransactionResponse'];
 export type TrendBucketResponse = components['schemas']['TrendBucketResponse'];
 export type TrendsResponse = components['schemas']['TrendsResponse'];
 export type TriggerCreate = components['schemas']['TriggerCreate'];
@@ -9837,7 +9321,6 @@ export type TriggerUpdate = components['schemas']['TriggerUpdate'];
 export type UnreadCountResponse = components['schemas']['UnreadCountResponse'];
 export type UpdateCatalogSectionsRequest = components['schemas']['UpdateCatalogSectionsRequest'];
 export type UpdateModelBadgesRequest = components['schemas']['UpdateModelBadgesRequest'];
-export type UpdateModelRequest = components['schemas']['UpdateModelRequest'];
 export type UpdateOrgProfileRequest = components['schemas']['UpdateOrgProfileRequest'];
 export type UpdatePreferenceRequest = components['schemas']['UpdatePreferenceRequest'];
 export type UpdateUserProfileRequest = components['schemas']['UpdateUserProfileRequest'];
@@ -9853,10 +9336,10 @@ export type VariableSolution = components['schemas']['VariableSolution'];
 export type VariableType = components['schemas']['VariableType'];
 export type VerificationRequestResponse = components['schemas']['VerificationRequestResponse'];
 export type VerifyEmailRequest = components['schemas']['VerifyEmailRequest'];
+export type VersionDiff = components['schemas']['VersionDiff'];
+export type VersionRead = components['schemas']['VersionRead'];
+export type VersionSummary = components['schemas']['VersionSummary'];
 export type WarmStartConfig = components['schemas']['WarmStartConfig'];
-export type WithdrawalActionRequest = components['schemas']['WithdrawalActionRequest'];
-export type WithdrawalRequest = components['schemas']['WithdrawalRequest'];
-export type WithdrawalResponse = components['schemas']['WithdrawalResponse'];
 export type WorkspaceCreate = components['schemas']['WorkspaceCreate'];
 export type WorkspaceMemberResponse = components['schemas']['WorkspaceMemberResponse'];
 export type WorkspaceResponse = components['schemas']['WorkspaceResponse'];
@@ -9979,76 +9462,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["APIKeyResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    adjust_credits_api_v2_admin_credits_adjust_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreditAdjustment"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_transactions_api_v2_admin_credits_transactions_get: {
-        parameters: {
-            query?: {
-                organization_id?: string | null;
-                page?: number;
-                page_size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
                 };
             };
             /** @description Validation Error */
@@ -10200,93 +9613,7 @@ export interface operations {
             };
         };
     };
-    get_admin_promotions_api_v2_admin_marketplace_promotions_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdminPlacementResponse"][];
-                };
-            };
-        };
-    };
-    extend_promotion_api_v2_admin_marketplace_promotions__placement_id__extend_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                placement_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ExtendPlacementRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    revoke_promotion_api_v2_admin_marketplace_promotions__placement_id__revoke_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                placement_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_admin_seller_analytics_api_v2_admin_marketplace_seller_analytics_get: {
+    get_admin_author_analytics_api_v2_admin_marketplace_seller_analytics_get: {
         parameters: {
             query?: {
                 period?: string;
@@ -10317,7 +9644,7 @@ export interface operations {
             };
         };
     };
-    get_admin_seller_detail_api_v2_admin_marketplace_seller_analytics__org_id__get: {
+    get_admin_author_detail_api_v2_admin_marketplace_seller_analytics__org_id__get: {
         parameters: {
             query?: {
                 period?: string;
@@ -10869,28 +10196,6 @@ export interface operations {
             };
         };
     };
-    trigger_reconciliation_api_v2_admin_reconciliation_run_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
     admin_delete_review_api_v2_admin_reviews__review_id__delete: {
         parameters: {
             query?: never;
@@ -11064,62 +10369,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["app__schemas__admin_settings__AuditLogResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_commission_rate_api_v2_admin_settings_commission_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    update_commission_rate_api_v2_admin_settings_commission_put: {
-        parameters: {
-            query: {
-                /** @description Commission rate (0.0 to 0.50) */
-                rate: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
                 };
             };
             /** @description Validation Error */
@@ -11489,113 +10738,6 @@ export interface operations {
             };
         };
     };
-    list_withdrawals_api_v2_admin_withdrawals_get: {
-        parameters: {
-            query?: {
-                organization_id?: string | null;
-                page?: number;
-                page_size?: number;
-                /** @description Filter by status: pending, processing, completed, failed, cancelled */
-                status?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    approve_withdrawal_api_v2_admin_withdrawals__withdrawal_id__approve_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                withdrawal_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    reject_withdrawal_api_v2_admin_withdrawals__withdrawal_id__reject_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                withdrawal_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WithdrawalActionRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     forgot_password_api_v2_auth_forgot_password_post: {
         parameters: {
             query?: never;
@@ -11889,283 +11031,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_subscription_checkout_api_v2_billing_checkout_subscription_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateCheckoutRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CheckoutResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_topup_checkout_api_v2_billing_checkout_topup_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateTopupRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CheckoutResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_invoices_api_v2_billing_invoices_get: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InvoiceListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_invoice_api_v2_billing_invoices__invoice_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                invoice_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InvoiceResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_invoice_html_api_v2_billing_invoices__invoice_id__html_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                invoice_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/html": string;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_billing_portal_api_v2_billing_portal_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PortalRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PortalResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_billing_status_api_v2_billing_status_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BillingStatusResponse"];
-                };
-            };
-        };
-    };
-    get_subscription_api_v2_billing_subscription_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SubscriptionResponse"];
-                };
-            };
-        };
-    };
-    cancel_subscription_api_v2_billing_subscription_cancel_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    stripe_webhook_api_v2_billing_webhook_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
                 };
             };
         };
@@ -12599,27 +11464,7 @@ export interface operations {
             };
         };
     };
-    get_credit_balance: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CreditBalanceResponse"];
-                };
-            };
-        };
-    };
-    calculate_credits_endpoint_api_v2_credits_calculator_post: {
+    dsl_compile: {
         parameters: {
             query?: never;
             header?: never;
@@ -12628,7 +11473,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreditCalculatorRequest"];
+                "application/json": components["schemas"]["DSLCompileRequest"];
             };
         };
         responses: {
@@ -12638,7 +11483,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CreditCalculatorResponse"];
+                    "application/json": components["schemas"]["DSLCompileResponse"];
                 };
             };
             /** @description Validation Error */
@@ -12652,92 +11497,7 @@ export interface operations {
             };
         };
     };
-    get_exchange_rates_api_v2_credits_rates_get: {
-        parameters: {
-            query?: {
-                /** @description Date in YYYY-MM-DD format */
-                rate_date?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AllRatesResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_exchange_rate_api_v2_credits_rates__currency__get: {
-        parameters: {
-            query?: {
-                rate_date?: string | null;
-            };
-            header?: never;
-            path: {
-                currency: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExchangeRateResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_withdrawal_schedules_api_v2_credits_schedules_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["app__api__v2__credits__ScheduleResponse"][];
-                };
-            };
-        };
-    };
-    create_withdrawal_schedule_api_v2_credits_schedules_post: {
+    dsl_inspect: {
         parameters: {
             query?: never;
             header?: never;
@@ -12746,7 +11506,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ScheduleRequest"];
+                "application/json": components["schemas"]["DSLInspectRequest"];
             };
         };
         responses: {
@@ -12756,7 +11516,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__api__v2__credits__ScheduleResponse"];
+                    "application/json": components["schemas"]["DSLInspectResponse"];
                 };
             };
             /** @description Validation Error */
@@ -12770,40 +11530,7 @@ export interface operations {
             };
         };
     };
-    delete_withdrawal_schedule_api_v2_credits_schedules__schedule_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                schedule_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_credit_settings_api_v2_credits_settings_get: {
+    dsl_status: {
         parameters: {
             query?: never;
             header?: never;
@@ -12818,143 +11545,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    update_currency_api_v2_credits_settings_currency_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CurrencyRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_transactions_api_v2_credits_transactions_get: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-                transaction_type?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TransactionResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_withdrawals_api_v2_credits_withdrawals_get: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-                status?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WithdrawalResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_withdrawal_api_v2_credits_withdrawals_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WithdrawalRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WithdrawalResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["DSLStatusResponse"];
                 };
             };
         };
@@ -13309,6 +11900,8 @@ export interface operations {
             query?: {
                 /** @description Filter by builder document ID */
                 model_id?: string | null;
+                /** @description Filter by ModelProject id (studio) */
+                model_project_id?: string | null;
                 page?: number;
                 page_size?: number;
             };
@@ -13502,6 +12095,41 @@ export interface operations {
             };
         };
     };
+    explain_diff_endpoint_api_v2_llm_conversations__conversation_id__explain_diff_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExplainVersionDiffRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     explain_infeasibility_endpoint_api_v2_llm_conversations__conversation_id__explain_infeasibility_post: {
         parameters: {
             query?: never;
@@ -13514,6 +12142,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ExplainInfeasibilityRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    explain_model_endpoint_api_v2_llm_conversations__conversation_id__explain_model_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExplainModelRequest"];
             };
         };
         responses: {
@@ -13594,176 +12257,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_my_models_api_v2_models__get: {
-        parameters: {
-            query?: {
-                category?: string | null;
-                is_active?: boolean | null;
-                is_favorite?: boolean | null;
-                page?: number;
-                page_size?: number;
-                search?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrganizationModelListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_private_model_api_v2_models__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreatePrivateModelRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrganizationModelResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_my_model_api_v2_models__model_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                model_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrganizationModelResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    deactivate_my_model_api_v2_models__model_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                model_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_my_model_api_v2_models__model_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                model_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateModelRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
                 };
             };
             /** @description Validation Error */
@@ -13887,74 +12380,6 @@ export interface operations {
             };
         };
     };
-    publish_model_to_marketplace_api_v2_models__model_id__publish_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                model_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PublishModelRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ModelCatalogResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_my_model_schema_api_v2_models__model_id__schema_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                model_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_async_execution_status_api_v2_models_async__task_id__get: {
         parameters: {
             query?: never;
@@ -14026,14 +12451,8 @@ export interface operations {
             query?: {
                 /** @description Filter by category */
                 category?: string | null;
-                /** @description Filter free models */
-                is_free?: boolean | null;
                 /** @description Filter official models */
                 is_official?: boolean | null;
-                /** @description Maximum price filter (EUR) */
-                max_price?: number | null;
-                /** @description Minimum price filter (EUR) */
-                min_price?: number | null;
                 /** @description Minimum average rating */
                 min_rating?: number | null;
                 page?: number;
@@ -14155,41 +12574,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelCatalogResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    activate_catalog_model: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                model_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ActivateModelRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrganizationModelResponse"];
                 };
             };
             /** @description Validation Error */
@@ -14404,28 +12788,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_promoted_model_ids: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: string[];
-                    };
                 };
             };
         };
@@ -15025,9 +13387,16 @@ export interface operations {
             };
         };
     };
-    get_pricing_api_v2_pricing_get: {
+    list_model_projects: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+                mine?: boolean;
+                q?: string | null;
+                skip?: number;
+                status?: string | null;
+                workspace_id?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -15040,7 +13409,862 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PricingResponse"];
+                    "application/json": components["schemas"]["ProjectListItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_model_project: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_model_project: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_model_project: {
+        parameters: {
+            query?: {
+                permanent?: boolean;
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_model_project: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectMetaUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    commit_model_version: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_project_datasets: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatasetSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_project_dataset: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatasetCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatasetRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_project_dataset: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                dataset_id: string;
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatasetRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_project_dataset: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                dataset_id: string;
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatasetUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatasetRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_project_dataset: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                dataset_id: string;
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    solve_project_dataset: {
+        parameters: {
+            query?: {
+                solver_name?: string | null;
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                dataset_id: string;
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_project_dataset: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_project_dataset"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatasetImportPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_model_project_draft: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: {
+                "If-Match"?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_project_executions: {
+        parameters: {
+            query?: {
+                limit?: number;
+                status?: string | null;
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectExecutionItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_model_project: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishModelRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelCatalogResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    solve_model_project: {
+        parameters: {
+            query?: {
+                origin?: string | null;
+                /** @description Compact solution: 'nonzero' omits near-zero variables from the response (variables_omitted reports the count). The persisted execution keeps the full solution. */
+                solution_filter?: "nonzero" | null;
+                solver_name?: string | null;
+                version_id?: string | null;
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OptimizationResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_model_stats: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelStats"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_project_versions: {
+        parameters: {
+            query?: {
+                limit?: number;
+                skip?: number;
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    diff_project_versions: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                a: string;
+                b: string;
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionDiff"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_project_version: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_project_version: {
+        parameters: {
+            query?: {
+                discard_draft?: boolean;
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_model_project_from_builder: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_model_project_from_marketplace: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                model_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["FromMarketplaceRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_model_project_from_template: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -15095,7 +14319,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__schemas__seller_analytics__ConversionFunnelResponse"];
+                    "application/json": components["schemas"]["app__schemas__author_analytics__ConversionFunnelResponse"];
                 };
             };
             /** @description Validation Error */
@@ -15233,98 +14457,6 @@ export interface operations {
             };
         };
     };
-    start_connect_onboarding_api_v2_seller_connect_onboard_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    get_connect_status_api_v2_seller_connect_status_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    get_sales_history_api_v2_seller_earnings_sales_get: {
-        parameters: {
-            query?: {
-                page?: number;
-                page_size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SalesHistoryResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_earnings_summary_api_v2_seller_earnings_summary_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EarningsSummaryResponse"];
-                };
-            };
-        };
-    };
     get_notification_preferences_api_v2_seller_notifications_preferences_get: {
         parameters: {
             query?: never;
@@ -15398,119 +14530,6 @@ export interface operations {
             };
         };
     };
-    get_active_placements_api_v2_seller_placements_active_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ActivePlacementsResponse"];
-                };
-            };
-        };
-    };
-    get_placement_pricing_api_v2_seller_placements_pricing_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PlacementPricingResponse"][];
-                };
-            };
-        };
-    };
-    purchase_placement_api_v2_seller_placements_purchase_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PurchasePlacementRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeaturedPlacementResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    accept_seller_tos_api_v2_seller_tos_accept_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    get_seller_tos_status_api_v2_seller_tos_status_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
     request_verification_api_v2_seller_verification_request_post: {
         parameters: {
             query?: never;
@@ -15555,6 +14574,8 @@ export interface operations {
         parameters: {
             query?: {
                 origin?: string | null;
+                /** @description Compact solution: 'nonzero' omits near-zero variables from the response (variables_omitted reports the count). The persisted execution keeps the full solution. */
+                solution_filter?: "nonzero" | null;
                 solver_name?: string | null;
                 source_id?: string | null;
                 source_kind?: string | null;
@@ -15594,6 +14615,8 @@ export interface operations {
         parameters: {
             query?: {
                 origin?: string | null;
+                /** @description Compact solution: 'nonzero' omits near-zero variables from the response (variables_omitted reports the count). The persisted execution keeps the full solution. */
+                solution_filter?: "nonzero" | null;
                 solver_name?: string | null;
                 source_id?: string | null;
                 source_kind?: string | null;
@@ -15763,10 +14786,12 @@ export interface operations {
     solve_optimization_problem_async_api_v2_solve_async_post: {
         parameters: {
             query?: {
+                dataset_id?: string | null;
                 origin?: string | null;
                 solver_name?: string | null;
                 source_id?: string | null;
                 source_kind?: string | null;
+                wait?: boolean;
                 workspace_id?: string | null;
             };
             header?: never;
@@ -16082,7 +15107,6 @@ export interface operations {
         parameters: {
             query?: {
                 origin?: string | null;
-                solver_name?: string | null;
                 source_id?: string | null;
                 source_kind?: string | null;
                 workspace_id?: string | null;
@@ -16637,7 +15661,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__schemas__schedule__ScheduleResponse"];
+                    "application/json": components["schemas"]["ScheduleResponse"];
                 };
             };
             /** @description Validation Error */
@@ -16672,7 +15696,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__schemas__schedule__ScheduleResponse"];
+                    "application/json": components["schemas"]["ScheduleResponse"];
                 };
             };
             /** @description Validation Error */
@@ -16736,7 +15760,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__schemas__schedule__ScheduleResponse"];
+                    "application/json": components["schemas"]["ScheduleResponse"];
                 };
             };
             /** @description Validation Error */
@@ -17161,72 +16185,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedResponse_AuditLogResponse_"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_credit_pool_api_v2_workspaces__workspace_id__credits__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                workspace_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CreditPoolResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    allocate_credits_api_v2_workspaces__workspace_id__credits_allocate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                workspace_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreditPoolAllocate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CreditPoolResponse"];
                 };
             };
             /** @description Validation Error */

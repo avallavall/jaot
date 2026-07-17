@@ -27,11 +27,6 @@ from app.shared.utils.query_helpers import (
 )
 from app.shared.utils.slug import generate_unique_slug, is_valid_slug, slugify
 
-# Note: build_org_model_response is intentionally NOT re-exported here.
-# It imports from app.models which creates a circular dependency when
-# app.models imports app.utils. Import directly from app.shared.utils.model_helpers:
-#   from app.shared.utils.model_helpers import build_org_model_response
-
 __all__ = [
     "utcnow",
     "is_expired",

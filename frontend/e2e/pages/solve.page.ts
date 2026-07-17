@@ -8,14 +8,13 @@ export class SolvePage {
 
   constructor(page: Page) {
     this.page = page;
-    this.sidebar = page.getByRole("navigation");
+    // Nested pages also render a breadcrumb <nav> — pin the sidebar by name.
+    this.sidebar = page.getByRole("navigation", { name: "Main navigation" });
     this.heading = page.getByRole("heading").first();
   }
 
-  async goto(locale?: string) {
-    await this.page.goto(localePath("/solve", locale));
-  }
-
+  // P1.5 fusion: the legacy /solve dashboard redirects to /studio — specs that
+  // need the model list should target the studio directly.
   async gotoMarketplace(locale?: string) {
     await this.page.goto(localePath("/marketplace", locale));
   }
@@ -34,10 +33,6 @@ export class SolvePage {
 
   async expectLoaded() {
     await expect(this.page).toHaveURL(/\/solve/);
-  }
-
-  async expectHeadingVisible() {
-    await expect(this.heading).toBeVisible();
   }
 
   async navigateViaSidebar(linkText: RegExp) {

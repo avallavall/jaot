@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import type { TriggerRun, TriggerRunStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { apiDate } from "@/lib/dates";
 import {
   Dialog,
   DialogContent,
@@ -49,7 +50,6 @@ function StatusBadge({ status, t }: { status: TriggerRunStatus; t: (key: string)
     failed: { labelKey: "statusFailed", className: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300" },
     timeout: { labelKey: "statusTimeout", className: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300" },
     validation_failed: { labelKey: "statusValidationFailed", className: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300" },
-    skipped_credits: { labelKey: "statusSkippedCredits", className: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300" },
     skipped_overlap: { labelKey: "statusSkippedOverlap", className: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300" },
   };
   const { labelKey, className } = config[status] ?? { labelKey: status, className: "" };
@@ -105,10 +105,6 @@ function RunDetailModal({ run, open, onClose, t }: { run: TriggerRun; open: bool
               <StatusBadge status={run.status} t={t} />
             </div>
             <div>
-              <div className="text-xs text-muted-foreground mb-1">{t("creditsConsumed")}</div>
-              <div>{run.credits_consumed}</div>
-            </div>
-            <div>
               <div className="text-xs text-muted-foreground mb-1">{t("duration")}</div>
               <div>{formatDuration(run.execution_time_ms)}</div>
             </div>
@@ -127,7 +123,7 @@ function RunDetailModal({ run, open, onClose, t }: { run: TriggerRun; open: bool
             </div>
             <div>
               <div className="text-xs text-muted-foreground mb-1">{t("createdAt")}</div>
-              <div className="text-xs">{new Date(run.created_at).toLocaleString()}</div>
+              <div className="text-xs">{apiDate(run.created_at).toLocaleString()}</div>
             </div>
           </div>
 
@@ -250,7 +246,6 @@ export function RunHistoryTable({ triggerId }: RunHistoryTableProps) {
             <tr className="border-b bg-muted/50">
               <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">{t("headerStatus")}</th>
               <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">{t("headerRunId")}</th>
-              <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">{t("headerCredits")}</th>
               <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">{t("headerDuration")}</th>
               <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">{t("headerOverrides")}</th>
               <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">{t("headerWebhook")}</th>
@@ -266,9 +261,6 @@ export function RunHistoryTable({ triggerId }: RunHistoryTableProps) {
                 </td>
                 <td className="px-4 py-3">
                   <CopyableId id={run.id} />
-                </td>
-                <td className="px-4 py-3 tabular-nums">
-                  {run.credits_consumed}
                 </td>
                 <td className="px-4 py-3 tabular-nums text-muted-foreground">
                   {formatDuration(run.execution_time_ms)}

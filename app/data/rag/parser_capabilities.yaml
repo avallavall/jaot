@@ -28,8 +28,11 @@ documents:
       (use linearization), if-then-else in expressions (use Big-M
       reformulation), logarithmic or trigonometric functions (not LP/MIP
       compatible), indicator constraints directly (use Big-M), SOS1/SOS2
-      constraints directly (use binary reformulation). For nonlinear
-      relationships, always reformulate to linear equivalents.
+      constraints directly (use binary reformulation). Quadratic terms
+      (x*y, x^2, x**2) ARE supported up to total degree 2 — the problem
+      classifies as QP/MIQP/QCP/MIQCP and solves with a capable solver
+      (SCIP or Hexaly; HiGHS is linear-only). Anything beyond degree 2
+      must be reformulated.
 
   - id: big_m_patterns
     title: Big-M Reformulation Patterns

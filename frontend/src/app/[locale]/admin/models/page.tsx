@@ -27,7 +27,6 @@ interface AdminModel {
   is_official: boolean;
   is_featured: boolean;
   is_public: boolean;
-  credits_per_execution: number;
   created_at: string;
 }
 
@@ -209,9 +208,6 @@ export default function ModelsPage() {
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       v{model.version}
-                    </TableCell>
-                    <TableCell>
-                      <span>{t("costUnit", { amount: model.credits_per_execution })}</span>
                     </TableCell>
                     <TableCell>
                       <Badge variant={model.is_public ? "default" : "secondary"}>

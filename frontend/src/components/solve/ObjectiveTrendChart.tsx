@@ -19,12 +19,12 @@ import {
 } from "recharts";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { ModelExecution } from "@/lib/types";
+import { apiDate } from "@/lib/dates";
 
 interface TrendPoint {
   date: string;
   dateMs: number;
   objective: number;
-  credits: number;
   executionId: string;
   origin: "manual" | "triggered";
 }
@@ -92,7 +92,6 @@ function CustomTooltip({
       <p className="text-muted-foreground">
         Objective: {d.objective.toFixed(4)}
       </p>
-      <p className="text-muted-foreground">Credits used: {d.credits}</p>
     </div>
   );
 }
@@ -123,7 +122,6 @@ function ScatterCustomTooltip({
       <p className="text-muted-foreground">
         Objective: {d.objective.toFixed(4)}
       </p>
-      <p className="text-muted-foreground">Credits used: {d.credits}</p>
       <p className="text-muted-foreground capitalize">Origin: {d.origin}</p>
     </div>
   );
@@ -141,15 +139,14 @@ export default function ObjectiveTrendChart({ executions, chartRef }: Props) {
         (e) => e.status === "completed" && e.objective_value != null
       )
       .map((e) => ({
-        date: new Date(e.created_at).toLocaleDateString("en-US", {
+        date: apiDate(e.created_at).toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
           hour: "2-digit",
           minute: "2-digit",
         }),
-        dateMs: new Date(e.created_at).getTime(),
+        dateMs: apiDate(e.created_at).getTime(),
         objective: e.objective_value as number,
-        credits: e.credits_consumed,
         executionId: e.id,
         origin: (e.origin ?? "manual") as "manual" | "triggered",
       }))

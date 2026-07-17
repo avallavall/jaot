@@ -15,7 +15,7 @@ from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.models import Organization, User
-from app.services.auth import APIKeyService, JWTService
+from app.services.auth import resolve_principal
 from app.shared.core.rate_limiter import check_rate_limit
 from app.shared.db.session import SessionLocal
 from app.shared.utils.request_helpers import (
@@ -58,14 +58,9 @@ PUBLIC_PATHS: list[tuple[str, str | None]] = [
     ("/api/v2/solve/templates", "GET"),
     ("/api/v2/solve/validate", "POST"),
     ("/api/v2/contact", "POST"),
-    ("/api/v2/billing/webhook", "POST"),
-    ("/api/v2/credits/calculator", None),
-    ("/api/v2/credits/rates", "GET"),
     ("/api/v2/community/status", None),
     # Catalog browsing (public, read-only)
     ("/api/v2/models/catalog", "GET"),
-    # Public pricing data
-    ("/api/v2/pricing", "GET"),
     # Public home page announcement banner
     ("/api/v2/home/announcement", "GET"),
 ]
@@ -238,7 +233,6 @@ class ASGIAuthMiddleware:
                 if message["type"] == "http.response.start":
                     extra_headers = [
                         (b"x-organization-id", org.id.encode()),
-                        (b"x-credits-balance", str(org.credits_balance).encode()),
                     ]
                     existing = list(message.get("headers", []))
                     existing.extend(extra_headers)
@@ -287,46 +281,13 @@ class ASGIAuthMiddleware:
     async def _authenticate(
         self, request: Request, db: Any
     ) -> tuple[User | None, Organization | None, Any]:
-        """Try JWT cookie first, then Bearer API key."""
+        """Resolve the principal — JWT access cookie first, then Bearer API key.
 
-        # Path 1: JWT cookie
-        jwt_token = request.cookies.get("jaot_access_token")
-        if jwt_token:
-            try:
-                payload = JWTService.decode_token(jwt_token)
-                if payload.get("type") == "access":
-                    user = db.query(User).filter(User.id == payload["sub"]).first()
-                    if user:
-                        org = (
-                            db.query(Organization).filter(Organization.id == payload["org"]).first()
-                        )
-                        if org:
-                            return user, org, None
-            except Exception as jwt_err:
-                logger.debug(
-                    "JWT cookie auth failed (%s), trying API key",
-                    type(jwt_err).__name__,
-                )
-
-        # Path 2: Bearer API key
-        auth_header = request.headers.get("Authorization")
-        if not auth_header:
-            return None, None, None
-
-        parts = auth_header.split()
-        if len(parts) != 2 or parts[0].lower() != "bearer":
-            return None, None, None
-
-        api_key = parts[1]
-        result = APIKeyService.verify_key(db, api_key)
-        if not result:
-            return None, None, None
-
-        api_key_model, user, organization = result
-        try:
-            db.commit()  # Commit last_used_at update
-        except Exception:
-            # Non-critical: last_used_at update may fail in tests due to
-            # concurrent TRUNCATE. Don't block authentication for this.
-            db.rollback()
-        return user, organization, api_key_model
+        Delegates to the shared :func:`resolve_principal` so the HTTP path and the
+        WebSocket path accept exactly the same set of credentials.
+        """
+        return resolve_principal(
+            db,
+            jwt_cookie=request.cookies.get("jaot_access_token"),
+            authorization=request.headers.get("Authorization"),
+        )

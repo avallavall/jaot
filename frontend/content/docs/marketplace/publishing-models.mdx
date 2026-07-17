@@ -1,41 +1,46 @@
 ---
 title: Publishing Models
-description: Publish your optimization models to the JAOT marketplace and share them with the community
+description: Publish a model from your studio to the JAOT marketplace and share it with the community
 order: 2
 ---
 
 # Publishing Models
 
-Any organization on JAOT can publish their private optimization models to the marketplace, making them available for other organizations to discover, activate, and execute. Publishing lets you share your domain expertise and reach users who need optimization solutions but may not have the skills to formulate them. The marketplace is free and collaborative — there are no prices or commissions.
+Any organization on JAOT can publish a model to the marketplace, making it available for other teams to discover and fork into their own studios. Publishing lets you share your domain expertise with users who need optimization but may not have the skills to formulate it. The marketplace is free and collaborative — there are no prices or commissions.
+
+## How Publishing Works
+
+Publishing attaches a public **listing** to your model project. The listing pins your **latest committed version** — the marketplace never shows your work-in-progress draft. When another team clicks **Use in studio**, they fork that pinned version into a model of their own; your project stays untouched and keeps evolving independently.
 
 ## Who Can Publish
 
-Model publishing is available to any authenticated user who owns a private model within their organization. The model must have a valid definition (variables, constraints, and objective) before it can be published.
-
-> **Note:** Only private models can be published. Models that were activated from the catalog (i.e., models originally published by another organization) cannot be republished.
+Publishing is available to any authenticated user for the model projects of their organization. The model must have **at least one committed version** — the listing needs a stable snapshot to pin.
 
 ## Preparing Your Model
 
-Before publishing, ensure your model:
+Before publishing, make sure your model:
 
-1. **Has a valid definition** -- The model must solve correctly with sample input data
-2. **Has a clear input schema** -- Define what data users need to provide, with descriptive field names and types
-3. **Includes example input** -- Provide a working example so potential users can understand the expected data format
-4. **Has been tested** -- Run multiple solves with different inputs to verify it handles edge cases
+1. **Solves correctly** -- Run it from the Solve tab and check the result
+2. **Is committed** -- Commit the state you want to share, with a meaningful "What changed?" message
+3. **Is understandable** -- A clear name, sensible variable/constraint names, and a description of what it optimizes
 
 ## Publishing Process
 
-### Step 1: Navigate to Your Model
+### Step 1: Commit a version
 
-Go to **My Models**, select the private model you want to publish, and click **Publish to Marketplace**.
+In the [Model Workspace](/docs/studio/model-workspace), commit the draft you want to share ([Versioning](/docs/studio/versioning)). Publishing pins this committed version.
 
-### Step 2: Fill in the Publishing Form
+### Step 2: Open the publish page
+
+Go to the **Analyze** tab and find the **Marketplace** card, then click **Publish to marketplace**. This opens the publish form at `/studio/{model}/publish`.
+
+### Step 3: Fill in the Publishing Form
 
 | Field | Required | Description |
 |-------|----------|-------------|
 | **Display name** | Yes | The public-facing name shown in the marketplace (e.g., "Warehouse Location Optimizer") |
 | **Description** | Yes | A detailed explanation of what the model solves and how it works |
-| **Short description** | Yes | A one-line summary for the model card in search results |
+| **Short description** | No | A one-line summary for the model card in search results |
 | **Category** | Yes | The industry category (manufacturing, finance, logistics, etc.) |
 | **Tags** | No | Keywords to improve discoverability (e.g., "routing", "scheduling", "mixed-integer") |
 | **Overview section** | No | Extended description with use cases and benefits |
@@ -44,52 +49,39 @@ Go to **My Models**, select the private model you want to publish, and click **P
 | **Example I/O** | No | Sample input and output for the documentation |
 | **Changelog** | No | Version history and changes |
 
-### Step 3: Submit for Publication
+### Step 4: Publish
 
-Click **Publish** to make your model available in the marketplace. The model status changes to **published** and it appears in the public catalog immediately.
+Click **Publish**. Your model appears in the public catalog immediately — there is no review queue. You are redirected to its public marketplace page.
 
-## Managing Published Models
+## Managing a Published Model
 
-After publishing, you can manage your model from the **My Models** section:
+Reopen the publish page from the same Marketplace card on the Analyze tab. In edit mode you can:
 
-### Updating a Published Model
-
-You can update the description and metadata of a published model at any time. Changes take effect immediately in the marketplace. The underlying model definition is versioned, so existing users continue to see consistent behavior.
-
-### Unpublishing
-
-To remove a model from the marketplace, click **Unpublish**. The model remains available to organizations that have already activated it, but new activations are no longer possible. The model reverts to a private model in your organization.
-
-### Version Management
-
-When you update a published model's definition, a new version is created. The marketplace displays the latest version, and the version history is tracked:
-
-- **Version numbering** follows semantic versioning (e.g., `1.0.0`, `1.1.0`, `2.0.0`)
-- **Existing activations** continue to work with the version they activated
-- **Changelog section** lets you document what changed in each version
+- **Update the presentation** -- name, descriptions, category, tags, and sections take effect immediately
+- **Add media** -- upload a logo and screenshots once the listing exists
+- **Re-pin a newer version** -- commit again and publish to move the listing to your latest committed version. Teams that already forked keep their copies; new forks get the new version
 
 ## Free and Collaborative
 
-The marketplace is free to use — models carry no price and no commission is charged. Publishing builds your reputation through activations, ratings, and reviews. Execution credits are charged separately as a usage quota (based on problem complexity), paid by the executing organization.
+The marketplace is free to use — models carry no price and no commission is charged. Publishing builds your reputation through adoption, ratings, and reviews.
 
-> **Tip:** A clear description, good example input, and accurate categorization drive activations far more than anything else.
+> **Tip:** A clear description, a working example, and accurate categorization drive adoption far more than anything else.
 
-## Creator Analytics
+## Adoption Metrics
 
-The creator dashboard provides visibility into your published models' adoption:
+Every listing tracks its adoption, visible on its marketplace page and on your [public author profile](/docs/marketplace/authors):
 
 | Metric | Description |
 |--------|-------------|
-| **Views** | How many times your model detail page was visited |
-| **Activations** | Total number of organizations that activated your model |
-| **Executions** | Total number of times your model was executed across all activators |
+| **Adoptions** | Total number of teams that forked your model into their studio |
+| **Executions** | Total number of times the model has been solved |
 | **Rating** | Average user rating and individual reviews |
 
-Use these metrics to understand demand, identify opportunities for new models, and improve your published ones.
+You also get an in-app notification each time a team adopts one of your models (configurable in your workspace settings). Use these signals to understand demand, identify opportunities for new models, and improve your published ones.
 
 ## Publishing via API
 
-You can also publish models programmatically:
+You can also publish programmatically — the endpoint takes a project with at least one committed version:
 
 ```python
 import httpx
@@ -97,7 +89,7 @@ import httpx
 headers = {"Authorization": "Bearer ok_live_your_key_here"}
 
 response = httpx.post(
-    "https://jaot.io/api/v2/models/a3f8b2c1-1234-5678-abcd-ef0123456789/publish",
+    "https://jaot.io/api/v2/projects/mp_abc123/publish",
     headers=headers,
     json={
         "display_name": "Warehouse Location Optimizer",
@@ -109,19 +101,19 @@ response = httpx.post(
 )
 
 published = response.json()
-print(f"Published: {published['display_name']} (catalog ID: {published['id']})")
+print(f"Published: {published['display_name']} (listing ID: {published['id']})")
 ```
 
-See the [Models API reference](/docs/api/models) for the full publishing endpoint specification.
+A project without a committed version returns **400**. See the [Models API reference](/docs/api/models) for the full endpoint specification.
 
 ## Best Practices
 
-1. **Write a thorough description.** Users decide whether to activate based on the detail page. Explain the problem, the approach, expected inputs, and what kind of results to expect.
+1. **Write a thorough description.** Users decide whether to fork based on the detail page. Explain the problem, the approach, expected inputs, and what kind of results to expect.
 
-2. **Provide realistic example input.** An example that uses real-world-scale values helps users understand if the model fits their needs.
+2. **Commit deliberately.** The listing pins a committed version — make it a state you are proud of, with a clean history behind it.
 
 3. **Choose the right category.** Accurate categorization helps users find your model through filters and improves marketplace discovery.
 
 4. **Respond to reviews.** Engage with users who leave feedback. Address issues promptly and update your model based on common requests.
 
-5. **Keep the changelog updated.** When you publish a new version, document the changes so existing users know what improved.
+5. **Keep the changelog updated.** When you re-pin a new version, document the changes so adopters know what improved.

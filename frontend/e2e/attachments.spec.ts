@@ -23,6 +23,11 @@ import { test, expect } from "@playwright/test";
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 
+// A real minimal one-page PDF (fixtures/report.pdf): the backend parses PDFs with
+// pypdf and rejects anything without >=10 chars of extractable text, so a fake
+// "Buffer.from('fake pdf content')" upload is (correctly) refused with no chip.
+const PDF_FIXTURE = path.join(__dirname, "fixtures", "report.pdf");
+
 let createdDocumentId: string | null = null;
 
 test.describe("Document Attachment E2E", () => {
@@ -70,11 +75,7 @@ test.describe("Document Attachment E2E", () => {
     await expect(textarea).toBeVisible({ timeout: 10_000 });
 
     const fileInput = page.locator('input[type="file"]');
-    await fileInput.setInputFiles({
-      name: "report.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.from("fake pdf content"),
-    });
+    await fileInput.setInputFiles(PDF_FIXTURE);
 
     // Real backend processes the upload and returns attachment metadata with filename
     await expect(page.getByText("report.pdf")).toBeVisible({ timeout: 10_000 });
@@ -125,11 +126,7 @@ test.describe("Document Attachment E2E", () => {
     await expect(textarea).toBeVisible({ timeout: 10_000 });
 
     const fileInput = page.locator('input[type="file"]');
-    await fileInput.setInputFiles({
-      name: "report.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.from("fake pdf content"),
-    });
+    await fileInput.setInputFiles(PDF_FIXTURE);
 
     await expect(page.getByText("report.pdf")).toBeVisible({ timeout: 10_000 });
 
@@ -160,11 +157,7 @@ test.describe("Document Attachment E2E", () => {
     await expect(textarea).toBeVisible({ timeout: 10_000 });
 
     const fileInput = page.locator('input[type="file"]');
-    await fileInput.setInputFiles({
-      name: "report.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.from("fake pdf content"),
-    });
+    await fileInput.setInputFiles(PDF_FIXTURE);
 
     await expect(page.getByText("report.pdf")).toBeVisible({ timeout: 10_000 });
 

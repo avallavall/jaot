@@ -37,7 +37,7 @@ export default function LoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.push(user?.is_admin ? "/admin" : "/solve");
+      router.push(user?.is_admin ? "/admin" : "/studio");
     }
   }, [isLoading, isAuthenticated, user, router]);
 

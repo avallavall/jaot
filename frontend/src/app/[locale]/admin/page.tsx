@@ -23,7 +23,6 @@ import {
   AlertTriangle,
   Building2,
   CheckCircle,
-  Coins,
   KeyRound,
   Users,
 } from "lucide-react";
@@ -206,28 +205,9 @@ export default function AdminDashboard() {
           subtitle={t("activated", { count: stats?.models.activated_total ?? 0 })}
           icon={<KeyRound className="w-6 h-6 text-muted-foreground" />}
         />
-        <StatCard
-          title={t("creditBalance")}
-          value={stats?.credits.total_balance ?? 0}
-          subtitle={t("acrossAllOrgs")}
-          icon={<Coins className="w-6 h-6 text-muted-foreground" />}
-        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="border-border">
-          <CardHeader>
-            <CardTitle className="text-lg font-serif">{t("creditsOverview")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold text-primary">
-              {(stats?.credits.total_balance ?? 0).toLocaleString()}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              {t("totalCreditsAllOrgs")}
-            </p>
-          </CardContent>
-        </Card>
 
         <Card className="border-border">
           <CardHeader>
@@ -237,7 +217,6 @@ export default function AdminDashboard() {
             <QuickAction href="/admin/organizations" label={t("manageOrganizations")} />
             <QuickAction href="/admin/users" label={t("manageUsers")} />
             <QuickAction href="/admin/api-keys" label={t("manageApiKeys")} />
-            <QuickAction href="/admin/credits" label={t("adjustCredits")} />
           </CardContent>
         </Card>
       </div>

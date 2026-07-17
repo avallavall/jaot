@@ -8,7 +8,8 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 
-from app.models import ModelExecution
+from app.models import ModelExecution, Organization, User
+from app.services.auth import principal_from_jwt, resolve_principal
 from app.shared.db.base import get_db
 
 router = APIRouter(prefix="/ws", tags=["websocket"])
@@ -133,17 +134,45 @@ async def _redis_subscriber_loop() -> None:
             await asyncio.sleep(5)
 
 
-def _authenticate_websocket(db: Session, token: str | None) -> Any:
-    """Authenticate a WebSocket connection via API key token.
+def _authenticate_websocket(
+    db: Session, websocket: WebSocket, token: str | None
+) -> tuple[User, Organization] | None:
+    """Authenticate a WebSocket connection with the same credentials as the HTTP API.
 
-    Returns:
-        Tuple of (api_key, user, organization) if valid, None otherwise.
+    Accepts the browser session's JWT **access** cookie (``jaot_access_token``,
+    sent automatically on the handshake) **or** a Bearer **API key** supplied via
+    the ``?token=`` query param / Authorization header. Browsers cannot set custom
+    headers on a WebSocket, so SPA clients pass their session token as a query
+    param; that token is therefore also tried as a JWT access token (same principal
+    the cookie path would yield — only the transport differs). No credential is
+    accepted here that the HTTP API would reject, and ``last_used_at`` is not
+    committed on this path (leaves the request session untouched).
+
+    Returns ``(user, organization)`` on success, ``None`` otherwise.
     """
-    if not token:
-        return None
-    from app.services.auth.api_key_service import APIKeyService
+    jwt_cookie = websocket.cookies.get("jaot_access_token")
+    if token:
+        authorization: str | None = f"Bearer {token}"
+    else:
+        authorization = websocket.headers.get("authorization")
 
-    return APIKeyService.verify_key(db, token)
+    user, organization, _api_key = resolve_principal(
+        db,
+        jwt_cookie=jwt_cookie,
+        authorization=authorization,
+        commit_last_used=False,
+    )
+    # The SPA stores its session token under one key and passes it as the query
+    # param; if it is a JWT access token (not an API key), accept it the same way
+    # the cookie path would.
+    if user is None and token:
+        hit = principal_from_jwt(db, token)
+        if hit is not None:
+            user, organization = hit
+
+    if user is None or organization is None:
+        return None
+    return user, organization
 
 
 @router.websocket("/executions/{execution_id}")
@@ -184,17 +213,13 @@ async def websocket_execution_progress(
         return
 
     # --- Authentication ---
-    # Also check Authorization header as fallback
-    if not token:
-        auth_header = websocket.headers.get("authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:]
-
-    auth_result = _authenticate_websocket(db, token)
+    # Same credentials as the HTTP API: JWT access cookie (auto-sent on the
+    # handshake) or a Bearer API key passed via ?token= / Authorization header.
+    auth_result = _authenticate_websocket(db, websocket, token)
     if auth_result is None:
         await websocket.close(code=4001, reason="Authentication required")
         return
-    _api_key, _user, organization = auth_result
+    _user, organization = auth_result
 
     # --- Ownership check ---
     execution = db.query(ModelExecution).filter(ModelExecution.id == execution_id).first()

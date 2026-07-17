@@ -6,7 +6,7 @@ order: 11
 
 # Admin
 
-Administrative endpoints for managing organizations, users, and credits at the system level. All admin endpoints are mounted at `/api/v2/admin`.
+Administrative endpoints for managing organizations and users at the system level. All admin endpoints are mounted at `/api/v2/admin`.
 
 > **Danger:** Admin endpoints modify system state. Use with caution in production. These endpoints require admin privileges -- requests from non-admin users receive a 403 Forbidden response.
 
@@ -35,7 +35,6 @@ stats = response.json()
 print(f"Organizations: {stats['total_organizations']}")
 print(f"Users: {stats['total_users']}")
 print(f"Executions: {stats['total_executions']}")
-print(f"Credits used: {stats['total_credits_used']}")
 print(f"Active orgs (7d): {stats['active_organizations_7d']}")
 ```
 
@@ -62,7 +61,6 @@ console.log(`Active (7d): ${stats.active_organizations_7d}`);
   "total_organizations": 42,
   "total_users": 156,
   "total_executions": 8920,
-  "total_credits_used": 15400,
   "active_organizations_7d": 18
 }
 ```
@@ -74,7 +72,6 @@ console.log(`Active (7d): ${stats.active_organizations_7d}`);
 | `total_organizations` | int | Total registered organizations |
 | `total_users` | int | Total registered users |
 | `total_executions` | int | Total solver executions across all orgs |
-| `total_credits_used` | int | Total credits consumed across all orgs |
 | `active_organizations_7d` | int | Organizations with activity in the last 7 days |
 
 ---
@@ -107,7 +104,7 @@ response = requests.get(
 
 data = response.json()
 for org in data["items"]:
-    print(f"{org['name']} (plan={org['plan']}, credits={org['credits_balance']})")
+    print(f"{org['name']} (plan={org['plan']})")
 ```
 
 ```bash
@@ -123,7 +120,7 @@ const response = await fetch(
 
 const { items } = await response.json();
 items.forEach((org) => {
-  console.log(`${org.name} (plan=${org.plan}, credits=${org.credits_balance})`);
+  console.log(`${org.name} (plan=${org.plan})`);
 });
 ```
 </CodeTabs>
@@ -136,7 +133,7 @@ items.forEach((org) => {
 GET /api/v2/admin/organizations/{organization_id}/overview
 ```
 
-Returns a single, **read-only** aggregate of everything about one organization — its configuration and limits, a full credit breakdown, execution statistics, and its members, API keys, models, most-recent executions and most-recent credit movements. Designed for "viewing" an organization without editing it. No state is modified.
+Returns a single, **read-only** aggregate of everything about one organization — its configuration and limits, execution statistics, and its members, API keys, models and most-recent executions. Designed for "viewing" an organization without editing it. No state is modified.
 
 **Authentication:** API key (admin required)
 
@@ -175,15 +172,14 @@ console.log(`${data.organization.name} — users: ${data.counts.users}`);
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `organization` | object | Org config & limits: `plan`, `credits_balance`, `credits_subscription`, `credits_purchased`, `credits_earned`, `credits_used_month`, `monthly_quota`, `rate_limit_per_minute`, `rate_limit_per_day`, `ai_builder_enabled`, `byok_configured` (bool — whether the org has its own LLM key; the key is never returned), `max_private_plugins`, `currency`, `is_active`, `is_verified`, `is_public_profile`, `slug`, `billing_email`, `website_url`, `created_at`, `owner_user_id` |
+| `organization` | object | Org config & limits: `plan`, `rate_limit_per_minute`, `rate_limit_per_day`, `ai_builder_enabled`, `byok_configured` (bool — whether the org has its own LLM key; the key is never returned), `max_private_plugins`, `is_active`, `is_verified`, `is_public_profile`, `slug`, `website_url`, `created_at`, `owner_user_id` |
 | `owner` | object \| null | The owning user (`id`, `name`, `email`) |
 | `counts` | object | `users`, `active_users`, `api_keys`, `active_api_keys`, `models`, `executions` |
-| `execution_stats` | object | `total`, `completed`, `failed`, `running`, `credits_consumed_total` |
+| `execution_stats` | object | `total`, `completed`, `failed`, `running` |
 | `users` | array | The org's users (`id`, `name`, `email`, `is_admin`, `can_build_plugins`, `is_active`, `created_at`) |
 | `api_keys` | array | The org's API keys — `key_prefix` only; the secret is never returned |
-| `models` | array | The org's models (`display_name`, `source`: `marketplace`/`custom`, `total_executions`, `total_credits_used`, `last_executed_at`) |
+| `models` | array | The org's models (`display_name`, `source`: `marketplace`/`custom`, `total_executions`, `last_executed_at`) |
 | `recent_executions` | array | Up to 20 most-recent solve executions |
-| `recent_transactions` | array | Up to 20 most-recent credit movements |
 
 ---
 
@@ -238,119 +234,7 @@ items.forEach((user) => {
 
 ---
 
-## List all credit transactions
 
-```
-GET /api/v2/admin/credits/transactions
-```
-
-List credit transactions across all organizations. Useful for auditing credit flow.
-
-**Authentication:** API key (admin required)
-
-### Query parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `page` | int | 1 | Page number |
-| `page_size` | int | 20 | Items per page |
-| `organization_id` | string | -- | Filter by organization |
-| `transaction_type` | string | -- | Filter by type: `purchase`, `execution`, `sale_earning`, `withdrawal`, `refund`, `adjustment` |
-
-<CodeTabs>
-```python
-response = requests.get(
-    "https://jaot.io/api/v2/admin/credits/transactions",
-    headers={"Authorization": "Bearer ok_live_admin_key..."},
-    params={"organization_id": "org_b7e4d1a0", "transaction_type": "execution"}
-)
-
-data = response.json()
-for txn in data["items"]:
-    print(f"{txn['id']}: {txn['credits_amount']:+d} credits ({txn['transaction_type']})")
-```
-
-```bash
-curl "https://jaot.io/api/v2/admin/credits/transactions?organization_id=org_b7e4d1a0" \
-  -H "Authorization: Bearer ok_live_admin_key..."
-```
-
-```javascript
-const response = await fetch(
-  "https://jaot.io/api/v2/admin/credits/transactions?organization_id=org_b7e4d1a0",
-  { headers: { "Authorization": "Bearer ok_live_admin_key..." } }
-);
-
-const { items } = await response.json();
-items.forEach((txn) => {
-  console.log(`${txn.id}: ${txn.credits_amount} credits (${txn.transaction_type})`);
-});
-```
-</CodeTabs>
-
----
-
-## Adjust credits
-
-```
-POST /api/v2/admin/credits/adjust
-```
-
-Manually adjust an organization's credit balance. Use positive values to add credits (promotional, compensation) or negative values to deduct credits.
-
-**Authentication:** API key (admin required)
-
-### Request body
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `organization_id` | string | Yes | Target organization |
-| `credits_amount` | int | Yes | Credits to add (positive) or deduct (negative) |
-| `description` | string | Yes | Reason for the adjustment |
-
-<CodeTabs>
-```python
-response = requests.post(
-    "https://jaot.io/api/v2/admin/credits/adjust",
-    headers={"Authorization": "Bearer ok_live_admin_key..."},
-    json={
-        "organization_id": "org_b7e4d1a0",
-        "credits_amount": 500,
-        "description": "Promotional credits for beta participation"
-    }
-)
-
-print(response.json())
-```
-
-```bash
-curl -X POST https://jaot.io/api/v2/admin/credits/adjust \
-  -H "Authorization: Bearer ok_live_admin_key..." \
-  -H "Content-Type: application/json" \
-  -d '{
-    "organization_id": "org_b7e4d1a0",
-    "credits_amount": 500,
-    "description": "Promotional credits for beta participation"
-  }'
-```
-
-```javascript
-const response = await fetch("https://jaot.io/api/v2/admin/credits/adjust", {
-  method: "POST",
-  headers: {
-    "Authorization": "Bearer ok_live_admin_key...",
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    organization_id: "org_b7e4d1a0",
-    credits_amount: 500,
-    description: "Promotional credits for beta participation",
-  }),
-});
-```
-</CodeTabs>
-
----
 
 ## Errors
 

@@ -6,7 +6,6 @@ import { useLocale, useTranslations } from "next-intl";
 import {
   Activity,
   ArrowLeft,
-  Coins,
   Key,
   Package,
   Users,
@@ -161,26 +160,14 @@ export default function OrganizationDetailPage() {
       label: t("kpi.executions"),
       value: num(counts.executions),
     },
-    {
-      icon: <Coins className="w-4 h-4" />,
-      label: t("kpi.creditsBalance"),
-      value: num(org.credits_balance),
-    },
-    {
-      icon: <Coins className="w-4 h-4" />,
-      label: t("kpi.creditsUsedMonth"),
-      value: num(org.credits_used_month),
-    },
   ];
 
   const configRows: { label: string; value: React.ReactNode }[] = [
     { label: t("config.plan"), value: <Badge variant={planVariant}>{org.plan}</Badge> },
     { label: t("config.owner"), value: owner ? `${owner.name} (${owner.email ?? "—"})` : "—" },
-    { label: t("config.monthlyQuota"), value: num(org.monthly_quota) },
     { label: t("config.rateLimitMin"), value: num(org.rate_limit_per_minute) },
     { label: t("config.rateLimitDay"), value: num(org.rate_limit_per_day) },
     { label: t("config.maxPrivatePlugins"), value: num(org.max_private_plugins) },
-    { label: t("config.currency"), value: org.currency },
     {
       label: t("config.aiBuilder"),
       value: org.ai_builder_enabled ? t("enabled") : t("disabled"),
@@ -193,7 +180,6 @@ export default function OrganizationDetailPage() {
     { label: t("config.verified"), value: org.is_verified ? t("yes") : t("no") },
     { label: t("config.publicProfile"), value: org.is_public_profile ? t("yes") : t("no") },
     { label: t("config.slug"), value: org.slug ?? "—" },
-    { label: t("config.billingEmail"), value: org.billing_email ?? "—" },
     {
       label: t("config.website"),
       value: org.website_url ? (
@@ -205,14 +191,6 @@ export default function OrganizationDetailPage() {
       ),
     },
     { label: t("config.createdAt"), value: fmtDate(org.created_at) },
-  ];
-
-  const creditRows = [
-    { label: t("credits.balance"), value: num(org.credits_balance) },
-    { label: t("credits.subscription"), value: num(org.credits_subscription) },
-    { label: t("credits.purchased"), value: num(org.credits_purchased) },
-    { label: t("credits.earned"), value: num(org.credits_earned) },
-    { label: t("credits.usedMonth"), value: num(org.credits_used_month) },
   ];
 
   return (
@@ -269,24 +247,8 @@ export default function OrganizationDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Credits + execution stats */}
+        {/* Execution stats */}
         <div className="space-y-6">
-          <Card className="border-border">
-            <CardHeader>
-              <CardTitle className="font-serif text-xl">{t("sections.credits")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="divide-y divide-border">
-                {creditRows.map((row) => (
-                  <div key={row.label} className="flex items-center justify-between py-2">
-                    <dt className="text-sm text-muted-foreground">{row.label}</dt>
-                    <dd className="text-sm font-medium text-foreground">{row.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </CardContent>
-          </Card>
-
           <Card className="border-border">
             <CardHeader>
               <CardTitle className="font-serif text-xl">{t("sections.executions")}</CardTitle>
@@ -402,7 +364,6 @@ export default function OrganizationDetailPage() {
                 <TableHead>{t("modelsTable.name")}</TableHead>
                 <TableHead>{t("modelsTable.source")}</TableHead>
                 <TableHead>{t("modelsTable.executions")}</TableHead>
-                <TableHead>{t("modelsTable.creditsUsed")}</TableHead>
                 <TableHead>{t("modelsTable.lastRun")}</TableHead>
                 <TableHead>{t("modelsTable.status")}</TableHead>
               </TableRow>
@@ -417,7 +378,6 @@ export default function OrganizationDetailPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>{num(m.total_executions)}</TableCell>
-                  <TableCell>{num(m.total_credits_used)}</TableCell>
                   <TableCell className="text-muted-foreground">{fmtDateTime(m.last_executed_at)}</TableCell>
                   <TableCell>
                     <Badge variant={m.is_active ? "default" : "secondary"}>
@@ -442,7 +402,6 @@ export default function OrganizationDetailPage() {
                 <TableHead>{t("execTable.model")}</TableHead>
                 <TableHead>{t("execTable.status")}</TableHead>
                 <TableHead>{t("execTable.solver")}</TableHead>
-                <TableHead>{t("execTable.credits")}</TableHead>
                 <TableHead>{t("execTable.objective")}</TableHead>
                 <TableHead>{t("execTable.date")}</TableHead>
               </TableRow>
@@ -453,7 +412,6 @@ export default function OrganizationDetailPage() {
                   <TableCell className="font-medium">{e.model_display_name ?? "—"}</TableCell>
                   <TableCell>{statusBadge(e.status)}</TableCell>
                   <TableCell className="text-muted-foreground">{e.solver_name ?? "—"}</TableCell>
-                  <TableCell>{num(e.credits_consumed)}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {e.objective_value !== null ? e.objective_value.toLocaleString(locale) : "—"}
                   </TableCell>
@@ -465,40 +423,6 @@ export default function OrganizationDetailPage() {
         )}
       </Section>
 
-      {/* Recent transactions */}
-      <Section title={t("sections.transactions")} note={t("recentNote", { count: RECENT_LIMIT })}>
-        {data.recent_transactions.length === 0 ? (
-          <EmptyRow label={t("empty")} />
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border">
-                <TableHead>{t("txTable.type")}</TableHead>
-                <TableHead>{t("txTable.amount")}</TableHead>
-                <TableHead>{t("txTable.balance")}</TableHead>
-                <TableHead>{t("txTable.description")}</TableHead>
-                <TableHead>{t("txTable.date")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.recent_transactions.map((tx) => (
-                <TableRow key={tx.id} className="border-border">
-                  <TableCell>
-                    <Badge variant="outline">{tx.transaction_type}</Badge>
-                  </TableCell>
-                  <TableCell className={tx.credits_amount < 0 ? "text-destructive" : "text-foreground"}>
-                    {tx.credits_amount > 0 ? "+" : ""}
-                    {num(tx.credits_amount)}
-                  </TableCell>
-                  <TableCell>{num(tx.balance_after)}</TableCell>
-                  <TableCell className="text-muted-foreground max-w-xs truncate">{tx.description}</TableCell>
-                  <TableCell className="text-muted-foreground">{fmtDateTime(tx.created_at)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </Section>
 
       <div className="pt-2">{backLink}</div>
     </div>

@@ -189,7 +189,6 @@ class TestSignupEmail:
         assert data["organization_id"].startswith("org_")
         assert "api_key" in data
         assert data["email_verified"] is False
-        assert data["credits_balance"] > 0
 
         # Verify JWT cookies are set
         cookies = response.cookies
@@ -364,7 +363,6 @@ class TestLoginEmail:
         org = Organization(
             id="org_login001",
             name="Login Org",
-            credits_balance=1000,
             is_active=True,
         )
         db_session.add(org)
@@ -441,9 +439,7 @@ class TestVerifyEmail:
     """Tests for POST /api/v2/auth/verify-email."""
 
     def _create_unverified_user(self, db_session):
-        org = Organization(
-            id="org_verify001", name="Verify Org", credits_balance=100, is_active=True
-        )
+        org = Organization(id="org_verify001", name="Verify Org", is_active=True)
         db_session.add(org)
         user = User(
             id="usr_verify001",
@@ -501,9 +497,7 @@ class TestForgotPassword:
     """Tests for POST /api/v2/auth/forgot-password."""
 
     def _create_user_with_password(self, db_session):
-        org = Organization(
-            id="org_forgot001", name="Forgot Org", credits_balance=100, is_active=True
-        )
+        org = Organization(id="org_forgot001", name="Forgot Org", is_active=True)
         db_session.add(org)
         user = User(
             id="usr_forgot001",
@@ -558,7 +552,7 @@ class TestResetPassword:
     """Tests for POST /api/v2/auth/reset-password."""
 
     def _create_user_with_password(self, db_session):
-        org = Organization(id="org_reset001", name="Reset Org", credits_balance=100, is_active=True)
+        org = Organization(id="org_reset001", name="Reset Org", is_active=True)
         db_session.add(org)
         user = User(
             id="usr_reset001",
@@ -633,9 +627,7 @@ class TestTokenRefresh:
 
     def _setup_refresh(self, db_session):
         """Create user, org, and a valid refresh token."""
-        org = Organization(
-            id="org_refresh001", name="Refresh Org", credits_balance=100, is_active=True
-        )
+        org = Organization(id="org_refresh001", name="Refresh Org", is_active=True)
         db_session.add(org)
         user = User(
             id="usr_refresh001",
@@ -672,7 +664,7 @@ class TestTokenRefresh:
         assert rt.revoked is True
 
     def test_expired_refresh_returns_401(self, client, db_session):
-        org = Organization(id="org_refexp001", name="Exp Org", credits_balance=100, is_active=True)
+        org = Organization(id="org_refexp001", name="Exp Org", is_active=True)
         db_session.add(org)
         user = User(
             id="usr_refexp001",
@@ -736,9 +728,7 @@ class TestLogout:
             )
 
     def test_logout_revokes_refresh_token(self, client, db_session):
-        org = Organization(
-            id="org_logout001", name="Logout Org", credits_balance=100, is_active=True
-        )
+        org = Organization(id="org_logout001", name="Logout Org", is_active=True)
         db_session.add(org)
         user = User(
             id="usr_logout001",
@@ -1004,7 +994,6 @@ class TestLockoutRaceOnFailedLogin:
         org = Organization(
             id="org_lockrace01",
             name="Lockout Race Org",
-            credits_balance=100,
             is_active=True,
         )
         db_session.add(org)

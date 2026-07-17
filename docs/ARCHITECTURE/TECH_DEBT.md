@@ -45,7 +45,7 @@
 **What:** `cancel_async_task` in `app/api/v2/solve.py:628-665` uses `revoke(terminate=True, SIGTERM)`. The worker falls into `except Exception` and refunds the prepayment, **while the cancelling call may also issue a refund**. Credits get credited twice.
 
 **Severity:** Critical — direct monetary loss.
-**Status:** ✅ **Resolved** — a partial unique index `uq_credit_txn_reference` on `credit_transactions (organization_id, transaction_type, reference_type, reference_id)` makes refunds idempotent (migration `20260317_add_credit_idempotency_constraint`); a duplicate refund for the same execution violates the constraint instead of double-crediting.
+**Status:** ✅ **Resolved** — a partial unique index `uq_credit_txn_reference` on `credit_transactions (organization_id, transaction_type, reference_type, reference_id)` makes refunds idempotent (migration `20260317_add_credit_idempotency_constraint`); a duplicate refund for the same execution violates the constraint instead of double-crediting. *(Later made moot: the entire credit system was removed by ADR-008.)*
 
 ---
 

@@ -88,7 +88,16 @@ Why `# test-quality-skip:` and not `# noqa: test-quality-tier-1`? Per D-01: `ruf
 
 ## 6 — `# CONTRACT-TEST:` Annotation (the do-not-delete marker, per D-03)
 
-Some tests look small but encode load-bearing invariants — refund idempotency, cross-tenant isolation, credit-balance non-negativity under concurrency. Deleting them in 12.3 consolidation passes would silently remove the only guard against an entire regression class.
+Some tests look small but encode load-bearing invariants — solve idempotency, cross-tenant isolation, the worker↔reaper terminal-wins race under concurrency. Deleting them in 12.3 consolidation passes would silently remove the only guard against an entire regression class.
+
+> **ADR-008 note (2026-07-11):** the monetization/credit CONTRACT-TESTs died WITH their feature —
+> `test_credit_race_conditions.py`, `test_cancel_refund_idempotency.py`, `test_credits*.py`,
+> `test_pricing*.py`, `test_billing.py`, `test_withdrawal*.py`, `test_trigger_workspace_credits.py`,
+> `test_solve_credits.py`, `test_credit_stress.py` were deleted under ADR-008 (the explicit-ADR path
+> this section requires). Invariants that outlived the credit ledger were re-asserted, not deleted:
+> solve idempotency is now the single-`ModelExecution`-row guard
+> (`tests/api/test_solve_idempotency_plan05.py`), and the reaper race keeps terminal-wins without
+> refund semantics (`tests/test_execution_reaper.py`).
 
 **Annotation syntax:**
 
@@ -113,18 +122,16 @@ returns the full registry as `file:line: # CONTRACT-TEST: <slug> ...`. No separa
 
 **12.3 enforcement (out of 12.1 scope):** the plan-checker for 12.3 deletion commits MUST grep the annotated set and fail any deletion of an annotated test class/function without an explicit ADR commit. This document defines the marker; 12.3 wires the enforcement.
 
-### Worked example 1 — CR-01 (refund idempotency)
+### Worked example 1 — solve idempotency (executed-once)
 
 ```python
-# tests/test_cancel_refund_idempotency.py
+# tests/api/test_solve_idempotency_plan05.py
 
-# CONTRACT-TEST: refund-idempotency (CR-01)
-#   Exactly one refund row per (organization_id, reference_type='solve_task',
-#   reference_id=task_id) under concurrent cancel + worker-except race.
-#   Removing this test removes the only guard against double-refund regressions.
-@pytest.mark.integration
-class TestCancelRefundIdempotency:
-    """CR-01 regression: concurrent cancel + worker-except produces exactly one refund."""
+# CONTRACT-TEST: solve-idempotency-key-dedup
+#   Duplicate Idempotency-Key on POST /solve returns the SAME execution_id and
+#   leaves exactly ONE ModelExecution row — the replay attaches, never re-solves.
+#   Removing this test removes the only executed-once regression guard.
+def test_solve_duplicate_idempotency_key_returns_same_execution(...):
     ...
 ```
 
@@ -143,16 +150,16 @@ import hashlib
 ...
 ```
 
-### Worked example 3 — credit concurrency invariants
+### Worked example 3 — execution-reaper invariants
 
 ```python
-# tests/test_credit_race_conditions.py
+# tests/test_execution_reaper.py
 
-# CONTRACT-TEST: credit-concurrency-invariants
-#   SELECT FOR UPDATE correctness under multi-thread concurrency:
-#   balance never goes negative; concurrent solves do not double-debit;
-#   async refunds settle exactly once.
-class TestCreditRaceConditions:
+# CONTRACT-TEST: execution-reaper-invariants
+#   Stale pending/running executions are marked failed with a clear error;
+#   fresh/completed/actively-running rows are never touched; Celery-SUCCESS
+#   rows reconcile to completed; terminal-wins holds against a racing worker.
+class TestExecutionReaper:
     ...
 ```
 
@@ -178,7 +185,7 @@ The test asserts response body shape (`"items" in data`, `isinstance(data["count
 
 ### Tier 4 — Per-test semantic assertion (PASSING BAR)
 
-The test asserts status + body semantics (`all(item["price_eur"] >= 10 for item in data)`) + happy path + at least one error/edge case. This is the bar.
+The test asserts status + body semantics (`all(item["avg_rating"] >= 3 for item in items)`) + happy path + at least one error/edge case. This is the bar.
 
 - Example: `tests/test_catalog_filters.py:14-38` (status + body semantics + happy + error).
 - This is the per-test target tier 12.4 is steering toward.
@@ -188,10 +195,10 @@ The test asserts status + body semantics (`all(item["price_eur"] >= 10 for item 
 Properties that hold for the whole suite, not per-test:
 
 - Coverage gate (Phase 12.0 baseline: 78% in CI, see `pyproject.toml::tool.pytest.ini_options::addopts`).
-- Mutation score on the 5 critical financial/auth modules ≥ 75% (Phase 12.5 target).
+- Mutation score on the critical auth/solve modules ≥ 75% (Phase 12.5 target).
 - CONTRACT-TEST registry (this §6) — invariant tests cannot be silently deleted.
 - Anti-oracle assertions: cross-tenant `404` detail strings must equal genuine `404` detail strings (D-18 from Phase 4).
-- Concurrent-access test for every financial endpoint (CR-01, credit-race file already encode this).
+- Concurrent-access test for every concurrency-sensitive flow (solve idempotency and the reaper terminal-wins race already encode this).
 
 12.1 does not enforce Tier 5; it defines the rubric so 12.5 has a target.
 

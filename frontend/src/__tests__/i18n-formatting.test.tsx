@@ -5,13 +5,6 @@ describe("ICU Formatting Patterns", () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const enMessages = require("../../messages/en.json");
 
-  it("renders plural patterns correctly for credits", () => {
-    const msg = new IntlMessageFormat(enMessages.common.credits, "en");
-    expect(msg.format({ count: 1 })).toBe("1 credit");
-    expect(msg.format({ count: 5 })).toBe("5 credits");
-    expect(msg.format({ count: 0 })).toBe("0 credits");
-  });
-
   it("renders plural patterns correctly for items", () => {
     const msg = new IntlMessageFormat(enMessages.common.itemCount, "en");
     expect(msg.format({ count: 1 })).toBe("1 item");

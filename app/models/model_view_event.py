@@ -23,10 +23,18 @@ class ModelViewEvent(Base):
     id: Mapped[str] = mapped_column(
         String(64), primary_key=True, default=lambda: generate_id("mve_")
     )
-    catalog_model_id: Mapped[str] = mapped_column(
+    # P1.5 fusion: events are keyed on the unified Model (model_project_id). The legacy
+    # catalog_model_id is now nullable (new events omit it) and drops in the contract release.
+    catalog_model_id: Mapped[str | None] = mapped_column(
         String(64),
         ForeignKey("model_catalog.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
+        index=True,
+    )
+    model_project_id: Mapped[str | None] = mapped_column(
+        String(64),
+        ForeignKey("model_projects.id", ondelete="CASCADE"),
+        nullable=True,
         index=True,
     )
     event_type: Mapped[str] = mapped_column(String(16), nullable=False)  # "impression" or "view"
@@ -35,13 +43,19 @@ class ModelViewEvent(Base):
         String(2), nullable=True
     )  # ISO 3166-1 alpha-2
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utcnow, nullable=False, index=True
+        DateTime(timezone=True), default=utcnow, nullable=False, index=True
     )
 
     __table_args__ = (
         Index(
             "ix_mve_model_type_created",
             "catalog_model_id",
+            "event_type",
+            "created_at",
+        ),
+        Index(
+            "ix_mve_project_type_created",
+            "model_project_id",
             "event_type",
             "created_at",
         ),

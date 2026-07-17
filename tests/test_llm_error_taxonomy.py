@@ -38,7 +38,6 @@ class TestLLMErrorCode:
 
         assert is_public(LLMErrorCode.VALIDATION_FAILED) is True
         assert is_public(LLMErrorCode.CONTENT_MODERATION) is True
-        assert is_public(LLMErrorCode.INSUFFICIENT_CREDITS) is True
         assert is_public(LLMErrorCode.PARAMETRIC_UNSUPPORTED) is True
         assert is_public(LLMErrorCode.SERVICE_UNAVAILABLE) is False
         assert is_public(LLMErrorCode.INTERNAL_ERROR) is False

@@ -96,7 +96,7 @@ export function SystemTab({ health, stats, loading }: SystemTabProps) {
             {loading ? (
               <Skeleton className="h-5 w-24 mt-1" />
             ) : (
-              <p className="font-medium">JAOT v{health?.version ?? "2.0.0"}</p>
+              <p className="font-medium">JAOT v{health?.version ?? "3.0.0"}</p>
             )}
           </div>
           <div>
@@ -167,12 +167,6 @@ export function SystemTab({ health, stats, loading }: SystemTabProps) {
             <div>
               <p className="text-2xl font-bold text-foreground">{stats.models.catalog_total}</p>
               <p className="text-xs text-muted-foreground">{t("catalogModels")}</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">
-                {stats.credits.total_balance.toLocaleString()}
-              </p>
-              <p className="text-xs text-muted-foreground">{t("creditBalance")}</p>
             </div>
           </div>
         )}

@@ -6,8 +6,10 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { useCommonLabels } from "@/hooks/useCommonLabels";
 import { api } from "@/lib/api";
+import { getErrorMessage, getErrorStatus } from "@/lib/errors";
 interface FavoriteModel {
   id: string;
   display_name: string;
@@ -37,11 +39,32 @@ import {
 
 export default function FavoritesPage() {
   const t = useTranslations("solve.favorites");
+  const tCard = useTranslations("marketplace.card");
+  const tCatalog = useTranslations("marketplace.catalog");
+  const router = useRouter();
   const { categoryLabel } = useCommonLabels();
   const [favorites, setFavorites] = useState<FavoriteModel[]>([]);
   const [recents, setRecents] = useState<RecentModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"favorites" | "recents">("favorites");
+  const [seedingId, setSeedingId] = useState<string | null>(null);
+
+  // P1.5 fusion: using a marketplace model = forking it into the studio — the
+  // legacy /solve/{id} execution page is gone (its route now redirects there).
+  const handleUseInStudio = async (modelId: string) => {
+    setSeedingId(modelId);
+    try {
+      const project = await api.createProjectFromMarketplace(modelId);
+      router.push(`/studio/${project.id}/build`);
+    } catch (err) {
+      toast.error(
+        getErrorStatus(err) === 422
+          ? tCatalog("useInStudioUnavailable")
+          : getErrorMessage(err, tCatalog("useInStudioFailed"))
+      );
+      setSeedingId(null);
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -194,11 +217,14 @@ export default function FavoritesPage() {
                       </p>
                     )}
                     <div className="flex gap-2">
-                      <Link href={`/solve/${model.id}`} className="flex-1">
-                        <Button size="sm" className="w-full">
-                          <Play className="w-4 h-4 mr-1" /> {t("run")}
-                        </Button>
-                      </Link>
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        disabled={seedingId === model.id}
+                        onClick={() => handleUseInStudio(model.id)}
+                      >
+                        <Play className="w-4 h-4 mr-1" /> {tCard("useInStudio")}
+                      </Button>
                       <Link href={`/marketplace/${model.id}`}>
                         <Button size="sm" variant="outline">
                           {t("details")}
@@ -235,8 +261,8 @@ export default function FavoritesPage() {
                   <CardContent className="py-3">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <Link 
-                          href={`/solve/${model.id}`}
+                        <Link
+                          href={`/marketplace/${model.id}`}
                           className="font-medium hover:text-primary"
                         >
                           {model.display_name}
@@ -250,11 +276,14 @@ export default function FavoritesPage() {
                           <div>{formatDate(model.last_accessed)}</div>
                           <div>{t("accessCount", { count: model.access_count })}</div>
                         </div>
-                        <Link href={`/solve/${model.id}`}>
-                          <Button size="sm">
-                            <Play className="w-4 h-4" />
-                          </Button>
-                        </Link>
+                        <Button
+                          size="sm"
+                          disabled={seedingId === model.id}
+                          onClick={() => handleUseInStudio(model.id)}
+                          title={tCard("useInStudio")}
+                        >
+                          <Play className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
                   </CardContent>

@@ -149,9 +149,7 @@ export function BuilderToolbar({ documentId, onHelpClick }: BuilderToolbarProps)
       setDrawerOpen(true);
     } catch (err: unknown) {
       const status = getErrorStatus(err);
-      if (status === 402) {
-        toast.error(t("toolbar.insufficientCredits"));
-      } else if (status === 422) {
+      if (status === 422) {
         toast.error(t("toolbar.invalidProblem", { message: getErrorMessage(err, t("toolbar.checkModelDefinition")) }));
       } else if (status && status >= 500) {
         toast.error(t("toolbar.solverError", { detail: getErrorMessage(err, t("toolbar.checkModelDefinition")) }));

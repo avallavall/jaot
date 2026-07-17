@@ -40,7 +40,7 @@ Next.js 16 App Router, i18n, shared state.
 ### 04 · Database
 PostgreSQL + SQLAlchemy 2.0 + Alembic. Entities, multi-tenancy, migrations.
 
-- [`04-database/01-erd-core.md`](./04-database/01-erd-core.md) — Identity + Model + Billing
+- [`04-database/01-erd-core.md`](./04-database/01-erd-core.md) — Identity + Model + Execution
 - [`04-database/02-erd-marketplace.md`](./04-database/02-erd-marketplace.md) — Favorites, FeaturedPlacement, Ratings
 - [`04-database/03-erd-automation.md`](./04-database/03-erd-automation.md) — Triggers + AI
 - [`04-database/04-erd-platform.md`](./04-database/04-erd-platform.md) — PlatformSetting + AuditLog + Notification
@@ -68,7 +68,7 @@ Main flows as sequence diagrams.
 - [`07-use-cases/01-signup-login.md`](./07-use-cases/01-signup-login.md) — signup, verification, login, refresh
 - [`07-use-cases/02-solve-flow.md`](./07-use-cases/02-solve-flow.md) — solving a problem (the flagship flow)
 - [`07-use-cases/03-create-model.md`](./07-use-cases/03-create-model.md) — builder with LLM assistant + RAG
-- [`07-use-cases/04-marketplace-buy.md`](./07-use-cases/04-marketplace-buy.md) — template purchase (Stripe)
+- [`07-use-cases/04-marketplace-buy.md`](./07-use-cases/04-marketplace-buy.md) — marketplace adoption ("Use in studio" fork)
 - [`07-use-cases/05-automation-trigger.md`](./07-use-cases/05-automation-trigger.md) — trigger/schedule runs a solve
 - [`07-use-cases/06-admin-settings.md`](./07-use-cases/06-admin-settings.md) — admin modifies platform settings
 

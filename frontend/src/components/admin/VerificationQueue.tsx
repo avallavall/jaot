@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { apiDate } from "@/lib/dates";
 import {
   Dialog,
   DialogContent,
@@ -92,7 +93,7 @@ export function VerificationQueue({ requests, onUpdate }: VerificationQueueProps
               </TableCell>
               <TableCell>{r.member_since}</TableCell>
               <TableCell>
-                {new Date(r.created_at).toLocaleDateString()}
+                {apiDate(r.created_at).toLocaleDateString()}
               </TableCell>
               <TableCell>
                 <Badge variant="secondary">{t("pending")}</Badge>

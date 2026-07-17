@@ -29,12 +29,12 @@ from a clean checkout.
 
 ## What gets tested hardest
 
-The money and the multi-tenancy paths get the most scrutiny:
+The solve and multi-tenancy paths get the most scrutiny:
 
-- **Financial flows** (credits, refunds, Stripe) — concurrency tests, idempotency
-  tests, invalid-amount tests. Refunds are idempotent at the database level (a
-  partial unique index), and there's a test that proves a double-refund attempt
-  is rejected rather than double-crediting.
+- **Solve flows** — concurrency and idempotency tests. A duplicate
+  `Idempotency-Key` provably attaches to the original run (same
+  `execution_id`, exactly one `ModelExecution` row) instead of re-solving,
+  and the worker↔reaper terminal-wins race is pinned by a CONTRACT-TEST.
 - **Multi-tenancy** — every org-scoped endpoint has a cross-tenant rejection
   test; an authenticated user from org B cannot read org A's data.
 - **Locking & concurrency** — concurrent-access tests are mandatory for the
@@ -53,9 +53,10 @@ matter most:
 | Module | Mutation score |
 |---|---|
 | Idempotency service | **100%** |
-| Stripe service | **97.5%** |
-| Credits service | **94.6%** |
 | Auth, solver core | ≥75% target met |
+
+(The Stripe and credits services also scored 97.5% / 94.6% before being
+removed entirely by ADR-008.)
 
 (Target is ≥75% per file; residual survivors are documented cosmetic/equivalent
 mutants, not unasserted behaviour.)

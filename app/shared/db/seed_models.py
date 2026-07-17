@@ -1,10 +1,15 @@
-"""
-Seed the model_catalog with official JAOT models.
+"""Seed the official JAOT models from the YAML templates.
 
 Reads YAML template files from ``app/data/templates/``, validates them with
-Pydantic, and upserts into the ``model_catalog`` table.  Templates that are
-no longer present in the YAML files get ``status='deprecated'`` in the DB
-(never deleted).
+Pydantic, and upserts them as the unified marketplace entity: a thin anchor
+``ModelProject`` (owned by the system org ``org_jaot_official``) plus its
+``ModelProjectListing`` facet carrying the generator + presentation. Officials
+are generator-backed — the listing holds ``generator_type``/``input_schema``/
+``input_fields``/``example_input`` and the generator is rendered at consume-time
+(``/projects/from-marketplace/{id}``), so the anchor project needs no draft.
+
+Templates that are no longer present in the YAML source get
+``status='deprecated'`` on their listing (never deleted).
 """
 
 import logging
@@ -14,7 +19,8 @@ from sqlalchemy.orm import Session
 
 from app.data.templates import load_all_templates
 from app.data.templates._schema import TemplateDefinition
-from app.models import ModelCatalog
+from app.models import ModelProject, ModelProjectListing, Organization
+from app.shared.db.p15_backfill import SYSTEM_ORG_ID, SYSTEM_ORG_NAME
 from app.shared.db.session import SessionLocal
 from app.shared.utils.datetime_helpers import utcnow
 
@@ -66,92 +72,127 @@ def build_input_schema(template: TemplateDefinition) -> dict[str, Any]:
     }
 
 
-def seed_official_models(db: Session) -> int:
-    """Upsert official models from YAML template files.
+def ensure_official_org(db: Session) -> str:
+    """Return the id of the officials-owning system org, creating it if absent.
 
-    * New templates are created with ``status='published'``.
-    * Existing templates are updated in-place (upsert).
-    * Templates that no longer appear in the YAML source get
-      ``status='deprecated'``.
+    Idempotent (flush-only, caller-commits). Shares the id/name with the P1.5
+    backfill so an existing backfilled DB and a fresh install converge on the
+    same ``org_jaot_official`` row.
+    """
+    org = db.query(Organization).filter(Organization.id == SYSTEM_ORG_ID).first()
+    if org is None:
+        db.add(Organization(id=SYSTEM_ORG_ID, name=SYSTEM_ORG_NAME, is_public_profile=False))
+        db.flush()
+    return SYSTEM_ORG_ID
+
+
+def _apply_listing_fields(
+    listing: ModelProjectListing,
+    template: TemplateDefinition,
+    merged_tags: list[str],
+    author_org_id: str,
+) -> None:
+    """Copy a template's presentation + generator facet onto a listing row."""
+    listing.author_organization_id = author_org_id
+    listing.name = template.name
+    listing.display_name = template.display_name
+    listing.description = template.description
+    listing.short_description = template.short_description
+    listing.scenario_description = template.scenario_description
+    listing.category = template.category
+    listing.tags = merged_tags
+    listing.generator_type = template.generator_type
+    listing.input_schema = build_input_schema(template)
+    listing.input_fields = [f.model_dump() for f in template.input_fields]
+    listing.example_input = template.example_input
+    listing.version = template.version
+    listing.is_official = True
+    listing.is_featured = template.is_featured
+    listing.is_public = True
+    listing.status = "published"
+
+
+def seed_official_models(db: Session) -> int:
+    """Upsert official models from YAML template files into the unified entity.
+
+    * New templates create an anchor ``ModelProject`` (system org) + published
+      ``ModelProjectListing``.
+    * Existing ones are updated in-place (upsert, id ``official_{template.id}``).
+    * Templates that no longer appear in the YAML source get ``status='deprecated'``
+      on their listing.
 
     Uses ``db.flush()`` (caller-commits pattern) so the function is composable
     inside a larger transaction such as the app lifespan.
 
     Returns the number of templates processed.
     """
+    org_id = ensure_official_org(db)
     templates = load_all_templates()
     seen_ids: set[str] = set()
     count = 0
 
     for template in templates:
-        catalog_id = f"official_{template.id}"
-        seen_ids.add(catalog_id)
-
-        existing = db.query(ModelCatalog).filter(ModelCatalog.id == catalog_id).first()
-
+        official_id = f"official_{template.id}"
+        seen_ids.add(official_id)
         merged_tags = template.tags + template.problem_type_tags
+        now = utcnow()
 
-        if existing:
-            existing.name = template.name
-            existing.display_name = template.display_name
-            existing.description = template.description
-            existing.short_description = template.short_description
-            existing.scenario_description = template.scenario_description
-            existing.category = template.category
-            existing.tags = merged_tags
-            existing.generator_type = template.generator_type
-            existing.input_schema = build_input_schema(template)
-            existing.input_fields = [f.model_dump() for f in template.input_fields]
-            existing.example_input = template.example_input
-            existing.version = template.version
-            existing.credits_per_execution = 1
-            existing.is_featured = template.is_featured
-            existing.status = "published"
-            existing.updated_at = utcnow()
-            logger.info("  Updated: %s", template.id)
-        else:
-            model = ModelCatalog(
-                id=catalog_id,
-                name=template.name,
-                display_name=template.display_name,
+        # Anchor ModelProject (thin — the model content is the generator facet on
+        # the listing, rendered at consume-time; no draft needed).
+        project = db.query(ModelProject).filter(ModelProject.id == official_id).first()
+        if project is None:
+            project = ModelProject(
+                id=official_id,
+                organization_id=org_id,
+                name=template.display_name,
                 description=template.description,
-                short_description=template.short_description,
-                scenario_description=template.scenario_description,
-                category=template.category,
-                tags=merged_tags,
-                generator_type=template.generator_type,
-                input_schema=build_input_schema(template),
-                input_fields=[f.model_dump() for f in template.input_fields],
-                example_input=template.example_input,
-                version=template.version,
-                status="published",
-                is_official=True,
-                is_featured=template.is_featured,
-                is_public=True,
-                price_eur=0.0,
-                credits_per_execution=1,
-                published_at=utcnow(),
+                status="active",
+                source_type="official",
             )
-            db.add(model)
-            logger.info("  Created: %s", template.id)
+            db.add(project)
+        else:
+            project.organization_id = org_id
+            project.name = template.display_name
+            project.description = template.description
+            project.status = "active"
 
+        # Marketplace listing facet.
+        listing = (
+            db.query(ModelProjectListing)
+            .filter(ModelProjectListing.model_project_id == official_id)
+            .first()
+        )
+        if listing is None:
+            listing = ModelProjectListing(model_project_id=official_id, published_at=now)
+            _apply_listing_fields(listing, template, merged_tags, org_id)
+            db.add(listing)
+        else:
+            _apply_listing_fields(listing, template, merged_tags, org_id)
+            if listing.published_at is None:
+                listing.published_at = now
+
+        logger.info("  Seeded official: %s", template.id)
         count += 1
 
-    # Deprecate official models that are no longer in the YAML source
-    stale = db.query(ModelCatalog).filter(
-        ModelCatalog.is_official.is_(True),
-        ModelCatalog.status != "deprecated",
-    )
-    if seen_ids:
-        stale = stale.filter(ModelCatalog.id.notin_(seen_ids))
-
-    for model in stale.all():
-        model.status = "deprecated"
-        model.updated_at = utcnow()
-        logger.info("  Deprecated: %s", model.id)
+    _deprecate_stale(db, seen_ids)
 
     db.flush()
     return count
+
+
+def _deprecate_stale(db: Session, seen_ids: set[str]) -> None:
+    """Deprecate official listings no longer in the YAML source."""
+    stale_listings = db.query(ModelProjectListing).filter(
+        ModelProjectListing.is_official.is_(True),
+        ModelProjectListing.status != "deprecated",
+    )
+    if seen_ids:
+        stale_listings = stale_listings.filter(
+            ModelProjectListing.model_project_id.notin_(seen_ids)
+        )
+    for listing in stale_listings.all():
+        listing.status = "deprecated"
+        logger.info("  Deprecated: %s", listing.model_project_id)
 
 
 def seed_models() -> None:

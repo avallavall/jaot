@@ -38,11 +38,10 @@ def trigger_solve_task(
     5. Parse merged model into OptimizationProblem
     6. Solve via SolverService
     7. Create ModelExecution row with origin='triggered'
-    8. Update TriggerRun record (status, result, timing, credits)
-    9. Deduct credits from organization
-    10. Send in-app notification to trigger creator
-    11. Deliver outbound webhook
-    12. Close DB session
+    8. Update TriggerRun record (status, result, timing)
+    9. Send in-app notification to trigger creator
+    10. Deliver outbound webhook
+    11. Close DB session
 
     Args:
         run_id: TriggerRun PK to update.
@@ -129,7 +128,6 @@ def trigger_solve_task(
         from app.domains.solver.services.solver_service import SolverService  # noqa: PLC0415
         from app.shared.core.prometheus_metrics import (  # noqa: PLC0415
             ACTIVE_SOLVES,
-            CREDITS_CONSUMED,
             SOLVE_DURATION,
             SOLVE_TOTAL,
         )
@@ -141,15 +139,22 @@ def trigger_solve_task(
             result = solver.solve(problem)
             _solve_elapsed = time.time() - _solve_start
             SOLVE_DURATION.observe(_solve_elapsed)
-            solve_status = "completed"
             # Always use model_dump() — result is OptimizationResult (Pydantic model), not a dict
             result_data = result.model_dump()
-            error_msg = None
             result_status_val = getattr(
                 result.status,
                 "value",
                 "optimal",
             )
+            # A non-raising solver error (e.g. EXPR_PARSE_ERROR) comes back as
+            # status=error WITHOUT raising — treat it as a failure, matching
+            # /solve and execute_model (ADR-007 S3).
+            if result_status_val == "error":
+                solve_status = "failed"
+                error_msg = getattr(result, "error_message", None) or "Solver returned an error"
+            else:
+                solve_status = "completed"
+                error_msg = None
             SOLVE_TOTAL.labels(
                 status=result_status_val,
                 generator="trigger",
@@ -166,7 +171,14 @@ def trigger_solve_task(
         finally:
             ACTIVE_SOLVES.dec()
 
-        # 7. Create ModelExecution row with origin='triggered'
+        # 7. Record the run's ModelExecution via the single writer (ADR-007 / P1.5 F0).
+        # Build the pending row with the trigger-specific provenance, then let
+        # execution_writer apply the terminal transition — so triggers store the SAME
+        # canonical ``to_result_data()`` shape as every other execution (instead of a
+        # divergent ``model_dump()`` blob whose ``.get("status")`` never matched the
+        # canonical ``solver_status`` key) and share the terminal-state guard.
+        from app.domains.solver import execution_writer  # noqa: PLC0415
+        from app.models import ExecutionStatus  # noqa: PLC0415
         from app.models.optimization_model import ModelExecution  # noqa: PLC0415
         from app.shared.utils.datetime_helpers import utcnow  # noqa: PLC0415
 
@@ -185,25 +197,33 @@ def trigger_solve_task(
                 "trigger_name": trigger.name,
                 "override_data": override_data or {},
             },
-            status=solve_status,
-            result_data=result_data,
-            error_message=error_msg,
-            execution_time_ms=elapsed_ms,
-            solver_status=(result_data or {}).get("status"),
-            objective_value=(result_data or {}).get("objective_value"),
-            credits_consumed=0,
+            status=ExecutionStatus.PENDING.value,
             trigger_id=trigger.id,
             origin="triggered",
             # Provenance: navigates back to the trigger that fired this run.
             source_kind="trigger",
             source_id=trigger.id,
             started_at=start_datetime,
-            completed_at=now,
         )
         db.add(model_execution)
         db.flush()
 
-        # Link execution back to the TriggerRun
+        if solve_status == "completed":
+            # ``result`` is a valid OptimizationResult here (completed ⇒ the solve ran
+            # and did not return status=error). The writer sets solver_status,
+            # objective_value, result_data and completed_at from it.
+            execution_writer.apply_completed(
+                model_execution,
+                result=result,
+                execution_time_seconds=elapsed_ms / 1000.0,
+            )
+        else:
+            execution_writer.apply_failed(
+                model_execution, error=error_msg or "Solver returned an error"
+            )
+
+        # Link execution back to the TriggerRun. TriggerRun keeps its own result_data
+        # shape (its API contract); only the shared ModelExecution row is canonicalized.
         run.execution_id = model_execution.id
 
         run.status = solve_status
@@ -212,60 +232,6 @@ def trigger_solve_task(
         run.execution_time_ms = elapsed_ms
         run.completed_at = now
         db.commit()
-
-        # 9. Deduct credits (best-effort — don't fail run on credit error)
-        #    Workspace pool first when trigger.workspace_id is set,
-        #    org balance fallback otherwise.
-        credits_used = 0
-        if solve_status == "completed":
-            try:
-                from app.models import Organization  # noqa: PLC0415
-                from app.services.credits_service import CreditsService  # noqa: PLC0415
-
-                org = (
-                    db.query(Organization)
-                    .filter(Organization.id == trigger.organization_id)
-                    .first()
-                )
-                if org:
-                    credits_to_deduct = (result_data or {}).get("credits_used", 1)
-                    credits_to_deduct = int(credits_to_deduct)
-
-                    if trigger.workspace_id:
-                        # Try workspace pool first, fall back to org balance
-                        try:
-                            from app.services import workspace_credits_service  # noqa: PLC0415
-
-                            workspace_credits_service.deduct_credits_for_solve(
-                                db=db,
-                                org=org,
-                                workspace_id=trigger.workspace_id,
-                                credits_needed=credits_to_deduct,
-                            )
-                            db.commit()
-                        except ValueError:
-                            # Pool exhausted — fall back to org-level deduction
-                            CreditsService.deduct_credits(
-                                db=db,
-                                organization_id=org.id,
-                                credits=credits_to_deduct,
-                                description=f"Trigger solve: {trigger.name} (run {run_id})",
-                            )
-                    else:
-                        CreditsService.deduct_credits(
-                            db=db,
-                            organization_id=org.id,
-                            credits=credits_to_deduct,
-                            description=f"Trigger solve: {trigger.name} (run {run_id})",
-                        )
-
-                    run.credits_consumed = credits_to_deduct
-                    model_execution.credits_consumed = credits_to_deduct
-                    credits_used = credits_to_deduct
-                    CREDITS_CONSUMED.inc(credits_to_deduct)
-                    db.commit()
-            except Exception as exc:
-                logger.warning("Credit deduction failed for trigger run %s: %s", run_id, exc)
 
         if trigger.created_by:
             try:
@@ -301,20 +267,23 @@ def trigger_solve_task(
             if solve_status == "completed"
             else "trigger.execution.failed"
         )
-        _deliver_webhook(trigger, run, event_type, credits_used=credits_used)
+        _deliver_webhook(trigger, run, event_type)
 
         logger.info(
-            "TriggerRun %s completed: status=%s elapsed_ms=%d credits=%d execution_id=%s",
+            "TriggerRun %s completed: status=%s elapsed_ms=%d execution_id=%s",
             run_id,
             solve_status,
             elapsed_ms,
-            credits_used,
             model_execution.id,
         )
         return {"status": solve_status, "run_id": run_id, "execution_id": model_execution.id}
 
     except Exception as exc:
         logger.exception("Unexpected error in trigger_solve_task for run %s: %s", run_id, exc)
+        try:
+            db.rollback()
+        except Exception:
+            logger.debug("DB rollback failed in trigger outer handler", exc_info=True)
         # Mark run as failed if we can
         try:
             from app.models.trigger import TriggerRun  # noqa: PLC0415
@@ -347,7 +316,6 @@ def _deliver_webhook(
     trigger: Any,
     run: Any,
     event_type: str,
-    credits_used: int = 0,
 ) -> None:
     """Queue the outbound webhook for a trigger run completion."""
     try:
@@ -362,7 +330,6 @@ def _deliver_webhook(
                 "trigger_id": trigger.id,
                 "trigger_name": trigger.name,
                 "status": run.status,
-                "credits_consumed": credits_used,
                 "execution_time_ms": run.execution_time_ms,
                 "error_message": run.error_message,
                 "execution_id": getattr(run, "execution_id", None),

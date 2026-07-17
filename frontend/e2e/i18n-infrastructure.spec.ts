@@ -97,23 +97,23 @@ test.describe("Phase 52: i18n Infrastructure", () => {
     });
 
     test("Switching language preserves current page path", async ({ page }) => {
-      await page.goto("/pricing");
-      await expect(page).toHaveURL(/\/pricing/);
+      await page.goto("/contact");
+      await expect(page).toHaveURL(/\/contact/);
 
       await langSwitcher(page).click();
       await page.getByRole("menuitem", { name: "Français" }).click();
 
-      await expect(page).toHaveURL(/\/fr\/pricing/);
+      await expect(page).toHaveURL(/\/fr\/contact/);
     });
 
     test("Switching back to English removes locale prefix", async ({ page }) => {
-      await page.goto("/es/pricing");
-      await expect(page).toHaveURL(/\/es\/pricing/);
+      await page.goto("/es/contact");
+      await expect(page).toHaveURL(/\/es\/contact/);
 
       await langSwitcher(page).click();
       await page.getByRole("menuitem", { name: "English" }).click();
 
-      await expect(page).toHaveURL(/\/pricing$/);
+      await expect(page).toHaveURL(/\/contact$/);
       await expect(page).not.toHaveURL(/\/en\//);
     });
   });

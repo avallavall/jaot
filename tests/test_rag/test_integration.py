@@ -134,30 +134,38 @@ class TestFullIndexPipeline:
     """Full index pipeline embeds and upserts all documents."""
 
     def test_indexes_all_documents(self, qdrant_sync: QdrantClient, fake_embed: FakeEmbedClient):
+        from app.services.rag.document_types import extract_all_documents
         from app.services.rag.indexer import run_full_index_sync
+
+        # Count is dynamic: 186 base docs + one worked example per renderable template.
+        expected = len(extract_all_documents())
+        assert expected > 186, "worked examples should add to the 186 base docs"
 
         result = run_full_index_sync(
             qdrant_client=qdrant_sync,
             embed_client=fake_embed,
         )
 
-        assert result["total_docs"] == 186
+        assert result["total_docs"] == expected
         assert result["total_tokens"] > 0
         assert result["duration_ms"] >= 0
 
         # Verify documents are in Qdrant
         collection_info = qdrant_sync.get_collection(COLLECTION_NAME)
-        assert collection_info.points_count == 186
+        assert collection_info.points_count == expected
 
     def test_idempotent_reindex(self, qdrant_sync: QdrantClient, fake_embed: FakeEmbedClient):
         """Running index twice produces same count (upsert, not duplicate)."""
+        from app.services.rag.document_types import extract_all_documents
         from app.services.rag.indexer import run_full_index_sync
+
+        expected = len(extract_all_documents())
 
         run_full_index_sync(qdrant_client=qdrant_sync, embed_client=fake_embed)
         run_full_index_sync(qdrant_client=qdrant_sync, embed_client=fake_embed)
 
         collection_info = qdrant_sync.get_collection(COLLECTION_NAME)
-        assert collection_info.points_count == 186  # Same count, not 372
+        assert collection_info.points_count == expected  # Same count, not doubled
 
     def test_embed_called_with_correct_input_type(
         self, qdrant_sync: QdrantClient, fake_embed: FakeEmbedClient
@@ -230,6 +238,23 @@ class TestRetrieverRetrieve:
         retriever = RAGRetriever(qdrant=async_qdrant, embed_client=fake_embed)
         asyncio.run(retriever.retrieve("test query", min_score=0.0))
         assert fake_embed.last_input_type == "query"
+
+    def test_reranker_reorders_end_to_end(self, retriever: RAGRetriever):
+        """A reranker supplied to retrieve() drives the final order (not fusion score)."""
+
+        class LengthReranker:
+            # Prefer longer document text — an ordering signal unrelated to fusion.
+            def predict(self, pairs):
+                return [float(len(text)) for _query, text in pairs]
+
+        results = asyncio.run(
+            retriever.retrieve(
+                "knapsack problem", top_k=3, min_score=0.0, reranker=LengthReranker()
+            )
+        )
+        assert len(results) > 1
+        lengths = [len(r["text"]) for r in results]
+        assert lengths == sorted(lengths, reverse=True), "reranker order must win"
 
 
 # Retriever with Redis cache (mock)

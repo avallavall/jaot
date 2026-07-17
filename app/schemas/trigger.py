@@ -41,7 +41,7 @@ class TriggerCreate(BaseModel):
     webhook_secret: str | None = Field(
         default=None, description="Secret for signing outbound webhook payloads"
     )
-    workspace_id: str | None = Field(default=None, description="Workspace to deduct credits from")
+    workspace_id: str | None = Field(default=None, description="Workspace this run belongs to")
 
 
 class TriggerUpdate(BaseModel):
@@ -138,7 +138,6 @@ class TriggerRunResponse(BaseModel):
     execution_id: str | None
     result_data: dict[str, Any] | None
     error_message: str | None
-    credits_consumed: int
     execution_time_ms: int | None
     webhook_delivered: bool | None
     webhook_attempts: int

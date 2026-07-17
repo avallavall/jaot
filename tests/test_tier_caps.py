@@ -105,7 +105,6 @@ def _make_org(plan: str = "free") -> Organization:
     org.plan = plan
     org.rate_limit_per_minute = 2
     org.rate_limit_per_day = 10
-    org.credits_balance = 1000
     return org
 
 

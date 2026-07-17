@@ -1,0 +1,42 @@
+---
+title: Visual Canvas
+description: Build a model as a visual graph of variables, constraints, and the objective
+order: 2
+---
+
+# Visual Canvas
+
+The **Canvas** is the visual authoring lens of the [Model Workspace](/docs/studio/model-workspace)'s Build tab. It renders your model as a graph — one node per variable and per constraint, connected to the objective — so you can see the structure of the optimization problem at a glance and edit it by direct manipulation.
+
+The canvas is a *view* of the same canonical model as the other lenses: drop a variable on the canvas and it appears in the JSON editor; ask the AI assistant to add a constraint and a node shows up on the canvas. Every change autosaves to the draft.
+
+## Working on the canvas
+
+- **Variables** — add decision variables and set their type (continuous, integer, binary) and bounds.
+- **Constraints** — add constraints and connect the variables that participate in them; edit the expression and its sense (`<=`, `>=`, `=`).
+- **Objective** — set the sense (minimize/maximize) and the expression to optimize.
+
+The model-at-a-glance rail (variables by type, constraints, density, problem class, health score) updates live as you edit, and the **Analyze** tab always reflects what is on the canvas.
+
+## Undo / redo
+
+Canvas edits support undo/redo, and your working state is autosaved continuously — the explicit milestones are [commits](/docs/studio/versioning).
+
+## Large models
+
+The canvas renders a node per model element, which stops being useful (and fast) at scale. Above **800 elements** (variables + constraints combined), the workspace skips the visual canvas automatically:
+
+- Build → Canvas shows a "model too large" notice instead of the graph
+- The model remains fully editable through the [JSON editor](/docs/studio/json-editor) and [JModel](/docs/studio/jmodel-dsl) lenses
+- **Analyze** and **Solve** work exactly the same
+
+This guard exists so that importing, say, a 40,000-variable assignment model never locks your browser. For models of that scale, a declarative [JModel formulation](/docs/studio/jmodel-dsl) with indexed families is a much better representation than 40,000 nodes anyway.
+
+## When to use which lens
+
+| You want to... | Best lens |
+|----------------|-----------|
+| Sketch a small model and see its structure | **Canvas** |
+| Describe the problem in plain language | **Assistant** ([Building with AI](/docs/ai-builder/building-with-ai)) |
+| Paste or hand-tune the exact JSON | **Editor** ([JSON Editor](/docs/studio/json-editor)) |
+| Write an indexed formulation over sets/params with separate data | **JModel** ([JModel DSL](/docs/studio/jmodel-dsl)) |

@@ -44,7 +44,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1536M
+          # Bumped on the 26 GB VM for more OS page cache (heavier reads as the model
+          # catalogue + execution history grow). Tune shared_buffers in postgresql.conf to match.
+          memory: 2560M
           cpus: '2.0'
           pids: 200
     healthcheck:
@@ -194,9 +196,11 @@ services:
     deploy:
       resources:
         limits:
-          # 4 uvicorn workers + SCIP sync solves on large models.
-          memory: 4G
-          cpus: '4.0'
+          # 4 uvicorn workers + SCIP sync solves on large models. Bumped for the
+          # 26 GB / 16-core VM — sync solves of large models (tens of thousands of
+          # vars) are memory- and CPU-hungry, and the cap is a ceiling, not a reserve.
+          memory: 5G
+          cpus: '6.0'
           pids: 256
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/api/v2/health/status')"]
@@ -243,9 +247,10 @@ services:
     deploy:
       resources:
         limits:
-          # D-14: aggressive 256M/0.25 CPU — I/O-bound tasks only.
-          memory: 256M
-          cpus: '0.25'
+          # D-14: I/O-bound tasks only. Lifted off the aggressive 256M/0.25 floor on the
+          # 26 GB VM so the 2-3am financial batch can't OOM (the DefaultQueueOOMRisk note above).
+          memory: 512M
+          cpus: '0.5'
           pids: 64
     healthcheck:
       test: ["CMD", "celery", "-A", "app.shared.core.celery_app", "inspect", "ping", "--timeout", "5"]
@@ -290,8 +295,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 3G
-          cpus: '2.0'
+          # Big async MIP solves (1-2G each, concurrency=2). Bumped on the 26 GB /
+          # 16-core VM so large models (tens of thousands of vars) don't OOM and can
+          # use more cores per solve.
+          memory: 5G
+          cpus: '4.0'
           pids: 256
     healthcheck:
       test: ["CMD", "celery", "-A", "app.shared.core.celery_app", "inspect", "ping", "--timeout", "5"]
@@ -335,8 +343,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
-          cpus: '1.0'
+          # Headroom for LP imports + multi-obj, bumped on the 26 GB / 16-core VM.
+          memory: 1536M
+          cpus: '2.0'
           pids: 128
     healthcheck:
       test: ["CMD", "celery", "-A", "app.shared.core.celery_app", "inspect", "ping", "--timeout", "5"]
@@ -484,8 +493,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
-          cpus: '1.0'
+          # Next 16 prod server (React 19 SSR). 512M/1.0 was tight — a concurrent-SSR
+          # spike could hit the cap and get OOM-killed. The cap is a ceiling, not a
+          # reservation (idle usage stays ~150-300M), so the headroom is free until needed.
+          memory: 1G
+          cpus: '2.0'
           pids: 100
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/en"]
@@ -611,9 +623,12 @@ services:
       - "--path.procfs=/host/proc"
       - "--path.sysfs=/host/sys"
       - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+      # backup.sh drops jaot_backup.prom here (stale-backup alert)
+      - "--collector.textfile.directory=/host/textfile"
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
+      - /opt/jaot/backups/metrics:/host/textfile:ro
     # Exposes host PID namespace — required for accurate per-CPU + process metrics.
     pid: host
     networks:

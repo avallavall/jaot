@@ -5,7 +5,7 @@ Covers the full producer -> routing -> consumer-guard pipeline:
 1. SCIP route: POST /solve/async with solver_name='scip' -> queue='solve_scip'
 2. HiGHS route: POST /solve/async with solver_name='highs' -> queue='solve_highs'
 3. Unknown solver: POST /solve/async with solver_name='gurobi' -> HTTP 422,
-   pre-paid credits refunded, no broker/env leak in error message.
+   no broker/env leak in error message.
 4. Manual misroute: direct invocation of solve_async.run() with
    SOLVER_QUEUE=solve_scip and solver_name='highs' -> consumer-side
    guard raises SolverQueueMismatchError, caught by outer try/except,
@@ -120,19 +120,18 @@ class TestQueueRoutingE2E:
             f"expected queue=solve_highs, got {captured!r}"
         )
 
-    def test_unknown_solver_returns_422_and_refunds(
+    def test_unknown_solver_returns_422(
         self,
         authenticated_client,
         test_organization,
         db_session,
         monkeypatch,
     ) -> None:
-        """Unknown solver_name -> HTTP 422, balance restored, no broker leak.
+        """Unknown solver_name -> HTTP 422, no broker leak.
 
         The producer calls resolve_queue(solver_name) before apply_async;
         a KeyError becomes SolverNotFoundError which the endpoint maps to
-        HTTP 422. The pre-paid credits are refunded so an invalid
-        submission never leaves the user charged (plan 06-02 D-03).
+        HTTP 422 (plan 06-02 D-03).
 
         Security: the 422 response body must not leak the broker URI,
         filesystem paths, or internal env var names.
@@ -151,9 +150,6 @@ class TestQueueRoutingE2E:
 
         monkeypatch.setattr(solve_tasks.solve_async, "apply_async", _fail_if_called)
 
-        db_session.refresh(test_organization)
-        initial_balance = test_organization.credits_balance
-
         small_problem = _make_small_problem("inf05_unknown", solver_name="gurobi")
         resp = authenticated_client.post("/api/v2/solve/async", json=small_problem)
 
@@ -169,14 +165,6 @@ class TestQueueRoutingE2E:
         assert "CELERY_BROKER" not in detail
         assert "SOLVER_QUEUE" not in detail
         assert "/app/" not in detail
-
-        # Balance must be restored (pre-pay + refund = net zero).
-        db_session.expire(test_organization)
-        db_session.refresh(test_organization)
-        assert test_organization.credits_balance == initial_balance, (
-            f"expected refund to restore balance={initial_balance}, "
-            f"got {test_organization.credits_balance}"
-        )
 
     def test_unknown_solver_422_body_does_not_leak_solver_list(
         self,
@@ -282,8 +270,7 @@ class TestQueueRoutingE2E:
         from app.domains.solver.tasks.solve_tasks import solve_async
 
         # Minimal problem_data — we never reach the solver, the guard
-        # raises immediately. _prepaid_credits=0 so the refund branch is
-        # a no-op (no DB session needed).
+        # raises immediately (no DB session needed).
         problem_data: dict[str, object] = {
             "name": "misroute_test",
             "description": "Misroute test",
@@ -292,7 +279,6 @@ class TestQueueRoutingE2E:
                 {"name": "x", "type": "continuous", "lower_bound": 0, "upper_bound": 10},
             ],
             "constraints": [],
-            "_prepaid_credits": 0,
         }
 
         # ``solve_async.apply(kwargs=...)`` is Celery's official

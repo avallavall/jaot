@@ -36,8 +36,6 @@ class SummaryResponse(BaseModel):
     success_rate: float
     avg_solve_time_ms: float | None
     median_solve_time_ms: float | None
-    total_credits: int
-    avg_credits: float
     avg_objective_value: float | None
     executions_by_status: dict[str, int]
     executions_by_origin: dict[str, int]
@@ -51,7 +49,6 @@ class TrendBucketResponse(BaseModel):
     executions: int
     completed: int
     failed: int
-    credits: int
     avg_solve_time_ms: float | None
 
 
@@ -71,7 +68,6 @@ class ComparedExecutionResponse(BaseModel):
     solver_status: str | None
     objective_value: float | None
     execution_time_ms: int | None
-    credits_consumed: int
     created_at: str
     origin: str
     num_variables: int | None
@@ -106,8 +102,6 @@ async def get_analytics_summary(
         success_rate=summary.success_rate,
         avg_solve_time_ms=summary.avg_solve_time_ms,
         median_solve_time_ms=summary.median_solve_time_ms,
-        total_credits=summary.total_credits,
-        avg_credits=summary.avg_credits,
         avg_objective_value=summary.avg_objective_value,
         executions_by_status=summary.executions_by_status,
         executions_by_origin=summary.executions_by_origin,
@@ -138,7 +132,6 @@ async def get_analytics_trends(
                 executions=t.executions,
                 completed=t.completed,
                 failed=t.failed,
-                credits=t.credits,
                 avg_solve_time_ms=t.avg_solve_time_ms,
             )
             for t in trend_data
@@ -173,7 +166,6 @@ async def compare_executions_endpoint(
                 solver_status=c.solver_status,
                 objective_value=c.objective_value,
                 execution_time_ms=c.execution_time_ms,
-                credits_consumed=c.credits_consumed,
                 created_at=c.created_at,
                 origin=c.origin,
                 num_variables=c.num_variables,

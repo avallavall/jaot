@@ -15,7 +15,7 @@
  * internal network from a single container IP, so they share one anonymous
  * per-IP rate-limit bucket. A burst (crawler, Lighthouse, fast browsing)
  * trips a 429, which previously became a hard 500 on the model page and a
- * spurious 404 on the seller page. A 200 with client-loaded content beats
+ * spurious 404 on the author page. A 200 with client-loaded content beats
  * both. Transient statuses get a short bounded retry first.
  */
 

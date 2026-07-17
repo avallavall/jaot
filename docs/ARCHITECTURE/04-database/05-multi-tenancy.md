@@ -33,8 +33,7 @@ flowchart TD
 | APIKey | `organization_id` | API impersonation |
 | LLMConversation | `organization_id` | Exposes prompts, customer data |
 | ModelBuilderDocument | `organization_id` | Exposes formulations, strategies |
-| CreditTransaction | `organization_id` | Financial fraud |
-| Withdrawal | `organization_id` | Money theft |
+| ModelProject / ModelProjectVersion | `organization_id` | Exposes models, version history |
 | WorkspaceMember | `organization_id` + `workspace_id` | Role escalation |
 | Workspace | `organization_id` | Data exfiltration |
 
@@ -45,7 +44,7 @@ flowchart TD
 | User | 1 user → N orgs (future: multi-org) | `user_id` (PK) |
 | Organization | Root entity | `id` (PK) |
 | PlatformSetting | Global singleton | `key` (PK) |
-| ModelCatalog | Global marketplace | `id` (PK) |
+| ModelProjectListing | Public marketplace facet (1:1 with an org-owned ModelProject) | `status='published'` + `is_public` |
 | AnalyticsEvent | Aggregated analytics | `user_id` + `organization_id` (both as filters) |
 
 ## Golden Rule: CurrentOrg Dependency
@@ -93,26 +92,21 @@ async def get_execution(execution_id: str, db: DBSession):
 - **Phase 10**: ModelExecution without org_id filter → **CRITICAL**. Hotfix = revert + add filter.
 - **Phase 42**: Workspace listing without org_id → **HIGH**. Enumeration attack.
 
-## Refund/Rollback Specification
+## Solve Idempotency Specification
 
-**Scenario**: A solve fails. If credits were already deducted, refund them.
+**Scenario**: a client retries `POST /solve` with the same `Idempotency-Key`.
 
 ```python
-# Pre-pay pattern (SolveOrchestrator):
-1. Deduct credits: CreditsService.deduct(org_id, credits, ref=execution_id)
-   → CreditTransaction(type=EXECUTION, org_id, ref_id=execution_id)
-2. Execute solve
-3. IF failed:
-   → CreditsService.refund(org_id, credits, ref_id=execution_id)
-   → CreditTransaction(type=REFUND, org_id, ref_id=execution_id)
-
-# Idempotency: UNIQUE constraint prevents double-refund
-# (organization_id, transaction_type, reference_type, reference_id)
+# Executed-once pattern (ADR-008: no ledger — the row IS the invariant):
+1. (org_id, Idempotency-Key, canonical_body) binds to a stable execution_id
+2. First call: insert_pending → enqueue solve_async → one ModelExecution row
+3. Replay: attaches to the SAME execution_id (cached row), never re-solves
+# CONTRACT-TEST: tests/api/test_solve_idempotency_plan05.py
 ```
 
 ## Implementation Files
 
 - `app/api/deps.py:CurrentOrg` — dependency resolver
-- `app/core/auth_middleware.py` — JWT/APIKey extraction
+- `app/shared/core/auth_middleware.py` — JWT/APIKey extraction
 - `app/api/v2/auth.py` — user management endpoints
-- `app/services/credits_service.py:CreditsService.deduct/refund` — transactional safety
+- `app/domains/solver/services/execution_writer.py` — single ModelExecution writer

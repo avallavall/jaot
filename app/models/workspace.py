@@ -56,9 +56,11 @@ class Workspace(Base):
         ForeignKey("users.id"),
         nullable=True,
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=utcnow, onupdate=utcnow
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
     )
 
     def __repr__(self) -> str:
@@ -99,7 +101,9 @@ class WorkspaceMember(Base):
     )
     role: Mapped[str] = mapped_column(String(32), nullable=False, default="viewer")
     invited_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    joined_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+    joined_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
 
     def __repr__(self) -> str:
         return (
@@ -137,9 +141,11 @@ class WorkspaceInvite(Base):
     invitee_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     token_hash: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)
     created_by: Mapped[str] = mapped_column(String(64), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
-    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    accepted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     accepted_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
     is_revoked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 

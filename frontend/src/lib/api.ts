@@ -12,17 +12,14 @@ import type {
   ModelExecution,
   AsyncTask,
   AsyncTaskStatus,
+  AsyncSolveEnvelope,
+  AsyncSolveResultEnvelope,
+  SolveAsyncStatus,
   OptimizationProblem,
   SolveResult,
   ValidationResult,
-  CreditBalance,
-  CreditSettings,
-  CreditTransaction,
-  Withdrawal,
-  WithdrawalSchedule,
   NotificationList,
   NotificationPreferencesResponse,
-  OnboardingStatus,
   Review,
   ReviewList,
   AdminStats,
@@ -34,6 +31,14 @@ import type {
   BuilderDocumentUpdate,
   ModelVersion,
   ModelVersionListItem,
+  ProjectRead,
+  ProjectListItem,
+  ProjectExecutionItem,
+  ProjectVersionSummary,
+  ProjectVersionRead,
+  ProjectVersionDiff,
+  DraftUpdateBody,
+  ModelStats,
   SolveTrigger,
   CreateTriggerResponse,
   CreateTriggerRequest,
@@ -43,7 +48,6 @@ import type {
   WorkspaceInvite,
   WorkspaceRole,
   AuditLogEntry,
-  CreditPool,
   MultiObjectiveConfig,
   MultiObjectiveResult,
   GuidanceState,
@@ -52,23 +56,19 @@ import type {
   ScheduleCreateRequest,
   ScheduleUpdateRequest,
   CronValidationResponse,
-  EarningsSummary,
-  SalesHistoryResponse,
-  AnalyticsSummary,
-  TimeSeriesDataPoint,
-  GeoDistributionEntry,
-  ModelPerformanceRow,
-  ConversionFunnel,
   AdminAnalytics,
-  PlacementPricing,
-  FeaturedPlacement,
-  AdminPlacement,
   VerificationRequestStatus,
   AdminVerificationEntry,
   FileImportPreviewResponse,
   SolveAnalyticsSummary,
   SolveAnalyticsTrends,
   SolveAnalyticsCompare,
+  DslCompileResult,
+  DslInspectResult,
+  DslStatusResult,
+  ProjectDataset,
+  ProjectDatasetSummary,
+  DatasetImportPreview,
 } from "./types";
 
 import type { AnthropicKeyStatus, AttachmentInfo, InfeasibilityAnalysis } from "./llm-types";
@@ -94,16 +94,10 @@ export type {
   OptimizationResult,
   SolveResult,
   ValidationResult,
-  CreditBalance,
-  CreditSettings,
-  CreditTransaction,
-  Withdrawal,
-  WithdrawalSchedule,
   Notification,
   NotificationList,
   NotificationPreferenceEntry,
   NotificationPreferencesResponse,
-  OnboardingStatus,
   Review,
   ReviewList,
   AdminStats,
@@ -115,6 +109,14 @@ export type {
   BuilderDocumentUpdate,
   ModelVersion,
   ModelVersionListItem,
+  ProjectRead,
+  ProjectListItem,
+  ProjectExecutionItem,
+  ProjectVersionSummary,
+  ProjectVersionRead,
+  ProjectVersionDiff,
+  DraftUpdateBody,
+  ModelStats,
   SolveTrigger,
   CreateTriggerResponse,
   CreateTriggerRequest,
@@ -126,7 +128,6 @@ export type {
   WorkspaceInvite,
   WorkspaceRole,
   AuditLogEntry,
-  CreditPool,
   MultiObjectiveConfig,
   MultiObjectiveResult,
   ObjectiveSpec,
@@ -140,19 +141,8 @@ export type {
   ScheduleCreateRequest,
   ScheduleUpdateRequest,
   CronValidationResponse,
-  EarningsSummary,
-  SaleRecord,
-  SalesHistoryResponse,
   AnalyticsSummary,
-  TimeSeriesDataPoint,
-  GeoDistributionEntry,
-  ModelPerformanceRow,
-  ConversionFunnel,
-  SellerLeaderboardEntry,
   AdminAnalytics,
-  PlacementPricing,
-  FeaturedPlacement,
-  AdminPlacement,
   VerificationRequestStatus,
   AdminVerificationEntry,
   FileImportPreviewResponse,
@@ -234,7 +224,7 @@ export class ApiError extends Error {
 export interface AuthTokenResponse {
   success: boolean;
   user: { id: string; name: string; email: string; is_admin: boolean; is_org_owner?: boolean };
-  organization: { id: string; name: string; plan: string; credits_balance: number };
+  organization: { id: string; name: string; plan: string };
   permissions: { can_build_plugins: boolean; ai_builder_enabled: boolean };
   email_verified: boolean;
 }
@@ -243,7 +233,6 @@ export interface EmailSignupResponse {
   user_id: string;
   organization_id: string;
   api_key: string;
-  credits_balance: number;
   plan: string;
   message: string;
   email_verified: boolean;
@@ -304,6 +293,8 @@ export interface SolveSource {
   origin: string;
   sourceKind?: string;
   sourceId?: string | null;
+  /** §8/S1: the named dataset the model was compiled against (async solves only). */
+  datasetId?: string | null;
 }
 
 /** Merge workspace + provenance into the query params for a /solve call. */
@@ -317,6 +308,7 @@ function buildSolveParams(
     params.origin = source.origin;
     if (source.sourceKind) params.source_kind = source.sourceKind;
     if (source.sourceId) params.source_id = source.sourceId;
+    if (source.datasetId) params.dataset_id = source.datasetId;
   }
   return Object.keys(params).length > 0 ? params : undefined;
 }
@@ -344,13 +336,21 @@ export type RequestOptions = RequestInit & {
   _retried?: boolean;
   /** Set to false to disable automatic retry on 5xx / network errors */
   retry?: boolean | RetryConfig;
+  /**
+   * Solve-family endpoints only (ADR-007 S5): when the server degrades a long
+   * solve to `202 + task envelope` (it outlived the ~100s server-side wait), the
+   * client transparently polls the async task to completion and returns the final
+   * result — so the sync callers keep receiving a plain result of any solve length.
+   * Off for every other endpoint.
+   */
+  resolveAsync?: boolean;
 };
 
 async function request<T>(
   path: string,
   options: RequestOptions = {}
 ): Promise<T> {
-  const { params, _retried, retry, ...fetchOptions } = options;
+  const { params, _retried, retry, resolveAsync, ...fetchOptions } = options;
   const url = buildUrl(path, params);
 
   const headers: Record<string, string> = {
@@ -472,10 +472,76 @@ async function request<T>(
       return undefined as T;
     }
 
+    // ADR-007 S5: a solve that outlived the server-side wait budget degrades to
+    // 202 + task envelope. For solve-family callers (resolveAsync) resolve it
+    // transparently by polling to completion, so the sync contract holds for a
+    // solve of any length; every other endpoint returns the 202 body verbatim.
+    if (res.status === 202 && resolveAsync) {
+      const envelope = (await res.json()) as AsyncSolveEnvelope;
+      return awaitAsyncSolveResult<T>(envelope);
+    }
+
     return res.json();
   }
 
   throw lastError;
+}
+
+/** Poll interval + client patience cap while resolving a degraded (202) solve. */
+const ASYNC_RESOLVE_POLL_MS = 1500;
+const ASYNC_RESOLVE_MAX_WAIT_MS = 10 * 60 * 1000; // 10 min
+
+/**
+ * Resolve a degraded (202) solve by polling `/solve/async/{task_id}` to a terminal
+ * state and returning the unwrapped result (ADR-007 S5). Mirrors the studio's
+ * completion poller. Throws on failure or once the client patience cap is hit (the
+ * solve keeps running server-side — its row is in the executions history).
+ */
+async function awaitAsyncSolveResult<T>(envelope: AsyncSolveEnvelope): Promise<T> {
+  const taskId = envelope.task_id;
+  const deadline = Date.now() + ASYNC_RESOLVE_MAX_WAIT_MS;
+  for (;;) {
+    await sleep(ASYNC_RESOLVE_POLL_MS);
+    let status: SolveAsyncStatus;
+    try {
+      status = await request<SolveAsyncStatus>(`/api/v2/solve/async/${taskId}`);
+    } catch (err) {
+      if (Date.now() > deadline) throw err;
+      continue; // transient poll error — keep trying until the deadline
+    }
+    if (status.status === "completed") {
+      return unwrapAsyncSolveBody<T>(status, envelope.execution_id);
+    }
+    if (status.status === "failed") {
+      throw new ApiError(500, status.error || "Solve failed");
+    }
+    if (Date.now() > deadline) {
+      throw new ApiError(
+        504,
+        "The solve is taking longer than expected — it is still running; check the executions history for the result."
+      );
+    }
+  }
+}
+
+/**
+ * Unwrap a completed async-solve poll into the plain result the sync callers expect.
+ * The poll nests the real result at `status.result.result` (the worker envelope);
+ * some paths return it directly at `status.result`. The `execution_id` from the
+ * original 202 envelope is injected because the worker's raw result dump omits it.
+ */
+function unwrapAsyncSolveBody<T>(status: SolveAsyncStatus, executionId: string): T {
+  const envelope = status.result as AsyncSolveResultEnvelope | undefined;
+  const base = ((envelope?.result ?? envelope) ?? {}) as Record<string, unknown>;
+  const merged: Record<string, unknown> = {
+    ...base,
+    execution_id: (base.execution_id as string | undefined) ?? executionId,
+  };
+  // Single-solve telemetry the poll hoists to the top level (absent/harmless for multi-obj).
+  if (status.solver_used !== undefined) merged.solver_used = status.solver_used;
+  if (status.auto_route_reason !== undefined) merged.auto_route_reason = status.auto_route_reason;
+  if (status.warning !== undefined) merged.warning = status.warning;
+  return merged as T;
 }
 
 export const api = {
@@ -594,35 +660,8 @@ export const api = {
     });
   },
 
-  getMyModels(params?: QueryParams): Promise<PaginatedResponse<OrganizationModel>> {
-    return request("/api/v2/models/", { params });
-  },
-
-  getMyModel(modelId: string): Promise<OrganizationModel> {
-    return request(`/api/v2/models/${modelId}`);
-  },
-
-  getMyModelSchema(modelId: string): Promise<{ input_fields: InputField[]; example_input: Record<string, unknown> }> {
-    return request(`/api/v2/models/${modelId}/schema`);
-  },
-
-  updateMyModel(modelId: string, data: Partial<OrganizationModel>): Promise<OrganizationModel> {
-    return request(`/api/v2/models/${modelId}`, {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    });
-  },
-
-  deactivateMyModel(modelId: string): Promise<void> {
-    return request(`/api/v2/models/${modelId}`, { method: "DELETE" });
-  },
-
-  createModel(data: Record<string, unknown>): Promise<OrganizationModel> {
-    return request("/api/v2/models/", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  },
+  // P1.5 fusion: the legacy my-models CRUD is retired — the single model entity
+  // is the ModelProject (listProjects/getProject/updateProject/archiveProject).
 
   getCatalog(params?: QueryParams): Promise<PaginatedResponse<ModelCatalogItem>> {
     return request("/api/v2/models/catalog", { params });
@@ -634,17 +673,6 @@ export const api = {
 
   getCatalogModelSchema(modelId: string): Promise<{ input_fields: InputField[]; example_input: Record<string, unknown> }> {
     return request(`/api/v2/models/catalog/${modelId}/schema`);
-  },
-
-  activateCatalogModel(modelId: string, options?: { customName?: string }): Promise<OrganizationModel> {
-    const body: Record<string, unknown> = {};
-    if (options?.customName) {
-      body.custom_name = options.customName;
-    }
-    return request(`/api/v2/models/catalog/${modelId}/activate`, {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
   },
 
   executeModel(modelId: string, data: Record<string, unknown>, solverName?: string): Promise<ModelExecution> {
@@ -739,7 +767,31 @@ export const api = {
       method: "POST",
       body: JSON.stringify(problem),
       params: buildSolveParams(workspaceId, source),
+      resolveAsync: true,
     });
+  },
+
+  /** Universal async solve — enqueues the solve and returns a task id to poll/stream. */
+  solveAsync(
+    problem: OptimizationProblem,
+    workspaceId?: string,
+    source?: SolveSource
+  ): Promise<AsyncTask> {
+    return request("/api/v2/solve/async", {
+      method: "POST",
+      body: JSON.stringify(problem),
+      params: buildSolveParams(workspaceId, source),
+    });
+  },
+
+  /** Poll the status (and, once finished, the result) of an async `/solve/async` task. */
+  getSolveAsyncStatus(taskId: string): Promise<SolveAsyncStatus> {
+    return request(`/api/v2/solve/async/${taskId}`);
+  },
+
+  /** Cancel a running async solve. */
+  cancelSolveAsync(taskId: string): Promise<void> {
+    return request(`/api/v2/solve/async/${taskId}/cancel`, { method: "POST" });
   },
 
   validateProblem(problem: OptimizationProblem): Promise<ValidationResult> {
@@ -747,6 +799,32 @@ export const api = {
       method: "POST",
       body: JSON.stringify(problem),
     });
+  },
+
+  /** Compile JModel (DSL) source into a flat problem. Gated behind JAOT_DSL (404
+   * when off). A user syntax error is a 200 with `ok:false` + `{message, position}`.
+   * `datasetId` names an org-owned dataset whose set members / param values fill a
+   * declaration-only source (§8 model/data separation). */
+  compileDsl(source: string, datasetId?: string | null): Promise<DslCompileResult> {
+    return request("/api/v2/dsl/compile", {
+      method: "POST",
+      body: JSON.stringify({ source, ...(datasetId ? { dataset_id: datasetId } : {}) }),
+    });
+  },
+
+  /** Parse-only list of a JModel source's sets/params (S2a) — powers the dataset
+   * skeleton button and the live dataset↔model validation. Succeeds where compile
+   * errors (declaration-only sources, missing data). Gated like compile. */
+  inspectDsl(source: string): Promise<DslInspectResult> {
+    return request("/api/v2/dsl/inspect", {
+      method: "POST",
+      body: JSON.stringify({ source }),
+    });
+  },
+
+  /** Whether the JModel DSL feature is enabled, so the SPA can surface the lens. */
+  dslStatus(): Promise<DslStatusResult> {
+    return request("/api/v2/dsl/status");
   },
 
   solveMultiObjective(
@@ -759,6 +837,7 @@ export const api = {
       method: "POST",
       params: buildSolveParams(workspaceId, source),
       body: JSON.stringify({ problem, config }),
+      resolveAsync: true,
     });
   },
 
@@ -778,109 +857,27 @@ export const api = {
     return request("/api/v2/models/recents", { params });
   },
 
-  getCreditBalance(): Promise<CreditBalance> {
-    return request("/api/v2/credits/balance");
-  },
 
-  getCreditSettings(): Promise<CreditSettings> {
-    return request("/api/v2/credits/settings");
-  },
 
-  getCreditTransactions(params?: QueryParams): Promise<CreditTransaction[]> {
-    return request("/api/v2/credits/transactions", { params });
-  },
 
-  getWithdrawals(): Promise<Withdrawal[]> {
-    return request("/api/v2/credits/withdrawals");
-  },
 
-  createWithdrawal(data: { credits_amount: number; currency: string }): Promise<Withdrawal> {
-    return request("/api/v2/credits/withdrawals", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  },
 
-  getWithdrawalSchedules(): Promise<WithdrawalSchedule[]> {
-    return request("/api/v2/credits/schedules");
-  },
 
-  createWithdrawalSchedule(data: Record<string, unknown>): Promise<WithdrawalSchedule> {
-    return request("/api/v2/credits/schedules", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  },
 
-  deleteWithdrawalSchedule(id: string): Promise<void> {
-    return request(`/api/v2/credits/schedules/${id}`, { method: "DELETE" });
-  },
 
-  updateCurrency(data: { currency: string }): Promise<void> {
-    return request("/api/v2/credits/settings/currency", {
-      method: "PUT",
-      body: JSON.stringify(data),
-    });
-  },
 
-  createTopupCheckout(data: {
-    credits: number;
-    success_url: string;
-    cancel_url: string;
-  }): Promise<{ checkout_url: string; session_id: string }> {
-    return request("/api/v2/billing/checkout/topup", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  },
 
-  getSellerEarningsSummary(): Promise<EarningsSummary> {
-    return request("/api/v2/seller/earnings/summary");
-  },
 
-  getSellerSalesHistory(params?: { page?: number; page_size?: number }): Promise<SalesHistoryResponse> {
-    return request("/api/v2/seller/earnings/sales", { params });
-  },
 
-  getSellerAnalyticsSummary(period: string = "30d"): Promise<AnalyticsSummary> {
-    return request("/api/v2/seller/analytics/summary", { params: { period } });
-  },
-
-  getSellerAnalyticsTimeSeries(period: string = "30d"): Promise<{ data: TimeSeriesDataPoint[]; period: string }> {
-    return request("/api/v2/seller/analytics/time-series", { params: { period } });
-  },
-
-  getSellerAnalyticsGeo(period: string = "30d"): Promise<{ data: GeoDistributionEntry[] }> {
-    return request("/api/v2/seller/analytics/geo", { params: { period } });
-  },
-
-  getSellerAnalyticsModels(period: string = "30d"): Promise<ModelPerformanceRow[]> {
-    return request("/api/v2/seller/analytics/models", { params: { period } });
-  },
-
-  getSellerAnalyticsFunnel(period: string = "30d"): Promise<ConversionFunnel> {
-    return request("/api/v2/seller/analytics/funnel", { params: { period } });
-  },
-
-  getAdminSellerAnalytics(period: string = "30d"): Promise<AdminAnalytics> {
+  getAdminAuthorAnalytics(period: string = "30d"): Promise<AdminAnalytics> {
+    // Legacy wire path — renamed to author-analytics in the contract release.
     return request("/api/v2/admin/marketplace/seller-analytics", { params: { period } });
   },
 
-  getPlacementPricing(): Promise<PlacementPricing[]> {
-    return request("/api/v2/seller/placements/pricing");
-  },
 
-  purchasePlacement(data: { catalog_model_id: string; placement_type: string; duration_days: number }): Promise<FeaturedPlacement> {
-    return request("/api/v2/seller/placements/purchase", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  },
 
-  getActivePlacements(): Promise<{ items: FeaturedPlacement[]; total: number }> {
-    return request("/api/v2/seller/placements/active");
-  },
 
+  // The /api/v2/seller/* wire paths below are legacy — renamed in the contract release.
   requestVerification(): Promise<VerificationRequestStatus> {
     return request("/api/v2/seller/verification/request", {
       method: "POST",
@@ -903,24 +900,8 @@ export const api = {
     });
   },
 
-  getOnboardingStatus(): Promise<OnboardingStatus> {
-    return request("/api/v2/seller/onboarding/status");
-  },
 
-  getAdminPromotions(): Promise<AdminPlacement[]> {
-    return request("/api/v2/admin/marketplace/promotions");
-  },
 
-  revokePromotion(id: string): Promise<void> {
-    return request(`/api/v2/admin/marketplace/promotions/${id}/revoke`, { method: "POST" });
-  },
-
-  extendPromotion(id: string, extraDays: number): Promise<{ status: string }> {
-    return request(`/api/v2/admin/marketplace/promotions/${id}/extend`, {
-      method: "POST",
-      body: JSON.stringify({ extra_days: extraDays }),
-    });
-  },
 
   getAdminVerificationRequests(): Promise<AdminVerificationEntry[]> {
     return request("/api/v2/admin/marketplace/verification");
@@ -965,8 +946,10 @@ export const api = {
     return request("/api/v2/notifications/read-all", { method: "POST" });
   },
 
-  publishModel(modelId: string, data: Record<string, unknown>): Promise<ModelCatalogItem> {
-    return request(`/api/v2/models/${modelId}/publish`, {
+  // P1.5 fusion: publishing pins a committed version of a ModelProject as its
+  // marketplace listing (the id is the project id).
+  publishModel(projectId: string, data: Record<string, unknown>): Promise<ModelCatalogItem> {
+    return request(`/api/v2/projects/${projectId}/publish`, {
       method: "POST",
       body: JSON.stringify(data),
     });
@@ -1060,6 +1043,273 @@ export const api = {
     });
   },
 
+  // ── ModelProject (first-class model entity; P1e) ────────────────────────
+  createProject(
+    body: { name?: string; description?: string; workspace_id?: string },
+    workspaceId?: string
+  ): Promise<ProjectRead> {
+    return request("/api/v2/projects", {
+      method: "POST",
+      body: JSON.stringify(body),
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  createProjectFromBuilder(documentId: string, workspaceId?: string): Promise<ProjectRead> {
+    return request(`/api/v2/projects/from-builder/${documentId}`, {
+      method: "POST",
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  /** Seed a ModelProject from a template (P2 centralization). The backend
+   * materializes the template via the existing engine and auto-commits v1. */
+  createProjectFromTemplate(templateId: string, workspaceId?: string): Promise<ProjectRead> {
+    return request(`/api/v2/projects/from-template/${encodeURIComponent(templateId)}`, {
+      method: "POST",
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  /** Seed a ModelProject from a published marketplace model (P2 centralization). */
+  createProjectFromMarketplace(modelId: string, workspaceId?: string): Promise<ProjectRead> {
+    return request(`/api/v2/projects/from-marketplace/${encodeURIComponent(modelId)}`, {
+      method: "POST",
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  getProject(id: string, workspaceId?: string): Promise<ProjectRead> {
+    return request(`/api/v2/projects/${id}`, {
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  /** Patch project metadata (name / description / status) — the rename path. */
+  updateProject(
+    id: string,
+    body: { name?: string; description?: string; status?: string },
+    workspaceId?: string
+  ): Promise<ProjectRead> {
+    return request(`/api/v2/projects/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  /** Soft-archive a project (hidden from the active list). Reversible via
+   * `updateProject(id, { status: "active" })`. */
+  archiveProject(id: string, workspaceId?: string): Promise<void> {
+    return request<void>(`/api/v2/projects/${id}`, {
+      method: "DELETE",
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  /** Permanently delete an ARCHIVED project and its versions (irreversible).
+   * The backend rejects this (409) unless the project is already archived. */
+  deleteProjectPermanently(id: string, workspaceId?: string): Promise<void> {
+    return request<void>(`/api/v2/projects/${id}`, {
+      method: "DELETE",
+      params: { permanent: true, ...(workspaceId ? { workspace_id: workspaceId } : {}) },
+    });
+  },
+
+  listProjects(
+    params?: { status?: string; q?: string; mine?: boolean; skip?: number; limit?: number },
+    workspaceId?: string
+  ): Promise<ProjectListItem[]> {
+    return request("/api/v2/projects", {
+      params: { ...params, ...(workspaceId ? { workspace_id: workspaceId } : {}) },
+    });
+  },
+
+  getModelStats(id: string, workspaceId?: string): Promise<ModelStats> {
+    return request(`/api/v2/projects/${id}/stats`, {
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  /**
+   * Executions for a project (newest first) — the server-side anchor for
+   * RECONCILING a solve on workspace open: a running async run is re-attached by
+   * its `celery_task_id`; a finished one becomes the "last run" summary.
+   */
+  getProjectExecutions(
+    id: string,
+    params?: { status?: string; limit?: number },
+    workspaceId?: string
+  ): Promise<ProjectExecutionItem[]> {
+    return request(`/api/v2/projects/${id}/executions`, {
+      params: { ...params, ...(workspaceId ? { workspace_id: workspaceId } : {}) },
+    });
+  },
+
+  /**
+   * S7: server-side scenario solve — the backend compiles the project's persisted
+   * JModel source against the named dataset and enqueues the async solve, so the
+   * client sends a URL instead of a compiled problem (up to ~31MB pre-S7).
+   * Compile failures surface as a 422 whose message is the structured compiler error.
+   */
+  solveProjectDataset(
+    projectId: string,
+    datasetId: string,
+    solverName?: string,
+    workspaceId?: string
+  ): Promise<AsyncTask> {
+    return request(`/api/v2/projects/${projectId}/datasets/${datasetId}/solve`, {
+      method: "POST",
+      params: {
+        ...(solverName ? { solver_name: solverName } : {}),
+        ...(workspaceId ? { workspace_id: workspaceId } : {}),
+      },
+    });
+  },
+
+  /** Replace the HEAD draft. `lockVersion` becomes the `If-Match` optimistic-concurrency token. */
+  updateProjectDraft(
+    id: string,
+    body: DraftUpdateBody,
+    lockVersion?: number,
+    workspaceId?: string
+  ): Promise<ProjectRead> {
+    return request(`/api/v2/projects/${id}/draft`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+      headers: lockVersion != null ? { "If-Match": String(lockVersion) } : undefined,
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  commitProjectVersion(
+    id: string,
+    payload: { summary: string; body?: string },
+    workspaceId?: string
+  ): Promise<ProjectVersionRead> {
+    return request(`/api/v2/projects/${id}/commit`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  listProjectVersions(
+    id: string,
+    params?: { skip?: number; limit?: number },
+    workspaceId?: string
+  ): Promise<ProjectVersionSummary[]> {
+    return request(`/api/v2/projects/${id}/versions`, {
+      params: { ...params, ...(workspaceId ? { workspace_id: workspaceId } : {}) },
+    });
+  },
+
+  getProjectVersion(
+    id: string,
+    versionId: string,
+    workspaceId?: string
+  ): Promise<ProjectVersionRead> {
+    return request(`/api/v2/projects/${id}/versions/${versionId}`, {
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  diffProjectVersions(
+    id: string,
+    a: string,
+    b: string,
+    workspaceId?: string
+  ): Promise<ProjectVersionDiff> {
+    return request(`/api/v2/projects/${id}/versions/${a}/diff/${b}`, {
+      params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    });
+  },
+
+  restoreProjectVersion(
+    id: string,
+    versionId: string,
+    discardDraft?: boolean,
+    workspaceId?: string
+  ): Promise<ProjectRead> {
+    return request(`/api/v2/projects/${id}/versions/${versionId}/restore`, {
+      method: "POST",
+      params: {
+        ...(discardDraft ? { discard_draft: true } : {}),
+        ...(workspaceId ? { workspace_id: workspaceId } : {}),
+      },
+    });
+  },
+
+  /** List a project's datasets ("scenarios") — compact rows, no values (§8). */
+  listProjectDatasets(id: string): Promise<ProjectDatasetSummary[]> {
+    return request(`/api/v2/projects/${id}/datasets`);
+  },
+
+  /** Fetch one dataset with its full `data_json` values. */
+  getProjectDataset(id: string, datasetId: string): Promise<ProjectDataset> {
+    return request(`/api/v2/projects/${id}/datasets/${datasetId}`);
+  },
+
+  createProjectDataset(
+    id: string,
+    payload: { name: string; description?: string | null; data_json: Record<string, unknown> }
+  ): Promise<ProjectDataset> {
+    return request(`/api/v2/projects/${id}/datasets`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  updateProjectDataset(
+    id: string,
+    datasetId: string,
+    payload: {
+      name?: string;
+      description?: string | null;
+      data_json?: Record<string, unknown>;
+    }
+  ): Promise<ProjectDataset> {
+    return request(`/api/v2/projects/${id}/datasets/${datasetId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  deleteProjectDataset(id: string, datasetId: string): Promise<void> {
+    return request(`/api/v2/projects/${id}/datasets/${datasetId}`, { method: "DELETE" });
+  },
+
+  /** Parse a data file (.dat / .json / .csv) into a dataset PREVIEW (S2c) — nothing
+   * is stored; the caller fills the editor and saves via the normal create. */
+  async importProjectDataset(
+    id: string,
+    file: File,
+    paramName?: string | null
+  ): Promise<DatasetImportPreview> {
+    const doUpload = async (): Promise<Response> => {
+      const formData = new FormData();
+      formData.append("file", file);
+      if (paramName) formData.append("param_name", paramName);
+      return fetch(buildUrl(`/api/v2/projects/${id}/datasets/import`), {
+        method: "POST",
+        headers: authHeaders(), // NO Content-Type — browser sets multipart boundary
+        body: formData,
+        credentials: "include",
+      });
+    };
+    let res = await doUpload();
+    if (res.status === 401) {
+      await refreshAccessToken();
+      res = await doUpload();
+    }
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      const detail = typeof body.detail === "string" ? body.detail : undefined;
+      throw new ApiError(res.status, detail || `Import failed (${res.status})`, detail);
+    }
+    return res.json();
+  },
+
   listTemplates(): Promise<{ templates: TemplateSummary[] }> {
     return request("/api/v2/solve/templates");
   },
@@ -1073,6 +1323,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify(input),
       params: workspaceId ? { workspace_id: workspaceId } : undefined,
+      resolveAsync: true,
     });
   },
 
@@ -1324,6 +1575,13 @@ export const api = {
         throw new ApiError(res.status, detail || `Import failed (${res.status})`, detail);
       }
 
+      // ADR-007 S5: a long import solve degrades to 202 — resolve it transparently
+      // like the request()-based solve methods (this route uses a bespoke fetch).
+      if (res.status === 202) {
+        const envelope = (await res.json()) as AsyncSolveEnvelope;
+        return awaitAsyncSolveResult<SolveResult>(envelope);
+      }
+
       return res.json();
     },
   },
@@ -1483,17 +1741,6 @@ export const api = {
     return request(`/api/v2/workspaces/${workspaceId}/audit/`, { params });
   },
 
-  getPoolStats(workspaceId: string): Promise<CreditPool> {
-    return request(`/api/v2/workspaces/${workspaceId}/credits/`);
-  },
-
-  allocateCredits(workspaceId: string, amount: number): Promise<CreditPool> {
-    return request(`/api/v2/workspaces/${workspaceId}/credits/allocate`, {
-      method: "POST",
-      body: JSON.stringify({ amount }),
-    });
-  },
-
   getGuidance(): Promise<GuidanceState> {
     return request("/api/v2/guidance");
   },
@@ -1583,17 +1830,6 @@ export const api = {
 
     deleteApiKey(id: string): Promise<void> {
       return request(`/api/v2/admin/api-keys/${id}`, { method: "DELETE" });
-    },
-
-    adjustCredits(data: Record<string, unknown>): Promise<void> {
-      return request("/api/v2/admin/credits/adjust", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-    },
-
-    getTransactions(params?: QueryParams): Promise<PaginatedResponse<CreditTransaction>> {
-      return request("/api/v2/admin/credits/transactions", { params });
     },
 
     getModels(params?: QueryParams): Promise<PaginatedResponse<ModelCatalogItem>> {

@@ -121,11 +121,6 @@ class TestBusinessMetrics:
         body = response.text
         assert "jaot_solve_total" in body
 
-    def test_metrics_includes_credits_consumed(self, authenticated_client):
-        """GET /metrics includes jaot_credits_consumed_total counter."""
-        response = authenticated_client.get("/metrics")
-        assert "jaot_credits_consumed_total" in response.text
-
     def test_metrics_includes_solve_duration(self, authenticated_client):
         """GET /metrics includes jaot_solve_duration_seconds histogram."""
         response = authenticated_client.get("/metrics")
@@ -175,14 +170,6 @@ class TestBusinessMetrics:
         response = authenticated_client.get("/metrics")
         body = response.text
         assert "# TYPE jaot_active_solves gauge" in body
-
-    def test_credits_consumed_type_is_counter(self, authenticated_client):
-        """jaot_credits_consumed_total is a counter type metric."""
-        response = authenticated_client.get("/metrics")
-        body = response.text
-        assert "# TYPE jaot_credits_consumed_total_total counter" in body or (
-            "# TYPE jaot_credits_consumed_total counter" in body
-        )
 
 
 class TestMetricsAuthMiddleware:

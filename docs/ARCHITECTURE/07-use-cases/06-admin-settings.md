@@ -27,12 +27,12 @@ sequenceDiagram
     PSS->>DB: SELECT * FROM platform_settings
     DB-->>PSS: [{key, value, updated_at}, ...]
     PSS->>PSS: group_by_category()
-    PSS->>Cache: SET platform_settings:* {all 84 settings} EX 3600
-    PSS-->>API: {categories: {billing: [...], feature_flags: [...], rate_limits: [...]}}
+    PSS->>Cache: SET platform_settings:* {all 124 settings} EX 3600
+    PSS-->>API: {categories: {plans: [...], feature_flags: [...], rate_limits: [...]}}
     
     API->>Frontend: 200 {settings}
     Frontend->>Frontend: Render form grouped by category:
-    note over Frontend: Billing: solve_maintenance_gate, solve_credits_per_var, ...
+    note over Frontend: Plans & limits: plan_free_max_variables, plan_free_max_daily_solves, ...
     note over Frontend: Feature Flags: enable_marketplace, enable_triggers, ...
     note over Frontend: Rate Limits: rate_limit_free_plan, daily_solves_starter, ...
     
@@ -78,17 +78,16 @@ sequenceDiagram
 
 ## Critical Points
 
-### 84 Settings Categories
+### Settings Categories (~85 entries; source of truth = `app/services/settings_registry.py`)
 
 | Category | Examples | Type |
 |---|---|---|
-| **Billing** | solve_credits_per_var, max_credits_per_solve, chargeback_threshold | int/float |
-| **Feature Flags** | enable_marketplace, enable_triggers, enable_seller_analytics | bool |
-| **Rate Limits** | max_daily_solves_free, max_api_calls_per_minute_starter | int |
-| **Solver** | solve_maintenance_gate, scip_enabled, highs_enabled, default_solver | bool/string |
-| **LLM** | llm_model_name, llm_temperature, rag_top_k | string/int |
-| **Marketplace** | marketplace_commission_percentage, featured_placement_price_eur | float |
-| **Notifications** | notification_batch_interval_minutes, email_enabled | int/bool |
+| **System / feature flags** | MAINTENANCE_MODE, SOLVE_MAINTENANCE_MODE, JAOT_DSL, REGISTRATION_ENABLED | bool |
+| **Plans & limits** | max_daily_solves, max_variables (per plan tier) | int/float |
+| **Rate limits** | AUTH_LOGIN_RATE_LIMIT_PER_MINUTE, LLM_RATE_LIMIT_PER_DAY | int |
+| **Solver** | SOLVER_DEFAULT_TIMEOUT, SOLVER_POOL_SIZE, hexaly_default_time_limit_seconds | int/float |
+| **LLM / RAG** | LLM_DEFAULT_MODEL, LLM_MONTHLY_BUDGET_EUR, RAG_ENABLED, RAG_TOP_K | string/int/bool |
+| **Email / SMTP** | EMAIL_BACKEND, SMTP_HOST, EMAIL_FROM | string |
 
 ### Cache Invalidation
 1. **Read**: fetch from Redis (cache-aside pattern)

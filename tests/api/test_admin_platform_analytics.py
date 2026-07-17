@@ -11,8 +11,9 @@ from app.models import (
     FormulationRating,
     LLMConversation,
     LLMMessage,
-    ModelCatalog,
     ModelExecution,
+    ModelProject,
+    ModelProjectListing,
     OrganizationModel,
 )
 from app.services import platform_analytics_service as svc
@@ -25,11 +26,11 @@ def _exec(
     org_id,
     *,
     user_id=None,
+    model_project_id=None,
     org_model_id=None,
     status="completed",
     solver_status="optimal",
     ms=100,
-    credits=1,
     origin="manual",
     is_async=False,
     created_at=None,
@@ -39,13 +40,13 @@ def _exec(
         id=generate_id("exe_"),
         organization_id=org_id,
         executed_by_user_id=user_id,
+        model_project_id=model_project_id,
         organization_model_id=org_model_id,
         input_data={},
         status=status,
         solver_status=solver_status,
         solver_name="scip",
         execution_time_ms=ms,
-        credits_consumed=credits,
         origin=origin,
         is_async=is_async,
         created_at=created_at or utcnow(),
@@ -56,40 +57,55 @@ def _exec(
     return exe
 
 
-def _catalog(db, category):
-    cat = ModelCatalog(
-        id=generate_id("mcat_"),
-        name=f"cat-{category}",
-        display_name=f"Cat {category}",
-        description="d",
-        category=category,
-        generator_type="generic",
-        input_schema={},
-        input_fields=[],
-        example_input={},
-    )
-    db.add(cat)
-    db.flush()
-    return cat
-
-
-def _org_model(db, org_id, catalog_id=None):
-    om = OrganizationModel(
-        id=generate_id("omod_"),
+def _listed_project(db, org_id, category, *, success_rate=None, total_executions=0):
+    """A ModelProject with a published marketplace listing (category lives there)."""
+    project = ModelProject(
+        id=generate_id("mp_"),
         organization_id=org_id,
-        catalog_id=catalog_id,
+        name=f"listed-{category}",
+        status="active",
     )
-    db.add(om)
+    db.add(project)
     db.flush()
-    return om
+    db.add(
+        ModelProjectListing(
+            model_project_id=project.id,
+            name=project.name,
+            display_name=f"Cat {category}",
+            description="d",
+            category=category,
+            status="published",
+            is_public=True,
+            author_organization_id=org_id,
+            success_rate=success_rate,
+            total_executions=total_executions,
+        )
+    )
+    db.flush()
+    return project
 
 
-def _conv(db, org_id, user_id, *, org_model_id=None, created_at=None):
+def _fork_project(db, org_id, source_ref):
+    """A fork ModelProject seeded from-marketplace (source_ref = the listing id)."""
+    fork = ModelProject(
+        id=generate_id("mp_"),
+        organization_id=org_id,
+        name="fork",
+        status="active",
+        source_type="marketplace",
+        source_ref=source_ref,
+    )
+    db.add(fork)
+    db.flush()
+    return fork
+
+
+def _conv(db, org_id, user_id, *, project_id=None, created_at=None):
     conv = LLMConversation(
         id=generate_id("conv_"),
         organization_id=org_id,
         user_id=user_id,
-        organization_model_id=org_model_id,  # real FK or None (None = not accepted)
+        model_project_id=project_id,  # None = not linked to a project ("not accepted")
         created_at=created_at or utcnow(),
         expires_at=utcnow() + timedelta(hours=24),
     )
@@ -163,40 +179,72 @@ class TestOverviewService:
         assert out["executions"]["success_rate"] == 2 / 3
 
     def test_builder_solves(self, db_session, test_organization):
-        cat = _catalog(db_session, "logistics")
-        om = _org_model(db_session, test_organization.id, catalog_id=cat.id)
-        _exec(db_session, test_organization.id, org_model_id=om.id)  # catalog run
-        _exec(db_session, test_organization.id, org_model_id=None, status="completed")  # builder
+        listed = _listed_project(db_session, test_organization.id, "logistics")
+        fork = _fork_project(db_session, test_organization.id, source_ref=listed.id)
+        _exec(db_session, test_organization.id, model_project_id=fork.id)  # model run
+        _exec(db_session, test_organization.id, status="completed")  # builder
         _exec(
             db_session,
             test_organization.id,
-            org_model_id=None,
             status="failed",
             solver_status="error",
         )  # builder
         db_session.commit()
         out = svc.compute_platform_overview(db_session, days=30)
-        assert out["builder_solves"]["total"] == 2  # only org_model_id NULL
+        assert out["builder_solves"]["total"] == 2  # only no-model executions
         assert out["builder_solves"]["success_rate"] == 0.5
 
     def test_by_category_join(self, db_session, test_organization):
-        cat = _catalog(db_session, "logistics")
-        om = _org_model(db_session, test_organization.id, catalog_id=cat.id)
-        _exec(db_session, test_organization.id, org_model_id=om.id, status="completed")
+        listed = _listed_project(db_session, test_organization.id, "logistics")
+        fork = _fork_project(db_session, test_organization.id, source_ref=listed.id)
+        # A fork resolves its category through its source listing…
+        _exec(db_session, test_organization.id, model_project_id=fork.id, status="completed")
         _exec(
             db_session,
             test_organization.id,
-            org_model_id=om.id,
+            model_project_id=fork.id,
             status="failed",
             solver_status="error",
         )
-        _exec(db_session, test_organization.id, org_model_id=None)  # → "custom"
+        # …a listed project resolves its own listing directly…
+        _exec(db_session, test_organization.id, model_project_id=listed.id, status="completed")
+        # …and a model-less execution falls back to "custom".
+        _exec(db_session, test_organization.id)
         db_session.commit()
         out = svc.compute_platform_overview(db_session, days=30)
         cats = {row["category"]: row for row in out["by_category"]}
-        assert cats["logistics"]["executions"] == 2
-        assert cats["logistics"]["success_rate"] == 0.5
+        assert cats["logistics"]["executions"] == 3
+        assert cats["logistics"]["success_rate"] == 2 / 3
         assert cats["custom"]["executions"] == 1
+
+    def test_by_category_legacy_org_model_id(self, db_session, test_organization):
+        """Historic executions carry only organization_model_id; the P1.5 backfill
+        preserved that id as the project id, so the coalesce join resolves them."""
+        listed = _listed_project(db_session, test_organization.id, "finance")
+        # Simulate a backfilled legacy activation: an OrganizationModel row and a
+        # fork ModelProject SHARING its id (exactly what the F3 backfill produced).
+        om = OrganizationModel(
+            id=generate_id("omod_"),
+            organization_id=test_organization.id,
+        )
+        db_session.add(om)
+        db_session.flush()
+        db_session.add(
+            ModelProject(
+                id=om.id,
+                organization_id=test_organization.id,
+                name="backfilled fork",
+                status="active",
+                source_type="marketplace",
+                source_ref=listed.id,
+            )
+        )
+        db_session.flush()
+        _exec(db_session, test_organization.id, org_model_id=om.id, status="completed")
+        db_session.commit()
+        out = svc.compute_platform_overview(db_session, days=30)
+        cats = {row["category"]: row for row in out["by_category"]}
+        assert cats["finance"]["executions"] == 1
 
     def test_days_window(self, db_session, test_organization):
         _exec(db_session, test_organization.id)
@@ -259,14 +307,18 @@ class TestReliabilityService:
         assert out["avg_queue_time_s"] is not None
         assert 9.0 <= out["avg_queue_time_s"] <= 11.0
 
-    def test_low_success_models(self, db_session):
-        cat = _catalog(db_session, "finance")
-        cat.success_rate = 0.4
-        cat.total_executions = 20
+    def test_low_success_models(self, db_session, test_organization):
+        project = _listed_project(
+            db_session,
+            test_organization.id,
+            "finance",
+            success_rate=0.4,
+            total_executions=20,
+        )
         db_session.commit()
         out = svc.compute_reliability(db_session, days=30)
         ids = {m["id"] for m in out["low_success_models"]}
-        assert cat.id in ids
+        assert project.id in ids
 
 
 # ── Service: AI usage ───────────────────────────────────────────────────────
@@ -278,8 +330,8 @@ class TestAiUsageService:
         assert out["acceptance_rate"] == 0.0
 
     def test_tokens_cost_and_acceptance(self, db_session, test_organization, test_user):
-        om = _org_model(db_session, test_organization.id)
-        c1 = _conv(db_session, test_organization.id, test_user.id, org_model_id=om.id)
+        project = _listed_project(db_session, test_organization.id, "general")
+        c1 = _conv(db_session, test_organization.id, test_user.id, project_id=project.id)
         _conv(db_session, test_organization.id, test_user.id)  # not accepted
         _msg(db_session, c1.id, input_tokens=100, output_tokens=50, cost=0.01)
         _msg(db_session, c1.id, input_tokens=200, output_tokens=80, cost=0.02)

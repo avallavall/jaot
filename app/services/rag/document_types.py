@@ -12,6 +12,8 @@ Document types:
     4. Linearization techs  — from app/data/rag/linearization.yaml
     5. Parser capabilities  — from app/data/rag/parser_capabilities.yaml
     6. Industry vocabulary   — synthesized from template category files
+    7. Worked examples      — real formulations rendered from each template's
+                              example_input via the TemplateEngine (few-shot grounding)
 """
 
 from __future__ import annotations
@@ -35,6 +37,7 @@ class DocType(str, Enum):
     LINEARIZATION = "linearization"
     PARSER_CAPABILITY = "parser_capability"
     INDUSTRY_VOCABULARY = "industry_vocabulary"
+    WORKED_EXAMPLE = "worked_example"
 
 
 # Problem archetypes — maps generator_type to archetype description
@@ -114,6 +117,10 @@ _CONTEXT_PREFIXES: dict[DocType, str] = {
     DocType.INDUSTRY_VOCABULARY: (
         "This maps industry-specific terminology from {context} "
         "to optimization problem types and generators. "
+    ),
+    DocType.WORKED_EXAMPLE: (
+        "This is a WORKED EXAMPLE of a JAOT optimization model for {context} — "
+        "a concrete formulation (decision variables, objective, constraints) to imitate. "
     ),
 }
 
@@ -478,6 +485,173 @@ def extract_industry_vocabulary(
     return _extract_vocabulary_from_parsed(_load_all_template_files(templates_dir))
 
 
+# Worked-example rendering caps. Some templates generate large models (a flat
+# objective of hundreds of thousands of chars); we index a legible representative
+# HEAD, never the giant flat — the goal is a few-shot exemplar the LLM can imitate,
+# not a full serialization. Variable/constraint lists are truncated and long
+# expression strings are clipped.
+_WORKED_EXAMPLE_MAX_ITEMS = 25
+_WORKED_EXAMPLE_EXPR_CHARS = 240
+
+
+def _clip_expr(value: Any, cap: int = _WORKED_EXAMPLE_EXPR_CHARS) -> str:
+    """Stringify and clip a (possibly long) algebraic expression."""
+    text = str(value)
+    if len(text) > cap:
+        return text[:cap] + f"… (+{len(text) - cap} chars)"
+    return text
+
+
+def _fmt_bound(value: Any, *, is_lower: bool) -> str:
+    """Format a variable bound, using ±inf for an open (None) bound."""
+    if value is None:
+        return "-inf" if is_lower else "+inf"
+    try:
+        return f"{float(value):g}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _format_variable(var: dict[str, Any]) -> str:
+    """Format one variable for the exemplar; the domain is implicit for binary vars."""
+    name = var.get("name", "?")
+    vtype = var.get("type", "continuous")
+    if vtype == "binary":
+        # {0,1} is implied by the type — printing "[-inf, +inf]" is noise, and printing
+        # "[0, 1]" is redundant, so name the type alone.
+        return f"{name} (binary)"
+    lo = _fmt_bound(var.get("lower_bound"), is_lower=True)
+    hi = _fmt_bound(var.get("upper_bound"), is_lower=False)
+    return f"{name} ({vtype}, [{lo}, {hi}])"
+
+
+def _render_problem_compact(problem: dict[str, Any]) -> str:
+    """Render an OptimizationProblem dict as a compact, size-bounded exemplar."""
+    variables = problem.get("variables") or []
+    constraints = problem.get("constraints") or []
+    objective = problem.get("objective") or {}
+
+    var_head = variables[:_WORKED_EXAMPLE_MAX_ITEMS]
+    var_line = "; ".join(_format_variable(v) for v in var_head)
+    if len(variables) > len(var_head):
+        var_line += f"; … (+{len(variables) - len(var_head)} more)"
+
+    obj_line = f"{objective.get('sense', 'minimize')} {_clip_expr(objective.get('expression', ''))}"
+
+    con_head = constraints[:_WORKED_EXAMPLE_MAX_ITEMS]
+    con_lines = [
+        f"  - {c.get('name') or f'c{i}'}: {_clip_expr(c.get('expression', ''))}"
+        for i, c in enumerate(con_head)
+    ]
+    if len(constraints) > len(con_head):
+        con_lines.append(f"  - … (+{len(constraints) - len(con_head)} more)")
+
+    return (
+        f"Variables ({len(variables)} total): {var_line}\n"
+        f"Objective: {obj_line}\n"
+        f"Constraints ({len(constraints)} total):\n" + "\n".join(con_lines)
+    )
+
+
+def _synthesize_worked_example_text(
+    template: dict[str, Any],
+    category_display: str,
+    problem: dict[str, Any],
+) -> str:
+    """Synthesize the searchable text for a worked-example document."""
+    display = template.get("display_name", template.get("name", ""))
+    gen_type = template.get("generator_type", "generic")
+
+    parts: list[str] = [
+        f"Worked example: {display}",
+        f"Category: {category_display}",
+    ]
+    archetype = _PROBLEM_ARCHETYPES.get(gen_type)
+    if archetype:
+        parts.append(f"Archetype: {archetype}")
+    if template.get("short_description"):
+        parts.append(f"Summary: {template['short_description']}")
+    parts.append(_render_problem_compact(problem))
+    return "\n".join(parts)
+
+
+def _extract_worked_examples_from_parsed(
+    parsed_files: list[tuple[str, dict[str, Any]]],
+) -> list[dict[str, Any]]:
+    """Render each template's ``example_input`` into a worked-example document.
+
+    Uses the public ``TemplateEngine`` (same path the solve/seeding routes use) so
+    no generator internals are imported here. The import is lazy and guarded: if the
+    solver domain is unavailable (e.g. a minimal env) the whole doc type is skipped,
+    and any single template that fails to render is skipped individually — a bad
+    example never blocks indexing of the rest.
+    """
+    try:
+        from app.domains.solver.services.template_engine import TemplateEngine
+    except Exception:
+        logger.warning(
+            "TemplateEngine unavailable — skipping worked-example extraction", exc_info=True
+        )
+        return []
+
+    engine = TemplateEngine()
+    documents: list[dict[str, Any]] = []
+
+    for _filename, data in parsed_files:
+        category = data.get("category", "general")
+        category_display = data.get("category_display_name", category)
+
+        for template in data.get("templates", []):
+            example_input = template.get("example_input")
+            gen_type = template.get("generator_type")
+            if not example_input or not gen_type:
+                continue
+
+            try:
+                engine_template = {**template, "generator": gen_type}
+                problem = engine.render(engine_template, example_input).model_dump(mode="json")
+            except Exception:
+                logger.warning(
+                    "Worked-example render failed for template %s — skipping",
+                    template.get("id"),
+                    exc_info=True,
+                )
+                continue
+
+            display = template.get("display_name", template.get("name", ""))
+            text = _synthesize_worked_example_text(template, category_display, problem)
+            text = _add_contextual_prefix(
+                text,
+                DocType.WORKED_EXAMPLE,
+                f"{category_display} problems involving {display}",
+            )
+
+            documents.append(
+                {
+                    "id": f"example_{template['id']}",
+                    "text": text,
+                    "payload": {
+                        "doc_type": DocType.WORKED_EXAMPLE.value,
+                        "template_id": template["id"],
+                        "generator_type": gen_type,
+                        "category": category,
+                        "problem_type_tags": template.get("problem_type_tags", []),
+                        "display_name": display,
+                    },
+                }
+            )
+
+    logger.info("Extracted %d worked-example documents", len(documents))
+    return documents
+
+
+def extract_worked_examples(
+    templates_dir: Path | None = None,
+) -> list[dict[str, Any]]:
+    """Extract worked-example documents by rendering each template's example_input."""
+    return _extract_worked_examples_from_parsed(_load_all_template_files(templates_dir))
+
+
 def extract_all_documents(
     templates_dir: Path | None = None,
     generators_dir: Path | None = None,
@@ -491,6 +665,7 @@ def extract_all_documents(
 
     documents: list[dict[str, Any]] = []
     documents.extend(_extract_templates_from_parsed(parsed_templates))
+    documents.extend(_extract_worked_examples_from_parsed(parsed_templates))
     documents.extend(extract_generator_documents(generators_dir))
     documents.extend(extract_constraint_patterns())
     documents.extend(extract_linearization_techniques())

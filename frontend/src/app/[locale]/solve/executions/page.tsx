@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api, ModelExecution } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import { Play } from "lucide-react";
+import { Database, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -12,6 +12,7 @@ import { useCommonLabels } from "@/hooks/useCommonLabels";
 import { OriginBadge } from "@/components/solve/OriginBadge";
 import { executionOriginHref } from "@/lib/execution-origin";
 import { EmptyState } from "@/components/guidance/EmptyState";
+import { apiDate } from "@/lib/dates";
 
 export default function ExecutionsPage() {
   const t = useTranslations("solve.executions");
@@ -132,7 +133,6 @@ export default function ExecutionsPage() {
                 <th className="text-left px-4 py-3 text-sm font-medium">{t("tableHeaders.origin")}</th>
                 <th className="text-left px-4 py-3 text-sm font-medium">{t("tableHeaders.model")}</th>
                 <th className="text-left px-4 py-3 text-sm font-medium">{t("tableHeaders.result")}</th>
-                <th className="text-right px-4 py-3 text-sm font-medium">{t("tableHeaders.credits")}</th>
                 <th className="text-right px-4 py-3 text-sm font-medium">{t("tableHeaders.time")}</th>
                 <th className="text-right px-4 py-3 text-sm font-medium">{t("tableHeaders.date")}</th>
                 <th className="text-right px-4 py-3 text-sm font-medium">{t("tableHeaders.actions")}</th>
@@ -149,27 +149,48 @@ export default function ExecutionsPage() {
                   <td className="px-4 py-3">
                     <OriginBadge
                       origin={exec.origin}
+                      sourceKind={exec.source_kind ?? undefined}
                       triggerName={exec.input_data?.trigger_name as string | undefined}
                     />
                   </td>
                   <td className="px-4 py-3">
-                    {exec.organization_model_id ? (
-                      <button
-                        onClick={() => router.push(`/solve/${exec.organization_model_id}`)}
-                        className="text-sm hover:text-primary"
-                      >
-                        {exec.organization_model_id.slice(0, 8)}...
-                      </button>
-                    ) : (() => {
-                      const href = executionOriginHref(exec.origin, exec.source_id);
+                    {(() => {
+                      const href =
+                        executionOriginHref(exec.origin, exec.source_id, exec.source_kind) ??
+                        (exec.organization_model_id
+                          ? `/solve/${exec.organization_model_id}`
+                          : null);
+                      const label = exec.model_name ?? (href ? t("openSource") : t("external"));
+                      const content = (
+                        <>
+                          <span className="text-sm">{label}</span>
+                          {exec.model_author && (
+                            <span className="text-xs text-muted-foreground">
+                              {" · "}
+                              {exec.model_author}
+                            </span>
+                          )}
+                        </>
+                      );
                       return href ? (
-                        <Link href={href} className="text-sm text-primary hover:underline">
-                          {t("openSource")}
+                        <Link href={href} className="text-primary hover:underline">
+                          {content}
                         </Link>
                       ) : (
-                        <span className="text-sm text-muted-foreground">{t("external")}</span>
+                        <span className="text-muted-foreground">{content}</span>
                       );
                     })()}
+                    {/* §8/S1: which dataset (scenario) the run was compiled against. */}
+                    {exec.dataset_name && (
+                      <span
+                        data-testid="execution-dataset-badge"
+                        title={t("datasetBadge")}
+                        className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
+                      >
+                        <Database className="h-3 w-3" />
+                        {exec.dataset_name}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-sm">
                     {exec.status === "completed" && exec.result_data?.objective_value != null ? (
@@ -184,14 +205,11 @@ export default function ExecutionsPage() {
                       <span className="text-muted-foreground">-</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right text-sm">
-                    {exec.credits_consumed}
-                  </td>
                   <td className="px-4 py-3 text-right text-sm text-muted-foreground">
                     {exec.execution_time_ms ? `${exec.execution_time_ms}ms` : "-"}
                   </td>
                   <td className="px-4 py-3 text-right text-sm text-muted-foreground">
-                    {new Date(exec.created_at).toLocaleString()}
+                    {apiDate(exec.created_at).toLocaleString()}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Button

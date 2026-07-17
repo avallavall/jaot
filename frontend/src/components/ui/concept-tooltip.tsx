@@ -50,7 +50,6 @@ interface ConceptTooltipProps {
  * - Click to pin open, click outside to dismiss
  * - Hover to preview (300ms delay), auto-close on mouse leave
  * - Singleton: only one tooltip open at a time (via TooltipSingletonProvider)
- * - Formula toggle for credit-related terms
  * - Expert skill level renders children only (no tooltip)
  * - Definitions and examples loaded from translation JSON (glossary namespace)
  */

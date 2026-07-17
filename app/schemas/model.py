@@ -20,8 +20,6 @@ class ModelCatalogResponse(BaseModel):
     version: str
     is_official: bool
     is_featured: bool
-    price_eur: float
-    credits_per_execution: int
     total_activations: int
     total_executions: int
     avg_execution_time_ms: float | None = None
@@ -30,6 +28,11 @@ class ModelCatalogResponse(BaseModel):
     author_organization_id: str | None = None
     author_name: str | None = None
     author_verified: bool = False
+    # Additive (2026-07-17): whether "Use in studio" can materialize this listing —
+    # it needs a generator facet OR a pinned committed version. Legacy demo rows
+    # backfilled without content have neither; the UI disables the CTA up front
+    # instead of failing the click with a 422.
+    can_open_in_studio: bool = True
     # Media
     logo_url: str | None = None
     screenshot_urls: list[str] | None = None
@@ -55,69 +58,6 @@ class ModelCatalogListResponse(BaseModel):
     total_pages: int
 
 
-class OrganizationModelResponse(BaseModel):
-    """Response for an organization's activated model."""
-
-    id: str
-    organization_id: str
-    catalog_id: str | None = None
-    custom_name: str | None = None
-    display_name: str
-    description: str | None = None
-    category: str | None = None
-    generator_type: str | None = None
-    is_active: bool
-    is_favorite: bool
-    total_executions: int
-    total_credits_used: int
-    last_executed_at: datetime | None = None
-    credits_per_execution: int
-    created_at: datetime
-    is_official: bool | None = None
-    tags: list[str] | None = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class OrganizationModelListResponse(BaseModel):
-    """Paginated list of organization models."""
-
-    items: list[OrganizationModelResponse]
-    total: int
-    page: int
-    page_size: int
-
-
-class ActivateModelRequest(BaseModel):
-    """Request to activate a model from the catalog."""
-
-    custom_name: str | None = None
-
-
-class CreatePrivateModelRequest(BaseModel):
-    """Request to create a private model."""
-
-    name: str = Field(..., min_length=1, max_length=255)
-    description: str = Field(..., min_length=1)
-    category: str = "general"
-    generator_type: str = Field(
-        ..., description="Type: budget_allocation, knapsack, fertilizer, etc."
-    )
-    input_schema: dict[str, Any] = Field(default_factory=dict)
-    input_fields: list[dict[str, Any]] = Field(default_factory=list)
-    example_input: dict[str, Any] = Field(default_factory=dict)
-    tags: list[str] | None = None
-
-
-class UpdateModelRequest(BaseModel):
-    """Request to update an organization model."""
-
-    custom_name: str | None = None
-    custom_config: dict[str, Any] | None = None
-    is_active: bool | None = None
-    is_favorite: bool | None = None
-
-
 class PublishModelRequest(BaseModel):
     """Request to publish a model to the marketplace."""
 
@@ -126,7 +66,6 @@ class PublishModelRequest(BaseModel):
     short_description: str | None = Field(None, max_length=500)
     category: str = "general"
     tags: list[str] | None = None
-    price_eur: float = 0.0
     is_public: bool = True
     # Rich description sections
     section_overview: str | None = None
@@ -157,6 +96,10 @@ class ModelExecutionResponse(BaseModel):
     """Response for a model execution."""
 
     id: str
+    # The ModelProject this run executed (P1.5 fusion). The legacy
+    # organization_model_id is served for HISTORIC rows only and drops in the
+    # contract release (its value equals the backfilled project id anyway).
+    model_project_id: str | None = None
     organization_model_id: str | None = None
     status: str
     input_data: dict[str, Any]
@@ -165,13 +108,22 @@ class ModelExecutionResponse(BaseModel):
     execution_time_ms: int | None = None
     solver_status: str | None = None
     objective_value: float | None = None
-    credits_consumed: int
     origin: str | None = None
     trigger_id: str | None = None
     # Provenance: the object this execution traces back to (builder_document,
     # llm_conversation, template, organization_model, trigger, imported_file).
     source_kind: str | None = None
     source_id: str | None = None
+    # §8/S1: dataset provenance — the named dataset the model was compiled
+    # against. `dataset_name` is a snapshot that survives dataset deletion.
+    dataset_id: str | None = None
+    dataset_name: str | None = None
+    # Resolved display name + author of the model this run came from (studio
+    # ModelProject or activated org model). NOT on the ORM row — the list endpoint
+    # batch-fills it from source_kind/source_id (model_project) or
+    # organization_model_id, so the history table can show a name, not an id.
+    model_name: str | None = None
+    model_author: str | None = None
     created_at: datetime
     completed_at: datetime | None = None
 

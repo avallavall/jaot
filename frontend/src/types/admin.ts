@@ -5,12 +5,6 @@ export interface AdminOrgDetail {
   id: string;
   name: string;
   plan: string;
-  credits_balance: number;
-  credits_subscription: number;
-  credits_purchased: number;
-  credits_earned: number;
-  credits_used_month: number;
-  monthly_quota: number;
   rate_limit_per_minute: number;
   rate_limit_per_day: number;
   ai_builder_enabled: boolean;
@@ -20,8 +14,6 @@ export interface AdminOrgDetail {
   is_verified: boolean;
   is_public_profile: boolean;
   slug: string | null;
-  billing_email: string | null;
-  currency: string;
   website_url: string | null;
   created_at: string;
   owner_user_id: string | null;
@@ -47,7 +39,6 @@ export interface AdminOrgExecutionStats {
   completed: number;
   failed: number;
   running: number;
-  credits_consumed_total: number;
 }
 
 export interface AdminOrgUser {
@@ -80,7 +71,6 @@ export interface AdminOrgModel {
   source: "marketplace" | "custom";
   is_active: boolean;
   total_executions: number;
-  total_credits_used: number;
   last_executed_at: string | null;
   created_at: string;
 }
@@ -89,20 +79,10 @@ export interface AdminOrgExecution {
   id: string;
   status: string;
   solver_name: string | null;
-  credits_consumed: number;
   execution_time_ms: number | null;
   objective_value: number | null;
   model_display_name: string | null;
   executed_by_user_id: string | null;
-  created_at: string;
-}
-
-export interface AdminOrgTransaction {
-  id: string;
-  transaction_type: string;
-  credits_amount: number;
-  balance_after: number;
-  description: string;
   created_at: string;
 }
 
@@ -115,5 +95,4 @@ export interface AdminOrganizationOverview {
   api_keys: AdminOrgApiKey[];
   models: AdminOrgModel[];
   recent_executions: AdminOrgExecution[];
-  recent_transactions: AdminOrgTransaction[];
 }

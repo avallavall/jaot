@@ -30,7 +30,7 @@ else:
 class Settings(BaseSettings):
     """Infrastructure settings loaded from environment variables.
 
-    Business configuration (plans, LLM, Stripe, email, etc.) has been
+    Business configuration (plans, LLM, email, etc.) has been
     moved to the ``platform_settings`` DB table.  Only variables needed
     before the DB is available remain here.
     """
@@ -90,7 +90,6 @@ class Settings(BaseSettings):
     SEED_ADMIN_PASSWORD: str = ""  # min 12 chars, same as public signup
     SEED_ADMIN_NAME: str = "Admin"
     SEED_ADMIN_ORG_NAME: str = ""  # default: "<name>'s Organization"
-    SEED_ORG_CREDITS: int = 0  # 0 = use the pro plan's default credits
 
     @model_validator(mode="after")
     def _validate_production_config(self) -> Self:

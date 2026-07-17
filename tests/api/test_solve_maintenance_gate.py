@@ -135,8 +135,8 @@ def test_flag_on_does_NOT_block_read_routes(
     chose a dependency over extending the middleware (RESEARCH.md
     Open Question 3).
     """
-    # /api/v2/models (GET) must not be gated by a solve-only flag.
-    resp = authenticated_client.get("/api/v2/models")
+    # /api/v2/projects (GET) must not be gated by a solve-only flag.
+    resp = authenticated_client.get("/api/v2/projects")
     assert resp.status_code != 503, resp.text
 
 

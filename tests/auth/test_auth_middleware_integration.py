@@ -101,7 +101,6 @@ def test_health_endpoint_skips_auth(middleware_client: TestClient) -> None:
     # No auth ran for a public endpoint, so middleware must not inject
     # the X-Organization-Id header (that only happens for authenticated req).
     assert "X-Organization-Id" not in response.headers
-    assert "X-Credits-Balance" not in response.headers
 
 
 # Auth Rejection (401)
@@ -139,7 +138,7 @@ def test_invalid_api_key_returns_401(
     middleware_client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        "app.shared.core.auth_middleware.APIKeyService.verify_key",
+        "app.services.auth.credentials.APIKeyService.verify_key",
         staticmethod(lambda db, key: None),
     )
 
@@ -158,10 +157,10 @@ def test_valid_api_key_injects_state_and_headers(
     fake_api_key = SimpleNamespace(id="key_123")
     fake_user = SimpleNamespace(id="user_123")
     fake_user.is_admin = False
-    fake_org = SimpleNamespace(id="org_123", credits_balance=2500)
+    fake_org = SimpleNamespace(id="org_123")
 
     monkeypatch.setattr(
-        "app.shared.core.auth_middleware.APIKeyService.verify_key",
+        "app.services.auth.credentials.APIKeyService.verify_key",
         staticmethod(lambda db, key: (fake_api_key, fake_user, fake_org)),
     )
 
@@ -172,7 +171,6 @@ def test_valid_api_key_injects_state_and_headers(
     assert response.status_code == 200
     assert response.json() == {"user_id": "user_123", "org_id": "org_123"}
     assert response.headers["X-Organization-Id"] == "org_123"
-    assert response.headers["X-Credits-Balance"] == "2500"
 
 
 def test_valid_auth_on_post_endpoint(
@@ -181,10 +179,10 @@ def test_valid_auth_on_post_endpoint(
     """POST to a protected endpoint with valid auth works."""
     fake_api_key = SimpleNamespace(id="key_456")
     fake_user = SimpleNamespace(id="user_456")
-    fake_org = SimpleNamespace(id="org_456", credits_balance=100)
+    fake_org = SimpleNamespace(id="org_456")
 
     monkeypatch.setattr(
-        "app.shared.core.auth_middleware.APIKeyService.verify_key",
+        "app.services.auth.credentials.APIKeyService.verify_key",
         staticmethod(lambda db, key: (fake_api_key, fake_user, fake_org)),
     )
 
@@ -201,7 +199,7 @@ def test_operational_error_returns_503(
     middleware_client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        "app.shared.core.auth_middleware.APIKeyService.verify_key",
+        "app.services.auth.credentials.APIKeyService.verify_key",
         staticmethod(
             lambda db, key: (_ for _ in ()).throw(
                 OperationalError("stmt", {}, Exception("db locked"))
@@ -222,7 +220,7 @@ def test_unexpected_error_returns_500(
     middleware_client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        "app.shared.core.auth_middleware.APIKeyService.verify_key",
+        "app.services.auth.credentials.APIKeyService.verify_key",
         staticmethod(lambda db, key: (_ for _ in ()).throw(RuntimeError("boom"))),
     )
 
@@ -310,7 +308,7 @@ class TestUnauthenticatedWriteRejectedByMiddleware:
         # An unrecognized key resolves to no principal (verify_key -> None),
         # exactly as the real service does for a bad key.
         monkeypatch.setattr(
-            "app.shared.core.auth_middleware.APIKeyService.verify_key",
+            "app.services.auth.credentials.APIKeyService.verify_key",
             staticmethod(lambda db, key: None),
         )
 

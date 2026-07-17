@@ -30,7 +30,9 @@ class PlatformSettingAudit(Base):
         String(500), nullable=True
     )  # null = reset to default
     changed_by: Mapped[str] = mapped_column(String(255), nullable=False)
-    changed_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+    changed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
     category: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     def __repr__(self) -> str:

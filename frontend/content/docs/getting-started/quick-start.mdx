@@ -63,22 +63,22 @@ const response = await fetch("https://jaot.io/api/v2/solve", {
   method: "POST",
   headers: {
     "Authorization": "Bearer ok_live_your_key_here",
-    "Content-Type": "application/json",
+    "Content-Type": "application/json"
   },
   body: JSON.stringify({
     variables: [
       { name: "chairs", type: "continuous", lower_bound: 0 },
-      { name: "tables", type: "continuous", lower_bound: 0 },
+      { name: "tables", type: "continuous", lower_bound: 0 }
     ],
     objective: {
       sense: "maximize",
-      expression: "50*chairs + 80*tables",
+      expression: "50*chairs + 80*tables"
     },
     constraints: [
       { name: "wood", expression: "3*chairs + 5*tables <= 400" },
-      { name: "labor", expression: "2*chairs + 4*tables <= 300" },
-    ],
-  }),
+      { name: "labor", expression: "2*chairs + 4*tables <= 300" }
+    ]
+  })
 });
 
 const result = await response.json();
@@ -99,9 +99,7 @@ The API returns a JSON response with the solution:
     {"name": "tables", "value": 25.0, "type": "continuous"}
   ],
   "solution": {"chairs": 100.0, "tables": 25.0},
-  "solve_time_seconds": 0.004,
-  "credits_used": 2,
-  "credits_remaining": 98
+  "solve_time_seconds": 0.004
 }
 ```
 
@@ -112,7 +110,6 @@ The API returns a JSON response with the solution:
 | `variables` | Array of `{name, value, type}` objects with optimal values for each decision variable. |
 | `solution` | Variable-value map for quick access (same data as `variables`, keyed by name). |
 | `solve_time_seconds` | Wall-clock time the solver spent on the problem. |
-| `credits_used` | Number of credits deducted for this solve. |
 
 <Callout type="tip">
 The optimal solution produces 100 chairs and 25 tables for $6,000 weekly profit. The wood constraint is fully utilized (400/400 units), while 50 labor hours remain unused.
@@ -122,4 +119,4 @@ The optimal solution produces 100 chairs and 25 tables for $6,000 weekly profit.
 
 - [Authentication](/docs/getting-started/authentication) -- API key and JWT auth flows in depth
 - [Solve Endpoint](/docs/api/solve) -- Full request/response reference for the solve API
-- [Rate Limits and Credits](/docs/reference/rate-limits-credits) -- Credit pricing formula and rate limit details
+- [Usage Limits](/docs/reference/usage-limits) -- Rate limits and solve caps

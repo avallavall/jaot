@@ -2,9 +2,10 @@ import { test, expect } from "@playwright/test";
 import { interceptGuidanceApi } from "./helpers/dismiss-wizard";
 
 const NAV_TIMEOUT = 15_000;
-const LONG_TIMEOUT = 30_000;
 
-test.describe("Marketplace — Complete Buyer Journey", () => {
+// P1.5 fusion: using a marketplace model means seeding a fork ModelProject into
+// the studio ("Use in studio") — the legacy activate → /solve flow is retired.
+test.describe("Marketplace — Complete Adopter Journey", () => {
   test.describe.configure({ mode: "serial" });
 
   test.beforeEach(async ({ page }) => {
@@ -67,99 +68,82 @@ test.describe("Marketplace — Complete Buyer Journey", () => {
     const detailHeading = page.getByRole("heading").first();
     await expect(detailHeading).toBeVisible({ timeout: NAV_TIMEOUT });
 
-    // Should show activate button or already-activated state
-    const actionButton = page.getByRole("button", { name: /activate|run|use|open/i });
-    await expect(actionButton.first()).toBeVisible({ timeout: 10_000 });
+    // The single primary action post-fusion: "Use in studio"
+    await expect(page.getByTestId("marketplace-use-in-studio")).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
-  test("step 3: activate a free model from marketplace", async ({ page }) => {
+  test("step 3: 'Use in studio' seeds a fork ModelProject and opens the workspace", async ({
+    page,
+  }) => {
+    // An official model materializes reliably from its example input.
+    await page.goto("/marketplace/official_assortment_planning");
+    const useBtn = page.getByTestId("marketplace-use-in-studio");
+    await expect(useBtn).toBeVisible({ timeout: NAV_TIMEOUT });
+    await useBtn.click();
+
+    await page.waitForURL(/\/studio\/(mp_[A-Za-z0-9]+)\/build/, { timeout: NAV_TIMEOUT });
+    await expect(page.getByTestId("studio-name-input")).toBeVisible({ timeout: NAV_TIMEOUT });
+  });
+
+  test("step 4: the fork appears in My Models (the studio list)", async ({ page }) => {
+    await page.goto("/studio");
+    await expect(page).toHaveURL(/\/studio/);
+
+    const card = page.getByTestId("studio-project-card").first();
+    await expect(card).toBeVisible({ timeout: NAV_TIMEOUT });
+  });
+
+  test("step 5: favoriting in the browse grid lists it on the favorites page", async ({
+    page,
+  }) => {
+    await page.goto("/marketplace");
+    // Pick an explicit not-yet-favorited heart so re-runs stay idempotent.
+    const heart = page
+      .locator('button[aria-label="Add to favorites"], button[aria-label="Añadir a favoritos"]')
+      .first();
+    await expect(heart).toBeVisible({ timeout: NAV_TIMEOUT });
+    // Wait for the POST to land before navigating — an immediate goto aborts
+    // the in-flight toggle request and the favorite is silently lost.
+    const [favResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes("/models/favorites/") && r.request().method() === "POST",
+        { timeout: 10_000 },
+      ),
+      heart.click(),
+    ]);
+    expect(favResp.ok()).toBeTruthy();
+
+    await page.goto("/solve/favorites");
+    const card = page.locator("#main-content").getByRole("button", {
+      name: /use in studio|usar en el estudio/i,
+    });
+    await expect(card.first()).toBeVisible({ timeout: NAV_TIMEOUT });
+    // Fused attribution: the author resolves through the listing/project org —
+    // never the legacy "Unknown" placeholder.
+    await expect(page.locator("#main-content").getByText(/unknown/i)).toHaveCount(0);
+  });
+
+  test("step 6: unauthenticated visitor browses and is asked to sign in on detail", async ({
+    browser,
+  }) => {
+    // Fresh context without auth: the marketplace is public.
+    const context = await browser.newContext({ storageState: undefined });
+    const page = await context.newPage();
+
     await page.goto("/marketplace");
     await expect(page).toHaveURL(/\/marketplace/);
-
-    const content = page.locator("#main-content");
-    await expect(content).toBeVisible({ timeout: NAV_TIMEOUT });
-
-    // Find an activatable model
-    const activateButton = page.locator(
-      '.grid button:not([aria-label*="favorites"]):not([title*="favorites"])'
-    ).filter({ hasText: /^activate$/i });
-
-    const buttonCount = await activateButton.count();
-    if (buttonCount === 0) {
-      test.info().annotations.push({
-        type: "skip-reason",
-        description: "No activatable models (all already activated or catalog empty)",
-      });
-      return;
-    }
-
-    await activateButton.first().click();
-
-    // Handle confirmation modal if it appears
-    const modal = page.getByRole("dialog");
-    if (await modal.isVisible().catch(() => false)) {
-      const confirmButton = modal.getByRole("button", { name: /confirm|activate|yes/i });
-      if ((await confirmButton.count()) > 0) {
-        await confirmButton.click();
-      }
-    }
-
-    // Wait for activation result
-    const bodyText = await page.textContent("body", { timeout: LONG_TIMEOUT });
-    const isSuccess =
-      /activated|success|already|solve/i.test(bodyText || "") ||
-      page.url().includes("/solve");
-    expect(isSuccess, "Activation should succeed").toBe(true);
-  });
-
-  test("step 4: verify activated model appears in My Models", async ({ page }) => {
-    await page.goto("/solve");
-    await expect(page).toHaveURL(/\/solve/);
-
     const heading = page.getByRole("heading").first();
     await expect(heading).toBeVisible({ timeout: NAV_TIMEOUT });
 
-    // My Models page should show at least one model card
-    const mainContent = page.locator("#main-content");
-    await expect(mainContent).toBeVisible({ timeout: NAV_TIMEOUT });
+    await page.goto("/marketplace/official_assortment_planning");
+    // No "Use in studio" without auth — a sign-in CTA renders instead.
+    await expect(page.getByTestId("marketplace-use-in-studio")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: /sign.*in|log.*in|inicia|connect|anmeld/i }).first(),
+    ).toBeVisible({ timeout: 10_000 });
 
-    // This may be empty if the user has no models — that's OK for fresh environments
-    // Just verify the page loaded correctly
-    await expect(page).toHaveURL(/\/solve/);
-  });
-
-  test("step 5: navigate to model execution page and verify UI", async ({ page }) => {
-    await page.goto("/solve");
-    await expect(page).toHaveURL(/\/solve/);
-
-    const heading = page.getByRole("heading").first();
-    await expect(heading).toBeVisible({ timeout: NAV_TIMEOUT });
-
-    const runButton = page.locator("#main-content .grid").getByRole("button", { name: /run/i });
-    const cardCount = await runButton.count();
-
-    if (cardCount === 0) {
-      test.info().annotations.push({
-        type: "skip-reason",
-        description: "No activated models to execute",
-      });
-      return;
-    }
-
-    await runButton.first().click();
-    await page.waitForURL(/\/solve\//, { timeout: NAV_TIMEOUT });
-
-    // Execution page should have:
-    // 1. Input area (textarea or code editor)
-    const inputArea = page.locator("textarea").or(page.locator('[data-testid="code-editor"]'));
-    await expect(inputArea.first()).toBeVisible({ timeout: NAV_TIMEOUT });
-
-    // 2. Run button
-    const executeButton = page.getByRole("button", { name: /run|execute|solve|play/i });
-    await expect(executeButton.first()).toBeVisible();
-
-    // 3. Model name in heading
-    const modelHeading = page.getByRole("heading").first();
-    await expect(modelHeading).toBeVisible();
+    await context.close();
   });
 });

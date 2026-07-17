@@ -13,7 +13,7 @@ from app.shared.utils.id_generator import generate_id
 class AnalyticsEvent(Base):
     """Tracks feature usage events for admin analytics dashboard.
 
-    Each record represents a single user action (solver.solve, marketplace.purchase,
+    Each record represents a single user action (solver.solve, marketplace.activate,
     ai_builder.message, etc.). Events are logged fire-and-forget on the request's
     DB session, never blocking the main response.
 
@@ -37,7 +37,9 @@ class AnalyticsEvent(Base):
     event_type: Mapped[str] = mapped_column(String(64), nullable=False)
     country_code: Mapped[str | None] = mapped_column(String(2), nullable=True)
     event_metadata: Mapped[dict | None] = mapped_column("metadata", JSON, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
 
     __table_args__ = (
         Index("ix_ae_event_type_created", "event_type", "created_at"),

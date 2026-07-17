@@ -30,19 +30,21 @@ class User(Base):
     # Password auth (NULL for API-key-only users)
     password_hash: Mapped[str | None] = mapped_column(String, nullable=True)
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    email_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # GDPR / Terms of Service
-    tos_accepted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    tos_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Account lockout
     failed_login_attempts: Mapped[int] = mapped_column(
         Integer, default=0, server_default="0", nullable=False
     )
-    locked_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Metadata
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Plugin & Builder capabilities

@@ -6,25 +6,23 @@ Allows users to upload MPS, LP, CIP, or JSON files and either:
 """
 
 import logging
+from typing import Any
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentOrg, CurrentUser
-from app.api.v2.solve import _enforce_tier_caps, calculate_credits
-from app.domains.solver.adapters.base import (
-    DEFAULT_SOLVER_NAME,
-    SolverNotFoundError,
-    SolverUnavailableError,
+from app.api.v2.solve import (
+    _enqueue_async_solve,
+    _shape_sync_result,
+    _wait_for_task,
 )
-from app.domains.solver.services import get_solver_service
-from app.domains.solver.services.availability_gate import ensure_hexaly_worker_or_503
 from app.domains.solver.services.file_import import (
     FileImportError,
     get_file_import_service,
     validate_extension,
 )
-from app.domains.solver.services.pool import get_solver_pool
 from app.schemas.file_io import (
     MAX_IMPORT_SIZE,
     FileImportMetadata,
@@ -36,12 +34,7 @@ from app.schemas.optimization import (
     OptimizationResult,
     VariableType,
 )
-from app.services.solve_orchestrator import (
-    ORIGIN_IMPORT,
-    ExecutionSource,
-    SolveOrchestrator,
-    validate_problem,
-)
+from app.services.solve_orchestrator import ORIGIN_IMPORT
 from app.shared.core.rate_limiter import check_rate_limit
 from app.shared.db import get_db
 
@@ -53,6 +46,21 @@ router = APIRouter(prefix="/import")
 async def _read_upload(file: UploadFile) -> bytes:
     """Read upload file bytes with size validation."""
     content = await file.read()
+    return _validate_upload_bytes(content)
+
+
+def _read_upload_sync(file: UploadFile) -> bytes:
+    """Blocking read of an upload for a sync (threadpool) handler.
+
+    ``import_and_solve`` is a sync ``def`` (ADR-007 S4a — it blocks on the queued
+    solve result), so it reads the already-spooled multipart file directly instead
+    of awaiting. Starlette has fully buffered the upload before the handler runs.
+    """
+    return _validate_upload_bytes(file.file.read())
+
+
+def _validate_upload_bytes(content: bytes) -> bytes:
+    """Shared size/empty guard for both the async and sync upload readers."""
     if len(content) > MAX_IMPORT_SIZE:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
@@ -90,12 +98,6 @@ def _build_metadata(
         num_integer=num_integer,
         num_binary=num_binary,
         num_continuous=num_continuous,
-        # D-02: this builder feeds ONLY /import/preview, which doesn't solve
-        # or debit. Estimate is base cost so customers compare workloads
-        # independent of solver; multiplier is applied at real debit sites
-        # (import_and_solve, /solve, solve_with_template) where solver name
-        # is known.
-        estimated_credits=calculate_credits(problem),
         file_size_bytes=len(file_bytes),
         original_filename=filename,
     )
@@ -114,7 +116,7 @@ async def import_preview(
 ) -> FileImportPreviewResponse:
     """Parse an uploaded optimization file and return a preview.
 
-    Does NOT solve or deduct credits. Use this to inspect the imported
+    Does NOT solve. Use this to inspect the imported
     problem before committing to a solve.
     """
     file_bytes = await _read_upload(file)
@@ -140,9 +142,8 @@ async def import_preview(
     response_model=OptimizationResult,
     operation_id="import_and_solve",
 )
-async def import_and_solve(
+def import_and_solve(  # def: blocks on the queued result in the threadpool (ADR-007 S4a)
     file: UploadFile,
-    request: Request,
     current_user: CurrentUser,
     org: CurrentOrg,
     db: Session = Depends(get_db),
@@ -150,18 +151,22 @@ async def import_and_solve(
     gap_tolerance: float = Form(default=0.0001, ge=0, le=1),
     objective_sense: ObjectiveSense | None = Form(default=None),
     solver_name: str | None = Form(default=None, max_length=32),
-) -> OptimizationResult:
-    """Import an optimization file and solve it immediately.
+) -> Any:
+    """Import an optimization file and solve it.
 
-    Parses the file, applies solver options, deducts credits, and returns
-    the solve result. Follows the same credit/tier/rate-limit flow as
-    the standard /solve endpoint.
+    ADR-007 S4a — async-under-the-hood: parses the uploaded file + applies solver
+    options server-side, then rides the ONE async pipeline
+    (``_enqueue_async_solve``) exactly like ``POST /solve`` — tier caps,
+    auto-routing, the pending
+    ModelExecution row (tagged ``imported_file`` provenance), and the Celery
+    worker. The classic ``OptimizationResult`` comes back on completion; a solve
+    that outlives the wait budget returns 202 + the task envelope (poll/subscribe).
     """
     allowed, rate_info = check_rate_limit(org.id, org.rate_limit_per_minute, org.rate_limit_per_day)
     if not allowed:
         raise HTTPException(status_code=429, detail=rate_info)
 
-    file_bytes = await _read_upload(file)
+    file_bytes = _read_upload_sync(file)
     filename = file.filename or "unknown"
 
     importer = get_file_import_service()
@@ -185,35 +190,36 @@ async def import_and_solve(
         }
     )
 
-    _enforce_tier_caps(db, org, problem)
-
-    # D-11 / WR-04: direct hexaly + worker down → 503 BEFORE credit debit.
-    # Mirrors the gate in app/api/v2/solve.py for canonical error contract
-    # instead of the old "deduct → fail → refund → 422" churn.
-    effective_solver_for_pricing = solver_name or DEFAULT_SOLVER_NAME
-    ensure_hexaly_worker_or_503(effective_solver_for_pricing)
-
-    # PRC-01 / D-02 / WR-01: this route DEBITS credits via orchestrator's
-    # solve_single → _pre_pay_credits → deduct_credits — it is NOT a preview.
-    # Pass user-selected (or default) solver_name so the multiplier reaches
-    # PSS — a Hexaly file-import solve correctly costs 5x credits matching
-    # /api/v2/solve.
-    credits_needed = calculate_credits(problem, solver_name=effective_solver_for_pricing, db=db)
-    validate_problem(problem)
-
-    solver = get_solver_service()
-    orchestrator = SolveOrchestrator(db, solver, get_solver_pool())
-    try:
-        return await orchestrator.solve_single(
-            problem=problem,
-            org=org,
-            user=current_user,
-            request=request,
-            credits_needed=credits_needed,
-            solver_name=solver_name,
-            source=ExecutionSource(origin=ORIGIN_IMPORT, source_kind="imported_file"),
+    enqueued = _enqueue_async_solve(
+        db=db,
+        org=org,
+        user=current_user,
+        problem=problem,
+        workspace_id=None,
+        solver_name_param=solver_name,
+        origin=ORIGIN_IMPORT,
+        source_kind="imported_file",
+        source_id=None,
+        dataset_id=None,
+    )
+    payload = _wait_for_task(enqueued.task)
+    if payload is None:
+        return JSONResponse(
+            status_code=status.HTTP_202_ACCEPTED,
+            content={
+                **enqueued.envelope,
+                "message": (
+                    "Solve still running after the wait budget — poll poll_url or "
+                    "subscribe to ws_url for the result."
+                ),
+            },
         )
-    except (SolverNotFoundError, SolverUnavailableError) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
-        ) from exc
+    return _shape_sync_result(
+        payload,
+        db=db,
+        org_id=org.id,
+        execution_id=enqueued.execution_id,
+        solver_used=enqueued.effective_solver,
+        auto_route_reason=enqueued.auto_route_reason,
+        fallback_triggered=enqueued.fallback_triggered,
+    )

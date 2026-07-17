@@ -1,12 +1,16 @@
-"""Admin model management endpoints."""
+"""Admin model management endpoints.
+
+P1.5 fusion: the marketplace inventory an admin manages is the
+``ModelProjectListing`` facet (id = the project id); "activated" means a fork
+ModelProject seeded from-marketplace.
+"""
 
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models import APIKey, ModelCatalog, Organization, OrganizationModel, User
+from app.models import APIKey, ModelProject, ModelProjectListing, Organization, User
 from app.schemas.admin import AdminPaginatedResponse, UpdateModelBadgesRequest
 from app.shared.db.base import get_db
 from app.shared.utils.pagination import paginate_query
@@ -31,12 +35,14 @@ async def get_admin_stats(db: Session = Depends(get_db)) -> dict[str, Any]:
             "active": db.query(APIKey).filter(APIKey.is_active == True).count(),  # noqa: E712
         },
         "models": {
-            "catalog_total": db.query(ModelCatalog).count(),
-            "catalog_public": db.query(ModelCatalog).filter(ModelCatalog.is_public == True).count(),  # noqa: E712
-            "activated_total": db.query(OrganizationModel).count(),
-        },
-        "credits": {
-            "total_balance": db.query(func.sum(Organization.credits_balance)).scalar() or 0,
+            "catalog_total": db.query(ModelProjectListing).count(),
+            "catalog_public": db.query(ModelProjectListing)
+            .filter(ModelProjectListing.is_public == True)  # noqa: E712
+            .count(),
+            # "Activated" = fork ModelProjects seeded from a marketplace listing.
+            "activated_total": db.query(ModelProject)
+            .filter(ModelProject.source_type == "marketplace")
+            .count(),
         },
     }
 
@@ -49,32 +55,31 @@ async def list_all_models(
     is_public: bool | None = None,
     db: Session = Depends(get_db),
 ) -> AdminPaginatedResponse:
-    """List all models in the catalog (admin view)."""
-    query = db.query(ModelCatalog)
+    """List all marketplace listings (admin view)."""
+    query = db.query(ModelProjectListing)
 
     if category:
-        query = query.filter(ModelCatalog.category == category)
+        query = query.filter(ModelProjectListing.category == category)
     if is_public is not None:
-        query = query.filter(ModelCatalog.is_public == is_public)
+        query = query.filter(ModelProjectListing.is_public == is_public)
 
-    query = query.order_by(ModelCatalog.created_at.desc())
+    query = query.order_by(ModelProjectListing.created_at.desc())
     items, total = paginate_query(query, page, page_size)
 
     result_items = []
-    for model in items:
+    for listing in items:
         result_items.append(
             {
-                "id": model.id,
-                "name": model.name,
-                "display_name": model.display_name,
-                "description": model.description,
-                "category": model.category,
-                "version": model.version,
-                "is_public": model.is_public,
-                "is_official": model.is_official,
-                "is_featured": model.is_featured,
-                "credits_per_execution": model.credits_per_execution,
-                "created_at": model.created_at.isoformat() if model.created_at else None,
+                "id": listing.model_project_id,
+                "name": listing.name,
+                "display_name": listing.display_name,
+                "description": listing.description,
+                "category": listing.category,
+                "version": listing.version,
+                "is_public": listing.is_public,
+                "is_official": listing.is_official,
+                "is_featured": listing.is_featured,
+                "created_at": listing.created_at.isoformat() if listing.created_at else None,
             }
         )
 
@@ -87,18 +92,27 @@ async def list_all_models(
     )
 
 
+def _listing_or_404(db: Session, model_id: str) -> ModelProjectListing:
+    listing = (
+        db.query(ModelProjectListing)
+        .filter(ModelProjectListing.model_project_id == model_id)
+        .first()
+    )
+    if not listing:
+        raise HTTPException(status_code=404, detail="Model not found")
+    return listing
+
+
 @router.patch("/models/{model_id}/visibility")
 async def toggle_model_visibility(
     model_id: str,
     is_public: bool = Query(...),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
-    """Toggle model public visibility."""
-    model = db.query(ModelCatalog).filter(ModelCatalog.id == model_id).first()
-    if not model:
-        raise HTTPException(status_code=404, detail="Model not found")
+    """Toggle listing public visibility."""
+    listing = _listing_or_404(db, model_id)
 
-    model.is_public = is_public
+    listing.is_public = is_public
     db.commit()
 
     return {"success": True, "is_public": is_public}
@@ -110,24 +124,22 @@ async def update_model_badges(
     body: UpdateModelBadgesRequest,
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
-    """Update model badges (official, featured, public)."""
-    model = db.query(ModelCatalog).filter(ModelCatalog.id == model_id).first()
-    if not model:
-        raise HTTPException(status_code=404, detail="Model not found")
+    """Update listing badges (official, featured, public)."""
+    listing = _listing_or_404(db, model_id)
 
     if body.is_official is not None:
-        model.is_official = body.is_official
+        listing.is_official = body.is_official
     if body.is_featured is not None:
-        model.is_featured = body.is_featured
+        listing.is_featured = body.is_featured
     if body.is_public is not None:
-        model.is_public = body.is_public
+        listing.is_public = body.is_public
 
     db.commit()
 
     return {
         "success": True,
-        "id": model.id,
-        "is_official": model.is_official,
-        "is_featured": model.is_featured,
-        "is_public": model.is_public,
+        "id": listing.model_project_id,
+        "is_official": listing.is_official,
+        "is_featured": listing.is_featured,
+        "is_public": listing.is_public,
     }

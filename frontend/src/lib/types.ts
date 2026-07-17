@@ -65,7 +65,6 @@ export type {
 } from "./generated/api";
 
 export type {
-  CreditPoolResponse as CreditPool,
 } from "./generated/api";
 
 // Frontend-only types live below. Some have backend counterparts with slightly different shapes;
@@ -92,24 +91,14 @@ export type ExecutionStatus =
   | "failed"
   | "cancelled"
   | "timeout";
-export type TransactionType =
-  | "signup_bonus"
-  | "monthly_grant"
-  | "admin_adjustment"
-  | "execution_charge"
-  | "execution_refund"
-  | "publisher_earning"
-  | "withdrawal";
-export type WithdrawalStatus = "pending" | "processing" | "completed" | "failed" | "cancelled";
 export type NotificationType =
   | "execution_completed"
   | "execution_failed"
-  | "credits_low"
   | "model_published"
   | "system_announcement";
 export type TriggerRunStatus =
   | "pending" | "running" | "completed" | "failed" | "timeout" | "validation_failed"
-  | "skipped_credits" | "skipped_overlap";
+  | "skipped_overlap";
 export type WorkspaceRole = "viewer" | "solver" | "editor" | "admin";
 
 export interface PaginatedResponse<T> {
@@ -151,7 +140,6 @@ export interface UserInfo {
   organization_id: string;
   organization_name: string;
   plan: Plan;
-  credits_balance: number;
   is_admin: boolean;
   is_org_owner?: boolean;
   can_build_plugins: boolean;
@@ -169,9 +157,6 @@ export interface Organization {
   plan: Plan;
   is_active: boolean;
   is_verified: boolean;
-  credits_balance: number;
-  credits_earned: number;
-  credits_used_month: number;
   total_users: number;
   total_models: number;
   total_executions: number;
@@ -252,8 +237,6 @@ export interface ModelCatalogItem {
   version: string;
   is_official: boolean;
   is_featured: boolean;
-  price_eur: number;
-  credits_per_execution: number;
   total_activations: number;
   total_executions: number;
   avg_execution_time_ms?: number;
@@ -262,6 +245,9 @@ export interface ModelCatalogItem {
   author_organization_id: string;
   author_name: string;
   author_verified: boolean;
+  /** Additive: false when the listing has no generator facet nor pinned version
+   *  to materialize (legacy demo rows) — the "Use in studio" CTA is disabled. */
+  can_open_in_studio?: boolean;
   logo_url?: string | null;
   screenshot_urls?: string[] | null;
   section_overview?: string | null;
@@ -284,9 +270,7 @@ export interface OrganizationModel {
   is_active: boolean;
   is_favorite: boolean;
   total_executions: number;
-  total_credits_used: number;
   last_executed_at?: string;
-  credits_per_execution: number;
   created_at: string;
 }
 
@@ -297,7 +281,6 @@ export interface FileImportMetadata {
   num_integer: number;
   num_binary: number;
   num_continuous: number;
-  estimated_credits: number;
   file_size_bytes: number;
   original_filename: string;
 }
@@ -312,6 +295,9 @@ export interface FileImportPreviewResponse {
 
 export interface ModelExecution {
   id: string;
+  // P1.5 fusion: the ModelProject this run executed. organization_model_id is
+  // served for HISTORIC rows only (its value equals the backfilled project id).
+  model_project_id?: string | null;
   organization_model_id: string | null;
   status: ExecutionStatus;
   input_data?: Record<string, unknown>;
@@ -320,7 +306,6 @@ export interface ModelExecution {
   execution_time_ms?: number;
   solver_status?: _SolverStatus;
   objective_value?: number;
-  credits_consumed: number;
   created_at: string;
   completed_at?: string;
   origin?: ExecutionOrigin;
@@ -329,6 +314,14 @@ export interface ModelExecution {
   source_kind?: ExecutionSourceKind | null;
   source_id?: string | null;
   solver_name?: string;
+  // Resolved display name + author of the model behind the run (studio
+  // ModelProject or activated org model); filled by the history list endpoint.
+  model_name?: string | null;
+  model_author?: string | null;
+  // §8/S1: the named dataset the model was compiled against. `dataset_name`
+  // is a snapshot — it survives dataset deletion.
+  dataset_id?: string | null;
+  dataset_name?: string | null;
 }
 
 /** How an execution was created. Mirrors the backend ORIGIN_* slugs. */
@@ -357,6 +350,22 @@ export interface AsyncTask {
   status: string;
 }
 
+/**
+ * The 202 "still running" envelope a solve endpoint returns when a solve outlives
+ * the server-side wait budget (ADR-007). The sync client methods resolve it
+ * transparently by polling the async task to completion, so callers keep receiving
+ * a plain result. `execution_id` is carried here because the polled worker result
+ * dump doesn't include it (the sync shaper used to inject it).
+ */
+export interface AsyncSolveEnvelope {
+  task_id: string;
+  execution_id: string;
+  status: string;
+  poll_url?: string;
+  ws_url?: string;
+  message?: string;
+}
+
 export interface AsyncTaskStatus {
   task_id: string;
   status: ExecutionStatus;
@@ -371,168 +380,65 @@ export type SolveResult = _OptimizationResult & {
   execution_id: string;
 };
 
+/**
+ * The Celery task-return envelope nested under an async-solve status once the task
+ * completes. The real `SolveResult` lives at `result.result`.
+ */
+export interface AsyncSolveResultEnvelope {
+  status?: string; // "success"
+  task_id?: string;
+  result?: SolveResult; // the actual solver result
+  execution_time_seconds?: number;
+  solver_used?: string;
+  auto_route_reason?: string;
+  warning?: string;
+}
+
+/** Status of an async `/solve/async` task (the universal solve, not a marketplace model). */
+export interface SolveAsyncStatus {
+  task_id?: string;
+  status: string; // pending | running | completed | failed
+  // On "completed" this is the task envelope (unwrap `result.result`); some paths
+  // may return a plain SolveResult — callers unwrap defensively.
+  result?: AsyncSolveResultEnvelope | SolveResult;
+  error?: string;
+  progress?: number;
+  solver_used?: string;
+  auto_route_reason?: string;
+  warning?: string;
+}
+
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
-  // Present on POST /api/v2/solve/validate — base credit estimate (no solver
-  // multiplier). Optional because other validators reuse this shape.
-  estimated_credits?: number;
 }
 
-// Generated CreditBalanceResponse has different fields (currency, exchange_rate, etc.)
 
-export interface CreditBalance {
-  credits_balance: number;
-  credits_earned: number;
-  credits_used_month: number;
-  plan: Plan;
-  monthly_limit?: number;
-}
 
-export interface CreditSettings {
-  low_balance_threshold: number;
-  auto_topup_enabled: boolean;
-  auto_topup_amount?: number;
-}
 
-export interface CreditTransaction {
-  id: string;
-  transaction_type: TransactionType;
-  credits_amount: number;
-  balance_after: number;
-  description: string;
-  reference_type?: string;
-  reference_id?: string;
-  created_at: string;
-}
 
-export interface Withdrawal {
-  id: string;
-  credits_amount: number;
-  currency: Currency;
-  amount_fiat: number;
-  status: WithdrawalStatus;
-  created_at: string;
-  processed_at?: string;
-}
 
-export interface WithdrawalSchedule {
-  id: string;
-  credits_amount: number;
-  currency: Currency;
-  frequency: string;
-  next_execution: string;
-  is_active: boolean;
-  created_at: string;
-}
 
-export interface EarningsSummary {
-  total_sales: number;
-  total_earned: number;
-  total_commission: number;
-  withdrawable_balance: number;
-  pending_withdrawals: number;
-  commission_rate: number;
-}
 
-export interface SaleRecord {
-  sale_id: string;
-  model_id: string | null;
-  model_name: string | null;
-  buyer_organization_name: string | null;
-  credits_price: number;
-  commission_amount: number;
-  seller_earning: number;
-  created_at: string;
-}
 
-export interface SalesHistoryResponse {
-  items: SaleRecord[];
-  total: number;
-  page: number;
-  page_size: number;
-}
 
 export interface AnalyticsSummary {
   total_views: number;
   total_impressions: number;
   total_activations: number;
-  total_revenue: number;
   conversion_rate: number;
   period: string;
 }
 
-export interface TimeSeriesDataPoint {
-  date: string;
-  views: number;
-  impressions: number;
-  activations: number;
-  revenue: number;
-}
-
-export interface GeoDistributionEntry {
-  country: string;
-  count: number;
-}
-
-export interface ModelPerformanceRow {
-  model_id: string;
-  model_name: string;
-  views: number;
-  activations: number;
-  revenue: number;
-  conversion_rate: number;
-}
-
-export interface ConversionFunnel {
-  impressions: number;
-  views: number;
-  activations: number;
-}
-
-export interface SellerLeaderboardEntry {
-  org_id: string;
-  org_name: string;
-  total_sales: number;
-  total_revenue: number;
-  models_published: number;
-  avg_rating: number | null;
-}
 
 export interface AdminAnalytics {
   platform_totals: AnalyticsSummary;
-  sellers: SellerLeaderboardEntry[];
 }
 
-export interface PlacementPricingTier {
-  duration_days: number;
-  credits_cost: number;
-}
 
-export interface PlacementPricing {
-  placement_type: string;
-  tiers: PlacementPricingTier[];
-}
 
-export interface FeaturedPlacement {
-  id: string;
-  catalog_model_id: string;
-  placement_type: string;
-  status: string;
-  credits_paid: number;
-  duration_days: number;
-  starts_at: string;
-  expires_at: string;
-  created_at: string;
-}
 
-export interface AdminPlacement extends FeaturedPlacement {
-  org_name: string | null;
-  model_name: string | null;
-  revoked_at: string | null;
-  revoked_by: string | null;
-}
 
 export interface VerificationRequestStatus {
   id: string;
@@ -562,17 +468,6 @@ export interface NotificationPreferenceEntry {
 
 export interface NotificationPreferencesResponse {
   preferences: NotificationPreferenceEntry[];
-}
-
-export interface OnboardingStep {
-  key: string;
-  completed: boolean;
-  link: string;
-}
-
-export interface OnboardingStatus {
-  steps: OnboardingStep[];
-  all_complete: boolean;
 }
 
 // Generated NotificationResponse uses loose `string` for type field
@@ -635,6 +530,228 @@ export interface TemplateSummary {
   tags: string[];
 }
 
+// ── ModelProject (studio workspace; P1e) ────────────────────────────────────
+// Handwritten mirror of app/schemas/model_project.py + model_stats.py. The
+// generated `api.ts` carries the canonical shapes once regenerated.
+export interface CanvasJson {
+  nodes?: unknown[];
+  edges?: unknown[];
+}
+
+export interface ProjectRead {
+  id: string;
+  organization_id: string;
+  workspace_id?: string | null;
+  name: string;
+  description?: string | null;
+  status: string;
+  source_type?: string | null;
+  source_ref?: string | null;
+  current_version_id?: string | null;
+  committed_count: number;
+  draft_model_json?: _OptimizationProblem | null;
+  draft_canvas_json?: CanvasJson | null;
+  draft_dsl_source?: string | null;
+  draft_content_hash?: string | null;
+  draft_lock_version: number;
+  draft_updated_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectListItem {
+  id: string;
+  name: string;
+  description?: string | null;
+  status: string;
+  source_type?: string | null;
+  current_version_id?: string | null;
+  committed_count: number;
+  updated_at: string;
+  created_by?: string | null;
+  created_by_name?: string | null;
+}
+
+/** A single JModel (DSL) lex/parse/grounding error (POST /api/v2/dsl/compile). */
+export interface DslCompileError {
+  message: string;
+  position?: number | null;
+}
+
+/** Result of compiling JModel source: ok=true → problem, ok=false → error. */
+export interface DslCompileResult {
+  ok: boolean;
+  problem?: _OptimizationProblem | null;
+  error?: DslCompileError | null;
+}
+
+/** Whether the JModel DSL feature is enabled on this instance (GET /api/v2/dsl/status). */
+export interface DslStatusResult {
+  enabled: boolean;
+}
+
+/** A declared set as listed by POST /api/v2/dsl/inspect (S2a). */
+export interface DslSetDecl {
+  name: string;
+  has_inline_values: boolean;
+}
+
+/** A declared param: its index sets define the dataset key shape. */
+export interface DslParamDecl {
+  name: string;
+  index_sets: string[];
+  arity: number;
+  has_inline_values: boolean;
+}
+
+/** Parse-only view of a source's declarations (skeleton + live validation). */
+export interface DslInspectResult {
+  ok: boolean;
+  sets?: DslSetDecl[] | null;
+  params?: DslParamDecl[] | null;
+  error?: DslCompileError | null;
+}
+
+/**
+ * A named data bundle ("scenario") for a project's parametric JModel: set members
+ * + param values that fill a declaration-only source at compile time (§8).
+ * `data_json` = `{"sets": {...}, "params": {...}}` — composite param keys are
+ * comma-joined (`"A,1": 4`). The list endpoint returns the summary (no values).
+ */
+export interface ProjectDatasetSummary {
+  id: string;
+  model_project_id: string;
+  name: string;
+  description?: string | null;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** A parsed data file (S2c) — a preview the user names and saves via the normal create. */
+export interface DatasetImportPreview {
+  data_json: Record<string, unknown>;
+  suggested_name: string;
+}
+
+export interface ProjectDataset extends ProjectDatasetSummary {
+  data_json: Record<string, unknown>;
+}
+
+/**
+ * A compact execution row used to RECONCILE a solve from the server when the
+ * workspace opens (durable, server-derived solve sessions). A running async row
+ * is re-attached by `celery_task_id`; a terminal one surfaces as the "last run".
+ */
+export interface ProjectExecutionItem {
+  id: string;
+  status: string; // pending | running | completed | failed | cancelled | timeout
+  is_async: boolean;
+  celery_task_id?: string | null;
+  solver_name?: string | null;
+  objective_value?: number | null;
+  model_project_version_id?: string | null;
+  execution_time_ms?: number | null;
+  // §8/S1: dataset provenance (name is a deletion-surviving snapshot).
+  dataset_id?: string | null;
+  dataset_name?: string | null;
+  error_message?: string | null;
+  created_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+}
+
+export interface ProjectVersionSummary {
+  id: string;
+  sequence: number;
+  commit_summary: string;
+  problem_class?: string | null;
+  created_by?: string | null;
+  created_at: string;
+}
+
+export interface ProjectVersionRead extends ProjectVersionSummary {
+  model_project_id: string;
+  parent_version_id?: string | null;
+  commit_body?: string | null;
+  content_hash: string;
+  model_json: _OptimizationProblem;
+  canvas_json?: CanvasJson | null;
+  dsl_source?: string | null;
+  stats_json?: Record<string, unknown> | null;
+}
+
+export interface ProjectVersionDiffEntry {
+  kind: string;
+  change: string;
+  name: string;
+  detail?: string | null;
+}
+
+export interface ProjectVersionDiff {
+  from_version_id: string;
+  to_version_id: string;
+  entries: ProjectVersionDiffEntry[];
+  objective_changed: boolean;
+}
+
+export interface DraftUpdateBody {
+  model_json?: Record<string, unknown> | null;
+  canvas_json?: Record<string, unknown> | null;
+  dsl_source?: string | null;
+}
+
+export type ModelHealthBand = "A" | "B" | "C" | "D" | "F";
+
+export interface ModelHealthDeduction {
+  code: string;
+  points: number;
+  detail: string;
+}
+
+export interface ModelHealth {
+  score: number;
+  band: ModelHealthBand;
+  deductions: ModelHealthDeduction[];
+  has_hard_error: boolean;
+}
+
+export interface ModelStatsBoundProfile {
+  free: number;
+  boxed: number;
+  one_sided: number;
+  binary: number;
+  integers_missing_bounds: number;
+}
+
+export interface ModelStatsConditioning {
+  min_abs?: number | null;
+  max_abs?: number | null;
+  range_ratio?: number | null;
+  tier: "ok" | "mild" | "poor" | "severe";
+}
+
+export interface ModelStats {
+  var_total: number;
+  var_continuous: number;
+  var_integer: number;
+  var_binary: number;
+  constraint_total: number;
+  constraints_by_operator: Record<string, number>;
+  objective_sense?: string | null;
+  objective_terms: number;
+  objective_quadratic: boolean;
+  nonzeros: number;
+  density: number;
+  integrality_ratio: number;
+  bound_profile: ModelStatsBoundProfile;
+  conditioning: ModelStatsConditioning;
+  problem_class?: string | null;
+  warnings: string[];
+  health: ModelHealth;
+  content_hash: string;
+}
+
 export interface BuilderDocument {
   id: string;
   organization_id: string;
@@ -659,14 +776,12 @@ export interface AdminStats {
   users: { total: number; active: number };
   api_keys: { total: number; active: number };
   models: { catalog_total: number; catalog_public: number; activated_total: number };
-  credits: { total_balance: number };
 }
 
 export interface AdminOrganizationSummary {
   id: string;
   name: string;
   plan: string;
-  credits_balance: number;
   user_count: number;
   created_at: string;
 }
@@ -735,7 +850,6 @@ export interface TriggerRun {
   override_data?: Record<string, unknown>;
   result_data?: Record<string, unknown>;
   error_message?: string;
-  credits_consumed: number;
   execution_time_ms?: number;
   webhook_delivered?: boolean;
   webhook_attempts: number;
@@ -833,8 +947,6 @@ export interface SolveAnalyticsSummary {
   success_rate: number;
   avg_solve_time_ms: number | null;
   median_solve_time_ms: number | null;
-  total_credits: number;
-  avg_credits: number;
   avg_objective_value: number | null;
   executions_by_status: Record<string, number>;
   executions_by_origin: Record<string, number>;
@@ -846,7 +958,6 @@ export interface TrendBucket {
   executions: number;
   completed: number;
   failed: number;
-  credits: number;
   avg_solve_time_ms: number | null;
 }
 
@@ -862,7 +973,6 @@ export interface ComparedExecution {
   solver_status: string | null;
   objective_value: number | null;
   execution_time_ms: number | null;
-  credits_consumed: number;
   created_at: string;
   origin: string;
   num_variables: number | null;

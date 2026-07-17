@@ -28,15 +28,14 @@ LLMS_TXT = """\
 - [Authentication](/docs/api/authentication): API key and JWT auth guide
 
 ## MCP
-- [MCP Endpoint](/mcp): Model Context Protocol server with 17 optimization tools
-- Tools: solve_problem, validate_problem, solve_multi_objective, list_available_solvers, list_templates, get_template, solve_with_template, import_preview, import_and_solve, list_catalog_models, get_catalog_model, get_catalog_model_schema, activate_catalog_model, execute_model, get_execution, get_execution_insights, get_credit_balance
+- [MCP Endpoint](/mcp): Model Context Protocol server with 26 optimization tools
+- Tools: solve_problem, validate_problem, solve_multi_objective, list_available_solvers, list_templates, get_template, solve_with_template, import_preview, import_and_solve, export_model, export_execution, list_catalog_models, get_catalog_model, get_catalog_model_schema, execute_model, get_execution, get_execution_insights, create_model_project, create_model_project_from_marketplace, get_model_project, list_model_projects, update_model_project_draft, commit_model_version, list_project_versions, get_model_stats, solve_model_project
 
 ## API
 - Base URL: /api/v2
 - [Solve](/api/v2/solve): POST — Solve any optimization problem (JSON definition)
 - [Templates](/api/v2/solve/templates): GET — List available problem templates
 - [Catalog](/api/v2/models/catalog): GET — Browse marketplace models
-- [Credits](/api/v2/credits/balance): GET — Check credit balance
 """
 
 # llms-full.txt — comprehensive inlined documentation
@@ -81,8 +80,6 @@ Authorization: Bearer ok_live_a1b2c3d4e5f6789012345678901234567890abcdef
 | GET | /api/v2/health | Health check |
 | GET | /api/v2/solve/templates | List problem templates |
 | GET | /api/v2/models/catalog | Browse marketplace |
-| GET | /api/v2/credits/rates | Exchange rates |
-| GET | /api/v2/credits/calculator | Estimate credits for a problem |
 | POST | /api/v2/auth/signup | Create account |
 | POST | /api/v2/auth/login | Validate key |
 
@@ -91,7 +88,6 @@ Authorization: Bearer ok_live_a1b2c3d4e5f6789012345678901234567890abcdef
 | Code | Meaning |
 |------|---------|
 | 401 | Missing, invalid, or expired API key |
-| 402 | Insufficient credits |
 | 403 | Admin endpoint accessed by non-admin |
 | 429 | Rate limited |
 
@@ -150,9 +146,7 @@ Solve an optimization problem synchronously. Requires authentication.
     {"name": "gadgets", "value": 60, "type": "integer"}
   ],
   "solution": {"widgets": 30, "gadgets": 60},
-  "solve_time_seconds": 0.045,
-  "credits_used": 2,
-  "credits_remaining": 93
+  "solve_time_seconds": 0.045
 }
 ```
 
@@ -160,13 +154,12 @@ Solver status values: `optimal`, `feasible`, `infeasible`, `unbounded`, `time_li
 
 ### Validate — POST /api/v2/solve/validate
 
-Check a problem without solving. No credits charged.
+Check a problem without solving.
 
 **Response (valid):**
 ```json
 {
   "valid": true,
-  "estimated_credits": 3,
   "num_variables": 5,
   "num_constraints": 8
 }
@@ -250,19 +243,6 @@ Execute an activated model with input data. Requires auth.
 
 List execution results. Requires auth. Query: `page`, `page_size`, `status`.
 
-### Credits Balance — GET /api/v2/credits/balance
-
-Get current credit balance. Requires auth.
-
-```json
-{
-  "credits_balance": 950,
-  "credits_earned": 200,
-  "currency": "EUR",
-  "local_balance": 95.0
-}
-```
-
 ## MCP Usage
 
 JAOT exposes a Model Context Protocol server at `/mcp` using HTTP+SSE transport.
@@ -276,27 +256,36 @@ https://jaot.io/mcp
 
 The MCP endpoint is public (no auth to connect). Individual tools that require authentication will return an error with instructions if called without a Bearer API key.
 
-### Available Tools (17)
+### Available Tools (26)
 
 | Tool | Auth | Description |
 |------|------|-------------|
-| solve_problem | Yes | Solve an optimization problem (optional solver choice or auto routing) |
-| validate_problem | Yes | Validate without solving (no credits) |
+| solve_problem | Yes | Solve an optimization problem (optional solver choice or auto routing; `solution_filter=nonzero` for a compact solution) |
+| validate_problem | Yes | Validate without solving |
 | solve_multi_objective | Yes | Solve a multi-objective problem (Pareto front) |
-| list_available_solvers | Yes | List available solvers and their credit multipliers |
+| list_available_solvers | Yes | List available solvers and their capabilities |
 | list_templates | No | List available problem templates |
 | get_template | No | Get template details and input schema |
 | solve_with_template | Yes | Solve using a template (optional solver choice) |
 | import_preview | Yes | Preview how a CSV file is parsed into a problem |
 | import_and_solve | Yes | Import data from a CSV and solve in one step |
+| export_model | Yes | Export a model in a standard format (MPS/LP/CIP/JSON) |
+| export_execution | Yes | Export an execution's result |
 | list_catalog_models | No | Browse marketplace models |
 | get_catalog_model | No | Get model details |
 | get_catalog_model_schema | No | Get model input schema |
-| activate_catalog_model | Yes | Activate a marketplace model |
-| execute_model | Yes | Execute an activated model |
+| execute_model | Yes | Execute one of your models (a ModelProject) |
 | get_execution | Yes | Get execution results |
 | get_execution_insights | Yes | Get auto-insights (gap, time, quality) for an execution |
-| get_credit_balance | Yes | Check credit balance |
+| create_model_project | Yes | Create a first-class model project (versioned workspace) |
+| create_model_project_from_marketplace | Yes | Fork a marketplace model into your studio |
+| get_model_project | Yes | Get a project (metadata + draft + committed HEAD) |
+| list_model_projects | Yes | List your organization's model projects |
+| update_model_project_draft | Yes | Write the project's draft model (agent authoring; optimistic lock via If-Match) |
+| commit_model_version | Yes | Commit the draft as an immutable, message-bearing version |
+| list_project_versions | Yes | List a project's committed versions |
+| get_model_stats | Yes | Structural stats + health score for the draft |
+| solve_model_project | Yes | Solve the draft or a committed version (`solution_filter=nonzero` for a compact solution) |
 
 ### Example Workflow: Template Path
 
@@ -309,9 +298,18 @@ The MCP endpoint is public (no auth to connect). Individual tools that require a
 1. `list_catalog_models` — browse marketplace
 2. `get_catalog_model("mdl_abc")` — check details
 3. `get_catalog_model_schema("mdl_abc")` — see required inputs
-4. `activate_catalog_model("mdl_abc")` — activate for your org
-5. `execute_model("orgmdl_xyz", {"input_data": {...}})` — run it
+4. `POST /api/v2/projects/from-marketplace/mdl_abc` — fork it into your studio
+5. `execute_model("<project id>", {"input_data": {...}})` — run it
 6. `get_execution` — check results
+
+### Example Workflow: Agent Authoring Path
+
+1. `create_model_project({"name": "Line scheduling"})` — a fresh versioned project
+2. `update_model_project_draft("<project id>", {"model_json": {...}})` — write the model
+3. `commit_model_version("<project id>", {"summary": "v1 — initial model"})` — commit it
+4. `solve_model_project("<project id>", solution_filter="nonzero")` — solve; the compact
+   solution omits near-zero variables (`variables_omitted` reports how many)
+5. `get_execution_insights` — quality/gap/time insights on the run
 
 ## Optimization Concepts
 

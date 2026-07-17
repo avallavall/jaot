@@ -124,7 +124,6 @@ export default function WorkspacesPage() {
                 {usedPercent !== null && (
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>{t("creditsLabel")}</span>
                       <span>{t("percentUsed", { percent: usedPercent })}</span>
                     </div>
                     <div className="w-full bg-muted rounded-full h-1.5">

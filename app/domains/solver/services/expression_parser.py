@@ -24,6 +24,7 @@ Grammar:
 """
 
 import re
+from collections.abc import Collection
 from dataclasses import dataclass
 
 
@@ -590,14 +591,16 @@ class ExpressionParser:
     def parse_expression(
         self,
         expr_str: str,
-        known_variables: list[str] | None = None,
+        known_variables: Collection[str] | None = None,
     ) -> ParsedExpression:
         """
         Parse a mathematical expression into terms.
 
         Args:
             expr_str: Expression string like "3*x + 2*y - 5" or "(x + y) * 2"
-            known_variables: List of valid variable names
+            known_variables: Valid variable names. Pass a SET when parsing many
+                expressions against the same names — it is adopted as-is (never
+                mutated), while any other collection is copied into a set here.
 
         Returns:
             ParsedExpression with terms and constant
@@ -606,7 +609,15 @@ class ExpressionParser:
             ParseError (subclass of ValueError): If the expression is malformed
         """
         if known_variables:
-            self._variable_names = set(known_variables)
+            # Adopt sets without copying: classify/stats/adapters parse tens of
+            # thousands of constraints against one name set, and rebuilding a
+            # 100k-name set per expression turned those loops into minutes of
+            # CPU (O(constraints x variables) — live 500s on the big TFM
+            # scenarios, 2026-07-04). _variable_names is only ever reassigned,
+            # never mutated, so sharing the caller's set is safe.
+            self._variable_names = (
+                known_variables if isinstance(known_variables, set) else set(known_variables)
+            )
 
         # Normalize: handle implicit multiplication (2x -> 2*x)
         normalized = self._normalize(expr_str)
@@ -625,14 +636,14 @@ class ExpressionParser:
     def parse_constraint(
         self,
         constraint_str: str,
-        known_variables: list[str] | None = None,
+        known_variables: Collection[str] | None = None,
     ) -> ParsedConstraint:
         """
         Parse a constraint expression.
 
         Args:
             constraint_str: Constraint like "x + 2*y <= 10" or "(x + y) * 2 >= 5"
-            known_variables: List of valid variable names
+            known_variables: Valid variable names (a set is adopted without copying)
 
         Returns:
             ParsedConstraint with lhs, operator, and rhs

@@ -5,7 +5,7 @@ status truth historically lived ONLY in the Celery result backend
 (``result_expires`` = 7 days). A hung solver, a task enqueued to a
 consumer-less queue (the Phase 9 ~37-day incident), or a hard-killed worker
 leaves the row 'pending'/'running' forever — polluting user-visible
-execution history and silently losing the pre-paid credits.
+execution history.
 
 Every beat run (~15 min):
 
@@ -15,28 +15,13 @@ Every beat run (~15 min):
    backend outage degrades to DB-age-only reaping, never crashes the sweep).
 3. Reconcile each row:
 
-   - SUCCESS with a success payload  -> mark completed, NO refund.
-   - SUCCESS with an error payload   -> mark failed + idempotent refund.
-   - FAILURE / REVOKED               -> mark failed + idempotent refund.
+   - SUCCESS with a success payload  -> mark completed.
+   - SUCCESS with an error payload   -> mark failed.
+   - FAILURE / REVOKED               -> mark failed.
    - STARTED / PROGRESS / RETRY      -> actively running; reap only past
-     ``EXECUTION_REAPER_RUNNING_MAX_SECONDS`` (hung worker), then refund.
+     ``EXECUTION_REAPER_RUNNING_MAX_SECONDS`` (hung worker).
    - PENDING / unknown               -> task lost or backend expired; reap
-     past the threshold for the row's DB status, then refund.
-
-Refunds reuse the EXACT idempotency keys of the task-side refund paths so a
-reaped task that later resolves (acks_late redelivery) can never
-double-refund:
-
-- ``solve_async`` rows:       ``(org, REFUND, 'solve_task', celery_task_id)``
-  — same scope as ``solve_tasks._refund_prepaid_credits`` and DB-enforced by
-  the ``ux_credit_txn_refund_solve_task`` partial unique index.
-- ``solve_model_async`` rows: ``(org, REFUND, 'execution', execution_id)``
-  — same scope as the task's failure-path refund.
-
-Refund amounts come from what was actually pre-paid (the
-``_prepaid_credits`` payload marker for solve rows; the recorded EXECUTION
-deduction for model rows) — never from a guess, so legacy non-prepaid
-dispatch sites cannot be minted free credits.
+     past the threshold for the row's DB status.
 """
 
 from __future__ import annotations
@@ -47,17 +32,10 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.domains.solver.prepaid import get_prepaid_credits
-from app.models import (
-    CreditTransaction,
-    ExecutionStatus,
-    ModelExecution,
-    TransactionType,
-)
-from app.services.credits_service import CreditsService
+from app.domains.solver import execution_writer
+from app.models import ExecutionStatus, ModelExecution
 from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.shared.core.celery_app import celery_app
-from app.shared.core.prometheus_metrics import CREDITS_REFUNDED, RefundReason
 from app.shared.db.session import SessionLocal
 from app.shared.utils.datetime_helpers import utcnow
 
@@ -107,116 +85,47 @@ def _result_is_error(result: Any) -> bool:
     return isinstance(inner, dict) and str(inner.get("status", "")).lower() == "error"
 
 
-def _resolve_refund(db: Session, execution: ModelExecution) -> tuple[int, str, str] | None:
-    """Return ``(credits, reference_type, reference_id)`` for the row's prepay.
+def _mark_failed(db: Session, execution: ModelExecution, error_message: str) -> None:
+    """Mark the row failed under a row lock (terminal-wins, ADR-007 S3/S6b).
 
-    ``None`` when nothing was pre-paid — refunding a non-prepaid execution
-    would mint credits out of thin air.
+    A row the worker completed (or the user cancelled) between this sweep's
+    UNLOCKED SELECT and now must not be overwritten. Lock + refresh the row so
+    the terminal check sees its CURRENT state: this serializes against the
+    worker's FOR-UPDATE terminal write — whichever commits first wins, and the
+    loser bails here.
     """
-    if execution.organization_model_id is None:
-        # /solve/async path: amount travels in the payload (D-19 contract);
-        # the cancel endpoint zeroes it, so cancelled rows refund nothing.
-        prepaid = get_prepaid_credits(execution.input_data)
-        if prepaid > 0 and execution.celery_task_id:
-            return prepaid, "solve_task", execution.celery_task_id
-        return None
-
-    # Model-execution path: only refund what an EXECUTION deduction with the
-    # task-side idempotency key actually took (legacy dispatch sites did not
-    # pre-pay).
-    prepay_tx = (
-        db.query(CreditTransaction)
-        .filter(
-            CreditTransaction.organization_id == execution.organization_id,
-            CreditTransaction.transaction_type == TransactionType.EXECUTION.value,
-            CreditTransaction.reference_type == "execution",
-            CreditTransaction.reference_id == execution.id,
-            CreditTransaction.credits_amount < 0,
-        )
-        .first()
-    )
-    if prepay_tx is None:
-        return None
-    return abs(prepay_tx.credits_amount), "execution", execution.id
-
-
-def _refund_if_owed(db: Session, execution: ModelExecution, detail: str) -> int:
-    """Refund the row's prepay exactly once. Returns credits refunded (0 if none).
-
-    Runs BEFORE the row is mutated so a refund failure (e.g. frozen org)
-    can roll back cleanly and still let the caller mark the row failed.
-    """
-    resolved = _resolve_refund(db, execution)
-    if resolved is None:
-        return 0
-    credits, ref_type, ref_id = resolved
-
-    # Pre-check so the CREDITS_REFUNDED metric only counts NEW refunds —
-    # record_transaction's own idempotency would silently return the
-    # existing row and double-count the metric otherwise.
-    existing = (
-        db.query(CreditTransaction)
-        .filter(
-            CreditTransaction.organization_id == execution.organization_id,
-            CreditTransaction.transaction_type == TransactionType.REFUND.value,
-            CreditTransaction.reference_type == ref_type,
-            CreditTransaction.reference_id == ref_id,
-        )
-        .first()
-    )
-    if existing is not None:
-        return 0
-
-    CreditsService(db).refund_credits(
-        organization_id=execution.organization_id,
-        credits=credits,
-        description=(f"{RefundReason.EXECUTION_REAPED.value} ({execution.id}): {detail[:160]}"),
-        reference_type=ref_type,
-        reference_id=ref_id,
-    )
-    CREDITS_REFUNDED.labels(reason=RefundReason.EXECUTION_REAPED.value).inc(credits)
-    logger.info(
-        "Reaper refunded %d credits for execution %s (ref=%s/%s)",
-        credits,
-        execution.id,
-        ref_type,
-        ref_id,
-    )
-    return credits
-
-
-def _fail_and_refund(db: Session, execution: ModelExecution, error_message: str) -> int:
-    """Refund (idempotently) then mark the row failed. Returns credits refunded."""
-    refunded = 0
-    try:
-        refunded = _refund_if_owed(db, execution, error_message)
-    except Exception as exc:
-        # Refund failure (frozen org, transient DB error) must not leave the
-        # zombie row in place — roll back the partial refund work and still
-        # mark the row failed below. The next sweep retries the refund via
-        # the idempotent key.
-        logger.error("Reaper refund failed for execution %s: %s", execution.id, exc)
-        db.rollback()
-
-    execution.status = ExecutionStatus.FAILED.value
-    execution.error_message = error_message[:2000]
-    execution.completed_at = execution.completed_at or utcnow()
-    return refunded
+    db.refresh(execution, with_for_update={"of": ModelExecution})
+    if execution_writer.is_terminal(execution):
+        return
+    execution_writer.apply_failed(execution, error=error_message, preserve_completed_at=True)
 
 
 def _mark_completed(db: Session, execution: ModelExecution, result: Any) -> None:
-    """Reconcile a Celery-SUCCESS row the task never wrote back (W1 gap)."""
-    execution.status = ExecutionStatus.COMPLETED.value
-    execution.completed_at = execution.completed_at or utcnow()
-    execution.error_message = None
+    """Reconcile a Celery-SUCCESS row the task never wrote back (W1 gap).
+
+    Only the result envelope is available (not the ``OptimizationResult`` object),
+    so ``result_data`` cannot be reconstructed here — the single writer records
+    the loose solver_status/objective fields it can recover.
+    """
+    # ADR-007 S6b: lock + refresh so apply_completed_fields' terminal-wins guard below
+    # sees the row's CURRENT state — a worker that just wrote the terminal row wins and
+    # this reconcile becomes a no-op (serialized against the worker's FOR-UPDATE write).
+    db.refresh(execution, with_for_update={"of": ModelExecution})
+    if execution_writer.is_terminal(execution):
+        return
     inner = result.get("result") if isinstance(result, dict) else None
+    solver_status: str | None = None
+    objective: float | None = None
     if isinstance(inner, dict):
-        solver_status = inner.get("status")
-        if isinstance(solver_status, str):
-            execution.solver_status = solver_status[:32]
-        objective = inner.get("objective_value")
-        if isinstance(objective, (int, float)):
-            execution.objective_value = float(objective)
+        raw_status = inner.get("status")
+        if isinstance(raw_status, str):
+            solver_status = raw_status
+        raw_objective = inner.get("objective_value")
+        if isinstance(raw_objective, (int, float)):
+            objective = float(raw_objective)
+    execution_writer.apply_completed_fields(
+        execution, solver_status=solver_status, objective_value=objective
+    )
 
 
 def _reap_one(
@@ -225,11 +134,10 @@ def _reap_one(
     now: datetime,
     pending_max: int,
     running_max: int,
-) -> tuple[str, int]:
+) -> str:
     """Reconcile one stale candidate.
 
-    Returns ``(outcome, credits_refunded)`` with outcome one of
-    'completed' | 'failed' | 'skipped'.
+    Returns an outcome: 'completed' | 'failed' | 'skipped'.
     """
     age_base = execution.started_at or execution.created_at
     age_seconds = (now - age_base).total_seconds()
@@ -246,60 +154,59 @@ def _reap_one(
                 detail = result.get("error")
                 if isinstance(detail, str) and detail:
                     error = f"Reaped: {detail[:500]}"
-            return "failed", _fail_and_refund(db, execution, error)
+            _mark_failed(db, execution, error)
+            return "failed"
         _mark_completed(db, execution, result)
-        return "completed", 0
+        return "completed"
 
     if state in _ACTIVE_STATES:
         if age_seconds <= running_max:
-            return "skipped", 0  # legitimately long solve, still alive
-        refunded = _fail_and_refund(
+            return "skipped"  # legitimately long solve, still alive
+        _mark_failed(
             db,
             execution,
             (
                 f"Reaped: worker still reported active after {int(age_seconds)}s "
-                f"(running limit {running_max}s) — assuming a hung solver. "
-                "Pre-paid credits refunded."
+                f"(running limit {running_max}s) — assuming a hung solver."
             ),
         )
-        return "failed", refunded
+        return "failed"
 
     if state in _FAILED_STATES:
-        refunded = _fail_and_refund(
+        _mark_failed(
             db,
             execution,
             (
                 "Reaped: the solve task failed without updating this execution "
-                "(worker killed or task revoked). Pre-paid credits refunded."
+                "(worker killed or task revoked)."
             ),
         )
-        return "failed", refunded
+        return "failed"
 
     # PENDING / unknown backend state / no celery_task_id at all.
     threshold = running_max if execution.status == ExecutionStatus.RUNNING.value else pending_max
     if age_seconds <= threshold:
-        return "skipped", 0
-    refunded = _fail_and_refund(
+        return "skipped"
+    _mark_failed(
         db,
         execution,
         (
             f"Reaped: stuck in '{execution.status}' for {int(age_seconds)}s with no "
-            "result in the task backend (lost task or expired result). "
-            "Pre-paid credits refunded."
+            "result in the task backend (lost task or expired result)."
         ),
     )
-    return "failed", refunded
+    return "failed"
 
 
 def reap_stale_executions(db: Session) -> dict[str, Any]:
     """Sweep stale pending/running ModelExecution rows. Commits per row.
 
-    Per-row commit isolation: one poisoned row (e.g. concurrent lock, frozen
-    org) is rolled back and logged without aborting the rest of the sweep.
+    Per-row commit isolation: one poisoned row (e.g. concurrent lock) is
+    rolled back and logged without aborting the rest of the sweep.
     """
     pending_max = PSS.get_int(db, "EXECUTION_REAPER_PENDING_MAX_SECONDS")
     running_max = PSS.get_int(db, "EXECUTION_REAPER_RUNNING_MAX_SECONDS")
-    now = utcnow().replace(tzinfo=None)
+    now = utcnow()
     min_age = min(pending_max, running_max)
 
     candidates = (
@@ -321,15 +228,13 @@ def reap_stale_executions(db: Session) -> dict[str, Any]:
         "failed": 0,
         "skipped": 0,
         "errors": 0,
-        "refunded_credits": 0,
     }
 
     for execution in candidates:
         try:
-            outcome, refunded = _reap_one(db, execution, now, pending_max, running_max)
+            outcome = _reap_one(db, execution, now, pending_max, running_max)
             db.commit()
             summary[outcome] += 1
-            summary["refunded_credits"] += refunded
         except Exception as exc:
             db.rollback()
             summary["errors"] += 1

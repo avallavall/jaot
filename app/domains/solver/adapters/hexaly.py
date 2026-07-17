@@ -40,7 +40,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
@@ -56,6 +56,7 @@ from app.schemas.optimization import (
     ObjectiveSense,
     OptimizationProblem,
     OptimizationResult,
+    ProgressPoint,
     SolverStatus,
     VariableSolution,
     VariableType,
@@ -64,7 +65,7 @@ from app.shared.utils.datetime_helpers import utcnow
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_TIME_LIMIT_SECONDS = 60
+_DEFAULT_TIME_LIMIT_SECONDS = 300
 
 # Volume mount path per D-01 — root:root 0600 on the deploy host. Module-level
 # constant so tests can monkeypatch it. Plan 06 (expiry sweep) imports the same
@@ -138,6 +139,7 @@ class HexalyAdapter:
         supports_sensitivity=False,
         supports_warm_start=True,
         supports_multi_objective=False,
+        supports_progress=False,  # no per-incumbent callback wired (Hexaly metaheuristic)
         # Phase 7.4 / D-10: requires_license removed — license loaded in __init__ (Plan 02).
     )
 
@@ -204,6 +206,7 @@ class HexalyAdapter:
         problem: OptimizationProblem,
         *,
         warm_start: dict[str, float] | None = None,
+        on_progress: Callable[[ProgressPoint], None] | None = None,
         license_plaintext: str | None = None,
         time_limit_seconds: int | None = None,
     ) -> OptimizationResult:
@@ -224,7 +227,7 @@ class HexalyAdapter:
                 slated for removal in a follow-up phase.
             time_limit_seconds: Override for ``optimizer.param.time_limit``.
                 Defaults to ``OptimizationProblem.options.time_limit_seconds``
-                when omitted; ultimate fallback is 60s (D-12 explicit-stop).
+                when omitted; ultimate fallback is 300s (D-12 explicit-stop).
 
         Returns:
             An ``OptimizationResult``. Status is mapped from
@@ -261,7 +264,7 @@ class HexalyAdapter:
 
         start_time = time.time()
 
-        known_variables = [v.name for v in problem.variables]
+        known_variables = {v.name for v in problem.variables}
 
         try:
             with hexaly_license_scope(effective_plaintext):
@@ -375,7 +378,7 @@ class HexalyAdapter:
         model: Any,
         hex_vars: dict[str, Any],
         constraint: Any,
-        known_variables: list[str],
+        known_variables: set[str],
         default_name: str,
     ) -> None:
         """Parse a constraint string and attach it to the Hexaly model.

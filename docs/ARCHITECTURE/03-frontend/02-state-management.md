@@ -63,7 +63,6 @@ classDiagram
         +id: string
         +name: string
         +plan: string
-        +credits_balance: number
     }
 
     AuthContext --> User

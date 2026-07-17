@@ -4,30 +4,33 @@ import json
 import logging
 import os
 import time
+from collections.abc import Callable
 from typing import Any
 
 from celery import current_task
 from celery.exceptions import SoftTimeLimitExceeded
 
+from app.domains.solver import execution_writer
 from app.domains.solver.adapters.base import (
     DEFAULT_SOLVER_NAME,
     SolverNotFoundError,
     SolverQueueMismatchError,
 )
-from app.domains.solver.prepaid import get_prepaid_credits
 from app.domains.solver.queue_routing import resolve_queue
 from app.domains.solver.services import get_solver_service
-from app.models import ExecutionStatus, ModelExecution, Organization, OrganizationModel
-from app.schemas.optimization import OptimizationProblem
-from app.services.credits_service import CreditsService
+from app.models import ExecutionStatus, ModelExecution
+from app.models.model_project import ModelProject, ModelProjectListing
+from app.schemas.optimization import (
+    MultiObjectiveConfig,
+    MultiObjectiveResult,
+    OptimizationProblem,
+    SolverStatus,
+)
 from app.shared.core.celery_app import celery_app
 from app.shared.core.prometheus_metrics import (
     ACTIVE_SOLVES,
-    CREDITS_CONSUMED,
-    CREDITS_REFUNDED,
     SOLVE_DURATION,
     SOLVE_TOTAL,
-    RefundReason,
 )
 from app.shared.db.session import SessionLocal
 from app.shared.utils.datetime_helpers import utcnow
@@ -73,6 +76,25 @@ def _publish_ws_event(execution_id: str, data: dict[str, Any]) -> None:
         client.publish(channel, json.dumps(data, default=str))
     except Exception as e:
         logger.debug(f"Failed to publish WebSocket event for {execution_id}: {e}")
+
+
+def _make_solve_progress_publisher(execution_id: str) -> Callable[[Any], None]:
+    """Build the Live Solve ``on_progress`` callback for an async solve.
+
+    The returned callable streams each new incumbent (a ``ProgressPoint``) to the
+    existing ``ws:execution:{execution_id}`` channel. Best-effort: ``_publish_ws_event``
+    has bounded socket timeouts and never raises, and the SCIP event handler swallows
+    callback errors — so a solve can never be blocked or aborted by progress streaming.
+    Solvers whose ``capabilities.supports_progress`` is False never invoke it.
+    """
+
+    def _publish(point: Any) -> None:
+        _publish_ws_event(
+            execution_id,
+            {"type": "solve_progress", "execution_id": execution_id, **point.model_dump()},
+        )
+
+    return _publish
 
 
 def update_task_progress(
@@ -122,167 +144,6 @@ def _assert_queue_match(solver_name: str | None) -> None:
         )
 
 
-def _was_cancelled_by_user(task_id: str, organization_id: str) -> bool:
-    """Return True iff the ModelExecution for this task is in CANCELLED state.
-
-    The cancel endpoint marks the ModelExecution status = CANCELLED BEFORE
-    it revokes the Celery task, so the except-branch refund path must
-    re-read the row (the in-memory ``problem_data`` reflects dispatch-time
-    state). Opens its own SessionLocal so the caller does not leak
-    connections on partial failure. Best-effort: on any DB error returns
-    False (fail-open — the refund still fires; better to double-credit on
-    a flaky DB than silently swallow the refund).
-    """
-    try:
-        db = SessionLocal()
-        try:
-            cancelled_exec = (
-                db.query(ModelExecution)
-                .filter(
-                    ModelExecution.celery_task_id == task_id,
-                    ModelExecution.organization_id == organization_id,
-                )
-                .first()
-            )
-            return (
-                cancelled_exec is not None
-                and cancelled_exec.status == ExecutionStatus.CANCELLED.value
-            )
-        finally:
-            db.close()
-    except Exception as check_err:
-        logger.warning(
-            "Failed to check cancellation state for task %s: %s",
-            task_id,
-            check_err,
-        )
-        return False
-
-
-def _refund_prepaid_credits(
-    task_id: str,
-    organization_id: str,
-    prepaid_credits: int,
-    reason: RefundReason,
-    detail: str,
-    *,
-    check_cancellation: bool = False,
-) -> bool:
-    """Refund pre-paid credits for a failed async solve task, idempotently.
-
-    Owns the SessionLocal + CreditsService + commit lifecycle so the two
-    refund sites in ``solve_async`` (success-with-error branch and
-    except-branch) collapse to a single call. Returns True iff a refund
-    was actually issued (False when the task was cancelled by the user
-    or when ``prepaid_credits <= 0``).
-
-    Args:
-        task_id: Celery task id — doubles as the ``reference_id`` for
-            idempotency (a retry with the same task id returns the
-            existing transaction instead of double-crediting).
-        organization_id: Refund target.
-        prepaid_credits: Amount to refund. A value <= 0 is a no-op.
-        reason: Closed-enum :class:`RefundReason` that keys the metric
-            label and the description prefix.
-        detail: Free-form suffix for the description (typically the
-            exception message or solver error_message, truncated to 200
-            chars by the caller).
-        check_cancellation: When True, call
-            :func:`_was_cancelled_by_user` first and skip the refund if
-            the ModelExecution is already in CANCELLED state. Used by
-            the except-branch so SIGTERM from a user-cancel does not
-            refund automatically.
-
-    Returns:
-        True if refund was issued, False if skipped (cancel / zero /
-        DB / CreditsService error — all suppressed, task must still
-        succeed).
-    """
-    if prepaid_credits <= 0:
-        return False
-
-    if check_cancellation and _was_cancelled_by_user(task_id, organization_id):
-        logger.info(
-            "Task %s was cancelled by user; skipping refund for %d credits.",
-            task_id,
-            prepaid_credits,
-        )
-        return False
-
-    try:
-        refund_db = SessionLocal()
-        try:
-            refund_service = CreditsService(refund_db)
-            refund_service.refund_credits(
-                organization_id=organization_id,
-                credits=prepaid_credits,
-                description=f"{reason.value} (task {task_id}): {str(detail)[:200]}",
-                reference_type="solve_task",
-                reference_id=task_id,
-            )
-            refund_db.commit()
-            # E-19 — bump the bounded-label refund counter AFTER the DB
-            # commit succeeds so a rolled-back refund does not inflate
-            # the metric.
-            CREDITS_REFUNDED.labels(reason=reason.value).inc(prepaid_credits)
-            logger.info(
-                "Refunded %d credits for task %s (reason=%s)",
-                prepaid_credits,
-                task_id,
-                reason.value,
-            )
-            return True
-        except Exception as refund_err:
-            logger.error("Failed to refund credits for task %s: %s", task_id, refund_err)
-            refund_db.rollback()
-            return False
-        finally:
-            refund_db.close()
-    except Exception as session_err:
-        logger.error("Failed to create DB session for refund: %s", session_err)
-        return False
-
-
-def _mark_execution_failed(task_id: str, organization_id: str, error: str) -> None:
-    """Mark the ModelExecution row for this task as failed (W1 sibling fix).
-
-    ``solve_async`` historically never updated its ModelExecution row —
-    status truth lived only in the Celery result backend, so every failure
-    (including ``SoftTimeLimitExceeded`` from the worker-level soft time
-    limit, W15/F-01) left a zombie 'pending' row in user-visible execution
-    history. Best-effort: opens its own session, preserves terminal states
-    (a user CANCELLED row is not a failure), and never raises — the task's
-    own result/refund path must not be disturbed by a bookkeeping error.
-    """
-    try:
-        db = SessionLocal()
-        try:
-            execution = (
-                db.query(ModelExecution)
-                .filter(
-                    ModelExecution.celery_task_id == task_id,
-                    ModelExecution.organization_id == organization_id,
-                )
-                .first()
-            )
-            if execution is None:
-                return
-            if execution.status in (
-                ExecutionStatus.CANCELLED.value,
-                ExecutionStatus.COMPLETED.value,
-                ExecutionStatus.FAILED.value,
-            ):
-                return
-            execution.status = ExecutionStatus.FAILED.value
-            execution.error_message = str(error)[:2000]
-            execution.completed_at = utcnow()
-            db.commit()
-        finally:
-            db.close()
-    except Exception as exc:
-        logger.warning("Failed to mark execution failed for task %s: %s", task_id, exc)
-
-
 @celery_app.task(bind=True, name="solve_async")  # type: ignore[misc]
 def solve_async(
     self: Any,
@@ -300,7 +161,7 @@ def solve_async(
         problem_data: The optimization problem definition
         organization_id: Organization making the request
         user_id: Optional user ID for tracking
-        workspace_id: Optional workspace ID for credit pool deduction
+        workspace_id: Optional workspace ID (provenance)
         warm_start_execution_id: Optional previous execution ID for warm start
         solver_name: Optional solver name override (Phase 5 / HIGH-04)
 
@@ -375,7 +236,14 @@ def solve_async(
             # the license from /etc/jaot/hexaly.lic at __init__ time; no
             # per-org BYOL decrypt needed. All solvers go through the same
             # adapter path.
-            result = solver.solve(problem, warm_start_solution=warm_start_solution)
+            #
+            # Live Solve: stream each new incumbent to ws:execution:{task_id}
+            # (task_id == execution_id). Only solvers with supports_progress fire it.
+            result = solver.solve(
+                problem,
+                warm_start_solution=warm_start_solution,
+                on_progress=_make_solve_progress_publisher(task_id),
+            )
         finally:
             ACTIVE_SOLVES.dec()
         execution_time = time.time() - start_time
@@ -385,26 +253,13 @@ def solve_async(
         result_status = getattr(result, "status", None)
         status_label = result_status.value if result_status else "optimal"
         SOLVE_TOTAL.labels(status=status_label, generator="async").inc()
-        prepaid_credits = get_prepaid_credits(problem_data)
-        if prepaid_credits > 0 and status_label != "error":
-            CREDITS_CONSUMED.inc(prepaid_credits)
-        elif prepaid_credits > 0 and status_label == "error":
-            # D-19: solver returned status=error (e.g. EXPR_PARSE_ERROR) without
-            # raising — the task "succeeded" from Celery's view but delivered no
-            # value. Refund here; the except-branch refund won't fire for
-            # non-raising failures. Idempotent via
-            # (org_id, REFUND, solve_task, task_id).
+        if status_label == "error":
+            # Solver returned status=error (e.g. EXPR_PARSE_ERROR) without
+            # raising — the task "succeeded" from Celery's view but delivered
+            # no value. W1: keep the DB row truthful — without this the
+            # execution stays 'pending' forever in user-visible history.
             err_detail = getattr(result, "error_message", None) or "solver_error"
-            _refund_prepaid_credits(
-                task_id=task_id,
-                organization_id=organization_id,
-                prepaid_credits=prepaid_credits,
-                reason=RefundReason.SOLVER_LEVEL_ERROR,
-                detail=err_detail,
-            )
-            # W1: keep the DB row truthful — without this the execution
-            # stays 'pending' forever in user-visible history.
-            _mark_execution_failed(task_id, organization_id, str(err_detail))
+            execution_writer.mark_failed_by_task(task_id, organization_id, str(err_detail))
 
         # Extract solver metrics if available (MIP gap, bounds)
         metrics = None
@@ -456,6 +311,20 @@ def solve_async(
             result_payload["warning"] = (
                 "Hexaly temporarily unavailable; solved with SCIP (quadratic quality may differ)"
             )
+
+        # W1 sibling: persist the successful solve onto its ModelExecution row so the
+        # history table + detail page are truthful immediately, instead of staying a
+        # 'pending' zombie until the ~30-min reaper (which never persists result_data).
+        # A status_label=='error' row was already marked failed above; skip it here.
+        if status_label != "error":
+            execution_writer.mark_completed_by_task(
+                task_id=task_id,
+                organization_id=organization_id,
+                result=result,
+                execution_time_seconds=execution_time,
+                solver_name=_async_solver_used,
+            )
+
         return result_payload
 
     except Exception as e:
@@ -463,35 +332,15 @@ def solve_async(
         SOLVE_TOTAL.labels(status="error", generator="async").inc()
 
         # W15/F-01: SoftTimeLimitExceeded carries no useful message — give
-        # the user-visible error_message and refund detail a clear reason.
+        # the user-visible error_message a clear reason.
         if isinstance(e, SoftTimeLimitExceeded):
-            error_detail = (
-                "Solve exceeded the worker time limit and was terminated. "
-                "Pre-paid credits have been refunded."
-            )
+            error_detail = "Solve exceeded the worker time limit and was terminated."
         else:
             error_detail = str(e)
 
-        # Refund pre-paid credits on failure (D-19).
-        # A user-triggered cancel (POST /solve/async/{id}/cancel) revokes the
-        # task via SIGTERM which also flows into this except block. The cancel
-        # endpoint marks the ModelExecution cancelled and sets
-        # _prepaid_credits=0 BEFORE revoke, so ``check_cancellation=True``
-        # suppresses the refund on user cancellation. ``problem_data`` is the
-        # dispatch-time snapshot; the helper re-reads the ModelExecution row
-        # to pick up late cancels.
-        _refund_prepaid_credits(
-            task_id=task_id,
-            organization_id=organization_id,
-            prepaid_credits=get_prepaid_credits(problem_data),
-            reason=RefundReason.TASK_EXCEPTION,
-            detail=error_detail,
-            check_cancellation=True,
-        )
-
         # W1: mark the row failed (no-op for CANCELLED — user cancel is
         # preserved). Covers SoftTimeLimitExceeded and every other raise.
-        _mark_execution_failed(task_id, organization_id, error_detail)
+        execution_writer.mark_failed_by_task(task_id, organization_id, error_detail)
 
         update_task_progress(1.0, "failed", str(e))
         _publish_ws_event(
@@ -510,6 +359,133 @@ def solve_async(
             "status": "error",
             "task_id": task_id,
             "error": str(e),
+        }
+
+
+@celery_app.task(bind=True, name="solve_multi_objective_async")  # type: ignore[misc]
+def solve_multi_objective_async(
+    self: Any,
+    problem_data: dict[str, Any],
+    config_data: dict[str, Any],
+    organization_id: str,
+    user_id: str | None = None,
+    workspace_id: str | None = None,
+) -> dict[str, Any]:
+    """Async multi-objective solve (ADR-007 S4b).
+
+    Runs the self-contained scalarization loop (``SolverService.solve_multi_objective``,
+    always SCIP) and persists the Pareto front under the nested ``multi_objective``
+    result_data — an empty front (infeasible) is a completed run, matching the sync
+    contract. Mirrors ``solve_async``'s writer discipline.
+    """
+    task_id = self.request.id
+    logger.info(f"Starting async multi-objective solve {task_id} for org {organization_id}")
+
+    try:
+        _assert_queue_match("scip")  # scalarization always runs on the SCIP queue
+
+        _publish_ws_event(
+            task_id,
+            {
+                "type": "progress",
+                "execution_id": task_id,
+                "progress": 0.0,
+                "status": "starting",
+                "message": "Initializing multi-objective solve...",
+                "timestamp": utcnow().isoformat(),
+            },
+        )
+
+        problem = OptimizationProblem(**problem_data)
+        config = MultiObjectiveConfig(**config_data)
+        solver = get_solver_service()
+
+        start_time = time.time()
+        ACTIVE_SOLVES.inc()
+        try:
+            pareto_points = solver.solve_multi_objective(problem, config)
+        finally:
+            ACTIVE_SOLVES.dec()
+        execution_time = time.time() - start_time
+        SOLVE_DURATION.observe(execution_time)
+
+        labels = [obj.label or f"Objective {i + 1}" for i, obj in enumerate(config.objectives)]
+        mo_result = MultiObjectiveResult(
+            pareto_points=pareto_points,
+            mode=config.mode,
+            n_solved=len(pareto_points),
+            labels=labels,
+        )
+        # Nested result_data: single-solve keys stay null (a Pareto front, not one answer).
+        result_data = {
+            "multi_objective": mo_result.model_dump(mode="json"),
+            "objective_value": None,
+            "solver_status": "optimal",
+        }
+
+        SOLVE_TOTAL.labels(status="optimal", generator="multi_objective").inc()
+
+        # Persist the terminal row (parity with solve_async's W1 sibling) so the run
+        # shows up in history immediately instead of staying a 'pending' zombie.
+        execution_writer.mark_multi_objective_completed_by_task(
+            task_id=task_id,
+            organization_id=organization_id,
+            result_data=result_data,
+            execution_time_seconds=execution_time,
+        )
+
+        _publish_ws_event(
+            task_id,
+            {
+                "type": "completed",
+                "execution_id": task_id,
+                "progress": 1.0,
+                "status": "completed",
+                "message": "Pareto front computed",
+                "timestamp": utcnow().isoformat(),
+                "metrics": {"n_solved": mo_result.n_solved},
+            },
+        )
+        logger.info(f"Multi-objective task {task_id} completed in {execution_time:.2f}s")
+
+        return {
+            "status": "success",
+            "task_id": task_id,
+            "multi_objective": True,
+            "result": mo_result.model_dump(mode="json"),
+            "execution_time_seconds": execution_time,
+        }
+
+    except Exception as e:
+        logger.error(f"Multi-objective task {task_id} failed: {e!s}")
+        SOLVE_TOTAL.labels(status="error", generator="multi_objective").inc()
+
+        # SoftTimeLimitExceeded carries no useful message; give a clear reason.
+        if isinstance(e, SoftTimeLimitExceeded):
+            error_detail = (
+                "Multi-objective solve exceeded the worker time limit and was terminated."
+            )
+        else:
+            error_detail = str(e)
+
+        execution_writer.mark_failed_by_task(task_id, organization_id, error_detail)
+
+        _publish_ws_event(
+            task_id,
+            {
+                "type": "failed",
+                "execution_id": task_id,
+                "progress": 1.0,
+                "status": "failed",
+                "message": str(e),
+                "error": str(e),
+                "timestamp": utcnow().isoformat(),
+            },
+        )
+        return {
+            "status": "error",
+            "task_id": task_id,
+            "error": error_detail,
         }
 
 
@@ -565,24 +541,25 @@ def solve_model_async(
     self: Any,
     execution_id: str,
     model_id: str,
-    template: dict[str, Any],
+    template: dict[str, Any] | None,
     input_data: dict[str, Any],
     organization_id: str,
-    base_credits: int = 1,
     solver_name: str | None = None,
-    _prepaid_credits: int = 0,
+    problem_data: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
-    Async task to execute a model from the catalog.
+    Async task to execute one of the organization's models (ModelProject).
 
     Args:
         execution_id: ID of the ModelExecution record
-        model_id: ID of the OrganizationModel
-        template: Template configuration for the solver
-        input_data: Input parameters for the model
+        model_id: ID of the ModelProject being executed
+        template: Generator template to render with ``input_data`` (generator-backed
+            models); None for a static model
+        input_data: Input parameters for the generator (ignored for static models)
         organization_id: Organization making the request
-        base_credits: Base credits to charge
         solver_name: Optional solver name (defaults to SCIP if None)
+        problem_data: The validated OptimizationProblem payload of a static model
+            (used when ``template`` is None)
 
     Returns:
         Execution result dictionary
@@ -590,7 +567,7 @@ def solve_model_async(
     from app.domains.solver.services.template_engine import get_template_engine
 
     task_id = self.request.id
-    logger.info(f"Starting model execution task {task_id} for execution {execution_id}")
+    logger.info("Starting model execution task %s for execution %s", task_id, execution_id)
 
     db = SessionLocal()
     execution = None
@@ -602,7 +579,7 @@ def solve_model_async(
         if not execution:
             raise ValueError(f"Execution {execution_id} not found")
 
-        execution.status = ExecutionStatus.RUNNING.value
+        execution_writer.apply_running(execution)
         db.commit()
 
         update_task_progress(0.0, "starting", "Loading model configuration...")
@@ -618,7 +595,7 @@ def solve_model_async(
             },
         )
 
-        model = db.query(OrganizationModel).filter(OrganizationModel.id == model_id).first()
+        model = db.query(ModelProject).filter(ModelProject.id == model_id).first()
 
         if not model:
             raise ValueError(f"Model {model_id} not found")
@@ -636,9 +613,15 @@ def solve_model_async(
             },
         )
 
-        # Transform input to optimization problem using template engine
-        template_engine = get_template_engine()
-        problem = template_engine.render(template, input_data)
+        # Generator-backed models render input through the template engine;
+        # static models ship their validated problem payload directly.
+        if template is not None:
+            template_engine = get_template_engine()
+            problem = template_engine.render(template, input_data)
+        elif problem_data is not None:
+            problem = OptimizationProblem.model_validate(problem_data)
+        else:
+            raise ValueError(f"Model {model_id} has neither a template nor problem_data")
 
         # Create solver (uses requested solver or default SCIP)
         solver = get_solver_service(solver_name=solver_name)
@@ -667,8 +650,41 @@ def solve_model_async(
         execution_time_ms = int(execution_time_seconds * 1000)
         SOLVE_DURATION.observe(execution_time_seconds)
 
-        # Credits already calculated dynamically via calculate_credits() at pre-pay
-        total_credits = base_credits
+        # ADR-007 S6: a solver-internal error comes back as status=ERROR WITHOUT
+        # raising (SolverService.solve swallows exceptions into an ERROR result).
+        # Mirror the historic sync contract: mark the row failed — a solve that
+        # delivered no result must never look completed.
+        if result.status == SolverStatus.ERROR:
+            error_message = result.error_message or "Solver returned an error"
+            execution.input_data = problem.model_dump(mode="json")
+            if execution_writer.apply_failed(execution, error=error_message):
+                execution.result_data = result.to_result_data()
+                execution.execution_time_ms = execution_time_ms
+                execution.solver_status = result.status.value
+            db.commit()
+            SOLVE_TOTAL.labels(status="error", generator="model_async").inc()
+            update_task_progress(1.0, "failed", error_message)
+            _publish_ws_event(
+                execution_id,
+                {
+                    "type": "failed",
+                    "execution_id": execution_id,
+                    "progress": 1.0,
+                    "status": "failed",
+                    "message": error_message,
+                    "error": error_message,
+                    "timestamp": utcnow().isoformat(),
+                },
+            )
+            return {
+                "status": "error",
+                "execution_id": execution_id,
+                "task_id": task_id,
+                "error": error_message,
+                "result_data": result.to_result_data(),
+                "execution_time_ms": execution_time_ms,
+                "solver_status": result.status.value,
+            }
 
         # Extract solver metrics if available (MIP gap, bounds)
         metrics = None
@@ -677,42 +693,36 @@ def solve_model_async(
             if hasattr(result, "objective_value") and result.objective_value is not None:
                 metrics["incumbent"] = result.objective_value
 
-        # Store rendered problem so parse_problem() / file-export works
+        # Store rendered problem so parse_problem() / file-export works, then let
+        # the single writer own the terminal-success columns (ADR-007 S3).
         execution.input_data = problem.model_dump(mode="json")
-        execution.status = ExecutionStatus.COMPLETED.value
-        execution.result_data = result.to_result_data()
-        execution.execution_time_ms = execution_time_ms
-        execution.solver_status = result.status.value
-        execution.objective_value = result.objective_value
-        execution.credits_consumed = total_credits
-        execution.credits_compute = 0
-        execution.completed_at = utcnow()
-
-        # Deduct credits via CreditsService (row-locked, idempotent, with notification)
-        CreditsService.deduct_credits(
-            db=db,
-            organization_id=organization_id,
-            credits=total_credits,
-            description=f"Async solve execution: {execution_id}",
-            reference_type="execution",
-            reference_id=execution_id,
+        execution_writer.apply_completed(
+            execution,
+            result=result,
+            execution_time_seconds=execution_time_seconds,
         )
         SOLVE_TOTAL.labels(
             status=result.status.value,
             generator="model_async",
         ).inc()
-        CREDITS_CONSUMED.inc(total_credits)
 
-        org = db.query(Organization).filter(Organization.id == organization_id).first()
-        if org:
-            org.credits_used_month += total_credits
-
-        model.total_executions += 1
-        model.total_credits_used += total_credits
-        model.last_executed_at = utcnow()
-
-        if model.catalog_model:
-            model.catalog_model.total_executions += 1
+        # Roll the execution count onto the marketplace listing (a fork bumps its
+        # SOURCE listing; a project with its own listing bumps that). Per-project
+        # counts are computed from model_executions — no per-project counter.
+        listing_id = (
+            model.source_ref
+            if model.source_type == "marketplace" and model.source_ref
+            else model.id
+        )
+        listing = (
+            db.query(ModelProjectListing)
+            .filter(ModelProjectListing.model_project_id == listing_id)
+            .first()
+        )
+        if listing is not None:
+            # SQL-expression assignment → atomic UPDATE (concurrent workers
+            # bumping the same listing must not lose increments).
+            listing.total_executions = ModelProjectListing.total_executions + 1
 
         db.commit()
 
@@ -724,11 +734,9 @@ def solve_model_async(
                 user_id=execution.executed_by_user_id or "",
                 organization_id=organization_id,
                 execution_id=execution_id,
-                model_name=model.display_name,
+                model_name=model.name,
                 objective_value=result.objective_value,
             )
-
-            # Low-credits check is now handled automatically inside CreditsService
         except Exception as notify_error:
             logger.warning(f"Failed to send notification: {notify_error}")
 
@@ -759,7 +767,6 @@ def solve_model_async(
                 "solve_time_seconds": result.solve_time_seconds,
             },
             "execution_time_ms": execution_time_ms,
-            "credits_used": total_credits,
         }
 
     except Exception as e:
@@ -770,72 +777,21 @@ def solve_model_async(
         # The cancel endpoint sets status="cancelled" BEFORE revoking the
         # Celery task, so SIGTERM may flow into this handler. When the
         # execution is already marked cancelled we preserve the cancellation
-        # state and skip the base-credit deduction — a user cancellation is
-        # not a solver failure.
+        # state — a user cancellation is not a solver failure.
         if execution:
             # Re-read to pick up status changes the cancel endpoint committed
             # on another session while this task was running.
             db.refresh(execution)
 
-            if execution.status == ExecutionStatus.CANCELLED.value:
+            # The single writer's terminal-wins guard: apply_failed is a no-op
+            # (returns False) when the row is already CANCELLED.
+            if not execution_writer.apply_failed(execution, error=str(e)):
                 logger.info(
-                    "Execution %s was cancelled by user; skipping failure-path credit deduction.",
+                    "Execution %s already terminal (user cancel); preserving it.",
                     execution_id,
                 )
                 execution.error_message = execution.error_message or "Cancelled by user"
                 execution.completed_at = execution.completed_at or utcnow()
-                # credits_consumed stays at its pre-cancel value (typically None)
-            else:
-                execution.status = ExecutionStatus.FAILED.value
-                execution.error_message = str(e)
-                execution.completed_at = utcnow()
-
-                # When the producer has pre-paid credits (the execute_model
-                # async branch does this to match /solve/async), a solver
-                # failure must refund — not re-deduct. Refund is idempotent
-                # via record_transaction's (org, REFUND, execution,
-                # execution_id) uniqueness scope.
-                if _prepaid_credits > 0:
-                    execution.credits_consumed = 0
-                    try:
-                        CreditsService(db).refund_credits(
-                            organization_id=organization_id,
-                            credits=_prepaid_credits,
-                            description=(
-                                f"{RefundReason.MODEL_EXECUTION_FAILED.value} "
-                                f"(execution {execution_id}): {str(e)[:200]}"
-                            ),
-                            reference_type="execution",
-                            reference_id=execution_id,
-                        )
-                    except Exception as credit_err:
-                        logger.warning(
-                            "Failed to refund pre-paid credits on failure: %s", credit_err
-                        )
-                else:
-                    # Legacy path (no pre-pay): keep the historic
-                    # deduct-on-failure behavior so callers that did NOT
-                    # pre-pay (e.g. other dispatch sites) still record the
-                    # charge. New producers should always pre-pay.
-                    execution.credits_consumed = base_credits
-                    try:
-                        CreditsService.deduct_credits(
-                            db=db,
-                            organization_id=organization_id,
-                            credits=base_credits,
-                            description=f"Async solve execution (failed): {execution_id}",
-                            reference_type="execution_failed",
-                            reference_id=execution_id,
-                        )
-                        org = (
-                            db.query(Organization)
-                            .filter(Organization.id == organization_id)
-                            .first()
-                        )
-                        if org:
-                            org.credits_used_month += base_credits
-                    except Exception as credit_err:
-                        logger.warning("Failed to deduct base credits on failure: %s", credit_err)
 
             db.commit()
 

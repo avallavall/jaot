@@ -36,7 +36,6 @@ def _create_login_user(db_session):
     org = Organization(
         id="org_cookie001",
         name="Cookie Org",
-        credits_balance=100,
         is_active=True,
     )
     db_session.add(org)

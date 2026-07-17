@@ -139,7 +139,6 @@ def _build_auth_response_data(user: User, org: Organization) -> dict[str, Any]:
             "id": org.id,
             "name": org.name,
             "plan": org.plan,
-            "credits_balance": org.credits_balance,
         },
         "permissions": {
             "can_build_plugins": user.can_build_plugins,
@@ -186,7 +185,6 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)) -> LoginRe
             "id": org.id,
             "name": org.name,
             "plan": org.plan,
-            "credits_balance": org.credits_balance,
         },
         permissions={
             "can_build_plugins": user.can_build_plugins,
@@ -216,10 +214,8 @@ async def login_email(
     user = db.query(User).filter(User.email == body.email).first()
 
     # Check account lockout (before password verification)
-    if user and user.locked_until and user.locked_until > utcnow().replace(tzinfo=None):
-        minutes_left = (
-            int((user.locked_until - utcnow().replace(tzinfo=None)).total_seconds() / 60) + 1
-        )
+    if user and user.locked_until and user.locked_until > utcnow():
+        minutes_left = int((user.locked_until - utcnow()).total_seconds() / 60) + 1
         raise HTTPException(
             status_code=status.HTTP_423_LOCKED,
             detail=f"Account temporarily locked. Try again in {minutes_left} minutes.",
@@ -238,9 +234,7 @@ async def login_email(
         # Increment failed attempts
         user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
         if user.failed_login_attempts >= MAX_FAILED_ATTEMPTS:
-            user.locked_until = utcnow().replace(tzinfo=None) + timedelta(
-                minutes=LOCKOUT_DURATION_MINUTES
-            )
+            user.locked_until = utcnow() + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
         db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -284,7 +278,7 @@ async def login_email(
     rt_record = RefreshToken(
         user_id=user.id,
         jti=jti,
-        expires_at=utcnow().replace(tzinfo=None) + timedelta(days=days),
+        expires_at=utcnow() + timedelta(days=days),
     )
     db.add(rt_record)
     db.commit()
@@ -358,11 +352,8 @@ async def signup_email(
         id=org_id,
         name=body.organization_name,
         plan=body.plan,
-        credits_balance=plan_config["credits"],
-        monthly_quota=plan_config["monthly_quota"],
         rate_limit_per_minute=plan_config["rate_limit_per_minute"],
         rate_limit_per_day=plan_config["rate_limit_per_day"],
-        billing_email=body.email,
     )
     db.add(organization)
 
@@ -379,7 +370,7 @@ async def signup_email(
         role="member",
         password_hash=password_hash,
         email_verified=False,
-        tos_accepted_at=utcnow().replace(tzinfo=None) if body.tos_accepted else None,
+        tos_accepted_at=utcnow() if body.tos_accepted else None,
     )
     db.add(user)
     db.flush()
@@ -407,8 +398,7 @@ async def signup_email(
     rt_record = RefreshToken(
         user_id=user.id,
         jti=jti,
-        expires_at=utcnow().replace(tzinfo=None)
-        + timedelta(days=PSS.get_int(db, "JWT_REFRESH_TOKEN_EXPIRE_DAYS")),
+        expires_at=utcnow() + timedelta(days=PSS.get_int(db, "JWT_REFRESH_TOKEN_EXPIRE_DAYS")),
     )
     db.add(rt_record)
 
@@ -476,7 +466,6 @@ async def signup_email(
         "user_id": user_id,
         "organization_id": org_id,
         "api_key": plaintext_key,
-        "credits_balance": organization.credits_balance,
         "plan": body.plan,
         "message": (
             "Welcome to JAOT! Your account has been created. "
@@ -528,7 +517,7 @@ async def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)) 
         )
 
     user.email_verified = True
-    user.email_verified_at = utcnow().replace(tzinfo=None)
+    user.email_verified_at = utcnow()
     db.commit()
 
     return {"success": True, "message": "Email verified successfully"}
@@ -702,8 +691,7 @@ async def refresh_token(request: Request, db: Session = Depends(get_db)) -> Resp
     new_rt_record = RefreshToken(
         user_id=user.id,
         jti=new_jti,
-        expires_at=utcnow().replace(tzinfo=None)
-        + timedelta(days=PSS.get_int(db, "JWT_REFRESH_TOKEN_EXPIRE_DAYS")),
+        expires_at=utcnow() + timedelta(days=PSS.get_int(db, "JWT_REFRESH_TOKEN_EXPIRE_DAYS")),
     )
     db.add(new_rt_record)
     db.commit()
@@ -772,7 +760,6 @@ def get_me(
         organization_id=org.id,
         organization_name=org.name,
         plan=org.plan,
-        credits_balance=org.credits_balance,
         is_admin=user.is_admin,
         is_org_owner=is_org_owner,
         can_build_plugins=user.can_build_plugins,
@@ -821,11 +808,8 @@ async def signup(
         id=org_id,
         name=request.organization_name,
         plan=request.plan,
-        credits_balance=plan_config["credits"],
-        monthly_quota=plan_config["monthly_quota"],
         rate_limit_per_minute=plan_config["rate_limit_per_minute"],
         rate_limit_per_day=plan_config["rate_limit_per_day"],
-        billing_email=request.email,
     )
     db.add(organization)
 
@@ -875,7 +859,6 @@ async def signup(
         user_id=user_id,
         organization_id=org_id,
         api_key=plaintext_key,
-        credits_balance=organization.credits_balance,
         plan=request.plan,
         message=(
             "Welcome to JAOT! Your organization has been created. "

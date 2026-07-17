@@ -45,12 +45,6 @@ class TestAdminEndpointAuth:
         assert response.status_code == 403
         assert response.json()["detail"] == "Admin access required"
 
-    def test_admin_credits_endpoint_with_non_admin(self, authenticated_client):
-        """Non-admin user receives 403 on /admin/credits/transactions."""
-        response = authenticated_client.get("/api/v2/admin/credits/transactions")
-        assert response.status_code == 403
-        assert response.json()["detail"] == "Admin access required"
-
     def test_admin_endpoint_unauthenticated(self, app, db_session, override_db_dependency):
         """Unauthenticated request gets 401 from auth middleware.
 

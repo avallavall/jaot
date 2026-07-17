@@ -201,7 +201,6 @@ class TestTriggerSolveUsesVersionModelJson:
             mock_result.model_dump.return_value = {
                 "status": "optimal",
                 "objective_value": 42.0,
-                "credits_used": 1,
             }
             mock_solve.return_value = mock_result
 
@@ -286,7 +285,6 @@ class TestTriggerSolveFallback:
             mock_result.model_dump.return_value = {
                 "status": "optimal",
                 "objective_value": 10.0,
-                "credits_used": 1,
             }
             mock_solve.return_value = mock_result
 
@@ -374,7 +372,6 @@ class TestTriggerSolveFallback:
             mock_result.model_dump.return_value = {
                 "status": "optimal",
                 "objective_value": 0.0,
-                "credits_used": 1,
             }
             mock_solve.return_value = mock_result
 

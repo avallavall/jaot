@@ -127,7 +127,7 @@ export default function FileImportPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => router.push("/solve")}
+          onClick={() => router.push("/studio")}
           className="mb-4 -ml-2"
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
@@ -248,10 +248,6 @@ export default function FileImportPage() {
               </div>
             )}
 
-            <PreviewStat
-              label={t("estimatedCredits")}
-              value={String(preview.metadata.estimated_credits)}
-            />
           </div>
 
           <SolverSelect

@@ -18,10 +18,10 @@ flowchart TB
 
     Public --> PublicHome["/ · landing"]
     Public --> PublicDocs["/docs"]
-    Public --> PublicForSellers["/for-sellers"]
     Public --> PublicLicenses["/licenses"]
     Public --> PublicContact["/contact"]
     Public --> PublicMarketplace["/marketplace"]
+    PublicMarketplace --> PublicAuthors["/marketplace/authors/[orgId]"]
 
     AuthRoutes --> Login["login"]
     AuthRoutes --> Signup["signup"]
@@ -34,7 +34,7 @@ flowchart TB
     Dashboard --> Builder["builder/* · model builder"]
     Dashboard --> Solve["solve/* · solver UI"]
     Dashboard --> Triggers["triggers/* · automation"]
-    Dashboard --> Billing["billing/* · credits + plan"]
+    Dashboard --> Studio["studio/* · Model, Analyze & Solve"]
     Dashboard --> User["user/* · settings, API keys"]
     Dashboard --> Org["org/* · members + plan"]
 

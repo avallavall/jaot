@@ -40,7 +40,7 @@ export interface InfeasibilityExplanationState {
  *
  * Mirrors useSolutionExplanation exactly (fetch + ReadableStream, the
  * delta/status/error/done event set) — only the endpoint and request body differ.
- * Pre-stream HTTP failures (402/403/429/5xx) map to stable error codes so the UI
+ * Pre-stream HTTP failures (403/429/5xx) map to stable error codes so the UI
  * never renders raw upstream detail.
  */
 export function useInfeasibilityExplanation(): InfeasibilityExplanationState {
@@ -142,9 +142,7 @@ export function useInfeasibilityExplanation(): InfeasibilityExplanationState {
 
         if (!response.ok) {
           setRequestId(response.headers.get("x-request-id"));
-          if (response.status === 402) {
-            setErrorCode("insufficient_credits");
-          } else if (response.status === 429 || response.status >= 500) {
+          if (response.status === 429 || response.status >= 500) {
             setErrorCode("service_unavailable");
           } else {
             setErrorCode("internal_error");

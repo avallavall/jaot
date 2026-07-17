@@ -43,8 +43,8 @@ def send_onboarding_email(
     Args:
         user_email: Recipient email address
         user_name: User's display name
-        day: Day offset (0, 1, 3, 7, 14)
-        **kwargs: Extra args passed to the email generator (e.g. api_key_prefix, credits_balance)
+        day: Day offset (0, 1, 3, 14)
+        **kwargs: Extra args passed to the email generator (e.g. api_key_prefix)
     """
     generator = ONBOARDING_SEQUENCE.get(day)
     if not generator:
@@ -59,8 +59,6 @@ def send_onboarding_email(
             subject, html = generator(
                 user_name, kwargs.get("api_key_prefix", "ok_live_"), locale=locale
             )
-        elif day == 7:
-            subject, html = generator(user_name, kwargs.get("credits_balance", 200), locale=locale)
         else:
             subject, html = generator(user_name, locale=locale)
 

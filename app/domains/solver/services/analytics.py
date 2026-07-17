@@ -34,8 +34,6 @@ class AnalyticsSummary:
     success_rate: float
     avg_solve_time_ms: float | None
     median_solve_time_ms: float | None
-    total_credits: int
-    avg_credits: float
     avg_objective_value: float | None
     executions_by_status: Mapping[str, int]
     executions_by_origin: Mapping[str, int]
@@ -50,7 +48,6 @@ class TrendBucket:
     executions: int
     completed: int
     failed: int
-    credits: int
     avg_solve_time_ms: float | None
 
 
@@ -63,7 +60,6 @@ class ComparedExecution:
     solver_status: str | None
     objective_value: float | None
     execution_time_ms: int | None
-    credits_consumed: int
     created_at: str
     origin: str
     num_variables: int | None
@@ -102,8 +98,6 @@ def compute_summary(db: Session, org_id: str, days: int) -> AnalyticsSummary:
             success_rate=0.0,
             avg_solve_time_ms=None,
             median_solve_time_ms=None,
-            total_credits=0,
-            avg_credits=0.0,
             avg_objective_value=None,
             executions_by_status={},
             executions_by_origin={},
@@ -116,7 +110,6 @@ def compute_summary(db: Session, org_id: str, days: int) -> AnalyticsSummary:
     solver_status_counts: dict[str, int] = {}
     solve_times: list[int] = []
     objectives: list[float] = []
-    total_credits = 0
 
     for exe in executions:
         status_counts[exe.status] = status_counts.get(exe.status, 0) + 1
@@ -129,7 +122,6 @@ def compute_summary(db: Session, org_id: str, days: int) -> AnalyticsSummary:
             solve_times.append(exe.execution_time_ms)
         if exe.objective_value is not None:
             objectives.append(exe.objective_value)
-        total_credits += exe.credits_consumed
 
     completed = status_counts.get("completed", 0)
     failed = status_counts.get("failed", 0)
@@ -153,8 +145,6 @@ def compute_summary(db: Session, org_id: str, days: int) -> AnalyticsSummary:
         success_rate=completed / total if total else 0.0,
         avg_solve_time_ms=sum(solve_times) / len(solve_times) if solve_times else None,
         median_solve_time_ms=median_time,
-        total_credits=total_credits,
-        avg_credits=total_credits / total if total else 0.0,
         avg_objective_value=sum(objectives) / len(objectives) if objectives else None,
         executions_by_status=MappingProxyType(status_counts),
         executions_by_origin=MappingProxyType(origin_counts),
@@ -204,7 +194,6 @@ def compute_trends(
                 executions=len(group),
                 completed=sum(1 for e in group if e.status == "completed"),
                 failed=sum(1 for e in group if e.status == "failed"),
-                credits=sum(e.credits_consumed for e in group),
                 avg_solve_time_ms=sum(times) / len(times) if times else None,
             )
         )
@@ -267,7 +256,6 @@ def compare_executions(
                 solver_status=exe.solver_status,
                 objective_value=exe.objective_value,
                 execution_time_ms=exe.execution_time_ms,
-                credits_consumed=exe.credits_consumed,
                 created_at=exe.created_at.isoformat(),
                 origin=exe.origin,
                 num_variables=num_vars,

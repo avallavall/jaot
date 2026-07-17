@@ -98,8 +98,7 @@ Expected response (abbreviated):
     {"name": "y", "value": 4.666, "type": "continuous"}
   ],
   "solution": {"x": 2.666, "y": 4.666},
-  "solve_time_seconds": 0.003,
-  "credits_used": 1
+  "solve_time_seconds": 0.003
 }
 ```
 
@@ -204,7 +203,11 @@ Same `curl` command as in Path A, step 5.
 ## What's next
 
 - Browse the API docs at `http://localhost:8001/docs` (Swagger UI) for all available endpoints
-- Explore the [Model Catalog](http://localhost:3000/en/catalog) to activate pre-built optimization templates
+- Open the [Model Studio](http://localhost:3000/en/studio) and create your first versioned model
+  (canvas, AI assistant, JSON editor, file import, or a pre-built template from the
+  [template gallery](http://localhost:3000/en/studio/templates))
+- Explore the [Marketplace](http://localhost:3000/en/marketplace) — "Use in studio" forks any
+  community model into your own editable, versioned copy
 
 ---
 
@@ -310,7 +313,7 @@ See [Deployment Guide](../operations/DEPLOYMENT.md) and [Disaster Recovery](../.
 
 <!-- AUTO-GENERATED: from .env.example — do not edit by hand. Regenerate via /update-docs. -->
 
-Only **infrastructure** variables live in `.env`. Business configuration (plans, LLM, Stripe, SMTP, feature flags, rate limits) is stored in the `platform_settings` DB table and edited via the admin panel.
+Only **infrastructure** variables live in `.env`. Business configuration (plans, LLM, SMTP, feature flags, rate limits) is stored in the `platform_settings` DB table and edited via the admin panel.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|

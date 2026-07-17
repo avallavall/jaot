@@ -96,9 +96,14 @@ test.describe("Admin CRUD — Functional Tests", () => {
     await adminPage.gotoUsers();
     await expect(page).toHaveURL(/\/admin\/users/);
 
-    // Wait for the table to render
+    // Wait for the table to render AND finish loading — right after mount the
+    // body shows a single "Loading..." row, which satisfies row-count checks
+    // but has no real data yet
     const table = page.getByRole("table");
     await expect(table).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(
+      table.getByRole("cell").filter({ hasText: "@" }).first()
+    ).toBeVisible({ timeout: NAV_TIMEOUT });
 
     // Verify column headers include "Email"
     const headers = page.getByRole("columnheader");
@@ -264,12 +269,16 @@ test.describe("Admin CRUD — Functional Tests", () => {
     await expect(secondTab).toBeVisible();
     await expect(secondTab).toBeEnabled();
     const secondTabName = await secondTab.textContent();
-    await secondTab.click();
 
-    // Verify the tab is now selected
-    await expect(secondTab).toHaveAttribute("aria-selected", "true", {
-      timeout: 10_000,
-    });
+    // Retry the whole click→selected interaction: a click landing mid-render
+    // is silently dropped by Radix, and retrying only the attribute read
+    // can never recover from that
+    await expect(async () => {
+      await secondTab.click();
+      await expect(secondTab).toHaveAttribute("aria-selected", "true", {
+        timeout: 2_000,
+      });
+    }).toPass({ timeout: 10_000 });
 
     // Verify the tab panel updated with content
     const updatedPanel = page.getByRole("tabpanel");
@@ -287,10 +296,12 @@ test.describe("Admin CRUD — Functional Tests", () => {
     // -- Third tab (if exists): verify it also works --
     if (tabCount >= 3) {
       const thirdTab = tabs.nth(2);
-      await thirdTab.click();
-      await expect(thirdTab).toHaveAttribute("aria-selected", "true", {
-        timeout: 10_000,
-      });
+      await expect(async () => {
+        await thirdTab.click();
+        await expect(thirdTab).toHaveAttribute("aria-selected", "true", {
+          timeout: 2_000,
+        });
+      }).toPass({ timeout: 10_000 });
 
       const thirdPanel = page.getByRole("tabpanel");
       await expect(thirdPanel).toBeVisible({ timeout: NAV_TIMEOUT });

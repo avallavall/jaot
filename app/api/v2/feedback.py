@@ -53,7 +53,7 @@ def rate_conversation(
             detail="Conversation not found",
         )
 
-    now = utcnow().replace(tzinfo=None)
+    now = utcnow()
     if conv.expires_at < now:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

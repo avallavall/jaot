@@ -12,12 +12,15 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
 from typing import Any
 
 from pyscipopt import SCIP_EVENTTYPE, SCIP_PARAMSETTING, Eventhdlr, Model  # noqa: F401
 
 from app.domains.solver.adapters._scip_expression import (
+    anchor_constant_expr,
     build_scip_expression as _build_scip_expression_impl,
+    set_scip_objective,
 )
 from app.domains.solver.adapters._scip_model_builder import (
     build_scip_model as _build_scip_model_impl,
@@ -89,9 +92,13 @@ class _ProgressEventHandler(Eventhdlr):
 
     EVENT_MASK = SCIP_EVENTTYPE.BESTSOLFOUND
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        on_progress: Callable[[ProgressPoint], None] | None = None,
+    ) -> None:
         super().__init__()
         self.history: list[ProgressPoint] = []
+        self._on_progress = on_progress
         self._t0 = time.time()
         self._iter = 0
 
@@ -126,6 +133,11 @@ class _ProgressEventHandler(Eventhdlr):
                 elapsed_seconds=round(time.time() - self._t0, 3),
             )
             self.history.append(point)
+            # Live Solve: stream this incumbent out (best-effort). The point is
+            # already recorded above, so a failing callback never loses history;
+            # the surrounding try/except also guarantees it can't abort the solve.
+            if self._on_progress is not None:
+                self._on_progress(point)
         except Exception as exc:  # never let the handler raise — would abort the solve
             logger.debug("Progress event handler failed: %s", exc)
 
@@ -146,6 +158,7 @@ class SCIPAdapter:
         supports_sensitivity=True,  # via getDualSolVal + LP relaxation
         supports_warm_start=True,  # via createSol + addSol
         supports_multi_objective=False,  # uses orchestrator fallback
+        supports_progress=True,  # _ProgressEventHandler streams per-incumbent (Live Solve)
         # Phase 7.4 / D-10: requires_license removed — no per-request gate
     )
 
@@ -203,13 +216,14 @@ class SCIPAdapter:
         problem: OptimizationProblem,
         *,
         warm_start: dict[str, float] | None = None,
+        on_progress: Callable[[ProgressPoint], None] | None = None,
     ) -> OptimizationResult:
         """Solve an optimization problem with SCIP. See module docstring."""
         start_time = time.time()
 
         try:
             model, scip_vars, constraint_refs, progress_handler = self._build_model(
-                problem, warm_start
+                problem, warm_start, on_progress
             )
 
             logger.info("Solving problem: %s", problem.name or "unnamed")
@@ -242,12 +256,13 @@ class SCIPAdapter:
         self,
         problem: OptimizationProblem,
         warm_start: dict[str, float] | None,
+        on_progress: Callable[[ProgressPoint], None] | None = None,
     ) -> tuple[Model, dict[str, Any], dict[str, Any], _ProgressEventHandler]:
         """Create the SCIP model with variables, constraints, objective and progress handler."""
         model = Model(problem.name or "optimization_problem")
         self._configure_solver(model, problem)
         scip_vars = self._create_variables(model, problem.variables)
-        variable_names = [v.name for v in problem.variables]
+        variable_names = {v.name for v in problem.variables}
         constraint_refs = self._add_constraints(
             model, scip_vars, problem.constraints, variable_names
         )
@@ -257,7 +272,7 @@ class SCIPAdapter:
         if ws is not None:
             self._apply_warm_start(model, scip_vars, ws)
 
-        progress_handler = _ProgressEventHandler()
+        progress_handler = _ProgressEventHandler(on_progress)
         model.includeEventhdlr(
             progress_handler,
             "JaotProgressHdlr",
@@ -367,7 +382,7 @@ class SCIPAdapter:
         model: Model,
         scip_vars: dict[str, Any],
         constraints: list[Any],
-        variable_names: list[str],
+        variable_names: set[str],
     ) -> dict[str, Any]:
         """Add constraints to model and return constraint references for sensitivity analysis."""
         constraint_refs: dict[str, Any] = {}
@@ -377,8 +392,13 @@ class SCIPAdapter:
                 constraint.expression,
                 known_variables=variable_names,
             )
-            lhs_expr = self._build_expression(parsed.lhs, scip_vars)
             name = constraint.name or f"c{i}"
+            # Anchor a constant LHS (no variable terms) so addCons never gets a Python
+            # bool — the "given constraint is not ExprCons but bool" crash. Shared with
+            # the file-export/stats builder via _scip_expression.anchor_constant_expr.
+            lhs_expr = anchor_constant_expr(
+                self._build_expression(parsed.lhs, scip_vars), scip_vars, label=name
+            )
 
             cons = self._add_cons_for_operator(model, parsed.operator, lhs_expr, parsed.rhs, name)
             if cons is not None:
@@ -407,7 +427,7 @@ class SCIPAdapter:
         model: Model,
         scip_vars: dict[str, Any],
         objective: Any,
-        variable_names: list[str],
+        variable_names: set[str],
     ) -> None:
         """Set the objective function."""
         parsed = self._parser.parse_expression(
@@ -418,7 +438,7 @@ class SCIPAdapter:
         obj_expr = self._build_expression(parsed, scip_vars)
 
         sense = "minimize" if objective.sense.value == "minimize" else "maximize"
-        model.setObjective(obj_expr, sense=sense)
+        set_scip_objective(model, obj_expr, sense, is_linear=parsed.is_linear())
 
         logger.debug("Set objective: %s %s", sense, objective.expression)
 
@@ -591,7 +611,7 @@ class SCIPAdapter:
             lp_model.hideOutput()
             lp_model.setParam("display/verblevel", 0)
 
-            variable_names = [v.name for v in problem.variables]
+            variable_names = {v.name for v in problem.variables}
             lp_vars = self._create_lp_relaxation_vars(lp_model, problem)
             lp_constraint_refs = self._rebuild_lp_constraints(
                 lp_model, problem, lp_vars, variable_names
@@ -642,7 +662,7 @@ class SCIPAdapter:
         lp_model: Model,
         problem: OptimizationProblem,
         lp_vars: dict[str, Any],
-        variable_names: list[str],
+        variable_names: set[str],
     ) -> dict[str, Any]:
         """Rebuild problem constraints on the LP relaxation model."""
         lp_constraint_refs: dict[str, Any] = {}
@@ -666,7 +686,7 @@ class SCIPAdapter:
         lp_model: Model,
         problem: OptimizationProblem,
         lp_vars: dict[str, Any],
-        variable_names: list[str],
+        variable_names: set[str],
     ) -> None:
         """Set the objective on the LP relaxation model."""
         parsed_obj = self._parser.parse_expression(
@@ -751,6 +771,21 @@ class SCIPAdapter:
             logger.debug("MIP gap extraction failed", exc_info=True)
             return None
 
+    def _is_quadratic_problem(self, problem: OptimizationProblem) -> bool:
+        """True when the objective or any constraint carries a degree-2 term."""
+        variable_names = {v.name for v in problem.variables}
+        parsed_obj = self._parser.parse_expression(
+            problem.objective.expression, known_variables=variable_names
+        )
+        if not parsed_obj.is_linear():
+            return True
+        return any(
+            not self._parser.parse_constraint(
+                c.expression, known_variables=variable_names
+            ).lhs.is_linear()
+            for c in problem.constraints
+        )
+
     def _compute_sensitivity(
         self,
         model: Model,
@@ -758,8 +793,19 @@ class SCIPAdapter:
         constraint_refs: dict[str, Any],
         var_refs: dict[str, Any] | None = None,
     ) -> SensitivityResult | None:
-        """Extract sensitivity analysis (exact for LP, approximate for MIP)."""
+        """Extract sensitivity analysis (exact for LP, approximate for MIP).
+
+        Quadratic problems are excluded: LP shadow prices / reduced costs do not
+        apply to a quadratic model, and the "LP relaxation" rebuilt for MIPs would
+        silently be a QP — better an honest absence than misleading duals.
+        """
         try:
+            if self._is_quadratic_problem(problem):
+                return SensitivityResult(
+                    constraints=[],
+                    is_approximate=True,
+                    note="Sensitivity analysis is not available for quadratic problems.",
+                )
             if self._has_integer_variables(problem):
                 return self._extract_sensitivity_for_mip(problem)
             return self._extract_sensitivity(

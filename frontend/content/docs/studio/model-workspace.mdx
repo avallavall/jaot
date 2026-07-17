@@ -1,0 +1,69 @@
+---
+title: The Model Workspace
+description: Build, analyze, version, and solve an optimization model in one place — the Model, Analyze & Solve studio.
+order: 1
+---
+
+# The Model Workspace
+
+**Model, Analyze & Solve** is the studio where an optimization model is the protagonist: you build it, analyze it, solve it, and improve it step by step — all in one workspace, without hopping between disconnected screens. Open it from the sidebar (**Model, Analyze & Solve**) or go straight to **/studio**.
+
+Everything in the workspace is a view of **one canonical model**. Whichever way you author it — visually, by chatting with the AI, or as JSON text — you are editing the same model, and the other views update to match.
+
+## Creating a model
+
+From **My Models**, choose **New Model** to open the launcher. Every starting point creates a first-class model you can version and reuse:
+
+- **Blank** — start from an empty model.
+- **Describe with AI** — write what you want to optimize and let the assistant draft it.
+- **Visual** — lay the model out on the canvas.
+- **Editor** — write the model as JSON text.
+- **From a template** — pick one of the 102 curated templates; it is materialized into a new model.
+- **From the marketplace** — open a published model with **Use in studio**.
+- **Import a file** — bring in an `MPS`, `LP`, `CIP`, or `JSON` model.
+
+Templates, marketplace models, and imports all seed a real model that lands in the workspace — born with a first version — instead of a one-off solve you lose afterwards.
+
+## Build · Data · Analyze · Solve
+
+The workspace has four top-level tabs, and a model-at-a-glance rail (variables by type, constraints, density, problem class, health) that stays visible on every tab.
+
+### Build
+
+The Build tab holds four authoring **lenses** for the same model:
+
+- **[Canvas](/docs/studio/visual-canvas)** — a visual graph of variables, constraints, and the objective. (Very large models skip the canvas automatically and are edited from the other lenses.)
+- **Assistant** — the AI builder, scoped to this model. Describe the model in natural language, then keep chatting to refine it ("add a variable y", "make x integer", "tighten the budget to 100"). Each reply updates the same model and autosaves. You can attach a spec or CSV to ground the formulation.
+- **[Editor](/docs/studio/json-editor)** — the model as JSON text. A valid edit reflects on the canvas and autosaves; malformed JSON shows an inline error and blocks solving until it is fixed, so you never act on a model you only think you changed.
+- **[JModel](/docs/studio/jmodel-dsl)** — a declarative modeling language: sets, params, and indexed families that compile into the flat model. The lens that unlocks datasets and scenarios. (Instance-gated.)
+
+### Data
+
+The Data tab manages the model's **[datasets](/docs/studio/datasets-scenarios)** — named data bundles that fill the sets and params a JModel formulation declares, so one model can run many scenarios.
+
+### Analyze
+
+The Analyze tab summarizes the model — objective sense, a constraint operator breakdown, terms per constraint, problem class — and hosts **Explain this model**: a grounded, plain-language account of what the model optimizes and what stands out about its structure. The numbers are computed in Python; the AI only narrates them, so it never invents figures.
+
+### Solve
+
+Pick a solver (or **Auto**, which routes by problem class) and run. Solving streams in real time as **Live Solve**: a convergence chart of the primal incumbent against the dual bound (the gap closing), plus gap %, nodes, incumbents, and elapsed time. When it finishes, the panel shows the result and which solver actually ran.
+
+A running solve is **durable**: it lives on the server, not in your browser, so it survives switching tabs, reloading, duplicating the tab, moving to another device, or losing power. Reopen the model and a still-running solve re-attaches; a finished one shows as the last run.
+
+## Versioning
+
+The workspace separates two kinds of saving:
+
+- **Autosave** keeps your draft safe continuously as you edit — silent checkpoints.
+- **Commit** records an explicit, message-bearing **version**: a milestone with a required *"What changed?"* and an optional *"Why?"*. A suggested message is derived from the diff.
+
+From the version history you can review past versions, see the **diff** between any two, **restore** an earlier one, and ask the AI to **explain the changes** between two committed versions. Versions are immutable snapshots, so a model carries its own history of how — and why — it evolved. See [Versioning](/docs/studio/versioning) for the full picture.
+
+## Publishing
+
+When a model is worth sharing, publish it to the marketplace from the **Analyze** tab's Marketplace card — publishing pins your latest committed version to a public listing that other teams can fork. See [Publishing Models](/docs/marketplace/publishing-models).
+
+## Running history
+
+Each model keeps its own run history, and the global executions page lists every solve across the platform with its origin, model name, and result — so a studio run is always traceable back to the model it came from.

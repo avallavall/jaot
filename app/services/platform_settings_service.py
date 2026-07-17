@@ -229,7 +229,7 @@ class PlatformSettingsService:
     def get_plan_config_dynamic(cls, db: Session, plan_name: str) -> dict[str, Any]:
         """Get plan configuration from DB for a given plan name.
 
-        Returns a dict with keys: credits, monthly_quota, rate_limit_per_minute,
+        Returns a dict with keys: rate_limit_per_minute,
         rate_limit_per_day, max_solve_time_seconds, max_variables,
         max_daily_solves, max_cron_schedules, allowed_features.
 
@@ -243,8 +243,6 @@ class PlatformSettingsService:
             Dict of plan configuration values.
         """
         fields = [
-            "credits",
-            "monthly_quota",
             "rate_limit_per_minute",
             "rate_limit_per_day",
             "max_solve_time_seconds",
@@ -488,12 +486,10 @@ class PlatformSettingsService:
         """Return plan configs grouped by tier name.
 
         Returns:
-            Dict of tier_name -> {field: value} for all 4 tiers x 9 fields.
+            Dict of tier_name -> {field: value} for all 4 tiers x 7 fields.
         """
         tiers = ["free", "starter", "pro", "business"]
         fields = [
-            "credits",
-            "monthly_quota",
             "rate_limit_per_minute",
             "rate_limit_per_day",
             "max_solve_time_seconds",
@@ -537,32 +533,3 @@ class PlatformSettingsService:
                     updates[key] = value
 
         return cls.bulk_set(db, updates, changed_by)
-
-    @classmethod
-    def get_commission_rate(cls, db: Session) -> float:
-        """Get the marketplace commission rate as a float.
-
-        Returns:
-            Commission rate (e.g. 0.10 for 10%). Defaults to 0.10.
-
-        Note:
-            Only meaningful when :meth:`is_monetization_enabled` is True. With
-            monetization off (the default) the marketplace is free and no
-            commission is ever charged regardless of this value.
-        """
-        return float(cls.get(db, "marketplace_commission_rate"))
-
-    @classmethod
-    def is_monetization_enabled(cls, db: Session) -> bool:
-        """Whether paid features (marketplace sales, payouts, billing) are active.
-
-        Defaults to ``False`` — the platform runs as a free, collaborative
-        deployment where marketplace models are free to publish and use and no
-        money changes hands. A self-hosted deployment can set
-        ``MONETIZATION_ENABLED=true`` to restore the paid marketplace
-        ("bring-your-own Stripe").
-
-        Returns:
-            True when the ``MONETIZATION_ENABLED`` flag is on, else False.
-        """
-        return cls.get_bool(db, "MONETIZATION_ENABLED")

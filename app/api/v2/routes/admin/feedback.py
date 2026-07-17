@@ -31,7 +31,7 @@ def list_feedback(
     db: Session = Depends(get_db),
 ) -> FeedbackListResponse:
     """List feedback ratings with optional filters (zone, rating, date range)."""
-    cutoff = (utcnow() - timedelta(days=days)).replace(tzinfo=None)
+    cutoff = utcnow() - timedelta(days=days)
 
     query = (
         db.query(FormulationRating)
@@ -62,7 +62,7 @@ def feedback_stats(
     db: Session = Depends(get_db),
 ) -> FeedbackStatsResponse:
     """Aggregate feedback statistics: totals, by-zone, avg_rating, daily_trend."""
-    cutoff = (utcnow() - timedelta(days=days)).replace(tzinfo=None)
+    cutoff = utcnow() - timedelta(days=days)
 
     base_query = db.query(FormulationRating).filter(FormulationRating.created_at >= cutoff)
     if zone:

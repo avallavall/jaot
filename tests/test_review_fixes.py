@@ -2,7 +2,7 @@
 
 Covers CRITICAL, HIGH, and MEDIUM fixes across:
 - auth_middleware: narrowed PUBLIC_DYNAMIC_PATHS, logged rollback, JWT error type
-- credits_service: prefixed IDs, timezone-aware datetimes, biweekly fix
+
 - llm_conversation: no DB session in column default
 - anthropic_client + pool: thread-safe singleton
 - pricing: batch queries, no Pydantic round-trip
@@ -17,7 +17,6 @@ Covers CRITICAL, HIGH, and MEDIUM fixes across:
 
 import threading
 from datetime import datetime
-from unittest.mock import patch
 
 import pytest
 
@@ -82,143 +81,6 @@ class TestPublicDynamicPathsNarrowed:
     def test_post_method_still_blocked(self):
         assert _is_public("/api/v2/users/abc123/public", "POST") is False
         assert _is_public("/api/v2/organizations/abc123/public", "POST") is False
-
-
-class TestCreditsServicePrefixedIds:
-    """HIGH: CreditTransaction, Withdrawal, WithdrawalSchedule IDs must be prefixed.
-
-    Real-DB integration tests: actually call the service methods and assert
-    the resulting row id starts with the documented prefix.
-    """
-
-    def test_record_transaction_id_has_ctx_prefix(self, db_session, test_organization):
-        """record_transaction creates IDs with 'ctx_' prefix."""
-        from app.models import TransactionType
-        from app.services.credits_service import CreditsService
-
-        service = CreditsService(db_session)
-        tx = service.record_transaction(
-            organization_id=test_organization.id,
-            transaction_type=TransactionType.PURCHASE,
-            credits_amount=100,
-            description="prefix test",
-        )
-        db_session.commit()
-        assert tx.id.startswith("ctx_")
-        assert len(tx.id) > len("ctx_")
-
-    def test_create_withdrawal_id_has_wdr_prefix(self, db_session, test_organization):
-        """create_withdrawal creates IDs with 'wdr_' prefix."""
-        from datetime import timedelta
-
-        from app.models import CreditTransaction, TransactionType
-        from app.services.credits_service import CreditsService
-        from app.shared.utils.datetime_helpers import utcnow
-
-        # Top up earned credits first so the withdrawal is fundable
-        service = CreditsService(db_session)
-        earning = service.record_transaction(
-            organization_id=test_organization.id,
-            transaction_type=TransactionType.SALE_EARNING,
-            credits_amount=1000,
-            description="seed earnings for withdrawal test",
-        )
-        # Backdate the earning past the holding window so it is withdrawable
-        earning.available_at = utcnow() - timedelta(days=1)
-        db_session.flush()
-
-        # Mark Stripe Connect onboarding complete (required by create_withdrawal)
-        test_organization.stripe_connect_onboarding_complete = True
-        db_session.flush()
-
-        withdrawal = service.create_withdrawal(
-            organization_id=test_organization.id,
-            credits_amount=500,
-        )
-        db_session.commit()
-        assert withdrawal.id.startswith("wdr_")
-        assert len(withdrawal.id) > len("wdr_")
-        # Sanity: the matching CreditTransaction also has the prefixed id
-        tx = (
-            db_session.query(CreditTransaction)
-            .filter(CreditTransaction.reference_id == withdrawal.id)
-            .first()
-        )
-        assert tx is not None
-        assert tx.id.startswith("ctx_")
-
-    def test_create_withdrawal_schedule_id_has_wds_prefix(self, db_session, test_organization):
-        """create_withdrawal_schedule creates IDs with 'wds_' prefix."""
-        from app.models import ScheduleAmountType, ScheduleFrequency
-        from app.services.credits_service import CreditsService
-
-        service = CreditsService(db_session)
-        test_organization.stripe_connect_onboarding_complete = True
-        db_session.flush()
-
-        schedule = service.create_withdrawal_schedule(
-            organization_id=test_organization.id,
-            frequency=ScheduleFrequency.MONTHLY,
-            amount_type=ScheduleAmountType.FIXED,
-            amount_value=200.0,
-        )
-        db_session.commit()
-        assert schedule.id.startswith("wds_")
-        assert len(schedule.id) > len("wds_")
-
-
-class TestCreditsServiceTimezoneAware:
-    """HIGH: _calculate_next_execution must return timezone-aware datetimes."""
-
-    def test_monthly_is_timezone_aware(self):
-        from app.models import ScheduleFrequency
-        from app.services.credits_service import CreditsService
-
-        service = CreditsService.__new__(CreditsService)
-        result = service._calculate_next_execution(ScheduleFrequency.MONTHLY)
-        assert result.tzinfo is not None, "MONTHLY datetime must be timezone-aware"
-
-    def test_quarterly_is_timezone_aware(self):
-        from app.models import ScheduleFrequency
-        from app.services.credits_service import CreditsService
-
-        service = CreditsService.__new__(CreditsService)
-        result = service._calculate_next_execution(ScheduleFrequency.QUARTERLY)
-        assert result.tzinfo is not None, "QUARTERLY datetime must be timezone-aware"
-
-    def test_weekly_is_timezone_aware(self):
-        from app.models import ScheduleFrequency
-        from app.services.credits_service import CreditsService
-
-        service = CreditsService.__new__(CreditsService)
-        result = service._calculate_next_execution(ScheduleFrequency.WEEKLY)
-        assert result.tzinfo is not None, "WEEKLY datetime must be timezone-aware"
-
-    def test_biweekly_is_timezone_aware(self):
-        from app.models import ScheduleFrequency
-        from app.services.credits_service import CreditsService
-
-        service = CreditsService.__new__(CreditsService)
-        result = service._calculate_next_execution(ScheduleFrequency.BIWEEKLY)
-        assert result.tzinfo is not None, "BIWEEKLY datetime must be timezone-aware"
-
-
-class TestBiweeklyCalculation:
-    """MEDIUM: BIWEEKLY should be exactly 14 days from now."""
-
-    def test_biweekly_is_exactly_14_days(self):
-        from app.models import ScheduleFrequency
-        from app.services.credits_service import CreditsService
-        from app.shared.utils.datetime_helpers import utcnow
-
-        service = CreditsService.__new__(CreditsService)
-        now = utcnow()
-
-        with patch("app.services.credits_service.utcnow", return_value=now):
-            result = service._calculate_next_execution(ScheduleFrequency.BIWEEKLY)
-
-        delta = result - now
-        assert delta.days == 14, f"BIWEEKLY should be 14 days ahead, got {delta.days}"
 
 
 class TestLLMConversationDefault:

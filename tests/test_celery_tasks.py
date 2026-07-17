@@ -107,7 +107,6 @@ class TestPermanentRunningDetection:
         org = Organization(
             id="org_test_detect",
             name="Detection Test Org",
-            credits_balance=100,
             is_active=True,
         )
         db_session.add(org)

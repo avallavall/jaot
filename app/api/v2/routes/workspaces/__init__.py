@@ -1,4 +1,4 @@
-"""Workspaces router — aggregates workspace CRUD, member, invite, audit, and credits routes.
+"""Workspaces router — aggregates workspace CRUD, member, invite, and audit routes.
 
 Mounted at /api/v2/workspaces in the main router.
 
@@ -27,13 +27,11 @@ Route layout:
     GET    /workspaces/audit/org                    Org-wide audit log
 
   Credit pool:
-    GET    /workspaces/{workspace_id}/credits/          Pool stats
-    POST   /workspaces/{workspace_id}/credits/allocate  Allocate credits
 """
 
 from fastapi import APIRouter
 
-from app.api.v2.routes.workspaces import audit, credits, invites, members, workspaces
+from app.api.v2.routes.workspaces import audit, invites, members, workspaces
 
 router = APIRouter()
 
@@ -52,4 +50,3 @@ router.include_router(invites.accept_router, prefix="/invites")
 router.include_router(members.router, prefix="/{workspace_id}/members")
 router.include_router(invites.router, prefix="/{workspace_id}/invites")
 router.include_router(audit.router, prefix="/{workspace_id}/audit")
-router.include_router(credits.router, prefix="/{workspace_id}/credits")

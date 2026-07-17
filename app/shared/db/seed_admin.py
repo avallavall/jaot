@@ -38,7 +38,6 @@ def _create_admin_with_org(
     password: str,
     name: str,
     org_name: str = "",
-    credits_override: int = 0,
 ):
     """Create the organization + admin user rows (no commit, no API key).
 
@@ -57,11 +56,8 @@ def _create_admin_with_org(
         id=generate_id(org_prefix),
         name=org_name or f"{name}'s Organization",
         plan="pro",
-        credits_balance=credits_override if credits_override > 0 else plan_config["credits"],
-        monthly_quota=plan_config["monthly_quota"],
         rate_limit_per_minute=plan_config["rate_limit_per_minute"],
         rate_limit_per_day=plan_config["rate_limit_per_day"],
-        billing_email=email,
     )
     db.add(organization)
 
@@ -74,7 +70,7 @@ def _create_admin_with_org(
         role="admin",
         password_hash=PasswordService.hash_password(password),
         email_verified=True,
-        tos_accepted_at=utcnow().replace(tzinfo=None),
+        tos_accepted_at=utcnow(),
     )
     db.add(user)
     db.flush()
@@ -113,14 +109,12 @@ def bootstrap_first_run(db: Session) -> bool:
         password=password,
         name=settings.SEED_ADMIN_NAME,
         org_name=settings.SEED_ADMIN_ORG_NAME,
-        credits_override=settings.SEED_ORG_CREDITS,
     )
     logger.info(
-        "First-run bootstrap: admin %s created with organization '%s' "
-        "(%s credits). Log in at the frontend to get started.",
+        "First-run bootstrap: admin %s created with organization '%s'. "
+        "Log in at the frontend to get started.",
         user.email,
         organization.name,
-        organization.credits_balance,
     )
     return True
 

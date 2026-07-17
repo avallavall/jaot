@@ -66,7 +66,9 @@ export function HomeAnnouncementBannerClient({
     <div
       role="region"
       aria-label={t("regionLabel")}
-      className="relative w-full bg-red-600 text-black"
+      // red-700 + white meets WCAG AA contrast for the 14px copy; red-600 + black
+      // sat at 4.4:1 (< 4.5) and failed the public axe sweep.
+      className="relative w-full bg-red-700 text-white"
     >
       <div className="max-w-6xl mx-auto px-6 py-2 flex items-center justify-center gap-3">
         <p
@@ -80,7 +82,7 @@ export function HomeAnnouncementBannerClient({
           type="button"
           onClick={handleDismiss}
           aria-label={t("dismiss")}
-          className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex h-6 w-6 items-center justify-center rounded hover:bg-red-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+          className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex h-6 w-6 items-center justify-center rounded hover:bg-red-800/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
         >
           <X className="h-4 w-4" aria-hidden="true" />
         </button>

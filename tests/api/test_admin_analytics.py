@@ -111,7 +111,7 @@ class TestAdminFeatureAnalytics:
                 user_id="user_admin001",
                 org_id="org_test001",
                 event_type="solver.solve",
-                event_metadata={"credits_used": 5},
+                event_metadata={"solve_ms": 5},
                 created_at=now - timedelta(minutes=30),
             ),
             AnalyticsEvent(
@@ -168,7 +168,6 @@ class TestAdminAnalyticsCrossOrgIsolation:
         other_org = Organization(
             id=generate_id("org_"),
             name="Cross-Org Sibling",
-            credits_balance=100,
             is_active=True,
         )
         db_session.add(other_org)

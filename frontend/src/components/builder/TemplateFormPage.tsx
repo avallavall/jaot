@@ -78,9 +78,7 @@ export function TemplateFormPage({ templateId, templateName }: TemplateFormPageP
         setDrawerOpen(true);
       } catch (err: unknown) {
         const status = getErrorStatus(err);
-        if (status === 402) {
-          toast.error(t("templateForm.insufficientCredits"));
-        } else if (status === 422) {
+        if (status === 422) {
           toast.error(t("templateForm.invalidInput", { detail: getErrorMessage(err, "") }));
         } else {
           toast.error(getErrorMessage(err, t("templateForm.solveFailed")));

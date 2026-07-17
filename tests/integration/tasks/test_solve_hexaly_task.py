@@ -2,8 +2,8 @@
 
 These turn GREEN what Plan 07-01 seeded as ``xfail(strict=False)`` stubs:
 
-- License-expired rejection before enqueue (D-05) — no credits debit, no
-  Celery task, 422 response from the sync orchestrator layer.
+- License-expired rejection before enqueue (D-05) — no Celery task,
+  422 response from the sync orchestrator layer.
 - ``HX_LICENSE_CONTENT`` env-var lifecycle around the adapter context
   manager — must not leak across tasks on a reused worker, even when the
   solve raises.

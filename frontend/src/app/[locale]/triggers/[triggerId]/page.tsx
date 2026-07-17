@@ -28,6 +28,7 @@ import { useDialog } from "@/components/ui/dialog-custom";
 import { CodeSnippets } from "@/components/triggers/CodeSnippets";
 import { RunHistoryTable } from "@/components/triggers/RunHistoryTable";
 import { ScheduleTab } from "@/components/triggers/ScheduleTab";
+import { apiDate } from "@/lib/dates";
 import {
   ChevronLeft,
   Clock,
@@ -302,12 +303,12 @@ function TriggerDetailPageInner() {
                 {trigger.last_fired_at && (
                   <div className="flex items-start gap-4 px-4 py-3">
                     <div className="w-40 shrink-0 text-sm text-muted-foreground">{t("lastFired")}</div>
-                    <div className="text-sm">{new Date(trigger.last_fired_at).toLocaleString()}</div>
+                    <div className="text-sm">{apiDate(trigger.last_fired_at).toLocaleString()}</div>
                   </div>
                 )}
                 <div className="flex items-start gap-4 px-4 py-3">
                   <div className="w-40 shrink-0 text-sm text-muted-foreground">{t("createdAt")}</div>
-                  <div className="text-sm">{new Date(trigger.created_at).toLocaleString()}</div>
+                  <div className="text-sm">{apiDate(trigger.created_at).toLocaleString()}</div>
                 </div>
               </div>
             </div>

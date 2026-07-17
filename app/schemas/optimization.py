@@ -105,7 +105,7 @@ class Constraint(BaseModel):
         default=None, max_length=256, description="Constraint name for debugging"
     )
     expression: str = Field(
-        ..., max_length=500_000, description="Constraint expression (e.g., 'x + 2*y <= 10')"
+        ..., max_length=5_000_000, description="Constraint expression (e.g., 'x + 2*y <= 10')"
     )
 
     @field_validator("name", "expression", mode="before")
@@ -138,7 +138,7 @@ class Objective(BaseModel):
 
     sense: ObjectiveSense = Field(..., description="Minimize or maximize")
     expression: str = Field(
-        ..., max_length=500_000, description="Objective expression (e.g., '3*x + 2*y')"
+        ..., max_length=5_000_000, description="Objective expression (e.g., '3*x + 2*y')"
     )
 
     @field_validator("expression", mode="before")
@@ -150,7 +150,9 @@ class Objective(BaseModel):
 class SolverOptions(BaseModel):
     """Solver configuration options."""
 
-    time_limit_seconds: float = Field(default=60.0, ge=1, le=3600, description="Max solve time")
+    time_limit_seconds: float = Field(
+        default=300.0, ge=1, le=86400, description="Max solve time (seconds, up to 24h)"
+    )
     gap_tolerance: float = Field(default=0.0001, ge=0, le=1, description="MIP gap tolerance")
     threads: int = Field(default=0, ge=0, le=8, description="Number of threads (0=auto)")
     verbose: bool = Field(default=False, description="Enable solver output")
@@ -168,7 +170,7 @@ class ObjectiveSpec(BaseModel):
     """Specification of a single objective in a multi-objective problem."""
 
     expression: str = Field(
-        ..., max_length=500_000, description="Objective expression (e.g., '3*x + 2*y')"
+        ..., max_length=5_000_000, description="Objective expression (e.g., '3*x + 2*y')"
     )
     sense: ObjectiveSense = Field(..., description="Minimize or maximize this objective")
     weight: float | None = Field(
@@ -331,7 +333,6 @@ class MultiObjectiveResult(BaseModel):
     """Result of a multi-objective optimization solve."""
 
     pareto_points: list[ParetoPoint] = Field(..., description="Points on the Pareto front")
-    total_credits_used: int = Field(..., description="Total credits consumed")
     mode: str = Field(..., description="Solving mode used (epsilon or weighted)")
     n_solved: int = Field(..., description="Number of Pareto points found")
     labels: list[str] = Field(..., description="Labels for each objective")
@@ -431,6 +432,14 @@ class OptimizationResult(BaseModel):
     # As a simple dict for easy access
     solution: dict[str, float] | None = Field(default=None, description="Variable name -> value")
 
+    # Set only when the caller asked for a compact solution (solution_filter=nonzero):
+    # how many near-zero variables were omitted from `variables`/`solution`. The
+    # persisted execution always keeps the full solution.
+    variables_omitted: int | None = Field(
+        default=None,
+        description="Count of near-zero variables omitted by solution_filter=nonzero.",
+    )
+
     # Performance metrics
     solve_time_seconds: float = Field(..., description="Time to solve")
     gap: float | None = Field(default=None, description="MIP gap (if applicable)")
@@ -439,10 +448,6 @@ class OptimizationResult(BaseModel):
 
     # Error info
     error_message: str | None = Field(default=None, description="Error details if failed")
-
-    # Credits
-    credits_used: int = Field(default=1, description="Credits charged for this solve")
-    credits_remaining: int | None = Field(default=None, description="Remaining credits")
 
     # Auto-routing transparency (D-08). ``solver_used`` is the effective
     # solver that ran after ``solver_name="auto"`` resolves; ``auto_route_reason``

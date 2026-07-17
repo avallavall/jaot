@@ -96,11 +96,11 @@ describe("ConceptTooltip", () => {
   it("shows formula toggle when formula exists and reveals formula on click", async () => {
     const user = userEvent.setup();
     renderWithSingleton(
-      <ConceptTooltip termKey="base-cost">Base Cost</ConceptTooltip>
+      <ConceptTooltip termKey="lp-relaxation">LP Relaxation</ConceptTooltip>
     );
 
     // Open the popover
-    await user.click(screen.getByRole("button", { name: "Base Cost" }));
+    await user.click(screen.getByRole("button", { name: "LP Relaxation" }));
 
     // "See formula" button uses translation key: glossary.seeFormula
     const formulaBtn = await screen.findByText("glossary.seeFormula");
@@ -108,7 +108,7 @@ describe("ConceptTooltip", () => {
 
     // Click to reveal formula
     await user.click(formulaBtn);
-    expect(screen.getByText("1 credit (fixed)")).toBeInTheDocument();
+    expect(screen.getByText(/integrality dropped/)).toBeInTheDocument();
     expect(screen.getByText("glossary.hideFormula")).toBeInTheDocument();
 
     // Click again to hide
@@ -122,7 +122,7 @@ describe("ConceptTooltip", () => {
     renderWithSingleton(
       <div>
         <ConceptTooltip termKey="shadow-price">Shadow Price</ConceptTooltip>
-        <ConceptTooltip termKey="base-cost">Base Cost</ConceptTooltip>
+        <ConceptTooltip termKey="lp-relaxation">LP Relaxation</ConceptTooltip>
       </div>
     );
 
@@ -133,13 +133,13 @@ describe("ConceptTooltip", () => {
     });
 
     // Click second tooltip
-    await user.click(screen.getByRole("button", { name: "Base Cost" }));
+    await user.click(screen.getByRole("button", { name: "LP Relaxation" }));
     await waitFor(() => {
       // First tooltip content should be gone
       expect(screen.queryByText("glossary.shadowPrice.definition")).not.toBeInTheDocument();
       // Second tooltip content should be visible
       expect(
-        screen.getByText("glossary.baseCost.definition")
+        screen.getByText("glossary.lpRelaxation.definition")
       ).toBeInTheDocument();
     });
   });
@@ -156,13 +156,11 @@ describe("getTermDefinition", () => {
     expect(getTermDefinition("does-not-exist")).toBeUndefined();
   });
 
-  it("includes formula for credit terms", () => {
-    const baseCost = getTermDefinition("base-cost");
+  it("includes formula for formula-bearing terms", () => {
+    const baseCost = getTermDefinition("lp-relaxation");
     expect(baseCost).toBeDefined();
-    expect(baseCost!.formula).toBe("1 credit (fixed)");
+    expect(baseCost!.formula).toContain("integrality");
 
-    const variableCost = getTermDefinition("variable-cost");
-    expect(variableCost!.formula).toContain("0.1");
   });
 });
 
@@ -175,11 +173,6 @@ describe("OPTIMIZATION_TERMS glossary completeness", () => {
     "warm-start",
     "lp-relaxation",
     "objective-value",
-    "base-cost",
-    "variable-cost",
-    "integer-penalty",
-    "constraint-cost",
-    "time-bonus",
   ];
 
   it.each(requiredTerms)("includes required term: %s", (termKey) => {
@@ -187,15 +180,4 @@ describe("OPTIMIZATION_TERMS glossary completeness", () => {
     expect(OPTIMIZATION_TERMS[termKey].term).toBeTruthy();
   });
 
-  const creditTerms = [
-    "base-cost",
-    "variable-cost",
-    "integer-penalty",
-    "constraint-cost",
-    "time-bonus",
-  ];
-
-  it.each(creditTerms)("credit term %s has a formula", (termKey) => {
-    expect(OPTIMIZATION_TERMS[termKey].formula).toBeTruthy();
-  });
 });

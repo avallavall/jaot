@@ -7,9 +7,10 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.v2.auth import get_current_user
-from app.models import ModelCatalog, ModelReview, Organization, User
+from app.models import ModelProjectListing, ModelReview, Organization, User
 from app.schemas.model import ModelCatalogResponse
 from app.schemas.profile import OrganizationPublicProfile, UpdateOrgProfileRequest
+from app.services.marketplace_fusion import listing_to_catalog_response
 from app.shared.db.base import get_db
 
 router = APIRouter(tags=["organizations"])
@@ -34,16 +35,16 @@ async def get_organization_public_profile(
         raise HTTPException(status_code=404, detail="Organization not found")
 
     models = (
-        db.query(ModelCatalog)
+        db.query(ModelProjectListing)
         .filter(
-            ModelCatalog.author_organization_id == org_id,
-            ModelCatalog.status == "published",
-            ModelCatalog.is_public == True,  # noqa: E712
+            ModelProjectListing.author_organization_id == org_id,
+            ModelProjectListing.status == "published",
+            ModelProjectListing.is_public == True,  # noqa: E712
         )
         .all()
     )
 
-    model_ids = [s.id for s in models]
+    model_ids = [s.model_project_id for s in models]
     total_models = len(models)
     total_activations = sum(s.total_activations for s in models)
     total_executions = sum(s.total_executions for s in models)
@@ -53,7 +54,7 @@ async def get_organization_public_profile(
     if model_ids:
         total_reviews = (
             db.query(func.count(ModelReview.id))
-            .filter(ModelReview.catalog_id.in_(model_ids))
+            .filter(ModelReview.model_project_id.in_(model_ids))
             .scalar()
             or 0
         )
@@ -170,20 +171,20 @@ async def get_organization_models(
         raise HTTPException(status_code=404, detail="Organization not found")
 
     models = (
-        db.query(ModelCatalog)
+        db.query(ModelProjectListing)
         .filter(
-            ModelCatalog.author_organization_id == org_id,
-            ModelCatalog.status == "published",
-            ModelCatalog.is_public == True,  # noqa: E712
+            ModelProjectListing.author_organization_id == org_id,
+            ModelProjectListing.status == "published",
+            ModelProjectListing.is_public == True,  # noqa: E712
         )
-        .order_by(ModelCatalog.total_executions.desc())
+        .order_by(ModelProjectListing.total_executions.desc())
         .limit(50)
         .all()
     )
 
     items = []
     for s in models:
-        item = ModelCatalogResponse.model_validate(s)
+        item = listing_to_catalog_response(s)
         item.author_name = org.name
         item.author_verified = org.is_verified
         items.append(item)

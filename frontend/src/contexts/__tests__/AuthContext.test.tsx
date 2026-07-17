@@ -26,7 +26,6 @@ const mockMe: UserInfo = {
   organization_id: "o1",
   organization_name: "Test Org",
   plan: "free" as Plan,
-  credits_balance: 100,
   is_admin: false,
   can_build_plugins: false,
 };

@@ -20,7 +20,6 @@ interface ModelData {
   description?: string;
   category: string;
   tags?: string[];
-  price_eur: number;
   author_name?: string;
   avg_rating?: number;
   total_activations: number;
@@ -106,7 +105,6 @@ export default async function ModelDetailPage({
             name: result.data.display_name,
             description: result.data.description ?? result.data.display_name,
             url: `${BASE_URL}/marketplace/${modelId}`,
-            priceEur: result.data.price_eur,
             authorName: result.data.author_name,
           })}
         />

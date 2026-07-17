@@ -27,11 +27,12 @@ test.describe("Docs code block contrast", () => {
 
   test("light mode: code block text is visible (dark on cream)", async ({ page }) => {
     await page.goto(docsPage);
-    await page.waitForLoadState("networkidle");
-    await page.evaluate(() => document.documentElement.classList.remove("dark"));
 
+    // Wait for the content we actually assert on, not networkidle — the full
+    // asset waterfall can exceed the test timeout under load
     const codeBlock = page.locator("[data-rehype-pretty-code-figure] pre").first();
-    await expect(codeBlock).toBeVisible();
+    await expect(codeBlock).toBeVisible({ timeout: 15_000 });
+    await page.evaluate(() => document.documentElement.classList.remove("dark"));
     await codeBlock.screenshot({ path: "e2e/screenshots/code-block-light.png" });
 
     const span = page.locator("[data-rehype-pretty-code-figure] code span[style]").first();
@@ -43,11 +44,10 @@ test.describe("Docs code block contrast", () => {
 
   test("dark mode: code block text is visible (light on dark)", async ({ page }) => {
     await page.goto(docsPage);
-    await page.waitForLoadState("networkidle");
-    await page.evaluate(() => document.documentElement.classList.add("dark"));
 
     const codeBlock = page.locator("[data-rehype-pretty-code-figure] pre").first();
-    await expect(codeBlock).toBeVisible();
+    await expect(codeBlock).toBeVisible({ timeout: 15_000 });
+    await page.evaluate(() => document.documentElement.classList.add("dark"));
     await codeBlock.screenshot({ path: "e2e/screenshots/code-block-dark.png" });
 
     const span = page.locator("[data-rehype-pretty-code-figure] code span[style]").first();
@@ -59,7 +59,9 @@ test.describe("Docs code block contrast", () => {
 
   test("light mode: CodeTabs code blocks also have proper contrast", async ({ page }) => {
     await page.goto("/docs/api/solve");
-    await page.waitForLoadState("networkidle");
+
+    const anyBlock = page.locator(CODE_BLOCK_SELECTOR).first();
+    await expect(anyBlock).toBeVisible({ timeout: 15_000 });
     await page.evaluate(() => document.documentElement.classList.remove("dark"));
 
     const shikiPre = page.locator(".shiki").first();
@@ -86,7 +88,9 @@ test.describe("Docs code block contrast", () => {
 
     for (const url of pages) {
       await page.goto(url);
-      await page.waitForLoadState("networkidle");
+
+      // Docs pages always render an <article>; code blocks are page-dependent
+      await expect(page.locator("article").first()).toBeVisible({ timeout: 15_000 });
       await page.evaluate(() => document.documentElement.classList.remove("dark"));
 
       const codeBlocks = page.locator(CODE_BLOCK_SELECTOR);

@@ -33,12 +33,12 @@ def test_capabilities_is_frozen_dataclass() -> None:
 
 
 @pytest.mark.unit
-def test_capabilities_has_exact_eight_fields() -> None:
-    """SolverCapabilities must have exactly 8 fields with the canonical names.
+def test_capabilities_has_exact_nine_fields() -> None:
+    """SolverCapabilities must have exactly 9 fields with the canonical names.
 
-    Phase 7.4 / D-10: ``requires_license`` field removed. Field count drops
-    from 9 to 8. License validity is a startup-time adapter concern, not a
-    per-request capability flag.
+    Phase 7.4 / D-10 removed ``requires_license`` (9 -> 8). Live Solve then added
+    ``supports_progress`` (8 -> 9): whether the adapter streams per-incumbent
+    progress via the ``on_progress`` callback of ``solve()``.
     """
     from app.domains.solver.adapters.base import SolverCapabilities
 
@@ -49,6 +49,7 @@ def test_capabilities_has_exact_eight_fields() -> None:
             "supports_continuous",
             "supports_integer",
             "supports_multi_objective",
+            "supports_progress",
             "supports_quadratic",
             "supports_sensitivity",
             "supports_warm_start",
@@ -57,7 +58,7 @@ def test_capabilities_has_exact_eight_fields() -> None:
     actual = sorted(f.name for f in dataclasses.fields(SolverCapabilities))
 
     assert actual == expected, (
-        f"SolverCapabilities must have exactly these 8 fields: {expected}. Got: {actual}"
+        f"SolverCapabilities must have exactly these 9 fields: {expected}. Got: {actual}"
     )
 
 

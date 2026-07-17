@@ -205,6 +205,9 @@ def db_engine():
         pool_size=30,
         max_overflow=10,
         pool_pre_ping=True,
+        # Same UTC anchor as the app engine: naive test timestamps are
+        # interpreted as UTC by the timestamptz columns (ADR-007 S6).
+        connect_args={"options": "-c timezone=utc"},
     )
 
     alembic_cfg = AlembicConfig("infra/alembic.ini")
@@ -532,7 +535,6 @@ def test_organization(db_session):
     org = Organization(
         id="org_test001",
         name="Test Company",
-        credits_balance=1000,
         is_active=True,
         rate_limit_per_minute=999_999,
         rate_limit_per_day=999_999,
@@ -548,7 +550,6 @@ def test_organization_2(db_session):
     org = Organization(
         id="org_test002",
         name="Another Company",
-        credits_balance=500,
         is_active=True,
         rate_limit_per_minute=999_999,
         rate_limit_per_day=999_999,
@@ -767,17 +768,77 @@ def enable_registration(db_session):
     db_session.commit()
 
 
-@pytest.fixture
-def enable_monetization(db_session):
-    """Turn on the paid features (marketplace sales, payouts, billing) for a test.
+@pytest.fixture(autouse=True)
+def eager_solve_async_pipeline(request, monkeypatch):
+    """ADR-007 S2: POST /solve is async-under-the-hood — without a worker the
+    wrapped endpoint would block for the whole wait budget and then 202.
 
-    The platform default is OFF — a free, collaborative deployment where the
-    marketplace is free, no commission is charged, and billing/payout endpoints
-    404. Tests of the optional "bring-your-own Stripe" paid path opt in with
-    this fixture, mirroring a self-hosted deployment that sets
-    ``MONETIZATION_ENABLED=true``.
+    Run the REAL ``solve_async`` task body eagerly in-process (real solver, real
+    DB writes, real refund logic) whenever the route enqueues it, so every
+    pre-existing sync-contract test keeps observing inline results.
+
+    Opt-out: the real-worker integration suite (anything using the
+    ``celery_worker_available`` fixture) must exercise the actual broker/worker
+    path, so it is left untouched. Tests that stub ``apply_async`` themselves
+    simply override this patch (their monkeypatch runs later).
     """
-    from app.services.platform_settings_service import PlatformSettingsService
+    if "celery_worker_available" in request.fixturenames:
+        yield
+        return
 
-    PlatformSettingsService.set(db_session, "MONETIZATION_ENABLED", "true")
-    db_session.commit()
+    import celery.result as _celery_result_mod
+
+    import app.domains.solver.tasks.solve_tasks as _solve_tasks_mod
+
+    # Registry of eager results so AsyncResult(task_id) resolves them too: the
+    # idempotent-retry "attach to in-flight" path (ADR-007 S2) looks the task up
+    # by id, and under the SAVEPOINT test-session pattern the worker's own
+    # completed-row write is invisible — without this, attach would dial the
+    # (nonexistent) result backend.
+    eager_results: dict[str, object] = {}
+
+    # P1.5 F0: the single-solve + multi-objective enqueue paths pre-generate the
+    # celery task id and pass it via ``apply_async(task_id=...)`` (insert-before-enqueue,
+    # the worker keys its terminal write off celery_task_id). Honor that id under eager
+    # so the pending row's celery_task_id matches the returned envelope's task_id AND
+    # the eager worker finds+completes its own row. execute_model passes no task_id →
+    # ``.apply(task_id=None)`` generates one, exactly as before.
+    def _eager_apply_async(**opts):
+        res = _solve_tasks_mod.solve_async.apply(kwargs=opts["kwargs"], task_id=opts.get("task_id"))
+        eager_results[res.id] = res
+        return res
+
+    def _eager_multi_objective_apply_async(**opts):
+        # ADR-007 S4b: POST /solve/multi-objective is async-under-the-hood too.
+        res = _solve_tasks_mod.solve_multi_objective_async.apply(
+            kwargs=opts["kwargs"], task_id=opts.get("task_id")
+        )
+        eager_results[res.id] = res
+        return res
+
+    def _eager_model_apply_async(**opts):
+        # ADR-007 S6: execute_model (marketplace) is async-under-the-hood too —
+        # its sync mode enqueues solve_model_async and waits.
+        res = _solve_tasks_mod.solve_model_async.apply(
+            kwargs=opts["kwargs"], task_id=opts.get("task_id")
+        )
+        eager_results[res.id] = res
+        return res
+
+    _original_async_result = _celery_result_mod.AsyncResult
+
+    def _eager_aware_async_result(task_id, *args, **kwargs):
+        hit = eager_results.get(task_id)
+        if hit is not None:
+            return hit
+        return _original_async_result(task_id, *args, **kwargs)
+
+    monkeypatch.setattr(_solve_tasks_mod.solve_async, "apply_async", _eager_apply_async)
+    monkeypatch.setattr(
+        _solve_tasks_mod.solve_multi_objective_async,
+        "apply_async",
+        _eager_multi_objective_apply_async,
+    )
+    monkeypatch.setattr(_solve_tasks_mod.solve_model_async, "apply_async", _eager_model_apply_async)
+    monkeypatch.setattr(_celery_result_mod, "AsyncResult", _eager_aware_async_result)
+    yield

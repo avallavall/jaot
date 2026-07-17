@@ -151,9 +151,7 @@ Sent when the solve finishes successfully. Contains the full solution. The serve
     "status": "optimal",
     "objective_value": 3500.0,
     "solution": {"widgets": 30, "gadgets": 60},
-    "solve_time_seconds": 12.3,
-    "credits_used": 3,
-    "credits_remaining": 97
+    "solve_time_seconds": 12.3
   }
 }
 ```
@@ -220,7 +218,7 @@ WS_BASE = "wss://jaot.io"
 async def solve_with_realtime_progress(problem: dict):
     headers = {
         "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
     }
 
     async with aiohttp.ClientSession() as session:
@@ -258,7 +256,6 @@ async def solve_with_realtime_progress(problem: dict):
                         print(f"Objective: {result['objective_value']}")
                         print(f"Solution: {result['solution']}")
                         print(f"Time: {result['solve_time_seconds']}s")
-                        print(f"Credits used: {result['credits_used']}")
                         break
 
                     elif msg_type == "failed":
@@ -274,16 +271,16 @@ problem = {
     "name": "production_planning",
     "objective": {
         "sense": "maximize",
-        "expression": "50*widgets + 40*gadgets",
+        "expression": "50*widgets + 40*gadgets"
     },
     "variables": [
         {"name": "widgets", "type": "integer", "lower_bound": 0, "upper_bound": 100},
-        {"name": "gadgets", "type": "integer", "lower_bound": 0, "upper_bound": 80},
+        {"name": "gadgets", "type": "integer", "lower_bound": 0, "upper_bound": 80}
     ],
     "constraints": [
         {"name": "machine_hours", "expression": "2*widgets + 3*gadgets <= 240"},
-        {"name": "labor_hours", "expression": "4*widgets + 2*gadgets <= 200"},
-    ],
+        {"name": "labor_hours", "expression": "4*widgets + 2*gadgets <= 200"}
+    ]
 }
 
 asyncio.run(solve_with_realtime_progress(problem))
@@ -310,9 +307,9 @@ async function solveAndStream(problem) {
     method: "POST",
     headers: {
       "Authorization": "Bearer ok_live_...",
-      "Content-Type": "application/json",
+      "Content-Type": "application/json"
     },
-    body: JSON.stringify(problem),
+    body: JSON.stringify(problem)
   });
   const { task_id, ws_url } = await response.json();
 

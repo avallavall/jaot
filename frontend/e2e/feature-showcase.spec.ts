@@ -7,7 +7,7 @@
  * full-page P2 shots also land in docs/screenshots/infeasibility/.
  *
  * The AI explanation requires a configured Anthropic key (platform or org BYOK). If
- * the stream never completes (no key / no credits), the AI shots are skipped, not
+ * the stream never completes (no key / no budget), the AI shots are skipped, not
  * failed — the panel/IIS shots still capture.
  *
  * Auth: relies on admin.setup.ts → frontend/e2e/.auth/admin.json (admin@jaot.io).

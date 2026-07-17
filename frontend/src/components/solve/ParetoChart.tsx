@@ -274,10 +274,6 @@ export function ParetoChart({ result, axisPair = [0, 1] }: ParetoChartProps) {
           <span className="text-muted-foreground">{t("mode")}</span>
           <span className="font-semibold capitalize">{result.mode}</span>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/40 rounded-md">
-          <span className="text-muted-foreground">{t("creditsUsed")}</span>
-          <span className="font-semibold tabular-nums">{result.total_credits_used}</span>
-        </div>
       </div>
 
       <div className="bg-card border border-border rounded-lg p-4" data-testid="pareto-chart">

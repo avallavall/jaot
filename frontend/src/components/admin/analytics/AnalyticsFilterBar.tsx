@@ -9,7 +9,6 @@ const DOMAINS = [
   "Marketplace",
   "MCP",
   "Scheduling",
-  "Credits",
 ];
 
 interface AnalyticsFilterBarProps {

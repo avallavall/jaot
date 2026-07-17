@@ -89,8 +89,8 @@ response = httpx.post(
             {"name": "laptop", "value": 600, "weight": 10},
             {"name": "camera", "value": 500, "weight": 5},
             {"name": "tent", "value": 300, "weight": 15},
-            {"name": "food", "value": 200, "weight": 20},
-        ],
+            {"name": "food", "value": 200, "weight": 20}
+        ]
     },
 )
 result = response.json()
@@ -135,7 +135,6 @@ See the [Solve API reference](/docs/api/solve) for full request and response sch
 |--------|-----------|--------------|
 | **Speed** | Instant -- model is pre-built | Requires a conversation to generate |
 | **Customization** | Modify after loading | Fully custom from the start |
-| **Credit cost** | No AI credits for formulation | AI credits for each message |
 | **Best for** | Standard problem types with known structure | Novel problems, unique constraints, domain-specific requirements |
 
 > **Tip:** Start with a template when your problem matches a known type, then use the AI assistant to add custom constraints or modify the formulation for your specific needs.

@@ -440,7 +440,6 @@ class TestIDOR:
         org_a = Organization(
             id="org_idor_a",
             name="Org A",
-            credits_balance=100,
             is_active=True,
         )
         db_session.add(org_a)
@@ -476,7 +475,6 @@ class TestIDOR:
         other_org = Organization(
             id="org_other_cancel",
             name="Other Org",
-            credits_balance=100,
             is_active=True,
         )
         db_session.add(other_org)
@@ -572,7 +570,7 @@ class TestRequestBodySize:
         test_user,
         mock_auth,
     ):
-        """10MB request body is rejected with 413 by BodyLimitMiddleware."""
+        """60MB request body is rejected with 413 by BodyLimitMiddleware."""
         from starlette.testclient import TestClient
 
         mock_auth(test_user)
@@ -580,25 +578,30 @@ class TestRequestBodySize:
         client = TestClient(app, raise_server_exceptions=False)
         client.headers = {"Authorization": f"Bearer {test_api_key.plaintext}"}
 
-        big_name = "x" * 10_000_000
+        big_name = "x" * 60_000_000
         body = _make_solve_body(name=big_name)
         resp = client.post("/api/v2/solve", json=body)
         assert resp.status_code == 413, (
-            f"Expected 413 for 10MB body, got {resp.status_code}: {resp.text[:200]}"
+            f"Expected 413 for 60MB body, got {resp.status_code}: {resp.text[:200]}"
         )
 
 
 class TestMaxLengthValidation:
     """Verify max_length enforcement on expression and name fields."""
 
-    def test_expression_exceeds_500k_chars(self, authenticated_client):
-        """Expression > 500K chars is rejected with 422 by max_length=500_000."""
-        big_expr = "x + " * 126_000  # ~504K chars, over the 500_000 limit
+    def test_expression_exceeds_max_chars(self, authenticated_client):
+        """Expression over the max_length cap (5,000,000) is rejected with 422.
+
+        The cap was raised 500K -> 5M so that large indexed models (whose flat
+        objective is a single multi-hundred-thousand-char sum, e.g. a 200x200
+        assignment) are accepted; the bound still exists as a DoS guard.
+        """
+        big_expr = "x + " * 1_300_000  # ~5.2M chars, over the 5,000,000 limit
         body = _make_solve_body()
         body["objective"]["expression"] = big_expr.rstrip(" +")
         resp = authenticated_client.post("/api/v2/solve", json=body)
         assert resp.status_code == 422, (
-            f"Expected 422 for 504K-char expression, got {resp.status_code}: {resp.text[:200]}"
+            f"Expected 422 for a >5M-char expression, got {resp.status_code}: {resp.text[:200]}"
         )
 
     def test_name_field_max_length(self, authenticated_client):

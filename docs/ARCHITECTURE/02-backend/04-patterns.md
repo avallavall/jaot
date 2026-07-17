@@ -83,7 +83,7 @@ flowchart LR
 
     Config -->|read| Infra
     PSS -->|read| Business
-    PSS -.->|runtime-mutable| Runtime["Admin panel<br/>(email, stripe, feature flags)"]
+    PSS -.->|runtime-mutable| Runtime["Admin panel<br/>(email, LLM, feature flags)"]
 ```
 
 **Location:** `app/config.py` (infra) + `app/services/settings_registry.py` + `app/services/platform_settings_service.py` (business).

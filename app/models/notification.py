@@ -15,18 +15,18 @@ if TYPE_CHECKING:
 
 
 class NotificationType(str, Enum):
-    """Types of notifications."""
+    """Types of notifications.
+
+    ADR-008: credit/sale/payout/promotion types left with the money layer;
+    historic rows keep their raw string type (this enum is Python-side only).
+    """
 
     EXECUTION_COMPLETED = "execution_completed"
     EXECUTION_FAILED = "execution_failed"
-    CREDITS_LOW = "credits_low"
-    CREDITS_DEPLETED = "credits_depleted"
     SYSTEM = "system"
-    # Seller experience events
-    NEW_SALE = "new_sale"
-    PAYOUT_COMPLETED = "payout_completed"
+    # Author experience events
     NEW_REVIEW = "new_review"
-    PROMOTION_EXPIRING = "promotion_expiring"
+    MODEL_ACTIVATED = "model_activated"
 
 
 class NotificationChannel(str, Enum):
@@ -73,13 +73,15 @@ class Notification(Base):
     reference_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
-    read_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     channel: Mapped[str] = mapped_column(String(16), default="in_app")
     email_sent: Mapped[bool] = mapped_column(Boolean, default=False)
-    email_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    email_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, index=True
+    )
 
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id], lazy="joined")
 

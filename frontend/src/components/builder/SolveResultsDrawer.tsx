@@ -3,7 +3,7 @@
 // SolveResultsDrawer — Displays optimization results after solve
 // Uses a right-side panel (Dialog-based sheet pattern)
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { SolveResult } from "@/lib/types";
 import { SensitivityTab } from "@/components/solve/SensitivityTab";
 import { SolverDisclaimer } from "@/components/legal/SolverDisclaimer";
@@ -59,8 +59,11 @@ function StatusExplanation({ status }: { status: string }) {
 
 export function SolveResultsDrawer({ result, isOpen, onClose }: SolveResultsDrawerProps) {
   const t = useTranslations("builder");
+  const tExplorer = useTranslations("solve.explorer");
   const tHelp = useTranslations("solve.helpTooltips");
   const drawerRef = useRef<HTMLDivElement>(null);
+  // Default ON (owner ask 2026-07-16): the assignment table hides zero rows.
+  const [nonZeroOnly, setNonZeroOnly] = useState(true);
 
   // Close on Escape key
   useEffect(() => {
@@ -71,9 +74,16 @@ export function SolveResultsDrawer({ result, isOpen, onClose }: SolveResultsDraw
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
+  const shownVariables = useMemo(() => {
+    const all = result?.variables ?? [];
+    return nonZeroOnly ? all.filter((v) => Math.abs(Number(v.value)) > 1e-9) : all;
+  }, [result, nonZeroOnly]);
+
   if (!isOpen || !result) return null;
 
-  const hasVariables = result.variables && result.variables.length > 0;
+  const allVariables = result.variables ?? [];
+  const hasVariables = allVariables.length > 0;
+  const zerosHidden = allVariables.length - shownVariables.length;
   const isSuccess = result.status === "optimal" || result.status === "feasible";
 
   return (
@@ -130,9 +140,23 @@ export function SolveResultsDrawer({ result, isOpen, onClose }: SolveResultsDraw
 
           {isSuccess && hasVariables && (
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-2">
-                {t("results.variableAssignments")}
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                  {t("results.variableAssignments")}
+                </p>
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={nonZeroOnly}
+                    onChange={(e) => setNonZeroOnly(e.target.checked)}
+                    className="accent-primary w-3.5 h-3.5"
+                    data-testid="drawer-nonzero-toggle"
+                  />
+                  <span className="text-xs text-muted-foreground normal-case whitespace-nowrap">
+                    {tExplorer("nonZeroOnly")}
+                  </span>
+                </label>
+              </div>
               <div className="border rounded-md overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
@@ -143,7 +167,7 @@ export function SolveResultsDrawer({ result, isOpen, onClose }: SolveResultsDraw
                     </tr>
                   </thead>
                   <tbody>
-                    {(result.variables ?? []).map((v, i) => (
+                    {shownVariables.map((v, i) => (
                       <tr key={v.name} className={i % 2 === 0 ? "" : "bg-muted/20"}>
                         <td className="px-3 py-2 font-mono font-medium">{v.name}</td>
                         <td className="px-3 py-2 text-right tabular-nums">
@@ -157,6 +181,11 @@ export function SolveResultsDrawer({ result, isOpen, onClose }: SolveResultsDraw
                   </tbody>
                 </table>
               </div>
+              {zerosHidden > 0 && (
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  {tExplorer("zerosHiddenNote", { count: zerosHidden })}
+                </p>
+              )}
             </div>
           )}
 
@@ -173,16 +202,6 @@ export function SolveResultsDrawer({ result, isOpen, onClose }: SolveResultsDraw
                     : "—"}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{t("results.creditsUsed")}</span>
-                <span className="tabular-nums font-medium">{result.credits_used}</span>
-              </div>
-              {result.credits_remaining !== undefined && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t("results.creditsRemaining")}</span>
-                  <span className="tabular-nums font-medium">{result.credits_remaining}</span>
-                </div>
-              )}
               {result.gap !== undefined && result.gap !== null && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{t("results.mipGap")}</span>

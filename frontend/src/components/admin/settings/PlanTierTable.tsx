@@ -20,8 +20,6 @@ import { useTranslations } from "next-intl";
 const PLAN_KEYS = ["free", "starter", "pro", "business"] as const;
 
 const NUMERIC_FIELDS = [
-  "credits",
-  "monthly_quota",
   "rate_limit_per_minute",
   "rate_limit_per_day",
   "max_solve_time_seconds",
@@ -31,8 +29,6 @@ const NUMERIC_FIELDS = [
 ] as const;
 
 const HEADER_MAP: Record<string, string> = {
-  credits: "credits",
-  monthly_quota: "monthlyQuota",
   rate_limit_per_minute: "rateLimitMin",
   rate_limit_per_day: "rateLimitDay",
   max_solve_time_seconds: "maxSolveTime",

@@ -25,7 +25,6 @@ interface Organization {
   id: string;
   name: string;
   plan: string;
-  credits_balance: number;
 }
 
 interface AuthState {
@@ -104,12 +103,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         is_admin: result.user.is_admin,
         is_org_owner: result.user.is_org_owner ?? false,
       });
-      const orgExt = result.organization as unknown as Record<string, unknown>;
       setOrganization({
         id: result.organization.id,
         name: result.organization.name,
         plan: result.organization.plan,
-        credits_balance: (orgExt.credits_balance as number) || 0,
       });
       localStorage.setItem(
         "jaot_user_info",
@@ -147,7 +144,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: result.organization.id,
           name: result.organization.name,
           plan: result.organization.plan,
-          credits_balance: result.organization.credits_balance,
         });
         // Cookie-based session — no API key in localStorage. Cached user info enables optimistic UI.
         localStorage.setItem(
@@ -304,7 +300,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: me.organization_id,
             name: me.organization_name,
             plan: me.plan,
-            credits_balance: me.credits_balance,
           });
           setPlanLimits(me.plan_limits ?? null);
           await restoreWorkspace(me.user_id, me.is_admin);
@@ -332,7 +327,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: me.organization_id,
           name: me.organization_name,
           plan: me.plan,
-          credits_balance: me.credits_balance,
         });
         setPlanLimits(me.plan_limits ?? null);
         await restoreWorkspace(me.user_id, me.is_admin);

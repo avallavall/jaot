@@ -16,20 +16,11 @@ test.describe("Breadcrumbs Visibility", () => {
   // chromium project storageState (user.json) provides auth automatically —
   // no test.use({ storageState }) override needed.
 
-  test("no breadcrumbs on /solve (top-level page)", async ({ page }) => {
-    await page.goto("/solve");
+  test("no breadcrumbs on /studio (top-level page)", async ({ page }) => {
+    await page.goto("/studio");
     await page.waitForSelector("aside", { timeout: 15_000 });
     const breadcrumbNav = page.locator('nav[aria-label="Breadcrumb"]');
     await expect(breadcrumbNav).not.toBeVisible();
-  });
-
-  test("breadcrumbs visible on /solve/create (nested page)", async ({ page }) => {
-    await page.goto("/solve/create");
-    await page.waitForSelector("aside", { timeout: 15_000 });
-    const breadcrumbNav = page.locator('nav[aria-label="Breadcrumb"]');
-    await expect(breadcrumbNav).toBeVisible({ timeout: 10_000 });
-    await expect(breadcrumbNav.getByText("Solve")).toBeVisible();
-    await expect(breadcrumbNav.getByText("Create")).toBeVisible();
   });
 
   test("no breadcrumbs on /workspace (top-level page)", async ({ page }) => {
@@ -108,14 +99,6 @@ test.describe("Breadcrumbs Visibility", () => {
 });
 
 test.describe("Breadcrumbs Navigation", () => {
-  test("clicking breadcrumb link navigates to parent on /solve/create", async ({ page }) => {
-    await page.goto("/solve/create");
-    await page.waitForSelector("aside", { timeout: 15_000 });
-    const breadcrumbNav = page.locator('nav[aria-label="Breadcrumb"]');
-    await breadcrumbNav.getByRole("link", { name: "Solve" }).click();
-    await expect(page).toHaveURL(/\/solve$/);
-  });
-
   test("clicking breadcrumb link navigates to parent on /workspace/profile", async ({ page }) => {
     await page.goto("/workspace/profile");
     await page.waitForSelector("aside", { timeout: 15_000 });
@@ -129,11 +112,12 @@ test.describe("Breadcrumbs Navigation", () => {
     await page.waitForSelector("aside", { timeout: 15_000 });
     const breadcrumbNav = page.locator('nav[aria-label="Breadcrumb"]');
     await breadcrumbNav.getByRole("link", { name: "Solve" }).click();
-    await expect(page).toHaveURL(/\/solve$/);
+    // P1.5 fusion: the /solve parent redirects to the studio.
+    await expect(page).toHaveURL(/\/studio$/);
   });
 
   test("Home link navigates to /", async ({ page }) => {
-    await page.goto("/solve/create");
+    await page.goto("/solve/favorites");
     await page.waitForSelector("aside", { timeout: 15_000 });
     const breadcrumbNav = page.locator('nav[aria-label="Breadcrumb"]');
     await breadcrumbNav.getByRole("link", { name: "Home" }).click();
@@ -143,14 +127,14 @@ test.describe("Breadcrumbs Navigation", () => {
 
 test.describe("Breadcrumbs Accessibility", () => {
   test("nav has aria-label Breadcrumb", async ({ page }) => {
-    await page.goto("/solve/create");
+    await page.goto("/solve/favorites");
     await page.waitForSelector("aside", { timeout: 15_000 });
     const breadcrumbNav = page.locator('nav[aria-label="Breadcrumb"]');
     await expect(breadcrumbNav).toBeVisible();
   });
 
   test("contains ol element for list semantics", async ({ page }) => {
-    await page.goto("/solve/create");
+    await page.goto("/solve/favorites");
     await page.waitForSelector("aside", { timeout: 15_000 });
     const breadcrumbNav = page.locator('nav[aria-label="Breadcrumb"]');
     const ol = breadcrumbNav.locator("ol");
@@ -158,16 +142,16 @@ test.describe("Breadcrumbs Accessibility", () => {
   });
 
   test("last item has aria-current=page", async ({ page }) => {
-    await page.goto("/solve/create");
+    await page.goto("/solve/favorites");
     await page.waitForSelector("aside", { timeout: 15_000 });
     const breadcrumbNav = page.locator('nav[aria-label="Breadcrumb"]');
     const currentItem = breadcrumbNav.locator('[aria-current="page"]');
     await expect(currentItem).toBeVisible();
-    await expect(currentItem).toHaveText("Create");
+    await expect(currentItem).toHaveText("Favorites");
   });
 
   test("separators have aria-hidden=true", async ({ page }) => {
-    await page.goto("/solve/create");
+    await page.goto("/solve/favorites");
     await page.waitForSelector("aside", { timeout: 15_000 });
     const breadcrumbNav = page.locator('nav[aria-label="Breadcrumb"]');
     const hiddenSeparators = breadcrumbNav.locator('[aria-hidden="true"]');

@@ -1,0 +1,45 @@
+---
+title: Versioning
+description: Git-style commits for optimization models — history, diffs, restore, and AI-explained changes
+order: 5
+---
+
+# Versioning
+
+Every model in the workspace carries its own history. The [Model Workspace](/docs/studio/model-workspace) separates two kinds of saving:
+
+- **Autosave** — continuous, silent checkpoints of your working **draft**. You never lose work, but autosaves are not milestones.
+- **Commit** — an explicit, immutable **version** with a message. This is the unit of history: what changed, why, and exactly what the model looked like.
+
+## Committing
+
+Press **Commit** (or `Cmd/Ctrl+S`) to record a version. A commit requires a *"What changed?"* summary — the workspace suggests one derived from the actual diff since the last version — and accepts an optional *"Why?"* body for the rationale.
+
+Each version freezes:
+
+- the full model snapshot (and the canvas layout / JModel source, when present)
+- structural stats and the detected problem class at commit time
+- author and timestamp
+
+> **Tip:** commit like you would in git — small, meaningful steps with honest messages. Your future self (and your teammates) will read this history to understand why the model evolved the way it did.
+
+## History, diffs, and restore
+
+The version history drawer lists every committed version, newest first. From there you can:
+
+- **Inspect** any version's frozen snapshot
+- **Diff** two versions — a structural comparison: variables and constraints added/removed/changed, and whether the objective changed
+- **Restore** a version — checks it out into the draft. History is never rewritten; if your draft has uncommitted changes, the workspace asks before discarding them
+- **Explain these changes** — when comparing two versions, ask the AI for a plain-language account of the diff. The diff itself is computed structurally; the AI only narrates it, so the explanation never invents changes
+
+## Versions and the marketplace
+
+[Publishing](/docs/marketplace/publishing-models) pins your **latest committed version** to the public listing — never the draft. Committing again and re-publishing moves the listing forward; teams that already forked your model keep the version they forked.
+
+## Versions and solving
+
+You can solve the draft (the default) or any committed version — each execution records the exact version it ran, so results are always traceable to the model state that produced them.
+
+## Via API
+
+The full flow — commit, list, diff, restore, solve-a-version — is available programmatically. See the [Versions API](/docs/api/versions).

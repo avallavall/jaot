@@ -90,7 +90,6 @@ CORE_ENDPOINTS: list[tuple[str, str]] = [
     ("GET", "/api/v2/models/catalog"),
     ("POST", "/api/v2/solve/validate"),
     ("GET", "/api/v2/solve/templates"),
-    ("GET", "/api/v2/credits/rates"),
 ]
 
 

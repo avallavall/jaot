@@ -4,8 +4,8 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Plausible tracker integration", () => {
-  test("public /pricing page includes the Plausible tracker script", async ({ page }) => {
-    await page.goto("/pricing");
+  test("public /contact page includes the Plausible tracker script", async ({ page }) => {
+    await page.goto("/contact");
     const tracker = page.locator(
       'script[src="https://plausible.jaot.io/js/script.js"]'
     );

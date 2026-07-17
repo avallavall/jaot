@@ -43,9 +43,11 @@ class FormulationRating(Base):
     )  # builder|solver|llm|results|dashboard|models
     formulation_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utcnow, onupdate=utcnow, nullable=False
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False
     )
 
     __table_args__ = (UniqueConstraint("conversation_id", "user_id", name="uq_rating_conv_user"),)

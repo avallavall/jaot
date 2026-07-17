@@ -25,7 +25,6 @@ def notif_org(db_session: Session) -> Organization:
     org = Organization(
         id="org_notif01",
         name="Notif Test Org",
-        credits_balance=100,
         rate_limit_per_minute=999_999,
         rate_limit_per_day=999_999,
     )
@@ -133,7 +132,6 @@ def test_me_response_schema_has_is_org_owner() -> None:
         organization_id="org_x",
         organization_name="Acme",
         plan="free",
-        credits_balance=100,
         is_admin=False,
         can_build_plugins=False,
         is_org_owner=True,
@@ -149,7 +147,6 @@ def test_me_response_schema_has_is_org_owner() -> None:
         organization_id="org_x",
         organization_name="Acme",
         plan="free",
-        credits_balance=100,
         is_admin=True,
         can_build_plugins=False,
         is_org_owner=False,
@@ -165,7 +162,6 @@ def test_me_response_schema_has_is_org_owner() -> None:
         organization_id="org_x",
         organization_name="Acme",
         plan="free",
-        credits_balance=100,
         is_admin=False,
         can_build_plugins=False,
         plan_limits=limits,

@@ -94,7 +94,7 @@ export function FilterSidebar({
               className="h-auto p-0 text-xs"
               onClick={() => updateFilter("category", null)}
             >
-              {t("clearPrice")}
+              {t("clearCategory")}
             </Button>
           )}
         </div>

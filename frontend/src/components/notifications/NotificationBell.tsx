@@ -84,10 +84,6 @@ export function NotificationBell() {
         return "✅";
       case "execution_failed":
         return "❌";
-      case "credits_low":
-        return "⚠️";
-      case "credits_depleted":
-        return "🚨";
       default:
         return "📬";
     }

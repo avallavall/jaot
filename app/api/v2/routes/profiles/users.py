@@ -7,7 +7,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.v2.auth import get_current_user
-from app.models import ModelCatalog, ModelReview, Organization, User
+from app.models import ModelProjectListing, ModelReview, Organization, User
 from app.schemas.profile import (
     UpdateUserProfileRequest,
     UserPublicProfile,
@@ -100,22 +100,27 @@ async def get_user_reviews(
         .all()
     )
 
-    # Batch pre-fetch models to avoid N+1 queries
-    model_ids = list({r.catalog_id for r in reviews if r.catalog_id})
+    # Batch pre-fetch models (unified listing facet) to avoid N+1 queries
+    model_ids = list({r.model_project_id for r in reviews if r.model_project_id})
     models_map = (
-        {m.id: m for m in db.query(ModelCatalog).filter(ModelCatalog.id.in_(model_ids)).all()}
+        {
+            m.model_project_id: m
+            for m in db.query(ModelProjectListing)
+            .filter(ModelProjectListing.model_project_id.in_(model_ids))
+            .all()
+        }
         if model_ids
         else {}
     )
 
     result = []
     for review in reviews:
-        model = models_map.get(review.catalog_id)
+        model = models_map.get(review.model_project_id)
 
         result.append(
             UserReviewResponse(
                 id=review.id,
-                catalog_id=review.catalog_id,
+                catalog_id=review.model_project_id,
                 model_name=model.display_name if model else "Unknown Model",
                 rating=review.rating,
                 title=review.title,

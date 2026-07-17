@@ -15,6 +15,17 @@ const nextConfig: NextConfig = {
   output: "standalone",
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
   skipTrailingSlashRedirect: true,
+  experimental: {
+    // The /api rewrites proxy large solve payloads (a 200x200 TFM scenario is a
+    // ~27MB problem body); Next's default 30s proxy timeout turned slow-but-alive
+    // API calls into opaque 500s (live 2026-07-04).
+    proxyTimeout: 120_000,
+    // Next buffers proxied request bodies and silently TRUNCATES them at 10MB by
+    // default, so the >10MB TFM scenario payloads reached the API cut short →
+    // ECONNRESET at the proxy → opaque "NetworkError"/500 rows (live 2026-07-04).
+    // 50mb matches the API's own request-body cap, which stays authoritative.
+    proxyClientMaxBodySize: "50mb",
+  },
   images: {
     formats: ["image/avif", "image/webp"],
   },

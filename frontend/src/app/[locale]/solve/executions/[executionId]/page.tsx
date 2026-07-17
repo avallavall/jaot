@@ -19,7 +19,7 @@ import { InfeasibilityPanel } from "@/components/solve/InfeasibilityPanel";
 import { OriginBadge } from "@/components/solve/OriginBadge";
 import { GapConvergenceChart } from "@/components/solve/GapConvergenceChart";
 import { useTranslations } from "next-intl";
-import { RotateCcw } from "lucide-react";
+import { Database } from "lucide-react";
 
 export default function ExecutionDetailPage() {
   const t = useTranslations("solve.execution");
@@ -112,10 +112,14 @@ export default function ExecutionDetailPage() {
     );
   }
 
-  // Show "Use as warm start" only for completed optimal/feasible executions
-  const canUseAsWarmStart =
+  // Explain only completed optimal/feasible executions
+  const canExplain =
     execution.status === "completed" &&
     (execution.solver_status === "optimal" || execution.solver_status === "feasible");
+
+  // P1.5 fusion: the run's model is a ModelProject; historic rows carry the
+  // legacy org-model id, which the backfill preserved as the project id.
+  const projectId = execution.model_project_id ?? execution.organization_model_id;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -135,8 +139,20 @@ export default function ExecutionDetailPage() {
           </span>
           <OriginBadge
             origin={execution.origin}
+            sourceKind={execution.source_kind ?? undefined}
             triggerName={execution.input_data?.trigger_name as string | undefined}
           />
+          {/* §8/S1: which dataset (scenario) the run was compiled against. */}
+          {execution.dataset_name && (
+            <span
+              data-testid="execution-dataset-badge"
+              title={t("datasetBadge")}
+              className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
+            >
+              <Database className="h-3.5 w-3.5" />
+              {execution.dataset_name}
+            </span>
+          )}
           {execution.trigger_id && (
             <button
               onClick={() => router.push(`/triggers/${execution.trigger_id}`)}
@@ -159,10 +175,6 @@ export default function ExecutionDetailPage() {
           <div className="font-medium">
             {execution.execution_time_ms ? `${execution.execution_time_ms}ms` : "-"}
           </div>
-        </div>
-        <div className="bg-card border border-border rounded-lg p-4">
-          <div className="text-sm text-muted-foreground">{t("creditsUsed")}</div>
-          <div className="font-medium">{execution.credits_consumed}</div>
         </div>
         <div className="bg-card border border-border rounded-lg p-4">
           <div className="text-sm text-muted-foreground">{t("solverStatus")}</div>
@@ -208,7 +220,7 @@ export default function ExecutionDetailPage() {
           <TabsContent value="results">
             {variables.length > 0 && (
               <div className="mb-6">
-                <SolutionExplainer executionId={executionId} canExplain={canUseAsWarmStart} />
+                <SolutionExplainer executionId={executionId} canExplain={canExplain} />
               </div>
             )}
 
@@ -306,34 +318,13 @@ export default function ExecutionDetailPage() {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        {execution.organization_model_id ? (
-          <>
-            <Button
-              variant="outline"
-              onClick={() => router.push(`/solve/${execution.organization_model_id}`)}
-            >
-              {t("runAgain")}
-            </Button>
-            {canUseAsWarmStart && (
-              <Button
-                variant="outline"
-                onClick={() =>
-                  router.push(
-                    `/solve/${execution.organization_model_id}?warm_start_id=${execution.id}`
-                  )
-                }
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                {t("useAsWarmStart")}
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              onClick={() => router.push(`/solve/${execution.organization_model_id}/history`)}
-            >
-              {t("viewAllExecutions")}
-            </Button>
-          </>
+        {projectId ? (
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/studio/${projectId}/solve`)}
+          >
+            {t("runAgain")}
+          </Button>
         ) : (
           <p className="text-sm text-muted-foreground py-1">
             {t("externalExecution")}

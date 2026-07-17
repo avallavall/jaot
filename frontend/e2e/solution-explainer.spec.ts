@@ -7,7 +7,7 @@
  *   - the Sensitivity tab (shadow prices + variable reduced costs),
  *   - a mobile view of the result page,
  *   - and, best-effort, the streamed AI explanation (only when the LLM is
- *     configured with credits — otherwise that step is skipped, not failed).
+ *     configured — otherwise that step is skipped, not failed).
  *
  * Output lands in docs/screenshots/solution-explainer/.
  *
@@ -111,7 +111,7 @@ test("03 — AI explanation (best-effort, skipped when LLM unavailable)", async 
   await page.getByRole("button", { name: /explain this solution/i }).click();
 
   // Wait for streamed text OR an error/regenerate state. If the model is not
-  // configured (no credits / no key), don't fail the suite — just skip the shot.
+  // configured (no budget / no key), don't fail the suite — just skip the shot.
   const grounded = page.getByText(/Generated from your actual solution/i);
   try {
     await grounded.waitFor({ timeout: 30_000 });

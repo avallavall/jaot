@@ -21,11 +21,6 @@ function TemplateCard({ template, onClick }: { template: ModelCatalogItem; onCli
         <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
           {t.has(`templates.categories.${template.category}`) ? t(`templates.categories.${template.category}`) : template.category}
         </span>
-        <span className="text-xs text-muted-foreground">
-          {template.credits_per_execution > 0
-            ? t("templates.creditsPerRun", { credits: template.credits_per_execution })
-            : t("templates.dynamicCredits")}
-        </span>
       </div>
       <h3 className="font-semibold text-sm mt-2">{tmpl.displayName(template.display_name)}</h3>
       {template.description && (

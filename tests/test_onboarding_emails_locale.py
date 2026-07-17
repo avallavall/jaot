@@ -18,7 +18,6 @@ from app.services.onboarding_emails import (
     day0_welcome,
     day1_api_setup,
     day3_catalog,
-    day7_credits,
     day14_feedback,
 )
 
@@ -66,11 +65,11 @@ class TestGetEmailString:
         assert len(es) > 0
 
     def test_all_email_keys_exist(self):
-        for key in ["day0", "day1", "day3", "day7", "day14", "footer"]:
+        for key in ["day0", "day1", "day3", "day14", "footer"]:
             assert key in EMAIL_TRANSLATIONS, f"Missing email key: {key}"
 
     def test_all_locales_present_for_subjects(self):
-        for email_key in ["day0", "day1", "day3", "day7", "day14"]:
+        for email_key in ["day0", "day1", "day3", "day14"]:
             for locale in ALL_LOCALES:
                 result = get_email_string(email_key, "subject", locale)
                 assert len(result) > 0, f"Empty subject for {email_key}/{locale}"
@@ -133,26 +132,6 @@ class TestDay3CatalogLocale:
         assert subj_xx == subj_en
 
 
-# day7_credits locale support
-
-
-class TestDay7CreditsLocale:
-    def test_locale_none(self):
-        subject, html = day7_credits("Alice", 500, locale=None)
-        # Balance must appear in a labelled context, not as stray "500"
-        assert "500 credits" in html.lower() or ">500 " in html
-
-    def test_locale_es(self):
-        subject_es, _ = day7_credits("Alice", 500, locale="es")
-        subject_en, _ = day7_credits("Alice", 500, locale="en")
-        assert subject_es != subject_en
-
-    def test_locale_unknown_fallback(self):
-        subj_xx, _ = day7_credits("Alice", 500, locale="xx")
-        subj_en, _ = day7_credits("Alice", 500, locale="en")
-        assert subj_xx == subj_en
-
-
 # day14_feedback locale support
 
 
@@ -196,21 +175,18 @@ class TestAll17Locales:
         s0, _ = day0_welcome("Test", "ok_live_", locale=locale)
         s1, _ = day1_api_setup("Test", locale=locale)
         s3, _ = day3_catalog("Test", locale=locale)
-        s7, _ = day7_credits("Test", 200, locale=locale)
         s14, _ = day14_feedback("Test", locale=locale)
 
-        for subj in (s0, s1, s3, s7, s14):
+        for subj in (s0, s1, s3, s14):
             assert isinstance(subj, str) and len(subj) > 0
 
         if locale != "en":
             en_s0, _ = day0_welcome("Test", "ok_live_", locale="en")
             en_s1, _ = day1_api_setup("Test", locale="en")
             en_s3, _ = day3_catalog("Test", locale="en")
-            en_s7, _ = day7_credits("Test", 200, locale="en")
             en_s14, _ = day14_feedback("Test", locale="en")
 
             assert s0 != en_s0, f"day0 subject for {locale} matches en (silent fallthrough)"
             assert s1 != en_s1, f"day1 subject for {locale} matches en (silent fallthrough)"
             assert s3 != en_s3, f"day3 subject for {locale} matches en (silent fallthrough)"
-            assert s7 != en_s7, f"day7 subject for {locale} matches en (silent fallthrough)"
             assert s14 != en_s14, f"day14 subject for {locale} matches en (silent fallthrough)"

@@ -58,7 +58,6 @@ def main() -> None:
                 db,
                 name=ORG_NAME,
                 prefix=prefixes["ID_PREFIX_ORGANIZATION"],
-                credits_balance=10000,
             )
             user, user_created = get_or_create_user(
                 db,

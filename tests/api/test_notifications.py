@@ -1,7 +1,5 @@
 """Tests for notification API endpoints and service."""
 
-import pytest
-
 from app.models import Notification, NotificationChannel, NotificationType
 from app.services.notification_service import NotificationService
 from app.shared.utils.datetime_helpers import utcnow
@@ -109,63 +107,6 @@ class TestNotificationService:
 
         # In-app channel by default (matches NotificationChannel.IN_APP)
         assert persisted.channel == NotificationChannel.IN_APP.value
-
-    def test_notify_credits_low(self, db_session, test_user, test_organization):
-        """Real DB: notify_credits_low persists row with exact balance in data."""
-        service = NotificationService(db_session)
-
-        notification = service.notify_credits_low(
-            user_id=test_user.id,
-            organization_id=test_organization.id,
-            current_balance=5,
-            threshold=10,
-        )
-        db_session.commit()
-
-        persisted = db_session.query(Notification).filter_by(id=notification.id).first()
-        assert persisted is not None
-        assert persisted.type == NotificationType.CREDITS_LOW.value
-        assert persisted.user_id == test_user.id
-        assert persisted.organization_id == test_organization.id
-        assert persisted.is_read is False
-
-        # Exact balance value in data payload (not just substring in message)
-        assert persisted.data["current_balance"] == 5
-        assert persisted.data["threshold"] == 10
-        assert persisted.link == "/workspace/credits"
-
-    def test_notify_credits_depleted(self, db_session, test_user, test_organization):
-        """Real DB: notify_credits_depleted persists row with BOTH channel and email_sent flag."""
-        service = NotificationService(db_session)
-
-        notification = service.notify_credits_depleted(
-            user_id=test_user.id,
-            organization_id=test_organization.id,
-        )
-        db_session.commit()
-
-        persisted = db_session.query(Notification).filter_by(id=notification.id).first()
-        assert persisted is not None
-        assert persisted.type == NotificationType.CREDITS_DEPLETED.value
-        assert persisted.user_id == test_user.id
-        assert persisted.organization_id == test_organization.id
-        assert persisted.channel == NotificationChannel.BOTH.value
-        assert persisted.title == "Credits Depleted"
-        assert persisted.link == "/workspace/credits"
-
-        # Email branch should fire for BOTH channel — verify the email-side flag flipped
-        assert persisted.email_sent is True
-        assert persisted.email_sent_at is not None
-
-
-class TestNotificationTenantIsolation:
-    """Tenant isolation: notifications must not leak across organizations.
-
-    These tests pin the contract at the SERVICE layer (which now accepts
-    an organization_id filter). The HTTP endpoints pass current_user.organization_id
-    so a user can never read notifications scoped to a different organization
-    even if their user_id collides.
-    """
 
     def test_get_notifications_filters_by_organization_id(
         self, db_session, test_user, test_organization, test_organization_2
@@ -385,90 +326,3 @@ class TestNotificationTenantIsolation:
         assert leak_id not in ids, "cross-org notification leaked through endpoint"
         assert body["total"] == 1
         assert body["unread_count"] == 1
-
-
-class TestLowCreditsNotificationIdempotency:
-    """Repeated low-credit deductions must produce only ONE notification.
-
-    Verifies the `low_credits_notified` flag on Organization stops the
-    notification fan-out from spamming the user. Without this guard, every
-    deduction at or below threshold would queue another row.
-    """
-
-    def test_repeated_deductions_below_threshold_send_one_notification(
-        self, db_session, test_organization, test_user
-    ):
-        """Hammering deduct_credits while below threshold fires once, not N times."""
-        from app.services.credits_service import CreditsService
-
-        # Set up: org with monthly_quota=100, balance just above threshold (10%)
-        test_organization.monthly_quota = 100
-        test_organization.credits_balance = 100
-        test_organization.credits_subscription = 100
-        test_organization.low_credits_notified = False
-        test_organization.owner_user_id = test_user.id
-        db_session.commit()
-
-        # First deduction drops balance to 9 (below 10% of 100 = 10 threshold)
-        # → triggers low credits notification
-        CreditsService.deduct_credits(
-            db=db_session,
-            organization_id=test_organization.id,
-            credits=91,
-            description="solve 1",
-            reference_type="solve",
-            reference_id=generate_id("ref_"),
-        )
-        db_session.commit()
-
-        # Verify the flag flipped and one notification was created
-        db_session.refresh(test_organization)
-        assert test_organization.low_credits_notified is True
-
-        first_count = (
-            db_session.query(Notification)
-            .filter(
-                Notification.user_id == test_user.id,
-                Notification.organization_id == test_organization.id,
-                Notification.type == NotificationType.CREDITS_LOW.value,
-            )
-            .count()
-        )
-        assert first_count == 1, f"expected 1 low-credits notification, got {first_count}"
-
-        # Now hammer 5 more deductions while still below threshold —
-        # the flag should keep additional notifications from firing
-        for i in range(5):
-            try:
-                CreditsService.deduct_credits(
-                    db=db_session,
-                    organization_id=test_organization.id,
-                    credits=1,
-                    description=f"solve {i + 2}",
-                    reference_type="solve",
-                    reference_id=generate_id("ref_"),
-                )
-                db_session.commit()
-            except Exception:
-                # Insufficient credits at the very end is fine — we just
-                # need to verify the notification doesn't double-fire
-                db_session.rollback()
-                break
-
-        # Still exactly one CREDITS_LOW notification — flag prevented spam
-        final_count = (
-            db_session.query(Notification)
-            .filter(
-                Notification.user_id == test_user.id,
-                Notification.organization_id == test_organization.id,
-                Notification.type == NotificationType.CREDITS_LOW.value,
-            )
-            .count()
-        )
-        assert final_count == 1, (
-            f"low credits notification fired {final_count} times — idempotency broken"
-        )
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])

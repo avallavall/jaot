@@ -7,7 +7,8 @@ JSON Schema generation from TemplateDefinition objects.
 from unittest.mock import patch
 
 from app.data.templates._schema import TemplateDefinition
-from app.models import ModelCatalog
+from app.models import ModelProject, ModelProjectListing
+from app.shared.db.p15_backfill import SYSTEM_ORG_ID
 from app.shared.db.seed_models import build_input_schema, seed_official_models
 
 
@@ -37,7 +38,7 @@ def _make_template(**overrides) -> TemplateDefinition:
 
 
 class TestSeedOfficialModelsCreate:
-    """Test that seed creates new ModelCatalog entries."""
+    """Test that seed creates the unified ModelProject + listing."""
 
     def test_creates_new_entries(self, db_session):
         tpl = _make_template(id="alpha")
@@ -45,11 +46,18 @@ class TestSeedOfficialModelsCreate:
             count = seed_official_models(db_session)
 
         assert count == 1
-        entry = db_session.get(ModelCatalog, "official_alpha")
-        assert entry is not None
-        assert entry.name == "Test Template"
-        assert entry.is_official is True
-        assert entry.status == "published"
+        # The unified entity: an anchor ModelProject (system org) + published listing.
+        project = db_session.get(ModelProject, "official_alpha")
+        assert project is not None
+        assert project.organization_id == SYSTEM_ORG_ID
+        listing = db_session.get(ModelProjectListing, "official_alpha")
+        assert listing is not None
+        assert listing.name == "Test Template"
+        assert listing.is_official is True
+        assert listing.status == "published"
+        assert listing.generator_type == "generic"
+        # The listing carries its author org (frontends render "by {author}").
+        assert listing.author_organization_id == SYSTEM_ORG_ID
 
     def test_creates_multiple_entries(self, db_session):
         tpl1 = _make_template(id="one", name="One")
@@ -58,8 +66,8 @@ class TestSeedOfficialModelsCreate:
             count = seed_official_models(db_session)
 
         assert count == 2
-        assert db_session.get(ModelCatalog, "official_one") is not None
-        assert db_session.get(ModelCatalog, "official_two") is not None
+        assert db_session.get(ModelProjectListing, "official_one") is not None
+        assert db_session.get(ModelProjectListing, "official_two") is not None
 
 
 class TestSeedOfficialModelsUpsert:
@@ -74,7 +82,7 @@ class TestSeedOfficialModelsUpsert:
         with patch("app.shared.db.seed_models.load_all_templates", return_value=[tpl_v2]):
             seed_official_models(db_session)
 
-        entry = db_session.get(ModelCatalog, "official_upsert_test")
+        entry = db_session.get(ModelProjectListing, "official_upsert_test")
         assert entry.name == "New Name"
         assert entry.description == "Updated"
 
@@ -89,7 +97,9 @@ class TestSeedIdempotency:
             seed_official_models(db_session)
 
         results = (
-            db_session.query(ModelCatalog).filter(ModelCatalog.id == "official_idempotent").all()
+            db_session.query(ModelProjectListing)
+            .filter(ModelProjectListing.model_project_id == "official_idempotent")
+            .all()
         )
         assert len(results) == 1
 
@@ -107,11 +117,11 @@ class TestSeedDeprecation:
         with patch("app.shared.db.seed_models.load_all_templates", return_value=[tpl1]):
             seed_official_models(db_session)
 
-        removed = db_session.get(ModelCatalog, "official_remove_me")
+        removed = db_session.get(ModelProjectListing, "official_remove_me")
         assert removed is not None  # NOT deleted
         assert removed.status == "deprecated"
 
-        kept = db_session.get(ModelCatalog, "official_keep_me")
+        kept = db_session.get(ModelProjectListing, "official_keep_me")
         assert kept.status == "published"
 
     def test_deprecated_templates_not_deleted(self, db_session):
@@ -124,7 +134,7 @@ class TestSeedDeprecation:
             seed_official_models(db_session)
             seed_official_models(db_session)
 
-        entry = db_session.get(ModelCatalog, "official_will_deprecate")
+        entry = db_session.get(ModelProjectListing, "official_will_deprecate")
         assert entry is not None
         assert entry.status == "deprecated"
 

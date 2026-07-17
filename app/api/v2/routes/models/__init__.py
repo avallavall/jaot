@@ -2,10 +2,13 @@
 
 This package contains the models API endpoints split into:
 - favorites: Favorites and recents management
-- catalog: Marketplace catalog browsing and activation
-- my_models: Organization model management
+- catalog: Marketplace catalog browsing
 - execution: Model execution and history
-- publish: Publishing models to marketplace
+- media: Listing media management (logo, screenshots, sections)
+
+P1.5 fusion: the legacy my-models CRUD (OrganizationModel) and the legacy
+publish flow are retired — the single model entity is ModelProject, managed
+via /api/v2/projects (publishing = POST /projects/{id}/publish).
 """
 
 from fastapi import APIRouter
@@ -14,8 +17,6 @@ from app.api.v2.routes.models.catalog import router as catalog_router
 from app.api.v2.routes.models.execution import router as execution_router
 from app.api.v2.routes.models.favorites import router as favorites_router
 from app.api.v2.routes.models.media import router as media_router
-from app.api.v2.routes.models.my_models import router as my_models_router
-from app.api.v2.routes.models.publish import router as publish_router
 
 
 def create_models_router() -> APIRouter:
@@ -31,8 +32,6 @@ def create_models_router() -> APIRouter:
     router.include_router(favorites_router)  # /favorites, /recents
     router.include_router(catalog_router)  # /catalog, /catalog/{id}
     router.include_router(execution_router)  # /async/{id}, /executions/all
-    router.include_router(my_models_router)  # /, /{id}, /{id}/schema
-    router.include_router(publish_router)  # /{id}/publish
     router.include_router(
         media_router
     )  # /catalog/{id}/logo, /catalog/{id}/screenshots, /catalog/{id}/sections

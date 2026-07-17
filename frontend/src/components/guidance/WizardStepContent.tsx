@@ -172,11 +172,6 @@ export function WizardStepContent({
                 {t("guidance.executions")}
               </Button>
             </Link>
-            <Link href="/workspace/credits">
-              <Button variant="outline" className="w-full justify-start" size="sm">
-                {t("guidance.credits")}
-              </Button>
-            </Link>
           </div>
           <div className="grid grid-cols-2 gap-2 mt-2">
             {communityStatus?.discourse_enabled && (

@@ -14,7 +14,11 @@ from typing import Any
 
 from pyscipopt import Model
 
-from app.domains.solver.adapters._scip_expression import build_scip_expression
+from app.domains.solver.adapters._scip_expression import (
+    anchor_constant_expr,
+    build_scip_expression,
+    set_scip_objective,
+)
 from app.domains.solver.services.expression_parser import ExpressionParser
 from app.schemas.optimization import (
     Constraint,
@@ -54,7 +58,7 @@ def build_scip_model(
     model.hideOutput()
 
     scip_vars = create_variables(model, problem.variables)
-    variable_names = [v.name for v in problem.variables]
+    variable_names = {v.name for v in problem.variables}
     constraint_refs = add_constraints(model, scip_vars, problem.constraints, variable_names, parser)
     set_objective(model, scip_vars, problem.objective, variable_names, parser)
 
@@ -85,7 +89,7 @@ def add_constraints(
     model: Model,
     scip_vars: dict[str, Any],
     constraints: list[Constraint],
-    variable_names: list[str],
+    variable_names: set[str],
     parser: ExpressionParser,
 ) -> dict[str, Any]:
     """Parse and add constraints to a SCIP model."""
@@ -96,8 +100,10 @@ def add_constraints(
             constraint.expression,
             known_variables=variable_names,
         )
-        lhs_expr = build_scip_expression(parsed.lhs, scip_vars)
         name = constraint.name or f"c{i}"
+        lhs_expr = anchor_constant_expr(
+            build_scip_expression(parsed.lhs, scip_vars), scip_vars, label=name
+        )
 
         if parsed.operator == "<=":
             cons = model.addCons(lhs_expr <= parsed.rhs, name=name)
@@ -122,7 +128,7 @@ def set_objective(
     model: Model,
     scip_vars: dict[str, Any],
     objective: Any,
-    variable_names: list[str],
+    variable_names: set[str],
     parser: ExpressionParser,
 ) -> None:
     """Parse and set the objective function on a SCIP model."""
@@ -132,4 +138,4 @@ def set_objective(
     )
     obj_expr = build_scip_expression(parsed, scip_vars)
     sense = "minimize" if objective.sense == ObjectiveSense.MINIMIZE else "maximize"
-    model.setObjective(obj_expr, sense=sense)
+    set_scip_objective(model, obj_expr, sense, is_linear=parsed.is_linear())

@@ -98,13 +98,13 @@ test.describe("Accessibility - Public Pages", () => {
     await context.close();
   });
 
-  test("pricing page has no critical or serious a11y violations", async ({
+  test("contact page has no critical or serious a11y violations", async ({
     browser,
   }) => {
     const context = await browser.newContext({ storageState: undefined });
     const page = await context.newPage();
 
-    await page.goto("/pricing");
+    await page.goto("/contact");
     await page.waitForLoadState("domcontentloaded");
 
     await assertAccessible(page);
@@ -135,10 +135,10 @@ test.describe("Accessibility - Authenticated Pages", () => {
     await assertAccessible(page);
   });
 
-  test("solve page has no critical or serious a11y violations", async ({
+  test("studio page has no critical or serious a11y violations", async ({
     page,
   }) => {
-    await page.goto("/solve");
+    await page.goto("/studio");
     await page.waitForLoadState("domcontentloaded");
 
     // Wait for the solve dashboard to render

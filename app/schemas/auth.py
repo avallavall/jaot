@@ -29,8 +29,8 @@ class SignupRequest(BaseModel):
     email: EmailStr
     name: str = Field(..., min_length=2)
     organization_name: str = Field(..., min_length=2)
-    # Self-serve signup only grants the free tier — paid plans require Stripe checkout or an
-    # admin. Accepting them here handed out paid quotas/credits with no payment step.
+    # Self-serve signup only grants the free tier; other tiers are legacy limit
+    # profiles an admin can assign (ADR-008: no paid plans exist).
     plan: Literal["free"] = Field(default="free")
 
 
@@ -40,7 +40,6 @@ class SignupResponse(BaseModel):
     user_id: str
     organization_id: str
     api_key: str
-    credits_balance: int
     plan: str
     message: str
 
@@ -63,7 +62,6 @@ class MeResponse(BaseModel):
     organization_id: str
     organization_name: str
     plan: str
-    credits_balance: int
     is_admin: bool
     # READ-ONLY signal derived server-side from Organization.owner_user_id == user.id.
     # FE uses this for UI gating (mutating controls); actual authorization checks
@@ -120,7 +118,6 @@ class EmailSignupResponse(BaseModel):
     user_id: str
     organization_id: str
     api_key: str
-    credits_balance: int
     plan: str
     message: str
     email_verified: bool

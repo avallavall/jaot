@@ -15,7 +15,6 @@ export type LLMStatusCode =
 export type LLMErrorCode =
   | "validation_failed"
   | "content_moderation"
-  | "insufficient_credits"
   | "parametric_unsupported"
   | "service_unavailable"
   | "internal_error";
@@ -33,7 +32,6 @@ export const STATUS_I18N_KEY: Record<LLMStatusCode, string> = {
 export const ERROR_I18N_KEY: Record<LLMErrorCode, string> = {
   validation_failed: "llm.error.validationFailed",
   content_moderation: "llm.error.contentModeration",
-  insufficient_credits: "llm.error.insufficientCredits",
   parametric_unsupported: "llm.error.parametricUnsupported",
   service_unavailable: "llm.error.serviceUnavailable",
   internal_error: "llm.error.internalError",

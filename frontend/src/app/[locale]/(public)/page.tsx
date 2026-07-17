@@ -90,7 +90,7 @@ const HERO_PILLARS = [
 
 const AUDIENCE = [
   { icon: Building2, key: "teams", href: "/signup", accent: ACCENT_SEPIA },
-  { icon: Store, key: "sellers", href: "/marketplace", accent: ACCENT_TERRACOTTA },
+  { icon: Store, key: "authors", href: "/marketplace", accent: ACCENT_TERRACOTTA },
   { icon: GraduationCap, key: "students", href: "/signup", accent: ACCENT_SAGE },
 ] as const;
 
@@ -119,6 +119,9 @@ const INFEASIBILITY_KEYS = [
 
 const HOW_IT_WORKS_KEYS = ["step1", "step2", "step3"] as const;
 
+// Mirrors the real MCP surface (app/mcp include_operations, 26 tools) — keep in
+// sync when tools are added/retired; llms.txt and docs/mcp/overview are the
+// other two copies.
 const MCP_TOOL_GROUPS = [
   {
     key: "problemSolving",
@@ -128,18 +131,29 @@ const MCP_TOOL_GROUPS = [
     key: "templates",
     tools: ["list_templates", "get_template", "solve_with_template"],
   },
-  { key: "fileIO", tools: ["import_preview", "import_and_solve"] },
+  {
+    key: "fileIO",
+    tools: ["import_preview", "import_and_solve", "export_model", "export_execution"],
+  },
   {
     key: "marketplace",
+    tools: ["list_catalog_models", "get_catalog_model", "get_catalog_model_schema"],
+  },
+  {
+    key: "modelProjects",
     tools: [
-      "list_catalog_models",
-      "get_catalog_model",
-      "get_catalog_model_schema",
-      "activate_catalog_model",
+      "create_model_project",
+      "create_model_project_from_marketplace",
+      "update_model_project_draft",
+      "commit_model_version",
+      "list_project_versions",
+      "get_model_stats",
+      "solve_model_project",
+      "get_model_project",
+      "list_model_projects",
     ],
   },
   { key: "execution", tools: ["execute_model", "get_execution", "get_execution_insights"] },
-  { key: "account", tools: ["get_credit_balance"] },
 ] as const;
 
 export default async function HomePage() {

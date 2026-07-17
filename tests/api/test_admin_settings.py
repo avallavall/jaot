@@ -19,7 +19,6 @@ class TestSettingsRegistry:
             SettingCategory.LLM,
             SettingCategory.EMAIL,
             SettingCategory.SECURITY,
-            SettingCategory.MARKETPLACE,
             SettingCategory.SECRETS,
         }
         actual = set(REGISTRY_BY_CATEGORY.keys())
@@ -72,8 +71,6 @@ class TestSettingsRegistry:
 
         tiers = ["free", "starter", "pro", "business"]
         fields = [
-            "credits",
-            "monthly_quota",
             "rate_limit_per_minute",
             "rate_limit_per_day",
             "max_solve_time_seconds",
@@ -115,8 +112,8 @@ class TestPlatformSettingsServiceGet:
         """get() falls back to registry default_value."""
         from app.services.platform_settings_service import PlatformSettingsService
 
-        value = PlatformSettingsService.get(db_session, "marketplace_commission_rate")
-        assert value == "0.10"
+        value = PlatformSettingsService.get(db_session, "LLM_MONTHLY_BUDGET_EUR")
+        assert value == "50.0"
 
 
 class TestPlatformSettingsServiceBulkSet:
@@ -452,8 +449,8 @@ class TestSettingsPlansEndpoint:
         assert "starter" in data["plans"]
         assert "pro" in data["plans"]
         assert "business" in data["plans"]
-        # Each tier should have 9 fields
-        assert len(data["plans"]["free"]) == 9
+        # Each tier should have 7 fields (credits/monthly_quota died with ADR-008)
+        assert len(data["plans"]["free"]) == 7
 
     def test_put_plans_updates_tiers(self, admin_client, db_session):
         """PUT /plans updates plan tier values."""
@@ -461,7 +458,7 @@ class TestSettingsPlansEndpoint:
             "/api/v2/admin/settings/plans",
             json={
                 "plans": {
-                    "free": {"credits": "50", "monthly_quota": "50"},
+                    "free": {"rate_limit_per_minute": "120"},
                 }
             },
         )
@@ -470,8 +467,8 @@ class TestSettingsPlansEndpoint:
         # Verify persisted
         from app.services.platform_settings_service import PlatformSettingsService
 
-        val = PlatformSettingsService.get(db_session, "plan_free_credits")
-        assert val == "50"
+        val = PlatformSettingsService.get(db_session, "plan_free_rate_limit_per_minute")
+        assert val == "120"
 
 
 class TestSettingsNonAdminAccess:

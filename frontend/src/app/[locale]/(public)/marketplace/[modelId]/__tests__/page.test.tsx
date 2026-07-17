@@ -65,7 +65,6 @@ describe("marketplace/[modelId] page (F-04)", () => {
         id: "mdl_1",
         display_name: "Fleet Routing",
         category: "logistics",
-        price_eur: 49,
         total_activations: 10,
       }),
     } as unknown as Response);

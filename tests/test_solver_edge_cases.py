@@ -64,6 +64,47 @@ def _make_large_problem(
     )
 
 
+class TestConstantConstraintDoesNotCrash:
+    """A constraint whose LHS has no variable terms must not crash the SCIP build.
+
+    Regression: parametric/complex models (the parser binds no variables) can reduce a
+    constraint to ``constant <op> rhs``; pyscipopt's ``addCons`` then raised
+    "given constraint is not ExprCons but bool" and aborted the whole model. The builder
+    now anchors the constant to a zero-weighted variable — redundant when satisfied,
+    infeasible when not.
+    """
+
+    def _problem(self, const_expr: str) -> OptimizationProblem:
+        return OptimizationProblem(
+            name="const_cons",
+            objective=Objective(sense=ObjectiveSense.MAXIMIZE, expression="a + b"),
+            variables=[
+                Variable(name="a", type=VariableType.BINARY),
+                Variable(name="b", type=VariableType.BINARY),
+            ],
+            constraints=[
+                Constraint(name="real", expression="a + b <= 1"),
+                Constraint(name="const", expression=const_expr),
+            ],
+        )
+
+    def test_build_does_not_raise_on_constant_lhs(self):
+        from app.domains.solver.adapters._scip_model_builder import build_scip_model
+
+        # Previously raised: "given constraint is not ExprCons but bool".
+        _model, scip_vars, _refs = build_scip_model(self._problem("1 <= 5"))
+        assert set(scip_vars) == {"a", "b"}
+
+    def test_trivially_satisfied_constant_constraint_solves(self):
+        result = SolverService().solve(self._problem("1 <= 5"))
+        assert result.status == SolverStatus.OPTIMAL
+        assert result.objective_value == pytest.approx(1.0)
+
+    def test_trivially_violated_constant_constraint_is_infeasible(self):
+        result = SolverService().solve(self._problem("5 <= 1"))
+        assert result.status == SolverStatus.INFEASIBLE
+
+
 class TestSolverTimeLimit:
     """Verify the solver respects time_limit_seconds."""
 
@@ -462,68 +503,44 @@ class TestSolverErrorHandling:
         assert result.solve_time_seconds > 0
 
 
-class TestSolveTimeoutRefundIntegration:
-    """End-to-end timeout-refund path against the real SolveOrchestrator."""
+class TestQuadraticSensitivityUnavailable:
+    """LP shadow prices / reduced costs do not apply to quadratic models — the
+    result must carry an honest "not available" note, never misleading duals."""
 
-    def test_solve_timeout_refund_end_to_end(self, db_session, test_organization):
-        """A solver that raises asyncio.TimeoutError fully refunds the pre-paid credits.
-
-        Exercises the real orchestrator (not the unit test mocks) so that the
-        actual refund SQL is executed against the real database. The solve
-        function raises TimeoutError to simulate a SCIP thread pool timeout.
-        """
-        import asyncio
-        from unittest.mock import MagicMock
-
-        from app.domains.solver.services.pool import get_solver_pool
-        from app.domains.solver.services.solver_service import SolverService
-        from app.models import Organization
-        from app.services.solve_orchestrator import SolveOrchestrator
-
-        initial_balance = 1000
-        test_organization.credits_balance = initial_balance
-        db_session.commit()
-
+    def test_qp_solves_but_sensitivity_is_an_honest_absence(self):
         problem = OptimizationProblem(
-            name="timeout_test",
-            objective=Objective(sense=ObjectiveSense.MAXIMIZE, expression="x"),
+            name="qp_sensitivity",
             variables=[
-                Variable(name="x", type=VariableType.CONTINUOUS, lower_bound=0, upper_bound=10),
+                Variable(name="x", type=VariableType.CONTINUOUS, lower_bound=0.0),
+                Variable(name="y", type=VariableType.CONTINUOUS, lower_bound=0.0),
             ],
-            constraints=[Constraint(expression="x <= 5")],
-            options=SolverOptions(time_limit_seconds=30),
+            constraints=[Constraint(name="c", expression="x + y >= 4")],
+            objective=Objective(expression="x*x + y*y", sense=ObjectiveSense.MINIMIZE),
+            options=SolverOptions(time_limit_seconds=30.0),
         )
+        result = SCIPAdapter().solve(problem)
+        assert result.status == SolverStatus.OPTIMAL
+        assert result.objective_value is not None
+        assert abs(result.objective_value - 8.0) < 1e-5
+        assert result.sensitivity is not None
+        assert result.sensitivity.constraints == []
+        assert "quadratic" in (result.sensitivity.note or "")
 
-        # Use a solver that always raises TimeoutError inside the pool.
-        class _TimeoutSolver(SolverService):
-            def solve(self, problem, warm_start_solution=None):  # type: ignore[override]
-                # This exception bubbles up through asyncio.run_in_executor.
-                raise TimeoutError("Simulated SCIP timeout")
-
-        solver = _TimeoutSolver()
-        orchestrator = SolveOrchestrator(db_session, solver, get_solver_pool())
-
-        # Build a minimal request mock (needed for _error_response verbose check).
-        fake_request = MagicMock()
-        fake_request.headers = {}
-        fake_request.state.user = None
-
-        credits_needed = 5
-
-        async def _run():
-            with pytest.raises(Exception):  # noqa: B017 — we just want the side-effect
-                await orchestrator.solve_single(
-                    problem=problem,
-                    org=test_organization,
-                    user=None,
-                    request=fake_request,
-                    credits_needed=credits_needed,
-                    workspace_id=None,
-                )
-
-        asyncio.run(_run())
-
-        # Refund must have restored the full balance.
-        db_session.expire_all()
-        updated = db_session.get(Organization, test_organization.id)
-        assert updated.credits_balance == initial_balance
+    def test_miqp_sensitivity_also_capped(self):
+        problem = OptimizationProblem(
+            name="miqp_sensitivity",
+            variables=[
+                Variable(name="x", type=VariableType.INTEGER, lower_bound=0.0, upper_bound=10.0),
+                Variable(name="y", type=VariableType.INTEGER, lower_bound=0.0, upper_bound=10.0),
+            ],
+            constraints=[Constraint(name="c", expression="x + y <= 10")],
+            objective=Objective(expression="x*y", sense=ObjectiveSense.MAXIMIZE),
+            options=SolverOptions(time_limit_seconds=30.0),
+        )
+        result = SCIPAdapter().solve(problem)
+        assert result.status == SolverStatus.OPTIMAL
+        assert result.objective_value is not None
+        assert abs(result.objective_value - 25.0) < 1e-5
+        assert result.sensitivity is not None
+        assert result.sensitivity.constraints == []
+        assert "quadratic" in (result.sensitivity.note or "")

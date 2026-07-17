@@ -13,7 +13,7 @@ function titleCase(value: string): string {
 
 /**
  * Shared translation helpers for enum-like values that appear across many pages:
- * categories, execution statuses, and transaction types.
+ * categories and execution statuses.
  *
  * Uses `common.*` namespace with a consistent title-case fallback
  * when a key is missing from the locale file.
@@ -31,10 +31,5 @@ export function useCommonLabels() {
       tc.has(`executionStatus.${status}`)
         ? tc(`executionStatus.${status}`)
         : titleCase(status),
-
-    transactionTypeLabel: (type: string): string =>
-      tc.has(`transactionTypes.${type}`)
-        ? tc(`transactionTypes.${type}`)
-        : titleCase(type),
   };
 }

@@ -4,16 +4,11 @@ import logging
 
 from app.models import (  # noqa: F401
     APIKey,
-    CreditTransaction,
-    ExchangeRate,
     ModelCatalog,
     ModelExecution,
     Organization,
     OrganizationModel,
-    UsageRecord,
     User,
-    Withdrawal,
-    WithdrawalSchedule,
 )
 from app.shared.db.base import Base
 from app.shared.db.session import engine

@@ -51,7 +51,6 @@ def _create_execution(db_session, org_id, **kwargs) -> ModelExecution:
         input_data=kwargs.get("input_data", _simple_problem().model_dump()),
         result_data=kwargs.get("result_data", _optimal_result()),
         status=kwargs.get("status", ExecutionStatus.COMPLETED.value),
-        credits_consumed=1,
         solver_status=kwargs.get("solver_status", "optimal"),
         objective_value=kwargs.get("objective_value", 2.0),
     )
@@ -255,7 +254,6 @@ class TestInsightsEndpoint:
             input_data={},
             result_data=_optimal_result(),
             status=ExecutionStatus.COMPLETED.value,
-            credits_consumed=1,
         )
         db_session.add(exe)
         db_session.commit()

@@ -81,3 +81,44 @@ describe("ChatPanel — partialWarning (LLM-16)", () => {
     expect(screen.queryByText("builder.llm.chat.partialResult")).not.toBeInTheDocument();
   });
 });
+
+describe("ChatPanel — controlled mode (studio durable session)", () => {
+  const controlled = [
+    { id: "u1", role: "user" as const, content: "make x integer", formulation_json: null, created_at: new Date().toISOString() },
+    { id: "a1", role: "assistant" as const, content: "Done — x is now integer", formulation_json: null, created_at: new Date().toISOString() },
+  ];
+
+  it("renders the parent-owned message list", () => {
+    render(
+      <ChatPanel
+        initialMessages={[]}
+        messages={controlled}
+        onSend={vi.fn()}
+        stream={makeStream()}
+      />
+    );
+    expect(screen.getByText("make x integer")).toBeInTheDocument();
+    expect(screen.getByText("Done — x is now integer")).toBeInTheDocument();
+  });
+
+  it("does NOT append a stream formulation to its own list (the parent owns it)", () => {
+    const formulation = {
+      summary: "extra assistant message that must NOT appear",
+      variables: [{ name: "x", type: "integer" as const, lower_bound: 0, upper_bound: null, description: "" }],
+      constraints: [],
+      objective: { sense: "minimize" as const, expression: "x", description: "" },
+      problem_name: "m",
+    };
+    render(
+      <ChatPanel
+        initialMessages={[]}
+        messages={controlled}
+        onSend={vi.fn()}
+        stream={makeStream({ formulation })}
+      />
+    );
+    // Only the two controlled messages render — the formulation did NOT add a third.
+    expect(screen.getAllByTestId("chat-message")).toHaveLength(2);
+    expect(screen.queryByText("extra assistant message that must NOT appear")).not.toBeInTheDocument();
+  });
+});

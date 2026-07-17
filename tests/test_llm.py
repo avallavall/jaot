@@ -489,6 +489,66 @@ class TestConversationCRUD:
         data = response.json()
         assert data["model_id"] == "doc_abc123"
 
+    def test_create_conversation_scoped_to_project_seeds_formulation(self, authenticated_client):
+        """A studio conversation scoped to a ModelProject seeds current_formulation from
+        the project's draft, so the first chat message refines the existing model."""
+        pid = authenticated_client.post("/api/v2/projects", json={"name": "Seed Probe"}).json()[
+            "id"
+        ]
+        model = {
+            "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
+            "objective": {"sense": "minimize", "expression": "x"},
+            "constraints": [{"name": "c1", "expression": "x >= 5"}],
+        }
+        draft = authenticated_client.put(
+            f"/api/v2/projects/{pid}/draft", json={"model_json": model}
+        )
+        assert draft.status_code == 200, draft.text
+
+        resp = authenticated_client.post(
+            "/api/v2/llm/conversations", json={"model_project_id": pid}
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["model_project_id"] == pid
+        cf = data["current_formulation"]
+        assert cf is not None
+        assert cf["problem_name"] == "Seed Probe"
+        assert [v["name"] for v in cf["variables"]] == ["x"]
+        assert cf["objective"]["sense"] == "minimize"
+        assert len(cf["constraints"]) == 1
+
+    def test_create_conversation_unknown_project_returns_404(self, authenticated_client):
+        """A model_project_id that is not an org-owned project must 404 (no leak)."""
+        resp = authenticated_client.post(
+            "/api/v2/llm/conversations", json={"model_project_id": "mp_does_not_exist"}
+        )
+        assert resp.status_code == 404
+
+    def test_create_conversation_empty_project_no_seed(self, authenticated_client):
+        """A brand-new (variable-less) project seeds nothing — the chat builds from scratch."""
+        pid = authenticated_client.post("/api/v2/projects", json={"name": "Empty"}).json()["id"]
+        resp = authenticated_client.post(
+            "/api/v2/llm/conversations", json={"model_project_id": pid}
+        )
+        assert resp.status_code == 201
+        assert resp.json()["current_formulation"] is None
+
+    def test_list_conversations_filters_by_project(self, authenticated_client):
+        """GET /conversations?model_project_id= returns only that project's conversations."""
+        pid = authenticated_client.post("/api/v2/projects", json={"name": "Filter Probe"}).json()[
+            "id"
+        ]
+        scoped = authenticated_client.post(
+            "/api/v2/llm/conversations", json={"model_project_id": pid}
+        ).json()["id"]
+        authenticated_client.post("/api/v2/llm/conversations", json={})  # unscoped
+
+        resp = authenticated_client.get(f"/api/v2/llm/conversations?model_project_id={pid}")
+        assert resp.status_code == 200
+        ids = [c["id"] for c in resp.json()["items"]]
+        assert ids == [scoped]
+
     def test_list_conversations_filters_by_model_id(
         self, authenticated_client, db_session, test_user, test_organization
     ):
@@ -729,30 +789,6 @@ class TestLLMRateLimiting:
         assert detail["retry_after"] == 30
         assert detail["error"] == "rate_limit_exceeded"
 
-    def test_llm_insufficient_credits_returns_402(
-        self, authenticated_client, test_conversation, test_organization, db_session
-    ):
-        """Insufficient credits returns 402."""
-        # Set credits to 0 and commit so the endpoint session sees it
-        test_organization.credits_balance = 0
-        db_session.commit()
-
-        with patch(
-            "app.api.v2.llm.check_rate_limit",
-            return_value=(True, {"minute_remaining": 9}),
-        ):
-            response = authenticated_client.post(
-                f"/api/v2/llm/conversations/{test_conversation.id}/messages",
-                json={"message": "Minimize cost of shipping"},
-            )
-
-        assert response.status_code == 402
-        detail = response.json()["detail"]
-        assert detail["error"] == "insufficient_credits"
-
-
-# Explanation Mode Tests (LLM-09)
-
 
 class TestExplanationMode:
     """Test explanation response type routing."""
@@ -784,8 +820,6 @@ class TestExplanationMode:
         self, authenticated_client, test_conversation, test_organization, db_session
     ):
         """Explanation response_type routes to generate_text_response."""
-        test_organization.credits_balance = 100
-        db_session.commit()
 
         async def mock_text_gen(messages, model, thinking, **kwargs):
             yield {"type": "delta", "text": "The infeasible status means..."}
@@ -818,186 +852,6 @@ class TestExplanationMode:
                 events_found.add(line.split(":", 1)[1].strip())
         assert "delta" in events_found
         assert "done" in events_found
-
-
-class TestCreditDeduction:
-    """Test credit deduction after successful LLM stream."""
-
-    def test_credit_deduction_on_success(
-        self, authenticated_client, test_conversation, test_organization, db_session
-    ):
-        """Credits are deducted after successful stream completion."""
-        test_organization.credits_balance = 50
-        db_session.commit()
-
-        mock_events = _make_mock_stream_events()
-        mock_client = MagicMock()
-        mock_client.messages.stream = MagicMock(return_value=MockStreamContext(mock_events))
-
-        with (
-            patch(
-                "app.api.v2.llm.check_rate_limit",
-                return_value=(True, {"minute_remaining": 9}),
-            ),
-            patch(
-                "app.services.llm.formulation_service.get_anthropic_client",
-                return_value=mock_client,
-            ),
-        ):
-            response = authenticated_client.post(
-                f"/api/v2/llm/conversations/{test_conversation.id}/messages",
-                json={"message": "Minimize shipping costs for two routes"},
-            )
-
-        assert response.status_code == 200
-        # Refresh org from DB to check credit deduction
-        db_session.refresh(test_organization)
-        # LLM_CREDIT_COST_PER_MESSAGE default is 2
-        assert test_organization.credits_balance == 48
-
-    def test_credit_refund_on_stream_failure(
-        self, authenticated_client, test_conversation, test_organization, db_session
-    ):
-        """Credits are refunded when the LLM stream raises mid-flight.
-
-        Money path: pre-pay → stream raises → must refund (or never deduct).
-        Without this guard, a SIGTERM after deduct but before stream end
-        would leave the user charged but with no result.
-        """
-        from app.models.credit_transaction import CreditTransaction
-
-        test_organization.credits_balance = 50
-        db_session.commit()
-        starting_balance = test_organization.credits_balance
-
-        class _RaisingStream:
-            async def __aenter__(self):
-                return self
-
-            async def __aexit__(self, *args):
-                pass
-
-            def __aiter__(self):
-                return self._iter()
-
-            async def _iter(self):
-                # Yield one delta then raise to simulate mid-flight failure
-                event = MagicMock()
-                event.type = "content_block_delta"
-                event.delta = MagicMock()
-                event.delta.type = "text_delta"
-                event.delta.text = "{"
-                yield event
-                raise RuntimeError("Anthropic stream crashed")
-
-        mock_client = MagicMock()
-        mock_client.messages.stream = MagicMock(return_value=_RaisingStream())
-
-        with (
-            patch(
-                "app.api.v2.llm.check_rate_limit",
-                return_value=(True, {"minute_remaining": 9}),
-            ),
-            patch(
-                "app.services.llm.formulation_service.get_anthropic_client",
-                return_value=mock_client,
-            ),
-        ):
-            response = authenticated_client.post(
-                f"/api/v2/llm/conversations/{test_conversation.id}/messages",
-                json={"message": "Minimize shipping costs for two routes"},
-            )
-
-        # Stream endpoint returns 200 but emits an error event in the body
-        assert response.status_code == 200
-
-        # Refresh and verify net balance unchanged (pre-pay was refunded)
-        db_session.expire_all()
-        org_after = (
-            db_session.query(test_organization.__class__).filter_by(id=test_organization.id).first()
-        )
-        assert org_after.credits_balance == starting_balance, (
-            f"credits not refunded: {starting_balance} -> {org_after.credits_balance}"
-        )
-
-        # And the refund transaction was recorded
-        refund_count = (
-            db_session.query(CreditTransaction)
-            .filter(
-                CreditTransaction.organization_id == test_organization.id,
-                CreditTransaction.reference_type == "llm_message_refund",
-            )
-            .count()
-        )
-        assert refund_count == 1
-
-    def test_no_orphaned_assistant_message_on_stream_failure(
-        self, authenticated_client, test_conversation, test_organization, db_session
-    ):
-        """When the stream fails mid-flight, no LLMMessage row should be persisted.
-
-        The audit's missing-test #3: orphaned LLMMessage rows must not appear
-        if the SSE stream errors out before reaching the 'done' event.
-        """
-        test_organization.credits_balance = 50
-        db_session.commit()
-
-        # Count assistant messages before the request
-        assistant_msgs_before = (
-            db_session.query(LLMMessage)
-            .filter_by(conversation_id=test_conversation.id, role="assistant")
-            .count()
-        )
-
-        class _RaisingStream:
-            async def __aenter__(self):
-                return self
-
-            async def __aexit__(self, *args):
-                pass
-
-            def __aiter__(self):
-                return self._iter()
-
-            async def _iter(self):
-                event = MagicMock()
-                event.type = "content_block_delta"
-                event.delta = MagicMock()
-                event.delta.type = "text_delta"
-                event.delta.text = "{"
-                yield event
-                raise RuntimeError("Anthropic stream crashed mid-flight")
-
-        mock_client = MagicMock()
-        mock_client.messages.stream = MagicMock(return_value=_RaisingStream())
-
-        with (
-            patch(
-                "app.api.v2.llm.check_rate_limit",
-                return_value=(True, {"minute_remaining": 9}),
-            ),
-            patch(
-                "app.services.llm.formulation_service.get_anthropic_client",
-                return_value=mock_client,
-            ),
-        ):
-            response = authenticated_client.post(
-                f"/api/v2/llm/conversations/{test_conversation.id}/messages",
-                json={"message": "Minimize shipping costs for two routes"},
-            )
-
-        assert response.status_code == 200
-        # Verify NO new assistant message row was persisted
-        db_session.expire_all()
-        assistant_msgs_after = (
-            db_session.query(LLMMessage)
-            .filter_by(conversation_id=test_conversation.id, role="assistant")
-            .count()
-        )
-        assert assistant_msgs_after == assistant_msgs_before, (
-            f"orphaned assistant message persisted: "
-            f"{assistant_msgs_before} -> {assistant_msgs_after}"
-        )
 
 
 class TestFailureExplanationPrompt:

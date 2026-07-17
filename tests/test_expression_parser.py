@@ -307,3 +307,32 @@ class TestDivision:
         y_coef = sum(t.coefficient for t in expr.terms if "y" in t.variables)
         assert abs(x_coef - 0.25) < 1e-9
         assert abs(y_coef - 0.25) < 1e-9
+
+
+class TestKnownVariablesAdoption:
+    """The parser must ADOPT a caller-provided set without copying.
+
+    classify()/stats/the adapters parse tens of thousands of constraints against
+    ONE name set; rebuilding a 100k-name set per expression turned those loops
+    into O(constraints x variables) minutes of CPU (live 500s on the big TFM
+    scenarios, 2026-07-04). Identity adoption is the contract that keeps them
+    linear — if someone reintroduces a copy, this breaks.
+    """
+
+    def setup_method(self):
+        self.parser = ExpressionParser()
+
+    def test_set_is_adopted_by_identity(self):
+        names = {"x", "y"}
+        self.parser.parse_expression("x + 2*y", known_variables=names)
+        assert self.parser._variable_names is names
+
+    def test_adopted_set_is_never_mutated(self):
+        names = {"x", "y"}
+        self.parser.parse_expression("x + 2*y + 3", known_variables=names)
+        self.parser.parse_constraint("x - y <= 1", known_variables=names)
+        assert names == {"x", "y"}
+
+    def test_non_set_collections_still_work(self):
+        expr = self.parser.parse_expression("x + 2*y", known_variables=["x", "y"])
+        assert len(expr.terms) == 2

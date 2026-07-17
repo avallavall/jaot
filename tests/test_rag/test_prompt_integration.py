@@ -61,6 +61,19 @@ class TestFormatRagDocument:
         assert "Linearization: Big-M Calibration" in result
         assert "relevance: 0.65" in result
 
+    def test_worked_example_header(self):
+        payload = {
+            "doc_type": "worked_example",
+            "display_name": "Budget Allocation",
+            "generator_type": "budget_allocation",
+            "text": "Worked example body",
+        }
+        result = format_rag_document(payload, 0.88)
+        assert "Worked example: Budget Allocation" in result
+        assert "generator: budget_allocation" in result
+        assert "relevance: 0.88" in result
+        assert "Worked example body" in result
+
     def test_unknown_type_fallback(self):
         payload = {
             "doc_type": "something_new",
@@ -159,6 +172,48 @@ class TestFormatRagContext:
         ]
         result = format_rag_context(results)
         assert "Do NOT mention these templates" in result
+
+
+class TestFormatRagContextTokenCap:
+    """RAG_MAX_TOKENS bounds the injected context, most-relevant-first."""
+
+    @staticmethod
+    def _doc(name: str, score: float, body: str) -> dict:
+        return {
+            "text": body,
+            "score": score,
+            "payload": {
+                "doc_type": "template",
+                "display_name": name,
+                "category": "c",
+                "text": body,
+            },
+        }
+
+    def test_cap_drops_least_relevant_docs(self):
+        big = "x" * 4000  # ~1000 estimated tokens per document
+        results = [
+            self._doc("A", 0.90, big),
+            self._doc("B", 0.80, big),
+            self._doc("C", 0.70, big),
+        ]
+        result = format_rag_context(results, max_tokens=1500)
+        # Only the top match fits the budget; the rest are dropped (not truncated).
+        assert "Template: A" in result
+        assert "Template: B" not in result
+        assert "Template: C" not in result
+
+    def test_top_doc_kept_even_if_alone_over_budget(self):
+        huge = "y" * 8000  # ~2000 estimated tokens, over the 500 cap
+        result = format_rag_context([self._doc("Solo", 0.90, huge)], max_tokens=500)
+        assert "Template: Solo" in result
+
+    def test_no_cap_includes_all(self):
+        big = "z" * 4000
+        results = [self._doc("A", 0.90, big), self._doc("B", 0.80, big)]
+        result = format_rag_context(results)  # no cap → unchanged behavior
+        assert "Template: A" in result
+        assert "Template: B" in result
 
 
 # build_system_prompt

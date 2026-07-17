@@ -48,12 +48,6 @@ test.describe("Admin Dashboard", () => {
       await expect(page).toHaveURL(/\/admin\/executions/);
     });
 
-    test("credits page loads", async ({ page }) => {
-      const adminPage = new AdminPage(page);
-      await adminPage.gotoCredits();
-      await expect(page).toHaveURL(/\/admin\/credits/);
-    });
-
     test("API keys page loads", async ({ page }) => {
       const adminPage = new AdminPage(page);
       await adminPage.gotoApiKeys();
@@ -99,16 +93,6 @@ test.describe("Admin Dashboard", () => {
     test("models admin page shows catalog entries", async ({ page }) => {
       const adminPage = new AdminPage(page);
       await adminPage.gotoModels();
-
-      const content = page.locator("#main-content");
-      await expect(content).toBeVisible();
-    });
-
-    test("credits admin page shows transaction data or controls", async ({
-      page,
-    }) => {
-      const adminPage = new AdminPage(page);
-      await adminPage.gotoCredits();
 
       const content = page.locator("#main-content");
       await expect(content).toBeVisible();
@@ -215,12 +199,16 @@ test.describe("Admin Dashboard", () => {
       const secondTab = tabs.nth(1);
       await expect(secondTab).toBeVisible();
       await expect(secondTab).toBeEnabled();
-      await secondTab.click();
 
-      // Verify the tab is now selected (aria-selected) — allow time for re-render
-      await expect(secondTab).toHaveAttribute("aria-selected", "true", {
-        timeout: 10_000,
-      });
+      // Retry the whole click→selected interaction: a click landing mid-render
+      // is silently dropped by Radix, and retrying only the attribute read
+      // can never recover from that
+      await expect(async () => {
+        await secondTab.click();
+        await expect(secondTab).toHaveAttribute("aria-selected", "true", {
+          timeout: 2_000,
+        });
+      }).toPass({ timeout: 10_000 });
     });
   });
 

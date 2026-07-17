@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.v2.auth import get_current_user
-from app.models import ModelCatalog, ModelReview, Organization, User
+from app.models import ModelProjectListing, ModelReview, Organization, User
 from app.shared.db.base import get_db
 from app.shared.utils.pagination import paginate_query
 
@@ -79,14 +79,19 @@ async def get_reported_reviews(
 
     reviews, total = paginate_query(query, page, page_size)
 
-    # Batch pre-fetch users and models to avoid N+1 queries
+    # Batch pre-fetch users and models (unified listing facet) to avoid N+1 queries
     user_ids = list({r.user_id for r in reviews if r.user_id})
-    model_ids = list({r.catalog_id for r in reviews if r.catalog_id})
+    model_ids = list({r.model_project_id for r in reviews if r.model_project_id})
     users = (
         {u.id: u for u in db.query(User).filter(User.id.in_(user_ids)).all()} if user_ids else {}
     )
     models_map = (
-        {m.id: m for m in db.query(ModelCatalog).filter(ModelCatalog.id.in_(model_ids)).all()}
+        {
+            m.model_project_id: m
+            for m in db.query(ModelProjectListing)
+            .filter(ModelProjectListing.model_project_id.in_(model_ids))
+            .all()
+        }
         if model_ids
         else {}
     )
@@ -94,12 +99,12 @@ async def get_reported_reviews(
     items = []
     for r in reviews:
         user = users.get(r.user_id)
-        model = models_map.get(r.catalog_id)
+        model = models_map.get(r.model_project_id)
 
         items.append(
             {
                 "id": r.id,
-                "catalog_id": r.catalog_id,
+                "catalog_id": r.model_project_id,
                 "model_name": model.display_name if model else None,
                 "user_id": r.user_id,
                 "user_name": user.name if user else None,
@@ -133,25 +138,29 @@ async def admin_delete_review(
     if not review:
         raise HTTPException(status_code=404, detail="Review not found")
 
-    catalog_id = review.catalog_id
+    model_id = review.model_project_id
     db.delete(review)
 
-    # Recalculate avg_rating
-    model = db.query(ModelCatalog).filter(ModelCatalog.id == catalog_id).first()
-    if model:
+    # Recalculate the listing's rolled-up average.
+    listing = (
+        db.query(ModelProjectListing)
+        .filter(ModelProjectListing.model_project_id == model_id)
+        .first()
+    )
+    if listing:
         all_ratings = (
             db.query(ModelReview.rating)
             .filter(
-                ModelReview.catalog_id == catalog_id,
+                ModelReview.model_project_id == model_id,
                 ModelReview.is_visible == True,  # noqa: E712
             )
             .all()
         )
 
         if all_ratings:
-            model.avg_rating = sum(r[0] for r in all_ratings) / len(all_ratings)
+            listing.avg_rating = sum(r[0] for r in all_ratings) / len(all_ratings)
         else:
-            model.avg_rating = None
+            listing.avg_rating = None
 
     db.commit()
 

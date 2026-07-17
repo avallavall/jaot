@@ -5,40 +5,18 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import type { Conversation, ChatMessage as ChatMessageType, Formulation, AttachmentInfo } from "@/lib/llm-types";
-import type { OptimizationProblem, PaginatedResponse, SolveResult } from "@/lib/types";
+import type { PaginatedResponse, SolveResult } from "@/lib/types";
 import { SolveResultsDrawer } from "@/components/builder/SolveResultsDrawer";
 import { useFormulationStream } from "@/hooks/useSSE";
 import { ChatPanel } from "@/components/llm/ChatPanel";
 import { FormulationPanel } from "@/components/llm/FormulationPanel";
-import { CreditEstimate } from "@/components/llm/CreditEstimate";
 import { WorkspaceBreadcrumb } from "@/components/layout/WorkspaceBreadcrumb";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formulationToCanvas, isParametricFormulation } from "@/lib/builder/formulationToCanvas";
+import { formulationToProblem } from "@/lib/builder/formulationToProblem";
 import { FormulationRating } from "@/components/feedback/FormulationRating";
 import { ExportModelButton } from "@/components/solve/ExportModelButton";
 import { useTranslations } from "next-intl";
-
-/** Build a solver-ready OptimizationProblem from an AI formulation. */
-function formulationToProblem(formulation: Formulation): OptimizationProblem {
-  return {
-    name: formulation.problem_name || "ai_formulation",
-    description: formulation.summary || "",
-    variables: formulation.variables.map((v) => ({
-      name: v.name,
-      type: v.type,
-      lower_bound: v.lower_bound,
-      upper_bound: v.upper_bound,
-    })),
-    constraints: formulation.constraints.map((c) => ({
-      name: c.name,
-      expression: c.expression,
-    })),
-    objective: {
-      sense: formulation.objective.sense,
-      expression: formulation.objective.expression,
-    },
-  };
-}
 
 /** Split-pane: chat (left) + formulation (right). SSE hook is lifted here so both panels share state. */
 export default function ChatPage() {
@@ -53,7 +31,6 @@ export default function ChatPage() {
   const [initialMessages, setInitialMessages] = useState<ChatMessageType[]>([]);
   const [currentFormulation, setCurrentFormulation] = useState<Formulation | null>(null);
   const [loading, setLoading] = useState(true);
-  const [aiMessageCount, setAiMessageCount] = useState(0);
   const [attachment, setAttachment] = useState<AttachmentInfo | null>(null);
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -105,7 +82,6 @@ export default function ChatPage() {
 
   const handleFormulationReady = useCallback((formulation: Formulation) => {
     setCurrentFormulation(formulation);
-    setAiMessageCount((c) => c + 1);
 
     // Best-effort rename to problem_name on the first formulation only.
     if (
@@ -152,8 +128,7 @@ export default function ChatPage() {
   const handleExplainFailure = useCallback(
     (status: string) => {
       const message = t("llm.explainPrompt", { status });
-      setAiMessageCount((c) => c + 1);
-      stream.sendMessage(message, { responseType: "explanation" });
+        stream.sendMessage(message, { responseType: "explanation" });
     },
     [stream, t]
   );
@@ -211,14 +186,10 @@ export default function ChatPage() {
       });
       setSolveResult(result);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 402) {
-        toast.error(t("aiAssistant.insufficientCredits"));
-      } else {
-        // Prefer the backend's detail (e.g. "constraint X has unknown variable y") over a generic message.
-        const detail = err instanceof ApiError ? (err.detail || err.message) : null;
-        const message = detail ?? (err instanceof Error ? err.message : t("aiAssistant.unknownError"));
-        toast.error(t("aiAssistant.solveFailed", { message }));
-      }
+      // Prefer the backend's detail (e.g. "constraint X has unknown variable y") over a generic message.
+      const detail = err instanceof ApiError ? (err.detail || err.message) : null;
+      const message = detail ?? (err instanceof Error ? err.message : t("aiAssistant.unknownError"));
+      toast.error(t("aiAssistant.solveFailed", { message }));
     } finally {
       setSolving(false);
     }
@@ -316,13 +287,6 @@ export default function ChatPage() {
                     filenameBase={displayFormulation.problem_name || "model"}
                   />
                 </div>
-              )}
-              {!stream.streaming && displayFormulation && (
-                <CreditEstimate
-                  formulation={displayFormulation}
-                  aiMessagesCount={aiMessageCount}
-                  documentTokens={attachment?.estimated_tokens}
-                />
               )}
               {!stream.streaming && displayFormulation && conversationId && (
                 <FormulationRating

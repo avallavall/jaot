@@ -2,29 +2,28 @@
 
 > JAOT is an AI-powered optimization platform and model marketplace where businesses,
 > developers, and students can formulate, solve, and analyze optimization problems
-> without deep mathematical expertise. Build optimization models with AI assistance,
-> browse solver-agnostic marketplace models, or connect AI agents via the Model
-> Context Protocol (MCP).
+> without deep mathematical expertise. Build versioned optimization models with AI
+> assistance, fork solver-agnostic marketplace models into your own studio, or connect
+> AI agents via the Model Context Protocol (MCP). Free and collaborative — no billing,
+> no credits; fair use via rate limits and solve quotas.
 
 ## Getting Started
 
 - [Introduction](/docs/getting-started/introduction): Platform overview and first steps
 - [Quick Start](/docs/getting-started/quick-start): Solve your first optimization problem
+- [The Model Workspace](/docs/studio/model-workspace): Build, analyze, version, and solve a model in one place
 
 ## API Reference
 
 - [Solve API](/docs/api/solve): Submit and retrieve optimization problems programmatically
-- [Models API](/docs/api/models): Browse and activate marketplace models
+- [Models API](/docs/api/models): Browse the marketplace catalog and manage versioned model projects
 
 ## MCP Integration
 
-- [MCP Overview](/docs/mcp/overview): Connect AI agents (Claude, GPT-4) to the solver via MCP
+- [MCP Overview](/docs/mcp/overview): Connect AI agents to the solver via MCP (26 tools)
+- Tools: solve_problem, validate_problem, solve_multi_objective, list_available_solvers, list_templates, get_template, solve_with_template, import_preview, import_and_solve, export_model, export_execution, list_catalog_models, get_catalog_model, get_catalog_model_schema, execute_model, get_execution, get_execution_insights, create_model_project, create_model_project_from_marketplace, get_model_project, list_model_projects, update_model_project_draft, commit_model_version, list_project_versions, get_model_stats, solve_model_project
 
 ## Marketplace
 
-- [Browse Models](/marketplace): Ready-made optimization models across 10 problem categories
-- [Publishing Models](/docs/marketplace/publishing-models): List your optimization model in the marketplace
-
-## Pricing
-
-- [Plans](/pricing): Free to start with 20,000 credits; buy more credits as needed
+- [Browse Models](/marketplace): Ready-made optimization models across 10 problem categories — fork any of them into your studio with "Use in studio"
+- [Publishing Models](/docs/marketplace/publishing-models): Publish a committed version of your model to the marketplace

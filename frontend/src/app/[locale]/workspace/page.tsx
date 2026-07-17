@@ -8,10 +8,11 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
-  Store, Wrench, Coins, ClipboardList, Building2,
+  Store, Wrench, ClipboardList, Building2,
   Bell, Webhook, Activity,
 } from "lucide-react";
 import type { ModelExecution, SolveTrigger, UserInfo } from "@/lib/types";
+import { apiDate } from "@/lib/dates";
 
 interface DashboardStats {
   activeTriggers: number;
@@ -88,15 +89,7 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <Link href="/workspace/credits" className="bg-card border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-          <div className="flex items-center gap-2 text-muted-foreground mb-1">
-            <Coins className="w-4 h-4" />
-            <span className="text-sm">{t("dashboard.credits")}</span>
-          </div>
-          <div className="text-2xl font-bold text-primary">{userInfo.credits_balance?.toLocaleString() ?? 0}</div>
-        </Link>
-
+      <div className="grid grid-cols-2 gap-4 mb-6">
         <Link href="/triggers" className="bg-card border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors">
           <div className="flex items-center gap-2 text-muted-foreground mb-1">
             <Webhook className="w-4 h-4" />
@@ -143,7 +136,7 @@ export default function DashboardPage() {
                     {exec.status}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {new Date(exec.created_at).toLocaleDateString()}
+                    {apiDate(exec.created_at).toLocaleDateString()}
                   </span>
                 </div>
               </Link>

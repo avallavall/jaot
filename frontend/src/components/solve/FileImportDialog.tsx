@@ -253,10 +253,6 @@ export function FileImportDialog({ open, onOpenChange }: FileImportDialogProps) 
                   value={preview.problem.objective.sense}
                 />
               </div>
-              <PreviewStat
-                label={t("estimatedCredits")}
-                value={String(preview.metadata.estimated_credits)}
-              />
             </div>
 
             <DialogFooter>

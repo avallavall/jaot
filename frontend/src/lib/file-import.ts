@@ -9,7 +9,7 @@
 export const ACCEPTED_EXTENSIONS = [".lp", ".mps", ".cip", ".json"] as const;
 
 /** Maximum upload size shown to the user (actual limit enforced by backend). */
-export const MAX_FILE_SIZE_MB = 10;
+export const MAX_FILE_SIZE_MB = 500;
 export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 /** Extract the lowercased extension from a filename (e.g. ".mps"). */

@@ -28,13 +28,16 @@ from app.schemas.attachment import AttachmentResponse
 from app.schemas.llm import (
     ChatMessageRequest,
     ExplainInfeasibilityRequest,
+    ExplainModelRequest,
     ExplainSolutionRequest,
+    ExplainVersionDiffRequest,
 )
-from app.services.credits_service import CreditsService, InsufficientCreditsError
 from app.services.document_extraction import MAX_FILE_SIZE, extract_text
 from app.services.llm import (
     explain_infeasibility,
+    explain_model,
     explain_solution,
+    explain_version_diff,
     generate_formulation_resilient,
     generate_text_response,
     moderate_message,
@@ -70,6 +73,48 @@ class CreateConversationRequest(BaseModel):
         None, description="Template ID for template-based conversations"
     )
     model_id: str | None = Field(None, description="Builder document ID for conversation scoping")
+    model_project_id: str | None = Field(
+        None, description="ModelProject id (studio) for conversation scoping"
+    )
+
+
+def _problem_to_formulation(problem: dict[str, Any], name: str) -> dict[str, Any]:
+    """Map a canonical ``OptimizationProblem`` to a ``Formulation`` dict.
+
+    Seeds a studio conversation's ``current_formulation`` from the project's current
+    model, so the first chat message refines the EXISTING model instead of starting
+    from scratch. Structural copy only; descriptions default to empty.
+    """
+    variables = [
+        {
+            "name": v.get("name", ""),
+            "type": v.get("type", "continuous"),
+            "lower_bound": v.get("lower_bound"),
+            "upper_bound": v.get("upper_bound"),
+            "description": v.get("description", ""),
+        }
+        for v in (problem.get("variables") or [])
+    ]
+    constraints = [
+        {
+            "name": c.get("name", ""),
+            "expression": c.get("expression", ""),
+            "description": c.get("description", ""),
+        }
+        for c in (problem.get("constraints") or [])
+    ]
+    obj = problem.get("objective") or {}
+    return {
+        "problem_name": name or "Model",
+        "summary": "",
+        "variables": variables,
+        "constraints": constraints,
+        "objective": {
+            "sense": obj.get("sense", "minimize"),
+            "expression": obj.get("expression", ""),
+            "description": obj.get("description", ""),
+        },
+    }
 
 
 def _is_real_formulation(formulation: dict[str, Any] | None) -> bool:
@@ -114,7 +159,7 @@ def _get_conversation_or_404(
             detail="Conversation not found",
         )
 
-    if conv.expires_at < utcnow().replace(tzinfo=None):
+    if conv.expires_at < utcnow():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Conversation has expired",
@@ -131,6 +176,7 @@ def _conv_to_response(conv: LLMConversation, include_messages: bool = True) -> d
         "expires_at": conv.expires_at.isoformat(),
         "current_formulation": conv.current_formulation,
         "model_id": conv.model_id,
+        "model_project_id": conv.model_project_id,
     }
     if include_messages:
         data["messages"] = [
@@ -157,8 +203,9 @@ def create_conversation(
 ) -> dict[str, Any]:
     """Create a new LLM conversation.
 
-    Optionally initializes with a template formulation as the first assistant message.
-    Requires the ``llm_assistant`` feature in the organization's plan.
+    A studio conversation (``model_project_id``) is seeded with the project's
+    current model so the first message refines it. Requires the
+    ``llm_assistant`` feature in the organization's plan.
     """
     from datetime import timedelta
 
@@ -174,32 +221,35 @@ def create_conversation(
             },
         )
 
+    # Studio scoping: a model_project_id must reference an org-owned project (404 otherwise).
+    project = None
+    if body.model_project_id:
+        from app.services import model_project_service as projects_svc
+
+        project = projects_svc.get_project_or_404(db, body.model_project_id, org.id)
+        if project is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Model project not found",
+            )
+
     conv = LLMConversation(
         id=generate_id("conv_"),
         organization_id=org.id,
         user_id=user.id,
         template_id=body.template_id,
         model_id=body.model_id,
-        created_at=utcnow().replace(tzinfo=None),
-        expires_at=(
-            utcnow() + timedelta(hours=PSS.get_int(db, "LLM_CONVERSATION_TTL_HOURS"))
-        ).replace(tzinfo=None),
+        model_project_id=body.model_project_id,
+        created_at=utcnow(),
+        expires_at=utcnow() + timedelta(hours=PSS.get_int(db, "LLM_CONVERSATION_TTL_HOURS")),
     )
 
-    # If template_id is provided, load template formulation as the first assistant message
-    if body.template_id:
-        template_formulation = _load_template_formulation(db, body.template_id)
-        if template_formulation:
-            msg = LLMMessage(
-                id=generate_id("msg_"),
-                conversation_id=conv.id,
-                role="assistant",
-                content=json.dumps(template_formulation),
-                formulation_json=template_formulation,
-                created_at=utcnow().replace(tzinfo=None),
-            )
-            conv.messages.append(msg)
-            conv.current_formulation = template_formulation
+    if project is not None:
+        # Seed the conversation with the project's current model so the first chat
+        # message refines the EXISTING model rather than generating from scratch.
+        draft = project.draft_model_json or {}
+        if draft.get("variables"):
+            conv.current_formulation = _problem_to_formulation(draft, project.name)
 
     db.add(conv)
     db.commit()
@@ -216,9 +266,10 @@ def list_conversations(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     model_id: str | None = Query(None, description="Filter by builder document ID"),
+    model_project_id: str | None = Query(None, description="Filter by ModelProject id (studio)"),
 ) -> dict[str, Any]:
     """List active (non-expired) conversations for the current user."""
-    now = utcnow().replace(tzinfo=None)
+    now = utcnow()
     query = (
         db.query(LLMConversation)
         .filter(
@@ -231,6 +282,8 @@ def list_conversations(
 
     if model_id:
         query = query.filter(LLMConversation.model_id == model_id)
+    if model_project_id:
+        query = query.filter(LLMConversation.model_project_id == model_project_id)
 
     items, total = paginate_query(query, page=page, page_size=page_size)
 
@@ -287,23 +340,20 @@ async def _stream_llm_response(
     conv: LLMConversation,
     org_id: str,
     model: str,
-    llm_credit_cost: int,
-    llm_message_id: str,
     request_id: str,
     is_explanation: bool,
     bill_platform: bool = True,
 ) -> AsyncGenerator[dict[str, str], None]:
-    """Forward an LLM event stream as SSE, with credit + cost accounting.
+    """Forward an LLM event stream as SSE, with EUR cost accounting.
 
     Shared by the chat (``send_message``) and ``explain-*`` endpoints so the SSE
-    event contract, credit refund-on-failure, and real-token cost persistence stay
-    byte-for-byte identical across all of them. On success the assistant message is
-    persisted with its token usage and EUR cost; on any upstream error the pre-paid
-    credits are refunded before the terminal event.
+    event contract and real-token cost persistence stay byte-for-byte identical
+    across all of them. On success the assistant message is persisted with its
+    token usage and EUR cost.
 
-    When ``bill_platform`` is False (BYOK — the org ran on its own Anthropic key) no
-    platform credits were charged, so none are refunded, and ``cost_eur`` is left NULL
-    so the run never counts against the platform's monthly AI budget.
+    When ``bill_platform`` is False (BYOK — the org ran on its own Anthropic key)
+    ``cost_eur`` is left NULL so the run never counts against the platform's
+    monthly AI budget.
     """
     accumulated_text = ""
     formulation_data = None
@@ -388,27 +438,11 @@ async def _stream_llm_response(
                     "data": json.dumps({"code": code.value, "request_id": request_id}),
                 }
             elif event_type == "done":
-                # If we saw an upstream error event, refund credits BEFORE
-                # emitting done. The done event always fires after error
-                # because generate_formulation yields {"type": "done"}
+                # The done event always fires after error because
+                # generate_formulation yields {"type": "done"}
                 # unconditionally even on failure.
                 LLM_REQUESTS_TOTAL.labels(outcome="error" if stream_failed else "success").inc()
-                if stream_failed:
-                    # BYOK runs charge no platform credits, so there is nothing to refund.
-                    if bill_platform:
-                        try:
-                            credits_svc = CreditsService(db)
-                            credits_svc.refund_credits(
-                                organization_id=org_id,
-                                credits=llm_credit_cost,
-                                description=f"LLM stream failed, refunding: {llm_message_id}",
-                                reference_type="llm_message_refund",
-                                reference_id=llm_message_id,
-                            )
-                            db.commit()
-                        except Exception as refund_err:
-                            logger.error("Failed to refund credits: %s", refund_err)
-                else:
+                if not stream_failed:
                     # Persist assistant message after stream completes
                     try:
                         # W17: price the real token usage via the
@@ -436,7 +470,7 @@ async def _stream_llm_response(
                             input_tokens=total_input_tokens if has_usage else None,
                             output_tokens=total_output_tokens if has_usage else None,
                             cost_eur=message_cost,
-                            created_at=utcnow().replace(tzinfo=None),
+                            created_at=utcnow(),
                         )
                         db.add(assistant_msg)
 
@@ -469,20 +503,6 @@ async def _stream_llm_response(
             request_id=request_id,
         )
         code = error_event["code"]
-        # Refund pre-paid credits on stream failure (BYOK charged none → skip).
-        if bill_platform:
-            try:
-                credits_svc = CreditsService(db)
-                credits_svc.refund_credits(
-                    organization_id=org_id,
-                    credits=llm_credit_cost,
-                    description=f"LLM stream failed, refunding: {llm_message_id}",
-                    reference_type="llm_message_refund",
-                    reference_id=llm_message_id,
-                )
-                db.commit()
-            except Exception as refund_err:
-                logger.error("Failed to refund credits: %s", refund_err)
         yield {
             "event": "error",
             "data": json.dumps({"code": code.value, "request_id": request_id}),
@@ -511,7 +531,7 @@ async def send_message(
     conv = _get_conversation_or_404(db, conversation_id, org.id, user.id)
 
     # BYOK: when the org has its own Anthropic key, the call runs on their account —
-    # so the platform budget guardrail and credit charge below are skipped.
+    # so the platform budget guardrail below is skipped.
     byok_client, is_byok = resolve_anthropic_client(org)
 
     # W17 budget guardrail: pause the assistant gracefully when the
@@ -544,31 +564,6 @@ async def send_message(
         headers = {"Retry-After": str(retry_after)} if retry_after is not None else None
         raise HTTPException(status_code=429, detail=rate_info, headers=headers)
 
-    # Pre-pay LLM credits before streaming (refunded on failure). BYOK runs on the
-    # org's own key, so they cost the platform nothing and are not charged credits.
-    llm_credit_cost = 0 if is_byok else PSS.get_int(db, "LLM_CREDIT_COST_PER_MESSAGE")
-    llm_message_id = generate_id("msg_")  # Idempotency key for this LLM charge
-    if not is_byok:
-        try:
-            CreditsService.deduct_credits(
-                db=db,
-                organization_id=org.id,
-                credits=llm_credit_cost,
-                description=f"LLM message: {llm_message_id}",
-                reference_type="llm_message",
-                reference_id=llm_message_id,
-            )
-            db.commit()
-        except InsufficientCreditsError as e:
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail={
-                    "error": "insufficient_credits",
-                    "credits_needed": e.credits_needed,
-                    "credits_available": e.credits_available,
-                },
-            ) from None
-
     # Content moderation pre-check
     is_allowed, rejection_msg = moderate_message(body.message)
     if not is_allowed:
@@ -583,7 +578,7 @@ async def send_message(
         conversation_id=conv.id,
         role="user",
         content=body.message,
-        created_at=utcnow().replace(tzinfo=None),
+        created_at=utcnow(),
     )
     db.add(user_msg)
     db.commit()
@@ -686,8 +681,6 @@ async def send_message(
             conv=conv,
             org_id=org.id,
             model=model,
-            llm_credit_cost=llm_credit_cost,
-            llm_message_id=llm_message_id,
             request_id=request_id,
             is_explanation=is_explanation,
             bill_platform=not is_byok,
@@ -752,7 +745,7 @@ async def explain_solution_endpoint(
 
     Loads the solution + sensitivity from a persisted ModelExecution
     (``execution_id``, org ownership enforced) or from inline fields, then reuses
-    the chat streaming pipeline — budget guardrail, org rate limit, pre-paid credits
+    the chat streaming pipeline — budget guardrail, org rate limit
     (refunded on failure), a persisted user/assistant turn pair — driven by
     ``explain_solution`` rather than formulation generation. Moderation is skipped
     because the prompt content is system-generated, not free user text.
@@ -760,7 +753,7 @@ async def explain_solution_endpoint(
     # Verify conversation ownership and expiry
     conv = _get_conversation_or_404(db, conversation_id, org.id, user.id)
 
-    # BYOK: org with its own key runs on their account — skip budget + credit charge.
+    # BYOK: org with its own key runs on their account — skip the budget guardrail.
     byok_client, is_byok = resolve_anthropic_client(org)
 
     # W17 budget guardrail — pause gracefully when the monthly Anthropic budget
@@ -790,38 +783,14 @@ async def explain_solution_endpoint(
         headers = {"Retry-After": str(retry_after)} if retry_after is not None else None
         raise HTTPException(status_code=429, detail=rate_info, headers=headers)
 
-    # Resolve what to explain (execution ownership enforced here) BEFORE charging
-    # credits, so an invalid execution_id never costs the user anything.
+    # Resolve what to explain (execution ownership enforced here) up front, so an
+    # invalid execution_id fails cleanly.
     formulation, solution, sensitivity = _resolve_explanation_context(db, org.id, body)
     if not solution and not formulation:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="No solution to explain — provide execution_id or inline solution.",
         )
-
-    # Pre-pay LLM credits before streaming (refunded on failure). BYOK is free.
-    llm_credit_cost = 0 if is_byok else PSS.get_int(db, "LLM_CREDIT_COST_PER_MESSAGE")
-    llm_message_id = generate_id("msg_")  # Idempotency key for this LLM charge
-    if not is_byok:
-        try:
-            CreditsService.deduct_credits(
-                db=db,
-                organization_id=org.id,
-                credits=llm_credit_cost,
-                description=f"LLM explanation: {llm_message_id}",
-                reference_type="llm_message",
-                reference_id=llm_message_id,
-            )
-            db.commit()
-        except InsufficientCreditsError as e:
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail={
-                    "error": "insufficient_credits",
-                    "credits_needed": e.credits_needed,
-                    "credits_available": e.credits_available,
-                },
-            ) from None
 
     # Persist a user turn marking the explanation request. The content is
     # system-generated scaffolding (the grounded prompt is built server-side),
@@ -831,7 +800,7 @@ async def explain_solution_endpoint(
         conversation_id=conv.id,
         role="user",
         content="Explain this solution",
-        created_at=utcnow().replace(tzinfo=None),
+        created_at=utcnow(),
     )
     db.add(user_msg)
     db.commit()
@@ -857,8 +826,6 @@ async def explain_solution_endpoint(
             conv=conv,
             org_id=org.id,
             model=model,
-            llm_credit_cost=llm_credit_cost,
-            llm_message_id=llm_message_id,
             request_id=request_id,
             is_explanation=True,
             bill_platform=not is_byok,
@@ -916,7 +883,7 @@ async def explain_infeasibility_endpoint(
 
     Loads the formulation + persisted IIS from a ModelExecution (``execution_id``,
     org ownership enforced) or from inline fields, then reuses the chat streaming
-    pipeline — budget guardrail, org rate limit, pre-paid credits (refunded on
+    pipeline — budget guardrail, org rate limit (refusals surface on
     failure), a persisted user/assistant turn pair — driven by
     ``explain_infeasibility``. When no IIS is available the explanation is heuristic
     and clearly flagged. Moderation is skipped because the prompt content is
@@ -925,7 +892,7 @@ async def explain_infeasibility_endpoint(
     # Verify conversation ownership and expiry
     conv = _get_conversation_or_404(db, conversation_id, org.id, user.id)
 
-    # BYOK: org with its own key runs on their account — skip budget + credit charge.
+    # BYOK: org with its own key runs on their account — skip the budget guardrail.
     byok_client, is_byok = resolve_anthropic_client(org)
 
     # W17 budget guardrail — pause gracefully when the monthly Anthropic budget
@@ -955,38 +922,14 @@ async def explain_infeasibility_endpoint(
         headers = {"Retry-After": str(retry_after)} if retry_after is not None else None
         raise HTTPException(status_code=429, detail=rate_info, headers=headers)
 
-    # Resolve what to explain (execution ownership enforced here) BEFORE charging
-    # credits, so an invalid execution_id never costs the user anything.
+    # Resolve what to explain (execution ownership enforced here) up front, so an
+    # invalid execution_id fails cleanly.
     formulation, infeasibility = _resolve_infeasibility_context(db, org.id, body)
     if not formulation and not infeasibility:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Nothing to explain — provide execution_id or inline formulation.",
         )
-
-    # Pre-pay LLM credits before streaming (refunded on failure). BYOK is free.
-    llm_credit_cost = 0 if is_byok else PSS.get_int(db, "LLM_CREDIT_COST_PER_MESSAGE")
-    llm_message_id = generate_id("msg_")  # Idempotency key for this LLM charge
-    if not is_byok:
-        try:
-            CreditsService.deduct_credits(
-                db=db,
-                organization_id=org.id,
-                credits=llm_credit_cost,
-                description=f"LLM infeasibility explanation: {llm_message_id}",
-                reference_type="llm_message",
-                reference_id=llm_message_id,
-            )
-            db.commit()
-        except InsufficientCreditsError as e:
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail={
-                    "error": "insufficient_credits",
-                    "credits_needed": e.credits_needed,
-                    "credits_available": e.credits_available,
-                },
-            ) from None
 
     # Persist a user turn marking the explanation request. The content is
     # system-generated scaffolding (the grounded prompt is built server-side),
@@ -996,7 +939,7 @@ async def explain_infeasibility_endpoint(
         conversation_id=conv.id,
         role="user",
         content="Explain why this model is infeasible",
-        created_at=utcnow().replace(tzinfo=None),
+        created_at=utcnow(),
     )
     db.add(user_msg)
     db.commit()
@@ -1021,8 +964,266 @@ async def explain_infeasibility_endpoint(
             conv=conv,
             org_id=org.id,
             model=model,
-            llm_credit_cost=llm_credit_cost,
-            llm_message_id=llm_message_id,
+            request_id=request_id,
+            is_explanation=True,
+            bill_platform=not is_byok,
+        )
+    )
+
+
+def _resolve_model_explanation_context(
+    db: Session,
+    org_id: str,
+    body: ExplainModelRequest,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """Resolve (formulation, stats) for an explain-model request.
+
+    ``project_id`` takes precedence: the ModelProject is loaded with org ownership
+    enforced (404 if missing or owned by another org — never leak existence). A
+    ``version_id`` explains that committed snapshot (formulation + its frozen
+    ``stats_json``); otherwise the project's mutable draft is explained, with stats
+    computed live. Falls back to the inline ``formulation`` (``stats`` computed when
+    omitted) when no ``project_id`` is supplied.
+    """
+    if body.project_id:
+        from app.services import model_project_service as projects_svc
+        from app.services.model_stats_service import compute_from_json
+
+        project = projects_svc.get_project_or_404(db, body.project_id, org_id)
+        if not project:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+        if body.version_id:
+            version = projects_svc.get_version_or_404(db, body.project_id, body.version_id, org_id)
+            if not version:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Version not found"
+                )
+            return version.model_json, version.stats_json
+        draft = project.draft_model_json
+        stats = compute_from_json(draft).model_dump(mode="json") if draft else None
+        return draft, stats
+
+    formulation = body.formulation
+    stats = body.stats
+    if formulation and not stats:
+        from app.services.model_stats_service import compute_from_json
+
+        stats = compute_from_json(formulation).model_dump(mode="json")
+    return formulation, stats
+
+
+@router.post("/conversations/{conversation_id}/explain-model")
+async def explain_model_endpoint(
+    conversation_id: str,
+    body: ExplainModelRequest,
+    request: Request,
+    db: DBSession,
+    user: CurrentUser,
+    org: CurrentOrg,
+) -> Any:
+    """Stream a plain-language explanation of an optimization MODEL (not yet solved) as SSE.
+
+    Loads the formulation + the Python-computed ``ModelStats`` from a ModelProject
+    (``project_id``, draft or a committed ``version_id``, org ownership enforced) or
+    from inline fields, then reuses the chat streaming pipeline — budget guardrail,
+    org rate limit, a persisted user/assistant
+    turn pair — driven by ``explain_model``. The statistics are authoritative, so the
+    explanation has nothing to fabricate. Moderation is skipped because the prompt
+    content is system-generated, not free user text.
+    """
+    # Verify conversation ownership and expiry
+    conv = _get_conversation_or_404(db, conversation_id, org.id, user.id)
+
+    # BYOK: org with its own key runs on their account — skip the budget guardrail.
+    byok_client, is_byok = resolve_anthropic_client(org)
+
+    # W17 budget guardrail — pause gracefully when the monthly Anthropic budget is exhausted.
+    if not is_byok and is_llm_budget_exceeded(db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "feature_not_available",
+                "message": (
+                    "The AI assistant is taking a short break — the platform's "
+                    "monthly AI budget has been reached. It will be back at the "
+                    "start of next month."
+                ),
+                "reason": "llm_monthly_budget_exhausted",
+            },
+        )
+
+    # LLM rate limiting (shared org bucket with chat)
+    allowed, rate_info = check_rate_limit(
+        f"llm:{org.id}",
+        PSS.get_int(db, "LLM_RATE_LIMIT_PER_MINUTE"),
+        PSS.get_int(db, "LLM_RATE_LIMIT_PER_DAY"),
+    )
+    if not allowed:
+        retry_after = rate_info.get("retry_after") if isinstance(rate_info, dict) else None
+        headers = {"Retry-After": str(retry_after)} if retry_after is not None else None
+        raise HTTPException(status_code=429, detail=rate_info, headers=headers)
+
+    # Resolve what to explain (project/version ownership enforced here) up front,
+    # so an invalid project/version fails cleanly.
+    formulation, stats = _resolve_model_explanation_context(db, org.id, body)
+    if not formulation:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="No model to explain — provide project_id or inline formulation.",
+        )
+
+    user_msg = LLMMessage(
+        id=generate_id("msg_"),
+        conversation_id=conv.id,
+        role="user",
+        content="Explain this model",
+        created_at=utcnow(),
+    )
+    db.add(user_msg)
+    db.commit()
+
+    model, use_thinking = select_model(body.use_advanced_model, db=db)
+    request_id = getattr(request.state, "request_id", None) or ""
+
+    stream_gen = explain_model(
+        [],
+        formulation,
+        stats,
+        model,
+        thinking=use_thinking,
+        client=byok_client,
+        db=db,
+    )
+    return EventSourceResponse(
+        _stream_llm_response(
+            stream_gen=stream_gen,
+            request=request,
+            db=db,
+            conv=conv,
+            org_id=org.id,
+            model=model,
+            request_id=request_id,
+            is_explanation=True,
+            bill_platform=not is_byok,
+        )
+    )
+
+
+def _resolve_diff_explanation_context(
+    db: Session,
+    org_id: str,
+    body: ExplainVersionDiffRequest,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any], str | None, str | None]:
+    """Resolve (old_problem, new_problem, structural_diff, old_summary, new_summary).
+
+    The project and BOTH versions are loaded with org ownership enforced (404 on any
+    miss — never leak another org's data). The structural diff is computed in Python
+    (``model_project_service.diff_versions``); the LLM only narrates it, so the
+    explanation is hallucination-proof.
+    """
+    from app.services import model_project_service as projects_svc
+
+    project = projects_svc.get_project_or_404(db, body.project_id, org_id)
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    v_from = projects_svc.get_version_or_404(db, body.project_id, body.from_version_id, org_id)
+    v_to = projects_svc.get_version_or_404(db, body.project_id, body.to_version_id, org_id)
+    if not v_from or not v_to:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version not found")
+    diff = projects_svc.diff_versions(v_from, v_to)
+    return (
+        v_from.model_json,
+        v_to.model_json,
+        diff.model_dump(mode="json"),
+        v_from.commit_summary,
+        v_to.commit_summary,
+    )
+
+
+@router.post("/conversations/{conversation_id}/explain-diff")
+async def explain_diff_endpoint(
+    conversation_id: str,
+    body: ExplainVersionDiffRequest,
+    request: Request,
+    db: DBSession,
+    user: CurrentUser,
+    org: CurrentOrg,
+) -> Any:
+    """Stream a plain-language narration of the CHANGE between two model versions as SSE.
+
+    Loads the project + both versions (org ownership enforced), computes the structural
+    diff server-side via ``model_project_service.diff_versions``, and reuses the chat
+    streaming pipeline (budget guardrail, rate limit, refusals surfaced on
+    failure, persisted turn pair) driven by ``explain_version_diff``. The LLM narrates
+    ONLY the pre-computed diff. Moderation is skipped (system-generated prompt content).
+    """
+    conv = _get_conversation_or_404(db, conversation_id, org.id, user.id)
+
+    byok_client, is_byok = resolve_anthropic_client(org)
+
+    if not is_byok and is_llm_budget_exceeded(db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "feature_not_available",
+                "message": (
+                    "The AI assistant is taking a short break — the platform's "
+                    "monthly AI budget has been reached. It will be back at the "
+                    "start of next month."
+                ),
+                "reason": "llm_monthly_budget_exhausted",
+            },
+        )
+
+    allowed, rate_info = check_rate_limit(
+        f"llm:{org.id}",
+        PSS.get_int(db, "LLM_RATE_LIMIT_PER_MINUTE"),
+        PSS.get_int(db, "LLM_RATE_LIMIT_PER_DAY"),
+    )
+    if not allowed:
+        retry_after = rate_info.get("retry_after") if isinstance(rate_info, dict) else None
+        headers = {"Retry-After": str(retry_after)} if retry_after is not None else None
+        raise HTTPException(status_code=429, detail=rate_info, headers=headers)
+
+    # Resolve + compute the diff (ownership enforced) up front — an invalid
+    # version reference fails cleanly before any message is persisted.
+    old_problem, new_problem, structural_diff, old_summary, new_summary = (
+        _resolve_diff_explanation_context(db, org.id, body)
+    )
+
+    user_msg = LLMMessage(
+        id=generate_id("msg_"),
+        conversation_id=conv.id,
+        role="user",
+        content="Explain the change between these versions",
+        created_at=utcnow(),
+    )
+    db.add(user_msg)
+    db.commit()
+
+    model, use_thinking = select_model(body.use_advanced_model, db=db)
+    request_id = getattr(request.state, "request_id", None) or ""
+
+    stream_gen = explain_version_diff(
+        [],
+        old_problem,
+        new_problem,
+        structural_diff,
+        old_summary,
+        new_summary,
+        model,
+        thinking=use_thinking,
+        client=byok_client,
+        db=db,
+    )
+    return EventSourceResponse(
+        _stream_llm_response(
+            stream_gen=stream_gen,
+            request=request,
+            db=db,
+            conv=conv,
+            org_id=org.id,
+            model=model,
             request_id=request_id,
             is_explanation=True,
             bill_platform=not is_byok,
@@ -1141,19 +1342,3 @@ def delete_attachment(
     db.delete(attachment)
     db.commit()
     return
-
-
-def _load_template_formulation(db: Session, template_id: str) -> dict[str, Any] | None:
-    """Load a template formulation from the model catalog.
-
-    Returns the formulation dict or None if template not found.
-    """
-    from app.models.optimization_model import ModelCatalog
-
-    template = db.query(ModelCatalog).filter(ModelCatalog.id == template_id).first()
-    if not template:
-        return None
-
-    # If the template has a default_formulation JSON field, use it.
-    # Otherwise return None — the template exists but has no pre-built formulation.
-    return getattr(template, "default_formulation", None)

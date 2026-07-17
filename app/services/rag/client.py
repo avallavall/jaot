@@ -27,6 +27,13 @@ _circuit_breaker: RAGCircuitBreaker = RAGCircuitBreaker()
 _init_lock = threading.Lock()
 _init_attempted = False
 
+# Cross-encoder reranker singleton (Lever B). Loaded lazily on first use and cached
+# per model name; kept separate from the embedding client because it is gated off by
+# default and only paid for when RAG_RERANKER_ENABLED is on.
+_reranker: object | None = None
+_reranker_model_name: str | None = None
+_reranker_lock = threading.Lock()
+
 
 def _build_qdrant_kwargs(timeout: int = 5) -> dict[str, Any]:
     """Build Qdrant client constructor kwargs from settings."""
@@ -101,6 +108,34 @@ def get_embed_client() -> object | None:
     return _embed_client
 
 
+def get_reranker(model_name: str) -> Any | None:
+    """Get the singleton cross-encoder reranker, loading it lazily.
+
+    Cached per model name — a changed ``RAG_RERANKER_MODEL`` triggers a reload.
+    Returns ``None`` (never raises) when sentence-transformers or the model is
+    unavailable, so retrieval degrades gracefully to fusion-only ordering.
+    """
+    global _reranker, _reranker_model_name
+
+    if _reranker is not None and _reranker_model_name == model_name:
+        return _reranker
+
+    with _reranker_lock:
+        if _reranker is not None and _reranker_model_name == model_name:
+            return _reranker
+        try:
+            from sentence_transformers import CrossEncoder
+
+            _reranker = CrossEncoder(model_name)
+            _reranker_model_name = model_name
+            logger.info("RAG reranker loaded: %s", model_name)
+        except Exception as e:
+            logger.warning("Failed to load RAG reranker '%s': %s", model_name, e)
+            _reranker = None
+            _reranker_model_name = None
+        return _reranker
+
+
 def get_circuit_breaker() -> RAGCircuitBreaker:
     """Get the circuit breaker singleton (always the same instance)."""
     return _circuit_breaker
@@ -121,8 +156,11 @@ def reset_clients() -> None:
     """Reset all clients. Useful for testing."""
     global _qdrant_client, _embed_client, _embedding_dimension
     global _circuit_breaker, _init_attempted
+    global _reranker, _reranker_model_name
     _qdrant_client = None
     _embed_client = None
     _embedding_dimension = 384
     _circuit_breaker = RAGCircuitBreaker()
     _init_attempted = False
+    _reranker = None
+    _reranker_model_name = None

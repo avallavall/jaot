@@ -50,8 +50,8 @@ test.describe("Authentication", () => {
 
   test.describe("Logout & Session (E2E-03)", () => {
     test("authenticated user can access dashboard then logout", async ({ page }) => {
-      await page.goto("/solve");
-      await expect(page).toHaveURL(/\/solve/);
+      await page.goto("/studio");
+      await expect(page).toHaveURL(/\/studio/);
 
       // Look for logout/sign-out button in navigation or user menu
       const userMenu = page
@@ -70,8 +70,8 @@ test.describe("Authentication", () => {
     });
 
     test("session persists across page navigation", async ({ page }) => {
-      await page.goto("/solve");
-      await expect(page).toHaveURL(/\/solve/);
+      await page.goto("/studio");
+      await expect(page).toHaveURL(/\/studio/);
 
       // Navigate to another authenticated page
       await page.goto("/workspace");
@@ -83,12 +83,12 @@ test.describe("Authentication", () => {
   });
 
   test.describe("Protected routes", () => {
-    test("unauthenticated access to /solve redirects to login", async ({ browser }) => {
+    test("unauthenticated access to /studio redirects to login", async ({ browser }) => {
       // Explicitly clear storageState to override the project-level auth
       const context = await browser.newContext({ storageState: undefined });
       const page = await context.newPage();
 
-      await page.goto("/solve");
+      await page.goto("/studio");
       await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
 
       await context.close();

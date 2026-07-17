@@ -23,7 +23,6 @@ from app.services.email_service import (
 from app.services.onboarding_emails import (
     ONBOARDING_SEQUENCE,
     day0_welcome,
-    day7_credits,
     day14_feedback,
 )
 from app.services.platform_settings_service import PlatformSettingsService as PSS
@@ -32,7 +31,7 @@ from app.services.platform_settings_service import PlatformSettingsService as PS
 class TestCeleryTaskEnqueueing:
     """Verify email tasks are properly enqueued through Celery."""
 
-    def test_schedule_enqueues_all_five_days(self):
+    def test_schedule_enqueues_all_four_days(self):
         """schedule_onboarding_sequence should call apply_async 5 times."""
         with patch("app.tasks.email_tasks.send_onboarding_email") as mock_task:
             mock_task.apply_async = MagicMock()
@@ -44,7 +43,7 @@ class TestCeleryTaskEnqueueing:
                 api_key_prefix="ok_live_",
             )
             assert result["status"] == "scheduled"
-            assert mock_task.apply_async.call_count == 5
+            assert mock_task.apply_async.call_count == 4
 
     def test_schedule_passes_correct_kwargs_per_day(self):
         """Each apply_async call should include user_email, user_name, day, and api_key_prefix."""
@@ -155,15 +154,6 @@ class TestTemplateRendering:
         _, html = day0_welcome("Alice", "ok_live_xyz123")
         assert "ok_live_xyz123" in html
         assert "curl" in html
-
-    def test_day7_contains_credit_balance(self):
-        _, html = day7_credits("Bob", 42)
-        # Balance must appear in a labelled context, not as a stray "42" in
-        # CSS, IDs, or pixel values. Look for "42" adjacent to "credit" or
-        # inside an HTML element close-tag boundary.
-        assert ("42 credit" in html.lower()) or (">42<" in html) or (">42 " in html), (
-            "balance 42 not found in a labelled context"
-        )
 
     def test_day14_contains_feedback_request(self):
         _, html = day14_feedback("Carol")

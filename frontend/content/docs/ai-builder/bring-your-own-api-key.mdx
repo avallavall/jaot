@@ -1,6 +1,6 @@
 ---
 title: Bring Your Own API Key (BYOK)
-description: Run JAOT's AI features on your own Anthropic account — free of JAOT credits, independent of the platform's shared budget
+description: Run JAOT's AI features on your own Anthropic account, independent of the platform's shared budget
 order: 5
 ---
 
@@ -12,7 +12,7 @@ Every AI feature in JAOT — the formulation assistant, the solution explainer, 
 
 Resolution is **BYOK-first**:
 
-- **If your organization has set its own key**, every AI call for your org runs on **your** Anthropic account. These calls cost **no JAOT credits** and are not affected by the platform's shared monthly AI budget — so the AI keeps working for you no matter what.
+- **If your organization has set its own key**, every AI call for your org runs on **your** Anthropic account. These calls are not affected by the platform's shared monthly AI budget — so the AI keeps working for you no matter what.
 - **If your organization has no key**, calls fall back to the platform's shared key, which is gated by a monthly budget.
 
 So the moment you add a key, your org becomes self-sufficient for AI.
@@ -43,12 +43,11 @@ DELETE /api/v2/organization/anthropic-key   → clears the key                (o
 
 Reads are available to any org member (the owner also receives the masked hint); writes require the organization owner.
 
-## Billing
+## Who pays for what
 
 When your org runs on its own key:
 
-- **No JAOT credits** are deducted for AI calls.
 - The usage is billed by Anthropic directly to your account, at Anthropic's rates.
 - The platform's monthly AI-budget pause never applies to you.
 
-Solves and other non-AI features continue to use JAOT credits as usual — BYOK only changes who pays for the *AI* calls.
+BYOK only changes who pays for the *AI* calls; everything else on JAOT is free.

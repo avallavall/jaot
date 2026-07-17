@@ -25,8 +25,10 @@ class RefreshToken(Base):
     )
     user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), nullable=False)
     jti: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
-    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
     revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     def __repr__(self) -> str:

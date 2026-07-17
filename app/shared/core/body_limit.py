@@ -6,16 +6,18 @@ streamed body grows past the limit.
 
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-# 1 MB default — matches deferred-items.md recommendation
-MAX_BODY_BYTES = 1_048_576
+# 50 MB default — open-source self-hosted: large JSON models / canvases are
+# posted to /solve and the builder without hitting an artificial cap. File
+# imports (/solve/import) and LLM attachments are exempt and enforce their own.
+MAX_BODY_BYTES = 50 * 1024 * 1024
 
 # Paths that handle their own size limits (e.g., file upload endpoints)
 EXEMPT_PREFIXES = ("/api/v2/solve/import",)
 
 # Upload routes with a dynamic path segment are exempt when BOTH prefix and
-# suffix match. LLM document attachments enforce their own 10 MB cap
-# (app/api/v2/llm.py MAX_FILE_SIZE) — without this exemption the global 1 MB
-# limit silently rejects any real-world PDF.
+# suffix match. LLM document attachments enforce their own 50 MB cap
+# (app/services/document_extraction.py MAX_FILE_SIZE) — without this exemption
+# the global body limit silently rejects any real-world PDF.
 EXEMPT_PREFIX_SUFFIX = (("/api/v2/llm/conversations/", "/attachments"),)
 
 

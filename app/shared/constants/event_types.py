@@ -23,7 +23,8 @@ MCP_TOOL_CALL = "mcp.tool_call"
 TEMPLATE_USE = "template.use"
 
 
-MARKETPLACE_PURCHASE = "marketplace.purchase"
+# "marketplace.activate" = adoption: a "Use in studio" fork of a listing
+# (wire value predates the P1.5 fusion and is kept for analytics continuity).
 MARKETPLACE_ACTIVATE = "marketplace.activate"
 MARKETPLACE_PUBLISH = "marketplace.publish"
 
@@ -31,11 +32,9 @@ MARKETPLACE_PUBLISH = "marketplace.publish"
 SCHEDULE_CREATE = "schedule.create"
 
 
-CREDIT_WITHDRAWAL = "credit.withdrawal"
-
-
-PLACEMENT_PURCHASE = "placement.purchase"
-
+# ADR-008: credit.withdrawal / placement.purchase / marketplace.purchase event
+# types removed with the money layer (never emitted again; no dead "Credits"
+# analytics domain, no dead purchase funnel step).
 
 ALL_EVENT_TYPES: list[str] = [
     USER_SIGNUP,
@@ -46,22 +45,18 @@ ALL_EVENT_TYPES: list[str] = [
     AI_BUILDER_MESSAGE,
     MCP_TOOL_CALL,
     TEMPLATE_USE,
-    MARKETPLACE_PURCHASE,
     MARKETPLACE_ACTIVATE,
     MARKETPLACE_PUBLISH,
     SCHEDULE_CREATE,
-    CREDIT_WITHDRAWAL,
-    PLACEMENT_PURCHASE,
 ]
 
 
 EVENT_DOMAINS: dict[str, list[str]] = {
     "Solver": [SOLVER_SOLVE, TEMPLATE_USE],
     "AI Builder": [AI_BUILDER_MESSAGE],
-    "Marketplace": [MARKETPLACE_PURCHASE, MARKETPLACE_ACTIVATE, MARKETPLACE_PUBLISH],
+    "Marketplace": [MARKETPLACE_ACTIVATE, MARKETPLACE_PUBLISH],
     "MCP": [MCP_TOOL_CALL],
     "Scheduling": [SCHEDULE_CREATE],
-    "Credits": [CREDIT_WITHDRAWAL, PLACEMENT_PURCHASE],
 }
 
 
@@ -69,5 +64,5 @@ FUNNEL_STEPS: list[str] = [
     USER_SIGNUP,
     MODEL_CREATE,
     SOLVER_SOLVE,
-    MARKETPLACE_PURCHASE,
+    MARKETPLACE_ACTIVATE,
 ]

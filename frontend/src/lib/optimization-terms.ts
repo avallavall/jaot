@@ -25,31 +25,15 @@ export const OPTIMIZATION_TERMS: Record<string, TermDefinition> = {
   "warm-start": {
     term: "Warm Start",
   },
+  "reduced-cost": {
+    term: "Reduced Cost",
+  },
   "lp-relaxation": {
     term: "LP Relaxation",
+    formula: "min cᵀx  s.t. Ax ≤ b, x ∈ ℝⁿ (integrality dropped)",
   },
   "objective-value": {
     term: "Objective Value",
-  },
-  "base-cost": {
-    term: "Base Cost",
-    formula: "1 credit (fixed)",
-  },
-  "variable-cost": {
-    term: "Variable Cost",
-    formula: "num_variables \u00d7 0.1",
-  },
-  "integer-penalty": {
-    term: "Integer Penalty",
-    formula: "int_vars \u00d7 0.3 + bin_vars \u00d7 0.2",
-  },
-  "constraint-cost": {
-    term: "Constraint Cost",
-    formula: "num_constraints \u00d7 0.05",
-  },
-  "time-bonus": {
-    term: "Time Bonus",
-    formula: "max(0, (time_limit - 30) \u00d7 0.1)",
   },
   "formulation": {
     term: "Formulation",

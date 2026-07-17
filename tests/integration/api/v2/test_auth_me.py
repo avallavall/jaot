@@ -88,7 +88,6 @@ def test_me_returns_is_org_owner_true_for_org_owner(
     org = Organization(
         id="org_me_owner_a",
         name="Owner Org A",
-        credits_balance=200,
         rate_limit_per_minute=999_999,
         rate_limit_per_day=999_999,
     )
@@ -131,7 +130,6 @@ def test_me_returns_is_org_owner_false_for_non_owner(
     org = Organization(
         id="org_me_nonowner_b",
         name="Non-Owner Org B",
-        credits_balance=200,
         rate_limit_per_minute=999_999,
         rate_limit_per_day=999_999,
     )
@@ -185,7 +183,6 @@ def test_me_returns_is_org_owner_false_for_cross_org_platform_admin(
     org_c = Organization(
         id="org_me_plat_c",
         name="Plat Admin Org C",
-        credits_balance=200,
         rate_limit_per_minute=999_999,
         rate_limit_per_day=999_999,
     )

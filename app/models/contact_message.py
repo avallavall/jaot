@@ -50,7 +50,9 @@ class ContactMessage(Base):
     id: Mapped[str] = mapped_column(
         String(64), primary_key=True, default=lambda: generate_id("ctc_")
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     email: Mapped[str] = mapped_column(String(320), nullable=False)
     subject: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -62,7 +64,7 @@ class ContactMessage(Base):
     status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
     attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
-    sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (Index("ix_contact_messages_status_created", "status", "created_at"),)
 

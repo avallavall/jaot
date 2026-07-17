@@ -10,21 +10,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTemplateTranslation } from "@/hooks/useTemplateTranslation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useDialog } from "@/components/ui/dialog-custom";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   ArrowLeft,
   Star,
-  CheckCircle,
   Building2,
   ExternalLink,
   Flag,
@@ -32,9 +22,9 @@ import {
   Shield,
 } from "lucide-react";
 import type { Review } from "@/lib/types";
-import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { ModelTabs } from "@/components/marketplace/ModelTabs";
 import { ImageGallery } from "@/components/marketplace/ImageGallery";
+import { apiDate } from "@/lib/dates";
 
 interface ReviewsResponse {
   items: Review[];
@@ -54,13 +44,7 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
   const [reviews, setReviews] = useState<ReviewsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activating, setActivating] = useState(false);
-  const [isActivated, setIsActivated] = useState(false);
-  const [activatedModelId, setActivatedModelId] = useState<string | null>(null);
-
-  // Activation modal
-  const [showActivateModal, setShowActivateModal] = useState(false);
-  const [customName, setCustomName] = useState("");
+  const [openingStudio, setOpeningStudio] = useState(false);
 
   // Review form
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -76,7 +60,6 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
   useEffect(() => {
     loadModel();
     loadReviews();
-    checkIfActivated();
   }, [modelId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadModel = async () => {
@@ -101,57 +84,28 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
     }
   };
 
-  const checkIfActivated = async () => {
-    if (!isAuthenticated) return;
-    try {
-      const myModels = await api.getMyModels();
-      const activated = myModels.items.find(
-        (s) => s.catalog_id === modelId
-      );
-      if (activated) {
-        setIsActivated(true);
-        setActivatedModelId(activated.id);
-      }
-    } catch (err) {
-      console.warn('Failed to check activation status:', err);
-    }
-  };
-
-  const handleActivateClick = () => {
+  // P1.5 fusion: "Use in studio" is THE way to use a marketplace model — it SEEDS
+  // a fork ModelProject and opens the workspace (the legacy activate flow is gone).
+  // A model whose generator can't materialize from its example input yields a
+  // 422 → an honest message rather than a broken redirect.
+  const handleUseInStudio = async () => {
     if (!model) return;
-
     if (!isAuthenticated) {
       router.push(`/login?returnUrl=/marketplace/${modelId}`);
       return;
     }
-
-    setCustomName("");
-    setShowActivateModal(true);
-  };
-
-  const confirmActivate = async () => {
-    if (!model) return;
-
-    setShowActivateModal(false);
-    setActivating(true);
+    setOpeningStudio(true);
     try {
-      const options = customName.trim() ? { customName: customName.trim() } : undefined;
-      await api.activateCatalogModel(model.id, options);
-      dialog.showSuccess(t("activatedSuccess"), t("activated"));
-      setTimeout(() => router.push("/solve"), 1500);
+      const project = await api.createProjectFromMarketplace(model.id);
+      router.push(`/studio/${project.id}/build`);
     } catch (err) {
+      setOpeningStudio(false);
       const status = getErrorStatus(err);
-      let msg: string;
-      if (status === 402) {
-        msg = t("insufficientCredits");
-      } else if (status === 409) {
-        msg = t("alreadyActivated");
-      } else {
-        msg = getErrorMessage(err, t("failedToActivate"));
-      }
-      dialog.showError(msg);
-    } finally {
-      setActivating(false);
+      dialog.showError(
+        status === 422
+          ? t("useInStudioUnavailable")
+          : getErrorMessage(err, t("useInStudioFailed")),
+      );
     }
   };
 
@@ -257,7 +211,7 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
               {model.author_name && (
                 <div className="flex items-center gap-2 mb-4">
                   <Link
-                    href={`/marketplace/sellers/${model.author_organization_id}`}
+                    href={`/marketplace/authors/${model.author_organization_id}`}
                     className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
                   >
                     <Building2 className="w-4 h-4" />
@@ -277,38 +231,38 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
 
           <div className="text-left sm:text-right">
             <div className="text-sm text-muted-foreground mb-4">
-              {model.credits_per_execution > 0 ? (
-                t("creditsPerRun", { credits: model.credits_per_execution })
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+              {isAuthenticated ? (
+                <div className="flex flex-col items-stretch sm:items-end gap-1.5">
+                  <Button
+                    onClick={handleUseInStudio}
+                    disabled={openingStudio || model.can_open_in_studio === false}
+                    size="lg"
+                    className="w-full sm:w-auto"
+                    data-testid="marketplace-use-in-studio"
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    {openingStudio ? t("openingStudio") : t("useInStudio")}
+                  </Button>
+                  {/* Disabled up front instead of failing the click with a 422 —
+                      legacy demo listings carry no materializable content. */}
+                  {model.can_open_in_studio === false && (
+                    <p className="text-xs text-muted-foreground max-w-[16rem] sm:text-right">
+                      {t("useInStudioUnavailable")}
+                    </p>
+                  )}
+                </div>
               ) : (
-                <span className="inline-flex items-center gap-1">
-                  {t("dynamicCredits")}
-                  <HelpTooltip content={t("dynamicCreditsTooltip")} side="left" size={14} />
-                </span>
+                <Button
+                  onClick={() => router.push(`/login?returnUrl=/marketplace/${modelId}`)}
+                  size="lg"
+                  className="w-full sm:w-auto"
+                >
+                  {t("signInToUse")}
+                </Button>
               )}
             </div>
-            {isActivated ? (
-              <Button
-                onClick={() => router.push(`/solve/${activatedModelId}`)}
-                size="lg"
-                variant="outline"
-                className="w-full sm:w-auto"
-              >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                {t("openModel")}
-              </Button>
-            ) : !isAuthenticated ? (
-              <Button
-                onClick={() => router.push(`/login?returnUrl=/marketplace/${modelId}`)}
-                size="lg"
-                className="w-full sm:w-auto"
-              >
-                {t("signInToActivate")}
-              </Button>
-            ) : (
-              <Button onClick={handleActivateClick} disabled={activating} size="lg" className="w-full sm:w-auto">
-                {activating ? t("activating") : t("activateModel")}
-              </Button>
-            )}
           </div>
         </div>
 
@@ -548,7 +502,7 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
                     </div>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {new Date(review.created_at).toLocaleDateString()}
+                    {apiDate(review.created_at).toLocaleDateString()}
                   </span>
                 </div>
 
@@ -609,47 +563,6 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
           </div>
         )}
       </div>
-
-      <Dialog open={showActivateModal} onOpenChange={(open) => { if (!open) setShowActivateModal(false); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("activateModal.title")}</DialogTitle>
-            <DialogDescription>
-              {t("activateModal.description")}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>{t("activateModal.bringToWorkspace")}</li>
-              <li>{t("activateModal.ownCopy")}</li>
-            </ul>
-            <div>
-              <label htmlFor="activate-custom-name" className="text-sm font-medium block mb-1.5">
-                {t("activateModal.customNameLabel")}
-              </label>
-              <Input
-                id="activate-custom-name"
-                value={customName}
-                onChange={(e) => setCustomName(e.target.value)}
-                placeholder={model?.display_name ?? ""}
-                maxLength={255}
-                onKeyDown={(e) => { if (e.key === "Enter") confirmActivate(); }}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                {t("activateModal.customNameHint")}
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowActivateModal(false)}>
-              {t("cancel")}
-            </Button>
-            <Button onClick={confirmActivate}>
-              {t("activateModal.confirm")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <dialog.DialogComponent />
     </div>

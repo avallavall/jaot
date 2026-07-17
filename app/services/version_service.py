@@ -1,7 +1,7 @@
 """Version service — snapshot, prune, promote, and restore builder document versions.
 
 All functions accept a SQLAlchemy Session directly and have no FastAPI context,
-following the same pattern as invoice_service.py.
+following the standard service-layer pattern.
 """
 
 import logging

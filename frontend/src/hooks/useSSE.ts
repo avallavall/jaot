@@ -148,14 +148,12 @@ export function useFormulationStream(conversationId: string): FormulationStreamS
         );
 
         if (!response.ok) {
-          // Pre-stream failures (402, 429, 5xx) emit no SSE events, so map status → stable code.
+          // Pre-stream failures (429, 5xx) emit no SSE events, so map status → stable code.
           // Other statuses fall back to internal_error; never surface raw response body to avoid
           // leaking upstream detail (Anthropic errors, DB errors, etc.).
           const requestIdHeader = response.headers.get("x-request-id");
           setRequestId(requestIdHeader);
-          if (response.status === 402) {
-            setErrorCode("insufficient_credits");
-          } else if (response.status === 429 || response.status >= 500) {
+          if (response.status === 429 || response.status >= 500) {
             setErrorCode("service_unavailable");
           } else {
             setErrorCode("internal_error");

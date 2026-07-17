@@ -256,7 +256,7 @@ test.beforeAll(() => {
 
 test("Group 1: Public pages (FR)", async ({ page }) => {
   await auditPage(page, "/", "public", "Landing", "01-landing.png");
-  await auditPage(page, "/pricing", "public", "Pricing", "02-pricing.png");
+  await auditPage(page, "/contact", "public", "Contact", "02-contact.png");
   await auditPage(
     page,
     "/docs/getting-started",
@@ -322,10 +322,11 @@ test("Group 2: Auth pages (FR)", async ({ page }) => {
 test("Group 3: Solve pages (FR)", async ({ page }) => {
   await loginAsAdmin(page);
 
-  await auditPage(page, "/solve", "solve", "My Models", "01-my-models.png");
+  // P1.5 fusion: My Models + model creation live in the studio now.
+  await auditPage(page, "/studio", "solve", "My Models", "01-my-models.png");
   await auditPage(
     page,
-    "/solve/create",
+    "/studio/new",
     "solve",
     "Create Model",
     "02-create.png"
@@ -507,13 +508,6 @@ test("Group 5: Workspace pages (FR)", async ({ page }) => {
   );
   await auditPage(
     page,
-    "/workspace/credits",
-    "workspace",
-    "Credits",
-    "04-credits.png"
-  );
-  await auditPage(
-    page,
     "/workspace/usage",
     "workspace",
     "Usage",
@@ -611,7 +605,6 @@ test("Group 7: Admin pages (FR)", async ({ page }) => {
     "Executions",
     "06-executions.png"
   );
-  await auditPage(page, "/admin/credits", "admin", "Credits", "07-credits.png");
   await auditPage(
     page,
     "/admin/settings",
@@ -636,7 +629,7 @@ test("Group 7: Admin pages (FR)", async ({ page }) => {
 });
 
 /* ------------------------------------------------------------------ */
-/* Group 8: Billing & misc                                             */
+/* Group 8: Misc                                             */
 /* ------------------------------------------------------------------ */
 
 /* ------------------------------------------------------------------ */

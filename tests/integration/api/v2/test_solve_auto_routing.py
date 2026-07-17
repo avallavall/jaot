@@ -62,7 +62,7 @@ _WORKER_PROBE = "app.domains.solver.services.worker_health._probe_hexaly_worker"
 
 
 def _build_org_with_owner(db: Session, org_id: str, user_id: str) -> tuple[Organization, User, str]:
-    """Build an org with a credit balance + an owner User + an API key.
+    """Build an org + an owner User + an API key.
 
     Uses ``flush()`` for intermediate writes so each fixture call pays one
     final fsync (via ``APIKeyService.create_api_key``) instead of four.
@@ -70,7 +70,6 @@ def _build_org_with_owner(db: Session, org_id: str, user_id: str) -> tuple[Organ
     org = Organization(
         id=org_id,
         name=f"Auto Routing Co {org_id}",
-        credits_balance=1000,
         is_active=True,
         rate_limit_per_minute=999_999,
         rate_limit_per_day=999_999,

@@ -58,7 +58,6 @@ def _create_execution(db_session, org_id, **kwargs) -> ModelExecution:
         solver_status=kwargs.get("solver_status", "optimal"),
         objective_value=kwargs.get("objective_value", 5.0),
         execution_time_ms=kwargs.get("execution_time_ms", 50),
-        credits_consumed=kwargs.get("credits_consumed", 1),
         origin=kwargs.get("origin", "manual"),
         created_at=kwargs.get("created_at", utcnow()),
     )
@@ -78,7 +77,6 @@ class TestComputeSummaryEmpty:
         assert summary.total_executions == 0
         assert summary.success_rate == 0.0
         assert summary.avg_solve_time_ms is None
-        assert summary.total_credits == 0
 
     def test_empty_distributions(self, db_session, test_organization):
         summary = compute_summary(db_session, test_organization.id, days=30)
@@ -100,15 +98,6 @@ class TestComputeSummaryWithData:
         assert summary.completed == 2
         assert summary.failed == 1
         assert summary.success_rate == 2 / 3
-
-    def test_credits_aggregation(self, db_session, test_organization):
-        _create_execution(db_session, test_organization.id, credits_consumed=5)
-        _create_execution(db_session, test_organization.id, credits_consumed=3)
-        db_session.commit()
-
-        summary = compute_summary(db_session, test_organization.id, days=30)
-        assert summary.total_credits == 8
-        assert summary.avg_credits == 4.0
 
     def test_solve_time_stats(self, db_session, test_organization):
         _create_execution(db_session, test_organization.id, execution_time_ms=100)
@@ -213,14 +202,6 @@ class TestComputeTrendsWithData:
 
         trends = compute_trends(db_session, test_organization.id, days=30, bucket="week")
         assert len(trends) == 2
-
-    def test_credits_per_bucket(self, db_session, test_organization):
-        _create_execution(db_session, test_organization.id, credits_consumed=5)
-        _create_execution(db_session, test_organization.id, credits_consumed=3)
-        db_session.commit()
-
-        trends = compute_trends(db_session, test_organization.id, days=7)
-        assert trends[0].credits == 8
 
     def test_status_counts_per_bucket(self, db_session, test_organization):
         _create_execution(db_session, test_organization.id, status="completed")
@@ -365,8 +346,6 @@ class TestAnalyticsSummaryEndpoint:
             "success_rate",
             "avg_solve_time_ms",
             "median_solve_time_ms",
-            "total_credits",
-            "avg_credits",
             "avg_objective_value",
             "executions_by_status",
             "executions_by_origin",
@@ -426,7 +405,6 @@ class TestAnalyticsTrendsEndpoint:
             "executions",
             "completed",
             "failed",
-            "credits",
             "avg_solve_time_ms",
         }
         assert required_keys.issubset(bucket.keys())
@@ -468,7 +446,6 @@ class TestAnalyticsCompareEndpoint:
             "solver_status",
             "objective_value",
             "execution_time_ms",
-            "credits_consumed",
             "created_at",
             "origin",
             "num_variables",

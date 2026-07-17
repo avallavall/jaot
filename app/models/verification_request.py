@@ -1,4 +1,4 @@
-"""VerificationRequest model for seller badge verification workflow."""
+"""VerificationRequest model for the author badge verification workflow."""
 
 from datetime import datetime
 from enum import Enum
@@ -20,10 +20,10 @@ class VerificationStatus(str, Enum):
 
 
 class VerificationRequest(Base):
-    """Request from a seller organization to receive the verified publisher badge.
+    """Request from an author organization to receive the verified publisher badge.
 
     Workflow:
-    1. Seller submits request (status=pending)
+    1. Author submits request (status=pending)
     2. Admin reviews org profile, published models, etc.
     3. Admin approves (sets Organization.is_verified=True) or rejects with note
     """
@@ -45,8 +45,10 @@ class VerificationRequest(Base):
     )
     admin_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     reviewed_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
 
     def __repr__(self) -> str:
         return (

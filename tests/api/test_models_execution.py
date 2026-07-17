@@ -1,22 +1,65 @@
 """
 Tests for Model Execution API.
 
-These tests verify the execution functionality:
-- Executing models (sync and async)
-- Credit deduction
-- Execution history
-- Async status polling
+P1.5 fusion: ``/models/{model_id}/execute`` executes a ModelProject — a fork of a
+generator-backed listing renders ``input_data`` through the TemplateEngine; a plain
+project solves its draft content directly. These tests verify:
+- Executing models (generator-backed and static)
+- Execution history (typed + legacy-id rows)
+- Async cancel guard
 """
-
-from unittest.mock import MagicMock
 
 from app.models import (
     ExecutionStatus,
-    ModelCatalog,
-    ModelCategory,
     ModelExecution,
+    ModelProject,
+    ModelProjectListing,
     OrganizationModel,
 )
+
+BOUNDED_MILP_INPUT = {
+    "variables": [{"name": "x", "type": "integer", "lower_bound": 0, "upper_bound": 10}],
+    "objective": {"sense": "maximize", "expression": "x"},
+}
+
+
+def _seed_fork(db_session, organization, suffix: str) -> str:
+    """A fork ModelProject of a trivial generic listing. Returns the fork id."""
+    db_session.add(
+        ModelProject(
+            id=f"src_{suffix}",
+            organization_id=organization.id,
+            name=f"src_{suffix}",
+            status="active",
+        )
+    )
+    db_session.flush()
+    db_session.add(
+        ModelProjectListing(
+            model_project_id=f"src_{suffix}",
+            name=f"src_{suffix}",
+            display_name="Exec Listing",
+            description="For execution tests",
+            generator_type="generic",
+            input_schema={},
+            input_fields=[],
+            example_input={},
+            status="published",
+            is_public=True,
+            author_organization_id=organization.id,
+        )
+    )
+    fork = ModelProject(
+        id=f"fork_{suffix}",
+        organization_id=organization.id,
+        name="Exec fork",
+        status="active",
+        source_type="marketplace",
+        source_ref=f"src_{suffix}",
+    )
+    db_session.add(fork)
+    db_session.commit()
+    return fork.id
 
 
 class TestExecuteModel:
@@ -29,83 +72,6 @@ class TestExecuteModel:
         )
         assert response.status_code == 404
 
-    def test_execute_model_deducts_credits(
-        self, authenticated_client, db_session, test_organization
-    ):
-        """Test that execution deducts credits from organization.
-
-        Pins status_code == 200 and asserts that credits_balance strictly
-        decreased by the calculated credits amount. No conditional assertions:
-        if the endpoint returns anything other than 200, the test fails loudly.
-        """
-        from app.domains.solver.services.solver_service import get_solver_service
-
-        initial_credits = test_organization.credits_balance
-
-        catalog = ModelCatalog(
-            id="test_exec_catalog",
-            name="exec_catalog",
-            display_name="Exec Catalog",
-            description="For execution testing",
-            category=ModelCategory.GENERAL,
-            generator_type="generic",
-            input_schema={},
-            input_fields=[],
-            example_input={},
-            version="1.0.0",
-            status="published",
-            is_official=False,
-            is_public=True,
-            price_eur=0.0,
-            credits_per_execution=5,
-        )
-        db_session.add(catalog)
-
-        # Create org model linked to catalog
-        org_model = OrganizationModel(
-            id="test_exec_org_model",
-            organization_id=test_organization.id,
-            catalog_id="test_exec_catalog",
-            is_active=True,
-        )
-        db_session.add(org_model)
-        db_session.commit()
-
-        # Override the solver dependency to return a successful result
-        from app.schemas.optimization import SolverStatus
-
-        fake_result = MagicMock()
-        fake_result.status = SolverStatus.OPTIMAL
-        fake_result.objective_value = 100.0
-        fake_result.solve_time_seconds = 0.1
-        fake_result.to_result_data.return_value = {"x": 1}
-
-        fake_solver = MagicMock()
-        fake_solver.solve.return_value = fake_result
-
-        # Use FastAPI dependency override (the proper integration test pattern)
-        app = authenticated_client.app
-        app.dependency_overrides[get_solver_service] = lambda: fake_solver
-        try:
-            response = authenticated_client.post(
-                "/api/v2/models/test_exec_org_model/execute",
-                json={
-                    "input_data": {
-                        "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
-                        "objective": {"sense": "maximize", "expression": "x"},
-                    }
-                },
-            )
-        finally:
-            app.dependency_overrides.pop(get_solver_service, None)
-
-        # Pin status code: must be exactly 200
-        assert response.status_code == 200, response.text
-
-        # Credits must have been deducted (not asserted conditionally)
-        db_session.refresh(test_organization)
-        assert test_organization.credits_balance < initial_credits
-
     def test_execute_model_auto_solver_resolves(
         self, authenticated_client, db_session, test_organization
     ):
@@ -113,50 +79,16 @@ class TestExecuteModel:
 
         Before the fix, execute_model passed ``"auto"`` straight to the solver
         registry, which raised ``SolverNotFoundError('Solver 'auto' is not
-        registered.')`` and the sync path STILL charged the user. This test
-        uses the REAL solver registry (no mock) so it actually exercises
-        auto-routing end to end — exactly the gap that let the bug ship.
+        registered.')``. This test uses the REAL solver registry (no mock) so it
+        actually exercises auto-routing end to end — exactly the gap that let
+        the bug ship.
         """
-        initial_credits = test_organization.credits_balance
-
-        catalog = ModelCatalog(
-            id="test_auto_catalog",
-            name="auto_catalog",
-            display_name="Auto Catalog",
-            description="For auto-routing regression",
-            category=ModelCategory.GENERAL,
-            generator_type="generic",
-            input_schema={},
-            input_fields=[],
-            example_input={},
-            version="1.0.0",
-            status="published",
-            is_official=False,
-            is_public=True,
-            price_eur=0.0,
-            credits_per_execution=5,
-        )
-        db_session.add(catalog)
-        org_model = OrganizationModel(
-            id="test_auto_org_model",
-            organization_id=test_organization.id,
-            catalog_id="test_auto_catalog",
-            is_active=True,
-        )
-        db_session.add(org_model)
-        db_session.commit()
+        model_id = _seed_fork(db_session, test_organization, "auto")
 
         # MILP (integer var) → auto routes to SCIP, which is always registered.
         response = authenticated_client.post(
-            "/api/v2/models/test_auto_org_model/execute?solver_name=auto",
-            json={
-                "input_data": {
-                    "variables": [
-                        {"name": "x", "type": "integer", "lower_bound": 0, "upper_bound": 10}
-                    ],
-                    "objective": {"sense": "maximize", "expression": "x"},
-                }
-            },
+            f"/api/v2/models/{model_id}/execute?solver_name=auto",
+            json={"input_data": BOUNDED_MILP_INPUT},
         )
 
         assert response.status_code == 200, response.text
@@ -172,164 +104,104 @@ class TestExecuteModel:
         assert execution.solver_name != "auto"
         assert execution.auto_route_reason is not None
 
-        db_session.refresh(test_organization)
-        assert test_organization.credits_balance < initial_credits
-
-    def test_execute_model_failed_solve_does_not_charge(
+    def test_execute_static_project_solves_draft(
         self, authenticated_client, db_session, test_organization
     ):
-        """A failed solve must NOT consume credits.
-
-        Regression for the user-reported "Créditos consumidos: 3" on a FAILED
-        solve. The pre-fix sync path deducted ``base_credits`` in its except
-        handler; now a solver-internal ERROR (or any exception) leaves the
-        balance untouched, matching /api/v2/solve and solve_model_async.
-        """
-        from app.domains.solver.services.solver_service import get_solver_service
-        from app.schemas.optimization import SolverStatus
-
-        initial_credits = test_organization.credits_balance
-
-        catalog = ModelCatalog(
-            id="test_fail_catalog",
-            name="fail_catalog",
-            display_name="Fail Catalog",
-            description="For failure no-charge regression",
-            category=ModelCategory.GENERAL,
-            generator_type="generic",
-            input_schema={},
-            input_fields=[],
-            example_input={},
-            version="1.0.0",
-            status="published",
-            is_official=False,
-            is_public=True,
-            price_eur=0.0,
-            credits_per_execution=5,
-        )
-        db_session.add(catalog)
-        org_model = OrganizationModel(
-            id="test_fail_org_model",
+        """A plain (non-generator) project executes its draft content directly."""
+        project = ModelProject(
+            id="test_static_exec",
             organization_id=test_organization.id,
-            catalog_id="test_fail_catalog",
-            is_active=True,
+            name="Static model",
+            status="active",
+            draft_model_json=BOUNDED_MILP_INPUT,
         )
-        db_session.add(org_model)
+        db_session.add(project)
         db_session.commit()
 
-        # Solver returns an ERROR result WITHOUT raising (SolverService.solve
-        # swallows exceptions into an ERROR result).
-        error_result = MagicMock()
-        error_result.status = SolverStatus.ERROR
-        error_result.error_message = "boom"
-        error_result.objective_value = None
-        error_result.to_result_data.return_value = {"solver_status": "error"}
-
-        fake_solver = MagicMock()
-        fake_solver.solve.return_value = error_result
-
-        app = authenticated_client.app
-        app.dependency_overrides[get_solver_service] = lambda: fake_solver
-        try:
-            response = authenticated_client.post(
-                "/api/v2/models/test_fail_org_model/execute",
-                json={
-                    "input_data": {
-                        "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
-                        "objective": {"sense": "maximize", "expression": "x"},
-                    }
-                },
-            )
-        finally:
-            app.dependency_overrides.pop(get_solver_service, None)
-
+        response = authenticated_client.post(
+            "/api/v2/models/test_static_exec/execute", json={"input_data": {}}
+        )
         assert response.status_code == 200, response.text
         data = response.json()
-        assert data["status"] == "failed", data
-        assert data["credits_consumed"] == 0, data
+        assert data["status"] == "completed", data
+        assert data["objective_value"] == 10.0, data
+        assert data["model_project_id"] == "test_static_exec"
 
-        # Balance must be exactly unchanged — no charge for a failed solve.
-        db_session.refresh(test_organization)
-        assert test_organization.credits_balance == initial_credits
-
-    def test_execute_model_insufficient_credits(
+    def test_execute_static_project_rejects_input_data(
         self, authenticated_client, db_session, test_organization
     ):
-        """Test execution fails with exact 402 Payment Required."""
-        # Set credits to 0
-        test_organization.credits_balance = 0
-        db_session.commit()
-
-        catalog = ModelCatalog(
-            id="test_no_credits_catalog",
-            name="no_credits_catalog",
-            display_name="No Credits Catalog",
-            description="For insufficient-credit testing",
-            category=ModelCategory.GENERAL,
-            generator_type="generic",
-            input_schema={},
-            input_fields=[],
-            example_input={},
-            version="1.0.0",
-            status="published",
-            is_official=False,
-            is_public=True,
-            price_eur=0.0,
-            credits_per_execution=5,
-        )
-        db_session.add(catalog)
-
-        org_model = OrganizationModel(
-            id="test_no_credits_model",
+        """Non-empty input_data on a non-generator model → 422 (no schema to fill)."""
+        project = ModelProject(
+            id="test_static_input",
             organization_id=test_organization.id,
-            catalog_id="test_no_credits_catalog",
-            is_active=True,
+            name="Static model",
+            status="active",
+            draft_model_json=BOUNDED_MILP_INPUT,
         )
-        db_session.add(org_model)
+        db_session.add(project)
         db_session.commit()
 
         response = authenticated_client.post(
-            "/api/v2/models/test_no_credits_model/execute",
-            json={
-                "input_data": {
-                    "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
-                    "objective": {"sense": "maximize", "expression": "x"},
-                }
-            },
+            "/api/v2/models/test_static_input/execute", json={"input_data": {"budget": 5}}
         )
+        assert response.status_code == 422
+        assert "not generator-backed" in response.json()["detail"]
 
-        # Endpoint contract: exactly 402 Payment Required
-        assert response.status_code == 402, response.text
-        assert "credit" in response.json().get("detail", "").lower()
-
-    def test_execute_inactive_model(self, authenticated_client, db_session, test_organization):
-        """Test cannot execute inactive model — endpoint returns 404."""
-        org_model = OrganizationModel(
-            id="test_inactive_exec_model",
+    def test_execute_empty_project_rejected(
+        self, authenticated_client, db_session, test_organization
+    ):
+        """A project with no draft content and no generator → 422."""
+        project = ModelProject(
+            id="test_empty_exec",
             organization_id=test_organization.id,
-            is_active=False,
+            name="Empty model",
+            status="active",
         )
-        db_session.add(org_model)
+        db_session.add(project)
         db_session.commit()
 
         response = authenticated_client.post(
-            "/api/v2/models/test_inactive_exec_model/execute", json={"input_data": {}}
+            "/api/v2/models/test_empty_exec/execute", json={"input_data": {}}
         )
-        # Endpoint contract: inactive model returns 404 (filter excludes inactive)
+        assert response.status_code == 422
+        assert "no content" in response.json()["detail"]
+
+    def test_execute_archived_model(self, authenticated_client, db_session, test_organization):
+        """Test cannot execute an archived model — endpoint returns 404."""
+        project = ModelProject(
+            id="test_archived_exec_model",
+            organization_id=test_organization.id,
+            name="Archived model",
+            status="archived",
+            draft_model_json=BOUNDED_MILP_INPUT,
+        )
+        db_session.add(project)
+        db_session.commit()
+
+        response = authenticated_client.post(
+            "/api/v2/models/test_archived_exec_model/execute", json={"input_data": {}}
+        )
+        # Endpoint contract: archived model returns 404 (filter excludes it)
         assert response.status_code == 404
 
 
 class TestExecutionHistory:
     """Tests for GET /api/v2/models/{model_id}/executions"""
 
+    def _seed_project(self, db_session, organization, pid: str) -> None:
+        db_session.add(
+            ModelProject(
+                id=pid,
+                organization_id=organization.id,
+                name="History model",
+                status="active",
+            )
+        )
+        db_session.flush()
+
     def test_list_executions_empty(self, authenticated_client, db_session, test_organization):
         """Test listing executions when none exist."""
-        org_model = OrganizationModel(
-            id="test_empty_history_model",
-            organization_id=test_organization.id,
-            is_active=True,
-        )
-        db_session.add(org_model)
+        self._seed_project(db_session, test_organization, "test_empty_history_model")
         db_session.commit()
 
         response = authenticated_client.get("/api/v2/models/test_empty_history_model/executions")
@@ -342,23 +214,16 @@ class TestExecutionHistory:
         self, authenticated_client, db_session, test_organization
     ):
         """Test listing executions with history."""
-        org_model = OrganizationModel(
-            id="test_history_model",
-            organization_id=test_organization.id,
-            is_active=True,
-        )
-        db_session.add(org_model)
-        db_session.flush()
+        self._seed_project(db_session, test_organization, "test_history_model")
 
         # Create some executions
         for i in range(3):
             execution = ModelExecution(
                 id=f"test_execution_{i}",
-                organization_model_id="test_history_model",
+                model_project_id="test_history_model",
                 organization_id=test_organization.id,
                 input_data={"iteration": i},
                 status=ExecutionStatus.COMPLETED.value,
-                credits_consumed=1,
             )
             db_session.add(execution)
         db_session.commit()
@@ -370,25 +235,59 @@ class TestExecutionHistory:
         assert data["total"] == 3
         assert len(data["items"]) == 3
 
+    def test_list_executions_includes_legacy_rows(
+        self, authenticated_client, db_session, test_organization
+    ):
+        """Historic executions carry only organization_model_id — the P1.5
+        backfill preserved that id as the project id, so history includes them."""
+        self._seed_project(db_session, test_organization, "test_legacy_history")
+        # The legacy org-model row sharing the project id (what F3 produced).
+        db_session.add(
+            OrganizationModel(
+                id="test_legacy_history",
+                organization_id=test_organization.id,
+                is_active=True,
+            )
+        )
+        db_session.flush()
+        db_session.add(
+            ModelExecution(
+                id="test_legacy_exec",
+                organization_model_id="test_legacy_history",
+                organization_id=test_organization.id,
+                input_data={},
+                status=ExecutionStatus.COMPLETED.value,
+            )
+        )
+        db_session.add(
+            ModelExecution(
+                id="test_typed_exec",
+                model_project_id="test_legacy_history",
+                organization_id=test_organization.id,
+                input_data={},
+                status=ExecutionStatus.COMPLETED.value,
+            )
+        )
+        db_session.commit()
+
+        response = authenticated_client.get("/api/v2/models/test_legacy_history/executions")
+        assert response.status_code == 200
+        data = response.json()
+        ids = {e["id"] for e in data["items"]}
+        assert ids == {"test_legacy_exec", "test_typed_exec"}
+
     def test_list_executions_pagination(self, authenticated_client, db_session, test_organization):
         """Test execution history pagination."""
-        org_model = OrganizationModel(
-            id="test_paginated_history",
-            organization_id=test_organization.id,
-            is_active=True,
-        )
-        db_session.add(org_model)
-        db_session.flush()
+        self._seed_project(db_session, test_organization, "test_paginated_history")
 
         # Create many executions
         for i in range(10):
             execution = ModelExecution(
                 id=f"test_paginated_exec_{i}",
-                organization_model_id="test_paginated_history",
+                model_project_id="test_paginated_history",
                 organization_id=test_organization.id,
                 input_data={},
                 status=ExecutionStatus.COMPLETED.value,
-                credits_consumed=1,
             )
             db_session.add(execution)
         db_session.commit()
@@ -408,30 +307,22 @@ class TestExecutionHistory:
         self, authenticated_client, db_session, test_organization
     ):
         """Test filtering executions by status."""
-        org_model = OrganizationModel(
-            id="test_status_filter_model",
-            organization_id=test_organization.id,
-            is_active=True,
-        )
-        db_session.add(org_model)
-        db_session.flush()
+        self._seed_project(db_session, test_organization, "test_status_filter_model")
 
         # Create executions with different statuses
         completed = ModelExecution(
             id="test_completed_exec",
-            organization_model_id="test_status_filter_model",
+            model_project_id="test_status_filter_model",
             organization_id=test_organization.id,
             input_data={},
             status=ExecutionStatus.COMPLETED.value,
-            credits_consumed=1,
         )
         failed = ModelExecution(
             id="test_failed_exec",
-            organization_model_id="test_status_filter_model",
+            model_project_id="test_status_filter_model",
             organization_id=test_organization.id,
             input_data={},
             status=ExecutionStatus.FAILED.value,
-            credits_consumed=1,
         )
         db_session.add_all([completed, failed])
         db_session.commit()

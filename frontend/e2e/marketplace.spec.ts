@@ -78,4 +78,16 @@ test.describe("Marketplace", () => {
       await marketplacePage.expectLoaded();
     });
   });
+
+  // P1.5 G8: selling no longer exists — public profiles are AUTHOR pages now.
+  // A REAL org id (the seeded officials owner): with a phantom id the profile
+  // page could bounce, masking the redirect under test.
+  test("legacy /marketplace/sellers/{orgId} redirects to the author profile", async ({
+    page,
+  }) => {
+    await page.goto("/marketplace/sellers/org_jaot_official");
+    await expect(page).toHaveURL(/\/marketplace\/authors\/org_jaot_official/, {
+      timeout: 15_000,
+    });
+  });
 });

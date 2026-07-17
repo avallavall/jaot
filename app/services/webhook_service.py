@@ -110,7 +110,6 @@ def execution_completed_event(
     status: str,
     objective_value: float | None = None,
     execution_time_ms: int | None = None,
-    credits_consumed: int = 0,
 ) -> dict[str, Any]:
     """Build an execution.completed webhook payload."""
     return build_webhook_payload(
@@ -122,7 +121,6 @@ def execution_completed_event(
             "status": status,
             "objective_value": objective_value,
             "execution_time_ms": execution_time_ms,
-            "credits_consumed": credits_consumed,
         },
     )
 

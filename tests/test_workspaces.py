@@ -25,7 +25,6 @@ from app.models.workspace import (
     WorkspaceMember,
     WorkspaceRole,
 )
-from app.models.workspace_credits import WorkspaceCreditPool
 from app.schemas.workspace import WorkspaceMemberResponse, WorkspaceResponse
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
@@ -39,7 +38,6 @@ def _make_org(db, org_id="org_ws001", balance=1000):
     org = Organization(
         id=org_id,
         name="WS Test Org",
-        credits_balance=balance,
         is_active=True,
     )
     db.add(org)
@@ -87,16 +85,6 @@ def _make_workspace(db, org, owner, name="Test WS"):
     )
     db.add(member)
 
-    pool = WorkspaceCreditPool(
-        id=generate_id("wcp_"),
-        workspace_id=ws.id,
-        organization_id=org.id,
-        allocated_credits=0,
-        used_credits=0,
-        created_at=now,
-        updated_at=now,
-    )
-    db.add(pool)
     db.commit()
     db.refresh(ws)
     return ws
@@ -744,32 +732,14 @@ class TestPermissionEnforcement:
         )
         assert resp.status_code == 403
 
-    def test_editor_cannot_allocate_credits(self, client, db_session, mock_auth, ws_with_members):
-        """Editor cannot allocate credits to workspace pool (403)."""
-        editor = ws_with_members["editor"]
-        ws = ws_with_members["ws"]
-
-        mock_auth(editor)
-        resp = client.post(
-            f"/api/v2/workspaces/{ws.id}/credits/allocate",
-            json={"amount": 100},
-        )
-        assert resp.status_code == 403
-
     def test_admin_can_do_all_workspace_operations(self, client, db_session, mock_auth, ws_setup):
-        """Admin (org owner) can: update, list members, allocate credits, add member.
+        """Admin (org owner) can: update, list members, add member.
 
         Previously this test only checked two endpoints despite claiming "all
-        operations". Now it covers update + list-members + credit-allocation
-        + member-management + audit-log read, which is the full admin surface.
+        operations". Now it covers update + list-members + member-management + audit-log read, which is the full admin surface.
         """
         owner = ws_setup["owner"]
         ws = ws_setup["ws"]
-        org = ws_setup["org"]
-        # Seed the org with enough credits for the allocation test.
-        org.credits_balance = 1000
-        db_session.commit()
-
         mock_auth(owner)
 
         # 1. Update workspace
@@ -779,13 +749,6 @@ class TestPermissionEnforcement:
         # 2. List members
         resp = client.get(f"/api/v2/workspaces/{ws.id}/members/")
         assert resp.status_code == 200
-
-        # 3. Allocate credits to the workspace pool
-        resp = client.post(
-            f"/api/v2/workspaces/{ws.id}/credits/allocate",
-            json={"amount": 100},
-        )
-        assert resp.status_code == 200, f"Credit allocation failed: {resp.text}"
 
         # 4. Access the audit log (admin-only endpoint)
         resp = client.get(f"/api/v2/workspaces/{ws.id}/audit/")
@@ -873,153 +836,9 @@ class TestAuditLog:
             assert item["action"] == "workspace_update"
 
 
-class TestCreditPool:
-    def test_get_pool_stats(self, client, db_session, mock_auth, ws_with_members):
-        """Viewer can get pool stats."""
-        viewer = ws_with_members["viewer"]
-        ws = ws_with_members["ws"]
-
-        mock_auth(viewer)
-        resp = client.get(f"/api/v2/workspaces/{ws.id}/credits/")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["workspace_id"] == ws.id
-        assert data["allocated_credits"] == 0
-        assert data["available_credits"] == 0
-
-    def test_allocate_credits_deducts_from_org_balance(
-        self, client, db_session, mock_auth, ws_setup
-    ):
-        """Allocating credits reduces org balance and increases pool."""
-        owner = ws_setup["owner"]
-        org = ws_setup["org"]
-        ws = ws_setup["ws"]
-        initial_balance = org.credits_balance
-
-        mock_auth(owner)
-        resp = client.post(
-            f"/api/v2/workspaces/{ws.id}/credits/allocate",
-            json={"amount": 200},
-        )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["allocated_credits"] == 200
-        assert data["available_credits"] == 200
-
-        db_session.refresh(org)
-        assert org.credits_balance == initial_balance - 200
-
-    def test_allocate_more_than_balance_fails(self, client, db_session, mock_auth, ws_setup):
-        """Allocating more credits than org balance fails with 400."""
-        owner = ws_setup["owner"]
-        org = ws_setup["org"]
-        ws = ws_setup["ws"]
-
-        mock_auth(owner)
-        resp = client.post(
-            f"/api/v2/workspaces/{ws.id}/credits/allocate",
-            json={"amount": org.credits_balance + 9999},
-        )
-        assert resp.status_code == 400
-
-    def test_pool_stats_reflect_allocation(self, client, db_session, mock_auth, ws_setup):
-        """Pool stats show correct values after allocation."""
-        owner = ws_setup["owner"]
-        ws = ws_setup["ws"]
-
-        mock_auth(owner)
-        client.post(
-            f"/api/v2/workspaces/{ws.id}/credits/allocate",
-            json={"amount": 100},
-        )
-
-        resp = client.get(f"/api/v2/workspaces/{ws.id}/credits/")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["allocated_credits"] == 100
-        assert data["used_credits"] == 0
-        assert data["available_credits"] == 100
-
-    def test_view_pool_as_viewer_succeeds(self, client, db_session, mock_auth, ws_with_members):
-        """Viewer can read pool stats (viewer+ permission)."""
-        viewer = ws_with_members["viewer"]
-        ws = ws_with_members["ws"]
-
-        mock_auth(viewer)
-        resp = client.get(f"/api/v2/workspaces/{ws.id}/credits/")
-        assert resp.status_code == 200
-
-    def test_allocate_as_non_admin_fails(self, client, db_session, mock_auth, ws_with_members):
-        """Editor cannot allocate credits (requires admin)."""
-        editor = ws_with_members["editor"]
-        ws = ws_with_members["ws"]
-
-        mock_auth(editor)
-        resp = client.post(
-            f"/api/v2/workspaces/{ws.id}/credits/allocate",
-            json={"amount": 50},
-        )
-        assert resp.status_code == 403
-
-    def test_get_pool_on_soft_deleted_workspace_succeeds(
-        self, client, db_session, mock_auth, ws_setup
-    ):
-        """GET pool stays viewable on a soft-deleted workspace (reconciliation).
-
-        Phase 12 finding #11: the IDOR fix bundled is_active into
-        get_workspace_or_404, which 404'd the read-only pool GET on soft-deleted
-        workspaces. But delete_workspace does NOT reclaim allocated pool credits,
-        so they would be both stranded AND invisible. The GET now passes
-        require_active=False so the owning org can still see (reconcile) the
-        pool; org_id is still enforced.
-        """
-        owner = ws_setup["owner"]
-        ws = ws_setup["ws"]
-
-        # Fund the pool, then soft-delete the workspace -> 150 credits stranded.
-        mock_auth(owner)
-        alloc = client.post(f"/api/v2/workspaces/{ws.id}/credits/allocate", json={"amount": 150})
-        assert alloc.status_code == 200, alloc.text[:200]
-        ws.is_active = False
-        db_session.commit()
-
-        # GET still returns the pool with the stranded credits visible.
-        resp = client.get(f"/api/v2/workspaces/{ws.id}/credits/")
-        assert resp.status_code == 200, (
-            f"Soft-deleted workspace pool GET should stay viewable, got "
-            f"{resp.status_code}: {resp.text[:200]}"
-        )
-        data = resp.json()
-        assert data["workspace_id"] == ws.id
-        assert data["allocated_credits"] == 150  # stranded, still visible
-
-    def test_allocate_to_soft_deleted_workspace_fails_404(
-        self, client, db_session, mock_auth, ws_setup
-    ):
-        """Allocation stays STRICT on soft-deleted workspaces (require_active=True).
-
-        Phase 12 finding #11: only the read-only GET was relaxed. Funding a
-        deleted workspace must remain a 404 — you cannot allocate credits to a
-        workspace that has been removed.
-        """
-        owner = ws_setup["owner"]
-        ws = ws_setup["ws"]
-
-        ws.is_active = False
-        db_session.commit()
-
-        mock_auth(owner)
-        resp = client.post(f"/api/v2/workspaces/{ws.id}/credits/allocate", json={"amount": 50})
-        assert resp.status_code == 404, (
-            f"Allocation to a soft-deleted workspace must 404, got {resp.status_code}: "
-            f"{resp.text[:200]}"
-        )
-
-
 class TestCrossTenantWorkspace404AntiOracle:
-    """SC4 anti-oracle invariants for the workspaces.py + members.py + invites.py +
-    credits.py endpoints. Closes MISSING cells from
-    12.4-01-cross-tenant-scaffold.md row 19 (workspace) + row 20 (workspace_credits).
+    """SC4 anti-oracle invariants for the workspaces.py + members.py + invites.py endpoints. Closes MISSING cells from
+    12.4-01-cross-tenant-scaffold.md row 19 (workspace).
 
     Each test uses the cross_tenant_ws fixture: org_b's owner is the caller
     and tries to access (or mutate) a workspace owned by org_a. Every
@@ -1195,53 +1014,4 @@ class TestCrossTenantWorkspace404AntiOracle:
             endpoint_template="/api/v2/workspaces/{id}/invites/link",
             cross_tenant_resource_id=ws_a.id,
             body={"role": "viewer"},
-        )
-
-    def test_cross_tenant_get_credit_pool_404_anti_oracle(self, client, cross_tenant_ws):
-        """SC4 row 20 READ: cross-tenant GET /workspaces/{id}/credits/ returns 404.
-
-        Previously _get_or_create_pool queried by workspace_id alone and
-        silently created a pool with organization_id=org_b, workspace_id=ws_a,
-        returning 200. The guard now 404s before any row is created, and the
-        pool query is org-scoped.
-        """
-        ws_a = cross_tenant_ws["ws_a"]
-        assert_cross_tenant_404_anti_oracle(
-            client,
-            endpoint_template="/api/v2/workspaces/{id}/credits/",
-            cross_tenant_resource_id=ws_a.id,
-        )
-
-    def test_cross_tenant_allocate_credits_404_anti_oracle(self, client, cross_tenant_ws):
-        """SC4 row 20 WRITE: cross-tenant POST /workspaces/{id}/credits/allocate returns 404.
-
-        org_b's owner must not move org_b credits into a pool keyed on org_a's
-        workspace. The guard 404s before allocate_credits_to_pool runs, so no
-        org-B balance is debited and no foreign pool is touched.
-        """
-        ws_a = cross_tenant_ws["ws_a"]
-        assert_cross_tenant_404_anti_oracle_write(
-            client,
-            method="post",
-            endpoint_template="/api/v2/workspaces/{id}/credits/allocate",
-            cross_tenant_resource_id=ws_a.id,
-            body={"amount": 100},
-        )
-
-    def test_cross_tenant_get_credit_pool_soft_deleted_404_anti_oracle(
-        self, client, db_session, cross_tenant_ws
-    ):
-        """Finding #11 IDOR preservation: relaxing is_active for the pool GET
-        (require_active=False) must NOT open cross-tenant reads. org_b reading
-        org_a's SOFT-DELETED workspace pool still 404s (org_id is enforced
-        regardless of is_active), with the same anti-oracle detail as a
-        genuinely nonexistent id.
-        """
-        ws_a = cross_tenant_ws["ws_a"]
-        ws_a.is_active = False
-        db_session.commit()
-        assert_cross_tenant_404_anti_oracle(
-            client,
-            endpoint_template="/api/v2/workspaces/{id}/credits/",
-            cross_tenant_resource_id=ws_a.id,
         )

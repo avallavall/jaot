@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
-import { LayoutDashboard, Building2, Users, Key, Coins, Settings, ArrowLeft, Package, Activity, Flag, BarChart3, Shield, Star } from "lucide-react";
+import { LayoutDashboard, Building2, Users, Key, Settings, ArrowLeft, Package, Activity, Flag, BarChart3, Shield } from "lucide-react";
 import { api } from "@/lib/api";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -27,16 +27,14 @@ export default function AdminLayout({
     { label: "─────────", href: "#", icon: null },
     { label: t("nav.executions"), href: "/admin/executions", icon: <Activity className="w-4 h-4" /> },
     { label: t("nav.reportedReviews"), href: "/admin/reviews", icon: <Flag className="w-4 h-4" /> },
-    { label: t("nav.credits"), href: "/admin/credits", icon: <Coins className="w-4 h-4" /> },
     { label: "─────────", href: "#", icon: null },
     { label: t("nav.marketplace"), href: "#", icon: null },
-    { label: t("nav.sellerAnalytics"), href: "/admin/marketplace/seller-analytics", icon: <BarChart3 className="w-4 h-4" /> },
+    { label: t("nav.authorAnalytics"), href: "/admin/marketplace/author-analytics", icon: <BarChart3 className="w-4 h-4" /> },
     { label: t("nav.featureAnalytics"), href: "/admin/marketplace/analytics", icon: <Activity className="w-4 h-4" /> },
     { label: t("nav.verification"), href: "/admin/marketplace/verification", icon: <Shield className="w-4 h-4" /> },
-    { label: t("nav.promotions"), href: "/admin/marketplace/promotions", icon: <Star className="w-4 h-4" /> },
     { label: "─────────", href: "#", icon: null },
     { label: t("nav.settings"), href: "/admin/settings", icon: <Settings className="w-4 h-4" /> },
-    { label: t("nav.backToApp"), href: "/solve", icon: <ArrowLeft className="w-4 h-4" /> },
+    { label: t("nav.backToApp"), href: "/studio", icon: <ArrowLeft className="w-4 h-4" /> },
   ], [t]);
   const [maintenanceActive, setMaintenanceActive] = useState(false);
 

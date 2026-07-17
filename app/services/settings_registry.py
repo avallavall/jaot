@@ -11,6 +11,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+from app.version import APP_VERSION
+
 
 class SettingType(str, Enum):
     """Value types for settings."""
@@ -90,6 +92,21 @@ SETTINGS_REGISTRY.extend(
             is_secret=False,
             is_readonly=False,
         ),
+        SettingDefinition(
+            key="JAOT_DSL",
+            label="JModel DSL (experimental)",
+            description=(
+                "When enabled, the studio exposes the JModel editor lens and the "
+                "POST /dsl/compile endpoint that lowers the declarative DSL "
+                "(sets / params / indexed families) to a flat optimization problem. "
+                "Off by default; the feature ships dark."
+            ),
+            category=SettingCategory.SYSTEM,
+            setting_type=SettingType.BOOL,
+            default_value="false",
+            is_secret=False,
+            is_readonly=False,
+        ),
     ]
 )
 
@@ -129,10 +146,10 @@ SETTINGS_REGISTRY.extend(
         SettingDefinition(
             key="SOLVER_TIMEOUT_SECONDS",
             label="Timeout Seconds",
-            description="Solver timeout in seconds (per execution)",
+            description="Synchronous /solve wall-clock timeout in seconds (per execution)",
             category=SettingCategory.SOLVER,
             setting_type=SettingType.INT,
-            default_value="30",
+            default_value="120",
             min_value=1,
             max_value=3600,
             unit="seconds",
@@ -148,7 +165,7 @@ SETTINGS_REGISTRY.extend(
             ),
             category=SettingCategory.SOLVER,
             setting_type=SettingType.INT,
-            default_value="60",
+            default_value="300",
             min_value=1,
             max_value=3600,
             unit="seconds",
@@ -175,11 +192,11 @@ SETTINGS_REGISTRY.extend(
                 "Age in seconds after which a ModelExecution still running (DB "
                 "status 'running' or an active Celery worker state) is considered "
                 "hung, marked failed, and refunded by the execution reaper. "
-                "Default is 2x the maximum per-request solver time limit (3600s)."
+                "Default is 2x the maximum per-request solver time limit (86400s)."
             ),
             category=SettingCategory.SOLVER,
             setting_type=SettingType.INT,
-            default_value="7200",
+            default_value="172800",
             min_value=300,
             max_value=172800,
             unit="seconds",
@@ -287,7 +304,7 @@ SETTINGS_REGISTRY.extend(
             description="Max LLM requests per minute",
             category=SettingCategory.LLM,
             setting_type=SettingType.INT,
-            default_value="60",
+            default_value="300",
             min_value=1,
             max_value=1000,
         ),
@@ -297,20 +314,9 @@ SETTINGS_REGISTRY.extend(
             description="Max LLM requests per day",
             category=SettingCategory.LLM,
             setting_type=SettingType.INT,
-            default_value="500",
+            default_value="5000",
             min_value=1,
             max_value=100000,
-        ),
-        SettingDefinition(
-            key="LLM_CREDIT_COST_PER_MESSAGE",
-            label="Credit Cost per Message",
-            description="Credits charged per LLM message",
-            category=SettingCategory.LLM,
-            setting_type=SettingType.INT,
-            default_value="2",
-            min_value=0,
-            max_value=100,
-            unit="credits",
         ),
         SettingDefinition(
             key="LLM_MONTHLY_BUDGET_EUR",
@@ -325,7 +331,7 @@ SETTINGS_REGISTRY.extend(
             ),
             category=SettingCategory.LLM,
             setting_type=SettingType.FLOAT,
-            default_value="20.0",
+            default_value="50.0",
             min_value=0,
             max_value=100000,
             unit="EUR",
@@ -621,28 +627,7 @@ SETTINGS_REGISTRY.extend(
     ]
 )
 
-# BILLING category (38 entries: MONETIZATION_ENABLED + DEFAULT_PLAN + 4 tiers x 9 fields)
-
-SETTINGS_REGISTRY.append(
-    SettingDefinition(
-        key="MONETIZATION_ENABLED",
-        label="Monetization Enabled",
-        description=(
-            "Master switch for every paid feature. When OFF (the default), the "
-            "platform is fully free and collaborative: marketplace models are "
-            "free to publish and use, no commission is charged, and billing, "
-            "payouts, Stripe Connect onboarding, and featured-placement "
-            "purchases are disabled (their endpoints respond 404). Turn ON only "
-            "on a self-hosted deployment that brings its own Stripe keys to "
-            "restore the paid marketplace."
-        ),
-        category=SettingCategory.BILLING,
-        setting_type=SettingType.BOOL,
-        default_value="false",
-        is_secret=False,
-        is_readonly=False,
-    ),
-)
+# BILLING category — legacy tier LIMIT profiles (DEFAULT_PLAN + 4 tiers x 9 fields; ADR-008 removed all money settings)
 
 SETTINGS_REGISTRY.append(
     SettingDefinition(
@@ -656,10 +641,10 @@ SETTINGS_REGISTRY.append(
 )
 
 _PLAN_TIERS = ["free", "starter", "pro", "business"]
+# ADR-008: plan tiers are LIMIT PROFILES only — the credits/monthly_quota
+# fields left with the credit system.
 _PLAN_FIELDS: list[tuple[str, str, SettingType, float | None, float | None, str | None]] = [
     # (field, label, type, min, max, unit)
-    ("credits", "Credits", SettingType.INT, 0, 1000000, "credits"),
-    ("monthly_quota", "Monthly Quota", SettingType.INT, 0, 1000000, "credits"),
     ("rate_limit_per_minute", "Rate Limit/Min", SettingType.INT, 0, 10000, None),
     ("rate_limit_per_day", "Rate Limit/Day", SettingType.INT, 0, 1000000, None),
     (
@@ -683,46 +668,40 @@ _ALLOWED_FEATURES_DEFAULT = (
 # Default values per tier, keyed by (tier, field)
 _PLAN_DEFAULTS: dict[tuple[str, str], str] = {
     # Default plan ("free"): no paid tiers anymore — every signup gets full,
-    # business-level access. The platform-wide monthly LLM budget remains the
-    # real cost ceiling. Applied to prod runtime 2026-06-24 and mirrored here so
-    # fresh installs / DB reseeds match. (starter/pro/business kept as legacy.)
-    ("free", "credits"): "20000",
-    ("free", "monthly_quota"): "20000",
+    # business-level access. Open-source self-hosted: business/usage limits
+    # relaxed (solve time up to 24h, 100k daily solves). The platform-wide
+    # monthly LLM budget remains the only real cost ceiling. Mirrored here so
+    # fresh installs / DB reseeds match. (starter/pro/business kept as legacy,
+    # also relaxed for consistency.)
     ("free", "rate_limit_per_minute"): "120",
     ("free", "rate_limit_per_day"): "50000",
-    ("free", "max_solve_time_seconds"): "3600",
+    ("free", "max_solve_time_seconds"): "86400",
     ("free", "max_variables"): "10000000",
-    ("free", "max_daily_solves"): "50000",
+    ("free", "max_daily_solves"): "100000",
     ("free", "max_cron_schedules"): "50",
     ("free", "allowed_features"): _ALLOWED_FEATURES_DEFAULT,
     # Starter tier
-    ("starter", "credits"): "600",
-    ("starter", "monthly_quota"): "600",
     ("starter", "rate_limit_per_minute"): "20",
     ("starter", "rate_limit_per_day"): "500",
-    ("starter", "max_solve_time_seconds"): "300",
+    ("starter", "max_solve_time_seconds"): "86400",
     ("starter", "max_variables"): "100000",
-    ("starter", "max_daily_solves"): "500",
+    ("starter", "max_daily_solves"): "100000",
     ("starter", "max_cron_schedules"): "5",
     ("starter", "allowed_features"): _ALLOWED_FEATURES_DEFAULT,
     # Pro tier
-    ("pro", "credits"): "2500",
-    ("pro", "monthly_quota"): "2500",
     ("pro", "rate_limit_per_minute"): "60",
     ("pro", "rate_limit_per_day"): "5000",
-    ("pro", "max_solve_time_seconds"): "900",
+    ("pro", "max_solve_time_seconds"): "86400",
     ("pro", "max_variables"): "1000000",
-    ("pro", "max_daily_solves"): "5000",
+    ("pro", "max_daily_solves"): "100000",
     ("pro", "max_cron_schedules"): "15",
     ("pro", "allowed_features"): _ALLOWED_FEATURES_DEFAULT,
     # Business tier
-    ("business", "credits"): "20000",
-    ("business", "monthly_quota"): "20000",
     ("business", "rate_limit_per_minute"): "120",
     ("business", "rate_limit_per_day"): "50000",
-    ("business", "max_solve_time_seconds"): "3600",
+    ("business", "max_solve_time_seconds"): "86400",
     ("business", "max_variables"): "10000000",
-    ("business", "max_daily_solves"): "50000",
+    ("business", "max_daily_solves"): "100000",
     ("business", "max_cron_schedules"): "50",
     ("business", "allowed_features"): _ALLOWED_FEATURES_DEFAULT,
 }
@@ -744,69 +723,12 @@ for _tier in _PLAN_TIERS:
         )
 
 
-SETTINGS_REGISTRY.append(
-    SettingDefinition(
-        key="marketplace_commission_rate",
-        label="Commission Rate",
-        description="Marketplace commission rate (0.0 to 0.50)",
-        category=SettingCategory.MARKETPLACE,
-        setting_type=SettingType.FLOAT,
-        default_value="0.10",
-        min_value=0.0,
-        max_value=0.50,
-        unit="%",
-    ),
-)
-
-_PLACEMENT_TYPES = [
-    "homepage_carousel",
-    "category_spotlight",
-    "search_boost",
-    "promoted_badge",
-]
-_PLACEMENT_DURATIONS = ["7d", "14d", "30d"]
-
-# Default pricing for featured placements
-_PLACEMENT_DEFAULTS: dict[str, str] = {
-    "featured_placement_homepage_carousel_7d": "500",
-    "featured_placement_homepage_carousel_14d": "900",
-    "featured_placement_homepage_carousel_30d": "1200",
-    "featured_placement_category_spotlight_7d": "300",
-    "featured_placement_category_spotlight_14d": "550",
-    "featured_placement_category_spotlight_30d": "750",
-    "featured_placement_search_boost_7d": "200",
-    "featured_placement_search_boost_14d": "350",
-    "featured_placement_search_boost_30d": "500",
-    "featured_placement_promoted_badge_7d": "100",
-    "featured_placement_promoted_badge_14d": "175",
-    "featured_placement_promoted_badge_30d": "250",
-}
-
-for _ptype in _PLACEMENT_TYPES:
-    for _dur in _PLACEMENT_DURATIONS:
-        _key = f"featured_placement_{_ptype}_{_dur}"
-        SETTINGS_REGISTRY.append(
-            SettingDefinition(
-                key=_key,
-                label=(f"{_ptype.replace('_', ' ').title()} ({_dur})"),
-                description=(f"Pricing for {_ptype.replace('_', ' ')} placement ({_dur})"),
-                category=SettingCategory.MARKETPLACE,
-                setting_type=SettingType.INT,
-                default_value=_PLACEMENT_DEFAULTS.get(_key),
-                min_value=0,
-                max_value=100000,
-                unit="credits",
-            ),
-        )
-
-# SECRETS category (10 entries — all readonly, masked)
+# SECRETS category (all readonly, masked)
 
 _SECRET_KEYS = [
     ("DATABASE_URL", "Database URL", "PostgreSQL connection string"),
     ("JWT_SECRET", "JWT Secret", "Secret key for JWT signing"),
     ("ANTHROPIC_API_KEY", "Anthropic API Key", "API key for Claude LLM"),
-    ("STRIPE_SECRET_KEY", "Stripe Secret Key", "Stripe API secret key"),
-    ("STRIPE_WEBHOOK_SECRET", "Stripe Webhook Secret", "Stripe webhook signing secret"),
     ("SMTP_PASSWORD", "SMTP Password", "SMTP authentication password"),
     ("DISCOURSE_SSO_SECRET", "Discourse SSO Secret", "Discourse single sign-on secret"),
     ("STORAGE_ACCESS_KEY", "Storage Access Key", "Object storage access key"),
@@ -843,7 +765,7 @@ SETTINGS_REGISTRY.extend(
             description="Current application version",
             category=SettingCategory.APP,
             setting_type=SettingType.STRING,
-            default_value="2.0.0",
+            default_value=APP_VERSION,
             is_readonly=True,
         ),
         SettingDefinition(
@@ -1058,17 +980,6 @@ SETTINGS_REGISTRY.extend(
             max_value=2592000,
             unit="seconds",
         ),
-        SettingDefinition(
-            key="CRON_DEFAULT_CREDIT_ESTIMATE",
-            label="Cron Default Credit Estimate",
-            description=("Default credit estimate for cron runs without prior run history"),
-            category=SettingCategory.CELERY,
-            setting_type=SettingType.INT,
-            default_value="1",
-            min_value=0,
-            max_value=1000,
-            unit="credits",
-        ),
     ]
 )
 
@@ -1093,221 +1004,6 @@ SETTINGS_REGISTRY.extend(
             default_value="10",
             min_value=1,
             max_value=1000,
-        ),
-    ]
-)
-
-# Additional BILLING entries — pricing, holding, thresholds
-SETTINGS_REGISTRY.extend(
-    [
-        SettingDefinition(
-            key="HOLDING_PERIOD_DAYS",
-            label="Holding Period",
-            description=("Days before earned credits can be withdrawn"),
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.INT,
-            default_value="14",
-            min_value=0,
-            max_value=365,
-            unit="days",
-        ),
-        SettingDefinition(
-            key="LOW_CREDITS_THRESHOLD_PCT",
-            label="Low Credits Threshold",
-            description=("Percentage threshold for low credits warning"),
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.INT,
-            default_value="10",
-            min_value=0,
-            max_value=100,
-            unit="%",
-        ),
-        SettingDefinition(
-            key="plan_free_monthly_price",
-            label="Free Monthly Price",
-            description="Monthly price for Free plan",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.INT,
-            default_value="0",
-            min_value=0,
-            max_value=100000,
-            unit="USD cents",
-        ),
-        SettingDefinition(
-            key="plan_starter_monthly_price",
-            label="Starter Monthly Price",
-            description="Monthly price for Starter plan",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.INT,
-            default_value="19",
-            min_value=0,
-            max_value=100000,
-            unit="USD",
-        ),
-        SettingDefinition(
-            key="plan_pro_monthly_price",
-            label="Pro Monthly Price",
-            description="Monthly price for Pro plan",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.INT,
-            default_value="49",
-            min_value=0,
-            max_value=100000,
-            unit="USD",
-        ),
-        SettingDefinition(
-            key="plan_business_monthly_price",
-            label="Business Monthly Price",
-            description="Monthly price for Business plan",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.INT,
-            default_value="149",
-            min_value=0,
-            max_value=100000,
-            unit="USD",
-        ),
-        SettingDefinition(
-            key="plan_starter_annual_price",
-            label="Starter Annual Price",
-            description="Annual price for Starter plan",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.INT,
-            default_value="190",
-            min_value=0,
-            max_value=1000000,
-            unit="USD",
-        ),
-        SettingDefinition(
-            key="plan_pro_annual_price",
-            label="Pro Annual Price",
-            description="Annual price for Pro plan",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.INT,
-            default_value="490",
-            min_value=0,
-            max_value=1000000,
-            unit="USD",
-        ),
-        SettingDefinition(
-            key="plan_business_annual_price",
-            label="Business Annual Price",
-            description="Annual price for Business plan",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.INT,
-            default_value="1490",
-            min_value=0,
-            max_value=1000000,
-            unit="USD",
-        ),
-        SettingDefinition(
-            key="STRIPE_PRICE_STARTER_MONTHLY",
-            label="Stripe Starter Monthly Price ID",
-            description="Stripe Price ID for Starter monthly",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.STRING,
-            default_value="",
-        ),
-        SettingDefinition(
-            key="STRIPE_PRICE_PRO_MONTHLY",
-            label="Stripe Pro Monthly Price ID",
-            description="Stripe Price ID for Pro monthly",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.STRING,
-            default_value="",
-        ),
-        SettingDefinition(
-            key="STRIPE_PRICE_BUSINESS_MONTHLY",
-            label="Stripe Business Monthly Price ID",
-            description="Stripe Price ID for Business monthly",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.STRING,
-            default_value="",
-        ),
-        SettingDefinition(
-            key="STRIPE_PRICE_TOPUP_500",
-            label="Stripe Topup 500 Price ID",
-            description="Stripe Price ID for 500 credit topup",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.STRING,
-            default_value="",
-        ),
-        SettingDefinition(
-            key="STRIPE_PRICE_TOPUP_2000",
-            label="Stripe Topup 2000 Price ID",
-            description="Stripe Price ID for 2000 credit topup",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.STRING,
-            default_value="",
-        ),
-        SettingDefinition(
-            key="STRIPE_PRICE_TOPUP_5000",
-            label="Stripe Topup 5000 Price ID",
-            description="Stripe Price ID for 5000 credit topup",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.STRING,
-            default_value="",
-        ),
-        SettingDefinition(
-            key="STRIPE_PRICE_TOPUP_20000",
-            label="Stripe Topup 20000 Price ID",
-            description="Stripe Price ID for 20000 credit topup",
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.STRING,
-            default_value="",
-        ),
-    ]
-)
-
-# BILLING — Phase 7.4 / PRC-01 / D-02 / D-03 (3 entries)
-#
-# Per-solver credit multiplier. Applied in calculate_credits() AFTER the
-# auto-router decides the effective solver. Hexaly solves cost 5x more in
-# credits than SCIP solves; HiGHS sits in the middle at 1.2x. Runtime-
-# configurable via the platform_settings admin panel.
-SETTINGS_REGISTRY.extend(
-    [
-        SettingDefinition(
-            key="pricing.solver_multiplier.scip",
-            label="SCIP credit multiplier",
-            description=(
-                "Per-solve credit multiplier applied when the effective "
-                "solver is SCIP. Default 1.0 — SCIP is the baseline. "
-                "Phase 7.4 / PRC-01 / D-02."
-            ),
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.FLOAT,
-            default_value="1.0",
-            min_value=0.1,
-            max_value=100.0,
-        ),
-        SettingDefinition(
-            key="pricing.solver_multiplier.highs",
-            label="HiGHS credit multiplier",
-            description=(
-                "Per-solve credit multiplier applied when the effective "
-                "solver is HiGHS. Default 1.2. "
-                "Phase 7.4 / PRC-01 / D-02."
-            ),
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.FLOAT,
-            default_value="1.2",
-            min_value=0.1,
-            max_value=100.0,
-        ),
-        SettingDefinition(
-            key="pricing.solver_multiplier.hexaly",
-            label="Hexaly credit multiplier",
-            description=(
-                "Per-solve credit multiplier applied when the effective "
-                "solver is Hexaly. Default 5.0 — commercial solver; the "
-                "deployment mounts a single instance-level Hexaly .lic (BYOL) "
-                "per D-01. Phase 7.4 / PRC-01 / D-02."
-            ),
-            category=SettingCategory.BILLING,
-            setting_type=SettingType.FLOAT,
-            default_value="5.0",
-            min_value=0.1,
-            max_value=100.0,
         ),
     ]
 )
@@ -1365,6 +1061,30 @@ SETTINGS_REGISTRY.extend(
             max_value=10000,
             unit="tokens",
         ),
+        SettingDefinition(
+            key="RAG_RERANKER_ENABLED",
+            label="Reranker Enabled",
+            description=(
+                "Re-rank retrieved candidates with a local cross-encoder before "
+                "selecting the top-K (improves precision; adds CPU latency). The model "
+                "must be present in the image — see RAG_RERANKER_MODEL."
+            ),
+            category=SettingCategory.RAG,
+            setting_type=SettingType.BOOL,
+            default_value="false",
+        ),
+        SettingDefinition(
+            key="RAG_RERANKER_MODEL",
+            label="Reranker Model",
+            description=(
+                "sentence-transformers CrossEncoder model for reranking. The default is "
+                "pre-downloaded in the image; a non-default value requires a rebuild that "
+                "bakes it in (the runtime filesystem is read-only)."
+            ),
+            category=SettingCategory.RAG,
+            setting_type=SettingType.STRING,
+            default_value="cross-encoder/ms-marco-MiniLM-L-6-v2",
+        ),
     ]
 )
 
@@ -1394,17 +1114,9 @@ SETTINGS_REGISTRY.append(
     ),
 )
 
-# Additional SYSTEM entries — problem types, integrations
+# Additional SYSTEM entries — integrations
 SETTINGS_REGISTRY.extend(
     [
-        SettingDefinition(
-            key="PROBLEM_TYPE_MANUAL_CREDIT_ADDITION",
-            label="Manual Credit Addition Problem Type",
-            description=("Problem type identifier for manual credit additions"),
-            category=SettingCategory.SYSTEM,
-            setting_type=SettingType.STRING,
-            default_value="manual_credit_addition",
-        ),
         SettingDefinition(
             key="STORAGE_ACCOUNT_ID",
             label="Storage Account ID",

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from app.domains.solver.adapters.base import STRICT_EPSILON, SolverCapabilities
@@ -21,6 +22,7 @@ from app.schemas.optimization import (
     ConstraintSensitivity,
     OptimizationProblem,
     OptimizationResult,
+    ProgressPoint,
     SensitivityResult,
     SolverStatus,
     Variable,
@@ -81,6 +83,7 @@ class HiGHSAdapter:
         supports_sensitivity=True,
         supports_warm_start=False,
         supports_multi_objective=False,
+        supports_progress=False,  # no per-incumbent callback exposed by highspy
         # Phase 7.4 / D-10: requires_license removed — no per-request gate
     )
 
@@ -106,8 +109,14 @@ class HiGHSAdapter:
         problem: OptimizationProblem,
         *,
         warm_start: dict[str, float] | None = None,
+        on_progress: Callable[[ProgressPoint], None] | None = None,
     ) -> OptimizationResult:
-        """Solve a single-objective optimization problem using HiGHS."""
+        """Solve a single-objective optimization problem using HiGHS.
+
+        ``on_progress`` is accepted for Protocol compatibility and ignored —
+        highspy exposes no per-incumbent callback (capabilities.supports_progress
+        is False).
+        """
         import highspy  # noqa: PLC0415 — lazy import; do not move to module level
 
         if warm_start is not None:
@@ -194,7 +203,15 @@ class HiGHSAdapter:
                     if var_name in col_map:
                         indices.append(col_map[var_name])
                         coeffs.append(float(term.coefficient))
-                # skip quadratic/constant terms (linear problems only here)
+                elif len(term.variables) >= 2:
+                    # never solve a silent linear relaxation of a quadratic model
+                    raise ValueError(
+                        "HiGHS supports linear problems only — quadratic term "
+                        f"'{'*'.join(term.variables)}' in constraint "
+                        f"'{constraint.expression}'. Use SCIP (or automatic selection) "
+                        "for quadratic models."
+                    )
+                # constant terms are already folded into the RHS by parse_constraint()
 
             lower, upper = self._operator_bounds(parsed.operator, float(parsed.rhs))
             h.addRow(lower, upper, len(indices), indices, coeffs)  # type: ignore[attr-defined]
@@ -241,6 +258,13 @@ class HiGHSAdapter:
                     h.changeColCost(  # type: ignore[attr-defined]
                         col_map[var_name], float(term.coefficient)
                     )
+            elif len(term.variables) >= 2:
+                # never solve a silent linear relaxation of a quadratic model
+                raise ValueError(
+                    "HiGHS supports linear problems only — quadratic term "
+                    f"'{'*'.join(term.variables)}' in the objective. Use SCIP "
+                    "(or automatic selection) for quadratic models."
+                )
 
     def _map_status(self, h: object) -> SolverStatus:
         """Map highspy HighsModelStatus to SolverStatus via string name (stable across versions).

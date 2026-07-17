@@ -52,12 +52,14 @@ class FakeHexalyAdapter:
         problem: OptimizationProblem,
         *,
         warm_start: dict[str, float] | None = None,
+        on_progress=None,
     ) -> OptimizationResult:
         """Return a deterministic known-answer OptimizationResult.
 
         Variables are assigned ``float(idx)`` in the enumeration
         order they appear on ``problem.variables``. Objective fixed
-        at 42.0. ``warm_start`` is accepted and ignored.
+        at 42.0. ``warm_start`` and ``on_progress`` are accepted and ignored
+        (Protocol conformance; this fake never emits progress).
         """
         solution: dict[str, float] = {
             var.name: float(idx) for idx, var in enumerate(problem.variables)

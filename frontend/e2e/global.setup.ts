@@ -31,6 +31,36 @@ async function dismissWizard(
   }
 }
 
+/**
+ * Purge the test user's own model projects before the suite runs.
+ *
+ * The studio specs create projects named e.g. "E2E Renamed Model" / "Untitled Model".
+ * CI uses an ephemeral DB, but a local DB accumulates them across runs, and the
+ * "My Models" assertions filter by name — residue would make `.filter({hasText})`
+ * resolve to multiple cards (Playwright strict-mode failure). Archive then permanently
+ * delete each of the caller's own projects. Best-effort: never fails the setup.
+ */
+async function purgeOwnProjects(
+  page: import("@playwright/test").Page,
+): Promise<void> {
+  const baseURL = process.env.BASE_URL || "http://localhost:3000";
+  try {
+    const resp = await page.request.get(`${baseURL}/api/v2/projects?mine=true&limit=200`);
+    if (!resp.ok()) return;
+    const body = await resp.json();
+    const items: Array<{ id?: string }> = body.items ?? body ?? [];
+    for (const p of items) {
+      if (!p?.id) continue;
+      await page.request.delete(`${baseURL}/api/v2/projects/${p.id}`).catch(() => {});
+      await page.request
+        .delete(`${baseURL}/api/v2/projects/${p.id}?permanent=true`)
+        .catch(() => {});
+    }
+  } catch {
+    // Best-effort cleanup — a failure here must never block the suite.
+  }
+}
+
 setup("authenticate", async ({ page }) => {
   // If auth file exists and cookies are still valid, verify they work before reusing.
   // This prevents stale cookies after a DB reseed from causing 401s in all tests.
@@ -50,6 +80,7 @@ setup("authenticate", async ({ page }) => {
           const resp = await page.request.get(`${baseURL}/api/v2/auth/me`);
           if (resp.ok()) {
             await dismissWizard(page);
+            await purgeOwnProjects(page);
             return;
           }
         } catch {
@@ -106,6 +137,9 @@ setup("authenticate", async ({ page }) => {
 
   // Dismiss WelcomeWizard overlay so it does not block E2E clicks
   await dismissWizard(page);
+
+  // Purge prior-run residue so "My Models" name filters stay unambiguous.
+  await purgeOwnProjects(page);
 
   // Save signed-in state
   await page.context().storageState({ path: authFile });

@@ -15,7 +15,49 @@ These tests use the real PostgreSQL test database (not mocks).
 import pytest
 
 from app.domains.solver.services.generators import GENERATOR_REGISTRY
-from app.models import ModelCatalog, ModelCategory
+from app.models import (
+    ModelCatalog,
+    ModelCategory,
+    ModelProject,
+    ModelProjectListing,
+    Organization,
+)
+
+
+def _mirror_listing(db, model: ModelCatalog) -> None:
+    """Mirror a catalog row into the unified ModelProject + listing (P1.5 fusion).
+
+    The marketplace/MCP catalog tools serve from the listing facet, so a test that
+    plants a ``ModelCatalog`` must also plant the listing that the endpoint reads.
+    """
+    org_id = "org_mcp_test"
+    if not db.query(Organization).filter(Organization.id == org_id).first():
+        db.add(Organization(id=org_id, name="MCP Test Org"))
+        db.flush()
+    db.add(
+        ModelProject(id=model.id, organization_id=org_id, name=model.display_name, status="active")
+    )
+    db.flush()
+    category = model.category.value if hasattr(model.category, "value") else model.category
+    db.add(
+        ModelProjectListing(
+            model_project_id=model.id,
+            name=model.name,
+            display_name=model.display_name,
+            description=model.description,
+            short_description=model.short_description,
+            category=category,
+            tags=model.tags,
+            generator_type=model.generator_type,
+            input_schema=model.input_schema,
+            input_fields=model.input_fields,
+            example_input=model.example_input,
+            version=model.version,
+            status=model.status,
+            is_official=model.is_official,
+            is_public=model.is_public,
+        )
+    )
 
 
 @pytest.fixture
@@ -37,10 +79,9 @@ def published_catalog_model(db_session):
         status="published",
         is_official=True,
         is_public=True,
-        price_eur=0.0,
-        credits_per_execution=1,
     )
     db_session.add(model)
+    _mirror_listing(db_session, model)
     db_session.commit()
     db_session.refresh(model)
     return model
@@ -63,10 +104,9 @@ def draft_catalog_model(db_session):
         status="draft",
         is_official=False,
         is_public=True,
-        price_eur=0.0,
-        credits_per_execution=1,
     )
     db_session.add(model)
+    _mirror_listing(db_session, model)
     db_session.commit()
     db_session.refresh(model)
     return model
@@ -89,10 +129,9 @@ def private_catalog_model(db_session):
         status="published",
         is_official=False,
         is_public=False,
-        price_eur=0.0,
-        credits_per_execution=1,
     )
     db_session.add(model)
+    _mirror_listing(db_session, model)
     db_session.commit()
     db_session.refresh(model)
     return model
@@ -466,7 +505,6 @@ class TestValidateProblem:
 
         data = response.json()
         assert data["valid"] is True
-        assert "estimated_credits" in data
         assert data["num_variables"] == 2
         assert data["num_constraints"] == 2
 
@@ -518,47 +556,6 @@ class TestValidateProblem:
         }
         response = client.post("/api/v2/solve/validate", json=incomplete)
         assert response.status_code == 422
-
-    def test_validate_credits_estimate_scales_with_complexity(self, client):
-        """Larger problems should have higher credit estimates."""
-        small_problem = {
-            "name": "small",
-            "objective": {"sense": "minimize", "expression": "x"},
-            "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
-            "constraints": [{"name": "c1", "expression": "x >= 1"}],
-        }
-        large_problem = {
-            "name": "large",
-            "objective": {
-                "sense": "minimize",
-                "expression": " + ".join(f"v{i}" for i in range(20)),
-            },
-            "variables": [
-                {"name": f"v{i}", "type": "integer", "lower_bound": 0, "upper_bound": 100}
-                for i in range(20)
-            ],
-            "constraints": [{"name": f"c{i}", "expression": f"v{i} <= 50"} for i in range(20)],
-        }
-
-        small_resp = client.post("/api/v2/solve/validate", json=small_problem)
-        large_resp = client.post("/api/v2/solve/validate", json=large_problem)
-
-        assert small_resp.status_code == 200
-        assert large_resp.status_code == 200
-
-        small_credits = small_resp.json()["estimated_credits"]
-        large_credits = large_resp.json()["estimated_credits"]
-        assert large_credits > small_credits, (
-            f"Large problem ({large_credits} credits) should cost more than "
-            f"small problem ({small_credits} credits)"
-        )
-
-
-# 4. list_catalog_models — returns published models
-
-
-class TestListCatalogModels:
-    """Tests for GET /api/v2/models/catalog (list_catalog_models MCP tool)."""
 
     def test_list_catalog_returns_published_models(
         self, client, db_session, published_catalog_model
