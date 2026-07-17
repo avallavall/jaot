@@ -10,7 +10,7 @@
 | BC | Role | Coupling | Where it lives today | Extracted? |
 |---|---|---|---|---|
 | **BC1: Solver** | Core | 2/5 | `app/domains/solver/` | ✅ Phase 3 (2026-04-13) |
-| **BC2: Marketplace** | Core sub | 3/5 | `app/services/` (seller_analytics, verification, storage, template_scorecard), `app/api/v2/routes/models/` | ❌ Planned §6 |
+| **BC2: Marketplace** | Core sub | 3/5 | `app/services/` (author_analytics, verification, storage, template_scorecard), `app/api/v2/routes/models/` (listings), `app/api/v2/author.py` | ❌ Planned §6 |
 | **BC3: Billing** | — | — | **Removed (ADR-008)** — the money layer and the credit system were deleted; fair use = rate limits + quotas | n/a |
 | **BC4: Identity** | Generic | 2/5 | `app/services/auth/`, `app/services/gdpr/`, User/Organization/APIKey/RefreshToken models | ❌ Planned §6 |
 | **BC5: AI Assistant** | Supporting | 2/5 | `app/services/llm/`, `app/services/rag/`, document_extraction | ❌ Planned §6 |
@@ -22,7 +22,7 @@
 
 **Adding solver logic** → `app/domains/solver/` (adapters, services, routes, schemas, tasks all under this tree).
 
-**Adding model catalog / marketplace features** → `app/api/v2/routes/models/` + `app/services/seller_*` / `template_scorecard`.
+**Adding marketplace / listing features** → `app/api/v2/routes/models/` (catalog/favorites/media over `ModelProjectListing`) + `app/services/author_analytics_service.py` / `template_scorecard`.
 
 **Adding auth / signup / API keys / GDPR** → `app/services/auth/`, `app/services/gdpr/`.
 

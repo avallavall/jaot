@@ -44,7 +44,7 @@ flowchart TD
 | User | 1 user → N orgs (future: multi-org) | `user_id` (PK) |
 | Organization | Root entity | `id` (PK) |
 | PlatformSetting | Global singleton | `key` (PK) |
-| ModelCatalog | Global marketplace | `id` (PK) |
+| ModelProjectListing | Public marketplace facet (1:1 with an org-owned ModelProject) | `status='published'` + `is_public` |
 | AnalyticsEvent | Aggregated analytics | `user_id` + `organization_id` (both as filters) |
 
 ## Golden Rule: CurrentOrg Dependency

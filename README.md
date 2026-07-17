@@ -24,8 +24,15 @@ library and not a hosted SaaS** — you run it yourself with `docker compose up`
   solve reports shadow prices, binding constraints, and variable reduced costs
   (exact for LP, approximate for MIP), and a one-click AI explanation translates
   the result into plain language grounded strictly in your actual numbers.
-- **Model marketplace** — a free, collaborative gallery: publish your models
-  and activate community ones. No prices or commissions.
+- **Model studio** — one versioned workspace per model: build it on a visual
+  canvas, with the AI assistant, in a JSON editor, or in the JModel DSL
+  (sets/params); analyze health and stats; solve with live progress; commit
+  versions git-style ("what changed + why"), diff and restore them; run the
+  same model against many datasets/scenarios.
+- **Model marketplace** — a free, collaborative gallery: publish a committed
+  version of your model, and bring any community model into your own studio
+  with one click ("Use in studio" creates your editable, versioned copy).
+  No prices or commissions — authors share; adoption is the metric.
 - **MCP server** — exposes solver tools to AI agents (Claude, etc.) via the
   Model Context Protocol.
 - **102 templates + 27 problem generators** — knapsack, vehicle routing,

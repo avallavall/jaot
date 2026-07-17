@@ -60,12 +60,12 @@ erDiagram
     ANALYTICS_EVENT : string id (pk) "ae_*"
     ANALYTICS_EVENT : string user_id (fk)
     ANALYTICS_EVENT : string organization_id (fk)
-    ANALYTICS_EVENT : string event_type "signup|solve_executed|template_purchased|..."
+    ANALYTICS_EVENT : string event_type "user.signup|solver.solve|marketplace.publish|..."
     ANALYTICS_EVENT : string country_code "geo IP"
     ANALYTICS_EVENT : json event_metadata "JSON payload"
     ANALYTICS_EVENT : datetime created_at "indexed"
     
-    PLATFORM_SETTING : string key (pk) "solve_maintenance_gate|max_daily_solves|..."
+    PLATFORM_SETTING : string key (pk) "SOLVE_MAINTENANCE_MODE|max_daily_solves|..."
     PLATFORM_SETTING : string value "JSON string"
     PLATFORM_SETTING : datetime updated_at
     PLATFORM_SETTING : string updated_by "nullable"
@@ -84,7 +84,7 @@ erDiagram
 - **PlatformSettingAudit**: full change history. Immutable trail for compliance + rollback.
 - **AuditLog**: workspace-scoped. Records per-user actions: create model, share trigger, etc. GDPR retention.
 - **Notification + NotificationPreference**: user-scoped. Types: execution_complete, review, activation.
-- **AnalyticsEvent**: org-scoped + user-scoped. Geolocation (country_code via IP). For seller/admin reports.
+- **AnalyticsEvent**: org-scoped + user-scoped. Geolocation (country_code via IP). For author/admin reports.
 
 ## Relevant files
 

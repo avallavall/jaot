@@ -60,7 +60,7 @@ flowchart LR
 ## When to work in each context
 
 - **Solver logic** → `app/domains/solver/` (adapters, services, routes, schemas, tasks).
-- **Marketplace / model catalog** → `app/api/v2/routes/models/` + `app/services/seller_*`, `template_scorecard`.
+- **Marketplace / listings** → `app/api/v2/routes/models/` (over `ModelProjectListing`) + `app/services/author_analytics_service.py`, `template_scorecard`.
 - **Auth / signup / API keys / GDPR** → `app/services/auth/`, `app/services/gdpr/`.
 - **LLM / RAG / formulation assistant** → `app/services/llm/`, `app/services/rag/`.
 - **Triggers / schedules / webhooks** → `app/services/trigger_service.py`, `schedule_service.py`, `webhook_service.py`; async in `app/tasks/trigger_tasks.py`, `webhook_tasks.py`.

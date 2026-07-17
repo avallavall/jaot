@@ -23,7 +23,7 @@ flowchart LR
     N --> O["Rollback strategy:<br/>Container restart =<br/>prior image (prior schema)"]
 ```
 
-## Current Migration Structure (35 total)
+## Current Migration Structure (56 total)
 
 ```
 infra/alembic/versions/
@@ -42,7 +42,12 @@ infra/alembic/versions/
 ├── 20260326_add_credit_pools.py
 ├── 20260327_seed_platform_settings.py
 ├── ... (2026-04 → 2026-07: provenance, model projects, datasets, timestamptz, ...)
-└── 20260711_money_columns_nullable.py  ← Latest
+├── 20260711_money_columns_nullable.py
+├── 20260712_llmconv_ondelete.py
+├── 20260712_p15_listings.py
+├── 20260712_p15_backfill.py
+├── 20260713_p15_view_events_project.py
+└── 20260713_p15_reviews_favorites_project.py  ← Latest
 ```
 
 > **Note (ADR-008):** the money/credit migrations in the history above (idempotency
@@ -52,26 +57,25 @@ infra/alembic/versions/
 
 ### Last 5 Migrations
 
-1. **20260711_money_columns_nullable.py**
-   - ADR-008: drops NOT NULL from the orphaned money columns (credits/currency/quota on
-     `organizations`, `model_executions`, `model_catalog`, `organization_models`, `trigger_runs`)
-   - Required so inserts into those live tables work with the columns unmapped
+1. **20260713_p15_reviews_favorites_project.py**
+   - P1.5 fusion: `model_reviews.catalog_id` + `user_favorites/recent_models.model_id` →
+     nullable; uniqueness re-keyed onto `(user_id, model_project_id)`
 
-2. **20260710_timestamptz.py**
-   - Introspective ALTER of every DateTime column to `timestamptz` (UTC), reversible
-   - Pairs with `timezone=True` across all ORM models (ADR-007 S6c)
+2. **20260713_p15_view_events_project.py**
+   - P1.5 fusion: `model_view_events.catalog_model_id` → nullable; impression/view logging
+     writes `model_project_id`
 
-3. **20260703_add_model_project_datasets.py** / **20260703_add_execution_dataset.py**
-   - Datasets attached to a ModelProject (Scenarios: one model, many datasets)
-   - Execution rows record which dataset a run came from
+3. **20260712_p15_backfill.py**
+   - P1.5 fusion (R13): idempotent, count-verified backfill — every `model_catalog` row →
+     `ModelProject` + `ModelProjectListing` (ids preserved; officials → `org_jaot_official`),
+     every `organization_models` row → `ModelProject`
 
-4. **20260629_add_model_projects.py**
-   - First-class `model_projects` + `model_project_versions` tables (`mp_`/`mpv_`)
-   - Commit-grade versions with required messages — the studio backend
+4. **20260712_p15_listings.py**
+   - `model_project_listings` facet table (1:1, PK==FK to `model_projects`) + nullable
+     `model_project_id` FK columns on reviews/favorites/recents/view-events
 
-5. **20260628_add_execution_provenance.py**
-   - `origin` / `source_kind` / `source_id` provenance on `model_executions`
-   - Every solve records where it came from (builder, template, import, project, trigger)
+5. **20260712_llmconv_ondelete.py**
+   - `llm_conversations.organization_model_id` → ondelete SET NULL (ADR-007 debt)
 
 ## Conventions + Rules
 

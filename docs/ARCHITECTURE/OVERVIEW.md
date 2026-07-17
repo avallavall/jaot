@@ -1,11 +1,11 @@
 # Architecture Overview — JAOT
 
-> **Updated:** June 2026
+> **Updated:** July 2026
 > **Architecture:** Modular Monolith (see [Architecture Decision Records](#architecture-decision-records) below)
 
 ## Overview
 
-JAOT is a multi-tenant optimization-as-a-service platform. Users build, buy, and automate optimization models via API, visual builder, or AI assistant. Single deployable monolith evolving toward modular monolith with domain-bounded contexts.
+JAOT is a multi-tenant optimization-as-a-service platform. Users build, share, and automate optimization models via API, the model studio, or AI assistant. Single deployable monolith evolving toward modular monolith with domain-bounded contexts.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
@@ -40,10 +40,11 @@ JAOT is a multi-tenant optimization-as-a-service platform. Users build, buy, and
 /api/v2/
 ├── auth/              # Email signup/login, JWT, refresh, password reset
 ├── solve/             # Direct solve, templates, file import/export, insights, analytics
-├── models/            # Catalog, my models, executions, publish, favorites, media
+├── models/            # Public marketplace catalog (listings), executions, favorites, media
 ├── llm/               # AI formulation assistant (SSE streaming)
 ├── builder/           # Visual model builder documents
-├── projects/          # ModelProject (studio): versions, stats, datasets, solve
+├── projects/          # ModelProject (studio): versions, stats, datasets, solve, publish, from-template/from-marketplace
+├── author/            # Author analytics (views, adoption of published models)
 ├── keys/              # API key management
 ├── triggers/          # Automated solve triggers + cron schedules
 ├── notifications/     # In-app notifications + preferences
@@ -61,15 +62,24 @@ JAOT is a multi-tenant optimization-as-a-service platform. Users build, buy, and
 
 | Route | Purpose |
 |---|---|
-| `/solve` | My activated models |
-| `/solve/executions` | Execution history |
+| `/studio` | My Models — every model is a versioned `ModelProject` |
+| `/studio/new` | Launcher: canvas, AI assistant, JSON editor, import, template, marketplace |
+| `/studio/templates` | Template gallery (seeds a project from a curated template) |
+| `/studio/{id}/build` | Workspace — Build tab (Canvas / Assistant / Editor / JModel lenses) |
+| `/studio/{id}/analyze` | Workspace — Analyze tab (stats, health, explain, I/O, publish entry) |
+| `/studio/{id}/solve` | Workspace — Solve tab (async solve, live progress, per-project history) |
+| `/studio/{id}/publish` | Publish a committed version to the marketplace |
+| `/solve` | Redirects to `/studio` (legacy "Activated Models" collapsed by the P1.5 fusion) |
+| `/solve/executions` | Global execution history (all models, org-wide) |
 | `/solve/analytics` | Solve analytics dashboard |
+| `/solve/favorites` | Favorite marketplace models |
 | `/solve/import` | File import (MPS/LP/CIP/JSON) |
 | `/solve/multi-objective` | Multi-objective optimization |
-| `/builder` | Visual model builder |
+| `/builder` | Visual model builder (canvas substrate) |
 | `/builder/ai-assistant` | AI formulation assistant |
 | `/builder/templates` | Template gallery |
-| `/marketplace` | Model catalog |
+| `/marketplace` | Model marketplace (listings; one action: "Use in studio") |
+| `/marketplace/authors/{orgId}` | Public author profile |
 | `/triggers` | Automated triggers |
 | `/workspace` | Dashboard, API keys, settings |
 | `/admin` | Admin panel |

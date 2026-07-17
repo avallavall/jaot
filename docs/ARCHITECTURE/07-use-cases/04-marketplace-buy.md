@@ -1,10 +1,17 @@
-# Use Case: Marketplace Activation — Model Acquisition
+# Use Case: Marketplace Adoption — "Use in studio"
 
-> Acquisition flow: user browses the catalog, previews a model, activates it for free, and solves with it.
+> Acquisition flow: user browses the marketplace, previews a model, and forks it into their own
+> studio as an editable, versioned `ModelProject`.
 
 > **Note (ADR-008, 2026-07-10):** the marketplace is **free and collaborative**. The former paid
 > purchase flow (Stripe checkout, commission split, seller payouts, credit ledger) was removed
-> entirely — activation costs nothing, always. This document describes the current flow.
+> entirely — adopting a model costs nothing, always.
+
+> **Note (P1.5 fusion, 2026-07-13):** the legacy "Activate model" flow (which created an
+> `OrganizationModel` join row) was collapsed by the ModelProject unification (ADR-006). There is
+> now exactly ONE acquisition path: **"Use in studio"**, which materializes the listing into a
+> first-class `ModelProject` owned by the adopting org. The marketplace itself is a *facet*:
+> `ModelProjectListing` is a 1:1 companion row on the author's `ModelProject`.
 
 ## Diagram
 
@@ -17,63 +24,57 @@ sequenceDiagram
 
     User->>Frontend: Search models by category
     Frontend->>API: GET /models/catalog?category=logistics
-    API->>DB: SELECT * FROM model_catalog WHERE category='logistics' AND status='published'
+    API->>DB: SELECT FROM model_project_listings WHERE category='logistics' AND status='published' AND is_public
     DB-->>API: [{id, name, avg_rating, view_count}, ...]
-    API->>Frontend: 200 [models]
+    API->>Frontend: 200 [listings]
 
-    Frontend->>Frontend: Display cards (name, category, reviews, rating)
-    User->>Frontend: Click "Preview" on a model
-    Frontend->>API: GET /models/catalog/{model_id}
-    API->>DB: SELECT * FROM model_catalog WHERE id=?
-    DB-->>API: {name, description, category, review_count}
-    API->>DB: INSERT ModelViewEvent(model_id, event_type='view', viewer_org, country)
+    Frontend->>Frontend: Display cards (name, category, reviews, rating, author)
+    User->>Frontend: Click a model card
+    Frontend->>API: GET /models/catalog/{id}
+    API->>DB: SELECT listing + pinned version
+    API->>DB: INSERT ModelViewEvent(model_project_id, event_type='view', viewer_org, country)
+    API->>Frontend: 200 {listing}
+    Frontend->>Frontend: Preview (read-only), reviews, rating, author profile link
 
-    API->>Frontend: 200 {model}
-    Frontend->>Frontend: Display preview (read-only), reviews, rating, author info
-
-    User->>Frontend: Click "Activate model"
-    Frontend->>API: POST /models/catalog/{model_id}/activate
-    API->>DB: SELECT OrganizationModel WHERE org_id=? AND catalog_id=?
-    alt Already activated
-        API->>Frontend: 400 "Model already activated"
+    User->>Frontend: Click "Use in studio"
+    Frontend->>API: POST /projects/from-marketplace/{id} {user_input?}
+    alt Generator-backed listing (official templates)
+        API->>API: render generator(example_input | user_input) → model_json
+    else Static community listing
+        API->>DB: copy pinned version's model_json
     end
-    API->>DB: CREATE OrganizationModel(org_id, catalog_id, is_active=true)
-    API->>DB: INSERT AuditLog(actor_id, action='activate_model', target_type='model_catalog', ...)
-    API->>Frontend: 200 {message, model_id}
-    Frontend->>Frontend: Redirect to /solve with the model available
+    API->>DB: CREATE ModelProject(org_id=adopter, source_type='marketplace', source_ref=listing_id) + auto v1 commit
+    API->>DB: UPDATE listing SET total_activations = total_activations + 1 (atomic SQL expression)
+    API->>Frontend: 201 {project_id}
+    Frontend->>Frontend: Redirect to /studio/{project_id}/build
 
-    User->>Frontend: Solve with the activated model
-    Frontend->>API: POST /models/{model_id}/execute {input_data}
-    API->>DB: SELECT * FROM organization_models WHERE id=? AND organization_id=?
-    DB-->>API: model (accessible)
-    API->>API: async solve pipeline (ADR-007) → normal execution
+    User->>Frontend: Edit / analyze / solve in the studio
+    Frontend->>API: POST /solve/async (async pipeline, ADR-007)
 ```
-
-There is also a second, newer acquisition path: **"Use in studio"** materializes the catalog model
-into a first-class `ModelProject` (editable + versioned) via `POST /projects/from-marketplace/{id}`,
-instead of activating it as a parametric `OrganizationModel`.
 
 ## Critical Points
 
 ### No payment layer
-- Activation is free by design (ADR-008); there is no price, no commission, no ledger entry.
+- Adoption is free by design (ADR-008); there is no price, no commission, no ledger entry.
 - Fair use is enforced elsewhere: rate limits, daily solve quota, per-solve time/size caps.
 
 ### Access Control
-- **OrganizationModel**: join table that explicitly grants access to the activating org
-- **Without access**: the query fails `WHERE organization_id=? AND model_id=?` → 404
-- **Solve execution**: always filtered by org_id
+- The fork is a normal org-scoped `ModelProject` — the adopting org owns its copy outright
+  (multi-tenancy filter `organization_id`, same as any other project).
+- The author's original project and listing are never touched by adopters.
 
 ### Analytics (non-monetary)
-- **ModelViewEvent**: records impressions + views per model
-- **Seller analytics**: views, impressions, activations of your published models
-  (`SellerAnalyticsService`; a foreign org activating its own model never counts for you)
-- **Ratings**: ModelReview (measures model quality, drives catalog `min_rating` filter)
+- **ModelViewEvent**: records impressions + views per listing (`model_project_id`).
+- **Author analytics**: views, impressions, and *adoption* (forks by other orgs) of your
+  published models (`AuthorAnalyticsService`; forking your own model never counts).
+- **Ratings**: `ModelReview` keyed on `model_project_id`; the average is rolled up onto the
+  listing. Anti-spam gate: only orgs that forked the model AND completed an execution can review.
 
 ## Relevant Files
 
-- `app/api/v2/routes/models/catalog.py:POST /models/catalog/{model_id}/activate` — activation
-- `app/api/v2/projects.py:POST /projects/from-marketplace/{id}` — materialize into the studio
-- `app/services/seller_analytics_service.py` — non-monetary seller analytics
-- `app/models/optimization_model.py:ModelCatalog, OrganizationModel`
+- `app/api/v2/routes/models/catalog.py` — browse/detail/schema over `ModelProjectListing`
+- `app/api/v2/projects.py:POST /projects/from-marketplace/{id}` — the single adoption path
+- `app/services/template_resolver.py` — resolves generator-backed vs static listings
+- `app/services/author_analytics_service.py` — non-monetary author analytics
+- `app/models/model_project.py:ModelProject, ModelProjectListing`
 - `app/models/model_view_event.py:ModelViewEvent` — analytics

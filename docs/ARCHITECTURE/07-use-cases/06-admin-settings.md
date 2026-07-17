@@ -78,16 +78,16 @@ sequenceDiagram
 
 ## Critical Points
 
-### Settings Categories (124 entries)
+### Settings Categories (~85 entries; source of truth = `app/services/settings_registry.py`)
 
 | Category | Examples | Type |
 |---|---|---|
-| **Plans & limits** | plan_free_max_variables, plan_free_max_daily_solves, max_solve_time_seconds | int/float |
-| **Feature Flags** | enable_marketplace, enable_triggers, enable_seller_analytics | bool |
-| **Rate Limits** | max_daily_solves_free, max_api_calls_per_minute_starter | int |
-| **Solver** | solve_maintenance_gate, scip_enabled, highs_enabled, default_solver | bool/string |
-| **LLM** | llm_model_name, llm_temperature, rag_top_k, llm_monthly_budget_eur | string/int |
-| **Notifications** | notification_batch_interval_minutes, email_enabled | int/bool |
+| **System / feature flags** | MAINTENANCE_MODE, SOLVE_MAINTENANCE_MODE, JAOT_DSL, REGISTRATION_ENABLED | bool |
+| **Plans & limits** | max_daily_solves, max_variables (per plan tier) | int/float |
+| **Rate limits** | AUTH_LOGIN_RATE_LIMIT_PER_MINUTE, LLM_RATE_LIMIT_PER_DAY | int |
+| **Solver** | SOLVER_DEFAULT_TIMEOUT, SOLVER_POOL_SIZE, hexaly_default_time_limit_seconds | int/float |
+| **LLM / RAG** | LLM_DEFAULT_MODEL, LLM_MONTHLY_BUDGET_EUR, RAG_ENABLED, RAG_TOP_K | string/int/bool |
+| **Email / SMTP** | EMAIL_BACKEND, SMTP_HOST, EMAIL_FROM | string |
 
 ### Cache Invalidation
 1. **Read**: fetch from Redis (cache-aside pattern)
