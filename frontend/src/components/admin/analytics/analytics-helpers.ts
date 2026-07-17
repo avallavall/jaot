@@ -8,7 +8,6 @@ export const EVENT_TYPES = [
   "model.create",
   "ai_builder.message",
   "mcp.tool_call",
-  "marketplace.purchase",
   "marketplace.activate",
   "marketplace.publish",
   "template.use",

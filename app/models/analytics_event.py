@@ -13,7 +13,7 @@ from app.shared.utils.id_generator import generate_id
 class AnalyticsEvent(Base):
     """Tracks feature usage events for admin analytics dashboard.
 
-    Each record represents a single user action (solver.solve, marketplace.purchase,
+    Each record represents a single user action (solver.solve, marketplace.activate,
     ai_builder.message, etc.). Events are logged fire-and-forget on the request's
     DB session, never blocking the main response.
 

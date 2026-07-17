@@ -29,10 +29,10 @@ class TestEventTypes:
         assert len(ALL_EVENT_TYPES) == len(set(ALL_EVENT_TYPES))
 
     def test_event_types_count(self) -> None:
-        """Should have ~12 event types (ADR-008 removed the credit ones)."""
+        """Should have ~11 event types (ADR-008 removed the credit/purchase ones)."""
         from app.shared.constants.event_types import ALL_EVENT_TYPES
 
-        assert len(ALL_EVENT_TYPES) >= 12
+        assert len(ALL_EVENT_TYPES) >= 11
 
     def test_event_domains_has_five_domains(self) -> None:
         """EVENT_DOMAINS should group events into 5 radar domains (ADR-008 dropped Credits)."""
@@ -60,14 +60,14 @@ class TestEventTypes:
         """Key constants are importable."""
         from app.shared.constants.event_types import (
             AI_BUILDER_MESSAGE,
-            MARKETPLACE_PURCHASE,
+            MARKETPLACE_ACTIVATE,
             MCP_TOOL_CALL,
             SOLVER_SOLVE,
             USER_SIGNUP,
         )
 
         assert SOLVER_SOLVE == "solver.solve"
-        assert MARKETPLACE_PURCHASE == "marketplace.purchase"
+        assert MARKETPLACE_ACTIVATE == "marketplace.activate"
         assert AI_BUILDER_MESSAGE == "ai_builder.message"
         assert MCP_TOOL_CALL == "mcp.tool_call"
         assert USER_SIGNUP == "user.signup"
@@ -76,13 +76,13 @@ class TestEventTypes:
         """FUNNEL_STEPS should be an ordered list of event types."""
         from app.shared.constants.event_types import (
             FUNNEL_STEPS,
-            MARKETPLACE_PURCHASE,
+            MARKETPLACE_ACTIVATE,
             MODEL_CREATE,
             SOLVER_SOLVE,
             USER_SIGNUP,
         )
 
-        assert FUNNEL_STEPS == [USER_SIGNUP, MODEL_CREATE, SOLVER_SOLVE, MARKETPLACE_PURCHASE]
+        assert FUNNEL_STEPS == [USER_SIGNUP, MODEL_CREATE, SOLVER_SOLVE, MARKETPLACE_ACTIVATE]
 
 
 # ==================== AnalyticsEvent Model ====================
@@ -229,7 +229,7 @@ class TestAnalyticsService:
             AnalyticsEvent(
                 user_id="user_b",
                 org_id="org_b",
-                event_type="marketplace.purchase",
+                event_type="marketplace.activate",
                 event_metadata={"model_id": "cat_001"},
                 created_at=now - timedelta(hours=3),
             ),
@@ -357,8 +357,8 @@ class TestAnalyticsService:
         # solver.solve: 2 unique users
         assert funnel.steps[2].name == "solver.solve"
         assert funnel.steps[2].value == 2
-        # marketplace.purchase: 1 unique user
-        assert funnel.steps[3].name == "marketplace.purchase"
+        # marketplace.activate: 1 unique user
+        assert funnel.steps[3].name == "marketplace.activate"
         assert funnel.steps[3].value == 1
 
     def test_get_recent_events(self, db_session) -> None:
@@ -575,7 +575,6 @@ class TestEndpointInstrumentation:
             "org.create",
             "ai_builder.message",
             "schedule.create",
-            "marketplace.purchase",
             "marketplace.activate",
             "marketplace.publish",
             "model.create",
