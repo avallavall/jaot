@@ -17,6 +17,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Added
+
+- **Structured solution view — variables regain their index structure (v3.1 A1)** —
+  a binary assignment/routing solution used to render as a wall of identical
+  `assign_v3_o107 = 1` rows because the flat solver output had thrown away the
+  family + index structure the model knew. The backend now recovers it once,
+  server-side: the JModel compiler stamps each grounded variable with its
+  `family` + `index_tuple` authoritatively, flat/imported models get a
+  conservative best-effort parse, and every solver adapter carries it onto the
+  result — so the persisted `result_data`, the MCP tools and the grounded
+  `explain_solution` prompt all see `assign[v3, o107]` instead of a mangled
+  string. The execution-detail page now leads with a family → first-index
+  grouping ("assign · v3 → o107, o12, o44") answering "what did the model
+  decide?", with a toggle back to the full flat table (and constraint
+  sensitivity) and a graceful fallback to the flat table when a solution has no
+  recoverable structure.
+
 ### Fixed
 
 - **MCP usage analytics restored (v3.1 C1)** — the `MCP_TOOL_CALL` event lost its
