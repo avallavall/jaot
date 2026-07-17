@@ -191,6 +191,7 @@
     "jmodelDatasetLabel": "Dataset:",
     "jmodelNoDataset": "No dataset (inline values)",
     "solveWithDataset": "Will solve with dataset \"{name}\".",
+    "solveDatasetInert": "Dataset {name} is selected but has no effect: this model has no JModel formulation to recompile. Write the formulation in the JModel lens to solve per-dataset scenarios.",
     "datasetsTitle": "Scenarios (datasets)",
     "datasetsHint": "One model, many data bundles: each dataset fills the JModel source's sets/params.",
     "datasetsEmpty": "No datasets yet. Create one to separate the model from its data (e.g. \"Q3 forecast\").",

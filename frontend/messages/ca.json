@@ -191,6 +191,7 @@
     "jmodelDatasetLabel": "Dataset:",
     "jmodelNoDataset": "Sense dataset (valors del codi)",
     "solveWithDataset": "Es resoldrà amb el dataset \"{name}\".",
+    "solveDatasetInert": "El dataset {name} està seleccionat però no té efecte: aquest model no té formulació JModel per recompilar. Escriu la formulació a la lent JModel per resoldre escenaris per dataset.",
     "datasetsTitle": "Escenaris (datasets)",
     "datasetsHint": "Un model, moltes dades: cada dataset dona valors als sets/params del codi JModel.",
     "datasetsEmpty": "Encara no hi ha datasets. Crea'n un per separar el model de les seves dades (p. ex. \"Previsió Q3\").",

@@ -191,6 +191,7 @@
     "jmodelDatasetLabel": "Datensatz:",
     "jmodelNoDataset": "Ohne Datensatz (Werte im Code)",
     "solveWithDataset": "Wird mit dem Datensatz \"{name}\" gelöst.",
+    "solveDatasetInert": "Das Dataset {name} ist ausgewählt, hat aber keine Wirkung: Dieses Modell hat keine JModel-Formulierung zum Neukompilieren. Schreiben Sie die Formulierung in der JModel-Linse, um Szenarien pro Dataset zu lösen.",
     "datasetsTitle": "Szenarien (Datensätze)",
     "datasetsHint": "Ein Modell, viele Daten: jeder Datensatz füllt die Sets/Params des JModel-Quelltexts.",
     "datasetsEmpty": "Noch keine Datensätze. Lege einen an, um das Modell von seinen Daten zu trennen (z. B. \"Prognose Q3\").",

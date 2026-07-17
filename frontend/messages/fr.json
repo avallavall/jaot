@@ -191,6 +191,7 @@
     "jmodelDatasetLabel": "Jeu de données :",
     "jmodelNoDataset": "Aucun (valeurs du code)",
     "solveWithDataset": "Résolution avec le jeu de données « {name} ».",
+    "solveDatasetInert": "Le dataset {name} est sélectionné mais sans effet : ce modèle n'a pas de formulation JModel à recompiler. Écrivez la formulation dans la lentille JModel pour résoudre des scénarios par dataset.",
     "datasetsTitle": "Scénarios (jeux de données)",
     "datasetsHint": "Un modèle, plusieurs données : chaque jeu de données remplit les sets/params du code JModel.",
     "datasetsEmpty": "Aucun jeu de données pour le moment. Créez-en un pour séparer le modèle de ses données (ex. « Prévision T3 »).",

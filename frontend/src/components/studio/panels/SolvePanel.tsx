@@ -43,6 +43,12 @@ export function SolvePanel() {
   const dslParseError = useModelProjectStore((s) => s.parseErrors.dsl ?? false);
   const hasParseError = scratchParseError || dslParseError;
   const activeDataset = useModelProjectStore((s) => s.activeDataset);
+  // A dataset only influences a solve through JModel recompilation. Without a
+  // DSL source the canonical model is already grounded, so attaching the
+  // dataset id (or advertising "solving with dataset X") would stamp the run
+  // with provenance that never applied.
+  const hasDslSource = useModelProjectStore((s) => !!s.draftDslSource?.trim());
+  const datasetApplies = hasDslSource && !!activeDataset;
   const session = useModelProjectStore((s) => s.solveSession);
   const lastRun = useModelProjectStore((s) => s.lastRun);
   const startSolveSession = useModelProjectStore((s) => s.startSolveSession);
@@ -103,8 +109,10 @@ export function SolvePanel() {
           sourceKind: "model_project",
           sourceId,
           // §8/S1: tag the run with the dataset the model was compiled against
-          // so the executions history can say which scenario each run used.
-          datasetId: activeDataset?.id ?? null,
+          // so the executions history can say which scenario each run used —
+          // only when a JModel source exists; a grounded/imported model never
+          // applied the dataset, and stamping it would fake the provenance.
+          datasetId: datasetApplies ? (activeDataset?.id ?? null) : null,
         },
       );
       startSolveSession(task.task_id, solverName, new Date().toISOString());
@@ -142,14 +150,25 @@ export function SolvePanel() {
         />
 
         {/* Which dataset (scenario) the canonical model was compiled against (§8).
-            S4: the chip links to the Datos tab, where the selection is managed. */}
-        {activeDataset && (
+            S4: the chip links to the Datos tab, where the selection is managed.
+            Without a JModel source the dataset can't apply — say so honestly
+            instead of advertising a "solve with dataset" that never happens. */}
+        {activeDataset && datasetApplies && (
           <Link
             href={`/studio/${modelId}/data`}
             data-testid="studio-solve-dataset-chip"
             className="block rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-800 hover:bg-emerald-100 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200 dark:hover:bg-emerald-950/60"
           >
             {t("solveWithDataset", { name: activeDataset.name })}
+          </Link>
+        )}
+        {activeDataset && !datasetApplies && (
+          <Link
+            href={`/studio/${modelId}/data`}
+            data-testid="studio-solve-dataset-inert-chip"
+            className="block rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200 dark:hover:bg-amber-950/60"
+          >
+            {t("solveDatasetInert", { name: activeDataset.name })}
           </Link>
         )}
 
