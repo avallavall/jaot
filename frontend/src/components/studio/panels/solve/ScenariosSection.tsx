@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { FlaskConical, GitCompareArrows, Play } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import type { ProjectExecutionItem } from "@/lib/types";
@@ -247,6 +248,7 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
           <h3 className="flex items-center gap-1.5 text-sm font-semibold">
             <FlaskConical className="h-4 w-4 text-muted-foreground" />
             {t("scenariosTitle")}
+            <HelpTooltip content={t("helpTooltips.scenarios")} size={12} />
           </h3>
           <p className="mt-0.5 text-xs text-muted-foreground">{t("scenariosHint")}</p>
         </div>

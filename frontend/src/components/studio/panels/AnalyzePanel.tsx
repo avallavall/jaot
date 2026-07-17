@@ -7,6 +7,7 @@ import { useRouter } from "@/i18n/navigation";
 import { api } from "@/lib/api";
 import type { ModelStats } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { useModelProjectStore } from "../store/useModelProjectStore";
 import { selectModelStats } from "../store/stats";
 import { ModelExplanationPanel } from "../ModelExplanationPanel";
@@ -28,6 +29,7 @@ const HEALTH_TONE: Record<string, string> = {
  */
 export function AnalyzePanel() {
   const t = useTranslations("studio");
+  const tHelp = useTranslations("studio.helpTooltips");
   const router = useRouter();
   const problem = useModelProjectStore((s) => s.problem);
   const modelId = useModelProjectStore((s) => s.modelId);
@@ -72,8 +74,8 @@ export function AnalyzePanel() {
       : "—";
   const avgTerms =
     stats.constraintTotal > 0 ? (stats.nonzeros / stats.constraintTotal).toFixed(1) : "—";
-  const cards: Array<{ label: string; value: string }> = [
-    { label: t("statClass"), value: problemClass },
+  const cards: Array<{ label: string; value: string; help?: string }> = [
+    { label: t("statClass"), value: problemClass, help: tHelp("problemClass") },
     { label: t("statObjective"), value: sense },
     { label: t("statVariables"), value: stats.varTotal.toLocaleString() },
     { label: t("statConstraints"), value: stats.constraintTotal.toLocaleString() },
@@ -81,12 +83,13 @@ export function AnalyzePanel() {
       label: t("statComposition"),
       value: `${stats.varBinary} · ${stats.varInteger} · ${stats.varContinuous}`,
     },
-    { label: t("statNonzeros"), value: stats.nonzeros.toLocaleString() },
+    { label: t("statNonzeros"), value: stats.nonzeros.toLocaleString(), help: tHelp("nonzeros") },
     { label: t("statOperators"), value: opsValue },
     { label: t("statAvgTerms"), value: avgTerms },
     {
       label: t("statDensity"),
       value: hasMatrix ? `${(stats.density * 100).toFixed(1)}%` : "—",
+      help: tHelp("density"),
     },
   ];
 
@@ -101,8 +104,9 @@ export function AnalyzePanel() {
         <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {cards.map((card) => (
             <div key={card.label} className="rounded-lg border p-4">
-              <dt className="text-xs uppercase tracking-wider text-muted-foreground">
+              <dt className="flex items-center gap-1 text-xs uppercase tracking-wider text-muted-foreground">
                 {card.label}
+                {card.help && <HelpTooltip content={card.help} size={12} />}
               </dt>
               <dd className="text-2xl font-semibold tabular-nums mt-1">{card.value}</dd>
             </div>
@@ -113,8 +117,9 @@ export function AnalyzePanel() {
           <div className="mt-6 rounded-lg border p-4">
             <div className="flex items-center justify-between">
               <div>
-                <dt className="text-xs uppercase tracking-wider text-muted-foreground">
+                <dt className="flex items-center gap-1 text-xs uppercase tracking-wider text-muted-foreground">
                   {t("statHealth")}
+                  <HelpTooltip content={tHelp("healthScore")} size={12} />
                 </dt>
                 <dd className="mt-1 flex items-baseline gap-2">
                   <span

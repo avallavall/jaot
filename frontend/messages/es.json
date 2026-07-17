@@ -274,7 +274,18 @@
     "datasetTableRemoveRow": "Quitar fila",
     "analyzePublishTitle": "Marketplace",
     "analyzePublishHelp": "Comparte este modelo con la comunidad — publicar fija tu última versión commiteada.",
-    "analyzePublishCta": "Publicar en el marketplace"
+    "analyzePublishCta": "Publicar en el marketplace",
+    "helpTooltips": {
+      "problemClass": "La clase del problema (LP, MIP, QP, MIQP…) se detecta a partir de tus variables y expresiones. Determina qué solvers pueden resolver el modelo — «Auto» la usa para elegir el mejor solver disponible.",
+      "healthScore": "Una nota de calidad estructural (A–F) calculada a partir de la forma del modelo: problemas de escalado, restricciones redundantes o conflictivas, cotas ausentes. Califica la formulación, no la solución.",
+      "density": "Proporción de coeficientes no nulos en la matriz de restricciones. Los modelos reales suelen ser muy dispersos — un valor bajo es lo esperado y facilita el trabajo del solver.",
+      "nonzeros": "Número total de apariciones de variables en todas las restricciones — el verdadero factor de tamaño para los solvers, más que el número bruto de variables o restricciones.",
+      "commit": "Las versiones funcionan como commits de git: una instantánea inmutable con un mensaje obligatorio de «qué ha cambiado». Los commits alimentan el historial, los diffs y la restauración — y al publicar se fija uno de ellos en el marketplace.",
+      "datasets": "Los datasets mantienen tus datos de entrada separados de la estructura del modelo (sets y params de JModel). El mismo modelo puede compilarse y resolverse con cualquiera de sus datasets.",
+      "scenarios": "Ejecuta el mismo modelo con varios datasets de una vez y compara las ejecuciones lado a lado — un modelo, muchos escenarios.",
+      "solverAuto": "«Auto» dirige tu modelo al mejor solver disponible según su clase de problema. Elige un solver concreto solo cuando necesites sus capacidades específicas.",
+      "liveProgress": "Mientras el solver trabaja, cada nueva solución incumbente llega en directo: el gráfico sigue el mejor objetivo encontrado y el gap de optimalidad — cuando el gap llega al 0%, la solución queda demostrada como óptima."
+    }
   },
   "common": {
     "loading": "Cargando...",
@@ -553,14 +564,6 @@
       "cancelled": "Cancelada",
       "timeout": "Tiempo agotado"
     },
-    "transactionTypes": {
-      "signup_bonus": "Bonificación de registro",
-      "monthly_grant": "Asignación mensual",
-      "admin_adjustment": "Ajuste de administrador",
-      "execution_charge": "Cargo por ejecución",
-      "execution_refund": "Reembolso de ejecución",
-      "purchase": "Compra"
-    },
     "siteDescription": "Crea, usa y automatiza modelos de optimización: agnóstico al solver, asistido por IA y sin necesidad de un doctorado.",
     "breadcrumbsAriaLabel": "Ruta de navegación",
     "tableOfContentsAriaLabel": "Tabla de contenidos",
@@ -642,7 +645,7 @@
     },
     "useCases": {
       "title": "Optimización del mundo real, resuelta",
-      "subtitle": "Crea modelos personalizados con IA o activa soluciones probadas del marketplace.",
+      "subtitle": "Crea modelos a medida con IA o parte de modelos probados de la comunidad en el marketplace.",
       "tryTemplate": "Probar esta plantilla",
       "getStarted": "Empezar",
       "vehicleRouting": {
@@ -726,7 +729,6 @@
         "marketplace": {
           "title": "Marketplace de modelos",
           "description": "Un marketplace de modelos de optimización. Usa modelos probados o comparte los tuyos: gratis y abierto.",
-          "buyModels": "Explora y activa modelos listos para usar",
           "sellModels": "Publica tus modelos para que la comunidad los use",
           "modelRatings": "Valoraciones y reseñas de la comunidad"
         },
@@ -1766,14 +1768,14 @@
       "verified": "Verificado",
       "website": "Sitio web",
       "models": "Modelos",
-      "activations": "Activaciones",
+      "activations": "Adopciones",
       "executions": "Ejecuciones",
       "reviews": "Reseñas",
       "avgRating": "Valoración media",
       "publishedModels": "Modelos publicados",
       "noModels": "Aún no hay modelos publicados.",
       "free": "Gratis",
-      "activationCount": "{count} activaciones"
+      "activationCount": "{count} adopciones"
     },
     "accountData": {
       "account": "Cuenta",
@@ -1803,7 +1805,7 @@
       "users": "Usuarios",
       "models": "Modelos",
       "active": "{count} activos",
-      "activated": "{count} activados",
+      "activated": "{count} adoptados",
       "acrossAllOrgs": "en todas las organizaciones",
       "quickActions": "Acciones rápidas",
       "manageOrganizations": "Gestionar organizaciones",
@@ -2151,7 +2153,7 @@
       "approved": "Aprobado",
       "pending": "Pendiente",
       "noRequests": "No hay solicitudes de verificación pendientes",
-      "totalActivations": "Activaciones",
+      "totalActivations": "Adopciones",
       "authorAnalytics": "Analíticas de autores",
       "authorLeaderboard": "Ranking de autores",
       "authorName": "Autor",
@@ -2379,7 +2381,7 @@
   },
   "marketplace": {
     "title": "Marketplace de modelos",
-    "subtitle": "Descubre y activa modelos de optimización creados por la comunidad y editores verificados.",
+    "subtitle": "Descubre modelos de optimización creados por la comunidad y autores verificados — y hazlos tuyos en el estudio.",
     "searchPlaceholder": "Buscar modelos...",
     "noResults": "No se encontraron modelos. Prueba con otro término de búsqueda.",
     "loadingModels": "Cargando modelos",
@@ -2394,7 +2396,7 @@
     "card": {
       "noDescription": "Sin descripción disponible",
       "by": "por {author}",
-      "activations": "{count, plural, one {# activación} other {# activaciones}}",
+      "activations": "{count, plural, one {# adopción} other {# adopciones}}",
       "official": "OFICIAL",
       "featuredBadge": "DESTACADO",
       "free": "Gratis",
@@ -2418,7 +2420,7 @@
       "useInStudioUnavailable": "Este modelo todavía no se puede abrir en el estudio.",
       "useInStudioFailed": "No se pudo abrir este modelo en el estudio. Inténtalo de nuevo.",
       "rating": "Valoración",
-      "activations": "Activaciones",
+      "activations": "Adopciones",
       "executions": "Ejecuciones",
       "successRate": "Tasa de éxito",
       "description": "Descripción",
@@ -2464,7 +2466,7 @@
     },
     "catalog": {
       "title": "Catálogo de modelos",
-      "subtitle": "Explora y activa modelos de optimización del catálogo oficial",
+      "subtitle": "Explora modelos de optimización del catálogo oficial — un clic para usarlos en tu estudio",
       "searchPlaceholder": "Buscar modelos...",
       "search": "Buscar",
       "featuredOnly": "Solo destacados",
@@ -2493,26 +2495,9 @@
       "moreCategories": "Más categorías...",
       "filterBy": "Filtrar por {category}"
     },
-    "templateCard": {
-      "featured": "Destacado",
-      "noDescription": "Sin descripción disponible",
-      "moreTag": "+{count} más",
-      "activationsCount": "{count} activaciones",
-      "successPercent": "{percent}% de éxito",
-      "by": "por {author}",
-      "verifiedPublisher": "Editor verificado",
-      "officialBadge": "Oficial",
-      "officialTooltip": "Oficial: Creado y mantenido por el equipo de JAOT",
-      "free": "Gratis",
-      "details": "Detalles",
-      "open": "Abrir",
-      "activate": "Activar",
-      "removeFromFavorites": "Eliminar de favoritos",
-      "addToFavorites": "Añadir a favoritos"
-    },
     "hero": {
       "viewModel": "Ver modelo",
-      "activations": "{count} activaciones",
+      "activations": "{count} adopciones",
       "rating": "{rating} estrellas",
       "goToSlide": "Ir a la diapositiva {number}"
     },
@@ -2542,7 +2527,7 @@
     "authorProfile": {
       "title": "Perfil de autor",
       "modelsPublished": "Modelos publicados",
-      "totalActivations": "Activaciones totales",
+      "totalActivations": "Adopciones totales",
       "avgRating": "Valoración media",
       "memberSince": "Miembro desde",
       "verified": "Autor verificado",
@@ -2559,7 +2544,7 @@
     "publish": {
       "backToModels": "Volver a mis modelos",
       "title": "Publicar en el Marketplace",
-      "subtitle": "Comparte tu modelo con la comunidad. Otros podrán activarlo y usarlo.",
+      "subtitle": "Comparte tu modelo con la comunidad. Otros podrán usarlo en su propio estudio.",
       "displayName": "Nombre visible",
       "displayNamePlaceholder": "ej., Optimizador de presupuesto Pro",
       "shortDescription": "Descripción corta",
@@ -2570,14 +2555,12 @@
       "category": "Categoría",
       "tags": "Etiquetas",
       "tagsPlaceholder": "optimización, presupuesto, planificación (separadas por comas)",
-      "freeToActivate": "0 = Gratis para activar",
       "publishToMarketplace": "Publicar en el Marketplace",
       "publishing": "Publicando...",
       "published": "Publicado",
       "publishedSuccess": "¡Modelo publicado en el marketplace!",
       "failedToPublish": "Error al publicar",
       "fillRequiredFields": "Completa todos los campos obligatorios",
-      "alreadyCatalogModel": "Este modelo ya es del catálogo y no puede publicarse.",
       "required": "*",
       "failedToLoad": "Error al cargar el modelo",
       "cancel": "Cancelar",
@@ -2618,7 +2601,7 @@
       "validationFailed": "Error de validación: {detail}",
       "confirmPublishTitle": "Confirmar Publicación",
       "confirmPublishMessage": "Esto hará que tu modelo sea visible públicamente en el marketplace. Puedes despublicarlo en cualquier momento desde la configuración del modelo.",
-      "publishInfoText": "Una vez publicado, tu modelo será visible en el marketplace tras una breve revisión. Los usuarios podrán activarlo y ejecutarlo. Puedes actualizar tu publicación o despublicar en cualquier momento desde la configuración del modelo.",
+      "publishInfoText": "Al publicarlo, tu modelo será visible inmediatamente en el marketplace. Otros podrán llevárselo a su propio estudio como una copia editable. Puedes actualizar tu ficha o despublicarla en cualquier momento desde los ajustes del modelo.",
       "commitFirstTitle": "Primero haz un commit",
       "commitFirstHelp": "Publicar fija tu última versión commiteada — el marketplace nunca ve tu borrador de trabajo. Haz commit del modelo en el workspace y vuelve aquí.",
       "goToBuild": "Ir al workspace",
@@ -2805,7 +2788,7 @@
       "tabTemplates": "Desde Plantillas",
       "searchPlaceholder": "Buscar...",
       "noBuilderDocs": "No se encontraron documentos del builder.",
-      "noModels": "No hay modelos activados.",
+      "noModels": "No se encontraron modelos.",
       "noTemplates": "No hay plantillas disponibles.",
       "loadingItems": "Cargando...",
       "importButton": "Importar",
@@ -3128,7 +3111,6 @@
     "helpTooltips": {
       "multiObjective": "La optimización multiobjetivo encuentra equilibrios entre objetivos en competencia, generando una frontera de Pareto de soluciones óptimas.",
       "sensitivityAnalysis": "El análisis de sensibilidad muestra cómo cambia tu solución óptima cuando varían los parámetros de entrada, ayudando a identificar decisiones robustas.",
-      "warmStart": "El inicio en caliente utiliza una solución anterior como punto de partida, encontrando a menudo la solución óptima más rápido.",
       "paretoFrontier": "La frontera de Pareto muestra todas las soluciones donde mejorar un objetivo requiere empeorar otro."
     },
     "import": {
@@ -3423,6 +3405,10 @@
     },
     "warmStart": {
       "definition": "Proporcionar una solución factible inicial al solver para que pueda saltar la exploración temprana y converger más rápido."
+    },
+    "reducedCost": {
+      "definition": "Cuánto cambiaría el objetivo por cada unidad de incremento de una variable que está en su cota. Un coste reducido cero significa que la variable podría entrar en la solución sin empeorar el objetivo.",
+      "example": "Un producto no fabricado (x = 0) con coste reducido 5 empeoraría el objetivo en 5 por unidad si se forzara su inclusión en el plan."
     },
     "lpRelaxation": {
       "definition": "Resolver el problema como si las variables enteras pudieran tomar valores fraccionarios — proporciona una cota de la mejor solución entera posible."
@@ -4338,7 +4324,7 @@
     },
     "marketplace": {
       "title": "Mercado de Modelos de Optimización | JAOT",
-      "description": "Explora, compara y activa modelos de optimización para logística, planificación, asignación de recursos y más. Modelos gratuitos y premium de vendedores verificados."
+      "description": "Explora, compara y usa modelos de optimización para logística, planificación, asignación de recursos y más. Modelos gratuitos de la comunidad y de autores verificados."
     },
     "dynamic": {
       "titleTemplate": "{name} — JAOT",
@@ -4346,7 +4332,7 @@
     },
     "authors": {
       "title": "Publicadores de modelos - Marketplace JAOT",
-      "description": "Descubre organizaciones que publican modelos de optimización en el marketplace comunitario de JAOT — gratis para activar y usar."
+      "description": "Descubre organizaciones que publican modelos de optimización en el marketplace comunitario de JAOT — gratis para usar en tu propio estudio."
     }
   },
   "images": {
@@ -4360,7 +4346,7 @@
       "period90d": "90 dias",
       "periodAll": "Todo el tiempo",
       "totalViews": "Visitas totales",
-      "totalActivations": "Activaciones totales",
+      "totalActivations": "Adopciones totales",
       "conversionRate": "Tasa de conversion"
     },
     "verification": {
@@ -4383,7 +4369,7 @@
       "enabled": "Activado",
       "disabled": "Desactivado",
       "preferencesUpdated": "Preferencias actualizadas",
-      "eventModelActivated": "Modelo activado"
+      "eventModelActivated": "Modelo adoptado"
     }
   }
 }

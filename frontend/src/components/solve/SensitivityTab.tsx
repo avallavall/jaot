@@ -239,7 +239,7 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
                       {t("variable")}
                     </th>
                     <th className="px-3 py-2 text-right font-medium text-muted-foreground">
-                      {t("reducedCost")}
+                      <ConceptTooltip termKey="reduced-cost">{t("reducedCost")}</ConceptTooltip>
                     </th>
                     <th className="px-3 py-2 text-center font-medium text-muted-foreground">
                       {t("atBound")}

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { useBuilderStore } from "@/hooks/useBuilderStore";
@@ -163,6 +164,8 @@ export function VersionControls() {
         <Save className="h-4 w-4 mr-1" />
         {t("headerCommit")}
       </Button>
+
+      <HelpTooltip content={t("helpTooltips.commit")} side="bottom" />
 
       <CommitDialog
         open={commitOpen}

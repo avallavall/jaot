@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { GapConvergenceChart } from "@/components/solve/GapConvergenceChart";
 import type { SolveSession } from "../../store/createModelProjectStore";
 import { computeMetrics } from "./live-solve-metrics";
@@ -58,8 +59,9 @@ export function LiveSolvePanel({ session, objectiveSense, onCancel }: LiveSolveP
       {hasPoints && (
         <>
           <div>
-            <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <h4 className="mb-2 flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {t("liveConvergence")}
+              <HelpTooltip content={t("helpTooltips.liveProgress")} size={12} />
             </h4>
             <GapConvergenceChart progressHistory={points} objectiveSense={objectiveSense} />
           </div>

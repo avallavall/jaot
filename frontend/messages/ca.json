@@ -274,7 +274,18 @@
     "datasetTableRemoveRow": "Treure fila",
     "analyzePublishTitle": "Marketplace",
     "analyzePublishHelp": "Comparteix aquest model amb la comunitat — publicar fixa la teva última versió commitejada.",
-    "analyzePublishCta": "Publicar al marketplace"
+    "analyzePublishCta": "Publicar al marketplace",
+    "helpTooltips": {
+      "problemClass": "La classe del problema (LP, MIP, QP, MIQP…) es detecta a partir de les teves variables i expressions. Determina quins solvers poden resoldre el model — «Auto» la fa servir per triar el millor solver disponible.",
+      "healthScore": "Una nota de qualitat estructural (A–F) calculada a partir de la forma del model: problemes d'escalat, restriccions redundants o conflictives, cotes absents. Qualifica la formulació, no la solució.",
+      "density": "Proporció de coeficients no nuls a la matriu de restriccions. Els models reals solen ser molt dispersos — un valor baix és l'esperat i facilita la feina del solver.",
+      "nonzeros": "Nombre total d'aparicions de variables a totes les restriccions — el veritable factor de mida per als solvers, més que el nombre brut de variables o restriccions.",
+      "commit": "Les versions funcionen com commits de git: una instantània immutable amb un missatge obligatori de «què ha canviat». Els commits alimenten l'historial, els diffs i la restauració — i en publicar se'n fixa un al marketplace.",
+      "datasets": "Els datasets mantenen les teves dades d'entrada separades de l'estructura del model (sets i params de JModel). El mateix model es pot compilar i resoldre amb qualsevol dels seus datasets.",
+      "scenarios": "Executa el mateix model amb diversos datasets d'una vegada i compara les execucions costat a costat — un model, molts escenaris.",
+      "solverAuto": "«Auto» dirigeix el teu model al millor solver disponible segons la seva classe de problema. Tria un solver concret només quan necessitis les seves capacitats específiques.",
+      "liveProgress": "Mentre el solver treballa, cada nova solució incumbent arriba en directe: el gràfic segueix el millor objectiu trobat i el gap d'optimalitat — quan el gap arriba al 0%, la solució queda demostrada com a òptima."
+    }
   },
   "common": {
     "loading": "Carregant...",
@@ -553,14 +564,6 @@
       "cancelled": "Cancel·lada",
       "timeout": "Temps esgotat"
     },
-    "transactionTypes": {
-      "signup_bonus": "Bonificació de registre",
-      "monthly_grant": "Assignació mensual",
-      "admin_adjustment": "Ajust d'administrador",
-      "execution_charge": "Càrrec per execució",
-      "execution_refund": "Reemborsament d'execució",
-      "purchase": "Compra"
-    },
     "siteDescription": "Crea, usa i automatitza models d'optimització: agnòstic al solver, assistit per IA i sense necessitat d'un doctorat.",
     "breadcrumbsAriaLabel": "Ruta de navegació",
     "tableOfContentsAriaLabel": "Taula de continguts",
@@ -642,7 +645,7 @@
     },
     "useCases": {
       "title": "Optimització del món real, resolta",
-      "subtitle": "Crea models personalitzats amb IA o activa solucions provades del marketplace.",
+      "subtitle": "Crea models a mida amb IA o parteix de models provats de la comunitat al marketplace.",
       "tryTemplate": "Provar aquesta plantilla",
       "getStarted": "Començar",
       "vehicleRouting": {
@@ -726,7 +729,6 @@
         "marketplace": {
           "title": "Marketplace de models",
           "description": "Un marketplace de models d'optimització. Usa models provats o comparteix els teus: gratuït i obert.",
-          "buyModels": "Explora i activa models preparats per usar",
           "sellModels": "Publica els teus models perquè la comunitat els faci servir",
           "modelRatings": "Valoracions i ressenyes de la comunitat"
         },
@@ -1766,14 +1768,14 @@
       "verified": "Verificat",
       "website": "Lloc Web",
       "models": "Models",
-      "activations": "Activacions",
+      "activations": "Adopcions",
       "executions": "Execucions",
       "reviews": "Ressenyes",
       "avgRating": "Valoració Mitjana",
       "publishedModels": "Models Publicats",
       "noModels": "Encara no s'han publicat models.",
       "free": "Gratuït",
-      "activationCount": "{count} activacions"
+      "activationCount": "{count} adopcions"
     },
     "accountData": {
       "account": "Compte",
@@ -1803,7 +1805,7 @@
       "users": "Usuaris",
       "models": "Models",
       "active": "{count} actives",
-      "activated": "{count} activats",
+      "activated": "{count} adoptats",
       "acrossAllOrgs": "a totes les organitzacions",
       "quickActions": "Accions Ràpides",
       "manageOrganizations": "Gestionar Organitzacions",
@@ -2151,7 +2153,7 @@
       "approved": "Aprovat",
       "pending": "Pendent",
       "noRequests": "No hi ha sol·licituds de verificacio pendents",
-      "totalActivations": "Activacions",
+      "totalActivations": "Adopcions",
       "authorAnalytics": "Analítiques d'autors",
       "authorLeaderboard": "Rànquing d'autors",
       "authorName": "Autor",
@@ -2379,7 +2381,7 @@
   },
   "marketplace": {
     "title": "Marketplace de Models",
-    "subtitle": "Descobriu i activeu models d'optimització creats per la comunitat i editors verificats.",
+    "subtitle": "Descobreix models d'optimització creats per la comunitat i autors verificats — i fes-los teus a l'estudi.",
     "searchPlaceholder": "Cercar models...",
     "noResults": "No s'han trobat models. Proveu amb un altre terme de cerca.",
     "loadingModels": "Carregant models",
@@ -2394,7 +2396,7 @@
     "card": {
       "noDescription": "No hi ha descripció disponible",
       "by": "per {author}",
-      "activations": "{count, plural, one {# activació} other {# activacions}}",
+      "activations": "{count, plural, one {# adopció} other {# adopcions}}",
       "official": "OFICIAL",
       "featuredBadge": "DESTACAT",
       "free": "Gratis",
@@ -2418,7 +2420,7 @@
       "useInStudioUnavailable": "Aquest model encara no es pot obrir a l'estudi.",
       "useInStudioFailed": "No s'ha pogut obrir aquest model a l'estudi. Torna-ho a provar.",
       "rating": "Valoració",
-      "activations": "Activacions",
+      "activations": "Adopcions",
       "executions": "Execucions",
       "successRate": "Taxa d'Èxit",
       "description": "Descripció",
@@ -2464,7 +2466,7 @@
     },
     "catalog": {
       "title": "Catàleg de models",
-      "subtitle": "Exploreu i activeu models d'optimització del catàleg oficial",
+      "subtitle": "Explora models d'optimització del catàleg oficial — un clic per usar-los al teu estudi",
       "searchPlaceholder": "Cercar models...",
       "search": "Cercar",
       "featuredOnly": "Només destacats",
@@ -2493,26 +2495,9 @@
       "moreCategories": "Més categories...",
       "filterBy": "Filtrar per {category}"
     },
-    "templateCard": {
-      "featured": "Destacat",
-      "noDescription": "No hi ha descripció disponible",
-      "moreTag": "+{count} més",
-      "activationsCount": "{count} activacions",
-      "successPercent": "{percent}% èxit",
-      "by": "per {author}",
-      "verifiedPublisher": "Editor Verificat",
-      "officialBadge": "Oficial",
-      "officialTooltip": "Oficial: Creat i mantingut per l'equip d'JAOT",
-      "free": "Gratuït",
-      "details": "Detalls",
-      "open": "Obrir",
-      "activate": "Activar",
-      "removeFromFavorites": "Eliminar de favorits",
-      "addToFavorites": "Afegir a favorits"
-    },
     "hero": {
       "viewModel": "Veure model",
-      "activations": "{count} activacions",
+      "activations": "{count} adopcions",
       "rating": "{rating} estrelles",
       "goToSlide": "Anar a la diapositiva {number}"
     },
@@ -2542,7 +2527,7 @@
     "authorProfile": {
       "title": "Perfil de autor",
       "modelsPublished": "Models publicats",
-      "totalActivations": "Activacions totals",
+      "totalActivations": "Adopcions totals",
       "avgRating": "Valoració mitjana",
       "memberSince": "Membre des de",
       "verified": "Autor verificat",
@@ -2559,7 +2544,7 @@
     "publish": {
       "backToModels": "Tornar als Meus Models",
       "title": "Publicar al Marketplace",
-      "subtitle": "Compartiu el vostre model amb la comunitat. Altres podran activar-lo i utilitzar-lo.",
+      "subtitle": "Comparteix el teu model amb la comunitat. Altres podran usar-lo al seu propi estudi.",
       "displayName": "Nom Visible",
       "displayNamePlaceholder": "p. ex., Optimitzador de Pressupostos Pro",
       "shortDescription": "Descripció Curta",
@@ -2570,14 +2555,12 @@
       "category": "Categoria",
       "tags": "Etiquetes",
       "tagsPlaceholder": "optimització, pressupost, planificació (separades per comes)",
-      "freeToActivate": "0 = Gratuït per activar",
       "publishToMarketplace": "Publicar al Marketplace",
       "publishing": "Publicant...",
       "published": "Publicat",
       "publishedSuccess": "Model publicat al marketplace!",
       "failedToPublish": "Error en publicar",
       "fillRequiredFields": "Si us plau, empleneu tots els camps obligatoris",
-      "alreadyCatalogModel": "Aquest model ja és del catàleg i no es pot publicar.",
       "required": "*",
       "failedToLoad": "Error en carregar el model",
       "cancel": "Cancel·lar",
@@ -2618,7 +2601,7 @@
       "validationFailed": "Error de validació: {detail}",
       "confirmPublishTitle": "Confirmar Publicació",
       "confirmPublishMessage": "Això farà que el teu model sigui visible públicament al marketplace. Pots despublicar-lo en qualsevol moment des de la configuració del model.",
-      "publishInfoText": "Un cop publicat, el teu model serà visible al marketplace després d'una breu revisió. Els usuaris podran activar-lo i executar-lo. Pots actualitzar la teva publicació o despublicar en qualsevol moment des de la configuració del model.",
+      "publishInfoText": "En publicar-lo, el teu model serà visible immediatament al marketplace. Altres podran endur-se'l al seu propi estudi com una còpia editable. Pots actualitzar la teva fitxa o despublicar-la en qualsevol moment des dels ajustos del model.",
       "commitFirstTitle": "Primer fes un commit",
       "commitFirstHelp": "Publicar fixa la teva última versió commitejada — el marketplace mai veu el teu esborrany de treball. Fes commit del model al workspace i torna aquí.",
       "goToBuild": "Anar al workspace",
@@ -2805,7 +2788,7 @@
       "tabTemplates": "Des de Plantilles",
       "searchPlaceholder": "Cerca...",
       "noBuilderDocs": "No s'han trobat documents del builder.",
-      "noModels": "No hi ha models activats.",
+      "noModels": "No s'han trobat models.",
       "noTemplates": "No hi ha plantilles disponibles.",
       "loadingItems": "Carregant...",
       "importButton": "Importar",
@@ -3128,7 +3111,6 @@
     "helpTooltips": {
       "multiObjective": "L'optimització multiobjectiu troba equilibris entre objectius en competència, generant una frontera de Pareto de solucions òptimes.",
       "sensitivityAnalysis": "L'anàlisi de sensibilitat mostra com canvia la teva solució òptima quan varien els paràmetres d'entrada, ajudant a identificar decisions robustes.",
-      "warmStart": "L'inici en calent utilitza una solució anterior com a punt de partida, trobant sovint la solució òptima més ràpidament.",
       "paretoFrontier": "La frontera de Pareto mostra totes les solucions on millorar un objectiu requereix empitjorar-ne un altre."
     },
     "import": {
@@ -3423,6 +3405,10 @@
     },
     "warmStart": {
       "definition": "Proporcionar una solució factible inicial al solver perquè pugui saltar l'exploració inicial i convergir més ràpid."
+    },
+    "reducedCost": {
+      "definition": "Quant canviaria l'objectiu per cada unitat d'increment d'una variable que és a la seva cota. Un cost reduït zero vol dir que la variable podria entrar a la solució sense empitjorar l'objectiu.",
+      "example": "Un producte no fabricat (x = 0) amb cost reduït 5 empitjoraria l'objectiu en 5 per unitat si se'n forcés la inclusió al pla."
     },
     "lpRelaxation": {
       "definition": "Resoldre el problema com si les variables enteres poguessin prendre valors fraccionaris — proporciona una fita de la millor solució entera possible."
@@ -4338,7 +4324,7 @@
     },
     "marketplace": {
       "title": "Mercat de Models d'Optimitzacio | JAOT",
-      "description": "Explora, compara i activa models d'optimització per a logística, planificació, assignació de recursos i més. Models gratuïts i premium de venedors verificats."
+      "description": "Explora, compara i usa models d'optimització per a logística, planificació, assignació de recursos i més. Models gratuïts de la comunitat i d'autors verificats."
     },
     "dynamic": {
       "titleTemplate": "{name} — JAOT",
@@ -4346,7 +4332,7 @@
     },
     "authors": {
       "title": "Publicadors de models - Marketplace JAOT",
-      "description": "Descobreix organitzacions que publiquen models d'optimització al marketplace comunitari de JAOT — gratuït per activar i utilitzar."
+      "description": "Descobreix organitzacions que publiquen models d'optimització al marketplace comunitari de JAOT — gratuïts per usar al teu propi estudi."
     }
   },
   "images": {
@@ -4360,7 +4346,7 @@
       "period90d": "90 dies",
       "periodAll": "Tot el temps",
       "totalViews": "Visites totals",
-      "totalActivations": "Activacions totals",
+      "totalActivations": "Adopcions totals",
       "conversionRate": "Taxa de conversio"
     },
     "verification": {
@@ -4383,7 +4369,7 @@
       "enabled": "Activat",
       "disabled": "Desactivat",
       "preferencesUpdated": "Preferències actualitzades",
-      "eventModelActivated": "Model activat"
+      "eventModelActivated": "Model adoptat"
     }
   }
 }

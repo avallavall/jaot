@@ -138,6 +138,7 @@ export function SolvePanel() {
           onSolverChange={setSolverName}
           availableSolvers={availableSolvers}
           loading={solversLoading}
+          help={t("helpTooltips.solverAuto")}
         />
 
         {/* Which dataset (scenario) the canonical model was compiled against (§8).

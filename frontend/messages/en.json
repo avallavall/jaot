@@ -274,7 +274,18 @@
     "datasetTableRemoveRow": "Remove row",
     "analyzePublishTitle": "Marketplace",
     "analyzePublishHelp": "Share this model with the community — publishing pins your latest committed version.",
-    "analyzePublishCta": "Publish to marketplace"
+    "analyzePublishCta": "Publish to marketplace",
+    "helpTooltips": {
+      "problemClass": "The problem class (LP, MIP, QP, MIQP…) is detected from your variables and expressions. It determines which solvers can handle the model — 'Auto' uses it to route to the best available solver.",
+      "healthScore": "A structural quality grade (A–F) computed from the model's shape — scaling issues, redundant or conflicting constraints, missing bounds. It grades the formulation, not the solution.",
+      "density": "Share of nonzero coefficients in the constraint matrix. Real-world models are normally very sparse — a low value is expected and solver-friendly.",
+      "nonzeros": "Total number of variable appearances across all constraints — the real size driver for solvers, more than the raw variable or constraint counts.",
+      "commit": "Versions work like git commits: an immutable snapshot with a required 'what changed' message. Commits power the history, diffs and restore — and publishing pins one of them to the marketplace.",
+      "datasets": "Datasets keep your input data separate from the model's structure (JModel sets and params). The same model can be compiled and solved against any of its datasets.",
+      "scenarios": "Run the same model against several datasets in one go, then compare the runs side by side — one model, many scenarios.",
+      "solverAuto": "'Auto' routes your model to the best available solver for its problem class. Pick a specific solver only when you need its particular capabilities.",
+      "liveProgress": "While the solver runs, each new incumbent solution streams in live: the chart tracks the best objective found and the optimality gap — when the gap reaches 0%, the solution is proven optimal."
+    }
   },
   "common": {
     "loading": "Loading...",
@@ -553,14 +564,6 @@
       "cancelled": "Cancelled",
       "timeout": "Timeout"
     },
-    "transactionTypes": {
-      "signup_bonus": "Signup Bonus",
-      "monthly_grant": "Monthly Grant",
-      "admin_adjustment": "Admin Adjustment",
-      "execution_charge": "Execution Charge",
-      "execution_refund": "Execution Refund",
-      "purchase": "Purchase"
-    },
     "siteDescription": "Build, use, and automate optimization models — solver-agnostic, AI-assisted, no PhD required.",
     "breadcrumbsAriaLabel": "Breadcrumbs",
     "tableOfContentsAriaLabel": "Table of contents",
@@ -642,7 +645,7 @@
     },
     "useCases": {
       "title": "Real-world optimization, solved",
-      "subtitle": "Build custom models with AI or activate proven solutions from the marketplace.",
+      "subtitle": "Build custom models with AI or start from proven community models in the marketplace.",
       "tryTemplate": "Try this template",
       "getStarted": "Get started",
       "builtWithAi": "Built with AI",
@@ -726,7 +729,6 @@
         "marketplace": {
           "title": "Model Marketplace",
           "description": "An optimization model marketplace. Use proven models or share your own — free and open.",
-          "buyModels": "Browse and activate ready-made models",
           "sellModels": "Publish your models for the community to use",
           "modelRatings": "Community ratings and reviews"
         },
@@ -1766,14 +1768,14 @@
       "verified": "Verified",
       "website": "Website",
       "models": "Models",
-      "activations": "Activations",
+      "activations": "Adoptions",
       "executions": "Executions",
       "reviews": "Reviews",
       "avgRating": "Avg Rating",
       "publishedModels": "Published Models",
       "noModels": "No models published yet.",
       "free": "Free",
-      "activationCount": "{count} activations"
+      "activationCount": "{count} adoptions"
     },
     "accountData": {
       "account": "Account",
@@ -1803,7 +1805,7 @@
       "users": "Users",
       "models": "Models",
       "active": "{count} active",
-      "activated": "{count} activated",
+      "activated": "{count} adopted",
       "acrossAllOrgs": "across all organizations",
       "quickActions": "Quick Actions",
       "manageOrganizations": "Manage Organizations",
@@ -2151,7 +2153,7 @@
       "approved": "Approved",
       "pending": "Pending",
       "noRequests": "No pending verification requests",
-      "totalActivations": "Activations",
+      "totalActivations": "Adoptions",
       "authorAnalytics": "Author Analytics",
       "authorLeaderboard": "Author Leaderboard",
       "authorName": "Author",
@@ -2379,7 +2381,7 @@
   },
   "marketplace": {
     "title": "Model Marketplace",
-    "subtitle": "Discover and activate optimization models built by the community and verified publishers.",
+    "subtitle": "Discover optimization models built by the community and verified authors — and make them yours in the studio.",
     "searchPlaceholder": "Search models...",
     "noResults": "No models found. Try a different search term.",
     "loadingModels": "Loading models",
@@ -2393,7 +2395,7 @@
     "viewFullCatalog": "View Full Catalog",
     "hero": {
       "viewModel": "View Model",
-      "activations": "{count} activations",
+      "activations": "{count} adoptions",
       "rating": "{rating} stars",
       "goToSlide": "Go to slide {number}"
     },
@@ -2423,7 +2425,7 @@
     "card": {
       "noDescription": "No description available",
       "by": "by {author}",
-      "activations": "{count, plural, one {# activation} other {# activations}}",
+      "activations": "{count, plural, one {# adoption} other {# adoptions}}",
       "official": "OFFICIAL",
       "featuredBadge": "FEATURED",
       "free": "Free",
@@ -2447,7 +2449,7 @@
       "useInStudioUnavailable": "This model can't be opened in the studio yet.",
       "useInStudioFailed": "Couldn't open this model in the studio. Please try again.",
       "rating": "Rating",
-      "activations": "Activations",
+      "activations": "Adoptions",
       "executions": "Executions",
       "successRate": "Success Rate",
       "description": "Description",
@@ -2493,7 +2495,7 @@
     },
     "catalog": {
       "title": "Model Catalog",
-      "subtitle": "Browse and activate optimization models from the official catalog",
+      "subtitle": "Browse optimization models from the official catalog — one click to use them in your studio",
       "searchPlaceholder": "Search models...",
       "search": "Search",
       "featuredOnly": "Featured only",
@@ -2522,27 +2524,10 @@
       "moreCategories": "More categories...",
       "filterBy": "Filter by {category}"
     },
-    "templateCard": {
-      "featured": "Featured",
-      "noDescription": "No description available",
-      "moreTag": "+{count} more",
-      "activationsCount": "{count} activations",
-      "successPercent": "{percent}% success",
-      "by": "by {author}",
-      "verifiedPublisher": "Verified Publisher",
-      "officialBadge": "Official",
-      "officialTooltip": "Official: Created and maintained by the JAOT team",
-      "free": "Free",
-      "details": "Details",
-      "open": "Open",
-      "activate": "Activate",
-      "removeFromFavorites": "Remove from favorites",
-      "addToFavorites": "Add to favorites"
-    },
     "authorProfile": {
       "title": "Author Profile",
       "modelsPublished": "Models Published",
-      "totalActivations": "Total Activations",
+      "totalActivations": "Total Adoptions",
       "avgRating": "Average Rating",
       "memberSince": "Member Since",
       "verified": "Verified Author",
@@ -2584,7 +2569,7 @@
     "publish": {
       "backToModels": "Back to My Models",
       "title": "Publish to Marketplace",
-      "subtitle": "Share your model with the community. Others will be able to activate and use it.",
+      "subtitle": "Share your model with the community. Others will be able to use it in their own studio.",
       "displayName": "Display Name",
       "displayNamePlaceholder": "e.g., Budget Optimizer Pro",
       "shortDescription": "Short Description",
@@ -2595,7 +2580,6 @@
       "category": "Category",
       "tags": "Tags",
       "tagsPlaceholder": "optimization, budget, planning (comma separated)",
-      "freeToActivate": "0 = Free to activate",
       "publishToMarketplace": "Publish to Marketplace",
       "publishing": "Publishing...",
       "published": "Published",
@@ -2603,7 +2587,6 @@
       "failedToPublish": "Failed to publish model. Please try again.",
       "validationFailed": "Validation error: {detail}",
       "fillRequiredFields": "Please fill in all required fields",
-      "alreadyCatalogModel": "This model is already from the catalog and cannot be published.",
       "required": "*",
       "failedToLoad": "Failed to load model",
       "cancel": "Cancel",
@@ -2643,7 +2626,7 @@
       "continueEditing": "Continue Editing",
       "confirmPublishTitle": "Confirm Publish",
       "confirmPublishMessage": "This will make your model publicly visible on the marketplace. You can unpublish anytime from your model settings.",
-      "publishInfoText": "Once published, your model will be visible in the marketplace after a brief review. Users will be able to activate and run it. You can update your listing or unpublish at any time from your model settings.",
+      "publishInfoText": "Once published, your model is immediately visible in the marketplace. Others can bring it into their own studio as an editable copy. You can update your listing or unpublish at any time from your model settings.",
       "commitFirstTitle": "Commit a version first",
       "commitFirstHelp": "Publishing pins your latest committed version — the marketplace never sees your working draft. Commit your model in the workspace, then come back.",
       "goToBuild": "Go to the workspace",
@@ -2830,7 +2813,7 @@
       "tabTemplates": "From Templates",
       "searchPlaceholder": "Search...",
       "noBuilderDocs": "No builder documents found.",
-      "noModels": "No activated models found.",
+      "noModels": "No models found.",
       "noTemplates": "No templates available.",
       "loadingItems": "Loading...",
       "importButton": "Import",
@@ -3161,7 +3144,6 @@
     "helpTooltips": {
       "multiObjective": "Multi-objective optimization finds trade-offs between competing goals, generating a Pareto frontier of optimal solutions.",
       "sensitivityAnalysis": "Sensitivity analysis shows how your optimal solution changes when input parameters vary, helping identify robust decisions.",
-      "warmStart": "Warm start uses a previous solution as a starting point, often finding the optimal solution faster.",
       "paretoFrontier": "The Pareto frontier shows all solutions where improving one objective requires worsening another."
     }
   },
@@ -3423,6 +3405,10 @@
     },
     "warmStart": {
       "definition": "Providing an initial feasible solution to the solver so it can skip early exploration and converge faster."
+    },
+    "reducedCost": {
+      "definition": "How much the objective would change per unit increase of a variable currently at its bound. A zero reduced cost means the variable could enter the solution without hurting the objective.",
+      "example": "A product not produced (x = 0) with reduced cost 5 would worsen the objective by 5 per unit if forced into the plan."
     },
     "lpRelaxation": {
       "definition": "Solving the problem as if integer variables could take fractional values — gives a bound on the best possible integer solution."
@@ -4338,7 +4324,7 @@
     },
     "marketplace": {
       "title": "Optimization Model Marketplace | JAOT",
-      "description": "Browse, compare, and activate optimization models for logistics, scheduling, resource allocation, and more. Free and premium models from verified sellers."
+      "description": "Browse, compare, and use optimization models for logistics, scheduling, resource allocation, and more. Free community models from verified authors."
     },
     "dynamic": {
       "titleTemplate": "{name} — JAOT",
@@ -4346,7 +4332,7 @@
     },
     "authors": {
       "title": "Model Publishers - JAOT Marketplace",
-      "description": "Discover organizations publishing optimization models on the JAOT community marketplace — free to activate and use."
+      "description": "Discover organizations publishing optimization models on the JAOT community marketplace — free to use in your own studio."
     }
   },
   "images": {
@@ -4360,7 +4346,7 @@
       "period90d": "90 days",
       "periodAll": "All time",
       "totalViews": "Total Views",
-      "totalActivations": "Total Activations",
+      "totalActivations": "Total Adoptions",
       "conversionRate": "Conversion Rate"
     },
     "verification": {
@@ -4383,7 +4369,7 @@
       "enabled": "Enabled",
       "disabled": "Disabled",
       "preferencesUpdated": "Preferences updated",
-      "eventModelActivated": "Model activated"
+      "eventModelActivated": "Model adopted"
     }
   }
 }

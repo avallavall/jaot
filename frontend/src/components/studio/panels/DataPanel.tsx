@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { useDslStatus } from "@/hooks/useDslStatus";
 import { useModelProjectStore } from "../store/useModelProjectStore";
 import { DatasetsCard } from "../datasets/DatasetsCard";
@@ -26,7 +27,10 @@ export function DataPanel() {
     <div className="flex-1 overflow-y-auto p-6">
       <div className="max-w-3xl mx-auto" data-testid="studio-data-panel">
         <div className="mb-4">
-          <h2 className="text-lg font-semibold">{t("dataTitle")}</h2>
+          <h2 className="flex items-center gap-1.5 text-lg font-semibold">
+            {t("dataTitle")}
+            <HelpTooltip content={t("helpTooltips.datasets")} />
+          </h2>
           <p className="text-sm text-muted-foreground">{t("dataSubtitle")}</p>
         </div>
 

@@ -25,6 +25,9 @@ export const OPTIMIZATION_TERMS: Record<string, TermDefinition> = {
   "warm-start": {
     term: "Warm Start",
   },
+  "reduced-cost": {
+    term: "Reduced Cost",
+  },
   "lp-relaxation": {
     term: "LP Relaxation",
     formula: "min cᵀx  s.t. Ax ≤ b, x ∈ ℝⁿ (integrality dropped)",

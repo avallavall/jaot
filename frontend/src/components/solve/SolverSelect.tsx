@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -19,6 +20,8 @@ interface SolverSelectProps {
   onSolverChange: (name: string) => void;
   availableSolvers: SolverInfo[];
   loading: boolean;
+  /** Optional "?" tooltip text rendered next to the label. */
+  help?: string;
 }
 
 /**
@@ -37,6 +40,7 @@ export function SolverSelect({
   onSolverChange,
   availableSolvers,
   loading,
+  help,
 }: SolverSelectProps) {
   const tSolvers = useTranslations("solvers");
   const tAuto = useTranslations("solvers.auto");
@@ -62,9 +66,12 @@ export function SolverSelect({
   // SCIP on the backend regardless.
   return (
     <div className="space-y-2 mb-4">
-      <Label htmlFor={id} className="text-sm text-muted-foreground">
-        {tSolvers("selectLabel")}
-      </Label>
+      <span className="inline-flex items-center gap-1">
+        <Label htmlFor={id} className="text-sm text-muted-foreground">
+          {tSolvers("selectLabel")}
+        </Label>
+        {help && <HelpTooltip content={help} size={12} />}
+      </span>
       <Select
         value={solverName}
         onValueChange={onSolverChange}

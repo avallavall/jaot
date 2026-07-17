@@ -7,7 +7,7 @@ const EXPECTED_LOCALES = ["en", "es", "ca", "fr", "de"];
 
 const EXPECTED_GLOSSARY_TERMS = [
   "shadowPrice", "bindingConstraint", "slackValue", "paretoFront",
-  "warmStart", "lpRelaxation", "objectiveValue",
+  "warmStart", "reducedCost", "lpRelaxation", "objectiveValue",
   "formulation", "decisionVariable", "constraint", "objective",
   "feasibility", "infeasible", "optimal", "relaxation",
   "seeFormula", "hideFormula",
@@ -35,15 +35,15 @@ describe("glossary i18n completeness (I18N-10)", () => {
   const enData = loadLocale("en");
   const enGlossary = enData.glossary as Record<string, unknown>;
 
-  it("English glossary namespace exists with 17 top-level terms", () => {
+  it("English glossary namespace exists with 18 top-level terms", () => {
     expect(enGlossary).toBeDefined();
     const topKeys = Object.keys(enGlossary);
     expect(topKeys.length).toBe(EXPECTED_GLOSSARY_TERMS.length);
   });
 
-  it("English glossary has 26 leaf keys", () => {
+  it("English glossary has 28 leaf keys", () => {
     const leafKeys = getLeafKeys(enGlossary);
-    expect(leafKeys.length).toBe(26);
+    expect(leafKeys.length).toBe(28);
   });
 
   it("English glossary contains all expected terms", () => {
@@ -54,7 +54,7 @@ describe("glossary i18n completeness (I18N-10)", () => {
   });
 
   it.each(EXPECTED_LOCALES.filter((l) => l !== "en"))(
-    "%s.json glossary has same 26 leaf keys as en.json",
+    "%s.json glossary has same 28 leaf keys as en.json",
     (locale) => {
       const localeData = loadLocale(locale);
       const localeGlossary = localeData.glossary as Record<string, unknown>;
@@ -63,7 +63,7 @@ describe("glossary i18n completeness (I18N-10)", () => {
       const enLeafKeys = getLeafKeys(enGlossary);
       const localeLeafKeys = getLeafKeys(localeGlossary);
 
-      expect(localeLeafKeys.length).toBe(26);
+      expect(localeLeafKeys.length).toBe(28);
 
       const missing = enLeafKeys.filter((k) => !localeLeafKeys.includes(k));
       expect(
