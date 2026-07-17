@@ -357,7 +357,6 @@
       "catalog": "Catálogo",
       "marketplace": "Marketplace",
       "favorites": "Favoritos",
-      "forSellers": "Para vendedores",
       "activity": "Actividad",
       "executions": "Ejecuciones",
       "solveAnalytics": "Analíticas",
@@ -384,7 +383,6 @@
       "customSolve": "Resolver JSON",
       "marketplaceAdmin": "Marketplace",
       "verification": "Verificación",
-      "sellerAnalytics": "Analíticas vendedor",
       "marketplaceAnalytics": "Analíticas",
       "platformAnalytics": "Plataforma"
     },
@@ -415,14 +413,14 @@
       "aiAssistant": "Asistente IA",
       "multiObjective": "Multiobjetivo",
       "analytics": "Análisis de funciones",
-      "sellerAnalytics": "Análisis de vendedores",
       "verification": "Verificación",
       "create": "Crear",
       "custom": "Personalizado",
       "myProfile": "Mi perfil",
       "docs": "Documentación",
       "licenses": "Licencias",
-      "history": "Historial"
+      "history": "Historial",
+      "authorAnalytics": "Analíticas de autores"
     },
     "help": {
       "title": "Ayuda y recursos",
@@ -572,7 +570,6 @@
     "nav": {
       "marketplace": "Marketplace",
       "docs": "Docs",
-      "forSellers": "Para vendedores",
       "signIn": "Iniciar sesión",
       "goToDashboard": "Panel"
     },
@@ -634,7 +631,7 @@
         "item4": "Gratis y de código abierto, ideal para aprender",
         "cta": "Prueba gratis"
       },
-      "sellers": {
+      "authors": {
         "title": "Para colaboradores y consultores",
         "item1": "Publica tus modelos en el marketplace de la comunidad",
         "item2": "Comparte tu experiencia en optimización con equipos de todo el mundo",
@@ -786,13 +783,12 @@
       "button": "Crear cuenta"
     },
     "footer": {
+      "forAuthors": "Para autores",
       "product": "Producto",
       "marketplace": "Marketplace",
       "aiBuilder": "Constructor IA",
       "mcpIntegration": "Integración MCP",
-      "forSellers": "Colaborar",
       "howItWorks": "Cómo funciona",
-      "sellerDashboard": "Dashboard de vendedor",
       "publishModel": "Publicar un modelo",
       "browseModels": "Explorar modelos",
       "developers": "Desarrolladores",
@@ -2129,17 +2125,13 @@
       "retry": "Reintentar"
     },
     "marketplace": {
-      "sellerAnalytics": "Analíticas de vendedor",
       "platformTotals": "Analíticas globales del marketplace",
-      "sellerLeaderboard": "Ranking de vendedores",
       "rank": "#",
-      "sellerName": "Vendedor",
       "modelsPublished": "Modelos publicados",
       "avgRating": "Valoración media",
-      "noSellerData": "No hay datos de vendedores disponibles.",
       "drillDown": "Ver detalles",
       "verificationRequests": "Solicitudes de verificación",
-      "verificationDesc": "Revisar y aprobar solicitudes de insignia de verificación de vendedores",
+      "verificationDesc": "Revisar y aprobar solicitudes de insignia de verificación de autores",
       "modelName": "Modelo",
       "type": "Tipo",
       "startDate": "Fecha de inicio",
@@ -2159,7 +2151,11 @@
       "approved": "Aprobado",
       "pending": "Pendiente",
       "noRequests": "No hay solicitudes de verificación pendientes",
-      "totalActivations": "Activaciones"
+      "totalActivations": "Activaciones",
+      "authorAnalytics": "Analíticas de autores",
+      "authorLeaderboard": "Ranking de autores",
+      "authorName": "Autor",
+      "noAuthorData": "No hay datos de autores."
     },
     "featureAnalytics": {
       "title": "Analíticas de uso de funcionalidades",
@@ -2207,12 +2203,12 @@
         "executions": "Ejecuciones",
         "reportedReviews": "Reseñas reportadas",
         "marketplace": "Marketplace",
-        "sellerAnalytics": "Análisis de vendedores",
         "featureAnalytics": "Análisis de funciones",
         "verification": "Verificación",
         "settings": "Configuración",
         "backToApp": "Volver a la app",
-        "platformAnalytics": "Plataforma"
+        "platformAnalytics": "Plataforma",
+        "authorAnalytics": "Analíticas de autores"
       }
     },
     "platformAnalytics": {
@@ -2403,7 +2399,6 @@
       "featuredBadge": "DESTACADO",
       "free": "Gratis",
       "newModel": "Nuevo",
-      "viewSeller": "por {seller}",
       "verified": "Verificado",
       "removeFromFavorites": "Quitar de favoritos",
       "addToFavorites": "Añadir a favoritos",
@@ -2544,96 +2539,20 @@
       "closeFilters": "Cerrar",
       "clearCategory": "Quitar categoría"
     },
-    "sellerProfile": {
-      "title": "Perfil de vendedor",
+    "authorProfile": {
+      "title": "Perfil de autor",
       "modelsPublished": "Modelos publicados",
       "totalActivations": "Activaciones totales",
       "avgRating": "Valoración media",
       "memberSince": "Miembro desde",
-      "verified": "Vendedor verificado",
+      "verified": "Autor verificado",
       "bio": "Acerca de",
       "publishedModels": "Modelos publicados",
-      "noModels": "Este vendedor aún no ha publicado ningún modelo.",
+      "noModels": "Este autor aún no ha publicado ningún modelo.",
       "noRating": "Sin valoraciones aun",
       "backToMarketplace": "Volver al Marketplace",
-      "failedToLoad": "Error al cargar el perfil del vendedor",
-      "sellerNotFound": "Vendedor no encontrado"
-    }
-  },
-  "seller": {
-    "analytics": {
-      "title": "Analíticas de vendedor",
-      "description": "Rastrea tu rendimiento en el marketplace",
-      "period7d": "7 dias",
-      "period30d": "30 dias",
-      "period90d": "90 dias",
-      "periodAll": "Todo el tiempo",
-      "totalViews": "Visitas totales",
-      "totalImpressions": "Impresiones totales",
-      "totalActivations": "Activaciones totales",
-      "conversionRate": "Tasa de conversion",
-      "revenueChart": "Activaciones en el tiempo",
-      "views": "Visitas",
-      "activations": "Activaciones",
-      "impressions": "Impresiones",
-      "conversionFunnel": "Embudo de conversion",
-      "funnelImpressions": "Impresiones",
-      "funnelViews": "Visitas detalladas",
-      "funnelActivations": "Activaciones",
-      "geoDistribution": "Distribución geográfica",
-      "country": "Pais",
-      "viewCount": "Visitas",
-      "modelPerformance": "Rendimiento del modelo",
-      "modelName": "Nombre del modelo",
-      "noData": "No hay datos disponibles para el periodo seleccionado",
-      "loading": "Cargando analíticas..."
-    },
-    "promotions": {
-      "title": "Promociona tu modelo",
-      "selectModel": "Selecciona un modelo",
-      "duration": "Duración",
-      "purchase": "Comprar",
-      "purchaseSuccess": "¡Posicionamiento comprado correctamente!",
-      "homepageCarousel": "Carrusel de la página principal",
-      "homepageCarouselDesc": "Destacado en el carrusel principal del marketplace",
-      "categorySpotlight": "Destacado de categoria",
-      "categorySpotlightDesc": "Resaltado en la página de categoria de tu modelo",
-      "searchBoost": "Impulso en búsqueda",
-      "searchBoostDesc": "Posicionamiento mejorado en resultados de búsqueda",
-      "days7": "7 dias",
-      "days14": "14 dias",
-      "days30": "30 dias"
-    },
-    "verification": {
-      "title": "Insignia de verificación",
-      "requestVerification": "Solicitar verificación",
-      "verificationPending": "Verificación pendiente",
-      "verified": "Vendedor verificado",
-      "rejected": "Verificación rechazada",
-      "rejectedNote": "Motivo",
-      "reRequest": "Solicitar de nuevo",
-      "requestSent": "Solicitud de verificación enviada",
-      "requestDescription": "Obtiene una insignia de verificación en tu perfil de vendedor para generar confianza con los compradores."
-    },
-    "notifications": {
-      "title": "Preferencias de notificaciones",
-      "description": "Elige cómo quieres recibir notificaciones sobre eventos de vendedor",
-      "eventNewReview": "Nueva resena",
-      "channelInApp": "En la app",
-      "channelEmail": "Correo electrónico",
-      "enabled": "Activado",
-      "disabled": "Desactivado",
-      "preferencesUpdated": "Preferencias actualizadas",
-      "eventModelActivated": "Modelo activado"
-    },
-    "onboarding": {
-      "title": "Empieza como vendedor",
-      "description": "Completa estos pasos para configurar tu perfil de vendedor",
-      "completeProfile": "Completa el perfil de tu organización",
-      "publishModel": "Publica tu primer modelo",
-      "addRichMedia": "Añade multimedia y descripción",
-      "stepsComplete": "{completed}/{total} pasos completados",
-      "progressLabel": "Progreso"
+      "failedToLoad": "Error al cargar el perfil del autor",
+      "authorNotFound": "Autor no encontrado"
     }
   },
   "solve": {
@@ -4416,9 +4335,9 @@
     },
     "dynamic": {
       "titleTemplate": "{name} — JAOT",
-      "sellerDescriptionFallback": "Explora los modelos de optimización de {name} en JAOT"
+      "authorDescriptionFallback": "Explora los modelos de optimización de {name} en JAOT"
     },
-    "sellers": {
+    "authors": {
       "title": "Publicadores de modelos - Marketplace JAOT",
       "description": "Descubre organizaciones que publican modelos de optimización en el marketplace comunitario de JAOT — gratis para activar y usar."
     }
@@ -4426,5 +4345,38 @@
   "images": {
     "modelScreenshot": "Captura de pantalla de {name}",
     "modelScreenshotThumbnail": "Miniatura {index} de {name}"
+  },
+  "author": {
+    "analytics": {
+      "period7d": "7 dias",
+      "period30d": "30 dias",
+      "period90d": "90 dias",
+      "periodAll": "Todo el tiempo",
+      "totalViews": "Visitas totales",
+      "totalActivations": "Activaciones totales",
+      "conversionRate": "Tasa de conversion"
+    },
+    "verification": {
+      "title": "Insignia de verificación",
+      "requestVerification": "Solicitar verificación",
+      "verificationPending": "Verificación pendiente",
+      "verified": "Autor verificado",
+      "rejected": "Verificación rechazada",
+      "rejectedNote": "Motivo",
+      "reRequest": "Solicitar de nuevo",
+      "requestSent": "Solicitud de verificación enviada",
+      "requestDescription": "Obtiene una insignia de verificación en tu perfil de autor para generar confianza con los usuarios."
+    },
+    "notifications": {
+      "title": "Preferencias de notificaciones",
+      "description": "Elige cómo quieres recibir notificaciones sobre eventos de autor",
+      "eventNewReview": "Nueva resena",
+      "channelInApp": "En la app",
+      "channelEmail": "Correo electrónico",
+      "enabled": "Activado",
+      "disabled": "Desactivado",
+      "preferencesUpdated": "Preferencias actualizadas",
+      "eventModelActivated": "Modelo activado"
+    }
   }
 }

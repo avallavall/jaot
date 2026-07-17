@@ -28,6 +28,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Changed
 
+- **"Sellers" are now authors (2026-07-16)** — with money gone (no sales, no earnings) and the marketplace fused into the studio, the platform speaks of *authors* who publish and share models, measured by adoption. Public author profiles moved to `/marketplace/authors/{org}` (old `/marketplace/sellers/{org}` links redirect), the footer and admin analytics adopt the author wording across all five languages, and the dead money-era dashboard components (revenue chart, conversion funnel, geo distribution, onboarding checklist, top-models table) were removed. The `/api/v2/seller/*` wire paths and a few response keys keep their legacy names until the next contract release.
+
 - **One model entity: the marketplace fused into the studio's ModelProject (P1.5 / ADR-006 D4, 2026-07-13)** — the historic split between "catalog models", "activated models" and studio projects is gone. A marketplace listing is now a *facet* of a ModelProject (publish pins a committed version; officials keep their parametric generator on the listing), and **using a marketplace model means forking it into your studio** — one "Use in studio" button seeds a ModelProject (optionally with your own inputs for parametric officials), which you then edit, version, solve and re-publish like any other model. `POST /models/{id}/execute` executes one of your ModelProjects (generator-backed forks render inputs; plain models solve their content directly); executions, reviews, favorites, history, analytics and admin views are all keyed on the project. Legacy `/solve` model pages redirect to the studio and old marketplace/model ids keep resolving (they were preserved as project ids).
 
 ### Removed

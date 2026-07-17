@@ -357,7 +357,6 @@
       "catalog": "Catalog",
       "marketplace": "Marketplace",
       "favorites": "Favorites",
-      "forSellers": "For Sellers",
       "activity": "Activity",
       "executions": "Executions",
       "solveAnalytics": "Analytics",
@@ -384,7 +383,6 @@
       "customSolve": "Custom Solve",
       "marketplaceAdmin": "Marketplace",
       "verification": "Verification",
-      "sellerAnalytics": "Seller Analytics",
       "marketplaceAnalytics": "Analytics",
       "platformAnalytics": "Platform"
     },
@@ -415,14 +413,14 @@
       "aiAssistant": "AI Assistant",
       "multiObjective": "Multi-Objective",
       "analytics": "Feature Analytics",
-      "sellerAnalytics": "Seller Analytics",
       "verification": "Verification",
       "create": "Create",
       "custom": "Custom",
       "myProfile": "My Profile",
       "docs": "Documentation",
       "licenses": "Licenses",
-      "history": "History"
+      "history": "History",
+      "authorAnalytics": "Author Analytics"
     },
     "help": {
       "title": "Help & Resources",
@@ -572,7 +570,6 @@
     "nav": {
       "marketplace": "Marketplace",
       "docs": "Docs",
-      "forSellers": "For Sellers",
       "signIn": "Sign In",
       "goToDashboard": "Dashboard"
     },
@@ -626,14 +623,6 @@
         "item4": "Enterprise-grade security and access controls",
         "cta": "Start building"
       },
-      "sellers": {
-        "title": "For Contributors & Consultants",
-        "item1": "Publish your models to the community marketplace",
-        "item2": "Share your optimization expertise with teams worldwide",
-        "item3": "Reach teams and enterprises globally",
-        "item4": "Track adoption and impact in your analytics",
-        "cta": "Start Publishing"
-      },
       "students": {
         "title": "For Students & Researchers",
         "item1": "Learn optimization with AI-assisted model building",
@@ -641,6 +630,14 @@
         "item3": "Start simple and grow into complex models",
         "item4": "Free and open source — ideal for learning",
         "cta": "Try for free"
+      },
+      "authors": {
+        "title": "For Contributors & Consultants",
+        "item1": "Publish your models to the community marketplace",
+        "item2": "Share your optimization expertise with teams worldwide",
+        "item3": "Reach teams and enterprises globally",
+        "item4": "Track adoption and impact in your analytics",
+        "cta": "Start Publishing"
       }
     },
     "useCases": {
@@ -819,13 +816,12 @@
       "button": "Create account"
     },
     "footer": {
+      "forAuthors": "For Authors",
       "product": "Product",
       "marketplace": "Marketplace",
       "aiBuilder": "AI Builder",
       "mcpIntegration": "MCP Integration",
-      "forSellers": "Contribute",
       "howItWorks": "How It Works",
-      "sellerDashboard": "Seller Dashboard",
       "publishModel": "Publish a Model",
       "browseModels": "Browse models",
       "developers": "Developers",
@@ -2129,17 +2125,13 @@
       "retry": "Retry"
     },
     "marketplace": {
-      "sellerAnalytics": "Seller Analytics",
       "platformTotals": "Platform-wide marketplace analytics",
-      "sellerLeaderboard": "Seller Leaderboard",
       "rank": "#",
-      "sellerName": "Seller",
       "modelsPublished": "Models Published",
       "avgRating": "Avg Rating",
-      "noSellerData": "No seller data available.",
       "drillDown": "View Details",
       "verificationRequests": "Verification Requests",
-      "verificationDesc": "Review and approve seller verification badge requests",
+      "verificationDesc": "Review and approve author verification badge requests",
       "modelName": "Model",
       "type": "Type",
       "startDate": "Start Date",
@@ -2159,7 +2151,11 @@
       "approved": "Approved",
       "pending": "Pending",
       "noRequests": "No pending verification requests",
-      "totalActivations": "Activations"
+      "totalActivations": "Activations",
+      "authorAnalytics": "Author Analytics",
+      "authorLeaderboard": "Author Leaderboard",
+      "authorName": "Author",
+      "noAuthorData": "No author data available."
     },
     "featureAnalytics": {
       "title": "Feature Usage Analytics",
@@ -2207,12 +2203,12 @@
         "executions": "Executions",
         "reportedReviews": "Reported Reviews",
         "marketplace": "Marketplace",
-        "sellerAnalytics": "Seller Analytics",
         "featureAnalytics": "Feature Analytics",
         "verification": "Verification",
         "settings": "Settings",
         "backToApp": "Back to App",
-        "platformAnalytics": "Platform"
+        "platformAnalytics": "Platform",
+        "authorAnalytics": "Author Analytics"
       }
     },
     "platformAnalytics": {
@@ -2424,21 +2420,6 @@
       "closeFilters": "Close",
       "clearCategory": "Clear category"
     },
-    "sellerProfile": {
-      "title": "Seller Profile",
-      "modelsPublished": "Models Published",
-      "totalActivations": "Total Activations",
-      "avgRating": "Average Rating",
-      "memberSince": "Member Since",
-      "verified": "Verified Seller",
-      "bio": "About",
-      "publishedModels": "Published Models",
-      "noModels": "This seller hasn't published any models yet.",
-      "noRating": "No ratings yet",
-      "backToMarketplace": "Back to Marketplace",
-      "failedToLoad": "Failed to load seller profile",
-      "sellerNotFound": "Seller not found"
-    },
     "card": {
       "noDescription": "No description available",
       "by": "by {author}",
@@ -2447,7 +2428,6 @@
       "featuredBadge": "FEATURED",
       "free": "Free",
       "newModel": "New",
-      "viewSeller": "by {seller}",
       "verified": "Verified",
       "removeFromFavorites": "Remove from favorites",
       "addToFavorites": "Add to favorites",
@@ -2558,82 +2538,21 @@
       "activate": "Activate",
       "removeFromFavorites": "Remove from favorites",
       "addToFavorites": "Add to favorites"
-    }
-  },
-  "seller": {
-    "analytics": {
-      "title": "Seller Analytics",
-      "description": "Track your marketplace performance",
-      "period7d": "7 days",
-      "period30d": "30 days",
-      "period90d": "90 days",
-      "periodAll": "All time",
-      "totalViews": "Total Views",
-      "totalImpressions": "Total Impressions",
+    },
+    "authorProfile": {
+      "title": "Author Profile",
+      "modelsPublished": "Models Published",
       "totalActivations": "Total Activations",
-      "conversionRate": "Conversion Rate",
-      "revenueChart": "Activations over time",
-      "views": "Views",
-      "activations": "Activations",
-      "impressions": "Impressions",
-      "conversionFunnel": "Conversion Funnel",
-      "funnelImpressions": "Impressions",
-      "funnelViews": "Detail Views",
-      "funnelActivations": "Activations",
-      "geoDistribution": "Geographic Distribution",
-      "country": "Country",
-      "viewCount": "Views",
-      "modelPerformance": "Model Performance",
-      "modelName": "Model Name",
-      "noData": "No data available for the selected period",
-      "loading": "Loading analytics..."
-    },
-    "promotions": {
-      "title": "Promote Your Model",
-      "selectModel": "Select a model",
-      "duration": "Duration",
-      "purchase": "Purchase",
-      "purchaseSuccess": "Placement purchased successfully!",
-      "homepageCarousel": "Homepage Carousel",
-      "homepageCarouselDesc": "Featured in the main marketplace carousel",
-      "categorySpotlight": "Category Spotlight",
-      "categorySpotlightDesc": "Highlighted in your model's category page",
-      "searchBoost": "Search Boost",
-      "searchBoostDesc": "Boosted ranking in search results",
-      "days7": "7 days",
-      "days14": "14 days",
-      "days30": "30 days"
-    },
-    "verification": {
-      "title": "Verification Badge",
-      "requestVerification": "Request Verification",
-      "verificationPending": "Verification Pending",
-      "verified": "Verified Seller",
-      "rejected": "Verification Rejected",
-      "rejectedNote": "Reason",
-      "reRequest": "Request Again",
-      "requestSent": "Verification request submitted",
-      "requestDescription": "Get a verified badge on your seller profile to build trust with buyers."
-    },
-    "notifications": {
-      "title": "Notification Preferences",
-      "description": "Choose how you want to be notified about seller events",
-      "eventNewReview": "New Review",
-      "channelInApp": "In-App",
-      "channelEmail": "Email",
-      "enabled": "Enabled",
-      "disabled": "Disabled",
-      "preferencesUpdated": "Preferences updated",
-      "eventModelActivated": "Model activated"
-    },
-    "onboarding": {
-      "title": "Get Started as a Seller",
-      "description": "Complete these steps to set up your seller profile",
-      "completeProfile": "Complete your organization profile",
-      "publishModel": "Publish your first model",
-      "addRichMedia": "Add rich media and description",
-      "stepsComplete": "{completed}/{total} steps complete",
-      "progressLabel": "Progress"
+      "avgRating": "Average Rating",
+      "memberSince": "Member Since",
+      "verified": "Verified Author",
+      "bio": "About",
+      "publishedModels": "Published Models",
+      "noModels": "This author hasn't published any models yet.",
+      "noRating": "No ratings yet",
+      "backToMarketplace": "Back to Marketplace",
+      "failedToLoad": "Failed to load author profile",
+      "authorNotFound": "Author not found"
     }
   },
   "solve": {
@@ -4416,9 +4335,9 @@
     },
     "dynamic": {
       "titleTemplate": "{name} — JAOT",
-      "sellerDescriptionFallback": "Browse optimization models by {name} on JAOT"
+      "authorDescriptionFallback": "Browse optimization models by {name} on JAOT"
     },
-    "sellers": {
+    "authors": {
       "title": "Model Publishers - JAOT Marketplace",
       "description": "Discover organizations publishing optimization models on the JAOT community marketplace — free to activate and use."
     }
@@ -4426,5 +4345,38 @@
   "images": {
     "modelScreenshot": "Screenshot of {name}",
     "modelScreenshotThumbnail": "Thumbnail {index} of {name}"
+  },
+  "author": {
+    "analytics": {
+      "period7d": "7 days",
+      "period30d": "30 days",
+      "period90d": "90 days",
+      "periodAll": "All time",
+      "totalViews": "Total Views",
+      "totalActivations": "Total Activations",
+      "conversionRate": "Conversion Rate"
+    },
+    "verification": {
+      "title": "Verification Badge",
+      "requestVerification": "Request Verification",
+      "verificationPending": "Verification Pending",
+      "verified": "Verified Author",
+      "rejected": "Verification Rejected",
+      "rejectedNote": "Reason",
+      "reRequest": "Request Again",
+      "requestSent": "Verification request submitted",
+      "requestDescription": "Get a verified badge on your author profile to build trust with users."
+    },
+    "notifications": {
+      "title": "Notification Preferences",
+      "description": "Choose how you want to be notified about author events",
+      "eventNewReview": "New Review",
+      "channelInApp": "In-App",
+      "channelEmail": "Email",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "preferencesUpdated": "Preferences updated",
+      "eventModelActivated": "Model activated"
+    }
   }
 }

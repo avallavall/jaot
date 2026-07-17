@@ -428,32 +428,6 @@ export interface AnalyticsSummary {
   period: string;
 }
 
-export interface TimeSeriesDataPoint {
-  date: string;
-  views: number;
-  impressions: number;
-  activations: number;
-}
-
-export interface GeoDistributionEntry {
-  country: string;
-  count: number;
-}
-
-export interface ModelPerformanceRow {
-  model_id: string;
-  model_name: string;
-  views: number;
-  activations: number;
-  conversion_rate: number;
-}
-
-export interface ConversionFunnel {
-  impressions: number;
-  views: number;
-  activations: number;
-}
-
 
 export interface AdminAnalytics {
   platform_totals: AnalyticsSummary;
@@ -491,17 +465,6 @@ export interface NotificationPreferenceEntry {
 
 export interface NotificationPreferencesResponse {
   preferences: NotificationPreferenceEntry[];
-}
-
-export interface OnboardingStep {
-  key: string;
-  completed: boolean;
-  link: string;
-}
-
-export interface OnboardingStatus {
-  steps: OnboardingStep[];
-  all_complete: boolean;
 }
 
 // Generated NotificationResponse uses loose `string` for type field

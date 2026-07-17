@@ -20,7 +20,6 @@ import type {
   ValidationResult,
   NotificationList,
   NotificationPreferencesResponse,
-  OnboardingStatus,
   Review,
   ReviewList,
   AdminStats,
@@ -57,11 +56,6 @@ import type {
   ScheduleCreateRequest,
   ScheduleUpdateRequest,
   CronValidationResponse,
-  AnalyticsSummary,
-  TimeSeriesDataPoint,
-  GeoDistributionEntry,
-  ModelPerformanceRow,
-  ConversionFunnel,
   AdminAnalytics,
   VerificationRequestStatus,
   AdminVerificationEntry,
@@ -104,7 +98,6 @@ export type {
   NotificationList,
   NotificationPreferenceEntry,
   NotificationPreferencesResponse,
-  OnboardingStatus,
   Review,
   ReviewList,
   AdminStats,
@@ -149,10 +142,6 @@ export type {
   ScheduleUpdateRequest,
   CronValidationResponse,
   AnalyticsSummary,
-  TimeSeriesDataPoint,
-  GeoDistributionEntry,
-  ModelPerformanceRow,
-  ConversionFunnel,
   AdminAnalytics,
   VerificationRequestStatus,
   AdminVerificationEntry,
@@ -880,33 +869,15 @@ export const api = {
 
 
 
-  getSellerAnalyticsSummary(period: string = "30d"): Promise<AnalyticsSummary> {
-    return request("/api/v2/seller/analytics/summary", { params: { period } });
-  },
-
-  getSellerAnalyticsTimeSeries(period: string = "30d"): Promise<{ data: TimeSeriesDataPoint[]; period: string }> {
-    return request("/api/v2/seller/analytics/time-series", { params: { period } });
-  },
-
-  getSellerAnalyticsGeo(period: string = "30d"): Promise<{ data: GeoDistributionEntry[] }> {
-    return request("/api/v2/seller/analytics/geo", { params: { period } });
-  },
-
-  getSellerAnalyticsModels(period: string = "30d"): Promise<ModelPerformanceRow[]> {
-    return request("/api/v2/seller/analytics/models", { params: { period } });
-  },
-
-  getSellerAnalyticsFunnel(period: string = "30d"): Promise<ConversionFunnel> {
-    return request("/api/v2/seller/analytics/funnel", { params: { period } });
-  },
-
-  getAdminSellerAnalytics(period: string = "30d"): Promise<AdminAnalytics> {
+  getAdminAuthorAnalytics(period: string = "30d"): Promise<AdminAnalytics> {
+    // Legacy wire path — renamed to author-analytics in the contract release.
     return request("/api/v2/admin/marketplace/seller-analytics", { params: { period } });
   },
 
 
 
 
+  // The /api/v2/seller/* wire paths below are legacy — renamed in the contract release.
   requestVerification(): Promise<VerificationRequestStatus> {
     return request("/api/v2/seller/verification/request", {
       method: "POST",
@@ -927,10 +898,6 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(data),
     });
-  },
-
-  getOnboardingStatus(): Promise<OnboardingStatus> {
-    return request("/api/v2/seller/onboarding/status");
   },
 
 

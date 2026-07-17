@@ -1,11 +1,11 @@
 """Admin marketplace management routes.
 
-Provides admin endpoints for platform-wide seller analytics,
-per-seller drill-down, seller leaderboard, feature usage analytics,
+Provides admin endpoints for platform-wide author analytics,
+per-author drill-down, author leaderboard, feature usage analytics,
 and the verification request queue.
 
 ADR-008: promotion (featured placement) management left with the money layer;
-seller analytics are non-monetary (adoption, not revenue) and no longer gated.
+author analytics are non-monetary (adoption, not revenue) and no longer gated.
 """
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -15,7 +15,7 @@ from app.schemas.analytics import (
     FeatureAnalyticsOverview,
     PaginatedRecentEventsResponse,
 )
-from app.schemas.seller_analytics import (
+from app.schemas.author_analytics import (
     AdminAnalyticsResponse,
     AnalyticsSummaryResponse,
 )
@@ -24,7 +24,7 @@ from app.schemas.verification import (
     AdminVerificationEntry,
 )
 from app.services.analytics_service import AnalyticsService
-from app.services.seller_analytics_service import SellerAnalyticsService
+from app.services.author_analytics_service import AuthorAnalyticsService
 from app.services.verification_service import VerificationService
 from app.shared.db.base import get_db
 
@@ -32,29 +32,30 @@ router = APIRouter(prefix="/marketplace", tags=["admin-marketplace"])
 
 
 @router.get("/seller-analytics", response_model=AdminAnalyticsResponse)
-async def get_admin_seller_analytics(
+async def get_admin_author_analytics(
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
     db: Session = Depends(get_db),
 ) -> AdminAnalyticsResponse:
-    """Get platform-wide analytics with seller leaderboard.
+    """Get platform-wide analytics with the author leaderboard.
 
     Returns aggregated platform totals (org_id=None) and a ranked list
     of model authors by adoption.
     """
-    analytics = SellerAnalyticsService(db)
+    analytics = AuthorAnalyticsService(db)
     platform_totals = analytics.get_summary(org_id=None, period=period)
-    sellers = analytics.get_seller_leaderboard(period=period)
+    # `sellers` is the legacy wire key of AdminAnalyticsResponse (contract release).
+    sellers = analytics.get_author_leaderboard(period=period)
     return AdminAnalyticsResponse(platform_totals=platform_totals, sellers=sellers)
 
 
 @router.get("/seller-analytics/{org_id}", response_model=AnalyticsSummaryResponse)
-async def get_admin_seller_detail(
+async def get_admin_author_detail(
     org_id: str,
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
     db: Session = Depends(get_db),
 ) -> AnalyticsSummaryResponse:
-    """Admin drill-down: get analytics summary for a specific seller."""
-    analytics = SellerAnalyticsService(db)
+    """Admin drill-down: get analytics summary for a specific author org."""
+    analytics = AuthorAnalyticsService(db)
     return analytics.get_summary(org_id=org_id, period=period)
 
 

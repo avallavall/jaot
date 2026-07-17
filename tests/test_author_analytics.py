@@ -17,7 +17,7 @@ from app.models import (
     User,
 )
 from app.models.model_view_event import ModelViewEvent
-from app.services.seller_analytics_service import SellerAnalyticsService
+from app.services.author_analytics_service import AuthorAnalyticsService
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
 
@@ -329,13 +329,13 @@ class TestViewEventLogging:
 
 
 class TestAnalyticsService:
-    """Test SellerAnalyticsService directly."""
+    """Test AuthorAnalyticsService directly."""
 
     def test_get_summary_platform_wide(
         self, db_session, seller_org, catalog_model, view_events, activation
     ):
         """Platform-wide summary (org_id=None) includes all events."""
-        service = SellerAnalyticsService(db_session)
+        service = AuthorAnalyticsService(db_session)
         summary = service.get_summary(org_id=None, period="all")
         assert summary.total_views >= 2
         assert summary.total_impressions >= 2
@@ -343,7 +343,7 @@ class TestAnalyticsService:
 
     def test_get_geo_distribution(self, db_session, seller_org, catalog_model, view_events):
         """Geo distribution groups events by country."""
-        service = SellerAnalyticsService(db_session)
+        service = AuthorAnalyticsService(db_session)
         geo = service.get_geo_distribution(org_id=seller_org.id, period="all")
         countries = {e.country for e in geo.data}
         assert "US" in countries
@@ -352,16 +352,16 @@ class TestAnalyticsService:
         self, db_session, seller_org, catalog_model, view_events, activation
     ):
         """Conversion funnel returns impressions, views, activations."""
-        service = SellerAnalyticsService(db_session)
+        service = AuthorAnalyticsService(db_session)
         funnel = service.get_conversion_funnel(org_id=seller_org.id, period="all")
         assert funnel.impressions >= 0
         assert funnel.views >= 0
         assert funnel.activations >= 0
 
-    def test_get_seller_leaderboard(self, db_session, seller_org, catalog_model, activation):
+    def test_get_author_leaderboard(self, db_session, seller_org, catalog_model, activation):
         """Leaderboard returns seller entries sorted by activations."""
-        service = SellerAnalyticsService(db_session)
-        leaderboard = service.get_seller_leaderboard(period="all")
+        service = AuthorAnalyticsService(db_session)
+        leaderboard = service.get_author_leaderboard(period="all")
         assert len(leaderboard) >= 1
         assert leaderboard[0].org_id == seller_org.id
         assert leaderboard[0].total_activations > 0
@@ -488,7 +488,7 @@ class TestSellerAnalyticsCrossOrgIsolation:
         db_session.add(sibling)
         db_session.commit()
 
-        service = SellerAnalyticsService(db_session)
+        service = AuthorAnalyticsService(db_session)
         own = service.get_summary(org_id=seller_org.id, period="all")
         sibling_summary = service.get_summary(org_id=sibling.id, period="all")
 

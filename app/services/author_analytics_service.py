@@ -1,7 +1,7 @@
-"""Seller analytics service for tracking and aggregating marketplace metrics.
+"""Author analytics service for tracking and aggregating marketplace metrics.
 
 Handles view/impression logging with geoIP lookup, and provides aggregation
-queries for seller dashboards and admin analytics.
+queries for author dashboards and admin analytics.
 
 ADR-008: metrics are non-monetary — an "activation" is a fork ``ModelProject``
 seeded from a listing via from-marketplace (someone adopted the model), not a
@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.models.model_project import ModelProject, ModelProjectListing
 from app.models.model_view_event import ModelViewEvent
-from app.schemas.seller_analytics import (
+from app.schemas.author_analytics import (
     AnalyticsSummaryResponse,
     ConversionFunnelResponse,
     GeoDistributionEntry,
@@ -68,8 +68,8 @@ def _period_since(period: str) -> datetime | None:
     return None  # "all" -- no filter
 
 
-class SellerAnalyticsService:
-    """Analytics service for seller dashboards and admin reporting."""
+class AuthorAnalyticsService:
+    """Analytics service for author dashboards and admin reporting."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -237,7 +237,7 @@ class SellerAnalyticsService:
         return GeoDistributionResponse(data=data)
 
     def get_model_performance(self, org_id: str, period: str) -> list[ModelPerformanceRow]:
-        """Per-model breakdown for a seller."""
+        """Per-model breakdown for an author."""
         since = _period_since(period)
 
         # Views per model
@@ -314,7 +314,7 @@ class SellerAnalyticsService:
             impressions=impressions, views=views, activations=activations
         )
 
-    def get_seller_leaderboard(self, period: str) -> list[SellerLeaderboardEntry]:
+    def get_author_leaderboard(self, period: str) -> list[SellerLeaderboardEntry]:
         """Admin-only leaderboard: top authors by adoption (activations)."""
         since = _period_since(period)
 

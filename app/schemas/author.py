@@ -1,4 +1,4 @@
-"""Pydantic schemas for seller notification preference and onboarding API responses."""
+"""Pydantic schemas for author notification preference and onboarding API responses."""
 
 from pydantic import BaseModel
 
@@ -39,7 +39,7 @@ class OnboardingStep(BaseModel):
 
 
 class OnboardingStatusResponse(BaseModel):
-    """Onboarding checklist status for a seller."""
+    """Onboarding checklist status for an author."""
 
     steps: list[OnboardingStep]
     all_complete: bool

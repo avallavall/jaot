@@ -211,7 +211,7 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
               {model.author_name && (
                 <div className="flex items-center gap-2 mb-4">
                   <Link
-                    href={`/marketplace/sellers/${model.author_organization_id}`}
+                    href={`/marketplace/authors/${model.author_organization_id}`}
                     className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
                   >
                     <Building2 className="w-4 h-4" />

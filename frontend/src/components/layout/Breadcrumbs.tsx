@@ -36,7 +36,7 @@ const SEGMENT_KEYS: Record<string, string> = {
   "ai-assistant": "breadcrumbs.aiAssistant",
   "multi-objective": "breadcrumbs.multiObjective",
   analytics: "breadcrumbs.analytics",
-  "seller-analytics": "breadcrumbs.sellerAnalytics",
+  "author-analytics": "breadcrumbs.authorAnalytics",
   verification: "breadcrumbs.verification",
   create: "breadcrumbs.create",
   custom: "breadcrumbs.custom",

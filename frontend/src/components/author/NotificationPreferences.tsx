@@ -16,7 +16,7 @@ const EVENT_TYPES = [
 const CHANNELS = ["in_app", "email"] as const;
 
 export function NotificationPreferences() {
-  const t = useTranslations("seller.notifications");
+  const t = useTranslations("author.notifications");
   const [preferences, setPreferences] = useState<NotificationPreferenceEntry[]>([]);
   const [loading, setLoading] = useState(true);
 

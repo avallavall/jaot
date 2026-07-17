@@ -29,7 +29,7 @@ export default function AdminLayout({
     { label: t("nav.reportedReviews"), href: "/admin/reviews", icon: <Flag className="w-4 h-4" /> },
     { label: "─────────", href: "#", icon: null },
     { label: t("nav.marketplace"), href: "#", icon: null },
-    { label: t("nav.sellerAnalytics"), href: "/admin/marketplace/seller-analytics", icon: <BarChart3 className="w-4 h-4" /> },
+    { label: t("nav.authorAnalytics"), href: "/admin/marketplace/author-analytics", icon: <BarChart3 className="w-4 h-4" /> },
     { label: t("nav.featureAnalytics"), href: "/admin/marketplace/analytics", icon: <Activity className="w-4 h-4" /> },
     { label: t("nav.verification"), href: "/admin/marketplace/verification", icon: <Shield className="w-4 h-4" /> },
     { label: "─────────", href: "#", icon: null },

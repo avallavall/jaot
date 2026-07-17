@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function VerificationRequest() {
-  const t = useTranslations("seller.verification");
+  const t = useTranslations("author.verification");
 
   const [status, setStatus] = useState<VerificationRequestStatus | null | undefined>(
     undefined

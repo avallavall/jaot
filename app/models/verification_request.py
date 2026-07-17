@@ -1,4 +1,4 @@
-"""VerificationRequest model for seller badge verification workflow."""
+"""VerificationRequest model for the author badge verification workflow."""
 
 from datetime import datetime
 from enum import Enum
@@ -20,10 +20,10 @@ class VerificationStatus(str, Enum):
 
 
 class VerificationRequest(Base):
-    """Request from a seller organization to receive the verified publisher badge.
+    """Request from an author organization to receive the verified publisher badge.
 
     Workflow:
-    1. Seller submits request (status=pending)
+    1. Author submits request (status=pending)
     2. Admin reviews org profile, published models, etc.
     3. Admin approves (sets Organization.is_verified=True) or rejects with note
     """

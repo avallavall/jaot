@@ -97,7 +97,7 @@ __all__ = [
     # Platform Settings
     "PlatformSetting",
     "PlatformSettingAudit",
-    # Seller Experience
+    # Author Experience
     "ModelViewEvent",
     "VerificationRequest",
     "VerificationStatus",

@@ -1,6 +1,10 @@
-"""Seller analytics, verification, notifications, and onboarding API endpoints.
+"""Author analytics, verification, notifications, and onboarding API endpoints.
 
-Provides seller-facing endpoints for analytics dashboards (views, impressions,
+P1.5 G8: selling no longer exists — these are AUTHOR-facing endpoints (authors
+publish/share models; adoption, not sales). The /seller/* wire paths and tag are
+legacy and get renamed in the contract release.
+
+Provides author-facing endpoints for analytics dashboards (views, impressions,
 activations, geo distribution, funnel), verification badge requests,
 notification preference management, and onboarding checklist status.
 
@@ -16,14 +20,14 @@ from sqlalchemy.orm import Session
 
 from app.api.v2.auth import get_current_user
 from app.models import ModelProjectListing, NotificationPreference, Organization, User
-from app.schemas.seller import (
+from app.schemas.author import (
     NotificationPreferenceEntry,
     NotificationPreferencesResponse,
     OnboardingStatusResponse,
     OnboardingStep,
     UpdatePreferenceRequest,
 )
-from app.schemas.seller_analytics import (
+from app.schemas.author_analytics import (
     AnalyticsSummaryResponse,
     ConversionFunnelResponse,
     GeoDistributionResponse,
@@ -31,12 +35,13 @@ from app.schemas.seller_analytics import (
     TimeSeriesResponse,
 )
 from app.schemas.verification import VerificationRequestResponse
-from app.services.seller_analytics_service import SellerAnalyticsService
+from app.services.author_analytics_service import AuthorAnalyticsService
 from app.services.verification_service import VerificationService
 from app.shared.db.base import get_db
 
 logger = logging.getLogger(__name__)
 
+# Legacy wire prefix — renamed to /author in the contract release.
 router = APIRouter(prefix="/seller", tags=["seller"])
 
 
@@ -46,8 +51,8 @@ async def get_analytics_summary(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> AnalyticsSummaryResponse:
-    """Get seller analytics summary: views, impressions, activations, conversion rate."""
-    analytics = SellerAnalyticsService(db)
+    """Get author analytics summary: views, impressions, activations, conversion rate."""
+    analytics = AuthorAnalyticsService(db)
     return analytics.get_summary(org_id=current_user.organization_id, period=period)
 
 
@@ -58,7 +63,7 @@ async def get_analytics_time_series(
     db: Session = Depends(get_db),
 ) -> TimeSeriesResponse:
     """Get daily time series of views, impressions, and activations."""
-    analytics = SellerAnalyticsService(db)
+    analytics = AuthorAnalyticsService(db)
     return analytics.get_time_series(org_id=current_user.organization_id, period=period)
 
 
@@ -69,7 +74,7 @@ async def get_analytics_geo(
     db: Session = Depends(get_db),
 ) -> GeoDistributionResponse:
     """Get geographic distribution of model views by country."""
-    analytics = SellerAnalyticsService(db)
+    analytics = AuthorAnalyticsService(db)
     return analytics.get_geo_distribution(org_id=current_user.organization_id, period=period)
 
 
@@ -79,8 +84,8 @@ async def get_analytics_models(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[ModelPerformanceRow]:
-    """Get per-model performance comparison for the seller."""
-    analytics = SellerAnalyticsService(db)
+    """Get per-model performance comparison for the author."""
+    analytics = AuthorAnalyticsService(db)
     return analytics.get_model_performance(org_id=current_user.organization_id, period=period)
 
 
@@ -91,7 +96,7 @@ async def get_analytics_funnel(
     db: Session = Depends(get_db),
 ) -> ConversionFunnelResponse:
     """Get conversion funnel: impressions -> views -> activations."""
-    analytics = SellerAnalyticsService(db)
+    analytics = AuthorAnalyticsService(db)
     return analytics.get_conversion_funnel(org_id=current_user.organization_id, period=period)
 
 
@@ -104,7 +109,7 @@ async def request_verification(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> VerificationRequestResponse:
-    """Submit a verification badge request for the seller's organization.
+    """Submit a verification badge request for the author's organization.
 
     Returns 409 if a request is already pending or approved.
     """
@@ -132,7 +137,7 @@ async def get_verification_status(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> VerificationRequestResponse | None:
-    """Get the current verification request status for the seller's organization.
+    """Get the current verification request status for the author's organization.
 
     Returns null if no verification request exists.
     """
@@ -152,7 +157,7 @@ async def get_verification_status(
 
 # ADR-008: "sale"/"payout"/"promotion_expiring" notification events left with the
 # money layer; reviews and the money-neutral adoption signal remain.
-SELLER_EVENT_TYPES = ["review", "activation"]
+AUTHOR_EVENT_TYPES = ["review", "activation"]
 NOTIFICATION_CHANNELS = ["in_app", "email"]
 # Default preferences: in_app ON, email OFF (missing-row-means-default pattern)
 DEFAULT_PREFERENCES: dict[str, bool] = {"in_app": True, "email": False}
@@ -178,7 +183,7 @@ async def get_notification_preferences(
     }
 
     entries: list[NotificationPreferenceEntry] = []
-    for event_type in SELLER_EVENT_TYPES:
+    for event_type in AUTHOR_EVENT_TYPES:
         for channel in NOTIFICATION_CHANNELS:
             enabled = lookup.get((event_type, channel), DEFAULT_PREFERENCES[channel])
             entries.append(

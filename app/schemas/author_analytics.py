@@ -1,4 +1,4 @@
-"""Pydantic schemas for seller analytics API responses.
+"""Pydantic schemas for author analytics API responses.
 
 ADR-008: all metrics are non-monetary — "activation" means an org activated
 the author's catalog model, not a credit sale.
@@ -47,7 +47,7 @@ class GeoDistributionResponse(BaseModel):
 
 
 class ModelPerformanceRow(BaseModel):
-    """Per-model performance breakdown for a seller."""
+    """Per-model performance breakdown for an author."""
 
     model_id: str
     model_name: str
@@ -64,6 +64,7 @@ class ConversionFunnelResponse(BaseModel):
     activations: int
 
 
+# Class name is an openapi schema name (wire) — renamed in the contract release.
 class SellerLeaderboardEntry(BaseModel):
     """Leaderboard entry for a model author (admin view)."""
 

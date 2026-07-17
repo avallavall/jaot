@@ -30,7 +30,7 @@ class AuditAction(str, Enum):
     TRIGGER_SCHEDULE_CREATE = "trigger_schedule_create"
     TRIGGER_SCHEDULE_UPDATE = "trigger_schedule_update"
     TRIGGER_SCHEDULE_DELETE = "trigger_schedule_delete"
-    # Seller experience actions
+    # Author experience actions
     VERIFICATION_APPROVE = "verification_approve"
     VERIFICATION_REJECT = "verification_reject"
     PLACEMENT_REVOKE = "placement_revoke"

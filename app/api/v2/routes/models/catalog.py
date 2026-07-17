@@ -19,8 +19,8 @@ from app.schemas.model import (
     ModelCatalogListResponse,
     ModelCatalogResponse,
 )
+from app.services.author_analytics_service import AuthorAnalyticsService
 from app.services.marketplace_fusion import listing_to_catalog_response
-from app.services.seller_analytics_service import SellerAnalyticsService
 from app.shared.db.base import get_db
 
 logger = logging.getLogger(__name__)
@@ -103,7 +103,7 @@ async def list_catalog_models(
     # model_project_id — the marketplace identity).
     try:
         if models:
-            analytics = SellerAnalyticsService(db)
+            analytics = AuthorAnalyticsService(db)
             model_ids = [i.id for i in items]
             # Catalog list is public -- viewer may not be authenticated
             viewer_user = getattr(request.state, "user", None)
@@ -156,7 +156,7 @@ async def get_catalog_model(
 
     # Fire-and-forget: log view event for this model detail page
     try:
-        analytics = SellerAnalyticsService(db)
+        analytics = AuthorAnalyticsService(db)
         viewer_user = getattr(request.state, "user", None)
         viewer_org_id = getattr(viewer_user, "organization_id", None) if viewer_user else None
         viewer_ip = request.client.host if request.client else None

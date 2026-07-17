@@ -389,7 +389,7 @@ def create_from_marketplace(
             )
             notification_svc = NotificationService(db)
             for author_user in author_users:
-                notification_svc.send_seller_notification(
+                notification_svc.send_author_notification(
                     user_id=author_user.id,
                     organization_id=listing.author_organization_id,
                     event_type="activation",

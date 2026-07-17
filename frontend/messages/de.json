@@ -357,7 +357,6 @@
       "catalog": "Katalog",
       "marketplace": "Marktplatz",
       "favorites": "Favoriten",
-      "forSellers": "für Verkäufer",
       "activity": "Aktivität",
       "executions": "Ausführungen",
       "solveAnalytics": "Analytik",
@@ -384,7 +383,6 @@
       "customSolve": "JSON lösen",
       "marketplaceAdmin": "Marketplace",
       "verification": "Verifizierung",
-      "sellerAnalytics": "Verkäufer-Analytik",
       "marketplaceAnalytics": "Analytik",
       "platformAnalytics": "Plattform"
     },
@@ -415,14 +413,14 @@
       "aiAssistant": "KI-Assistent",
       "multiObjective": "Multi-Objektiv",
       "analytics": "Funktionsanalysen",
-      "sellerAnalytics": "Verkäuferanalysen",
       "verification": "Verifizierung",
       "create": "Erstellen",
       "custom": "Benutzerdefiniert",
       "myProfile": "Mein Profil",
       "docs": "Dokumentation",
       "licenses": "Lizenzen",
-      "history": "Verlauf"
+      "history": "Verlauf",
+      "authorAnalytics": "Autoren-Analysen"
     },
     "help": {
       "title": "Hilfe & Ressourcen",
@@ -572,7 +570,6 @@
     "nav": {
       "marketplace": "Marktplatz",
       "docs": "Dokumentation",
-      "forSellers": "für Verkäufer",
       "signIn": "Anmelden",
       "goToDashboard": "Dashboard"
     },
@@ -634,7 +631,7 @@
         "item4": "Kostenlos und Open Source — ideal zum Lernen",
         "cta": "Kostenlos testen"
       },
-      "sellers": {
+      "authors": {
         "title": "Für Beitragende und Berater",
         "item1": "Veröffentliche deine Modelle im Community-Marktplatz",
         "item2": "Teile dein Optimierungs-Know-how mit Teams weltweit",
@@ -786,13 +783,12 @@
       "button": "Konto erstellen"
     },
     "footer": {
+      "forAuthors": "Für Autoren",
       "product": "Produkt",
       "marketplace": "Marktplatz",
       "aiBuilder": "KI-Builder",
       "mcpIntegration": "MCP-Integration",
-      "forSellers": "Mitwirken",
       "howItWorks": "So funktioniert es",
-      "sellerDashboard": "Verkäufer-Dashboard",
       "publishModel": "Modell Veröffentlichen",
       "browseModels": "Modelle durchsuchen",
       "developers": "Entwickler",
@@ -2129,11 +2125,8 @@
       "retry": "Erneut versuchen"
     },
     "marketplace": {
-      "sellerAnalytics": "Verkäufer-Analysen",
       "platformTotals": "Plattformweite Marktplatz-Analysen",
-      "sellerLeaderboard": "Verkäufer-Rangliste",
       "rank": "#",
-      "sellerName": "Verkäufer",
       "modelsPublished": "Veröffentlichte Modelle",
       "avgRating": "Durchschnittsbewertung",
       "drillDown": "Details anzeigen",
@@ -2158,8 +2151,11 @@
       "approved": "Genehmigt",
       "pending": "Ausstehend",
       "noRequests": "Keine ausstehenden Verifizierungsanfragen",
-      "noSellerData": "Keine Verkäuferdaten verfügbar.",
-      "totalActivations": "Aktivierungen"
+      "totalActivations": "Aktivierungen",
+      "authorAnalytics": "Autoren-Analysen",
+      "authorLeaderboard": "Autoren-Rangliste",
+      "authorName": "Autor",
+      "noAuthorData": "Keine Autorendaten verfügbar."
     },
     "featureAnalytics": {
       "title": "Feature-Nutzungsanalysen",
@@ -2207,12 +2203,12 @@
         "executions": "Ausführungen",
         "reportedReviews": "Gemeldete Bewertungen",
         "marketplace": "Marktplatz",
-        "sellerAnalytics": "Verkäuferanalysen",
         "featureAnalytics": "Funktionsanalysen",
         "verification": "Verifizierung",
         "settings": "Einstellungen",
         "backToApp": "Zurück zur App",
-        "platformAnalytics": "Plattform"
+        "platformAnalytics": "Plattform",
+        "authorAnalytics": "Autoren-Analysen"
       }
     },
     "platformAnalytics": {
@@ -2403,7 +2399,6 @@
       "featuredBadge": "EMPFOHLEN",
       "free": "Kostenlos",
       "newModel": "Neu",
-      "viewSeller": "von {seller}",
       "verified": "Verifiziert",
       "removeFromFavorites": "Aus Favoriten entfernen",
       "addToFavorites": "Zu Favoriten hinzufügen",
@@ -2544,96 +2539,20 @@
       "closeFilters": "Schliessen",
       "clearCategory": "Kategorie zurücksetzen"
     },
-    "sellerProfile": {
-      "title": "Verkäufer-Profil",
+    "authorProfile": {
+      "title": "Autor-Profil",
       "modelsPublished": "Veröffentlichte Modelle",
       "totalActivations": "Aktivierungen gesamt",
       "avgRating": "Durchschnittsbewertung",
       "memberSince": "Mitglied seit",
-      "verified": "Verifizierter Verkäufer",
+      "verified": "Verifizierter Autor",
       "bio": "über",
       "publishedModels": "Veröffentlichte Modelle",
-      "noModels": "Dieser Verkäufer hat noch keine Modelle Veröffentlicht.",
+      "noModels": "Dieser Autor hat noch keine Modelle Veröffentlicht.",
       "noRating": "Noch keine Bewertungen",
       "backToMarketplace": "Zurück zum Marktplatz",
-      "failedToLoad": "Fehler beim Laden des Verkäuferprofils",
-      "sellerNotFound": "Verkäufer nicht gefunden"
-    }
-  },
-  "seller": {
-    "analytics": {
-      "title": "Verkäufer-Analysen",
-      "description": "Verfolge deine Marktplatz-Performance",
-      "period7d": "7 Tage",
-      "period30d": "30 Tage",
-      "period90d": "90 Tage",
-      "periodAll": "Gesamt",
-      "totalViews": "Aufrufe gesamt",
-      "totalImpressions": "Impressionen gesamt",
-      "totalActivations": "Aktivierungen gesamt",
-      "conversionRate": "Konversionsrate",
-      "revenueChart": "Aktivierungen im Zeitverlauf",
-      "views": "Aufrufe",
-      "activations": "Aktivierungen",
-      "impressions": "Impressionen",
-      "conversionFunnel": "Conversion-Funnel",
-      "funnelImpressions": "Impressionen",
-      "funnelViews": "Detailaufrufe",
-      "funnelActivations": "Aktivierungen",
-      "geoDistribution": "Geografische Verteilung",
-      "country": "Land",
-      "viewCount": "Aufrufe",
-      "modelPerformance": "Modell-Performance",
-      "modelName": "Modellname",
-      "noData": "Keine Daten für den ausgeWählten Zeitraum Verfügbar",
-      "loading": "Analysen werden geladen..."
-    },
-    "promotions": {
-      "title": "Dein Modell bewerben",
-      "selectModel": "Modell auswählen",
-      "duration": "Dauer",
-      "purchase": "Kaufen",
-      "purchaseSuccess": "Platzierung erfolgreich gekauft!",
-      "homepageCarousel": "Startseiten-Karussell",
-      "homepageCarouselDesc": "Im Hauptkarussell des Marktplatzes hervorgehoben",
-      "categorySpotlight": "Kategorie-Spotlight",
-      "categorySpotlightDesc": "Hervorgehoben auf der Kategorieseite deines Modells",
-      "searchBoost": "Such-Boost",
-      "searchBoostDesc": "Verbessertes Ranking in den Suchergebnissen",
-      "days7": "7 Tage",
-      "days14": "14 Tage",
-      "days30": "30 Tage"
-    },
-    "verification": {
-      "title": "Verifizierungs-Abzeichen",
-      "requestVerification": "Verifizierung anfordern",
-      "verificationPending": "Verifizierung ausstehend",
-      "verified": "Verifizierter Verkäufer",
-      "rejected": "Verifizierung abgelehnt",
-      "rejectedNote": "Grund",
-      "reRequest": "Erneut anfordern",
-      "requestSent": "Verifizierungsanfrage gesendet",
-      "requestDescription": "Erhalte ein Verifizierungs-Abzeichen auf deinem Verkäufer-Profil, um Vertrauen bei Käufern aufzubauen."
-    },
-    "notifications": {
-      "title": "Benachrichtigungseinstellungen",
-      "description": "Wähle, wie du über Verkäufer-Ereignisse benachrichtigt werden mst",
-      "eventNewReview": "Neue Rezension",
-      "channelInApp": "In-App",
-      "channelEmail": "E-Mail",
-      "enabled": "Aktiviert",
-      "disabled": "Deaktiviert",
-      "preferencesUpdated": "Einstellungen aktualisiert",
-      "eventModelActivated": "Modell aktiviert"
-    },
-    "onboarding": {
-      "title": "Als Verkäufer starten",
-      "description": "F diese Schritte aus, um dein Verkäufer-Profil einzurichten",
-      "completeProfile": "Organisationsprofil vervollStändigen",
-      "publishModel": "Erstes Modell Veröffentlichen",
-      "addRichMedia": "Rich Media und Beschreibung Hinzufügen",
-      "stepsComplete": "{completed}/{total} Schritte abgeschlossen",
-      "progressLabel": "Fortschritt"
+      "failedToLoad": "Fehler beim Laden des Autorprofils",
+      "authorNotFound": "Autor nicht gefunden"
     }
   },
   "solve": {
@@ -4416,9 +4335,9 @@
     },
     "dynamic": {
       "titleTemplate": "{name} — JAOT",
-      "sellerDescriptionFallback": "Entdecken Sie die Optimierungsmodelle von {name} auf JAOT"
+      "authorDescriptionFallback": "Entdecken Sie die Optimierungsmodelle von {name} auf JAOT"
     },
-    "sellers": {
+    "authors": {
       "title": "Modell-Publisher - JAOT Marketplace",
       "description": "Entdecke Organisationen, die Optimierungsmodelle auf dem JAOT-Community-Marketplace veröffentlichen — kostenlos zu aktivieren und zu nutzen."
     }
@@ -4426,5 +4345,38 @@
   "images": {
     "modelScreenshot": "Screenshot von {name}",
     "modelScreenshotThumbnail": "Miniaturansicht {index} von {name}"
+  },
+  "author": {
+    "analytics": {
+      "period7d": "7 Tage",
+      "period30d": "30 Tage",
+      "period90d": "90 Tage",
+      "periodAll": "Gesamt",
+      "totalViews": "Aufrufe gesamt",
+      "totalActivations": "Aktivierungen gesamt",
+      "conversionRate": "Konversionsrate"
+    },
+    "verification": {
+      "title": "Verifizierungs-Abzeichen",
+      "requestVerification": "Verifizierung anfordern",
+      "verificationPending": "Verifizierung ausstehend",
+      "verified": "Verifizierter Autor",
+      "rejected": "Verifizierung abgelehnt",
+      "rejectedNote": "Grund",
+      "reRequest": "Erneut anfordern",
+      "requestSent": "Verifizierungsanfrage gesendet",
+      "requestDescription": "Erhalte ein Verifizierungs-Abzeichen auf deinem Autor-Profil, um Vertrauen bei Nutzern aufzubauen."
+    },
+    "notifications": {
+      "title": "Benachrichtigungseinstellungen",
+      "description": "Wähle, wie du über Autor-Ereignisse benachrichtigt werden mst",
+      "eventNewReview": "Neue Rezension",
+      "channelInApp": "In-App",
+      "channelEmail": "E-Mail",
+      "enabled": "Aktiviert",
+      "disabled": "Deaktiviert",
+      "preferencesUpdated": "Einstellungen aktualisiert",
+      "eventModelActivated": "Modell aktiviert"
+    }
   }
 }

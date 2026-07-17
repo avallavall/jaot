@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
-import { NotificationPreferences } from "@/components/seller/NotificationPreferences";
+import { NotificationPreferences } from "@/components/author/NotificationPreferences";
 import { AnthropicKeySettings } from "@/components/settings/AnthropicKeySettings";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -31,7 +31,7 @@ export default function WorkspaceSettingsPage() {
       {/* BYOK: organization's own Anthropic API key */}
       <AnthropicKeySettings />
 
-      {/* Seller Notification Preferences - only visible for org users */}
+      {/* Author notification preferences - only visible for org users */}
       <NotificationPreferences />
     </div>
   );

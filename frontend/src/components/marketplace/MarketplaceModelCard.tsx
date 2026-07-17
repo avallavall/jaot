@@ -125,13 +125,13 @@ export function MarketplaceModelCard({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    window.location.href = `/marketplace/sellers/${model.author_organization_id}`;
+                    window.location.href = `/marketplace/authors/${model.author_organization_id}`;
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
                       e.stopPropagation();
-                      window.location.href = `/marketplace/sellers/${model.author_organization_id}`;
+                      window.location.href = `/marketplace/authors/${model.author_organization_id}`;
                     }
                   }}
                 >

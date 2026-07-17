@@ -11,7 +11,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslations } from "next-intl";
 
-export interface SellerLeaderboardEntry {
+export interface AuthorLeaderboardEntry {
   org_id: string;
   org_name: string;
   total_activations: number;
@@ -19,31 +19,31 @@ export interface SellerLeaderboardEntry {
   avg_rating: number | null;
 }
 
-interface SellerLeaderboardProps {
-  sellers: SellerLeaderboardEntry[];
+interface AuthorLeaderboardProps {
+  authors: AuthorLeaderboardEntry[];
 }
 
-export function SellerLeaderboard({ sellers }: SellerLeaderboardProps) {
+export function AuthorLeaderboard({ authors }: AuthorLeaderboardProps) {
   const t = useTranslations("admin.marketplace");
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base font-medium">
-          {t("sellerLeaderboard")}
+          {t("authorLeaderboard")}
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {sellers.length === 0 ? (
+        {authors.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
-            {t("noSellerData")}
+            {t("noAuthorData")}
           </p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12">{t("rank")}</TableHead>
-                <TableHead>{t("sellerName")}</TableHead>
+                <TableHead>{t("authorName")}</TableHead>
                 <TableHead className="text-right">{t("totalActivations")}</TableHead>
                 <TableHead className="text-right">
                   {t("modelsPublished")}
@@ -52,22 +52,22 @@ export function SellerLeaderboard({ sellers }: SellerLeaderboardProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sellers.map((seller, idx) => (
-                <TableRow key={seller.org_id}>
+              {authors.map((author, idx) => (
+                <TableRow key={author.org_id}>
                   <TableCell className="font-medium">{idx + 1}</TableCell>
-                  {/* No per-seller drill-down route exists (audit F-07): the old
-                      /admin/marketplace/seller-analytics/[orgId] link hard-404'd,
-                      and this table already lives on the only analytics page. */}
-                  <TableCell className="font-medium">{seller.org_name}</TableCell>
+                  {/* No per-author drill-down route exists (audit F-07): the old
+                      per-org analytics link hard-404'd, and this table already
+                      lives on the only analytics page. */}
+                  <TableCell className="font-medium">{author.org_name}</TableCell>
                   <TableCell className="text-right">
-                    {seller.total_activations.toLocaleString()}
+                    {author.total_activations.toLocaleString()}
                   </TableCell>
                   <TableCell className="text-right">
-                    {seller.models_published}
+                    {author.models_published}
                   </TableCell>
                   <TableCell className="text-right">
-                    {seller.avg_rating !== null
-                      ? seller.avg_rating.toFixed(1)
+                    {author.avg_rating !== null
+                      ? author.avg_rating.toFixed(1)
                       : "-"}
                   </TableCell>
                 </TableRow>

@@ -86,8 +86,8 @@ function ProfileSkeleton() {
   );
 }
 
-export function SellerProfileClient({ orgId }: { orgId: string }) {
-  const t = useTranslations("marketplace.sellerProfile");
+export function AuthorProfileClient({ orgId }: { orgId: string }) {
+  const t = useTranslations("marketplace.authorProfile");
 
   const [profile, setProfile] = useState<OrgProfile | null>(null);
   const [models, setModels] = useState<ModelCatalogItem[]>([]);
@@ -121,7 +121,7 @@ export function SellerProfileClient({ orgId }: { orgId: string }) {
   if (error || !profile) {
     return (
       <div className="max-w-6xl mx-auto py-16 text-center">
-        <p className="text-destructive mb-4">{error || t("sellerNotFound")}</p>
+        <p className="text-destructive mb-4">{error || t("authorNotFound")}</p>
         <Link
           href="/marketplace"
           className="text-sm text-primary hover:underline"

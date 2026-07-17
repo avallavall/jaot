@@ -27,7 +27,7 @@ from app.schemas.analytics import (
     PaginatedRecentEventsResponse,
     RecentEventEntry,
 )
-from app.services.seller_analytics_service import _get_geoip_country
+from app.services.author_analytics_service import _get_geoip_country
 from app.shared.constants.event_types import ALL_EVENT_TYPES, EVENT_DOMAINS, FUNNEL_STEPS
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
@@ -41,7 +41,7 @@ _FUNNEL_FILLS = ["#3b82f6", "#6366f1", "#8b5cf6", "#22c55e"]
 def _analytics_period_since(period: str) -> datetime | None:
     """Convert a period string to a since-datetime.
 
-    Extends the seller analytics _period_since with short intervals:
+    Extends the author analytics _period_since with short intervals:
     1h, 12h, today, 7d, 30d, 90d. Returns None for 'all'.
     """
     now = utcnow()

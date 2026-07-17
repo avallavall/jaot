@@ -36,13 +36,13 @@ vi.mock("next/navigation", async () => {
       refresh: vi.fn(),
       prefetch: vi.fn(),
     }),
-    usePathname: () => "/marketplace/sellers/org-123",
+    usePathname: () => "/marketplace/authors/org-123",
     useSearchParams: () => new URLSearchParams(),
   };
 });
 
 // Import AFTER mocks - now importing the client component directly
-import { SellerProfileClient } from "@/components/marketplace/SellerProfileClient";
+import { AuthorProfileClient } from "@/components/marketplace/AuthorProfileClient";
 import type { OrgProfile } from "@/lib/types";
 
 const mockProfile: OrgProfile = {
@@ -60,24 +60,24 @@ const mockProfile: OrgProfile = {
   avg_rating: 4.5,
 };
 
-describe("SellerProfileClient", () => {
+describe("AuthorProfileClient", () => {
   beforeEach(() => {
     mockGetOrgProfile.mockResolvedValue(mockProfile);
     mockGetOrgModels.mockResolvedValue([]);
   });
 
   it("renders org name after loading", async () => {
-    render(<SellerProfileClient orgId="org-123" />);
+    render(<AuthorProfileClient orgId="org-123" />);
     await waitFor(() => {
       expect(screen.getByText("Test Organization")).toBeInTheDocument();
     });
   });
 
   it("shows verified badge when org is verified", async () => {
-    render(<SellerProfileClient orgId="org-123" />);
+    render(<AuthorProfileClient orgId="org-123" />);
     await waitFor(() => {
       expect(
-        screen.getByText("marketplace.sellerProfile.verified")
+        screen.getByText("marketplace.authorProfile.verified")
       ).toBeInTheDocument();
     });
   });
@@ -87,17 +87,17 @@ describe("SellerProfileClient", () => {
       ...mockProfile,
       is_verified: false,
     });
-    render(<SellerProfileClient orgId="org-123" />);
+    render(<AuthorProfileClient orgId="org-123" />);
     await waitFor(() => {
       expect(screen.getByText("Test Organization")).toBeInTheDocument();
     });
     expect(
-      screen.queryByText("marketplace.sellerProfile.verified")
+      screen.queryByText("marketplace.authorProfile.verified")
     ).not.toBeInTheDocument();
   });
 
   it("displays bio section when bio exists", async () => {
-    render(<SellerProfileClient orgId="org-123" />);
+    render(<AuthorProfileClient orgId="org-123" />);
     await waitFor(() => {
       expect(
         screen.getByText("We build great optimization models.")
@@ -105,32 +105,32 @@ describe("SellerProfileClient", () => {
     });
   });
 
-  it("shows empty state when seller has no models", async () => {
+  it("shows empty state when author has no models", async () => {
     mockGetOrgModels.mockResolvedValue([]);
-    render(<SellerProfileClient orgId="org-123" />);
+    render(<AuthorProfileClient orgId="org-123" />);
     await waitFor(() => {
       expect(
-        screen.getByText("marketplace.sellerProfile.noModels")
+        screen.getByText("marketplace.authorProfile.noModels")
       ).toBeInTheDocument();
     });
   });
 
-  it("renders model cards when seller has models", async () => {
+  it("renders model cards when author has models", async () => {
     mockGetOrgModels.mockResolvedValue([
       { id: "m1", display_name: "Model One" },
       { id: "m2", display_name: "Model Two" },
     ]);
-    render(<SellerProfileClient orgId="org-123" />);
+    render(<AuthorProfileClient orgId="org-123" />);
     await waitFor(() => {
       expect(screen.getAllByTestId("model-card")).toHaveLength(2);
     });
   });
 
   it("shows back to marketplace link", async () => {
-    render(<SellerProfileClient orgId="org-123" />);
+    render(<AuthorProfileClient orgId="org-123" />);
     await waitFor(() => {
       expect(
-        screen.getByText("marketplace.sellerProfile.backToMarketplace")
+        screen.getByText("marketplace.authorProfile.backToMarketplace")
       ).toBeInTheDocument();
     });
   });

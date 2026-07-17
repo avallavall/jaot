@@ -1,4 +1,4 @@
-"""Verification service for seller badge verification workflow.
+"""Verification service for the author badge verification workflow.
 
 Handles request submission, admin review queue, approve/reject with
 audit logging, and org is_verified flag management.
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 class VerificationService:
-    """Service for managing seller verification badge requests."""
+    """Service for managing author verification badge requests."""
 
     def __init__(self, db: Session) -> None:
         self.db = db

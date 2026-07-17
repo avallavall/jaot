@@ -18,10 +18,10 @@ flowchart TB
 
     Public --> PublicHome["/ · landing"]
     Public --> PublicDocs["/docs"]
-    Public --> PublicForSellers["/for-sellers"]
     Public --> PublicLicenses["/licenses"]
     Public --> PublicContact["/contact"]
     Public --> PublicMarketplace["/marketplace"]
+    PublicMarketplace --> PublicAuthors["/marketplace/authors/[orgId]"]
 
     AuthRoutes --> Login["login"]
     AuthRoutes --> Signup["signup"]

@@ -190,11 +190,11 @@ describe("sitemap", () => {
       "Expected 2 catalog fetch calls (one per page)"
     ).toBe(2);
 
-    // Model entries = items with /marketplace/ but not /sellers/
+    // Model entries = items with /marketplace/ but not /authors/
     const modelEntries = entries.filter(
       (e) =>
         e.url.includes("/marketplace/") &&
-        !e.url.includes("/marketplace/sellers/") &&
+        !e.url.includes("/marketplace/authors/") &&
         !e.url.endsWith("/marketplace") &&
         !e.url.includes("/docs/")
     );
@@ -251,14 +251,14 @@ describe("sitemap", () => {
     const modelEntries = entries.filter(
       (e) =>
         e.url.includes("/marketplace/") &&
-        !e.url.includes("/marketplace/sellers/") &&
+        !e.url.includes("/marketplace/authors/") &&
         !e.url.endsWith("/marketplace") &&
         !e.url.includes("/docs/")
     );
     expect(modelEntries.length, "No model entries on fetch failure").toBe(0);
 
-    const sellerEntries = entries.filter((e) => e.url.includes("/sellers/"));
-    expect(sellerEntries.length, "No seller entries on fetch failure").toBe(0);
+    const authorEntries = entries.filter((e) => e.url.includes("/authors/"));
+    expect(authorEntries.length, "No author entries on fetch failure").toBe(0);
 
     const docEntries = entries.filter((e) => e.url.includes("/docs/"));
     expect(

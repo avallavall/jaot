@@ -13,7 +13,7 @@ const FOOTER_COLUMNS = [
     ],
   },
   {
-    heading: "forSellers",
+    heading: "forAuthors",
     links: [
       { href: "/docs/marketplace/publishing-models", key: "publishModel" },
       { href: "/marketplace", key: "browseModels" },

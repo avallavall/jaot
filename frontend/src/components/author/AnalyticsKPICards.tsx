@@ -10,7 +10,7 @@ interface AnalyticsKPICardsProps {
 }
 
 export function AnalyticsKPICards({ data }: AnalyticsKPICardsProps) {
-  const t = useTranslations("seller.analytics");
+  const t = useTranslations("author.analytics");
 
   const cards = [
     {

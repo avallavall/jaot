@@ -213,7 +213,7 @@ class NotificationService:
     # --- Event type to NotificationType mapping ---
     # ADR-008: sale/payout/promotion events left with the money layer; the
     # adoption signal ("someone activated your model") stays, money-neutral.
-    _SELLER_EVENT_MAP: dict[str, NotificationType] = {
+    _AUTHOR_EVENT_MAP: dict[str, NotificationType] = {
         "review": NotificationType.NEW_REVIEW,
         "activation": NotificationType.MODEL_ACTIVATED,
     }
@@ -221,7 +221,7 @@ class NotificationService:
     # Default preferences: in_app ON, email OFF (missing-row-means-default pattern)
     _DEFAULT_PREFS: dict[str, bool] = {"in_app": True, "email": False}
 
-    def send_seller_notification(
+    def send_author_notification(
         self,
         user_id: str,
         organization_id: str,
@@ -231,15 +231,15 @@ class NotificationService:
         data: dict[str, Any] | None = None,
         link: str | None = None,
     ) -> Notification | None:
-        """Send a preference-aware seller notification.
+        """Send a preference-aware author notification.
 
         Checks user's notification preferences before dispatching.
         If no preference row exists for a (event_type, channel) combo,
         applies defaults: in_app=True, email=False.
         """
-        notification_type = self._SELLER_EVENT_MAP.get(event_type)
+        notification_type = self._AUTHOR_EVENT_MAP.get(event_type)
         if not notification_type:
-            logger.warning(f"Unknown seller event type: {event_type}")
+            logger.warning(f"Unknown author event type: {event_type}")
             return None
 
         # Query user preferences for this event type
@@ -258,7 +258,7 @@ class NotificationService:
 
         if not in_app_enabled and not email_enabled:
             logger.debug(
-                f"Seller notification skipped (all channels disabled) for user {user_id}, event {event_type}"
+                f"Author notification skipped (all channels disabled) for user {user_id}, event {event_type}"
             )
             return None
 

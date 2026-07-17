@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from app.api.v2 import (
     auth,
+    author,
     builder,
     community,
     contact,
@@ -19,7 +20,6 @@ from app.api.v2 import (
     org_settings,
     projects,
     schedules,
-    seller,
     solve,
     solvers,
     triggers,
@@ -94,8 +94,9 @@ api_v2_router.include_router(gdpr.router, tags=["gdpr"])
 # Schedules — cron scheduling for triggers (CRUD + validation)
 api_v2_router.include_router(schedules.router, tags=["schedules"])
 
-# Seller — non-monetary analytics, verification, notification prefs, onboarding
-api_v2_router.include_router(seller.router, tags=["seller"])
+# Author — non-monetary analytics, verification, notification prefs, onboarding
+# Wire paths/tag stay "seller" until the contract release (API surface).
+api_v2_router.include_router(author.router, tags=["seller"])
 
 
 # Home — public announcement banner (no auth required)

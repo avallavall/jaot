@@ -5,8 +5,8 @@ import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import type { AdminAnalytics } from "@/lib/types";
-import { AnalyticsKPICards } from "@/components/seller/AnalyticsKPICards";
-import { SellerLeaderboard, type SellerLeaderboardEntry } from "@/components/admin/SellerLeaderboard";
+import { AnalyticsKPICards } from "@/components/author/AnalyticsKPICards";
+import { AuthorLeaderboard, type AuthorLeaderboardEntry } from "@/components/admin/AuthorLeaderboard";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Period = "7d" | "30d" | "90d" | "all";
@@ -18,22 +18,23 @@ const PERIODS: { value: Period; labelKey: string }[] = [
   { value: "all", labelKey: "periodAll" },
 ];
 
-export default function AdminSellerAnalyticsPage() {
+export default function AdminAuthorAnalyticsPage() {
   const t = useTranslations("admin.marketplace");
-  const tPeriod = useTranslations("seller.analytics");
+  const tPeriod = useTranslations("author.analytics");
   const { user, isLoading: authLoading } = useAuth();
 
   const [period, setPeriod] = useState<Period>("30d");
-  const [data, setData] = useState<(AdminAnalytics & { sellers: SellerLeaderboardEntry[] }) | null>(null);
+  // `sellers` is the wire key of the legacy-path API response (renamed in the contract release).
+  const [data, setData] = useState<(AdminAnalytics & { sellers: AuthorLeaderboardEntry[] }) | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async (p: Period) => {
     setLoading(true);
     try {
-      const result = await api.getAdminSellerAnalytics(p);
-      setData(result as AdminAnalytics & { sellers: SellerLeaderboardEntry[] });
+      const result = await api.getAdminAuthorAnalytics(p);
+      setData(result as AdminAnalytics & { sellers: AuthorLeaderboardEntry[] });
     } catch (err) {
-      console.warn('Failed to load admin seller analytics:', err);
+      console.warn('Failed to load admin author analytics:', err);
     } finally {
       setLoading(false);
     }
@@ -66,7 +67,7 @@ export default function AdminSellerAnalyticsPage() {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">{t("sellerAnalytics")}</h1>
+          <h1 className="text-2xl font-semibold">{t("authorAnalytics")}</h1>
           <p className="text-muted-foreground">{t("platformTotals")}</p>
         </div>
 
@@ -100,7 +101,7 @@ export default function AdminSellerAnalyticsPage() {
         <>
           {data && <AnalyticsKPICards data={data.platform_totals} />}
 
-          {data && <SellerLeaderboard sellers={data.sellers} />}
+          {data && <AuthorLeaderboard authors={data.sellers} />}
         </>
       )}
     </div>

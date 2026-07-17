@@ -24,7 +24,7 @@ class NotificationType(str, Enum):
     EXECUTION_COMPLETED = "execution_completed"
     EXECUTION_FAILED = "execution_failed"
     SYSTEM = "system"
-    # Seller experience events
+    # Author experience events
     NEW_REVIEW = "new_review"
     MODEL_ACTIVATED = "model_activated"
 

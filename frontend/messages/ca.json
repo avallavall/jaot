@@ -357,7 +357,6 @@
       "catalog": "Catàleg",
       "marketplace": "Marketplace",
       "favorites": "Preferits",
-      "forSellers": "Per a venedors",
       "activity": "Activitat",
       "executions": "Execucions",
       "solveAnalytics": "Analítiques",
@@ -384,7 +383,6 @@
       "customSolve": "Resoldre JSON",
       "marketplaceAdmin": "Marketplace",
       "verification": "Verificació",
-      "sellerAnalytics": "Analítiques venedor",
       "marketplaceAnalytics": "Analítiques",
       "platformAnalytics": "Plataforma"
     },
@@ -415,14 +413,14 @@
       "aiAssistant": "Assistent IA",
       "multiObjective": "Multiobjectiu",
       "analytics": "Anàlisi de funcions",
-      "sellerAnalytics": "Anàlisi de venedors",
       "verification": "Verificació",
       "create": "Crear",
       "custom": "Personalitzat",
       "myProfile": "El meu perfil",
       "docs": "Documentació",
       "licenses": "Llicències",
-      "history": "Historial"
+      "history": "Historial",
+      "authorAnalytics": "Analítiques d'autors"
     },
     "help": {
       "title": "Ajuda i recursos",
@@ -572,7 +570,6 @@
     "nav": {
       "marketplace": "Marketplace",
       "docs": "Docs",
-      "forSellers": "Per a venedors",
       "signIn": "Iniciar sessió",
       "goToDashboard": "Tauler"
     },
@@ -634,7 +631,7 @@
         "item4": "Gratis i de codi obert, ideal per aprendre",
         "cta": "Prova gratuïtament"
       },
-      "sellers": {
+      "authors": {
         "title": "Per a col·laboradors i consultors",
         "item1": "Publica els teus models al marketplace de la comunitat",
         "item2": "Comparteix la teva experiència en optimització amb equips d'arreu del món",
@@ -786,13 +783,12 @@
       "button": "Crear compte"
     },
     "footer": {
+      "forAuthors": "Per a autors",
       "product": "Producte",
       "marketplace": "Marketplace",
       "aiBuilder": "Constructor IA",
       "mcpIntegration": "Integracio MCP",
-      "forSellers": "Col·laborar",
       "howItWorks": "Com funciona",
-      "sellerDashboard": "Dashboard de venedor",
       "publishModel": "Publicar un model",
       "browseModels": "Explorar models",
       "developers": "Desenvolupadors",
@@ -2129,16 +2125,13 @@
       "retry": "Torna-ho a provar"
     },
     "marketplace": {
-      "sellerAnalytics": "Analitiques de venedor",
       "platformTotals": "Analitiques globals del marketplace",
-      "sellerLeaderboard": "Classificacio de venedors",
       "rank": "#",
-      "sellerName": "Venedor",
       "modelsPublished": "Models publicats",
       "avgRating": "Valoració mitjana",
       "drillDown": "Veure detalls",
       "verificationRequests": "Sol·licituds de verificacio",
-      "verificationDesc": "Revisar i aprovar sol·licituds d'insiglia de verificacio de venedors",
+      "verificationDesc": "Revisar i aprovar sol·licituds d'insiglia de verificacio de autors",
       "modelName": "Model",
       "type": "Tipus",
       "startDate": "Data d'inici",
@@ -2158,8 +2151,11 @@
       "approved": "Aprovat",
       "pending": "Pendent",
       "noRequests": "No hi ha sol·licituds de verificacio pendents",
-      "noSellerData": "No hi ha dades de venedors disponibles.",
-      "totalActivations": "Activacions"
+      "totalActivations": "Activacions",
+      "authorAnalytics": "Analítiques d'autors",
+      "authorLeaderboard": "Rànquing d'autors",
+      "authorName": "Autor",
+      "noAuthorData": "No hi ha dades d'autors."
     },
     "featureAnalytics": {
       "title": "Analitiques d'us de funcionalitats",
@@ -2207,12 +2203,12 @@
         "executions": "Execucions",
         "reportedReviews": "Ressenyes reportades",
         "marketplace": "Marketplace",
-        "sellerAnalytics": "Anàlisi de venedors",
         "featureAnalytics": "Anàlisi de funcions",
         "verification": "Verificació",
         "settings": "Configuració",
         "backToApp": "Tornar a l'app",
-        "platformAnalytics": "Plataforma"
+        "platformAnalytics": "Plataforma",
+        "authorAnalytics": "Analítiques d'autors"
       }
     },
     "platformAnalytics": {
@@ -2403,7 +2399,6 @@
       "featuredBadge": "DESTACAT",
       "free": "Gratis",
       "newModel": "Nou",
-      "viewSeller": "per {seller}",
       "verified": "Verificat",
       "removeFromFavorites": "Treure de favorits",
       "addToFavorites": "Afegir a favorits",
@@ -2544,96 +2539,20 @@
       "closeFilters": "Tanca",
       "clearCategory": "Treu la categoria"
     },
-    "sellerProfile": {
-      "title": "Perfil de venedor",
+    "authorProfile": {
+      "title": "Perfil de autor",
       "modelsPublished": "Models publicats",
       "totalActivations": "Activacions totals",
       "avgRating": "Valoració mitjana",
       "memberSince": "Membre des de",
-      "verified": "Venedor verificat",
+      "verified": "Autor verificat",
       "bio": "Sobre",
       "publishedModels": "Models publicats",
-      "noModels": "Aquest venedor encara no ha publicat cap model.",
+      "noModels": "Aquest autor encara no ha publicat cap model.",
       "noRating": "Sense valoracions encara",
       "backToMarketplace": "Tornar al Marketplace",
-      "failedToLoad": "Error en carregar el perfil del venedor",
-      "sellerNotFound": "Venedor no trobat"
-    }
-  },
-  "seller": {
-    "analytics": {
-      "title": "Analitiques de venedor",
-      "description": "Fes seguiment del teu rendiment al marketplace",
-      "period7d": "7 dies",
-      "period30d": "30 dies",
-      "period90d": "90 dies",
-      "periodAll": "Tot el temps",
-      "totalViews": "Visites totals",
-      "totalImpressions": "Impressions totals",
-      "totalActivations": "Activacions totals",
-      "conversionRate": "Taxa de conversio",
-      "revenueChart": "Activacions al llarg del temps",
-      "views": "Visites",
-      "activations": "Activacions",
-      "impressions": "Impressions",
-      "conversionFunnel": "Embut de conversio",
-      "funnelImpressions": "Impressions",
-      "funnelViews": "Visites detallades",
-      "funnelActivations": "Activacions",
-      "geoDistribution": "Distribució geogràfica",
-      "country": "Pais",
-      "viewCount": "Visites",
-      "modelPerformance": "Rendiment del model",
-      "modelName": "Nom del model",
-      "noData": "No hi ha dades disponibles per al periode seleccionat",
-      "loading": "Carregant analitiques..."
-    },
-    "promotions": {
-      "title": "Promociona el teu model",
-      "selectModel": "Selecciona un model",
-      "duration": "Durada",
-      "purchase": "Comprar",
-      "purchaseSuccess": "Posicionament comprat correctament!",
-      "homepageCarousel": "Carrusel de la pàgina principal",
-      "homepageCarouselDesc": "Destacat al carrusel principal del marketplace",
-      "categorySpotlight": "Destacat de categoria",
-      "categorySpotlightDesc": "Ressaltat a la pàgina de categoria del teu model",
-      "searchBoost": "Impuls en cerca",
-      "searchBoostDesc": "Posicionament millorat als resultats de cerca",
-      "days7": "7 dies",
-      "days14": "14 dies",
-      "days30": "30 dies"
-    },
-    "verification": {
-      "title": "Insiglia de verificacio",
-      "requestVerification": "Sol·licitar verificacio",
-      "verificationPending": "Verificacio pendent",
-      "verified": "Venedor verificat",
-      "rejected": "Verificacio rebutjada",
-      "rejectedNote": "Motiu",
-      "reRequest": "Sol·licitar de nou",
-      "requestSent": "Sol·licitud de verificacio enviada",
-      "requestDescription": "Obte una insiglia de verificacio al teu perfil de venedor per generar confianca amb els compradors."
-    },
-    "notifications": {
-      "title": "Preferències de notificacions",
-      "description": "Tria com vols rebre notificacions sobre esdeveniments de venedor",
-      "eventNewReview": "Nova ressenya",
-      "channelInApp": "A l'app",
-      "channelEmail": "Correu electronic",
-      "enabled": "Activat",
-      "disabled": "Desactivat",
-      "preferencesUpdated": "Preferències actualitzades",
-      "eventModelActivated": "Model activat"
-    },
-    "onboarding": {
-      "title": "Comenca com a venedor",
-      "description": "Completa aquests passos per configurar el teu perfil de venedor",
-      "completeProfile": "Completa el perfil de la teva organitzacio",
-      "publishModel": "Publica el teu primer model",
-      "addRichMedia": "Afegeix multimèdia i descripció",
-      "stepsComplete": "{completed}/{total} passos completats",
-      "progressLabel": "Progres"
+      "failedToLoad": "Error en carregar el perfil del autor",
+      "authorNotFound": "Autor no trobat"
     }
   },
   "solve": {
@@ -4416,9 +4335,9 @@
     },
     "dynamic": {
       "titleTemplate": "{name} — JAOT",
-      "sellerDescriptionFallback": "Explora els models d'optimització de {name} a JAOT"
+      "authorDescriptionFallback": "Explora els models d'optimització de {name} a JAOT"
     },
-    "sellers": {
+    "authors": {
       "title": "Publicadors de models - Marketplace JAOT",
       "description": "Descobreix organitzacions que publiquen models d'optimització al marketplace comunitari de JAOT — gratuït per activar i utilitzar."
     }
@@ -4426,5 +4345,38 @@
   "images": {
     "modelScreenshot": "Captura de pantalla de {name}",
     "modelScreenshotThumbnail": "Miniatura {index} de {name}"
+  },
+  "author": {
+    "analytics": {
+      "period7d": "7 dies",
+      "period30d": "30 dies",
+      "period90d": "90 dies",
+      "periodAll": "Tot el temps",
+      "totalViews": "Visites totals",
+      "totalActivations": "Activacions totals",
+      "conversionRate": "Taxa de conversio"
+    },
+    "verification": {
+      "title": "Insiglia de verificacio",
+      "requestVerification": "Sol·licitar verificacio",
+      "verificationPending": "Verificacio pendent",
+      "verified": "Autor verificat",
+      "rejected": "Verificacio rebutjada",
+      "rejectedNote": "Motiu",
+      "reRequest": "Sol·licitar de nou",
+      "requestSent": "Sol·licitud de verificacio enviada",
+      "requestDescription": "Obte una insiglia de verificacio al teu perfil de autor per generar confianca amb els usuaris."
+    },
+    "notifications": {
+      "title": "Preferències de notificacions",
+      "description": "Tria com vols rebre notificacions sobre esdeveniments de autor",
+      "eventNewReview": "Nova ressenya",
+      "channelInApp": "A l'app",
+      "channelEmail": "Correu electronic",
+      "enabled": "Activat",
+      "disabled": "Desactivat",
+      "preferencesUpdated": "Preferències actualitzades",
+      "eventModelActivated": "Model activat"
+    }
   }
 }

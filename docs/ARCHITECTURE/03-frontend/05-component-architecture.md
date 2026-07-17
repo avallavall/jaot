@@ -57,7 +57,7 @@ components/
 ├── i18n/              (LanguageSwitcher, FallbackProvider)
 ├── legal/             (CookieConsent, PrivacyLinks)
 ├── publish/           (PublishModal)
-├── seller/            (AnalyticsKPICards, TopModelsTable, OnboardingChecklist)
+├── author/            (AnalyticsKPICards, VerificationRequest, NotificationPreferences)
 ├── tier/              (UsageIndicator)
 ├── llm/               (FileImportModal, AttachmentPreview)
 └── maintenance/       (MaintenanceBanner)
