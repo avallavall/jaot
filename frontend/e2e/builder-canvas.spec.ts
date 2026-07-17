@@ -329,9 +329,7 @@ test.describe("Builder Canvas Interactions", () => {
     await page.waitForTimeout(500);
 
     // Click on the newly created variable node
-    const variableNodes = page.locator(".react-flow__node").filter({
-      has: page.locator("[class*='border-blue']"),
-    });
+    const variableNodes = page.locator(".react-flow__node-variable");
     const nodeCount = await variableNodes.count();
     expect(nodeCount).toBeGreaterThanOrEqual(1);
     await variableNodes.first().click();
@@ -359,9 +357,7 @@ test.describe("Builder Canvas Interactions", () => {
     await page.waitForTimeout(500);
 
     // Click the variable node to select it
-    const variableNode = page.locator(".react-flow__node").filter({
-      has: page.locator("[class*='border-blue']"),
-    }).first();
+    const variableNode = page.locator(".react-flow__node-variable").first();
     await variableNode.click();
 
     // The properties panel should show a name input with font-mono class
@@ -389,9 +385,7 @@ test.describe("Builder Canvas Interactions", () => {
     await page.waitForTimeout(500);
 
     // Click the variable node
-    const variableNode = page.locator(".react-flow__node").filter({
-      has: page.locator("[class*='border-blue']"),
-    }).first();
+    const variableNode = page.locator(".react-flow__node-variable").first();
     await variableNode.click();
 
     // Find bound inputs (type="number" inputs in the properties panel)

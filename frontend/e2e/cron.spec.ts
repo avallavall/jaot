@@ -63,7 +63,10 @@ test.describe("Cron Scheduling E2E", () => {
       const version = (await versionResp.json()) as { id: string };
 
       // Step 3: Create a trigger
-      const triggerResp = await page.request.post(`${BASE_URL}/api/v2/triggers`, {
+      // Trailing slash matters: the canonical route is POST /triggers/ and the
+      // FastAPI slash-redirect points at the Docker-internal hostname (http://api:8001),
+      // which is unresolvable from the host running Playwright
+      const triggerResp = await page.request.post(`${BASE_URL}/api/v2/triggers/`, {
         data: {
           name: "e2e-cron-schedule-test",
           description: "Created by cron.spec.ts — auto-deleted",

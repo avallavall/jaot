@@ -27,12 +27,6 @@ test.describe("Workspace", () => {
       await expect(page).toHaveURL(/\/workspace\/team/);
     });
 
-    test("usage page loads", async ({ page }) => {
-      const ws = new WorkspacePage(page);
-      await ws.gotoUsage();
-      await expect(page).toHaveURL(/\/workspace\/usage/);
-    });
-
     test("profile page loads", async ({ page }) => {
       const ws = new WorkspacePage(page);
       await ws.gotoProfile();
@@ -82,13 +76,8 @@ test.describe("Workspace", () => {
       const content = page.locator("#main-content");
       await expect(content).toBeVisible();
     });
-
-    test("usage page displays charts or usage data", async ({ page }) => {
-      const ws = new WorkspacePage(page);
-      await ws.gotoUsage();
-
-      const content = page.locator("#main-content");
-      await expect(content).toBeVisible();
-    });
   });
 });
+
+// NOTE: the /workspace/usage tests were removed — the usage analytics page was
+// deleted by ADR-008 slice 3 (f209015, money/credits removal); the route 404s.

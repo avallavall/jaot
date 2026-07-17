@@ -223,12 +223,16 @@ test.describe("UAT-2: Solver dropdown on import page", () => {
     const dropZone = page.locator('[data-testid="file-drop-zone"]');
     await expect(dropZone).toBeVisible({ timeout: NAV_TIMEOUT });
 
-    // Inject a valid LP file — real backend parses this and returns preview data
+    // Inject a valid LP file — the backend parses it with SCIP's readProblem,
+    // which expects CPLEX LP format ("min: x;" is LP_solve syntax and yields
+    // a model with 0 variables → "No variables found" error)
     const fileInput = page.locator('[data-testid="file-input"]');
     await fileInput.setInputFiles({
       name: "test.lp",
       mimeType: "text/plain",
-      buffer: Buffer.from("min: x;\nx >= 1;"),
+      buffer: Buffer.from(
+        "Minimize\n obj: x\nSubject To\n c1: x >= 1\nBounds\n x >= 0\nEnd\n"
+      ),
     });
 
     const previewButton = page.getByRole("button", { name: /preview/i });
@@ -261,8 +265,10 @@ test.describe("UAT-2: Solver dropdown on import page", () => {
         .catch(() => false);
 
       if (triggerVisible) {
+        // The import page defaults to the auto-router ("Auto (auto-routing)"),
+        // not a hardcoded SCIP pre-selection
         const triggerText = await importTrigger.textContent();
-        expect(triggerText?.toLowerCase()).toContain("scip");
+        expect(triggerText?.toLowerCase()).toContain("auto");
       }
     }
   });

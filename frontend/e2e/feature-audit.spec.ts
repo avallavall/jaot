@@ -51,13 +51,8 @@ test("03 — API keys page", async ({ page }) => {
   await screenshot(page, "03-api-keys-page");
 });
 
-// ===== 5. USAGE ANALYTICS =====
-test("05 — usage analytics charts", async ({ page }) => {
-  await page.goto("/workspace/usage");
-  await waitForContent(page);
-  await page.waitForTimeout(2_000);
-  await screenshot(page, "05-usage-analytics");
-});
+// ===== 5. USAGE ANALYTICS ===== removed: /workspace/usage was deleted by
+// ADR-008 slice 3 (money/credits removal) — the screenshot captured a 404.
 
 // ===== 6. AUDIT LOG =====
 test("06 — audit log entries", async ({ page }) => {

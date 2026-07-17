@@ -22,10 +22,6 @@ export class WorkspacePage {
     await this.page.goto(localePath("/workspace/team", locale));
   }
 
-  async gotoUsage(locale?: string) {
-    await this.page.goto(localePath("/workspace/usage", locale));
-  }
-
   async gotoProfile(locale?: string) {
     await this.page.goto(localePath("/workspace/my-profile", locale));
   }

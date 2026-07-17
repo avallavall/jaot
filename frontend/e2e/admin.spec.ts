@@ -199,12 +199,16 @@ test.describe("Admin Dashboard", () => {
       const secondTab = tabs.nth(1);
       await expect(secondTab).toBeVisible();
       await expect(secondTab).toBeEnabled();
-      await secondTab.click();
 
-      // Verify the tab is now selected (aria-selected) — allow time for re-render
-      await expect(secondTab).toHaveAttribute("aria-selected", "true", {
-        timeout: 10_000,
-      });
+      // Retry the whole click→selected interaction: a click landing mid-render
+      // is silently dropped by Radix, and retrying only the attribute read
+      // can never recover from that
+      await expect(async () => {
+        await secondTab.click();
+        await expect(secondTab).toHaveAttribute("aria-selected", "true", {
+          timeout: 2_000,
+        });
+      }).toPass({ timeout: 10_000 });
     });
   });
 

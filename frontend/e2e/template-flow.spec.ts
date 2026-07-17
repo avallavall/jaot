@@ -19,13 +19,15 @@ const SOLVE_TIMEOUT = 30_000;
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Wait for the templates grid to finish loading (skeleton placeholders gone). */
+/** Wait for the templates grid to finish loading.
+ *
+ * Waits for terminal content (a card or the empty state) rather than for the
+ * skeletons to disappear: "0 skeletons" is vacuously true before hydration
+ * mounts them, which let tests race ahead of the getCatalog fetch. */
 async function waitForTemplatesLoaded(page: Page): Promise<void> {
-  // Skeletons are rendered while loading; wait until they disappear
-  await expect(async () => {
-    const skeletons = page.locator(".animate-pulse");
-    expect(await skeletons.count()).toBe(0);
-  }).toPass({ timeout: NAV_TIMEOUT });
+  await expect(
+    allTemplateCards(page).first().or(page.locator(".border-2.border-dashed"))
+  ).toBeVisible({ timeout: NAV_TIMEOUT });
 }
 
 /** Navigate to /builder/templates and wait for the page to be ready. */
@@ -41,6 +43,18 @@ function allTemplateCards(page: Page) {
   return page.locator(".grid .border.rounded-lg.cursor-pointer");
 }
 
+/** Cards whose detail page has a fillable input form (generator-backed templates).
+ *
+ * The 3 seeded community demos ("Demo Finance/Manufacturing/Logistics", generic)
+ * and static listings published from the studio have no input schema — their
+ * detail page renders "This model has no input fields" without a <form>, so the
+ * form-flow tests must pick a generator-backed card regardless of catalog order. */
+function formBackedCards(page: Page) {
+  return allTemplateCards(page)
+    .filter({ hasNot: page.locator("h3", { hasText: /^Demo\s/ }) })
+    .filter({ hasNot: page.locator("h3", { hasText: /^E2E\s/ }) });
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -48,6 +62,14 @@ function allTemplateCards(page: Page) {
 test.describe("Template Flow", () => {
   test.beforeEach(async ({ page }) => {
     await interceptGuidanceApi(page);
+    // Pre-consent cookies: the fixed bottom banner otherwise intercepts clicks
+    // on the results drawer's footer buttons.
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "jaot_cookie_consent",
+        JSON.stringify({ essential: true, analytics: false, timestamp: new Date().toISOString() }),
+      );
+    });
   });
 
   // =========================================================================
@@ -130,7 +152,7 @@ test.describe("Template Flow", () => {
     await gotoTemplatesPage(page);
 
     // Navigate to the first template
-    await allTemplateCards(page).first().click();
+    await formBackedCards(page).first().click();
     await page.waitForURL(/\/builder\/templates\/[^/]+$/, { timeout: NAV_TIMEOUT });
 
     // Wait for loading to finish (skeleton disappears, form appears)
@@ -164,7 +186,7 @@ test.describe("Template Flow", () => {
     await gotoTemplatesPage(page);
 
     // Navigate to first template detail
-    await allTemplateCards(page).first().click();
+    await formBackedCards(page).first().click();
     await page.waitForURL(/\/builder\/templates\/[^/]+$/, { timeout: NAV_TIMEOUT });
 
     const form = page.locator("form");
@@ -175,7 +197,8 @@ test.describe("Template Flow", () => {
     const scenarioCard = page.locator(".lg\\:sticky").first();
     if (await scenarioCard.isVisible().catch(() => false)) {
       // Verify the scenario card has a title and description content
-      const scenarioTitle = scenarioCard.locator("h3, [class*='CardTitle']").first();
+      // (shadcn CardTitle renders as <div data-slot="card-title">)
+      const scenarioTitle = scenarioCard.locator("[data-slot='card-title']").first();
       await expect(scenarioTitle).toBeVisible();
 
       const scenarioText = scenarioCard.locator("p.text-muted-foreground");
@@ -192,7 +215,7 @@ test.describe("Template Flow", () => {
   test("load example button pre-fills form with example data", async ({ page }) => {
     await gotoTemplatesPage(page);
 
-    await allTemplateCards(page).first().click();
+    await formBackedCards(page).first().click();
     await page.waitForURL(/\/builder\/templates\/[^/]+$/, { timeout: NAV_TIMEOUT });
 
     const form = page.locator("form");
@@ -238,7 +261,7 @@ test.describe("Template Flow", () => {
   test("submitting empty form shows validation errors", async ({ page }) => {
     await gotoTemplatesPage(page);
 
-    await allTemplateCards(page).first().click();
+    await formBackedCards(page).first().click();
     await page.waitForURL(/\/builder\/templates\/[^/]+$/, { timeout: NAV_TIMEOUT });
 
     const form = page.locator("form");
@@ -267,7 +290,7 @@ test.describe("Template Flow", () => {
   test("template solve succeeds and opens results drawer", async ({ page }) => {
     await gotoTemplatesPage(page);
 
-    await allTemplateCards(page).first().click();
+    await formBackedCards(page).first().click();
     await page.waitForURL(/\/builder\/templates\/[^/]+$/, { timeout: NAV_TIMEOUT });
 
     const form = page.locator("form");
@@ -307,7 +330,7 @@ test.describe("Template Flow", () => {
   test("successful solve shows objective value in results drawer", async ({ page }) => {
     await gotoTemplatesPage(page);
 
-    await allTemplateCards(page).first().click();
+    await formBackedCards(page).first().click();
     await page.waitForURL(/\/builder\/templates\/[^/]+$/, { timeout: NAV_TIMEOUT });
 
     const form = page.locator("form");
@@ -391,7 +414,7 @@ test.describe("Template Flow", () => {
   test("at least two different templates load correctly", async ({ page }) => {
     await gotoTemplatesPage(page);
 
-    const cards = allTemplateCards(page);
+    const cards = formBackedCards(page);
     const cardCount = await cards.count();
     expect(cardCount).toBeGreaterThanOrEqual(2);
 
@@ -404,7 +427,7 @@ test.describe("Template Flow", () => {
         await gotoTemplatesPage(page);
       }
 
-      const card = allTemplateCards(page).nth(i);
+      const card = formBackedCards(page).nth(i);
       const cardName = await card.locator("h3").textContent();
 
       await card.click();
@@ -445,7 +468,7 @@ test.describe("Template Flow", () => {
   test("'Use Template' button on card navigates to detail page", async ({ page }) => {
     await gotoTemplatesPage(page);
 
-    const cards = allTemplateCards(page);
+    const cards = formBackedCards(page);
     const cardCount = await cards.count();
     expect(cardCount).toBeGreaterThan(0);
 
@@ -468,7 +491,7 @@ test.describe("Template Flow", () => {
   test("results drawer can be closed after solve", async ({ page }) => {
     await gotoTemplatesPage(page);
 
-    await allTemplateCards(page).first().click();
+    await formBackedCards(page).first().click();
     await page.waitForURL(/\/builder\/templates\/[^/]+$/, { timeout: NAV_TIMEOUT });
 
     const form = page.locator("form");
@@ -485,8 +508,9 @@ test.describe("Template Flow", () => {
     const drawer = page.locator('[role="dialog"][aria-modal="true"]');
     await expect(drawer).toBeVisible({ timeout: SOLVE_TIMEOUT });
 
-    // Close via the Close button at the bottom of the drawer
-    const closeButton = drawer.getByRole("button", { name: /close/i });
+    // Close via the Close button at the bottom of the drawer (exact name —
+    // the drawer also has an X icon labeled "Close results drawer")
+    const closeButton = drawer.getByRole("button", { name: "Close", exact: true });
     await closeButton.click();
 
     // Drawer should disappear
