@@ -190,7 +190,11 @@ prune_old_backups() {
     prune_tier() {
         local dir="$1" min_keep="$2" max_days="$3" tier_name="$4"
         local count
-        count=$(ls -1 "${dir}"/*.dump* 2>/dev/null | wc -l)
+        # find, not `ls glob | wc`: with an EMPTY tier dir the glob makes ls exit 2,
+        # and set -eo pipefail kills the whole script mid-prune (the deploy gate
+        # caught this on 2026-07-17 — the nightly cron had been dying here too,
+        # after the dump but before the success notification/metric).
+        count=$(find "${dir}" -maxdepth 1 -name '*.dump*' 2>/dev/null | wc -l)
         if [ "$count" -le "$min_keep" ]; then
             log "${tier_name}: $count (keeping all -- below minimum $min_keep)"
             return 0
@@ -208,9 +212,9 @@ prune_old_backups() {
     prune_tier "${BACKUP_DIR}/monthly" 3 90 "monthly"
 
     local daily_count weekly_count monthly_count
-    daily_count=$(ls -1 "${BACKUP_DIR}/daily"/*.dump* 2>/dev/null | wc -l)
-    weekly_count=$(ls -1 "${BACKUP_DIR}/weekly"/*.dump* 2>/dev/null | wc -l)
-    monthly_count=$(ls -1 "${BACKUP_DIR}/monthly"/*.dump* 2>/dev/null | wc -l)
+    daily_count=$(find "${BACKUP_DIR}/daily" -maxdepth 1 -name '*.dump*' 2>/dev/null | wc -l)
+    weekly_count=$(find "${BACKUP_DIR}/weekly" -maxdepth 1 -name '*.dump*' 2>/dev/null | wc -l)
+    monthly_count=$(find "${BACKUP_DIR}/monthly" -maxdepth 1 -name '*.dump*' 2>/dev/null | wc -l)
 
     log "Retention: ${daily_count} daily, ${weekly_count} weekly, ${monthly_count} monthly"
 }
