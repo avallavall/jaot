@@ -299,11 +299,12 @@ test("25 — documentation and search", async ({ page }) => {
   }
 });
 
-// ===== 26. PRICING PAGE =====
-test("26 — pricing page with plans", async ({ page }) => {
-  await page.goto("/pricing");
+// ===== 26. CONTACT PAGE =====
+// (Replaced the pricing audit — the pricing page died with ADR-008.)
+test("26 — contact page", async ({ page }) => {
+  await page.goto("/contact");
   await waitForContent(page);
-  await screenshot(page, "26-pricing-page");
+  await screenshot(page, "26-contact-page");
 });
 
 // ===== 27. MULTI-OBJECTIVE =====

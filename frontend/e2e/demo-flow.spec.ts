@@ -10,7 +10,7 @@ test.describe("Demo Flow — Hexaly Executive Demo", () => {
     await interceptGuidanceApi(page);
   });
 
-  // Act I: Landing & Pricing (public pages — use fresh context)
+  // Act I: Landing (public pages — use fresh context)
   test("Act I: Landing page loads with hero and key sections", async ({ browser }) => {
     const context = await browser.newContext({ storageState: undefined });
     const page = await context.newPage();

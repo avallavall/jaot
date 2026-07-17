@@ -256,7 +256,7 @@ test.beforeAll(() => {
 
 test("Group 1: Public pages (FR)", async ({ page }) => {
   await auditPage(page, "/", "public", "Landing", "01-landing.png");
-  await auditPage(page, "/pricing", "public", "Pricing", "02-pricing.png");
+  await auditPage(page, "/contact", "public", "Contact", "02-contact.png");
   await auditPage(
     page,
     "/docs/getting-started",

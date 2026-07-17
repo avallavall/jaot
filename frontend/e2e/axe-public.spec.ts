@@ -40,7 +40,6 @@ async function assertAccessible(page: import("@playwright/test").Page) {
 // all other public images are Lucide SVG icons (decorative, aria-hidden by default).
 const PUBLIC_ROUTES = [
   "/",
-  "/pricing",
   "/contact",
   "/marketplace",
   "/docs/getting-started/introduction",

@@ -98,13 +98,13 @@ test.describe("Accessibility - Public Pages", () => {
     await context.close();
   });
 
-  test("pricing page has no critical or serious a11y violations", async ({
+  test("contact page has no critical or serious a11y violations", async ({
     browser,
   }) => {
     const context = await browser.newContext({ storageState: undefined });
     const page = await context.newPage();
 
-    await page.goto("/pricing");
+    await page.goto("/contact");
     await page.waitForLoadState("domcontentloaded");
 
     await assertAccessible(page);
