@@ -161,13 +161,13 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Admin Seller Analytics
-         * @description Get platform-wide analytics with seller leaderboard.
+         * Get Admin Author Analytics
+         * @description Get platform-wide analytics with the author leaderboard.
          *
          *     Returns aggregated platform totals (org_id=None) and a ranked list
          *     of model authors by adoption.
          */
-        get: operations["get_admin_seller_analytics_api_v2_admin_marketplace_seller_analytics_get"];
+        get: operations["get_admin_author_analytics_api_v2_admin_marketplace_seller_analytics_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -184,10 +184,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Admin Seller Detail
-         * @description Admin drill-down: get analytics summary for a specific seller.
+         * Get Admin Author Detail
+         * @description Admin drill-down: get analytics summary for a specific author org.
          */
-        get: operations["get_admin_seller_detail_api_v2_admin_marketplace_seller_analytics__org_id__get"];
+        get: operations["get_admin_author_detail_api_v2_admin_marketplace_seller_analytics__org_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2835,7 +2835,7 @@ export interface paths {
         };
         /**
          * Get Analytics Models
-         * @description Get per-model performance comparison for the seller.
+         * @description Get per-model performance comparison for the author.
          */
         get: operations["get_analytics_models_api_v2_seller_analytics_models_get"];
         put?: never;
@@ -2855,7 +2855,7 @@ export interface paths {
         };
         /**
          * Get Analytics Summary
-         * @description Get seller analytics summary: views, impressions, activations, conversion rate.
+         * @description Get author analytics summary: views, impressions, activations, conversion rate.
          */
         get: operations["get_analytics_summary_api_v2_seller_analytics_summary_get"];
         put?: never;
@@ -2952,7 +2952,7 @@ export interface paths {
         put?: never;
         /**
          * Request Verification
-         * @description Submit a verification badge request for the seller's organization.
+         * @description Submit a verification badge request for the author's organization.
          *
          *     Returns 409 if a request is already pending or approved.
          */
@@ -2972,7 +2972,7 @@ export interface paths {
         };
         /**
          * Get Verification Status
-         * @description Get the current verification request status for the seller's organization.
+         * @description Get the current verification request status for the author's organization.
          *
          *     Returns null if no verification request exists.
          */
@@ -4355,7 +4355,7 @@ export interface components {
          * ConversionFunnelResponse
          * @description Conversion funnel: impressions -> views -> activations.
          */
-        app__schemas__seller_analytics__ConversionFunnelResponse: {
+        app__schemas__author_analytics__ConversionFunnelResponse: {
             /** Activations */
             activations: number;
             /** Impressions */
@@ -6300,7 +6300,7 @@ export interface components {
         };
         /**
          * ModelPerformanceRow
-         * @description Per-model performance breakdown for a seller.
+         * @description Per-model performance breakdown for an author.
          */
         ModelPerformanceRow: {
             /** Activations */
@@ -6636,7 +6636,7 @@ export interface components {
         };
         /**
          * OnboardingStatusResponse
-         * @description Onboarding checklist status for a seller.
+         * @description Onboarding checklist status for an author.
          */
         OnboardingStatusResponse: {
             /** All Complete */
@@ -9113,7 +9113,7 @@ export type ApiKeyInfo = components['schemas']['APIKeyInfo'];
 export type ApiKeyResponse = components['schemas']['APIKeyResponse'];
 export type AppSchemasAdminSettingsAuditLogResponse = components['schemas']['app__schemas__admin_settings__AuditLogResponse'];
 export type AppSchemasAnalyticsConversionFunnelResponse = components['schemas']['app__schemas__analytics__ConversionFunnelResponse'];
-export type AppSchemasSellerAnalyticsConversionFunnelResponse = components['schemas']['app__schemas__seller_analytics__ConversionFunnelResponse'];
+export type AppSchemasAuthorAnalyticsConversionFunnelResponse = components['schemas']['app__schemas__author_analytics__ConversionFunnelResponse'];
 export type AppSchemasWorkspaceAuditLogResponse = components['schemas']['app__schemas__workspace__AuditLogResponse'];
 export type AttachmentResponse = components['schemas']['AttachmentResponse'];
 export type AuditEntryResponse = components['schemas']['AuditEntryResponse'];
@@ -9608,7 +9608,7 @@ export interface operations {
             };
         };
     };
-    get_admin_seller_analytics_api_v2_admin_marketplace_seller_analytics_get: {
+    get_admin_author_analytics_api_v2_admin_marketplace_seller_analytics_get: {
         parameters: {
             query?: {
                 period?: string;
@@ -9639,7 +9639,7 @@ export interface operations {
             };
         };
     };
-    get_admin_seller_detail_api_v2_admin_marketplace_seller_analytics__org_id__get: {
+    get_admin_author_detail_api_v2_admin_marketplace_seller_analytics__org_id__get: {
         parameters: {
             query?: {
                 period?: string;
@@ -14314,7 +14314,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__schemas__seller_analytics__ConversionFunnelResponse"];
+                    "application/json": components["schemas"]["app__schemas__author_analytics__ConversionFunnelResponse"];
                 };
             };
             /** @description Validation Error */
