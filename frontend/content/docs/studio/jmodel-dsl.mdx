@@ -1,0 +1,125 @@
+---
+title: JModel DSL
+description: Write indexed optimization models over sets and params — model and data separated
+order: 4
+---
+
+# JModel DSL
+
+**JModel** is JAOT's declarative modeling language, available as the fourth authoring lens of the Build tab. Instead of enumerating every variable and constraint by hand, you declare **sets**, **params**, and **indexed families** — and the compiler grounds them into the flat optimization problem the solvers run.
+
+JModel is the right lens when your model has repeating structure ("one binary per worker–task pair", "one flow variable per arc") and when you want to [separate the model from its data](/docs/studio/datasets-scenarios) so one formulation can run against many datasets.
+
+> **Availability:** the JModel lens and datasets are feature-gated per instance. If the lens is not visible, the feature is disabled on your instance.
+
+## A complete example
+
+A 3×3 assignment problem — 9 binary variables and 6 constraints from a few declarations:
+
+```text
+set WORKERS := {A, B, C};
+set TASKS := {1, 2, 3};
+
+param cost{WORKERS, TASKS} :=
+    A 1 9, A 2 2, A 3 7,
+    B 1 6, B 2 4, B 3 3,
+    C 1 5, C 2 8, C 3 1;
+
+var assign{WORKERS, TASKS} binary;
+
+minimize total_cost:
+    sum{w in WORKERS, t in TASKS} cost[w, t] * assign[w, t];
+
+subject to one_worker_per_task{t in TASKS}:
+    sum{w in WORKERS} assign[w, t] == 1;
+
+subject to one_task_per_worker{w in WORKERS}:
+    sum{t in TASKS} assign[w, t] == 1;
+```
+
+The compiler expands this deterministically: `assign{WORKERS, TASKS}` becomes flat variables `assign_A_1`, `assign_A_2`, …, and each indexed constraint family becomes one row per member. The result is a normal model — Analyze, Solve, versioning, and export all work on it.
+
+## Language reference
+
+### Sets
+
+```text
+set ITEMS := {a, b, c, d};      # inline members
+set T := 1..96;                 # integer range, inclusive
+set I;                          # declaration-only — values come from a dataset
+set ARCS := {(a, b), (b, c)};   # tuple members (2-dimensional)
+set PAIRS dimen 2;              # declaration-only tuple set
+set S := A union B;             # computed: union, diff, cross
+```
+
+Tuple sets are **sparse**: a variable or param indexed over `ARCS` only exists for the arcs you list, never the full cartesian product. Qualifiers unpack tuples — `sum{(i, j) in ARCS} d[i,j]*x[i,j]` — and a family indexed over a tuple set takes the flat component count as subscripts (`var x{ARCS, K};` → `x[i,j,k]`).
+
+### Params
+
+```text
+param cap := 50;                              # scalar
+param value{ITEMS} := a 60, b 100, c 120;     # indexed
+param cost{WORKERS, TASKS} := A 1 9, ...;     # multi-dimensional
+param w{I};                                   # declaration-only — filled by a dataset
+```
+
+### Variables
+
+```text
+var take{ITEMS} binary;
+var flow{ARCS} >= 0;
+var x integer >= 0 <= 100;
+```
+
+Types: `continuous` (default), `integer`, `binary`.
+
+### Objective and constraints
+
+```text
+maximize total_value:
+    sum{i in ITEMS} value[i] * take[i];
+
+subject to capacity:
+    sum{i in ITEMS} weight[i] * take[i] <= cap;
+
+subject to one_out{i in NODES}:
+    sum{j in NODES: i != j} pick[i, j] == 1;
+```
+
+Qualifiers accept **filters** after a colon (`: i != j`). Equality filters that pin a tuple component to a known index are applied as slices, so sparse formulations ground in linear time.
+
+### Conditional expressions
+
+```text
+sum{i in NODES, j in NODES} (if i != j then d[i, j]) * pick[i, j]
+```
+
+`if <cond> then <term> else <term>` selects at grounding time — conditions compare indices, set members, numbers, and param values (never variables). A missing `else` means 0, so the untaken branch is simply never generated.
+
+### Quadratic terms
+
+Products of two variables (`x*y`) and squares (`x^2`) are supported and ground into degree-2 terms — the model classifies as QP/MIQP and solves on the capable solvers. Anything beyond total degree 2 is a structured compile error.
+
+## Model / data separation
+
+A `set I;` or `param w{I};` with no `:=` body **declares structure whose values must come from a dataset**. This is the heart of [Datasets & Scenarios](/docs/studio/datasets-scenarios): the JModel source is the formulation; each dataset fills the open sets and params with a scenario's values.
+
+Rules the compiler enforces so data errors never pass silently:
+
+- A dataset always replaces the **whole symbol** (never a per-key merge), and may also override an inline `:=` default.
+- A dataset key the model does not declare is an **error** — a typo'd name can never silently fall back to the inline value.
+- A declared set/param that ends up with no values is an **error** naming the missing symbol.
+
+## In the workspace
+
+The JModel lens compiles as you type, with a status pill (**Valid model** / **Compile error** with position). A valid compile updates the canonical model — Analyze and Solve see the grounded problem. While the source has a compile error, **solving and committing are blocked** so you never act on a model that didn't build.
+
+A dataset selector in the lens lets you compile against a chosen dataset (or "No dataset" for inline values). If the model is changed from another lens, the JModel source is marked **out of date** and kept un-applied until you explicitly recompile from it.
+
+Committed versions store the JModel source alongside the grounded model, so your formulation is versioned too.
+
+## Scale and safety
+
+- Grounding is budgeted: expansion stops with a clear error **before** an accidental combinatorial blowup (three-index families over huge sets) can pin the server. Honest sparse models with hundreds of thousands of grounded elements compile fine.
+- Every referenced set/param/variable must be declared; every index must belong to the family's declared set — no "ghost" variables.
+- Scenario launches compile **server-side**: the browser sends the source + a dataset reference, not megabytes of flattened model. See [Datasets & Scenarios](/docs/studio/datasets-scenarios).

@@ -65,7 +65,7 @@ Validation errors (422) include additional detail about which fields failed:
 |---------------|-------|-----|
 | "Invalid API key" | API key has been revoked or is mistyped | Create a new API key in the dashboard |
 | "Not authenticated" | No Authorization header in request | Add `Authorization: Bearer <api_key>` header |
-| "Model not found" | Wrong model ID or model not activated for your org | Verify the model ID with `list_models()` and activate it first |
+| "Project not found" | Wrong model ID, or the model belongs to another organization | Verify the ID with `list_model_projects`; to use a marketplace model, fork it first with `POST /api/v2/projects/from-marketplace/{id}` |
 | "Infeasible problem" | The constraints have no valid solution | Review constraints for conflicts -- try relaxing bounds |
 | "Solver timeout" | `time_limit` is too short for problem complexity | Increase `time_limit` or simplify the problem |
 | "Rate limit exceeded" | Too many requests in the current window | Wait for `retry_after` seconds, then retry |

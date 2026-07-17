@@ -1,0 +1,46 @@
+---
+title: JSON Editor
+description: Edit the canonical optimization problem as JSON text, with live validation
+order: 3
+---
+
+# JSON Editor
+
+The **Editor** is the text authoring lens of the [Model Workspace](/docs/studio/model-workspace)'s Build tab: the whole model as an editable `OptimizationProblem` JSON document. It is the fastest lens when you already know exactly what you want — pasting a model from elsewhere, bulk-editing bounds, or tweaking an expression by hand.
+
+## The document
+
+The editor shows the same canonical model the other lenses edit, pretty-printed:
+
+```json
+{
+  "name": "production_plan",
+  "variables": [
+    { "name": "x", "type": "integer", "lower_bound": 0, "upper_bound": 100 },
+    { "name": "y", "type": "continuous", "lower_bound": 0 }
+  ],
+  "constraints": [
+    { "name": "capacity", "expression": "2*x + 3*y <= 240" }
+  ],
+  "objective": { "sense": "maximize", "expression": "50*x + 40*y" }
+}
+```
+
+The schema is the same one the [Solve API](/docs/api/solve) accepts — anything you can `POST /api/v2/solve`, you can paste here.
+
+## Live validation
+
+As you type, the editor validates on two levels:
+
+1. **Syntax + shape** — malformed JSON or a document missing the minimum structure shows an inline parse error immediately.
+2. **Semantic validation** — a well-formed document is checked against the real validator (`POST /solve/validate`): undefined variables in expressions, empty bounds, and other model-level problems surface as non-blocking errors and warnings.
+
+A **Format** button re-pretty-prints the document.
+
+## Invalid JSON never leaks
+
+While the editor holds malformed JSON, the rest of the workspace keeps the **last good model** — the canvas doesn't go blank, and Analyze keeps its numbers. Solving and committing are **blocked** until the text parses again, so you can never run or version a model you only *think* you changed.
+
+## Large models
+
+Very large models (past the [canvas scale limit](/docs/studio/visual-canvas)) are still fully editable here — the editor and the [JModel lens](/docs/studio/jmodel-dsl) are the intended way to work with them.

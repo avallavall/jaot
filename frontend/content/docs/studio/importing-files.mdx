@@ -1,0 +1,59 @@
+---
+title: Importing & Exporting Model Files
+description: Bring MPS, LP, CIP, or JSON models into the workspace, and export models and results
+order: 7
+---
+
+# Importing & Exporting Model Files
+
+JAOT speaks the standard optimization file formats. You can import an existing model into the workspace as a first-class, versioned model — and export any model or solve result back out.
+
+## Supported formats
+
+| Format | Import | Export | Notes |
+|--------|--------|--------|-------|
+| **MPS** | Yes | Yes | The classic fixed/free MPS format |
+| **LP** | Yes | Yes | CPLEX-style LP files |
+| **CIP** | Yes | Yes | SCIP's constraint integer programming format |
+| **JSON** | Yes | Yes | JAOT's native `OptimizationProblem` schema |
+| **CSV** | Yes (data) | Yes (solution) | Import tabular data into a problem; export a solution table |
+| **SOL** | -- | Yes | Solver solution file for a finished execution |
+
+## Importing a model
+
+From the studio launcher (**New Model**), pick **Import a file** and choose an `MPS`, `LP`, `CIP`, or `JSON` file. The file is parsed into a model project and the workspace opens on it — from that point it behaves like any model you built by hand: analyze it, solve it, commit versions, publish it.
+
+A very large import (tens of thousands of variables) skips the [visual canvas](/docs/studio/visual-canvas) automatically; Analyze and Solve work normally and the model stays editable through the [JSON editor](/docs/studio/json-editor).
+
+Datasets have their own import path (`.dat` / `.json` / `.csv`) — see [Datasets & Scenarios](/docs/studio/datasets-scenarios).
+
+## Exporting
+
+- **A model** — `POST /api/v2/solve/export/model/{fmt}` renders any `OptimizationProblem` as `mps`, `lp`, `cip`, or `json` — no solve required.
+- **An execution** — `GET /api/v2/solve/export/{execution_id}/{fmt}` downloads a finished run as the model (`mps`/`lp`/`cip`/`json`) or the solution (`sol`/`csv`). In the app, export buttons live on the execution detail page, which also offers a printable report.
+
+## Via API and MCP
+
+```bash
+# Preview how a file parses into a problem (nothing is stored)
+curl -X POST "https://jaot.io/api/v2/solve/import/preview" \
+  -H "Authorization: Bearer ok_live_..." \
+  -F "file=@model.mps"
+
+# Import and solve in one step
+curl -X POST "https://jaot.io/api/v2/solve/import" \
+  -H "Authorization: Bearer ok_live_..." \
+  -F "file=@model.mps"
+
+# Export a model as LP (no solve)
+curl -X POST "https://jaot.io/api/v2/solve/export/model/lp" \
+  -H "Authorization: Bearer ok_live_..." \
+  -H "Content-Type: application/json" \
+  -d @problem.json -o model.lp
+
+# Export a finished execution's solution as CSV
+curl "https://jaot.io/api/v2/solve/export/exec_abc123/csv" \
+  -H "Authorization: Bearer ok_live_..." -o solution.csv
+```
+
+The same operations are available as MCP tools: `import_preview`, `import_and_solve`, `export_model`, and `export_execution` — see the [MCP Overview](/docs/mcp/overview).

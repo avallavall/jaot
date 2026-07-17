@@ -17,6 +17,12 @@ export const docsNavigation: DocsNavItem[] = [
     title: "Model Workspace",
     children: [
       { title: "The Model Workspace", slug: "studio/model-workspace" },
+      { title: "Visual Canvas", slug: "studio/visual-canvas" },
+      { title: "JSON Editor", slug: "studio/json-editor" },
+      { title: "JModel DSL", slug: "studio/jmodel-dsl" },
+      { title: "Versioning", slug: "studio/versioning" },
+      { title: "Datasets & Scenarios", slug: "studio/datasets-scenarios" },
+      { title: "Importing & Exporting Files", slug: "studio/importing-files" },
     ],
   },
   {
@@ -34,6 +40,8 @@ export const docsNavigation: DocsNavItem[] = [
     children: [
       { title: "Browsing Models", slug: "marketplace/browsing-models" },
       { title: "Publishing Models", slug: "marketplace/publishing-models" },
+      { title: "Favorites & Reviews", slug: "marketplace/favorites-and-reviews" },
+      { title: "Authors", slug: "marketplace/authors" },
     ],
   },
   {

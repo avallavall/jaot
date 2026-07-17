@@ -1,0 +1,45 @@
+---
+title: Datasets & Scenarios
+description: One model, many data bundles — run and compare scenarios without touching the formulation
+order: 6
+---
+
+# Datasets & Scenarios
+
+A **dataset** is a named data bundle attached to a model: the values that fill the sets and params a [JModel formulation](/docs/studio/jmodel-dsl) declares. Keeping data out of the model means **one formulation, many scenarios** — "Q3 forecast", "peak season", "half fleet" — each solved and compared without ever editing the model itself.
+
+> **Requires JModel:** datasets fill a JModel source's open `set`/`param` declarations. A flat or imported model already carries its values inline, so scenarios don't apply to it — write the formulation in the JModel lens first. (The feature is instance-gated along with JModel.)
+
+## The Data tab
+
+The workspace's **Data** tab manages the model's datasets:
+
+- **New dataset** — create a bundle of `sets` and `params` values. Edit as a **table** (member lists, key→value entries) or as raw **JSON**.
+- **Generate skeleton from the model** — pre-fills the dataset with every set and param the JModel source declares, so you only fill in values and can't misspell a symbol.
+- **Import file** — upload a `.dat` (AMPL-style), `.json`, or `.csv` file; the parsed preview is validated before you save. For CSV, you name the single param it fills.
+- **Use / Stop using** — pick which dataset the JModel lens compiles against while you work (or none, to use the model's inline values).
+
+Every dataset is validated against the formulation with compiler-grade checks: a missing set/param, a key the model doesn't declare, a scalar where an indexed value is expected, or a wrong index arity is flagged inline — a typo never silently falls back to inline values.
+
+A dataset is data only: deleting one never touches the model.
+
+## Scenarios: run and compare
+
+The **Scenarios** section of the Solve tab turns datasets into runs:
+
+1. Each dataset appears as a row with its latest run's status, objective, solver, and time.
+2. **Solve all** launches every dataset (or launch them individually). Compilation happens **server-side** — the browser sends a reference, not a flattened model — and each run rides the normal async solve pipeline, so scenario runs show up in the model's history like any other execution.
+3. **Compare solutions** — select two completed runs to diff their solutions: which variables differ and by how much (identical solutions are called out explicitly).
+
+This is the classic what-if workflow: change the data, never the model, and let the runs accumulate side by side.
+
+## Via API
+
+| Action | Endpoint |
+|--------|----------|
+| List / create datasets | `GET/POST /api/v2/projects/{id}/datasets` |
+| Import a file (preview) | `POST /api/v2/projects/{id}/datasets/import` |
+| Read / update / delete | `GET/PUT/DELETE /api/v2/projects/{id}/datasets/{dataset_id}` |
+| Solve one dataset | `POST /api/v2/projects/{id}/datasets/{dataset_id}/solve` |
+
+`.../datasets/{dataset_id}/solve` compiles the project's JModel source against the dataset server-side and returns an async task envelope; a compile error returns **422** with the message and source position. See the [Models API](/docs/api/models).

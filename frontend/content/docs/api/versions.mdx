@@ -1,23 +1,91 @@
 ---
 title: Versions
-description: Model version history, checkpoints, and restore
+description: Commit-grade model project versions, diffs, restore — and legacy builder checkpoints
 order: 8
 ---
 
 # Versions
 
-Every builder document maintains a version history. Versions are snapshots of the model canvas at a point in time. Use versions to track changes, restore previous states, and pin triggers to specific model definitions for reproducibility.
+A **model project** keeps a git-style history: you edit a mutable **draft**, and **commit** it as an immutable version with a required "What changed?" message (and an optional "Why?"). Committed versions can be listed, diffed, restored into the draft, solved directly, and pinned by a marketplace listing when you publish.
 
-## Overview
+> **Info:** Each execution records the model version used, enabling audit trails. You can always trace a solve result back to the exact model definition that produced it.
 
-Versions come in two types:
+## Commit a version
+
+```
+POST /api/v2/projects/{project_id}/commit
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `summary` | string | Yes | What changed (the commit message) |
+| `body` | string | No | Why — extended rationale |
+
+Returns **201** with the new version (id prefixed `mpv_`), including its frozen model snapshot, structural stats, and problem class.
+
+<CodeTabs>
+```python
+import httpx
+
+response = httpx.post(
+    "https://jaot.io/api/v2/projects/mp_abc123/commit",
+    headers={"Authorization": "Bearer ok_live_..."},
+    json={"summary": "Tighten capacity to 80", "body": "Q3 capacity drop"},
+)
+version = response.json()
+print(f"Committed {version['id']} (v{version['sequence']})")
+```
+
+```bash
+curl -X POST "https://jaot.io/api/v2/projects/mp_abc123/commit" \
+  -H "Authorization: Bearer ok_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"summary": "Tighten capacity to 80"}'
+```
+</CodeTabs>
+
+## List versions
+
+```
+GET /api/v2/projects/{project_id}/versions
+```
+
+Newest first. Supports `skip` and `limit` (default 50). Summaries omit the full model snapshot — fetch one for the whole thing:
+
+```
+GET /api/v2/projects/{project_id}/versions/{version_id}
+```
+
+## Diff two versions
+
+```
+GET /api/v2/projects/{project_id}/versions/{a}/diff/{b}
+```
+
+Returns a structural diff: variables/constraints added, removed, and changed, plus objective changes — the same diff the workspace's version history renders, and the grounded input for the AI "explain these changes" feature.
+
+## Restore a version
+
+```
+POST /api/v2/projects/{project_id}/versions/{version_id}/restore
+```
+
+Checks the committed version out into the **draft** (history is untouched — nothing is deleted). If the draft has uncommitted changes, the restore returns **409** unless you pass `?discard_draft=true`.
+
+## Solve a specific version
+
+`POST /api/v2/projects/{project_id}/solve?version_id={version_id}` solves the frozen snapshot instead of the draft — see the [Models API](/docs/api/models).
+
+---
+
+# Builder document versions (visual builder)
+
+The standalone visual builder keeps its own lighter-weight history of **canvas snapshots**. These are not project commits: they come in two types:
 
 - **Unnamed checkpoints** -- automatic snapshots created as you work. Subject to retention pruning.
 - **Named versions** -- promoted checkpoints with a name and description. Never pruned.
 
 When you pin a trigger to a version, that version is automatically promoted to named status to prevent it from being pruned.
-
-> **Info:** Each execution records the model version used, enabling audit trails. You can always trace a solve result back to the exact model definition that produced it.
 
 ---
 

@@ -18,6 +18,12 @@ const contentMap: Record<string, () => Promise<{ default: React.ComponentType; f
   "getting-started/quick-start": () => import("@content/docs/getting-started/quick-start.mdx"),
   "getting-started/authentication": () => import("@content/docs/getting-started/authentication.mdx"),
   "studio/model-workspace": () => import("@content/docs/studio/model-workspace.mdx"),
+  "studio/visual-canvas": () => import("@content/docs/studio/visual-canvas.mdx"),
+  "studio/json-editor": () => import("@content/docs/studio/json-editor.mdx"),
+  "studio/jmodel-dsl": () => import("@content/docs/studio/jmodel-dsl.mdx"),
+  "studio/versioning": () => import("@content/docs/studio/versioning.mdx"),
+  "studio/datasets-scenarios": () => import("@content/docs/studio/datasets-scenarios.mdx"),
+  "studio/importing-files": () => import("@content/docs/studio/importing-files.mdx"),
   "ai-builder/building-with-ai": () => import("@content/docs/ai-builder/building-with-ai.mdx"),
   "ai-builder/templates-gallery": () => import("@content/docs/ai-builder/templates-gallery.mdx"),
   "ai-builder/understanding-your-solution": () =>
@@ -28,6 +34,9 @@ const contentMap: Record<string, () => Promise<{ default: React.ComponentType; f
     import("@content/docs/ai-builder/bring-your-own-api-key.mdx"),
   "marketplace/browsing-models": () => import("@content/docs/marketplace/browsing-models.mdx"),
   "marketplace/publishing-models": () => import("@content/docs/marketplace/publishing-models.mdx"),
+  "marketplace/favorites-and-reviews": () =>
+    import("@content/docs/marketplace/favorites-and-reviews.mdx"),
+  "marketplace/authors": () => import("@content/docs/marketplace/authors.mdx"),
   "mcp/overview": () => import("@content/docs/mcp/overview.mdx"),
   "api/solve": () => import("@content/docs/api/solve.mdx"),
   "api/models": () => import("@content/docs/api/models.mdx"),

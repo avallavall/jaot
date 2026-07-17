@@ -192,7 +192,7 @@ const execution = await response.json();
 
 ## POST /api/v2/models/\{model_id\}/execute
 
-Execute an activated model with input data. See the [Models](/docs/api/models) page for full documentation of this endpoint.
+Execute one of your model projects with input data — `model_id` is the project's ID (e.g. a marketplace model you forked with **Use in studio**). All executions run async under the hood; the endpoint waits briefly and returns the result, or a task envelope to poll. For solving a project's draft or a committed version directly, prefer `POST /api/v2/projects/{project_id}/solve` (see [Models](/docs/api/models)); it also supports `solution_filter=nonzero` for a compact solution.
 
 ---
 
