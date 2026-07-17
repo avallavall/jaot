@@ -3116,6 +3116,10 @@
       "loadingInsights": "Lösung wird analysiert...",
       "noInsights": "Keine Analysen für diese Ausführung verfügbar.",
       "showingTop": "Anzeige der Top {count} von {total} Variablen nach Größe",
+      "chartAllSame": "Alle Variablen ungleich null sind gleich {value} — ein Balkendiagramm zeigt hier nichts.",
+      "aggregateAtValue": "Variablen = {value}",
+      "aggregateAtZero": "Variablen bei null",
+      "showChartAnyway": "Diagramm trotzdem anzeigen",
       "zerosHidden": "{count, plural, one {# Null-Variable ausgeblendet} other {# Null-Variablen ausgeblendet}}"
     }
   },

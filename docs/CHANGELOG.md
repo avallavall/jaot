@@ -36,6 +36,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Changed
 
+- **The variable-values chart collapses identical bars to an aggregate (v3.1 A4)** —
+  a binary assignment/routing solution rendered as dozens of bars all at 1.0:
+  identical length, zero information. When every non-zero variable shares the
+  same magnitude the chart now shows an aggregate ("N variables = 1 · M at zero")
+  with a "show chart anyway" escape hatch, and keeps the real bar chart whenever
+  the magnitudes vary (continuous / LP models, where bar length carries meaning).
+
 - **Honest post-solve summary replaces the convergence chart (v3.1 A2)** — the
   live gap-convergence chart was noise for essentially every real model: SCIP
   finds a near-optimal incumbent almost immediately and then spends the run

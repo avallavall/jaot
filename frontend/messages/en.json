@@ -2862,6 +2862,10 @@
       "loadingInsights": "Analyzing solution...",
       "noInsights": "No insights available for this execution.",
       "showingTop": "Showing top {count} of {total} variables by magnitude",
+      "chartAllSame": "All non-zero variables equal {value} — a bar chart shows nothing here.",
+      "aggregateAtValue": "variables = {value}",
+      "aggregateAtZero": "variables at zero",
+      "showChartAnyway": "Show chart anyway",
       "zerosHidden": "{count, plural, one {# zero-valued variable hidden} other {# zero-valued variables hidden}}"
     },
     "charts": {

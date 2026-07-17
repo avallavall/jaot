@@ -3116,6 +3116,10 @@
       "loadingInsights": "Analitzant solució...",
       "noInsights": "No hi ha anàlisi disponible per a aquesta execució.",
       "showingTop": "Mostrant les {count} de {total} variables principals per magnitud",
+      "chartAllSame": "Totes les variables no nul·les valen {value} — un gràfic de barres no aporta res aquí.",
+      "aggregateAtValue": "variables = {value}",
+      "aggregateAtZero": "variables a zero",
+      "showChartAnyway": "Mostra el gràfic igualment",
       "zerosHidden": "{count, plural, one {# variable a zero oculta} other {# variables a zero ocultes}}"
     }
   },
