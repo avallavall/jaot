@@ -34,6 +34,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
   sensitivity) and a graceful fallback to the flat table when a solution has no
   recoverable structure.
 
+### Changed
+
+- **Honest post-solve summary replaces the convergence chart (v3.1 A2)** — the
+  live gap-convergence chart was noise for essentially every real model: SCIP
+  finds a near-optimal incumbent almost immediately and then spends the run
+  *proving* optimality, so the per-incumbent stream is ~2 points — a flat line
+  even when the model branched 1,936 nodes. The execution-detail page now shows
+  a truthful fact-card — "proven optimal at the root node", "optimal after N
+  nodes", or "time limit — gap X%" — plus the final metrics (objective, gap,
+  nodes, iterations, time), and the studio live panel keeps its streaming
+  numbers without the flat chart. Branch-and-bound node/iteration counts are now
+  persisted with the result so the summary can be specific. (A real
+  dual-bound-vs-time chart is deferred until the solver streams the dual bound,
+  not just incumbents.)
+
 ### Fixed
 
 - **MCP usage analytics restored (v3.1 C1)** — the `MCP_TOOL_CALL` event lost its

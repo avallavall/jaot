@@ -73,7 +73,6 @@ export function SolvePanel() {
           ? t("solveNoPermission")
           : null;
 
-  const objectiveSense = problem.objective?.sense === "maximize" ? "maximize" : "minimize";
   const running = session.status === "running";
   const done = session.status === "done";
 
@@ -206,11 +205,7 @@ export function SolvePanel() {
         )}
 
         {session.status !== "idle" && (
-          <LiveSolvePanel
-            session={session}
-            objectiveSense={objectiveSense}
-            onCancel={handleCancel}
-          />
+          <LiveSolvePanel session={session} onCancel={handleCancel} />
         )}
 
         {done && session.result && (

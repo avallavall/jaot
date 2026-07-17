@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, ModelExecution } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { OptimizationResult } from "@/lib/types";
 import type { InfeasibilityAnalysis } from "@/lib/llm-types";
-import { extractProgressHistory, extractObjectiveSense } from "@/lib/result-utils";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { StructuredSolutionView } from "@/components/solve/StructuredSolutionView";
@@ -17,7 +16,7 @@ import { SensitivityTab } from "@/components/solve/SensitivityTab";
 import { SolutionExplainer } from "@/components/solve/SolutionExplainer";
 import { InfeasibilityPanel } from "@/components/solve/InfeasibilityPanel";
 import { OriginBadge } from "@/components/solve/OriginBadge";
-import { GapConvergenceChart } from "@/components/solve/GapConvergenceChart";
+import { SolveFactCard } from "@/components/solve/SolveFactCard";
 import { useTranslations } from "next-intl";
 import { Database } from "lucide-react";
 
@@ -40,15 +39,6 @@ export default function ExecutionDetailPage() {
   const infeasibilityAnalysis =
     (resultData as { infeasibility_analysis?: InfeasibilityAnalysis | null } | undefined)
       ?.infeasibility_analysis ?? null;
-  const progressHistory = useMemo(
-    () => extractProgressHistory(resultData as Record<string, unknown> | undefined),
-    [resultData],
-  );
-  const objectiveSense = useMemo(
-    () => extractObjectiveSense(execution?.input_data),
-    [execution?.input_data],
-  );
-
   useEffect(() => {
     loadExecution();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -243,27 +233,21 @@ export default function ExecutionDetailPage() {
               </div>
             )}
 
-            {/* Convergence chart — uses real progress history captured by the
-                SCIP event handler. Falls back to a single-point chart if the
-                solver only reported the final solution. */}
-            {progressHistory.length > 0 && (
-              <div className="mt-6">
-                <h2 className="text-lg font-semibold text-foreground mb-3">
-                  {t("gapConvergence")}
-                </h2>
-                <div className="bg-card border border-border rounded-lg p-4" ref={chartRef}>
-                  <GapConvergenceChart
-                    progressHistory={progressHistory}
-                    objectiveSense={objectiveSense}
-                  />
-                </div>
-              </div>
-            )}
-
-            {progressHistory.length === 0 && resultData?.gap != null && (
-              <div className="mt-4 p-4 bg-card border border-border rounded-lg">
-                <span className="text-sm text-muted-foreground">{t("gapConvergence")}: </span>
-                <span className="text-sm font-medium">{(resultData.gap * 100).toFixed(4)}%</span>
+            {/* Honest post-solve summary (A2). The old live convergence chart was
+                a flat, useless line for essentially every real model (SCIP proves
+                optimality node-by-node while the incumbent barely moves), so we
+                state how the model solved instead of drawing a fake curve. */}
+            {resultData && !isInfeasible && (
+              <div className="mt-6" ref={chartRef}>
+                <h2 className="text-lg font-semibold text-foreground mb-3">{t("solveSummary")}</h2>
+                <SolveFactCard
+                  status={execution?.solver_status}
+                  objectiveValue={resultData.objective_value ?? execution?.objective_value}
+                  gap={resultData.gap}
+                  nodes={resultData.nodes}
+                  iterations={resultData.iterations}
+                  solveTimeSeconds={resultData.solve_time_seconds}
+                />
               </div>
             )}
           </TabsContent>

@@ -525,6 +525,11 @@ class OptimizationResult(BaseModel):
             "solver_status": self.status.value,
             "solve_time_seconds": self.solve_time_seconds,
             "gap": self.gap,
+            # Persisted so the post-solve summary can be honest about HOW the
+            # model solved — root node vs. N branch-and-bound nodes vs. time
+            # limit — instead of a flat, useless "live" convergence chart (A2).
+            "nodes": self.nodes,
+            "iterations": self.iterations,
             "variables": [v.model_dump() for v in self.variables] if self.variables else [],
             "sensitivity": self.sensitivity.model_dump() if self.sensitivity else None,
             "infeasibility_analysis": (

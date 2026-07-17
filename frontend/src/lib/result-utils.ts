@@ -23,7 +23,6 @@ export interface ProgressPoint {
   timestamp: number;
 }
 
-export type ObjectiveSense = "minimize" | "maximize";
 
 /**
  * Extract variable assignments from result_data.
@@ -82,15 +81,4 @@ export function extractProgressHistory(
       };
     })
     .filter((p) => Number.isFinite(p.objective));
-}
-
-/**
- * Extract the objective sense from `input_data.objective.sense`. Defaults to
- * minimize when missing or unrecognised.
- */
-export function extractObjectiveSense(
-  inputData: Record<string, unknown> | undefined | null,
-): ObjectiveSense {
-  const sense = (inputData?.objective as { sense?: unknown } | undefined)?.sense;
-  return sense === "maximize" ? "maximize" : "minimize";
 }
