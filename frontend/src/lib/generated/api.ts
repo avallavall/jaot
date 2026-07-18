@@ -1204,6 +1204,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/dsl/latex": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dsl Latex
+         * @description Pretty-print a source as symbolic math for the JModel split-pane (B1).
+         *
+         *     Parse-only: it renders the indexed objective / ∀-quantified constraint families /
+         *     variable domains from the AST BEFORE grounding, so the sum & quantifier structure
+         *     survives (grounding would flatten it to thousands of scalar rows). Needs no data,
+         *     so it succeeds for declaration-only sources — states in which ``/dsl/compile``
+         *     errors. Same structured-error contract as compile (no 4xx mid-keystroke).
+         */
+        post: operations["dsl_latex"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/dsl/status": {
         parameters: {
             query?: never;
@@ -5285,6 +5311,61 @@ export interface components {
             sets?: components["schemas"]["DSLSetDecl"][] | null;
         };
         /**
+         * DSLLatexLine
+         * @description One rendered LaTeX line plus the source name (objective/constraint/variable).
+         */
+        DSLLatexLine: {
+            /**
+             * Label
+             * @description The declaration's name, for a caption.
+             */
+            label?: string | null;
+            /**
+             * Latex
+             * @description Valid KaTeX math-mode source.
+             */
+            latex: string;
+        };
+        /**
+         * DSLLatexModel
+         * @description A JModel rendered as symbolic math: objective, constraint families, domains.
+         */
+        DSLLatexModel: {
+            /** Constraints */
+            constraints?: components["schemas"]["DSLLatexLine"][];
+            objective?: components["schemas"]["DSLLatexLine"] | null;
+            /**
+             * Variables
+             * @description Variable domain lines (type + bounds).
+             */
+            variables?: components["schemas"]["DSLLatexLine"][];
+        };
+        /**
+         * DSLLatexRequest
+         * @description A JModel source to pretty-print as symbolic math (B1).
+         */
+        DSLLatexRequest: {
+            /**
+             * Source
+             * @description JModel source text — parsed only, never grounded.
+             */
+            source: string;
+        };
+        /**
+         * DSLLatexResponse
+         * @description Parse-only symbolic-math view of a source (the JModel split-pane, B1).
+         *
+         *     On success ``ok`` is true and ``model`` holds the rendered lines; on a lex/parse
+         *     failure ``ok`` is false and ``error`` describes it. Never grounded, so it
+         *     succeeds for declaration-only sources exactly like ``/dsl/inspect``.
+         */
+        DSLLatexResponse: {
+            error?: components["schemas"]["DSLCompileError"] | null;
+            model?: components["schemas"]["DSLLatexModel"] | null;
+            /** Ok */
+            ok: boolean;
+        };
+        /**
          * DSLParamDecl
          * @description A declared param: its index sets define the dataset key shape.
          */
@@ -9294,6 +9375,10 @@ export type DslCompileRequest = components['schemas']['DSLCompileRequest'];
 export type DslCompileResponse = components['schemas']['DSLCompileResponse'];
 export type DslInspectRequest = components['schemas']['DSLInspectRequest'];
 export type DslInspectResponse = components['schemas']['DSLInspectResponse'];
+export type DslLatexLine = components['schemas']['DSLLatexLine'];
+export type DslLatexModel = components['schemas']['DSLLatexModel'];
+export type DslLatexRequest = components['schemas']['DSLLatexRequest'];
+export type DslLatexResponse = components['schemas']['DSLLatexResponse'];
 export type DslParamDecl = components['schemas']['DSLParamDecl'];
 export type DslSetDecl = components['schemas']['DSLSetDecl'];
 export type DslStatusResponse = components['schemas']['DSLStatusResponse'];
@@ -11642,6 +11727,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DSLInspectResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dsl_latex: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DSLLatexRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DSLLatexResponse"];
                 };
             };
             /** @description Validation Error */

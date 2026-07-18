@@ -66,6 +66,7 @@ import type {
   SolveAnalyticsCompare,
   DslCompileResult,
   DslInspectResult,
+  DslLatexResult,
   DslStatusResult,
   ProjectDataset,
   ProjectDatasetSummary,
@@ -825,6 +826,17 @@ export const api = {
    * errors (declaration-only sources, missing data). Gated like compile. */
   inspectDsl(source: string): Promise<DslInspectResult> {
     return request("/api/v2/dsl/inspect", {
+      method: "POST",
+      body: JSON.stringify({ source }),
+    });
+  },
+
+  /** Parse-only symbolic-math (KaTeX) render of a JModel source (B1). Renders the
+   * indexed objective / ∀-quantified constraint families / variable domains from the
+   * AST before grounding, so it succeeds where compile errors (declaration-only
+   * sources, missing data). Gated like compile; a parse error is 200 with ok:false. */
+  latexDsl(source: string): Promise<DslLatexResult> {
+    return request("/api/v2/dsl/latex", {
       method: "POST",
       body: JSON.stringify({ source }),
     });

@@ -619,6 +619,26 @@ export interface DslInspectResult {
   error?: DslCompileError | null;
 }
 
+/** One rendered LaTeX line plus the source name (POST /api/v2/dsl/latex, B1). */
+export interface DslLatexLine {
+  latex: string;
+  label?: string | null;
+}
+
+/** A JModel rendered as symbolic math: objective, constraint families, domains. */
+export interface DslLatexModel {
+  objective?: DslLatexLine | null;
+  constraints: DslLatexLine[];
+  variables: DslLatexLine[];
+}
+
+/** Parse-only symbolic-math view of a source (the JModel split-pane, B1). */
+export interface DslLatexResult {
+  ok: boolean;
+  model?: DslLatexModel | null;
+  error?: DslCompileError | null;
+}
+
 /**
  * A named data bundle ("scenario") for a project's parametric JModel: set members
  * + param values that fill a declaration-only source at compile time (§8).

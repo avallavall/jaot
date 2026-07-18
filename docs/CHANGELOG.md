@@ -19,6 +19,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Added
 
+- **JModel split-pane: the model as mathematical notation (v3.1 B1)** — the JModel
+  editor now renders the source as symbolic math (KaTeX) in a live right-hand pane.
+  A deterministic LaTeX pretty-printer walks the compiler AST *before* grounding, so
+  the indexed objective, the ∀-quantified constraint families and the variable
+  domains stay symbolic (`min Σ_{i∈I} wᵢ·xᵢ`, `Σ_{w∈W} assign_{w,t} = 1  ∀ t∈T`)
+  instead of flattening into thousands of scalar rows. It is served by a new
+  parse-only `POST /dsl/latex` (gated behind `JAOT_DSL`), so it also renders
+  declaration-only sources where a full compile would error, and the pane keeps the
+  last valid render on screen while an in-progress edit does not yet parse. No AI:
+  the rendering is a pure function of the parsed model. Greek-named symbols render as
+  their letters (`alpha → α`) and the pane can be collapsed back to a plain editor.
+
 - **Structured solution view — variables regain their index structure (v3.1 A1)** —
   a binary assignment/routing solution used to render as a wall of identical
   `assign_v3_o107 = 1` rows because the flat solver output had thrown away the

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { AlertCircle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, RefreshCw, Sigma } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ import {
   useModelProjectStoreApi,
 } from "../../store/useModelProjectStore";
 import { useProjectDatasets } from "../../datasets/useProjectDatasets";
+import { JModelMathView } from "./JModelMathView";
 
 const COMPILE_DEBOUNCE_MS = 500;
 
@@ -52,6 +53,9 @@ export function JModelEditorPanel() {
   const [text, setText] = useState<string>(() => storeApi.getState().draftDslSource);
   const [result, setResult] = useState<DslCompileResult | null>(null);
   const [compiling, setCompiling] = useState(false);
+  // The split-pane math view is on by default (the flagship "see the notation" view);
+  // the user can collapse it back to a plain editor.
+  const [showMath, setShowMath] = useState(true);
   const compileTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Monotonic token so a slow compile response can never overwrite a newer one.
   const compileSeq = useRef(0);
@@ -222,6 +226,21 @@ export function JModelEditorPanel() {
               </select>
             </label>
           )}
+          <Button
+            variant="ghost"
+            size="sm"
+            data-testid="studio-jmodel-math-toggle"
+            aria-pressed={showMath}
+            title={showMath ? t("jmodelMathHide") : t("jmodelMathShow")}
+            onClick={() => setShowMath((v) => !v)}
+            className={cn(
+              "h-6 gap-1 px-1.5 text-xs",
+              showMath ? "text-foreground" : "text-muted-foreground"
+            )}
+          >
+            <Sigma className="h-3.5 w-3.5" />
+            {t("jmodelMathToggle")}
+          </Button>
           <JModelStatus result={result} compiling={compiling} />
         </div>
       </div>
@@ -244,55 +263,65 @@ export function JModelEditorPanel() {
         </div>
       )}
 
-      <textarea
-        data-testid="studio-jmodel-textarea"
-        value={text}
-        onChange={(e) => handleChange(e.target.value)}
-        readOnly={readOnly}
-        spellCheck={false}
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        placeholder={PLACEHOLDER_EXAMPLE}
-        aria-label={t("jmodelAriaLabel")}
-        aria-invalid={result ? !result.ok : false}
-        className={cn(
-          "flex-1 min-h-0 w-full resize-none bg-transparent px-4 py-3 font-mono text-xs leading-relaxed outline-none",
-          readOnly && "cursor-not-allowed opacity-60"
-        )}
-      />
+      <div className="flex min-h-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <textarea
+            data-testid="studio-jmodel-textarea"
+            value={text}
+            onChange={(e) => handleChange(e.target.value)}
+            readOnly={readOnly}
+            spellCheck={false}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            placeholder={PLACEHOLDER_EXAMPLE}
+            aria-label={t("jmodelAriaLabel")}
+            aria-invalid={result ? !result.ok : false}
+            className={cn(
+              "flex-1 min-h-0 w-full resize-none bg-transparent px-4 py-3 font-mono text-xs leading-relaxed outline-none",
+              readOnly && "cursor-not-allowed opacity-60"
+            )}
+          />
 
-      {result && !result.ok && result.error && (
-        <div
-          data-testid="studio-jmodel-error"
-          role="alert"
-          className="border-t border-destructive/30 bg-destructive/5 px-4 py-2 text-xs text-destructive"
-        >
-          <span>
-            {t("jmodelInvalid")}: <code className="font-mono">{result.error.message}</code>
-            {typeof result.error.position === "number" && (
-              <span className="opacity-70"> (pos {result.error.position})</span>
-            )}
-          </span>
-          <p className="mt-1 opacity-80">{t("lensNotApplied")}</p>
-          {/* S4 cross-link: a data-shaped error (declaration without values/members,
-              dataset/model mismatch — those messages all name "dataset") is fixed in
-              the Datos tab, not by editing the source. */}
-          {modelId &&
-            modelId !== "new" &&
-            /dataset|has no (values|members)/i.test(result.error.message) && (
-              <p className="mt-1">
-                <Link
-                  href={`/studio/${modelId}/data`}
-                  className="font-medium underline underline-offset-2"
-                  data-testid="studio-jmodel-goto-data"
-                >
-                  {t("jmodelGoToData")}
-                </Link>
-              </p>
-            )}
+          {result && !result.ok && result.error && (
+            <div
+              data-testid="studio-jmodel-error"
+              role="alert"
+              className="border-t border-destructive/30 bg-destructive/5 px-4 py-2 text-xs text-destructive"
+            >
+              <span>
+                {t("jmodelInvalid")}: <code className="font-mono">{result.error.message}</code>
+                {typeof result.error.position === "number" && (
+                  <span className="opacity-70"> (pos {result.error.position})</span>
+                )}
+              </span>
+              <p className="mt-1 opacity-80">{t("lensNotApplied")}</p>
+              {/* S4 cross-link: a data-shaped error (declaration without values/members,
+                  dataset/model mismatch — those messages all name "dataset") is fixed in
+                  the Datos tab, not by editing the source. */}
+              {modelId &&
+                modelId !== "new" &&
+                /dataset|has no (values|members)/i.test(result.error.message) && (
+                  <p className="mt-1">
+                    <Link
+                      href={`/studio/${modelId}/data`}
+                      className="font-medium underline underline-offset-2"
+                      data-testid="studio-jmodel-goto-data"
+                    >
+                      {t("jmodelGoToData")}
+                    </Link>
+                  </p>
+                )}
+            </div>
+          )}
         </div>
-      )}
+
+        {showMath && (
+          <div className="min-w-0 flex-1 border-l">
+            <JModelMathView source={text} active={showMath} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

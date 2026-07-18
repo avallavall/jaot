@@ -102,3 +102,43 @@ class DSLStatusResponse(BaseModel):
     """Whether the JModel DSL feature is enabled on this instance."""
 
     enabled: bool
+
+
+class DSLLatexRequest(BaseModel):
+    """A JModel source to pretty-print as symbolic math (B1)."""
+
+    source: str = Field(
+        ...,
+        max_length=1_000_000,
+        description="JModel source text — parsed only, never grounded.",
+    )
+
+
+class DSLLatexLine(BaseModel):
+    """One rendered LaTeX line plus the source name (objective/constraint/variable)."""
+
+    latex: str = Field(..., description="Valid KaTeX math-mode source.")
+    label: str | None = Field(default=None, description="The declaration's name, for a caption.")
+
+
+class DSLLatexModel(BaseModel):
+    """A JModel rendered as symbolic math: objective, constraint families, domains."""
+
+    objective: DSLLatexLine | None = None
+    constraints: list[DSLLatexLine] = Field(default_factory=list)
+    variables: list[DSLLatexLine] = Field(
+        default_factory=list, description="Variable domain lines (type + bounds)."
+    )
+
+
+class DSLLatexResponse(BaseModel):
+    """Parse-only symbolic-math view of a source (the JModel split-pane, B1).
+
+    On success ``ok`` is true and ``model`` holds the rendered lines; on a lex/parse
+    failure ``ok`` is false and ``error`` describes it. Never grounded, so it
+    succeeds for declaration-only sources exactly like ``/dsl/inspect``.
+    """
+
+    ok: bool
+    model: DSLLatexModel | None = None
+    error: DSLCompileError | None = None

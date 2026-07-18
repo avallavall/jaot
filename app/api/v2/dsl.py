@@ -19,13 +19,23 @@ from fastapi import APIRouter, Depends
 
 from app.api.deps import CurrentOrg, CurrentUser, DBSession
 from app.api.v2.deps.dsl_feature_gate import dsl_enabled, dsl_feature_gate
-from app.domains.dsl import JModelData, JModelError, compile_jmodel, inspect_declarations
+from app.domains.dsl import (
+    JModelData,
+    JModelError,
+    compile_jmodel,
+    inspect_declarations,
+    latexify,
+)
 from app.schemas.dsl import (
     DSLCompileError,
     DSLCompileRequest,
     DSLCompileResponse,
     DSLInspectRequest,
     DSLInspectResponse,
+    DSLLatexLine,
+    DSLLatexModel,
+    DSLLatexRequest,
+    DSLLatexResponse,
     DSLParamDecl,
     DSLSetDecl,
     DSLStatusResponse,
@@ -126,4 +136,49 @@ def dsl_inspect(body: DSLInspectRequest, _user: CurrentUser) -> DSLInspectRespon
             )
             for p in decls.params
         ],
+    )
+
+
+@router.post(
+    "/latex",
+    operation_id="dsl_latex",
+    dependencies=[Depends(dsl_feature_gate)],
+)
+def dsl_latex(body: DSLLatexRequest, _user: CurrentUser) -> DSLLatexResponse:
+    """Pretty-print a source as symbolic math for the JModel split-pane (B1).
+
+    Parse-only: it renders the indexed objective / ∀-quantified constraint families /
+    variable domains from the AST BEFORE grounding, so the sum & quantifier structure
+    survives (grounding would flatten it to thousands of scalar rows). Needs no data,
+    so it succeeds for declaration-only sources — states in which ``/dsl/compile``
+    errors. Same structured-error contract as compile (no 4xx mid-keystroke).
+    """
+    try:
+        rendered = latexify(body.source)
+    except JModelError as exc:
+        return DSLLatexResponse(
+            ok=False,
+            error=DSLCompileError(message=exc.message, position=exc.position),
+        )
+    except Exception:
+        logger.exception("JModel LaTeX renderer crashed on user source")
+        return DSLLatexResponse(
+            ok=False,
+            error=DSLCompileError(message="internal compiler error", position=None),
+        )
+    return DSLLatexResponse(
+        ok=True,
+        model=DSLLatexModel(
+            objective=(
+                DSLLatexLine(latex=rendered.objective.latex, label=rendered.objective.label)
+                if rendered.objective
+                else None
+            ),
+            constraints=[
+                DSLLatexLine(latex=line.latex, label=line.label) for line in rendered.constraints
+            ],
+            variables=[
+                DSLLatexLine(latex=line.latex, label=line.label) for line in rendered.variables
+            ],
+        ),
     )

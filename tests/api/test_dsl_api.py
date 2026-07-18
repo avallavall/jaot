@@ -398,3 +398,100 @@ def test_inspect_reports_structured_parse_error(
 def test_inspect_requires_auth(client):
     resp = client.post("/api/v2/dsl/inspect", json={"source": DECL_ONLY_SOURCE})
     assert resp.status_code in (401, 403), resp.text
+
+
+# --------------------------------------------------------------------------- #
+# LaTeX pretty-printer (B1) — the JModel split-pane math view
+# --------------------------------------------------------------------------- #
+
+LATEX_SOURCE = """
+set I := {a, b};
+param w{I} := a 2, b 3;
+var x{I} binary;
+maximize obj: sum{i in I} w[i] * x[i];
+subject to pick{i in I}: x[i] <= 1;
+"""
+
+
+# CONTRACT-TEST: /dsl/latex ships dark behind the same gate as compile (404 when off).
+@pytest.mark.integration
+def test_latex_404_when_flag_off(authenticated_client, test_organization, db_session):
+    resp = authenticated_client.post("/api/v2/dsl/latex", json={"source": LATEX_SOURCE})
+    assert resp.status_code == 404, resp.text
+    assert resp.json()["detail"]["error"] == "dsl_disabled"
+
+
+@pytest.mark.integration
+def test_latex_renders_symbolic_model(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
+    resp = authenticated_client.post("/api/v2/dsl/latex", json={"source": LATEX_SOURCE})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ok"] is True
+    assert body["error"] is None
+    model = body["model"]
+    assert model["objective"]["label"] == "obj"
+    assert model["objective"]["latex"].startswith("\\max \\quad \\sum_{i \\in I}")
+    # The constraint family keeps its ∀ quantifier (not flattened to scalar rows).
+    assert len(model["constraints"]) == 1
+    assert "\\forall" in model["constraints"][0]["latex"]
+    assert model["constraints"][0]["label"] == "pick"
+    assert [v["label"] for v in model["variables"]] == ["x"]
+    assert "\\{0, 1\\}" in model["variables"][0]["latex"]
+
+
+@pytest.mark.integration
+def test_latex_declaration_only_source_succeeds(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
+    """Parse-only, so a declaration-only source renders (compile would error)."""
+    resp = authenticated_client.post("/api/v2/dsl/latex", json={"source": DECL_ONLY_SOURCE})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ok"] is True, body
+    assert body["model"]["objective"]["latex"].startswith("\\max \\quad")
+
+
+@pytest.mark.integration
+def test_latex_reports_structured_parse_error(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
+    resp = authenticated_client.post(
+        "/api/v2/dsl/latex", json={"source": "set S := {a, b}\nvar x >= 0;"}
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ok"] is False
+    assert body["model"] is None
+    assert body["error"]["message"]
+    assert body["error"]["position"] is not None
+
+
+@pytest.mark.integration
+def test_latex_internal_error_is_structured_not_500(
+    authenticated_client, test_organization, db_session, enable_dsl, monkeypatch
+):
+    """A renderer bug must surface as ok=false (the pane refreshes per keystroke)."""
+
+    def _boom(source):
+        raise RuntimeError("renderer bug")
+
+    monkeypatch.setattr("app.api.v2.dsl.latexify", _boom)
+    resp = authenticated_client.post("/api/v2/dsl/latex", json={"source": LATEX_SOURCE})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ok"] is False
+    assert body["error"]["message"] == "internal compiler error"
+
+
+@pytest.mark.integration
+def test_latex_source_size_cap(authenticated_client, test_organization, db_session, enable_dsl):
+    resp = authenticated_client.post("/api/v2/dsl/latex", json={"source": "x" * 1_000_001})
+    assert resp.status_code == 422, resp.text
+
+
+@pytest.mark.integration
+def test_latex_requires_auth(client):
+    resp = client.post("/api/v2/dsl/latex", json={"source": LATEX_SOURCE})
+    assert resp.status_code in (401, 403), resp.text
