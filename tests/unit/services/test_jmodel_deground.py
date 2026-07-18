@@ -167,20 +167,73 @@ def test_negative_and_fractional_coefficients_round_trip():
 # --------------------------------------------------------------------------- #
 
 
-def test_scalar_only_model_declines():
-    """No indexed families → the flat form already IS the model, so decline."""
+def test_small_scalar_model_gets_a_flat_jmodel():
+    """A small model with no indexed families still de-grounds — as a scalar JModel."""
     problem = _flat(
         "var x >= 0;\nvar y >= 0;\nminimize obj: 3 * x + 2 * y;\nsubject to c: x + y <= 10;"
+    )
+    draft = deground_problem(problem)
+    assert draft is not None
+    assert "var x >= 0;" in draft and "var y >= 0;" in draft
+    assert "minimize obj:" in draft
+    assert _recompiles_equivalent(draft, problem)
+
+
+def test_small_binary_scalar_model_round_trips():
+    """Binary vars carry no explicit bounds in a flat model but [0,1] when recompiled —
+    the round-trip must treat those as equal (regression: used to decline)."""
+    from app.schemas.optimization import (
+        Constraint,
+        Objective,
+        ObjectiveSense,
+        OptimizationProblem,
+        Variable,
+        VariableType,
+    )
+
+    problem = OptimizationProblem(
+        variables=[
+            Variable(name="pick_a", type=VariableType.BINARY),  # lower/upper left None
+            Variable(name="pick_b", type=VariableType.BINARY),
+        ],
+        objective=Objective(sense=ObjectiveSense.MAXIMIZE, expression="3*pick_a + 2*pick_b"),
+        constraints=[Constraint(name="cap", expression="pick_a + pick_b <= 1")],
+    )
+    draft = deground_problem(problem)
+    assert draft is not None
+    assert "var pick_a binary;" in draft
+    assert _recompiles_equivalent(draft, problem)
+
+
+def test_large_flat_model_without_families_declines():
+    """A big flat model has no compact form; a scalar dump would be a wall, so decline."""
+    from app.schemas.optimization import (
+        Constraint,
+        Objective,
+        ObjectiveSense,
+        OptimizationProblem,
+        Variable,
+        VariableType,
+    )
+
+    # 80 scalar vars (no recoverable family) — past the scalar-fallback limit.
+    variables = [Variable(name=f"col{i}", type=VariableType.CONTINUOUS) for i in range(80)]
+    problem = OptimizationProblem(
+        variables=variables,
+        objective=Objective(
+            sense=ObjectiveSense.MINIMIZE, expression=" + ".join(v.name for v in variables)
+        ),
+        constraints=[Constraint(name="c", expression=variables[0].name + " >= 1")],
     )
     assert deground_problem(problem) is None
 
 
-def test_sparse_numeric_family_declines():
-    """A flat family whose numeric indices are not a full cartesian block declines.
+def test_sparse_numeric_family_is_not_falsely_compacted():
+    """A flat family whose numeric indices are not a full cartesian block must never
+    become a dense ``var x{S1, S2}`` (that would invent the missing variable).
 
-    ``x_1_1, x_1_2, x_2_1`` (no ``x_2_2``) parses to a 2×2-shaped family missing one
-    member: it cannot be a single dense ``var x{S1, S2}`` declaration, so the
-    de-grounder declines rather than invent the missing variable.
+    ``x_1_1, x_1_2, x_2_1`` (no ``x_2_2``) is 2×2 minus one member: the compact path
+    declines, and a small model falls back to a scalar JModel that round-trips.
     """
     from app.schemas.optimization import (
         Constraint,
@@ -200,7 +253,10 @@ def test_sparse_numeric_family_declines():
         objective=Objective(sense=ObjectiveSense.MAXIMIZE, expression="x_1_1 + x_1_2 + x_2_1"),
         constraints=[Constraint(name="c", expression="x_1_1 + x_1_2 + x_2_1 <= 2")],
     )
-    assert deground_problem(problem) is None
+    draft = deground_problem(problem)
+    assert draft is not None
+    assert "var x{" not in draft  # never falsely compacted into a dense family
+    assert _recompiles_equivalent(draft, problem)
 
 
 def test_tuple_set_family_degrounds_as_one_dimensional():
@@ -216,8 +272,9 @@ def test_tuple_set_family_degrounds_as_one_dimensional():
     assert _recompiles_equivalent(draft, problem)
 
 
-def test_partial_objective_coverage_declines():
-    """An objective touching only some of a family's members can't be a full sum."""
+def test_partial_objective_coverage_is_not_falsely_summed():
+    """An objective touching only some of a family's members can't be a full sum —
+    the compact path declines; a small model falls back to a scalar JModel."""
     from app.schemas.optimization import (
         Constraint,
         Objective,
@@ -235,4 +292,7 @@ def test_partial_objective_coverage_declines():
         objective=Objective(sense=ObjectiveSense.MAXIMIZE, expression="x_1"),  # x_2 missing
         constraints=[Constraint(name="c", expression="x_1 + x_2 <= 1")],
     )
-    assert deground_problem(problem) is None
+    draft = deground_problem(problem)
+    assert draft is not None
+    assert "sum{" not in draft  # the partial objective is not falsely turned into a sum
+    assert _recompiles_equivalent(draft, problem)

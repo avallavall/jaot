@@ -534,14 +534,19 @@ def test_deground_returns_compact_source_that_round_trips(
 
 
 @pytest.mark.integration
-def test_deground_declines_a_scalar_model(
+def test_deground_small_scalar_model_gets_a_flat_jmodel(
     authenticated_client, test_organization, db_session, enable_dsl
 ):
-    """A model with no indexed families has no compact form — decline with null."""
+    """A small model with no indexed families de-grounds as a plain scalar JModel."""
     problem = _compile(authenticated_client, SMALL_SOURCE)
     resp = authenticated_client.post("/api/v2/dsl/deground", json={"problem": problem})
     assert resp.status_code == 200, resp.text
-    assert resp.json()["source"] is None
+    source = resp.json()["source"]
+    assert source is not None
+    assert "var x" in source
+    # Honest by construction: the scalar draft recompiles to the same variable.
+    recompiled = _compile(authenticated_client, source)
+    assert [v["name"] for v in recompiled["variables"]] == ["x"]
 
 
 @pytest.mark.integration

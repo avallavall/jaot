@@ -43,7 +43,12 @@ def deground_problem(problem: OptimizationProblem) -> str | None:
     try:
         source = _reconstruct(problem)
     except (_DegroundError, ParseError):
-        return None
+        source = None
+    # No compact structure recovered — fall back to a plain scalar JModel for a SMALL
+    # model (a large flat model would just be the wall of rows B2 exists to avoid, so
+    # it stays declined).
+    if source is None:
+        source = _scalar_jmodel(problem)
     if source is None:
         return None
     # Honesty gate: the draft must recompile to an equivalent problem.
@@ -207,6 +212,31 @@ def _cartesian(position_values: list[list[str]]) -> list[tuple[str, ...]]:
     for values in position_values:
         result = [prev + (v,) for prev in result for v in values]
     return result
+
+
+# A scalar JModel of thousands of rows is the hairball B2 exists to fix, so the
+# flat fallback is offered only for a small model (a hand-built or imported model
+# with no indexed families — e.g. an assortment or a two-variable canvas model).
+_SCALAR_MAX_ITEMS = 60
+
+
+def _scalar_jmodel(problem: OptimizationProblem) -> str | None:
+    """A plain, non-indexed JModel of a small flat model (no families to recover).
+
+    Emits one ``var`` per variable and the objective/constraints verbatim (they are
+    already valid JModel expressions over the flat names). Returns ``None`` past
+    :data:`_SCALAR_MAX_ITEMS` — a large flat model has no compact form and a scalar
+    dump would be a wall. Still gated by the round-trip check in the caller.
+    """
+    if len(problem.variables) > _SCALAR_MAX_ITEMS or len(problem.constraints) > _SCALAR_MAX_ITEMS:
+        return None
+    lines = [_scalar_var_decl(var) for var in problem.variables]
+    sense = "minimize" if problem.objective.sense.value == "minimize" else "maximize"
+    lines.append(f"{sense} obj: {problem.objective.expression};")
+    for i, con in enumerate(problem.constraints, start=1):
+        lines.append(f"subject to c{i}: {con.expression};")
+    header = "# JModel draft — derived from a flat model, review before relying on it"
+    return header + "\n" + "\n".join(lines)
 
 
 class _SetRegistry:
@@ -578,9 +608,15 @@ def _problems_equivalent(a: OptimizationProblem, b: OptimizationProblem) -> bool
 
 
 def _var_signature(problem: OptimizationProblem) -> frozenset:
-    return frozenset(
-        (v.name, v.type.value, v.lower_bound, v.upper_bound) for v in problem.variables
-    )
+    # A binary variable is [0, 1] whether or not the flat problem stated bounds
+    # explicitly (an imported/builder model often leaves them None, while the
+    # recompiled JModel stamps 0/1) — normalize so the two round-trip as equal.
+    def bounds(v: Variable) -> tuple[float | None, float | None]:
+        if v.type == VariableType.BINARY:
+            return (0.0, 1.0)
+        return (v.lower_bound, v.upper_bound)
+
+    return frozenset((v.name, v.type.value, *bounds(v)) for v in problem.variables)
 
 
 def _obj_signature(problem: OptimizationProblem, parser: ExpressionParser, names: set[str]):
