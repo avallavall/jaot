@@ -43,6 +43,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Added
 
+- **Generate a JModel with AI, from a description or a screenshot (v3.1 B3)** — the
+  JModel lens has a "Generate with AI" button that turns a plain-language description
+  and/or attached screenshots/PDFs of a formulation into a working JModel source. It
+  is built on JModel's determinism: the model proposes a source and the compiler is
+  the oracle, so the new `POST /dsl/generate` runs a generate→compile→feed-the-error→
+  retry loop and returns a source only when it VERIFIABLY compiles — a rare
+  non-compiling best-effort draft is still loaded (the editor highlights its error),
+  never passed off as valid. Attachments ride to Claude as native vision blocks
+  (images and PDFs read directly — no OCR), so a photo of a thesis formulation becomes
+  editable JModel. The draft lands in the editor exactly like a paste, and can be
+  refined further. Same guardrails as the chat assistant: bring-your-own-key first,
+  the monthly AI-budget pause, LLM rate limiting, and a moderation pre-check; the
+  spend of platform-key runs is booked so it counts toward the monthly budget. Gated
+  behind `JAOT_DSL`.
+
 - **Derive a JModel draft from a flat model (v3.1 B2, phase 1)** — a model built on
   the canvas or imported (MPS/LP/CIP) has no JModel source, so the JModel lens now
   offers "Derive draft": it reconstructs a compact indexed JModel from the flat

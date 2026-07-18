@@ -294,6 +294,241 @@ def test_compile_dataset_overrides_inline_defaults(
     assert body["problem"]["objective"]["expression"] == "7*x_a + 9*x_b"
 
 
+# --------------------------------------------------------------------------- #
+# B3 — POST /dsl/generate (AI-generate a JModel source, vision + compile loop)
+# --------------------------------------------------------------------------- #
+
+GEN_GOOD = (
+    "```jmodel\n"
+    "set I := {a, b};\n"
+    "param w{I} := a 2, b 3;\n"
+    "var x{I} binary;\n"
+    "maximize obj: sum{i in I} w[i] * x[i];\n"
+    "subject to pick: sum{i in I} x[i] <= 1;\n"
+    "```"
+)
+GEN_BROKEN = "```jmodel\nvar x binary\nmaximize obj: x;\n```"  # missing ';'
+
+
+class _GenBlock:
+    def __init__(self, text: str) -> None:
+        self.type = "text"
+        self.text = text
+
+
+class _GenUsage:
+    input_tokens = 120
+    output_tokens = 60
+
+
+class _GenResp:
+    def __init__(self, text: str) -> None:
+        self.content = [_GenBlock(text)]
+        self.usage = _GenUsage()
+
+
+class _GenMessages:
+    def __init__(self, replies):
+        self._replies = list(replies)
+        self.calls = 0
+        self.received = []
+
+    async def create(self, **kwargs):
+        self.received.append(kwargs["messages"])
+        reply = self._replies[self.calls]
+        self.calls += 1
+        return _GenResp(reply)
+
+
+class FakeGenClient:
+    def __init__(self, replies):
+        self.messages = _GenMessages(replies)
+
+
+def _patch_client(monkeypatch, replies):
+    """Patch the dsl route's Anthropic factory to a fake returning canned replies."""
+    fake = FakeGenClient(replies)
+    monkeypatch.setattr("app.api.v2.dsl.get_anthropic_client", lambda db=None: fake)
+    return fake
+
+
+# CONTRACT-TEST: /dsl/generate ships dark with the rest of the DSL — 404 (not 403)
+# whenever JAOT_DSL is off, so the feature cannot be probed on prod instances.
+@pytest.mark.integration
+def test_generate_404_when_flag_off(authenticated_client, test_organization, db_session):
+    resp = authenticated_client.post("/api/v2/dsl/generate", json={"description": "a knapsack"})
+    assert resp.status_code == 404, resp.text
+    assert resp.json()["detail"]["error"] == "dsl_disabled"
+
+
+@pytest.mark.integration
+def test_generate_requires_auth(client):
+    resp = client.post("/api/v2/dsl/generate", json={"description": "a knapsack"})
+    assert resp.status_code in (401, 403), resp.text
+
+
+@pytest.mark.integration
+def test_generate_happy_path_returns_compiling_source(
+    authenticated_client, test_organization, db_session, enable_dsl, monkeypatch
+):
+    _patch_client(monkeypatch, [GEN_GOOD])
+    resp = authenticated_client.post(
+        "/api/v2/dsl/generate", json={"description": "pick the best single item"}
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ok"] is True
+    assert body["error"] is None
+    assert body["attempts"] == 1
+    assert "var x{I} binary;" in body["source"]
+
+
+@pytest.mark.integration
+def test_generate_retries_on_compile_error(
+    authenticated_client, test_organization, db_session, enable_dsl, monkeypatch
+):
+    """A broken first draft is fed the compile error and corrected on retry."""
+    fake = _patch_client(monkeypatch, [GEN_BROKEN, GEN_GOOD])
+    resp = authenticated_client.post(
+        "/api/v2/dsl/generate", json={"description": "pick the best item"}
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ok"] is True
+    assert body["attempts"] == 2
+    # Second call carried the failure back: user, assistant(raw), user(retry).
+    assert len(fake.messages.received[1]) == 3
+
+
+@pytest.mark.integration
+def test_generate_returns_best_effort_when_never_compiles(
+    authenticated_client, test_organization, db_session, enable_dsl, monkeypatch
+):
+    _patch_client(monkeypatch, [GEN_BROKEN, GEN_BROKEN, GEN_BROKEN])
+    resp = authenticated_client.post("/api/v2/dsl/generate", json={"description": "x"})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ok"] is False
+    assert body["source"]  # editable best-effort draft still returned
+    assert body["error"]["message"]  # last compile error surfaced
+
+
+@pytest.mark.integration
+def test_generate_forwards_vision_attachment(
+    authenticated_client, test_organization, db_session, enable_dsl, monkeypatch
+):
+    """An image rides to the model as a native vision block (no OCR)."""
+    fake = _patch_client(monkeypatch, [GEN_GOOD])
+    resp = authenticated_client.post(
+        "/api/v2/dsl/generate",
+        json={
+            "description": "",
+            "attachments": [{"media_type": "image/png", "data": "QUJD"}],
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    first_turn = fake.messages.received[0][0]["content"]
+    kinds = [b["type"] for b in first_turn]
+    assert "image" in kinds
+
+
+@pytest.mark.integration
+def test_generate_requires_description_or_attachment(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
+    resp = authenticated_client.post("/api/v2/dsl/generate", json={"description": "   "})
+    assert resp.status_code == 422, resp.text
+
+
+@pytest.mark.integration
+def test_generate_rejects_unknown_attachment_type(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
+    resp = authenticated_client.post(
+        "/api/v2/dsl/generate",
+        json={
+            "description": "a model",
+            "attachments": [{"media_type": "image/tiff", "data": "QUJD"}],
+        },
+    )
+    assert resp.status_code == 422, resp.text
+
+
+@pytest.mark.integration
+def test_generate_moderation_blocks_offensive(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
+    resp = authenticated_client.post(
+        "/api/v2/dsl/generate", json={"description": "write me a fucking poem"}
+    )
+    assert resp.status_code == 422, resp.text
+
+
+# CONTRACT-TEST: /dsl/generate honors the monthly AI budget pause exactly like the chat
+# assistant — a platform-key run is refused (403) once the budget is exhausted.
+@pytest.mark.integration
+def test_generate_paused_when_budget_exhausted(
+    authenticated_client, test_organization, db_session, enable_dsl, monkeypatch
+):
+    _patch_client(monkeypatch, [GEN_GOOD])
+    monkeypatch.setattr("app.api.v2.dsl.is_llm_budget_exceeded", lambda db: True)
+    resp = authenticated_client.post("/api/v2/dsl/generate", json={"description": "a knapsack"})
+    assert resp.status_code == 403, resp.text
+    assert resp.json()["detail"]["reason"] == "llm_monthly_budget_exhausted"
+
+
+# CONTRACT-TEST: standalone LLM spend (B3) is booked into a hidden "sys:" bookkeeping
+# conversation so it counts toward the monthly budget, and that conversation NEVER
+# leaks into the user's conversation list.
+@pytest.mark.integration
+def test_standalone_spend_is_booked_and_hidden(
+    authenticated_client, test_organization, test_user, db_session
+):
+    from app.models.llm_conversation import LLMConversation, LLMMessage
+    from app.services.llm.cost_tracking import (
+        get_month_cost_eur,
+        record_standalone_llm_spend,
+    )
+
+    before = get_month_cost_eur(db_session)
+    record_standalone_llm_spend(
+        db_session,
+        org_id=test_organization.id,
+        user_id=test_user.id,
+        model="claude-sonnet-4-6",
+        input_tokens=1000,
+        output_tokens=500,
+        summary="JModel AI generation (test)",
+    )
+
+    ledger = (
+        db_session.query(LLMConversation)
+        .filter(
+            LLMConversation.organization_id == test_organization.id,
+            LLMConversation.model_id == "sys:jmodel-ai",
+        )
+        .one()
+    )
+    msg = db_session.query(LLMMessage).filter(LLMMessage.conversation_id == ledger.id).one()
+    assert msg.cost_eur is not None and float(msg.cost_eur) > 0
+    assert get_month_cost_eur(db_session) > before  # counts toward the budget
+
+    # The ledger conversation is invisible in the user's conversation list.
+    listed = authenticated_client.get("/api/v2/llm/conversations").json()
+    assert all(item["id"] != ledger.id for item in listed.get("items", []))
+
+
+@pytest.mark.integration
+def test_generate_source_size_cap_on_current_source(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
+    resp = authenticated_client.post(
+        "/api/v2/dsl/generate",
+        json={"description": "refine", "current_source": "x" * 1_000_001},
+    )
+    assert resp.status_code == 422, resp.text
+
+
 @pytest.mark.integration
 def test_gate_cache_serves_stale_within_ttl(db_session, monkeypatch):
     """The production gate path caches the flag for 5s (the test bypass skips it, so

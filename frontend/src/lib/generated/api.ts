@@ -1206,6 +1206,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/dsl/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dsl Generate
+         * @description Generate a JModel source from a description and/or screenshots/PDFs (B3).
+         *
+         *     Turns JModel's determinism into a self-correcting loop: Claude proposes a source,
+         *     the compiler validates it, and any structured error is fed back for a retry. The
+         *     response's ``ok`` is true ONLY when the returned source verifiably compiles; when
+         *     every retry fails it still returns the best-effort draft plus the last compile
+         *     error, so the editor lands on an editable start rather than nothing.
+         *
+         *     Same guardrails as the chat assistant: BYOK-first (an org key runs on the org's own
+         *     account and skips the platform budget), monthly-budget pause, LLM rate limit, and a
+         *     content-moderation pre-check on the description.
+         */
+        post: operations["dsl_generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/dsl/inspect": {
         parameters: {
             query?: never;
@@ -5332,6 +5362,76 @@ export interface components {
             source?: string | null;
         };
         /**
+         * DSLGenerateAttachment
+         * @description One vision attachment: a base64 image or PDF the model reads to formulate.
+         */
+        DSLGenerateAttachment: {
+            /**
+             * Data
+             * @description Base64-encoded file bytes (no data: URL prefix).
+             */
+            data: string;
+            /**
+             * Media Type
+             * @description MIME type — one of image/png|jpeg|gif|webp or application/pdf.
+             */
+            media_type: string;
+        };
+        /**
+         * DSLGenerateRequest
+         * @description A natural-language description (+ optional vision attachments) to formulate.
+         *
+         *     At least one of ``description`` / ``attachments`` must be non-empty (validated in
+         *     the route). ``current_source`` seeds a refine-this-model turn when the user already
+         *     has a draft in the editor.
+         */
+        DSLGenerateRequest: {
+            /**
+             * Attachments
+             * @description Screenshots / PDFs of a formulation for Claude to read (vision).
+             */
+            attachments?: components["schemas"]["DSLGenerateAttachment"][];
+            /**
+             * Current Source
+             * @description An existing JModel draft to refine instead of starting fresh.
+             */
+            current_source?: string | null;
+            /**
+             * Description
+             * @description Plain-language description of the optimization problem to model.
+             * @default
+             */
+            description: string;
+        };
+        /**
+         * DSLGenerateResponse
+         * @description Result of an AI JModel generation (B3).
+         *
+         *     ``ok`` is true when the generated ``source`` VERIFIABLY compiles (the same
+         *     deterministic validator the editor uses); it is false when every retry still
+         *     failed to compile — in which case ``source`` still holds the best-effort draft
+         *     and ``error`` names the last compile failure, so the user lands on an editable
+         *     starting point rather than nothing. Honest by construction: a compiling source
+         *     is proven, a non-compiling one is flagged, never silently passed off as valid.
+         */
+        DSLGenerateResponse: {
+            /**
+             * Attempts
+             * @description How many generate→compile rounds ran (for observability).
+             * @default 0
+             */
+            attempts: number;
+            /** @description Last compile error when the source never compiled. */
+            error?: components["schemas"]["DSLCompileError"] | null;
+            /** Ok */
+            ok: boolean;
+            /**
+             * Source
+             * @description The generated JModel source (best-effort even when !ok).
+             */
+            source?: string | null;
+        };
+        /**
          * DSLInspectRequest
          * @description A JModel source whose data-facing declarations we want to list (S2a).
          */
@@ -9424,6 +9524,9 @@ export type DslCompileRequest = components['schemas']['DSLCompileRequest'];
 export type DslCompileResponse = components['schemas']['DSLCompileResponse'];
 export type DslDegroundRequest = components['schemas']['DSLDegroundRequest'];
 export type DslDegroundResponse = components['schemas']['DSLDegroundResponse'];
+export type DslGenerateAttachment = components['schemas']['DSLGenerateAttachment'];
+export type DslGenerateRequest = components['schemas']['DSLGenerateRequest'];
+export type DslGenerateResponse = components['schemas']['DSLGenerateResponse'];
 export type DslInspectRequest = components['schemas']['DSLInspectRequest'];
 export type DslInspectResponse = components['schemas']['DSLInspectResponse'];
 export type DslLatexLine = components['schemas']['DSLLatexLine'];
@@ -11778,6 +11881,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DSLDegroundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dsl_generate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DSLGenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DSLGenerateResponse"];
                 };
             };
             /** @description Validation Error */

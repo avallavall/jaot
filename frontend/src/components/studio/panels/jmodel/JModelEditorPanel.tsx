@@ -2,7 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { AlertCircle, Boxes, CheckCircle2, Loader2, RefreshCw, Sigma } from "lucide-react";
+import {
+  AlertCircle,
+  Boxes,
+  CheckCircle2,
+  Loader2,
+  RefreshCw,
+  Sigma,
+  Sparkles,
+} from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -14,6 +22,7 @@ import {
 } from "../../store/useModelProjectStore";
 import { useProjectDatasets } from "../../datasets/useProjectDatasets";
 import { JModelMathView } from "./JModelMathView";
+import { JModelGenerateDialog } from "./JModelGenerateDialog";
 
 const COMPILE_DEBOUNCE_MS = 500;
 
@@ -61,6 +70,8 @@ export function JModelEditorPanel() {
   // B2: de-grounding the current model into a JModel draft.
   const [deriving, setDeriving] = useState(false);
   const [deriveDeclined, setDeriveDeclined] = useState(false);
+  // B3: the "Generate with AI" dialog.
+  const [genOpen, setGenOpen] = useState(false);
   const compileTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Monotonic token so a slow compile response can never overwrite a newer one.
   const compileSeq = useRef(0);
@@ -234,6 +245,18 @@ export function JModelEditorPanel() {
       .finally(() => setDeriving(false));
   };
 
+  // B3: an AI-generated source lands in the editor exactly like a derived draft —
+  // an explicit opt-in over any drift, applied through the normal compile flow.
+  const applyGeneratedSource = (source: string) => {
+    setEditingStale(true);
+    setText(source);
+    textRef.current = source;
+    storeApi.getState().setDraftDslSource(source, { dirty: true });
+    if (compileTimer.current) clearTimeout(compileTimer.current);
+    compileTimer.current = null;
+    runCompile(source);
+  };
+
   // Offer "derive a draft" exactly when the JModel source is NOT the current model:
   // the editor is empty, or it drifted because another lens changed the model.
   const canDerive = hasModel && (drifted || !text.trim());
@@ -243,6 +266,16 @@ export function JModelEditorPanel() {
       <div className="flex items-center justify-between gap-3 border-b px-3 py-1.5">
         <p className="min-w-0 truncate text-xs text-muted-foreground">{t("jmodelHint")}</p>
         <div className="flex shrink-0 items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            data-testid="studio-jmodel-generate-open"
+            onClick={() => setGenOpen(true)}
+            className="h-6 gap-1 px-1.5 text-xs text-primary hover:text-primary"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            {t("jmodelGenerate")}
+          </Button>
           {datasets.length > 0 && (
             <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
               {t("jmodelDatasetLabel")}
@@ -405,6 +438,13 @@ export function JModelEditorPanel() {
           </div>
         )}
       </div>
+
+      <JModelGenerateDialog
+        open={genOpen}
+        onOpenChange={setGenOpen}
+        currentSource={text}
+        onGenerated={applyGeneratedSource}
+      />
     </div>
   );
 }

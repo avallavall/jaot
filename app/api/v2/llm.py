@@ -18,6 +18,7 @@ from typing import Any
 
 from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile, status
 from pydantic import BaseModel, Field
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 from sse_starlette.sse import EventSourceResponse
 
@@ -45,6 +46,7 @@ from app.services.llm import (
 )
 from app.services.llm.byok import resolve_anthropic_client
 from app.services.llm.cost_tracking import (
+    LEDGER_MODEL_ID_PREFIX,
     compute_message_cost_eur,
     is_llm_budget_exceeded,
 )
@@ -276,6 +278,12 @@ def list_conversations(
             LLMConversation.organization_id == org.id,
             LLMConversation.user_id == user.id,
             LLMConversation.expires_at > now,
+            # Hide internal bookkeeping conversations (e.g. the B3 JModel-AI cost
+            # ledger), which use a "sys:" model_id sentinel and carry no user chat.
+            or_(
+                LLMConversation.model_id.is_(None),
+                ~LLMConversation.model_id.startswith(LEDGER_MODEL_ID_PREFIX),
+            ),
         )
         .order_by(LLMConversation.created_at.desc())
     )

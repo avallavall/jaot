@@ -645,6 +645,24 @@ export interface DslDegroundResult {
   source?: string | null;
 }
 
+/** One vision attachment for AI generation (POST /api/v2/dsl/generate, B3):
+ * a base64 image or PDF Claude reads directly. `data` carries the raw base64
+ * (no `data:` URL prefix). */
+export interface DslGenerateAttachment {
+  media_type: string;
+  data: string;
+}
+
+/** Result of an AI JModel generation (B3). `ok` is true only when `source`
+ * verifiably compiles; when false, `source` still holds the best-effort draft and
+ * `error` names the last compile failure. */
+export interface DslGenerateResult {
+  ok: boolean;
+  source?: string | null;
+  error?: DslCompileError | null;
+  attempts: number;
+}
+
 /**
  * A named data bundle ("scenario") for a project's parametric JModel: set members
  * + param values that fill a declaration-only source at compile time (§8).

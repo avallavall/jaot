@@ -66,6 +66,8 @@ import type {
   SolveAnalyticsCompare,
   DslCompileResult,
   DslDegroundResult,
+  DslGenerateAttachment,
+  DslGenerateResult,
   DslInspectResult,
   DslLatexResult,
   DslStatusResult,
@@ -856,6 +858,27 @@ export const api = {
   /** Whether the JModel DSL feature is enabled, so the SPA can surface the lens. */
   dslStatus(): Promise<DslStatusResult> {
     return request("/api/v2/dsl/status");
+  },
+
+  /** Generate a JModel source from a description and/or screenshots/PDFs (B3). The
+   * backend runs a generate→compile→retry loop, so `ok` is true only when `source`
+   * verifiably compiles; on failure `source` is still the best-effort draft and
+   * `error` names the last compile failure. Gated like compile. `retry:false` — the
+   * loop is a slow, billable multi-call LLM request; never auto-retry (double-bill). */
+  generateDsl(body: {
+    description: string;
+    attachments?: DslGenerateAttachment[];
+    currentSource?: string | null;
+  }): Promise<DslGenerateResult> {
+    return request("/api/v2/dsl/generate", {
+      method: "POST",
+      retry: false,
+      body: JSON.stringify({
+        description: body.description,
+        attachments: body.attachments ?? [],
+        ...(body.currentSource ? { current_source: body.currentSource } : {}),
+      }),
+    });
   },
 
   solveMultiObjective(
