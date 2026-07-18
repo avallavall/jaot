@@ -30,11 +30,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Changed
 
-- **"Derive draft" (B2) now also handles small non-indexed models** — a small model
-  with no recoverable indexed families (a two-variable canvas model, a 15-item
-  assortment) de-grounds to a plain scalar JModel instead of declining; a large flat
-  model still declines (a scalar dump would be the wall B2 exists to avoid). Binary
-  variables round-trip whether or not the flat model stated their `[0,1]` bounds.
+- **"Derive draft" (B2) now recovers multi-family constraints and small models** —
+  a constraint that mixes variable families with a shared free index (the real TFM
+  scenarios: `sum_i a[i,j] + z[j] == 1  ∀ j`) is now recovered as one ∀-quantified
+  family, aligning the fixed indices that co-vary across the flat constraints; a real
+  150×150 model (22.6k variables, 3 constraint families) de-grounds to a compact
+  JModel in ~3s. Constraint families are also split by coefficient character (a unit
+  `sum_j a[i,j] == 1` vs a weighted `sum_j d[i,j]*a[i,j] <= M`). Separately, a small
+  model with no indexed families (a two-variable canvas model, a 15-item assortment)
+  de-grounds to a plain scalar JModel instead of declining, and binary variables
+  round-trip whether or not the flat model stated their `[0,1]` bounds.
 
 ### Added
 

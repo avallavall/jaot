@@ -163,6 +163,94 @@ def test_negative_and_fractional_coefficients_round_trip():
 
 
 # --------------------------------------------------------------------------- #
+# Multi-family constraints — the real hairball (assignment + a linking family)
+# --------------------------------------------------------------------------- #
+
+# One constraint touching TWO families with a SHARED free index — the exact shape
+# the big TFM scenarios use (`sum_i a[i,j] + z[j] == 1  ∀ j`) that used to decline.
+MULTI_FAMILY = """
+set I := {1, 2, 3}; set J := {a, b};
+param cost{I, J} := 1 a 5, 1 b 3, 2 a 4, 2 b 6, 3 a 7, 3 b 2;
+var x{I, J} binary;
+var z{J} binary;
+minimize obj: sum{i in I, j in J} cost[i, j] * x[i, j];
+subject to link{j in J}: sum{i in I} x[i, j] + z[j] == 1;
+subject to cover{i in I}: sum{j in J} x[i, j] <= 1;
+"""
+
+
+def test_multi_family_constraint_is_recovered_compactly():
+    problem = _flat(MULTI_FAMILY)
+    draft = deground_problem(problem)
+    assert draft is not None
+    # Both families are declared and BOTH appear in one ∀-quantified constraint,
+    # sharing the free index — not flattened, not declined.
+    assert "var x{" in draft and "var z{" in draft
+    assert "sum{" in draft
+    assert draft.count("subject to") == 2
+    # The multi-family link constraint keeps both x and z under a single ∀.
+    link = next(ln for ln in draft.splitlines() if "z[" in ln and "subject to" in ln)
+    assert "x[" in link and "z[" in link and "∀" not in link  # ascii source
+    assert _recompiles_equivalent(draft, problem)
+
+
+def test_flat_numeric_multi_family_scenario_round_trips():
+    """A flat problem (numeric names, no compiler lineage) mirroring scenario_NxN:
+    a family ``a`` over I×J plus a linking family ``z`` over J, with the mixed
+    constraint ``sum_i a[i,j] + z[j] == 1``. Recovered via the numeric-name parse."""
+    from app.schemas.optimization import (
+        Constraint,
+        Objective,
+        ObjectiveSense,
+        OptimizationProblem,
+        Variable,
+        VariableType,
+    )
+
+    n_i, n_j = 3, 2
+    variables = [
+        Variable(name=f"a_{i}_{j}", type=VariableType.BINARY)
+        for i in range(1, n_i + 1)
+        for j in range(1, n_j + 1)
+    ] + [Variable(name=f"z_{j}", type=VariableType.BINARY) for j in range(1, n_j + 1)]
+    objective = Objective(
+        sense=ObjectiveSense.MAXIMIZE,
+        expression=" + ".join(f"a_{i}_{j}" for i in range(1, n_i + 1) for j in range(1, n_j + 1)),
+    )
+    constraints = [
+        Constraint(
+            name=f"link_{j}",
+            expression=" + ".join(f"a_{i}_{j}" for i in range(1, n_i + 1)) + f" + z_{j} == 1",
+        )
+        for j in range(1, n_j + 1)
+    ]
+    problem = OptimizationProblem(variables=variables, objective=objective, constraints=constraints)
+    draft = deground_problem(problem)
+    assert draft is not None
+    assert "sum{" in draft  # compacted (a scalar fallback would have no sum)
+    assert draft.count("subject to") == 1  # the 2 flat link constraints → one ∀ family
+    assert _recompiles_equivalent(draft, problem)
+
+
+def test_multi_family_with_varying_coefficients_and_rhs():
+    """A mixed constraint whose coefficients AND rhs vary by the free index becomes
+    coefficient params + an rhs param — still round-trips."""
+    problem = _flat(
+        "set I := {1, 2}; set J := {p, q};\n"
+        "param w{I, J} := 1 p 2, 1 q 3, 2 p 4, 2 q 5;\n"
+        "param cap{J} := p 10, q 20;\n"
+        "var x{I, J} >= 0;\n"
+        "var y{J} >= 0;\n"
+        "minimize obj: sum{i in I, j in J} x[i, j];\n"
+        "subject to bal{j in J}: sum{i in I} w[i, j] * x[i, j] + y[j] <= cap[j];\n"
+    )
+    draft = deground_problem(problem)
+    assert draft is not None
+    assert "sum{" in draft
+    assert _recompiles_equivalent(draft, problem)
+
+
+# --------------------------------------------------------------------------- #
 # The honesty gate — decline rather than fake a structure
 # --------------------------------------------------------------------------- #
 

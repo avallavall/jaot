@@ -118,7 +118,16 @@ def _reconstruct(problem: OptimizationProblem) -> str | None:
     )
     param_lines.extend(obj_params)
 
-    constraint_lines, con_params = _build_constraints(problem, families, sets, parser, var_names)
+    # name → (family, index tuple), so the constraint decomposition is O(1) per
+    # variable (a 150x150 model has 22k variables × hundreds of constraints).
+    var_lookup = {
+        name: (fam_name, tup)
+        for fam_name, fam in families.items()
+        for tup, name in fam.by_tuple.items()
+    }
+    constraint_lines, con_params = _build_constraints(
+        problem, families, var_lookup, sets, parser, var_names
+    )
     param_lines.extend(con_params)
 
     lines.extend(param_lines)
@@ -355,36 +364,69 @@ def _build_objective(
 
 
 @dataclass
-class _ConstraintShape:
-    """One flat constraint reduced to a single-family sum pattern."""
+class _FamilyTerm:
+    """One variable family's contribution to a constraint."""
 
     family: str
     fixed: tuple[tuple[int, str], ...]  # (position, member) held constant
     summed: tuple[int, ...]  # positions ranging over their full set
     coef_by_tuple: dict[tuple[str, ...], float]  # coef per full index tuple
+
+
+@dataclass
+class _ConstraintShape:
+    """A flat constraint decomposed into one sum-pattern per family it touches.
+
+    A real model constraint often mixes families with a SHARED free index, e.g.
+    ``sum_i a[i, j] + z[j] == 1`` links family ``a`` (summing ``i``) and family
+    ``z`` at the same ``j`` — recovered by aligning the fixed slots that co-vary.
+    """
+
+    terms: tuple[_FamilyTerm, ...]
     operator: str
     rhs: float
+
+
+def _coef_class(coef_by_tuple: dict[tuple[str, ...], float]) -> str:
+    """A coefficient signature for grouping: unit / a shared constant / varying.
+
+    Two constraint families can share the same index structure yet differ in their
+    coefficients (``sum_j a[i,j] == 1`` vs ``sum_j dist[i,j]*a[i,j] <= M``); grouping
+    them together would merge distinct ∀-families, so the coefficient character is
+    part of the template key.
+    """
+    distinct = {round(c, 9) for c in coef_by_tuple.values()}
+    if distinct == {1.0}:
+        return "unit"
+    if len(distinct) == 1:
+        return f"const:{next(iter(distinct))}"
+    return "vary"
 
 
 def _build_constraints(
     problem: OptimizationProblem,
     families: dict[str, _Family],
+    var_lookup: dict[str, tuple[str, tuple[str, ...]]],
     sets: _SetRegistry,
     parser: ExpressionParser,
     var_names: set[str],
 ) -> tuple[list[str], list[str]]:
-    shapes: list[_ConstraintShape] = []
-    for con in problem.constraints:
-        shapes.append(_shape_of(con.expression, families, parser, var_names))
+    shapes = [
+        _shape_of(con.expression, families, var_lookup, parser, var_names)
+        for con in problem.constraints
+    ]
 
-    # Group constraints that share a template but differ only in their fixed members.
+    # Group constraints sharing a template (same families with the same fixed/summed
+    # position pattern, same operator); members of a group differ only in their fixed
+    # values, which become the ∀-quantified free indices.
     groups: dict[tuple, list[_ConstraintShape]] = {}
     order: list[tuple] = []
     for shape in shapes:
         key = (
-            shape.family,
-            tuple(p for p, _ in shape.fixed),
-            shape.summed,
+            tuple(
+                (t.family, tuple(p for p, _ in t.fixed), t.summed, _coef_class(t.coef_by_tuple))
+                for t in shape.terms
+            ),
             shape.operator,
         )
         if key not in groups:
@@ -394,10 +436,8 @@ def _build_constraints(
 
     lines: list[str] = []
     params: list[str] = []
-    counter = 0
-    for key in order:
-        counter += 1
-        line, extra = _emit_constraint_group(f"c{counter}", groups[key], families[key[0]], sets)
+    for counter, key in enumerate(order, start=1):
+        line, extra = _emit_constraint_group(f"c{counter}", groups[key], families, sets)
         lines.append(line)
         params.extend(extra)
     return lines, params
@@ -406,6 +446,7 @@ def _build_constraints(
 def _shape_of(
     expression: str,
     families: dict[str, _Family],
+    var_lookup: dict[str, tuple[str, tuple[str, ...]]],
     parser: ExpressionParser,
     var_names: set[str],
 ) -> _ConstraintShape:
@@ -418,109 +459,141 @@ def _shape_of(
     if not coefs:
         raise _DegroundError("constraint has no variables")
 
-    # Every variable must belong to ONE family (single-family sum patterns only).
-    fam_name: str | None = None
-    for name in coefs:
-        owner = _family_of(name, families)
-        if owner is None:
+    # Partition the terms by family (each variable must belong to one).
+    by_family: dict[str, dict[tuple[str, ...], float]] = {}
+    fam_order: list[str] = []
+    for name, coef in coefs.items():
+        entry = var_lookup.get(name)
+        if entry is None:
             raise _DegroundError("constraint references a variable outside any family")
-        if fam_name is None:
-            fam_name = owner
-        elif fam_name != owner:
-            raise _DegroundError("constraint mixes families")
-    assert fam_name is not None
-    fam = families[fam_name]
+        fam_name, tup = entry
+        if fam_name not in by_family:
+            by_family[fam_name] = {}
+            fam_order.append(fam_name)
+        by_family[fam_name][tup] = coef
 
-    tuples = [_tuple_of(name, fam) for name in coefs]
-    fixed: list[tuple[int, str]] = []
-    summed: list[int] = []
-    for pos in range(fam.arity):
-        pos_values = {tup[pos] for tup in tuples}
-        if len(pos_values) == 1:
-            fixed.append((pos, next(iter(pos_values))))
-        elif pos_values == set(fam.position_values[pos]):
-            summed.append(pos)
-        else:
-            raise _DegroundError("constraint spans a partial set")
-    # The summed positions must cover the full cartesian block (a complete sum);
-    # ``summed`` may be empty — a per-element constraint (``x[i] <= 1 ∀ i``).
-    expected = 1
-    for pos in summed:
-        expected *= len(fam.position_values[pos])
-    if len(coefs) != expected:
-        raise _DegroundError("constraint is not a complete sum over its free indices")
+    terms: list[_FamilyTerm] = []
+    for fam_name in fam_order:
+        fam = families[fam_name]
+        fam_coefs = by_family[fam_name]
+        tuples = list(fam_coefs)
+        fixed: list[tuple[int, str]] = []
+        summed: list[int] = []
+        for pos in range(fam.arity):
+            pos_values = {tup[pos] for tup in tuples}
+            if len(pos_values) == 1:
+                fixed.append((pos, next(iter(pos_values))))
+            elif pos_values == set(fam.position_values[pos]):
+                summed.append(pos)
+            else:
+                raise _DegroundError("constraint spans a partial set of a family")
+        # The summed positions must be a COMPLETE sum over their sets (``summed`` may
+        # be empty — a per-element term like ``z[j]``).
+        expected = 1
+        for pos in summed:
+            expected *= len(fam.position_values[pos])
+        if len(fam_coefs) != expected:
+            raise _DegroundError("constraint is not a complete sum over a family")
+        terms.append(_FamilyTerm(fam_name, tuple(fixed), tuple(summed), dict(fam_coefs)))
 
-    coef_by_tuple = {_tuple_of(name, fam): c for name, c in coefs.items()}
-    return _ConstraintShape(
-        family=fam_name,
-        fixed=tuple(fixed),
-        summed=tuple(summed),
-        coef_by_tuple=coef_by_tuple,
-        operator=parsed.operator,
-        rhs=parsed.rhs,
-    )
+    return _ConstraintShape(tuple(terms), parsed.operator, parsed.rhs)
 
 
 def _emit_constraint_group(
     cname: str,
     group: list[_ConstraintShape],
-    fam: _Family,
+    families: dict[str, _Family],
     sets: _SetRegistry,
 ) -> tuple[str, list[str]]:
     first = group[0]
-    fixed_positions = [p for p, _ in first.fixed]
-
-    # The fixed members across the group must cover the full set(s) of those
-    # positions, so a plain ∀ (no filter) is faithful.
-    if fixed_positions:
-        for pos in fixed_positions:
-            members = {dict(s.fixed)[pos] for s in group}
-            if members != set(fam.position_values[pos]):
-                raise _DegroundError("constraint family does not cover its index set")
-
-    letters = _index_letters(fam.arity)
-    forall_parts = [
-        f"{letters[p]} in {sets.name_for(fam.position_values[p])}" for p in fixed_positions
-    ]
-    sum_parts = [f"{letters[p]} in {sets.name_for(fam.position_values[p])}" for p in first.summed]
-    ref = f"{fam.name}[{', '.join(letters)}]"
-    idx = ", ".join(letters)
-
     params: list[str] = []
 
-    # Coefficients across the WHOLE group, over the full cartesian block: uniform →
-    # a literal, otherwise an index param p_<c>{all positions}.
-    combined: dict[tuple[str, ...], float] = {}
-    for shape in group:
-        combined.update(shape.coef_by_tuple)
-    if len(combined) != len(fam.by_tuple):
-        raise _DegroundError("constraint family does not cover the variable block")
-    sum_prefix = f"sum{{{', '.join(sum_parts)}}} " if first.summed else ""
-    distinct = {round(c, 9) for c in combined.values()}
-    if distinct == {1.0}:
-        body = f"{sum_prefix}{ref}"
-    elif len(distinct) == 1:
-        body = f"{sum_prefix}{_num(next(iter(distinct)))} * {ref}"
-    else:
-        pname = f"a_{cname}"
-        params.append(_param_decl(pname, fam, sets, combined))
-        body = f"{sum_prefix}{pname}[{idx}] * {ref}"
+    # 1) Free-index classes: fixed slots (family, position) whose member CO-VARIES
+    #    across the group are the same ∀-quantified index. Two slots are the same
+    #    index iff they hold identical members in every constraint of the group.
+    slots = [(t.family, pos) for t in first.terms for pos, _ in t.fixed]
+    slot_sig = {slot: tuple(_slot_member(s, *slot) for s in group) for slot in slots}
 
-    # rhs: uniform → a literal, otherwise a param r_<c>{fixed positions}.
+    # 2) Letters: scan families/positions in order; a fixed slot reuses its class's
+    #    letter, a summed slot takes a fresh one. This reproduces the natural form
+    #    ``sum{i in I} a[i, j] + z[j]``.
+    pool = iter(_INDEX_LETTERS)
+    class_letter: dict[tuple[str, ...], str] = {}
+    letter: dict[tuple[str, int], str] = {}
+    for term in first.terms:
+        fam = families[term.family]
+        fixed_pos = {p for p, _ in term.fixed}
+        for pos in range(fam.arity):
+            if pos in fixed_pos:
+                sig = slot_sig[(term.family, pos)]
+                if sig not in class_letter:
+                    class_letter[sig] = next(pool)
+                letter[(term.family, pos)] = class_letter[sig]
+            else:
+                letter[(term.family, pos)] = next(pool)
+
+    # 3) ∀ bindings, one per free class. A class must map to ONE set and its members
+    #    must cover that set (so a plain ∀ with no filter is faithful).
+    free_classes: list[tuple[tuple[str, ...], str, list[str], tuple[str, int]]] = []
+    for sig, lett in class_letter.items():
+        rep = next(slot for slot in slots if slot_sig[slot] == sig)
+        set_values = families[rep[0]].position_values[rep[1]]
+        for slot in slots:
+            if slot_sig[slot] == sig:
+                other = families[slot[0]].position_values[slot[1]]
+                if set(other) != set(set_values):
+                    raise _DegroundError("a shared free index maps to different sets")
+        if set(sig) != set(set_values):
+            raise _DegroundError("constraint family does not cover its free index set")
+        free_classes.append((sig, lett, set_values, rep))
+    forall = [f"{lett} in {sets.name_for(sv)}" for _, lett, sv, _ in free_classes]
+
+    # 4) One expression term per family — a sum (or a bare ref) over its summed
+    #    positions, with a unit / constant / param coefficient.
+    term_strs: list[str] = []
+    for term in first.terms:
+        fam = families[term.family]
+        combined: dict[tuple[str, ...], float] = {}
+        for shape in group:
+            match = next(t for t in shape.terms if t.family == term.family)
+            combined.update(match.coef_by_tuple)
+        if len(combined) != len(fam.by_tuple):
+            raise _DegroundError("constraint family does not cover the variable block")
+        letters = [letter[(term.family, p)] for p in range(fam.arity)]
+        ref = f"{term.family}[{', '.join(letters)}]"
+        sum_parts = [
+            f"{letter[(term.family, p)]} in {sets.name_for(fam.position_values[p])}"
+            for p in term.summed
+        ]
+        sum_prefix = f"sum{{{', '.join(sum_parts)}}} " if term.summed else ""
+        distinct = {round(c, 9) for c in combined.values()}
+        if distinct == {1.0}:
+            term_strs.append(f"{sum_prefix}{ref}")
+        elif distinct == {-1.0}:
+            term_strs.append(f"- {sum_prefix}{ref}")
+        elif len(distinct) == 1:
+            term_strs.append(f"{_num(next(iter(distinct)))} * {sum_prefix}{ref}")
+        else:
+            pname = f"a_{cname}_{term.family}"
+            params.append(_param_decl(pname, fam, sets, combined))
+            term_strs.append(f"{sum_prefix}{pname}[{', '.join(letters)}] * {ref}")
+    lhs = " + ".join(term_strs).replace("+ - ", "- ")
+
+    # 5) rhs: uniform → a literal, otherwise a param over the free indices.
     rhs_values = {round(s.rhs, 9) for s in group}
     if len(rhs_values) == 1:
         rhs_str = _num(next(iter(rhs_values)))
-    elif fixed_positions:
+    elif free_classes:
         pname = f"r_{cname}"
-        params.append(_rhs_param_decl(pname, group, fam, sets, fixed_positions))
-        rhs_str = f"{pname}[{', '.join(letters[p] for p in fixed_positions)}]"
+        params.append(_rhs_param_decl(pname, group, free_classes, sets))
+        rhs_str = f"{pname}[{', '.join(lett for _, lett, _, _ in free_classes)}]"
     else:
-        raise _DegroundError("scalar constraint has no free index for a varying rhs")
+        raise _DegroundError("scalar constraint has a varying rhs but no free index")
 
     head = f"subject to {cname}"
-    if forall_parts:
-        head += f"{{{', '.join(forall_parts)}}}"
-    return f"{head}: {body} {first.operator} {rhs_str};", params
+    if forall:
+        head += f"{{{', '.join(forall)}}}"
+    return f"{head}: {lhs} {first.operator} {rhs_str};", params
 
 
 # --------------------------------------------------------------------------- #
@@ -538,19 +611,31 @@ def _param_decl(
     return f"param {pname}{{{index_sets}}} := {', '.join(entries)};"
 
 
+def _slot_member(shape: _ConstraintShape, family: str, pos: int) -> str:
+    """The member a constraint holds constant at one family's fixed position."""
+    for term in shape.terms:
+        if term.family == family:
+            return dict(term.fixed)[pos]
+    raise _DegroundError("inconsistent constraint group")
+
+
 def _rhs_param_decl(
     pname: str,
     group: list[_ConstraintShape],
-    fam: _Family,
+    free_classes: list[tuple[tuple[str, ...], str, list[str], tuple[str, int]]],
     sets: _SetRegistry,
-    fixed_positions: list[int],
 ) -> str:
-    index_sets = ", ".join(sets.name_for(fam.position_values[p]) for p in fixed_positions)
-    entries = []
+    """A per-constraint rhs param indexed by the ∀ free-index classes."""
+    index_sets = ", ".join(sets.name_for(sv) for _, _, sv, _ in free_classes)
+    # The free indices must uniquely key each constraint; a collision means the group
+    # holds hidden structure a plain ∀ can't reproduce, so decline (round-trip-safe).
+    by_key: dict[str, float] = {}
     for shape in group:
-        members = dict(shape.fixed)
-        key = " ".join(members[p] for p in fixed_positions)
-        entries.append(f"{key} {_num(shape.rhs)}")
+        key = " ".join(_slot_member(shape, rep[0], rep[1]) for _, _, _, rep in free_classes)
+        if key in by_key and round(by_key[key], 9) != round(shape.rhs, 9):
+            raise _DegroundError("constraint family free indices are not unique")
+        by_key[key] = shape.rhs
+    entries = [f"{key} {_num(rhs)}" for key, rhs in by_key.items()]
     return f"param {pname}{{{index_sets}}} := {', '.join(entries)};"
 
 
@@ -562,20 +647,6 @@ def _binding(fam: _Family, sets: _SetRegistry, letters: list[str]) -> str:
 
 def _index_letters(arity: int) -> list[str]:
     return [_INDEX_LETTERS[p] for p in range(arity)]
-
-
-def _family_of(var_name: str, families: dict[str, _Family]) -> str | None:
-    for name, fam in families.items():
-        if var_name in fam.by_tuple.values():
-            return name
-    return None
-
-
-def _tuple_of(var_name: str, fam: _Family) -> tuple[str, ...]:
-    for tup, name in fam.by_tuple.items():
-        if name == var_name:
-            return tup
-    raise _DegroundError(f"{var_name!r} not in family {fam.name!r}")
 
 
 def _num(value: float) -> str:
