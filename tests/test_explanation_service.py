@@ -79,6 +79,50 @@ class TestBuildSolutionExplanationPrompt:
         # Never claim sensitivity data that was not supplied.
         assert "shadow_price" not in prompt
 
+    def test_small_solution_is_embedded_in_full(self):
+        """A tiny solve keeps the exact values — no sampling, no SAMPLED flag."""
+        prompt = build_solution_explanation_prompt(FORMULATION, SOLUTION, SENSITIVITY)
+        assert "SAMPLED" not in prompt
+        assert "_solution_omitted" not in prompt
+
+    # CONTRACT-TEST: a large solution is SAMPLED so the prompt never blows the context
+    # window. A real 10k-variable solve reached 11.6M tokens (> the 1M provider max)
+    # because the full variable→value map + variable list were embedded verbatim.
+    def test_huge_solution_is_sampled_and_bounded(self):
+        from app.services.llm.token_estimation import estimate_tokens
+
+        n = 100  # a 100x100 assignment: 10k variables, mostly zero
+        formulation = {
+            "variables": [
+                {"name": f"x_{i}_{j}", "type": "binary"} for i in range(n) for j in range(n)
+            ],
+            "constraints": [
+                {
+                    "name": f"c{i}",
+                    "expression": " + ".join(f"x_{i}_{j}" for j in range(n)) + " <= 1",
+                }
+                for i in range(n)
+            ],
+            "objective": {"sense": "minimize", "expression": "x_0_0"},
+        }
+        solution = {
+            "objective_value": 42,
+            "solver_status": "optimal",
+            "solution": {f"x_{i}_{j}": (1 if i == j else 0) for i in range(n) for j in range(n)},
+            "variables": [
+                {"name": f"x_{i}_{j}", "value": (1 if i == j else 0)}
+                for i in range(n)
+                for j in range(n)
+            ],
+        }
+        prompt = build_solution_explanation_prompt(formulation, solution, None)
+        assert "SAMPLED" in prompt
+        # Comfortably under the 1M provider maximum (and the whole point of the fix).
+        assert estimate_tokens(prompt) < 200_000
+        # The non-zero decisions (the diagonal x_i_i = 1) survive the sampling.
+        assert '"x_0_0": 1' in prompt
+        assert "_solution_omitted" in prompt
+
 
 class TestExplainSolution:
     @pytest.mark.asyncio

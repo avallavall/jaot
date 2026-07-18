@@ -283,26 +283,41 @@ def build_solution_explanation_prompt(
 
     Embeds only the data passed in (formulation, solution, sensitivity) as JSON so the
     model has the exact values to ground its explanation in and nothing to fabricate.
+    Each block is bounded (:func:`_bounded_json_block`): a small solve is embedded in
+    full, while a large one (tens of thousands of variables/constraints) is sampled to
+    its non-zero decisions and a representative formulation head, so the prompt never
+    exceeds the provider context window (a real 10k-variable solve reached 11.6M tokens
+    before this bound).
     """
-    import json
-
     parts: list[str] = ["Explain the following solved optimization model.\n"]
 
     if formulation:
         parts.append(
-            "## Formulation\n```json\n" + json.dumps(formulation, indent=2, default=str) + "\n```"
+            _bounded_json_block(
+                "Formulation",
+                formulation,
+                _sample_formulation,
+                "variable/constraint lists truncated to a representative head, long "
+                "expressions clipped",
+            )
         )
     if solution:
         parts.append(
-            "## Solution (variable values + objective)\n```json\n"
-            + json.dumps(solution, indent=2, default=str)
-            + "\n```"
+            _bounded_json_block(
+                "Solution (variable values + objective)",
+                solution,
+                _sample_solution,
+                "only the top non-zero decisions are shown; the objective value is exact",
+            )
         )
     if sensitivity:
         parts.append(
-            "## Sensitivity analysis\n```json\n"
-            + json.dumps(sensitivity, indent=2, default=str)
-            + "\n```"
+            _bounded_json_block(
+                "Sensitivity analysis",
+                sensitivity,
+                _sample_formulation,
+                "constraint/variable lists truncated to a representative head",
+            )
         )
     else:
         parts.append("## Sensitivity analysis\nNot available for this solve.")
@@ -366,7 +381,13 @@ def build_infeasibility_explanation_prompt(
 
     if formulation:
         parts.append(
-            "## Formulation\n```json\n" + json.dumps(formulation, indent=2, default=str) + "\n```"
+            _bounded_json_block(
+                "Formulation",
+                formulation,
+                _sample_formulation,
+                "variable/constraint lists truncated to a representative head, long "
+                "expressions clipped",
+            )
         )
 
     has_iis = bool(
@@ -482,6 +503,77 @@ def _sample_formulation(formulation: dict[str, Any]) -> dict[str, Any]:
         else:
             sampled[key] = _clip_long_string(value, _FORMULATION_SAMPLE_EXPR_CHARS)
     return sampled
+
+
+# A solved large/indexed model carries tens of thousands of variable values (mostly
+# zero) plus sensitivity rows; embedding them ALL blew a real solve to 11.6M tokens
+# (> the 1M provider max). The explanation only needs the DECISIONS — the non-zero
+# values — and the objective, so the solution is bounded to its non-zero head.
+SOLUTION_EXPLANATION_PART_MAX_TOKENS = 8000
+_SOLUTION_SAMPLE_ITEMS = 200
+
+
+def _is_nonzero(value: Any) -> bool:
+    try:
+        return value is not None and abs(float(value)) > 1e-9
+    except (TypeError, ValueError):
+        return value not in (None, "", 0, "0")
+
+
+def _sample_solution(solution: dict[str, Any]) -> dict[str, Any]:
+    """Bound a large solution to its decisions: the top non-zero values + objective.
+
+    ``solution`` follows the explain-solution shape: ``objective_value`` /
+    ``solver_status`` scalars, a ``solution`` name→value map, and a ``variables`` list.
+    The maps/lists are reduced to their non-zero head (the actual decisions) so a
+    10k-variable solve never overruns the context window; scalars are kept verbatim.
+    """
+    sampled: dict[str, Any] = {}
+    for key, value in solution.items():
+        if key == "solution" and isinstance(value, dict):
+            nonzero = {k: v for k, v in value.items() if _is_nonzero(v)}
+            kept = dict(list(nonzero.items())[:_SOLUTION_SAMPLE_ITEMS])
+            sampled[key] = kept
+            omitted = len(value) - len(kept)
+            if omitted > 0:
+                sampled["_solution_omitted"] = (
+                    f"{omitted} variable values omitted (zeros and beyond the top "
+                    f"{_SOLUTION_SAMPLE_ITEMS} non-zero decisions)"
+                )
+        elif key == "variables" and isinstance(value, list):
+            nonzero = [it for it in value if isinstance(it, dict) and _is_nonzero(it.get("value"))]
+            kept = nonzero[:_SOLUTION_SAMPLE_ITEMS]
+            sampled[key] = [
+                {k: _clip_long_string(v, _FORMULATION_SAMPLE_EXPR_CHARS) for k, v in it.items()}
+                for it in kept
+            ]
+            omitted = len(value) - len(kept)
+            if omitted > 0:
+                sampled["_variables_omitted"] = (
+                    f"{omitted} more variables omitted (zeros / beyond the top "
+                    f"{_SOLUTION_SAMPLE_ITEMS} non-zero)"
+                )
+        else:
+            sampled[key] = _clip_long_string(value, _FORMULATION_SAMPLE_EXPR_CHARS)
+    return sampled
+
+
+def _bounded_json_block(label: str, data: Any, sampler: Any, sample_note: str) -> str:
+    """A ``## label`` JSON block, sampled when it would exceed the per-part token cap.
+
+    Keeps the full data when it fits (small models get the exact values); otherwise
+    embeds a bounded sample and flags it in the header so the model cites what it sees
+    and never the omitted tail.
+    """
+    import json
+
+    from app.services.llm.token_estimation import estimate_tokens
+
+    text = json.dumps(data, indent=2, default=str)
+    if estimate_tokens(text) <= SOLUTION_EXPLANATION_PART_MAX_TOKENS:
+        return f"## {label}\n```json\n{text}\n```"
+    sampled = json.dumps(sampler(data), indent=2, default=str)
+    return f"## {label} (SAMPLED — {sample_note})\n```json\n{sampled}\n```"
 
 
 def build_model_explanation_prompt(
