@@ -142,3 +142,23 @@ class DSLLatexResponse(BaseModel):
     ok: bool
     model: DSLLatexModel | None = None
     error: DSLCompileError | None = None
+
+
+class DSLDegroundRequest(BaseModel):
+    """A flat problem to reconstruct as a compact JModel draft (B2)."""
+
+    problem: OptimizationProblem
+
+
+class DSLDegroundResponse(BaseModel):
+    """A best-effort JModel draft derived from a flat problem (B2).
+
+    ``source`` is the reconstructed JModel when a compact structure was recovered
+    AND verifiably round-trips to an equivalent problem; it is ``None`` (a graceful
+    decline, NOT an error) when the flat model has no recoverable compact form.
+    """
+
+    source: str | None = Field(
+        default=None,
+        description="Reconstructed JModel draft, or null when none is recoverable.",
+    )

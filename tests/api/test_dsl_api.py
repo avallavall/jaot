@@ -495,3 +495,56 @@ def test_latex_source_size_cap(authenticated_client, test_organization, db_sessi
 def test_latex_requires_auth(client):
     resp = client.post("/api/v2/dsl/latex", json={"source": LATEX_SOURCE})
     assert resp.status_code in (401, 403), resp.text
+
+
+# --------------------------------------------------------------------------- #
+# De-grounder (B2) — flat problem → compact JModel draft
+# --------------------------------------------------------------------------- #
+
+
+def _compile(client, source: str) -> dict:
+    resp = client.post("/api/v2/dsl/compile", json={"source": source})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ok"] is True, body
+    return body["problem"]
+
+
+# CONTRACT-TEST: /dsl/deground ships dark behind the same gate as compile (404 when off).
+@pytest.mark.integration
+def test_deground_404_when_flag_off(authenticated_client, test_organization, db_session):
+    resp = authenticated_client.post("/api/v2/dsl/deground", json={"problem": {"variables": []}})
+    assert resp.status_code == 404, resp.text
+    assert resp.json()["detail"]["error"] == "dsl_disabled"
+
+
+@pytest.mark.integration
+def test_deground_returns_compact_source_that_round_trips(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
+    problem = _compile(authenticated_client, LATEX_SOURCE)
+    resp = authenticated_client.post("/api/v2/dsl/deground", json={"problem": problem})
+    assert resp.status_code == 200, resp.text
+    source = resp.json()["source"]
+    assert source is not None
+    assert "sum{" in source and "var x{" in source
+    # Honest by construction: the draft recompiles to a valid problem.
+    recompiled = _compile(authenticated_client, source)
+    assert {v["name"] for v in recompiled["variables"]} == {v["name"] for v in problem["variables"]}
+
+
+@pytest.mark.integration
+def test_deground_declines_a_scalar_model(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
+    """A model with no indexed families has no compact form — decline with null."""
+    problem = _compile(authenticated_client, SMALL_SOURCE)
+    resp = authenticated_client.post("/api/v2/dsl/deground", json={"problem": problem})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["source"] is None
+
+
+@pytest.mark.integration
+def test_deground_requires_auth(client):
+    resp = client.post("/api/v2/dsl/deground", json={"problem": {"variables": []}})
+    assert resp.status_code in (401, 403), resp.text

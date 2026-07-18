@@ -30,6 +30,8 @@ from app.schemas.dsl import (
     DSLCompileError,
     DSLCompileRequest,
     DSLCompileResponse,
+    DSLDegroundRequest,
+    DSLDegroundResponse,
     DSLInspectRequest,
     DSLInspectResponse,
     DSLLatexLine,
@@ -41,6 +43,7 @@ from app.schemas.dsl import (
     DSLStatusResponse,
 )
 from app.services import model_project_service as project_svc
+from app.services.jmodel_deground import deground_problem
 
 logger = logging.getLogger(__name__)
 
@@ -182,3 +185,28 @@ def dsl_latex(body: DSLLatexRequest, _user: CurrentUser) -> DSLLatexResponse:
             ],
         ),
     )
+
+
+@router.post(
+    "/deground",
+    operation_id="dsl_deground",
+    dependencies=[Depends(dsl_feature_gate)],
+)
+def dsl_deground(body: DSLDegroundRequest, _user: CurrentUser) -> DSLDegroundResponse:
+    """Reconstruct a compact JModel draft from a flat problem (B2, phase 1).
+
+    The inverse of compile: a model built on the canvas or imported (MPS/LP/CIP) has
+    no JModel source, so this recovers one — variable families over sets, ``sum``
+    objectives and ∀-quantified constraint families — so it can be read, edited and
+    shown as math (B1) in compact form. Heuristic, so honest: it returns ``source``
+    only when the draft VERIFIABLY round-trips to an equivalent problem, and ``null``
+    (a graceful decline, never a fake) otherwise.
+    """
+    try:
+        source = deground_problem(body.problem)
+    except Exception:
+        # The service is contracted to return source-or-None; anything else is a bug.
+        # Decline gracefully (never a 500) and log it for us.
+        logger.exception("JModel de-grounder crashed on a flat problem")
+        source = None
+    return DSLDegroundResponse(source=source)

@@ -65,6 +65,7 @@ import type {
   SolveAnalyticsTrends,
   SolveAnalyticsCompare,
   DslCompileResult,
+  DslDegroundResult,
   DslInspectResult,
   DslLatexResult,
   DslStatusResult,
@@ -839,6 +840,16 @@ export const api = {
     return request("/api/v2/dsl/latex", {
       method: "POST",
       body: JSON.stringify({ source }),
+    });
+  },
+
+  /** Reconstruct a compact JModel draft from a flat problem (B2). Returns
+   * `{source}` — null when no compact structure round-trips (a graceful decline).
+   * Gated like compile. */
+  degroundDsl(problem: OptimizationProblem): Promise<DslDegroundResult> {
+    return request("/api/v2/dsl/deground", {
+      method: "POST",
+      body: JSON.stringify({ problem }),
     });
   },
 

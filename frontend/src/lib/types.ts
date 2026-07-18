@@ -639,6 +639,12 @@ export interface DslLatexResult {
   error?: DslCompileError | null;
 }
 
+/** A JModel draft derived from a flat problem (POST /api/v2/dsl/deground, B2).
+ * `source` is null (a graceful decline) when no compact structure is recoverable. */
+export interface DslDegroundResult {
+  source?: string | null;
+}
+
 /**
  * A named data bundle ("scenario") for a project's parametric JModel: set members
  * + param values that fill a declaration-only source at compile time (§8).

@@ -1179,6 +1179,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/dsl/deground": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dsl Deground
+         * @description Reconstruct a compact JModel draft from a flat problem (B2, phase 1).
+         *
+         *     The inverse of compile: a model built on the canvas or imported (MPS/LP/CIP) has
+         *     no JModel source, so this recovers one — variable families over sets, ``sum``
+         *     objectives and ∀-quantified constraint families — so it can be read, edited and
+         *     shown as math (B1) in compact form. Heuristic, so honest: it returns ``source``
+         *     only when the draft VERIFIABLY round-trips to an equivalent problem, and ``null``
+         *     (a graceful decline, never a fake) otherwise.
+         */
+        post: operations["dsl_deground"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/dsl/inspect": {
         parameters: {
             query?: never;
@@ -5283,6 +5310,28 @@ export interface components {
             problem?: components["schemas"]["OptimizationProblem-Output"] | null;
         };
         /**
+         * DSLDegroundRequest
+         * @description A flat problem to reconstruct as a compact JModel draft (B2).
+         */
+        DSLDegroundRequest: {
+            problem: components["schemas"]["OptimizationProblem-Input"];
+        };
+        /**
+         * DSLDegroundResponse
+         * @description A best-effort JModel draft derived from a flat problem (B2).
+         *
+         *     ``source`` is the reconstructed JModel when a compact structure was recovered
+         *     AND verifiably round-trips to an equivalent problem; it is ``None`` (a graceful
+         *     decline, NOT an error) when the flat model has no recoverable compact form.
+         */
+        DSLDegroundResponse: {
+            /**
+             * Source
+             * @description Reconstructed JModel draft, or null when none is recoverable.
+             */
+            source?: string | null;
+        };
+        /**
          * DSLInspectRequest
          * @description A JModel source whose data-facing declarations we want to list (S2a).
          */
@@ -9373,6 +9422,8 @@ export type DraftUpdate = components['schemas']['DraftUpdate'];
 export type DslCompileError = components['schemas']['DSLCompileError'];
 export type DslCompileRequest = components['schemas']['DSLCompileRequest'];
 export type DslCompileResponse = components['schemas']['DSLCompileResponse'];
+export type DslDegroundRequest = components['schemas']['DSLDegroundRequest'];
+export type DslDegroundResponse = components['schemas']['DSLDegroundResponse'];
 export type DslInspectRequest = components['schemas']['DSLInspectRequest'];
 export type DslInspectResponse = components['schemas']['DSLInspectResponse'];
 export type DslLatexLine = components['schemas']['DSLLatexLine'];
@@ -11694,6 +11745,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DSLCompileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dsl_deground: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DSLDegroundRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DSLDegroundResponse"];
                 };
             };
             /** @description Validation Error */

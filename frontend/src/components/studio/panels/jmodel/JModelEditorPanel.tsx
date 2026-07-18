@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { AlertCircle, CheckCircle2, Loader2, RefreshCw, Sigma } from "lucide-react";
+import { AlertCircle, Boxes, CheckCircle2, Loader2, RefreshCw, Sigma } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -46,6 +46,8 @@ export function JModelEditorPanel() {
   const storeDslSource = useModelProjectStore((s) => s.draftDslSource);
   const modelId = useModelProjectStore((s) => s.modelId);
   const activeDataset = useModelProjectStore((s) => s.activeDataset);
+  // A model built elsewhere (canvas / import) that we could de-ground into a draft.
+  const hasModel = useModelProjectStore((s) => s.problem.variables.length > 0);
   const storeApi = useModelProjectStoreApi();
   // Named datasets ("scenarios") this source can compile against (§8).
   const { datasets } = useProjectDatasets(modelId && modelId !== "new" ? modelId : null);
@@ -56,6 +58,9 @@ export function JModelEditorPanel() {
   // The split-pane math view is on by default (the flagship "see the notation" view);
   // the user can collapse it back to a plain editor.
   const [showMath, setShowMath] = useState(true);
+  // B2: de-grounding the current model into a JModel draft.
+  const [deriving, setDeriving] = useState(false);
+  const [deriveDeclined, setDeriveDeclined] = useState(false);
   const compileTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Monotonic token so a slow compile response can never overwrite a newer one.
   const compileSeq = useRef(0);
@@ -101,6 +106,7 @@ export function JModelEditorPanel() {
   const handleChange = (value: string) => {
     setText(value);
     textRef.current = value;
+    if (deriveDeclined) setDeriveDeclined(false);
     // Persist the source (dirty) so a work-in-progress model survives navigation even
     // before it compiles.
     storeApi.getState().setDraftDslSource(value, { dirty: true });
@@ -202,6 +208,36 @@ export function JModelEditorPanel() {
     if (drifted && textRef.current.trim()) runCompile(textRef.current);
   };
 
+  // B2: reconstruct a JModel draft from the canonical model (built on the canvas or
+  // imported). The server declines (source === null) when no compact structure
+  // round-trips; we surface that honestly rather than load a fake. On success the
+  // draft becomes the source and is applied like a normal edit (compile → canonical).
+  const handleDerive = () => {
+    setDeriving(true);
+    setDeriveDeclined(false);
+    api
+      .degroundDsl(storeApi.getState().problem)
+      .then((res) => {
+        if (!res.source) {
+          setDeriveDeclined(true);
+          return;
+        }
+        setEditingStale(true); // deriving is an explicit opt-in over a drifted source
+        setText(res.source);
+        textRef.current = res.source;
+        storeApi.getState().setDraftDslSource(res.source, { dirty: true });
+        if (compileTimer.current) clearTimeout(compileTimer.current);
+        compileTimer.current = null;
+        runCompile(res.source);
+      })
+      .catch(() => setDeriveDeclined(true))
+      .finally(() => setDeriving(false));
+  };
+
+  // Offer "derive a draft" exactly when the JModel source is NOT the current model:
+  // the editor is empty, or it drifted because another lens changed the model.
+  const canDerive = hasModel && (drifted || !text.trim());
+
   return (
     <div className="flex flex-1 min-h-0 flex-col">
       <div className="flex items-center justify-between gap-3 border-b px-3 py-1.5">
@@ -249,17 +285,64 @@ export function JModelEditorPanel() {
         <div className="flex items-center justify-between gap-3 border-b border-amber-300/40 bg-amber-50 px-4 py-1.5 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
           <span>{t("jmodelStale")}</span>
           {readOnly && (
-            <Button
-              variant="outline"
-              size="sm"
-              data-testid="studio-jmodel-recompile"
-              onClick={handleRecompile}
-              className="h-6 shrink-0 border-amber-400/60 bg-transparent px-2 text-xs text-amber-900 hover:bg-amber-100 dark:text-amber-100 dark:hover:bg-amber-900"
-            >
-              <RefreshCw className="mr-1 h-3 w-3" />
-              {t("jmodelRecompile")}
-            </Button>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="studio-jmodel-recompile"
+                onClick={handleRecompile}
+                className="h-6 border-amber-400/60 bg-transparent px-2 text-xs text-amber-900 hover:bg-amber-100 dark:text-amber-100 dark:hover:bg-amber-900"
+              >
+                <RefreshCw className="mr-1 h-3 w-3" />
+                {t("jmodelRecompile")}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="studio-jmodel-derive"
+                onClick={handleDerive}
+                disabled={deriving}
+                className="h-6 border-amber-400/60 bg-transparent px-2 text-xs text-amber-900 hover:bg-amber-100 dark:text-amber-100 dark:hover:bg-amber-900"
+              >
+                {deriving ? (
+                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                ) : (
+                  <Boxes className="mr-1 h-3 w-3" />
+                )}
+                {t("jmodelDerive")}
+              </Button>
+            </div>
           )}
+        </div>
+      )}
+
+      {!stale && !text.trim() && canDerive && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
+          <span>{t("jmodelDeriveHint")}</span>
+          <Button
+            variant="outline"
+            size="sm"
+            data-testid="studio-jmodel-derive"
+            onClick={handleDerive}
+            disabled={deriving}
+            className="h-6 shrink-0 px-2 text-xs"
+          >
+            {deriving ? (
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            ) : (
+              <Boxes className="mr-1 h-3 w-3" />
+            )}
+            {t("jmodelDerive")}
+          </Button>
+        </div>
+      )}
+
+      {deriveDeclined && (
+        <div
+          data-testid="studio-jmodel-derive-declined"
+          className="border-b border-amber-300/40 bg-amber-50 px-4 py-1.5 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+        >
+          {t("jmodelDeriveDeclined")}
         </div>
       )}
 

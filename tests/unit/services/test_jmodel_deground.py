@@ -1,0 +1,238 @@
+"""Unit tests for the flat → JModel de-grounder (B2, phase 1).
+
+The de-grounder reconstructs a compact indexed JModel from a flat problem and
+only returns it when it VERIFIABLY round-trips (recompiles to an equivalent
+problem). These tests drive real flat problems (produced by compiling a JModel,
+then discarding the source) through it and assert both the recovered structure
+and the honesty gate — models with no recoverable structure return ``None``.
+"""
+
+import pytest
+
+from app.domains.dsl import compile_jmodel
+from app.services.jmodel_deground import deground_problem
+
+pytestmark = pytest.mark.unit
+
+
+def _flat(src: str):
+    """Compile a JModel then strip the source: a flat problem with no lineage."""
+    return compile_jmodel(src)
+
+
+def _recompiles_equivalent(draft: str, original) -> bool:
+    """The draft compiles and matches the original's variables / objective / #constraints."""
+    rebuilt = compile_jmodel(draft)
+    same_vars = {v.name for v in rebuilt.variables} == {v.name for v in original.variables}
+    same_sense = rebuilt.objective.sense == original.objective.sense
+    same_count = len(rebuilt.constraints) == len(original.constraints)
+    return same_vars and same_sense and same_count
+
+
+ASSIGNMENT = """
+set W := {A, B, C}; set T := {1, 2, 3};
+param cost{W, T} := A 1 9, A 2 2, A 3 7, B 1 6, B 2 4, B 3 3, C 1 5, C 2 8, C 3 1;
+var assign{W, T} binary;
+minimize total: sum{w in W, t in T} cost[w, t] * assign[w, t];
+subject to one_task{w in W}: sum{t in T} assign[w, t] == 1;
+subject to one_worker{t in T}: sum{w in W} assign[w, t] == 1;
+"""
+
+
+def test_assignment_degrounds_to_compact_indexed_model():
+    problem = _flat(ASSIGNMENT)
+    draft = deground_problem(problem)
+    assert draft is not None
+    # Sets, an indexed var family, a sum objective and TWO ∀-quantified families.
+    assert "set S1 := {A, B, C};" in draft
+    assert "var assign{S1, S2} binary;" in draft
+    assert "sum{i in S1, j in S2}" in draft
+    assert draft.count("subject to") == 2
+    assert "{i in S1}" in draft and "{j in S2}" in draft
+    assert _recompiles_equivalent(draft, problem)
+
+
+def test_assignment_draft_is_marked_a_draft():
+    draft = deground_problem(_flat(ASSIGNMENT))
+    assert draft is not None
+    assert draft.splitlines()[0].startswith("#")
+
+
+KNAPSACK = """
+set ITEMS := {a, b, c, d};
+param value{ITEMS} := a 60, b 100, c 120, d 40;
+param weight{ITEMS} := a 10, b 20, c 30, d 15;
+param cap := 50;
+var take{ITEMS} binary;
+maximize total: sum{i in ITEMS} value[i] * take[i];
+subject to capacity: sum{i in ITEMS} weight[i] * take[i] <= cap;
+"""
+
+
+def test_knapsack_recovers_coefficient_params():
+    problem = _flat(KNAPSACK)
+    draft = deground_problem(problem)
+    assert draft is not None
+    # A single family, a value param in the objective and a weight param in the
+    # capacity constraint (a scalar constraint keeps its literal rhs).
+    assert "var take{S1} binary;" in draft
+    assert "maximize obj:" in draft
+    assert "<= 50" in draft
+    assert _recompiles_equivalent(draft, problem)
+
+
+TRANSPORT = """
+set S := {s1, s2}; set D := {d1, d2, d3};
+param supply{S} := s1 10, s2 20;
+param demand{D} := d1 5, d2 12, d3 13;
+param c{S, D} := s1 d1 1, s1 d2 2, s1 d3 3, s2 d1 4, s2 d2 5, s2 d3 6;
+var x{S, D} >= 0;
+minimize total: sum{s in S, d in D} c[s, d] * x[s, d];
+subject to sup{s in S}: sum{d in D} x[s, d] <= supply[s];
+subject to dem{d in D}: sum{s in S} x[s, d] >= demand[d];
+"""
+
+
+def test_transport_recovers_per_family_rhs_params():
+    problem = _flat(TRANSPORT)
+    draft = deground_problem(problem)
+    assert draft is not None
+    # A varying rhs across a constraint family becomes a param indexed by the free set.
+    assert "r_c1[i]" in draft or "r_c2[j]" in draft
+    assert draft.count("subject to") == 2
+    assert _recompiles_equivalent(draft, problem)
+
+
+def test_per_element_constraint_needs_no_sum():
+    problem = _flat(
+        "set I := {a, b};\n"
+        "param p{I} := a 2, b 3;\n"
+        "var x{I} binary;\n"
+        "minimize obj: sum{i in I} p[i] * x[i];\n"
+        "subject to cap{i in I}: x[i] <= 1;\n"
+    )
+    draft = deground_problem(problem)
+    assert draft is not None
+    # `x[i] <= 1 ∀ i` has no inner sum.
+    assert "subject to c1{i in S1}: x[i] <= 1;" in draft
+    assert _recompiles_equivalent(draft, problem)
+
+
+def test_family_plus_scalar_variable():
+    problem = _flat(
+        "set I := {a, b};\n"
+        "param p{I} := a 2, b 3;\n"
+        "var x{I} binary;\n"
+        "var y >= 0;\n"
+        "minimize obj: sum{i in I} p[i] * x[i] + 5 * y;\n"
+        "subject to c{i in I}: x[i] <= 1;\n"
+    )
+    draft = deground_problem(problem)
+    assert draft is not None
+    assert "var y >= 0;" in draft
+    assert "5 * y" in draft
+    assert _recompiles_equivalent(draft, problem)
+
+
+def test_unit_coefficient_objective_has_no_param():
+    problem = _flat(
+        "set I := {a, b, c};\n"
+        "var x{I} binary;\n"
+        "maximize obj: sum{i in I} x[i];\n"
+        "subject to pick: sum{i in I} x[i] <= 2;\n"
+    )
+    draft = deground_problem(problem)
+    assert draft is not None
+    assert "maximize obj: sum{i in S1} x[i];" in draft
+    assert "param" not in draft  # unit coefficients need no coefficient table
+    assert _recompiles_equivalent(draft, problem)
+
+
+def test_negative_and_fractional_coefficients_round_trip():
+    problem = _flat(
+        "set I := {a, b, c};\n"
+        "param p{I} := a -3, b 2.5, c 1;\n"
+        "var x{I} >= 0 <= 10;\n"
+        "minimize obj: sum{i in I} p[i] * x[i];\n"
+        "subject to c{i in I}: x[i] <= 5;\n"
+    )
+    draft = deground_problem(problem)
+    assert draft is not None
+    assert "-3" in draft and "2.5" in draft
+    assert _recompiles_equivalent(draft, problem)
+
+
+# --------------------------------------------------------------------------- #
+# The honesty gate — decline rather than fake a structure
+# --------------------------------------------------------------------------- #
+
+
+def test_scalar_only_model_declines():
+    """No indexed families → the flat form already IS the model, so decline."""
+    problem = _flat(
+        "var x >= 0;\nvar y >= 0;\nminimize obj: 3 * x + 2 * y;\nsubject to c: x + y <= 10;"
+    )
+    assert deground_problem(problem) is None
+
+
+def test_sparse_numeric_family_declines():
+    """A flat family whose numeric indices are not a full cartesian block declines.
+
+    ``x_1_1, x_1_2, x_2_1`` (no ``x_2_2``) parses to a 2×2-shaped family missing one
+    member: it cannot be a single dense ``var x{S1, S2}`` declaration, so the
+    de-grounder declines rather than invent the missing variable.
+    """
+    from app.schemas.optimization import (
+        Constraint,
+        Objective,
+        ObjectiveSense,
+        OptimizationProblem,
+        Variable,
+        VariableType,
+    )
+
+    problem = OptimizationProblem(
+        variables=[
+            Variable(name="x_1_1", type=VariableType.BINARY),
+            Variable(name="x_1_2", type=VariableType.BINARY),
+            Variable(name="x_2_1", type=VariableType.BINARY),
+        ],
+        objective=Objective(sense=ObjectiveSense.MAXIMIZE, expression="x_1_1 + x_1_2 + x_2_1"),
+        constraints=[Constraint(name="c", expression="x_1_1 + x_1_2 + x_2_1 <= 2")],
+    )
+    assert deground_problem(problem) is None
+
+
+def test_tuple_set_family_degrounds_as_one_dimensional():
+    """A tuple-set family (joined index labels) is a valid dense 1-D family."""
+    problem = _flat(
+        "set ARCS := {(a, b), (b, c)};\n"
+        "var f{ARCS} >= 0;\n"
+        "minimize obj: sum{(i, j) in ARCS} f[i, j];\n"
+        "subject to c: sum{(i, j) in ARCS} f[i, j] <= 5;\n"
+    )
+    draft = deground_problem(problem)
+    assert draft is not None  # `f_a_b, f_b_c` → a 1-D set of joined labels, round-trips
+    assert _recompiles_equivalent(draft, problem)
+
+
+def test_partial_objective_coverage_declines():
+    """An objective touching only some of a family's members can't be a full sum."""
+    from app.schemas.optimization import (
+        Constraint,
+        Objective,
+        ObjectiveSense,
+        OptimizationProblem,
+        Variable,
+        VariableType,
+    )
+
+    problem = OptimizationProblem(
+        variables=[
+            Variable(name="x_1", type=VariableType.BINARY, family="x", index_tuple=["1"]),
+            Variable(name="x_2", type=VariableType.BINARY, family="x", index_tuple=["2"]),
+        ],
+        objective=Objective(sense=ObjectiveSense.MAXIMIZE, expression="x_1"),  # x_2 missing
+        constraints=[Constraint(name="c", expression="x_1 + x_2 <= 1")],
+    )
+    assert deground_problem(problem) is None

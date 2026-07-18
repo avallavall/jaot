@@ -19,6 +19,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Added
 
+- **Derive a JModel draft from a flat model (v3.1 B2, phase 1)** — a model built on
+  the canvas or imported (MPS/LP/CIP) has no JModel source, so the JModel lens now
+  offers "Derive draft": it reconstructs a compact indexed JModel from the flat
+  problem — variable families over sets, `sum` objectives with coefficient params,
+  and ∀-quantified constraint families — so the model can be read, edited and shown
+  as math (B1) in its compact form instead of as a wall of scalar rows. The
+  reconstruction is heuristic, so it is **honest by construction**: the new
+  parse-only `POST /dsl/deground` returns a draft only when it VERIFIABLY round-trips
+  (recompiles to a problem equivalent to the input) and declines with a clear message
+  otherwise, never showing a draft that misrepresents the model. Recovers coefficient
+  and rhs params, per-element (`x[i] ≤ 1 ∀ i`) and summed constraint families, and
+  handles negative/fractional coefficients; a model with no indexed structure (a
+  purely scalar model) is declined rather than dumped verbatim.
+
 - **JModel split-pane: the model as mathematical notation (v3.1 B1)** — the JModel
   editor now renders the source as symbolic math (KaTeX) in a live right-hand pane.
   A deterministic LaTeX pretty-printer walks the compiler AST *before* grounding, so
