@@ -7,6 +7,7 @@ import type {
   UserProfile,
   APIKey,
   CreateKeyResponse,
+  ExactAnalysis,
   ModelCatalogItem,
   OrganizationModel,
   ModelExecution,
@@ -85,6 +86,7 @@ export type {
   UserProfile,
   APIKey,
   CreateKeyResponse,
+  ExactAnalysis,
   ModelCatalogItem,
   OrganizationModel,
   ModelExecution,
@@ -713,6 +715,12 @@ export const api = {
 
   getExecution(executionId: string): Promise<ModelExecution> {
     return request(`/api/v2/models/executions/${executionId}`);
+  },
+
+  /** Exact, solution-based analysis (A3) — binding constraints, slack/utilization
+   * and objective contributions, computed on demand from x* + the problem. */
+  getExecutionExactAnalysis(executionId: string): Promise<ExactAnalysis> {
+    return request(`/api/v2/models/executions/${executionId}/exact-analysis`);
   },
 
   getSolvers(): Promise<{

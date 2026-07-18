@@ -1974,6 +1974,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/models/executions/{execution_id}/exact-analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Execution Exact Analysis
+         * @description Exact, solution-based analysis of a completed execution (A3).
+         *
+         *     Computed on demand from the stored problem + solution — binding constraints,
+         *     slack/utilization, objective contributions — all exact for the integer
+         *     solution, unlike the LP-relaxation shadow prices. Off the solve path because
+         *     it re-parses every constraint.
+         */
+        get: operations["get_execution_exact_analysis"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/models/executions/all": {
         parameters: {
             query?: never;
@@ -4815,6 +4840,31 @@ export interface components {
             shadow_price?: number | null;
         };
         /**
+         * ConstraintUtilization
+         * @description Exact, solution-based status of one constraint at the optimum x* (A3).
+         *
+         *     Computed from x* + the problem — NOT from the LP relaxation — so it is exact
+         *     for the integer solution and solver-agnostic. ``activity`` is a_i·x* (the LHS
+         *     with variables moved left, constants right); ``slack`` is the signed room
+         *     (≈0 ⇒ binding); ``utilization`` is activity/rhs for ≤-constraints.
+         */
+        ConstraintUtilization: {
+            /** Activity */
+            activity: number;
+            /** Is Binding */
+            is_binding: boolean;
+            /** Name */
+            name: string;
+            /** Operator */
+            operator: string;
+            /** Rhs */
+            rhs: number;
+            /** Slack */
+            slack: number;
+            /** Utilization */
+            utilization?: number | null;
+        };
+        /**
          * ContactCreate
          * @description Request body for POST /api/v2/contact.
          *
@@ -5359,6 +5409,54 @@ export interface components {
             event_type: string;
             /** Prev Count */
             prev_count?: number | null;
+        };
+        /**
+         * ExactAnalysis
+         * @description Exact, solution-based analysis — binding constraints, slack/utilization,
+         *     objective contributions — all from x* + problem data (A3). Computed ON DEMAND
+         *     (it re-parses every constraint), never on the solve path. Solver-agnostic:
+         *     unlike LP-relaxation shadow prices, these are exact for the MILP solution.
+         */
+        ExactAnalysis: {
+            /**
+             * Binding Count
+             * @default 0
+             */
+            binding_count: number;
+            /**
+             * Computed
+             * @default true
+             */
+            computed: boolean;
+            /**
+             * Constraints
+             * @default []
+             */
+            constraints: components["schemas"]["ConstraintUtilization"][];
+            /**
+             * Contributions
+             * @default []
+             */
+            contributions: components["schemas"]["ObjectiveTermContribution"][];
+            /** Note */
+            note?: string | null;
+            /** Objective Value */
+            objective_value?: number | null;
+            /**
+             * Total Constraints
+             * @default 0
+             */
+            total_constraints: number;
+            /**
+             * Truncated Constraints
+             * @default false
+             */
+            truncated_constraints: boolean;
+            /**
+             * Truncated Contributions
+             * @default false
+             */
+            truncated_contributions: boolean;
         };
         /**
          * ExecuteModelRequest
@@ -6638,6 +6736,16 @@ export interface components {
              * @description Weight for weighted-scalarization mode (0.0 to 1.0)
              */
             weight?: number | null;
+        };
+        /**
+         * ObjectiveTermContribution
+         * @description Exact contribution c_j·x*_j of one objective term at the solution (A3).
+         */
+        ObjectiveTermContribution: {
+            /** Contribution */
+            contribution: number;
+            /** Label */
+            label: string;
         };
         /**
          * OnboardingStatusResponse
@@ -9159,6 +9267,7 @@ export type CompareResponse = components['schemas']['CompareResponse'];
 export type ComponentStatus = components['schemas']['ComponentStatus'];
 export type Constraint = components['schemas']['Constraint'];
 export type ConstraintSensitivity = components['schemas']['ConstraintSensitivity'];
+export type ConstraintUtilization = components['schemas']['ConstraintUtilization'];
 export type ContactCreate = components['schemas']['ContactCreate'];
 export type ContactResponse = components['schemas']['ContactResponse'];
 export type ConversionFunnelStep = components['schemas']['ConversionFunnelStep'];
@@ -9193,6 +9302,7 @@ export type EmailLoginRequest = components['schemas']['EmailLoginRequest'];
 export type EmailSignupRequest = components['schemas']['EmailSignupRequest'];
 export type EntityCounts = components['schemas']['EntityCounts'];
 export type EventBreakdownEntry = components['schemas']['EventBreakdownEntry'];
+export type ExactAnalysis = components['schemas']['ExactAnalysis'];
 export type ExecuteModelRequest = components['schemas']['ExecuteModelRequest'];
 export type ExecutionListResponse = components['schemas']['ExecutionListResponse'];
 export type ExecutionStats = components['schemas']['ExecutionStats'];
@@ -9254,6 +9364,7 @@ export type Objective = components['schemas']['Objective'];
 export type ObjectiveCoeffRange = components['schemas']['ObjectiveCoeffRange'];
 export type ObjectiveSense = components['schemas']['ObjectiveSense'];
 export type ObjectiveSpec = components['schemas']['ObjectiveSpec'];
+export type ObjectiveTermContribution = components['schemas']['ObjectiveTermContribution'];
 export type OnboardingStatusResponse = components['schemas']['OnboardingStatusResponse'];
 export type OnboardingStep = components['schemas']['OnboardingStep'];
 export type OptimizationProblemInput = components['schemas']['OptimizationProblem-Input'];
@@ -12824,6 +12935,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelExecutionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_execution_exact_analysis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                execution_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExactAnalysis"];
                 };
             };
             /** @description Validation Error */

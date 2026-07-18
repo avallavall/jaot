@@ -9,6 +9,7 @@ import type { InfeasibilityAnalysis } from "@/lib/llm-types";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { StructuredSolutionView } from "@/components/solve/StructuredSolutionView";
+import { ExactAnalysisPanel } from "@/components/solve/ExactAnalysisPanel";
 import { VariableValuesChart } from "@/components/solve/VariableValuesChart";
 import { InsightsPanel } from "@/components/solve/InsightsPanel";
 import { ExportButtons } from "@/components/solve/ExportButtons";
@@ -247,6 +248,19 @@ export default function ExecutionDetailPage() {
                   nodes={resultData.nodes}
                   iterations={resultData.iterations}
                   solveTimeSeconds={resultData.solve_time_seconds}
+                />
+              </div>
+            )}
+
+            {/* Exact, solution-based analysis (A3): binding constraints, slack/
+                utilization and objective contributions computed from x* — the
+                LP-relaxation shadow prices are demoted inside a collapsed section. */}
+            {resultData && !isInfeasible && variables.length > 0 && (
+              <div className="mt-8">
+                <h2 className="text-lg font-semibold text-foreground mb-3">{t("analysisTitle")}</h2>
+                <ExactAnalysisPanel
+                  executionId={executionId}
+                  sensitivity={resultData?.sensitivity ?? undefined}
                 />
               </div>
             )}

@@ -34,6 +34,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
   sensitivity) and a graceful fallback to the flat table when a solution has no
   recoverable structure.
 
+### Added
+
+- **Exact, solution-based analysis leads the post-solve view (v3.1 A3)** — a new
+  Analysis section on the execution-detail page leads with facts that are EXACT
+  for the integer solution and solver-agnostic: which constraints are binding
+  (slack = 0), each constraint's slack/utilization (b_i − a_i·x*), and which
+  objective terms drive the value (c_j·x*_j). All are computed on demand from x*
+  + the stored problem via a new `GET /models/executions/{id}/exact-analysis`
+  endpoint (off the solve path — it re-parses constraints, so it is bounded and
+  never slows a solve). The LP-relaxation shadow prices — which for a MILP are
+  duals of a different, easier problem and near-uniform under degeneracy — are
+  demoted into a collapsed "approximate (LP relaxation)" section with identical
+  values deduped ("47 constraints · shadow price 1.0"), so they no longer read
+  as the primary artifact a decision is made from.
+
 ### Changed
 
 - **The studio results drawer links out instead of cramming (v3.1 A5)** — the

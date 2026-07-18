@@ -292,6 +292,49 @@ class SensitivityResult(BaseModel):
     )
 
 
+class ConstraintUtilization(BaseModel):
+    """Exact, solution-based status of one constraint at the optimum x* (A3).
+
+    Computed from x* + the problem — NOT from the LP relaxation — so it is exact
+    for the integer solution and solver-agnostic. ``activity`` is a_i·x* (the LHS
+    with variables moved left, constants right); ``slack`` is the signed room
+    (≈0 ⇒ binding); ``utilization`` is activity/rhs for ≤-constraints.
+    """
+
+    name: str
+    activity: float
+    rhs: float
+    operator: str
+    slack: float
+    is_binding: bool
+    utilization: float | None = None
+
+
+class ObjectiveTermContribution(BaseModel):
+    """Exact contribution c_j·x*_j of one objective term at the solution (A3)."""
+
+    label: str
+    contribution: float
+
+
+class ExactAnalysis(BaseModel):
+    """Exact, solution-based analysis — binding constraints, slack/utilization,
+    objective contributions — all from x* + problem data (A3). Computed ON DEMAND
+    (it re-parses every constraint), never on the solve path. Solver-agnostic:
+    unlike LP-relaxation shadow prices, these are exact for the MILP solution.
+    """
+
+    objective_value: float | None = None
+    total_constraints: int = 0
+    binding_count: int = 0
+    constraints: list[ConstraintUtilization] = []
+    contributions: list[ObjectiveTermContribution] = []
+    truncated_constraints: bool = False
+    truncated_contributions: bool = False
+    computed: bool = True
+    note: str | None = None
+
+
 class InfeasibilityAnalysis(BaseModel):
     """Why an INFEASIBLE model has no solution — a minimal conflicting set.
 
