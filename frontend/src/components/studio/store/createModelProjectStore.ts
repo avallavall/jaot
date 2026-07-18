@@ -31,6 +31,9 @@ export interface SolveSession {
   /** ISO start time — `now` for a fresh solve, the server's start for a re-attach.
    * Powers the header's "solving… (started Xm ago)" ambient indicator. */
   startedAt: string | null;
+  /** The ModelExecution row id (`exe_…`), known from the enqueue response. Lets
+   * the results drawer deep-link to the full execution-detail page. */
+  executionId: string | null;
 }
 
 export const IDLE_SOLVE_SESSION: SolveSession = {
@@ -42,6 +45,7 @@ export const IDLE_SOLVE_SESSION: SolveSession = {
   solverName: null,
   error: null,
   startedAt: null,
+  executionId: null,
 };
 
 /** Terminal statuses a reconciled "last run" can carry (never running/pending). */
@@ -90,7 +94,8 @@ export interface ModelProjectState {
   startSolveSession: (
     taskId: string,
     solverName: string | null,
-    startedAt?: string | null
+    startedAt?: string | null,
+    executionId?: string | null
   ) => void;
   addSolvePoint: (point: ProgressPoint, event: SolveProgressEvent) => void;
   finishSolveSession: (result: SolveResult, points: ProgressPoint[]) => void;
@@ -229,7 +234,7 @@ export function createModelProjectStore(init: ModelProjectInit) {
         markCommitted: () => set({ headDirty: false }),
 
         solveSession: IDLE_SOLVE_SESSION,
-        startSolveSession: (taskId, solverName, startedAt = null) =>
+        startSolveSession: (taskId, solverName, startedAt = null, executionId = null) =>
           set({
             solveSession: {
               taskId,
@@ -240,6 +245,7 @@ export function createModelProjectStore(init: ModelProjectInit) {
               solverName,
               error: null,
               startedAt,
+              executionId,
             },
           }),
         addSolvePoint: (point, event) => {

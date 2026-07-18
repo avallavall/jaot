@@ -1177,6 +1177,8 @@
       "closeDrawer": "Close results drawer",
       "objectiveValue": "Objective Value",
       "variableAssignments": "Variable Assignments",
+      "viewFullResults": "View full results",
+      "variablesAssignedSummary": "{count, plural, one {# variable assigned} other {# variables assigned}}",
       "variable": "Variable",
       "value": "Value",
       "type": "Type",

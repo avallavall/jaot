@@ -114,7 +114,7 @@ export function SolvePanel() {
           datasetId: datasetApplies ? (activeDataset?.id ?? null) : null,
         },
       );
-      startSolveSession(task.task_id, solverName, new Date().toISOString());
+      startSolveSession(task.task_id, solverName, new Date().toISOString(), task.execution_id ?? null);
     } catch (err: unknown) {
       const status = getErrorStatus(err);
       if (status === 422) toast.error(getErrorMessage(err, t("solveInvalid")));
@@ -230,6 +230,7 @@ export function SolvePanel() {
         result={session.result}
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
+        executionId={session.executionId}
       />
     </div>
   );

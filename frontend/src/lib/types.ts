@@ -348,6 +348,10 @@ export type ExecutionSourceKind =
 export interface AsyncTask {
   task_id: string;
   status: string;
+  /** The ModelExecution row id (`exe_…`) — first-class in the async contract
+   * (ADR-007 §6): task_id keys Celery/WS, execution_id keys history. Lets a
+   * caller deep-link to the full execution-detail page. */
+  execution_id?: string;
 }
 
 /**

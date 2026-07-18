@@ -1177,6 +1177,8 @@
       "closeDrawer": "Tancar panell de resultats",
       "objectiveValue": "Valor de l'Objectiu",
       "variableAssignments": "Assignacions de Variables",
+      "viewFullResults": "Veure els resultats complets",
+      "variablesAssignedSummary": "{count, plural, one {# variable assignada} other {# variables assignades}}",
       "variable": "Variable",
       "value": "Valor",
       "type": "Tipus",

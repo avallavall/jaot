@@ -1177,6 +1177,8 @@
       "closeDrawer": "Cerrar panel de resultados",
       "objectiveValue": "Valor del objetivo",
       "variableAssignments": "Asignaciones de variables",
+      "viewFullResults": "Ver resultados completos",
+      "variablesAssignedSummary": "{count, plural, one {# variable asignada} other {# variables asignadas}}",
       "variable": "Variable",
       "value": "Valor",
       "type": "Tipo",

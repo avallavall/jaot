@@ -36,6 +36,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Changed
 
+- **The studio results drawer links out instead of cramming (v3.1 A5)** — the
+  post-solve drawer in the studio was a 24rem sheet stuffed with the whole
+  variable table and the sensitivity analysis. It now shows a lightweight
+  summary — status, objective, solve time/gap, a variable count — and a "View
+  full results" button into the full execution-detail page (which already has
+  the grouped solution, the honest summary and sensitivity). The execution id
+  needed for the deep link was already in the async enqueue response; it is now
+  carried on the solve session. The builder and template drawers, which have no
+  execution page, keep their full inline view unchanged.
+
 - **The variable-values chart collapses identical bars to an aggregate (v3.1 A4)** —
   a binary assignment/routing solution rendered as dozens of bars all at 1.0:
   identical length, zero information. When every non-zero variable shares the

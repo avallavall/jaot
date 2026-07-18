@@ -70,7 +70,8 @@ export function applyReconciledExecution(
     s.startSolveSession(
       latest.celery_task_id,
       latest.solver_name ?? null,
-      latest.started_at ?? latest.created_at ?? null
+      latest.started_at ?? latest.created_at ?? null,
+      latest.id
     );
     return;
   }

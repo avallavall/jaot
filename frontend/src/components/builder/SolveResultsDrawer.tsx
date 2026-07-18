@@ -9,12 +9,18 @@ import { SensitivityTab } from "@/components/solve/SensitivityTab";
 import { SolverDisclaimer } from "@/components/legal/SolverDisclaimer";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { Button } from "@/components/ui/button";
+import { Link } from "@/i18n/navigation";
+import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 interface SolveResultsDrawerProps {
   result: SolveResult | null;
   isOpen: boolean;
   onClose: () => void;
+  /** When set (the studio), the drawer is a lightweight summary that links out
+   * to the full execution-detail page instead of cramming the whole variable
+   * table and sensitivity into a 24rem sheet (A5). Omitted elsewhere → full view. */
+  executionId?: string | null;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -57,7 +63,7 @@ function StatusExplanation({ status }: { status: string }) {
   );
 }
 
-export function SolveResultsDrawer({ result, isOpen, onClose }: SolveResultsDrawerProps) {
+export function SolveResultsDrawer({ result, isOpen, onClose, executionId }: SolveResultsDrawerProps) {
   const t = useTranslations("builder");
   const tExplorer = useTranslations("solve.explorer");
   const tHelp = useTranslations("solve.helpTooltips");
@@ -84,6 +90,7 @@ export function SolveResultsDrawer({ result, isOpen, onClose }: SolveResultsDraw
   const allVariables = result.variables ?? [];
   const hasVariables = allVariables.length > 0;
   const zerosHidden = allVariables.length - shownVariables.length;
+  const nonZeroCount = allVariables.filter((v) => Math.abs(Number(v.value)) > 1e-9).length;
   const isSuccess = result.status === "optimal" || result.status === "feasible";
 
   return (
@@ -138,7 +145,29 @@ export function SolveResultsDrawer({ result, isOpen, onClose }: SolveResultsDraw
             </div>
           )}
 
-          {isSuccess && hasVariables && (
+          {/* Studio (executionId set): a lightweight summary that links to the full
+              execution-detail page — status + objective + a variable count + CTA —
+              instead of cramming hundreds of rows and the sensitivity table into a
+              narrow sheet (A5). The heavy blocks below are gated to the full view. */}
+          {executionId && isSuccess && (
+            <div className="space-y-3">
+              {hasVariables && (
+                <p className="text-sm text-muted-foreground">
+                  {t("results.variablesAssignedSummary", { count: nonZeroCount })}
+                </p>
+              )}
+              <Link
+                href={`/solve/executions/${executionId}`}
+                data-testid="drawer-view-full-results"
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                {t("results.viewFullResults")}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          )}
+
+          {!executionId && isSuccess && hasVariables && (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
@@ -218,24 +247,26 @@ export function SolveResultsDrawer({ result, isOpen, onClose }: SolveResultsDraw
             </div>
           )}
 
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium flex items-center gap-1.5">
-              {t("results.sensitivityAnalysis")}
-              <HelpTooltip content={tHelp("sensitivityAnalysis")} side="right" size={13} />
-            </p>
-            {result.sensitivity ? (
-              <SensitivityTab sensitivity={result.sensitivity} />
-            ) : (
-              <div className="p-3 bg-muted/50 rounded-lg border border-dashed">
-                <p className="text-sm text-muted-foreground">
-                  {t("results.sensitivityUnavailable")}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t("results.sensitivityNote")}
-                </p>
-              </div>
-            )}
-          </div>
+          {!executionId && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium flex items-center gap-1.5">
+                {t("results.sensitivityAnalysis")}
+                <HelpTooltip content={tHelp("sensitivityAnalysis")} side="right" size={13} />
+              </p>
+              {result.sensitivity ? (
+                <SensitivityTab sensitivity={result.sensitivity} />
+              ) : (
+                <div className="p-3 bg-muted/50 rounded-lg border border-dashed">
+                  <p className="text-sm text-muted-foreground">
+                    {t("results.sensitivityUnavailable")}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t("results.sensitivityNote")}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           <SolverDisclaimer />
         </div>
