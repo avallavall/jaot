@@ -19,6 +19,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Fixed
 
+- **Viewing the canvas no longer locks the JModel source read-only** — after the
+  structured-solution work tagged each variable with its index structure
+  (`family`/`index_tuple`), the canvas ↔ model bridge stopped recognising an
+  untouched canvas as unchanged (those fields can't be drawn on the canvas), so
+  merely opening the Build/canvas view of a DSL-authored model flagged the source as
+  "changed elsewhere" and locked it read-only. The bridge now preserves that
+  structure across a canvas reprojection, so viewing the canvas is a no-op.
+
+- **The JModel lens explains why solve is blocked after deselecting a dataset** — a
+  declaration-only source with its dataset removed correctly blocks solve, but the
+  inline compile-error box had stopped appearing (it keyed off the lens' own compile,
+  which no longer runs on a dataset change), leaving the controls greyed out with no
+  reason. The box now reflects the canonical block state and names the cause.
+
 - **The AI solution explainer no longer 400s on large solves** — explaining a
   SOLUTION embedded the full formulation, the full variable→value map, the full
   variable list and full sensitivity as JSON, so a 10k-variable solve (150×150)
