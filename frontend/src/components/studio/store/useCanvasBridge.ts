@@ -6,10 +6,33 @@ import {
   pauseTracking,
   resumeTracking,
 } from "@/hooks/useBuilderStore";
+import type { OptimizationProblem } from "@/lib/types";
 import { canvasProjector } from "./projectors";
 import type { ModelProjectStore } from "./createModelProjectStore";
 
 const DEBOUNCE_MS = 300;
+
+type Variable = OptimizationProblem["variables"][number];
+
+/**
+ * Re-attach the server-derived index structure (`family`/`index_tuple`, A1) the canvas
+ * cannot represent onto freshly projected variables, matched by name. The canvas nodes
+ * carry only name/type/bounds, so without this a reprojection of an untouched canvas
+ * would drop those fields and no longer be JSON-equal to the canonical model — the
+ * equality guard (`problemsEqual`) would then fire a phantom `setProblem(source:"canvas")`
+ * and drift the DSL/editor source to read-only just from VIEWING the canvas. A genuinely
+ * new canvas variable (no prior of that name) keeps no structure, which is correct.
+ */
+export function reattachVariableStructure(
+  projected: readonly Variable[],
+  current: readonly Variable[]
+): Variable[] {
+  const priorByName = new Map(current.map((v) => [v.name, v]));
+  return projected.map((v) => {
+    const prior = priorByName.get(v.name);
+    return prior ? { ...v, family: prior.family, index_tuple: prior.index_tuple } : v;
+  });
+}
 
 /**
  * Keeps the canvas working-state (the global builder store) and the canonical
@@ -63,10 +86,14 @@ export function useCanvasBridge(store: ModelProjectStore): void {
         // guard no-ops → no phantom edit/autosave, no false "changed elsewhere" drift
         // for the JModel/editor lenses) and a real canvas edit never silently drops
         // the fields the canvas cannot represent.
+        //
+        // Per-variable, re-attach the server-derived index structure the canvas cannot
+        // represent (see reattachVariableStructure) so an untouched canvas stays
+        // JSON-identical and never drifts the DSL/editor source read-only on a mere view.
         store.getState().setProblem(
           {
             ...current,
-            variables: projected.variables,
+            variables: reattachVariableStructure(projected.variables, current.variables),
             objective: projected.objective,
             constraints: projected.constraints,
           },
