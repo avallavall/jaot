@@ -19,6 +19,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Fixed
 
+- **The "Solving…" pill no longer lingers after a solve is cancelled from another
+  tab/device** — the ambient solving indicator shows only while the session is
+  `running`, and the completion poll moved the session off `running` for `completed`
+  and `failed` — but not for a Celery-revoked task (`GET /solve/async/{id}` returns
+  `"revoked"`). A cancel/revoke from another tab, a worker restart, or any unexpected
+  terminal status left the poll spinning and the pill stuck (the idle reconcile that
+  would clear it only runs while the session is idle). The poll now resolves EVERY
+  non-in-flight status: revoke/cancel → cancelled, anything else terminal → failed.
+
 - **The JSON model editor no longer crashes the studio page (and silently drops a
   just-added variable)** — the server `/solve/validate` response never included a
   `warnings` array, yet the editor lens read `validation.warnings.length` on every

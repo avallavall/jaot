@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { createModelProjectStore } from "../createModelProjectStore";
-import { applyReconciledExecution } from "../useSolveSession";
+import { applyReconciledExecution, classifyPollStatus } from "../useSolveSession";
 import type { OptimizationProblem, ProjectExecutionItem } from "@/lib/types";
 
 const EMPTY: OptimizationProblem = {
@@ -118,5 +118,33 @@ describe("applyReconciledExecution — server-derived solve reconciliation (§14
     applyReconciledExecution(store, exec({ status: "running", celery_task_id: "other-task" }));
     expect(store.getState().solveSession.taskId).toBe("user-task");
     expect(store.getState().lastRun).toBeNull();
+  });
+});
+
+// A6b: the "Solving…" pill renders only while solveSession.status === "running", so
+// the completion poll MUST move the session off "running" for EVERY terminal async
+// status — not only "completed"/"failed". A task revoked from another tab/device
+// (Celery REVOKED → "revoked") used to fall through the poll and spin forever, leaving
+// the pill stuck. classifyPollStatus is the pure decision the poll now uses.
+describe("classifyPollStatus — the poll never lingers on a terminal status", () => {
+  it("keeps polling while the task is in flight", () => {
+    for (const s of ["pending", "received", "started", "retry", "running"]) {
+      expect(classifyPollStatus(s)).toBe("in_flight");
+    }
+  });
+
+  it("resolves 'completed' as a finish", () => {
+    expect(classifyPollStatus("completed")).toBe("completed");
+  });
+
+  it("resolves a cross-tab cancel/revoke as a cancellation (the lingering-pill bug)", () => {
+    expect(classifyPollStatus("revoked")).toBe("cancelled");
+    expect(classifyPollStatus("cancelled")).toBe("cancelled");
+  });
+
+  it("fails closed on 'failed', 'timeout', or any unexpected terminal state", () => {
+    expect(classifyPollStatus("failed")).toBe("failed");
+    expect(classifyPollStatus("timeout")).toBe("failed");
+    expect(classifyPollStatus("gibberish")).toBe("failed");
   });
 });
