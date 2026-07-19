@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { FlaskConical, GitCompareArrows, Play } from "lucide-react";
+import { FlaskConical, GitCompareArrows, Loader2, Play } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
@@ -77,6 +77,9 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [launching, setLaunching] = useState(false);
+  // How many datasets this batch is launching — drives the button's "Compiling (n/N)"
+  // progress so a slow server-side compile of a large model reads as working, not stuck.
+  const [launchTotal, setLaunchTotal] = useState(0);
   // Per-dataset transient launch phase. A large scenario spends a few seconds in
   // the server-side compile before its ModelExecution row exists; without this
   // the table showed NOTHING while a launch was in flight (live report 2026-07-04).
@@ -133,6 +136,7 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
 
   const handleRunAll = async () => {
     if (launching || selected.size === 0 || !draftDslSource.trim()) return;
+    setLaunchTotal(selected.size);
     setLaunching(true);
     setDiff(null);
     const failures: Record<string, string> = {};
@@ -235,6 +239,21 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
 
   const hasSource = draftDslSource.trim().length > 0;
 
+  // Batch-launch progress: launchPhases holds the datasets still compiling+enqueuing,
+  // so `done` = launched-so-far out of the batch total. Powers the button label.
+  const launchDone = Math.max(0, launchTotal - Object.keys(launchPhases).length);
+  // Why is "Solve all" disabled? Explain it on the button (a bare greyed control while
+  // the server compiles a big model read as "doing secret things / stuck" — owner
+  // 2026-07-19). Order mirrors the `disabled` predicate: launching wins, then source,
+  // then selection.
+  const runAllDisabledReason = launching
+    ? t("scenariosLaunchingHint")
+    : !hasSource
+      ? t("scenariosNeedsJModel")
+      : selected.size === 0
+        ? t("scenariosSelectHint")
+        : undefined;
+
   const fmt = (v: number | null | undefined) =>
     v == null ? "—" : Number.isInteger(v) ? String(v) : v.toFixed(4);
 
@@ -256,12 +275,21 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
           size="sm"
           onClick={() => void handleRunAll()}
           disabled={launching || selected.size === 0 || !hasSource}
-          title={!hasSource ? t("scenariosNeedsJModel") : undefined}
+          title={runAllDisabledReason}
           data-testid="studio-scenarios-run-all"
           className="shrink-0"
         >
-          <Play className="mr-1 h-3.5 w-3.5" />
-          {t("scenariosRunAll", { count: selected.size })}
+          {launching ? (
+            <>
+              <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+              {t("scenariosLaunching", { done: launchDone, total: launchTotal })}
+            </>
+          ) : (
+            <>
+              <Play className="mr-1 h-3.5 w-3.5" />
+              {t("scenariosRunAll", { count: selected.size })}
+            </>
+          )}
         </Button>
       </div>
 
