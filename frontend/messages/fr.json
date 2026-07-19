@@ -184,6 +184,7 @@
     "jmodelHint": "Écrivez le modèle en JModel (ensembles, paramètres, familles indexées). Il se compile vers le modèle et s'enregistre automatiquement.",
     "jmodelAriaLabel": "Modèle en code JModel",
     "jmodelInvalid": "Erreur de compilation",
+    "jmodelBlockedGeneric": "La source actuelle ne compile pas avec les données sélectionnées ; la résolution est bloquée.",
     "jmodelValid": "Modèle valide",
     "jmodelCompiling": "Compilation…",
     "jmodelStale": "Le modèle a été modifié ailleurs : ce code JModel est obsolète et n'est pas appliqué. Le recompiler remplace le modèle actuel.",

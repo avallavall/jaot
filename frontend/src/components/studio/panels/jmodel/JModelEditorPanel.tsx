@@ -55,6 +55,12 @@ export function JModelEditorPanel() {
   const storeDslSource = useModelProjectStore((s) => s.draftDslSource);
   const modelId = useModelProjectStore((s) => s.modelId);
   const activeDataset = useModelProjectStore((s) => s.activeDataset);
+  // The canonical block state. It is the source of truth for "solve is blocked", set by
+  // BOTH this lens' local compile AND the provider-level dataset recompile
+  // (useActiveDatasetCompile) — e.g. deselecting a dataset under a declaration-only source
+  // blocks via the hook without touching the local `result`, so the error box must key off
+  // this, not only `result`, or the user sees solve greyed out with no explanation (C2).
+  const dslBlocked = useModelProjectStore((s) => s.parseErrors.dsl);
   // A model built elsewhere (canvas / import) that we could de-ground into a draft.
   const hasModel = useModelProjectStore((s) => s.problem.variables.length > 0);
   const storeApi = useModelProjectStoreApi();
@@ -399,25 +405,34 @@ export function JModelEditorPanel() {
             )}
           />
 
-          {result && !result.ok && result.error && (
+          {(dslBlocked || (result && !result.ok)) && (
             <div
               data-testid="studio-jmodel-error"
               role="alert"
               className="border-t border-destructive/30 bg-destructive/5 px-4 py-2 text-xs text-destructive"
             >
               <span>
-                {t("jmodelInvalid")}: <code className="font-mono">{result.error.message}</code>
-                {typeof result.error.position === "number" && (
+                {t("jmodelInvalid")}:{" "}
+                {/* Prefer the specific compiler message; fall back to a generic one when the
+                    block was set by the provider-level recompile (no local `result`). */}
+                <code className="font-mono">
+                  {result && !result.ok && result.error
+                    ? result.error.message
+                    : t("jmodelBlockedGeneric")}
+                </code>
+                {result && !result.ok && typeof result.error?.position === "number" && (
                   <span className="opacity-70"> (pos {result.error.position})</span>
                 )}
               </span>
               <p className="mt-1 opacity-80">{t("lensNotApplied")}</p>
               {/* S4 cross-link: a data-shaped error (declaration without values/members,
-                  dataset/model mismatch — those messages all name "dataset") is fixed in
-                  the Datos tab, not by editing the source. */}
+                  dataset/model mismatch — those messages all name "dataset"), OR a block
+                  set by the provider recompile (a dataset (de)selection), is fixed in the
+                  Datos tab, not by editing the source. */}
               {modelId &&
                 modelId !== "new" &&
-                /dataset|has no (values|members)/i.test(result.error.message) && (
+                (!(result && !result.ok && result.error) ||
+                  /dataset|has no (values|members)/i.test(result.error!.message)) && (
                   <p className="mt-1">
                     <Link
                       href={`/studio/${modelId}/data`}

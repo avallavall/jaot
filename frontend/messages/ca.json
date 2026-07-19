@@ -184,6 +184,7 @@
     "jmodelHint": "Escriu el model en JModel (conjunts, paràmetres, famílies indexades). Es compila al model i es desa automàticament.",
     "jmodelAriaLabel": "Model com a codi JModel",
     "jmodelInvalid": "Error de compilació",
+    "jmodelBlockedGeneric": "La font actual no compila amb les dades seleccionades, així que resoldre està bloquejat.",
     "jmodelValid": "Model vàlid",
     "jmodelCompiling": "Compilant…",
     "jmodelStale": "El model s'ha canviat en una altra vista: aquest codi JModel està desactualitzat i no està aplicat. Recompilar-lo reemplaça el model actual.",

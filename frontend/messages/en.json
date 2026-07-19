@@ -184,6 +184,7 @@
     "jmodelHint": "Write the model in JModel (sets, params, indexed families). It compiles to the model and autosaves.",
     "jmodelAriaLabel": "Model as JModel source",
     "jmodelInvalid": "Compile error",
+    "jmodelBlockedGeneric": "The current source doesn't compile with the selected data, so solve is blocked.",
     "jmodelValid": "Valid model",
     "jmodelCompiling": "Compiling…",
     "jmodelStale": "The model was changed elsewhere, so this JModel source is out of date and not applied. Recompiling it replaces the current model.",

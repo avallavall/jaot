@@ -184,6 +184,7 @@
     "jmodelHint": "Schreibe das Modell in JModel (Mengen, Parameter, indizierte Familien). Es wird zum Modell kompiliert und automatisch gespeichert.",
     "jmodelAriaLabel": "Modell als JModel-Quelltext",
     "jmodelInvalid": "Kompilierfehler",
+    "jmodelBlockedGeneric": "Die aktuelle Quelle kompiliert nicht mit den gewählten Daten – das Lösen ist blockiert.",
     "jmodelValid": "Gültiges Modell",
     "jmodelCompiling": "Kompiliere…",
     "jmodelStale": "Das Modell wurde anderswo geändert: dieser JModel-Quelltext ist veraltet und nicht angewendet. Neu kompilieren ersetzt das aktuelle Modell.",

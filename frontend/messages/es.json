@@ -184,6 +184,7 @@
     "jmodelHint": "Escribe el modelo en JModel (conjuntos, parámetros, familias indexadas). Se compila al modelo y se autoguarda.",
     "jmodelAriaLabel": "Modelo como código JModel",
     "jmodelInvalid": "Error de compilación",
+    "jmodelBlockedGeneric": "La fuente actual no compila con los datos seleccionados, así que resolver está bloqueado.",
     "jmodelValid": "Modelo válido",
     "jmodelCompiling": "Compilando…",
     "jmodelStale": "El modelo se cambió en otra vista: este código JModel está desactualizado y no está aplicado. Recompilarlo reemplaza el modelo actual.",
