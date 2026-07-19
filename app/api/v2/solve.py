@@ -354,11 +354,16 @@ def validate_problem_endpoint(  # sync ON PURPOSE -> threadpool (CPU-bound, no a
     except Exception as e:
         errors.append(str(e))
 
+    # Honor the ValidationResult contract the frontend types declare: `errors` and
+    # `warnings` are ALWAYS present arrays. Omitting `warnings` here crashed the JSON
+    # editor lens, which reads `validation.warnings.length` on every validated edit.
     if errors:
-        return {"valid": False, "errors": errors}
+        return {"valid": False, "errors": errors, "warnings": []}
 
     return {
         "valid": True,
+        "errors": [],
+        "warnings": [],
         "num_variables": len(problem.variables),
         "num_constraints": len(problem.constraints),
         "variable_types": {

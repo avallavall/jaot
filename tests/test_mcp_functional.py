@@ -542,6 +542,37 @@ class TestValidateProblem:
         assert data["variable_types"]["integer"] == 1
         assert data["variable_types"]["binary"] == 1
 
+    def test_validate_always_returns_errors_and_warnings_arrays(self, client):
+        """Contract: /solve/validate ALWAYS returns `errors` and `warnings` arrays,
+        for both the valid and invalid branches.
+
+        The frontend `ValidationResult` type declares both as required `string[]` and
+        the JSON-editor lens reads `validation.warnings.length` on every validated edit.
+        Omitting `warnings` here crashed the whole studio page to the error boundary,
+        which aborted the in-flight autosave (a variable just added was silently lost).
+        """
+        # Valid branch → both arrays present and empty.
+        ok = client.post("/api/v2/solve/validate", json=VALID_PROBLEM)
+        assert ok.status_code == 200
+        ok_data = ok.json()
+        assert ok_data["valid"] is True
+        assert ok_data["errors"] == []
+        assert ok_data["warnings"] == []
+
+        # Invalid branch (schema-valid, but the objective names an undeclared variable)
+        # → valid=False with a populated `errors` and still a (empty) `warnings` array.
+        invalid = {
+            "objective": {"sense": "minimize", "expression": "ghost"},
+            "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
+            "constraints": [],
+        }
+        bad = client.post("/api/v2/solve/validate", json=invalid)
+        assert bad.status_code == 200
+        bad_data = bad.json()
+        assert bad_data["valid"] is False
+        assert isinstance(bad_data["errors"], list) and len(bad_data["errors"]) > 0
+        assert bad_data["warnings"] == []
+
     def test_validate_empty_problem_returns_422(self, client):
         """validate_problem with empty body returns 422 (validation error)."""
         response = client.post("/api/v2/solve/validate", json={})

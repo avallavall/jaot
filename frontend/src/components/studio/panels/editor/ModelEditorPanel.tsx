@@ -180,20 +180,23 @@ export function ModelEditorPanel() {
         </div>
       )}
 
-      {parsed.ok && validation && !validation.valid && validation.errors.length > 0 && (
+      {/* Defensive: a malformed/legacy validate response (missing `errors`/`warnings`)
+          must never crash the whole studio page — reading `.length` on an absent array
+          did exactly that on every validated edit. Coalesce to empty. */}
+      {parsed.ok && validation && !validation.valid && (validation.errors?.length ?? 0) > 0 && (
         <ul
           data-testid="studio-editor-validation"
           className="border-t border-destructive/30 bg-destructive/5 px-4 py-2 text-xs text-destructive space-y-0.5"
         >
-          {validation.errors.map((err, i) => (
+          {(validation.errors ?? []).map((err, i) => (
             <li key={i}>• {err}</li>
           ))}
         </ul>
       )}
 
-      {parsed.ok && validation && validation.warnings.length > 0 && (
+      {parsed.ok && validation && (validation.warnings?.length ?? 0) > 0 && (
         <ul className="border-t border-amber-300/40 bg-amber-50 px-4 py-2 text-xs text-amber-800 space-y-0.5 dark:bg-amber-950/40 dark:text-amber-200">
-          {validation.warnings.map((warn, i) => (
+          {(validation.warnings ?? []).map((warn, i) => (
             <li key={i}>• {warn}</li>
           ))}
         </ul>

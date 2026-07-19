@@ -19,6 +19,19 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Fixed
 
+- **The JSON model editor no longer crashes the studio page (and silently drops a
+  just-added variable)** — the server `/solve/validate` response never included a
+  `warnings` array, yet the editor lens read `validation.warnings.length` on every
+  validated edit, so ~500ms after any change the whole workspace fell to the error
+  boundary. Because the crash unmounted the workspace, its debounced autosave was
+  aborted — a variable added right before (e.g. after deriving a JModel) was never
+  persisted. This was the "derived a JModel, added another variable, it wasn't saved"
+  report. The endpoint now honours its declared `ValidationResult` contract (always
+  returns `errors` and `warnings` arrays), and the editor coalesces a missing array
+  to empty so a malformed response can never crash the page. Regression-guarded by a
+  new E2E that waits for the validation to render (existing editor specs navigated
+  away first) plus a backend contract test.
+
 - **Viewing the canvas no longer locks the JModel source read-only** — after the
   structured-solution work tagged each variable with its index structure
   (`family`/`index_tuple`), the canvas ↔ model bridge stopped recognising an
