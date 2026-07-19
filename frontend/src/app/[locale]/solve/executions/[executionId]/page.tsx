@@ -203,9 +203,15 @@ export default function ExecutionDetailPage() {
       <div className="mb-8">
         <Tabs defaultValue="results">
           <TabsList className="mb-4">
-            <TabsTrigger value="results">{t("results")}</TabsTrigger>
-            <TabsTrigger value="visualization">{t("visualization")}</TabsTrigger>
-            <TabsTrigger value="sensitivity">{t("sensitivity")}</TabsTrigger>
+            <TabsTrigger value="results" data-testid="execution-tab-results">
+              {t("results")}
+            </TabsTrigger>
+            <TabsTrigger value="visualization" data-testid="execution-tab-visualization">
+              {t("visualization")}
+            </TabsTrigger>
+            <TabsTrigger value="sensitivity" data-testid="execution-tab-sensitivity">
+              {t("sensitivity")}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="results">
