@@ -66,6 +66,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Changed
 
+- **"Solve all" (Scenarios) now shows why it is busy** — running a JModel against a
+  dataset compiles the model server-side first, which for a large model (e.g. a
+  200×239 MDPDP scenario) genuinely takes tens of seconds; during that the button was
+  disabled with no explanation and read as stuck. It now shows a spinner + "Compiling
+  (n/N)" progress while the batch launches, and carries a disabled-reason tooltip in
+  every state (compiling / no dataset selected / no JModel source).
+
 - **"Derive draft" (B2) now recovers multi-family constraints and small models** —
   a constraint that mixes variable families with a shared free index (the real TFM
   scenarios: `sum_i a[i,j] + z[j] == 1  ∀ j`) is now recovered as one ∀-quantified
