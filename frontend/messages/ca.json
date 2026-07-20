@@ -715,17 +715,17 @@
       "eyebrow": "Anàlisi de la solució",
       "title": "Entén la teva solució",
       "subtitle": "No només resolguis: entén. Cada resultat ve amb el raonament al darrere.",
-      "sensitivity": {
-        "title": "Preus ombra i restriccions actives",
-        "description": "Descobreix quines restriccions limiten realment l'òptim i quant guanyaries relaxant-ne cadascuna."
+      "exactAnalysis": {
+        "title": "Anàlisi exacta basada en la solució",
+        "description": "Restriccions actives, marges i utilització calculats de la teva solució real: exacte per a l'òptim enter, amb qualsevol solver."
       },
-      "reducedCosts": {
-        "title": "Costos reduïts de variables",
-        "description": "Sàpigues quines decisions estan fixades als seus límits: exacte per a LP, aproximat per a MIP."
+      "structuredSolution": {
+        "title": "Decisions, no un mur de números",
+        "description": "Les solucions tornen agrupades per l'estructura d'índexs real del model, amb un resum honest del solve: node arrel, ramificació o límit de temps."
       },
       "aiExplain": {
         "title": "Explicació amb IA en un clic",
-        "description": "Converteix preus ombra i costos reduïts en llenguatge clar, basat només en les teves xifres reals."
+        "description": "Converteix l'anàlisi en llenguatge clar, basat només en les teves xifres reals, mai inventades."
       }
     },
     "infeasibilityHighlight": {

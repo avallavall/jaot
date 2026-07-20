@@ -23,6 +23,7 @@ export const docsNavigation: DocsNavItem[] = [
       { title: "Versioning", slug: "studio/versioning" },
       { title: "Datasets & Scenarios", slug: "studio/datasets-scenarios" },
       { title: "Importing & Exporting Files", slug: "studio/importing-files" },
+      { title: "Analyzing Results", slug: "studio/analyzing-results" },
     ],
   },
   {

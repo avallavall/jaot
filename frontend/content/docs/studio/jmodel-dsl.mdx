@@ -118,8 +118,46 @@ A dataset selector in the lens lets you compile against a chosen dataset (or "No
 
 Committed versions store the JModel source alongside the grounded model, so your formulation is versioned too.
 
+## Mathematical notation view
+
+Toggle **Math** in the lens header to open a split pane that renders your source as symbolic mathematics — the indexed objective, the ∀-quantified constraint families, and each variable's domain, the way they would appear in a paper or thesis.
+
+The rendering is parse-only and deterministic: it walks the parsed model *before* grounding, so the sum and quantifier structure survives instead of flattening into thousands of scalar rows — and it works even for declaration-only sources that cannot compile yet (say, before a dataset is selected). While you type through an invalid state, the pane keeps the last good rendering dimmed rather than flickering to an error on every keystroke; the editor's own error box stays the authoritative message.
+
+Greek-named identifiers (`alpha`, `lambda`, `Sigma`, …) render as their letters, so `minimize obj: alpha * sum{...}` reads as α · Σ ….
+
+## Derive a draft from an existing model
+
+A model built on the [visual canvas](/docs/studio/visual-canvas) or [imported from MPS/LP/CIP](/docs/studio/importing-files) has no JModel source. **Derive draft** reconstructs one: variable families over sets, `sum` objectives, and ∀-quantified constraint families, recovered from the flat model.
+
+Reconstruction is heuristic, so it is honest by construction: the candidate draft is recompiled and verified to be **equivalent** to your model before it is offered. If no compact structure round-trips — sparse families, partially covered objectives, exotic shapes — JAOT declines with a note instead of showing a draft that lies about the model. A small flat model with no indexed structure derives as a plain scalar JModel instead.
+
+The derived draft lands in the editor as a normal edit: review it, compile it, and from then on the source *is* the formulation.
+
+## Generate with AI
+
+**Generate with AI** writes a JModel source from a plain-language description, a screenshot, or a PDF of a formulation — the model reads images and documents directly, no OCR step. Attach up to 4 files (PNG, JPEG, GIF, WebP or PDF, 5 MB each), describe the problem, or both; if the editor already holds a draft, the request refines it instead of starting over.
+
+The loop is compile-verified: the AI proposes a source, the JModel compiler validates it, and any compile error is fed straight back for a retry (up to 3 rounds). A source applied with a success toast has **verifiably compiled** — it is never taken on faith. If it still fails after the retries, you get the best-effort draft *plus* the exact compile error, so you land on an editable starting point rather than nothing.
+
+Generation runs under the same guardrails as the AI assistant: content moderation, rate limits, the instance's monthly AI budget, and [bring-your-own-key](/docs/ai-builder/bring-your-own-api-key) support (an org key runs on the org's own account).
+
 ## Scale and safety
 
 - Grounding is budgeted: expansion stops with a clear error **before** an accidental combinatorial blowup (three-index families over huge sets) can pin the server. Honest sparse models with hundreds of thousands of grounded elements compile fine.
 - Every referenced set/param/variable must be declared; every index must belong to the family's declared set — no "ghost" variables.
 - Scenario launches compile **server-side**: the browser sends the source + a dataset reference, not megabytes of flattened model. See [Datasets & Scenarios](/docs/studio/datasets-scenarios).
+
+## API
+
+The lens is backed by the `/api/v2/dsl/*` endpoints (feature-gated like the lens itself; all require authentication):
+
+```text
+GET  /api/v2/dsl/status      # is the JModel feature enabled on this instance
+POST /api/v2/dsl/compile     # source (+ optional dataset) → grounded problem, or a structured error
+POST /api/v2/dsl/latex       # parse-only symbolic-math rendering (the Math split pane)
+POST /api/v2/dsl/deground    # flat problem → JModel draft, or null when none round-trips
+POST /api/v2/dsl/generate    # description/screenshots/PDF → compile-verified JModel source
+```
+
+Compile-shaped endpoints return `200` with `ok: false` + a structured error (message + position) for invalid sources — the editor calls them on every debounced keystroke, so a bad source is a *result*, not an exception.

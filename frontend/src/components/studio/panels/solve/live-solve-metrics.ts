@@ -15,9 +15,9 @@ export interface SolveProgressEvent {
 }
 
 /**
- * Map a live event to the chart's `ProgressPoint` shape (the one `GapConvergenceChart`
- * + `extractProgressHistory` use). Returns null when there is no finite objective yet,
- * so callers can simply `.filter(Boolean)`.
+ * Map a live event to the `ProgressPoint` shape (`extractProgressHistory`'s).
+ * Returns null when there is no finite objective yet, so callers can simply
+ * `.filter(Boolean)`.
  */
 export function toProgressPoint(
   event: SolveProgressEvent,

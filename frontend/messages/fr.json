@@ -715,17 +715,17 @@
       "eyebrow": "Analyse de la solution",
       "title": "Comprenez votre solution",
       "subtitle": "Ne vous contentez pas de résoudre : comprenez. Chaque résultat est accompagné de son raisonnement.",
-      "sensitivity": {
-        "title": "Prix duals et contraintes actives",
-        "description": "Voyez quelles contraintes limitent réellement l'optimum et combien chacune rapporterait si elle était relâchée."
+      "exactAnalysis": {
+        "title": "Analyse exacte fondée sur la solution",
+        "description": "Contraintes actives, marges et taux d'utilisation calculés à partir de votre solution réelle : exact pour l'optimum entier, sur tous les solveurs."
       },
-      "reducedCosts": {
-        "title": "Coûts réduits des variables",
-        "description": "Sachez quelles décisions sont bloquées à leurs bornes : exact pour LP, approximatif pour MIP."
+      "structuredSolution": {
+        "title": "Des décisions, pas un mur de chiffres",
+        "description": "Les solutions reviennent groupées selon la vraie structure d'indices du modèle, avec un résumé honnête du solve : nœud racine, branchement ou limite de temps."
       },
       "aiExplain": {
         "title": "Explication par IA en un clic",
-        "description": "Transformez prix duals et coûts réduits en langage clair, fondé uniquement sur vos chiffres réels."
+        "description": "Transformez l'analyse en langage clair, fondé uniquement sur vos chiffres réels, jamais inventés."
       }
     },
     "infeasibilityHighlight": {

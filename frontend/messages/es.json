@@ -715,17 +715,17 @@
       "eyebrow": "Análisis de la solución",
       "title": "Entiende tu solución",
       "subtitle": "No solo resuelvas: entiende. Cada resultado viene con el razonamiento detrás.",
-      "sensitivity": {
-        "title": "Precios sombra y restricciones activas",
-        "description": "Descubre qué restricciones limitan realmente el óptimo y cuánto ganarías relajando cada una."
+      "exactAnalysis": {
+        "title": "Análisis exacto basado en la solución",
+        "description": "Restricciones activas, holguras y utilización calculadas de tu solución real: exacto para el óptimo entero, en cualquier solver."
       },
-      "reducedCosts": {
-        "title": "Costes reducidos de variables",
-        "description": "Sabe qué decisiones están fijadas en sus límites: exacto para LP, aproximado para MIP."
+      "structuredSolution": {
+        "title": "Decisiones, no un muro de números",
+        "description": "Las soluciones vuelven agrupadas por la estructura de índices real del modelo, con un resumen honesto del solve: nodo raíz, ramificación o límite de tiempo."
       },
       "aiExplain": {
         "title": "Explicación con IA en un clic",
-        "description": "Convierte precios sombra y costes reducidos en lenguaje claro, basado solo en tus cifras reales."
+        "description": "Convierte el análisis en lenguaje claro, basado solo en tus cifras reales, nunca inventadas."
       }
     },
     "infeasibilityHighlight": {

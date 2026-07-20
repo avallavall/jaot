@@ -106,8 +106,8 @@ const USE_CASE_KEYS = [
 ] as const;
 
 const SOLUTION_EXPLAINER_KEYS = [
-  { icon: PieChart, key: "sensitivity" },
-  { icon: Network, key: "reducedCosts" },
+  { icon: PieChart, key: "exactAnalysis" },
+  { icon: Network, key: "structuredSolution" },
   { icon: Sparkles, key: "aiExplain" },
 ] as const;
 
@@ -348,17 +348,17 @@ export default async function HomePage() {
         <Reveal delay={160}>
           <div className="mx-auto mt-14 max-w-3xl overflow-hidden rounded-xl border border-border shadow-warm-md">
             <Image
-              src="/showcase/p1-explainer-light.png"
+              src="/showcase/v31-analysis-light.png"
               alt={t("solutionExplainer.title")}
-              width={943}
-              height={815}
+              width={1870}
+              height={2284}
               className="block h-auto w-full dark:hidden"
             />
             <Image
-              src="/showcase/p1-explainer-dark.png"
+              src="/showcase/v31-analysis-dark.png"
               alt={t("solutionExplainer.title")}
-              width={943}
-              height={965}
+              width={1870}
+              height={2284}
               className="hidden h-auto w-full dark:block"
             />
           </div>

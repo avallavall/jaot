@@ -715,17 +715,17 @@
       "eyebrow": "Solution analysis",
       "title": "Understand your solution",
       "subtitle": "Don't just solve — understand. Every result comes with the reasoning behind it.",
-      "sensitivity": {
-        "title": "Shadow prices & binding constraints",
-        "description": "See which constraints actually limit the optimum, and how much each one would buy you if relaxed."
+      "exactAnalysis": {
+        "title": "Exact, solution-based analysis",
+        "description": "Binding constraints, slack, and utilization computed from your actual solution — exact for the integer optimum, on every solver."
       },
-      "reducedCosts": {
-        "title": "Variable reduced costs",
-        "description": "Know which decisions are pinned at their limits — exact for LP, approximate for MIP."
+      "structuredSolution": {
+        "title": "Decisions, not a wall of numbers",
+        "description": "Solutions come back grouped by the model's real index structure, with an honest summary of how the solve went — root node, branching, or time limit."
       },
       "aiExplain": {
         "title": "One-click AI explanation",
-        "description": "Turn shadow prices and reduced costs into plain language, grounded strictly in your actual numbers."
+        "description": "Turn the analysis into plain language, grounded strictly in your actual numbers — never invented ones."
       }
     },
     "infeasibilityHighlight": {

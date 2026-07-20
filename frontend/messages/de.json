@@ -715,17 +715,17 @@
       "eyebrow": "Lösungsanalyse",
       "title": "Verstehe deine Lösung",
       "subtitle": "Nicht nur lösen — verstehen. Jedes Ergebnis kommt mit der Begründung dahinter.",
-      "sensitivity": {
-        "title": "Schattenpreise & bindende Nebenbedingungen",
-        "description": "Sieh, welche Nebenbedingungen das Optimum wirklich begrenzen und wie viel jede bei Lockerung bringen würde."
+      "exactAnalysis": {
+        "title": "Exakte, lösungsbasierte Analyse",
+        "description": "Bindende Nebenbedingungen, Spielräume und Auslastung — berechnet aus deiner tatsächlichen Lösung: exakt für das ganzzahlige Optimum, mit jedem Solver."
       },
-      "reducedCosts": {
-        "title": "Reduzierte Kosten der Variablen",
-        "description": "Erkenne, welche Entscheidungen an ihren Grenzen festsitzen — exakt für LP, näherungsweise für MIP."
+      "structuredSolution": {
+        "title": "Entscheidungen statt Zahlenwände",
+        "description": "Lösungen kommen gruppiert nach der echten Indexstruktur des Modells zurück, mit einer ehrlichen Zusammenfassung des Solves: Wurzelknoten, Branching oder Zeitlimit."
       },
       "aiExplain": {
         "title": "KI-Erklärung mit einem Klick",
-        "description": "Verwandle Schattenpreise und reduzierte Kosten in klare Sprache, ausschließlich auf Basis deiner echten Zahlen."
+        "description": "Verwandle die Analyse in klare Sprache — ausschließlich auf Basis deiner echten Zahlen, nie erfundener."
       }
     },
     "infeasibilityHighlight": {

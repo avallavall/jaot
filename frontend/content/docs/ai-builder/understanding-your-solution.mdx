@@ -6,11 +6,15 @@ order: 3
 
 # Understanding Your Solution
 
-When a solve returns an optimal or feasible result, JAOT gives you two layers of analysis so you don't just get numbers -- you understand them. Both appear on the execution result page.
+When a solve returns an optimal or feasible result, JAOT gives you three layers of analysis so you don't just get numbers -- you understand them. All appear on the execution result page.
 
-## 1. Sensitivity analysis (deterministic)
+## 1. Exact, solution-based analysis
 
-The solver computes sensitivity directly after solving. It answers: *how sensitive is the optimum to small changes?*
+The page **leads** with figures computed from your actual solution x* and the problem data -- binding constraints, per-constraint slack and utilization, and which objective terms drive the result. These are exact for the integer solution and work identically on every solver. The full tour of that page -- the grouped structured solution, the solve summary, and the exact analysis -- lives in [Analyzing Results](/docs/studio/analyzing-results).
+
+## 2. Sensitivity analysis (LP-based)
+
+The solver also computes classical sensitivity after solving. It answers: *how sensitive is the optimum to small changes?* On the execution page it sits in a collapsed section under the exact analysis -- useful, but read the caveats below before making a decision from it.
 
 ### Shadow prices and binding constraints
 
@@ -32,7 +36,7 @@ The Sensitivity tab charts shadow prices by constraint (binding ones highlighted
 
 Objective-coefficient and right-hand-side ranging (the interval over which the optimal basis stays unchanged) is shown only when the solver exposes it. The current SCIP build does not, so those ranges are left empty with a note. JAOT never fabricates ranging values.
 
-## 2. Plain-language explanation (AI)
+## 3. Plain-language explanation (AI)
 
 Click **Explain this solution** on the execution result page to stream a plain-language explanation of the result. It is grounded strictly in your actual formulation, solution values, and sensitivity figures -- the assistant is instructed to use only the numbers provided, never to invent them. It covers:
 
