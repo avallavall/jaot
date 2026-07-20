@@ -114,15 +114,21 @@ def _objective_contributions(
         parsed = parser.parse_expression(problem.objective.expression, set(solution))
     except (ParseError, ValueError, ZeroDivisionError):
         return []
-    out: list[ObjectiveTermContribution] = []
+    # Merge like terms by label ("2*x + 3*x" is ONE x row) — the panel keys rows
+    # by label, and two rows with the same name would both collide and mislead.
+    by_label: dict[str, float] = {}
     for term in parsed.terms:
         if not term.variables:
             continue
         value = term.coefficient
         for var in term.variables:
             value *= solution.get(var, 0.0)
-        if abs(value) < _EPS:
-            continue
-        out.append(ObjectiveTermContribution(label=" · ".join(term.variables), contribution=value))
+        label = " · ".join(term.variables)
+        by_label[label] = by_label.get(label, 0.0) + value
+    out = [
+        ObjectiveTermContribution(label=label, contribution=value)
+        for label, value in by_label.items()
+        if abs(value) >= _EPS
+    ]
     out.sort(key=lambda o: abs(o.contribution), reverse=True)
     return out

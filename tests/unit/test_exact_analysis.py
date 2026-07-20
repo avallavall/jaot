@@ -57,6 +57,18 @@ def test_objective_contributions_sorted_by_magnitude():
     assert values[1] == pytest.approx(6.0)
 
 
+def test_duplicate_objective_terms_merge_into_one_contribution():
+    # "2*x + 3*x" is ONE decision on x — two rows with the same label would collide
+    # (the panel keys rows by label) and read as distinct drivers.
+    problem = _problem([("cap", "x + y <= 10")], "2*x + 3*x + 2*y")
+    a = compute_exact_analysis(problem, {"x": 1.0, "y": 2.0})
+    labels = [c.label for c in a.contributions]
+    assert labels.count("x") == 1
+    by = {c.label: c.contribution for c in a.contributions}
+    assert by["x"] == pytest.approx(5.0)
+    assert by["y"] == pytest.approx(4.0)
+
+
 def test_unparseable_constraint_is_skipped_not_fatal():
     problem = _problem([("ok", "x + y <= 10"), ("bad", "x + <= 10")], "x + y")
     a = compute_exact_analysis(problem, {"x": 1.0, "y": 1.0})

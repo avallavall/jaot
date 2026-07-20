@@ -384,3 +384,26 @@ def test_partial_objective_coverage_is_not_falsely_summed():
     assert draft is not None
     assert "sum{" not in draft  # the partial objective is not falsely turned into a sum
     assert _recompiles_equivalent(draft, problem)
+
+
+def test_arity_beyond_the_index_letter_pool_declines_gracefully():
+    """A family with more index positions than there are index letters (14) must
+    DECLINE (None — the model is also too big for the scalar fallback), never leak
+    an IndexError/StopIteration out of the service contract."""
+    from app.schemas.optimization import (
+        Constraint,
+        Objective,
+        ObjectiveSense,
+        OptimizationProblem,
+        Variable,
+        VariableType,
+    )
+
+    base = "_".join(["1"] * 14)  # 14 fixed positions + 1 varying = arity 15
+    names = [f"x_{base}_{k}" for k in range(1, 62)]  # 61 members > scalar fallback cap
+    problem = OptimizationProblem(
+        variables=[Variable(name=n, type=VariableType.CONTINUOUS) for n in names],
+        objective=Objective(sense=ObjectiveSense.MINIMIZE, expression=" + ".join(names)),
+        constraints=[Constraint(name="c", expression=f"{names[0]} >= 0")],
+    )
+    assert deground_problem(problem) is None

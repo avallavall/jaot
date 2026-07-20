@@ -123,6 +123,22 @@ class TestBuildSolutionExplanationPrompt:
         assert '"x_0_0": 1' in prompt
         assert "_solution_omitted" in prompt
 
+    def test_sampling_keeps_the_largest_decisions(self):
+        """The sample is the TOP non-zero decisions by magnitude — a dominant value
+        must survive even when thousands of small non-zeros precede it in order."""
+        n = 3000
+        solution = {
+            "objective_value": 1.0,
+            "solver_status": "optimal",
+            "solution": {f"tiny_variable_{i}": 0.001 for i in range(n)} | {"big": 9999.0},
+            "variables": [{"name": f"tiny_variable_{i}", "value": 0.001} for i in range(n)]
+            + [{"name": "big", "value": 9999.0}],
+        }
+        prompt = build_solution_explanation_prompt(None, solution, None)
+        assert "SAMPLED" in prompt
+        assert '"big": 9999.0' in prompt  # the name→value map keeps the dominant decision
+        assert '"name": "big"' in prompt  # …and so does the variables list
+
 
 class TestExplainSolution:
     @pytest.mark.asyncio

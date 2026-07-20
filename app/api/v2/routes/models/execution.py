@@ -673,7 +673,7 @@ async def get_execution(
     "/executions/{execution_id}/exact-analysis",
     operation_id="get_execution_exact_analysis",
 )
-async def get_execution_exact_analysis(
+def get_execution_exact_analysis(  # sync ON PURPOSE -> threadpool (CPU-bound, no awaits)
     execution_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -683,7 +683,8 @@ async def get_execution_exact_analysis(
     Computed on demand from the stored problem + solution — binding constraints,
     slack/utilization, objective contributions — all exact for the integer
     solution, unlike the LP-relaxation shadow prices. Off the solve path because
-    it re-parses every constraint.
+    it re-parses every constraint — and a sync ``def`` so that re-parse (up to
+    thousands of constraints) runs in the threadpool, never on the event loop.
     """
     execution = (
         db.query(ModelExecution)

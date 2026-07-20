@@ -146,4 +146,22 @@ describe("JModelGenerateDialog", () => {
       )
     );
   });
+
+  it("caps a multi-file pick at the limit AND says so", async () => {
+    // Picking 5 files at once must keep 4 and surface the "too many" error —
+    // the stale-closure version silently dropped the extras with no message.
+    renderDialog();
+    const files = Array.from(
+      { length: 5 },
+      (_, i) => new File([`img${i}`], `f${i}.png`, { type: "image/png" })
+    );
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files } });
+
+    await waitFor(() =>
+      expect(screen.getByTestId("studio-jmodel-generate-error")).toBeInTheDocument()
+    );
+    // 4 attachments listed, the 5th dropped.
+    expect(screen.getAllByText(/^f\d\.png$/)).toHaveLength(4);
+  });
 });

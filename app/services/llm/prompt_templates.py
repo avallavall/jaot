@@ -520,6 +520,14 @@ def _is_nonzero(value: Any) -> bool:
         return value not in (None, "", 0, "0")
 
 
+def _magnitude(value: Any) -> float:
+    """|value| for sorting the sample by decision size; non-numeric sorts last."""
+    try:
+        return abs(float(value))
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def _sample_solution(solution: dict[str, Any]) -> dict[str, Any]:
     """Bound a large solution to its decisions: the top non-zero values + objective.
 
@@ -532,7 +540,11 @@ def _sample_solution(solution: dict[str, Any]) -> dict[str, Any]:
     for key, value in solution.items():
         if key == "solution" and isinstance(value, dict):
             nonzero = {k: v for k, v in value.items() if _is_nonzero(v)}
-            kept = dict(list(nonzero.items())[:_SOLUTION_SAMPLE_ITEMS])
+            kept = dict(
+                sorted(nonzero.items(), key=lambda kv: _magnitude(kv[1]), reverse=True)[
+                    :_SOLUTION_SAMPLE_ITEMS
+                ]
+            )
             sampled[key] = kept
             omitted = len(value) - len(kept)
             if omitted > 0:
@@ -542,6 +554,7 @@ def _sample_solution(solution: dict[str, Any]) -> dict[str, Any]:
                 )
         elif key == "variables" and isinstance(value, list):
             nonzero = [it for it in value if isinstance(it, dict) and _is_nonzero(it.get("value"))]
+            nonzero.sort(key=lambda it: _magnitude(it.get("value")), reverse=True)
             kept = nonzero[:_SOLUTION_SAMPLE_ITEMS]
             sampled[key] = [
                 {k: _clip_long_string(v, _FORMULATION_SAMPLE_EXPR_CHARS) for k, v in it.items()}

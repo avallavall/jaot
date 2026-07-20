@@ -72,9 +72,10 @@ def test_exact_analysis_404_for_other_org(
     res = authenticated_client.get("/api/v2/models/executions/exe_does_not_exist/exact-analysis")
     assert res.status_code == 404
     # sanity: the real one resolves
-    assert authenticated_client.get(
-        f"/api/v2/models/executions/{exe.id}/exact-analysis"
-    ).status_code == 200
+    assert (
+        authenticated_client.get(f"/api/v2/models/executions/{exe.id}/exact-analysis").status_code
+        == 200
+    )
 
 
 def test_exact_analysis_uncomputed_without_solution(
@@ -83,8 +84,18 @@ def test_exact_analysis_uncomputed_without_solution(
     test_organization: Organization,
 ):
     exe = _seed_execution(db_session, test_organization.id, result_data={"model": {}})
-    body = authenticated_client.get(
-        f"/api/v2/models/executions/{exe.id}/exact-analysis"
-    ).json()
+    body = authenticated_client.get(f"/api/v2/models/executions/{exe.id}/exact-analysis").json()
     assert body["computed"] is False
     assert body["note"] == "no_solution"
+
+
+# CONTRACT-TEST: the exact analysis re-parses every constraint (CPU-bound, no awaits) —
+# the endpoint must stay a sync `def` so FastAPI runs it in the threadpool. An
+# `async def` here would run the parse loop ON the event loop and stall every
+# in-flight request for the duration of a large model's analysis.
+def test_exact_analysis_endpoint_is_sync_def():
+    import inspect
+
+    from app.api.v2.routes.models.execution import get_execution_exact_analysis
+
+    assert not inspect.iscoroutinefunction(get_execution_exact_analysis)

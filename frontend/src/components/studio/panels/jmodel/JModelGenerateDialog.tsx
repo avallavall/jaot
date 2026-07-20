@@ -95,8 +95,12 @@ export function JModelGenerateDialog({
     e.target.value = ""; // allow re-picking the same file
     setError(null);
 
+    // Track the count locally: `attachments` is a stale closure inside this async
+    // loop, so picking 6 files at once would silently drop the extras (the setter
+    // caps) without ever surfacing the "too many" message.
+    let count = attachments.length;
     for (const file of files) {
-      if (attachments.length >= MAX_ATTACHMENTS) {
+      if (count >= MAX_ATTACHMENTS) {
         setError(t("jmodelGenerateTooMany", { max: MAX_ATTACHMENTS }));
         break;
       }
@@ -115,6 +119,7 @@ export function JModelGenerateDialog({
       }
       try {
         const data = await fileToBase64(file);
+        count += 1;
         setAttachments((prev) =>
           prev.length >= MAX_ATTACHMENTS
             ? prev

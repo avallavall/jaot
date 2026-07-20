@@ -85,6 +85,18 @@ def test_extract_handles_bare_fence():
     assert extract_jmodel_source("```\nvar x >= 0;\n```") == "var x >= 0;"
 
 
+def test_extract_strips_an_unexpected_fence_label():
+    # The contract asks for ```jmodel, but a model may slip any label (```python,
+    # ```lp, …) — it must never leak into the source fed to the compiler.
+    assert extract_jmodel_source("```python\nvar x >= 0;\n```") == "var x >= 0;"
+
+
+def test_extract_keeps_inline_source_after_a_bare_fence():
+    # A label only counts when it sits alone on the fence line; source starting
+    # right after ``` must keep its first word.
+    assert extract_jmodel_source("```var x >= 0;```") == "var x >= 0;"
+
+
 # --- the loop -----------------------------------------------------------------------
 
 
@@ -115,6 +127,22 @@ async def test_retry_feeds_error_back_and_recovers():
     assert len(client.messages.received[1]) == 3
     assert client.messages.received[1][1]["role"] == "assistant"
     assert "did not compile" in client.messages.received[1][2]["content"]
+
+
+@pytest.mark.asyncio
+async def test_text_less_reply_still_builds_a_valid_retry_turn():
+    # A (rare) reply with no text blocks must not put an EMPTY assistant turn in the
+    # retry conversation — the Anthropic API rejects empty content, which would turn a
+    # recoverable miss into a transport 502.
+    client = FakeClient(["", GOOD])
+    out = await generate_jmodel(
+        client=client, model="m", max_tokens=1000, description="pick", attachments=[]
+    )
+    assert out.ok is True
+    assert out.attempts == 2
+    assistant_turn = client.messages.received[1][1]
+    assert assistant_turn["role"] == "assistant"
+    assert assistant_turn["content"]  # never empty
 
 
 @pytest.mark.asyncio

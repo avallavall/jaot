@@ -26,6 +26,7 @@ from app.schemas.optimization import (
     OptimizationProblem,
     SolverStatus,
 )
+from app.schemas.solution_structure import annotate_variable_structure
 from app.shared.core.celery_app import celery_app
 from app.shared.core.prometheus_metrics import (
     ACTIVE_SOLVES,
@@ -622,6 +623,14 @@ def solve_model_async(
             problem = OptimizationProblem.model_validate(problem_data)
         else:
             raise ValueError(f"Model {model_id} has neither a template nor problem_data")
+
+        # Recover flat variable index structure (family/index_tuple, A1) so the
+        # adapters copy it onto the solution. /solve and /solve/async annotate at
+        # enqueue, but THIS task is fed by /models/{id}/execute (template render or
+        # stored problem_data), which doesn't — without this, marketplace/template
+        # executions silently lose the grouped solution view. No-op for
+        # JModel-compiled problems (already annotated authoritatively).
+        annotate_variable_structure(problem)
 
         # Create solver (uses requested solver or default SCIP)
         solver = get_solver_service(solver_name=solver_name)

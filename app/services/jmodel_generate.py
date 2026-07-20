@@ -42,8 +42,11 @@ logger = logging.getLogger(__name__)
 # retry once it sees the exact compiler error and position.
 MAX_ATTEMPTS = 3
 
-# A ```jmodel``` (or bare ```) fenced block; DOTALL so it spans the whole source.
-_FENCE_RE = re.compile(r"```(?:jmodel|text)?\s*\n?(.*?)```", re.DOTALL | re.IGNORECASE)
+# A fenced block with ANY language label (```jmodel, but a model may slip ```text or
+# even ```python) or bare ```; the label only counts when it sits alone on the fence
+# line, so an inline `` ```var x;``` `` still captures from the first character.
+# DOTALL so the capture spans the whole source.
+_FENCE_RE = re.compile(r"```(?:[a-zA-Z]*[ \t]*\r?\n)?(.*?)```", re.DOTALL)
 
 
 @dataclass(frozen=True)
@@ -223,7 +226,9 @@ async def generate_jmodel(
                 extra={"event_code": "dsl.generate_compile_error"},
             )
             if attempt < max_attempts:
-                messages.append({"role": "assistant", "content": raw_text})
+                # The Anthropic API rejects an empty content block — a (rare)
+                # text-less reply must still yield a valid assistant turn.
+                messages.append({"role": "assistant", "content": raw_text or "(no output)"})
                 messages.append({"role": "user", "content": _retry_turn(exc, source)})
             continue
         except Exception:

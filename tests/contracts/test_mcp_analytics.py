@@ -83,7 +83,13 @@ async def test_wrapper_delegates_then_records(
             self.seen: list[str] = []
 
         async def _execute_api_tool(
-            self, *, client=None, tool_name=None, arguments=None, operation_map=None, http_request_info=None
+            self,
+            *,
+            client=None,
+            tool_name=None,
+            arguments=None,
+            operation_map=None,
+            http_request_info=None,
         ):
             self.seen.append(tool_name)
             return ["tool-result"]

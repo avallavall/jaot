@@ -527,10 +527,10 @@ def _emit_constraint_group(
             if pos in fixed_pos:
                 sig = slot_sig[(term.family, pos)]
                 if sig not in class_letter:
-                    class_letter[sig] = next(pool)
+                    class_letter[sig] = _next_letter(pool)
                 letter[(term.family, pos)] = class_letter[sig]
             else:
-                letter[(term.family, pos)] = next(pool)
+                letter[(term.family, pos)] = _next_letter(pool)
 
     # 3) ∀ bindings, one per free class. A class must map to ONE set and its members
     #    must cover that set (so a plain ∀ with no filter is faithful).
@@ -645,7 +645,18 @@ def _binding(fam: _Family, sets: _SetRegistry, letters: list[str]) -> str:
     )
 
 
+def _next_letter(pool) -> str:
+    """Next free index letter — a constraint needing more than the pool declines
+    (a ``_DegroundError``, caught by the caller) instead of leaking StopIteration."""
+    try:
+        return next(pool)
+    except StopIteration:
+        raise _DegroundError("constraint needs more index letters than available") from None
+
+
 def _index_letters(arity: int) -> list[str]:
+    if arity > len(_INDEX_LETTERS):
+        raise _DegroundError(f"family arity {arity} exceeds the index-letter pool")
     return [_INDEX_LETTERS[p] for p in range(arity)]
 
 
