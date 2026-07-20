@@ -17,6 +17,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ## [Unreleased]
 
+## [3.1.0] — 2026-07-20
+
 ### Fixed
 
 - **Technical-audit hardening of the v3.1 surface** (a code audit of everything
