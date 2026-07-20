@@ -42,6 +42,7 @@ def _ensure_settings_seeded() -> None:
     filter, the conflict clause is what actually makes it race-safe.
     Never crashes the app -- logs and continues on failure.
     """
+    from sqlalchemy import update as sa_update
     from sqlalchemy.dialects.postgresql import insert as pg_insert
 
     from app.models.platform_setting import PlatformSetting
@@ -53,6 +54,31 @@ def _ensure_settings_seeded() -> None:
     try:
         existing = {key for (key,) in db.query(PlatformSetting.key).all()}
         now = utcnow()
+
+        # Readonly settings mirror code constants (APP_VERSION, JWT_ALGORITHM) —
+        # refresh them to the registry default on every boot. The insert below only
+        # covers MISSING keys, so after an upgrade a readonly row would otherwise
+        # keep the value of whichever release first seeded it (an admin panel
+        # forever showing the old version).
+        refreshed = 0
+        for defn in SETTINGS_REGISTRY:
+            if not (defn.is_readonly and defn.default_value is not None):
+                continue
+            result = db.execute(
+                sa_update(PlatformSetting)
+                .where(
+                    PlatformSetting.key == defn.key,
+                    PlatformSetting.value != defn.default_value,
+                )
+                .values(value=defn.default_value, updated_at=now, updated_by="system_seed")
+            )
+            refreshed += result.rowcount or 0
+        if refreshed:
+            db.commit()
+            logger.warning(
+                "Refreshed %d readonly platform settings to their registry defaults", refreshed
+            )
+
         rows = [
             {
                 "key": defn.key,
