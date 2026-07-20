@@ -126,6 +126,27 @@ describe("StructuredSolutionView (A1b — grouped by recovered index structure)"
     expect(screen.getByTestId("explorer-nonzero-toggle")).toBeInTheDocument();
   });
 
+  it("caps a huge grouped render behind an explicit 'show all'", () => {
+    // 600 non-zero structured variables: the grouped view must render a bounded
+    // prefix (500) + a banner, and only mount everything on the opt-in click —
+    // an unbounded render froze the page on real 20k-variable solutions.
+    const huge = Array.from({ length: 600 }, (_, i) => ({
+      name: `assign_v1_o${i}`,
+      type: "binary" as const,
+      value: 1,
+      family: "assign",
+      index_tuple: ["v1", `o${i}`],
+    }));
+    wrap(<StructuredSolutionView variables={huge} />);
+    expect(screen.getByTestId("structured-render-cap")).toBeInTheDocument();
+    expect(screen.queryByText("o499")).toBeInTheDocument();
+    expect(screen.queryByText("o500")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("structured-show-all"));
+    expect(screen.queryByTestId("structured-render-cap")).not.toBeInTheDocument();
+    expect(screen.queryByText("o599")).toBeInTheDocument();
+  });
+
   it("falls back to the flat table when no structure was recovered", () => {
     wrap(
       <StructuredSolutionView

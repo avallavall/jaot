@@ -6,12 +6,18 @@ import { VariableSolution, SensitivityResult } from "@/lib/types";
 import { SolutionExplorerTable } from "./SolutionExplorerTable";
 import {
   buildSolutionGroups,
+  capGroupedSolution,
   type SolutionGroup,
   type SolutionLeaf,
 } from "@/lib/solution-grouping";
 
 /** Same near-zero threshold the flat table, chart and MCP filter use. */
 const NEAR_ZERO = 1e-9;
+
+/** Chips rendered before the view truncates behind a "show all" opt-in — a
+ *  20k-variable solution with the non-zero filter off would otherwise mount
+ *  tens of thousands of DOM nodes and freeze the page. */
+const RENDER_CAP = 500;
 
 interface StructuredSolutionViewProps {
   variables: VariableSolution[];
@@ -30,6 +36,7 @@ export function StructuredSolutionView({ variables, sensitivity }: StructuredSol
   const t = useTranslations("solve.explorer");
   const [nonZeroOnly, setNonZeroOnly] = useState(true);
   const [view, setView] = useState<"grouped" | "table">("grouped");
+  const [showAll, setShowAll] = useState(false);
 
   const hasStructure = useMemo(() => variables.some((v) => v.family), [variables]);
   const shown = useMemo(
@@ -37,6 +44,10 @@ export function StructuredSolutionView({ variables, sensitivity }: StructuredSol
     [variables, nonZeroOnly],
   );
   const grouped = useMemo(() => buildSolutionGroups(shown), [shown]);
+  const capped = useMemo(
+    () => capGroupedSolution(grouped, showAll ? Number.POSITIVE_INFINITY : RENDER_CAP),
+    [grouped, showAll],
+  );
 
   // No structure recovered → the grouping adds nothing. Fall back to the flat
   // table exactly as before (the graceful degradation the analysis layer relies on).
@@ -46,9 +57,10 @@ export function StructuredSolutionView({ variables, sensitivity }: StructuredSol
 
   // Families in first-seen order, each with its groups (multi-index families
   // sub-grouped by first index; single-index families in one null-key bucket).
+  // Built from the CAPPED grouping so a huge solution renders a bounded prefix.
   const families: { family: string; groups: SolutionGroup[] }[] = [];
   const seen = new Map<string, number>();
-  for (const g of grouped.groups) {
+  for (const g of capped.groups) {
     const at = seen.get(g.family);
     if (at === undefined) {
       seen.set(g.family, families.length);
@@ -122,8 +134,26 @@ export function StructuredSolutionView({ variables, sensitivity }: StructuredSol
           {families.map(({ family, groups }) => (
             <FamilySection key={family} family={family} groups={groups} t={t} />
           ))}
-          {grouped.ungrouped.length > 0 && (
-            <UngroupedSection entries={grouped.ungrouped} label={t("otherVariables")} />
+          {capped.ungrouped.length > 0 && (
+            <UngroupedSection entries={capped.ungrouped} label={t("otherVariables")} />
+          )}
+          {capped.truncated && (
+            <div
+              data-testid="structured-render-cap"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/30 px-4 py-2 text-xs text-muted-foreground"
+            >
+              <span>
+                {t("renderCapNote", { shown: capped.shownEntries, total: capped.totalEntries })}
+              </span>
+              <button
+                type="button"
+                data-testid="structured-show-all"
+                onClick={() => setShowAll(true)}
+                className="font-medium text-primary hover:underline"
+              >
+                {t("renderCapShowAll", { total: capped.totalEntries })}
+              </button>
+            </div>
           )}
         </div>
       )}

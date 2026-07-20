@@ -111,3 +111,24 @@ async def test_wrapper_delegates_then_records(
     events = _events(db_session, test_organization.id)
     assert len(events) == 1
     assert events[0].event_metadata["tool"] == "get_execution"
+
+
+# CONTRACT-TEST: the wrapper must survive a fastapi-mcp upgrade that switches the
+# private dispatch to a POSITIONAL call convention — the call still delegates (the
+# analytics simply skip); a TypeError here would take down every MCP tool at once.
+async def test_wrapper_survives_a_positional_call_convention():
+    class _PositionalMcp:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def _execute_api_tool(self, client, tool_name, arguments, operation_map):
+            self.calls += 1
+            return ["positional-result"]
+
+    fake = _PositionalMcp()
+    _install_tool_call_analytics(fake)
+
+    result = await fake._execute_api_tool(None, "get_execution", {}, {})
+
+    assert result == ["positional-result"], "a positional call must still reach the tool"
+    assert fake.calls == 1

@@ -3097,6 +3097,8 @@
       "viewGrouped": "Groupée",
       "viewTable": "Tableau complet",
       "otherVariables": "Autres variables",
+      "renderCapNote": "Affichage des {shown} premières valeurs sur {total}",
+      "renderCapShowAll": "Tout afficher ({total})",
       "countLabel": "{count, plural, one {# variable} other {# variables}}"
     },
     "progress": {

@@ -518,6 +518,65 @@ def test_standalone_spend_is_booked_and_hidden(
     assert all(item["id"] != ledger.id for item in listed.get("items", []))
 
 
+# CONTRACT-TEST: the ledger get-or-create is race-safe — two concurrent first
+# spends yield ONE ledger conversation (uq_llm_conversations_sys_ledger); the
+# loser adopts the winner's row instead of failing the booking or duplicating.
+@pytest.mark.integration
+def test_standalone_spend_ledger_create_race_adopts_winner(
+    test_organization, test_user, db_session, db_engine, monkeypatch
+):
+    from sqlalchemy.orm import Session as SASession
+
+    from app.models.llm_conversation import LLMConversation, LLMMessage
+    from app.services.llm.cost_tracking import record_standalone_llm_spend
+
+    real_flush = db_session.flush
+    state = {"raced": False}
+    winner_id = "conv_racewinner001"
+
+    def racing_flush(*args, **kwargs):
+        if not state["raced"]:
+            state["raced"] = True
+            # The concurrent request lands BETWEEN our SELECT (found nothing) and
+            # our INSERT: commit the winner on its own connection so our flush
+            # collides with a real committed row via the partial unique index.
+            with SASession(bind=db_engine) as other:
+                other.add(
+                    LLMConversation(
+                        id=winner_id,
+                        organization_id=test_organization.id,
+                        user_id=test_user.id,
+                        model_id="sys:jmodel-ai",
+                    )
+                )
+                other.commit()
+        return real_flush(*args, **kwargs)
+
+    monkeypatch.setattr(db_session, "flush", racing_flush)
+
+    record_standalone_llm_spend(
+        db_session,
+        org_id=test_organization.id,
+        user_id=test_user.id,
+        model="claude-sonnet-4-6",
+        input_tokens=1000,
+        output_tokens=500,
+        summary="JModel AI generation (race test)",
+    )
+
+    ledgers = (
+        db_session.query(LLMConversation)
+        .filter(
+            LLMConversation.organization_id == test_organization.id,
+            LLMConversation.model_id == "sys:jmodel-ai",
+        )
+        .all()
+    )
+    assert [c.id for c in ledgers] == [winner_id], "one ledger — the winner's row, adopted"
+    msg = db_session.query(LLMMessage).filter(LLMMessage.conversation_id == winner_id).one()
+    assert msg.cost_eur is not None and float(msg.cost_eur) > 0
+
+
 @pytest.mark.integration
 def test_generate_source_size_cap_on_current_source(
     authenticated_client, test_organization, db_session, enable_dsl

@@ -30,6 +30,7 @@ import time
 from datetime import timedelta
 
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.llm_conversation import LLMConversation, LLMMessage
@@ -144,6 +145,19 @@ def reset_budget_cache() -> None:
         _cached_at = 0.0
 
 
+def _ledger_conversation(db: Session, org_id: str, user_id: str) -> LLMConversation | None:
+    """The (org, user) hidden JModel-AI cost-ledger conversation, if it exists."""
+    return (
+        db.query(LLMConversation)
+        .filter(
+            LLMConversation.organization_id == org_id,
+            LLMConversation.user_id == user_id,
+            LLMConversation.model_id == _JMODEL_AI_LEDGER_MODEL_ID,
+        )
+        .first()
+    )
+
+
 def record_standalone_llm_spend(
     db: Session,
     *,
@@ -166,15 +180,7 @@ def record_standalone_llm_spend(
     if not (input_tokens or output_tokens):
         return
     try:
-        conv = (
-            db.query(LLMConversation)
-            .filter(
-                LLMConversation.organization_id == org_id,
-                LLMConversation.user_id == user_id,
-                LLMConversation.model_id == _JMODEL_AI_LEDGER_MODEL_ID,
-            )
-            .first()
-        )
+        conv = _ledger_conversation(db, org_id, user_id)
         if conv is None:
             conv = LLMConversation(
                 id=generate_id("conv_"),
@@ -187,7 +193,17 @@ def record_standalone_llm_spend(
                 expires_at=utcnow() + timedelta(days=3650),
             )
             db.add(conv)
-            db.flush()
+            try:
+                db.flush()
+            except IntegrityError:
+                # Lost the get-or-create race (uq_llm_conversations_sys_ledger):
+                # a concurrent spend created the ledger first — roll back our
+                # create (the session holds nothing else at this point in the
+                # generate flow) and adopt the winner's row.
+                db.rollback()
+                conv = _ledger_conversation(db, org_id, user_id)
+                if conv is None:
+                    raise
 
         cost = compute_message_cost_eur(db, model, input_tokens, output_tokens)
         db.add(

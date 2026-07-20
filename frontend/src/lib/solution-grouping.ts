@@ -34,6 +34,51 @@ export interface GroupedSolution {
   hasStructure: boolean;
 }
 
+export interface CappedSolution {
+  groups: SolutionGroup[];
+  ungrouped: SolutionLeaf[];
+  /** Leaves actually kept (≤ cap). */
+  shownEntries: number;
+  /** Leaves the full grouping holds. */
+  totalEntries: number;
+  truncated: boolean;
+}
+
+/**
+ * Bound how many leaves a grouped solution renders. A 20k-variable solution with
+ * the non-zero filter off would otherwise mount tens of thousands of chips and
+ * freeze the page; groups are kept in order and the first partial group is cut
+ * mid-entries, so the visible prefix is stable and the banner can say exactly
+ * how much was held back.
+ */
+export function capGroupedSolution(grouped: GroupedSolution, cap: number): CappedSolution {
+  const totalEntries =
+    grouped.groups.reduce((n, g) => n + g.entries.length, 0) + grouped.ungrouped.length;
+  if (totalEntries <= cap) {
+    return {
+      groups: grouped.groups,
+      ungrouped: grouped.ungrouped,
+      shownEntries: totalEntries,
+      totalEntries,
+      truncated: false,
+    };
+  }
+  let left = cap;
+  const groups: SolutionGroup[] = [];
+  for (const g of grouped.groups) {
+    if (left <= 0) break;
+    if (g.entries.length <= left) {
+      groups.push(g);
+      left -= g.entries.length;
+    } else {
+      groups.push({ ...g, entries: g.entries.slice(0, left) });
+      left = 0;
+    }
+  }
+  const ungrouped = left > 0 ? grouped.ungrouped.slice(0, left) : [];
+  return { groups, ungrouped, shownEntries: cap, totalEntries, truncated: true };
+}
+
 export function buildSolutionGroups(variables: VariableSolution[]): GroupedSolution {
   const ungrouped: SolutionLeaf[] = [];
   // family -> firstIndexKey -> leaves. "" key = the single-index family bucket.

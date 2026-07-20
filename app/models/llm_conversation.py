@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, Numeric, String, Text
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, Numeric, String, Text, text
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -45,6 +45,21 @@ class LLMConversation(Base):
     """
 
     __tablename__ = "llm_conversations"
+
+    __table_args__ = (
+        # One ledger conversation per (org, user, sentinel): "sys:"-tagged rows are
+        # durable cost ledgers (see record_standalone_llm_spend) whose get-or-create
+        # can race — the partial unique index makes the create safe to retry.
+        # Normal chat conversations (non-"sys:" model_id) are unconstrained.
+        Index(
+            "uq_llm_conversations_sys_ledger",
+            "organization_id",
+            "user_id",
+            "model_id",
+            unique=True,
+            postgresql_where=text("model_id LIKE 'sys:%'"),
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True, default=_default_conv_id)
     organization_id: Mapped[str] = mapped_column(

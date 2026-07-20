@@ -108,12 +108,18 @@ def _install_tool_call_analytics(mcp: FastApiMCP) -> None:
 
     import anyio
 
-    async def _wrapped(*, tool_name: str, http_request_info: Any = None, **kwargs: Any) -> Any:
-        result = await original(tool_name=tool_name, http_request_info=http_request_info, **kwargs)
+    async def _wrapped(*args: Any, **kwargs: Any) -> Any:
+        # Signature-agnostic passthrough: fastapi-mcp calls its private dispatch with
+        # keywords today, but a library upgrade switching conventions must degrade to
+        # "no analytics" — never break every tool call on a TypeError in our wrapper.
+        result = await original(*args, **kwargs)
         try:
-            await anyio.to_thread.run_sync(_record_tool_call, tool_name, http_request_info)
+            tool_name = kwargs.get("tool_name")
+            if tool_name:
+                http_request_info = kwargs.get("http_request_info")
+                await anyio.to_thread.run_sync(_record_tool_call, tool_name, http_request_info)
         except Exception:  # analytics must never break a tool call
-            logger.debug("Failed to record MCP_TOOL_CALL for %s", tool_name, exc_info=True)
+            logger.debug("Failed to record MCP_TOOL_CALL", exc_info=True)
         return result
 
     mcp._execute_api_tool = _wrapped  # type: ignore[method-assign]

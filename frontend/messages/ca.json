@@ -3097,6 +3097,8 @@
       "viewGrouped": "Agrupada",
       "viewTable": "Taula completa",
       "otherVariables": "Altres variables",
+      "renderCapNote": "Es mostren els primers {shown} de {total} valors",
+      "renderCapShowAll": "Mostra'ls tots ({total})",
       "countLabel": "{count, plural, one {# variable} other {# variables}}"
     },
     "progress": {

@@ -3134,6 +3134,8 @@
       "viewGrouped": "Grouped",
       "viewTable": "Full table",
       "otherVariables": "Other variables",
+      "renderCapNote": "Showing the first {shown} of {total} values",
+      "renderCapShowAll": "Show all {total}",
       "countLabel": "{count, plural, one {# variable} other {# variables}}"
     },
     "progress": {

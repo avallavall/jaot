@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildSolutionGroups } from "@/lib/solution-grouping";
+import { buildSolutionGroups, capGroupedSolution } from "@/lib/solution-grouping";
 import type { VariableSolution } from "@/lib/types";
 
 function v(
@@ -50,5 +50,45 @@ describe("buildSolutionGroups", () => {
     ]);
     expect(groups.map((g) => g.family)).toEqual(["route", "flow"]);
     expect(groups[1].entries[0].value).toBe(4.2);
+  });
+});
+
+describe("capGroupedSolution", () => {
+  const many = (n: number) =>
+    Array.from({ length: n }, (_, i) =>
+      v(`assign_v1_o${i}`, 1, { family: "assign", index_tuple: ["v1", `o${i}`] }),
+    );
+
+  it("is a no-op at or under the cap", () => {
+    const grouped = buildSolutionGroups(many(5));
+    const capped = capGroupedSolution(grouped, 5);
+    expect(capped.truncated).toBe(false);
+    expect(capped.shownEntries).toBe(5);
+    expect(capped.totalEntries).toBe(5);
+    expect(capped.groups).toBe(grouped.groups); // same arrays, no copy
+  });
+
+  it("cuts the leaf prefix in order and reports the held-back total", () => {
+    const grouped = buildSolutionGroups([
+      ...many(4),
+      v("x", 2.5, { type: "continuous" }), // ungrouped tail
+    ]);
+    const capped = capGroupedSolution(grouped, 3);
+    expect(capped.truncated).toBe(true);
+    expect(capped.shownEntries).toBe(3);
+    expect(capped.totalEntries).toBe(5);
+    expect(capped.groups[0].entries.map((e) => e.label)).toEqual(["o0", "o1", "o2"]);
+    expect(capped.ungrouped).toEqual([]); // the budget ran out before the tail
+  });
+
+  it("spends leftover budget on the ungrouped tail", () => {
+    const grouped = buildSolutionGroups([
+      ...many(2),
+      v("x", 2.5, { type: "continuous" }),
+      v("y", 1.5, { type: "continuous" }),
+    ]);
+    const capped = capGroupedSolution(grouped, 3);
+    expect(capped.truncated).toBe(true);
+    expect(capped.ungrouped.map((e) => e.name)).toEqual(["x"]);
   });
 });
