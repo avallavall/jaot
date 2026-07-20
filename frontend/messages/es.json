@@ -203,6 +203,7 @@
     "jmodelDerive": "Derivar borrador",
     "jmodelDeriveHint": "Este modelo se creó en otra vista y no tiene fuente JModel.",
     "jmodelDeriveDeclined": "No se pudo derivar un JModel compacto — este modelo no tiene estructura indexada que recuperar.",
+    "jmodelDeriveDatasetName": "Datos derivados",
     "jmodelGenerate": "Generar con IA",
     "jmodelGenerateTitle": "Generar un JModel con IA",
     "jmodelGenerateDesc": "Describe tu problema, o adjunta una captura o PDF de una formulación. La IA escribe el JModel y comprueba que compila.",

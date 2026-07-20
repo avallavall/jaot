@@ -46,7 +46,7 @@ from app.schemas.dsl import (
     DSLStatusResponse,
 )
 from app.services import model_project_service as project_svc
-from app.services.jmodel_deground import deground_problem
+from app.services.jmodel_deground import deground_problem, deground_problem_split
 from app.services.jmodel_generate import generate_jmodel
 from app.services.llm.anthropic_client import get_anthropic_client
 from app.services.llm.byok import resolve_anthropic_client
@@ -217,14 +217,23 @@ def dsl_deground(body: DSLDegroundRequest, _user: CurrentUser) -> DSLDegroundRes
     only when the draft VERIFIABLY round-trips to an equivalent problem, and ``null``
     (a graceful decline, never a fake) otherwise.
     """
+    source: str | None = None
+    dataset: dict | None = None
     try:
-        source = deground_problem(body.problem)
+        if body.allow_dataset:
+            # The elegant form: the source is the GENERAL formulation and the data
+            # goes where data belongs — a dataset the caller stores and selects.
+            draft = deground_problem_split(body.problem)
+            if draft is not None:
+                source, dataset = draft.source, draft.dataset
+        else:
+            source = deground_problem(body.problem)
     except Exception:
-        # The service is contracted to return source-or-None; anything else is a bug.
+        # The service is contracted to return draft-or-None; anything else is a bug.
         # Decline gracefully (never a 500) and log it for us.
         logger.exception("JModel de-grounder crashed on a flat problem")
-        source = None
-    return DSLDegroundResponse(source=source)
+        source, dataset = None, None
+    return DSLDegroundResponse(source=source, dataset=dataset)
 
 
 @router.post(

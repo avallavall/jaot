@@ -148,6 +148,14 @@ class DSLDegroundRequest(BaseModel):
     """A flat problem to reconstruct as a compact JModel draft (B2)."""
 
     problem: OptimizationProblem
+    allow_dataset: bool = Field(
+        default=False,
+        description=(
+            "When true, derive the GENERAL formulation (declaration-only sets/params) "
+            "and return the data separately as `dataset` — the model/data separation "
+            "JModel is for. When false, the draft is self-contained (data inlined)."
+        ),
+    )
 
 
 class DSLDegroundResponse(BaseModel):
@@ -156,11 +164,22 @@ class DSLDegroundResponse(BaseModel):
     ``source`` is the reconstructed JModel when a compact structure was recovered
     AND verifiably round-trips to an equivalent problem; it is ``None`` (a graceful
     decline, NOT an error) when the flat model has no recoverable compact form.
+    With ``allow_dataset``, ``dataset`` carries the set members and param values in
+    the standard JModel dataset shape (``{"sets": …, "params": …}``) and the source
+    is the pure formulation; the caller should store it as a project dataset and
+    compile the source against it.
     """
 
     source: str | None = Field(
         default=None,
         description="Reconstructed JModel draft, or null when none is recoverable.",
+    )
+    dataset: dict | None = Field(
+        default=None,
+        description=(
+            "JModel dataset JSON with the draft's data (only when allow_dataset and "
+            "the model carries indexed data; null for scalar/self-contained drafts)."
+        ),
     )
 
 

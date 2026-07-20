@@ -847,11 +847,13 @@ export const api = {
 
   /** Reconstruct a compact JModel draft from a flat problem (B2). Returns
    * `{source}` — null when no compact structure round-trips (a graceful decline).
-   * Gated like compile. */
-  degroundDsl(problem: OptimizationProblem): Promise<DslDegroundResult> {
+   * With `allowDataset`, the source is the PURE formulation (declaration-only
+   * sets/params) and `dataset` carries the values — store it as a project dataset
+   * and compile against it. Gated like compile. */
+  degroundDsl(problem: OptimizationProblem, allowDataset = false): Promise<DslDegroundResult> {
     return request("/api/v2/dsl/deground", {
       method: "POST",
-      body: JSON.stringify({ problem }),
+      body: JSON.stringify({ problem, allow_dataset: allowDataset }),
     });
   },
 

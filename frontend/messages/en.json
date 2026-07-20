@@ -203,6 +203,7 @@
     "jmodelDerive": "Derive draft",
     "jmodelDeriveHint": "This model was built elsewhere and has no JModel source.",
     "jmodelDeriveDeclined": "Couldn't derive a compact JModel — this model has no indexed structure to recover.",
+    "jmodelDeriveDatasetName": "Derived data",
     "jmodelGenerate": "Generate with AI",
     "jmodelGenerateTitle": "Generate a JModel with AI",
     "jmodelGenerateDesc": "Describe your problem, or attach a screenshot or PDF of a formulation. The AI writes the JModel and checks that it compiles.",

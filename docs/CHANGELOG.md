@@ -17,6 +17,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Changed
+
+- **"Derive draft" now respects JModel's model/data separation** (owner report, the
+  100×100 TFM model): deriving a persisted project's flat model produces the PURE
+  general formulation — declaration-only sets and params (`set S1;` /
+  `param c_a{S1, S1};`), the objective, and the ∀-quantified constraint families —
+  while every set member and param value lands in an automatically created
+  **"Derived data" project dataset**, selected so the draft compiles immediately.
+  Previously the draft inlined all values (`param c_a{S1, S1} := …` with 22,500
+  entries for a 100×100 model — an unusable wall of numbers). The honesty gate now
+  verifies `compile(source, dataset)` equivalence. Unsaved projects (nowhere to
+  store a dataset yet) keep the self-contained inline form, as does the scalar
+  fallback.
+
 ## [3.1.0] — 2026-07-20
 
 ### Fixed

@@ -386,6 +386,62 @@ def test_partial_objective_coverage_is_not_falsely_summed():
     assert _recompiles_equivalent(draft, problem)
 
 
+def test_split_derives_the_general_formulation_plus_a_dataset():
+    """The split form is the point of JModel: the source is the PURE formulation
+    (declaration-only sets/params, zero inline data) and every value lands in the
+    dataset — verified by compiling source+dataset back to an equivalent problem."""
+    from app.domains.dsl import JModelData
+    from app.services.jmodel_deground import deground_problem_split
+
+    problem = _flat(ASSIGNMENT)
+    draft = deground_problem_split(problem)
+    assert draft is not None
+    assert draft.dataset is not None
+
+    # Pure formulation: declarations only — not a single `:=` anywhere.
+    assert "set S1;" in draft.source
+    assert "param c_assign{S1, S2};" in draft.source
+    assert ":=" not in draft.source
+    assert "sum{i in S1, j in S2}" in draft.source
+
+    # The data went to the dataset, in the standard JModel dataset shape.
+    assert draft.dataset["sets"]["S1"] == ["A", "B", "C"]
+    assert draft.dataset["sets"]["S2"] == ["1", "2", "3"]
+    assert draft.dataset["params"]["c_assign"]["A,1"] == 9.0
+
+    # Honesty gate, split edition: source + dataset recompiles to the same model.
+    rebuilt = compile_jmodel(draft.source, data=JModelData.from_json(draft.dataset))
+    assert {v.name for v in rebuilt.variables} == {v.name for v in problem.variables}
+    assert len(rebuilt.constraints) == len(problem.constraints)
+
+
+def test_split_keeps_a_scalar_fallback_self_contained():
+    """A small flat model with no recoverable compact structure still derives as a
+    self-contained scalar JModel — no dataset to split."""
+    from app.schemas.optimization import (
+        Constraint,
+        Objective,
+        ObjectiveSense,
+        OptimizationProblem,
+        Variable,
+        VariableType,
+    )
+    from app.services.jmodel_deground import deground_problem_split
+
+    problem = OptimizationProblem(
+        variables=[
+            Variable(name="x_1", type=VariableType.BINARY, family="x", index_tuple=["1"]),
+            Variable(name="x_2", type=VariableType.BINARY, family="x", index_tuple=["2"]),
+        ],
+        objective=Objective(sense=ObjectiveSense.MAXIMIZE, expression="x_1"),  # partial → scalar
+        constraints=[Constraint(name="c", expression="x_1 + x_2 <= 1")],
+    )
+    draft = deground_problem_split(problem)
+    assert draft is not None
+    assert draft.dataset is None
+    assert "sum{" not in draft.source
+
+
 def test_arity_beyond_the_index_letter_pool_declines_gracefully():
     """A family with more index positions than there are index letters (14) must
     DECLINE (None — the model is also too big for the scalar fallback), never leak

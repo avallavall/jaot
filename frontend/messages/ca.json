@@ -203,6 +203,7 @@
     "jmodelDerive": "Derivar esborrany",
     "jmodelDeriveHint": "Aquest model s'ha creat en una altra vista i no té font JModel.",
     "jmodelDeriveDeclined": "No s'ha pogut derivar un JModel compacte — aquest model no té estructura indexada per recuperar.",
+    "jmodelDeriveDatasetName": "Dades derivades",
     "jmodelGenerate": "Generar amb IA",
     "jmodelGenerateTitle": "Generar un JModel amb IA",
     "jmodelGenerateDesc": "Descriu el teu problema, o adjunta una captura o PDF d'una formulació. La IA escriu el JModel i comprova que compila.",

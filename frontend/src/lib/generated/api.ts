@@ -2071,7 +2071,8 @@ export interface paths {
          *     Computed on demand from the stored problem + solution — binding constraints,
          *     slack/utilization, objective contributions — all exact for the integer
          *     solution, unlike the LP-relaxation shadow prices. Off the solve path because
-         *     it re-parses every constraint.
+         *     it re-parses every constraint — and a sync ``def`` so that re-parse (up to
+         *     thousands of constraints) runs in the threadpool, never on the event loop.
          */
         get: operations["get_execution_exact_analysis"];
         put?: never;
@@ -5344,6 +5345,12 @@ export interface components {
          * @description A flat problem to reconstruct as a compact JModel draft (B2).
          */
         DSLDegroundRequest: {
+            /**
+             * Allow Dataset
+             * @description When true, derive the GENERAL formulation (declaration-only sets/params) and return the data separately as `dataset` — the model/data separation JModel is for. When false, the draft is self-contained (data inlined).
+             * @default false
+             */
+            allow_dataset: boolean;
             problem: components["schemas"]["OptimizationProblem-Input"];
         };
         /**
@@ -5353,8 +5360,19 @@ export interface components {
          *     ``source`` is the reconstructed JModel when a compact structure was recovered
          *     AND verifiably round-trips to an equivalent problem; it is ``None`` (a graceful
          *     decline, NOT an error) when the flat model has no recoverable compact form.
+         *     With ``allow_dataset``, ``dataset`` carries the set members and param values in
+         *     the standard JModel dataset shape (``{"sets": …, "params": …}``) and the source
+         *     is the pure formulation; the caller should store it as a project dataset and
+         *     compile the source against it.
          */
         DSLDegroundResponse: {
+            /**
+             * Dataset
+             * @description JModel dataset JSON with the draft's data (only when allow_dataset and the model carries indexed data; null for scalar/self-contained drafts).
+             */
+            dataset?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Source
              * @description Reconstructed JModel draft, or null when none is recoverable.

@@ -24,7 +24,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
-from app.domains.dsl import JModelError, compile_jmodel
+from app.domains.dsl import JModelData, JModelError, compile_jmodel
 from app.domains.solver.services.expression_parser import ExpressionParser, ParseError
 from app.schemas.optimization import OptimizationProblem, Variable, VariableType
 from app.schemas.solution_structure import annotate_variable_structure
@@ -34,31 +34,82 @@ _EPS = 1e-9
 _INDEX_LETTERS = "ijklmnpqrstuvw"
 
 
+@dataclass(frozen=True)
+class DegroundDraft:
+    """A derived draft: the JModel source, plus its data as a dataset when split.
+
+    ``dataset`` is the standard JModel dataset JSON (``{"sets": …, "params": …}``)
+    when the caller asked for model/data separation and the model carries indexed
+    data; ``None`` when the draft is self-contained (inline or scalar fallback).
+    """
+
+    source: str
+    dataset: dict | None
+
+
 def deground_problem(problem: OptimizationProblem) -> str | None:
-    """Reconstruct a compact JModel source from a flat problem, or ``None``.
+    """Reconstruct a compact, self-contained JModel source, or ``None``.
 
     Returns source only when it is recoverable AND verifiably round-trips to a
     problem equivalent to the input; otherwise ``None`` (the caller declines).
+    Set/param data is inlined (``:=``) — see :func:`deground_problem_split` for
+    the model/data-separated form.
     """
+    draft = _deground(problem, split=False)
+    return draft.source if draft else None
+
+
+def deground_problem_split(problem: OptimizationProblem) -> DegroundDraft | None:
+    """Reconstruct a JModel draft with the model/data separation JModel is FOR.
+
+    The source carries only the general formulation — declaration-only sets and
+    params (``set S1;`` / ``param c{S1, S1};``), variable families, the objective
+    and the ∀-quantified constraint families, with uniform constants inline —
+    while every set member and param value lands in the returned dataset JSON.
+    A 100×100 model derives as ~10 readable lines instead of a wall of numbers.
+
+    Verified exactly like the inline form: ``compile(source, dataset)`` must be
+    equivalent to the input, or the whole derive declines. The scalar fallback
+    (a small flat model with no indexed structure) stays self-contained
+    (``dataset=None``).
+    """
+    return _deground(problem, split=True)
+
+
+def _deground(problem: OptimizationProblem, *, split: bool) -> DegroundDraft | None:
     try:
-        source = _reconstruct(problem)
+        emission = _reconstruct(problem)
     except (_DegroundError, ParseError):
-        source = None
+        emission = None
     # No compact structure recovered — fall back to a plain scalar JModel for a SMALL
     # model (a large flat model would just be the wall of rows B2 exists to avoid, so
     # it stays declined).
-    if source is None:
+    if emission is None:
         source = _scalar_jmodel(problem)
-    if source is None:
-        return None
-    # Honesty gate: the draft must recompile to an equivalent problem.
+        if source is None:
+            return None
+        return _verified(problem, source, None)
+    if split:
+        try:
+            source, dataset = _render_split(emission)
+        except _DegroundError:
+            return None
+        return _verified(problem, source, dataset)
+    return _verified(problem, _render_inline(emission), None)
+
+
+def _verified(
+    problem: OptimizationProblem, source: str, dataset: dict | None
+) -> DegroundDraft | None:
+    """Honesty gate: the draft (+ its data) must recompile to an equivalent problem."""
     try:
-        rebuilt = compile_jmodel(source)
+        data = JModelData.from_json(dataset) if dataset is not None else None
+        rebuilt = compile_jmodel(source, data=data)
     except JModelError:
         return None
     if not _problems_equivalent(problem, rebuilt):
         return None
-    return source
+    return DegroundDraft(source=source, dataset=dataset)
 
 
 class _DegroundError(Exception):
@@ -84,7 +135,62 @@ class _Family:
     by_tuple: dict[tuple[str, ...], str]
 
 
-def _reconstruct(problem: OptimizationProblem) -> str | None:
+@dataclass(frozen=True)
+class _ParamRecord:
+    """A reconstructed indexed param: its declaration shape + its data entries."""
+
+    name: str
+    index_sets: tuple[str, ...]
+    entries: dict[tuple[str, ...], float]  # insertion-ordered
+
+
+@dataclass(frozen=True)
+class _Emission:
+    """The reconstructed draft before rendering — formulation + data, separated."""
+
+    sets: "_SetRegistry"
+    params: list[_ParamRecord]
+    var_lines: list[str]
+    objective_line: str
+    constraint_lines: list[str]
+
+
+_HEADER = "# JModel draft — derived from a flat model, review before relying on it"
+_SPLIT_HEADER = (
+    "# JModel draft — derived from a flat model, review before relying on it\n"
+    "# (set members and param values live in the derived dataset)"
+)
+
+
+def _render_inline(e: _Emission) -> str:
+    lines = e.sets.declarations()
+    lines += [_param_inline(r) for r in e.params]
+    lines += e.var_lines + [e.objective_line] + e.constraint_lines
+    return _HEADER + "\n" + "\n".join(lines)
+
+
+def _param_inline(r: _ParamRecord) -> str:
+    body = ", ".join(f"{' '.join(key)} {_num(value)}" for key, value in r.entries.items())
+    return f"param {r.name}{{{', '.join(r.index_sets)}}} := {body};"
+
+
+def _render_split(e: _Emission) -> tuple[str, dict]:
+    """The general formulation (declaration-only) + a JModel dataset with the data."""
+    lines = [f"set {name};" for name in e.sets.names()]
+    lines += [f"param {r.name}{{{', '.join(r.index_sets)}}};" for r in e.params]
+    lines += e.var_lines + [e.objective_line] + e.constraint_lines
+    params_json: dict[str, dict[str, float]] = {}
+    for r in e.params:
+        if r.name in params_json:  # defensive: derived names are unique by construction
+            raise _DegroundError(f"duplicate derived param name {r.name!r}")
+        params_json[r.name] = {",".join(key): value for key, value in r.entries.items()}
+    dataset: dict = {"sets": {name: list(vals) for name, vals in e.sets.values().items()}}
+    if params_json:
+        dataset["params"] = params_json
+    return _SPLIT_HEADER + "\n" + "\n".join(lines), dataset
+
+
+def _reconstruct(problem: OptimizationProblem) -> _Emission | None:
     # Ensure family/index structure is present (numeric-index parse for flat models;
     # a no-op when the compiler already annotated authoritatively).
     annotate_variable_structure(problem)
@@ -103,10 +209,7 @@ def _reconstruct(problem: OptimizationProblem) -> str | None:
         for values in fam.position_values:
             sets.intern(values)
 
-    lines: list[str] = []
-    lines.extend(sets.declarations())
-
-    param_lines: list[str] = []
+    params: list[_ParamRecord] = []
     var_lines: list[str] = []
     for fam in families.values():
         var_lines.append(_var_decl(fam, sets))
@@ -116,7 +219,7 @@ def _reconstruct(problem: OptimizationProblem) -> str | None:
     objective_line, obj_params = _build_objective(
         problem, families, scalars, sets, parser, var_names
     )
-    param_lines.extend(obj_params)
+    params.extend(obj_params)
 
     # name → (family, index tuple), so the constraint decomposition is O(1) per
     # variable (a 150x150 model has 22k variables × hundreds of constraints).
@@ -128,15 +231,15 @@ def _reconstruct(problem: OptimizationProblem) -> str | None:
     constraint_lines, con_params = _build_constraints(
         problem, families, var_lookup, sets, parser, var_names
     )
-    param_lines.extend(con_params)
+    params.extend(con_params)
 
-    lines.extend(param_lines)
-    lines.extend(var_lines)
-    lines.append(objective_line)
-    lines.extend(constraint_lines)
-
-    header = "# JModel draft — derived from a flat model, review before relying on it"
-    return header + "\n" + "\n".join(lines)
+    return _Emission(
+        sets=sets,
+        params=params,
+        var_lines=var_lines,
+        objective_line=objective_line,
+        constraint_lines=constraint_lines,
+    )
 
 
 def _group_families(
@@ -253,7 +356,7 @@ class _SetRegistry:
 
     def __init__(self) -> None:
         self._by_key: dict[tuple[str, ...], str] = {}
-        self._decls: list[str] = []
+        self._values: dict[str, list[str]] = {}
 
     def intern(self, values: list[str]) -> str:
         key = tuple(values)
@@ -261,14 +364,20 @@ class _SetRegistry:
         if name is None:
             name = f"S{len(self._by_key) + 1}"
             self._by_key[key] = name
-            self._decls.append(f"set {name} := {{{', '.join(values)}}};")
+            self._values[name] = list(values)
         return name
 
     def name_for(self, values: list[str]) -> str:
         return self._by_key[tuple(values)]
 
+    def names(self) -> list[str]:
+        return list(self._values)
+
+    def values(self) -> dict[str, list[str]]:
+        return self._values
+
     def declarations(self) -> list[str]:
-        return list(self._decls)
+        return [f"set {name} := {{{', '.join(vals)}}};" for name, vals in self._values.items()]
 
 
 def _var_decl(fam: _Family, sets: _SetRegistry) -> str:
@@ -306,7 +415,7 @@ def _build_objective(
     sets: _SetRegistry,
     parser: ExpressionParser,
     var_names: set[str],
-) -> tuple[str, list[str]]:
+) -> tuple[str, list[_ParamRecord]]:
     parsed = parser.parse_expression(problem.objective.expression, var_names)
     coefs: dict[str, float] = {}
     for term in parsed.terms:
@@ -315,7 +424,7 @@ def _build_objective(
         coefs[term.variables[0]] = coefs.get(term.variables[0], 0.0) + term.coefficient
 
     terms: list[str] = []
-    params: list[str] = []
+    params: list[_ParamRecord] = []
     used = 0
     for fam in families.values():
         fam_coefs = {tup: coefs.get(name, 0.0) for tup, name in fam.by_tuple.items()}
@@ -334,7 +443,7 @@ def _build_objective(
             terms.append(f"sum{{{binding}}} {_num(next(iter(distinct)))} * {ref}")
         else:
             pname = f"c_{fam.name}"
-            params.append(_param_decl(pname, fam, sets, fam_coefs))
+            params.append(_param_record(pname, fam, sets, fam_coefs))
             idx = ", ".join(letters)
             terms.append(f"sum{{{binding}}} {pname}[{idx}] * {ref}")
 
@@ -410,7 +519,7 @@ def _build_constraints(
     sets: _SetRegistry,
     parser: ExpressionParser,
     var_names: set[str],
-) -> tuple[list[str], list[str]]:
+) -> tuple[list[str], list[_ParamRecord]]:
     shapes = [
         _shape_of(con.expression, families, var_lookup, parser, var_names)
         for con in problem.constraints
@@ -435,7 +544,7 @@ def _build_constraints(
         groups[key].append(shape)
 
     lines: list[str] = []
-    params: list[str] = []
+    params: list[_ParamRecord] = []
     for counter, key in enumerate(order, start=1):
         line, extra = _emit_constraint_group(f"c{counter}", groups[key], families, sets)
         lines.append(line)
@@ -504,9 +613,9 @@ def _emit_constraint_group(
     group: list[_ConstraintShape],
     families: dict[str, _Family],
     sets: _SetRegistry,
-) -> tuple[str, list[str]]:
+) -> tuple[str, list[_ParamRecord]]:
     first = group[0]
-    params: list[str] = []
+    params: list[_ParamRecord] = []
 
     # 1) Free-index classes: fixed slots (family, position) whose member CO-VARIES
     #    across the group are the same ∀-quantified index. Two slots are the same
@@ -575,7 +684,7 @@ def _emit_constraint_group(
             term_strs.append(f"{_num(next(iter(distinct)))} * {sum_prefix}{ref}")
         else:
             pname = f"a_{cname}_{term.family}"
-            params.append(_param_decl(pname, fam, sets, combined))
+            params.append(_param_record(pname, fam, sets, combined))
             term_strs.append(f"{sum_prefix}{pname}[{', '.join(letters)}] * {ref}")
     lhs = " + ".join(term_strs).replace("+ - ", "- ")
 
@@ -585,7 +694,7 @@ def _emit_constraint_group(
         rhs_str = _num(next(iter(rhs_values)))
     elif free_classes:
         pname = f"r_{cname}"
-        params.append(_rhs_param_decl(pname, group, free_classes, sets))
+        params.append(_rhs_param_record(pname, group, free_classes, sets))
         rhs_str = f"{pname}[{', '.join(lett for _, lett, _, _ in free_classes)}]"
     else:
         raise _DegroundError("scalar constraint has a varying rhs but no free index")
@@ -601,14 +710,12 @@ def _emit_constraint_group(
 # --------------------------------------------------------------------------- #
 
 
-def _param_decl(
+def _param_record(
     pname: str, fam: _Family, sets: _SetRegistry, coef_by_tuple: dict[tuple[str, ...], float]
-) -> str:
-    index_sets = ", ".join(sets.name_for(values) for values in fam.position_values)
-    entries = [
-        f"{' '.join(tup)} {_num(coef_by_tuple[tup])}" for tup in _cartesian(fam.position_values)
-    ]
-    return f"param {pname}{{{index_sets}}} := {', '.join(entries)};"
+) -> _ParamRecord:
+    index_sets = tuple(sets.name_for(values) for values in fam.position_values)
+    entries = {tup: coef_by_tuple[tup] for tup in _cartesian(fam.position_values)}
+    return _ParamRecord(name=pname, index_sets=index_sets, entries=entries)
 
 
 def _slot_member(shape: _ConstraintShape, family: str, pos: int) -> str:
@@ -619,24 +726,23 @@ def _slot_member(shape: _ConstraintShape, family: str, pos: int) -> str:
     raise _DegroundError("inconsistent constraint group")
 
 
-def _rhs_param_decl(
+def _rhs_param_record(
     pname: str,
     group: list[_ConstraintShape],
     free_classes: list[tuple[tuple[str, ...], str, list[str], tuple[str, int]]],
     sets: _SetRegistry,
-) -> str:
+) -> _ParamRecord:
     """A per-constraint rhs param indexed by the ∀ free-index classes."""
-    index_sets = ", ".join(sets.name_for(sv) for _, _, sv, _ in free_classes)
+    index_sets = tuple(sets.name_for(sv) for _, _, sv, _ in free_classes)
     # The free indices must uniquely key each constraint; a collision means the group
     # holds hidden structure a plain ∀ can't reproduce, so decline (round-trip-safe).
-    by_key: dict[str, float] = {}
+    by_key: dict[tuple[str, ...], float] = {}
     for shape in group:
-        key = " ".join(_slot_member(shape, rep[0], rep[1]) for _, _, _, rep in free_classes)
+        key = tuple(_slot_member(shape, rep[0], rep[1]) for _, _, _, rep in free_classes)
         if key in by_key and round(by_key[key], 9) != round(shape.rhs, 9):
             raise _DegroundError("constraint family free indices are not unique")
         by_key[key] = shape.rhs
-    entries = [f"{key} {_num(rhs)}" for key, rhs in by_key.items()]
-    return f"param {pname}{{{index_sets}}} := {', '.join(entries)};"
+    return _ParamRecord(name=pname, index_sets=index_sets, entries=by_key)
 
 
 def _binding(fam: _Family, sets: _SetRegistry, letters: list[str]) -> str:

@@ -65,7 +65,9 @@ export function JModelEditorPanel() {
   const hasModel = useModelProjectStore((s) => s.problem.variables.length > 0);
   const storeApi = useModelProjectStoreApi();
   // Named datasets ("scenarios") this source can compile against (§8).
-  const { datasets } = useProjectDatasets(modelId && modelId !== "new" ? modelId : null);
+  const { datasets, refresh: refreshDatasets } = useProjectDatasets(
+    modelId && modelId !== "new" ? modelId : null
+  );
 
   const [text, setText] = useState<string>(() => storeApi.getState().draftDslSource);
   const [result, setResult] = useState<DslCompileResult | null>(null);
@@ -229,15 +231,32 @@ export function JModelEditorPanel() {
   // imported). The server declines (source === null) when no compact structure
   // round-trips; we surface that honestly rather than load a fake. On success the
   // draft becomes the source and is applied like a normal edit (compile → canonical).
+  // For a persisted project the derive is SPLIT: the source is the pure formulation
+  // and the data lands in an auto-created, auto-selected project dataset — the
+  // model/data separation JModel is for (no 22k-number wall in the editor).
   const handleDerive = () => {
     setDeriving(true);
     setDeriveDeclined(false);
+    const persistedId = modelId && modelId !== "new" ? modelId : null;
     api
-      .degroundDsl(storeApi.getState().problem)
-      .then((res) => {
+      .degroundDsl(storeApi.getState().problem, persistedId !== null)
+      .then(async (res) => {
         if (!res.source) {
           setDeriveDeclined(true);
           return;
+        }
+        if (res.dataset && persistedId) {
+          const base = t("jmodelDeriveDatasetName");
+          const taken = new Set(datasets.map((d) => d.name));
+          let name = base;
+          for (let n = 2; taken.has(name); n++) name = `${base} ${n}`;
+          const row = await api.createProjectDataset(persistedId, {
+            name,
+            data_json: res.dataset,
+          });
+          // Select it BEFORE compiling so the declaration-only source grounds.
+          storeApi.getState().setActiveDataset({ id: row.id, name: row.name });
+          refreshDatasets();
         }
         setEditingStale(true); // deriving is an explicit opt-in over a drifted source
         setText(res.source);

@@ -203,6 +203,7 @@
     "jmodelDerive": "Dériver un brouillon",
     "jmodelDeriveHint": "Ce modèle a été créé ailleurs et n'a pas de source JModel.",
     "jmodelDeriveDeclined": "Impossible de dériver un JModel compact — ce modèle n'a aucune structure indexée à récupérer.",
+    "jmodelDeriveDatasetName": "Données dérivées",
     "jmodelGenerate": "Générer avec l'IA",
     "jmodelGenerateTitle": "Générer un JModel avec l'IA",
     "jmodelGenerateDesc": "Décrivez votre problème, ou joignez une capture d'écran ou un PDF d'une formulation. L'IA écrit le JModel et vérifie qu'il compile.",

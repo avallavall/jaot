@@ -132,6 +132,8 @@ A model built on the [visual canvas](/docs/studio/visual-canvas) or [imported fr
 
 Reconstruction is heuristic, so it is honest by construction: the candidate draft is recompiled and verified to be **equivalent** to your model before it is offered. If no compact structure round-trips — sparse families, partially covered objectives, exotic shapes — JAOT declines with a note instead of showing a draft that lies about the model. A small flat model with no indexed structure derives as a plain scalar JModel instead.
 
+The derive respects JModel's model/data separation: the source you get is the **general formulation** — declaration-only sets and params, the objective, and the ∀-quantified constraint families, with uniform constants inline — while every set member and param value lands in an automatically created **"Derived data" dataset**, selected for you so the draft compiles immediately. A 100×100 model derives as a dozen readable lines, not a wall of twenty-two thousand numbers; the verification compiles source + dataset and checks equivalence, exactly like everything else in this lens. (On an unsaved project the draft stays self-contained instead, since there is nowhere to store a dataset yet.)
+
 The derived draft lands in the editor as a normal edit: review it, compile it, and from then on the source *is* the formulation.
 
 ## Generate with AI

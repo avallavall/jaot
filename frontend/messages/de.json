@@ -203,6 +203,7 @@
     "jmodelDerive": "Entwurf ableiten",
     "jmodelDeriveHint": "Dieses Modell wurde anderswo erstellt und hat keine JModel-Quelle.",
     "jmodelDeriveDeclined": "Es konnte kein kompaktes JModel abgeleitet werden — dieses Modell hat keine indizierte Struktur zum Wiederherstellen.",
+    "jmodelDeriveDatasetName": "Abgeleitete Daten",
     "jmodelGenerate": "Mit KI generieren",
     "jmodelGenerateTitle": "Ein JModel mit KI generieren",
     "jmodelGenerateDesc": "Beschreiben Sie Ihr Problem oder hängen Sie einen Screenshot oder ein PDF einer Formulierung an. Die KI schreibt das JModel und prüft, ob es kompiliert.",

@@ -640,9 +640,12 @@ export interface DslLatexResult {
 }
 
 /** A JModel draft derived from a flat problem (POST /api/v2/dsl/deground, B2).
- * `source` is null (a graceful decline) when no compact structure is recoverable. */
+ * `source` is null (a graceful decline) when no compact structure is recoverable.
+ * With `allow_dataset`, `dataset` carries the data (JModel dataset JSON) and the
+ * source is the pure, declaration-only formulation. */
 export interface DslDegroundResult {
   source?: string | null;
+  dataset?: Record<string, unknown> | null;
 }
 
 /** One vision attachment for AI generation (POST /api/v2/dsl/generate, B3):

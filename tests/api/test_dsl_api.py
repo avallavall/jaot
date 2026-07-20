@@ -827,6 +827,31 @@ def test_deground_returns_compact_source_that_round_trips(
     assert {v["name"] for v in recompiled["variables"]} == {v["name"] for v in problem["variables"]}
 
 
+# CONTRACT-TEST: allow_dataset derives the GENERAL formulation (declaration-only,
+# zero inline data) and hands the values back as a JModel dataset — the model/data
+# separation the lens stores as a project dataset and compiles against.
+@pytest.mark.integration
+def test_deground_allow_dataset_splits_model_from_data(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
+    problem = _compile(authenticated_client, LATEX_SOURCE)
+    resp = authenticated_client.post(
+        "/api/v2/dsl/deground", json={"problem": problem, "allow_dataset": True}
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["source"] is not None
+    assert ":=" not in body["source"], "the split source is the pure formulation"
+    assert "set S1;" in body["source"]
+    dataset = body["dataset"]
+    assert dataset is not None
+    assert isinstance(dataset["sets"]["S1"], list) and dataset["sets"]["S1"]
+    # Without the flag the draft stays self-contained (back-compat).
+    inline = authenticated_client.post("/api/v2/dsl/deground", json={"problem": problem}).json()
+    assert inline["dataset"] is None
+    assert ":=" in inline["source"]
+
+
 @pytest.mark.integration
 def test_deground_small_scalar_model_gets_a_flat_jmodel(
     authenticated_client, test_organization, db_session, enable_dsl
