@@ -19,6 +19,33 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Fixed
 
+- **Technical-audit hardening of the v3.1 surface** (a code audit of everything
+  since v3.0.0):
+  - **Marketplace/template executions now carry the grouped-solution structure
+    (A1)** — `/solve` and `/solve/async` annotated `family`/`index_tuple` at
+    enqueue, but executions launched via `/models/{id}/execute` never did, so
+    their post-solve page silently fell back to the flat variable wall. The
+    worker now annotates the problem it builds, covering every entry point.
+  - **The exact-analysis endpoint (A3) no longer runs on the event loop** — it
+    re-parses up to thousands of constraints (CPU-bound) and was `async def`,
+    stalling every in-flight request for the duration; it is now a sync `def`
+    (threadpool), contract-tested to stay that way.
+  - **"Generate with AI" (B3) robustness** — an unexpected fence label
+    (```` ```python ````) no longer leaks into the compiled source; a (rare)
+    text-less model reply no longer aborts the retry loop with a transport
+    error; and picking more files than the 4-attachment limit now says so
+    instead of silently dropping the extras.
+  - **"Derive draft" (B2) declines gracefully on exotic models** — a family with
+    more index positions than the reconstruction's letter pool (14) used to leak
+    an internal error; it now declines honestly like every other unrecoverable
+    shape.
+  - **Large-solve explanation sampling keeps the top decisions** — the bounded
+    prompt now samples the largest non-zero values by magnitude (as documented)
+    instead of the first 200 in insertion order, so a dominant decision can no
+    longer be dropped from the explanation.
+  - **A3 objective contributions merge like terms** — `2*x + 3*x` reads as one
+    `x` row, not two colliding rows.
+
 - **The "Solving…" pill no longer lingers after a solve is cancelled from another
   tab/device** — the ambient solving indicator shows only while the session is
   `running`, and the completion poll moved the session off `running` for `completed`
