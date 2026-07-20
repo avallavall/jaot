@@ -127,6 +127,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Added
 
+- **Public documentation for the v3.1 analysis workbench** — a new
+  [Analyzing Results](https://jaot.io/docs/studio/analyzing-results) docs page
+  (the structured solution, the honest solve summary, the exact analysis, and
+  their API); the JModel DSL page now documents the mathematical notation view,
+  "Derive draft", "Generate with AI", and the `/dsl/*` endpoints;
+  "Understanding Your Solution" reflects the new three-layer analysis order;
+  the executions API reference documents `GET …/exact-analysis`; `llms.txt`
+  links the new surfaces; and the home page's "Understand your solution"
+  section now shows the real thing — fresh light/dark screenshots of the
+  analysis page and copy describing the exact, solution-based analysis (the
+  orphaned convergence-chart component was removed).
+
 - **Generate a JModel with AI, from a description or a screenshot (v3.1 B3)** — the
   JModel lens has a "Generate with AI" button that turns a plain-language description
   and/or attached screenshots/PDFs of a formulation into a working JModel source. It
