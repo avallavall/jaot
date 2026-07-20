@@ -45,6 +45,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
     longer be dropped from the explanation.
   - **A3 objective contributions merge like terms** — `2*x + 3*x` reads as one
     `x` row, not two colliding rows.
+  - **The grouped solution view stays responsive on huge solutions** — it now
+    renders a bounded prefix (500 values) with a "show all" opt-in instead of
+    mounting tens of thousands of chips (a 20k-variable solution with the
+    non-zero filter off froze the page).
+  - **One AI-cost ledger per (org, user), guaranteed** — the hidden `sys:`
+    bookkeeping conversation's get-or-create could race under two concurrent
+    first generations and produce duplicate ledgers (benign for the budget sum,
+    but unbounded). A partial unique index now enforces the invariant (additive
+    migration, with a dedupe of any existing duplicates) and the loser of the
+    race adopts the winner's row.
+  - **MCP analytics survive a fastapi-mcp upgrade** — the tool-call emitter
+    wraps a private dispatch method; a library switching that call to
+    positional arguments now degrades to "no analytics" instead of breaking
+    every MCP tool call with a TypeError.
 
 - **The "Solving…" pill no longer lingers after a solve is cancelled from another
   tab/device** — the ambient solving indicator shows only while the session is
