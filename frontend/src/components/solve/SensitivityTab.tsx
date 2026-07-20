@@ -81,7 +81,33 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
     return magB - magA;
   });
 
-  const chartHeight = Math.max(120, chartData.length * 40 + 60);
+  // Group identical shadow prices. In a MIP the LP relaxation is often (near-)
+  // degenerate — dozens/hundreds of constraints share the exact same dual — and a
+  // per-constraint bar chart of identical full-width bars carries zero information
+  // (owner live-test 2026-07-20, the 100×100 assignment). When duplication dominates,
+  // the chart collapses to one row per DISTINCT value; otherwise the chart stays,
+  // capped to the top bars by magnitude.
+  const valueGroups = (() => {
+    const byValue = new Map<string, { value: number; count: number; binding: number }>();
+    for (const c of chartData) {
+      const key = c.shadow_price.toFixed(6);
+      const g = byValue.get(key) ?? { value: c.shadow_price, count: 0, binding: 0 };
+      g.count += 1;
+      if (c.is_binding) g.binding += 1;
+      byValue.set(key, g);
+    }
+    return [...byValue.values()].sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+  })();
+  const degenerate =
+    chartData.length >= 12 && valueGroups.length <= Math.max(3, chartData.length / 10);
+
+  const CHART_CAP = 30;
+  const TABLE_CAP = 50;
+  const chartShown = chartData.slice(0, CHART_CAP);
+  const tableShown = tableRows.slice(0, TABLE_CAP);
+  const rcShown = variables.slice(0, TABLE_CAP);
+
+  const chartHeight = Math.max(120, chartShown.length * 40 + 60);
 
   return (
     <div className="space-y-6">
@@ -102,6 +128,28 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
         <div className="flex items-center justify-center py-12 text-muted-foreground text-sm text-center px-6">
           {computableCount > 0 ? t("allZeroShadowPrices") : t("noShadowPrices")}
         </div>
+      ) : degenerate ? (
+        <div data-testid="sensitivity-shadow-groups">
+          <h3 className="text-sm font-semibold text-foreground mb-3">
+            {t("shadowPricesByConstraint")}
+          </h3>
+          <div className="bg-card border border-border rounded-lg px-4 py-3 space-y-1.5">
+            {valueGroups.map((g) => (
+              <div
+                key={g.value.toFixed(6)}
+                className="flex items-baseline justify-between gap-3 text-sm"
+              >
+                <span className="text-muted-foreground">
+                  {t("shadowPriceGroup", { count: g.count, binding: g.binding })}
+                </span>
+                <span className="font-mono tabular-nums text-foreground">
+                  <ConceptTooltip termKey="shadow-price">{g.value.toFixed(4)}</ConceptTooltip>
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">{t("degenerateNote")}</p>
+        </div>
       ) : (
         <>
           <div>
@@ -111,7 +159,7 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
             <div style={{ height: chartHeight }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={chartData}
+                  data={chartShown}
                   layout="vertical"
                   margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
                 >
@@ -140,7 +188,7 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
                     ]}
                   />
                   <Bar dataKey="shadow_price" name={t("shadowPrice")} radius={[0, 3, 3, 0]}>
-                    {chartData.map((entry, index) => (
+                    {chartShown.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={
@@ -157,6 +205,8 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
               {t("bindingNote")}
+              {chartData.length > CHART_CAP &&
+                " " + t("truncatedRows", { shown: chartShown.length, total: chartData.length })}
             </p>
           </div>
 
@@ -181,7 +231,7 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {tableRows.map((row, idx) => (
+                    {tableShown.map((row, idx) => (
                       <tr
                         key={`${row.name}-${idx}`}
                         className={
@@ -214,6 +264,11 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
                   </tbody>
                 </table>
               </div>
+              {tableRows.length > TABLE_CAP && (
+                <p className="px-3 py-2 text-xs text-muted-foreground border-t border-border">
+                  {t("truncatedRows", { shown: tableShown.length, total: tableRows.length })}
+                </p>
+              )}
             </div>
           </div>
         </>
@@ -262,7 +317,7 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
                       </td>
                     </tr>
                   )}
-                  {variables.map((v, idx) => (
+                  {rcShown.map((v, idx) => (
                     <tr
                       key={`${v.name}-${idx}`}
                       className={
@@ -295,6 +350,11 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
                 </tbody>
               </table>
             </div>
+            {variables.length > TABLE_CAP && (
+              <p className="px-3 py-2 text-xs text-muted-foreground border-t border-border">
+                {t("truncatedRows", { shown: rcShown.length, total: variables.length })}
+              </p>
+            )}
           </div>
         </div>
       )}

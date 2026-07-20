@@ -94,6 +94,28 @@ describe("G9 — non-zero default toggles", () => {
       ],
     } as unknown as Parameters<typeof SensitivityTab>[0]["sensitivity"];
 
+    it("collapses a degenerate shadow-price wall into per-value groups", () => {
+      // 20 constraints, all with the SAME dual (the 100×100 assignment pathology):
+      // a bar chart of identical bars carries zero information — the tab must render
+      // one grouped row per distinct value plus the degeneracy note, not the chart.
+      const degenerate = {
+        constraints: Array.from({ length: 20 }, (_, i) => ({
+          name: `c1_${i}`,
+          shadow_price: 1.0,
+          is_binding: true,
+        })),
+        is_approximate: true,
+        variables: [],
+      } as unknown as Parameters<typeof SensitivityTab>[0]["sensitivity"];
+      wrap(<SensitivityTab sensitivity={degenerate} />);
+      const groups = screen.getByTestId("sensitivity-shadow-groups");
+      expect(groups).toBeInTheDocument();
+      // ONE row for the single distinct value (1.0000), not twenty identical bars…
+      expect(within(groups).getAllByText("1.0000")).toHaveLength(1);
+      // …and no per-constraint wall.
+      expect(screen.queryByText("c1_7")).not.toBeInTheDocument();
+    });
+
     it("filters by REDUCED COST (not value): a zero-rc basic var is hidden by default", () => {
       wrap(<SensitivityTab sensitivity={sensitivity} />);
       expect(screen.getByText("bound_var")).toBeInTheDocument();

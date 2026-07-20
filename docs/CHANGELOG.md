@@ -19,6 +19,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Changed
 
+- **The Sensitivity tab no longer renders a wall of identical bars** (owner report,
+  the 100×100 assignment): in a MIP the LP relaxation is often (near-)degenerate —
+  most constraints share the same shadow price — so a per-constraint bar chart
+  carries zero information. When duplication dominates, the tab now collapses to
+  one row per DISTINCT shadow-price value ("150 constraints (150 binding) · 1.0000")
+  plus a degeneracy note pointing to the exact analysis; a genuinely diverse chart
+  stays, capped to the top 30 bars, and the detail tables cap at 50 rows with an
+  honest truncation note.
+
 - **"Derive draft" now respects JModel's model/data separation** (owner report, the
   100×100 TFM model): deriving a persisted project's flat model produces the PURE
   general formulation — declaration-only sets and params (`set S1;` /
