@@ -33,6 +33,7 @@ from app.schemas.optimization import (
     OptimizationResult,
     SolverStatus,
 )
+from app.schemas.solution_structure import annotate_variable_structure
 from app.schemas.tier import tier_cap_detail
 from app.services.audit_service import log_action
 from app.services.idempotency import idempotency_execution_id
@@ -353,11 +354,16 @@ def validate_problem_endpoint(  # sync ON PURPOSE -> threadpool (CPU-bound, no a
     except Exception as e:
         errors.append(str(e))
 
+    # Honor the ValidationResult contract the frontend types declare: `errors` and
+    # `warnings` are ALWAYS present arrays. Omitting `warnings` here crashed the JSON
+    # editor lens, which reads `validation.warnings.length` on every validated edit.
     if errors:
-        return {"valid": False, "errors": errors}
+        return {"valid": False, "errors": errors, "warnings": []}
 
     return {
         "valid": True,
+        "errors": [],
+        "warnings": [],
         "num_variables": len(problem.variables),
         "num_constraints": len(problem.constraints),
         "variable_types": {
@@ -704,6 +710,10 @@ def _enqueue_async_solve(
     from app.shared.utils.id_generator import generate_id
 
     problem = _enforce_tier_caps(db, org, problem)
+    # Recover flat/imported variable index structure (a JModel-compiled problem
+    # already carries it; this is a no-op there). Do it before enqueue so the
+    # structure travels with the problem to the worker and lands on the result.
+    annotate_variable_structure(problem)
 
     ws_id = workspace_id
     execution_id = execution_id_override or generate_id("exe_")
@@ -973,6 +983,7 @@ def _enqueue_multi_objective_async(
     from app.shared.utils.id_generator import generate_id
 
     problem = _enforce_tier_caps(db, org, problem)
+    annotate_variable_structure(problem)  # recover flat index structure (no-op for JModel)
     execution_id = generate_id("exe_")
 
     # Provenance up front (sanitized) — mirrors the single-solve enqueue; the typed

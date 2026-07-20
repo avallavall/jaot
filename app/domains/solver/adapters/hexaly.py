@@ -436,7 +436,13 @@ class HexalyAdapter:
                 raw_value = round(float(raw_value))
             float_value = float(raw_value)
             variable_solutions.append(
-                VariableSolution(name=var_def.name, value=float_value, type=var_def.type)
+                VariableSolution(
+                    name=var_def.name,
+                    value=float_value,
+                    type=var_def.type,
+                    family=var_def.family,
+                    index_tuple=var_def.index_tuple,
+                )
             )
             solution[var_def.name] = float_value
 

@@ -283,26 +283,41 @@ def build_solution_explanation_prompt(
 
     Embeds only the data passed in (formulation, solution, sensitivity) as JSON so the
     model has the exact values to ground its explanation in and nothing to fabricate.
+    Each block is bounded (:func:`_bounded_json_block`): a small solve is embedded in
+    full, while a large one (tens of thousands of variables/constraints) is sampled to
+    its non-zero decisions and a representative formulation head, so the prompt never
+    exceeds the provider context window (a real 10k-variable solve reached 11.6M tokens
+    before this bound).
     """
-    import json
-
     parts: list[str] = ["Explain the following solved optimization model.\n"]
 
     if formulation:
         parts.append(
-            "## Formulation\n```json\n" + json.dumps(formulation, indent=2, default=str) + "\n```"
+            _bounded_json_block(
+                "Formulation",
+                formulation,
+                _sample_formulation,
+                "variable/constraint lists truncated to a representative head, long "
+                "expressions clipped",
+            )
         )
     if solution:
         parts.append(
-            "## Solution (variable values + objective)\n```json\n"
-            + json.dumps(solution, indent=2, default=str)
-            + "\n```"
+            _bounded_json_block(
+                "Solution (variable values + objective)",
+                solution,
+                _sample_solution,
+                "only the top non-zero decisions are shown; the objective value is exact",
+            )
         )
     if sensitivity:
         parts.append(
-            "## Sensitivity analysis\n```json\n"
-            + json.dumps(sensitivity, indent=2, default=str)
-            + "\n```"
+            _bounded_json_block(
+                "Sensitivity analysis",
+                sensitivity,
+                _sample_formulation,
+                "constraint/variable lists truncated to a representative head",
+            )
         )
     else:
         parts.append("## Sensitivity analysis\nNot available for this solve.")
@@ -366,7 +381,13 @@ def build_infeasibility_explanation_prompt(
 
     if formulation:
         parts.append(
-            "## Formulation\n```json\n" + json.dumps(formulation, indent=2, default=str) + "\n```"
+            _bounded_json_block(
+                "Formulation",
+                formulation,
+                _sample_formulation,
+                "variable/constraint lists truncated to a representative head, long "
+                "expressions clipped",
+            )
         )
 
     has_iis = bool(
@@ -482,6 +503,90 @@ def _sample_formulation(formulation: dict[str, Any]) -> dict[str, Any]:
         else:
             sampled[key] = _clip_long_string(value, _FORMULATION_SAMPLE_EXPR_CHARS)
     return sampled
+
+
+# A solved large/indexed model carries tens of thousands of variable values (mostly
+# zero) plus sensitivity rows; embedding them ALL blew a real solve to 11.6M tokens
+# (> the 1M provider max). The explanation only needs the DECISIONS — the non-zero
+# values — and the objective, so the solution is bounded to its non-zero head.
+SOLUTION_EXPLANATION_PART_MAX_TOKENS = 8000
+_SOLUTION_SAMPLE_ITEMS = 200
+
+
+def _is_nonzero(value: Any) -> bool:
+    try:
+        return value is not None and abs(float(value)) > 1e-9
+    except (TypeError, ValueError):
+        return value not in (None, "", 0, "0")
+
+
+def _magnitude(value: Any) -> float:
+    """|value| for sorting the sample by decision size; non-numeric sorts last."""
+    try:
+        return abs(float(value))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _sample_solution(solution: dict[str, Any]) -> dict[str, Any]:
+    """Bound a large solution to its decisions: the top non-zero values + objective.
+
+    ``solution`` follows the explain-solution shape: ``objective_value`` /
+    ``solver_status`` scalars, a ``solution`` name→value map, and a ``variables`` list.
+    The maps/lists are reduced to their non-zero head (the actual decisions) so a
+    10k-variable solve never overruns the context window; scalars are kept verbatim.
+    """
+    sampled: dict[str, Any] = {}
+    for key, value in solution.items():
+        if key == "solution" and isinstance(value, dict):
+            nonzero = {k: v for k, v in value.items() if _is_nonzero(v)}
+            kept = dict(
+                sorted(nonzero.items(), key=lambda kv: _magnitude(kv[1]), reverse=True)[
+                    :_SOLUTION_SAMPLE_ITEMS
+                ]
+            )
+            sampled[key] = kept
+            omitted = len(value) - len(kept)
+            if omitted > 0:
+                sampled["_solution_omitted"] = (
+                    f"{omitted} variable values omitted (zeros and beyond the top "
+                    f"{_SOLUTION_SAMPLE_ITEMS} non-zero decisions)"
+                )
+        elif key == "variables" and isinstance(value, list):
+            nonzero = [it for it in value if isinstance(it, dict) and _is_nonzero(it.get("value"))]
+            nonzero.sort(key=lambda it: _magnitude(it.get("value")), reverse=True)
+            kept = nonzero[:_SOLUTION_SAMPLE_ITEMS]
+            sampled[key] = [
+                {k: _clip_long_string(v, _FORMULATION_SAMPLE_EXPR_CHARS) for k, v in it.items()}
+                for it in kept
+            ]
+            omitted = len(value) - len(kept)
+            if omitted > 0:
+                sampled["_variables_omitted"] = (
+                    f"{omitted} more variables omitted (zeros / beyond the top "
+                    f"{_SOLUTION_SAMPLE_ITEMS} non-zero)"
+                )
+        else:
+            sampled[key] = _clip_long_string(value, _FORMULATION_SAMPLE_EXPR_CHARS)
+    return sampled
+
+
+def _bounded_json_block(label: str, data: Any, sampler: Any, sample_note: str) -> str:
+    """A ``## label`` JSON block, sampled when it would exceed the per-part token cap.
+
+    Keeps the full data when it fits (small models get the exact values); otherwise
+    embeds a bounded sample and flags it in the header so the model cites what it sees
+    and never the omitted tail.
+    """
+    import json
+
+    from app.services.llm.token_estimation import estimate_tokens
+
+    text = json.dumps(data, indent=2, default=str)
+    if estimate_tokens(text) <= SOLUTION_EXPLANATION_PART_MAX_TOKENS:
+        return f"## {label}\n```json\n{text}\n```"
+    sampled = json.dumps(sampler(data), indent=2, default=str)
+    return f"## {label} (SAMPLED — {sample_note})\n```json\n{sampled}\n```"
 
 
 def build_model_explanation_prompt(
@@ -666,3 +771,106 @@ def build_messages(
     messages.append({"role": "user", "content": new_user_message})
 
     return messages
+
+
+# --------------------------------------------------------------------------------------
+# B3 — "Generate with AI" for the JModel lens.
+#
+# A dedicated prompt distinct from FORMULATION_SYSTEM_PROMPT above: that one emits the
+# FLAT formulation schema (thousands of scalar rows) and blocks indexed output; this one
+# emits compact JModel SOURCE — the declarative index-algebra the compiler grounds. The
+# compiler is a deterministic validator, so the caller runs a compile→feed-the-error→
+# retry loop; the exemplars below are all self-contained and compile to their optimum.
+# --------------------------------------------------------------------------------------
+
+JMODEL_GENERATION_SYSTEM_PROMPT = r"""You are an expert operations-research modeler for \
+JAOT. You write **JModel**: a lean, AMPL/ZIMPL-flavored declarative modeling language \
+that a compiler grounds into a flat optimization problem. Convert the user's description \
+(and any screenshots or PDFs of a formulation they attach) into a correct JModel source.
+
+## Output — READ CAREFULLY
+- Respond with **exactly one** fenced code block: ```jmodel … ``` and NOTHING else \
+outside it (no prose before or after).
+- The source MUST be **self-contained and compilable**: declare every set and param with \
+small, illustrative INLINE data (2–4 members is plenty). The user swaps in their real \
+data later through a dataset — your job is to get the STRUCTURE right, proven by a clean \
+compile.
+- Model with **families**, never by hand-flattening: write `var assign{W, T} binary;` and \
+`sum{t in T} …`, not `assign_w1_t1 + assign_w1_t2 + …`.
+- Record any assumption you made as a `#` comment at the top (JModel supports `#` \
+comments). Keep names descriptive snake_case.
+
+## JModel grammar (the subset you may use)
+Statements end with `;`. `#` starts a comment to end of line.
+
+- `set S := {a, b, c};`  — a set of alnum members. Tuple set: `set A := {(1,2), (2,3)};` \
+(arity inferred). Integer range: `set T := 1..10;`. Operators: `union`, `diff`, `cross`.
+- `param p := 5;`  — scalar. Indexed: `param cost{W, T} := w1 t1 4, w1 t2 2, …;` \
+(each entry is `key… value`; the key has one token per index dimension). Params are \
+compile-time constants, never variables.
+- `var x{I, J} binary;`  — a variable family. Type ∈ `binary | integer | continuous` \
+(default continuous). Bounds: `var y{I} integer >= 0 <= 100;`. `binary` implies [0,1].
+- `minimize obj: <linear expr>;` or `maximize obj: <linear expr>;`
+- `subject to c{q}: <expr> (<=|>=|==) <expr>;`  — the `{q}` qualifier IS the ∀: it grounds \
+one constraint per tuple. Omit `{q}` for a single scalar constraint.
+- Aggregation: `sum{q} <expr>`. A qualifier `q` is `idx in SET` bindings, comma-separated, \
+optionally `: filter`. Tuple unpacking: `sum{(i, j) in A : i != j} d[i, j] * x[i, j]`. \
+Filters compare indices/members/params with `!=, ==, <, >, <=, >=` and `and`.
+- Expressions are linear (products of two variables → quadratic, allowed but avoid unless \
+the problem is truly quadratic). `if cond then a else b` selects at ground time \
+(conditions use params/indices, never variables).
+
+## Worked examples
+
+Assignment (each worker one task, each task one worker):
+```jmodel
+# Assign workers to tasks at minimum total cost.
+set W := {w1, w2, w3};
+set T := {t1, t2, t3};
+param cost{W, T} :=
+  w1 t1 4, w1 t2 2, w1 t3 8,
+  w2 t1 4, w2 t2 3, w2 t3 7,
+  w3 t1 3, w3 t2 1, w3 t3 6;
+var assign{W, T} binary;
+minimize total_cost: sum{w in W, t in T} cost[w, t] * assign[w, t];
+subject to one_task_per_worker{w in W}: sum{t in T} assign[w, t] == 1;
+subject to one_worker_per_task{t in T}: sum{w in W} assign[w, t] == 1;
+```
+
+Knapsack (maximize value under a capacity):
+```jmodel
+# Pick items to maximize value without exceeding the weight capacity.
+set I := {a, b, c, d};
+param value{I} := a 60, b 100, c 120, d 40;
+param weight{I} := a 10, b 20, c 30, d 15;
+param capacity := 50;
+var take{I} binary;
+maximize total_value: sum{i in I} value[i] * take[i];
+subject to weight_limit: sum{i in I} weight[i] * take[i] <= capacity;
+```
+
+Routing over a sparse arc set (tuple set + slicing filter — the shape most real network \
+and vehicle-routing models take):
+```jmodel
+# Choose arcs on a sparse network: leave and enter each node exactly once.
+set N := {1, 2, 3};
+set A := {(1,2), (2,1), (1,3), (3,1), (2,3), (3,2)};
+param dist{A} := 1 2 10, 2 1 10, 1 3 15, 3 1 15, 2 3 12, 3 2 12;
+var x{A} binary;
+minimize tour_length: sum{(i, j) in A} dist[i, j] * x[i, j];
+subject to leave_once{n in N}: sum{(i, j) in A : i == n} x[i, j] == 1;
+subject to enter_once{n in N}: sum{(i, j) in A : j == n} x[i, j] == 1;
+```
+"""
+
+# Follow-up turn appended after a failed compile so the model self-corrects against the
+# deterministic validator. The ``{message}`` / ``{position}`` / ``{snippet}`` are filled
+# from the JModelError; the phrasing keeps the model producing a full corrected source
+# (not a diff) inside the same single-code-block contract.
+JMODEL_GENERATION_RETRY_TEMPLATE = (
+    "That source did not compile.\n"
+    "Compiler error: {message}{position}\n"
+    "{snippet}"
+    "Fix it and return the COMPLETE corrected JModel as a single ```jmodel code block, "
+    "nothing else. Keep it self-contained with small inline data so it compiles."
+)

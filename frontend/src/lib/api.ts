@@ -7,6 +7,7 @@ import type {
   UserProfile,
   APIKey,
   CreateKeyResponse,
+  ExactAnalysis,
   ModelCatalogItem,
   OrganizationModel,
   ModelExecution,
@@ -64,7 +65,11 @@ import type {
   SolveAnalyticsTrends,
   SolveAnalyticsCompare,
   DslCompileResult,
+  DslDegroundResult,
+  DslGenerateAttachment,
+  DslGenerateResult,
   DslInspectResult,
+  DslLatexResult,
   DslStatusResult,
   ProjectDataset,
   ProjectDatasetSummary,
@@ -85,6 +90,7 @@ export type {
   UserProfile,
   APIKey,
   CreateKeyResponse,
+  ExactAnalysis,
   ModelCatalogItem,
   OrganizationModel,
   ModelExecution,
@@ -715,6 +721,12 @@ export const api = {
     return request(`/api/v2/models/executions/${executionId}`);
   },
 
+  /** Exact, solution-based analysis (A3) — binding constraints, slack/utilization
+   * and objective contributions, computed on demand from x* + the problem. */
+  getExecutionExactAnalysis(executionId: string): Promise<ExactAnalysis> {
+    return request(`/api/v2/models/executions/${executionId}/exact-analysis`);
+  },
+
   getSolvers(): Promise<{
     solvers: Array<{
       name: string;
@@ -822,9 +834,51 @@ export const api = {
     });
   },
 
+  /** Parse-only symbolic-math (KaTeX) render of a JModel source (B1). Renders the
+   * indexed objective / ∀-quantified constraint families / variable domains from the
+   * AST before grounding, so it succeeds where compile errors (declaration-only
+   * sources, missing data). Gated like compile; a parse error is 200 with ok:false. */
+  latexDsl(source: string): Promise<DslLatexResult> {
+    return request("/api/v2/dsl/latex", {
+      method: "POST",
+      body: JSON.stringify({ source }),
+    });
+  },
+
+  /** Reconstruct a compact JModel draft from a flat problem (B2). Returns
+   * `{source}` — null when no compact structure round-trips (a graceful decline).
+   * Gated like compile. */
+  degroundDsl(problem: OptimizationProblem): Promise<DslDegroundResult> {
+    return request("/api/v2/dsl/deground", {
+      method: "POST",
+      body: JSON.stringify({ problem }),
+    });
+  },
+
   /** Whether the JModel DSL feature is enabled, so the SPA can surface the lens. */
   dslStatus(): Promise<DslStatusResult> {
     return request("/api/v2/dsl/status");
+  },
+
+  /** Generate a JModel source from a description and/or screenshots/PDFs (B3). The
+   * backend runs a generate→compile→retry loop, so `ok` is true only when `source`
+   * verifiably compiles; on failure `source` is still the best-effort draft and
+   * `error` names the last compile failure. Gated like compile. `retry:false` — the
+   * loop is a slow, billable multi-call LLM request; never auto-retry (double-bill). */
+  generateDsl(body: {
+    description: string;
+    attachments?: DslGenerateAttachment[];
+    currentSource?: string | null;
+  }): Promise<DslGenerateResult> {
+    return request("/api/v2/dsl/generate", {
+      method: "POST",
+      retry: false,
+      body: JSON.stringify({
+        description: body.description,
+        attachments: body.attachments ?? [],
+        ...(body.currentSource ? { current_source: body.currentSource } : {}),
+      }),
+    });
   },
 
   solveMultiObjective(

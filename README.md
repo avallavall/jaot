@@ -20,13 +20,20 @@ library and not a hosted SaaS** — you run it yourself with `docker compose up`
   runnable model, grounded in a RAG index over the template library
   (Qdrant + local sentence-transformers; no data leaves your box except the
   Claude calls you opt into).
-- **Solution explainer + sensitivity** — don't just solve, *understand*. Every
-  solve reports shadow prices, binding constraints, and variable reduced costs
-  (exact for LP, approximate for MIP), and a one-click AI explanation translates
-  the result into plain language grounded strictly in your actual numbers.
+- **Analysis that leads with facts** — don't just solve, *understand*. Solutions
+  come back as decisions (grouped by the model's real index structure, not a
+  wall of `x_3_7 = 1` rows) with an honest solve summary (root node / N nodes /
+  time limit + gap) and an **exact, solution-based analysis**: binding
+  constraints, slack and utilization computed from your actual solution — exact
+  for the integer optimum on every solver. LP sensitivity (shadow prices,
+  reduced costs) stays available with its caveats, and a one-click AI
+  explanation translates the result into plain language grounded strictly in
+  your actual numbers.
 - **Model studio** — one versioned workspace per model: build it on a visual
   canvas, with the AI assistant, in a JSON editor, or in the JModel DSL
-  (sets/params); analyze health and stats; solve with live progress; commit
+  (sets/params — with a mathematical-notation view, draft derivation from flat
+  models, and compile-verified AI generation from a description or a
+  screenshot); analyze health and stats; solve with live progress; commit
   versions git-style ("what changed + why"), diff and restore them; run the
   same model against many datasets/scenarios.
 - **Model marketplace** — a free, collaborative gallery: publish a committed

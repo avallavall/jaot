@@ -18,19 +18,25 @@ the ``domains-independent`` import-linter contract.
 from app.domains.dsl.compiler import (
     JModelData,
     JModelError,
+    LatexLine,
+    LatexModel,
     ModelDeclarations,
     ParamInfo,
     SetInfo,
     compile_jmodel,
     inspect_declarations,
+    latexify,
 )
 
 __all__ = [
     "JModelData",
     "JModelError",
+    "LatexLine",
+    "LatexModel",
     "ModelDeclarations",
     "ParamInfo",
     "SetInfo",
     "compile_jmodel",
     "inspect_declarations",
+    "latexify",
 ]

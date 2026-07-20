@@ -49,6 +49,29 @@ const TERMINAL_STATUS: Record<string, LastRunStatus> = {
 };
 
 /**
+ * The async-status values that mean the solve is STILL running — the poll keeps
+ * going. `GET /solve/async/{task_id}` maps Celery PENDING→"pending", PROGRESS→"running"
+ * and lowercases any other state (STARTED→"started", RETRY→"retry", …). ANYTHING not
+ * in this set is terminal and must resolve the session, so the "Solving…" pill can
+ * never linger — the gap that left a task revoked from ANOTHER tab/device (Celery
+ * state REVOKED → "revoked", which the poll used to ignore) spinning forever.
+ */
+const IN_FLIGHT_POLL_STATUSES = new Set(["pending", "received", "started", "retry", "running"]);
+
+/** How a polled async-status response should move the solve session. Pure, so the
+ *  poll's terminal-state handling can be unit-tested without React/timers. */
+export type PollTransition = "in_flight" | "completed" | "cancelled" | "failed";
+
+export function classifyPollStatus(status: string): PollTransition {
+  if (IN_FLIGHT_POLL_STATUSES.has(status)) return "in_flight";
+  if (status === "completed") return "completed";
+  if (status === "cancelled" || status === "revoked") return "cancelled";
+  // "failed", "timeout", or any unexpected terminal state: fail closed so the pill
+  // clears (a genuinely-finished run resurfaces via the idle reconcile's lastRun).
+  return "failed";
+}
+
+/**
  * Decide what a reconciled latest execution means for the store: re-attach a
  * still-running async solve by its task id, or surface a finished one as the
  * "last run". Pure so it can be unit-tested without React.
@@ -70,7 +93,8 @@ export function applyReconciledExecution(
     s.startSolveSession(
       latest.celery_task_id,
       latest.solver_name ?? null,
-      latest.started_at ?? latest.created_at ?? null
+      latest.started_at ?? latest.created_at ?? null,
+      latest.id
     );
     return;
   }
@@ -181,7 +205,8 @@ export function useSolveSession(store: ModelProjectStore, workspaceId?: string):
           stop();
           return;
         }
-        if (res.status === "completed") {
+        const transition = classifyPollStatus(res.status);
+        if (transition === "completed") {
           const result = unwrapSolveResult(res);
           if (result) {
             stop();
@@ -198,10 +223,18 @@ export function useSolveSession(store: ModelProjectStore, workspaceId?: string):
             stop();
             s.failSolveSession("solveFailed");
           }
-        } else if (res.status === "failed") {
+        } else if (transition === "cancelled") {
+          // A cancel/revoke from ANOTHER tab or device (or a worker restart) revokes
+          // the Celery task (→ "revoked"). Same-tab cancel already clears the session
+          // via handleCancel; this covers the cross-client case the idle reconcile
+          // can't (it only runs while idle), so the "Solving…" pill stops lingering.
+          stop();
+          s.cancelSolveSession();
+        } else if (transition === "failed") {
           stop();
           s.failSolveSession(res.error || "solveFailed");
         }
+        // transition === "in_flight" → still running; keep polling.
       } catch {
         // Transient poll error — keep trying, but not forever: a task lost to a
         // backend restart / Celery purge would otherwise pin the UI on

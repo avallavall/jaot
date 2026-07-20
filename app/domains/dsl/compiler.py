@@ -1858,12 +1858,19 @@ def _lower(model: ModelAst, max_grounded_elements: int) -> OptimizationProblem:
                     f"variable name collision after mangling: {flat!r}", position=decl.pos
                 )
             seen.add(flat)
+            # Carry the authoritative index structure onto the flat variable so
+            # the solution can be regrouped as assign[v3, o107] downstream. One
+            # index_tuple entry per index SET (a multi-component set member is
+            # joined with "_"); genuine scalars (no combo) stay unstructured.
+            index_tuple = ["_".join(member) for member in combo] if combo else None
             variables.append(
                 Variable(
                     name=flat,
                     type=VariableType(decl.vtype),
                     lower_bound=decl.lb,
                     upper_bound=decl.ub,
+                    family=name if combo else None,
+                    index_tuple=index_tuple,
                 )
             )
 
@@ -2046,4 +2053,257 @@ def inspect_declarations(src: str) -> ModelDeclarations:
             ParamInfo(p.name, tuple(p.index_sets), flat_arity(p.index_sets), p.data is not None)
             for p in model.params.values()
         ),
+    )
+
+
+# --------------------------------------------------------------------------- #
+# LaTeX pretty-printer (B1) — symbolic math notation from the parsed AST
+# --------------------------------------------------------------------------- #
+#
+# Renders the SYMBOLIC model (indexed sums, ∀-quantified constraint families,
+# variable domains) from the AST BEFORE grounding — the structure that grounding
+# flattens away into thousands of scalar rows. Deterministic, no data, no LLM.
+# Output targets KaTeX (frontend split-pane), so every string is valid TeX math.
+
+# Names that read as Greek letters render as their symbol (α, β, Σ, …); the TFM's
+# "Min α ΣΣ …" comes straight from `minimize obj: alpha * sum{...} sum{...} …`.
+_GREEK_LETTERS = frozenset(
+    {
+        "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta",
+        "iota", "kappa", "lambda", "mu", "nu", "xi", "pi", "rho", "sigma",
+        "tau", "upsilon", "phi", "chi", "psi", "omega",
+        "Gamma", "Delta", "Theta", "Lambda", "Xi", "Pi", "Sigma", "Upsilon",
+        "Phi", "Psi", "Omega",
+    }
+)  # fmt: skip
+
+# Comparison operators → their TeX symbol (constraint relation and set-filters).
+_TEX_OPS = {"<=": r"\le", ">=": r"\ge", "==": "=", "!=": r"\ne", "<": "<", ">": ">"}
+
+# Expression node precedence: a child is parenthesized when its precedence is
+# below the minimum its position requires. Additive < multiplicative/negation <
+# sum (visually grouped) < atomic.
+_PREC_ADD = 1
+_PREC_MUL = 2
+_PREC_SUM = 3
+_PREC_ATOM = 4
+
+
+@dataclass(frozen=True)
+class LatexLine:
+    """One rendered TeX line plus the source name (objective / constraint / var)."""
+
+    latex: str
+    label: str | None = None
+
+
+@dataclass(frozen=True)
+class LatexModel:
+    """A JModel rendered as symbolic math: objective, constraint families, domains."""
+
+    objective: LatexLine | None
+    constraints: tuple[LatexLine, ...]
+    variables: tuple[LatexLine, ...]
+
+
+def _is_number_text(text: str) -> bool:
+    return _as_number(text) is not None
+
+
+def _tex_atom(name: str) -> str:
+    """Render one identifier or literal as TeX.
+
+    Greek-named symbols become their letter; a numeric literal is verbatim; a
+    single character stays an italic math variable; a multi-character name is set
+    upright (``\\mathrm``) with underscores escaped, so ``total_cost`` reads as a
+    word rather than ``t·o·t·a·l`` with a spurious subscript.
+    """
+    if name in _GREEK_LETTERS:
+        return "\\" + name
+    if _is_number_text(name):
+        return name
+    if len(name) == 1:
+        return name
+    return "\\mathrm{" + name.replace("_", r"\_") + "}"
+
+
+def _tex_ref(name: str, idx: list[Token]) -> str:
+    """A (possibly indexed) symbol: ``x`` → ``x``, ``x[i,j]`` → ``x_{i,j}``."""
+    base = _tex_atom(name)
+    if not idx:
+        return base
+    sub = ",".join(_tex_atom(tok.value) for tok in idx)
+    return f"{base}_{{{sub}}}"
+
+
+def _emit(node: Expr, min_prec: int) -> str:
+    """Render ``node``, wrapping it in ``\\left(…\\right)`` when its precedence is
+    below ``min_prec`` (so operator grouping is preserved without over-bracketing)."""
+    text, prec = _emit_prec(node)
+    if prec < min_prec:
+        return r"\left(" + text + r"\right)"
+    return text
+
+
+def _emit_prec(node: Expr) -> tuple[str, int]:
+    if isinstance(node, Num):
+        return _fmt_num(node.value), _PREC_ATOM
+    if isinstance(node, Ref):
+        return _tex_ref(node.name, node.idx), _PREC_ATOM
+    if isinstance(node, Pow):
+        return f"{_emit(node.base, _PREC_ATOM)}^{{{node.exponent}}}", _PREC_ATOM
+    if isinstance(node, IfExpr):
+        return _emit_if(node), _PREC_ATOM
+    if isinstance(node, Sum):
+        return _emit_sum(node), _PREC_SUM
+    if isinstance(node, Neg):
+        return f"-{_emit(node.expr, _PREC_MUL)}", _PREC_MUL
+    if isinstance(node, BinOp):
+        if node.op == "*":
+            left = _emit(node.left, _PREC_MUL)
+            # The right operand takes a tighter bound so a negation renders as
+            # `x (−y)` not the subtraction-looking `x −y`; a sum stays bare.
+            right = _emit(node.right, _PREC_SUM)
+            if isinstance(node.left, Num) and isinstance(node.right, Num):
+                return f"{left} \\cdot {right}", _PREC_MUL
+            return f"{left} \\, {right}", _PREC_MUL
+        left = _emit(node.left, _PREC_ADD)
+        # `a - (b + c)` must keep its parens; `a + b + c` needs none.
+        right = _emit(node.right, _PREC_MUL if node.op == "-" else _PREC_ADD)
+        return f"{left} {node.op} {right}", _PREC_ADD
+    # Defensive: the Expr union is closed, so this is unreachable in practice.
+    raise JModelError("cannot render expression as LaTeX")
+
+
+def _bindings_latex(quals: Qualifiers) -> str:
+    """The ``i \\in I,\\ (u, v) \\in ARCS`` binding list of a sum/constraint family."""
+    parts: list[str] = []
+    for index_vars, set_name, _pos in quals.bindings:
+        set_tex = _tex_atom(set_name)
+        if len(index_vars) == 1:
+            parts.append(f"{_tex_atom(index_vars[0])} \\in {set_tex}")
+        else:
+            tup = ", ".join(_tex_atom(v) for v in index_vars)
+            parts.append(f"({tup}) \\in {set_tex}")
+    return ",\\; ".join(parts)
+
+
+def _filters_latex(quals: Qualifiers) -> str:
+    """The set-filter conditions (``i \\ne j``) as a comma-joined clause, or ``''``."""
+    return ",\\; ".join(
+        f"{_tex_atom(left.value)} {_TEX_OPS.get(op, op)} {_tex_atom(right.value)}"
+        for left, op, right in quals.filters
+    )
+
+
+def _emit_sum(node: Sum) -> str:
+    bindings = _bindings_latex(node.quals)
+    filters = _filters_latex(node.quals)
+    if bindings and filters:
+        sub = f"{bindings} \\,:\\, {filters}"
+    else:
+        sub = bindings or filters
+    body = _emit(node.body, _PREC_MUL)  # body is a term; never top-level additive
+    return f"\\sum_{{{sub}}} {body}" if sub else f"\\sum {body}"
+
+
+def _emit_cond_operand(operand: CondOperand) -> str:
+    return _tex_ref(operand.token.value, operand.idx)
+
+
+def _emit_if(node: IfExpr) -> str:
+    conds = " \\ \\text{and}\\ ".join(
+        f"{_emit_cond_operand(left)} {_TEX_OPS.get(op, op)} {_emit_cond_operand(right)}"
+        for left, op, right in node.conds
+    )
+    then = _emit(node.then, _PREC_ADD)
+    els = _emit(node.els, _PREC_ADD) if node.els is not None else "0"
+    return (
+        f"\\begin{{cases}} {then} & \\text{{if }} {conds} \\\\ "
+        f"{els} & \\text{{otherwise}} \\end{{cases}}"
+    )
+
+
+def _synth_indices(index_sets: list[str]) -> list[str]:
+    """Invent readable single-letter index names for a variable's domain line.
+
+    A ``var x{I, J}`` names no indices (they arise only where it is *used*), yet
+    its domain reads best as ``x_{i,j} \\;\\forall i \\in I, j \\in J``. Use each
+    set's initial, lowercased and de-duplicated, falling back to i, j, k, … .
+    """
+    used: set[str] = set()
+    letters: list[str] = []
+    for name in index_sets:
+        cand = name[0].lower() if name and name[0].isalpha() else "i"
+        if cand in used:
+            cand = next((alt for alt in "ijklmnpqrstuvw" if alt not in used), f"i{len(letters)}")
+        used.add(cand)
+        letters.append(cand)
+    return letters
+
+
+def _bounds_suffix(var: VarDecl, var_tex: str) -> str:
+    lb, ub = var.lb, var.ub
+    if lb is not None and ub is not None:
+        return f"{_fmt_num(lb)} \\le {var_tex} \\le {_fmt_num(ub)}"
+    if lb is not None:
+        return f"{var_tex} \\ge {_fmt_num(lb)}"
+    if ub is not None:
+        return f"{var_tex} \\le {_fmt_num(ub)}"
+    return ""
+
+
+def _vardomain_latex(var: VarDecl) -> LatexLine:
+    letters = _synth_indices(var.index_sets)
+    var_tex = f"{_tex_atom(var.name)}_{{{','.join(letters)}}}" if letters else _tex_atom(var.name)
+    if var.vtype == "binary":
+        domain = f"{var_tex} \\in \\{{0, 1\\}}"
+    else:
+        space = "\\mathbb{Z}" if var.vtype == "integer" else "\\mathbb{R}"
+        domain = f"{var_tex} \\in {space}"
+        bounds = _bounds_suffix(var, var_tex)
+        if bounds:
+            domain = f"{domain},\\; {bounds}"
+    if letters:
+        quant = ",\\; ".join(
+            f"{letter} \\in {_tex_atom(set_name)}"
+            for letter, set_name in zip(letters, var.index_sets, strict=True)
+        )
+        domain = f"{domain} \\quad \\forall\\, {quant}"
+    return LatexLine(latex=domain, label=var.name)
+
+
+def _objective_latex(obj: ObjectiveDecl) -> LatexLine:
+    op = "\\min" if obj.sense == "minimize" else "\\max"
+    return LatexLine(latex=f"{op} \\quad {_emit(obj.expr, _PREC_ADD)}", label=obj.name)
+
+
+def _constraint_latex(con: ConstraintDecl) -> LatexLine:
+    lhs = _emit(con.lhs, _PREC_ADD)
+    rhs = _emit(con.rhs, _PREC_ADD)
+    relation = _TEX_OPS.get(con.op, con.op)
+    body = f"{lhs} {relation} {rhs}"
+    bindings = _bindings_latex(con.quals)
+    if bindings:
+        filters = _filters_latex(con.quals)
+        core = f"{bindings} \\,:\\, {filters}" if filters else bindings
+        body = f"{body} \\quad \\forall\\, {core}"
+    return LatexLine(latex=body, label=con.name)
+
+
+def latexify(src: str) -> LatexModel:
+    """Parse-only LaTeX pretty-print of a JModel source (``POST /dsl/latex``, B1).
+
+    Renders the SYMBOLIC model — objective, constraint families with their
+    ``\\forall`` quantifiers, and variable domains — from the parsed AST, BEFORE
+    grounding, so the indexed sum/quantifier structure survives (grounding would
+    flatten it to thousands of scalar rows). Needs no data, so it succeeds for
+    declaration-only sources exactly like :func:`inspect_declarations`. Raises
+    :class:`JModelError` on lex/parse errors only.
+    """
+    model = _Parser(tokenize(src)).parse()
+    return LatexModel(
+        objective=_objective_latex(model.objective) if model.objective else None,
+        constraints=tuple(_constraint_latex(con) for con in model.constraints),
+        variables=tuple(_vardomain_latex(model.vars[name]) for name in model.var_order),
     )

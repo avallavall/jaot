@@ -86,6 +86,18 @@ class Variable(BaseModel):
     type: VariableType = Field(default=VariableType.CONTINUOUS, description="Variable type")
     lower_bound: float | None = Field(default=None, description="Lower bound (None = -inf)")
     upper_bound: float | None = Field(default=None, description="Upper bound (None = +inf)")
+    # Optional index structure so a flat mangled name ("assign_v3_o107") can be
+    # presented — and grouped — as the indexed family it came from
+    # (assign[v3, o107]). Set AUTHORITATIVELY by the JModel compiler when it
+    # grounds an indexed family; best-effort parsed for flat/imported models;
+    # left None for genuine scalars (they render flat). Solver-agnostic.
+    family: str | None = Field(
+        default=None, description="Indexed family this variable belongs to, if any"
+    )
+    index_tuple: list[str] | None = Field(
+        default=None,
+        description="Per-index-set members of this variable, e.g. ['v3', 'o107'].",
+    )
 
     @field_validator("name")
     @classmethod
@@ -280,6 +292,49 @@ class SensitivityResult(BaseModel):
     )
 
 
+class ConstraintUtilization(BaseModel):
+    """Exact, solution-based status of one constraint at the optimum x* (A3).
+
+    Computed from x* + the problem — NOT from the LP relaxation — so it is exact
+    for the integer solution and solver-agnostic. ``activity`` is a_i·x* (the LHS
+    with variables moved left, constants right); ``slack`` is the signed room
+    (≈0 ⇒ binding); ``utilization`` is activity/rhs for ≤-constraints.
+    """
+
+    name: str
+    activity: float
+    rhs: float
+    operator: str
+    slack: float
+    is_binding: bool
+    utilization: float | None = None
+
+
+class ObjectiveTermContribution(BaseModel):
+    """Exact contribution c_j·x*_j of one objective term at the solution (A3)."""
+
+    label: str
+    contribution: float
+
+
+class ExactAnalysis(BaseModel):
+    """Exact, solution-based analysis — binding constraints, slack/utilization,
+    objective contributions — all from x* + problem data (A3). Computed ON DEMAND
+    (it re-parses every constraint), never on the solve path. Solver-agnostic:
+    unlike LP-relaxation shadow prices, these are exact for the MILP solution.
+    """
+
+    objective_value: float | None = None
+    total_constraints: int = 0
+    binding_count: int = 0
+    constraints: list[ConstraintUtilization] = []
+    contributions: list[ObjectiveTermContribution] = []
+    truncated_constraints: bool = False
+    truncated_contributions: bool = False
+    computed: bool = True
+    note: str | None = None
+
+
 class InfeasibilityAnalysis(BaseModel):
     """Why an INFEASIBLE model has no solution — a minimal conflicting set.
 
@@ -399,6 +454,12 @@ class VariableSolution(BaseModel):
     name: str
     value: float
     type: VariableType
+    # Recovered index structure (see ``Variable.family`` / ``index_tuple``),
+    # copied through from the problem definition so the solution can be grouped
+    # by family server-side and every consumer (UI, MCP, explain_solution) sees
+    # ``assign[v3, o107]`` instead of a flat ``assign_v3_o107``. None → flat.
+    family: str | None = None
+    index_tuple: list[str] | None = None
 
 
 class ProgressPoint(BaseModel):
@@ -507,6 +568,11 @@ class OptimizationResult(BaseModel):
             "solver_status": self.status.value,
             "solve_time_seconds": self.solve_time_seconds,
             "gap": self.gap,
+            # Persisted so the post-solve summary can be honest about HOW the
+            # model solved — root node vs. N branch-and-bound nodes vs. time
+            # limit — instead of a flat, useless "live" convergence chart (A2).
+            "nodes": self.nodes,
+            "iterations": self.iterations,
             "variables": [v.model_dump() for v in self.variables] if self.variables else [],
             "sensitivity": self.sensitivity.model_dump() if self.sensitivity else None,
             "infeasibility_analysis": (

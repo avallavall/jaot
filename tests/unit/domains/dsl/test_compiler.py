@@ -87,6 +87,19 @@ def test_assignment_lowering():
     assert by_name["one_task_per_worker_A"] == "assign_A_1 + assign_A_2 + assign_A_3 == 1"
 
 
+def test_grounding_carries_index_structure():
+    """A1: the compiler stamps each grounded variable with its family + index
+    tuple so the flat name can be regrouped as assign[A, 1] downstream."""
+    by_name = {v.name: v for v in compile_jmodel(ASSIGNMENT).variables}
+    assert by_name["assign_A_1"].family == "assign"
+    assert by_name["assign_A_1"].index_tuple == ["A", "1"]
+    assert by_name["assign_C_3"].index_tuple == ["C", "3"]
+    # single-index family
+    take_a = {v.name: v for v in compile_jmodel(KNAPSACK).variables}["take_a"]
+    assert take_a.family == "take"
+    assert take_a.index_tuple == ["a"]
+
+
 def test_knapsack_lowering_scalar_param_and_maximize():
     prob = compile_jmodel(KNAPSACK)
 

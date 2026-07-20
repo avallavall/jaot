@@ -3,15 +3,12 @@
 import { useTranslations } from "next-intl";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { HelpTooltip } from "@/components/ui/help-tooltip";
-import { GapConvergenceChart } from "@/components/solve/GapConvergenceChart";
 import type { SolveSession } from "../../store/createModelProjectStore";
 import { computeMetrics } from "./live-solve-metrics";
 
 interface LiveSolvePanelProps {
   /** The current solve session (from the canonical store — survives tab switches). */
   session: SolveSession;
-  objectiveSense: "minimize" | "maximize";
   onCancel?: () => void;
 }
 
@@ -22,7 +19,7 @@ interface LiveSolvePanelProps {
  * when per-incumbent points streamed (SCIP); for solvers that don't stream (HiGHS,
  * Hexaly) it shows a clean final-result summary instead of an empty live box.
  */
-export function LiveSolvePanel({ session, objectiveSense, onCancel }: LiveSolvePanelProps) {
+export function LiveSolvePanel({ session, onCancel }: LiveSolvePanelProps) {
   const t = useTranslations("studio");
   const { status, points, lastEvent, result, solverName } = session;
   const metrics = computeMetrics(points, lastEvent);
@@ -56,29 +53,24 @@ export function LiveSolvePanel({ session, objectiveSense, onCancel }: LiveSolveP
         <p className="py-6 text-center text-sm text-muted-foreground">{t("liveWaiting")}</p>
       )}
 
+      {/* Live metrics as they stream (SCIP). The convergence CHART was removed
+          (A2): the per-incumbent stream is ~2 points — a flat line even when the
+          model branches thousands of nodes — so the honest numbers below carry
+          the signal, not a fake curve. */}
       {hasPoints && (
-        <>
-          <div>
-            <h4 className="mb-2 flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {t("liveConvergence")}
-              <HelpTooltip content={t("helpTooltips.liveProgress")} size={12} />
-            </h4>
-            <GapConvergenceChart progressHistory={points} objectiveSense={objectiveSense} />
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-            <Metric label={t("liveBestObjective")} value={fmt(metrics.bestObjective, 6)} />
-            <Metric
-              label={t("liveGap")}
-              value={metrics.gap === null ? "—" : `${(metrics.gap * 100).toFixed(2)}%`}
-            />
-            <Metric label={t("liveNodes")} value={fmt(metrics.nodes, 0)} />
-            <Metric label={t("liveIncumbents")} value={String(metrics.incumbents)} />
-            <Metric
-              label={t("liveElapsed")}
-              value={metrics.elapsedSeconds === null ? "—" : `${metrics.elapsedSeconds.toFixed(1)}s`}
-            />
-          </div>
-        </>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          <Metric label={t("liveBestObjective")} value={fmt(metrics.bestObjective, 6)} />
+          <Metric
+            label={t("liveGap")}
+            value={metrics.gap === null ? "—" : `${(metrics.gap * 100).toFixed(2)}%`}
+          />
+          <Metric label={t("liveNodes")} value={fmt(metrics.nodes, 0)} />
+          <Metric label={t("liveIncumbents")} value={String(metrics.incumbents)} />
+          <Metric
+            label={t("liveElapsed")}
+            value={metrics.elapsedSeconds === null ? "—" : `${metrics.elapsedSeconds.toFixed(1)}s`}
+          />
+        </div>
       )}
 
       {/* Solved, but the solver didn't stream per-incumbent (HiGHS/Hexaly): final summary. */}

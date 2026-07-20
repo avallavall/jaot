@@ -190,6 +190,24 @@ const execution = await response.json();
 
 ---
 
+## GET /api/v2/models/executions/\{execution_id\}/exact-analysis
+
+Exact, solution-based analysis of a completed execution — binding constraints, per-constraint slack and utilization, and objective-term contributions, all computed on demand from the stored solution x* and problem data. Unlike LP-relaxation shadow prices, these figures are exact for the integer solution and identical across solvers. See [Analyzing Results](/docs/studio/analyzing-results).
+
+**Authentication:** Requires API key or JWT token.
+
+### Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `computed` | boolean | `false` when the execution has no solution or no stored flat problem (`note` says which) |
+| `total_constraints` | number | Constraints in the problem |
+| `binding_count` | number | Constraints with ~zero slack at the optimum |
+| `constraints` | array | Per-constraint `name`, `activity`, `rhs`, `operator`, `slack`, `is_binding`, `utilization` — binding/tightest first, capped with `truncated_constraints` |
+| `contributions` | array | Objective terms `label` + `contribution` (c·x*), largest first, capped with `truncated_contributions` |
+
+---
+
 ## POST /api/v2/models/\{model_id\}/execute
 
 Execute one of your model projects with input data — `model_id` is the project's ID (e.g. a marketplace model you forked with **Use in studio**). All executions run async under the hood; the endpoint waits briefly and returns the result, or a task envelope to poll. For solving a project's draft or a committed version directly, prefer `POST /api/v2/projects/{project_id}/solve` (see [Models](/docs/api/models)); it also supports `solution_filter=nonzero` for a compact solution.

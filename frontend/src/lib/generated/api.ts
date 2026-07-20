@@ -1179,6 +1179,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/dsl/deground": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dsl Deground
+         * @description Reconstruct a compact JModel draft from a flat problem (B2, phase 1).
+         *
+         *     The inverse of compile: a model built on the canvas or imported (MPS/LP/CIP) has
+         *     no JModel source, so this recovers one — variable families over sets, ``sum``
+         *     objectives and ∀-quantified constraint families — so it can be read, edited and
+         *     shown as math (B1) in compact form. Heuristic, so honest: it returns ``source``
+         *     only when the draft VERIFIABLY round-trips to an equivalent problem, and ``null``
+         *     (a graceful decline, never a fake) otherwise.
+         */
+        post: operations["dsl_deground"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/dsl/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dsl Generate
+         * @description Generate a JModel source from a description and/or screenshots/PDFs (B3).
+         *
+         *     Turns JModel's determinism into a self-correcting loop: Claude proposes a source,
+         *     the compiler validates it, and any structured error is fed back for a retry. The
+         *     response's ``ok`` is true ONLY when the returned source verifiably compiles; when
+         *     every retry fails it still returns the best-effort draft plus the last compile
+         *     error, so the editor lands on an editable start rather than nothing.
+         *
+         *     Same guardrails as the chat assistant: BYOK-first (an org key runs on the org's own
+         *     account and skips the platform budget), monthly-budget pause, LLM rate limit, and a
+         *     content-moderation pre-check on the description.
+         */
+        post: operations["dsl_generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/dsl/inspect": {
         parameters: {
             query?: never;
@@ -1198,6 +1255,32 @@ export interface paths {
          *     Same structured-error contract as compile (no 4xx mid-keystroke).
          */
         post: operations["dsl_inspect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/dsl/latex": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dsl Latex
+         * @description Pretty-print a source as symbolic math for the JModel split-pane (B1).
+         *
+         *     Parse-only: it renders the indexed objective / ∀-quantified constraint families /
+         *     variable domains from the AST BEFORE grounding, so the sum & quantifier structure
+         *     survives (grounding would flatten it to thousands of scalar rows). Needs no data,
+         *     so it succeeds for declaration-only sources — states in which ``/dsl/compile``
+         *     errors. Same structured-error contract as compile (no 4xx mid-keystroke).
+         */
+        post: operations["dsl_latex"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1966,6 +2049,31 @@ export interface paths {
          * @description Get details of a specific execution.
          */
         get: operations["get_execution"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/models/executions/{execution_id}/exact-analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Execution Exact Analysis
+         * @description Exact, solution-based analysis of a completed execution (A3).
+         *
+         *     Computed on demand from the stored problem + solution — binding constraints,
+         *     slack/utilization, objective contributions — all exact for the integer
+         *     solution, unlike the LP-relaxation shadow prices. Off the solve path because
+         *     it re-parses every constraint.
+         */
+        get: operations["get_execution_exact_analysis"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4815,6 +4923,31 @@ export interface components {
             shadow_price?: number | null;
         };
         /**
+         * ConstraintUtilization
+         * @description Exact, solution-based status of one constraint at the optimum x* (A3).
+         *
+         *     Computed from x* + the problem — NOT from the LP relaxation — so it is exact
+         *     for the integer solution and solver-agnostic. ``activity`` is a_i·x* (the LHS
+         *     with variables moved left, constants right); ``slack`` is the signed room
+         *     (≈0 ⇒ binding); ``utilization`` is activity/rhs for ≤-constraints.
+         */
+        ConstraintUtilization: {
+            /** Activity */
+            activity: number;
+            /** Is Binding */
+            is_binding: boolean;
+            /** Name */
+            name: string;
+            /** Operator */
+            operator: string;
+            /** Rhs */
+            rhs: number;
+            /** Slack */
+            slack: number;
+            /** Utilization */
+            utilization?: number | null;
+        };
+        /**
          * ContactCreate
          * @description Request body for POST /api/v2/contact.
          *
@@ -5207,6 +5340,98 @@ export interface components {
             problem?: components["schemas"]["OptimizationProblem-Output"] | null;
         };
         /**
+         * DSLDegroundRequest
+         * @description A flat problem to reconstruct as a compact JModel draft (B2).
+         */
+        DSLDegroundRequest: {
+            problem: components["schemas"]["OptimizationProblem-Input"];
+        };
+        /**
+         * DSLDegroundResponse
+         * @description A best-effort JModel draft derived from a flat problem (B2).
+         *
+         *     ``source`` is the reconstructed JModel when a compact structure was recovered
+         *     AND verifiably round-trips to an equivalent problem; it is ``None`` (a graceful
+         *     decline, NOT an error) when the flat model has no recoverable compact form.
+         */
+        DSLDegroundResponse: {
+            /**
+             * Source
+             * @description Reconstructed JModel draft, or null when none is recoverable.
+             */
+            source?: string | null;
+        };
+        /**
+         * DSLGenerateAttachment
+         * @description One vision attachment: a base64 image or PDF the model reads to formulate.
+         */
+        DSLGenerateAttachment: {
+            /**
+             * Data
+             * @description Base64-encoded file bytes (no data: URL prefix).
+             */
+            data: string;
+            /**
+             * Media Type
+             * @description MIME type — one of image/png|jpeg|gif|webp or application/pdf.
+             */
+            media_type: string;
+        };
+        /**
+         * DSLGenerateRequest
+         * @description A natural-language description (+ optional vision attachments) to formulate.
+         *
+         *     At least one of ``description`` / ``attachments`` must be non-empty (validated in
+         *     the route). ``current_source`` seeds a refine-this-model turn when the user already
+         *     has a draft in the editor.
+         */
+        DSLGenerateRequest: {
+            /**
+             * Attachments
+             * @description Screenshots / PDFs of a formulation for Claude to read (vision).
+             */
+            attachments?: components["schemas"]["DSLGenerateAttachment"][];
+            /**
+             * Current Source
+             * @description An existing JModel draft to refine instead of starting fresh.
+             */
+            current_source?: string | null;
+            /**
+             * Description
+             * @description Plain-language description of the optimization problem to model.
+             * @default
+             */
+            description: string;
+        };
+        /**
+         * DSLGenerateResponse
+         * @description Result of an AI JModel generation (B3).
+         *
+         *     ``ok`` is true when the generated ``source`` VERIFIABLY compiles (the same
+         *     deterministic validator the editor uses); it is false when every retry still
+         *     failed to compile — in which case ``source`` still holds the best-effort draft
+         *     and ``error`` names the last compile failure, so the user lands on an editable
+         *     starting point rather than nothing. Honest by construction: a compiling source
+         *     is proven, a non-compiling one is flagged, never silently passed off as valid.
+         */
+        DSLGenerateResponse: {
+            /**
+             * Attempts
+             * @description How many generate→compile rounds ran (for observability).
+             * @default 0
+             */
+            attempts: number;
+            /** @description Last compile error when the source never compiled. */
+            error?: components["schemas"]["DSLCompileError"] | null;
+            /** Ok */
+            ok: boolean;
+            /**
+             * Source
+             * @description The generated JModel source (best-effort even when !ok).
+             */
+            source?: string | null;
+        };
+        /**
          * DSLInspectRequest
          * @description A JModel source whose data-facing declarations we want to list (S2a).
          */
@@ -5233,6 +5458,61 @@ export interface components {
             params?: components["schemas"]["DSLParamDecl"][] | null;
             /** Sets */
             sets?: components["schemas"]["DSLSetDecl"][] | null;
+        };
+        /**
+         * DSLLatexLine
+         * @description One rendered LaTeX line plus the source name (objective/constraint/variable).
+         */
+        DSLLatexLine: {
+            /**
+             * Label
+             * @description The declaration's name, for a caption.
+             */
+            label?: string | null;
+            /**
+             * Latex
+             * @description Valid KaTeX math-mode source.
+             */
+            latex: string;
+        };
+        /**
+         * DSLLatexModel
+         * @description A JModel rendered as symbolic math: objective, constraint families, domains.
+         */
+        DSLLatexModel: {
+            /** Constraints */
+            constraints?: components["schemas"]["DSLLatexLine"][];
+            objective?: components["schemas"]["DSLLatexLine"] | null;
+            /**
+             * Variables
+             * @description Variable domain lines (type + bounds).
+             */
+            variables?: components["schemas"]["DSLLatexLine"][];
+        };
+        /**
+         * DSLLatexRequest
+         * @description A JModel source to pretty-print as symbolic math (B1).
+         */
+        DSLLatexRequest: {
+            /**
+             * Source
+             * @description JModel source text — parsed only, never grounded.
+             */
+            source: string;
+        };
+        /**
+         * DSLLatexResponse
+         * @description Parse-only symbolic-math view of a source (the JModel split-pane, B1).
+         *
+         *     On success ``ok`` is true and ``model`` holds the rendered lines; on a lex/parse
+         *     failure ``ok`` is false and ``error`` describes it. Never grounded, so it
+         *     succeeds for declaration-only sources exactly like ``/dsl/inspect``.
+         */
+        DSLLatexResponse: {
+            error?: components["schemas"]["DSLCompileError"] | null;
+            model?: components["schemas"]["DSLLatexModel"] | null;
+            /** Ok */
+            ok: boolean;
         };
         /**
          * DSLParamDecl
@@ -5359,6 +5639,54 @@ export interface components {
             event_type: string;
             /** Prev Count */
             prev_count?: number | null;
+        };
+        /**
+         * ExactAnalysis
+         * @description Exact, solution-based analysis — binding constraints, slack/utilization,
+         *     objective contributions — all from x* + problem data (A3). Computed ON DEMAND
+         *     (it re-parses every constraint), never on the solve path. Solver-agnostic:
+         *     unlike LP-relaxation shadow prices, these are exact for the MILP solution.
+         */
+        ExactAnalysis: {
+            /**
+             * Binding Count
+             * @default 0
+             */
+            binding_count: number;
+            /**
+             * Computed
+             * @default true
+             */
+            computed: boolean;
+            /**
+             * Constraints
+             * @default []
+             */
+            constraints: components["schemas"]["ConstraintUtilization"][];
+            /**
+             * Contributions
+             * @default []
+             */
+            contributions: components["schemas"]["ObjectiveTermContribution"][];
+            /** Note */
+            note?: string | null;
+            /** Objective Value */
+            objective_value?: number | null;
+            /**
+             * Total Constraints
+             * @default 0
+             */
+            total_constraints: number;
+            /**
+             * Truncated Constraints
+             * @default false
+             */
+            truncated_constraints: boolean;
+            /**
+             * Truncated Contributions
+             * @default false
+             */
+            truncated_contributions: boolean;
         };
         /**
          * ExecuteModelRequest
@@ -6638,6 +6966,16 @@ export interface components {
              * @description Weight for weighted-scalarization mode (0.0 to 1.0)
              */
             weight?: number | null;
+        };
+        /**
+         * ObjectiveTermContribution
+         * @description Exact contribution c_j·x*_j of one objective term at the solution (A3).
+         */
+        ObjectiveTermContribution: {
+            /** Contribution */
+            contribution: number;
+            /** Label */
+            label: string;
         };
         /**
          * OnboardingStatusResponse
@@ -8826,6 +9164,16 @@ export interface components {
          */
         Variable: {
             /**
+             * Family
+             * @description Indexed family this variable belongs to, if any
+             */
+            family?: string | null;
+            /**
+             * Index Tuple
+             * @description Per-index-set members of this variable, e.g. ['v3', 'o107'].
+             */
+            index_tuple?: string[] | null;
+            /**
              * Lower Bound
              * @description Lower bound (None = -inf)
              */
@@ -8878,6 +9226,10 @@ export interface components {
          * @description Solution value for a single variable.
          */
         VariableSolution: {
+            /** Family */
+            family?: string | null;
+            /** Index Tuple */
+            index_tuple?: string[] | null;
             /** Name */
             name: string;
             type: components["schemas"]["VariableType"];
@@ -9145,6 +9497,7 @@ export type CompareResponse = components['schemas']['CompareResponse'];
 export type ComponentStatus = components['schemas']['ComponentStatus'];
 export type Constraint = components['schemas']['Constraint'];
 export type ConstraintSensitivity = components['schemas']['ConstraintSensitivity'];
+export type ConstraintUtilization = components['schemas']['ConstraintUtilization'];
 export type ContactCreate = components['schemas']['ContactCreate'];
 export type ContactResponse = components['schemas']['ContactResponse'];
 export type ConversionFunnelStep = components['schemas']['ConversionFunnelStep'];
@@ -9169,8 +9522,17 @@ export type DraftUpdate = components['schemas']['DraftUpdate'];
 export type DslCompileError = components['schemas']['DSLCompileError'];
 export type DslCompileRequest = components['schemas']['DSLCompileRequest'];
 export type DslCompileResponse = components['schemas']['DSLCompileResponse'];
+export type DslDegroundRequest = components['schemas']['DSLDegroundRequest'];
+export type DslDegroundResponse = components['schemas']['DSLDegroundResponse'];
+export type DslGenerateAttachment = components['schemas']['DSLGenerateAttachment'];
+export type DslGenerateRequest = components['schemas']['DSLGenerateRequest'];
+export type DslGenerateResponse = components['schemas']['DSLGenerateResponse'];
 export type DslInspectRequest = components['schemas']['DSLInspectRequest'];
 export type DslInspectResponse = components['schemas']['DSLInspectResponse'];
+export type DslLatexLine = components['schemas']['DSLLatexLine'];
+export type DslLatexModel = components['schemas']['DSLLatexModel'];
+export type DslLatexRequest = components['schemas']['DSLLatexRequest'];
+export type DslLatexResponse = components['schemas']['DSLLatexResponse'];
 export type DslParamDecl = components['schemas']['DSLParamDecl'];
 export type DslSetDecl = components['schemas']['DSLSetDecl'];
 export type DslStatusResponse = components['schemas']['DSLStatusResponse'];
@@ -9179,6 +9541,7 @@ export type EmailLoginRequest = components['schemas']['EmailLoginRequest'];
 export type EmailSignupRequest = components['schemas']['EmailSignupRequest'];
 export type EntityCounts = components['schemas']['EntityCounts'];
 export type EventBreakdownEntry = components['schemas']['EventBreakdownEntry'];
+export type ExactAnalysis = components['schemas']['ExactAnalysis'];
 export type ExecuteModelRequest = components['schemas']['ExecuteModelRequest'];
 export type ExecutionListResponse = components['schemas']['ExecutionListResponse'];
 export type ExecutionStats = components['schemas']['ExecutionStats'];
@@ -9240,6 +9603,7 @@ export type Objective = components['schemas']['Objective'];
 export type ObjectiveCoeffRange = components['schemas']['ObjectiveCoeffRange'];
 export type ObjectiveSense = components['schemas']['ObjectiveSense'];
 export type ObjectiveSpec = components['schemas']['ObjectiveSpec'];
+export type ObjectiveTermContribution = components['schemas']['ObjectiveTermContribution'];
 export type OnboardingStatusResponse = components['schemas']['OnboardingStatusResponse'];
 export type OnboardingStep = components['schemas']['OnboardingStep'];
 export type OptimizationProblemInput = components['schemas']['OptimizationProblem-Input'];
@@ -11497,6 +11861,72 @@ export interface operations {
             };
         };
     };
+    dsl_deground: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DSLDegroundRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DSLDegroundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dsl_generate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DSLGenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DSLGenerateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     dsl_inspect: {
         parameters: {
             query?: never;
@@ -11517,6 +11947,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DSLInspectResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dsl_latex: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DSLLatexRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DSLLatexResponse"];
                 };
             };
             /** @description Validation Error */
@@ -12810,6 +13273,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelExecutionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_execution_exact_analysis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                execution_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExactAnalysis"];
                 };
             };
             /** @description Validation Error */

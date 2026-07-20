@@ -196,6 +196,7 @@ markers = [
     "integration: marks integration tests requiring external services",
     "load: marks load/stress tests (deselect with '-m \"not load\"')",
     "unit: marks pure-unit tests with no I/O or external dependencies",
+    "contract: marks contract tests encoding cross-layer invariants",
 ]
 addopts = "-m 'not slow and not load'"
 

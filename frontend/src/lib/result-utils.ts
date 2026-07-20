@@ -9,6 +9,11 @@ interface VariableEntry {
   name: string;
   type: string;
   value: number | string;
+  // Recovered index structure (A1) — present on freshly-solved results, absent
+  // on legacy `model`-only rows. Lets consumers group `assign_v3_o107` as
+  // assign[v3, o107] instead of rendering the flat name.
+  family?: string | null;
+  index_tuple?: string[] | null;
 }
 
 export interface ProgressPoint {
@@ -18,7 +23,6 @@ export interface ProgressPoint {
   timestamp: number;
 }
 
-export type ObjectiveSense = "minimize" | "maximize";
 
 /**
  * Extract variable assignments from result_data.
@@ -77,15 +81,4 @@ export function extractProgressHistory(
       };
     })
     .filter((p) => Number.isFinite(p.objective));
-}
-
-/**
- * Extract the objective sense from `input_data.objective.sense`. Defaults to
- * minimize when missing or unrecognised.
- */
-export function extractObjectiveSense(
-  inputData: Record<string, unknown> | undefined | null,
-): ObjectiveSense {
-  const sense = (inputData?.objective as { sense?: unknown } | undefined)?.sense;
-  return sense === "maximize" ? "maximize" : "minimize";
 }

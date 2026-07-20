@@ -330,6 +330,26 @@ class TestSensitivityPersistence:
         data = result.to_result_data()
         assert data["sensitivity"] is None
 
+    def test_to_result_data_includes_nodes_and_iterations(self):
+        """Branch-and-bound telemetry is persisted so the post-solve summary can be
+        honest about HOW the model solved (root node vs. N nodes vs. time limit),
+        instead of a flat, useless convergence chart (A2)."""
+        result = SolverService().solve(_make_lp_problem())
+        result.nodes = 1936
+        result.iterations = 42
+        data = result.to_result_data()
+        assert data["nodes"] == 1936
+        assert data["iterations"] == 42
+
+    def test_to_result_data_nodes_none_when_absent(self):
+        """Absent telemetry serializes as null (additive, backward-compatible)."""
+        result = SolverService().solve(_make_lp_problem())
+        result.nodes = None
+        result.iterations = None
+        data = result.to_result_data()
+        assert data["nodes"] is None
+        assert data["iterations"] is None
+
 
 class TestSolverMultiObjectiveEpsilon:
     def test_epsilon_constraint_returns_pareto_points(self):

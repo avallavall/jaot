@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { SolutionExplorerTable } from "../SolutionExplorerTable";
+import { StructuredSolutionView } from "../StructuredSolutionView";
 import { ExecutionComparisonView } from "../ExecutionComparisonView";
 import { SensitivityTab } from "../SensitivityTab";
 import type { ModelExecution } from "@/lib/types";
@@ -103,5 +104,56 @@ describe("G9 — non-zero default toggles", () => {
       fireEvent.click(toggle);
       expect(screen.getByText("basic_var")).toBeInTheDocument();
     });
+  });
+});
+
+describe("StructuredSolutionView (A1b — grouped by recovered index structure)", () => {
+  const structured = [
+    { name: "assign_v3_o107", type: "binary" as const, value: 1, family: "assign", index_tuple: ["v3", "o107"] },
+    { name: "assign_v3_o12", type: "binary" as const, value: 1, family: "assign", index_tuple: ["v3", "o12"] },
+    { name: "assign_v1_o44", type: "binary" as const, value: 0, family: "assign", index_tuple: ["v1", "o44"] },
+  ];
+
+  it("leads with the grouped view and hides the zero assignment by default", () => {
+    wrap(<StructuredSolutionView variables={structured} />);
+    expect(screen.getByTestId("structured-groups")).toBeInTheDocument();
+    expect(screen.getByText("assign")).toBeInTheDocument();
+    expect(screen.getByText("o107")).toBeInTheDocument();
+    // nonzero default ON → the value-0 assignment (v1 → o44) is filtered out
+    expect(screen.queryByText("o44")).not.toBeInTheDocument();
+    // switching to the full table brings back the flat explorer (+ sensitivity)
+    fireEvent.click(screen.getByTestId("structured-view-table"));
+    expect(screen.getByTestId("explorer-nonzero-toggle")).toBeInTheDocument();
+  });
+
+  it("caps a huge grouped render behind an explicit 'show all'", () => {
+    // 600 non-zero structured variables: the grouped view must render a bounded
+    // prefix (500) + a banner, and only mount everything on the opt-in click —
+    // an unbounded render froze the page on real 20k-variable solutions.
+    const huge = Array.from({ length: 600 }, (_, i) => ({
+      name: `assign_v1_o${i}`,
+      type: "binary" as const,
+      value: 1,
+      family: "assign",
+      index_tuple: ["v1", `o${i}`],
+    }));
+    wrap(<StructuredSolutionView variables={huge} />);
+    expect(screen.getByTestId("structured-render-cap")).toBeInTheDocument();
+    expect(screen.queryByText("o499")).toBeInTheDocument();
+    expect(screen.queryByText("o500")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("structured-show-all"));
+    expect(screen.queryByTestId("structured-render-cap")).not.toBeInTheDocument();
+    expect(screen.queryByText("o599")).toBeInTheDocument();
+  });
+
+  it("falls back to the flat table when no structure was recovered", () => {
+    wrap(
+      <StructuredSolutionView
+        variables={[{ name: "x", type: "continuous" as const, value: 3.5 }]}
+      />,
+    );
+    expect(screen.queryByTestId("structured-groups")).not.toBeInTheDocument();
+    expect(screen.getByTestId("explorer-nonzero-toggle")).toBeInTheDocument();
   });
 });

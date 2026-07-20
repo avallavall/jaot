@@ -65,7 +65,13 @@ class FakeHexalyAdapter:
             var.name: float(idx) for idx, var in enumerate(problem.variables)
         }
         variables = [
-            VariableSolution(name=var.name, value=float(idx), type=var.type)
+            VariableSolution(
+                name=var.name,
+                value=float(idx),
+                type=var.type,
+                family=var.family,
+                index_tuple=var.index_tuple,
+            )
             for idx, var in enumerate(problem.variables)
         ]
         return OptimizationResult(

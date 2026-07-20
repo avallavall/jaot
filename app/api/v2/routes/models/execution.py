@@ -20,6 +20,7 @@ from app.domains.solver.adapters.base import (
 )
 from app.domains.solver.queue_routing import resolve_queue
 from app.domains.solver.services.availability_gate import ensure_hexaly_worker_or_503
+from app.domains.solver.services.exact_analysis import compute_exact_analysis
 from app.domains.solver.services.solver_service import SolverService, get_solver_service
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
 from app.domains.solver.time_limits import compute_celery_time_limits
@@ -30,7 +31,7 @@ from app.schemas.model import (
     ExecutionListResponse,
     ModelExecutionResponse,
 )
-from app.schemas.optimization import OptimizationProblem
+from app.schemas.optimization import ExactAnalysis, OptimizationProblem
 from app.services.solve_orchestrator import ORIGIN_MARKETPLACE
 from app.services.template_resolver import listing_to_template_dict
 from app.shared.db.base import get_db
@@ -666,3 +667,54 @@ async def get_execution(
         raise HTTPException(status_code=404, detail="Execution not found")
 
     return ModelExecutionResponse.model_validate(execution)
+
+
+@router.get(
+    "/executions/{execution_id}/exact-analysis",
+    operation_id="get_execution_exact_analysis",
+)
+def get_execution_exact_analysis(  # sync ON PURPOSE -> threadpool (CPU-bound, no awaits)
+    execution_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ExactAnalysis:
+    """Exact, solution-based analysis of a completed execution (A3).
+
+    Computed on demand from the stored problem + solution — binding constraints,
+    slack/utilization, objective contributions — all exact for the integer
+    solution, unlike the LP-relaxation shadow prices. Off the solve path because
+    it re-parses every constraint — and a sync ``def`` so that re-parse (up to
+    thousands of constraints) runs in the threadpool, never on the event loop.
+    """
+    execution = (
+        db.query(ModelExecution)
+        .filter(
+            ModelExecution.id == execution_id,
+            ModelExecution.organization_id == current_user.organization_id,
+        )
+        .first()
+    )
+    if not execution:
+        raise HTTPException(status_code=404, detail="Execution not found")
+
+    result_data = execution.result_data or {}
+    raw_solution = result_data.get("model")
+    if not isinstance(raw_solution, dict) or not raw_solution:
+        return ExactAnalysis(computed=False, note="no_solution")
+
+    try:
+        problem = OptimizationProblem.model_validate(execution.input_data)
+    except (ValidationError, TypeError, ValueError):
+        # Template / model executions may not store a flat problem — nothing to analyse.
+        return ExactAnalysis(computed=False, note="not_a_problem")
+
+    solution: dict[str, float] = {}
+    for key, value in raw_solution.items():
+        try:
+            solution[key] = float(value)
+        except (TypeError, ValueError):
+            continue
+
+    return compute_exact_analysis(
+        problem, solution, objective_value=result_data.get("objective_value")
+    )

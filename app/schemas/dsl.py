@@ -102,3 +102,144 @@ class DSLStatusResponse(BaseModel):
     """Whether the JModel DSL feature is enabled on this instance."""
 
     enabled: bool
+
+
+class DSLLatexRequest(BaseModel):
+    """A JModel source to pretty-print as symbolic math (B1)."""
+
+    source: str = Field(
+        ...,
+        max_length=1_000_000,
+        description="JModel source text — parsed only, never grounded.",
+    )
+
+
+class DSLLatexLine(BaseModel):
+    """One rendered LaTeX line plus the source name (objective/constraint/variable)."""
+
+    latex: str = Field(..., description="Valid KaTeX math-mode source.")
+    label: str | None = Field(default=None, description="The declaration's name, for a caption.")
+
+
+class DSLLatexModel(BaseModel):
+    """A JModel rendered as symbolic math: objective, constraint families, domains."""
+
+    objective: DSLLatexLine | None = None
+    constraints: list[DSLLatexLine] = Field(default_factory=list)
+    variables: list[DSLLatexLine] = Field(
+        default_factory=list, description="Variable domain lines (type + bounds)."
+    )
+
+
+class DSLLatexResponse(BaseModel):
+    """Parse-only symbolic-math view of a source (the JModel split-pane, B1).
+
+    On success ``ok`` is true and ``model`` holds the rendered lines; on a lex/parse
+    failure ``ok`` is false and ``error`` describes it. Never grounded, so it
+    succeeds for declaration-only sources exactly like ``/dsl/inspect``.
+    """
+
+    ok: bool
+    model: DSLLatexModel | None = None
+    error: DSLCompileError | None = None
+
+
+class DSLDegroundRequest(BaseModel):
+    """A flat problem to reconstruct as a compact JModel draft (B2)."""
+
+    problem: OptimizationProblem
+
+
+class DSLDegroundResponse(BaseModel):
+    """A best-effort JModel draft derived from a flat problem (B2).
+
+    ``source`` is the reconstructed JModel when a compact structure was recovered
+    AND verifiably round-trips to an equivalent problem; it is ``None`` (a graceful
+    decline, NOT an error) when the flat model has no recoverable compact form.
+    """
+
+    source: str | None = Field(
+        default=None,
+        description="Reconstructed JModel draft, or null when none is recoverable.",
+    )
+
+
+# --- B3: generate a JModel source with the LLM (vision + compile-validate-retry) ---
+
+# Claude's native document/image vision — the media types we forward as content blocks.
+# Images (png/jpeg/gif/webp) ride as ``image`` blocks; PDFs as ``document`` blocks, so
+# a screenshot of a thesis formulation or a spec PDF is read directly — no OCR/poppler.
+DSL_GENERATE_IMAGE_TYPES: frozenset[str] = frozenset(
+    {"image/png", "image/jpeg", "image/gif", "image/webp"}
+)
+DSL_GENERATE_PDF_TYPE = "application/pdf"
+DSL_GENERATE_MEDIA_TYPES: frozenset[str] = DSL_GENERATE_IMAGE_TYPES | {DSL_GENERATE_PDF_TYPE}
+
+# Per-attachment and per-request caps. Claude allows ~5 MB per image and ~32 MB per
+# request; we stay well under. ``data`` is base64, so the decoded byte size is ~3/4 of
+# the string length — the string cap below keeps a single attachment under ~5 MB decoded.
+DSL_GENERATE_MAX_ATTACHMENTS = 4
+DSL_GENERATE_MAX_ATTACHMENT_CHARS = 7_000_000
+DSL_GENERATE_MAX_DESCRIPTION_CHARS = 8_000
+
+
+class DSLGenerateAttachment(BaseModel):
+    """One vision attachment: a base64 image or PDF the model reads to formulate."""
+
+    media_type: str = Field(
+        ...,
+        description="MIME type — one of image/png|jpeg|gif|webp or application/pdf.",
+    )
+    data: str = Field(
+        ...,
+        max_length=DSL_GENERATE_MAX_ATTACHMENT_CHARS,
+        description="Base64-encoded file bytes (no data: URL prefix).",
+    )
+
+
+class DSLGenerateRequest(BaseModel):
+    """A natural-language description (+ optional vision attachments) to formulate.
+
+    At least one of ``description`` / ``attachments`` must be non-empty (validated in
+    the route). ``current_source`` seeds a refine-this-model turn when the user already
+    has a draft in the editor.
+    """
+
+    description: str = Field(
+        default="",
+        max_length=DSL_GENERATE_MAX_DESCRIPTION_CHARS,
+        description="Plain-language description of the optimization problem to model.",
+    )
+    attachments: list[DSLGenerateAttachment] = Field(
+        default_factory=list,
+        max_length=DSL_GENERATE_MAX_ATTACHMENTS,
+        description="Screenshots / PDFs of a formulation for Claude to read (vision).",
+    )
+    current_source: str | None = Field(
+        default=None,
+        max_length=1_000_000,
+        description="An existing JModel draft to refine instead of starting fresh.",
+    )
+
+
+class DSLGenerateResponse(BaseModel):
+    """Result of an AI JModel generation (B3).
+
+    ``ok`` is true when the generated ``source`` VERIFIABLY compiles (the same
+    deterministic validator the editor uses); it is false when every retry still
+    failed to compile — in which case ``source`` still holds the best-effort draft
+    and ``error`` names the last compile failure, so the user lands on an editable
+    starting point rather than nothing. Honest by construction: a compiling source
+    is proven, a non-compiling one is flagged, never silently passed off as valid.
+    """
+
+    ok: bool
+    source: str | None = Field(
+        default=None, description="The generated JModel source (best-effort even when !ok)."
+    )
+    error: DSLCompileError | None = Field(
+        default=None, description="Last compile error when the source never compiled."
+    )
+    attempts: int = Field(
+        default=0, description="How many generate→compile rounds ran (for observability)."
+    )

@@ -133,6 +133,47 @@ test.describe("Studio — critical path (guards live bugs A/B/C)", () => {
     await expect(headerSolve).toBeEnabled({ timeout: NAV });
   });
 
+  // BUG D (owner 2026-07-19): the JSON editor crashed the WHOLE studio page ~500ms after
+  // any valid edit. The server `/solve/validate` response carries no `warnings` array, and
+  // ModelEditorPanel read `validation.warnings.length` unconditionally on render → the
+  // page fell to the error boundary, which ABORTED the in-flight autosave, so a variable
+  // just added elsewhere (e.g. after deriving a JModel) was never persisted — the "added
+  // x2, it wasn't saved" report. Every prior editor spec dodged it by asserting/navigating
+  // BEFORE the debounced validation lands; this test WAITS for that response to render.
+  test("BUG D — a validated JSON-editor edit does not crash the page", async ({ page }) => {
+    // createBlankProject navigates into the fresh project; we drive the current page.
+    await createBlankProject(page);
+    await page.getByTestId("studio-sublens-editor").click();
+    const editor = page.getByTestId("studio-editor-textarea");
+    await expect(editor).toBeVisible({ timeout: NAV });
+
+    const VALID_MODEL = {
+      variables: [{ name: "x", type: "continuous", lower_bound: 0, upper_bound: 23 }],
+      objective: { sense: "minimize", expression: "x" },
+      constraints: [{ name: "c1", expression: "x >= 8" }],
+    };
+    // The server validation is debounced ~500ms after the edit; WAIT for its response so
+    // the result actually RENDERS (the crash lived in that render), instead of ending the
+    // test first like the specs above do.
+    const [validateResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes("/solve/validate") && r.request().method() === "POST",
+        { timeout: NAV },
+      ),
+      editor.fill(JSON.stringify(VALID_MODEL, null, 2)),
+    ]);
+    expect(validateResp.ok()).toBeTruthy();
+    // Give React a beat to commit the validation render.
+    await page.waitForTimeout(600);
+
+    // The page did NOT fall to the error boundary, and the editor is still live and
+    // holding the model — proof the validated render did not crash the studio page.
+    await expect(page.getByText("Something went wrong")).toHaveCount(0);
+    await expect(editor).toBeVisible();
+    await expect(editor).toHaveValue(/"objective"/);
+    await expect(page.getByTestId("studio-editor-error")).toHaveCount(0);
+  });
+
   // P4: the header "Explain" button jumps to the Analyze lens, which hosts the grounded
   // "Explain this model" card (the actual LLM streaming is verified out-of-band, since it
   // needs an LLM key the CI DB lacks; here we assert the wiring + card render).

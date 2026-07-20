@@ -12,6 +12,8 @@
 - [Introduction](/docs/getting-started/introduction): Platform overview and first steps
 - [Quick Start](/docs/getting-started/quick-start): Solve your first optimization problem
 - [The Model Workspace](/docs/studio/model-workspace): Build, analyze, version, and solve a model in one place
+- [JModel DSL](/docs/studio/jmodel-dsl): Indexed modeling language — mathematical notation view, draft derivation from flat models, and compile-verified AI generation
+- [Analyzing Results](/docs/studio/analyzing-results): Structured (grouped) solutions, an honest solve summary, and exact solution-based analysis
 
 ## API Reference
 

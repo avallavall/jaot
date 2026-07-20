@@ -95,6 +95,48 @@ class TestS6ExecuteModelParity:
         assert row is not None
         assert row.celery_task_id
 
+    def test_execute_recovers_flat_index_structure(
+        self, authenticated_client, db_session, test_organization
+    ):
+        """# CONTRACT-TEST: A1 index recovery covers EVERY solve entry point —
+        an execution launched via /models/{id}/execute must carry family/index_tuple
+        on its solution variables (the worker annotates the problem it builds;
+        /solve and /solve/async annotate at enqueue)."""
+        model_id = _seed_model(db_session, test_organization, "a1idx")
+
+        response = authenticated_client.post(
+            f"/api/v2/models/{model_id}/execute",
+            json={
+                "input_data": {
+                    "variables": [
+                        {
+                            "name": "pick_1",
+                            "type": "continuous",
+                            "lower_bound": 0,
+                            "upper_bound": 1,
+                        },
+                        {
+                            "name": "pick_2",
+                            "type": "continuous",
+                            "lower_bound": 0,
+                            "upper_bound": 1,
+                        },
+                    ],
+                    "objective": {"sense": "maximize", "expression": "pick_1 + pick_2"},
+                }
+            },
+        )
+
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert data["status"] == "completed", data
+        variables = (data.get("result_data") or {}).get("variables") or []
+        by_name = {v["name"]: v for v in variables}
+        assert by_name, data.get("result_data")
+        assert by_name["pick_1"]["family"] == "pick"
+        assert by_name["pick_1"]["index_tuple"] == ["1"]
+        assert by_name["pick_2"]["index_tuple"] == ["2"]
+
     def test_sync_mode_degrades_to_202_past_budget(
         self, authenticated_client, db_session, test_organization, monkeypatch
     ):

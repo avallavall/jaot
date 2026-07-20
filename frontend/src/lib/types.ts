@@ -19,11 +19,14 @@ export type {
 export type {
   Constraint,
   ConstraintSensitivity,
+  ConstraintUtilization,
+  ExactAnalysis,
   MultiObjectiveConfig,
   MultiObjectiveResult,
   Objective,
   ObjectiveCoeffRange,
   ObjectiveSpec,
+  ObjectiveTermContribution,
   OptimizationProblemInput as OptimizationProblem,
   OptimizationResult,
   ParetoPoint,
@@ -348,6 +351,10 @@ export type ExecutionSourceKind =
 export interface AsyncTask {
   task_id: string;
   status: string;
+  /** The ModelExecution row id (`exe_…`) — first-class in the async contract
+   * (ADR-007 §6): task_id keys Celery/WS, execution_id keys history. Lets a
+   * caller deep-link to the full execution-detail page. */
+  execution_id?: string;
 }
 
 /**
@@ -610,6 +617,50 @@ export interface DslInspectResult {
   sets?: DslSetDecl[] | null;
   params?: DslParamDecl[] | null;
   error?: DslCompileError | null;
+}
+
+/** One rendered LaTeX line plus the source name (POST /api/v2/dsl/latex, B1). */
+export interface DslLatexLine {
+  latex: string;
+  label?: string | null;
+}
+
+/** A JModel rendered as symbolic math: objective, constraint families, domains. */
+export interface DslLatexModel {
+  objective?: DslLatexLine | null;
+  constraints: DslLatexLine[];
+  variables: DslLatexLine[];
+}
+
+/** Parse-only symbolic-math view of a source (the JModel split-pane, B1). */
+export interface DslLatexResult {
+  ok: boolean;
+  model?: DslLatexModel | null;
+  error?: DslCompileError | null;
+}
+
+/** A JModel draft derived from a flat problem (POST /api/v2/dsl/deground, B2).
+ * `source` is null (a graceful decline) when no compact structure is recoverable. */
+export interface DslDegroundResult {
+  source?: string | null;
+}
+
+/** One vision attachment for AI generation (POST /api/v2/dsl/generate, B3):
+ * a base64 image or PDF Claude reads directly. `data` carries the raw base64
+ * (no `data:` URL prefix). */
+export interface DslGenerateAttachment {
+  media_type: string;
+  data: string;
+}
+
+/** Result of an AI JModel generation (B3). `ok` is true only when `source`
+ * verifiably compiles; when false, `source` still holds the best-effort draft and
+ * `error` names the last compile failure. */
+export interface DslGenerateResult {
+  ok: boolean;
+  source?: string | null;
+  error?: DslCompileError | null;
+  attempts: number;
 }
 
 /**

@@ -34,38 +34,75 @@ logger = logging.getLogger(__name__)
 def _ensure_settings_seeded() -> None:
     """Insert missing platform settings from registry defaults.
 
-    Runs during startup after DB connection is verified.
+    Runs during startup after DB connection is verified. The API boots
+    several uvicorn workers concurrently, so this races: without a guard,
+    every worker reads the same key as missing and 3-of-4 fail the unique
+    key PK with ``UniqueViolation``. The insert therefore uses
+    ``ON CONFLICT DO NOTHING`` — the ``missing`` probe is a cheap best-effort
+    filter, the conflict clause is what actually makes it race-safe.
     Never crashes the app -- logs and continues on failure.
     """
+    from sqlalchemy import update as sa_update
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+
     from app.models.platform_setting import PlatformSetting
     from app.services.settings_registry import SETTINGS_REGISTRY
     from app.shared.db.session import SessionLocal
+    from app.shared.utils.datetime_helpers import utcnow
 
     db = SessionLocal()
     try:
-        missing = 0
+        existing = {key for (key,) in db.query(PlatformSetting.key).all()}
+        now = utcnow()
+
+        # Readonly settings mirror code constants (APP_VERSION, JWT_ALGORITHM) —
+        # refresh them to the registry default on every boot. The insert below only
+        # covers MISSING keys, so after an upgrade a readonly row would otherwise
+        # keep the value of whichever release first seeded it (an admin panel
+        # forever showing the old version).
+        refreshed = 0
         for defn in SETTINGS_REGISTRY:
-            if defn.default_value is None:
+            if not (defn.is_readonly and defn.default_value is not None):
                 continue
-            exists = db.query(PlatformSetting).filter(PlatformSetting.key == defn.key).first()
-            if not exists:
-                db.add(
-                    PlatformSetting(
-                        key=defn.key,
-                        value=defn.default_value,
-                        description=defn.description,
-                        updated_by="system_seed",
-                    )
+            result = db.execute(
+                sa_update(PlatformSetting)
+                .where(
+                    PlatformSetting.key == defn.key,
+                    PlatformSetting.value != defn.default_value,
                 )
-                missing += 1
-        if missing:
+                .values(value=defn.default_value, updated_at=now, updated_by="system_seed")
+            )
+            refreshed += result.rowcount or 0
+        if refreshed:
             db.commit()
             logger.warning(
-                "Self-healed %d missing platform settings from registry",
-                missing,
+                "Refreshed %d readonly platform settings to their registry defaults", refreshed
             )
-        else:
+
+        rows = [
+            {
+                "key": defn.key,
+                "value": defn.default_value,
+                "description": defn.description,
+                "updated_at": now,
+                "updated_by": "system_seed",
+            }
+            for defn in SETTINGS_REGISTRY
+            if defn.default_value is not None and defn.key not in existing
+        ]
+        if not rows:
             logger.info("All platform settings present in database")
+            return
+        stmt = (
+            pg_insert(PlatformSetting).values(rows).on_conflict_do_nothing(index_elements=["key"])
+        )
+        result = db.execute(stmt)
+        db.commit()
+        logger.warning(
+            "Self-healed missing platform settings from registry (%d candidates, %d inserted)",
+            len(rows),
+            result.rowcount if result.rowcount and result.rowcount >= 0 else 0,
+        )
     except Exception as e:
         logger.error("Failed to self-heal settings: %s", e)
         db.rollback()

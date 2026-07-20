@@ -24,6 +24,7 @@ const contentMap: Record<string, () => Promise<{ default: React.ComponentType; f
   "studio/versioning": () => import("@content/docs/studio/versioning.mdx"),
   "studio/datasets-scenarios": () => import("@content/docs/studio/datasets-scenarios.mdx"),
   "studio/importing-files": () => import("@content/docs/studio/importing-files.mdx"),
+  "studio/analyzing-results": () => import("@content/docs/studio/analyzing-results.mdx"),
   "ai-builder/building-with-ai": () => import("@content/docs/ai-builder/building-with-ai.mdx"),
   "ai-builder/templates-gallery": () => import("@content/docs/ai-builder/templates-gallery.mdx"),
   "ai-builder/understanding-your-solution": () =>

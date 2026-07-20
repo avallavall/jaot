@@ -96,7 +96,7 @@ export function SystemTab({ health, stats, loading }: SystemTabProps) {
             {loading ? (
               <Skeleton className="h-5 w-24 mt-1" />
             ) : (
-              <p className="font-medium">JAOT v{health?.version ?? "3.0.0"}</p>
+              <p className="font-medium">JAOT v{health?.version ?? "3.1.0"}</p>
             )}
           </div>
           <div>

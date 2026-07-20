@@ -47,6 +47,19 @@ const DRIFT_MODEL = {
   constraints: [{ name: "c1", expression: "z >= 1" }],
 };
 
+// The flat lowering of the pick-2 knapsack (VALID_JMODEL): a binary family x_{a,b,c}
+// with a weighted objective and a single cardinality constraint. Built in another lens
+// so B2's de-grounder has an indexed structure to recover back into a compact JModel.
+const FLAT_FAMILY_MODEL = {
+  variables: [
+    { name: "x_a", type: "binary", lower_bound: 0, upper_bound: 1 },
+    { name: "x_b", type: "binary", lower_bound: 0, upper_bound: 1 },
+    { name: "x_c", type: "binary", lower_bound: 0, upper_bound: 1 },
+  ],
+  objective: { sense: "maximize", expression: "2*x_a + 3*x_b + 4*x_c" },
+  constraints: [{ name: "pick_two", expression: "x_a + x_b + x_c <= 2" }],
+};
+
 async function setDslFlag(value: "true" | "false"): Promise<void> {
   const ctx = await request.newContext({ baseURL: BASE });
   try {
@@ -508,5 +521,90 @@ subject to reach_c: sum{(i, j) in ARCS : j == c} use[i, j] >= 1;`);
     });
     await expect(textarea).toHaveJSProperty("readOnly", false);
     await expect(page.getByTestId("studio-jmodel-error")).toHaveCount(0);
+  });
+
+  // B1 — the split-pane renders the source as symbolic math (KaTeX) and the Σ toggle
+  // collapses it back to a plain editor.
+  test("B1: math split-pane renders the notation and the Σ toggle collapses it", async ({
+    page,
+  }) => {
+    await setDslFlag("true");
+    const projectId = await createBlankProject(page);
+    await page.goto(`/studio/${projectId}/build?lens=jmodel`);
+
+    const textarea = page.getByTestId("studio-jmodel-textarea");
+    await expect(textarea).toBeVisible({ timeout: NAV });
+    await textarea.fill(VALID_JMODEL);
+    await expect(page.getByTestId("studio-jmodel-error")).toHaveCount(0, { timeout: NAV });
+
+    // The math pane is on by default and typesets the parsed model (KaTeX emits .katex).
+    const mathPane = page.getByTestId("studio-jmodel-math");
+    await expect(mathPane).toBeVisible({ timeout: NAV });
+    await expect(mathPane.locator(".katex").first()).toBeVisible({ timeout: NAV });
+
+    // The Σ toggle collapses the pane back to a plain editor, and restores it.
+    await page.getByTestId("studio-jmodel-math-toggle").click();
+    await expect(page.getByTestId("studio-jmodel-math")).toHaveCount(0);
+    await page.getByTestId("studio-jmodel-math-toggle").click();
+    await expect(page.getByTestId("studio-jmodel-math")).toBeVisible({ timeout: NAV });
+  });
+
+  // B2 — a model built in another lens (no JModel source) can be de-grounded back into a
+  // compact JModel draft that compiles. FLAT_FAMILY_MODEL is the flat lowering of the
+  // pick-2 knapsack, so the de-grounder recovers the family + sum objective/constraint.
+  test("B2: derive a compiling JModel draft from a flat model built elsewhere", async ({
+    page,
+  }) => {
+    await setDslFlag("true");
+    const projectId = await createBlankProject(page);
+    await page.goto(`/studio/${projectId}/build?lens=jmodel`);
+    await expect(page.getByTestId("studio-jmodel-textarea")).toBeVisible({ timeout: NAV });
+
+    // Build the model in the JSON lens (deterministic) — the JModel source stays empty.
+    await page.getByTestId("studio-sublens-editor").click();
+    const editor = page.getByTestId("studio-editor-textarea");
+    await expect(editor).toBeVisible({ timeout: NAV });
+    await editor.fill(JSON.stringify(FLAT_FAMILY_MODEL, null, 2));
+    await expect(page.getByTestId("studio-editor-error")).toHaveCount(0, { timeout: NAV });
+
+    // Back on JModel: empty source + a model that exists ⇒ "Derive draft" is offered.
+    await page.getByTestId("studio-sublens-jmodel").click();
+    const derive = page.getByTestId("studio-jmodel-derive");
+    await expect(derive).toBeVisible({ timeout: NAV });
+    await derive.click();
+
+    // The draft lands in the editor, compiles (no error), and is not a decline. The
+    // de-grounder may recover a `sum{}` family OR a compact scalar model (its honest
+    // choice for a small model) — either is a valid derive; here we assert the flow
+    // succeeded (objective recovered + compiles), the family specifics being unit-tested.
+    const textarea = page.getByTestId("studio-jmodel-textarea");
+    await expect(textarea).toHaveValue(/maximize obj/, { timeout: NAV });
+    await expect(page.getByTestId("studio-jmodel-derive-declined")).toHaveCount(0);
+    await expect(page.getByTestId("studio-jmodel-error")).toHaveCount(0, { timeout: NAV });
+  });
+
+  // B3 — "Generate with AI" opens the dialog and guards an empty request. The full
+  // generate→compile→apply path is NOT driven here: it would call the real model
+  // server-side, and integration_proof §1 forbids mocking the JAOT /dsl/generate
+  // boundary. That path is covered by the backend endpoint tests (real DB, faked
+  // Anthropic client) + the JModelGenerateDialog unit test.
+  test("B3: generate-with-AI dialog opens and guards input", async ({ page }) => {
+    await setDslFlag("true");
+    const projectId = await createBlankProject(page);
+    await page.goto(`/studio/${projectId}/build?lens=jmodel`);
+    await expect(page.getByTestId("studio-jmodel-textarea")).toBeVisible({ timeout: NAV });
+
+    await page.getByTestId("studio-jmodel-generate-open").click();
+    await expect(page.getByTestId("studio-jmodel-generate-dialog")).toBeVisible({ timeout: NAV });
+
+    // Empty request is guarded — submit is disabled until there is a description.
+    const submit = page.getByTestId("studio-jmodel-generate-submit");
+    await expect(submit).toBeDisabled();
+    await page.getByTestId("studio-jmodel-generate-description").fill("pick the two best items");
+    await expect(submit).toBeEnabled();
+
+    // Escape closes the dialog (no submit — see the note above).
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("studio-jmodel-generate-dialog")).toHaveCount(0, { timeout: NAV });
   });
 });

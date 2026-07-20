@@ -15,22 +15,50 @@ calls this endpoint on every debounced keystroke).
 
 import logging
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.api.deps import CurrentOrg, CurrentUser, DBSession
 from app.api.v2.deps.dsl_feature_gate import dsl_enabled, dsl_feature_gate
-from app.domains.dsl import JModelData, JModelError, compile_jmodel, inspect_declarations
+from app.domains.dsl import (
+    JModelData,
+    JModelError,
+    compile_jmodel,
+    inspect_declarations,
+    latexify,
+)
 from app.schemas.dsl import (
+    DSL_GENERATE_MEDIA_TYPES,
     DSLCompileError,
     DSLCompileRequest,
     DSLCompileResponse,
+    DSLDegroundRequest,
+    DSLDegroundResponse,
+    DSLGenerateRequest,
+    DSLGenerateResponse,
     DSLInspectRequest,
     DSLInspectResponse,
+    DSLLatexLine,
+    DSLLatexModel,
+    DSLLatexRequest,
+    DSLLatexResponse,
     DSLParamDecl,
     DSLSetDecl,
     DSLStatusResponse,
 )
 from app.services import model_project_service as project_svc
+from app.services.jmodel_deground import deground_problem
+from app.services.jmodel_generate import generate_jmodel
+from app.services.llm.anthropic_client import get_anthropic_client
+from app.services.llm.byok import resolve_anthropic_client
+from app.services.llm.cost_tracking import (
+    is_llm_budget_exceeded,
+    record_standalone_llm_spend,
+)
+from app.services.llm.errors import handle_anthropic_failure
+from app.services.llm.formulation_service import select_model
+from app.services.llm.moderation import moderate_message
+from app.services.platform_settings_service import PlatformSettingsService as PSS
+from app.shared.core.rate_limiter import check_rate_limit
 
 logger = logging.getLogger(__name__)
 
@@ -126,4 +154,225 @@ def dsl_inspect(body: DSLInspectRequest, _user: CurrentUser) -> DSLInspectRespon
             )
             for p in decls.params
         ],
+    )
+
+
+@router.post(
+    "/latex",
+    operation_id="dsl_latex",
+    dependencies=[Depends(dsl_feature_gate)],
+)
+def dsl_latex(body: DSLLatexRequest, _user: CurrentUser) -> DSLLatexResponse:
+    """Pretty-print a source as symbolic math for the JModel split-pane (B1).
+
+    Parse-only: it renders the indexed objective / ∀-quantified constraint families /
+    variable domains from the AST BEFORE grounding, so the sum & quantifier structure
+    survives (grounding would flatten it to thousands of scalar rows). Needs no data,
+    so it succeeds for declaration-only sources — states in which ``/dsl/compile``
+    errors. Same structured-error contract as compile (no 4xx mid-keystroke).
+    """
+    try:
+        rendered = latexify(body.source)
+    except JModelError as exc:
+        return DSLLatexResponse(
+            ok=False,
+            error=DSLCompileError(message=exc.message, position=exc.position),
+        )
+    except Exception:
+        logger.exception("JModel LaTeX renderer crashed on user source")
+        return DSLLatexResponse(
+            ok=False,
+            error=DSLCompileError(message="internal compiler error", position=None),
+        )
+    return DSLLatexResponse(
+        ok=True,
+        model=DSLLatexModel(
+            objective=(
+                DSLLatexLine(latex=rendered.objective.latex, label=rendered.objective.label)
+                if rendered.objective
+                else None
+            ),
+            constraints=[
+                DSLLatexLine(latex=line.latex, label=line.label) for line in rendered.constraints
+            ],
+            variables=[
+                DSLLatexLine(latex=line.latex, label=line.label) for line in rendered.variables
+            ],
+        ),
+    )
+
+
+@router.post(
+    "/deground",
+    operation_id="dsl_deground",
+    dependencies=[Depends(dsl_feature_gate)],
+)
+def dsl_deground(body: DSLDegroundRequest, _user: CurrentUser) -> DSLDegroundResponse:
+    """Reconstruct a compact JModel draft from a flat problem (B2, phase 1).
+
+    The inverse of compile: a model built on the canvas or imported (MPS/LP/CIP) has
+    no JModel source, so this recovers one — variable families over sets, ``sum``
+    objectives and ∀-quantified constraint families — so it can be read, edited and
+    shown as math (B1) in compact form. Heuristic, so honest: it returns ``source``
+    only when the draft VERIFIABLY round-trips to an equivalent problem, and ``null``
+    (a graceful decline, never a fake) otherwise.
+    """
+    try:
+        source = deground_problem(body.problem)
+    except Exception:
+        # The service is contracted to return source-or-None; anything else is a bug.
+        # Decline gracefully (never a 500) and log it for us.
+        logger.exception("JModel de-grounder crashed on a flat problem")
+        source = None
+    return DSLDegroundResponse(source=source)
+
+
+@router.post(
+    "/generate",
+    operation_id="dsl_generate",
+    dependencies=[Depends(dsl_feature_gate)],
+)
+async def dsl_generate(
+    body: DSLGenerateRequest,
+    request: Request,
+    db: DBSession,
+    user: CurrentUser,
+    org: CurrentOrg,
+) -> DSLGenerateResponse:
+    """Generate a JModel source from a description and/or screenshots/PDFs (B3).
+
+    Turns JModel's determinism into a self-correcting loop: Claude proposes a source,
+    the compiler validates it, and any structured error is fed back for a retry. The
+    response's ``ok`` is true ONLY when the returned source verifiably compiles; when
+    every retry fails it still returns the best-effort draft plus the last compile
+    error, so the editor lands on an editable start rather than nothing.
+
+    Same guardrails as the chat assistant: BYOK-first (an org key runs on the org's own
+    account and skips the platform budget), monthly-budget pause, LLM rate limit, and a
+    content-moderation pre-check on the description.
+    """
+    # At least one of description / attachments must carry the problem.
+    if not body.description.strip() and not body.attachments:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Provide a description or attach a screenshot/PDF of the problem.",
+        )
+
+    # Validate attachment media types (the schema bounds count + size; the enum lives here
+    # next to the vision block builder so both stay in sync).
+    for att in body.attachments:
+        if att.media_type not in DSL_GENERATE_MEDIA_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    f"Unsupported attachment type '{att.media_type}'. "
+                    "Allowed: PNG, JPEG, GIF, WebP images or PDF."
+                ),
+            )
+
+    # BYOK: when the org has its own Anthropic key, the call runs on their account —
+    # so the platform budget guardrail below is skipped and the spend is never booked
+    # against the platform budget.
+    byok_client, is_byok = resolve_anthropic_client(org)
+
+    if not is_byok and is_llm_budget_exceeded(db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "feature_not_available",
+                "message": (
+                    "The AI assistant is taking a short break — the platform's monthly "
+                    "AI budget has been reached. It will be back at the start of next month."
+                ),
+                "reason": "llm_monthly_budget_exhausted",
+            },
+        )
+
+    allowed, rate_info = check_rate_limit(
+        f"llm:{org.id}",
+        PSS.get_int(db, "LLM_RATE_LIMIT_PER_MINUTE"),
+        PSS.get_int(db, "LLM_RATE_LIMIT_PER_DAY"),
+    )
+    if not allowed:
+        retry_after = rate_info.get("retry_after") if isinstance(rate_info, dict) else None
+        headers = {"Retry-After": str(retry_after)} if retry_after is not None else None
+        raise HTTPException(status_code=429, detail=rate_info, headers=headers)
+
+    if body.description.strip():
+        is_allowed, rejection_msg = moderate_message(body.description)
+        if not is_allowed:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=rejection_msg,
+            )
+
+    # Resolve the client: BYOK when present, else the shared platform client. A missing
+    # platform key is a friendly "feature not configured", never a 500.
+    try:
+        client = byok_client or get_anthropic_client(db=db)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "error": "feature_not_available",
+                "message": "The AI assistant is not configured on this instance.",
+                "reason": "llm_not_configured",
+            },
+        ) from None
+
+    # Default model (Sonnet-tier): fast + cheap, and the compile-retry loop backstops
+    # correctness, so extended thinking is unnecessary for a compact DSL.
+    model, _ = select_model(use_advanced=False, db=db)
+    max_tokens = PSS.get_int(db, "LLM_MAX_TOKENS")
+
+    request_id = getattr(request.state, "request_id", None) or ""
+    try:
+        outcome = await generate_jmodel(
+            client=client,
+            model=model,
+            max_tokens=max_tokens,
+            description=body.description,
+            attachments=body.attachments,
+            current_source=body.current_source,
+        )
+    except Exception as exc:
+        # Anthropic transport / API failure. handle_anthropic_failure logs + classifies;
+        # never leak the raw exception detail to the client.
+        error_event = handle_anthropic_failure(
+            exc, logger=logger, context="dsl generate", request_id=request_id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={
+                "error": "ai_error",
+                "message": "The AI service could not complete the request. Please try again.",
+                "reason": error_event["code"].value,
+            },
+        ) from None
+
+    # Book the spend against the monthly platform budget — only for platform-key runs
+    # (BYOK spend is on the org's own account). Best-effort; never fails the response.
+    if not is_byok:
+        record_standalone_llm_spend(
+            db,
+            org_id=org.id,
+            user_id=user.id,
+            model=model,
+            input_tokens=outcome.input_tokens,
+            output_tokens=outcome.output_tokens,
+            summary=(
+                f"JModel AI generation ({outcome.attempts} attempt(s), "
+                f"{'compiled' if outcome.ok else 'did not compile'})"
+            ),
+        )
+
+    error = None
+    if not outcome.ok and outcome.error_message:
+        error = DSLCompileError(message=outcome.error_message, position=outcome.error_position)
+
+    return DSLGenerateResponse(
+        ok=outcome.ok,
+        source=outcome.source,
+        error=error,
+        attempts=outcome.attempts,
     )

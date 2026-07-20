@@ -17,6 +17,256 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ## [Unreleased]
 
+## [3.1.0] — 2026-07-20
+
+### Fixed
+
+- **Technical-audit hardening of the v3.1 surface** (a code audit of everything
+  since v3.0.0):
+  - **Marketplace/template executions now carry the grouped-solution structure
+    (A1)** — `/solve` and `/solve/async` annotated `family`/`index_tuple` at
+    enqueue, but executions launched via `/models/{id}/execute` never did, so
+    their post-solve page silently fell back to the flat variable wall. The
+    worker now annotates the problem it builds, covering every entry point.
+  - **The exact-analysis endpoint (A3) no longer runs on the event loop** — it
+    re-parses up to thousands of constraints (CPU-bound) and was `async def`,
+    stalling every in-flight request for the duration; it is now a sync `def`
+    (threadpool), contract-tested to stay that way.
+  - **"Generate with AI" (B3) robustness** — an unexpected fence label
+    (```` ```python ````) no longer leaks into the compiled source; a (rare)
+    text-less model reply no longer aborts the retry loop with a transport
+    error; and picking more files than the 4-attachment limit now says so
+    instead of silently dropping the extras.
+  - **"Derive draft" (B2) declines gracefully on exotic models** — a family with
+    more index positions than the reconstruction's letter pool (14) used to leak
+    an internal error; it now declines honestly like every other unrecoverable
+    shape.
+  - **Large-solve explanation sampling keeps the top decisions** — the bounded
+    prompt now samples the largest non-zero values by magnitude (as documented)
+    instead of the first 200 in insertion order, so a dominant decision can no
+    longer be dropped from the explanation.
+  - **A3 objective contributions merge like terms** — `2*x + 3*x` reads as one
+    `x` row, not two colliding rows.
+  - **The grouped solution view stays responsive on huge solutions** — it now
+    renders a bounded prefix (500 values) with a "show all" opt-in instead of
+    mounting tens of thousands of chips (a 20k-variable solution with the
+    non-zero filter off froze the page).
+  - **One AI-cost ledger per (org, user), guaranteed** — the hidden `sys:`
+    bookkeeping conversation's get-or-create could race under two concurrent
+    first generations and produce duplicate ledgers (benign for the budget sum,
+    but unbounded). A partial unique index now enforces the invariant (additive
+    migration, with a dedupe of any existing duplicates) and the loser of the
+    race adopts the winner's row.
+  - **MCP analytics survive a fastapi-mcp upgrade** — the tool-call emitter
+    wraps a private dispatch method; a library switching that call to
+    positional arguments now degrades to "no analytics" instead of breaking
+    every MCP tool call with a TypeError.
+
+- **The "Solving…" pill no longer lingers after a solve is cancelled from another
+  tab/device** — the ambient solving indicator shows only while the session is
+  `running`, and the completion poll moved the session off `running` for `completed`
+  and `failed` — but not for a Celery-revoked task (`GET /solve/async/{id}` returns
+  `"revoked"`). A cancel/revoke from another tab, a worker restart, or any unexpected
+  terminal status left the poll spinning and the pill stuck (the idle reconcile that
+  would clear it only runs while the session is idle). The poll now resolves EVERY
+  non-in-flight status: revoke/cancel → cancelled, anything else terminal → failed.
+
+- **The JSON model editor no longer crashes the studio page (and silently drops a
+  just-added variable)** — the server `/solve/validate` response never included a
+  `warnings` array, yet the editor lens read `validation.warnings.length` on every
+  validated edit, so ~500ms after any change the whole workspace fell to the error
+  boundary. Because the crash unmounted the workspace, its debounced autosave was
+  aborted — a variable added right before (e.g. after deriving a JModel) was never
+  persisted. This was the "derived a JModel, added another variable, it wasn't saved"
+  report. The endpoint now honours its declared `ValidationResult` contract (always
+  returns `errors` and `warnings` arrays), and the editor coalesces a missing array
+  to empty so a malformed response can never crash the page. Regression-guarded by a
+  new E2E that waits for the validation to render (existing editor specs navigated
+  away first) plus a backend contract test.
+
+- **Viewing the canvas no longer locks the JModel source read-only** — after the
+  structured-solution work tagged each variable with its index structure
+  (`family`/`index_tuple`), the canvas ↔ model bridge stopped recognising an
+  untouched canvas as unchanged (those fields can't be drawn on the canvas), so
+  merely opening the Build/canvas view of a DSL-authored model flagged the source as
+  "changed elsewhere" and locked it read-only. The bridge now preserves that
+  structure across a canvas reprojection, so viewing the canvas is a no-op.
+
+- **The JModel lens explains why solve is blocked after deselecting a dataset** — a
+  declaration-only source with its dataset removed correctly blocks solve, but the
+  inline compile-error box had stopped appearing (it keyed off the lens' own compile,
+  which no longer runs on a dataset change), leaving the controls greyed out with no
+  reason. The box now reflects the canonical block state and names the cause.
+
+- **The AI solution explainer no longer 400s on large solves** — explaining a
+  SOLUTION embedded the full formulation, the full variable→value map, the full
+  variable list and full sensitivity as JSON, so a 10k-variable solve (150×150)
+  produced an 11.6M-token prompt and the LLM API rejected it (`prompt is too long:
+  … > 1000000 maximum`). Each block is now bounded like the model explainer already
+  was: the formulation is sampled to a representative head and the solution is
+  reduced to its decisions — the top non-zero variable values — with the objective
+  kept exact. A small solve is still embedded in full.
+
+### Changed
+
+- **"Solve all" (Scenarios) now shows why it is busy** — running a JModel against a
+  dataset compiles the model server-side first, which for a large model (e.g. a
+  200×239 MDPDP scenario) genuinely takes tens of seconds; during that the button was
+  disabled with no explanation and read as stuck. It now shows a spinner + "Compiling
+  (n/N)" progress while the batch launches, and carries a disabled-reason tooltip in
+  every state (compiling / no dataset selected / no JModel source).
+
+- **"Derive draft" (B2) now recovers multi-family constraints and small models** —
+  a constraint that mixes variable families with a shared free index (the real TFM
+  scenarios: `sum_i a[i,j] + z[j] == 1  ∀ j`) is now recovered as one ∀-quantified
+  family, aligning the fixed indices that co-vary across the flat constraints; a real
+  150×150 model (22.6k variables, 3 constraint families) de-grounds to a compact
+  JModel in ~3s. Constraint families are also split by coefficient character (a unit
+  `sum_j a[i,j] == 1` vs a weighted `sum_j d[i,j]*a[i,j] <= M`). Separately, a small
+  model with no indexed families (a two-variable canvas model, a 15-item assortment)
+  de-grounds to a plain scalar JModel instead of declining, and binary variables
+  round-trip whether or not the flat model stated their `[0,1]` bounds.
+
+### Added
+
+- **Public documentation for the v3.1 analysis workbench** — a new
+  [Analyzing Results](https://jaot.io/docs/studio/analyzing-results) docs page
+  (the structured solution, the honest solve summary, the exact analysis, and
+  their API); the JModel DSL page now documents the mathematical notation view,
+  "Derive draft", "Generate with AI", and the `/dsl/*` endpoints;
+  "Understanding Your Solution" reflects the new three-layer analysis order;
+  the executions API reference documents `GET …/exact-analysis`; `llms.txt`
+  links the new surfaces; and the home page's "Understand your solution"
+  section now shows the real thing — fresh light/dark screenshots of the
+  analysis page and copy describing the exact, solution-based analysis (the
+  orphaned convergence-chart component was removed).
+
+- **Generate a JModel with AI, from a description or a screenshot (v3.1 B3)** — the
+  JModel lens has a "Generate with AI" button that turns a plain-language description
+  and/or attached screenshots/PDFs of a formulation into a working JModel source. It
+  is built on JModel's determinism: the model proposes a source and the compiler is
+  the oracle, so the new `POST /dsl/generate` runs a generate→compile→feed-the-error→
+  retry loop and returns a source only when it VERIFIABLY compiles — a rare
+  non-compiling best-effort draft is still loaded (the editor highlights its error),
+  never passed off as valid. Attachments ride to Claude as native vision blocks
+  (images and PDFs read directly — no OCR), so a photo of a thesis formulation becomes
+  editable JModel. The draft lands in the editor exactly like a paste, and can be
+  refined further. Same guardrails as the chat assistant: bring-your-own-key first,
+  the monthly AI-budget pause, LLM rate limiting, and a moderation pre-check; the
+  spend of platform-key runs is booked so it counts toward the monthly budget. Gated
+  behind `JAOT_DSL`.
+
+- **Derive a JModel draft from a flat model (v3.1 B2, phase 1)** — a model built on
+  the canvas or imported (MPS/LP/CIP) has no JModel source, so the JModel lens now
+  offers "Derive draft": it reconstructs a compact indexed JModel from the flat
+  problem — variable families over sets, `sum` objectives with coefficient params,
+  and ∀-quantified constraint families — so the model can be read, edited and shown
+  as math (B1) in its compact form instead of as a wall of scalar rows. The
+  reconstruction is heuristic, so it is **honest by construction**: the new
+  parse-only `POST /dsl/deground` returns a draft only when it VERIFIABLY round-trips
+  (recompiles to a problem equivalent to the input) and declines with a clear message
+  otherwise, never showing a draft that misrepresents the model. Recovers coefficient
+  and rhs params, per-element (`x[i] ≤ 1 ∀ i`) and summed constraint families, and
+  handles negative/fractional coefficients; a model with no indexed structure (a
+  purely scalar model) is declined rather than dumped verbatim.
+
+- **JModel split-pane: the model as mathematical notation (v3.1 B1)** — the JModel
+  editor now renders the source as symbolic math (KaTeX) in a live right-hand pane.
+  A deterministic LaTeX pretty-printer walks the compiler AST *before* grounding, so
+  the indexed objective, the ∀-quantified constraint families and the variable
+  domains stay symbolic (`min Σ_{i∈I} wᵢ·xᵢ`, `Σ_{w∈W} assign_{w,t} = 1  ∀ t∈T`)
+  instead of flattening into thousands of scalar rows. It is served by a new
+  parse-only `POST /dsl/latex` (gated behind `JAOT_DSL`), so it also renders
+  declaration-only sources where a full compile would error, and the pane keeps the
+  last valid render on screen while an in-progress edit does not yet parse. No AI:
+  the rendering is a pure function of the parsed model. Greek-named symbols render as
+  their letters (`alpha → α`) and the pane can be collapsed back to a plain editor.
+
+- **Structured solution view — variables regain their index structure (v3.1 A1)** —
+  a binary assignment/routing solution used to render as a wall of identical
+  `assign_v3_o107 = 1` rows because the flat solver output had thrown away the
+  family + index structure the model knew. The backend now recovers it once,
+  server-side: the JModel compiler stamps each grounded variable with its
+  `family` + `index_tuple` authoritatively, flat/imported models get a
+  conservative best-effort parse, and every solver adapter carries it onto the
+  result — so the persisted `result_data`, the MCP tools and the grounded
+  `explain_solution` prompt all see `assign[v3, o107]` instead of a mangled
+  string. The execution-detail page now leads with a family → first-index
+  grouping ("assign · v3 → o107, o12, o44") answering "what did the model
+  decide?", with a toggle back to the full flat table (and constraint
+  sensitivity) and a graceful fallback to the flat table when a solution has no
+  recoverable structure.
+
+### Added
+
+- **Exact, solution-based analysis leads the post-solve view (v3.1 A3)** — a new
+  Analysis section on the execution-detail page leads with facts that are EXACT
+  for the integer solution and solver-agnostic: which constraints are binding
+  (slack = 0), each constraint's slack/utilization (b_i − a_i·x*), and which
+  objective terms drive the value (c_j·x*_j). All are computed on demand from x*
+  + the stored problem via a new `GET /models/executions/{id}/exact-analysis`
+  endpoint (off the solve path — it re-parses constraints, so it is bounded and
+  never slows a solve). The LP-relaxation shadow prices — which for a MILP are
+  duals of a different, easier problem and near-uniform under degeneracy — are
+  demoted into a collapsed "approximate (LP relaxation)" section with identical
+  values deduped ("47 constraints · shadow price 1.0"), so they no longer read
+  as the primary artifact a decision is made from.
+
+### Changed
+
+- **The studio results drawer links out instead of cramming (v3.1 A5)** — the
+  post-solve drawer in the studio was a 24rem sheet stuffed with the whole
+  variable table and the sensitivity analysis. It now shows a lightweight
+  summary — status, objective, solve time/gap, a variable count — and a "View
+  full results" button into the full execution-detail page (which already has
+  the grouped solution, the honest summary and sensitivity). The execution id
+  needed for the deep link was already in the async enqueue response; it is now
+  carried on the solve session. The builder and template drawers, which have no
+  execution page, keep their full inline view unchanged.
+
+- **The variable-values chart collapses identical bars to an aggregate (v3.1 A4)** —
+  a binary assignment/routing solution rendered as dozens of bars all at 1.0:
+  identical length, zero information. When every non-zero variable shares the
+  same magnitude the chart now shows an aggregate ("N variables = 1 · M at zero")
+  with a "show chart anyway" escape hatch, and keeps the real bar chart whenever
+  the magnitudes vary (continuous / LP models, where bar length carries meaning).
+
+- **Honest post-solve summary replaces the convergence chart (v3.1 A2)** — the
+  live gap-convergence chart was noise for essentially every real model: SCIP
+  finds a near-optimal incumbent almost immediately and then spends the run
+  *proving* optimality, so the per-incumbent stream is ~2 points — a flat line
+  even when the model branched 1,936 nodes. The execution-detail page now shows
+  a truthful fact-card — "proven optimal at the root node", "optimal after N
+  nodes", or "time limit — gap X%" — plus the final metrics (objective, gap,
+  nodes, iterations, time), and the studio live panel keeps its streaming
+  numbers without the flat chart. Branch-and-bound node/iteration counts are now
+  persisted with the result so the summary can be specific. (A real
+  dual-bound-vs-time chart is deferred until the solver streams the dual bound,
+  not just incumbents.)
+
+### Fixed
+
+- **MCP usage analytics restored (v3.1 C1)** — the `MCP_TOOL_CALL` event lost its
+  only emitter in the async-only solve rewrite, pinning the MCP dashboard at zero.
+  Every tool call is now counted at fastapi-mcp's single dispatch choke point and
+  attributed to the caller resolved from the forwarded Bearer, so all 26 tools are
+  covered in one place (best-effort, off the tool's critical path).
+- **Startup settings self-heal is now race-safe (v3.1 C3)** — booting several API
+  workers at once made the seed's check-then-insert fail 3-of-4 workers on the
+  `platform_settings` primary key. It now inserts with `ON CONFLICT DO NOTHING`, so
+  a concurrent (or repeated) seed is a harmless no-op instead of a logged crash.
+- **The ambient "solving…" pill no longer shows a future time (v3.1 A6)** — a server
+  clock slightly ahead of the client's snapshot rendered "solving · in 2 seconds".
+  The start is clamped to now (a running solve is always in the past) and the pill
+  ticks every 15s so sub-minute solves stay fresh.
+
+### Changed
+
+- **Switching a dataset in the JModel lens compiles once (v3.1 C2)** — the panel and
+  the provider-level recompile both fired on a dataset change, double-compiling the
+  source. The panel now compiles directly only in the drifted-source window the
+  provider hook deliberately skips; the normal case is handled once by the hook.
+
 ## [3.0.0] — 2026-07-17
 
 **The "Model, Analyze & Solve" release** — the repo's first tagged version. The model

@@ -27,18 +27,30 @@ import json
 import logging
 import threading
 import time
+from datetime import timedelta
 
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models.llm_conversation import LLMMessage
+from app.models.llm_conversation import LLMConversation, LLMMessage
 from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.shared.utils.datetime_helpers import utcnow
+from app.shared.utils.id_generator import generate_id
 
 logger = logging.getLogger(__name__)
 
 PRICING_SETTING_KEY = "LLM_MODEL_PRICING_EUR_PER_MTOK"
 BUDGET_SETTING_KEY = "LLM_MONTHLY_BUDGET_EUR"
+
+# Standalone (non-conversational) LLM features — B3 "generate JModel with AI" today —
+# still spend against the shared Anthropic key, so their cost MUST count toward the
+# monthly budget (get_month_cost_eur sums every llm_messages.cost_eur). They have no
+# user-facing conversation, so we book the spend into a hidden per-(org,user)
+# bookkeeping conversation tagged with this sentinel model_id, which list_conversations
+# filters out (the "sys:" prefix).
+LEDGER_MODEL_ID_PREFIX = "sys:"
+_JMODEL_AI_LEDGER_MODEL_ID = "sys:jmodel-ai"
 
 # Hard-coded last-resort rate if the pricing setting is missing or
 # unparseable: Opus-tier pricing, so failures over-estimate cost and the
@@ -133,13 +145,94 @@ def reset_budget_cache() -> None:
         _cached_at = 0.0
 
 
+def _ledger_conversation(db: Session, org_id: str, user_id: str) -> LLMConversation | None:
+    """The (org, user) hidden JModel-AI cost-ledger conversation, if it exists."""
+    return (
+        db.query(LLMConversation)
+        .filter(
+            LLMConversation.organization_id == org_id,
+            LLMConversation.user_id == user_id,
+            LLMConversation.model_id == _JMODEL_AI_LEDGER_MODEL_ID,
+        )
+        .first()
+    )
+
+
+def record_standalone_llm_spend(
+    db: Session,
+    *,
+    org_id: str,
+    user_id: str,
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    summary: str,
+) -> None:
+    """Book token usage + EUR cost for an LLM call with no user-facing conversation.
+
+    Ensures a hidden per-(org, user) bookkeeping conversation exists and appends a
+    ``system``-role message carrying the real token counts and priced cost, so the
+    monthly-budget SUM includes this spend. Call ONLY for platform-key (billable)
+    spend — BYOK runs on the org's own account and must never touch the platform
+    budget. Best-effort: a bookkeeping failure never propagates to the caller (the
+    user's generation already succeeded); it is logged and rolled back.
+    """
+    if not (input_tokens or output_tokens):
+        return
+    try:
+        conv = _ledger_conversation(db, org_id, user_id)
+        if conv is None:
+            conv = LLMConversation(
+                id=generate_id("conv_"),
+                organization_id=org_id,
+                user_id=user_id,
+                model_id=_JMODEL_AI_LEDGER_MODEL_ID,
+                created_at=utcnow(),
+                # Far-future expiry: this row is a durable cost ledger, not an
+                # ephemeral chat, so it must survive any future TTL purge.
+                expires_at=utcnow() + timedelta(days=3650),
+            )
+            db.add(conv)
+            try:
+                db.flush()
+            except IntegrityError:
+                # Lost the get-or-create race (uq_llm_conversations_sys_ledger):
+                # a concurrent spend created the ledger first — roll back our
+                # create (the session holds nothing else at this point in the
+                # generate flow) and adopt the winner's row.
+                db.rollback()
+                conv = _ledger_conversation(db, org_id, user_id)
+                if conv is None:
+                    raise
+
+        cost = compute_message_cost_eur(db, model, input_tokens, output_tokens)
+        db.add(
+            LLMMessage(
+                id=generate_id("msg_"),
+                conversation_id=conv.id,
+                role="system",
+                content=summary,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                cost_eur=cost,
+                created_at=utcnow(),
+            )
+        )
+        db.commit()
+    except Exception:
+        logger.warning("Failed to record standalone LLM spend", exc_info=True)
+        db.rollback()
+
+
 __all__ = [
     "BUDGET_SETTING_KEY",
+    "LEDGER_MODEL_ID_PREFIX",
     "PRICING_SETTING_KEY",
     "compute_message_cost_eur",
     "get_budget_status",
     "get_model_pricing",
     "get_month_cost_eur",
     "is_llm_budget_exceeded",
+    "record_standalone_llm_spend",
     "reset_budget_cache",
 ]

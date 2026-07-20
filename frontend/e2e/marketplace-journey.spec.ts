@@ -98,7 +98,15 @@ test.describe("Marketplace — Complete Adopter Journey", () => {
   test("step 5: favoriting in the browse grid lists it on the favorites page", async ({
     page,
   }) => {
+    // The heart is interactive only after hydration + the favorites GET the grid
+    // fires on mount; a click before that is silently lost (no POST ever fires).
+    // Arm the wait BEFORE navigating so the response can't slip past the listener.
+    const favsLoaded = page.waitForResponse(
+      (r) => r.url().includes("/api/v2/models/favorites") && r.request().method() === "GET",
+      { timeout: NAV_TIMEOUT },
+    );
     await page.goto("/marketplace");
+    await favsLoaded;
     // Pick an explicit not-yet-favorited heart so re-runs stay idempotent.
     const heart = page
       .locator('button[aria-label="Add to favorites"], button[aria-label="Añadir a favoritos"]')

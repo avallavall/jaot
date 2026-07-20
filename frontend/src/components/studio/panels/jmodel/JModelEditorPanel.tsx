@@ -2,7 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { AlertCircle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
+import {
+  AlertCircle,
+  Boxes,
+  CheckCircle2,
+  Loader2,
+  RefreshCw,
+  Sigma,
+  Sparkles,
+} from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -13,6 +21,8 @@ import {
   useModelProjectStoreApi,
 } from "../../store/useModelProjectStore";
 import { useProjectDatasets } from "../../datasets/useProjectDatasets";
+import { JModelMathView } from "./JModelMathView";
+import { JModelGenerateDialog } from "./JModelGenerateDialog";
 
 const COMPILE_DEBOUNCE_MS = 500;
 
@@ -45,6 +55,14 @@ export function JModelEditorPanel() {
   const storeDslSource = useModelProjectStore((s) => s.draftDslSource);
   const modelId = useModelProjectStore((s) => s.modelId);
   const activeDataset = useModelProjectStore((s) => s.activeDataset);
+  // The canonical block state. It is the source of truth for "solve is blocked", set by
+  // BOTH this lens' local compile AND the provider-level dataset recompile
+  // (useActiveDatasetCompile) — e.g. deselecting a dataset under a declaration-only source
+  // blocks via the hook without touching the local `result`, so the error box must key off
+  // this, not only `result`, or the user sees solve greyed out with no explanation (C2).
+  const dslBlocked = useModelProjectStore((s) => s.parseErrors.dsl);
+  // A model built elsewhere (canvas / import) that we could de-ground into a draft.
+  const hasModel = useModelProjectStore((s) => s.problem.variables.length > 0);
   const storeApi = useModelProjectStoreApi();
   // Named datasets ("scenarios") this source can compile against (§8).
   const { datasets } = useProjectDatasets(modelId && modelId !== "new" ? modelId : null);
@@ -52,6 +70,14 @@ export function JModelEditorPanel() {
   const [text, setText] = useState<string>(() => storeApi.getState().draftDslSource);
   const [result, setResult] = useState<DslCompileResult | null>(null);
   const [compiling, setCompiling] = useState(false);
+  // The split-pane math view is on by default (the flagship "see the notation" view);
+  // the user can collapse it back to a plain editor.
+  const [showMath, setShowMath] = useState(true);
+  // B2: de-grounding the current model into a JModel draft.
+  const [deriving, setDeriving] = useState(false);
+  const [deriveDeclined, setDeriveDeclined] = useState(false);
+  // B3: the "Generate with AI" dialog.
+  const [genOpen, setGenOpen] = useState(false);
   const compileTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Monotonic token so a slow compile response can never overwrite a newer one.
   const compileSeq = useRef(0);
@@ -97,6 +123,7 @@ export function JModelEditorPanel() {
   const handleChange = (value: string) => {
     setText(value);
     textRef.current = value;
+    if (deriveDeclined) setDeriveDeclined(false);
     // Persist the source (dirty) so a work-in-progress model survives navigation even
     // before it compiles.
     storeApi.getState().setDraftDslSource(value, { dirty: true });
@@ -189,14 +216,72 @@ export function JModelEditorPanel() {
     storeApi.getState().setActiveDataset(row ? { id: row.id, name: row.name } : null);
     if (compileTimer.current) clearTimeout(compileTimer.current);
     compileTimer.current = null;
-    if (textRef.current.trim()) runCompile(textRef.current);
+    // The provider-level useActiveDatasetCompile already recompiles on an
+    // active-dataset change for the normal (source === "dsl") case — compiling
+    // here too would double-fire (harmless but wasteful). Only compile directly
+    // in the DRIFTED window, which that hook deliberately skips: picking a
+    // dataset after opting back into a drifted source is an explicit "apply it"
+    // act the provider hook won't perform.
+    if (drifted && textRef.current.trim()) runCompile(textRef.current);
   };
+
+  // B2: reconstruct a JModel draft from the canonical model (built on the canvas or
+  // imported). The server declines (source === null) when no compact structure
+  // round-trips; we surface that honestly rather than load a fake. On success the
+  // draft becomes the source and is applied like a normal edit (compile → canonical).
+  const handleDerive = () => {
+    setDeriving(true);
+    setDeriveDeclined(false);
+    api
+      .degroundDsl(storeApi.getState().problem)
+      .then((res) => {
+        if (!res.source) {
+          setDeriveDeclined(true);
+          return;
+        }
+        setEditingStale(true); // deriving is an explicit opt-in over a drifted source
+        setText(res.source);
+        textRef.current = res.source;
+        storeApi.getState().setDraftDslSource(res.source, { dirty: true });
+        if (compileTimer.current) clearTimeout(compileTimer.current);
+        compileTimer.current = null;
+        runCompile(res.source);
+      })
+      .catch(() => setDeriveDeclined(true))
+      .finally(() => setDeriving(false));
+  };
+
+  // B3: an AI-generated source lands in the editor exactly like a derived draft —
+  // an explicit opt-in over any drift, applied through the normal compile flow.
+  const applyGeneratedSource = (source: string) => {
+    setEditingStale(true);
+    setText(source);
+    textRef.current = source;
+    storeApi.getState().setDraftDslSource(source, { dirty: true });
+    if (compileTimer.current) clearTimeout(compileTimer.current);
+    compileTimer.current = null;
+    runCompile(source);
+  };
+
+  // Offer "derive a draft" exactly when the JModel source is NOT the current model:
+  // the editor is empty, or it drifted because another lens changed the model.
+  const canDerive = hasModel && (drifted || !text.trim());
 
   return (
     <div className="flex flex-1 min-h-0 flex-col">
       <div className="flex items-center justify-between gap-3 border-b px-3 py-1.5">
         <p className="min-w-0 truncate text-xs text-muted-foreground">{t("jmodelHint")}</p>
         <div className="flex shrink-0 items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            data-testid="studio-jmodel-generate-open"
+            onClick={() => setGenOpen(true)}
+            className="h-6 gap-1 px-1.5 text-xs text-primary hover:text-primary"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            {t("jmodelGenerate")}
+          </Button>
           {datasets.length > 0 && (
             <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
               {t("jmodelDatasetLabel")}
@@ -216,6 +301,21 @@ export function JModelEditorPanel() {
               </select>
             </label>
           )}
+          <Button
+            variant="ghost"
+            size="sm"
+            data-testid="studio-jmodel-math-toggle"
+            aria-pressed={showMath}
+            title={showMath ? t("jmodelMathHide") : t("jmodelMathShow")}
+            onClick={() => setShowMath((v) => !v)}
+            className={cn(
+              "h-6 gap-1 px-1.5 text-xs",
+              showMath ? "text-foreground" : "text-muted-foreground"
+            )}
+          >
+            <Sigma className="h-3.5 w-3.5" />
+            {t("jmodelMathToggle")}
+          </Button>
           <JModelStatus result={result} compiling={compiling} />
         </div>
       </div>
@@ -224,69 +324,142 @@ export function JModelEditorPanel() {
         <div className="flex items-center justify-between gap-3 border-b border-amber-300/40 bg-amber-50 px-4 py-1.5 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
           <span>{t("jmodelStale")}</span>
           {readOnly && (
-            <Button
-              variant="outline"
-              size="sm"
-              data-testid="studio-jmodel-recompile"
-              onClick={handleRecompile}
-              className="h-6 shrink-0 border-amber-400/60 bg-transparent px-2 text-xs text-amber-900 hover:bg-amber-100 dark:text-amber-100 dark:hover:bg-amber-900"
-            >
-              <RefreshCw className="mr-1 h-3 w-3" />
-              {t("jmodelRecompile")}
-            </Button>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="studio-jmodel-recompile"
+                onClick={handleRecompile}
+                className="h-6 border-amber-400/60 bg-transparent px-2 text-xs text-amber-900 hover:bg-amber-100 dark:text-amber-100 dark:hover:bg-amber-900"
+              >
+                <RefreshCw className="mr-1 h-3 w-3" />
+                {t("jmodelRecompile")}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="studio-jmodel-derive"
+                onClick={handleDerive}
+                disabled={deriving}
+                className="h-6 border-amber-400/60 bg-transparent px-2 text-xs text-amber-900 hover:bg-amber-100 dark:text-amber-100 dark:hover:bg-amber-900"
+              >
+                {deriving ? (
+                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                ) : (
+                  <Boxes className="mr-1 h-3 w-3" />
+                )}
+                {t("jmodelDerive")}
+              </Button>
+            </div>
           )}
         </div>
       )}
 
-      <textarea
-        data-testid="studio-jmodel-textarea"
-        value={text}
-        onChange={(e) => handleChange(e.target.value)}
-        readOnly={readOnly}
-        spellCheck={false}
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        placeholder={PLACEHOLDER_EXAMPLE}
-        aria-label={t("jmodelAriaLabel")}
-        aria-invalid={result ? !result.ok : false}
-        className={cn(
-          "flex-1 min-h-0 w-full resize-none bg-transparent px-4 py-3 font-mono text-xs leading-relaxed outline-none",
-          readOnly && "cursor-not-allowed opacity-60"
-        )}
-      />
-
-      {result && !result.ok && result.error && (
-        <div
-          data-testid="studio-jmodel-error"
-          role="alert"
-          className="border-t border-destructive/30 bg-destructive/5 px-4 py-2 text-xs text-destructive"
-        >
-          <span>
-            {t("jmodelInvalid")}: <code className="font-mono">{result.error.message}</code>
-            {typeof result.error.position === "number" && (
-              <span className="opacity-70"> (pos {result.error.position})</span>
+      {!stale && !text.trim() && canDerive && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
+          <span>{t("jmodelDeriveHint")}</span>
+          <Button
+            variant="outline"
+            size="sm"
+            data-testid="studio-jmodel-derive"
+            onClick={handleDerive}
+            disabled={deriving}
+            className="h-6 shrink-0 px-2 text-xs"
+          >
+            {deriving ? (
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            ) : (
+              <Boxes className="mr-1 h-3 w-3" />
             )}
-          </span>
-          <p className="mt-1 opacity-80">{t("lensNotApplied")}</p>
-          {/* S4 cross-link: a data-shaped error (declaration without values/members,
-              dataset/model mismatch — those messages all name "dataset") is fixed in
-              the Datos tab, not by editing the source. */}
-          {modelId &&
-            modelId !== "new" &&
-            /dataset|has no (values|members)/i.test(result.error.message) && (
-              <p className="mt-1">
-                <Link
-                  href={`/studio/${modelId}/data`}
-                  className="font-medium underline underline-offset-2"
-                  data-testid="studio-jmodel-goto-data"
-                >
-                  {t("jmodelGoToData")}
-                </Link>
-              </p>
-            )}
+            {t("jmodelDerive")}
+          </Button>
         </div>
       )}
+
+      {deriveDeclined && (
+        <div
+          data-testid="studio-jmodel-derive-declined"
+          className="border-b border-amber-300/40 bg-amber-50 px-4 py-1.5 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+        >
+          {t("jmodelDeriveDeclined")}
+        </div>
+      )}
+
+      <div className="flex min-h-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <textarea
+            data-testid="studio-jmodel-textarea"
+            value={text}
+            onChange={(e) => handleChange(e.target.value)}
+            readOnly={readOnly}
+            spellCheck={false}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            placeholder={PLACEHOLDER_EXAMPLE}
+            aria-label={t("jmodelAriaLabel")}
+            aria-invalid={result ? !result.ok : false}
+            className={cn(
+              "flex-1 min-h-0 w-full resize-none bg-transparent px-4 py-3 font-mono text-xs leading-relaxed outline-none",
+              readOnly && "cursor-not-allowed opacity-60"
+            )}
+          />
+
+          {(dslBlocked || (result && !result.ok)) && (
+            <div
+              data-testid="studio-jmodel-error"
+              role="alert"
+              className="border-t border-destructive/30 bg-destructive/5 px-4 py-2 text-xs text-destructive"
+            >
+              <span>
+                {t("jmodelInvalid")}:{" "}
+                {/* Prefer the specific compiler message; fall back to a generic one when the
+                    block was set by the provider-level recompile (no local `result`). */}
+                <code className="font-mono">
+                  {result && !result.ok && result.error
+                    ? result.error.message
+                    : t("jmodelBlockedGeneric")}
+                </code>
+                {result && !result.ok && typeof result.error?.position === "number" && (
+                  <span className="opacity-70"> (pos {result.error.position})</span>
+                )}
+              </span>
+              <p className="mt-1 opacity-80">{t("lensNotApplied")}</p>
+              {/* S4 cross-link: a data-shaped error (declaration without values/members,
+                  dataset/model mismatch — those messages all name "dataset"), OR a block
+                  set by the provider recompile (a dataset (de)selection), is fixed in the
+                  Datos tab, not by editing the source. */}
+              {modelId &&
+                modelId !== "new" &&
+                (!(result && !result.ok && result.error) ||
+                  /dataset|has no (values|members)/i.test(result.error!.message)) && (
+                  <p className="mt-1">
+                    <Link
+                      href={`/studio/${modelId}/data`}
+                      className="font-medium underline underline-offset-2"
+                      data-testid="studio-jmodel-goto-data"
+                    >
+                      {t("jmodelGoToData")}
+                    </Link>
+                  </p>
+                )}
+            </div>
+          )}
+        </div>
+
+        {showMath && (
+          <div className="min-w-0 flex-1 border-l">
+            <JModelMathView source={text} active={showMath} />
+          </div>
+        )}
+      </div>
+
+      <JModelGenerateDialog
+        open={genOpen}
+        onOpenChange={setGenOpen}
+        currentSource={text}
+        onGenerated={applyGeneratedSource}
+      />
     </div>
   );
 }
