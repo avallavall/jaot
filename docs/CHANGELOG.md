@@ -17,6 +17,19 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Fixed
+
+- **"Derive draft" recovers two constraint shapes it used to decline** (the 2026-07-21
+  torture-test findings): (H1) two same-shape scalar constraints over one family —
+  a multi-knapsack's `Σw1·x ≤ 50` / `Σw2·x ≤ 40` — no longer fuse into one
+  undeclarable group; each emits as its own constraint with its own coefficient
+  table. (H2) a per-constraint constant coefficient — a CFLP's `cap_i · y_i` —
+  no longer fragments the constraint family into singleton groups; the template
+  key now classes coefficients as unit/non-unit only, the constant-vs-param choice
+  is resolved at emission, and a merged group that cannot emit falls back to the
+  per-value partition. The round-trip honesty gate is unchanged and still guards
+  every draft.
+
 ### Changed
 
 - **The Sensitivity tab no longer renders a wall of identical bars** (owner report,

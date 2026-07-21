@@ -497,13 +497,26 @@ class _ConstraintShape:
 
 
 def _coef_class(coef_by_tuple: dict[tuple[str, ...], float]) -> str:
-    """A coefficient signature for grouping: unit / a shared constant / varying.
+    """A coefficient signature for grouping: unit or not.
 
-    Two constraint families can share the same index structure yet differ in their
-    coefficients (``sum_j a[i,j] == 1`` vs ``sum_j dist[i,j]*a[i,j] <= M``); grouping
-    them together would merge distinct ∀-families, so the coefficient character is
-    part of the template key.
+    Unit sums must not fuse with weighted sums over the same pattern
+    (``sum_j a[i,j] == 1`` vs ``sum_j dist[i,j]*a[i,j] <= M``), but the VALUE of a
+    non-unit coefficient stays out of the key: a per-constraint constant (a CFLP's
+    ``cap_i · y_i``) is ONE ∀ family whose constant varies with the free index, and
+    keying on the value would shatter it into undeclarable singletons. Whether a
+    group emits a shared constant or an indexed param is decided at emission from
+    the combined coefficients, and a merge that cannot emit is re-partitioned by
+    value (:func:`_emittable_partition`).
     """
+    distinct = {round(c, 9) for c in coef_by_tuple.values()}
+    if distinct == {1.0}:
+        return "unit"
+    return "nonunit"
+
+
+def _fine_coef_class(coef_by_tuple: dict[tuple[str, ...], float]) -> str:
+    """The per-value refinement of :func:`_coef_class` (unit / one shared constant /
+    varying), used only to split a merged group that failed to emit."""
     distinct = {round(c, 9) for c in coef_by_tuple.values()}
     if distinct == {1.0}:
         return "unit"
@@ -530,14 +543,19 @@ def _build_constraints(
     # values, which become the ∀-quantified free indices.
     groups: dict[tuple, list[_ConstraintShape]] = {}
     order: list[tuple] = []
-    for shape in shapes:
-        key = (
+    for serial, shape in enumerate(shapes):
+        key: tuple = (
             tuple(
                 (t.family, tuple(p for p, _ in t.fixed), t.summed, _coef_class(t.coef_by_tuple))
                 for t in shape.terms
             ),
             shape.operator,
         )
+        # A shape with no fixed slot has no free index a ∀ could range over, so a
+        # group could never tell its members apart (two knapsack rows over one family
+        # would fuse, then decline on their differing weights/rhs) — emit each alone.
+        if not any(t.fixed for t in shape.terms):
+            key = key + (serial,)
         if key not in groups:
             groups[key] = []
             order.append(key)
@@ -545,11 +563,40 @@ def _build_constraints(
 
     lines: list[str] = []
     params: list[_ParamRecord] = []
-    for counter, key in enumerate(order, start=1):
-        line, extra = _emit_constraint_group(f"c{counter}", groups[key], families, sets)
-        lines.append(line)
-        params.extend(extra)
+    counter = 0
+    for key in order:
+        for group in _emittable_partition(groups[key], families, sets):
+            counter += 1
+            line, extra = _emit_constraint_group(f"c{counter}", group, families, sets)
+            lines.append(line)
+            params.extend(extra)
     return lines, params
+
+
+def _emittable_partition(
+    group: list[_ConstraintShape],
+    families: dict[str, _Family],
+    sets: _SetRegistry,
+) -> list[list[_ConstraintShape]]:
+    """The group as it will be emitted: whole when it emits as one ∀ family, else finer.
+
+    The template key deliberately ignores coefficient VALUES, so a group can fuse
+    constraint families that only emit apart — e.g. ``5·Σx ≤ 10 ∀i`` and
+    ``7·Σx ≤ 20 ∀i`` share a key but collide on the rhs free index. Dry-run the
+    merged emission; on failure retry with the per-value partition, re-raising when
+    there is nothing finer to try (the honesty gate still guards whatever emits).
+    """
+    try:
+        _emit_constraint_group("c0", group, families, sets)
+        return [group]
+    except _DegroundError:
+        finer: dict[tuple, list[_ConstraintShape]] = {}
+        for shape in group:
+            key = tuple(_fine_coef_class(t.coef_by_tuple) for t in shape.terms)
+            finer.setdefault(key, []).append(shape)
+        if len(finer) == 1:
+            raise
+        return list(finer.values())
 
 
 def _shape_of(
@@ -665,7 +712,11 @@ def _emit_constraint_group(
         combined: dict[tuple[str, ...], float] = {}
         for shape in group:
             match = next(t for t in shape.terms if t.family == term.family)
-            combined.update(match.coef_by_tuple)
+            for tup, coef in match.coef_by_tuple.items():
+                prev = combined.get(tup)
+                if prev is not None and round(prev, 9) != round(coef, 9):
+                    raise _DegroundError("constraint group assigns conflicting coefficients")
+                combined[tup] = coef
         if len(combined) != len(fam.by_tuple):
             raise _DegroundError("constraint family does not cover the variable block")
         letters = [letter[(term.family, p)] for p in range(fam.arity)]

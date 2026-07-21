@@ -442,6 +442,113 @@ def test_split_keeps_a_scalar_fallback_self_contained():
     assert "sum{" not in draft.source
 
 
+# --------------------------------------------------------------------------- #
+# Template-key capability gaps found by the 2026-07-21 torture test (H1 / H2)
+# --------------------------------------------------------------------------- #
+
+# H1 — two same-shape SCALAR constraints over one family (multi-knapsack). They
+# share a template key but have no free index a ∀ could range over, so fusing
+# them can only decline on the differing weights/rhs; each must emit alone.
+MULTI_KNAPSACK = """
+set I := {a, b, c};
+param v{I} := a 60, b 100, c 120;
+param w1{I} := a 10, b 20, c 30;
+param w2{I} := a 5, b 15, c 25;
+var x{I} binary;
+maximize total: sum{i in I} v[i] * x[i];
+subject to weight: sum{i in I} w1[i] * x[i] <= 50;
+subject to volume: sum{i in I} w2[i] * x[i] <= 40;
+"""
+
+
+def test_two_scalar_knapsack_constraints_do_not_fuse():
+    problem = _flat(MULTI_KNAPSACK)
+    draft = deground_problem(problem)
+    assert draft is not None
+    assert "sum{" in draft  # compact — not the scalar fallback (H1 used to decline)
+    assert draft.count("subject to") == 2
+    assert "<= 50" in draft and "<= 40" in draft
+    assert _recompiles_equivalent(draft, problem)
+
+
+def test_two_scalar_knapsack_constraints_split_with_distinct_params():
+    from app.domains.dsl import JModelData
+    from app.services.jmodel_deground import deground_problem_split
+
+    problem = _flat(MULTI_KNAPSACK)
+    draft = deground_problem_split(problem)
+    assert draft is not None
+    assert draft.dataset is not None
+    assert ":=" not in draft.source
+    # Each knapsack keeps its own coefficient table in the dataset.
+    assert "a_c1_x" in draft.dataset["params"]
+    assert "a_c2_x" in draft.dataset["params"]
+    rebuilt = compile_jmodel(draft.source, data=JModelData.from_json(draft.dataset))
+    assert len(rebuilt.constraints) == len(problem.constraints)
+
+
+# H2 — a per-constraint CONSTANT coefficient (CFLP's ``cap_i · y_i``). The constant
+# differs per constraint, which used to fragment the template key into singleton
+# groups that decline; it must derive as ONE ∀ family with a coefficient param.
+CFLP = """
+set F := {f1, f2, f3}; set C := {c1, c2};
+param cap{F} := f1 8, f2 7, f3 9;
+param d{C} := c1 4, c2 6;
+var x{F, C} >= 0;
+var y{F} binary;
+minimize total: sum{f in F} cap[f] * y[f] + sum{f in F, c in C} x[f, c];
+subject to open{f in F}: sum{c in C} x[f, c] - cap[f] * y[f] <= 0;
+subject to demand{c in C}: sum{f in F} x[f, c] >= d[c];
+"""
+
+
+def test_per_constraint_constant_coefficient_stays_one_family():
+    problem = _flat(CFLP)
+    draft = deground_problem(problem)
+    assert draft is not None
+    assert "sum{" in draft
+    assert draft.count("subject to") == 2  # open + demand — no singleton shatter
+    link = next(ln for ln in draft.splitlines() if "y[" in ln and "subject to" in ln)
+    assert "{i in S1}" in link  # ∀-quantified over facilities
+    assert "a_c1_y[i] * y[i]" in link  # the per-facility constant became a param
+    assert _recompiles_equivalent(draft, problem)
+
+
+def test_per_row_uniform_coefficients_merge_into_one_param_family():
+    """Per-row constants over a full free set (``k_i · Σ_j x[i,j] ≤ m_i``) are the
+    indexed flavour of H2 — one ∀ family with a coefficient param, not singletons."""
+    problem = _flat(
+        "set I := {1, 2}; set J := {p, q};\n"
+        "param k{I} := 1 5, 2 7;\n"
+        "param m{I} := 1 10, 2 20;\n"
+        "var x{I, J} >= 0;\n"
+        "minimize obj: sum{i in I, j in J} x[i, j];\n"
+        "subject to r{i in I}: sum{j in J} k[i] * x[i, j] <= m[i];\n"
+    )
+    draft = deground_problem(problem)
+    assert draft is not None
+    assert draft.count("subject to") == 1
+    assert _recompiles_equivalent(draft, problem)
+
+
+def test_same_pattern_uniform_constant_families_stay_separate():
+    """Two ∀ families differing only in a uniform coefficient (and rhs) now share
+    the coarse template key; the merged emission conflicts and must fall back to
+    the per-value partition — recovered as TWO families, never declined."""
+    problem = _flat(
+        "set I := {1, 2}; set J := {p, q};\n"
+        "var x{I, J} >= 0;\n"
+        "minimize obj: sum{i in I, j in J} x[i, j];\n"
+        "subject to lo{i in I}: sum{j in J} 5 * x[i, j] <= 10;\n"
+        "subject to hi{i in I}: sum{j in J} 7 * x[i, j] <= 20;\n"
+    )
+    draft = deground_problem(problem)
+    assert draft is not None
+    assert draft.count("subject to") == 2
+    assert "5 * sum{" in draft and "7 * sum{" in draft
+    assert _recompiles_equivalent(draft, problem)
+
+
 def test_arity_beyond_the_index_letter_pool_declines_gracefully():
     """A family with more index positions than there are index letters (14) must
     DECLINE (None — the model is also too big for the scalar fallback), never leak
