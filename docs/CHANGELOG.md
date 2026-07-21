@@ -17,6 +17,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Added
+
+- **Public roadmap** — `docs/ROADMAP.md` (now / next / later / not-planned, directional,
+  no dates), linked from the README. The frozen JModel grammar spec also now ships with
+  the repo as `docs/JMODEL_GRAMMAR.md`.
+
 ### Fixed
 
 - **"Derive draft" recovers two constraint shapes it used to decline** (the 2026-07-21

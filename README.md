@@ -123,6 +123,7 @@ import-linter contracts. Adding a solver means writing one adapter — see
 | Doc | Description |
 |---|---|
 | [Quickstart](docs/getting-started/QUICKSTART.md) | From zero to first solve |
+| [Roadmap](docs/ROADMAP.md) | Where the project is heading — now / next / later |
 | [Configuration](docs/getting-started/configuration.md) | Self-hosting config: `.env` vs admin panel, + the config doctor |
 | [Architecture](docs/ARCHITECTURE/OVERVIEW.md) | System design, components, data model |
 | [Contributing](CONTRIBUTING.md) | Dev setup and conventions |
