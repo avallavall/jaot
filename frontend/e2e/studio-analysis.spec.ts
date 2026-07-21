@@ -23,10 +23,13 @@ const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD || "AdminPass123!";
 // A binary family x_{1..20}, capacity 12: the solution sets 12 of them to 1 (identical
 // bars) and 8 to 0. This gives (a) index structure for the grouped view (family "x"), and
 // (b) enough identical nonzero bars (>=3, all equal) to trigger A4's aggregate collapse.
+// The indexed `lim` family (20 rows, exactly 12 binding regardless of WHICH 12 the solver
+// picks) drives the Sensitivity L1 family-KPI table; scalar `cap` stays family-less.
 const VALID_JMODEL = `set I := 1..20;
 var x{I} binary;
 maximize obj: sum{i in I} x[i];
-subject to cap: sum{i in I} x[i] <= 12;`;
+subject to cap: sum{i in I} x[i] <= 12;
+subject to lim{i in I}: x[i] <= 1;`;
 
 async function setDslFlag(value: "true" | "false"): Promise<void> {
   const ctx = await request.newContext({ baseURL: BASE });
@@ -136,6 +139,19 @@ test.describe("Studio — post-solve analysis page (v3.1 A1-A5, gated by JAOT_DS
 
     // A3: exact, solution-based analysis auto-loads and leads with binding/contribution facts.
     await expect(page.getByTestId("exact-analysis")).toBeVisible({ timeout: SOLVE });
+
+    // Sensitivity L1: the family KPI table aggregates the indexed `lim` family — 12 of its
+    // 20 rows are binding no matter which 12 items the solver picked — while the scalar
+    // `cap` row carries no family and stays out of the table.
+    const familyTable = page.getByTestId("exact-analysis-families");
+    await expect(familyTable).toBeVisible({ timeout: NAV });
+    await expect(familyTable).toContainText("lim");
+    await expect(familyTable).toContainText("12/20");
+    await expect(familyTable).not.toContainText("cap");
+    // ...and the objective contributions roll up by variable family (all 20 x-terms → 12).
+    const familyBars = page.getByTestId("exact-analysis-family-contributions");
+    await expect(familyBars).toBeVisible({ timeout: NAV });
+    await expect(familyBars).toContainText("x");
 
     // A4: on the Visualization tab, a binary-dominant solution collapses the identical-bars
     // chart to an aggregate ("N at 1.0 / M at 0") instead of a wall of equal bars.

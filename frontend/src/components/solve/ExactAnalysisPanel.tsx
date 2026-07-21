@@ -100,7 +100,7 @@ export function ExactAnalysisPanel({ executionId, sensitivity }: ExactAnalysisPa
       )}
 
       {contributionFamilies.length > 0 && (
-        <Section title={t("familyContributions")}>
+        <Section title={t("familyContributions")} testId="exact-analysis-family-contributions">
           <ContributionBars
             contributions={contributionFamilies.map((f) => ({
               label: f.family,
@@ -136,9 +136,17 @@ export function ExactAnalysisPanel({ executionId, sensitivity }: ExactAnalysisPa
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+  testId,
+}: {
+  title: string;
+  children: React.ReactNode;
+  testId?: string;
+}) {
   return (
-    <div>
+    <div data-testid={testId}>
       <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
       {children}
     </div>
