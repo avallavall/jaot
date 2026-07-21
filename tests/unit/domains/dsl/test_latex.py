@@ -4,7 +4,7 @@ The pretty-printer walks the parsed AST BEFORE grounding, so the symbolic
 structure (indexed sums, ∀-quantified constraint families, variable domains)
 survives instead of being flattened to scalar rows. It is parse-only and
 deterministic, so these tests assert the exact rendered TeX. Grammar:
-``.claude/plans/jmodel-grammar-2026-07-01.md``.
+``docs/JMODEL_GRAMMAR.md``.
 """
 
 import pytest

@@ -63,7 +63,7 @@ Hardening guarantees (all violations raise :class:`JModelError`, never a raw exc
 - constant constraint rows are dropped when trivially satisfied and rejected at compile
   time when violated by construction.
 
-See ``.claude/plans/jmodel-grammar-2026-07-01.md`` for the frozen grammar.
+See ``docs/JMODEL_GRAMMAR.md`` for the frozen grammar.
 """
 
 from __future__ import annotations

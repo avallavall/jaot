@@ -7,7 +7,7 @@ families / ``sum{}`` / set-filters — NOT a math core: every scalar leaf is emi
 plain expression string that the existing ``ExpressionParser`` (solve path) parses
 verbatim. Turing-incomplete by design and statically analyzable.
 
-Grammar is frozen in ``.claude/plans/jmodel-grammar-2026-07-01.md``; the §8 Scenarios
+Grammar is frozen in ``docs/JMODEL_GRAMMAR.md``; the §8 Scenarios
 extension adds declaration-only ``set I;`` / ``param w{I};`` statements whose values
 come from a :class:`JModelData` dataset passed to :func:`compile_jmodel`.
 

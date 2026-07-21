@@ -2,7 +2,7 @@
 
 Covers deterministic lowering of three real models, structural assertions on the
 emitted flat OptimizationProblem, a real SCIP solve to the known optima, and the
-error paths. Grammar: ``.claude/plans/jmodel-grammar-2026-07-01.md``.
+error paths. Grammar: ``docs/JMODEL_GRAMMAR.md``.
 """
 
 import pytest
