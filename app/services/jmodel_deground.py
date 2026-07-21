@@ -204,23 +204,6 @@ def _reconstruct(problem: OptimizationProblem) -> _Emission | None:
     parser = ExpressionParser()
     var_names = {v.name for v in problem.variables}
 
-    sets = _SetRegistry()
-    for fam in families.values():
-        for values in fam.position_values:
-            sets.intern(values)
-
-    params: list[_ParamRecord] = []
-    var_lines: list[str] = []
-    for fam in families.values():
-        var_lines.append(_var_decl(fam, sets))
-    for var in scalars:
-        var_lines.append(_scalar_var_decl(var))
-
-    objective_line, obj_params = _build_objective(
-        problem, families, scalars, sets, parser, var_names
-    )
-    params.extend(obj_params)
-
     # name → (family, index tuple), so the constraint decomposition is O(1) per
     # variable (a 150x150 model has 22k variables × hundreds of constraints).
     var_lookup = {
@@ -228,10 +211,38 @@ def _reconstruct(problem: OptimizationProblem) -> _Emission | None:
         for fam_name, fam in families.items()
         for tup, name in fam.by_tuple.items()
     }
-    constraint_lines, con_params = _build_constraints(
-        problem, families, var_lookup, sets, parser, var_names
+    shapes = [
+        _shape_of(con.expression, families, var_lookup, parser, var_names)
+        for con in problem.constraints
+    ]
+    emit_groups = _partition_constraints(shapes, families)
+
+    # Set identity comes from the constraints — slots bound by one free index are
+    # one set — so the registry is linked and named before anything renders.
+    sets = _SetRegistry()
+    for fam in families.values():
+        for pos, values in enumerate(fam.position_values):
+            sets.register((fam.name, pos), values)
+    for group in emit_groups:
+        for slots in _slot_classes(group):
+            for slot in slots[1:]:
+                sets.link(slots[0], slot)
+    sets.finalize()
+
+    params: list[_ParamRecord] = []
+    var_lines = [_var_decl(fam, sets) for fam in families.values()]
+    var_lines += [_scalar_var_decl(var) for var in scalars]
+
+    objective_line, obj_params = _build_objective(
+        problem, families, scalars, sets, parser, var_names
     )
-    params.extend(con_params)
+    params.extend(obj_params)
+
+    constraint_lines: list[str] = []
+    for counter, group in enumerate(emit_groups, start=1):
+        line, extra = _emit_constraint_group(f"c{counter}", group, families, sets)
+        constraint_lines.append(line)
+        params.extend(extra)
 
     return _Emission(
         sets=sets,
@@ -352,23 +363,55 @@ def _scalar_jmodel(problem: OptimizationProblem) -> str | None:
 
 
 class _SetRegistry:
-    """Interns ordered member lists → shared set names (``S1``, ``S2`` …)."""
+    """Assigns set names to family index positions ("slots") — honestly.
+
+    Two slots share one set name only when the constraints LINK them (one free
+    index binds them together — structural evidence they range over the same set),
+    never merely because their members coincide: jobs and periods with the same
+    labels are different sets to the reader, and the flat model never stated they
+    are one. Union-find over linked slots; names (``S1``, ``S2`` …) follow
+    family/position registration order, and each set owns a canonical index letter
+    (S1→i, S2→j, …) so one set reads as one letter across the whole source.
+    """
 
     def __init__(self) -> None:
-        self._by_key: dict[tuple[str, ...], str] = {}
+        self._parent: dict[tuple[str, int], tuple[str, int]] = {}
+        self._members: dict[tuple[str, int], list[str]] = {}
+        self._names: dict[tuple[str, int], str] = {}
+        self._letters: dict[str, str | None] = {}
         self._values: dict[str, list[str]] = {}
 
-    def intern(self, values: list[str]) -> str:
-        key = tuple(values)
-        name = self._by_key.get(key)
-        if name is None:
-            name = f"S{len(self._by_key) + 1}"
-            self._by_key[key] = name
-            self._values[name] = list(values)
-        return name
+    def register(self, slot: tuple[str, int], values: list[str]) -> None:
+        if slot not in self._parent:
+            self._parent[slot] = slot
+            self._members[slot] = list(values)
 
-    def name_for(self, values: list[str]) -> str:
-        return self._by_key[tuple(values)]
+    def link(self, a: tuple[str, int], b: tuple[str, int]) -> None:
+        root_a, root_b = self._root(a), self._root(b)
+        if root_a != root_b:
+            self._parent[root_b] = root_a
+
+    def finalize(self) -> None:
+        for slot in self._parent:  # registration order names the sets
+            root = self._root(slot)
+            if root not in self._names:
+                name = f"S{len(self._names) + 1}"
+                self._names[root] = name
+                nth = len(self._values)
+                self._letters[name] = _INDEX_LETTERS[nth] if nth < len(_INDEX_LETTERS) else None
+                self._values[name] = self._members[root]
+
+    def _root(self, slot: tuple[str, int]) -> tuple[str, int]:
+        while self._parent[slot] != slot:
+            self._parent[slot] = self._parent[self._parent[slot]]
+            slot = self._parent[slot]
+        return slot
+
+    def name_for_slot(self, slot: tuple[str, int]) -> str:
+        return self._names[self._root(slot)]
+
+    def letter_for(self, name: str) -> str | None:
+        return self._letters.get(name)
 
     def names(self) -> list[str]:
         return list(self._values)
@@ -380,8 +423,29 @@ class _SetRegistry:
         return [f"set {name} := {{{', '.join(vals)}}};" for name, vals in self._values.items()]
 
 
+class _LetterScope:
+    """Index letters for one emitted line: a set's canonical letter when still free
+    in this line, else the next free pool letter; a line needing more letters than
+    the pool declines (a ``_DegroundError``, caught by the caller)."""
+
+    def __init__(self, sets: _SetRegistry) -> None:
+        self._sets = sets
+        self._used: set[str] = set()
+
+    def take(self, set_name: str) -> str:
+        preferred = self._sets.letter_for(set_name)
+        if preferred is not None and preferred not in self._used:
+            self._used.add(preferred)
+            return preferred
+        for candidate in _INDEX_LETTERS:
+            if candidate not in self._used:
+                self._used.add(candidate)
+                return candidate
+        raise _DegroundError("line needs more index letters than available")
+
+
 def _var_decl(fam: _Family, sets: _SetRegistry) -> str:
-    index_sets = ", ".join(sets.name_for(values) for values in fam.position_values)
+    index_sets = ", ".join(sets.name_for_slot((fam.name, p)) for p in range(fam.arity))
     suffix = _type_suffix(fam.vtype, fam.lb, fam.ub)
     return f"var {fam.name}{{{index_sets}}}{suffix};"
 
@@ -433,7 +497,8 @@ def _build_objective(
         if any(name not in coefs for name in fam.by_tuple.values()):
             raise _DegroundError(f"objective covers family {fam.name!r} only partially")
         used += len(fam.by_tuple)
-        letters = _index_letters(fam.arity)
+        scope = _LetterScope(sets)
+        letters = [scope.take(sets.name_for_slot((fam.name, p))) for p in range(fam.arity)]
         binding = _binding(fam, sets, letters)
         ref = f"{fam.name}[{', '.join(letters)}]"
         distinct = {round(c, 9) for c in fam_coefs.values()}
@@ -525,22 +590,18 @@ def _fine_coef_class(coef_by_tuple: dict[tuple[str, ...], float]) -> str:
     return "vary"
 
 
-def _build_constraints(
-    problem: OptimizationProblem,
-    families: dict[str, _Family],
-    var_lookup: dict[str, tuple[str, tuple[str, ...]]],
-    sets: _SetRegistry,
-    parser: ExpressionParser,
-    var_names: set[str],
-) -> tuple[list[str], list[_ParamRecord]]:
-    shapes = [
-        _shape_of(con.expression, families, var_lookup, parser, var_names)
-        for con in problem.constraints
-    ]
+def _partition_constraints(
+    shapes: list[_ConstraintShape], families: dict[str, _Family]
+) -> list[list[_ConstraintShape]]:
+    """Template-group the shapes and split unemittable merges, in emission order.
 
-    # Group constraints sharing a template (same families with the same fixed/summed
-    # position pattern, same operator); members of a group differ only in their fixed
-    # values, which become the ∀-quantified free indices.
+    Group constraints sharing a template (same families with the same fixed/summed
+    position pattern, same operator); members of a group differ only in their fixed
+    values, which become the ∀-quantified free indices. The dry-run emission uses a
+    provisional registry (no links) — partitioning is structural, names never decide
+    it — and a group that cannot emit even after splitting raises here, before any
+    set identity is derived from it.
+    """
     groups: dict[tuple, list[_ConstraintShape]] = {}
     order: list[tuple] = []
     for serial, shape in enumerate(shapes):
@@ -561,16 +622,16 @@ def _build_constraints(
             order.append(key)
         groups[key].append(shape)
 
-    lines: list[str] = []
-    params: list[_ParamRecord] = []
-    counter = 0
+    provisional = _SetRegistry()
+    for fam in families.values():
+        for pos, values in enumerate(fam.position_values):
+            provisional.register((fam.name, pos), values)
+    provisional.finalize()
+
+    result: list[list[_ConstraintShape]] = []
     for key in order:
-        for group in _emittable_partition(groups[key], families, sets):
-            counter += 1
-            line, extra = _emit_constraint_group(f"c{counter}", group, families, sets)
-            lines.append(line)
-            params.extend(extra)
-    return lines, params
+        result.extend(_emittable_partition(groups[key], families, provisional))
+    return result
 
 
 def _emittable_partition(
@@ -596,7 +657,21 @@ def _emittable_partition(
             finer.setdefault(key, []).append(shape)
         if len(finer) == 1:
             raise
+        for sub in finer.values():  # a subgroup that cannot emit declines the draft
+            _emit_constraint_group("c0", sub, families, sets)
         return list(finer.values())
+
+
+def _slot_classes(group: list[_ConstraintShape]) -> list[list[tuple[str, int]]]:
+    """Fixed slots grouped into free-index classes: slots holding identical members
+    in every constraint of the group are the same ∀-quantified index."""
+    first = group[0]
+    slots = [(t.family, pos) for t in first.terms for pos, _ in t.fixed]
+    sig = {slot: tuple(_slot_member(s, *slot) for s in group) for slot in slots}
+    classes: dict[tuple[str, ...], list[tuple[str, int]]] = {}
+    for slot in slots:
+        classes.setdefault(sig[slot], []).append(slot)
+    return list(classes.values())
 
 
 def _shape_of(
@@ -667,42 +742,44 @@ def _emit_constraint_group(
     # 1) Free-index classes: fixed slots (family, position) whose member CO-VARIES
     #    across the group are the same ∀-quantified index. Two slots are the same
     #    index iff they hold identical members in every constraint of the group.
-    slots = [(t.family, pos) for t in first.terms for pos, _ in t.fixed]
-    slot_sig = {slot: tuple(_slot_member(s, *slot) for s in group) for slot in slots}
+    classes = _slot_classes(group)
+    class_of = {slot: index for index, slots in enumerate(classes) for slot in slots}
 
     # 2) Letters: scan families/positions in order; a fixed slot reuses its class's
-    #    letter, a summed slot takes a fresh one. This reproduces the natural form
-    #    ``sum{i in I} a[i, j] + z[j]``.
-    pool = iter(_INDEX_LETTERS)
-    class_letter: dict[tuple[str, ...], str] = {}
+    #    letter, a summed slot takes its own — each set's canonical letter where the
+    #    line allows. This reproduces the natural form ``sum{i in I} a[i, j] + z[j]``.
+    scope = _LetterScope(sets)
+    class_letter: dict[int, str] = {}
     letter: dict[tuple[str, int], str] = {}
     for term in first.terms:
         fam = families[term.family]
         fixed_pos = {p for p, _ in term.fixed}
         for pos in range(fam.arity):
+            slot = (term.family, pos)
+            set_name = sets.name_for_slot(slot)
             if pos in fixed_pos:
-                sig = slot_sig[(term.family, pos)]
-                if sig not in class_letter:
-                    class_letter[sig] = _next_letter(pool)
-                letter[(term.family, pos)] = class_letter[sig]
+                index = class_of[slot]
+                if index not in class_letter:
+                    class_letter[index] = scope.take(set_name)
+                letter[slot] = class_letter[index]
             else:
-                letter[(term.family, pos)] = _next_letter(pool)
+                letter[slot] = scope.take(set_name)
 
     # 3) ∀ bindings, one per free class. A class must map to ONE set and its members
     #    must cover that set (so a plain ∀ with no filter is faithful).
-    free_classes: list[tuple[tuple[str, ...], str, list[str], tuple[str, int]]] = []
-    for sig, lett in class_letter.items():
-        rep = next(slot for slot in slots if slot_sig[slot] == sig)
+    free_classes: list[tuple[str, list[str], tuple[str, int]]] = []
+    for index, slots in enumerate(classes):
+        rep = slots[0]
         set_values = families[rep[0]].position_values[rep[1]]
         for slot in slots:
-            if slot_sig[slot] == sig:
-                other = families[slot[0]].position_values[slot[1]]
-                if set(other) != set(set_values):
-                    raise _DegroundError("a shared free index maps to different sets")
-        if set(sig) != set(set_values):
+            other = families[slot[0]].position_values[slot[1]]
+            if set(other) != set(set_values):
+                raise _DegroundError("a shared free index maps to different sets")
+        members = {_slot_member(shape, rep[0], rep[1]) for shape in group}
+        if members != set(set_values):
             raise _DegroundError("constraint family does not cover its free index set")
-        free_classes.append((sig, lett, set_values, rep))
-    forall = [f"{lett} in {sets.name_for(sv)}" for _, lett, sv, _ in free_classes]
+        free_classes.append((class_letter[index], set_values, rep))
+    forall = [f"{lett} in {sets.name_for_slot(rep)}" for lett, _, rep in free_classes]
 
     # 4) One expression term per family — a sum (or a bare ref) over its summed
     #    positions, with a unit / constant / param coefficient.
@@ -722,7 +799,7 @@ def _emit_constraint_group(
         letters = [letter[(term.family, p)] for p in range(fam.arity)]
         ref = f"{term.family}[{', '.join(letters)}]"
         sum_parts = [
-            f"{letter[(term.family, p)]} in {sets.name_for(fam.position_values[p])}"
+            f"{letter[(term.family, p)]} in {sets.name_for_slot((term.family, p))}"
             for p in term.summed
         ]
         sum_prefix = f"sum{{{', '.join(sum_parts)}}} " if term.summed else ""
@@ -746,7 +823,7 @@ def _emit_constraint_group(
     elif free_classes:
         pname = f"r_{cname}"
         params.append(_rhs_param_record(pname, group, free_classes, sets))
-        rhs_str = f"{pname}[{', '.join(lett for _, lett, _, _ in free_classes)}]"
+        rhs_str = f"{pname}[{', '.join(lett for lett, _, _ in free_classes)}]"
     else:
         raise _DegroundError("scalar constraint has a varying rhs but no free index")
 
@@ -764,7 +841,7 @@ def _emit_constraint_group(
 def _param_record(
     pname: str, fam: _Family, sets: _SetRegistry, coef_by_tuple: dict[tuple[str, ...], float]
 ) -> _ParamRecord:
-    index_sets = tuple(sets.name_for(values) for values in fam.position_values)
+    index_sets = tuple(sets.name_for_slot((fam.name, p)) for p in range(fam.arity))
     entries = {tup: coef_by_tuple[tup] for tup in _cartesian(fam.position_values)}
     return _ParamRecord(name=pname, index_sets=index_sets, entries=entries)
 
@@ -780,16 +857,16 @@ def _slot_member(shape: _ConstraintShape, family: str, pos: int) -> str:
 def _rhs_param_record(
     pname: str,
     group: list[_ConstraintShape],
-    free_classes: list[tuple[tuple[str, ...], str, list[str], tuple[str, int]]],
+    free_classes: list[tuple[str, list[str], tuple[str, int]]],
     sets: _SetRegistry,
 ) -> _ParamRecord:
     """A per-constraint rhs param indexed by the ∀ free-index classes."""
-    index_sets = tuple(sets.name_for(sv) for _, _, sv, _ in free_classes)
+    index_sets = tuple(sets.name_for_slot(rep) for _, _, rep in free_classes)
     # The free indices must uniquely key each constraint; a collision means the group
     # holds hidden structure a plain ∀ can't reproduce, so decline (round-trip-safe).
     by_key: dict[tuple[str, ...], float] = {}
     for shape in group:
-        key = tuple(_slot_member(shape, rep[0], rep[1]) for _, _, _, rep in free_classes)
+        key = tuple(_slot_member(shape, rep[0], rep[1]) for _, _, rep in free_classes)
         if key in by_key and round(by_key[key], 9) != round(shape.rhs, 9):
             raise _DegroundError("constraint family free indices are not unique")
         by_key[key] = shape.rhs
@@ -798,23 +875,8 @@ def _rhs_param_record(
 
 def _binding(fam: _Family, sets: _SetRegistry, letters: list[str]) -> str:
     return ", ".join(
-        f"{letters[p]} in {sets.name_for(fam.position_values[p])}" for p in range(fam.arity)
+        f"{letters[p]} in {sets.name_for_slot((fam.name, p))}" for p in range(fam.arity)
     )
-
-
-def _next_letter(pool) -> str:
-    """Next free index letter — a constraint needing more than the pool declines
-    (a ``_DegroundError``, caught by the caller) instead of leaking StopIteration."""
-    try:
-        return next(pool)
-    except StopIteration:
-        raise _DegroundError("constraint needs more index letters than available") from None
-
-
-def _index_letters(arity: int) -> list[str]:
-    if arity > len(_INDEX_LETTERS):
-        raise _DegroundError(f"family arity {arity} exceeds the index-letter pool")
-    return [_INDEX_LETTERS[p] for p in range(arity)]
 
 
 def _num(value: float) -> str:

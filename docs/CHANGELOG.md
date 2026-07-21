@@ -32,6 +32,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Changed
 
+- **Derived drafts read like a person wrote them** (the torture test's cosmetic
+  findings): two index positions whose members happen to coincide are no longer
+  fused into one set — set identity now needs structural evidence (a shared free
+  index linking the slots in some constraint), so jobs vs periods with the same
+  labels derive as `x{S1, S2}`, not a claimed square over one set. And each set
+  keeps one canonical index letter across the whole source (`S1→i`, `S2→j`, …) —
+  a family ranging only over the second set reads `sum{j in S2} …` in the
+  objective and under its `∀` alike, instead of a fresh `i` per line.
+
 - **The Sensitivity tab no longer renders a wall of identical bars** (owner report,
   the 100×100 assignment): in a MIP the LP relaxation is often (near-)degenerate —
   most constraints share the same shadow price — so a per-constraint bar chart

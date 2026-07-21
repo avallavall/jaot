@@ -549,6 +549,58 @@ def test_same_pattern_uniform_constant_families_stay_separate():
     assert _recompiles_equivalent(draft, problem)
 
 
+# --------------------------------------------------------------------------- #
+# Set identity & index letters (the 2026-07-21 torture test's cosmetic findings)
+# --------------------------------------------------------------------------- #
+
+
+def test_equal_membered_axes_stay_distinct_sets():
+    """Jobs and periods sharing the same labels are still different sets — nothing
+    links them, so the draft must not claim ``x{S1, S1}`` (an identity the flat
+    model never stated)."""
+    problem = _flat(
+        "set J := {1, 2, 3}; set T := {1, 2, 3};\n"
+        "var x{J, T} binary;\n"
+        "minimize obj: sum{j in J, t in T} x[j, t];\n"
+        "subject to one{j in J}: sum{t in T} x[j, t] <= 1;\n"
+    )
+    draft = deground_problem(problem)
+    assert draft is not None
+    assert "var x{S1, S2} binary;" in draft
+    assert draft.count("set S") == 2
+    assert _recompiles_equivalent(draft, problem)
+
+
+def test_shared_free_index_links_slots_to_one_set():
+    """The linking constraint (``sum_i x[i,j] + z[j] == 1``) is the structural
+    evidence that z ranges over x's second axis — those slots DO share one set."""
+    problem = _flat(MULTI_FAMILY)
+    draft = deground_problem(problem)
+    assert draft is not None
+    assert "var x{S1, S2} binary;" in draft
+    assert "var z{S2} binary;" in draft
+    assert _recompiles_equivalent(draft, problem)
+
+
+def test_one_index_letter_per_set_across_the_source():
+    """One set, one letter, everywhere: a family ranging only over the SECOND set
+    uses that set's canonical letter (j) in the objective and under the ∀ alike —
+    not a fresh ``i`` per line."""
+    problem = _flat(
+        "set I := {1, 2, 3}; set J := {a, b};\n"
+        "param p{J} := a 5, b 7;\n"
+        "var x{I, J} binary;\n"
+        "var z{J} binary;\n"
+        "minimize obj: sum{i in I, j in J} x[i, j] + sum{j in J} p[j] * z[j];\n"
+        "subject to link{j in J}: sum{i in I} x[i, j] + z[j] == 1;\n"
+    )
+    draft = deground_problem(problem)
+    assert draft is not None
+    assert "sum{j in S2} c_z[j] * z[j]" in draft
+    assert "{j in S2}" in draft
+    assert _recompiles_equivalent(draft, problem)
+
+
 def test_arity_beyond_the_index_letter_pool_declines_gracefully():
     """A family with more index positions than there are index letters (14) must
     DECLINE (None — the model is also too big for the scalar fallback), never leak
