@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import type { ExactAnalysis, SensitivityResult } from "@/lib/types";
+import type { ConstraintFamilyStats, ExactAnalysis, SensitivityResult } from "@/lib/types";
 import { ConceptTooltip } from "@/components/ui/concept-tooltip";
 
 interface ExactAnalysisPanelProps {
@@ -65,6 +65,9 @@ export function ExactAnalysisPanel({ executionId, sensitivity }: ExactAnalysisPa
   }
 
   const binding = data.constraints.filter((c) => c.is_binding);
+  // Additive fields (Sensitivity L1) — a stale backend may not send them yet.
+  const families = data.families ?? [];
+  const contributionFamilies = data.contribution_families ?? [];
 
   return (
     <div className="space-y-6" data-testid="exact-analysis">
@@ -85,6 +88,28 @@ export function ExactAnalysisPanel({ executionId, sensitivity }: ExactAnalysisPa
           </ul>
         )}
       </div>
+
+      {families.length > 0 && (
+        <Section title={t("families")}>
+          <FamilyTable rows={families} t={t} />
+          <p className="mt-2 text-xs text-muted-foreground">
+            {t("familiesNote")}
+            {data.truncated_families && " " + t("truncatedFamilies")}
+          </p>
+        </Section>
+      )}
+
+      {contributionFamilies.length > 0 && (
+        <Section title={t("familyContributions")}>
+          <ContributionBars
+            contributions={contributionFamilies.map((f) => ({
+              label: f.family,
+              contribution: f.contribution,
+            }))}
+            label={t("contribution")}
+          />
+        </Section>
+      )}
 
       {data.contributions.length > 0 && (
         <Section title={t("objectiveContributions")}>
@@ -147,6 +172,68 @@ function ContributionBars({
         </div>
       ))}
       <p className="sr-only">{label}</p>
+    </div>
+  );
+}
+
+/** Family-level KPIs (Sensitivity L1): saturation, slack spread, utilization.
+ * Rows arrive ranked by the backend — most saturated first, so the headroom
+ * ranking reads bottom-up. A fully-binding family gets the binding highlight. */
+function FamilyTable({
+  rows,
+  t,
+}: {
+  rows: ConstraintFamilyStats[];
+  t: ReturnType<typeof useTranslations>;
+}) {
+  return (
+    <div
+      className="overflow-x-auto rounded-lg border border-border bg-card"
+      data-testid="exact-analysis-families"
+    >
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-border bg-muted/40">
+            <th className="px-3 py-2 text-left font-medium text-muted-foreground">{t("family")}</th>
+            <th className="px-3 py-2 text-right font-medium text-muted-foreground">
+              {t("bindingRatio")}
+            </th>
+            <th className="px-3 py-2 text-right font-medium text-muted-foreground">
+              {t("slackHeader")}
+            </th>
+            <th className="px-3 py-2 text-right font-medium text-muted-foreground">
+              {t("utilizationHeader")}
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {rows.map((f) => {
+            const ratio = f.total > 0 ? f.binding_count / f.total : 0;
+            return (
+              <tr
+                key={f.family}
+                className={ratio === 1 ? "bg-green-50/50 dark:bg-green-900/10" : ""}
+              >
+                <td className="px-3 py-1.5 font-mono text-xs text-foreground truncate max-w-[200px]">
+                  {f.family}
+                </td>
+                <td className="px-3 py-1.5 text-right font-mono text-xs tabular-nums">
+                  {f.binding_count}/{f.total}
+                  <span className="ml-1 text-muted-foreground">({Math.round(ratio * 100)}%)</span>
+                </td>
+                <td className="px-3 py-1.5 text-right font-mono text-xs tabular-nums text-muted-foreground">
+                  {fmt(f.slack_min)} / {fmt(f.slack_mean)} / {fmt(f.slack_max)}
+                </td>
+                <td className="px-3 py-1.5 text-right font-mono text-xs tabular-nums text-muted-foreground">
+                  {f.utilization_mean != null && f.utilization_max != null
+                    ? `${(f.utilization_mean * 100).toFixed(0)}% · ${(f.utilization_max * 100).toFixed(0)}%`
+                    : "—"}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

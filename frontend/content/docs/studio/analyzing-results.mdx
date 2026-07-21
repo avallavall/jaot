@@ -36,10 +36,11 @@ Below the headline: the objective value, the final gap, node and iteration count
 The **Analysis** section is computed on demand from the solution x\* and the problem data — not from the LP relaxation — so every figure is **exact for the integer solution** and solver-agnostic:
 
 - **Binding constraints** — "12 of 439 constraints are binding at the optimum (no slack)", with the tightest constraints listed first: activity, operator, and right-hand side per row.
+- **Constraint families** — the per-row facts aggregated by constraint _family_ (the same structure recovery the solution view uses, applied to constraint names): share of binding rows, slack min/mean/max, and utilization per family, ranked so the saturated families lead and the headroom sits at the bottom. A 10,000-row model reads as a ten-line table.
 - **Utilization** — per ≤-constraint, activity as a percentage of its right-hand side, so "capacity is at 97%" is one glance.
-- **Objective contributions** — which terms c·x\* actually drive the objective, as a ranked bar list.
+- **Objective contributions** — which terms c·x\* actually drive the objective, as a ranked bar list — plus the same totals rolled up **by variable family**, so "transport is 80% of the cost" is one glance too.
 
-Very large models degrade gracefully: the analysis is bounded (the most informative rows lead, a truncation note appears) rather than slow.
+The family KPIs are computed over _all_ analysed rows, not the capped display lists, so they hold at model scale. Very large models degrade gracefully: the analysis is bounded (the most informative rows lead, a truncation note appears) rather than slow.
 
 The classic **LP-relaxation shadow prices** are still available, demoted into a collapsed section underneath and deduplicated ("47 constraints · shadow price 1.0" instead of 47 identical rows). For a MIP they are duals of a _different, easier_ problem — directional at best — which is exactly why they no longer lead the page. See [Understanding Your Solution](/docs/ai-builder/understanding-your-solution) for how to read them, and for the plain-language AI explanation of the result.
 
@@ -56,4 +57,4 @@ GET /api/v2/models/executions/{execution_id}
 GET /api/v2/models/executions/{execution_id}/exact-analysis
 ```
 
-The first returns the persisted execution (solution variables include the recovered `family` and `index_tuple`); the second computes the exact analysis on demand — binding constraints, slack/utilization, and objective contributions.
+The first returns the persisted execution (solution variables include the recovered `family` and `index_tuple`); the second computes the exact analysis on demand — binding constraints, slack/utilization, objective contributions, and the per-family KPI aggregates (`families`, `contribution_families`).

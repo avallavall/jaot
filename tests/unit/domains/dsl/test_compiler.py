@@ -100,6 +100,18 @@ def test_grounding_carries_index_structure():
     assert take_a.index_tuple == ["a"]
 
 
+def test_grounding_carries_constraint_family():
+    """Sensitivity L1: grounded constraint rows carry their declared family so
+    the analysis can aggregate KPIs per family; scalar rows stay unstructured."""
+    by_name = {c.name: c for c in compile_jmodel(ASSIGNMENT).constraints}
+    assert by_name["one_worker_per_task_1"].family == "one_worker_per_task"
+    assert by_name["one_task_per_worker_A"].family == "one_task_per_worker"
+    # KNAPSACK's `capacity` has no index sets — a genuine scalar, no family.
+    (capacity,) = compile_jmodel(KNAPSACK).constraints
+    assert capacity.name == "capacity"
+    assert capacity.family is None
+
+
 def test_knapsack_lowering_scalar_param_and_maximize():
     prob = compile_jmodel(KNAPSACK)
 

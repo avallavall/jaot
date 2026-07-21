@@ -4891,10 +4891,44 @@ export interface components {
              */
             expression: string;
             /**
+             * Family
+             * @description Indexed constraint family this row belongs to, if any
+             */
+            family?: string | null;
+            /**
              * Name
              * @description Constraint name for debugging
              */
             name?: string | null;
+        };
+        /**
+         * ConstraintFamilyStats
+         * @description Aggregated, exact KPIs for one constraint FAMILY at x* (Sensitivity L1).
+         *
+         *     A grounded model repeats each declared constraint over its index sets
+         *     ("cap_s1", "cap_s2", …); per-row tables drown the structure. These stats
+         *     aggregate the rows of one family — computed over ALL analysed rows, before
+         *     the per-row cap — so "3/12 binding, min slack 0.0" reads at model scale.
+         *     ``utilization_*`` cover only rows where utilization is defined (≤ with
+         *     nonzero RHS); None when no row qualifies.
+         */
+        ConstraintFamilyStats: {
+            /** Binding Count */
+            binding_count: number;
+            /** Family */
+            family: string;
+            /** Slack Max */
+            slack_max: number;
+            /** Slack Mean */
+            slack_mean: number;
+            /** Slack Min */
+            slack_min: number;
+            /** Total */
+            total: number;
+            /** Utilization Max */
+            utilization_max?: number | null;
+            /** Utilization Mean */
+            utilization_mean?: number | null;
         };
         /**
          * ConstraintSensitivity
@@ -4935,6 +4969,8 @@ export interface components {
         ConstraintUtilization: {
             /** Activity */
             activity: number;
+            /** Family */
+            family?: string | null;
             /** Is Binding */
             is_binding: boolean;
             /** Name */
@@ -5682,10 +5718,20 @@ export interface components {
              */
             constraints: components["schemas"]["ConstraintUtilization"][];
             /**
+             * Contribution Families
+             * @default []
+             */
+            contribution_families: components["schemas"]["ObjectiveFamilyContribution"][];
+            /**
              * Contributions
              * @default []
              */
             contributions: components["schemas"]["ObjectiveTermContribution"][];
+            /**
+             * Families
+             * @default []
+             */
+            families: components["schemas"]["ConstraintFamilyStats"][];
             /** Note */
             note?: string | null;
             /** Objective Value */
@@ -5705,6 +5751,11 @@ export interface components {
              * @default false
              */
             truncated_contributions: boolean;
+            /**
+             * Truncated Families
+             * @default false
+             */
+            truncated_families: boolean;
         };
         /**
          * ExecuteModelRequest
@@ -6955,6 +7006,22 @@ export interface components {
              * @description Variable whose objective coefficient this range covers
              */
             variable: string;
+        };
+        /**
+         * ObjectiveFamilyContribution
+         * @description Total exact objective contribution of one variable FAMILY (Sensitivity L1).
+         *
+         *     Sums c_j·x*_j over every objective term whose variables all belong to the
+         *     family — including terms too small to appear in the per-term list — so the
+         *     family totals are complete, not a sum of the displayed rows.
+         */
+        ObjectiveFamilyContribution: {
+            /** Contribution */
+            contribution: number;
+            /** Family */
+            family: string;
+            /** Terms */
+            terms: number;
         };
         /**
          * ObjectiveSense
@@ -9514,6 +9581,7 @@ export type ComparedExecutionResponse = components['schemas']['ComparedExecution
 export type CompareResponse = components['schemas']['CompareResponse'];
 export type ComponentStatus = components['schemas']['ComponentStatus'];
 export type Constraint = components['schemas']['Constraint'];
+export type ConstraintFamilyStats = components['schemas']['ConstraintFamilyStats'];
 export type ConstraintSensitivity = components['schemas']['ConstraintSensitivity'];
 export type ConstraintUtilization = components['schemas']['ConstraintUtilization'];
 export type ContactCreate = components['schemas']['ContactCreate'];
@@ -9619,6 +9687,7 @@ export type NotificationPreferencesResponse = components['schemas']['Notificatio
 export type NotificationResponse = components['schemas']['NotificationResponse'];
 export type Objective = components['schemas']['Objective'];
 export type ObjectiveCoeffRange = components['schemas']['ObjectiveCoeffRange'];
+export type ObjectiveFamilyContribution = components['schemas']['ObjectiveFamilyContribution'];
 export type ObjectiveSense = components['schemas']['ObjectiveSense'];
 export type ObjectiveSpec = components['schemas']['ObjectiveSpec'];
 export type ObjectiveTermContribution = components['schemas']['ObjectiveTermContribution'];

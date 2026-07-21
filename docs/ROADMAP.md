@@ -7,13 +7,10 @@ as we learn. The best way to influence it is to
 
 ## Now
 
-**Deeper sensitivity analysis.** Today the post-solve analysis is exact but mostly
-per-constraint. We are extending it in two layers:
+**Deeper sensitivity analysis.** The post-solve analysis is exact and now aggregates
+per-family KPIs (binding share, slack distribution, utilization, headroom ranking,
+objective contributions by variable family). The next layer:
 
-- **Per-family KPIs** — aggregate the exact analysis by constraint family (share of
-  binding constraints, slack distribution, utilization, headroom ranking) and by
-  variable family (objective contributions), so a 10,000-row model reads like a
-  ten-line summary.
 - **True MIP sensitivity, on demand** — real re-solve-based analysis: RHS ranging on
   the top binding constraints (how much does the objective actually move if a capacity
   changes?) and decision regret (what does it cost to flip a key decision?). Runs

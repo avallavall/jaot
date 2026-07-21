@@ -2694,7 +2694,15 @@
         "approximateSection": "Aproximado — precios sombra (relajación LP)",
         "exactDualsSection": "Precios sombra (duales LP)",
         "approximateNote": "En un MILP son duales de la relajación LP, no del problema entero, y son casi uniformes por degeneración. Léelos como una pista, no como un artefacto de decisión.",
-        "shadowPriceGroup": "{count, plural, one {# restricción} other {# restricciones}}"
+        "shadowPriceGroup": "{count, plural, one {# restricción} other {# restricciones}}",
+        "families": "Familias de restricciones",
+        "familiesNote": "Familias ordenadas por saturación; las últimas filas conservan más margen.",
+        "family": "Familia",
+        "bindingRatio": "Activas",
+        "slackHeader": "Holgura (mín / media / máx)",
+        "utilizationHeader": "Utilización (media · máx)",
+        "familyContributions": "Contribución al objetivo por familia",
+        "truncatedFamilies": "Lista de familias truncada."
       },
       "solveSummary": "Resumen del solve",
       "summary": {

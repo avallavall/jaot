@@ -2722,7 +2722,15 @@
         "approximateSection": "Approximate — LP-relaxation shadow prices",
         "exactDualsSection": "Shadow prices (LP duals)",
         "approximateNote": "For a MILP these are duals of the LP relaxation, not of the integer problem, and are near-uniform under degeneracy. Read them as a hint, not a decision artifact.",
-        "shadowPriceGroup": "{count, plural, one {# constraint} other {# constraints}}"
+        "shadowPriceGroup": "{count, plural, one {# constraint} other {# constraints}}",
+        "families": "Constraint families",
+        "familiesNote": "Families ranked by saturation; the bottom rows hold the most headroom.",
+        "family": "Family",
+        "bindingRatio": "Binding",
+        "slackHeader": "Slack (min / mean / max)",
+        "utilizationHeader": "Utilization (mean · max)",
+        "familyContributions": "Objective contribution by family",
+        "truncatedFamilies": "Family list truncated."
       },
       "solveSummary": "Solve summary",
       "summary": {

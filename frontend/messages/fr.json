@@ -2694,7 +2694,15 @@
         "approximateSection": "Approximatif — prix duaux (relaxation LP)",
         "exactDualsSection": "Prix duaux (duaux LP)",
         "approximateNote": "Pour un MILP ce sont les duaux de la relaxation LP, pas du problème entier, et ils sont quasi uniformes sous dégénérescence. À lire comme un indice, pas comme un artefact de décision.",
-        "shadowPriceGroup": "{count, plural, one {# contrainte} other {# contraintes}}"
+        "shadowPriceGroup": "{count, plural, one {# contrainte} other {# contraintes}}",
+        "families": "Familles de contraintes",
+        "familiesNote": "Familles classées par saturation ; les dernières lignes gardent le plus de marge.",
+        "family": "Famille",
+        "bindingRatio": "Saturées",
+        "slackHeader": "Marge (min / moyenne / max)",
+        "utilizationHeader": "Utilisation (moyenne · max)",
+        "familyContributions": "Contribution à l'objectif par famille",
+        "truncatedFamilies": "Liste des familles tronquée."
       },
       "solveSummary": "Résumé de la résolution",
       "summary": {

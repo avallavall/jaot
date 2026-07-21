@@ -1964,6 +1964,9 @@ def _lower(model: ModelAst, max_grounded_elements: int) -> OptimizationProblem:
                 Constraint(
                     name=flat_name,
                     expression=f"{lhs_str} {con.op} {rhs_num}",
+                    # Authoritative family, mirroring Variable.family: the declared
+                    # constraint name IS the family; scalar rows stay unstructured.
+                    family=con.name if suffix else None,
                 )
             )
 

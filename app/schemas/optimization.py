@@ -119,6 +119,12 @@ class Constraint(BaseModel):
     expression: str = Field(
         ..., max_length=5_000_000, description="Constraint expression (e.g., 'x + 2*y <= 10')"
     )
+    # Same contract as Variable.family: set AUTHORITATIVELY by the JModel compiler
+    # when it grounds an indexed constraint family ("cap_s1" → "cap"); best-effort
+    # parsed for flat/imported problems; None for genuine scalar rows.
+    family: str | None = Field(
+        default=None, description="Indexed constraint family this row belongs to, if any"
+    )
 
     @field_validator("name", "expression", mode="before")
     @classmethod
@@ -308,6 +314,28 @@ class ConstraintUtilization(BaseModel):
     slack: float
     is_binding: bool
     utilization: float | None = None
+    family: str | None = None
+
+
+class ConstraintFamilyStats(BaseModel):
+    """Aggregated, exact KPIs for one constraint FAMILY at x* (Sensitivity L1).
+
+    A grounded model repeats each declared constraint over its index sets
+    ("cap_s1", "cap_s2", …); per-row tables drown the structure. These stats
+    aggregate the rows of one family — computed over ALL analysed rows, before
+    the per-row cap — so "3/12 binding, min slack 0.0" reads at model scale.
+    ``utilization_*`` cover only rows where utilization is defined (≤ with
+    nonzero RHS); None when no row qualifies.
+    """
+
+    family: str
+    total: int
+    binding_count: int
+    slack_min: float
+    slack_mean: float
+    slack_max: float
+    utilization_mean: float | None = None
+    utilization_max: float | None = None
 
 
 class ObjectiveTermContribution(BaseModel):
@@ -315,6 +343,19 @@ class ObjectiveTermContribution(BaseModel):
 
     label: str
     contribution: float
+
+
+class ObjectiveFamilyContribution(BaseModel):
+    """Total exact objective contribution of one variable FAMILY (Sensitivity L1).
+
+    Sums c_j·x*_j over every objective term whose variables all belong to the
+    family — including terms too small to appear in the per-term list — so the
+    family totals are complete, not a sum of the displayed rows.
+    """
+
+    family: str
+    contribution: float
+    terms: int
 
 
 class ExactAnalysis(BaseModel):
@@ -329,8 +370,13 @@ class ExactAnalysis(BaseModel):
     binding_count: int = 0
     constraints: list[ConstraintUtilization] = []
     contributions: list[ObjectiveTermContribution] = []
+    # Family-level KPIs (Sensitivity L1) — aggregated over ALL analysed rows/terms,
+    # not the capped display lists. Empty when no family structure was recovered.
+    families: list[ConstraintFamilyStats] = []
+    contribution_families: list[ObjectiveFamilyContribution] = []
     truncated_constraints: bool = False
     truncated_contributions: bool = False
+    truncated_families: bool = False
     computed: bool = True
     note: str | None = None
 

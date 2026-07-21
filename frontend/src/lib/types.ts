@@ -18,6 +18,7 @@ export type {
 
 export type {
   Constraint,
+  ConstraintFamilyStats,
   ConstraintSensitivity,
   ConstraintUtilization,
   ExactAnalysis,
@@ -25,6 +26,7 @@ export type {
   MultiObjectiveResult,
   Objective,
   ObjectiveCoeffRange,
+  ObjectiveFamilyContribution,
   ObjectiveSpec,
   ObjectiveTermContribution,
   OptimizationProblemInput as OptimizationProblem,

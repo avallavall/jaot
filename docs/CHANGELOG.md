@@ -19,6 +19,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Added
 
+- **Family-level KPIs in the post-solve analysis** (Sensitivity level 1). The exact
+  analysis now aggregates by constraint family — share of binding rows, slack
+  min/mean/max, utilization mean/max, ranked so the saturated families lead and the
+  headroom reads at the bottom — and by variable family (total objective contribution),
+  so a 10,000-row model reads like a ten-line summary. Computed over *all* analysed
+  rows, not the capped display lists. JModel-compiled problems carry the constraint
+  family authoritatively (the declared constraint name); flat/imported problems recover
+  it from conventional `name_1_2` naming, with the same never-second-guess contract the
+  variable grouping already uses.
 - **Public roadmap** — `docs/ROADMAP.md` (now / next / later / not-planned, directional,
   no dates), linked from the README. The frozen JModel grammar spec also now ships with
   the repo as `docs/JMODEL_GRAMMAR.md`.

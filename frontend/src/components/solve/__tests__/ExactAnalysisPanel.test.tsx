@@ -22,9 +22,42 @@ const computed: ExactAnalysis = {
     { label: "y", contribution: 16 },
     { label: "x", contribution: 6 },
   ],
+  families: [],
+  contribution_families: [],
   truncated_constraints: false,
   truncated_contributions: false,
+  truncated_families: false,
   note: null,
+};
+
+const withFamilies: ExactAnalysis = {
+  ...computed,
+  families: [
+    {
+      family: "cap",
+      total: 4,
+      binding_count: 1,
+      slack_min: 0,
+      slack_mean: 5,
+      slack_max: 10,
+      utilization_mean: 0.75,
+      utilization_max: 1,
+    },
+    {
+      family: "floor",
+      total: 3,
+      binding_count: 0,
+      slack_min: 1,
+      slack_mean: 2,
+      slack_max: 3,
+      utilization_mean: null,
+      utilization_max: null,
+    },
+  ],
+  contribution_families: [
+    { family: "y", contribution: 16, terms: 1 },
+    { family: "x", contribution: 6, terms: 2 },
+  ],
 };
 
 describe("ExactAnalysisPanel (A3)", () => {
@@ -49,6 +82,44 @@ describe("ExactAnalysisPanel (A3)", () => {
       ).toBeInTheDocument(),
     );
     expect(screen.queryByTestId("exact-analysis")).not.toBeInTheDocument();
+  });
+
+  it("shows family KPIs when the analysis recovered constraint families", async () => {
+    mockGet.mockResolvedValue(withFamilies);
+    render(<ExactAnalysisPanel executionId="exe_4" />);
+    await waitFor(() => expect(screen.getByTestId("exact-analysis-families")).toBeInTheDocument());
+    // saturation ratio + slack spread of the "cap" family
+    expect(screen.getByText("1/4")).toBeInTheDocument();
+    expect(screen.getByText("(25%)")).toBeInTheDocument();
+    expect(screen.getByText("0 / 5 / 10")).toBeInTheDocument();
+    expect(screen.getByText("75% · 100%")).toBeInTheDocument();
+    // a >=-only family has no utilization — em dash, not a bogus 0%
+    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
+    // family contribution bars render one row per family
+    expect(
+      screen.getByText("solve.execution.exactAnalysis.familyContributions"),
+    ).toBeInTheDocument();
+  });
+
+  it("hides the family sections when no structure was recovered", async () => {
+    mockGet.mockResolvedValue(computed);
+    render(<ExactAnalysisPanel executionId="exe_5" />);
+    await waitFor(() => expect(screen.getByTestId("exact-analysis")).toBeInTheDocument());
+    expect(screen.queryByTestId("exact-analysis-families")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("solve.execution.exactAnalysis.familyContributions"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("survives a stale backend that omits the family fields", async () => {
+    const legacy = { ...computed } as Record<string, unknown>;
+    delete legacy.families;
+    delete legacy.contribution_families;
+    delete legacy.truncated_families;
+    mockGet.mockResolvedValue(legacy);
+    render(<ExactAnalysisPanel executionId="exe_6" />);
+    await waitFor(() => expect(screen.getByTestId("exact-analysis")).toBeInTheDocument());
+    expect(screen.queryByTestId("exact-analysis-families")).not.toBeInTheDocument();
   });
 
   it("demotes LP shadow prices into a collapsed section, deduped", async () => {

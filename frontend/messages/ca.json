@@ -2694,7 +2694,15 @@
         "approximateSection": "Aproximat — preus ombra (relaxació LP)",
         "exactDualsSection": "Preus ombra (duals LP)",
         "approximateNote": "En un MILP són duals de la relaxació LP, no del problema enter, i són gairebé uniformes per degeneració. Llegeix-los com una pista, no com un artefacte de decisió.",
-        "shadowPriceGroup": "{count, plural, one {# restricció} other {# restriccions}}"
+        "shadowPriceGroup": "{count, plural, one {# restricció} other {# restriccions}}",
+        "families": "Famílies de restriccions",
+        "familiesNote": "Famílies ordenades per saturació; les últimes files conserven més marge.",
+        "family": "Família",
+        "bindingRatio": "Actives",
+        "slackHeader": "Marge (mín / mitjana / màx)",
+        "utilizationHeader": "Utilització (mitjana · màx)",
+        "familyContributions": "Contribució a l'objectiu per família",
+        "truncatedFamilies": "Llista de famílies truncada."
       },
       "solveSummary": "Resum de la resolució",
       "summary": {

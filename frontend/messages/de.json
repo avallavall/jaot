@@ -2694,7 +2694,15 @@
         "approximateSection": "Näherung — Schattenpreise (LP-Relaxierung)",
         "exactDualsSection": "Schattenpreise (LP-Duale)",
         "approximateNote": "Für ein MILP sind dies Duale der LP-Relaxierung, nicht des ganzzahligen Problems, und unter Entartung nahezu uniform. Als Hinweis lesen, nicht als Entscheidungsartefakt.",
-        "shadowPriceGroup": "{count, plural, one {# Nebenbedingung} other {# Nebenbedingungen}}"
+        "shadowPriceGroup": "{count, plural, one {# Nebenbedingung} other {# Nebenbedingungen}}",
+        "families": "Familien von Nebenbedingungen",
+        "familiesNote": "Familien nach Sättigung sortiert; die unteren Zeilen haben den größten Spielraum.",
+        "family": "Familie",
+        "bindingRatio": "Bindend",
+        "slackHeader": "Spielraum (Min / Mittel / Max)",
+        "utilizationHeader": "Auslastung (Mittel · Max)",
+        "familyContributions": "Zielbeitrag nach Familie",
+        "truncatedFamilies": "Familienliste gekürzt."
       },
       "solveSummary": "Lösungsübersicht",
       "summary": {
