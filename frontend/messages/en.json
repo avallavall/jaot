@@ -188,6 +188,7 @@
     "jmodelValid": "Valid model",
     "jmodelCompiling": "Compiling…",
     "jmodelStale": "The model was changed elsewhere, so this JModel source is out of date and not applied. Recompiling it replaces the current model.",
+    "jmodelStaleReload": "The page was reloaded, so this JModel source may not reflect the current model and is locked. Recompiling it applies this source, replacing the current model.",
     "jmodelRecompile": "Recompile from this source",
     "jmodelDatasetLabel": "Dataset:",
     "jmodelNoDataset": "No dataset (inline values)",

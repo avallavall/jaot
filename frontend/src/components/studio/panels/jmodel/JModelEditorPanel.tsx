@@ -47,7 +47,9 @@ subject to pick_two: sum{i in I} x[i] <= 2;`;
  * does not (yet) compile. Lowering is one-way — editing the model elsewhere leaves this
  * source unchanged; the drifted source then shows a notice, is NOT applied, and locks
  * read-only until the user explicitly recompiles (a deliberate replace, never a silent
- * clobber of the newer model).
+ * clobber of the newer model). A reload/restore rehydrates the source with its sync
+ * state unknowable (`dslMaybeStale`), so it gets the same read-only lock until a
+ * successful compile proves it matches — or deliberately replaces — the model.
  */
 export function JModelEditorPanel() {
   const t = useTranslations("studio");
@@ -193,8 +195,13 @@ export function JModelEditorPanel() {
   // (lowering is one-way: model → DSL is not reconstructed). A drifted source is NOT
   // the applied model: lock it read-only until the user explicitly opts back in —
   // recompiling it REPLACES the newer model, so that must be a deliberate act, never
-  // a silent clobber from a stray keystroke.
-  const drifted = lastSource !== null && lastSource !== "dsl";
+  // a silent clobber from a stray keystroke. A reload/restore loses `lastSource`, so
+  // the rehydrated source gets the SAME lock via `dslMaybeStale` (sync unknowable)
+  // until a successful compile proves it — otherwise one keystroke over a source last
+  // applied before a canvas edit would silently clobber the newer model.
+  const maybeStale = useModelProjectStore((s) => s.dslMaybeStale);
+  const liveDrift = lastSource !== null && lastSource !== "dsl";
+  const drifted = liveDrift || maybeStale;
   const stale = drifted && text.trim().length > 0;
   const [editingStale, setEditingStale] = useState(false);
   const readOnly = stale && !editingStale;
@@ -341,7 +348,7 @@ export function JModelEditorPanel() {
 
       {stale && (
         <div className="flex items-center justify-between gap-3 border-b border-amber-300/40 bg-amber-50 px-4 py-1.5 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-          <span>{t("jmodelStale")}</span>
+          <span>{t(liveDrift ? "jmodelStale" : "jmodelStaleReload")}</span>
           {readOnly && (
             <div className="flex shrink-0 items-center gap-2">
               <Button

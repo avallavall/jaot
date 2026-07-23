@@ -188,6 +188,7 @@
     "jmodelValid": "Modelo válido",
     "jmodelCompiling": "Compilando…",
     "jmodelStale": "El modelo se cambió en otra vista: este código JModel está desactualizado y no está aplicado. Recompilarlo reemplaza el modelo actual.",
+    "jmodelStaleReload": "Tras recargar, este código JModel puede no reflejar el modelo actual y está bloqueado. Recompilarlo aplica este código y reemplaza el modelo actual.",
     "jmodelRecompile": "Recompilar desde este código",
     "jmodelDatasetLabel": "Dataset:",
     "jmodelNoDataset": "Sin dataset (valores del código)",

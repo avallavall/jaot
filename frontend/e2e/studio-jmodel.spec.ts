@@ -523,6 +523,38 @@ subject to reach_c: sum{(i, j) in ARCS : j == c} use[i, j] >= 1;`);
     await expect(page.getByTestId("studio-jmodel-error")).toHaveCount(0);
   });
 
+  // The drift-on-reload footgun: a reload loses `lastSource`, so the rehydrated source
+  // used to come back EDITABLE — one keystroke could silently clobber a model last
+  // edited from another lens. The rehydrated source now locks read-only (maybe-stale)
+  // until the explicit recompile proves — or deliberately replaces — the current model.
+  test("reload locks the rehydrated source read-only until explicitly recompiled", async ({
+    page,
+  }) => {
+    await setDslFlag("true");
+    const projectId = await createBlankProject(page);
+    await page.goto(`/studio/${projectId}/build?lens=jmodel`);
+
+    const textarea = page.getByTestId("studio-jmodel-textarea");
+    await expect(textarea).toBeVisible({ timeout: NAV });
+    await textarea.fill(VALID_JMODEL);
+    await expect(page.getByTestId("studio-jmodel-error")).toHaveCount(0, { timeout: NAV });
+    await expect(page.getByTestId("studio-saved")).toBeVisible({ timeout: NAV });
+
+    // A real reload: model + source rehydrate with their sync state unknowable.
+    await page.reload();
+    await expect(textarea).toBeVisible({ timeout: NAV });
+    await expect(textarea).toHaveJSProperty("readOnly", true);
+    await expect(page.getByTestId("studio-jmodel-recompile")).toBeVisible({ timeout: NAV });
+
+    // The explicit recompile applies the source (here: identical model) → lock ends.
+    await page.getByTestId("studio-jmodel-recompile").click();
+    await expect(page.getByTestId("studio-jmodel-recompile")).toHaveCount(0, {
+      timeout: NAV,
+    });
+    await expect(textarea).toHaveJSProperty("readOnly", false);
+    await expect(page.getByTestId("studio-jmodel-error")).toHaveCount(0);
+  });
+
   // B1 — the split-pane renders the source as symbolic math (KaTeX) and the Σ toggle
   // collapses it back to a plain editor.
   test("B1: math split-pane renders the notation and the Σ toggle collapses it", async ({

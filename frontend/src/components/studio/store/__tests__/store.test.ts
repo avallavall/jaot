@@ -258,6 +258,72 @@ describe("ModelProjectStore JModel (DSL) source", () => {
   });
 });
 
+describe("ModelProjectStore.dslMaybeStale (drift-on-reload lock)", () => {
+  const EMPTY: OptimizationProblem = {
+    variables: [],
+    objective: { sense: "minimize", expression: "0" },
+    constraints: [],
+  };
+
+  it("arms on a load-time rehydrate of a source next to a non-empty model", () => {
+    const store = makeStore();
+    expect(store.getState().dslMaybeStale).toBe(false);
+    store.getState().setDraftDslSource("set I := {a};");
+    expect(store.getState().dslMaybeStale).toBe(true);
+  });
+
+  it("does not arm without a canonical model — nothing a keystroke could clobber", () => {
+    const store = createModelProjectStore({ modelId: "m", name: "M", problem: EMPTY });
+    store.getState().setDraftDslSource("set I := {a};");
+    expect(store.getState().dslMaybeStale).toBe(false);
+  });
+
+  it("an empty rehydrated source never arms (and disarms a stale arm)", () => {
+    const store = makeStore();
+    store.getState().setDraftDslSource("set I := {a};");
+    expect(store.getState().dslMaybeStale).toBe(true);
+    store.getState().setDraftDslSource("");
+    expect(store.getState().dslMaybeStale).toBe(false);
+  });
+
+  it("a user edit (dirty) does not arm it — typing is not a rehydrate", () => {
+    const store = makeStore();
+    store.getState().setDraftDslSource("var x >= 0;", { dirty: true });
+    expect(store.getState().dslMaybeStale).toBe(false);
+  });
+
+  // CONTRACT-TEST: the idempotency guard in setProblem must NOT swallow the
+  // disarm — a recompile of an in-sync source yields the IDENTICAL problem, and
+  // that very case has to end the lock (the common reload with no real drift).
+  it("a dsl apply disarms it even when the compiled problem is identical", () => {
+    const store = makeStore();
+    store.getState().setDraftDslSource("set I := {a};");
+    expect(store.getState().dslMaybeStale).toBe(true);
+    store.getState().setProblem(JSON.parse(JSON.stringify(BASE)), { source: "dsl" });
+    expect(store.getState().dslMaybeStale).toBe(false);
+    // The idempotent apply stayed a no-op for everything else.
+    expect(store.getState().headDirty).toBe(false);
+  });
+
+  it("a non-dsl change does NOT disarm it (live drift then owns the lock)", () => {
+    const store = makeStore();
+    store.getState().setDraftDslSource("set I := {a};");
+    store.getState().setProblem({ ...BASE, constraints: [] }, { source: "canvas" });
+    expect(store.getState().dslMaybeStale).toBe(true);
+    expect(store.getState().lastSource).toBe("canvas");
+  });
+
+  it("hydrate resets it — the follow-up source rehydrate decides again", () => {
+    const store = makeStore();
+    store.getState().setDraftDslSource("set I := {a};");
+    expect(store.getState().dslMaybeStale).toBe(true);
+    store.getState().hydrate(BASE, "Reloaded");
+    expect(store.getState().dslMaybeStale).toBe(false);
+    store.getState().setDraftDslSource("set I := {a};");
+    expect(store.getState().dslMaybeStale).toBe(true);
+  });
+});
+
 describe("canvas partial-lens merge (bridge contract)", () => {
   // The EXACT shape /dsl/compile (and any API-authored problem) hydrates into the
   // store: null-y optional fields + options present. The canvas cannot represent

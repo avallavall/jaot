@@ -18,9 +18,10 @@ import type { ModelProjectStore } from "./createModelProjectStore";
  * Guards:
  * - Skip on mount: the selection is a USER action; hydration owns load-time state.
  * - Skip when there is no DSL source (nothing to compile).
- * - Skip when the source is DRIFTED (`lastSource` ∉ {null, "dsl"}): re-applying a
- *   stale source over a model edited from another lens is an EXPLICIT "recompile"
- *   in the JModel lens (8d5fabf), never a side effect of picking a dataset.
+ * - Skip when the source is DRIFTED (`lastSource` ∉ {null, "dsl"}) or MAYBE-STALE
+ *   (rehydrated by a reload/restore, sync unknowable): re-applying an unverified
+ *   source over the canonical model is an EXPLICIT "recompile" in the JModel lens
+ *   (8d5fabf), never a side effect of picking a dataset.
  * - Monotonic seq so a slow response can't overwrite a newer selection's result.
  */
 export function useActiveDatasetCompile(store: ModelProjectStore): void {
@@ -33,8 +34,9 @@ export function useActiveDatasetCompile(store: ModelProjectStore): void {
       mounted.current = true;
       return;
     }
-    const { draftDslSource, lastSource } = store.getState();
+    const { draftDslSource, lastSource, dslMaybeStale } = store.getState();
     if (!draftDslSource.trim()) return;
+    if (dslMaybeStale) return;
     if (lastSource !== null && lastSource !== "dsl") return;
     const mySeq = ++seq.current;
     api

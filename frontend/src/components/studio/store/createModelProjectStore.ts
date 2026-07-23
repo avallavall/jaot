@@ -145,6 +145,14 @@ export interface ModelProjectState {
    * to `draft_dsl_source` and rehydrated on load. It is the source of truth for the
    * JModel lens' textarea — the flat model is not projected back into DSL (one-way). */
   draftDslSource: string;
+  /** True when the rehydrated DSL source CANNOT be known to match the canonical
+   * model: a reload / version restore loses `lastSource`, so a source last applied
+   * before an edit from another lens would otherwise come back editable and one
+   * keystroke would silently clobber the newer model (the drift-on-reload footgun).
+   * While set, the JModel lens locks read-only exactly like a live drift, until a
+   * successful compile of the source proves (and applies) it — cleared by any
+   * `setProblem({source:"dsl"})`, even the idempotent one. */
+  dslMaybeStale: boolean;
   /** True once the user has edited the JModel source this session. Gates persistence:
    * autosave sends `draft_dsl_source` (even empty, so a delete sticks) only when this
    * is set, which avoids a canvas-only save wiping a not-yet-hydrated source. */
@@ -184,6 +192,10 @@ export function createModelProjectStore(init: ModelProjectInit) {
         lockVersion: 0,
 
         setProblem: (next, opts) => {
+          // A successful DSL apply — even one yielding the identical problem — proves
+          // the rehydrated source matches the canonical model, so the reload
+          // maybe-stale episode ends BEFORE the idempotency guard can swallow it.
+          if (opts.source === "dsl" && get().dslMaybeStale) set({ dslMaybeStale: false });
           // Idempotency guard: a re-projection that yields the model already in hand
           // is a no-op. This is what stops the canvas <-> canonical bridge from looping
           // and prevents an autosave firing on load.
@@ -225,6 +237,9 @@ export function createModelProjectStore(init: ModelProjectInit) {
             saveState: "idle",
             parseErrors: {},
             scratchText: null,
+            // Reset per hydration; the setDraftDslSource that FOLLOWS a hydrate
+            // re-derives it from the rehydrated source + this problem.
+            dslMaybeStale: false,
           });
         },
 
@@ -286,11 +301,20 @@ export function createModelProjectStore(init: ModelProjectInit) {
 
         draftDslSource: "",
         dslDirty: false,
+        dslMaybeStale: false,
         setDraftDslSource: (draftDslSource, opts) =>
           set(
             opts?.dirty
               ? { draftDslSource, dslDirty: true, headDirty: true }
-              : { draftDslSource }
+              : {
+                  draftDslSource,
+                  // A non-dirty set IS the load-time/restore rehydrate (every user
+                  // edit passes dirty). A rehydrated source next to a non-empty
+                  // canonical model has unknowable sync — lock it maybe-stale;
+                  // with no model there is nothing a keystroke could clobber.
+                  dslMaybeStale:
+                    draftDslSource.trim().length > 0 && get().problem.variables.length > 0,
+                }
           ),
       }),
       {

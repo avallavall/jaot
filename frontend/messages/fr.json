@@ -188,6 +188,7 @@
     "jmodelValid": "Modèle valide",
     "jmodelCompiling": "Compilation…",
     "jmodelStale": "Le modèle a été modifié ailleurs : ce code JModel est obsolète et n'est pas appliqué. Le recompiler remplace le modèle actuel.",
+    "jmodelStaleReload": "Après un rechargement, ce code JModel peut ne pas refléter le modèle actuel et est verrouillé. Le recompiler applique ce code et remplace le modèle actuel.",
     "jmodelRecompile": "Recompiler depuis ce code",
     "jmodelDatasetLabel": "Jeu de données :",
     "jmodelNoDataset": "Aucun (valeurs du code)",

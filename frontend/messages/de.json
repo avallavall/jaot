@@ -188,6 +188,7 @@
     "jmodelValid": "Gültiges Modell",
     "jmodelCompiling": "Kompiliere…",
     "jmodelStale": "Das Modell wurde anderswo geändert: dieser JModel-Quelltext ist veraltet und nicht angewendet. Neu kompilieren ersetzt das aktuelle Modell.",
+    "jmodelStaleReload": "Nach dem Neuladen kann dieser JModel-Quelltext vom aktuellen Modell abweichen und ist gesperrt. Neu kompilieren wendet diesen Quelltext an und ersetzt das aktuelle Modell.",
     "jmodelRecompile": "Aus diesem Quelltext neu kompilieren",
     "jmodelDatasetLabel": "Datensatz:",
     "jmodelNoDataset": "Ohne Datensatz (Werte im Code)",
