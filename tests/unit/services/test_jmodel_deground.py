@@ -232,6 +232,65 @@ def test_flat_numeric_multi_family_scenario_round_trips():
     assert _recompiles_equivalent(draft, problem)
 
 
+def test_flat_alphanumeric_composite_indices_round_trip():
+    """A flat MDPDP-style block (``xsc_s1_c1_k1`` — letters-then-digits labels, no
+    compiler lineage) recovers as one dense 3-D family over alphanumeric sets:
+    the composite-index gap left by the numeric-only parse (B2)."""
+    from app.schemas.optimization import (
+        Constraint,
+        Objective,
+        ObjectiveSense,
+        OptimizationProblem,
+        Variable,
+        VariableType,
+    )
+
+    sup, cus, veh = ["s1", "s2"], ["c1", "c2", "c3"], ["k1", "k2"]
+    names = [f"xsc_{s}_{c}_{k}" for s in sup for c in cus for k in veh]
+    variables = [Variable(name=n, type=VariableType.BINARY) for n in names]
+    objective = Objective(
+        sense=ObjectiveSense.MINIMIZE,
+        # Distinct coefficients per member force an indexed param keyed by the
+        # alphanumeric labels (s1 c1 k1 1, …).
+        expression=" + ".join(f"{pos + 1} * {n}" for pos, n in enumerate(names)),
+    )
+    constraints = [
+        # Each customer is served exactly once (∀ over the customer set)…
+        Constraint(
+            name=f"serve_{c}",
+            expression=" + ".join(f"xsc_{s}_{c}_{k}" for s in sup for k in veh) + " == 1",
+        )
+        for c in cus
+    ] + [
+        # …and each supplier is capped (∀ over the supplier set, literal rhs).
+        Constraint(
+            name=f"cap_{s}",
+            expression=" + ".join(f"xsc_{s}_{c}_{k}" for c in cus for k in veh) + " <= 4",
+        )
+        for s in sup
+    ]
+    problem = OptimizationProblem(variables=variables, objective=objective, constraints=constraints)
+
+    draft = deground_problem(problem)
+    assert draft is not None
+    assert "var xsc{S1, S2, S3} binary;" in draft
+    assert "set S1 := {s1, s2};" in draft
+    assert "set S2 := {c1, c2, c3};" in draft
+    assert "set S3 := {k1, k2};" in draft
+    assert draft.count("subject to") == 2  # 3+2 flat rows → two ∀ families
+    assert _recompiles_equivalent(draft, problem)
+
+    # The split form lands the alphanumeric members in the dataset, not the source.
+    from app.services.jmodel_deground import deground_problem_split
+
+    split = deground_problem_split(problem)
+    assert split is not None
+    assert "set S1;" in split.source and ":=" not in split.source.split("minimize")[0]
+    assert split.dataset is not None
+    assert split.dataset["sets"]["S1"] == ["s1", "s2"]
+    assert split.dataset["sets"]["S2"] == ["c1", "c2", "c3"]
+
+
 def test_multi_family_with_varying_coefficients_and_rhs():
     """A mixed constraint whose coefficients AND rhs vary by the free index becomes
     coefficient params + an rhs param — still round-trips."""

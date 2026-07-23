@@ -37,13 +37,26 @@ def test_parse_flat_name_numeric_indices():
     # family names may themselves contain underscores as long as the trailing
     # segments are the numeric indices
     assert parse_flat_name("x_cost_3") == ("x_cost", ["3"])
+    # a digit-bearing family segment stays whole when nothing follows it but
+    # the numeric index (segments are never re-split)
+    assert parse_flat_name("x12_3") == ("x12", ["3"])
+
+
+def test_parse_flat_name_alphanumeric_indices():
+    # MDPDP-style composite labels: letters-then-digits segments are indices,
+    # and the index suffix is maximal (family = "xsc", not "xsc_s1_c1").
+    assert parse_flat_name("xsc_s1_c1_k1") == ("xsc", ["s1", "c1", "k1"])
+    assert parse_flat_name("assign_v3_o107") == ("assign", ["v3", "o107"])
+    # numeric and alphanumeric labels can mix
+    assert parse_flat_name("y_s2_7") == ("y", ["s2", "7"])
 
 
 def test_parse_flat_name_rejects_ambiguous():
-    assert parse_flat_name("assign_v3_o107") is None  # non-numeric index labels
-    assert parse_flat_name("total_cost") is None  # no numeric suffix at all
-    assert parse_flat_name("x") is None  # scalar
-    assert parse_flat_name("x_3_cost") is None  # numeric then non-numeric — ambiguous
+    assert parse_flat_name("total_cost") is None  # no index-shaped suffix at all
+    assert parse_flat_name("x") is None  # scalar, no underscore
+    assert parse_flat_name("x0") is None  # digits but no underscore boundary
+    assert parse_flat_name("x_3_cost") is None  # index then non-index — ambiguous
+    assert parse_flat_name("x_s1c2") is None  # digits inside the label, not trailing
 
 
 def test_annotate_fills_flat_problem():
