@@ -114,7 +114,7 @@ Rules the compiler enforces so data errors never pass silently:
 
 The JModel lens compiles as you type, with a status pill (**Valid model** / **Compile error** with position). A valid compile updates the canonical model — Analyze and Solve see the grounded problem. While the source has a compile error, **solving and committing are blocked** so you never act on a model that didn't build.
 
-A dataset selector in the lens lets you compile against a chosen dataset (or "No dataset" for inline values). If the model is changed from another lens, the JModel source is marked **out of date** and kept un-applied until you explicitly recompile from it.
+A dataset selector in the lens lets you compile against a chosen dataset (or "No dataset" for inline values). If the model is changed from another lens, the JModel source is marked **out of date** and kept un-applied until you explicitly recompile from it. After a page reload (or a version restore) the editor cannot know whether the stored source still matches the current model, so it comes back **read-only** with the same notice — recompiling verifies the source (and unlocks instantly when it matches), so a stray keystroke can never silently overwrite a model you last edited elsewhere.
 
 Committed versions store the JModel source alongside the grounded model, so your formulation is versioned too.
 
@@ -129,6 +129,8 @@ Greek-named identifiers (`alpha`, `lambda`, `Sigma`, …) render as their letter
 ## Derive a draft from an existing model
 
 A model built on the [visual canvas](/docs/studio/visual-canvas) or [imported from MPS/LP/CIP](/docs/studio/importing-files) has no JModel source. **Derive draft** reconstructs one: variable families over sets, `sum` objectives, and ∀-quantified constraint families, recovered from the flat model.
+
+Families are recognized from conventional flat naming: trailing index segments that are numeric (`assign_3_5`) or letters-then-digits (`xsc_s1_c1_k1` — supplier/customer/vehicle-style composite labels) become the family's indices, and their labels become set members. A purely alphabetic tail is never guessed to be an index (`total_cost` stays a scalar), and a name that mixes shapes ambiguously stays flat rather than being mislabeled.
 
 Reconstruction is heuristic, so it is honest by construction: the candidate draft is recompiled and verified to be **equivalent** to your model before it is offered. If no compact structure round-trips — sparse families, partially covered objectives, exotic shapes — JAOT declines with a note instead of showing a draft that lies about the model. A small flat model with no indexed structure derives as a plain scalar JModel instead.
 

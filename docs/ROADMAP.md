@@ -22,9 +22,8 @@ objective contributions by variable family). The next layer:
   pickup-and-delivery-class models instead of reading them as tables.
 - **Large-solution rendering** — virtualized views so a 20k-variable solution stays
   smooth in the browser.
-- **JModel editing refinements** — derive support for alphanumeric composite indices
-  (e.g. `xsc_s1_c1_k1`), a live read-only JModel view of canvas edits with an explicit
-  "apply" step, and safer edit flows after a reload.
+- **JModel editing refinements** — a live read-only JModel view of canvas edits with
+  an explicit "apply" step.
 - **Solver-aware analysis panel** — the analysis UI adapts to what the active solver
   actually provides instead of showing empty sections.
 

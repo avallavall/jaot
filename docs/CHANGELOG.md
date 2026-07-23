@@ -19,6 +19,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Added
 
+- **"Derive draft" recovers composite alphanumeric indices** (`xsc_s1_c1_k1` —
+  MDPDP-style supplier/customer/vehicle labels). The flat-name parse now accepts
+  letters-then-digits index segments alongside numeric ones, taking the maximal
+  index suffix at segment granularity, so a flat/imported model named this way
+  de-grounds into an indexed family over alphanumeric sets — and the same recovery
+  feeds the grouped solution view and the family-level analysis KPIs. Purely
+  alphabetic tails are still never guessed (`total_cost` stays a scalar), and the
+  round-trip honesty gate keeps guarding every draft.
+
 - **Family-level KPIs in the post-solve analysis** (Sensitivity level 1). The exact
   analysis now aggregates by constraint family — share of binding rows, slack
   min/mean/max, utilization mean/max, ranked so the saturated families lead and the
@@ -34,6 +43,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Fixed
 
+- **A page reload no longer disarms the JModel stale lock** (the drift-on-reload
+  footgun). Reloading — or restoring a version — rehydrates the JModel source with
+  its sync state unknowable, but the editor used to come back editable: one
+  keystroke could recompile an old source and silently replace a model last edited
+  on the canvas. The rehydrated source now comes back **read-only with the stale
+  notice** until the explicit recompile proves it matches (unlocking instantly in
+  the common in-sync case) or deliberately replaces the model. Picking a dataset
+  no longer auto-applies an unverified source either.
 - **"Derive draft" recovers two constraint shapes it used to decline** (the 2026-07-21
   torture-test findings): (H1) two same-shape scalar constraints over one family —
   a multi-knapsack's `Σw1·x ≤ 50` / `Σw2·x ≤ 40` — no longer fuse into one
