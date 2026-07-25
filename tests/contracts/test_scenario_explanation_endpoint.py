@@ -237,3 +237,83 @@ def test_another_orgs_execution_cannot_be_explained(
 def test_the_explanation_needs_authentication(client: TestClient):
     res = client.post("/api/v2/llm/executions/exe_x/explain-scenarios")
     assert res.status_code == 401
+
+
+# CONTRACT-TEST: the reader's language reaches the model. Before this, every
+# explanation came back in English no matter which locale the user was reading.
+def test_the_explanation_is_asked_for_in_the_users_language(
+    authenticated_client: TestClient,
+    db_session: Session,
+    test_organization: Organization,
+    fake_llm: list[dict[str, Any]],
+):
+    execution = _seed(db_session, test_organization.id, job=_completed_job())
+
+    res = authenticated_client.post(
+        f"/api/v2/llm/executions/{execution.id}/explain-scenarios",
+        headers={"X-JAOT-Locale": "ca"},
+    )
+
+    assert res.status_code == 200
+    assert fake_llm[0]["locale"] == "ca"
+
+
+def test_an_unknown_locale_falls_back_instead_of_failing(
+    authenticated_client: TestClient,
+    db_session: Session,
+    test_organization: Organization,
+    fake_llm: list[dict[str, Any]],
+):
+    execution = _seed(db_session, test_organization.id, job=_completed_job())
+
+    res = authenticated_client.post(
+        f"/api/v2/llm/executions/{execution.id}/explain-scenarios",
+        headers={"X-JAOT-Locale": "klingon"},
+    )
+
+    assert res.status_code == 200
+    assert fake_llm[0]["locale"] == "en"
+
+
+# CONTRACT-TEST: the cache key is (model, language). Serving a stored Catalan
+# text to a German reader is exactly the bug this guards.
+def test_the_same_scenarios_in_another_language_are_regenerated(
+    authenticated_client: TestClient,
+    db_session: Session,
+    test_organization: Organization,
+    fake_llm: list[dict[str, Any]],
+):
+    execution = _seed(db_session, test_organization.id, job=_completed_job())
+    url = f"/api/v2/llm/executions/{execution.id}/explain-scenarios"
+
+    catalan = authenticated_client.post(url, headers={"X-JAOT-Locale": "ca"})
+    german = authenticated_client.post(url, headers={"X-JAOT-Locale": "de"})
+    german_again = authenticated_client.post(url, headers={"X-JAOT-Locale": "de"})
+
+    assert catalan.json()["cached"] is False
+    assert german.json()["cached"] is False  # another language -> another answer
+    assert german_again.json()["cached"] is True  # same language -> free
+    assert [call["locale"] for call in fake_llm] == ["ca", "de"]
+
+
+def test_a_text_stored_without_its_cache_key_is_regenerated_once(
+    authenticated_client: TestClient,
+    db_session: Session,
+    test_organization: Organization,
+    fake_llm: list[dict[str, Any]],
+):
+    """Explanations written before the key existed carry no model/language, and
+    assuming they match is how a Catalan text reached a German reader."""
+    execution = _seed(
+        db_session,
+        test_organization.id,
+        job=_completed_job(explanation="Text vell sense clau.", explained_at=utcnow().isoformat()),
+    )
+
+    res = authenticated_client.post(
+        f"/api/v2/llm/executions/{execution.id}/explain-scenarios",
+        headers={"X-JAOT-Locale": "de"},
+    )
+
+    assert res.json()["cached"] is False
+    assert len(fake_llm) == 1

@@ -6,6 +6,8 @@ and produce structured formulations from natural language descriptions.
 
 from typing import Any
 
+from app.services.llm.language import language_directive
+
 FORMULATION_SYSTEM_PROMPT = """You are an expert optimization modeling assistant for JAOT, \
 an optimization-as-a-service platform.
 
@@ -200,6 +202,7 @@ def format_rag_context(results: list[dict[str, Any]], max_tokens: int | None = N
 def build_system_prompt(
     document_context: dict[str, Any] | None = None,
     rag_context: str | None = None,
+    locale: str | None = None,
 ) -> str:
     """Build system prompt with optional RAG context and document attachment.
 
@@ -207,10 +210,12 @@ def build_system_prompt(
         1. FORMULATION_SYSTEM_PROMPT (base instructions)
         2. RAG context block (retrieved knowledge) — if available
         3. DOCUMENT_CONTEXT_TEMPLATE (user's attachment) — if present
+        4. Response-language directive — the user's own locale
 
     Args:
         document_context: Dict with filename, char_count, extracted_text.
         rag_context: Pre-formatted RAG context string (from format_rag_context).
+        locale: The locale the user is reading the app in.
 
     Returns:
         Complete system prompt string.
@@ -222,6 +227,9 @@ def build_system_prompt(
 
     if document_context is not None:
         prompt += DOCUMENT_CONTEXT_TEMPLATE.format(**document_context)
+
+    # Last, so it is the closest instruction to the user turn.
+    prompt += language_directive(locale)
 
     return prompt
 

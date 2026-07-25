@@ -224,7 +224,9 @@ class TestBuildSystemPrompt:
 
     def test_without_rag_returns_base_prompt(self):
         prompt = build_system_prompt()
-        assert prompt == FORMULATION_SYSTEM_PROMPT
+        assert prompt.startswith(FORMULATION_SYSTEM_PROMPT)
+        # …plus the response-language directive, which every prompt now carries.
+        assert "## Response language" in prompt
         assert "<optimization_knowledge>" not in prompt
 
     def test_with_rag_context_appended(self):
@@ -261,4 +263,6 @@ class TestBuildSystemPrompt:
     def test_none_rag_context_ignored(self):
         """Explicitly passing None for rag_context is same as omitting it."""
         prompt = build_system_prompt(rag_context=None)
-        assert prompt == FORMULATION_SYSTEM_PROMPT
+        assert prompt.startswith(FORMULATION_SYSTEM_PROMPT)
+        # …plus the response-language directive, which every prompt now carries.
+        assert "## Response language" in prompt

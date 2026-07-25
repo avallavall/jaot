@@ -77,6 +77,7 @@ import type {
   ProjectDatasetSummary,
   DatasetImportPreview,
 } from "./types";
+import { localeHeader } from "@/lib/locale-header";
 
 import type { AnthropicKeyStatus, AttachmentInfo, InfeasibilityAnalysis } from "./llm-types";
 import type { AdminOrganizationOverview } from "@/types/admin";
@@ -365,6 +366,7 @@ async function request<T>(
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    ...localeHeader(),
     ...authHeaders(),
     ...(fetchOptions.headers as Record<string, string> | undefined),
   };

@@ -6,7 +6,7 @@ Centralized dependency injection for FastAPI endpoints.
 from collections.abc import Callable
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, Query, status
+from fastapi import Depends, Header, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from starlette.requests import Request
 
@@ -307,3 +307,22 @@ OptionalRequireViewer = Annotated[
     WorkspaceMember | None,
     Depends(optional_workspace_role(WorkspaceRole.VIEWER)),
 ]
+
+
+def get_request_locale(
+    x_jaot_locale: Annotated[str | None, Header()] = None,
+) -> str:
+    """The locale the caller is reading the app in, for anything we GENERATE.
+
+    Sent by the web client on every request (``X-JAOT-Locale``). Only affects
+    generated prose — assistant replies and explanations — never stored data,
+    which has no language. Unknown or absent values normalise to the default, so
+    an API client that never sends it keeps today's behaviour.
+    """
+    from app.services.llm.language import normalize_locale
+
+    return normalize_locale(x_jaot_locale)
+
+
+# The user's reading language. Inject where an endpoint makes the model WRITE.
+RequestLocale = Annotated[str, Depends(get_request_locale)]

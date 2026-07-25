@@ -19,6 +19,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Added
 
+- **The assistant answers in your language.** Every generated text — chat replies, the
+  solution, infeasibility and what-if explanations, and the assumptions written alongside a
+  generated JModel — came back in English no matter which of the five languages you were
+  reading the app in. The locale you are browsing in now travels with each request and the
+  model is told to answer in it. Identifiers are explicitly excluded: variable, constraint
+  and set names, expressions, JModel source and JSON keys are quoted exactly as they are, so
+  the explanation still matches what is on screen. An unknown locale falls back to English
+  rather than to a language the product does not ship.
+
 - **You can ask for the advanced model.** The platform had an advanced tier configured
   (`LLM_ADVANCED_MODEL`) that the interface never used: every chat message and every
   explanation went out on the default model, and the only way to reach the other one was

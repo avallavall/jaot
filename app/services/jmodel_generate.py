@@ -31,6 +31,7 @@ from app.schemas.dsl import (
     DSLGenerateAttachment,
 )
 from app.services.llm.anthropic_client import collect_text
+from app.services.llm.language import language_directive
 from app.services.llm.prompt_templates import (
     JMODEL_GENERATION_RETRY_TEMPLATE,
     JMODEL_GENERATION_SYSTEM_PROMPT,
@@ -161,6 +162,7 @@ async def generate_jmodel(
     description: str,
     attachments: list[DSLGenerateAttachment],
     current_source: str | None = None,
+    locale: str | None = None,
     max_attempts: int = MAX_ATTEMPTS,
 ) -> GenerateOutcome:
     """Generate a JModel source, retrying against the compiler until it compiles.
@@ -196,7 +198,9 @@ async def generate_jmodel(
         request_kwargs: dict[str, Any] = {
             "model": model,
             "max_tokens": max_tokens,
-            "system": JMODEL_GENERATION_SYSTEM_PROMPT,
+            # The SOURCE is a formal language and never translated; the directive
+            # only reaches the `#` assumption comments the model writes alongside it.
+            "system": JMODEL_GENERATION_SYSTEM_PROMPT + language_directive(locale),
             "messages": messages,
         }
         # The compile-retry loop is the oracle here, so reasoning buys nothing —

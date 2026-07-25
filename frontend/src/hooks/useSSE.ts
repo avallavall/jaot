@@ -8,6 +8,7 @@ import {
   type LLMErrorCode,
   type LLMStatusCode,
 } from "@/lib/llm-event-codes";
+import { localeHeader } from "@/lib/locale-header";
 
 export const BASE_URL =
   typeof window !== "undefined"
@@ -128,6 +129,7 @@ export function useFormulationStream(conversationId: string): FormulationStreamS
         const apiKey = getApiKey();
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
+          ...localeHeader(),
         };
         if (apiKey) {
           headers["Authorization"] = `Bearer ${apiKey}`;

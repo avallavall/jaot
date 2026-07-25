@@ -9,6 +9,7 @@ import {
   type LLMErrorCode,
   type LLMStatusCode,
 } from "@/lib/llm-event-codes";
+import { localeHeader } from "@/lib/locale-header";
 
 /** Body accepted by POST /llm/conversations/{id}/explain-solution. */
 export interface ExplainSolutionBody {
@@ -126,7 +127,10 @@ export function useSolutionExplanation(): SolutionExplanationState {
 
       try {
         const apiKey = getApiKey();
-        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+          ...localeHeader(),
+        };
         if (apiKey) {
           headers["Authorization"] = `Bearer ${apiKey}`;
         }

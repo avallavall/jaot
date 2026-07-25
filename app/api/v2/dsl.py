@@ -17,7 +17,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
-from app.api.deps import CurrentOrg, CurrentUser, DBSession
+from app.api.deps import CurrentOrg, CurrentUser, DBSession, RequestLocale
 from app.api.v2.deps.dsl_feature_gate import dsl_enabled, dsl_feature_gate
 from app.domains.dsl import (
     JModelData,
@@ -247,6 +247,7 @@ async def dsl_generate(
     db: DBSession,
     user: CurrentUser,
     org: CurrentOrg,
+    locale: RequestLocale,
 ) -> DSLGenerateResponse:
     """Generate a JModel source from a description and/or screenshots/PDFs (B3).
 
@@ -343,6 +344,7 @@ async def dsl_generate(
             description=body.description,
             attachments=body.attachments,
             current_source=body.current_source,
+            locale=locale,
         )
     except Exception as exc:
         # Anthropic transport / API failure. handle_anthropic_failure logs + classifies;

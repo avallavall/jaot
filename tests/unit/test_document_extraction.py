@@ -227,11 +227,15 @@ class TestBuildSystemPromptWithoutDocument:
 
     def test_returns_base_prompt_unchanged(self):
         result = build_system_prompt()
-        assert result == FORMULATION_SYSTEM_PROMPT
+        assert result.startswith(FORMULATION_SYSTEM_PROMPT)
+        # …plus the response-language directive, which every prompt now carries.
+        assert "## Response language" in result
 
     def test_returns_base_prompt_with_none(self):
         result = build_system_prompt(document_context=None)
-        assert result == FORMULATION_SYSTEM_PROMPT
+        assert result.startswith(FORMULATION_SYSTEM_PROMPT)
+        # …plus the response-language directive, which every prompt now carries.
+        assert "## Response language" in result
 
 
 class TestBuildSystemPromptWithDocument:

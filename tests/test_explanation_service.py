@@ -194,7 +194,9 @@ class TestExplainSolution:
             ):
                 pass
 
-        assert captured["system"] == SOLUTION_EXPLANATION_SYSTEM_PROMPT
+        assert captured["system"].startswith(SOLUTION_EXPLANATION_SYSTEM_PROMPT)
+        # …followed by the response-language directive every explanation carries.
+        assert "## Response language" in captured["system"]
         last_user_turn = captured["messages"][-1]
         assert last_user_turn["role"] == "user"
         # Grounded: the exact objective value and a constraint name are present.

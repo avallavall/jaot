@@ -296,7 +296,9 @@ class TestExplainInfeasibility:
             async for _ in explain_infeasibility([], FORMULATION, IIS, "claude-sonnet-5"):
                 pass
 
-        assert captured["system"] == INFEASIBILITY_EXPLANATION_SYSTEM_PROMPT
+        assert captured["system"].startswith(INFEASIBILITY_EXPLANATION_SYSTEM_PROMPT)
+        # …followed by the response-language directive every explanation carries.
+        assert "## Response language" in captured["system"]
         last_user_turn = captured["messages"][-1]
         assert last_user_turn["role"] == "user"
         assert "floor" in last_user_turn["content"]

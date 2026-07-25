@@ -22,7 +22,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 from sse_starlette.sse import EventSourceResponse
 
-from app.api.deps import CurrentOrg, CurrentUser, DBSession
+from app.api.deps import CurrentOrg, CurrentUser, DBSession, RequestLocale
 from app.domains.solver import scenario_job
 from app.models import ModelExecution
 from app.models.conversation_attachment import ConversationAttachment
@@ -532,6 +532,7 @@ async def send_message(
     db: DBSession,
     user: CurrentUser,
     org: CurrentOrg,
+    locale: RequestLocale,
 ) -> Any:
     """Send a message and stream the LLM response as SSE events.
 
@@ -653,7 +654,7 @@ async def send_message(
         logger.debug("RAG context retrieval skipped", exc_info=True)
 
     # Build system prompt (with RAG context and document attachment)
-    system_prompt = build_system_prompt(document_context, rag_context=rag_context)
+    system_prompt = build_system_prompt(document_context, rag_context=rag_context, locale=locale)
 
     # Select model
     model, use_thinking = select_model(body.use_advanced_model, db=db)
@@ -755,6 +756,7 @@ async def explain_solution_endpoint(
     db: DBSession,
     user: CurrentUser,
     org: CurrentOrg,
+    locale: RequestLocale,
 ) -> Any:
     """Stream a plain-language explanation of a solved optimization model as SSE.
 
@@ -830,6 +832,7 @@ async def explain_solution_endpoint(
         sensitivity,
         model,
         thinking=use_thinking,
+        locale=locale,
         client=byok_client,
         db=db,
     )
@@ -893,6 +896,7 @@ async def explain_infeasibility_endpoint(
     db: DBSession,
     user: CurrentUser,
     org: CurrentOrg,
+    locale: RequestLocale,
 ) -> Any:
     """Stream a plain-language explanation of WHY a model is INFEASIBLE as SSE.
 
@@ -968,6 +972,7 @@ async def explain_infeasibility_endpoint(
         infeasibility,
         model,
         thinking=use_thinking,
+        locale=locale,
         client=byok_client,
         db=db,
     )
@@ -1035,6 +1040,7 @@ async def explain_model_endpoint(
     db: DBSession,
     user: CurrentUser,
     org: CurrentOrg,
+    locale: RequestLocale,
 ) -> Any:
     """Stream a plain-language explanation of an optimization MODEL (not yet solved) as SSE.
 
@@ -1106,6 +1112,7 @@ async def explain_model_endpoint(
         stats,
         model,
         thinking=use_thinking,
+        locale=locale,
         client=byok_client,
         db=db,
     )
@@ -1163,6 +1170,7 @@ async def explain_diff_endpoint(
     db: DBSession,
     user: CurrentUser,
     org: CurrentOrg,
+    locale: RequestLocale,
 ) -> Any:
     """Stream a plain-language narration of the CHANGE between two model versions as SSE.
 
@@ -1228,6 +1236,7 @@ async def explain_diff_endpoint(
         new_summary,
         model,
         thinking=use_thinking,
+        locale=locale,
         client=byok_client,
         db=db,
     )
@@ -1369,6 +1378,7 @@ async def explain_execution_scenarios(
     db: DBSession,
     user: CurrentUser,
     org: CurrentOrg,
+    locale: RequestLocale,
     body: ExplainScenariosRequest | None = None,
 ) -> ScenarioExplanationResponse:
     """Read a finished what-if analysis (Sensitivity L2) back in plain language.
@@ -1410,9 +1420,14 @@ async def explain_execution_scenarios(
     # Sonnet-tier by default: narrating computed figures needs no reasoning tier.
     model, _ = select_model(use_advanced=use_advanced, db=db)
 
-    if job.get("explanation") and job.get("explained_with") in (model, None):
-        # Same tier (or a pre-existing text from before we tracked the tier) —
-        # never re-bill for words already written.
+    # The cache key is (model, language): the SAME scenarios read by another tier
+    # or in another language are a different answer, and serving the stored one
+    # would hand a Catalan reader the German text. Compared STRICTLY — a text
+    # stored before we tracked these (no key) is regenerated once rather than
+    # assumed to match, which is the assumption that produced exactly that bug.
+    same_tier = job.get("explained_with") == model
+    same_language = job.get("explained_locale") == locale
+    if job.get("explanation") and same_tier and same_language:
         return ScenarioExplanationResponse(explanation=job["explanation"], cached=True)
 
     byok_client, is_byok = resolve_anthropic_client(org)
@@ -1460,6 +1475,7 @@ async def explain_execution_scenarios(
             max_tokens=PSS.get_int(db, "LLM_MAX_TOKENS"),
             analysis=analysis,
             formulation=execution.input_data if isinstance(execution.input_data, dict) else None,
+            locale=locale,
         )
     except Exception as exc:
         handle_anthropic_failure(
@@ -1499,6 +1515,7 @@ async def explain_execution_scenarios(
             "explanation": outcome.text,
             "explained_at": utcnow().isoformat(),
             "explained_with": model,
+            "explained_locale": locale,
         }
     db.commit()
 

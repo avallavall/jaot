@@ -21,6 +21,7 @@ from typing import Any
 from app.services.llm.anthropic_client import collect_text
 from app.services.llm.errors import LLMStatusCode
 from app.services.llm.formulation_service import generate_text_response
+from app.services.llm.language import language_directive
 from app.services.llm.prompt_templates import (
     INFEASIBILITY_EXPLANATION_SYSTEM_PROMPT,
     MODEL_DIFF_EXPLANATION_SYSTEM_PROMPT,
@@ -47,6 +48,7 @@ async def explain_solution(
     *,
     thinking: bool = False,
     rag_context: str | None = None,
+    locale: str | None = None,
     client: Any | None = None,
     db: Any | None = None,
 ) -> AsyncGenerator[dict[str, Any], None]:
@@ -84,6 +86,7 @@ async def explain_solution(
     system_prompt = SOLUTION_EXPLANATION_SYSTEM_PROMPT
     if rag_context:
         system_prompt = f"{system_prompt}{rag_context}"
+    system_prompt += language_directive(locale)
 
     async for event in generate_text_response(
         explain_messages,
@@ -104,6 +107,7 @@ async def explain_infeasibility(
     *,
     thinking: bool = False,
     rag_context: str | None = None,
+    locale: str | None = None,
     client: Any | None = None,
     db: Any | None = None,
 ) -> AsyncGenerator[dict[str, Any], None]:
@@ -147,6 +151,7 @@ async def explain_infeasibility(
     system_prompt = INFEASIBILITY_EXPLANATION_SYSTEM_PROMPT
     if rag_context:
         system_prompt = f"{system_prompt}{rag_context}"
+    system_prompt += language_directive(locale)
 
     async for event in generate_text_response(
         explain_messages,
@@ -167,6 +172,7 @@ async def explain_model(
     *,
     thinking: bool = False,
     rag_context: str | None = None,
+    locale: str | None = None,
     client: Any | None = None,
     db: Any | None = None,
 ) -> AsyncGenerator[dict[str, Any], None]:
@@ -196,6 +202,7 @@ async def explain_model(
     system_prompt = MODEL_EXPLANATION_SYSTEM_PROMPT
     if rag_context:
         system_prompt = f"{system_prompt}{rag_context}"
+    system_prompt += language_directive(locale)
 
     async for event in generate_text_response(
         explain_messages,
@@ -219,6 +226,7 @@ async def explain_version_diff(
     *,
     thinking: bool = False,
     rag_context: str | None = None,
+    locale: str | None = None,
     client: Any | None = None,
     db: Any | None = None,
 ) -> AsyncGenerator[dict[str, Any], None]:
@@ -247,6 +255,7 @@ async def explain_version_diff(
     system_prompt = MODEL_DIFF_EXPLANATION_SYSTEM_PROMPT
     if rag_context:
         system_prompt = f"{system_prompt}{rag_context}"
+    system_prompt += language_directive(locale)
 
     async for event in generate_text_response(
         explain_messages,
@@ -275,6 +284,7 @@ async def explain_scenarios(
     max_tokens: int,
     analysis: dict[str, Any],
     formulation: dict[str, Any] | None = None,
+    locale: str | None = None,
 ) -> ScenarioExplanationOutcome:
     """Explain a measured what-if analysis (Sensitivity L2) in plain language.
 
@@ -290,7 +300,7 @@ async def explain_scenarios(
     request_kwargs: dict[str, Any] = {
         "model": model,
         "max_tokens": max_tokens,
-        "system": SCENARIO_EXPLANATION_SYSTEM_PROMPT,
+        "system": SCENARIO_EXPLANATION_SYSTEM_PROMPT + language_directive(locale),
         "messages": [
             {"role": "user", "content": build_scenario_explanation_prompt(analysis, formulation)}
         ],
