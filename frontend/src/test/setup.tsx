@@ -72,6 +72,19 @@ vi.mock("next-intl/server", () => ({
   },
 }));
 
+// jsdom ships no ResizeObserver, and a windowed list (the grouped solution view)
+// observes its scroller to know how many rows fit. Without this the virtualizer
+// measures nothing and renders zero rows — the component would look broken in
+// tests while working in the browser. A no-op observer is enough: the
+// virtualizer falls back to its declared initial rect.
+if (!("ResizeObserver" in globalThis)) {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+}
+
 // Suppress React Warning noise in test output
 const originalConsoleError = console.error;
 beforeAll(() => {

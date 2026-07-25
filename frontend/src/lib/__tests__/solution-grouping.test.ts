@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildSolutionGroups, capGroupedSolution } from "@/lib/solution-grouping";
+import { buildSolutionGroups, flattenSolutionRows } from "@/lib/solution-grouping";
 import type { VariableSolution } from "@/lib/types";
 
 function v(
@@ -53,42 +53,55 @@ describe("buildSolutionGroups", () => {
   });
 });
 
-describe("capGroupedSolution", () => {
+describe("flattenSolutionRows", () => {
   const many = (n: number) =>
     Array.from({ length: n }, (_, i) =>
       v(`assign_v1_o${i}`, 1, { family: "assign", index_tuple: ["v1", `o${i}`] }),
     );
 
-  it("is a no-op at or under the cap", () => {
-    const grouped = buildSolutionGroups(many(5));
-    const capped = capGroupedSolution(grouped, 5);
-    expect(capped.truncated).toBe(false);
-    expect(capped.shownEntries).toBe(5);
-    expect(capped.totalEntries).toBe(5);
-    expect(capped.groups).toBe(grouped.groups); // same arrays, no copy
+  it("puts a family header before its entry rows", () => {
+    const rows = flattenSolutionRows(buildSolutionGroups(many(3)));
+    expect(rows.map((r) => r.kind)).toEqual(["family", "entries"]);
+    expect(rows[0]).toMatchObject({ kind: "family", family: "assign", count: 3 });
   });
 
-  it("cuts the leaf prefix in order and reports the held-back total", () => {
-    const grouped = buildSolutionGroups([
-      ...many(4),
-      v("x", 2.5, { type: "continuous" }), // ungrouped tail
-    ]);
-    const capped = capGroupedSolution(grouped, 3);
-    expect(capped.truncated).toBe(true);
-    expect(capped.shownEntries).toBe(3);
-    expect(capped.totalEntries).toBe(5);
-    expect(capped.groups[0].entries.map((e) => e.label)).toEqual(["o0", "o1", "o2"]);
-    expect(capped.ungrouped).toEqual([]); // the budget ran out before the tail
+  // A single family can hold every variable in the model; one row per group
+  // would make that row as heavy as the unbounded render we are replacing.
+  it("splits an oversized group into bounded rows, flagging the continuations", () => {
+    const rows = flattenSolutionRows(buildSolutionGroups(many(130)), 60);
+    const entryRows = rows.filter((r) => r.kind === "entries");
+    expect(entryRows.map((r) => r.entries.length)).toEqual([60, 60, 10]);
+    expect(entryRows.map((r) => r.continued)).toEqual([false, true, true]);
+    // …and no chip is lost or duplicated across the split.
+    const labels = entryRows.flatMap((r) => r.entries.map((e) => e.label));
+    expect(labels).toHaveLength(130);
+    expect(new Set(labels).size).toBe(130);
   });
 
-  it("spends leftover budget on the ungrouped tail", () => {
-    const grouped = buildSolutionGroups([
-      ...many(2),
-      v("x", 2.5, { type: "continuous" }),
-      v("y", 1.5, { type: "continuous" }),
+  it("keeps families in first-seen order and appends the ungrouped tail", () => {
+    const rows = flattenSolutionRows(
+      buildSolutionGroups([
+        v("route_a_b", 1, { family: "route", index_tuple: ["a", "b"] }),
+        v("flow_x", 4.2, { family: "flow", index_tuple: ["x"] }),
+        v("total_cost", 99, { type: "continuous" }),
+      ]),
+    );
+    expect(rows.map((r) => r.kind)).toEqual([
+      "family",
+      "entries",
+      "family",
+      "entries",
+      "ungrouped-header",
+      "ungrouped",
     ]);
-    const capped = capGroupedSolution(grouped, 3);
-    expect(capped.truncated).toBe(true);
-    expect(capped.ungrouped.map((e) => e.name)).toEqual(["x"]);
+    expect(rows.filter((r) => r.kind === "family").map((r) => r.family)).toEqual([
+      "route",
+      "flow",
+    ]);
+  });
+
+  it("emits no ungrouped header when everything carried structure", () => {
+    const rows = flattenSolutionRows(buildSolutionGroups(many(2)));
+    expect(rows.some((r) => r.kind === "ungrouped-header")).toBe(false);
   });
 });

@@ -34,49 +34,71 @@ export interface GroupedSolution {
   hasStructure: boolean;
 }
 
-export interface CappedSolution {
-  groups: SolutionGroup[];
-  ungrouped: SolutionLeaf[];
-  /** Leaves actually kept (≤ cap). */
-  shownEntries: number;
-  /** Leaves the full grouping holds. */
-  totalEntries: number;
-  truncated: boolean;
-}
+/** One rendered line of the grouped view — the unit the virtualizer windows over. */
+export type SolutionRow =
+  | { kind: "family"; family: string; count: number }
+  | {
+      kind: "entries";
+      family: string;
+      /** First index this line belongs to (null for a single-index family). */
+      key: string | null;
+      entries: SolutionLeaf[];
+      /** True when this line continues a group split across several lines. */
+      continued: boolean;
+    }
+  | { kind: "ungrouped-header" }
+  | { kind: "ungrouped"; entries: SolutionLeaf[] };
+
+/** Chips per line. Bounds each row's height so a windowed list can estimate it,
+ *  and keeps one 20k-member family from becoming a single monstrous row. */
+export const ROW_CHUNK = 60;
 
 /**
- * Bound how many leaves a grouped solution renders. A 20k-variable solution with
- * the non-zero filter off would otherwise mount tens of thousands of chips and
- * freeze the page; groups are kept in order and the first partial group is cut
- * mid-entries, so the visible prefix is stable and the banner can say exactly
- * how much was held back.
+ * Flatten a grouped solution into bounded-height rows, families in first-seen
+ * order with a header carrying the family's full count.
+ *
+ * This is what makes windowing possible: rendering one row per group would put
+ * a 20k-entry family in a single DOM node (nothing gained), while one row per
+ * chip would lose the family → index structure the view exists to show.
  */
-export function capGroupedSolution(grouped: GroupedSolution, cap: number): CappedSolution {
-  const totalEntries =
-    grouped.groups.reduce((n, g) => n + g.entries.length, 0) + grouped.ungrouped.length;
-  if (totalEntries <= cap) {
-    return {
-      groups: grouped.groups,
-      ungrouped: grouped.ungrouped,
-      shownEntries: totalEntries,
-      totalEntries,
-      truncated: false,
-    };
-  }
-  let left = cap;
-  const groups: SolutionGroup[] = [];
+export function flattenSolutionRows(
+  grouped: GroupedSolution,
+  chunkSize: number = ROW_CHUNK,
+): SolutionRow[] {
+  const byFamily = new Map<string, SolutionGroup[]>();
   for (const g of grouped.groups) {
-    if (left <= 0) break;
-    if (g.entries.length <= left) {
-      groups.push(g);
-      left -= g.entries.length;
-    } else {
-      groups.push({ ...g, entries: g.entries.slice(0, left) });
-      left = 0;
+    const list = byFamily.get(g.family);
+    if (list) list.push(g);
+    else byFamily.set(g.family, [g]);
+  }
+
+  const rows: SolutionRow[] = [];
+  for (const [family, groups] of byFamily) {
+    rows.push({
+      kind: "family",
+      family,
+      count: groups.reduce((n, g) => n + g.entries.length, 0),
+    });
+    for (const group of groups) {
+      for (let i = 0; i < group.entries.length; i += chunkSize) {
+        rows.push({
+          kind: "entries",
+          family,
+          key: group.key,
+          entries: group.entries.slice(i, i + chunkSize),
+          continued: i > 0,
+        });
+      }
     }
   }
-  const ungrouped = left > 0 ? grouped.ungrouped.slice(0, left) : [];
-  return { groups, ungrouped, shownEntries: cap, totalEntries, truncated: true };
+
+  if (grouped.ungrouped.length > 0) {
+    rows.push({ kind: "ungrouped-header" });
+    for (let i = 0; i < grouped.ungrouped.length; i += chunkSize) {
+      rows.push({ kind: "ungrouped", entries: grouped.ungrouped.slice(i, i + chunkSize) });
+    }
+  }
+  return rows;
 }
 
 export function buildSolutionGroups(variables: VariableSolution[]): GroupedSolution {

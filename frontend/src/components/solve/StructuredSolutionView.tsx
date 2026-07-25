@@ -1,23 +1,32 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { VariableSolution, SensitivityResult } from "@/lib/types";
 import { SolutionExplorerTable } from "./SolutionExplorerTable";
 import {
   buildSolutionGroups,
-  capGroupedSolution,
-  type SolutionGroup,
+  flattenSolutionRows,
   type SolutionLeaf,
+  type SolutionRow,
 } from "@/lib/solution-grouping";
 
 /** Same near-zero threshold the flat table, chart and MCP filter use. */
 const NEAR_ZERO = 1e-9;
 
-/** Chips rendered before the view truncates behind a "show all" opt-in — a
- *  20k-variable solution with the non-zero filter off would otherwise mount
- *  tens of thousands of DOM nodes and freeze the page. */
-const RENDER_CAP = 500;
+/** Above this many rows the list is windowed inside its own scroller. Below it,
+ *  the rows render straight into the page — a normal solution keeps behaving
+ *  exactly as before, with no nested scrollbar and nothing to measure. */
+const VIRTUALIZE_ABOVE = 40;
+
+/** Height the windowed list starts from before rows report their real size. */
+const ESTIMATED_ROW_PX = 44;
+
+/** Viewport the virtualizer assumes for the first paint, before the browser has
+ *  measured the scroller — without it the first frame would window over a
+ *  zero-height viewport and flash empty. */
+const INITIAL_RECT = { width: 900, height: 640 };
 
 interface StructuredSolutionViewProps {
   variables: VariableSolution[];
@@ -31,12 +40,15 @@ interface StructuredSolutionViewProps {
  * = 1` rows. The full flat table (with constraint sensitivity) is one toggle
  * away. When no structure was recovered it renders the flat table directly, so
  * nothing regresses for continuous / custom-named / legacy solutions.
+ *
+ * Large solutions are WINDOWED, not truncated: only the rows near the viewport
+ * are mounted, so a 20k-variable solution scrolls at full fidelity instead of
+ * showing a bounded prefix behind a "show all" that then froze the page.
  */
 export function StructuredSolutionView({ variables, sensitivity }: StructuredSolutionViewProps) {
   const t = useTranslations("solve.explorer");
   const [nonZeroOnly, setNonZeroOnly] = useState(true);
   const [view, setView] = useState<"grouped" | "table">("grouped");
-  const [showAll, setShowAll] = useState(false);
 
   const hasStructure = useMemo(() => variables.some((v) => v.family), [variables]);
   const shown = useMemo(
@@ -44,30 +56,12 @@ export function StructuredSolutionView({ variables, sensitivity }: StructuredSol
     [variables, nonZeroOnly],
   );
   const grouped = useMemo(() => buildSolutionGroups(shown), [shown]);
-  const capped = useMemo(
-    () => capGroupedSolution(grouped, showAll ? Number.POSITIVE_INFINITY : RENDER_CAP),
-    [grouped, showAll],
-  );
+  const rows = useMemo(() => flattenSolutionRows(grouped), [grouped]);
 
   // No structure recovered → the grouping adds nothing. Fall back to the flat
   // table exactly as before (the graceful degradation the analysis layer relies on).
   if (!hasStructure) {
     return <SolutionExplorerTable variables={variables} sensitivity={sensitivity} />;
-  }
-
-  // Families in first-seen order, each with its groups (multi-index families
-  // sub-grouped by first index; single-index families in one null-key bucket).
-  // Built from the CAPPED grouping so a huge solution renders a bounded prefix.
-  const families: { family: string; groups: SolutionGroup[] }[] = [];
-  const seen = new Map<string, number>();
-  for (const g of capped.groups) {
-    const at = seen.get(g.family);
-    if (at === undefined) {
-      seen.set(g.family, families.length);
-      families.push({ family: g.family, groups: [g] });
-    } else {
-      families[at].groups.push(g);
-    }
   }
 
   return (
@@ -129,68 +123,72 @@ export function StructuredSolutionView({ variables, sensitivity }: StructuredSol
         <div className="bg-card border border-border rounded-lg px-4 py-10 text-center">
           <p className="text-sm text-muted-foreground">{t("noMatch")}</p>
         </div>
+      ) : rows.length > VIRTUALIZE_ABOVE ? (
+        <VirtualRows rows={rows} label={t("groupedListLabel")} t={t} />
       ) : (
-        <div className="space-y-4" data-testid="structured-groups">
-          {families.map(({ family, groups }) => (
-            <FamilySection key={family} family={family} groups={groups} t={t} />
+        <div
+          className="overflow-hidden rounded-lg border border-border bg-card"
+          data-testid="structured-groups"
+        >
+          {rows.map((row, i) => (
+            <SolutionRowView key={rowKey(row, i)} row={row} t={t} />
           ))}
-          {capped.ungrouped.length > 0 && (
-            <UngroupedSection entries={capped.ungrouped} label={t("otherVariables")} />
-          )}
-          {capped.truncated && (
-            <div
-              data-testid="structured-render-cap"
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/30 px-4 py-2 text-xs text-muted-foreground"
-            >
-              <span>
-                {t("renderCapNote", { shown: capped.shownEntries, total: capped.totalEntries })}
-              </span>
-              <button
-                type="button"
-                data-testid="structured-show-all"
-                onClick={() => setShowAll(true)}
-                className="font-medium text-primary hover:underline"
-              >
-                {t("renderCapShowAll", { total: capped.totalEntries })}
-              </button>
-            </div>
-          )}
         </div>
       )}
     </div>
   );
 }
 
-function FamilySection({
-  family,
-  groups,
+/** The same rows, windowed: only what is near the viewport is mounted, and each
+ *  row reports its real height so wrapped chips do not drift the scrollbar. */
+function VirtualRows({
+  rows,
+  label,
   t,
 }: {
-  family: string;
-  groups: SolutionGroup[];
+  rows: SolutionRow[];
+  label: string;
   t: ReturnType<typeof useTranslations>;
 }) {
-  const count = groups.reduce((n, g) => n + g.entries.length, 0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // The React Compiler cannot memoize a component that drives a virtualizer (the
+  // hook reads and mutates layout refs during render on purpose), so it skips
+  // this one. That is expected and harmless — the windowing IS the optimization
+  // here — but the skip is worth naming rather than leaving as a standing warning.
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ESTIMATED_ROW_PX,
+    overscan: 8,
+    initialRect: INITIAL_RECT,
+  });
+
   return (
-    <div className="bg-card border border-border rounded-lg overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-muted/30">
-        <span className="font-mono text-sm font-semibold text-foreground">{family}</span>
-        <span className="text-xs text-muted-foreground">{t("countLabel", { count })}</span>
-      </div>
-      <div className="divide-y divide-border">
-        {groups.map((g, i) => (
-          <div key={g.key ?? `__${i}`} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 px-4 py-2">
-            {g.key !== null && (
-              <span className="font-mono text-xs font-medium text-foreground shrink-0">
-                {g.key}
-                <span className="text-muted-foreground"> →</span>
-              </span>
-            )}
-            <div className="flex flex-wrap gap-1.5">
-              {g.entries.map((e) => (
-                <EntryChip key={e.name} entry={e} />
-              ))}
-            </div>
+    <div
+      ref={scrollRef}
+      tabIndex={0}
+      role="region"
+      aria-label={label}
+      data-testid="structured-groups"
+      data-virtualized="true"
+      className="max-h-[70vh] overflow-y-auto rounded-lg border border-border bg-card"
+    >
+      <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+        {virtualizer.getVirtualItems().map((item) => (
+          <div
+            key={item.key}
+            data-index={item.index}
+            ref={virtualizer.measureElement}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              transform: `translateY(${item.start}px)`,
+            }}
+          >
+            <SolutionRowView row={rows[item.index]} t={t} />
           </div>
         ))}
       </div>
@@ -198,14 +196,50 @@ function FamilySection({
   );
 }
 
-function UngroupedSection({ entries, label }: { entries: SolutionLeaf[]; label: string }) {
-  return (
-    <div className="bg-card border border-border rounded-lg overflow-hidden">
-      <div className="px-4 py-2 border-b border-border bg-muted/30">
-        <span className="text-sm font-semibold text-muted-foreground">{label}</span>
+function rowKey(row: SolutionRow, index: number): string {
+  if (row.kind === "family") return `f:${row.family}`;
+  if (row.kind === "ungrouped-header") return "u:header";
+  return `${row.kind}:${index}`;
+}
+
+function SolutionRowView({
+  row,
+  t,
+}: {
+  row: SolutionRow;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  if (row.kind === "family") {
+    return (
+      <div className="flex items-center justify-between border-b border-border bg-muted/30 px-4 py-2">
+        <span className="font-mono text-sm font-semibold text-foreground">{row.family}</span>
+        <span className="text-xs text-muted-foreground">
+          {t("countLabel", { count: row.count })}
+        </span>
       </div>
-      <div className="flex flex-wrap gap-1.5 px-4 py-2">
-        {entries.map((e) => (
+    );
+  }
+
+  if (row.kind === "ungrouped-header") {
+    return (
+      <div className="border-b border-border bg-muted/30 px-4 py-2">
+        <span className="text-sm font-semibold text-muted-foreground">{t("otherVariables")}</span>
+      </div>
+    );
+  }
+
+  const indexKey = row.kind === "entries" ? row.key : null;
+  const continued = row.kind === "entries" && row.continued;
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-b border-border px-4 py-2">
+      {indexKey !== null && !continued && (
+        <span className="shrink-0 font-mono text-xs font-medium text-foreground">
+          {indexKey}
+          <span className="text-muted-foreground"> →</span>
+        </span>
+      )}
+      <div className="flex flex-wrap gap-1.5">
+        {row.entries.map((e) => (
           <EntryChip key={e.name} entry={e} />
         ))}
       </div>

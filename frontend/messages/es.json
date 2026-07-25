@@ -3139,9 +3139,8 @@
       "viewGrouped": "Agrupada",
       "viewTable": "Tabla completa",
       "otherVariables": "Otras variables",
-      "renderCapNote": "Mostrando los primeros {shown} de {total} valores",
-      "renderCapShowAll": "Mostrar todos ({total})",
-      "countLabel": "{count, plural, one {# variable} other {# variables}}"
+      "countLabel": "{count, plural, one {# variable} other {# variables}}",
+      "groupedListLabel": "Solución agrupada"
     },
     "progress": {
       "title": "Progreso de ejecución",

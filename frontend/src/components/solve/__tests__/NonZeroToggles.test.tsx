@@ -148,25 +148,62 @@ describe("StructuredSolutionView (A1b — grouped by recovered index structure)"
     expect(screen.getByTestId("explorer-nonzero-toggle")).toBeInTheDocument();
   });
 
-  it("caps a huge grouped render behind an explicit 'show all'", () => {
-    // 600 non-zero structured variables: the grouped view must render a bounded
-    // prefix (500) + a banner, and only mount everything on the opt-in click —
-    // an unbounded render froze the page on real 20k-variable solutions.
+  it("windows a huge grouped render instead of mounting or truncating it", () => {
+    // 600 non-zero structured variables. The old view rendered a 500-chip prefix
+    // behind a "show all" that then mounted everything and froze the page; the
+    // windowed list mounts only the rows near the viewport — nothing is hidden,
+    // it is reachable by scrolling.
     const huge = Array.from({ length: 600 }, (_, i) => ({
+      name: `assign_v${i}_o${i}`,
+      type: "binary" as const,
+      value: 1,
+      family: "assign",
+      index_tuple: [`v${i}`, `o${i}`],
+    }));
+    // jsdom performs no layout: every element reports offsetHeight 0, so the
+    // virtualizer would window over a zero-tall viewport and mount nothing.
+    // Give the DOM a size for the duration of this test.
+    Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+      configurable: true,
+      value: 640,
+    });
+    Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
+      configurable: true,
+      value: 900,
+    });
+    wrap(<StructuredSolutionView variables={huge} />);
+
+    const list = screen.getByTestId("structured-groups");
+    expect(list.getAttribute("data-virtualized")).toBe("true");
+    // The head of the solution is on screen…
+    expect(screen.getByText("o0")).toBeInTheDocument();
+    // …while the far tail is not mounted, and no truncation banner claims it is gone.
+    expect(screen.queryByText("o599")).not.toBeInTheDocument();
+    expect(list.querySelectorAll("[data-index]").length).toBeLessThan(100);
+    expect(screen.queryByTestId("structured-render-cap")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("structured-show-all")).not.toBeInTheDocument();
+
+    // @ts-expect-error - restoring jsdom's layout-less defaults
+    delete HTMLElement.prototype.offsetHeight;
+    // @ts-expect-error - restoring jsdom's layout-less defaults
+    delete HTMLElement.prototype.offsetWidth;
+  });
+
+  it("renders a small grouped solution without a nested scroller", () => {
+    const small = Array.from({ length: 6 }, (_, i) => ({
       name: `assign_v1_o${i}`,
       type: "binary" as const,
       value: 1,
       family: "assign",
       index_tuple: ["v1", `o${i}`],
     }));
-    wrap(<StructuredSolutionView variables={huge} />);
-    expect(screen.getByTestId("structured-render-cap")).toBeInTheDocument();
-    expect(screen.queryByText("o499")).toBeInTheDocument();
-    expect(screen.queryByText("o500")).not.toBeInTheDocument();
+    wrap(<StructuredSolutionView variables={small} />);
 
-    fireEvent.click(screen.getByTestId("structured-show-all"));
-    expect(screen.queryByTestId("structured-render-cap")).not.toBeInTheDocument();
-    expect(screen.queryByText("o599")).toBeInTheDocument();
+    const list = screen.getByTestId("structured-groups");
+    expect(list.getAttribute("data-virtualized")).toBeNull();
+    // Every chip is mounted — a normal solution behaves exactly as before.
+    expect(screen.getByText("o0")).toBeInTheDocument();
+    expect(screen.getByText("o5")).toBeInTheDocument();
   });
 
   it("falls back to the flat table when no structure was recovered", () => {

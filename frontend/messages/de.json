@@ -3139,9 +3139,8 @@
       "viewGrouped": "Gruppiert",
       "viewTable": "Vollständige Tabelle",
       "otherVariables": "Weitere Variablen",
-      "renderCapNote": "Die ersten {shown} von {total} Werten werden angezeigt",
-      "renderCapShowAll": "Alle anzeigen ({total})",
-      "countLabel": "{count, plural, one {# Variable} other {# Variablen}}"
+      "countLabel": "{count, plural, one {# Variable} other {# Variablen}}",
+      "groupedListLabel": "Gruppierte Lösung"
     },
     "progress": {
       "title": "Ausführungsfortschritt",

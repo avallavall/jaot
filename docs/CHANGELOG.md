@@ -38,6 +38,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
   joins the one in flight instead of starting a second, and the result is cached on the
   execution. The budget bounds the ANALYSIS only — solve time limits are untouched.
 
+- **The grouped solution view is windowed, not truncated.** It used to render the first
+  500 chips behind a "show all" that then mounted everything and froze the page — so a large
+  solution was either incomplete or unusable. Now only the rows near the viewport are
+  mounted: on a real 7,200-variable solution the view switches in ~180 ms and holds ~720
+  chips in the DOM instead of 7,200, with the rest reachable by scrolling and each row
+  reporting its true height so wrapped chips never drift the scrollbar. The family → index
+  structure is unchanged, and a normal-sized solution still renders straight into the page
+  with no nested scroller.
+
 - **Agents can analyse, not just solve (MCP 26 → 30 tools).** The MCP surface exposed
   results but no analysis: an agent could solve a model and read the solution, yet could
   not ask what was saturated, why a model was infeasible, or what one more unit of a limit
@@ -107,6 +116,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
   `LLM_THINKING_EFFORT`. The setting row stays for one release before removal.
 
 ### Fixed
+
+- **Next.js patched to 16.2.11**, closing seven advisories present in 16.2.9 — SSRF via
+  rewrites and via Server Actions on custom servers, a middleware/proxy bypass in App
+  Router, unauthenticated disclosure of internal Server Function endpoints, plus DoS and
+  cache-confusion issues.
 
 - **A page reload no longer disarms the JModel stale lock** (the drift-on-reload
   footgun). Reloading — or restoring a version — rehydrates the JModel source with

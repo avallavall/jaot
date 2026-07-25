@@ -3139,9 +3139,8 @@
       "viewGrouped": "Agrupada",
       "viewTable": "Taula completa",
       "otherVariables": "Altres variables",
-      "renderCapNote": "Es mostren els primers {shown} de {total} valors",
-      "renderCapShowAll": "Mostra'ls tots ({total})",
-      "countLabel": "{count, plural, one {# variable} other {# variables}}"
+      "countLabel": "{count, plural, one {# variable} other {# variables}}",
+      "groupedListLabel": "Solució agrupada"
     },
     "progress": {
       "title": "Progrés de l'Execució",
