@@ -4445,5 +4445,11 @@
       "preferencesUpdated": "Einstellungen aktualisiert",
       "eventModelActivated": "Modell übernommen"
     }
+  },
+  "llm": {
+    "modelChoice": {
+      "advanced": "Erweitertes Modell",
+      "hint": "Mit dem erweiterten Modell antworten: stärkeres Reasoning, langsamer und mehrfach teurer pro Aufruf. Standardmäßig aus."
+    }
   }
 }

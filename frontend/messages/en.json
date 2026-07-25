@@ -4445,5 +4445,11 @@
       "preferencesUpdated": "Preferences updated",
       "eventModelActivated": "Model adopted"
     }
+  },
+  "llm": {
+    "modelChoice": {
+      "advanced": "Advanced model",
+      "hint": "Answer with the advanced model: stronger reasoning, slower and several times more expensive per call. Off by default."
+    }
   }
 }

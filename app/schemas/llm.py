@@ -162,6 +162,19 @@ class ExplainSolutionRequest(BaseModel):
     )
 
 
+class ExplainScenariosRequest(BaseModel):
+    """Request the plain-language reading of a finished what-if batch (L2).
+
+    The scenarios themselves are already cached on the execution; the only choice
+    the caller has is which model narrates them.
+    """
+
+    use_advanced_model: bool = Field(
+        default=False,
+        description="Use the advanced model with adaptive thinking for the explanation",
+    )
+
+
 class ExplainInfeasibilityRequest(BaseModel):
     """Request a plain-language explanation of WHY a model is INFEASIBLE.
 

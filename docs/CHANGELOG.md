@@ -19,6 +19,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Added
 
+- **You can ask for the advanced model.** The platform had an advanced tier configured
+  (`LLM_ADVANCED_MODEL`) that the interface never used: every chat message and every
+  explanation went out on the default model, and the only way to reach the other one was
+  the API. There is now an **Advanced model** toggle in both chats and in the solution,
+  infeasibility and what-if explanations. Off by default and remembered per user — the
+  advanced tier costs several times more per call, so it is always asked for, never
+  inherited. The what-if explanation caches per tier: asking for the other one re-reads the
+  scenarios, asking again for the same one stays free.
+
 - **What-if analysis by real re-solves** (Sensitivity level 2). The analysis panel can
   now answer the question the exact analysis structurally cannot: *what would one more
   unit actually buy me?* On demand, the platform perturbs the solved model and solves it

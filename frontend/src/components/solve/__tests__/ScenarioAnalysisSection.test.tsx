@@ -220,7 +220,7 @@ describe("ScenarioAnalysisSection (Sensitivity L2)", () => {
       expect(screen.getByTestId("scenario-explanation-text")).toBeInTheDocument(),
     );
     expect(screen.getByText("Demand is what limits you.")).toBeInTheDocument();
-    expect(mockExplain).toHaveBeenCalledWith("exe_8");
+    expect(mockExplain).toHaveBeenCalledWith("exe_8", false);
   });
 
   it("shows an already-written explanation without asking for another", async () => {

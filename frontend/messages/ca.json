@@ -4445,5 +4445,11 @@
       "preferencesUpdated": "Preferències actualitzades",
       "eventModelActivated": "Model adoptat"
     }
+  },
+  "llm": {
+    "modelChoice": {
+      "advanced": "Model avançat",
+      "hint": "Respondre amb el model avançat: raona millor, és més lent i costa diverses vegades més per crida. Desactivat per defecte."
+    }
   }
 }

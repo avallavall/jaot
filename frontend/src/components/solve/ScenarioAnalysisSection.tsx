@@ -7,6 +7,8 @@ import remarkGfm from "remark-gfm";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import type { DecisionScenario, RhsScenario, ScenarioAnalysisJob } from "@/lib/types";
+import { AdvancedModelToggle } from "@/components/llm/AdvancedModelToggle";
+import { useAdvancedModel } from "@/hooks/useAdvancedModel";
 
 interface ScenarioAnalysisSectionProps {
   executionId: string;
@@ -335,6 +337,7 @@ function ScenarioExplanation({
   const [text, setText] = useState<string | null>(cached);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [advanced, setAdvanced] = useAdvancedModel();
 
   useEffect(() => {
     setText(cached);
@@ -344,24 +347,27 @@ function ScenarioExplanation({
     setLoading(true);
     setError(null);
     api
-      .explainExecutionScenarios(executionId)
+      .explainExecutionScenarios(executionId, advanced)
       .then((res) => setText(res.explanation))
       .catch((err: unknown) => setError(getErrorMessage(err, t("explainError"))))
       .finally(() => setLoading(false));
-  }, [executionId, t]);
+  }, [executionId, t, advanced]);
 
   return (
     <div className="space-y-2" data-testid="scenario-explanation">
       {!text && (
-        <button
-          type="button"
-          onClick={explain}
-          disabled={loading}
-          data-testid="scenario-explain-button"
-          className="rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted/50 disabled:opacity-50"
-        >
-          {loading ? t("explaining") : t("explain")}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={explain}
+            disabled={loading}
+            data-testid="scenario-explain-button"
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted/50 disabled:opacity-50"
+          >
+            {loading ? t("explaining") : t("explain")}
+          </button>
+          <AdvancedModelToggle checked={advanced} onChange={setAdvanced} disabled={loading} />
+        </div>
       )}
       {error && <p className="text-sm text-destructive">{error}</p>}
       {text && (

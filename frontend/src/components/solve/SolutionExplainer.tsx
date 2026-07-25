@@ -2,6 +2,8 @@
 
 import { useCallback, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { AdvancedModelToggle } from "@/components/llm/AdvancedModelToggle";
+import { useAdvancedModel } from "@/hooks/useAdvancedModel";
 import { Sparkles } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -31,6 +33,7 @@ export function SolutionExplainer({ executionId, canExplain }: SolutionExplainer
   const t = useTranslations("solve.explainer");
   const tBuilder = useTranslations("builder");
   const stream = useSolutionExplanation();
+  const [advanced, setAdvanced] = useAdvancedModel();
   const conversationIdRef = useRef<string | null>(null);
   const [started, setStarted] = useState(false);
   const [setupFailed, setSetupFailed] = useState(false);
@@ -46,11 +49,14 @@ export function SolutionExplainer({ executionId, canExplain }: SolutionExplainer
         });
         conversationIdRef.current = conv.id;
       }
-      await stream.explain(conversationIdRef.current, { execution_id: executionId });
+      await stream.explain(conversationIdRef.current, {
+        execution_id: executionId,
+        use_advanced_model: advanced,
+      });
     } catch {
       setSetupFailed(true);
     }
-  }, [executionId, stream]);
+  }, [executionId, stream, advanced]);
 
   if (!canExplain) {
     return (
@@ -76,10 +82,13 @@ export function SolutionExplainer({ executionId, canExplain }: SolutionExplainer
           <p className="text-sm text-muted-foreground max-w-prose">{t("description")}</p>
         </div>
         {!stream.streaming && (
-          <Button variant="outline" size="sm" className="gap-2" onClick={runExplain}>
-            <Sparkles className="h-4 w-4" />
-            {started ? t("regenerate") : t("button")}
-          </Button>
+          <div className="flex items-center gap-3">
+            <AdvancedModelToggle checked={advanced} onChange={setAdvanced} />
+            <Button variant="outline" size="sm" className="gap-2" onClick={runExplain}>
+              <Sparkles className="h-4 w-4" />
+              {started ? t("regenerate") : t("button")}
+            </Button>
+          </div>
         )}
       </div>
 

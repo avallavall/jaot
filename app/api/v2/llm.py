@@ -32,6 +32,7 @@ from app.schemas.llm import (
     ChatMessageRequest,
     ExplainInfeasibilityRequest,
     ExplainModelRequest,
+    ExplainScenariosRequest,
     ExplainSolutionRequest,
     ExplainVersionDiffRequest,
 )
@@ -1368,6 +1369,7 @@ async def explain_execution_scenarios(
     db: DBSession,
     user: CurrentUser,
     org: CurrentOrg,
+    body: ExplainScenariosRequest | None = None,
 ) -> ScenarioExplanationResponse:
     """Read a finished what-if analysis (Sensitivity L2) back in plain language.
 
@@ -1380,6 +1382,10 @@ async def explain_execution_scenarios(
     a reload must never re-bill a call. Same guardrails as the rest of the
     assistant — BYOK-first, monthly-budget pause, org rate limit. No moderation
     pre-check: the prompt is assembled from computed figures, not user text.
+
+    ``use_advanced_model`` re-reads the same scenarios with the advanced model.
+    The cache is keyed by the model that wrote the text, so asking for the other
+    tier regenerates (and bills) while asking again for the same one does not.
     """
     execution = (
         db.query(ModelExecution)
@@ -1400,7 +1406,13 @@ async def explain_execution_scenarios(
             detail="Run the what-if analysis first — there is nothing to explain yet.",
         )
 
-    if job.get("explanation"):
+    use_advanced = bool(body.use_advanced_model) if body else False
+    # Sonnet-tier by default: narrating computed figures needs no reasoning tier.
+    model, _ = select_model(use_advanced=use_advanced, db=db)
+
+    if job.get("explanation") and job.get("explained_with") in (model, None):
+        # Same tier (or a pre-existing text from before we tracked the tier) —
+        # never re-bill for words already written.
         return ScenarioExplanationResponse(explanation=job["explanation"], cached=True)
 
     byok_client, is_byok = resolve_anthropic_client(org)
@@ -1440,8 +1452,6 @@ async def explain_execution_scenarios(
             },
         ) from None
 
-    # Sonnet-tier: narrating computed figures needs no reasoning tier.
-    model, _ = select_model(use_advanced=False, db=db)
     request_id = getattr(request.state, "request_id", None) or ""
     try:
         outcome = await explain_scenarios(
@@ -1488,6 +1498,7 @@ async def explain_execution_scenarios(
             **(locked.scenario_analysis or job),
             "explanation": outcome.text,
             "explained_at": utcnow().isoformat(),
+            "explained_with": model,
         }
     db.commit()
 

@@ -156,6 +156,30 @@ def test_the_explanation_is_cached_on_the_execution(
     assert stored.scenario_analysis["result"]["base_objective"] == 900.0
 
 
+# CONTRACT-TEST: the cache is keyed by the model that wrote the text. Asking for
+# the other tier must actually re-read the scenarios; asking again for the same
+# tier must not bill a second time.
+def test_asking_for_the_advanced_model_regenerates_but_repeating_does_not(
+    authenticated_client: TestClient,
+    db_session: Session,
+    test_organization: Organization,
+    fake_llm: list[dict[str, Any]],
+):
+    execution = _seed(db_session, test_organization.id, job=_completed_job())
+    url = f"/api/v2/llm/executions/{execution.id}/explain-scenarios"
+
+    standard = authenticated_client.post(url, json={"use_advanced_model": False})
+    advanced = authenticated_client.post(url, json={"use_advanced_model": True})
+    advanced_again = authenticated_client.post(url, json={"use_advanced_model": True})
+
+    assert standard.json()["cached"] is False
+    assert advanced.json()["cached"] is False  # different tier -> re-read
+    assert advanced_again.json()["cached"] is True  # same tier -> free
+    assert len(fake_llm) == 2
+    # …and the two calls really asked for different models.
+    assert fake_llm[0]["model"] != fake_llm[1]["model"]
+
+
 def test_it_refuses_when_no_batch_has_been_run(
     authenticated_client: TestClient,
     db_session: Session,

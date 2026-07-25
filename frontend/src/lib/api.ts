@@ -747,9 +747,13 @@ export const api = {
 
   /** Plain-language reading of a finished what-if batch. Cached server-side, so
    * asking twice costs nothing. */
-  explainExecutionScenarios(executionId: string): Promise<ScenarioExplanationResponse> {
+  explainExecutionScenarios(
+    executionId: string,
+    useAdvancedModel = false,
+  ): Promise<ScenarioExplanationResponse> {
     return request(`/api/v2/llm/executions/${executionId}/explain-scenarios`, {
       method: "POST",
+      body: JSON.stringify({ use_advanced_model: useAdvancedModel }),
     });
   },
 

@@ -8,6 +8,8 @@ import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { useInfeasibilityExplanation } from "@/hooks/useInfeasibilityExplanation";
+import { AdvancedModelToggle } from "@/components/llm/AdvancedModelToggle";
+import { useAdvancedModel } from "@/hooks/useAdvancedModel";
 import { resolveErrorKey } from "@/lib/llm-event-codes";
 import { ByokHint } from "@/components/llm/ByokHint";
 import type { Conversation, InfeasibilityAnalysis } from "@/lib/llm-types";
@@ -32,6 +34,7 @@ export function InfeasibilityPanel({ executionId, initialAnalysis }: Infeasibili
   const t = useTranslations("solve.infeasibility");
   const tBuilder = useTranslations("builder");
   const stream = useInfeasibilityExplanation();
+  const [advanced, setAdvanced] = useAdvancedModel();
   const conversationIdRef = useRef<string | null>(null);
   const [analysis, setAnalysis] = useState<InfeasibilityAnalysis | null>(initialAnalysis ?? null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -62,11 +65,14 @@ export function InfeasibilityPanel({ executionId, initialAnalysis }: Infeasibili
         });
         conversationIdRef.current = conv.id;
       }
-      await stream.explain(conversationIdRef.current, { execution_id: executionId });
+      await stream.explain(conversationIdRef.current, {
+        execution_id: executionId,
+        use_advanced_model: advanced,
+      });
     } catch {
       setSetupFailed(true);
     }
-  }, [analysis, executionId, stream]);
+  }, [analysis, executionId, stream, advanced]);
 
   const showError = setupFailed || stream.errorCode !== null;
   const errorMessage = stream.errorCode
@@ -89,10 +95,13 @@ export function InfeasibilityPanel({ executionId, initialAnalysis }: Infeasibili
           <p className="text-sm text-muted-foreground max-w-prose">{t("description")}</p>
         </div>
         {!stream.streaming && !analyzing && (
-          <Button variant="outline" size="sm" className="gap-2" onClick={runExplain}>
-            <Sparkles className="h-4 w-4" />
-            {started ? t("regenerate") : t("button")}
-          </Button>
+          <div className="flex items-center gap-3">
+            <AdvancedModelToggle checked={advanced} onChange={setAdvanced} />
+            <Button variant="outline" size="sm" className="gap-2" onClick={runExplain}>
+              <Sparkles className="h-4 w-4" />
+              {started ? t("regenerate") : t("button")}
+            </Button>
+          </div>
         )}
       </div>
 

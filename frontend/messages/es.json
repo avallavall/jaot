@@ -4445,5 +4445,11 @@
       "preferencesUpdated": "Preferencias actualizadas",
       "eventModelActivated": "Modelo adoptado"
     }
+  },
+  "llm": {
+    "modelChoice": {
+      "advanced": "Modelo avanzado",
+      "hint": "Responder con el modelo avanzado: razona mejor, es más lento y cuesta varias veces más por llamada. Desactivado por defecto."
+    }
   }
 }

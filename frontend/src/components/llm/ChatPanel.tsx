@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AdvancedModelToggle } from "@/components/llm/AdvancedModelToggle";
+import { useAdvancedModel } from "@/hooks/useAdvancedModel";
 import { Send, HelpCircle, AlertTriangle, Paperclip, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -42,6 +44,9 @@ interface ChatPanelProps {
 
 export function ChatPanel({ initialMessages, stream, onFormulationReady, onExplainFailure, solveStatus, attachment, uploading, onFileSelected, onRemoveAttachment, removing, messages: controlledMessages, onSend }: ChatPanelProps) {
   const t = useTranslations("builder");
+  // Shared store: the studio provider (which actually sends in controlled mode)
+  // reads the very same value, so the toggle here drives it with no plumbing.
+  const [advanced, setAdvanced] = useAdvancedModel();
   const controlled = controlledMessages !== undefined && onSend !== undefined;
   const [internalMessages, setInternalMessages] = useState<ChatMessageType[]>(initialMessages);
   const messages = controlled ? controlledMessages! : internalMessages;
@@ -192,9 +197,9 @@ export function ChatPanel({ initialMessages, stream, onFormulationReady, onExpla
       setInternalMessages((prev) => [...prev, userMsg]);
       setInputText("");
 
-      await stream.sendMessage(trimmed);
+      await stream.sendMessage(trimmed, { useAdvancedModel: advanced });
     },
-    [stream, t, controlled, onSend]
+    [stream, t, controlled, onSend, advanced]
   );
 
   const handleExampleSelect = useCallback(
@@ -330,9 +335,14 @@ export function ChatPanel({ initialMessages, stream, onFormulationReady, onExpla
             <Send className="w-4 h-4" />
           </Button>
         </div>
-        <p className="text-[0.625rem] text-muted-foreground mt-1.5">
-          {t("llm.chat.enterToSend")}
-        </p>
+        <div className="mt-1.5 flex items-center justify-between gap-3">
+          <p className="text-[0.625rem] text-muted-foreground">{t("llm.chat.enterToSend")}</p>
+          <AdvancedModelToggle
+            checked={advanced}
+            onChange={setAdvanced}
+            disabled={stream.streaming}
+          />
+        </div>
       </div>
     </div>
   );

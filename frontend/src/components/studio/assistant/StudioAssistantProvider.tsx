@@ -10,6 +10,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
+import { useAdvancedModel } from "@/hooks/useAdvancedModel";
 import { useStore } from "zustand";
 import { api, ApiError } from "@/lib/api";
 import type {
@@ -82,6 +83,9 @@ export function StudioAssistantProvider({ store, children }: StudioAssistantProv
 
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Read from the shared store the toggle writes to, so a flip in the chat panel
+  // applies to the very next message this provider sends.
+  const [advancedModel] = useAdvancedModel();
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [attachment, setAttachment] = useState<AttachmentInfo | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -145,9 +149,9 @@ export function StudioAssistantProvider({ store, children }: StudioAssistantProv
           created_at: new Date().toISOString(),
         },
       ]);
-      void stream.sendMessage(trimmed);
+      void stream.sendMessage(trimmed, { useAdvancedModel: advancedModel });
     },
-    [conversationId, stream, tChat]
+    [conversationId, stream, tChat, advancedModel]
   );
 
   // A completed formulation: append the assistant turn AND fold it into the canonical
