@@ -639,4 +639,116 @@ subject to reach_c: sum{(i, j) in ARCS : j == c} use[i, j] >= 1;`);
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("studio-jmodel-generate-dialog")).toHaveCount(0, { timeout: NAV });
   });
+
+  /**
+   * B3 vision — the browser half of "screenshot a formulation, get a JModel".
+   *
+   * The backend half is already covered by unit tests (tests/api/test_dsl_api.py
+   * forwards the vision attachment and rejects unknown media types). What had no
+   * coverage at all was the part only a real browser can exercise: picking a file
+   * through the OS input, reading it into RAW base64 (no `data:` prefix — the API
+   * wants bytes), enforcing the type/size/count guards, and shipping it in the
+   * request. That path was only ever verified by hand.
+   *
+   * Nothing is mocked here. The request goes to the real backend, and when the
+   * server has a key it really does reach Claude with the image — meaning this
+   * test SPENDS LLM BUDGET on every run (one generation, small images). That is
+   * deliberate: a vision test that never sends an image proves nothing. E2E is
+   * not in CI, so the cost is bounded by how often it is run by hand.
+   *
+   * Because the answer therefore depends on the server's key and budget, the
+   * assertions split: the outgoing payload is pinned exactly, and the outcome is
+   * only required to be one of the two REAL ones — a source loaded, or a visible
+   * error the user can act on. A blank dialog that silently ate the click fails
+   * either way.
+   */
+  test("B3 vision: an attached image is validated, listed and sent as raw base64", async ({
+    page,
+  }) => {
+    await setDslFlag("true");
+    const projectId = await createBlankProject(page);
+    await page.goto(`/studio/${projectId}/build?lens=jmodel`);
+    await expect(page.getByTestId("studio-jmodel-textarea")).toBeVisible({ timeout: NAV });
+
+    await page.getByTestId("studio-jmodel-generate-open").click();
+    await expect(page.getByTestId("studio-jmodel-generate-dialog")).toBeVisible({ timeout: NAV });
+
+    const fileInput = page.locator('input[type="file"]');
+    const items = page.getByTestId("studio-jmodel-generate-attachment");
+    const error = page.getByTestId("studio-jmodel-generate-error");
+    const attachButton = page.getByTestId("studio-jmodel-generate-attach");
+    const submit = page.getByTestId("studio-jmodel-generate-submit");
+
+    // A 1x1 PNG — real bytes with a real signature, so the base64 assertion below
+    // proves an actual file round-tripped rather than a string we invented.
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "base64",
+    );
+
+    await fileInput.setInputFiles({ name: "formulation.png", mimeType: "image/png", buffer: png });
+    await expect(items).toHaveCount(1);
+    await expect(items.first()).toContainText("formulation.png");
+
+    // An attachment ALONE must be enough to submit: a screenshot of a formulation
+    // is a complete request, not a decoration on a description.
+    await expect(submit).toBeEnabled();
+
+    // A type Claude cannot read is refused in the browser, not discovered by the API.
+    await fileInput.setInputFiles({
+      name: "notes.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("min cost subject to demand"),
+    });
+    await expect(error).toBeVisible();
+    await expect(items).toHaveCount(1);
+
+    // Over the per-file ceiling: right media type, wrong size.
+    await fileInput.setInputFiles({
+      name: "huge.png",
+      mimeType: "image/png",
+      buffer: Buffer.concat([png, Buffer.alloc(6 * 1024 * 1024)]),
+    });
+    await expect(error).toBeVisible();
+    await expect(items).toHaveCount(1);
+
+    // Fill to the cap. The button disables itself at the limit...
+    await fileInput.setInputFiles(
+      ["b", "c", "d"].map((n) => ({ name: `page-${n}.png`, mimeType: "image/png", buffer: png })),
+    );
+    await expect(items).toHaveCount(4);
+    await expect(attachButton).toBeDisabled();
+
+    // ...and removing one lets you attach again.
+    await items.first().getByRole("button").click();
+    await expect(items).toHaveCount(3);
+    await expect(attachButton).toBeEnabled();
+
+    // The payload: raw base64 of the real bytes, with the media type the picker saw.
+    const outgoing = page.waitForRequest(
+      (r) => r.url().includes("/dsl/generate") && r.method() === "POST",
+      { timeout: NAV },
+    );
+
+    await page.getByTestId("studio-jmodel-generate-description").fill("read the attached model");
+    await submit.click();
+
+    const body = JSON.parse((await outgoing).postData() ?? "{}");
+    expect(body.attachments).toHaveLength(3);
+    for (const att of body.attachments) {
+      expect(att.media_type).toBe("image/png");
+      // Raw bytes only — a leaked "data:image/png;base64," prefix would be sent
+      // verbatim to Claude and rejected there, far from where it was introduced.
+      expect(att.data.startsWith("data:")).toBe(false);
+      expect(Buffer.from(att.data, "base64").subarray(0, 8)).toEqual(png.subarray(0, 8));
+    }
+
+    // Either real outcome is acceptable; silence is not.
+    const dialog = page.getByTestId("studio-jmodel-generate-dialog");
+    await expect
+      .poll(async () => (await error.count()) > 0 || (await dialog.count()) === 0, {
+        timeout: 120_000,
+      })
+      .toBe(true);
+  });
 });

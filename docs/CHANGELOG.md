@@ -152,6 +152,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Fixed
 
+- **The MCP discovery document was still advertising 26 tools.** The tool list is
+  published in four places, and `llms.txt` — the one an agent reads instead of asking the
+  server — was left behind when the four analysis tools landed, so it named and listed 26.
+  Regenerated from the server's own list and pinned by a test, since a stale discovery
+  document misleads precisely the reader who cannot notice.
+
 - **Next.js patched to 16.2.11**, closing seven advisories present in 16.2.9 — SSRF via
   rewrites and via Server Actions on custom servers, a middleware/proxy bypass in App
   Router, unauthenticated disclosure of internal Server Function endpoints, plus DoS and

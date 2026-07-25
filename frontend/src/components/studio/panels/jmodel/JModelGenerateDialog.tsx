@@ -201,10 +201,11 @@ export function JModelGenerateDialog({
           />
 
           {attachments.length > 0 && (
-            <ul className="flex flex-col gap-1.5">
+            <ul className="flex flex-col gap-1.5" data-testid="studio-jmodel-generate-attachments">
               {attachments.map((att, idx) => (
                 <li
                   key={`${att.name}-${idx}`}
+                  data-testid="studio-jmodel-generate-attachment"
                   className="flex items-center gap-2 rounded-md border bg-muted/30 px-2 py-1 text-xs"
                 >
                   {att.isPdf ? (
