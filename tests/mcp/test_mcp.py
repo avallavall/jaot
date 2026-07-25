@@ -40,10 +40,15 @@ EXPECTED_OPERATIONS = [
     "list_catalog_models",
     "get_catalog_model",
     "get_catalog_model_schema",
-    # Execution & analysis
+    # Execution & analysis — the technical surface (the LLM explain-* endpoints
+    # are deliberately NOT exposed; an MCP client is already a model).
     "execute_model",
     "get_execution",
     "get_execution_insights",
+    "get_execution_exact_analysis",
+    "analyze_infeasibility",
+    "start_execution_scenario_analysis",
+    "get_execution_scenario_analysis",
     # Model projects — create, author, version, analyze & solve a first-class model
     "create_model_project",
     "create_model_project_from_marketplace",
@@ -134,6 +139,18 @@ def test_no_unwanted_operations_leak():
             assert not op_id.startswith(prefix), (
                 f"Leaked operation {op_id} found in MCP include list"
             )
+
+
+# CONTRACT-TEST: the analyses are exposed, their LLM explanations are NOT. An MCP
+# client is already a model — spending the platform's AI budget to narrate figures
+# it can read itself would bill the same sentence twice.
+def test_llm_explanations_are_not_exposed_as_tools():
+    from app.mcp import setup_mcp
+
+    source = inspect.getsource(setup_mcp)
+    for op_id in ("explain_execution_scenarios", "explain_solution", "explain_infeasibility"):
+        assert f'"{op_id}"' not in source, f"LLM endpoint {op_id} must not be an MCP tool"
+    assert not [op for op in EXPECTED_OPERATIONS if "explain" in op]
 
 
 # ---- AI-02: Tools cover solve AND marketplace paths ----

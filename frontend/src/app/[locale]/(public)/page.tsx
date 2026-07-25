@@ -119,7 +119,7 @@ const INFEASIBILITY_KEYS = [
 
 const HOW_IT_WORKS_KEYS = ["step1", "step2", "step3"] as const;
 
-// Mirrors the real MCP surface (app/mcp include_operations, 26 tools) — keep in
+// Mirrors the real MCP surface (app/mcp include_operations, 30 tools) — keep in
 // sync when tools are added/retired; llms.txt and docs/mcp/overview are the
 // other two copies.
 const MCP_TOOL_GROUPS = [
@@ -154,6 +154,15 @@ const MCP_TOOL_GROUPS = [
     ],
   },
   { key: "execution", tools: ["execute_model", "get_execution", "get_execution_insights"] },
+  {
+    key: "analysis",
+    tools: [
+      "get_execution_exact_analysis",
+      "analyze_infeasibility",
+      "start_execution_scenario_analysis",
+      "get_execution_scenario_analysis",
+    ],
+  },
 ] as const;
 
 export default async function HomePage() {

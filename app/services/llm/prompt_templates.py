@@ -1,10 +1,10 @@
-from typing import Any
-
 """System prompts and message builders for LLM formulation generation.
 
 The system prompt instructs Claude to act as an optimization modeling expert
 and produce structured formulations from natural language descriptions.
 """
+
+from typing import Any
 
 FORMULATION_SYSTEM_PROMPT = """You are an expert optimization modeling assistant for JAOT, \
 an optimization-as-a-service platform.
@@ -323,6 +323,85 @@ def build_solution_explanation_prompt(
         parts.append("## Sensitivity analysis\nNot available for this solve.")
 
     parts.append("Produce the explanation now, using only the values above.")
+    return "\n\n".join(parts)
+
+
+SCENARIO_EXPLANATION_SYSTEM_PROMPT = """You are an optimization expert explaining a \
+WHAT-IF ANALYSIS to a business user of JAOT who is not an optimization expert.
+
+Every number you receive was MEASURED by re-solving the real model with one thing changed \
+— not estimated, not derived from an LP relaxation. Two kinds of scenario:
+- **RHS ranging**: a binding constraint's limit was moved by a small amount (delta) and the \
+model re-solved. `objective_delta_per_unit` is what ONE unit of that limit is worth.
+- **Decision regret**: a yes/no decision was forced to the opposite of what the model chose \
+and re-solved. `regret` is how much WORSE the objective gets — always a cost, never a gain.
+
+## Grounding (critical)
+- Use ONLY the numbers provided. NEVER invent a scenario that was not run, and never \
+extrapolate a measured delta beyond the delta that was actually tested — a per-unit figure \
+measured at +1 does NOT license a claim about +100.
+- `status` matters and must be respected:
+  - `computed` — exact for that scenario.
+  - `time_limit` — the re-solve was stopped early; the value is a BOUND. Say so.
+  - `infeasible` — that change makes the model unsolvable. That is a finding worth stating \
+plainly ("you cannot do this at all", not "this is expensive").
+  - `skipped_budget` — never ran. Do not describe it, and if the analysis is `partial`, say \
+that some scenarios were not tested.
+- Sense matters: for a minimisation a negative `objective_delta` is an improvement (cheaper); \
+for a maximisation it is a loss. `improves` already carries the answer — use it.
+- NEVER attach a unit or a currency symbol the data does not state. The objective is a \
+number, not dollars or euros: write "**6** more" or "6 per unit", never "$6". The same goes \
+for what the quantities are — say "one more unit of that limit" unless the names tell you \
+what it measures.
+
+## What to write
+1. **What limits you most** — the constraint whose one extra unit buys the most, with the \
+figure, in the user's terms ("one more hour on machine 3 is worth 420").
+2. **What is not worth buying** — limits that measured ~zero, and why that is useful to know \
+(something else is the real bottleneck).
+3. **The cost of deciding differently** — the regret rows, including any overrule that turned \
+out to be impossible.
+4. If the batch was partial, one closing line about what was not tested.
+
+## Style
+- Plain business language, no optimization jargon. Never say "RHS" — say "the limit".
+- Markdown: `**bold**` for the key numbers, short `-` bullets. No headings, no tables — this \
+sits under a chart that already carries the detail.
+- Short: 4-8 sentences total. The chart shows the numbers; you explain what they mean.
+- Never recommend an action the numbers do not support.
+"""
+
+
+def build_scenario_explanation_prompt(
+    analysis: dict[str, Any],
+    formulation: dict[str, Any] | None = None,
+) -> str:
+    """Assemble the grounded user turn for a what-if (Sensitivity L2) explanation.
+
+    Embeds the measured scenarios as JSON — bounded like every other explanation
+    prompt — so the model narrates rows that exist and has nothing to fabricate.
+    The formulation is optional context for naming things the way the user does.
+    """
+    parts: list[str] = ["Explain the following what-if analysis of a solved optimization model.\n"]
+    if formulation:
+        parts.append(
+            _bounded_json_block(
+                "Formulation (context only)",
+                formulation,
+                _sample_formulation,
+                "variable/constraint lists truncated to a representative head, long "
+                "expressions clipped",
+            )
+        )
+    parts.append(
+        _bounded_json_block(
+            "Measured scenarios",
+            analysis,
+            _sample_formulation,
+            "scenario lists truncated to a representative head",
+        )
+    )
+    parts.append("Produce the explanation now, using only the scenarios above.")
     return "\n\n".join(parts)
 
 

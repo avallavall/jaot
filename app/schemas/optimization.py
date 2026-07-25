@@ -481,6 +481,18 @@ class ScenarioAnalysisJob(BaseModel):
     error: str | None = None
     requested_at: str | None = None
     completed_at: str | None = None
+    # Plain-language reading of the measured scenarios, produced on demand by the
+    # assistant and cached alongside them (so a reload never re-bills a call).
+    explanation: str | None = None
+    explained_at: str | None = None
+
+
+class ScenarioExplanationResponse(BaseModel):
+    """The plain-language reading of a what-if analysis (Sensitivity L2)."""
+
+    explanation: str
+    # True when served from the cache — no model call, no spend.
+    cached: bool = False
 
 
 class InfeasibilityAnalysis(BaseModel):

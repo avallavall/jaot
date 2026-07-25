@@ -4,10 +4,12 @@ import userEvent from "@testing-library/user-event";
 
 const mockGet = vi.fn();
 const mockStart = vi.fn();
+const mockExplain = vi.fn();
 vi.mock("@/lib/api", () => ({
   api: {
     getExecutionScenarioAnalysis: (...args: unknown[]) => mockGet(...args),
     startExecutionScenarioAnalysis: (...args: unknown[]) => mockStart(...args),
+    explainExecutionScenarios: (...args: unknown[]) => mockExplain(...args),
   },
 }));
 
@@ -91,6 +93,7 @@ describe("ScenarioAnalysisSection (Sensitivity L2)", () => {
   beforeEach(() => {
     mockGet.mockReset();
     mockStart.mockReset();
+    mockExplain.mockReset();
   });
 
   it("offers the batch when it has never been run", async () => {
@@ -200,6 +203,39 @@ describe("ScenarioAnalysisSection (Sensitivity L2)", () => {
     expect(
       screen.getByText("solve.execution.scenarioAnalysis.statusInfeasible"),
     ).toBeInTheDocument();
+  });
+
+  it("explains the analysis in plain language on demand", async () => {
+    mockGet.mockResolvedValue(completed);
+    mockExplain.mockResolvedValue({
+      explanation: "Demand is what limits you.",
+      cached: false,
+    });
+    render(<ScenarioAnalysisSection executionId="exe_8" />);
+
+    await waitFor(() => expect(screen.getByTestId("scenario-explain-button")).toBeInTheDocument());
+    await userEvent.click(screen.getByTestId("scenario-explain-button"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("scenario-explanation-text")).toBeInTheDocument(),
+    );
+    expect(screen.getByText("Demand is what limits you.")).toBeInTheDocument();
+    expect(mockExplain).toHaveBeenCalledWith("exe_8");
+  });
+
+  it("shows an already-written explanation without asking for another", async () => {
+    mockGet.mockResolvedValue({
+      ...completed,
+      explanation: "Capacity on machine 3 is your real limit.",
+    });
+    render(<ScenarioAnalysisSection executionId="exe_9" />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("scenario-explanation-text")).toBeInTheDocument(),
+    );
+    // Cached server-side: no button, and no model call from the page load.
+    expect(screen.queryByTestId("scenario-explain-button")).not.toBeInTheDocument();
+    expect(mockExplain).not.toHaveBeenCalled();
   });
 
   it("declines gracefully when there is nothing to vary", async () => {

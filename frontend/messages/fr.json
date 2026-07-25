@@ -950,14 +950,15 @@
           "description": "Obtiens la solution optimisée de manière programmatique"
         }
       },
-      "toolsTitle": "26 outils",
+      "toolsTitle": "30 outils",
       "tools": {
         "problemSolving": "Résolution de Problèmes",
         "templates": "Modèles",
         "fileIO": "E/S de fichiers",
         "marketplace": "Marketplace",
         "execution": "Exécution",
-        "modelProjects": "Projets de modèle"
+        "modelProjects": "Projets de modèle",
+        "analysis": "Analyse"
       },
       "agentBadge": "Fonctionne avec Claude, GPT et tout agent compatible MCP",
       "cta": "Explorer l'Intégration MCP"
@@ -2728,7 +2729,10 @@
         "regretNote": "Chaque ligne force une décision binaire à sa valeur opposée et relance la résolution. Le regret est la dégradation de l'objectif.",
         "decisionHeader": "Décision",
         "overruleHeader": "Forcé",
-        "regretHeader": "Regret"
+        "regretHeader": "Regret",
+        "explain": "Explique-moi",
+        "explaining": "Rédaction de l'explication…",
+        "explainError": "Impossible de rédiger l'explication."
       },
       "solveSummary": "Résumé de la résolution",
       "summary": {

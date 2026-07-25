@@ -1751,6 +1751,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/llm/executions/{execution_id}/explain-scenarios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Explain Execution Scenarios
+         * @description Read a finished what-if analysis (Sensitivity L2) back in plain language.
+         *
+         *     Narrates scenarios that were MEASURED by re-solving — the system prompt
+         *     forbids inventing a scenario that was not run or extrapolating past the delta
+         *     actually tested, and the batch's own ``status`` per row (exact / bound /
+         *     infeasible / never ran) is part of the grounding.
+         *
+         *     Not streamed and cached on the execution: the answer is a few sentences, and
+         *     a reload must never re-bill a call. Same guardrails as the rest of the
+         *     assistant — BYOK-first, monthly-budget pause, org rate limit. No moderation
+         *     pre-check: the prompt is assembled from computed figures, not user text.
+         */
+        post: operations["explain_execution_scenarios"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/models/{model_id}/execute": {
         parameters: {
             query?: never;
@@ -8500,6 +8530,10 @@ export interface components {
             completed_at?: string | null;
             /** Error */
             error?: string | null;
+            /** Explained At */
+            explained_at?: string | null;
+            /** Explanation */
+            explanation?: string | null;
             /** Requested At */
             requested_at?: string | null;
             /**
@@ -8507,6 +8541,19 @@ export interface components {
              * @description absent | running | completed | failed
              */
             status: string;
+        };
+        /**
+         * ScenarioExplanationResponse
+         * @description The plain-language reading of a what-if analysis (Sensitivity L2).
+         */
+        ScenarioExplanationResponse: {
+            /**
+             * Cached
+             * @default false
+             */
+            cached: boolean;
+            /** Explanation */
+            explanation: string;
         };
         /**
          * ScenarioStatus
@@ -9934,6 +9981,7 @@ export type RhsRange = components['schemas']['RhsRange'];
 export type RhsScenario = components['schemas']['RhsScenario'];
 export type ScenarioAnalysis = components['schemas']['ScenarioAnalysis'];
 export type ScenarioAnalysisJob = components['schemas']['ScenarioAnalysisJob'];
+export type ScenarioExplanationResponse = components['schemas']['ScenarioExplanationResponse'];
 export type ScenarioStatus = components['schemas']['ScenarioStatus'];
 export type ScheduleCreateRequest = components['schemas']['ScheduleCreateRequest'];
 export type ScheduleResponse = components['schemas']['ScheduleResponse'];
@@ -13004,6 +13052,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    explain_execution_scenarios: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                execution_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioExplanationResponse"];
                 };
             };
             /** @description Validation Error */

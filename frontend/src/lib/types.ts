@@ -37,6 +37,7 @@ export type {
   RhsScenario,
   ScenarioAnalysis,
   ScenarioAnalysisJob,
+  ScenarioExplanationResponse,
   SensitivityResult,
   SolverOptions,
   Variable,

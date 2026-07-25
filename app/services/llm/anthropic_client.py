@@ -98,3 +98,16 @@ def _get_or_create_client(api_key: str) -> AsyncAnthropic:
 def clear_client_cache() -> None:
     """Clear the client cache. Useful for testing."""
     _client_cache.clear()
+
+
+def collect_text(response: Any) -> str:
+    """Concatenate the text blocks of a non-streaming Anthropic message.
+
+    Skips thinking and every other block type — with adaptive thinking on, a
+    reply carries blocks the caller must not treat as answer text.
+    """
+    parts: list[str] = []
+    for block in getattr(response, "content", None) or []:
+        if getattr(block, "type", None) == "text":
+            parts.append(getattr(block, "text", "") or "")
+    return "".join(parts)

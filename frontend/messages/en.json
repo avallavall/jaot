@@ -768,14 +768,15 @@
           "description": "Get optimized solution programmatically"
         }
       },
-      "toolsTitle": "26 Tools",
+      "toolsTitle": "30 Tools",
       "tools": {
         "problemSolving": "Problem Solving",
         "templates": "Templates",
         "fileIO": "File I/O",
         "marketplace": "Marketplace",
         "execution": "Execution",
-        "modelProjects": "Model Projects"
+        "modelProjects": "Model Projects",
+        "analysis": "Analysis"
       },
       "agentBadge": "Works with Claude, GPT, and any MCP-compatible agent",
       "cta": "Explore MCP Integration"
@@ -2756,7 +2757,10 @@
         "regretNote": "Each row forces one binary decision to its opposite value and re-solves. The regret is how much worse the objective gets.",
         "decisionHeader": "Decision",
         "overruleHeader": "Forced",
-        "regretHeader": "Regret"
+        "regretHeader": "Regret",
+        "explain": "Explain this to me",
+        "explaining": "Writing the explanation…",
+        "explainError": "Could not write the explanation."
       },
       "solveSummary": "Solve summary",
       "summary": {

@@ -950,14 +950,15 @@
           "description": "Obtener la solución optimizada programáticamente"
         }
       },
-      "toolsTitle": "26 herramientas",
+      "toolsTitle": "30 herramientas",
       "tools": {
         "problemSolving": "Resolución de problemas",
         "templates": "Plantillas",
         "fileIO": "E/S de ficheros",
         "marketplace": "Marketplace",
         "execution": "Ejecución",
-        "modelProjects": "Proyectos de modelo"
+        "modelProjects": "Proyectos de modelo",
+        "analysis": "Análisis"
       },
       "agentBadge": "Compatible con Claude, GPT y cualquier agente compatible con MCP",
       "cta": "Explorar la integración MCP"
@@ -2728,7 +2729,10 @@
         "regretNote": "Cada fila fuerza una decisión binaria al valor contrario y vuelve a resolver. El arrepentimiento es cuánto empeora el objetivo.",
         "decisionHeader": "Decisión",
         "overruleHeader": "Forzado",
-        "regretHeader": "Arrepentimiento"
+        "regretHeader": "Arrepentimiento",
+        "explain": "Explícamelo",
+        "explaining": "Escribiendo la explicación…",
+        "explainError": "No se pudo escribir la explicación."
       },
       "solveSummary": "Resumen del solve",
       "summary": {

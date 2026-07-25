@@ -59,6 +59,10 @@ These limits bound the **analysis only**; your solve time limits are untouched.
 
 When the budget runs out, the remaining scenarios come back marked as not run and the result says it is partial — it is never padded with estimates. A scenario stopped at its own time limit is shown with a `≈`: an incumbent bounds the true change, it does not equal it. Relaxations are always solved before tightenings, so a batch cut short still spent its budget on the more informative half. The finished analysis is cached on the execution, so reloading the page does not re-solve anything, and asking twice joins the batch already running.
 
+### Explain this to me
+
+Under the results, **Explain this to me** has the assistant read the scenarios back in plain business language: what actually limits you, what is not worth buying, and what deciding otherwise would cost. It is handed the measured scenarios and nothing else — it cannot invent a scenario that was not run, cannot extrapolate a per-unit figure beyond the change actually tested, and has to respect each row's status (exact, bound, infeasible, never run). Like the batch, it is opt-in and cached on the execution, so reading it again is free. It uses your organization's own API key when you have configured one; otherwise it counts against the platform's AI budget.
+
 ## The variables chart
 
 The Visualization tab charts variable magnitudes. When every non-zero variable has the same value — the normal case for a binary assignment solution, where a bar chart of identical bars carries zero information — it collapses to an aggregate ("N variables at 1, M at zero") with a **Show chart anyway** override.
@@ -72,8 +76,11 @@ GET  /api/v2/models/executions/{execution_id}
 GET  /api/v2/models/executions/{execution_id}/exact-analysis
 POST /api/v2/models/executions/{execution_id}/scenario-analysis
 GET  /api/v2/models/executions/{execution_id}/scenario-analysis
+POST /api/v2/llm/executions/{execution_id}/explain-scenarios
 ```
 
 The first returns the persisted execution (solution variables include the recovered `family` and `index_tuple`); the second computes the exact analysis on demand — binding constraints, slack/utilization, objective contributions, and the per-family KPI aggregates (`families`, `contribution_families`).
 
-The `POST` queues the what-if batch and the `GET` polls it. Both return the same job envelope — `status` (`absent` / `running` / `completed` / `failed`) plus, once finished, `analysis` with `rhs_scenarios`, `decision_scenarios`, and the budget accounting (`resolves_used`, `resolves_planned`, `seconds_used`, `partial`). The `POST` is idempotent: it joins a batch already running and serves a finished one from the cache.
+The scenario `POST` queues the what-if batch and the matching `GET` polls it. Both return the same job envelope — `status` (`absent` / `running` / `completed` / `failed`) plus, once finished, `analysis` with `rhs_scenarios`, `decision_scenarios`, and the budget accounting (`resolves_used`, `resolves_planned`, `seconds_used`, `partial`). The `POST` is idempotent: it joins a batch already running and serves a finished one from the cache.
+
+`explain-scenarios` returns `{ explanation, cached }` for a finished batch, and `422` when there is nothing measured to explain yet.

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import type { DecisionScenario, RhsScenario, ScenarioAnalysisJob } from "@/lib/types";
@@ -119,6 +121,11 @@ export function ScenarioAnalysisSection({ executionId }: ScenarioAnalysisSection
           <BudgetSummary job={job} t={t} />
           <TornadoChart rows={analysis.rhs_scenarios ?? []} t={t} />
           <RegretTable rows={analysis.decision_scenarios ?? []} t={t} />
+          <ScenarioExplanation
+            executionId={executionId}
+            cached={job?.explanation ?? null}
+            t={t}
+          />
         </div>
       )}
     </div>
@@ -307,6 +314,64 @@ function RegretTable({
         </table>
       </div>
       <p className="mt-2 text-xs text-muted-foreground">{t("regretNote")}</p>
+    </div>
+  );
+}
+
+/** Plain-language reading of the measured scenarios, on demand.
+ *
+ * Opt-in for the same reason the batch is: it costs a model call. The server
+ * caches it on the execution, so a page reload shows it for free — and the
+ * assistant is only ever given scenarios that were actually solved. */
+function ScenarioExplanation({
+  executionId,
+  cached,
+  t,
+}: {
+  executionId: string;
+  cached: string | null;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  const [text, setText] = useState<string | null>(cached);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setText(cached);
+  }, [cached]);
+
+  const explain = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    api
+      .explainExecutionScenarios(executionId)
+      .then((res) => setText(res.explanation))
+      .catch((err: unknown) => setError(getErrorMessage(err, t("explainError"))))
+      .finally(() => setLoading(false));
+  }, [executionId, t]);
+
+  return (
+    <div className="space-y-2" data-testid="scenario-explanation">
+      {!text && (
+        <button
+          type="button"
+          onClick={explain}
+          disabled={loading}
+          data-testid="scenario-explain-button"
+          className="rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted/50 disabled:opacity-50"
+        >
+          {loading ? t("explaining") : t("explain")}
+        </button>
+      )}
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      {text && (
+        <div
+          className="prose prose-sm dark:prose-invert max-w-none text-foreground"
+          data-testid="scenario-explanation-text"
+        >
+          <Markdown remarkPlugins={[remarkGfm]}>{text}</Markdown>
+        </div>
+      )}
     </div>
   );
 }

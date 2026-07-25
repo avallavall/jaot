@@ -30,6 +30,7 @@ from app.schemas.dsl import (
     DSL_GENERATE_PDF_TYPE,
     DSLGenerateAttachment,
 )
+from app.services.llm.anthropic_client import collect_text
 from app.services.llm.prompt_templates import (
     JMODEL_GENERATION_RETRY_TEMPLATE,
     JMODEL_GENERATION_SYSTEM_PROMPT,
@@ -139,15 +140,6 @@ def _build_first_turn(
     return blocks
 
 
-def _collect_text(response: Any) -> str:
-    """Concatenate the text blocks of an Anthropic message (skip thinking/other blocks)."""
-    parts: list[str] = []
-    for block in getattr(response, "content", None) or []:
-        if getattr(block, "type", None) == "text":
-            parts.append(getattr(block, "text", "") or "")
-    return "".join(parts)
-
-
 def _retry_turn(exc: JModelError, source: str) -> str:
     """Build the follow-up user turn that feeds a compile failure back to the model."""
     position = f" (position {exc.position})" if exc.position is not None else ""
@@ -215,7 +207,7 @@ async def generate_jmodel(
         total_in += int(getattr(usage, "input_tokens", 0) or 0)
         total_out += int(getattr(usage, "output_tokens", 0) or 0)
 
-        raw_text = _collect_text(response)
+        raw_text = collect_text(response)
         source = extract_jmodel_source(raw_text)
         last_source = source
 

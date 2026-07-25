@@ -156,7 +156,7 @@ Create or edit `.vscode/mcp.json` in your workspace. VS Code uses a `"servers"` 
 
 ## Available Tools
 
-JAOT exposes **26 MCP tools** organized into six categories:
+JAOT exposes **30 MCP tools** organized into seven categories:
 
 ### Solve Tools
 
@@ -201,6 +201,19 @@ Using a marketplace model is fork-first: `create_model_project_from_marketplace`
 | `execute_model` | Yes | Execute one of your models (a model project) with input data |
 | `get_execution` | Yes | Retrieve execution results and status |
 | `get_execution_insights` | Yes | Get auto-generated insights (gap, solve time, quality flags) for a completed execution |
+
+### Analysis Tools
+
+Everything the analysis page computes is available to an agent — as facts, not prose. There is no "explain it in words" tool on purpose: an MCP client is already a language model, so it reads the numbers and writes its own explanation.
+
+| Tool | Auth | Description |
+|------|------|-------------|
+| `get_execution_exact_analysis` | Yes | Exact, solution-based analysis of a finished run: binding constraints, per-row slack and utilization, objective contributions, and the per-family aggregates |
+| `analyze_infeasibility` | Yes | Diagnose an infeasible model: a minimal conflicting set of constraints/bounds (drop any one and it becomes solvable) |
+| `start_execution_scenario_analysis` | Yes | Queue the what-if batch: RHS ranging on the binding constraints and regret on key decisions, measured by real re-solves under a time budget |
+| `get_execution_scenario_analysis` | Yes | Poll or read that batch — status, the measured scenarios, and the budget accounting |
+
+The what-if batch is asynchronous because each scenario is a full re-solve: start it, then poll until the status leaves `running`. Starting it twice is safe — a request that arrives while a batch is in flight joins it instead of queueing a second one, and a finished batch is served from the cache.
 
 
 ### Model Project Tools

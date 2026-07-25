@@ -28,7 +28,7 @@ LLMS_TXT = """\
 - [Authentication](/docs/api/authentication): API key and JWT auth guide
 
 ## MCP
-- [MCP Endpoint](/mcp): Model Context Protocol server with 26 optimization tools
+- [MCP Endpoint](/mcp): Model Context Protocol server with 30 optimization tools
 - Tools: solve_problem, validate_problem, solve_multi_objective, list_available_solvers, list_templates, get_template, solve_with_template, import_preview, import_and_solve, export_model, export_execution, list_catalog_models, get_catalog_model, get_catalog_model_schema, execute_model, get_execution, get_execution_insights, create_model_project, create_model_project_from_marketplace, get_model_project, list_model_projects, update_model_project_draft, commit_model_version, list_project_versions, get_model_stats, solve_model_project
 
 ## API
@@ -256,7 +256,7 @@ https://jaot.io/mcp
 
 The MCP endpoint is public (no auth to connect). Individual tools that require authentication will return an error with instructions if called without a Bearer API key.
 
-### Available Tools (26)
+### Available Tools (30)
 
 | Tool | Auth | Description |
 |------|------|-------------|
@@ -277,6 +277,10 @@ The MCP endpoint is public (no auth to connect). Individual tools that require a
 | execute_model | Yes | Execute one of your models (a ModelProject) |
 | get_execution | Yes | Get execution results |
 | get_execution_insights | Yes | Get auto-insights (gap, time, quality) for an execution |
+| get_execution_exact_analysis | Yes | Exact solution-based analysis: binding constraints, slack/utilization, objective contributions |
+| analyze_infeasibility | Yes | Minimal conflicting set of an infeasible model (IIS) |
+| start_execution_scenario_analysis | Yes | Queue the what-if batch: RHS ranging + decision regret by real re-solves |
+| get_execution_scenario_analysis | Yes | Poll/read the what-if batch (status, measured scenarios, budget accounting) |
 | create_model_project | Yes | Create a first-class model project (versioned workspace) |
 | create_model_project_from_marketplace | Yes | Fork a marketplace model into your studio |
 | get_model_project | Yes | Get a project (metadata + draft + committed HEAD) |

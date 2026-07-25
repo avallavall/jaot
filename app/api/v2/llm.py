@@ -23,6 +23,8 @@ from sqlalchemy.orm import Session, joinedload
 from sse_starlette.sse import EventSourceResponse
 
 from app.api.deps import CurrentOrg, CurrentUser, DBSession
+from app.domains.solver import scenario_job
+from app.models import ModelExecution
 from app.models.conversation_attachment import ConversationAttachment
 from app.models.llm_conversation import LLMConversation, LLMMessage
 from app.schemas.attachment import AttachmentResponse
@@ -33,10 +35,12 @@ from app.schemas.llm import (
     ExplainSolutionRequest,
     ExplainVersionDiffRequest,
 )
+from app.schemas.optimization import ScenarioExplanationResponse
 from app.services.document_extraction import MAX_FILE_SIZE, extract_text
 from app.services.llm import (
     explain_infeasibility,
     explain_model,
+    explain_scenarios,
     explain_solution,
     explain_version_diff,
     generate_formulation_resilient,
@@ -44,11 +48,13 @@ from app.services.llm import (
     moderate_message,
     select_model,
 )
+from app.services.llm.anthropic_client import get_anthropic_client
 from app.services.llm.byok import resolve_anthropic_client
 from app.services.llm.cost_tracking import (
     LEDGER_MODEL_ID_PREFIX,
     compute_message_cost_eur,
     is_llm_budget_exceeded,
+    record_standalone_llm_spend,
 )
 from app.services.llm.errors import (
     LLMErrorCode,
@@ -1350,3 +1356,150 @@ def delete_attachment(
     db.delete(attachment)
     db.commit()
     return
+
+
+@router.post(
+    "/executions/{execution_id}/explain-scenarios",
+    operation_id="explain_execution_scenarios",
+)
+async def explain_execution_scenarios(
+    execution_id: str,
+    request: Request,
+    db: DBSession,
+    user: CurrentUser,
+    org: CurrentOrg,
+) -> ScenarioExplanationResponse:
+    """Read a finished what-if analysis (Sensitivity L2) back in plain language.
+
+    Narrates scenarios that were MEASURED by re-solving — the system prompt
+    forbids inventing a scenario that was not run or extrapolating past the delta
+    actually tested, and the batch's own ``status`` per row (exact / bound /
+    infeasible / never ran) is part of the grounding.
+
+    Not streamed and cached on the execution: the answer is a few sentences, and
+    a reload must never re-bill a call. Same guardrails as the rest of the
+    assistant — BYOK-first, monthly-budget pause, org rate limit. No moderation
+    pre-check: the prompt is assembled from computed figures, not user text.
+    """
+    execution = (
+        db.query(ModelExecution)
+        .filter(
+            ModelExecution.id == execution_id,
+            ModelExecution.organization_id == org.id,
+        )
+        .first()
+    )
+    if not execution:
+        raise HTTPException(status_code=404, detail="Execution not found")
+
+    job = execution.scenario_analysis or {}
+    analysis = job.get("result") if job.get("status") == scenario_job.STATUS_COMPLETED else None
+    if not analysis or not analysis.get("computed"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Run the what-if analysis first — there is nothing to explain yet.",
+        )
+
+    if job.get("explanation"):
+        return ScenarioExplanationResponse(explanation=job["explanation"], cached=True)
+
+    byok_client, is_byok = resolve_anthropic_client(org)
+
+    if not is_byok and is_llm_budget_exceeded(db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "feature_not_available",
+                "message": (
+                    "The AI assistant is taking a short break — the platform's monthly "
+                    "AI budget has been reached. It will be back at the start of next month."
+                ),
+                "reason": "llm_monthly_budget_exhausted",
+            },
+        )
+
+    allowed, rate_info = check_rate_limit(
+        f"llm:{org.id}",
+        PSS.get_int(db, "LLM_RATE_LIMIT_PER_MINUTE"),
+        PSS.get_int(db, "LLM_RATE_LIMIT_PER_DAY"),
+    )
+    if not allowed:
+        retry_after = rate_info.get("retry_after") if isinstance(rate_info, dict) else None
+        headers = {"Retry-After": str(retry_after)} if retry_after is not None else None
+        raise HTTPException(status_code=429, detail=rate_info, headers=headers)
+
+    try:
+        client = byok_client or get_anthropic_client(db=db)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "error": "feature_not_available",
+                "message": "The AI assistant is not configured on this instance.",
+                "reason": "llm_not_configured",
+            },
+        ) from None
+
+    # Sonnet-tier: narrating computed figures needs no reasoning tier.
+    model, _ = select_model(use_advanced=False, db=db)
+    request_id = getattr(request.state, "request_id", None) or ""
+    try:
+        outcome = await explain_scenarios(
+            client=client,
+            model=model,
+            max_tokens=PSS.get_int(db, "LLM_MAX_TOKENS"),
+            analysis=analysis,
+            formulation=execution.input_data if isinstance(execution.input_data, dict) else None,
+        )
+    except Exception as exc:
+        handle_anthropic_failure(
+            exc, logger=logger, context="scenario explanation", request_id=request_id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={
+                "error": "ai_error",
+                "message": "The AI service could not complete the request. Please try again.",
+                "reason": "upstream_error",
+            },
+        ) from None
+
+    if not outcome.text:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={
+                "error": "ai_error",
+                "message": "The AI service returned an empty explanation. Please try again.",
+                "reason": "empty_reply",
+            },
+        )
+
+    # Cache on the execution so a reload is free. Re-read under a lock: the batch
+    # may have been re-run while the model was writing, and the envelope we hold
+    # would otherwise overwrite the newer one.
+    locked = (
+        db.query(ModelExecution)
+        .filter(ModelExecution.id == execution_id, ModelExecution.organization_id == org.id)
+        .with_for_update(of=ModelExecution)
+        .first()
+    )
+    if locked is not None:
+        locked.scenario_analysis = {
+            **(locked.scenario_analysis or job),
+            "explanation": outcome.text,
+            "explained_at": utcnow().isoformat(),
+        }
+    db.commit()
+
+    if not is_byok:
+        record_standalone_llm_spend(
+            db,
+            org_id=org.id,
+            user_id=user.id,
+            model=model,
+            input_tokens=outcome.input_tokens,
+            output_tokens=outcome.output_tokens,
+            summary="What-if analysis explanation",
+        )
+
+    return ScenarioExplanationResponse(explanation=outcome.text, cached=False)

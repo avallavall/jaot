@@ -38,6 +38,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
   joins the one in flight instead of starting a second, and the result is cached on the
   execution. The budget bounds the ANALYSIS only — solve time limits are untouched.
 
+- **Agents can analyse, not just solve (MCP 26 → 30 tools).** The MCP surface exposed
+  results but no analysis: an agent could solve a model and read the solution, yet could
+  not ask what was saturated, why a model was infeasible, or what one more unit of a limit
+  is worth. Four existing endpoints join the curated tool list —
+  `get_execution_exact_analysis`, `analyze_infeasibility`, and the pair
+  `start_execution_scenario_analysis` / `get_execution_scenario_analysis` (start, then poll,
+  the same shape an async solve already uses; a retry joins the batch in flight rather than
+  buying a second one). The plain-language `explain-*` endpoints stay OUT by design and a
+  contract test keeps them out: an MCP client is already a language model, so spending the
+  platform's AI budget to narrate figures it can read itself would bill the same sentence
+  twice.
+
+- **"Explain this to me" on the what-if analysis.** The assistant reads the measured
+  scenarios back in plain business language — what actually limits you, what is not worth
+  buying, what deciding otherwise would cost — for users who do not read tornado charts for
+  a living. Grounded by construction: it is handed the solved scenarios and forbidden to
+  invent one that was not run or to extrapolate a per-unit figure past the change actually
+  tested, and each row's status (exact / bound / infeasible / never ran) is part of what it
+  must respect. Opt-in like the batch itself, and cached on the execution so a reload never
+  costs another call. Same guardrails as the rest of the assistant: bring-your-own-key
+  first, monthly budget pause, per-org rate limit.
+
 - **"Derive draft" recovers composite alphanumeric indices** (`xsc_s1_c1_k1` —
   MDPDP-style supplier/customer/vehicle labels). The flat-name parse now accepts
   letters-then-digits index segments alongside numeric ones, taking the maximal

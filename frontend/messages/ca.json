@@ -950,14 +950,15 @@
           "description": "Obtenir la solució optimitzada programàticament"
         }
       },
-      "toolsTitle": "26 eines",
+      "toolsTitle": "30 eines",
       "tools": {
         "problemSolving": "Resolucio de problemes",
         "templates": "Plantilles",
         "fileIO": "E/S de fitxers",
         "marketplace": "Marketplace",
         "execution": "Execució",
-        "modelProjects": "Projectes de model"
+        "modelProjects": "Projectes de model",
+        "analysis": "Anàlisi"
       },
       "agentBadge": "Compatible amb Claude, GPT i qualsevol agent compatible amb MCP",
       "cta": "Explorar la integració MCP"
@@ -2728,7 +2729,10 @@
         "regretNote": "Cada fila força una decisió binària al valor contrari i torna a resoldre. El penediment és quant empitjora l'objectiu.",
         "decisionHeader": "Decisió",
         "overruleHeader": "Forçat",
-        "regretHeader": "Penediment"
+        "regretHeader": "Penediment",
+        "explain": "Explica-m'ho",
+        "explaining": "Escrivint l'explicació…",
+        "explainError": "No s'ha pogut escriure l'explicació."
       },
       "solveSummary": "Resum de la resolució",
       "summary": {

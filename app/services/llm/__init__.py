@@ -12,6 +12,7 @@ from app.services.llm.chunked_generation import generate_formulation_chunked
 from app.services.llm.explanation_service import (
     explain_infeasibility,
     explain_model,
+    explain_scenarios,
     explain_solution,
     explain_version_diff,
 )
@@ -28,6 +29,7 @@ __all__ = [
     "get_anthropic_client",
     "get_anthropic_client_for_org",
     "explain_solution",
+    "explain_scenarios",
     "explain_infeasibility",
     "explain_model",
     "explain_version_diff",

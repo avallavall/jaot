@@ -1,6 +1,6 @@
 """MCP server integration for JAOT Optimization Platform.
 
-Exposes 26 curated optimization tools via the Model Context Protocol (MCP),
+Exposes 30 curated optimization tools via the Model Context Protocol (MCP),
 enabling AI agents (Claude, GPT, etc.) to discover and use JAOT's
 optimization capabilities: multi-solver solving, multi-objective (Pareto),
 templates, standard-format import/export (MPS/LP/CIP/JSON), the model
@@ -40,7 +40,11 @@ def setup_mcp(app: FastAPI) -> FastApiMCP:
             "standard formats (MPS/LP/CIP/JSON). Browse and run a marketplace of "
             "pre-built models, and inspect result insights. Create, version "
             "(git-style commits), analyze (stats + health score) and solve "
-            "first-class model projects. "
+            "first-class model projects. Analyse a solved run exactly (binding "
+            "constraints, slack, objective contributions), diagnose an infeasible "
+            "one (minimal conflicting set), and measure what-if scenarios by real "
+            "re-solves (what one more unit of a limit is worth, what overruling a "
+            "decision costs). "
             "Authenticate with a Bearer API key."
         ),
         include_operations=[
@@ -62,10 +66,22 @@ def setup_mcp(app: FastAPI) -> FastApiMCP:
             "list_catalog_models",
             "get_catalog_model",
             "get_catalog_model_schema",
-            # Execution & analysis
+            # Execution & analysis. The analyses are the technical surface only —
+            # binding rows, an IIS, measured what-if deltas. The plain-language
+            # explain-* endpoints stay OUT on purpose: an MCP client is already a
+            # model, so spending the platform's AI budget to narrate numbers it
+            # can read itself would be paying twice for the same sentence.
             "execute_model",
             "get_execution",
             "get_execution_insights",
+            "get_execution_exact_analysis",
+            "analyze_infeasibility",
+            # What-if (Sensitivity L2) is a batch of real re-solves: start it, then
+            # poll — the same enqueue/poll shape an async solve already uses. The
+            # claim is idempotent, so an agent's retry joins the batch in flight
+            # instead of buying a second one.
+            "start_execution_scenario_analysis",
+            "get_execution_scenario_analysis",
             # Model projects — create, author, version, analyze & solve a first-class model
             "create_model_project",
             "create_model_project_from_marketplace",
@@ -95,7 +111,7 @@ def _install_tool_call_analytics(mcp: FastApiMCP) -> None:
     async-only rewrite, pinning the MCP usage dashboard at zero.
 
     We wrap the private dispatch method (``_execute_api_tool``, the single choke
-    point every tool call rides) rather than each endpoint, so all 26 tools are
+    point every tool call rides) rather than each endpoint, so all 30 tools are
     covered in one place. Best-effort and off the request's critical path: a
     failure here never affects the tool's result. Guarded on the method's
     presence so a fastapi-mcp upgrade degrades to "no MCP analytics", never a

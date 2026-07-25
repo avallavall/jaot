@@ -15,20 +15,25 @@ from __future__ import annotations
 
 import logging
 from collections.abc import AsyncGenerator
+from dataclasses import dataclass
 from typing import Any
 
+from app.services.llm.anthropic_client import collect_text
 from app.services.llm.errors import LLMStatusCode
 from app.services.llm.formulation_service import generate_text_response
 from app.services.llm.prompt_templates import (
     INFEASIBILITY_EXPLANATION_SYSTEM_PROMPT,
     MODEL_DIFF_EXPLANATION_SYSTEM_PROMPT,
     MODEL_EXPLANATION_SYSTEM_PROMPT,
+    SCENARIO_EXPLANATION_SYSTEM_PROMPT,
     SOLUTION_EXPLANATION_SYSTEM_PROMPT,
     build_infeasibility_explanation_prompt,
     build_model_explanation_prompt,
+    build_scenario_explanation_prompt,
     build_solution_explanation_prompt,
     build_version_diff_prompt,
 )
+from app.services.llm.thinking import apply_thinking
 
 logger = logging.getLogger(__name__)
 
@@ -252,3 +257,49 @@ async def explain_version_diff(
         db=db,
     ):
         yield event
+
+
+@dataclass(frozen=True)
+class ScenarioExplanationOutcome:
+    """A finished what-if explanation plus what it cost to produce."""
+
+    text: str
+    input_tokens: int
+    output_tokens: int
+
+
+async def explain_scenarios(
+    *,
+    client: Any,
+    model: str,
+    max_tokens: int,
+    analysis: dict[str, Any],
+    formulation: dict[str, Any] | None = None,
+) -> ScenarioExplanationOutcome:
+    """Explain a measured what-if analysis (Sensitivity L2) in plain language.
+
+    Deliberately NOT streamed, unlike its siblings above: the answer is a few
+    sentences, and it is cached on the execution so a reload costs nothing. A
+    single request/response keeps the caller free to persist the text before it
+    ever reaches the client.
+
+    Thinking stays off — narrating numbers that are already computed needs none,
+    and since Sonnet 5 an unset ``thinking`` means "think", which would eat the
+    (deliberately small) output budget.
+    """
+    request_kwargs: dict[str, Any] = {
+        "model": model,
+        "max_tokens": max_tokens,
+        "system": SCENARIO_EXPLANATION_SYSTEM_PROMPT,
+        "messages": [
+            {"role": "user", "content": build_scenario_explanation_prompt(analysis, formulation)}
+        ],
+    }
+    apply_thinking(request_kwargs, thinking=False)
+    response = await client.messages.create(**request_kwargs)
+    usage = getattr(response, "usage", None)
+    return ScenarioExplanationOutcome(
+        text=collect_text(response).strip(),
+        input_tokens=int(getattr(usage, "input_tokens", 0) or 0),
+        output_tokens=int(getattr(usage, "output_tokens", 0) or 0),
+    )

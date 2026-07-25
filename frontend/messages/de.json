@@ -950,14 +950,15 @@
           "description": "Optimierte Lösung programmatisch abrufen"
         }
       },
-      "toolsTitle": "26 Tools",
+      "toolsTitle": "30 Tools",
       "tools": {
         "problemSolving": "ProblemLösung",
         "templates": "Vorlagen",
         "fileIO": "Datei-I/O",
         "marketplace": "Marktplatz",
         "execution": "Ausführung",
-        "modelProjects": "Modellprojekte"
+        "modelProjects": "Modellprojekte",
+        "analysis": "Analyse"
       },
       "agentBadge": "Funktioniert mit Claude, GPT und jedem MCP-kompatiblen Agenten",
       "cta": "MCP-Integration entdecken"
@@ -2728,7 +2729,10 @@
         "regretNote": "Jede Zeile zwingt eine binäre Entscheidung auf den Gegenwert und löst erneut. Der Regret ist die Verschlechterung der Zielfunktion.",
         "decisionHeader": "Entscheidung",
         "overruleHeader": "Erzwungen",
-        "regretHeader": "Regret"
+        "regretHeader": "Regret",
+        "explain": "Erkläre mir das",
+        "explaining": "Erklärung wird geschrieben…",
+        "explainError": "Die Erklärung konnte nicht geschrieben werden."
       },
       "solveSummary": "Lösungsübersicht",
       "summary": {
