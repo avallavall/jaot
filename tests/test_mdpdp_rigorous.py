@@ -19,6 +19,7 @@ from typing import Any
 import pytest
 
 from app.domains.solver.services.generators import get_generator
+from app.domains.solver.services.generators.mdpdp import make_node_id
 from app.domains.solver.services.solver_service import SolverService
 from app.schemas.optimization import SolverStatus
 
@@ -190,11 +191,12 @@ class TestSolutionVerification:
             if v.get(f"z_{idx}", 0) > 0.5:
                 continue
             # Must have at least one outgoing arc from pickup
+            pickup, delivery = make_node_id("p", idx), make_node_id("d", idx)
             p_arcs = [
-                name for name, val in v.items() if name.startswith(f"x_p_{idx}_") and val > 0.5
+                name for name, val in v.items() if name.startswith(f"x_{pickup}_") and val > 0.5
             ]
             d_arcs = [
-                name for name, val in v.items() if name.startswith(f"x_d_{idx}_") and val > 0.5
+                name for name, val in v.items() if name.startswith(f"x_{delivery}_") and val > 0.5
             ]
             assert len(p_arcs) > 0, f"Served order {idx} has no pickup arc"
             assert len(d_arcs) > 0, f"Served order {idx} has no delivery arc"
@@ -310,9 +312,12 @@ class TestWarmStart:
         x_arcs = [k for k, v in ws.items() if k.startswith("x_") and v > 0.5]
         assert len(x_arcs) >= 2, "Route must have at least depot→pickup→delivery→depot"
 
-        # Must start from origin and end at endpoint
-        starts_from_origin = any("x_o_0_" in a for a in x_arcs)
-        ends_at_endpoint = any("_e_0_0" in a for a in x_arcs)
+        # Must start from origin and end at endpoint. Built through the id
+        # constructor rather than spelled out, so the assertion follows the
+        # naming format instead of quietly rotting when it changes.
+        origin, endpoint = make_node_id("o", 0), make_node_id("e", 0)
+        starts_from_origin = any(f"x_{origin}_" in a for a in x_arcs)
+        ends_at_endpoint = any(f"_{endpoint}_0" in a for a in x_arcs)
         assert starts_from_origin, "Route must start from origin"
         assert ends_at_endpoint, "Route must end at endpoint"
 

@@ -39,6 +39,39 @@ NT_PICKUP = "pickup"
 NT_DELIVERY = "delivery"
 NT_REST_STOP = "rest_stop"
 
+
+def make_node_id(kind: str, index: int) -> str:
+    """The id of an ordinary node: a one-letter kind glued to its ordinal.
+
+    The glue matters. Node ids end up inside variable names — an arc is
+    ``x_{i}_{j}_{k}`` — and the underscore is the separator that tells a flat
+    name apart from its indices. Naming a node ``o_0`` therefore produced
+    ``x_o_0_p_1_2``, six segments for what is really ``x[o_0, p_1, 2]``, which
+    the strict name parser rejects outright because a purely alphabetic segment
+    can never be an index. Every arc variable of a generated model was left with
+    no family at all: no grouping, no family KPIs, no solution map.
+
+    Writing ``o0`` instead makes ``x_o0_p1_2`` read correctly under the plain
+    rules, with no second-guessing anywhere downstream.
+
+    Rest-stop nodes are NOT built here: their ids embed the two locations they
+    sit between (``rst_<from>_<to>_<n>``), which are user-supplied names, so
+    they cannot be made index-shaped in general. Arcs touching a rest stop stay
+    unparseable — a deliberate limit, not an oversight.
+    """
+    return f"{kind}{index}"
+
+
+def node_ordinal(nid: str) -> int | None:
+    """The ordinal of a node id built by :func:`make_node_id`, or ``None``.
+
+    The inverse of the constructor, kept next to it so the format is defined in
+    exactly one place.
+    """
+    digits = nid[1:]
+    return int(digits) if len(nid) > 1 and digits.isdigit() else None
+
+
 # EC 561/2006 tachograph constants
 TACHO_CONTINUOUS_DRIVE_MAX = 4.5  # hours
 TACHO_BREAK_DURATION = 0.75  # 45 minutes
@@ -306,7 +339,7 @@ class MDPDPGenerator(BaseGenerator):
 
         # C1: Each served order visited exactly once (pickup)
         for idx in range(n_orders):
-            p_node = f"p_{idx}"
+            p_node = make_node_id("p", idx)
             terms = [
                 x_vars[(p_node, j, k)]
                 for k in range(n_vehicles)
@@ -322,7 +355,7 @@ class MDPDPGenerator(BaseGenerator):
 
         # C2: Each served order visited exactly once (delivery)
         for idx in range(n_orders):
-            d_node = f"d_{idx}"
+            d_node = make_node_id("d", idx)
             terms = [
                 x_vars[(d_node, j, k)]
                 for k in range(n_vehicles)
@@ -338,8 +371,8 @@ class MDPDPGenerator(BaseGenerator):
 
         # C3: Same vehicle serves pickup and delivery
         for idx in range(n_orders):
-            p_node = f"p_{idx}"
-            d_node = f"d_{idx}"
+            p_node = make_node_id("p", idx)
+            d_node = make_node_id("d", idx)
             for k in range(n_vehicles):
                 p_out = [x_vars[(p_node, j, k)] for j in out_by_nk.get((p_node, k), [])]
                 d_out = [x_vars[(d_node, j, k)] for j in out_by_nk.get((d_node, k), [])]
@@ -368,7 +401,7 @@ class MDPDPGenerator(BaseGenerator):
 
         # C5: Vehicle departs from its origin
         for k in range(n_vehicles):
-            o_node = f"o_{k}"
+            o_node = make_node_id("o", k)
             terms = [x_vars[(o_node, j, k)] for j in out_by_nk.get((o_node, k), [])]
             if terms:
                 constraints.append(
@@ -380,7 +413,7 @@ class MDPDPGenerator(BaseGenerator):
 
         # C6: Vehicle arrives at its endpoint
         for k in range(n_vehicles):
-            e_node = f"e_{k}"
+            e_node = make_node_id("e", k)
             terms = [x_vars[(i, e_node, k)] for i in in_by_nk.get((e_node, k), [])]
             if terms:
                 constraints.append(
@@ -392,8 +425,8 @@ class MDPDPGenerator(BaseGenerator):
 
         # C8: Precedence — per-arc big-M for tighter relaxation
         for idx in range(n_orders):
-            p_node = f"p_{idx}"
-            d_node = f"d_{idx}"
+            p_node = make_node_id("p", idx)
+            d_node = make_node_id("d", idx)
             t_pd = arc_time.get((p_node, d_node), 0)
             s_p = nodes[p_node].get("service_time", 0)
             # big-M for precedence: based on pickup→delivery arc
@@ -611,7 +644,7 @@ class MDPDPGenerator(BaseGenerator):
 
             # C24: Initial driving accumulators = 0 at depot
             for k in range(n_vehicles):
-                o_node = f"o_{k}"
+                o_node = make_node_id("o", k)
                 if (o_node, k) in w_vars:
                     constraints.append(
                         Constraint(
@@ -706,7 +739,7 @@ class MDPDPGenerator(BaseGenerator):
         if not (tractors and trailers and drivers):
             depot_groups: dict[str, list[int]] = defaultdict(list)
             for k in range(n_vehicles):
-                loc = nodes.get(f"o_{k}", {}).get("location", "")
+                loc = nodes.get(make_node_id("o", k), {}).get("location", "")
                 if loc:
                     depot_groups[loc].append(k)
             add_symmetry_breaking(constraints, y_vars, list(depot_groups.values()))
@@ -770,7 +803,9 @@ class MDPDPGenerator(BaseGenerator):
         insertion for each, insert the one with highest regret first.
         Uses incremental delta cost (O(1) per candidate, not O(R)).
         """
-        routes: dict[int, list[str]] = {k: [f"o_{k}", f"e_{k}"] for k in range(n_vehicles)}
+        routes: dict[int, list[str]] = {
+            k: [make_node_id("o", k), make_node_id("e", k)] for k in range(n_vehicles)
+        }
         served: set[int] = set()
         unassigned = set(range(n_orders))
 
@@ -838,8 +873,8 @@ class MDPDPGenerator(BaseGenerator):
             best_insertion: tuple[int, int, int] = (-1, -1, -1)
 
             for idx in unassigned:
-                p_node = f"p_{idx}"
-                d_node = f"d_{idx}"
+                p_node = make_node_id("p", idx)
+                d_node = make_node_id("d", idx)
                 top1: tuple[float, int, int, int] | None = None
                 top2_cost = float("inf")
 
@@ -875,9 +910,9 @@ class MDPDPGenerator(BaseGenerator):
             route = routes[k]
             routes[k] = (
                 route[:p_pos]
-                + [f"p_{best_order}"]
+                + [make_node_id("p", best_order)]
                 + route[p_pos : d_pos - 1]
-                + [f"d_{best_order}"]
+                + [make_node_id("d", best_order)]
                 + route[d_pos - 1 :]
             )
             new_dist = sum(
@@ -953,8 +988,16 @@ class MDPDPGenerator(BaseGenerator):
                 if not depot_loc:
                     depot_loc = self.sanitize_name(str(depot_id))
 
-            nodes[f"o_{k}"] = {"type": NT_ORIGIN, "location": depot_loc, "service_time": 0}
-            nodes[f"e_{k}"] = {"type": NT_ENDPOINT, "location": depot_loc, "service_time": 0}
+            nodes[make_node_id("o", k)] = {
+                "type": NT_ORIGIN,
+                "location": depot_loc,
+                "service_time": 0,
+            }
+            nodes[make_node_id("e", k)] = {
+                "type": NT_ENDPOINT,
+                "location": depot_loc,
+                "service_time": 0,
+            }
 
         for idx, order in enumerate(orders):
             pickup = order.get("pickup", {})
@@ -963,7 +1006,7 @@ class MDPDPGenerator(BaseGenerator):
             d_loc = self.sanitize_name(str(delivery.get("location", f"dloc_{idx}")))
             pallets = safe_float(pickup.get("pallets", order.get("pallets", 1)), "pallets")
 
-            nodes[f"p_{idx}"] = {
+            nodes[make_node_id("p", idx)] = {
                 "type": NT_PICKUP,
                 "location": p_loc,
                 "earliest": safe_float(pickup.get("earliest", 0), "earliest"),
@@ -971,7 +1014,7 @@ class MDPDPGenerator(BaseGenerator):
                 "service_time": safe_float(pickup.get("service_time", 0.5), "service_time"),
                 "pallets": pallets,
             }
-            nodes[f"d_{idx}"] = {
+            nodes[make_node_id("d", idx)] = {
                 "type": NT_DELIVERY,
                 "location": d_loc,
                 "earliest": safe_float(delivery.get("earliest", 0), "earliest"),
@@ -996,8 +1039,8 @@ class MDPDPGenerator(BaseGenerator):
         node_ids = list(nodes.keys())
 
         for k in range(n_vehicles):
-            o_k = f"o_{k}"
-            e_k = f"e_{k}"
+            o_k = make_node_id("o", k)
+            e_k = make_node_id("e", k)
 
             for i in node_ids:
                 i_type = nodes[i]["type"]
@@ -1021,9 +1064,11 @@ class MDPDPGenerator(BaseGenerator):
                     ):
                         continue
                     if i_type == NT_DELIVERY and j_type == NT_PICKUP:
-                        i_order = int(i.split("_")[1])
-                        j_order = int(j.split("_")[1])
-                        if i_order == j_order:
+                        # Same order's delivery -> pickup is never a legal arc.
+                        # Two unreadable ids are NOT evidence of the same order,
+                        # so an unparsed id keeps the arc rather than dropping it.
+                        i_order, j_order = node_ordinal(i), node_ordinal(j)
+                        if i_order is not None and i_order == j_order:
                             continue
 
                     loc_i = nodes[i].get("location", "")
@@ -1066,27 +1111,25 @@ class MDPDPGenerator(BaseGenerator):
         """
         infeasible: set[tuple[int, int]] = set()
         for k in range(n_vehicles):
-            depot_loc = nodes.get(f"o_{k}", {}).get("location", "")
+            depot_loc = nodes.get(make_node_id("o", k), {}).get("location", "")
             for idx in range(n_orders):
-                pickup_loc = nodes.get(f"p_{idx}", {}).get("location", "")
+                pickup_loc = nodes.get(make_node_id("p", idx), {}).get("location", "")
                 # Same location = 0 travel; unknown = inf (infeasible)
                 if depot_loc == pickup_loc:
                     travel = 0.0
                 else:
                     travel = time_map.get((depot_loc, pickup_loc), float("inf"))
-                latest = nodes.get(f"p_{idx}", {}).get("latest", 24)
+                latest = nodes.get(make_node_id("p", idx), {}).get("latest", 24)
                 if travel > latest + max_tardiness:
                     infeasible.add((k, idx))
 
         if not infeasible:
             return valid_arcs
 
-        def _order_of(node_id: str) -> int | None:
-            if node_id.startswith(("p_", "d_")):
-                parts = node_id.split("_")
-                if len(parts) >= 2 and parts[1].isdigit():
-                    return int(parts[1])
-            return None  # non-order nodes (depots, rest stops) are never filtered
+        def _order_of(nid: str) -> int | None:
+            # Only pickup/delivery ids carry an order; depots and rest stops are
+            # never filtered by order compatibility.
+            return node_ordinal(nid) if nid.startswith(("p", "d")) else None
 
         return [
             (i, j, k)

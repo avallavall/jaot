@@ -17,8 +17,18 @@ Decision tree (post-Phase-7.4):
     4. Otherwise (MIP / mixed) -> ``"scip"``
        reason="milp_routed_to_scip", fallback_triggered=False
 
-Reason slugs are stable public contract (D-13) — exposed to UI; do not
-rename without updating frontend locale strings.
+Reason slugs are stable public contract (D-13): they travel on the solve
+response, so renaming one is an API change. (The frontend does NOT translate
+them — it shows a single "auto-routed" badge whenever a reason is present — so
+the older note about updating locale strings no longer applies.)
+
+The tree names its target solvers directly, which is what keeps those slugs
+honest but also means the policy cannot read ``SolverCapabilities`` without
+either lying in the slug or growing branches that never fire. The assumptions
+underneath each branch — SCIP can do quadratics, HiGHS is always present — are
+therefore pinned as invariants in ``tests/unit/domains/solver/services/
+test_auto_router.py`` instead, so an adapter that changes what it supports
+breaks the suite rather than quietly routing work to a solver that cannot do it.
 """
 
 from __future__ import annotations

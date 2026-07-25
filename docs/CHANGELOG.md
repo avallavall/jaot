@@ -35,15 +35,27 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
   family whose edges leave it. A model with no edge-shaped family renders nothing at all
   rather than an empty frame — having no graph is a normal property of a healthy model.
 
+  Being indexed by two labels does not make a variable an edge, and the map is careful
+  about the difference. A routing model is full of counter-examples — an arrival time or a
+  load indexed by (node, vehicle) — which would otherwise be drawn as arrows pointing from
+  a node at a vehicle: the index tuple read out loud rather than a route. Only families
+  that connect nodes to nodes, or that hand off to each other along a path, are drawn, and
+  when a model contains several unrelated relations the busiest one is shown alone rather
+  than all of them overlaid.
+
 - **Routing models with underscored node names are understood at last.** Variable names
   like `x_o_0_p_1_2` — an arc from node `o_0` to node `p_1` on vehicle `2` — could not be
   read at all, because a name segment made only of letters can never be an index. Every arc
   variable of such a model was left with no family: no grouping in the solution view, no
-  family KPIs in the analysis, no map. Names the strict reading refuses now get a second,
-  wider attempt that accepts `<tag>_<ordinal>` as one index label. The order matters and is
-  deliberate: the wider reading only ever runs where there was no structure at all, so it
-  cannot reinterpret a name that already reads correctly — `x_cost_3` still belongs to
-  family `x_cost`.
+  family KPIs in the analysis, no map. Two changes fix it from both ends. The
+  pickup-and-delivery generator now names nodes `o0` / `p1` / `d2`, so its arcs read
+  correctly under the plain rules with no special handling anywhere — which also resolves
+  a name that used to parse *wrongly* (`s_p_0_1`, an arrival time, was read as family
+  `s_p`). And names the strict reading still refuses get a second, wider attempt that
+  accepts `<tag>_<ordinal>` as one index label, so models imported or solved before this
+  release are understood too. The order matters and is deliberate: the wider reading only
+  ever runs where there was no structure at all, so it cannot reinterpret a name that
+  already reads correctly — `x_cost_3` still belongs to family `x_cost`.
 
 - **The interface stops promising what your solver cannot deliver.** Every solver adapter
   has always declared what it supports — shadow prices, warm starts, quadratic terms,

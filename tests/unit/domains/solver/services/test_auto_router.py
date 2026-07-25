@@ -188,3 +188,61 @@ def test_auto_router_no_db_access():
     assert name == "highs"
     assert reason == AUTO_REASON_LP
     assert fallback is False
+
+
+# The routing policy names its solvers directly — "lp_routed_to_highs" is a
+# stable public slug, so the tree cannot be made dynamic without changing the
+# API contract for branches that never fire in practice. What CAN rot silently
+# is the assumption underneath each branch: that the solver it names is actually
+# able to do the job. These tests turn those tacit assumptions into invariants,
+# so an adapter that changes what it supports fails here instead of in
+# production.
+
+
+# Capabilities are read off the adapter CLASSES rather than the registry: the
+# registry is populated by create_app(), which a unit test does not run, and the
+# declaration is what we actually want to pin.
+
+
+# CONTRACT-TEST: branch 3 falls back to SCIP for a QUADRATIC problem. That is
+# only sound while SCIP declares it handles quadratics.
+def test_quadratic_fallback_target_actually_supports_quadratics():
+    from app.domains.solver.adapters.scip import SCIPAdapter
+
+    assert SCIPAdapter.capabilities.supports_quadratic is True, (
+        "auto_router falls back to SCIP for quadratic problems "
+        f"({AUTO_REASON_FALLBACK}); SCIP no longer declares supports_quadratic, "
+        "so that branch would now route work to a solver that cannot do it."
+    )
+
+
+# CONTRACT-TEST: branch 1 sends every LP to HiGHS unconditionally, with no
+# availability check, because HiGHS ships in the base image and is registered
+# unconditionally at startup.
+def test_lp_branch_target_is_registered_unconditionally_and_linear_capable():
+    import inspect
+
+    from app.domains.solver import adapters
+    from app.domains.solver.adapters.highs import HiGHSAdapter
+
+    assert HiGHSAdapter.capabilities.supports_continuous is True
+
+    source = inspect.getsource(adapters.register_default_adapters)
+    assert 'registry.register("highs", HiGHSAdapter())' in source, (
+        f"auto_router routes every LP to HiGHS ({AUTO_REASON_LP}) with no "
+        "availability check, on the assumption HiGHS always registers. If that "
+        "registration became conditional, the branch could route to a solver "
+        "that is not there."
+    )
+
+
+# CONTRACT-TEST: branch 2 prefers Hexaly for quadratics. The preference is a
+# product decision, but it must at least be true that Hexaly can do it.
+def test_quadratic_preference_target_declares_quadratic_support():
+    from app.domains.solver.adapters.hexaly import HexalyAdapter
+
+    # Read the class attribute: the SDK is a lazy import, so this needs neither
+    # the proprietary package nor the licence file.
+    assert HexalyAdapter.capabilities.supports_quadratic is True, (
+        f"auto_router prefers Hexaly for quadratic problems ({AUTO_REASON_QUADRATIC})."
+    )

@@ -325,10 +325,13 @@ function columnLabels(graph: SolutionGraph, layerKeys: number[]): string[] {
     counts.set(edge.family, (counts.get(edge.family) ?? 0) + 1);
     perLayer.set(layer, counts);
   }
-  return layerKeys.map((layer) => {
+  const labels = layerKeys.map((layer) => {
     const counts = perLayer.get(layer);
     if (!counts || counts.size === 0) return "";
     // Ties resolve alphabetically so the label cannot flicker between renders.
     return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0][0];
   });
+  // A single-family graph would repeat the same word over every column, which
+  // adds width and says nothing. Labels earn their place only by differing.
+  return new Set(labels.filter(Boolean)).size > 1 ? labels : labels.map(() => "");
 }

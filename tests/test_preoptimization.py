@@ -18,6 +18,7 @@ from app.domains.solver.services.generators.base import (
     build_reachable_nodes,
     compute_arc_big_m,
 )
+from app.domains.solver.services.generators.mdpdp import make_node_id
 from app.domains.solver.services.solver_service import SolverService
 from app.schemas.optimization import Constraint, SolverStatus
 
@@ -291,17 +292,23 @@ class TestPerArcBigM:
             {},
         )
 
+        # Built through the id constructor so the expected names follow the
+        # generator's naming format rather than a copy of it.
+        pickup, delivery = make_node_id("p", 0), make_node_id("d", 0)
+        arc = f"x_{pickup}_{delivery}_0"
+        constraint_name = f"c14_time_{pickup}_{delivery}_0"
+
         def _pickup_delivery_m(problem) -> float:
             """Extract the big-M coefficient from the pickup->delivery time constraint.
 
-            The constraint is c14_time_p_0_d_0_0 with shape
-              s_p_0_0 + M*x_p_0_d_0_0 + -1*s_d_0_0 <= M - 0 - 6.5
+            The constraint has shape
+              s_p0_0 + M*x_p0_d0_0 + -1*s_d0_0 <= M - 0 - 6.5
             """
             for c in problem.constraints:
-                if c.name != "c14_time_p_0_d_0_0":
+                if c.name != constraint_name:
                     continue
-                match = re.search(r"([0-9]+(?:\.[0-9]+)?)\*x_p_0_d_0_0", c.expression)
-                assert match, f"Cannot find M in c14_time_p_0_d_0_0: {c.expression}"
+                match = re.search(rf"([0-9]+(?:\.[0-9]+)?)\*{re.escape(arc)}", c.expression)
+                assert match, f"Cannot find M in {constraint_name}: {c.expression}"
                 return float(match.group(1))
             raise AssertionError("Pickup->delivery time constraint not found")
 

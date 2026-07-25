@@ -67,7 +67,9 @@ Under the results, **Explain this to me** has the assistant read the scenarios b
 
 When your solution describes a graph, the Visualization tab draws it instead of leaving you to read it.
 
-Any variable family indexed by two or more labels *is* an edge list: arcs in a pickup-and-delivery model, worker-to-task in an assignment, item-to-bin in packing. The map shows a node per label, an arrow per chosen variable, and a colour per vehicle or resource — click a colour in the legend to isolate it. The heading gives the honest ratio, `9 of 36 possible connections are used`, which also tells you how sparse the model was. Hovering an arrow names the variable and its value.
+A variable family indexed by two or more labels can be an edge list: arcs in a pickup-and-delivery model, worker-to-task in an assignment, item-to-bin in packing. The map shows a node per label, an arrow per chosen variable, and a colour per vehicle or resource — click a colour in the legend to isolate it. The heading gives the honest ratio, `9 of 36 possible connections are used`, which also tells you how sparse the model was. Hovering an arrow names the variable and its value.
+
+Being indexed by two labels is not enough on its own, and the map is deliberate about it. A routing model also contains arrival times and loads indexed by (node, vehicle); drawing those would produce arrows pointing from a node at a vehicle — your index tuple read out loud, not a route. Only families that connect nodes to nodes, or that hand off to one another along a path, are drawn. If your model contains several unrelated relations, the busiest one is shown on its own rather than all of them on top of each other.
 
 **The layout is not geographic, and the view says so.** Optimization models hold distances, not coordinates, so positions on a real map would be invented. Nodes are placed by their position in the flow — a fact the arrows themselves contain — and each column is labelled with the variable family whose arrows leave it, so a three-layer routing model reads as `xsc → xcd → xde` rather than as anonymous columns.
 
