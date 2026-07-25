@@ -831,4 +831,9 @@ def _scenario_job_response(job: dict[str, Any]) -> ScenarioAnalysisJob:
         error=job.get("error"),
         requested_at=job.get("requested_at"),
         completed_at=job.get("completed_at"),
+        # The cached explanation MUST ride along: this read is what the page does
+        # on load, and without it a reload would show no explanation and offer to
+        # bill another one for text we already have.
+        explanation=job.get("explanation"),
+        explained_at=job.get("explained_at"),
     )

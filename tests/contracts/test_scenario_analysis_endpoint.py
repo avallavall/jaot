@@ -160,6 +160,34 @@ def test_a_batch_that_died_with_its_worker_can_be_requeued(
     assert len(captured_dispatch) == 1
 
 
+# CONTRACT-TEST: the page loads through THIS read, so a cached explanation must
+# come back with it. Without that the UI shows no explanation after a reload and
+# offers to bill another model call for text already paid for.
+def test_the_read_carries_the_cached_explanation(
+    authenticated_client: TestClient,
+    db_session: Session,
+    test_organization: Organization,
+):
+    execution = _seed_execution(db_session, test_organization.id)
+    execution.scenario_analysis = {
+        "status": scenario_job.STATUS_COMPLETED,
+        "requested_at": utcnow().isoformat(),
+        "completed_at": utcnow().isoformat(),
+        "error": None,
+        "result": {"computed": True, "base_objective": 24.0, "resolves_used": 3},
+        "explanation": "Capacity on machine 3 is your real limit.",
+        "explained_at": utcnow().isoformat(),
+    }
+    db_session.commit()
+
+    res = authenticated_client.get(f"/api/v2/models/executions/{execution.id}/scenario-analysis")
+
+    assert res.status_code == 200
+    body = res.json()
+    assert body["explanation"] == "Capacity on machine 3 is your real limit."
+    assert body["explained_at"]
+
+
 def test_reading_before_any_request_reports_absent(
     authenticated_client: TestClient,
     db_session: Session,
