@@ -1,7 +1,7 @@
 """MCP server integration tests.
 
 Validates:
-- AI-01: MCP server mounted at /mcp with 26 curated tools
+- AI-01: MCP server mounted at /mcp with the curated tool list
 - AI-02: Tools cover solve path and marketplace path
 - AI-03: Auth passthrough (public vs protected endpoints)
 - AI-04: llms.txt served at /.well-known/llms.txt
@@ -14,11 +14,14 @@ schema, and test auth on the underlying REST endpoints that MCP proxies.
 """
 
 import inspect
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 EXPECTED_OPERATIONS = [
     # Solve
@@ -98,7 +101,7 @@ def test_mcp_route_exists(mcp_app):
     assert len(mcp_routes) > 0, "No /mcp routes found in app"
 
 
-# ---- AI-01: Exactly 26 tools exposed ----
+# ---- AI-01: exactly the curated tool list is exposed ----
 
 
 def test_mcp_tool_count(openapi_schema):
@@ -126,6 +129,32 @@ def test_mcp_required_tools_present(openapi_schema):
 
     for op_id in EXPECTED_OPERATIONS:
         assert op_id in all_op_ids, f"operation_id '{op_id}' missing from OpenAPI schema"
+
+
+# CONTRACT-TEST: the tool list is published in more than one place, and a stale
+# copy misleads exactly the audience that cannot check — an agent reading the
+# discovery document. The static frontend/public/llms.txt silently kept
+# advertising 26 tools after four landed (caught 2026-07-25), while the
+# backend-served copy and the public docs had moved on. Pin the static one here.
+def test_static_llms_txt_lists_every_mcp_tool():
+    static_llms = _REPO_ROOT / "frontend" / "public" / "llms.txt"
+    if not static_llms.exists():
+        pytest.skip(f"static llms.txt not mounted at {static_llms}")
+
+    content = static_llms.read_text(encoding="utf-8")
+    tool_lines = [ln for ln in content.splitlines() if ln.startswith("- Tools:")]
+    assert len(tool_lines) == 1, "expected exactly one '- Tools:' line in llms.txt"
+    listed = {t.strip() for t in tool_lines[0].removeprefix("- Tools:").split(",")}
+
+    assert listed == set(EXPECTED_OPERATIONS), (
+        "llms.txt tool list drifted from app/mcp include_operations — "
+        f"missing: {sorted(set(EXPECTED_OPERATIONS) - listed)}, "
+        f"stale: {sorted(listed - set(EXPECTED_OPERATIONS))}"
+    )
+    # The prose count next to the link must agree with the list it introduces.
+    assert f"({len(EXPECTED_OPERATIONS)} tools)" in content, (
+        f"llms.txt does not advertise {len(EXPECTED_OPERATIONS)} tools"
+    )
 
 
 # ---- AI-01: No admin/billing/GDPR leak ----
