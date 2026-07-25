@@ -63,7 +63,7 @@ async def explain_solution(
         formulation: The model formulation dict (variables/constraints/objective).
         solution: Variable values + objective for the solved model.
         sensitivity: Sensitivity analysis dict (constraints/variables/ranges) or None.
-        model: Model ID to use (e.g. "claude-sonnet-4-6").
+        model: Model ID to use (e.g. "claude-sonnet-5").
         thinking: Whether to enable extended thinking.
         rag_context: Optional pre-formatted optimization-knowledge block appended
             to the system prompt.
@@ -126,7 +126,7 @@ async def explain_infeasibility(
         formulation: The model formulation dict (variables/constraints/objective).
         infeasibility: The IIS analysis dict (iis_constraints / iis_variable_bounds /
             conflict_type / method / note) or None for heuristic-only reasoning.
-        model: Model ID to use (e.g. "claude-sonnet-4-6").
+        model: Model ID to use (e.g. "claude-sonnet-5").
         thinking: Whether to enable extended thinking.
         rag_context: Optional pre-formatted optimization-knowledge block appended
             to the system prompt.
@@ -177,7 +177,7 @@ async def explain_model(
         messages: Prior conversation turns (Anthropic message dicts); may be empty.
         formulation: The model formulation dict (variables/constraints/objective).
         stats: The serialized ``ModelStats`` (counts, problem class, health, warnings).
-        model: Model ID to use (e.g. "claude-sonnet-4-6").
+        model: Model ID to use (e.g. "claude-sonnet-5").
         thinking: Whether to enable extended thinking.
         rag_context: Optional pre-formatted optimization-knowledge block.
         db: Optional DB session for runtime settings.

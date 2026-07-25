@@ -184,7 +184,7 @@ class TestFormulationGeneration:
             events = []
             async for event in generate_formulation(
                 [{"role": "user", "content": "Minimize shipping costs"}],
-                "claude-sonnet-4-6",
+                "claude-sonnet-5",
             ):
                 events.append(event)
 
@@ -221,7 +221,7 @@ class TestFormulationGeneration:
             events = []
             async for event in generate_formulation(
                 [{"role": "user", "content": "test"}],
-                "claude-opus-4-6",
+                "claude-opus-5",
                 thinking=True,
             ):
                 events.append(event)

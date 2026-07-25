@@ -157,7 +157,7 @@ class TestExplainSolution:
 
             events = []
             async for event in explain_solution(
-                [], FORMULATION, SOLUTION, SENSITIVITY, "claude-sonnet-4-6"
+                [], FORMULATION, SOLUTION, SENSITIVITY, "claude-sonnet-5"
             ):
                 events.append(event)
 
@@ -190,7 +190,7 @@ class TestExplainSolution:
             from app.services.llm.explanation_service import explain_solution
 
             async for _ in explain_solution(
-                [], FORMULATION, SOLUTION, SENSITIVITY, "claude-sonnet-4-6"
+                [], FORMULATION, SOLUTION, SENSITIVITY, "claude-sonnet-5"
             ):
                 pass
 
@@ -220,9 +220,7 @@ class TestExplainSolution:
         ):
             from app.services.llm.explanation_service import explain_solution
 
-            async for _ in explain_solution(
-                prior, FORMULATION, SOLUTION, None, "claude-sonnet-4-6"
-            ):
+            async for _ in explain_solution(prior, FORMULATION, SOLUTION, None, "claude-sonnet-5"):
                 pass
 
         assert captured["messages"][0] == prior[0]

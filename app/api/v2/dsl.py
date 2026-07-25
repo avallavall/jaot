@@ -330,7 +330,7 @@ async def dsl_generate(
         ) from None
 
     # Default model (Sonnet-tier): fast + cheap, and the compile-retry loop backstops
-    # correctness, so extended thinking is unnecessary for a compact DSL.
+    # correctness, so reasoning is unnecessary for a compact DSL.
     model, _ = select_model(use_advanced=False, db=db)
     max_tokens = PSS.get_int(db, "LLM_MAX_TOKENS")
 

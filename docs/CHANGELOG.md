@@ -41,6 +41,30 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
   no dates), linked from the README. The frozen JModel grammar spec also now ships with
   the repo as `docs/JMODEL_GRAMMAR.md`.
 
+### Changed
+
+- **The AI assistant now runs on Claude Sonnet 5 / Opus 5** (from Sonnet 4.6 / Opus 4.6),
+  at the same list price per token. Reasoning moved from manual extended thinking to
+  **adaptive thinking** with an `effort` hint, because the fixed-token-budget form
+  (`budget_tokens`) is rejected outright by every model of this generation. The advanced
+  path thinks adaptively at the new `LLM_THINKING_EFFORT` setting (`low`…`max`, default
+  `high`); an unrecognised value degrades to `high` instead of failing the request.
+  The pricing map used by the monthly EUR guardrail gained explicit Sonnet 5, Opus 5 and
+  Fable 5 entries — without them these models would have priced at the generic fallback,
+  which under-counts Fable 5 by roughly half.
+  A data-only migration moves existing installs, but only where the setting still holds
+  the previous default, so a deliberately pinned model is left alone.
+- **Non-reasoning requests now disable thinking explicitly** rather than by omission.
+  From Sonnet 5 onwards an absent `thinking` parameter means *think anyway*, and since
+  `max_tokens` caps reasoning and answer together, the quick paths (standard chat
+  formulation, chunked fallback, JModel generation) would have spent their output budget
+  on reasoning and truncated the JSON.
+
+### Deprecated
+
+- **`LLM_THINKING_BUDGET_TOKENS`** — no longer read by any code path; superseded by
+  `LLM_THINKING_EFFORT`. The setting row stays for one release before removal.
+
 ### Fixed
 
 - **A page reload no longer disarms the JModel stale lock** (the drift-on-reload

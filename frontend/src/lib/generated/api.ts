@@ -4776,7 +4776,7 @@ export interface components {
             response_type: string;
             /**
              * Use Advanced Model
-             * @description Use Claude Opus with extended thinking for complex problems
+             * @description Use the advanced model with adaptive thinking for complex problems
              * @default false
              */
             use_advanced_model: boolean;
@@ -5845,7 +5845,7 @@ export interface components {
             } | null;
             /**
              * Use Advanced Model
-             * @description Use Claude Opus with extended thinking for the explanation
+             * @description Use the advanced model with adaptive thinking for the explanation
              * @default false
              */
             use_advanced_model: boolean;
@@ -5881,7 +5881,7 @@ export interface components {
             } | null;
             /**
              * Use Advanced Model
-             * @description Use Claude Opus with extended thinking for the explanation
+             * @description Use the advanced model with adaptive thinking for the explanation
              * @default false
              */
             use_advanced_model: boolean;
@@ -5929,7 +5929,7 @@ export interface components {
             } | null;
             /**
              * Use Advanced Model
-             * @description Use Claude Opus with extended thinking for the explanation
+             * @description Use the advanced model with adaptive thinking for the explanation
              * @default false
              */
             use_advanced_model: boolean;
@@ -5960,7 +5960,7 @@ export interface components {
             to_version_id: string;
             /**
              * Use Advanced Model
-             * @description Use Claude Opus with extended thinking for the explanation
+             * @description Use the advanced model with adaptive thinking for the explanation
              * @default false
              */
             use_advanced_model: boolean;

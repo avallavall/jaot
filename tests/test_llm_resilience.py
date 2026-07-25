@@ -264,7 +264,7 @@ class TestTruncationDetection:
 
             events = []
             async for event in generate_formulation(
-                [{"role": "user", "content": "test"}], "claude-sonnet-4-6"
+                [{"role": "user", "content": "test"}], "claude-sonnet-5"
             ):
                 events.append(event)
 
@@ -286,7 +286,7 @@ class TestTruncationDetection:
 
             events = []
             async for event in generate_formulation(
-                [{"role": "user", "content": "test"}], "claude-sonnet-4-6"
+                [{"role": "user", "content": "test"}], "claude-sonnet-5"
             ):
                 events.append(event)
 
@@ -314,7 +314,7 @@ class TestAutoRetry:
             events = []
             async for event in generate_formulation_resilient(
                 [{"role": "user", "content": "test"}],
-                "claude-sonnet-4-6",
+                "claude-sonnet-5",
                 user_message="minimize cost of 5 items",
             ):
                 events.append(event)
@@ -351,7 +351,7 @@ class TestAutoRetry:
             events = []
             async for event in generate_formulation_resilient(
                 [{"role": "user", "content": "test"}],
-                "claude-sonnet-4-6",
+                "claude-sonnet-5",
                 user_message="schedule 50 employees",
             ):
                 events.append(event)
@@ -434,7 +434,7 @@ class TestAutoRetry:
             events = []
             async for event in generate_formulation_resilient(
                 [{"role": "user", "content": "test"}],
-                "claude-sonnet-4-6",
+                "claude-sonnet-5",
                 user_message="schedule 200 employees",
                 db=db_session,
             ):
@@ -558,7 +558,7 @@ class TestChunkedGeneration:
         ):
             events = []
             async for event in generate_formulation_chunked(
-                [{"role": "user", "content": "test"}], "claude-sonnet-4-6"
+                [{"role": "user", "content": "test"}], "claude-sonnet-5"
             ):
                 events.append(event)
 
@@ -617,7 +617,7 @@ class TestChunkedGeneration:
         ):
             events = []
             async for event in generate_formulation_chunked(
-                [{"role": "user", "content": "test"}], "claude-sonnet-4-6"
+                [{"role": "user", "content": "test"}], "claude-sonnet-5"
             ):
                 events.append(event)
 
@@ -699,7 +699,7 @@ class TestGracefulDegradation:
             events = []
             async for event in generate_formulation_resilient(
                 [{"role": "user", "content": "test"}],
-                "claude-sonnet-4-6",
+                "claude-sonnet-5",
                 user_message="optimize 200 stocks",
             ):
                 events.append(event)

@@ -152,7 +152,7 @@ class TestCostComputation:
     """Cost derives from the LLM_MODEL_PRICING_EUR_PER_MTOK map."""
 
     def test_known_model_uses_its_rates(self, db_session):
-        cost = compute_message_cost_eur(db_session, "claude-sonnet-4-6", 1_000_000, 1_000_000)
+        cost = compute_message_cost_eur(db_session, "claude-sonnet-5", 1_000_000, 1_000_000)
         assert cost == pytest.approx(SONNET_IN_RATE + SONNET_OUT_RATE, abs=1e-6)
 
     def test_unknown_model_falls_back_to_default_entry(self, db_session):
@@ -164,11 +164,20 @@ class TestCostComputation:
     def test_unparseable_pricing_setting_uses_hard_fallback(self, db_session):
         PSS.set(db_session, "LLM_MODEL_PRICING_EUR_PER_MTOK", "{not json")
         db_session.commit()
-        cost = compute_message_cost_eur(db_session, "claude-sonnet-4-6", 1_000_000, 0)
+        cost = compute_message_cost_eur(db_session, "claude-sonnet-5", 1_000_000, 0)
         assert cost == pytest.approx(4.63, abs=1e-6)  # hard fallback (Opus input)
 
     def test_zero_tokens_cost_zero(self, db_session):
-        assert compute_message_cost_eur(db_session, "claude-sonnet-4-6", 0, 0) == 0.0
+        assert compute_message_cost_eur(db_session, "claude-sonnet-5", 0, 0) == 0.0
+
+    # CONTRACT-TEST: the models we actually ship must be priced explicitly. Falling
+    # through to the "default" entry silently misprices them — for a model above
+    # Opus rates it under-counts spend, and the monthly EUR guardrail overshoots.
+    def test_configured_models_are_priced_explicitly(self, db_session):
+        prices = json.loads(PSS.get_str(db_session, "LLM_MODEL_PRICING_EUR_PER_MTOK"))
+        for key in ("LLM_DEFAULT_MODEL", "LLM_ADVANCED_MODEL"):
+            model = PSS.get_str(db_session, key)
+            assert model in prices, f"{key}={model} has no entry in the pricing map"
 
 
 class TestUsageCaptureFromStream:
@@ -186,13 +195,13 @@ class TestUsageCaptureFromStream:
             events = []
             async for event in generate_formulation(
                 [{"role": "user", "content": "Minimize x"}],
-                "claude-sonnet-4-6",
+                "claude-sonnet-5",
             ):
                 events.append(event)
 
         usage_events = [e for e in events if e["type"] == "usage"]
         assert len(usage_events) == 1
-        assert usage_events[0]["model"] == "claude-sonnet-4-6"
+        assert usage_events[0]["model"] == "claude-sonnet-5"
         assert usage_events[0]["input_tokens"] == INPUT_TOKENS
         assert usage_events[0]["output_tokens"] == OUTPUT_TOKENS
         # Usage must arrive before done so the endpoint can persist it.
@@ -214,7 +223,7 @@ class TestUsageCaptureFromStream:
             events = []
             async for event in generate_text_response(
                 [{"role": "user", "content": "Why infeasible?"}],
-                "claude-sonnet-4-6",
+                "claude-sonnet-5",
             ):
                 events.append(event)
 

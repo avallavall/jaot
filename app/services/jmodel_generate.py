@@ -34,6 +34,7 @@ from app.services.llm.prompt_templates import (
     JMODEL_GENERATION_RETRY_TEMPLATE,
     JMODEL_GENERATION_SYSTEM_PROMPT,
 )
+from app.services.llm.thinking import apply_thinking
 
 logger = logging.getLogger(__name__)
 
@@ -200,12 +201,16 @@ async def generate_jmodel(
 
     while attempt < max_attempts:
         attempt += 1
-        response = await client.messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            system=JMODEL_GENERATION_SYSTEM_PROMPT,
-            messages=messages,
-        )
+        request_kwargs: dict[str, Any] = {
+            "model": model,
+            "max_tokens": max_tokens,
+            "system": JMODEL_GENERATION_SYSTEM_PROMPT,
+            "messages": messages,
+        }
+        # The compile-retry loop is the oracle here, so reasoning buys nothing —
+        # and left unset it would eat the (deliberately small) output budget.
+        apply_thinking(request_kwargs, thinking=False)
+        response = await client.messages.create(**request_kwargs)
         usage = getattr(response, "usage", None)
         total_in += int(getattr(usage, "input_tokens", 0) or 0)
         total_out += int(getattr(usage, "output_tokens", 0) or 0)

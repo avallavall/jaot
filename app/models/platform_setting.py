@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, String
+from sqlalchemy import DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.shared.db.base import Base
@@ -19,8 +19,11 @@ class PlatformSetting(Base):
     __tablename__ = "platform_settings"
 
     key: Mapped[str] = mapped_column(String(100), primary_key=True)
-    value: Mapped[str] = mapped_column(String(500), nullable=False)
-    description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Text, not String(500): JSON-typed settings (the per-model LLM pricing map)
+    # outgrew it, and a 500-char ceiling silently turns "add one more entry" into
+    # a failed seed on fresh installs.
+    value: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False
     )

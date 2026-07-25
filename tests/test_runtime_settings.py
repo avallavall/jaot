@@ -499,3 +499,34 @@ class TestFallbackChain:
         val = PSS.get_int(db_session, "LLM_RATE_LIMIT_PER_MINUTE")
         assert val > 0
         assert val != 99
+
+
+class TestRegistrySeedability:
+    """Every registry entry must survive the seed path that ships it."""
+
+    # The 20260327 seed migration inserts SETTINGS_REGISTRY verbatim, and it runs
+    # on a fresh install long before any later migration widens the column. So even
+    # though platform_settings.value/description are TEXT today, a registry entry
+    # over 500 characters still crashes `alembic upgrade head` on a NEW install
+    # while working fine on every existing one — the worst kind of asymmetry. This
+    # already bit once: adding three models to the pricing map pushed its
+    # description to 511 chars.
+    SEED_COLUMN_LIMIT = 500
+
+    # CONTRACT-TEST: registry defaults must fit the column width in force at seed time.
+    def test_registry_entries_fit_the_seed_column(self):
+        from app.services.settings_registry import SETTINGS_REGISTRY
+
+        too_long = [
+            f"{d.key}.{field} is {len(value)} chars"
+            for d in SETTINGS_REGISTRY
+            for field, value in (
+                ("default_value", d.default_value),
+                ("description", d.description),
+            )
+            if value is not None and len(value) > self.SEED_COLUMN_LIMIT
+        ]
+        assert not too_long, (
+            "registry entries exceed the seed migration's column width "
+            f"({self.SEED_COLUMN_LIMIT}): {too_long}"
+        )

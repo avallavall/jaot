@@ -22,6 +22,7 @@ from app.schemas.llm import (
 from app.services.llm.anthropic_client import get_anthropic_client
 from app.services.llm.errors import LLMStatusCode
 from app.services.llm.prompt_templates import FORMULATION_SYSTEM_PROMPT
+from app.services.llm.thinking import apply_thinking
 from app.services.llm.validation import validate_formulation
 
 logger = logging.getLogger(__name__)
@@ -85,8 +86,7 @@ async def _generate_chunk(
         "output_config": {"format": {"type": "json_schema", "schema": schema}},
     }
 
-    if thinking:
-        kwargs["thinking"] = {"type": "enabled", "budget_tokens": 2048}
+    apply_thinking(kwargs, thinking=thinking, db=db)
 
     usage: dict[str, int] | None = None
     try:

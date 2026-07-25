@@ -267,7 +267,7 @@ class TestExplainInfeasibility:
             from app.services.llm.explanation_service import explain_infeasibility
 
             events = []
-            async for event in explain_infeasibility([], FORMULATION, IIS, "claude-sonnet-4-6"):
+            async for event in explain_infeasibility([], FORMULATION, IIS, "claude-sonnet-5"):
                 events.append(event)
 
         assert events[0]["type"] == "status"
@@ -293,7 +293,7 @@ class TestExplainInfeasibility:
         ):
             from app.services.llm.explanation_service import explain_infeasibility
 
-            async for _ in explain_infeasibility([], FORMULATION, IIS, "claude-sonnet-4-6"):
+            async for _ in explain_infeasibility([], FORMULATION, IIS, "claude-sonnet-5"):
                 pass
 
         assert captured["system"] == INFEASIBILITY_EXPLANATION_SYSTEM_PROMPT

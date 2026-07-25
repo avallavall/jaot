@@ -301,7 +301,7 @@ class TestNoLeakageOnAnthropicFailure:
         ):
             events = []
             async for event in generate_formulation(
-                [{"role": "user", "content": "test"}], "claude-sonnet-4-6"
+                [{"role": "user", "content": "test"}], "claude-sonnet-5"
             ):
                 events.append(event)
 
@@ -336,7 +336,7 @@ class TestNoLeakageOnAnthropicFailure:
         ):
             events = []
             async for event in generate_formulation(
-                [{"role": "user", "content": "test"}], "claude-sonnet-4-6"
+                [{"role": "user", "content": "test"}], "claude-sonnet-5"
             ):
                 events.append(event)
 
@@ -368,7 +368,7 @@ class TestNoLeakageOnAnthropicFailure:
         ):
             events = []
             async for event in generate_formulation(
-                [{"role": "user", "content": "test"}], "claude-sonnet-4-6"
+                [{"role": "user", "content": "test"}], "claude-sonnet-5"
             ):
                 events.append(event)
 
@@ -448,7 +448,7 @@ class TestNoLeakageOnAnthropicFailure:
             events = []
             async for event in generate_formulation_resilient(
                 [{"role": "user", "content": "test"}],
-                "claude-sonnet-4-6",
+                "claude-sonnet-5",
                 user_message="minimize x",
             ):
                 events.append(event)

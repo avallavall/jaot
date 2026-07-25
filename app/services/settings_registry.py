@@ -242,18 +242,26 @@ SETTINGS_REGISTRY.extend(
         SettingDefinition(
             key="LLM_DEFAULT_MODEL",
             label="Default Model",
-            description="Default LLM model for standard requests",
+            description=(
+                "Default LLM model for standard requests. Runs with thinking "
+                "explicitly disabled — models from Sonnet 5 onwards think by "
+                "default when the parameter is omitted, which would spend the "
+                "output budget on reasoning instead of the answer."
+            ),
             category=SettingCategory.LLM,
             setting_type=SettingType.STRING,
-            default_value="claude-sonnet-4-6",
+            default_value="claude-sonnet-5",
         ),
         SettingDefinition(
             key="LLM_ADVANCED_MODEL",
             label="Advanced Model",
-            description="LLM model for advanced/complex requests",
+            description=(
+                "LLM model for advanced/complex requests. Runs with adaptive "
+                "thinking at LLM_THINKING_EFFORT."
+            ),
             category=SettingCategory.LLM,
             setting_type=SettingType.STRING,
-            default_value="claude-opus-4-6",
+            default_value="claude-opus-5",
         ),
         SettingDefinition(
             key="LLM_MAX_TOKENS",
@@ -342,16 +350,19 @@ SETTINGS_REGISTRY.extend(
             description=(
                 'JSON map of Anthropic model id -> {"input": eur, "output": '
                 "eur} per million tokens, used to compute llm_messages.cost_eur "
-                "from the real token usage returned by the API (W17). The "
-                '"default" entry prices unknown/future models and is kept at '
-                "Opus rates so surprises over-estimate cost rather than "
-                "under-estimate it. Defaults are Anthropic USD list prices "
-                "converted at ~1.08 USD/EUR."
+                'from the real token usage returned by the API (W17). The "default" '
+                "entry prices unknown/future models at Opus rates, so surprises "
+                "over-estimate rather than under-estimate. Values are Anthropic USD "
+                "list prices at ~1.08 USD/EUR; Sonnet 5 is priced at its list rate, "
+                "not the lower introductory one."
             ),
             category=SettingCategory.LLM,
             setting_type=SettingType.JSON,
             default_value=(
-                '{"claude-sonnet-4-6": {"input": 2.78, "output": 13.89}, '
+                '{"claude-sonnet-5": {"input": 2.78, "output": 13.89}, '
+                '"claude-opus-5": {"input": 4.63, "output": 23.15}, '
+                '"claude-fable-5": {"input": 9.26, "output": 46.30}, '
+                '"claude-sonnet-4-6": {"input": 2.78, "output": 13.89}, '
                 '"claude-opus-4-6": {"input": 4.63, "output": 23.15}, '
                 '"claude-opus-4-7": {"input": 4.63, "output": 23.15}, '
                 '"claude-opus-4-8": {"input": 4.63, "output": 23.15}, '
@@ -1091,14 +1102,38 @@ SETTINGS_REGISTRY.extend(
 SETTINGS_REGISTRY.append(
     SettingDefinition(
         key="LLM_THINKING_BUDGET_TOKENS",
-        label="Thinking Budget Tokens",
-        description=("Token budget for extended thinking mode (advanced model)"),
+        label="Thinking Budget Tokens (deprecated)",
+        description=(
+            "DEPRECATED and unused. Manual extended thinking "
+            '({"type": "enabled", "budget_tokens": N}) is rejected with a 400 '
+            "by every model from Opus 4.7 / Sonnet 5 onwards. The advanced "
+            "model now uses adaptive thinking; control its depth with "
+            "LLM_THINKING_EFFORT. Kept only because settings rows are removed "
+            "one release after the code that reads them."
+        ),
         category=SettingCategory.LLM,
         setting_type=SettingType.INT,
         default_value="2048",
         min_value=0,
         max_value=100000,
         unit="tokens",
+    ),
+)
+
+SETTINGS_REGISTRY.append(
+    SettingDefinition(
+        key="LLM_THINKING_EFFORT",
+        label="Thinking Effort",
+        description=(
+            "Reasoning depth for the advanced model's adaptive thinking, and "
+            "the replacement for LLM_THINKING_BUDGET_TOKENS. One of: low, "
+            "medium, high, xhigh, max — higher means deeper reasoning at more "
+            "tokens and latency. An unrecognised value falls back to 'high' "
+            "(the API default) rather than failing the request."
+        ),
+        category=SettingCategory.LLM,
+        setting_type=SettingType.STRING,
+        default_value="high",
     ),
 )
 

@@ -126,7 +126,7 @@ class ChatMessageRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=10000)
     use_advanced_model: bool = Field(
         default=False,
-        description="Use Claude Opus with extended thinking for complex problems",
+        description="Use the advanced model with adaptive thinking for complex problems",
     )
     response_type: str = Field(
         default="formulation",
@@ -158,7 +158,7 @@ class ExplainSolutionRequest(BaseModel):
     )
     use_advanced_model: bool = Field(
         default=False,
-        description="Use Claude Opus with extended thinking for the explanation",
+        description="Use the advanced model with adaptive thinking for the explanation",
     )
 
 
@@ -184,7 +184,7 @@ class ExplainInfeasibilityRequest(BaseModel):
     )
     use_advanced_model: bool = Field(
         default=False,
-        description="Use Claude Opus with extended thinking for the explanation",
+        description="Use the advanced model with adaptive thinking for the explanation",
     )
 
 
@@ -211,7 +211,7 @@ class ExplainModelRequest(BaseModel):
     )
     use_advanced_model: bool = Field(
         default=False,
-        description="Use Claude Opus with extended thinking for the explanation",
+        description="Use the advanced model with adaptive thinking for the explanation",
     )
 
 
@@ -228,7 +228,7 @@ class ExplainVersionDiffRequest(BaseModel):
     to_version_id: str = Field(..., description="The later (target) version id")
     use_advanced_model: bool = Field(
         default=False,
-        description="Use Claude Opus with extended thinking for the explanation",
+        description="Use the advanced model with adaptive thinking for the explanation",
     )
 
 

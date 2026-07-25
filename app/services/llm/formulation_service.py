@@ -20,6 +20,7 @@ from app.services.llm.errors import (
     handle_anthropic_failure,
 )
 from app.services.llm.prompt_templates import FORMULATION_SYSTEM_PROMPT
+from app.services.llm.thinking import apply_thinking
 from app.services.llm.token_estimation import (
     estimate_output_tokens,
     is_json_incomplete,
@@ -102,8 +103,8 @@ async def generate_formulation(
 
     Args:
         messages: Anthropic API messages list (from build_messages).
-        model: Model ID to use (e.g. "claude-sonnet-4-6").
-        thinking: Whether to enable extended thinking (for Opus).
+        model: Model ID to use (e.g. "claude-sonnet-5").
+        thinking: Whether to enable adaptive thinking (advanced model).
         max_tokens: Override max output tokens (default: LLM_MAX_TOKENS).
         db: Optional DB session for runtime settings.
 
@@ -130,13 +131,8 @@ async def generate_formulation(
         },
     }
 
-    # Extended thinking for advanced model
-    if thinking:
-        thinking_budget = _pss_int(db, "LLM_THINKING_BUDGET_TOKENS")
-        kwargs["thinking"] = {
-            "type": "enabled",
-            "budget_tokens": thinking_budget,
-        }
+    # Adaptive thinking for the advanced model; explicitly off otherwise.
+    apply_thinking(kwargs, thinking=thinking, db=db)
 
     accumulated_text = ""
     stop_reason = None
@@ -400,12 +396,7 @@ async def generate_text_response(
         "messages": messages,
     }
 
-    if thinking:
-        thinking_budget = _pss_int(db, "LLM_THINKING_BUDGET_TOKENS")
-        kwargs["thinking"] = {
-            "type": "enabled",
-            "budget_tokens": thinking_budget,
-        }
+    apply_thinking(kwargs, thinking=thinking, db=db)
 
     usage_input_tokens = 0
     usage_output_tokens = 0
