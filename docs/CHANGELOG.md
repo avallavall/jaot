@@ -19,6 +19,25 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Added
 
+- **What-if analysis by real re-solves** (Sensitivity level 2). The analysis panel can
+  now answer the question the exact analysis structurally cannot: *what would one more
+  unit actually buy me?* On demand, the platform perturbs the solved model and solves it
+  again — **RHS ranging** on the top binding constraints (loosen and tighten each by δ,
+  measure the real objective change, read as a tornado chart normalised per unit) and
+  **decision regret** (force a binary decision to its opposite value and re-solve, pricing
+  what it costs to overrule the model; an impossible overrule comes back as infeasible,
+  which is itself an answer). Unlike LP-relaxation shadow prices — duals of an easier
+  problem, near-uniform under degeneracy — every number here is measured on the real MIP.
+  Runs on the solver queue, never in the request, bounded by both a per-scenario time
+  limit and a batch budget (defaults: 20 re-solves, 8 ranged constraints, 4 decisions,
+  `min(2× the original solve, 30s)` per scenario, 5 minutes per batch — all configurable
+  in the admin panel). Relaxations are solved before tightenings, so a batch cut short by
+  the budget still spent it on the informative half; scenarios that never ran come back
+  labelled and the result is flagged partial rather than padded, and a scenario stopped at
+  its time limit is reported as a bound, not as an exact value. Requesting the batch twice
+  joins the one in flight instead of starting a second, and the result is cached on the
+  execution. The budget bounds the ANALYSIS only — solve time limits are untouched.
+
 - **"Derive draft" recovers composite alphanumeric indices** (`xsc_s1_c1_k1` —
   MDPDP-style supplier/customer/vehicle labels). The flat-name parse now accepts
   letters-then-digits index segments alongside numeric ones, taking the maximal

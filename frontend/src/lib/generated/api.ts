@@ -2083,6 +2083,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/models/executions/{execution_id}/scenario-analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Execution Scenario Analysis
+         * @description Read the cached what-if batch of an execution (Sensitivity L2).
+         */
+        get: operations["get_execution_scenario_analysis"];
+        put?: never;
+        /**
+         * Start Execution Scenario Analysis
+         * @description Queue the what-if batch for a completed execution (Sensitivity L2).
+         *
+         *     Each scenario is a full re-solve, so the batch runs on the solver queue
+         *     under a wall-clock budget, never in this request. Requesting it twice does
+         *     NOT start two batches: the row is locked, and a batch already in flight is
+         *     returned as-is. A finished batch is served from the cache.
+         */
+        post: operations["start_execution_scenario_analysis"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/models/executions/all": {
         parameters: {
             query?: never;
@@ -5271,6 +5300,33 @@ export interface components {
             name?: string | null;
         };
         /**
+         * DecisionScenario
+         * @description One regret re-solve: force a binary decision to its opposite value.
+         *
+         *     Answers "what does it cost to overrule the model here?" — the user wants to
+         *     open the plant the solver closed. ``regret`` is normalised to the problem's
+         *     sense so it is always "how much worse this makes the objective" (≥ 0 when
+         *     the base solution was optimal); an INFEASIBLE scenario means the overrule is
+         *     not merely expensive but impossible.
+         */
+        DecisionScenario: {
+            /** Family */
+            family?: string | null;
+            /** Forced Value */
+            forced_value: number;
+            /** Objective Value */
+            objective_value?: number | null;
+            /** Original Value */
+            original_value: number;
+            /** Regret */
+            regret?: number | null;
+            /** Solve Time Seconds */
+            solve_time_seconds?: number | null;
+            status: components["schemas"]["ScenarioStatus"];
+            /** Variable */
+            variable: string;
+        };
+        /**
          * DetailedStatusResponse
          * @description Detailed health status for SLA monitoring.
          */
@@ -8323,6 +8379,142 @@ export interface components {
             upper?: number | null;
         };
         /**
+         * RhsScenario
+         * @description One RHS-ranging re-solve: move a binding constraint's RHS by δ and re-solve.
+         *
+         *     The honest MIP answer to "what would one more unit buy me?" — LP shadow
+         *     prices are duals of an easier relaxation and go near-uniform under
+         *     degeneracy, so the only exact answer is to solve the perturbed model.
+         *     ``objective_delta`` is (scenario − base) as-is (sign carries direction);
+         *     ``objective_delta_per_unit`` normalises it by δ so rows with different δ
+         *     stay comparable in one tornado chart. Only ``COMPUTED`` rows are exact:
+         *     ``TIME_LIMIT`` rows carry an incumbent, i.e. a bound on the true delta.
+         */
+        RhsScenario: {
+            /** Constraint */
+            constraint: string;
+            /** Delta */
+            delta: number;
+            /** Direction */
+            direction: string;
+            /** Family */
+            family?: string | null;
+            /** Improves */
+            improves?: boolean | null;
+            /**
+             * Is Equality
+             * @default false
+             */
+            is_equality: boolean;
+            /** Objective Delta */
+            objective_delta?: number | null;
+            /** Objective Delta Per Unit */
+            objective_delta_per_unit?: number | null;
+            /** Objective Value */
+            objective_value?: number | null;
+            /** Operator */
+            operator: string;
+            /** Rhs */
+            rhs: number;
+            /** Rhs New */
+            rhs_new: number;
+            /** Solve Time Seconds */
+            solve_time_seconds?: number | null;
+            status: components["schemas"]["ScenarioStatus"];
+        };
+        /**
+         * ScenarioAnalysis
+         * @description What-if analysis by real re-solves (Sensitivity L2).
+         *
+         *     Runs ON DEMAND off the request path (Celery): each row is a fresh solve of a
+         *     perturbed model, bounded by a per-solve time limit AND a total budget. When
+         *     the budget runs out the remaining rows come back ``SKIPPED_BUDGET`` and
+         *     ``partial`` is true — a truncated answer is reported as truncated, never
+         *     padded with guesses.
+         */
+        ScenarioAnalysis: {
+            /** Base Objective */
+            base_objective?: number | null;
+            /**
+             * Budget Seconds
+             * @default 0
+             */
+            budget_seconds: number;
+            /**
+             * Computed
+             * @default true
+             */
+            computed: boolean;
+            /**
+             * Decision Scenarios
+             * @default []
+             */
+            decision_scenarios: components["schemas"]["DecisionScenario"][];
+            /** Note */
+            note?: string | null;
+            /**
+             * Partial
+             * @default false
+             */
+            partial: boolean;
+            /**
+             * Per Solve Limit Seconds
+             * @default 0
+             */
+            per_solve_limit_seconds: number;
+            /**
+             * Resolves Planned
+             * @default 0
+             */
+            resolves_planned: number;
+            /**
+             * Resolves Used
+             * @default 0
+             */
+            resolves_used: number;
+            /**
+             * Rhs Scenarios
+             * @default []
+             */
+            rhs_scenarios: components["schemas"]["RhsScenario"][];
+            /**
+             * Seconds Used
+             * @default 0
+             */
+            seconds_used: number;
+            /** Sense */
+            sense?: string | null;
+        };
+        /**
+         * ScenarioAnalysisJob
+         * @description State of one execution's what-if batch (Sensitivity L2).
+         *
+         *     The batch runs for minutes on a worker, so the API returns the JOB, not just
+         *     the answer: ``absent`` (never requested), ``running``, ``completed`` (with
+         *     ``analysis``) or ``failed`` (with ``error``). Clients poll this until it
+         *     leaves ``running``.
+         */
+        ScenarioAnalysisJob: {
+            analysis?: components["schemas"]["ScenarioAnalysis"] | null;
+            /** Completed At */
+            completed_at?: string | null;
+            /** Error */
+            error?: string | null;
+            /** Requested At */
+            requested_at?: string | null;
+            /**
+             * Status
+             * @description absent | running | completed | failed
+             */
+            status: string;
+        };
+        /**
+         * ScenarioStatus
+         * @description Outcome of one what-if re-solve (Sensitivity L2).
+         * @enum {string}
+         */
+        ScenarioStatus: "computed" | "time_limit" | "infeasible" | "skipped_budget" | "error";
+        /**
          * ScheduleCreateRequest
          * @description Request body for creating a cron schedule on a trigger.
          */
@@ -9601,6 +9793,7 @@ export type DatasetImportPreview = components['schemas']['DatasetImportPreview']
 export type DatasetRead = components['schemas']['DatasetRead'];
 export type DatasetSummary = components['schemas']['DatasetSummary'];
 export type DatasetUpdate = components['schemas']['DatasetUpdate'];
+export type DecisionScenario = components['schemas']['DecisionScenario'];
 export type DetailedStatusResponse = components['schemas']['DetailedStatusResponse'];
 export type DiffEntry = components['schemas']['DiffEntry'];
 export type DomainSummaryEntry = components['schemas']['DomainSummaryEntry'];
@@ -9738,6 +9931,10 @@ export type RestoreResponse = components['schemas']['RestoreResponse'];
 export type ReviewListResponse = components['schemas']['ReviewListResponse'];
 export type ReviewResponse = components['schemas']['ReviewResponse'];
 export type RhsRange = components['schemas']['RhsRange'];
+export type RhsScenario = components['schemas']['RhsScenario'];
+export type ScenarioAnalysis = components['schemas']['ScenarioAnalysis'];
+export type ScenarioAnalysisJob = components['schemas']['ScenarioAnalysisJob'];
+export type ScenarioStatus = components['schemas']['ScenarioStatus'];
 export type ScheduleCreateRequest = components['schemas']['ScheduleCreateRequest'];
 export type ScheduleResponse = components['schemas']['ScheduleResponse'];
 export type ScheduleUpdateRequest = components['schemas']['ScheduleUpdateRequest'];
@@ -13391,6 +13588,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExactAnalysis"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_execution_scenario_analysis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                execution_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioAnalysisJob"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_execution_scenario_analysis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                execution_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioAnalysisJob"];
                 };
             };
             /** @description Validation Error */

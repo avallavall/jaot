@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import type { ConstraintFamilyStats, ExactAnalysis, SensitivityResult } from "@/lib/types";
 import { ConceptTooltip } from "@/components/ui/concept-tooltip";
+import { ScenarioAnalysisSection } from "@/components/solve/ScenarioAnalysisSection";
 
 interface ExactAnalysisPanelProps {
   executionId: string;
@@ -128,6 +129,11 @@ export function ExactAnalysisPanel({ executionId, sensitivity }: ExactAnalysisPa
           )}
         </Section>
       )}
+
+      {/* What-if by re-solves (L2) sits between the exact facts above and the
+          LP-relaxation duals below — it is the honest answer to the question
+          those duals only approximate. */}
+      <ScenarioAnalysisSection executionId={executionId} />
 
       {sensitivity && sensitivity.constraints.length > 0 && (
         <ApproximateShadowPrices sensitivity={sensitivity} t={t} />

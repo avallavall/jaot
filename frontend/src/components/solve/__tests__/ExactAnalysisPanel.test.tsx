@@ -2,8 +2,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 
 const mockGet = vi.fn();
+const mockGetScenarios = vi.fn();
 vi.mock("@/lib/api", () => ({
-  api: { getExecutionExactAnalysis: (...args: unknown[]) => mockGet(...args) },
+  api: {
+    getExecutionExactAnalysis: (...args: unknown[]) => mockGet(...args),
+    // The panel now embeds the what-if section (L2); it reads its job on mount.
+    getExecutionScenarioAnalysis: (...args: unknown[]) => mockGetScenarios(...args),
+  },
 }));
 
 import { ExactAnalysisPanel } from "../ExactAnalysisPanel";
@@ -61,7 +66,11 @@ const withFamilies: ExactAnalysis = {
 };
 
 describe("ExactAnalysisPanel (A3)", () => {
-  beforeEach(() => mockGet.mockReset());
+  beforeEach(() => {
+    mockGet.mockReset();
+    mockGetScenarios.mockReset();
+    mockGetScenarios.mockResolvedValue({ status: "absent", analysis: null });
+  });
 
   it("leads with binding constraints + objective contributions once loaded", async () => {
     mockGet.mockResolvedValue(computed);

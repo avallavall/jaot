@@ -8,6 +8,7 @@ import type {
   APIKey,
   CreateKeyResponse,
   ExactAnalysis,
+  ScenarioAnalysisJob,
   ModelCatalogItem,
   OrganizationModel,
   ModelExecution,
@@ -91,6 +92,7 @@ export type {
   APIKey,
   CreateKeyResponse,
   ExactAnalysis,
+  ScenarioAnalysisJob,
   ModelCatalogItem,
   OrganizationModel,
   ModelExecution,
@@ -725,6 +727,20 @@ export const api = {
    * and objective contributions, computed on demand from x* + the problem. */
   getExecutionExactAnalysis(executionId: string): Promise<ExactAnalysis> {
     return request(`/api/v2/models/executions/${executionId}/exact-analysis`);
+  },
+
+  /** Queue the what-if batch (Sensitivity L2) — RHS ranging + decision regret by
+   * real re-solves. Idempotent: a batch already running is joined, a finished one
+   * is served from the cache. */
+  startExecutionScenarioAnalysis(executionId: string): Promise<ScenarioAnalysisJob> {
+    return request(`/api/v2/models/executions/${executionId}/scenario-analysis`, {
+      method: "POST",
+    });
+  },
+
+  /** Poll the what-if batch of an execution. */
+  getExecutionScenarioAnalysis(executionId: string): Promise<ScenarioAnalysisJob> {
+    return request(`/api/v2/models/executions/${executionId}/scenario-analysis`);
   },
 
   getSolvers(): Promise<{

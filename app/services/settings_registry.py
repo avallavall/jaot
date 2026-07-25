@@ -202,6 +202,94 @@ SETTINGS_REGISTRY.extend(
             unit="seconds",
         ),
         SettingDefinition(
+            key="SENSITIVITY_MAX_RESOLVES",
+            label="Sensitivity: Max Re-solves",
+            description=(
+                "Upper bound on how many re-solves one what-if batch (Sensitivity "
+                "L2) may run. Each RHS-ranging or regret scenario is a FULL solve "
+                "of a perturbed model, so this is the hard ceiling on the work an "
+                "analysis request can queue."
+            ),
+            category=SettingCategory.SOLVER,
+            setting_type=SettingType.INT,
+            default_value="20",
+            min_value=1,
+            max_value=200,
+        ),
+        SettingDefinition(
+            key="SENSITIVITY_TOP_CONSTRAINTS",
+            label="Sensitivity: Ranged Constraints",
+            description=(
+                "How many binding constraints the what-if batch ranges. Each one "
+                "costs two re-solves (relax and tighten), and relaxations run "
+                "first so a batch cut short by the budget keeps the useful half."
+            ),
+            category=SettingCategory.SOLVER,
+            setting_type=SettingType.INT,
+            default_value="8",
+            min_value=0,
+            max_value=50,
+        ),
+        SettingDefinition(
+            key="SENSITIVITY_TOP_DECISIONS",
+            label="Sensitivity: Regret Decisions",
+            description=(
+                "How many binary decisions the what-if batch overrules to price "
+                "the regret of deciding otherwise. One re-solve each; picks "
+                "alternate between switched-on and switched-off decisions."
+            ),
+            category=SettingCategory.SOLVER,
+            setting_type=SettingType.INT,
+            default_value="4",
+            min_value=0,
+            max_value=50,
+        ),
+        SettingDefinition(
+            key="SENSITIVITY_PER_SOLVE_MULTIPLIER",
+            label="Sensitivity: Per-Solve Multiplier",
+            description=(
+                "Time limit for each what-if re-solve as a multiple of the "
+                "ORIGINAL solve time (a model that took 4s gets 8s per scenario "
+                "at 2.0), capped by SENSITIVITY_PER_SOLVE_CAP_SECONDS."
+            ),
+            category=SettingCategory.SOLVER,
+            setting_type=SettingType.FLOAT,
+            default_value="2.0",
+            min_value=0.1,
+            max_value=20.0,
+        ),
+        SettingDefinition(
+            key="SENSITIVITY_PER_SOLVE_CAP_SECONDS",
+            label="Sensitivity: Per-Solve Cap",
+            description=(
+                "Hard ceiling on any single what-if re-solve, whatever the "
+                "original solve took. Keeps one slow scenario from eating the "
+                "whole batch budget."
+            ),
+            category=SettingCategory.SOLVER,
+            setting_type=SettingType.INT,
+            default_value="30",
+            min_value=1,
+            max_value=3600,
+            unit="seconds",
+        ),
+        SettingDefinition(
+            key="SENSITIVITY_TOTAL_BUDGET_SECONDS",
+            label="Sensitivity: Batch Budget",
+            description=(
+                "Wall-clock budget for one what-if batch. When it runs out the "
+                "remaining scenarios are returned as skipped and the analysis is "
+                "flagged partial — never padded with guesses. Independent of the "
+                "solve time limits: this bounds the ANALYSIS, not the solve."
+            ),
+            category=SettingCategory.SOLVER,
+            setting_type=SettingType.INT,
+            default_value="300",
+            min_value=10,
+            max_value=3600,
+            unit="seconds",
+        ),
+        SettingDefinition(
             key="IIS_MAX_CONSTRAINTS",
             label="IIS: Max Constraints",
             description=(

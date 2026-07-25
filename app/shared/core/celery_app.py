@@ -28,6 +28,7 @@ celery_app = Celery(
     backend=CELERY_RESULT_BACKEND,
     include=[
         "app.domains.solver.tasks.solve_tasks",
+        "app.domains.solver.tasks.scenario_tasks",  # Sensitivity L2 — on-demand what-if batch
         "app.tasks.email_tasks",
         "app.tasks.webhook_tasks",
         "app.tasks.trigger_tasks",

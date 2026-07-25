@@ -345,6 +345,14 @@ class ModelExecution(Base):
     progress_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     is_async: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # What-if analysis by re-solves (Sensitivity L2) — the batch is expensive
+    # (one full solve per scenario), so it is requested on demand and its result
+    # is cached here rather than recomputed on every page view. Holds the JOB
+    # envelope, not just the answer: {status, task_id, requested_at,
+    # completed_at, error, result}. Its own column instead of a key inside
+    # result_data so an analysis can never race the solve writer for that blob.
+    scenario_analysis: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, index=True

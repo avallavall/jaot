@@ -44,6 +44,21 @@ The family KPIs are computed over _all_ analysed rows, not the capped display li
 
 The classic **LP-relaxation shadow prices** are still available, demoted into a collapsed section underneath and deduplicated ("47 constraints · shadow price 1.0" instead of 47 identical rows). For a MIP they are duals of a _different, easier_ problem — directional at best — which is exactly why they no longer lead the page. See [Understanding Your Solution](/docs/ai-builder/understanding-your-solution) for how to read them, and for the plain-language AI explanation of the result.
 
+## What-if analysis (re-solves)
+
+The exact analysis tells you what is tight. It cannot tell you what loosening it is _worth_ — in a MIP that question has no reliable closed form, which is why the shadow prices above are demoted. **What if things changed?** answers it the honest way: it perturbs the model and solves it again.
+
+Two kinds of scenario, both measured on the real model:
+
+- **Price of one unit** — each top binding constraint is loosened and tightened by δ (one whole unit on integral data, 1% otherwise) and re-solved. The tornado chart shows the objective change **per unit** of right-hand side, so rows with different δ compare directly: "one more hour on machine 3 is worth −420 €, one more truck −80 €". Green improves the objective, red worsens it.
+- **Cost of deciding otherwise** — each key binary decision is forced to its opposite value and re-solved, pricing the regret of overruling the model. A decision whose overrule makes the model infeasible is reported as such: not expensive, impossible.
+
+Because every row is a full solve, the batch is **opt-in** (a button), runs in the background on the solver queue, and is bounded twice: a per-scenario time limit derived from your original solve time, and a wall-clock budget for the whole batch. Defaults are 20 re-solves — 8 constraints ranged both ways plus 4 decisions — with 30s per scenario and 5 minutes per batch; a self-hosted deployment can change all of them in the admin panel.
+
+These limits bound the **analysis only**; your solve time limits are untouched.
+
+When the budget runs out, the remaining scenarios come back marked as not run and the result says it is partial — it is never padded with estimates. A scenario stopped at its own time limit is shown with a `≈`: an incumbent bounds the true change, it does not equal it. Relaxations are always solved before tightenings, so a batch cut short still spent its budget on the more informative half. The finished analysis is cached on the execution, so reloading the page does not re-solve anything, and asking twice joins the batch already running.
+
 ## The variables chart
 
 The Visualization tab charts variable magnitudes. When every non-zero variable has the same value — the normal case for a binary assignment solution, where a bar chart of identical bars carries zero information — it collapses to an aggregate ("N variables at 1, M at zero") with a **Show chart anyway** override.
@@ -53,8 +68,12 @@ The Visualization tab charts variable magnitudes. When every non-zero variable h
 Everything on the page is available programmatically:
 
 ```
-GET /api/v2/models/executions/{execution_id}
-GET /api/v2/models/executions/{execution_id}/exact-analysis
+GET  /api/v2/models/executions/{execution_id}
+GET  /api/v2/models/executions/{execution_id}/exact-analysis
+POST /api/v2/models/executions/{execution_id}/scenario-analysis
+GET  /api/v2/models/executions/{execution_id}/scenario-analysis
 ```
 
 The first returns the persisted execution (solution variables include the recovered `family` and `index_tuple`); the second computes the exact analysis on demand — binding constraints, slack/utilization, objective contributions, and the per-family KPI aggregates (`families`, `contribution_families`).
+
+The `POST` queues the what-if batch and the `GET` polls it. Both return the same job envelope — `status` (`absent` / `running` / `completed` / `failed`) plus, once finished, `analysis` with `rhs_scenarios`, `decision_scenarios`, and the budget accounting (`resolves_used`, `resolves_planned`, `seconds_used`, `partial`). The `POST` is idempotent: it joins a batch already running and serves a finished one from the cache.

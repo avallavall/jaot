@@ -153,6 +153,23 @@ test.describe("Studio — post-solve analysis page (v3.1 A1-A5, gated by JAOT_DS
     await expect(familyBars).toBeVisible({ timeout: NAV });
     await expect(familyBars).toContainText("x");
 
+    // Sensitivity L2: the what-if batch is opt-in and runs REAL re-solves on the solver
+    // queue. Here `cap` is the only thing standing between 12 and 13 chosen items, so
+    // loosening it by one unit must measure exactly +1 on the objective.
+    const startScenarios = page.getByTestId("scenario-analysis-start");
+    await expect(startScenarios).toBeVisible({ timeout: NAV });
+    await startScenarios.click();
+    const tornado = page.getByTestId("scenario-tornado");
+    await expect(tornado).toBeVisible({ timeout: SOLVE });
+    await expect(tornado).toContainText("cap");
+    await expect(page.getByTestId("scenario-analysis-start")).toHaveCount(0);
+
+    // The finished batch is cached on the execution: a reload shows it without
+    // re-solving anything (the button never comes back).
+    await page.reload();
+    await expect(page.getByTestId("scenario-tornado")).toBeVisible({ timeout: SOLVE });
+    await expect(page.getByTestId("scenario-analysis-start")).toHaveCount(0);
+
     // A4: on the Visualization tab, a binary-dominant solution collapses the identical-bars
     // chart to an aggregate ("N at 1.0 / M at 0") instead of a wall of equal bars.
     await page.getByTestId("execution-tab-visualization").click();

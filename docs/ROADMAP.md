@@ -7,14 +7,13 @@ as we learn. The best way to influence it is to
 
 ## Now
 
-**Deeper sensitivity analysis.** The post-solve analysis is exact and now aggregates
-per-family KPIs (binding share, slack distribution, utilization, headroom ranking,
-objective contributions by variable family). The next layer:
-
-- **True MIP sensitivity, on demand** — real re-solve-based analysis: RHS ranging on
-  the top binding constraints (how much does the objective actually move if a capacity
-  changes?) and decision regret (what does it cost to flip a key decision?). Runs
-  asynchronously with a time budget, cached per execution.
+**Analysis you can act on.** The post-solve analysis is exact, aggregates per-family KPIs
+(binding share, slack distribution, utilization, headroom ranking, objective contributions
+by variable family), and now answers what-if questions by really re-solving: RHS ranging on
+the top binding constraints (what one more unit of a capacity is actually worth) and
+decision regret (what it costs to overrule a decision), on demand, under a time budget,
+cached per execution. The focus now moves to how that analysis is *presented* — the items
+below.
 
 ## Next
 

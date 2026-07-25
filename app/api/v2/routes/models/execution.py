@@ -2,6 +2,7 @@
 
 import logging
 from typing import Any
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
@@ -12,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.api.v2.auth import get_current_user
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
 from app.api.v2.solve import _wait_for_task
-from app.domains.solver import execution_writer
+from app.domains.solver import execution_writer, scenario_job
 from app.domains.solver.adapters.base import (
     DEFAULT_SOLVER_NAME,
     SolverNotFoundError,
@@ -21,8 +22,13 @@ from app.domains.solver.adapters.base import (
 from app.domains.solver.queue_routing import resolve_queue
 from app.domains.solver.services.availability_gate import ensure_hexaly_worker_or_503
 from app.domains.solver.services.exact_analysis import compute_exact_analysis
+from app.domains.solver.services.execution_payload import (
+    ExecutionPayloadError,
+    load_execution_payload,
+)
 from app.domains.solver.services.solver_service import SolverService, get_solver_service
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
+from app.domains.solver.tasks.scenario_tasks import read_budget, scenario_analysis_async
 from app.domains.solver.time_limits import compute_celery_time_limits
 from app.models import ExecutionStatus, ModelExecution, Organization, User
 from app.models.model_project import ModelProject, ModelProjectListing
@@ -31,7 +37,12 @@ from app.schemas.model import (
     ExecutionListResponse,
     ModelExecutionResponse,
 )
-from app.schemas.optimization import ExactAnalysis, OptimizationProblem
+from app.schemas.optimization import (
+    ExactAnalysis,
+    OptimizationProblem,
+    ScenarioAnalysis,
+    ScenarioAnalysisJob,
+)
 from app.services.solve_orchestrator import ORIGIN_MARKETPLACE
 from app.services.template_resolver import listing_to_template_dict
 from app.shared.db.base import get_db
@@ -697,24 +708,127 @@ def get_execution_exact_analysis(  # sync ON PURPOSE -> threadpool (CPU-bound, n
     if not execution:
         raise HTTPException(status_code=404, detail="Execution not found")
 
-    result_data = execution.result_data or {}
-    raw_solution = result_data.get("model")
-    if not isinstance(raw_solution, dict) or not raw_solution:
-        return ExactAnalysis(computed=False, note="no_solution")
-
     try:
-        problem = OptimizationProblem.model_validate(execution.input_data)
-    except (ValidationError, TypeError, ValueError):
-        # Template / model executions may not store a flat problem — nothing to analyse.
-        return ExactAnalysis(computed=False, note="not_a_problem")
-
-    solution: dict[str, float] = {}
-    for key, value in raw_solution.items():
-        try:
-            solution[key] = float(value)
-        except (TypeError, ValueError):
-            continue
+        payload = load_execution_payload(execution.input_data, execution.result_data)
+    except ExecutionPayloadError as exc:
+        return ExactAnalysis(computed=False, note=exc.reason)
 
     return compute_exact_analysis(
-        problem, solution, objective_value=result_data.get("objective_value")
+        payload.problem, payload.solution, objective_value=payload.objective_value
+    )
+
+
+@router.post(
+    "/executions/{execution_id}/scenario-analysis",
+    operation_id="start_execution_scenario_analysis",
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def start_execution_scenario_analysis(
+    execution_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ScenarioAnalysisJob:
+    """Queue the what-if batch for a completed execution (Sensitivity L2).
+
+    Each scenario is a full re-solve, so the batch runs on the solver queue
+    under a wall-clock budget, never in this request. Requesting it twice does
+    NOT start two batches: the row is locked, and a batch already in flight is
+    returned as-is. A finished batch is served from the cache.
+    """
+    # Validate what the batch would work on BEFORE claiming anything, so an
+    # unanalysable execution is refused without leaving a "running" mark behind.
+    execution = (
+        db.query(ModelExecution)
+        .filter(
+            ModelExecution.id == execution_id,
+            ModelExecution.organization_id == current_user.organization_id,
+        )
+        .first()
+    )
+    if not execution:
+        raise HTTPException(status_code=404, detail="Execution not found")
+
+    try:
+        payload = load_execution_payload(execution.input_data, execution.result_data)
+    except ExecutionPayloadError as exc:
+        raise HTTPException(status_code=422, detail=exc.reason) from exc
+
+    solver_name = execution.solver_name or payload.problem.solver_name
+    try:
+        queue = resolve_queue(solver_name)
+    except SolverNotFoundError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    budget = read_budget(db)
+    # The batch's own budget derives the worker kill limits, exactly as a
+    # solve's time limit does — a hung analysis must not pin a worker.
+    soft_limit, hard_limit = compute_celery_time_limits(db, budget.total_seconds)
+
+    # Pre-generate the task id (P1.5 F0 pattern) so the claim already carries it:
+    # writing it back AFTER dispatch would race the worker, which on a small model
+    # can finish the whole batch before this request returns — and that second
+    # write would overwrite the finished result with a "running" envelope.
+    celery_task_id = str(uuid4())
+
+    # Claim under the row lock BEFORE dispatching: the lock is what makes two
+    # simultaneous requests one batch, and a claim without a task (dispatch
+    # failure) ages out via ``is_running`` instead of blocking the button.
+    execution, job, claimed = scenario_job.claim_batch(
+        db, execution_id, current_user.organization_id, budget.total_seconds, celery_task_id
+    )
+    db.commit()
+    if execution is None:
+        raise HTTPException(status_code=404, detail="Execution not found")
+    if not claimed:
+        # Joining the batch in flight (or reading the cached answer) — either way
+        # the caller gets the same envelope the GET would give it.
+        return _scenario_job_response(job)
+
+    scenario_analysis_async.apply_async(
+        args=[execution_id, current_user.organization_id, solver_name],
+        task_id=celery_task_id,
+        queue=queue,
+        soft_time_limit=soft_limit,
+        time_limit=hard_limit,
+    )
+    return _scenario_job_response(job)
+
+
+@router.get(
+    "/executions/{execution_id}/scenario-analysis",
+    operation_id="get_execution_scenario_analysis",
+)
+def get_execution_scenario_analysis(
+    execution_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ScenarioAnalysisJob:
+    """Read the cached what-if batch of an execution (Sensitivity L2)."""
+    execution = (
+        db.query(ModelExecution)
+        .filter(
+            ModelExecution.id == execution_id,
+            ModelExecution.organization_id == current_user.organization_id,
+        )
+        .first()
+    )
+    if not execution:
+        raise HTTPException(status_code=404, detail="Execution not found")
+
+    return _scenario_job_response(execution.scenario_analysis or {})
+
+
+def _scenario_job_response(job: dict[str, Any]) -> ScenarioAnalysisJob:
+    """Envelope -> API job. A stale 'running' row reads as absent, so the UI
+    offers the button again instead of spinning on a batch that died."""
+    status_value = job.get("status")
+    if status_value == scenario_job.STATUS_RUNNING and not scenario_job.is_running(job):
+        status_value = None
+    analysis = job.get("result")
+    return ScenarioAnalysisJob(
+        status=status_value or "absent",
+        analysis=ScenarioAnalysis.model_validate(analysis) if analysis else None,
+        error=job.get("error"),
+        requested_at=job.get("requested_at"),
+        completed_at=job.get("completed_at"),
     )

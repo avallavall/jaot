@@ -381,6 +381,108 @@ class ExactAnalysis(BaseModel):
     note: str | None = None
 
 
+class ScenarioStatus(str, Enum):
+    """Outcome of one what-if re-solve (Sensitivity L2)."""
+
+    COMPUTED = "computed"  # solved to optimality — the delta is exact
+    TIME_LIMIT = "time_limit"  # stopped early with an incumbent — delta is a BOUND
+    INFEASIBLE = "infeasible"  # the scenario has no solution (itself a finding)
+    SKIPPED_BUDGET = "skipped_budget"  # never run: re-solve or time budget exhausted
+    ERROR = "error"  # the scenario could not be built or the solver failed
+
+
+class RhsScenario(BaseModel):
+    """One RHS-ranging re-solve: move a binding constraint's RHS by δ and re-solve.
+
+    The honest MIP answer to "what would one more unit buy me?" — LP shadow
+    prices are duals of an easier relaxation and go near-uniform under
+    degeneracy, so the only exact answer is to solve the perturbed model.
+    ``objective_delta`` is (scenario − base) as-is (sign carries direction);
+    ``objective_delta_per_unit`` normalises it by δ so rows with different δ
+    stay comparable in one tornado chart. Only ``COMPUTED`` rows are exact:
+    ``TIME_LIMIT`` rows carry an incumbent, i.e. a bound on the true delta.
+    """
+
+    constraint: str
+    family: str | None = None
+    operator: str
+    # "relax" widens the feasible set (≤: +δ, ≥: −δ); "tighten" narrows it.
+    # An equality has no slack to give, so neither direction truly relaxes it —
+    # ``is_equality`` tells the UI to read the pair as ↑/↓ RHS instead.
+    direction: str
+    is_equality: bool = False
+    rhs: float
+    rhs_new: float
+    delta: float
+    status: ScenarioStatus
+    objective_value: float | None = None
+    objective_delta: float | None = None
+    objective_delta_per_unit: float | None = None
+    # True when the move improves the objective in the problem's own sense.
+    improves: bool | None = None
+    solve_time_seconds: float | None = None
+
+
+class DecisionScenario(BaseModel):
+    """One regret re-solve: force a binary decision to its opposite value.
+
+    Answers "what does it cost to overrule the model here?" — the user wants to
+    open the plant the solver closed. ``regret`` is normalised to the problem's
+    sense so it is always "how much worse this makes the objective" (≥ 0 when
+    the base solution was optimal); an INFEASIBLE scenario means the overrule is
+    not merely expensive but impossible.
+    """
+
+    variable: str
+    family: str | None = None
+    original_value: float
+    forced_value: float
+    status: ScenarioStatus
+    objective_value: float | None = None
+    regret: float | None = None
+    solve_time_seconds: float | None = None
+
+
+class ScenarioAnalysis(BaseModel):
+    """What-if analysis by real re-solves (Sensitivity L2).
+
+    Runs ON DEMAND off the request path (Celery): each row is a fresh solve of a
+    perturbed model, bounded by a per-solve time limit AND a total budget. When
+    the budget runs out the remaining rows come back ``SKIPPED_BUDGET`` and
+    ``partial`` is true — a truncated answer is reported as truncated, never
+    padded with guesses.
+    """
+
+    computed: bool = True
+    note: str | None = None
+    sense: str | None = None
+    base_objective: float | None = None
+    rhs_scenarios: list[RhsScenario] = []
+    decision_scenarios: list[DecisionScenario] = []
+    resolves_used: int = 0
+    resolves_planned: int = 0
+    seconds_used: float = 0.0
+    budget_seconds: float = 0.0
+    per_solve_limit_seconds: float = 0.0
+    partial: bool = False
+
+
+class ScenarioAnalysisJob(BaseModel):
+    """State of one execution's what-if batch (Sensitivity L2).
+
+    The batch runs for minutes on a worker, so the API returns the JOB, not just
+    the answer: ``absent`` (never requested), ``running``, ``completed`` (with
+    ``analysis``) or ``failed`` (with ``error``). Clients poll this until it
+    leaves ``running``.
+    """
+
+    status: str = Field(description="absent | running | completed | failed")
+    analysis: ScenarioAnalysis | None = None
+    error: str | None = None
+    requested_at: str | None = None
+    completed_at: str | None = None
+
+
 class InfeasibilityAnalysis(BaseModel):
     """Why an INFEASIBLE model has no solution — a minimal conflicting set.
 
