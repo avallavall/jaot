@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { StructuredSolutionView } from "@/components/solve/StructuredSolutionView";
 import { ExactAnalysisPanel } from "@/components/solve/ExactAnalysisPanel";
+import { SolutionGraphView } from "@/components/solve/SolutionGraphView";
 import { VariableValuesChart } from "@/components/solve/VariableValuesChart";
 import { InsightsPanel } from "@/components/solve/InsightsPanel";
 import { ExportButtons } from "@/components/solve/ExportButtons";
@@ -281,6 +282,13 @@ export default function ExecutionDetailPage() {
           </TabsContent>
 
           <TabsContent value="visualization">
+            {/* The solution as a graph, when it is one: routing arcs, assignments,
+                flows. Renders nothing for a model with no edge-shaped family, so
+                it costs an ordinary model nothing but a request. */}
+            {variables.length > 0 && !isInfeasible && (
+              <SolutionGraphView executionId={executionId} />
+            )}
+
             {variables.length > 0 && (
               <div className="mb-6">
                 <h2 className="text-lg font-semibold text-foreground mb-3">{t("variableValues")}</h2>

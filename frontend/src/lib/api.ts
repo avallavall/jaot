@@ -10,6 +10,7 @@ import type {
   ExactAnalysis,
   ScenarioAnalysisJob,
   ScenarioExplanationResponse,
+  SolutionGraph,
   ModelCatalogItem,
   OrganizationModel,
   ModelExecution,
@@ -734,6 +735,13 @@ export const api = {
    * and objective contributions, computed on demand from x* + the problem. */
   getExecutionExactAnalysis(executionId: string): Promise<ExactAnalysis> {
     return request(`/api/v2/models/executions/${executionId}/exact-analysis`);
+  },
+
+  /** The graph this solution describes, when it describes one. `computed: false`
+   *  is a normal answer about a healthy model that simply has no edge-shaped
+   *  variable family — never an error. */
+  getExecutionSolutionGraph(executionId: string): Promise<SolutionGraph> {
+    return request(`/api/v2/models/executions/${executionId}/solution-graph`);
   },
 
   /** Queue the what-if batch (Sensitivity L2) — RHS ranging + decision regret by

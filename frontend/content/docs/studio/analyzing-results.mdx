@@ -63,6 +63,16 @@ When the budget runs out, the remaining scenarios come back marked as not run an
 
 Under the results, **Explain this to me** has the assistant read the scenarios back in plain business language: what actually limits you, what is not worth buying, and what deciding otherwise would cost. It is handed the measured scenarios and nothing else — it cannot invent a scenario that was not run, cannot extrapolate a per-unit figure beyond the change actually tested, and has to respect each row's status (exact, bound, infeasible, never run). Like the batch, it is opt-in and cached on the execution, so reading it again is free. It uses your organization's own API key when you have configured one; otherwise it counts against the platform's AI budget.
 
+## The solution map
+
+When your solution describes a graph, the Visualization tab draws it instead of leaving you to read it.
+
+Any variable family indexed by two or more labels *is* an edge list: arcs in a pickup-and-delivery model, worker-to-task in an assignment, item-to-bin in packing. The map shows a node per label, an arrow per chosen variable, and a colour per vehicle or resource — click a colour in the legend to isolate it. The heading gives the honest ratio, `9 of 36 possible connections are used`, which also tells you how sparse the model was. Hovering an arrow names the variable and its value.
+
+**The layout is not geographic, and the view says so.** Optimization models hold distances, not coordinates, so positions on a real map would be invented. Nodes are placed by their position in the flow — a fact the arrows themselves contain — and each column is labelled with the variable family whose arrows leave it, so a three-layer routing model reads as `xsc → xcd → xde` rather than as anonymous columns.
+
+Models without an edge-shaped family show no map at all rather than an empty frame. Having no graph is a normal property of a perfectly healthy model. Very large graphs are cut to a readable size and say how many connections were left out.
+
 ## The variables chart
 
 The Visualization tab charts variable magnitudes. When every non-zero variable has the same value — the normal case for a binary assignment solution, where a bar chart of identical bars carries zero information — it collapses to an aggregate ("N variables at 1, M at zero") with a **Show chart anyway** override.
@@ -74,6 +84,7 @@ Everything on the page is available programmatically:
 ```
 GET  /api/v2/models/executions/{execution_id}
 GET  /api/v2/models/executions/{execution_id}/exact-analysis
+GET  /api/v2/models/executions/{execution_id}/solution-graph
 POST /api/v2/models/executions/{execution_id}/scenario-analysis
 GET  /api/v2/models/executions/{execution_id}/scenario-analysis
 POST /api/v2/llm/executions/{execution_id}/explain-scenarios

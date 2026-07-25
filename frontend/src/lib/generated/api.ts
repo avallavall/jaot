@@ -1773,6 +1773,10 @@ export interface paths {
          *     a reload must never re-bill a call. Same guardrails as the rest of the
          *     assistant — BYOK-first, monthly-budget pause, org rate limit. No moderation
          *     pre-check: the prompt is assembled from computed figures, not user text.
+         *
+         *     ``use_advanced_model`` re-reads the same scenarios with the advanced model.
+         *     The cache is keyed by the model that wrote the text, so asking for the other
+         *     tier regenerates (and bills) while asking again for the same one does not.
          */
         post: operations["explain_execution_scenarios"];
         delete?: never;
@@ -2136,6 +2140,37 @@ export interface paths {
          *     returned as-is. A finished batch is served from the cache.
          */
         post: operations["start_execution_scenario_analysis"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/models/executions/{execution_id}/solution-graph": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Execution Solution Graph
+         * @description The graph this solution describes, when it describes one (v3.2).
+         *
+         *     A variable family indexed by two or more labels is an edge list, so a routing
+         *     or assignment solution can be drawn instead of read as thousands of chips.
+         *     Computed on demand from the stored problem + solution, like the exact
+         *     analysis, and a sync ``def`` so walking every variable runs in the threadpool
+         *     rather than on the event loop.
+         *
+         *     Returns ``computed=false`` — never a 404 or an error — when the model has no
+         *     edge-shaped family or the solution activates none of them. "There is no graph
+         *     here" is a legitimate answer about a perfectly healthy model, and the caller
+         *     renders nothing rather than an empty frame.
+         */
+        get: operations["get_execution_solution_graph"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3698,6 +3733,12 @@ export interface paths {
          *     Hexaly reflects ``_probe_hexaly_worker()`` — when the
          *     celery_worker_hexaly container is unhealthy or down, ``available=False``
          *     with ``reason="maintenance"`` so the frontend can grey out the option.
+         *
+         *     Each entry also carries ``capabilities`` (v3.2). This listing is the single
+         *     place the frontend learns what a solver can deliver, including for an
+         *     execution that ALREADY ran: the analysis panels look the run's solver up by
+         *     name here. A solver that is no longer listed yields no capabilities, and
+         *     every consumer must fall back to claiming nothing rather than guessing.
          */
         get: operations["list_available_solvers"];
         put?: never;
@@ -5978,6 +6019,21 @@ export interface components {
             version_id?: string | null;
         };
         /**
+         * ExplainScenariosRequest
+         * @description Request the plain-language reading of a finished what-if batch (L2).
+         *
+         *     The scenarios themselves are already cached on the execution; the only choice
+         *     the caller has is which model narrates them.
+         */
+        ExplainScenariosRequest: {
+            /**
+             * Use Advanced Model
+             * @description Use the advanced model with adaptive thinking for the explanation
+             * @default false
+             */
+            use_advanced_model: boolean;
+        };
+        /**
          * ExplainSolutionRequest
          * @description Request a plain-language explanation of a solved optimization model.
          *
@@ -6255,6 +6311,24 @@ export interface components {
         GeoDistributionResponse: {
             /** Data */
             data: components["schemas"]["GeoDistributionEntry"][];
+        };
+        /**
+         * GraphEdge
+         * @description One active entry of an edge-shaped variable family.
+         */
+        GraphEdge: {
+            /** Family */
+            family: string;
+            /** Group */
+            group?: string | null;
+            /** Source */
+            source: string;
+            /** Target */
+            target: string;
+            /** Value */
+            value: number;
+            /** Variable */
+            variable: string;
         };
         /**
          * GroupedTimeSeriesPoint
@@ -8836,6 +8910,74 @@ export interface components {
          */
         SkillLevel: "beginner" | "intermediate" | "expert";
         /**
+         * SolutionGraph
+         * @description The graph a solved model describes, when it describes one.
+         *
+         *     Any variable family indexed by two or more labels is an edge list — arcs in a
+         *     pickup-and-delivery model, worker-to-task in an assignment — so its active
+         *     entries can be drawn instead of read as thousands of chips.
+         *
+         *     Nodes carry a LAYER, not a position: optimization models hold distances, not
+         *     coordinates, so a geographic map would be invented. Layer is derived from the
+         *     edges themselves and is therefore a fact about the solution.
+         */
+        SolutionGraph: {
+            /**
+             * Active Count
+             * @default 0
+             */
+            active_count: number;
+            /**
+             * Candidate Count
+             * @default 0
+             */
+            candidate_count: number;
+            /**
+             * Computed
+             * @default true
+             */
+            computed: boolean;
+            /**
+             * Edges
+             * @default []
+             */
+            edges: components["schemas"]["GraphEdge"][];
+            /**
+             * Families
+             * @default []
+             */
+            families: string[];
+            /**
+             * Groups
+             * @default []
+             */
+            groups: string[];
+            /**
+             * Is Network
+             * @default false
+             */
+            is_network: boolean;
+            /**
+             * Layers
+             * @default {}
+             */
+            layers: {
+                [key: string]: number;
+            };
+            /**
+             * Nodes
+             * @default []
+             */
+            nodes: string[];
+            /** Note */
+            note?: string | null;
+            /**
+             * Truncated
+             * @default false
+             */
+            truncated: boolean;
+        };
+        /**
          * SolverOptions
          * @description Solver configuration options.
          */
@@ -9873,6 +10015,7 @@ export type ExecutionListResponse = components['schemas']['ExecutionListResponse
 export type ExecutionStats = components['schemas']['ExecutionStats'];
 export type ExplainInfeasibilityRequest = components['schemas']['ExplainInfeasibilityRequest'];
 export type ExplainModelRequest = components['schemas']['ExplainModelRequest'];
+export type ExplainScenariosRequest = components['schemas']['ExplainScenariosRequest'];
 export type ExplainSolutionRequest = components['schemas']['ExplainSolutionRequest'];
 export type ExplainVersionDiffRequest = components['schemas']['ExplainVersionDiffRequest'];
 export type FavoriteResponse = components['schemas']['FavoriteResponse'];
@@ -9888,6 +10031,7 @@ export type ForgotPasswordRequest = components['schemas']['ForgotPasswordRequest
 export type FromMarketplaceRequest = components['schemas']['FromMarketplaceRequest'];
 export type GeoDistributionEntry = components['schemas']['GeoDistributionEntry'];
 export type GeoDistributionResponse = components['schemas']['GeoDistributionResponse'];
+export type GraphEdge = components['schemas']['GraphEdge'];
 export type GroupedTimeSeriesPoint = components['schemas']['GroupedTimeSeriesPoint'];
 export type GuidanceResponse = components['schemas']['GuidanceResponse'];
 export type GuidanceUpdate = components['schemas']['GuidanceUpdate'];
@@ -9998,6 +10142,7 @@ export type SettingValueResponse = components['schemas']['SettingValueResponse']
 export type SignupRequest = components['schemas']['SignupRequest'];
 export type SignupResponse = components['schemas']['SignupResponse'];
 export type SkillLevel = components['schemas']['SkillLevel'];
+export type SolutionGraph = components['schemas']['SolutionGraph'];
 export type SolverOptions = components['schemas']['SolverOptions'];
 export type SolverStatus = components['schemas']['SolverStatus'];
 export type SummaryResponse = components['schemas']['SummaryResponse'];
@@ -12229,7 +12374,9 @@ export interface operations {
     dsl_generate: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-jaot-locale"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -12893,7 +13040,9 @@ export interface operations {
     explain_diff_endpoint_api_v2_llm_conversations__conversation_id__explain_diff_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-jaot-locale"?: string | null;
+            };
             path: {
                 conversation_id: string;
             };
@@ -12928,7 +13077,9 @@ export interface operations {
     explain_infeasibility_endpoint_api_v2_llm_conversations__conversation_id__explain_infeasibility_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-jaot-locale"?: string | null;
+            };
             path: {
                 conversation_id: string;
             };
@@ -12963,7 +13114,9 @@ export interface operations {
     explain_model_endpoint_api_v2_llm_conversations__conversation_id__explain_model_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-jaot-locale"?: string | null;
+            };
             path: {
                 conversation_id: string;
             };
@@ -12998,7 +13151,9 @@ export interface operations {
     explain_solution_endpoint_api_v2_llm_conversations__conversation_id__explain_solution_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-jaot-locale"?: string | null;
+            };
             path: {
                 conversation_id: string;
             };
@@ -13033,7 +13188,9 @@ export interface operations {
     send_message_api_v2_llm_conversations__conversation_id__messages_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-jaot-locale"?: string | null;
+            };
             path: {
                 conversation_id: string;
             };
@@ -13068,13 +13225,19 @@ export interface operations {
     explain_execution_scenarios: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-jaot-locale"?: string | null;
+            };
             path: {
                 execution_id: string;
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ExplainScenariosRequest"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -13729,6 +13892,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScenarioAnalysisJob"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_execution_solution_graph: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                execution_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SolutionGraph"];
                 };
             };
             /** @description Validation Error */

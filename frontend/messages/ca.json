@@ -2759,6 +2759,14 @@
       "viewTriggerConfig": "Veure Configuració del Trigger",
       "failedToLoad": "Error en carregar l'execució",
       "visualization": "Visualització",
+      "solutionGraph": {
+        "title": "Mapa de la solució",
+        "summaryNetwork": "S'usen {active} de {total} connexions possibles.",
+        "summaryAssignment": "S'usen {active} de {total} assignacions possibles.",
+        "truncated": "Es mostren les primeres {shown} de {total}: la resta seria il·legible.",
+        "ariaLabel": "Diagrama de la solució: {nodes} nodes i {edges} connexions. Les posicions indiquen l'ordre del flux, no la geografia.",
+        "layoutNote": "Disposat segons la posició en el flux. El model guarda distàncies, no coordenades, així que això no és un mapa geogràfic."
+      },
       "variableValues": "Valors de variables",
       "insightsTitle": "Anàlisi automàtica",
       "datasetBadge": "Dataset usat en aquesta execució"

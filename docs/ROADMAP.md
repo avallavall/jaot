@@ -7,20 +7,17 @@ as we learn. The best way to influence it is to
 
 ## Now
 
-**Analysis you can act on.** The post-solve analysis is exact, aggregates per-family KPIs
-(binding share, slack distribution, utilization, headroom ranking, objective contributions
-by variable family), and now answers what-if questions by really re-solving: RHS ranging on
-the top binding constraints (what one more unit of a capacity is actually worth) and
-decision regret (what it costs to overrule a decision), on demand, under a time budget,
-cached per execution. The focus now moves to how that analysis is *presented* — the items
-below.
+**Foundations before features.** The analysis layer is where we wanted it: exact
+post-solve facts, per-family KPIs, what-if answers by real re-solves, an interface that
+adapts to what your chosen solver can actually deliver, and a solution you can *see* when
+it describes a routing or assignment graph. Before building the next large thing on top,
+we are going through the backend itself — layering, duplication, performance and security
+— so that what comes next lands on solid ground rather than on top of it.
 
 ## Next
 
-- **Solver-aware analysis panel** — the analysis UI adapts to what the active solver
-  actually provides instead of offering sections it cannot fill.
-- **Map visualization for routing problems** — plot routes/assignments for
-  pickup-and-delivery-class models instead of reading them as tables.
+- **Architecture and code-quality work across the backend**, landing as small,
+  independently verified changes rather than one big rewrite.
 
 ## Later / Exploring
 

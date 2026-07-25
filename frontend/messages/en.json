@@ -2702,6 +2702,14 @@
       "objectiveValue": "Objective Value",
       "results": "Results",
       "visualization": "Visualization",
+      "solutionGraph": {
+        "title": "Solution map",
+        "summaryNetwork": "{active} of {total} possible connections are used.",
+        "summaryAssignment": "{active} of {total} possible assignments are used.",
+        "truncated": "Showing the first {shown} of {total} — the rest would be unreadable.",
+        "ariaLabel": "Diagram of the solution: {nodes} nodes and {edges} connections. Positions show order of flow, not geography.",
+        "layoutNote": "Laid out by position in the flow. The model holds distances, not coordinates, so this is not a geographic map."
+      },
       "variableValues": "Variable Values",
       "insightsTitle": "Auto-Insights",
       "sensitivity": "Sensitivity",

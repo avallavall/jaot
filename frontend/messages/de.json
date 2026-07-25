@@ -2759,6 +2759,14 @@
       "viewTriggerConfig": "Trigger-Konfiguration anzeigen",
       "failedToLoad": "Ausführung konnte nicht geladen werden",
       "visualization": "Visualisierung",
+      "solutionGraph": {
+        "title": "Lösungskarte",
+        "summaryNetwork": "{active} von {total} möglichen Verbindungen werden genutzt.",
+        "summaryAssignment": "{active} von {total} möglichen Zuordnungen werden genutzt.",
+        "truncated": "Es werden die ersten {shown} von {total} gezeigt — der Rest wäre unlesbar.",
+        "ariaLabel": "Diagramm der Lösung: {nodes} Knoten und {edges} Verbindungen. Die Positionen zeigen die Reihenfolge im Fluss, nicht die Geografie.",
+        "layoutNote": "Angeordnet nach Position im Fluss. Das Modell enthält Distanzen, keine Koordinaten — dies ist also keine geografische Karte."
+      },
       "variableValues": "Variablenwerte",
       "insightsTitle": "Automatische Analyse",
       "datasetBadge": "Für diesen Lauf verwendeter Datensatz"

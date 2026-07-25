@@ -59,6 +59,56 @@ def test_parse_flat_name_rejects_ambiguous():
     assert parse_flat_name("x_s1c2") is None  # digits inside the label, not trailing
 
 
+def test_parse_flat_name_underscored_index_labels():
+    """Routing generators name nodes ``o_0`` / ``p_1``, so an arc is ``x_o_0_p_1_2``.
+
+    The strict pattern rejects those outright (``o`` is purely alphabetic), which
+    left every arc variable of such a model unstructured — no family, no grouping,
+    no map.
+    """
+    assert parse_flat_name("x_o_0_p_0_0") == ("x", ["o_0", "p_0", "0"])
+    assert parse_flat_name("x_p_0_d_1_2") == ("x", ["p_0", "d_1", "2"])
+    # Ordinals are not single-digit-only.
+    assert parse_flat_name("x_o_10_e_3_1") == ("x", ["o_10", "e_3", "1"])
+    # A tag with no ordinal after it is still not an index.
+    assert parse_flat_name("x_o_0_bad") is None
+    assert parse_flat_name("x_o") is None
+    # Malformed segments stay rejected.
+    assert parse_flat_name("_x_1") is None
+    assert parse_flat_name("x__1") is None
+
+
+# CONTRACT-TEST: the wider reading runs ONLY on names the strict parse refused.
+# Accepting "<tag>_<ordinal>" as one index is the same shape as the flat name
+# "x_cost_3", so the ambiguity is resolved by ORDER, not by cleverness — it may
+# add structure where there was none, never reinterpret a name that already reads.
+def test_underscored_reading_never_reinterprets_a_name_that_already_parses():
+    already_parse = {
+        "x_cost_3": ("x_cost", ["3"]),
+        "x_3_5": ("x", ["3", "5"]),
+        "xsc_s1_c1_k1": ("xsc", ["s1", "c1", "k1"]),
+        "assign_v3_o107": ("assign", ["v3", "o107"]),
+        "x12_3": ("x12", ["3"]),
+        "y_s2_7": ("y", ["s2", "7"]),
+        "route_1": ("route", ["1"]),
+    }
+    for name, expected in already_parse.items():
+        assert parse_flat_name(name) == expected, f"{name} was reinterpreted"
+
+
+def test_underscored_reading_documents_its_known_limit():
+    """A name that parses strictly but *wrongly* is not repaired — by design.
+
+    In the same routing model, ``s_p_0_1`` is the arrival time at node ``p_0``
+    for vehicle ``1``, so the honest reading would be family ``s``. It parses
+    strictly as ``s_p`` over ``(0, 1)`` instead, and nothing in the NAME
+    distinguishes it from a genuine ``x_cost_3``. Repairing it would take a
+    guess this module refuses to make; pinning it here so the limit is a
+    recorded decision rather than an unnoticed bug.
+    """
+    assert parse_flat_name("s_p_0_1") == ("s_p", ["0", "1"])
+
+
 def test_annotate_fills_flat_problem():
     problem = _problem(["x_1", "x_2", "y_3_4", "total"])
     annotate_variable_structure(problem)

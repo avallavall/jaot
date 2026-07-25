@@ -19,6 +19,32 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Added
 
+- **A routing or assignment solution can be seen instead of read.** Thousands of chips
+  saying `xsc_s2_c2_k2 = 1` are a delivery plan nobody can picture. Any variable family
+  indexed by two or more labels *is* an edge list — arcs in a pickup-and-delivery model,
+  worker-to-task in an assignment, item-to-bin in packing — so the Visualization tab now
+  draws the active ones as a graph: a node per label, an arrow per chosen variable, a
+  colour per vehicle or resource, and a legend that isolates one of them at a time. The
+  headline is the honest ratio ("9 of 36 possible connections are used"), which also shows
+  how sparse the model was.
+
+  **Nodes are placed by position in the flow, never by geography, and the view says so on
+  screen.** Optimization models carry distances, not coordinates, so any map with real
+  positions in it would be fabricated; the horizontal axis is the order of the hops, which
+  is a fact the edges actually contain, and each column is labelled with the variable
+  family whose edges leave it. A model with no edge-shaped family renders nothing at all
+  rather than an empty frame — having no graph is a normal property of a healthy model.
+
+- **Routing models with underscored node names are understood at last.** Variable names
+  like `x_o_0_p_1_2` — an arc from node `o_0` to node `p_1` on vehicle `2` — could not be
+  read at all, because a name segment made only of letters can never be an index. Every arc
+  variable of such a model was left with no family: no grouping in the solution view, no
+  family KPIs in the analysis, no map. Names the strict reading refuses now get a second,
+  wider attempt that accepts `<tag>_<ordinal>` as one index label. The order matters and is
+  deliberate: the wider reading only ever runs where there was no structure at all, so it
+  cannot reinterpret a name that already reads correctly — `x_cost_3` still belongs to
+  family `x_cost`.
+
 - **The interface stops promising what your solver cannot deliver.** Every solver adapter
   has always declared what it supports — shadow prices, warm starts, quadratic terms,
   live progress — but nothing outside the adapters ever read those declarations, so the
