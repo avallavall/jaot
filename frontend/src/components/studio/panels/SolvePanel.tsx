@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/tooltip";
 import { SolverSelect } from "@/components/solve/SolverSelect";
 import { SolveResultsDrawer } from "@/components/builder/SolveResultsDrawer";
-import { useSolvers } from "@/hooks/useSolvers";
+import { capabilitiesOf, useSolvers } from "@/hooks/useSolvers";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { api } from "@/lib/api";
@@ -205,7 +205,16 @@ export function SolvePanel() {
         )}
 
         {session.status !== "idle" && (
-          <LiveSolvePanel session={session} onCancel={handleCancel} />
+          <LiveSolvePanel
+            session={session}
+            onCancel={handleCancel}
+            /* The session's own solver, not the currently selected one — the
+               picker may have moved on while a run is still going. Resolves to
+               undefined under "auto" (the effective solver is only known once
+               the result comes back), which keeps the panel from promising
+               anything about a solver nobody has picked yet. */
+            capabilities={capabilitiesOf(availableSolvers, session.solverName)}
+          />
         )}
 
         {done && session.result && (

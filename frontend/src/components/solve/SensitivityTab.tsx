@@ -10,12 +10,17 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { SensitivityResult, ConstraintSensitivity } from "@/lib/types";
+import { SensitivityResult, ConstraintSensitivity, SolverCapabilities } from "@/lib/types";
 import { ConceptTooltip } from "@/components/ui/concept-tooltip";
+import { solverDisplayName } from "@/lib/solver-display";
 import { useTranslations } from "next-intl";
 
 interface SensitivityTabProps {
   sensitivity?: SensitivityResult | null;
+  /** The solver that ran this execution — only used to explain an empty tab. */
+  solverName?: string | null;
+  /** What that solver can deliver. Undefined = unknown, so claim nothing. */
+  capabilities?: SolverCapabilities;
 }
 
 interface ChartEntry {
@@ -29,7 +34,7 @@ function formatShadowPrice(value: number | null | undefined): string {
   return value.toFixed(6);
 }
 
-export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
+export function SensitivityTab({ sensitivity, solverName, capabilities }: SensitivityTabProps) {
   const t = useTranslations("solve.sensitivity");
   // Default ON (owner ask 2026-07-16): in large models most BASIC variables
   // have a zero reduced cost — the informative rows are the non-zero ones.
@@ -38,9 +43,20 @@ export function SensitivityTab({ sensitivity }: SensitivityTabProps) {
   const [nonZeroRcOnly, setNonZeroRcOnly] = useState(true);
 
   if (!sensitivity) {
+    // An empty tab has two very different causes, and "no data available" hid
+    // both behind one shrug. When the solver that ran this execution declares it
+    // computes no duals (Hexaly is a metaheuristic), say so and point at the
+    // analysis that IS available — it is solver-agnostic. Unknown capabilities
+    // keep the old wording rather than guessing a cause.
+    const cannotComputeDuals = !!solverName && capabilities?.sensitivity === false;
     return (
-      <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">
-        {t("noData")}
+      <div
+        className="flex items-center justify-center py-16 px-6 text-center text-muted-foreground text-sm"
+        data-testid="sensitivity-empty"
+      >
+        {cannotComputeDuals
+          ? t("solverNoDuals", { solver: solverDisplayName(solverName ?? "") })
+          : t("noData")}
       </div>
     );
   }

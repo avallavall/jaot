@@ -118,6 +118,7 @@
     "liveFailed": "Error en resoldre",
     "liveCancelled": "Cancel·lat",
     "liveWaiting": "Esperant la primera solució…",
+    "liveNoProgressStream": "{solver} no emet progrés mentre cerca: el resultat apareixerà quan acabi de resoldre.",
     "liveStreamNote": "Alguns solvers transmeten el progrés en directe; altres (p. ex. HiGHS, Hexaly) només informen del resultat final.",
     "solveStatusLabel": "Estat",
     "solveSolverLabel": "Solver",
@@ -3062,6 +3063,7 @@
     "sensitivity": {
       "upgradeMessage": "L'anàlisi de sensibilitat mostra com els canvis en les restriccions afecten la vostra solució òptima.",
       "noData": "No hi ha dades de sensibilitat disponibles per a aquesta execució.",
+      "solverNoDuals": "{solver} no calcula preus ombra ni costos reduïts, de manera que aquesta execució no té dades de sensibilitat. L'anàlisi exacta de la pestanya Resultats es calcula sobre la solució mateixa i funciona amb qualsevol solver.",
       "approximate": "Aproximat",
       "approximateNote": "Aproximat — aquest model conté variables enteres/binàries, així que els preus ombra i costos reduïts es deriven de la relaxació LP.",
       "noShadowPrices": "No hi ha restriccions amb preus ombra calculables.",
@@ -4325,6 +4327,8 @@
       "description": "LP/MIP de codi obert ràpid"
     },
     "unavailable": "El solver '{name}' no està disponible en aquest servidor.",
+    "noProgressNotice": "{solver} no informa del progrés mentre cerca: veuràs el resultat quan acabi de resoldre.",
+    "noSensitivityNotice": "{solver} no calcula preus ombra: la pestanya Sensibilitat quedarà buida en aquesta execució.",
     "availableEndpointError": "No s'ha pogut carregar la llista de solvers. S'utilitza el predeterminat.",
     "executionDetail": {
       "autoRoutedLabel": "Auto → {solver}",

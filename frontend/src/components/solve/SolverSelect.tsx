@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { SolverInfo } from "@/hooks/useSolvers";
+import { capabilitiesOf, type SolverInfo } from "@/hooks/useSolvers";
 import { solverDisplayName } from "@/lib/solver-display";
 
 interface SolverSelectProps {
@@ -27,12 +27,19 @@ interface SolverSelectProps {
 /**
  * Solver picker.
  *
- * - Each entry shows "Name · N×" where N comes from
+ * - Each entry shows the brand name plus its fixed one-line description.
  * - Disabled when `solver.available === false` (D-11 — Hexaly worker
  *   down → greyed-out option). The frontend does not render a maintenance
  *   tooltip; the disabled state is the contract.
  * - The "auto" option is always present and reachable, even when
  *   availableSolvers is empty.
+ * - Below the select, it names what the CHOSEN solver will not deliver (v3.2),
+ *   so the trade-off is visible before the solve rather than as an empty panel
+ *   after it. Only the two consequences the user actually observes are called
+ *   out — no shadow prices, and no progress while it runs. Quadratic support is
+ *   a property of the MODEL (which this component does not see) and warm-start
+ *   is an internal speed-up, so neither belongs in a pre-solve warning. "auto"
+ *   says nothing at all: the backend picks the effective solver per problem.
  */
 export function SolverSelect({
   id = "solver-select",
@@ -59,6 +66,14 @@ export function SolverSelect({
         </Select>
       </div>
     );
+  }
+
+  const chosen = capabilitiesOf(availableSolvers, solverName);
+  const notices: string[] = [];
+  if (chosen) {
+    const display = solverDisplayName(solverName);
+    if (!chosen.sensitivity) notices.push(tSolvers("noSensitivityNotice", { solver: display }));
+    if (!chosen.progress) notices.push(tSolvers("noProgressNotice", { solver: display }));
   }
 
   // Even with zero available_solvers from the backend, we still render the
@@ -103,6 +118,13 @@ export function SolverSelect({
           ))}
         </SelectContent>
       </Select>
+      {notices.length > 0 && (
+        <ul className="space-y-0.5 text-xs text-muted-foreground" data-testid="solver-capability-notice">
+          {notices.map((notice) => (
+            <li key={notice}>{notice}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

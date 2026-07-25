@@ -17,14 +17,10 @@ below.
 
 ## Next
 
+- **Solver-aware analysis panel** — the analysis UI adapts to what the active solver
+  actually provides instead of offering sections it cannot fill.
 - **Map visualization for routing problems** — plot routes/assignments for
   pickup-and-delivery-class models instead of reading them as tables.
-- **Large-solution rendering** — virtualized views so a 20k-variable solution stays
-  smooth in the browser.
-- **JModel editing refinements** — a live read-only JModel view of canvas edits with
-  an explicit "apply" step.
-- **Solver-aware analysis panel** — the analysis UI adapts to what the active solver
-  actually provides instead of showing empty sections.
 
 ## Later / Exploring
 
@@ -43,6 +39,10 @@ Things we have considered and deliberately set aside — so you don't have to gu
 - **Live data connectors in triggers** (databases, spreadsheets, HTTP feeds re-feeding
   models automatically). The complexity outweighs the value for now; importing data as
   datasets stays the supported path.
+- **A live JModel view of canvas edits.** Previously listed under Next. "Derive draft"
+  already turns a canvas or imported model into a JModel source on demand, and it only
+  offers a draft that provably round-trips — recomputing that on every keystroke buys
+  little for a view you read once.
 
 ---
 

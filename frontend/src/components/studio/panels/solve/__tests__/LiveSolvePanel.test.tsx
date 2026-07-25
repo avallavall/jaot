@@ -47,3 +47,60 @@ describe("LiveSolvePanel (presentational)", () => {
     expect(screen.getByText("optimal")).toBeInTheDocument();
   });
 });
+
+/**
+ * v3.2 — a solver that streams nothing used to sit on "waiting for the first
+ * incumbent" for the whole solve and then jump straight to the result. When the
+ * listing tells us the solver does not stream, say that instead.
+ */
+describe("LiveSolvePanel progress capability", () => {
+  const STREAMS = { sensitivity: true, warm_start: true, quadratic: true, progress: true };
+  const NO_STREAM = { sensitivity: false, warm_start: true, quadratic: true, progress: false };
+
+  it("explains the silence for a solver that does not stream", () => {
+    render(
+      <LiveSolvePanel
+        session={session({ status: "running", solverName: "hexaly" })}
+        capabilities={NO_STREAM}
+      />
+    );
+    expect(screen.getByText("studio.liveNoProgressStream")).toBeInTheDocument();
+    expect(screen.queryByText("studio.liveWaiting")).not.toBeInTheDocument();
+  });
+
+  it("still waits for the first incumbent when the solver does stream", () => {
+    render(
+      <LiveSolvePanel
+        session={session({ status: "running", solverName: "scip" })}
+        capabilities={STREAMS}
+      />
+    );
+    expect(screen.getByText("studio.liveWaiting")).toBeInTheDocument();
+    expect(screen.queryByText("studio.liveNoProgressStream")).not.toBeInTheDocument();
+  });
+
+  // Unknown capabilities (auto-routing, or a solver the listing does not carry)
+  // must not claim anything about streaming.
+  it("falls back to waiting when capabilities are unknown", () => {
+    render(<LiveSolvePanel session={session({ status: "running", solverName: "auto" })} />);
+    expect(screen.getByText("studio.liveWaiting")).toBeInTheDocument();
+    expect(screen.queryByText("studio.liveNoProgressStream")).not.toBeInTheDocument();
+  });
+
+  // The generic "some solvers stream, others don't" footnote hard-codes solver
+  // names; it is only shown while we cannot name THIS solver's behaviour.
+  it("drops the generic footnote once the solver's behaviour is known", () => {
+    const { rerender } = render(
+      <LiveSolvePanel session={session({ status: "running", solverName: "auto" })} />
+    );
+    expect(screen.getByText("studio.liveStreamNote")).toBeInTheDocument();
+
+    rerender(
+      <LiveSolvePanel
+        session={session({ status: "running", solverName: "scip" })}
+        capabilities={STREAMS}
+      />
+    );
+    expect(screen.queryByText("studio.liveStreamNote")).not.toBeInTheDocument();
+  });
+});

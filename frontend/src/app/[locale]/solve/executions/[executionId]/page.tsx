@@ -18,6 +18,8 @@ import { SolutionExplainer } from "@/components/solve/SolutionExplainer";
 import { InfeasibilityPanel } from "@/components/solve/InfeasibilityPanel";
 import { OriginBadge } from "@/components/solve/OriginBadge";
 import { SolveFactCard } from "@/components/solve/SolveFactCard";
+import { useSolverCapabilities } from "@/hooks/useSolvers";
+import { solverDisplayName } from "@/lib/solver-display";
 import { useTranslations } from "next-intl";
 import { Database } from "lucide-react";
 
@@ -40,6 +42,11 @@ export default function ExecutionDetailPage() {
   const infeasibilityAnalysis =
     (resultData as { infeasibility_analysis?: InfeasibilityAnalysis | null } | undefined)
       ?.infeasibility_analysis ?? null;
+  // The solver that ACTUALLY ran: under solver_name="auto" the backend routes,
+  // and `solver_used` is the only field that records where it landed. Its
+  // capabilities are what the analysis panels may promise for this run.
+  const effectiveSolver = resultData?.solver_used ?? execution?.solver_name ?? null;
+  const solverCapabilities = useSolverCapabilities(effectiveSolver);
   useEffect(() => {
     loadExecution();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -174,9 +181,10 @@ export default function ExecutionDetailPage() {
         <div className="bg-card border border-border rounded-lg p-4">
           <div className="text-sm text-muted-foreground">{t("solver")}</div>
           <div className="font-medium">
-            {execution.solver_name
-              ? execution.solver_name.toUpperCase()
-              : "SCIP"}
+            {/* Prefer the solver that actually ran (auto-routing resolves to it)
+                over the one that was requested, and render the brand casing
+                rather than a blunt uppercase. */}
+            {effectiveSolver ? solverDisplayName(effectiveSolver) : "SCIP"}
           </div>
         </div>
       </div>
@@ -290,7 +298,11 @@ export default function ExecutionDetailPage() {
           </TabsContent>
 
           <TabsContent value="sensitivity">
-            <SensitivityTab sensitivity={resultData?.sensitivity} />
+            <SensitivityTab
+              sensitivity={resultData?.sensitivity}
+              solverName={effectiveSolver}
+              capabilities={solverCapabilities}
+            />
           </TabsContent>
         </Tabs>
       </div>

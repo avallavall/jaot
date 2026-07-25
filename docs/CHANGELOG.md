@@ -19,6 +19,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Added
 
+- **The interface stops promising what your solver cannot deliver.** Every solver adapter
+  has always declared what it supports — shadow prices, warm starts, quadratic terms,
+  live progress — but nothing outside the adapters ever read those declarations, so the
+  interface offered the identical analysis surface whichever solver you picked. Choose
+  Hexaly, a metaheuristic that computes no duals, and the Sensitivity tab still invited you
+  in and then said "no sensitivity data available", as if the run had failed. Live Solve sat
+  on "waiting for the first incumbent" for the whole solve on solvers that stream nothing,
+  then jumped straight to the result. `GET /solvers/available` now reports each solver's
+  capabilities, and the interface acts on them: the solver picker names what your choice
+  will not give you *before* you solve, the Sensitivity tab explains that this solver
+  computes no shadow prices instead of shrugging, and Live Solve says the solver reports no
+  progress rather than pretending to wait for it. Under auto-routing nothing is claimed at
+  all — the effective solver is chosen per problem, so there is nothing honest to say up
+  front. A capability that cannot be read reads as *unknown*, never as unsupported. The
+  execution header now also shows the solver that actually ran (auto-routing resolves to it)
+  in its own brand casing, rather than the one that was requested.
+
 - **The assistant answers in your language.** Every generated text — chat replies, the
   solution, infeasibility and what-if explanations, and the assumptions written alongside a
   generated JModel — came back in English no matter which of the five languages you were

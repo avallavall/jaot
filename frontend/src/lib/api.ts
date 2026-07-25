@@ -76,6 +76,7 @@ import type {
   ProjectDataset,
   ProjectDatasetSummary,
   DatasetImportPreview,
+  SolverInfo,
 } from "./types";
 import { localeHeader } from "@/lib/locale-header";
 
@@ -162,6 +163,8 @@ export type {
   SolveAnalyticsCompare,
   TrendBucket,
   ComparedExecution,
+  SolverCapabilities,
+  SolverInfo,
 } from "./types";
 
 export interface RegistryEntry {
@@ -759,16 +762,7 @@ export const api = {
     });
   },
 
-  getSolvers(): Promise<{
-    solvers: Array<{
-      name: string;
-      available: boolean;
-      description?: string;
-      multiplier?: number;
-      reason?: string;
-      retry_after?: number | null;
-    }>;
-  }> {
+  getSolvers(): Promise<{ solvers: SolverInfo[] }> {
     return request("/api/v2/solvers/available");
   },
 

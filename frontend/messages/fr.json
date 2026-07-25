@@ -118,6 +118,7 @@
     "liveFailed": "Échec de la résolution",
     "liveCancelled": "Annulé",
     "liveWaiting": "En attente de la première solution…",
+    "liveNoProgressStream": "{solver} ne diffuse pas sa progression pendant la recherche : le résultat apparaîtra à la fin de la résolution.",
     "liveStreamNote": "Certains solveurs diffusent la progression en direct ; d'autres (p. ex. HiGHS, Hexaly) ne renvoient que le résultat final.",
     "solveStatusLabel": "Statut",
     "solveSolverLabel": "Solveur",
@@ -3062,6 +3063,7 @@
     "sensitivity": {
       "upgradeMessage": "L'analyse de sensibilité montre comment les modifications des contraintes affectent votre solution optimale.",
       "noData": "Aucune donnée de sensibilité disponible pour cette exécution.",
+      "solverNoDuals": "{solver} ne calcule ni prix duaux ni coûts réduits : cette exécution n'a donc pas de données de sensibilité. L'analyse exacte de l'onglet Résultats est calculée à partir de la solution elle-même et fonctionne avec n'importe quel solveur.",
       "approximate": "Approximatif",
       "approximateNote": "Approximatif — ce modèle contient des variables entières/binaires : les prix duaux et coûts réduits sont dérivés de la relaxation LP.",
       "noShadowPrices": "Aucune contrainte avec des prix duaux calculables.",
@@ -4325,6 +4327,8 @@
       "description": "LP/MIP open source rapide"
     },
     "unavailable": "Le solveur '{name}' n'est pas disponible sur ce serveur.",
+    "noProgressNotice": "{solver} ne rend pas compte de sa progression pendant la recherche : le résultat apparaît à la fin de la résolution.",
+    "noSensitivityNotice": "{solver} ne calcule pas de prix duaux : l'onglet Sensibilité sera vide pour cette exécution.",
     "availableEndpointError": "Impossible de charger les solveurs disponibles. Utilisation du solveur par défaut.",
     "executionDetail": {
       "autoRoutedLabel": "Auto → {solver}",

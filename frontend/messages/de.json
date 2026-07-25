@@ -118,6 +118,7 @@
     "liveFailed": "Lösung fehlgeschlagen",
     "liveCancelled": "Abgebrochen",
     "liveWaiting": "Warten auf die erste Lösung…",
+    "liveNoProgressStream": "{solver} sendet während der Suche keinen Fortschritt — das Ergebnis erscheint, wenn der Solve fertig ist.",
     "liveStreamNote": "Einige Solver übertragen den Fortschritt live; andere (z. B. HiGHS, Hexaly) melden nur das Endergebnis.",
     "solveStatusLabel": "Status",
     "solveSolverLabel": "Solver",
@@ -3062,6 +3063,7 @@
     "sensitivity": {
       "upgradeMessage": "Die Sensitivitätsanalyse zeigt, wie Änderungen an Nebenbedingungen Ihre optimale Lösung beeinflussen.",
       "noData": "Keine Sensitivitätsdaten für diese Ausführung verfügbar.",
+      "solverNoDuals": "{solver} berechnet weder Schattenpreise noch reduzierte Kosten, daher gibt es für diesen Lauf keine Sensitivitätsdaten. Die exakte Analyse im Reiter Ergebnisse wird aus der Lösung selbst berechnet und funktioniert mit jedem Solver.",
       "approximate": "Näherung",
       "approximateNote": "Näherungswerte — dieses Modell enthält ganzzahlige/binäre Variablen; Schattenpreise und reduzierte Kosten stammen aus der LP-Relaxation.",
       "noShadowPrices": "Keine Constraints mit berechenbaren Schattenpreisen.",
@@ -4325,6 +4327,8 @@
       "description": "Schneller Open-Source LP/MIP"
     },
     "unavailable": "Solver '{name}' ist auf diesem Server nicht verfügbar.",
+    "noProgressNotice": "{solver} meldet während der Suche keinen Fortschritt — das Ergebnis erscheint, wenn der Solve fertig ist.",
+    "noSensitivityNotice": "{solver} berechnet keine Schattenpreise — der Reiter Sensitivität bleibt für diesen Lauf leer.",
     "availableEndpointError": "Verfügbare Solver konnten nicht geladen werden. Standardwert wird verwendet.",
     "executionDetail": {
       "autoRoutedLabel": "Auto → {solver}",

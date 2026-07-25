@@ -118,6 +118,7 @@
     "liveFailed": "Solve failed",
     "liveCancelled": "Cancelled",
     "liveWaiting": "Waiting for the first incumbent…",
+    "liveNoProgressStream": "{solver} does not stream progress while it searches — the result appears when the solve finishes.",
     "liveStreamNote": "Some solvers stream live progress; others (e.g. HiGHS, Hexaly) only report the final result.",
     "solveStatusLabel": "Status",
     "solveSolverLabel": "Solver",
@@ -3099,6 +3100,7 @@
     "sensitivity": {
       "upgradeMessage": "Sensitivity analysis shows how changes in constraints affect your optimal solution.",
       "noData": "No sensitivity data available for this execution.",
+      "solverNoDuals": "{solver} does not compute shadow prices or reduced costs, so this run has no sensitivity data. The exact analysis under Results is computed from the solution itself and works with any solver.",
       "approximate": "Approximate",
       "approximateNote": "Approximate — this model contains integer/binary variables, so shadow prices and reduced costs are derived from the LP relaxation.",
       "noShadowPrices": "No constraints with computable shadow prices.",
@@ -4325,6 +4327,8 @@
       "description": "Fast open-source LP/MIP"
     },
     "unavailable": "Solver '{name}' is not available on this server.",
+    "noProgressNotice": "{solver} reports no progress while it searches — you see the result when the solve finishes.",
+    "noSensitivityNotice": "{solver} computes no shadow prices — the Sensitivity tab will be empty for this run.",
     "availableEndpointError": "Could not load available solvers. Using default.",
     "executionDetail": {
       "autoRoutedLabel": "Auto → {solver}",

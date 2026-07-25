@@ -336,3 +336,64 @@ If the task already completed:
 ```json
 {"task_id": "b7a3c9e2-...", "cancelled": false, "message": "Task already completed, cannot cancel"}
 ```
+
+---
+
+## GET /api/v2/solvers/available
+
+List the solvers this server can run, and what each one can deliver. Use it to pick a
+value for `solver_name` — and to know what to expect back from that choice.
+
+**Authentication:** Requires API key or JWT token.
+
+### Response
+
+```json
+{
+  "solvers": [
+    {
+      "name": "scip",
+      "available": true,
+      "description": "Academic MIP solver",
+      "capabilities": {
+        "sensitivity": true,
+        "warm_start": true,
+        "quadratic": true,
+        "progress": true
+      }
+    },
+    {
+      "name": "hexaly",
+      "available": false,
+      "reason": "maintenance",
+      "retry_after": null,
+      "description": "Commercial solver for quadratic / non-convex problems",
+      "capabilities": {
+        "sensitivity": false,
+        "warm_start": true,
+        "quadratic": true,
+        "progress": false
+      }
+    }
+  ]
+}
+```
+
+| Capability | What it means for your response |
+|------------|--------------------------------|
+| `sensitivity` | The solve returns `sensitivity` (shadow prices, reduced costs). When false, that field is absent — it is not an error. |
+| `warm_start` | A re-solve can be seeded from a previous solution. Affects speed, not results. |
+| `quadratic` | Models containing quadratic terms can run. A solver without it rejects them explicitly rather than solving a linear relaxation. |
+| `progress` | The solve streams per-incumbent progress events. When false, you get the result only when it finishes. |
+
+Notes:
+
+- `available: false` means the solver is registered but temporarily unusable (`reason`
+  explains why). Its `capabilities` still describe the solver, so past executions that
+  used it can still be interpreted.
+- `capabilities` may be **absent** on an entry. That means "not known", not "supports
+  nothing" — treat it as no information rather than as a denial.
+- Multi-objective is not listed: it is available for every solver. Solvers without
+  native support get it through scalarization, so a per-solver flag would be misleading.
+- `solver_name: "auto"` is always accepted and is not listed here; the server picks the
+  effective solver per problem and reports it back as `solver_used`.

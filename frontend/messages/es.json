@@ -118,6 +118,7 @@
     "liveFailed": "Error al resolver",
     "liveCancelled": "Cancelado",
     "liveWaiting": "Esperando la primera solución…",
+    "liveNoProgressStream": "{solver} no emite progreso mientras busca: el resultado aparecerá cuando termine de resolver.",
     "liveStreamNote": "Algunos solvers transmiten el progreso en vivo; otros (p. ej. HiGHS, Hexaly) solo informan del resultado final.",
     "solveStatusLabel": "Estado",
     "solveSolverLabel": "Solver",
@@ -3062,6 +3063,7 @@
     "sensitivity": {
       "upgradeMessage": "El análisis de sensibilidad muestra cómo los cambios en las restricciones afectan a tu solución óptima.",
       "noData": "No hay datos de sensibilidad disponibles para esta ejecución.",
+      "solverNoDuals": "{solver} no calcula precios sombra ni costes reducidos, así que esta ejecución no tiene datos de sensibilidad. El análisis exacto de la pestaña Resultados se calcula sobre la propia solución y funciona con cualquier solver.",
       "approximate": "Aproximado",
       "approximateNote": "Aproximado — este modelo contiene variables enteras/binarias, así que los precios sombra y costes reducidos se derivan de la relajación LP.",
       "noShadowPrices": "No hay restricciones con precios sombra calculables.",
@@ -4325,6 +4327,8 @@
       "description": "LP/MIP de código abierto rápido"
     },
     "unavailable": "El solver '{name}' no está disponible en este servidor.",
+    "noProgressNotice": "{solver} no informa del progreso mientras busca: verás el resultado cuando termine de resolver.",
+    "noSensitivityNotice": "{solver} no calcula precios sombra: la pestaña Sensibilidad quedará vacía en esta ejecución.",
     "availableEndpointError": "No se pudo cargar la lista de solvers. Usando el predeterminado.",
     "executionDetail": {
       "autoRoutedLabel": "Auto → {solver}",

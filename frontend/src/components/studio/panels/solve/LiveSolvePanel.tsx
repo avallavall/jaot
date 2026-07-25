@@ -3,6 +3,8 @@
 import { useTranslations } from "next-intl";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { solverDisplayName } from "@/lib/solver-display";
+import type { SolverCapabilities } from "@/lib/types";
 import type { SolveSession } from "../../store/createModelProjectStore";
 import { computeMetrics } from "./live-solve-metrics";
 
@@ -10,6 +12,8 @@ interface LiveSolvePanelProps {
   /** The current solve session (from the canonical store — survives tab switches). */
   session: SolveSession;
   onCancel?: () => void;
+  /** What the session's solver can deliver. Undefined = unknown, so claim nothing. */
+  capabilities?: SolverCapabilities;
 }
 
 /**
@@ -19,7 +23,7 @@ interface LiveSolvePanelProps {
  * when per-incumbent points streamed (SCIP); for solvers that don't stream (HiGHS,
  * Hexaly) it shows a clean final-result summary instead of an empty live box.
  */
-export function LiveSolvePanel({ session, onCancel }: LiveSolvePanelProps) {
+export function LiveSolvePanel({ session, onCancel, capabilities }: LiveSolvePanelProps) {
   const t = useTranslations("studio");
   const { status, points, lastEvent, result, solverName } = session;
   const metrics = computeMetrics(points, lastEvent);
@@ -49,8 +53,17 @@ export function LiveSolvePanel({ session, onCancel }: LiveSolvePanelProps) {
         </span>
       </div>
 
+      {/* "Waiting for the first solution" is only true for a solver that will
+          eventually send one. HiGHS exposes no per-incumbent callback and Hexaly
+          is a metaheuristic with none wired, so on those this box used to sit on
+          "waiting" for the whole solve and then jump straight to the result.
+          When the solver declares it does not stream, say so instead (v3.2). */}
       {running && !hasPoints && (
-        <p className="py-6 text-center text-sm text-muted-foreground">{t("liveWaiting")}</p>
+        <p className="py-6 text-center text-sm text-muted-foreground">
+          {capabilities?.progress === false && solverName
+            ? t("liveNoProgressStream", { solver: solverDisplayName(solverName) })
+            : t("liveWaiting")}
+        </p>
       )}
 
       {/* Live metrics as they stream (SCIP). The convergence CHART was removed
@@ -89,7 +102,9 @@ export function LiveSolvePanel({ session, onCancel }: LiveSolvePanelProps) {
             <Metric label={t("solveStatusLabel")} value={result.status ?? "—"} />
             <Metric
               label={t("solveSolverLabel")}
-              value={result.solver_used ?? solverName ?? "—"}
+              /* Same brand casing as the note below it — the panel used to show
+                 "highs" here and "HiGHS" there, in the same box. */
+              value={solverDisplayName(result.solver_used ?? solverName ?? "") || "—"}
             />
             <Metric
               label={t("liveElapsed")}
@@ -110,7 +125,7 @@ export function LiveSolvePanel({ session, onCancel }: LiveSolvePanelProps) {
           <span>
             {t("solveSolverLabel")}:{" "}
             <span className="font-medium text-foreground">
-              {result.solver_used ?? solverName ?? "—"}
+              {solverDisplayName(result.solver_used ?? solverName ?? "") || "—"}
             </span>
           </span>
           {result.auto_route_reason && (
@@ -120,7 +135,15 @@ export function LiveSolvePanel({ session, onCancel }: LiveSolvePanelProps) {
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground">{t("liveStreamNote")}</p>
+      {/* The generic "some solvers stream, others don't" note is only worth
+          showing while we cannot name THIS solver's behaviour — under "auto",
+          or when the listing did not tell us. Once capabilities are known the
+          concrete message above says it better, and the generic copy hard-codes
+          solver names that would quietly become wrong if an adapter gains a
+          progress callback. */}
+      {capabilities === undefined && (
+        <p className="text-xs text-muted-foreground">{t("liveStreamNote")}</p>
+      )}
 
       {running && onCancel && (
         <Button variant="outline" size="sm" onClick={onCancel}>

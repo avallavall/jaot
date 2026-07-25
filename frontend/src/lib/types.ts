@@ -1044,3 +1044,36 @@ export interface ComparedExecution {
 export interface SolveAnalyticsCompare {
   executions: ComparedExecution[];
 }
+
+/**
+ * What a solver can actually deliver, as declared by its adapter and exposed by
+ * `GET /solvers/available`. Only flags with an observable consequence for the
+ * user are carried — see `_capabilities_payload` in `app/api/v2/solvers.py` for
+ * what is deliberately left out (notably native multi-objective, which the
+ * orchestrator provides for every solver through scalarization).
+ *
+ * Absent (`undefined`) means "not known", never "not supported": an execution
+ * whose solver is no longer listed must make the UI claim nothing.
+ */
+export interface SolverCapabilities {
+  /** Shadow prices / reduced costs — the Sensitivity tab and the LP duals section. */
+  sensitivity: boolean;
+  /** A re-solve can be seeded from the incumbent (what-if relax runs). */
+  warm_start: boolean;
+  /** Models carrying quadratic terms can run at all. */
+  quadratic: boolean;
+  /** Per-incumbent streaming — Live Solve. */
+  progress: boolean;
+}
+
+export interface SolverInfo {
+  name: string;
+  available: boolean;
+  description?: string;
+  /** Present when available=false. */
+  reason?: string;
+  /** Seconds until re-check. */
+  retry_after?: number | null;
+  /** Absent when the backend could not read the adapter's declaration. */
+  capabilities?: SolverCapabilities;
+}
