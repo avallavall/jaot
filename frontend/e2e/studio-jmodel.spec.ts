@@ -540,11 +540,32 @@ subject to reach_c: sum{(i, j) in ARCS : j == c} use[i, j] >= 1;`);
     await expect(page.getByTestId("studio-jmodel-error")).toHaveCount(0, { timeout: NAV });
     await expect(page.getByTestId("studio-saved")).toBeVisible({ timeout: NAV });
 
+    // Typing autosaves TWICE: first the source (model still empty), then — once the
+    // debounced compile returns — the compiled model. The first "Saved" is the source
+    // one, so reloading on it rehydrates a project with NO model, and the lock
+    // deliberately does not arm (with no model, no keystroke can clobber anything).
+    // Wait for the save that actually carries the model, which is the state this test
+    // is about.
+    await page.waitForResponse(
+      (r) => {
+        if (r.request().method() !== "PUT" || !r.url().endsWith("/draft")) return false;
+        const sent = JSON.parse(r.request().postData() ?? "{}") as {
+          model_json?: { variables?: unknown[] };
+        };
+        return (sent.model_json?.variables?.length ?? 0) > 0;
+      },
+      { timeout: NAV }
+    );
+
     // A real reload: model + source rehydrate with their sync state unknowable.
     await page.reload();
     await expect(textarea).toBeVisible({ timeout: NAV });
     await expect(textarea).toHaveJSProperty("readOnly", true);
     await expect(page.getByTestId("studio-jmodel-recompile")).toBeVisible({ timeout: NAV });
+    // ...locked as a RELOAD, not as "changed elsewhere". Pinning the wording matters:
+    // this test used to pass off a phantom canvas drift (a bug) that locked the lens
+    // for the wrong reason and said something untrue while doing it.
+    await expect(page.getByText(/page was reloaded/i)).toBeVisible();
 
     // The explicit recompile applies the source (here: identical model) → lock ends.
     await page.getByTestId("studio-jmodel-recompile").click();

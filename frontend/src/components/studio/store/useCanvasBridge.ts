@@ -13,6 +13,7 @@ import type { ModelProjectStore } from "./createModelProjectStore";
 const DEBOUNCE_MS = 300;
 
 type Variable = OptimizationProblem["variables"][number];
+type Constraint = OptimizationProblem["constraints"][number];
 
 /**
  * Re-attach the server-derived index structure (`family`/`index_tuple`, A1) the canvas
@@ -31,6 +32,32 @@ export function reattachVariableStructure(
   return projected.map((v) => {
     const prior = priorByName.get(v.name);
     return prior ? { ...v, family: prior.family, index_tuple: prior.index_tuple } : v;
+  });
+}
+
+/**
+ * The same re-attachment for constraint rows. Sensitivity L1 gave `Constraint` its own
+ * server-stamped `family` (same contract as `Variable.family`) and the canvas has no node
+ * field for it, so a reprojection dropped it — and since `problemsEqual` is a full JSON
+ * compare, a canonical `"family": null` versus an ABSENT key counted as a change. Merely
+ * opening the canvas sub-lens therefore fired the phantom `setProblem(source:"canvas")`
+ * this module's variable path already guards against: the JModel lens locked read-only
+ * behind "The model was changed elsewhere" (which was false), its dataset selector went
+ * dead, and the studio autosaved a draft nobody edited.
+ *
+ * Matched by name, so an unnamed or genuinely new constraint keeps no family — correct,
+ * since family membership is re-derived by the next compile.
+ */
+export function reattachConstraintStructure(
+  projected: readonly Constraint[],
+  current: readonly Constraint[]
+): Constraint[] {
+  const priorByName = new Map(
+    current.filter((c) => c.name != null).map((c) => [c.name, c] as const)
+  );
+  return projected.map((c) => {
+    const prior = c.name != null ? priorByName.get(c.name) : undefined;
+    return prior ? { ...c, family: prior.family } : c;
   });
 }
 
@@ -87,15 +114,16 @@ export function useCanvasBridge(store: ModelProjectStore): void {
         // for the JModel/editor lenses) and a real canvas edit never silently drops
         // the fields the canvas cannot represent.
         //
-        // Per-variable, re-attach the server-derived index structure the canvas cannot
-        // represent (see reattachVariableStructure) so an untouched canvas stays
-        // JSON-identical and never drifts the DSL/editor source read-only on a mere view.
+        // Per row, re-attach the server-derived structure the canvas cannot represent
+        // (see reattachVariableStructure / reattachConstraintStructure) so an untouched
+        // canvas stays JSON-identical and never drifts the DSL/editor source read-only
+        // on a mere view.
         store.getState().setProblem(
           {
             ...current,
             variables: reattachVariableStructure(projected.variables, current.variables),
             objective: projected.objective,
-            constraints: projected.constraints,
+            constraints: reattachConstraintStructure(projected.constraints, current.constraints),
           },
           { source: "canvas" }
         );

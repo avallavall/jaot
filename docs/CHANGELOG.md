@@ -164,6 +164,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Fixed
 
+- **Looking at the canvas no longer counts as changing the model.** Opening the Canvas
+  sub-lens — just looking, touching nothing — locked the JModel editor read-only behind
+  the banner "The model was changed elsewhere", greyed out its dataset selector, and
+  autosaved a draft nobody had edited. The model itself was never harmed, but the
+  warning was untrue and the lens stayed locked until you explicitly recompiled. The
+  cause: constraints gained a server-stamped `family` (with the Sensitivity family KPIs)
+  and the canvas has no field for it, so re-reading the canvas produced a model that
+  differed from the canonical one by that single absent key — enough for the
+  change-detector, which compares models whole. The canvas bridge now carries a
+  constraint's family across the round-trip, exactly as it already did for variables.
+
 - **The MCP discovery document was still advertising 26 tools.** The tool list is
   published in four places, and `llms.txt` — the one an agent reads instead of asking the
   server — was left behind when the four analysis tools landed, so it named and listed 26.

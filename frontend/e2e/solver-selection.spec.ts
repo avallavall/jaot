@@ -383,3 +383,47 @@ test.describe("UAT-4: HTTP 422 for invalid solver_name", () => {
     expect(solverNames).toContain("highs");
   });
 });
+
+/**
+ * v3.2: the picker names what the CHOSEN solver will not deliver, before the solve
+ * rather than as an empty panel after it. Only the two consequences a user observes
+ * are called out (no shadow prices, no live progress), and "auto" promises nothing —
+ * the backend picks the effective solver per problem.
+ */
+test.describe("Per-solver capability notice", () => {
+  test.beforeEach(async ({ page }) => {
+    await interceptGuidanceApi(page);
+  });
+
+  async function pickSolver(page: Page, label: string): Promise<void> {
+    await page.locator("#solver-select").click();
+    await page.getByRole("option", { name: label }).first().click();
+    await expect(page.locator("#solver-select")).toContainText(label);
+  }
+
+  test("warns for HiGHS, stays silent for SCIP, promises nothing under auto", async ({ page }) => {
+    await page.goto("/en/solve/custom");
+    const trigger = page.locator("#solver-select");
+    await expect(trigger).toBeVisible({ timeout: NAV_TIMEOUT });
+    const notice = page.getByTestId("solver-capability-notice");
+
+    await expect(trigger).toContainText("Auto");
+    await expect(notice).toHaveCount(0);
+
+    // SCIP does everything the notices talk about → nothing to warn about.
+    await pickSolver(page, "SCIP");
+    await expect(notice).toHaveCount(0);
+
+    // HiGHS computes duals but exposes no per-incumbent callback, so exactly ONE
+    // notice — the progress one. A shadow-price warning here would be false.
+    await pickSolver(page, "HiGHS");
+    await expect(notice).toBeVisible();
+    await expect(notice.locator("li")).toHaveCount(1);
+    await expect(notice).toContainText("HiGHS");
+    await expect(notice).toContainText(/progress/i);
+    await expect(notice).not.toContainText(/shadow price/i);
+
+    await pickSolver(page, "Auto");
+    await expect(notice).toHaveCount(0);
+  });
+});
