@@ -722,6 +722,10 @@
         "title": "Analyse exacte fondée sur la solution",
         "description": "Contraintes actives, marges et taux d'utilisation calculés à partir de votre solution réelle : exact pour l'optimum entier, sur tous les solveurs."
       },
+      "whatIf": {
+        "title": "Scénarios, mesurés",
+        "description": "Demandez ce qu'une unité de plus vous apporterait : JAOT résout à nouveau le modèle perturbé et indique le gain réel, mesuré sur votre MIP et non estimé à partir d'une relaxation."
+      },
       "structuredSolution": {
         "title": "Des décisions, pas un mur de chiffres",
         "description": "Les solutions reviennent groupées selon la vraie structure d'indices du modèle, avec un résumé honnête du solve : nœud racine, branchement ou limite de temps."

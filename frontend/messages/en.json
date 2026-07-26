@@ -722,6 +722,10 @@
         "title": "Exact, solution-based analysis",
         "description": "Binding constraints, slack, and utilization computed from your actual solution — exact for the integer optimum, on every solver."
       },
+      "whatIf": {
+        "title": "What-if, measured",
+        "description": "Ask what one more unit would buy you: JAOT re-solves the perturbed model and reports the real change — measured on your MIP, not estimated from a relaxation."
+      },
       "structuredSolution": {
         "title": "Decisions, not a wall of numbers",
         "description": "Solutions come back grouped by the model's real index structure, with an honest summary of how the solve went — root node, branching, or time limit."

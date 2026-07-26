@@ -722,6 +722,10 @@
         "title": "Anàlisi exacta basada en la solució",
         "description": "Restriccions actives, marges i utilització calculats de la teva solució real: exacte per a l'òptim enter, amb qualsevol solver."
       },
+      "whatIf": {
+        "title": "Escenaris, mesurats",
+        "description": "Pregunta què et donaria una unitat més: JAOT torna a resoldre el model pertorbat i mostra el canvi real, mesurat sobre el teu MIP i no estimat a partir d'una relaxació."
+      },
       "structuredSolution": {
         "title": "Decisions, no un mur de números",
         "description": "Les solucions tornen agrupades per l'estructura d'índexs real del model, amb un resum honest del solve: node arrel, ramificació o límit de temps."

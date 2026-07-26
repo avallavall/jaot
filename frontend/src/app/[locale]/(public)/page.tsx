@@ -30,6 +30,7 @@ import {
   PieChart,
   Sparkles,
   Store,
+  TrendingUp,
   Truck,
   Users,
   Wrench,
@@ -107,6 +108,7 @@ const USE_CASE_KEYS = [
 
 const SOLUTION_EXPLAINER_KEYS = [
   { icon: PieChart, key: "exactAnalysis" },
+  { icon: TrendingUp, key: "whatIf" },
   { icon: Network, key: "structuredSolution" },
   { icon: Sparkles, key: "aiExplain" },
 ] as const;
@@ -334,7 +336,7 @@ export default async function HomePage() {
             subtitle={t("solutionExplainer.subtitle")}
           />
         </Reveal>
-        <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {SOLUTION_EXPLAINER_KEYS.map((item, idx) => (
             <Reveal key={item.key} delay={(idx % 3) * 80}>
               <Card className="h-full overflow-hidden border-border shadow-warm-sm transition-shadow duration-300 hover:shadow-warm-md">

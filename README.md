@@ -29,6 +29,16 @@ library and not a hosted SaaS** — you run it yourself with `docker compose up`
   reduced costs) stays available with its caveats, and a one-click AI
   explanation translates the result into plain language grounded strictly in
   your actual numbers.
+- **What-if answers measured, not estimated** — ask what one more unit would
+  actually buy you and JAOT perturbs the solved model and solves it again: RHS
+  ranging on the binding constraints (as a tornado chart) and decision regret
+  (what overruling a binary decision costs). Every figure is measured on the
+  real MIP rather than read off an LP relaxation, and a scenario that hits its
+  time limit is reported as a bound, never as an exact number.
+- **The interface adapts to your solver** — each adapter declares what it
+  supports, so the UI tells you up front what your chosen solver will not give
+  you (a metaheuristic computes no shadow prices) instead of offering a panel
+  that then comes back empty.
 - **Model studio** — one versioned workspace per model: build it on a visual
   canvas, with the AI assistant, in a JSON editor, or in the JModel DSL
   (sets/params — with a mathematical-notation view, draft derivation from flat
@@ -40,9 +50,10 @@ library and not a hosted SaaS** — you run it yourself with `docker compose up`
   version of your model, and bring any community model into your own studio
   with one click ("Use in studio" creates your editable, versioned copy).
   No prices or commissions — authors share; adoption is the metric.
-- **MCP server** — exposes solver tools to AI agents (Claude, etc.) via the
-  Model Context Protocol.
-- **102 templates + 27 problem generators** — knapsack, vehicle routing,
+- **MCP server** — 30 curated tools for AI agents (Claude, etc.) over the Model
+  Context Protocol: an agent can author a versioned model, solve it, and ask
+  what is saturated, why a model is infeasible, or what one more unit is worth.
+- **102 templates + 31 problem generators** — knapsack, vehicle routing,
   scheduling, production planning, portfolio, a full MDPDP-TW formulation, and
   more.
 - **Multi-tenant auth, admin panel, i18n (en/es/ca/fr/de),
@@ -50,8 +61,15 @@ library and not a hosted SaaS** — you run it yourself with `docker compose up`
 
 JAOT is **free and collaborative** — there is no billing, no credits, no paid
 tier (ADR-008). Fair use is enforced with per-organization rate limits and
-configurable solve quotas/caps; the AI assistant is bounded by a monthly EUR
-budget with bring-your-own-key support.
+configurable solve quotas; the AI assistant is bounded by a monthly EUR budget
+with bring-your-own-key support.
+
+**Nothing caps the size of your models but your hardware.** There is no ceiling
+on model size, expression length, thread count or solve time — the limits that
+survived from the hosted-product era are gone, and every remaining one is a
+setting you own, where `0` means unlimited. A model with two million variables
+solves if your machine can hold it. A public instance with open registration can
+set real numbers; a private one need not.
 
 ---
 

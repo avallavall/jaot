@@ -10,14 +10,23 @@ as we learn. The best way to influence it is to
 **Foundations before features.** The analysis layer is where we wanted it: exact
 post-solve facts, per-family KPIs, what-if answers by real re-solves, and an interface
 that adapts to what your chosen solver can actually deliver. Before building the next
-large thing on top, we are going through the backend itself — layering, duplication,
-performance and security — so that what comes next lands on solid ground rather than on
-top of it.
+large thing on top, we are going through the backend itself so that what comes next
+lands on solid ground rather than on top of it.
+
+Landed so far: request handling no longer blocks the server on database work or on file
+parsing, foreign keys are indexed, the security gates are back in CI, and the capacity
+limits inherited from the hosted-product era are gone — model size is now bounded by
+your hardware, not by a constant in our schema.
 
 ## Next
 
-- **Architecture and code-quality work across the backend**, landing as small,
-  independently verified changes rather than one big rewrite.
+- **Finishing the architecture pass** — the remaining items are the dependency
+  direction between layers (and a lint contract to keep it that way) and giving the
+  endpoints that still return untyped payloads a real response schema, so the API
+  describes itself and clients stop hand-writing those types.
+- **Scaling the routing models** — a fleet-sized pickup-and-delivery problem is a
+  realistic ask in transport, and we are working through what the platform needs to
+  express and solve one honestly.
 
 ## Later / Exploring
 

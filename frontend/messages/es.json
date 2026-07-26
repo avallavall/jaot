@@ -722,6 +722,10 @@
         "title": "Análisis exacto basado en la solución",
         "description": "Restricciones activas, holguras y utilización calculadas de tu solución real: exacto para el óptimo entero, en cualquier solver."
       },
+      "whatIf": {
+        "title": "Escenarios, medidos",
+        "description": "Pregunta qué te daría una unidad más: JAOT resuelve de nuevo el modelo perturbado y muestra el cambio real, medido sobre tu MIP y no estimado a partir de una relajación."
+      },
       "structuredSolution": {
         "title": "Decisiones, no un muro de números",
         "description": "Las soluciones vuelven agrupadas por la estructura de índices real del modelo, con un resumen honesto del solve: nodo raíz, ramificación o límite de tiempo."

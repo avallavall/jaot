@@ -722,6 +722,10 @@
         "title": "Exakte, lösungsbasierte Analyse",
         "description": "Bindende Nebenbedingungen, Spielräume und Auslastung — berechnet aus deiner tatsächlichen Lösung: exakt für das ganzzahlige Optimum, mit jedem Solver."
       },
+      "whatIf": {
+        "title": "Was-wäre-wenn, gemessen",
+        "description": "Fragen Sie, was eine weitere Einheit bringt: JAOT löst das veränderte Modell erneut und zeigt die tatsächliche Veränderung — an Ihrem MIP gemessen, nicht aus einer Relaxation geschätzt."
+      },
       "structuredSolution": {
         "title": "Entscheidungen statt Zahlenwände",
         "description": "Lösungen kommen gruppiert nach der echten Indexstruktur des Modells zurück, mit einer ehrlichen Zusammenfassung des Solves: Wurzelknoten, Branching oder Zeitlimit."
