@@ -2146,37 +2146,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v2/models/executions/{execution_id}/solution-graph": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Execution Solution Graph
-         * @description The graph this solution describes, when it describes one (v3.2).
-         *
-         *     A variable family indexed by two or more labels is an edge list, so a routing
-         *     or assignment solution can be drawn instead of read as thousands of chips.
-         *     Computed on demand from the stored problem + solution, like the exact
-         *     analysis, and a sync ``def`` so walking every variable runs in the threadpool
-         *     rather than on the event loop.
-         *
-         *     Returns ``computed=false`` — never a 404 or an error — when the model has no
-         *     edge-shaped family or the solution activates none of them. "There is no graph
-         *     here" is a legitimate answer about a perfectly healthy model, and the caller
-         *     renders nothing rather than an empty frame.
-         */
-        get: operations["get_execution_solution_graph"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v2/models/executions/all": {
         parameters: {
             query?: never;
@@ -6313,24 +6282,6 @@ export interface components {
             data: components["schemas"]["GeoDistributionEntry"][];
         };
         /**
-         * GraphEdge
-         * @description One active entry of an edge-shaped variable family.
-         */
-        GraphEdge: {
-            /** Family */
-            family: string;
-            /** Group */
-            group?: string | null;
-            /** Source */
-            source: string;
-            /** Target */
-            target: string;
-            /** Value */
-            value: number;
-            /** Variable */
-            variable: string;
-        };
-        /**
          * GroupedTimeSeriesPoint
          * @description Single data point in a grouped time series chart.
          */
@@ -8910,74 +8861,6 @@ export interface components {
          */
         SkillLevel: "beginner" | "intermediate" | "expert";
         /**
-         * SolutionGraph
-         * @description The graph a solved model describes, when it describes one.
-         *
-         *     Any variable family indexed by two or more labels is an edge list — arcs in a
-         *     pickup-and-delivery model, worker-to-task in an assignment — so its active
-         *     entries can be drawn instead of read as thousands of chips.
-         *
-         *     Nodes carry a LAYER, not a position: optimization models hold distances, not
-         *     coordinates, so a geographic map would be invented. Layer is derived from the
-         *     edges themselves and is therefore a fact about the solution.
-         */
-        SolutionGraph: {
-            /**
-             * Active Count
-             * @default 0
-             */
-            active_count: number;
-            /**
-             * Candidate Count
-             * @default 0
-             */
-            candidate_count: number;
-            /**
-             * Computed
-             * @default true
-             */
-            computed: boolean;
-            /**
-             * Edges
-             * @default []
-             */
-            edges: components["schemas"]["GraphEdge"][];
-            /**
-             * Families
-             * @default []
-             */
-            families: string[];
-            /**
-             * Groups
-             * @default []
-             */
-            groups: string[];
-            /**
-             * Is Network
-             * @default false
-             */
-            is_network: boolean;
-            /**
-             * Layers
-             * @default {}
-             */
-            layers: {
-                [key: string]: number;
-            };
-            /**
-             * Nodes
-             * @default []
-             */
-            nodes: string[];
-            /** Note */
-            note?: string | null;
-            /**
-             * Truncated
-             * @default false
-             */
-            truncated: boolean;
-        };
-        /**
          * SolverOptions
          * @description Solver configuration options.
          */
@@ -10031,7 +9914,6 @@ export type ForgotPasswordRequest = components['schemas']['ForgotPasswordRequest
 export type FromMarketplaceRequest = components['schemas']['FromMarketplaceRequest'];
 export type GeoDistributionEntry = components['schemas']['GeoDistributionEntry'];
 export type GeoDistributionResponse = components['schemas']['GeoDistributionResponse'];
-export type GraphEdge = components['schemas']['GraphEdge'];
 export type GroupedTimeSeriesPoint = components['schemas']['GroupedTimeSeriesPoint'];
 export type GuidanceResponse = components['schemas']['GuidanceResponse'];
 export type GuidanceUpdate = components['schemas']['GuidanceUpdate'];
@@ -10142,7 +10024,6 @@ export type SettingValueResponse = components['schemas']['SettingValueResponse']
 export type SignupRequest = components['schemas']['SignupRequest'];
 export type SignupResponse = components['schemas']['SignupResponse'];
 export type SkillLevel = components['schemas']['SkillLevel'];
-export type SolutionGraph = components['schemas']['SolutionGraph'];
 export type SolverOptions = components['schemas']['SolverOptions'];
 export type SolverStatus = components['schemas']['SolverStatus'];
 export type SummaryResponse = components['schemas']['SummaryResponse'];
@@ -13892,37 +13773,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScenarioAnalysisJob"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_execution_solution_graph: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                execution_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SolutionGraph"];
                 };
             };
             /** @description Validation Error */

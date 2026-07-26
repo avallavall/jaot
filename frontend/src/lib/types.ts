@@ -39,7 +39,6 @@ export type {
   ScenarioAnalysisJob,
   ScenarioExplanationResponse,
   SensitivityResult,
-  SolutionGraph,
   SolverOptions,
   Variable,
   VariableSensitivity,

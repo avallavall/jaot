@@ -2759,14 +2759,6 @@
       "viewTriggerConfig": "Ver configuración del trigger",
       "failedToLoad": "Error al cargar la ejecución",
       "visualization": "Visualización",
-      "solutionGraph": {
-        "title": "Mapa de la solución",
-        "summaryNetwork": "Se usan {active} de {total} conexiones posibles.",
-        "summaryAssignment": "Se usan {active} de {total} asignaciones posibles.",
-        "truncated": "Se muestran las primeras {shown} de {total}: el resto sería ilegible.",
-        "ariaLabel": "Diagrama de la solución: {nodes} nodos y {edges} conexiones. Las posiciones indican el orden del flujo, no la geografía.",
-        "layoutNote": "Dispuesto según la posición en el flujo. El modelo guarda distancias, no coordenadas, así que esto no es un mapa geográfico."
-      },
       "variableValues": "Valores de variables",
       "insightsTitle": "Análisis automático",
       "datasetBadge": "Dataset usado en esta ejecución"

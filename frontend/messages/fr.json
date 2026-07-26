@@ -2759,14 +2759,6 @@
       "viewTriggerConfig": "Voir la configuration du déclencheur",
       "failedToLoad": "Échec du chargement de l'exécution",
       "visualization": "Visualisation",
-      "solutionGraph": {
-        "title": "Carte de la solution",
-        "summaryNetwork": "{active} des {total} connexions possibles sont utilisées.",
-        "summaryAssignment": "{active} des {total} affectations possibles sont utilisées.",
-        "truncated": "Affichage des {shown} premières sur {total} — le reste serait illisible.",
-        "ariaLabel": "Diagramme de la solution : {nodes} nœuds et {edges} connexions. Les positions indiquent l'ordre du flux, pas la géographie.",
-        "layoutNote": "Disposé selon la position dans le flux. Le modèle contient des distances, pas des coordonnées : ce n'est donc pas une carte géographique."
-      },
       "variableValues": "Valeurs des variables",
       "insightsTitle": "Analyse automatique",
       "datasetBadge": "Jeu de données utilisé pour cette exécution"

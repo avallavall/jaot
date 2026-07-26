@@ -381,51 +381,6 @@ class ExactAnalysis(BaseModel):
     note: str | None = None
 
 
-class GraphEdge(BaseModel):
-    """One active entry of an edge-shaped variable family."""
-
-    variable: str
-    source: str
-    target: str
-    #: The remaining index components joined — the vehicle / resource / period
-    #: that owns this edge. ``None`` for a plain two-index family.
-    group: str | None = None
-    value: float
-    family: str
-
-
-class SolutionGraph(BaseModel):
-    """The graph a solved model describes, when it describes one.
-
-    Any variable family indexed by two or more labels is an edge list — arcs in a
-    pickup-and-delivery model, worker-to-task in an assignment — so its active
-    entries can be drawn instead of read as thousands of chips.
-
-    Nodes carry a LAYER, not a position: optimization models hold distances, not
-    coordinates, so a geographic map would be invented. Layer is derived from the
-    edges themselves and is therefore a fact about the solution.
-    """
-
-    nodes: list[str] = []
-    #: node -> layer, 0 for sources and increasing along the flow.
-    layers: dict[str, int] = {}
-    edges: list[GraphEdge] = []
-    #: Distinct groups in first-seen order, so colours stay stable across renders.
-    groups: list[str] = []
-    families: list[str] = []
-    #: Edge-shaped variables that existed in total. "9 active of 36" is the honest
-    #: headline and also shows how sparse the model was.
-    candidate_count: int = 0
-    active_count: int = 0
-    #: Active edges exceeded the drawing cap; ``edges`` holds only a prefix.
-    truncated: bool = False
-    #: Sources and targets share labels (a network). False = disjoint sides, i.e.
-    #: an assignment / bipartite matching.
-    is_network: bool = False
-    computed: bool = True
-    note: str | None = None
-
-
 class ScenarioStatus(str, Enum):
     """Outcome of one what-if re-solve (Sensitivity L2)."""
 

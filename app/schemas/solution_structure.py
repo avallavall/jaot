@@ -127,31 +127,6 @@ def _read_indices(tokens: list[str]) -> list[str] | None:
     return labels or None
 
 
-def index_components(index_tuple: list[str]) -> list[str]:
-    """Flatten an ``index_tuple`` into its individual index labels.
-
-    ``index_tuple`` has one entry per index SET, so a variable over a single
-    3-dimensional tuple set arrives as ``["s2_c2_k2"]`` — one entry holding three
-    components joined with "_" (see the compiler's ``_mangle`` site). A name
-    recovered from a flat model instead arrives already split, but its labels may
-    themselves contain an underscore: ``["o_0", "p_0", "0"]``.
-
-    Both must read as three components, and telling them apart is exactly the
-    job :func:`_read_indices` already does — reusing it keeps ONE definition of
-    what an index label looks like instead of a second copy that would drift.
-
-    Entries that cannot be read are passed through whole rather than guessed at.
-    """
-    components: list[str] = []
-    for entry in index_tuple:
-        if "_" not in entry:
-            components.append(entry)
-            continue
-        parsed = _read_indices(entry.split("_"))
-        components.extend(parsed if parsed else [entry])
-    return components
-
-
 def annotate_variable_structure(problem: OptimizationProblem) -> None:
     """Fill ``family`` / ``index_tuple`` on a problem's variables, in place.
 

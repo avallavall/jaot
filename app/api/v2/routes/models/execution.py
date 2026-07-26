@@ -26,7 +26,6 @@ from app.domains.solver.services.execution_payload import (
     ExecutionPayloadError,
     load_execution_payload,
 )
-from app.domains.solver.services.solution_graph import build_solution_graph
 from app.domains.solver.services.solver_service import SolverService, get_solver_service
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
 from app.domains.solver.tasks.scenario_tasks import read_budget, scenario_analysis_async
@@ -43,7 +42,6 @@ from app.schemas.optimization import (
     OptimizationProblem,
     ScenarioAnalysis,
     ScenarioAnalysisJob,
-    SolutionGraph,
 )
 from app.services.solve_orchestrator import ORIGIN_MARKETPLACE
 from app.services.template_resolver import listing_to_template_dict
@@ -718,50 +716,6 @@ def get_execution_exact_analysis(  # sync ON PURPOSE -> threadpool (CPU-bound, n
     return compute_exact_analysis(
         payload.problem, payload.solution, objective_value=payload.objective_value
     )
-
-
-@router.get(
-    "/executions/{execution_id}/solution-graph",
-    operation_id="get_execution_solution_graph",
-)
-def get_execution_solution_graph(  # sync ON PURPOSE -> threadpool (CPU-bound, no awaits)
-    execution_id: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> SolutionGraph:
-    """The graph this solution describes, when it describes one (v3.2).
-
-    A variable family indexed by two or more labels is an edge list, so a routing
-    or assignment solution can be drawn instead of read as thousands of chips.
-    Computed on demand from the stored problem + solution, like the exact
-    analysis, and a sync ``def`` so walking every variable runs in the threadpool
-    rather than on the event loop.
-
-    Returns ``computed=false`` — never a 404 or an error — when the model has no
-    edge-shaped family or the solution activates none of them. "There is no graph
-    here" is a legitimate answer about a perfectly healthy model, and the caller
-    renders nothing rather than an empty frame.
-    """
-    execution = (
-        db.query(ModelExecution)
-        .filter(
-            ModelExecution.id == execution_id,
-            ModelExecution.organization_id == current_user.organization_id,
-        )
-        .first()
-    )
-    if not execution:
-        raise HTTPException(status_code=404, detail="Execution not found")
-
-    try:
-        payload = load_execution_payload(execution.input_data, execution.result_data)
-    except ExecutionPayloadError as exc:
-        return SolutionGraph(computed=False, note=exc.reason)
-
-    graph = build_solution_graph(payload.problem, payload.solution)
-    if graph is None:
-        return SolutionGraph(computed=False, note="no edge-shaped variable family in this model")
-    return graph
 
 
 @router.post(

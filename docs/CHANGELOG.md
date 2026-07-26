@@ -19,43 +19,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Added
 
-- **A routing or assignment solution can be seen instead of read.** Thousands of chips
-  saying `xsc_s2_c2_k2 = 1` are a delivery plan nobody can picture. Any variable family
-  indexed by two or more labels *is* an edge list — arcs in a pickup-and-delivery model,
-  worker-to-task in an assignment, item-to-bin in packing — so the Visualization tab now
-  draws the active ones as a graph: a node per label, an arrow per chosen variable, a
-  colour per vehicle or resource, and a legend that isolates one of them at a time. The
-  headline is the honest ratio ("9 of 36 possible connections are used"), which also shows
-  how sparse the model was.
-
-  **Nodes are placed by position in the flow, never by geography, and the view says so on
-  screen.** Optimization models carry distances, not coordinates, so any map with real
-  positions in it would be fabricated; the horizontal axis is the order of the hops, which
-  is a fact the edges actually contain, and each column is labelled with the variable
-  family whose edges leave it. A model with no edge-shaped family renders nothing at all
-  rather than an empty frame — having no graph is a normal property of a healthy model.
-
-  Being indexed by two labels does not make a variable an edge, and the map is careful
-  about the difference. A routing model is full of counter-examples — an arrival time or a
-  load indexed by (node, vehicle) — which would otherwise be drawn as arrows pointing from
-  a node at a vehicle: the index tuple read out loud rather than a route. Only families
-  that connect nodes to nodes, or that hand off to each other along a path, are drawn, and
-  when a model contains several unrelated relations the busiest one is shown alone rather
-  than all of them overlaid.
-
-- **Routing models with underscored node names are understood at last.** Variable names
-  like `x_o_0_p_1_2` — an arc from node `o_0` to node `p_1` on vehicle `2` — could not be
-  read at all, because a name segment made only of letters can never be an index. Every arc
-  variable of such a model was left with no family: no grouping in the solution view, no
-  family KPIs in the analysis, no map. Two changes fix it from both ends. The
-  pickup-and-delivery generator now names nodes `o0` / `p1` / `d2`, so its arcs read
-  correctly under the plain rules with no special handling anywhere — which also resolves
-  a name that used to parse *wrongly* (`s_p_0_1`, an arrival time, was read as family
-  `s_p`). And names the strict reading still refuses get a second, wider attempt that
-  accepts `<tag>_<ordinal>` as one index label, so models imported or solved before this
-  release are understood too. The order matters and is deliberate: the wider reading only
-  ever runs where there was no structure at all, so it cannot reinterpret a name that
-  already reads correctly — `x_cost_3` still belongs to family `x_cost`.
+- **Routing model variable names are readable again.** In a pickup-and-delivery model an
+  arc from node `o_0` to node `p_1` on vehicle `2` was named `x_o_0_p_1_2` — six segments
+  that could not be read as a family plus its indices, because a name segment made only of
+  letters can never be an index. Every arc variable of such a model ended up with no family
+  at all: no grouping in the solution view, no family-level KPIs in the analysis. The
+  generator now names nodes `o0` / `p1` / `d2`, so its variables read correctly under the
+  plain rules, which also fixes a name that used to parse *wrongly* — `s_p_0_1`, an arrival
+  time, was read as belonging to a family called `s_p`. Names from models solved or imported
+  before this release get a second, wider reading that accepts `<tag>_<ordinal>` as one
+  index label; it only ever runs where there was no structure at all, so it cannot
+  reinterpret a name that already reads correctly (`x_cost_3` still belongs to `x_cost`).
 
 - **The interface stops promising what your solver cannot deliver.** Every solver adapter
   has always declared what it supports — shadow prices, warm starts, quadratic terms,
