@@ -6,7 +6,9 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { resolveErrorKey } from "@/lib/llm-event-codes";
+import { AdvancedModelToggle } from "@/components/llm/AdvancedModelToggle";
 import { ByokHint } from "@/components/llm/ByokHint";
+import { useAdvancedModel } from "@/hooks/useAdvancedModel";
 import { useModelExplanation } from "./explain/ModelExplanationProvider";
 
 /**
@@ -19,8 +21,16 @@ import { useModelExplanation } from "./explain/ModelExplanationProvider";
 export function ModelExplanationPanel() {
   const t = useTranslations("studio");
   const tBuilder = useTranslations("builder");
-  const { text, streaming, errorCode, requestId, started, setupFailed, runExplain } =
-    useModelExplanation();
+  const {
+    text,
+    streaming,
+    errorCode,
+    requestId,
+    started,
+    setupFailed,
+    runExplain,
+  } = useModelExplanation();
+  const [advanced, setAdvanced] = useAdvancedModel();
 
   const showError = setupFailed || errorCode !== null;
   const errorMessage = errorCode
@@ -38,24 +48,31 @@ export function ModelExplanationPanel() {
             <Sparkles className="h-4 w-4 text-primary" />
             {t("explainTitle")}
           </h3>
-          <p className="text-sm text-muted-foreground max-w-prose">{t("explainDescription")}</p>
+          <p className="text-sm text-muted-foreground max-w-prose">
+            {t("explainDescription")}
+          </p>
         </div>
         {!streaming && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={runExplain}
-            data-testid="studio-explain-model-run"
-          >
-            <Sparkles className="h-4 w-4" />
-            {started ? t("explainRegenerate") : t("explainModel")}
-          </Button>
+          <div className="flex items-center gap-3">
+            <AdvancedModelToggle checked={advanced} onChange={setAdvanced} />
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={runExplain}
+              data-testid="studio-explain-model-run"
+            >
+              <Sparkles className="h-4 w-4" />
+              {started ? t("explainRegenerate") : t("explainModel")}
+            </Button>
+          </div>
         )}
       </div>
 
       {streaming && !text && (
-        <p className="text-sm text-muted-foreground animate-pulse">{t("explainThinking")}</p>
+        <p className="text-sm text-muted-foreground animate-pulse">
+          {t("explainThinking")}
+        </p>
       )}
 
       {text && (

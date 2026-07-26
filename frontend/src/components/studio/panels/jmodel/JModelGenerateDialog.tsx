@@ -13,6 +13,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { AdvancedModelToggle } from "@/components/llm/AdvancedModelToggle";
+import { useAdvancedModel } from "@/hooks/useAdvancedModel";
 import { api, ApiError } from "@/lib/api";
 import type { DslGenerateAttachment } from "@/lib/types";
 
@@ -74,6 +76,7 @@ export function JModelGenerateDialog({
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [advanced, setAdvanced] = useAdvancedModel();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
@@ -113,7 +116,7 @@ export function JModelGenerateDialog({
           t("jmodelGenerateTooLarge", {
             name: file.name,
             mb: Math.round(MAX_FILE_BYTES / (1024 * 1024)),
-          })
+          }),
         );
         continue;
       }
@@ -131,7 +134,7 @@ export function JModelGenerateDialog({
                   name: file.name,
                   isPdf: file.type === "application/pdf",
                 },
-              ]
+              ],
         );
       } catch {
         setError(t("jmodelGenerateBadType", { name: file.name }));
@@ -143,7 +146,8 @@ export function JModelGenerateDialog({
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const canSubmit = !generating && (description.trim().length > 0 || attachments.length > 0);
+  const canSubmit =
+    !generating && (description.trim().length > 0 || attachments.length > 0);
 
   const handleGenerate = async () => {
     if (!canSubmit) return;
@@ -152,11 +156,17 @@ export function JModelGenerateDialog({
     try {
       const res = await api.generateDsl({
         description: description.trim(),
-        attachments: attachments.map(({ media_type, data }) => ({ media_type, data })),
+        attachments: attachments.map(({ media_type, data }) => ({
+          media_type,
+          data,
+        })),
         currentSource: currentSource.trim() ? currentSource : null,
+        useAdvancedModel: advanced,
       });
       if (!res.source) {
-        setError(t("jmodelGenerateFailed", { message: res.error?.message ?? "" }));
+        setError(
+          t("jmodelGenerateFailed", { message: res.error?.message ?? "" }),
+        );
         return;
       }
       onGenerated(res.source);
@@ -179,7 +189,10 @@ export function JModelGenerateDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-xl" data-testid="studio-jmodel-generate-dialog">
+      <DialogContent
+        className="sm:max-w-xl"
+        data-testid="studio-jmodel-generate-dialog"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
@@ -201,7 +214,10 @@ export function JModelGenerateDialog({
           />
 
           {attachments.length > 0 && (
-            <ul className="flex flex-col gap-1.5" data-testid="studio-jmodel-generate-attachments">
+            <ul
+              className="flex flex-col gap-1.5"
+              data-testid="studio-jmodel-generate-attachments"
+            >
               {attachments.map((att, idx) => (
                 <li
                   key={`${att.name}-${idx}`}
@@ -257,7 +273,10 @@ export function JModelGenerateDialog({
           </div>
 
           {error && (
-            <p data-testid="studio-jmodel-generate-error" className="text-xs text-destructive">
+            <p
+              data-testid="studio-jmodel-generate-error"
+              className="text-xs text-destructive"
+            >
               {error}
             </p>
           )}
@@ -270,29 +289,38 @@ export function JModelGenerateDialog({
           )}
         </div>
 
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="ghost"
+        <DialogFooter className="sm:justify-between">
+          {/* The advanced model costs more per call, so it is an explicit opt-in here too —
+              this dialog is an LLM surface like the chats and the explainers. */}
+          <AdvancedModelToggle
+            checked={advanced}
+            onChange={setAdvanced}
             disabled={generating}
-            onClick={() => handleOpenChange(false)}
-          >
-            {t("jmodelGenerateCancel")}
-          </Button>
-          <Button
-            type="button"
-            data-testid="studio-jmodel-generate-submit"
-            disabled={!canSubmit}
-            onClick={handleGenerate}
-            className="gap-1.5"
-          >
-            {generating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}
-            {t("jmodelGenerateSubmit")}
-          </Button>
+          />
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={generating}
+              onClick={() => handleOpenChange(false)}
+            >
+              {t("jmodelGenerateCancel")}
+            </Button>
+            <Button
+              type="button"
+              data-testid="studio-jmodel-generate-submit"
+              disabled={!canSubmit}
+              onClick={handleGenerate}
+              className="gap-1.5"
+            >
+              {generating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {t("jmodelGenerateSubmit")}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

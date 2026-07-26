@@ -29,7 +29,9 @@ const generateDsl = api.generateDsl as unknown as ReturnType<typeof vi.fn>;
 
 const GOOD_SOURCE = "var x >= 0;\nminimize obj: x;";
 
-function renderDialog(overrides: Partial<React.ComponentProps<typeof JModelGenerateDialog>> = {}) {
+function renderDialog(
+  overrides: Partial<React.ComponentProps<typeof JModelGenerateDialog>> = {},
+) {
   const onGenerated = vi.fn();
   const onOpenChange = vi.fn();
   render(
@@ -39,7 +41,7 @@ function renderDialog(overrides: Partial<React.ComponentProps<typeof JModelGener
       currentSource=""
       onGenerated={onGenerated}
       {...overrides}
-    />
+    />,
   );
   return { onGenerated, onOpenChange };
 }
@@ -56,11 +58,17 @@ describe("JModelGenerateDialog", () => {
     fireEvent.change(screen.getByTestId("studio-jmodel-generate-description"), {
       target: { value: "assign workers to tasks" },
     });
-    expect(screen.getByTestId("studio-jmodel-generate-submit")).not.toBeDisabled();
+    expect(
+      screen.getByTestId("studio-jmodel-generate-submit"),
+    ).not.toBeDisabled();
   });
 
   it("generates, hands the source to the editor, and closes on success", async () => {
-    const result: DslGenerateResult = { ok: true, source: GOOD_SOURCE, attempts: 1 };
+    const result: DslGenerateResult = {
+      ok: true,
+      source: GOOD_SOURCE,
+      attempts: 1,
+    };
     generateDsl.mockResolvedValue(result);
     const { onGenerated, onOpenChange } = renderDialog();
 
@@ -74,6 +82,8 @@ describe("JModelGenerateDialog", () => {
       description: "minimize x",
       attachments: [],
       currentSource: null,
+      // The advanced-model choice rides along on every call; off unless asked for.
+      useAdvancedModel: false,
     });
     expect(toast.success).toHaveBeenCalled();
     expect(onOpenChange).toHaveBeenCalledWith(false);
@@ -94,7 +104,9 @@ describe("JModelGenerateDialog", () => {
     });
     fireEvent.click(screen.getByTestId("studio-jmodel-generate-submit"));
 
-    await waitFor(() => expect(onGenerated).toHaveBeenCalledWith(result.source));
+    await waitFor(() =>
+      expect(onGenerated).toHaveBeenCalledWith(result.source),
+    );
     expect(toast.warning).toHaveBeenCalled();
   });
 
@@ -108,13 +120,17 @@ describe("JModelGenerateDialog", () => {
     fireEvent.click(screen.getByTestId("studio-jmodel-generate-submit"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("studio-jmodel-generate-error")).toBeInTheDocument()
+      expect(
+        screen.getByTestId("studio-jmodel-generate-error"),
+      ).toBeInTheDocument(),
     );
     expect(onGenerated).not.toHaveBeenCalled();
   });
 
   it("surfaces an API error (e.g. budget exhausted) inline", async () => {
-    generateDsl.mockRejectedValue(new ApiError(403, "monthly AI budget reached"));
+    generateDsl.mockRejectedValue(
+      new ApiError(403, "monthly AI budget reached"),
+    );
     const { onGenerated } = renderDialog();
 
     fireEvent.change(screen.getByTestId("studio-jmodel-generate-description"), {
@@ -126,13 +142,19 @@ describe("JModelGenerateDialog", () => {
     // assert the error surface appears and nothing was applied — the ApiError message is
     // threaded through {message} at runtime.
     await waitFor(() =>
-      expect(screen.getByTestId("studio-jmodel-generate-error")).toBeInTheDocument()
+      expect(
+        screen.getByTestId("studio-jmodel-generate-error"),
+      ).toBeInTheDocument(),
     );
     expect(onGenerated).not.toHaveBeenCalled();
   });
 
   it("passes the current editor source for refinement", async () => {
-    generateDsl.mockResolvedValue({ ok: true, source: GOOD_SOURCE, attempts: 1 });
+    generateDsl.mockResolvedValue({
+      ok: true,
+      source: GOOD_SOURCE,
+      attempts: 1,
+    });
     renderDialog({ currentSource: "var y >= 0;" });
 
     fireEvent.change(screen.getByTestId("studio-jmodel-generate-description"), {
@@ -142,8 +164,8 @@ describe("JModelGenerateDialog", () => {
 
     await waitFor(() =>
       expect(generateDsl).toHaveBeenCalledWith(
-        expect.objectContaining({ currentSource: "var y >= 0;" })
-      )
+        expect.objectContaining({ currentSource: "var y >= 0;" }),
+      ),
     );
   });
 
@@ -153,15 +175,70 @@ describe("JModelGenerateDialog", () => {
     renderDialog();
     const files = Array.from(
       { length: 5 },
-      (_, i) => new File([`img${i}`], `f${i}.png`, { type: "image/png" })
+      (_, i) => new File([`img${i}`], `f${i}.png`, { type: "image/png" }),
     );
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const input = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
     fireEvent.change(input, { target: { files } });
 
     await waitFor(() =>
-      expect(screen.getByTestId("studio-jmodel-generate-error")).toBeInTheDocument()
+      expect(
+        screen.getByTestId("studio-jmodel-generate-error"),
+      ).toBeInTheDocument(),
     );
     // 4 attachments listed, the 5th dropped.
     expect(screen.getAllByText(/^f\d\.png$/)).toHaveLength(4);
+  });
+  // The owner asked for the advanced-model choice on EVERY LLM surface. This dialog was
+  // the one left out when the toggle landed (it shipped to the two chats and the three
+  // explainers), and /dsl/generate had the model pinned to the default server-side too.
+  describe("advanced model choice", () => {
+    it("offers the toggle", () => {
+      renderDialog();
+      expect(screen.getByTestId("advanced-model-toggle")).toBeInTheDocument();
+    });
+
+    it("defaults to the standard model", async () => {
+      generateDsl.mockResolvedValue({
+        ok: true,
+        source: GOOD_SOURCE,
+      } as DslGenerateResult);
+      renderDialog();
+      fireEvent.change(
+        screen.getByTestId("studio-jmodel-generate-description"),
+        {
+          target: { value: "assign workers to tasks" },
+        },
+      );
+      fireEvent.click(screen.getByTestId("studio-jmodel-generate-submit"));
+
+      await waitFor(() => expect(generateDsl).toHaveBeenCalled());
+      expect(generateDsl.mock.calls[0][0]).toMatchObject({
+        useAdvancedModel: false,
+      });
+    });
+
+    it("sends the choice when the toggle is on", async () => {
+      generateDsl.mockResolvedValue({
+        ok: true,
+        source: GOOD_SOURCE,
+      } as DslGenerateResult);
+      renderDialog();
+      fireEvent.click(screen.getByTestId("advanced-model-toggle"));
+      fireEvent.change(
+        screen.getByTestId("studio-jmodel-generate-description"),
+        {
+          target: { value: "assign workers to tasks" },
+        },
+      );
+      fireEvent.click(screen.getByTestId("studio-jmodel-generate-submit"));
+
+      await waitFor(() => expect(generateDsl).toHaveBeenCalled());
+      // The flag has to reach the request — a toggle that only paints is worse than none.
+      expect(generateDsl.mock.calls[0][0]).toMatchObject({
+        useAdvancedModel: true,
+      });
+    });
   });
 });

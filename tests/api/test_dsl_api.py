@@ -872,3 +872,79 @@ def test_deground_small_scalar_model_gets_a_flat_jmodel(
 def test_deground_requires_auth(client):
     resp = client.post("/api/v2/dsl/deground", json={"problem": {"variables": []}})
     assert resp.status_code in (401, 403), resp.text
+
+
+# CONTRACT-TEST: the advanced-model choice reaches the model call. The owner asked for the
+# toggle on EVERY LLM surface; this endpoint had `select_model(use_advanced=False)` pinned in
+# the handler, so the UI could ask all it liked and the server always used the default.
+def test_generate_honours_the_advanced_model_choice(
+    authenticated_client, test_organization, db_session, enable_dsl, monkeypatch
+):
+    models_used: list[str] = []
+
+    class _CapturingMessages:
+        async def create(self, **kwargs):
+            models_used.append(kwargs["model"])
+            return _GenResp(GEN_GOOD)
+
+    class _CapturingClient:
+        def __init__(self) -> None:
+            self.messages = _CapturingMessages()
+
+    monkeypatch.setattr("app.api.v2.dsl.get_anthropic_client", lambda db=None: _CapturingClient())
+
+    body = {"description": "pick the best of two items"}
+    assert (
+        authenticated_client.post(
+            "/api/v2/dsl/generate", json={**body, "use_advanced_model": False}
+        ).status_code
+        == 200
+    )
+    assert (
+        authenticated_client.post(
+            "/api/v2/dsl/generate", json={**body, "use_advanced_model": True}
+        ).status_code
+        == 200
+    )
+
+    assert len(models_used) == 2, models_used
+    default_model, advanced_model = models_used
+    # Distinct models, not just an accepted field: a flag that changes nothing is worse
+    # than no flag, because the user pays for a choice that never happened.
+    assert default_model != advanced_model, (
+        f"use_advanced_model made no difference — both calls used {default_model!r}"
+    )
+
+
+def test_generate_defaults_to_the_standard_model(
+    authenticated_client, test_organization, db_session, enable_dsl, monkeypatch
+):
+    """Omitting the field must not silently opt into the pricier model."""
+    models_used: list[str] = []
+
+    class _CapturingMessages:
+        async def create(self, **kwargs):
+            models_used.append(kwargs["model"])
+            return _GenResp(GEN_GOOD)
+
+    class _CapturingClient:
+        def __init__(self) -> None:
+            self.messages = _CapturingMessages()
+
+    monkeypatch.setattr("app.api.v2.dsl.get_anthropic_client", lambda db=None: _CapturingClient())
+
+    assert (
+        authenticated_client.post(
+            "/api/v2/dsl/generate", json={"description": "pick the best of two items"}
+        ).status_code
+        == 200
+    )
+    assert (
+        authenticated_client.post(
+            "/api/v2/dsl/generate",
+            json={"description": "pick the best of two items", "use_advanced_model": True},
+        ).status_code
+        == 200
+    )
+
+    assert models_used[0] != models_used[1], "the default call used the advanced model"

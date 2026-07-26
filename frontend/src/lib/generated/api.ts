@@ -3486,6 +3486,11 @@ export interface paths {
          *
          *     Does NOT solve. Use this to inspect the imported
          *     problem before committing to a solve.
+         *
+         *     Sync like its ``import_and_solve`` sibling: parsing an MPS/LP is CPU-bound and
+         *     the upload cap is tens of megabytes, so on the event loop it stalled every other
+         *     request for the duration of the parse. Reads the already-spooled file directly
+         *     (see ``_read_upload_sync``).
          */
         post: operations["import_preview"];
         delete?: never;
@@ -5552,6 +5557,12 @@ export interface components {
              * @default
              */
             description: string;
+            /**
+             * Use Advanced Model
+             * @description Formulate with the advanced model instead of the default one. Same opt-in the chats and the explainers expose; costs more per call, so it is never implicit.
+             * @default false
+             */
+            use_advanced_model: boolean;
         };
         /**
          * DSLGenerateResponse

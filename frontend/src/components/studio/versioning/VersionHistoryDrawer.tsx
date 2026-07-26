@@ -12,7 +12,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { AdvancedModelToggle } from "@/components/llm/AdvancedModelToggle";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdvancedModel } from "@/hooks/useAdvancedModel";
 import { api } from "@/lib/api";
 import { useExplanationStream } from "@/hooks/useExplanationStream";
 import { resolveErrorKey } from "@/lib/llm-event-codes";
@@ -57,6 +59,7 @@ export function VersionHistoryDrawer({
   const explain = useExplanationStream();
   const conversationIdRef = useRef<string | null>(null);
   const [explainSetupFailed, setExplainSetupFailed] = useState(false);
+  const [advanced, setAdvanced] = useAdvancedModel();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -93,13 +96,14 @@ export function VersionHistoryDrawer({
         return [...prev, id].slice(-2);
       });
     },
-    [explain]
+    [explain],
   );
 
   const handleCompare = useCallback(async () => {
     if (selected.length !== 2) return;
     // Order oldest → newest by sequence so the diff reads "from → to".
-    const seqOf = (id: string) => versions.find((v) => v.id === id)?.sequence ?? 0;
+    const seqOf = (id: string) =>
+      versions.find((v) => v.id === id)?.sequence ?? 0;
     const [a, b] = [...selected].sort((x, y) => seqOf(x) - seqOf(y));
     explain.reset();
     setExplainSetupFailed(false);
@@ -116,20 +120,28 @@ export function VersionHistoryDrawer({
     setExplainSetupFailed(false);
     try {
       if (!conversationIdRef.current) {
-        const conv = await api.request<Conversation>("/api/v2/llm/conversations", {
-          method: "POST",
-          body: JSON.stringify({}),
-        });
+        const conv = await api.request<Conversation>(
+          "/api/v2/llm/conversations",
+          {
+            method: "POST",
+            body: JSON.stringify({}),
+          },
+        );
         conversationIdRef.current = conv.id;
       }
       await explain.explain(
         `/api/v2/llm/conversations/${conversationIdRef.current}/explain-diff`,
-        { project_id: projectId, from_version_id: comparePair[0], to_version_id: comparePair[1] }
+        {
+          project_id: projectId,
+          from_version_id: comparePair[0],
+          to_version_id: comparePair[1],
+          use_advanced_model: advanced,
+        },
       );
     } catch {
       setExplainSetupFailed(true);
     }
-  }, [comparePair, projectId, explain]);
+  }, [comparePair, projectId, explain, advanced]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
@@ -175,7 +187,9 @@ export function VersionHistoryDrawer({
                     <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium">
                       v{v.sequence}
                     </span>
-                    <span className="truncate font-medium">{v.commit_summary}</span>
+                    <span className="truncate font-medium">
+                      {v.commit_summary}
+                    </span>
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     {v.problem_class ? `${v.problem_class} · ` : ""}
@@ -199,11 +213,15 @@ export function VersionHistoryDrawer({
           <div className="border-t pt-3 max-h-40 overflow-y-auto">
             <p className="text-xs font-medium mb-1">{t("versionDiffTitle")}</p>
             {diff.entries.length === 0 && !diff.objective_changed ? (
-              <p className="text-xs text-muted-foreground">{t("versionDiffNone")}</p>
+              <p className="text-xs text-muted-foreground">
+                {t("versionDiffNone")}
+              </p>
             ) : (
               <ul className="space-y-0.5 text-xs">
                 {diff.objective_changed && (
-                  <li className="text-amber-600">~ {t("versionDiffObjective")}</li>
+                  <li className="text-amber-600">
+                    ~ {t("versionDiffObjective")}
+                  </li>
                 )}
                 {diff.entries.map((e, i) => (
                   <li
@@ -216,8 +234,12 @@ export function VersionHistoryDrawer({
                           : "text-amber-600"
                     }
                   >
-                    {e.change === "added" ? "+" : e.change === "removed" ? "−" : "~"} {e.kind}{" "}
-                    <span className="font-medium">{e.name}</span>
+                    {e.change === "added"
+                      ? "+"
+                      : e.change === "removed"
+                        ? "−"
+                        : "~"}{" "}
+                    {e.kind} <span className="font-medium">{e.name}</span>
                     {e.detail ? ` — ${e.detail}` : ""}
                   </li>
                 ))}
@@ -229,16 +251,24 @@ export function VersionHistoryDrawer({
         {comparePair && (
           <div className="border-t pt-3 space-y-2">
             {!explain.streaming && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={runExplainDiff}
-                data-testid="studio-explain-diff-run"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                {explain.text ? t("explainRegenerate") : t("explainDiffButton")}
-              </Button>
+              <div className="flex items-center gap-3">
+                <AdvancedModelToggle
+                  checked={advanced}
+                  onChange={setAdvanced}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={runExplainDiff}
+                  data-testid="studio-explain-diff-run"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {explain.text
+                    ? t("explainRegenerate")
+                    : t("explainDiffButton")}
+                </Button>
+              </div>
             )}
             {explain.streaming && !explain.text && (
               <p className="text-xs text-muted-foreground animate-pulse">

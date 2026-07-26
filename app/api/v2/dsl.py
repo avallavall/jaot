@@ -332,7 +332,11 @@ async def dsl_generate(
 
     # Default model (Sonnet-tier): fast + cheap, and the compile-retry loop backstops
     # correctness, so reasoning is unnecessary for a compact DSL.
-    model, _ = select_model(use_advanced=False, db=db)
+    # Honour the caller's choice instead of pinning the default: this endpoint is one of
+    # the LLM surfaces the advanced-model toggle covers. (The second value select_model
+    # returns is the thinking flag, which generate_jmodel does not take — the toggle
+    # switches the model here, not the thinking budget.)
+    model, _ = select_model(use_advanced=body.use_advanced_model, db=db)
     max_tokens = PSS.get_int(db, "LLM_MAX_TOKENS")
 
     request_id = getattr(request.state, "request_id", None) or ""

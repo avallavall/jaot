@@ -72,7 +72,8 @@ describe("ModelExplanationProvider — durable explain session", () => {
     await waitFor(() => expect(screen.getByTestId("started").textContent).toBe("started"));
     expect(mockExplain).toHaveBeenCalledWith(
       "/api/v2/llm/conversations/conv_1/explain-model",
-      { project_id: "mp_1" }
+      // The advanced-model choice travels with every LLM call; off unless asked for.
+      { project_id: "mp_1", use_advanced_model: false }
     );
 
     // Leave the tab (unmount the panel) and come back (remount) — provider stays mounted.

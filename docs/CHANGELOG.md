@@ -164,6 +164,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 
 ### Changed
 
+- **The advanced-model choice is now on every AI surface.** It shipped on the two chats and
+  the three explainers, but three places were left out: generating a JModel with AI,
+  "Explain this model", and the explanation of what changed between two versions. The
+  generator was the worst of the three — the server had the model pinned to the default, so
+  even a request asking for the advanced one was quietly downgraded. All three now offer the
+  same opt-in, still off by default, since the advanced model costs more per call.
+
 - **The server no longer stalls itself while it answers.** 113 endpoints were declared as
   asynchronous handlers while doing ordinary, synchronous database work, which means each of
   those queries ran on the single thread that serves every other request in flight — one slow

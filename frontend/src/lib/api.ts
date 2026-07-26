@@ -80,7 +80,11 @@ import type {
 } from "./types";
 import { localeHeader } from "@/lib/locale-header";
 
-import type { AnthropicKeyStatus, AttachmentInfo, InfeasibilityAnalysis } from "./llm-types";
+import type {
+  AnthropicKeyStatus,
+  AttachmentInfo,
+  InfeasibilityAnalysis,
+} from "./llm-types";
 import type { AdminOrganizationOverview } from "@/types/admin";
 
 export type { AttachmentInfo } from "./llm-types";
@@ -237,7 +241,13 @@ export class ApiError extends Error {
 
 export interface AuthTokenResponse {
   success: boolean;
-  user: { id: string; name: string; email: string; is_admin: boolean; is_org_owner?: boolean };
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    is_admin: boolean;
+    is_org_owner?: boolean;
+  };
   organization: { id: string; name: string; plan: string };
   permissions: { can_build_plugins: boolean; ai_builder_enabled: boolean };
   email_verified: boolean;
@@ -314,7 +324,7 @@ export interface SolveSource {
 /** Merge workspace + provenance into the query params for a /solve call. */
 function buildSolveParams(
   workspaceId?: string,
-  source?: SolveSource
+  source?: SolveSource,
 ): Record<string, string> | undefined {
   const params: Record<string, string> = {};
   if (workspaceId) params.workspace_id = workspaceId;
@@ -362,7 +372,7 @@ export type RequestOptions = RequestInit & {
 
 async function request<T>(
   path: string,
-  options: RequestOptions = {}
+  options: RequestOptions = {},
 ): Promise<T> {
   const { params, _retried, retry, resolveAsync, ...fetchOptions } = options;
   const url = buildUrl(path, params);
@@ -379,11 +389,7 @@ async function request<T>(
   }
 
   const retryConfig: RetryConfig | null =
-    retry === false
-      ? null
-      : typeof retry === "object"
-        ? retry
-        : DEFAULT_RETRY;
+    retry === false ? null : typeof retry === "object" ? retry : DEFAULT_RETRY;
 
   const maxAttempts = retryConfig?.maxAttempts ?? 1;
   const baseDelay = retryConfig?.baseDelayMs ?? 1000;
@@ -445,8 +451,14 @@ async function request<T>(
         try {
           const body = await res.clone().json();
           if (body.status === "maintenance" && typeof window !== "undefined") {
-            window.dispatchEvent(new CustomEvent("jaot:maintenance", { detail: body }));
-            throw new ApiError(503, body.detail || "Platform under maintenance", body.detail);
+            window.dispatchEvent(
+              new CustomEvent("jaot:maintenance", { detail: body }),
+            );
+            throw new ApiError(
+              503,
+              body.detail || "Platform under maintenance",
+              body.detail,
+            );
           }
         } catch (e) {
           if (e instanceof ApiError) throw e;
@@ -469,10 +481,15 @@ async function request<T>(
         const body = await res.json();
         // Pydantic validation errors come as body.detail = [{msg, ...}, ...].
         if (Array.isArray(body.detail)) {
-          message = body.detail.map((e: { msg?: string }) => e.msg || String(e)).join("; ");
+          message = body.detail
+            .map((e: { msg?: string }) => e.msg || String(e))
+            .join("; ");
         } else if (typeof body.detail === "object" && body.detail !== null) {
           // Rate limit or structured error — extract nested message.
-          message = body.detail.message || body.detail.error || JSON.stringify(body.detail);
+          message =
+            body.detail.message ||
+            body.detail.error ||
+            JSON.stringify(body.detail);
         } else {
           message = body.error || body.detail || body.message || message;
         }
@@ -512,7 +529,9 @@ const ASYNC_RESOLVE_MAX_WAIT_MS = 10 * 60 * 1000; // 10 min
  * completion poller. Throws on failure or once the client patience cap is hit (the
  * solve keeps running server-side — its row is in the executions history).
  */
-async function awaitAsyncSolveResult<T>(envelope: AsyncSolveEnvelope): Promise<T> {
+async function awaitAsyncSolveResult<T>(
+  envelope: AsyncSolveEnvelope,
+): Promise<T> {
   const taskId = envelope.task_id;
   const deadline = Date.now() + ASYNC_RESOLVE_MAX_WAIT_MS;
   for (;;) {
@@ -533,7 +552,7 @@ async function awaitAsyncSolveResult<T>(envelope: AsyncSolveEnvelope): Promise<T
     if (Date.now() > deadline) {
       throw new ApiError(
         504,
-        "The solve is taking longer than expected — it is still running; check the executions history for the result."
+        "The solve is taking longer than expected — it is still running; check the executions history for the result.",
       );
     }
   }
@@ -545,16 +564,20 @@ async function awaitAsyncSolveResult<T>(envelope: AsyncSolveEnvelope): Promise<T
  * some paths return it directly at `status.result`. The `execution_id` from the
  * original 202 envelope is injected because the worker's raw result dump omits it.
  */
-function unwrapAsyncSolveBody<T>(status: SolveAsyncStatus, executionId: string): T {
+function unwrapAsyncSolveBody<T>(
+  status: SolveAsyncStatus,
+  executionId: string,
+): T {
   const envelope = status.result as AsyncSolveResultEnvelope | undefined;
-  const base = ((envelope?.result ?? envelope) ?? {}) as Record<string, unknown>;
+  const base = (envelope?.result ?? envelope ?? {}) as Record<string, unknown>;
   const merged: Record<string, unknown> = {
     ...base,
     execution_id: (base.execution_id as string | undefined) ?? executionId,
   };
   // Single-solve telemetry the poll hoists to the top level (absent/harmless for multi-obj).
   if (status.solver_used !== undefined) merged.solver_used = status.solver_used;
-  if (status.auto_route_reason !== undefined) merged.auto_route_reason = status.auto_route_reason;
+  if (status.auto_route_reason !== undefined)
+    merged.auto_route_reason = status.auto_route_reason;
   if (status.warning !== undefined) merged.warning = status.warning;
   return merged as T;
 }
@@ -565,7 +588,8 @@ export const api = {
   },
 
   setApiKey(key: string): void {
-    if (typeof window !== "undefined") localStorage.setItem("jaot_api_key", key);
+    if (typeof window !== "undefined")
+      localStorage.setItem("jaot_api_key", key);
   },
   clearApiKey(): void {
     if (typeof window !== "undefined") localStorage.removeItem("jaot_api_key");
@@ -598,7 +622,7 @@ export const api = {
   async loginWithEmail(
     email: string,
     password: string,
-    rememberMe: boolean = false
+    rememberMe: boolean = false,
   ): Promise<AuthTokenResponse> {
     return request("/api/v2/auth/login/email", {
       method: "POST",
@@ -622,7 +646,7 @@ export const api = {
   },
 
   async verifyEmail(
-    token: string
+    token: string,
   ): Promise<{ success: boolean; message: string }> {
     return request("/api/v2/auth/verify-email", {
       method: "POST",
@@ -631,7 +655,7 @@ export const api = {
   },
 
   async forgotPassword(
-    email: string
+    email: string,
   ): Promise<{ success: boolean; message: string }> {
     return request("/api/v2/auth/forgot-password", {
       method: "POST",
@@ -641,7 +665,7 @@ export const api = {
 
   async resetPassword(
     token: string,
-    password: string
+    password: string,
   ): Promise<{ success: boolean; message: string }> {
     return request("/api/v2/auth/reset-password", {
       method: "POST",
@@ -678,7 +702,9 @@ export const api = {
   // P1.5 fusion: the legacy my-models CRUD is retired — the single model entity
   // is the ModelProject (listProjects/getProject/updateProject/archiveProject).
 
-  getCatalog(params?: QueryParams): Promise<PaginatedResponse<ModelCatalogItem>> {
+  getCatalog(
+    params?: QueryParams,
+  ): Promise<PaginatedResponse<ModelCatalogItem>> {
     return request("/api/v2/models/catalog", { params });
   },
 
@@ -686,11 +712,20 @@ export const api = {
     return request(`/api/v2/models/catalog/${modelId}`);
   },
 
-  getCatalogModelSchema(modelId: string): Promise<{ input_fields: InputField[]; example_input: Record<string, unknown> }> {
+  getCatalogModelSchema(
+    modelId: string,
+  ): Promise<{
+    input_fields: InputField[];
+    example_input: Record<string, unknown>;
+  }> {
     return request(`/api/v2/models/catalog/${modelId}/schema`);
   },
 
-  executeModel(modelId: string, data: Record<string, unknown>, solverName?: string): Promise<ModelExecution> {
+  executeModel(
+    modelId: string,
+    data: Record<string, unknown>,
+    solverName?: string,
+  ): Promise<ModelExecution> {
     const url = solverName
       ? `/api/v2/models/${modelId}/execute?solver_name=${encodeURIComponent(solverName)}`
       : `/api/v2/models/${modelId}/execute`;
@@ -700,7 +735,11 @@ export const api = {
     });
   },
 
-  executeModelAsync(modelId: string, data: Record<string, unknown>, solverName?: string): Promise<AsyncTask> {
+  executeModelAsync(
+    modelId: string,
+    data: Record<string, unknown>,
+    solverName?: string,
+  ): Promise<AsyncTask> {
     const url = solverName
       ? `/api/v2/models/${modelId}/execute?solver_name=${encodeURIComponent(solverName)}`
       : `/api/v2/models/${modelId}/execute`;
@@ -718,11 +757,16 @@ export const api = {
     return request(`/api/v2/models/async/${taskId}/cancel`, { method: "POST" });
   },
 
-  getModelExecutions(modelId: string, params?: QueryParams): Promise<PaginatedResponse<ModelExecution>> {
+  getModelExecutions(
+    modelId: string,
+    params?: QueryParams,
+  ): Promise<PaginatedResponse<ModelExecution>> {
     return request(`/api/v2/models/${modelId}/executions`, { params });
   },
 
-  getAllExecutions(params?: QueryParams): Promise<PaginatedResponse<ModelExecution>> {
+  getAllExecutions(
+    params?: QueryParams,
+  ): Promise<PaginatedResponse<ModelExecution>> {
     return request("/api/v2/models/executions/all", { params });
   },
 
@@ -739,15 +783,24 @@ export const api = {
   /** Queue the what-if batch (Sensitivity L2) — RHS ranging + decision regret by
    * real re-solves. Idempotent: a batch already running is joined, a finished one
    * is served from the cache. */
-  startExecutionScenarioAnalysis(executionId: string): Promise<ScenarioAnalysisJob> {
-    return request(`/api/v2/models/executions/${executionId}/scenario-analysis`, {
-      method: "POST",
-    });
+  startExecutionScenarioAnalysis(
+    executionId: string,
+  ): Promise<ScenarioAnalysisJob> {
+    return request(
+      `/api/v2/models/executions/${executionId}/scenario-analysis`,
+      {
+        method: "POST",
+      },
+    );
   },
 
   /** Poll the what-if batch of an execution. */
-  getExecutionScenarioAnalysis(executionId: string): Promise<ScenarioAnalysisJob> {
-    return request(`/api/v2/models/executions/${executionId}/scenario-analysis`);
+  getExecutionScenarioAnalysis(
+    executionId: string,
+  ): Promise<ScenarioAnalysisJob> {
+    return request(
+      `/api/v2/models/executions/${executionId}/scenario-analysis`,
+    );
   },
 
   /** Plain-language reading of a finished what-if batch. Cached server-side, so
@@ -766,7 +819,12 @@ export const api = {
     return request("/api/v2/solvers/available");
   },
 
-  getExecutionInsights(executionId: string): Promise<{ execution_id: string; insights: { category: string; message: string; severity: string }[] }> {
+  getExecutionInsights(
+    executionId: string,
+  ): Promise<{
+    execution_id: string;
+    insights: { category: string; message: string; severity: string }[];
+  }> {
     return request(`/api/v2/solve/insights/${executionId}`);
   },
 
@@ -775,7 +833,9 @@ export const api = {
    * execution. The deletion-filtering cost is paid on demand, never on every solve.
    */
   analyzeInfeasibility(executionId: string): Promise<InfeasibilityAnalysis> {
-    return request(`/api/v2/solve/${executionId}/infeasibility-analysis`, { method: "POST" });
+    return request(`/api/v2/solve/${executionId}/infeasibility-analysis`, {
+      method: "POST",
+    });
   },
 
   /** BYOK: whether the org has its own Anthropic key set (owner also gets a hint). */
@@ -799,7 +859,7 @@ export const api = {
   solve(
     problem: OptimizationProblem,
     workspaceId?: string,
-    source?: SolveSource
+    source?: SolveSource,
   ): Promise<SolveResult> {
     return request("/api/v2/solve", {
       method: "POST",
@@ -813,7 +873,7 @@ export const api = {
   solveAsync(
     problem: OptimizationProblem,
     workspaceId?: string,
-    source?: SolveSource
+    source?: SolveSource,
   ): Promise<AsyncTask> {
     return request("/api/v2/solve/async", {
       method: "POST",
@@ -843,10 +903,16 @@ export const api = {
    * when off). A user syntax error is a 200 with `ok:false` + `{message, position}`.
    * `datasetId` names an org-owned dataset whose set members / param values fill a
    * declaration-only source (§8 model/data separation). */
-  compileDsl(source: string, datasetId?: string | null): Promise<DslCompileResult> {
+  compileDsl(
+    source: string,
+    datasetId?: string | null,
+  ): Promise<DslCompileResult> {
     return request("/api/v2/dsl/compile", {
       method: "POST",
-      body: JSON.stringify({ source, ...(datasetId ? { dataset_id: datasetId } : {}) }),
+      body: JSON.stringify({
+        source,
+        ...(datasetId ? { dataset_id: datasetId } : {}),
+      }),
     });
   },
 
@@ -876,7 +942,10 @@ export const api = {
    * With `allowDataset`, the source is the PURE formulation (declaration-only
    * sets/params) and `dataset` carries the values — store it as a project dataset
    * and compile against it. Gated like compile. */
-  degroundDsl(problem: OptimizationProblem, allowDataset = false): Promise<DslDegroundResult> {
+  degroundDsl(
+    problem: OptimizationProblem,
+    allowDataset = false,
+  ): Promise<DslDegroundResult> {
     return request("/api/v2/dsl/deground", {
       method: "POST",
       body: JSON.stringify({ problem, allow_dataset: allowDataset }),
@@ -897,6 +966,7 @@ export const api = {
     description: string;
     attachments?: DslGenerateAttachment[];
     currentSource?: string | null;
+    useAdvancedModel?: boolean;
   }): Promise<DslGenerateResult> {
     return request("/api/v2/dsl/generate", {
       method: "POST",
@@ -905,6 +975,7 @@ export const api = {
         description: body.description,
         attachments: body.attachments ?? [],
         ...(body.currentSource ? { current_source: body.currentSource } : {}),
+        use_advanced_model: body.useAdvancedModel ?? false,
       }),
     });
   },
@@ -913,7 +984,7 @@ export const api = {
     problem: OptimizationProblem,
     config: MultiObjectiveConfig,
     workspaceId?: string,
-    source?: SolveSource
+    source?: SolveSource,
   ): Promise<MultiObjectiveResult> {
     return request("/api/v2/solve/multi-objective", {
       method: "POST",
@@ -939,25 +1010,12 @@ export const api = {
     return request("/api/v2/models/recents", { params });
   },
 
-
-
-
-
-
-
-
-
-
-
-
-
   getAdminAuthorAnalytics(period: string = "30d"): Promise<AdminAnalytics> {
     // Legacy wire path — renamed to author-analytics in the contract release.
-    return request("/api/v2/admin/marketplace/seller-analytics", { params: { period } });
+    return request("/api/v2/admin/marketplace/seller-analytics", {
+      params: { period },
+    });
   },
-
-
-
 
   // The /api/v2/seller/* wire paths below are legacy — renamed in the contract release.
   requestVerification(): Promise<VerificationRequestStatus> {
@@ -975,21 +1033,25 @@ export const api = {
     return request("/api/v2/seller/notifications/preferences");
   },
 
-  updateNotificationPreference(data: { event_type: string; channel: string; enabled: boolean }): Promise<NotificationPreferencesResponse> {
+  updateNotificationPreference(data: {
+    event_type: string;
+    channel: string;
+    enabled: boolean;
+  }): Promise<NotificationPreferencesResponse> {
     return request("/api/v2/seller/notifications/preferences", {
       method: "PUT",
       body: JSON.stringify(data),
     });
   },
 
-
-
-
   getAdminVerificationRequests(): Promise<AdminVerificationEntry[]> {
     return request("/api/v2/admin/marketplace/verification");
   },
 
-  decideVerification(id: string, decision: { status: "approved" | "rejected"; admin_note?: string }): Promise<{ status: string }> {
+  decideVerification(
+    id: string,
+    decision: { status: "approved" | "rejected"; admin_note?: string },
+  ): Promise<{ status: string }> {
     return request(`/api/v2/admin/marketplace/verification/${id}/decide`, {
       method: "POST",
       body: JSON.stringify(decision),
@@ -1001,7 +1063,11 @@ export const api = {
     return res.items;
   },
 
-  createKey(data: { name: string; description?: string; expires_days?: number }): Promise<CreateKeyResponse> {
+  createKey(data: {
+    name: string;
+    description?: string;
+    expires_days?: number;
+  }): Promise<CreateKeyResponse> {
     return request("/api/v2/keys/", {
       method: "POST",
       body: JSON.stringify(data),
@@ -1030,7 +1096,10 @@ export const api = {
 
   // P1.5 fusion: publishing pins a committed version of a ModelProject as its
   // marketplace listing (the id is the project id).
-  publishModel(projectId: string, data: Record<string, unknown>): Promise<ModelCatalogItem> {
+  publishModel(
+    projectId: string,
+    data: Record<string, unknown>,
+  ): Promise<ModelCatalogItem> {
     return request(`/api/v2/projects/${projectId}/publish`, {
       method: "POST",
       body: JSON.stringify(data),
@@ -1067,11 +1136,17 @@ export const api = {
     return request(`/api/v2/users/${userId}/reviews`);
   },
 
-  getCatalogReviews(catalogId: string, params?: QueryParams): Promise<ReviewList> {
+  getCatalogReviews(
+    catalogId: string,
+    params?: QueryParams,
+  ): Promise<ReviewList> {
     return request(`/api/v2/models/catalog/${catalogId}/reviews`, { params });
   },
 
-  createReview(catalogId: string, data: { rating: number; title?: string; comment?: string }): Promise<Review> {
+  createReview(
+    catalogId: string,
+    data: { rating: number; title?: string; comment?: string },
+  ): Promise<Review> {
     return request(`/api/v2/models/catalog/${catalogId}/reviews`, {
       method: "POST",
       body: JSON.stringify(data),
@@ -1089,7 +1164,11 @@ export const api = {
     });
   },
 
-  createBuilderDocument(name?: string, workspaceId?: string, signal?: AbortSignal): Promise<BuilderDocument> {
+  createBuilderDocument(
+    name?: string,
+    workspaceId?: string,
+    signal?: AbortSignal,
+  ): Promise<BuilderDocument> {
     return request("/api/v2/builder/", {
       method: "POST",
       body: JSON.stringify({ name: name ?? "Untitled Model" }),
@@ -1098,19 +1177,28 @@ export const api = {
     });
   },
 
-  listBuilderDocuments(workspaceId?: string): Promise<BuilderDocumentListItem[]> {
+  listBuilderDocuments(
+    workspaceId?: string,
+  ): Promise<BuilderDocumentListItem[]> {
     return request("/api/v2/builder/", {
       params: workspaceId ? { workspace_id: workspaceId } : undefined,
     });
   },
 
-  getBuilderDocument(id: string, workspaceId?: string): Promise<BuilderDocument> {
+  getBuilderDocument(
+    id: string,
+    workspaceId?: string,
+  ): Promise<BuilderDocument> {
     return request(`/api/v2/builder/${id}`, {
       params: workspaceId ? { workspace_id: workspaceId } : undefined,
     });
   },
 
-  updateBuilderDocument(id: string, data: BuilderDocumentUpdate, workspaceId?: string): Promise<BuilderDocument> {
+  updateBuilderDocument(
+    id: string,
+    data: BuilderDocumentUpdate,
+    workspaceId?: string,
+  ): Promise<BuilderDocument> {
     return request(`/api/v2/builder/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
@@ -1128,7 +1216,7 @@ export const api = {
   // ── ModelProject (first-class model entity; P1e) ────────────────────────
   createProject(
     body: { name?: string; description?: string; workspace_id?: string },
-    workspaceId?: string
+    workspaceId?: string,
   ): Promise<ProjectRead> {
     return request("/api/v2/projects", {
       method: "POST",
@@ -1137,7 +1225,10 @@ export const api = {
     });
   },
 
-  createProjectFromBuilder(documentId: string, workspaceId?: string): Promise<ProjectRead> {
+  createProjectFromBuilder(
+    documentId: string,
+    workspaceId?: string,
+  ): Promise<ProjectRead> {
     return request(`/api/v2/projects/from-builder/${documentId}`, {
       method: "POST",
       params: workspaceId ? { workspace_id: workspaceId } : undefined,
@@ -1146,19 +1237,31 @@ export const api = {
 
   /** Seed a ModelProject from a template (P2 centralization). The backend
    * materializes the template via the existing engine and auto-commits v1. */
-  createProjectFromTemplate(templateId: string, workspaceId?: string): Promise<ProjectRead> {
-    return request(`/api/v2/projects/from-template/${encodeURIComponent(templateId)}`, {
-      method: "POST",
-      params: workspaceId ? { workspace_id: workspaceId } : undefined,
-    });
+  createProjectFromTemplate(
+    templateId: string,
+    workspaceId?: string,
+  ): Promise<ProjectRead> {
+    return request(
+      `/api/v2/projects/from-template/${encodeURIComponent(templateId)}`,
+      {
+        method: "POST",
+        params: workspaceId ? { workspace_id: workspaceId } : undefined,
+      },
+    );
   },
 
   /** Seed a ModelProject from a published marketplace model (P2 centralization). */
-  createProjectFromMarketplace(modelId: string, workspaceId?: string): Promise<ProjectRead> {
-    return request(`/api/v2/projects/from-marketplace/${encodeURIComponent(modelId)}`, {
-      method: "POST",
-      params: workspaceId ? { workspace_id: workspaceId } : undefined,
-    });
+  createProjectFromMarketplace(
+    modelId: string,
+    workspaceId?: string,
+  ): Promise<ProjectRead> {
+    return request(
+      `/api/v2/projects/from-marketplace/${encodeURIComponent(modelId)}`,
+      {
+        method: "POST",
+        params: workspaceId ? { workspace_id: workspaceId } : undefined,
+      },
+    );
   },
 
   getProject(id: string, workspaceId?: string): Promise<ProjectRead> {
@@ -1171,7 +1274,7 @@ export const api = {
   updateProject(
     id: string,
     body: { name?: string; description?: string; status?: string },
-    workspaceId?: string
+    workspaceId?: string,
   ): Promise<ProjectRead> {
     return request(`/api/v2/projects/${id}`, {
       method: "PATCH",
@@ -1194,16 +1297,28 @@ export const api = {
   deleteProjectPermanently(id: string, workspaceId?: string): Promise<void> {
     return request<void>(`/api/v2/projects/${id}`, {
       method: "DELETE",
-      params: { permanent: true, ...(workspaceId ? { workspace_id: workspaceId } : {}) },
+      params: {
+        permanent: true,
+        ...(workspaceId ? { workspace_id: workspaceId } : {}),
+      },
     });
   },
 
   listProjects(
-    params?: { status?: string; q?: string; mine?: boolean; skip?: number; limit?: number },
-    workspaceId?: string
+    params?: {
+      status?: string;
+      q?: string;
+      mine?: boolean;
+      skip?: number;
+      limit?: number;
+    },
+    workspaceId?: string,
   ): Promise<ProjectListItem[]> {
     return request("/api/v2/projects", {
-      params: { ...params, ...(workspaceId ? { workspace_id: workspaceId } : {}) },
+      params: {
+        ...params,
+        ...(workspaceId ? { workspace_id: workspaceId } : {}),
+      },
     });
   },
 
@@ -1221,10 +1336,13 @@ export const api = {
   getProjectExecutions(
     id: string,
     params?: { status?: string; limit?: number },
-    workspaceId?: string
+    workspaceId?: string,
   ): Promise<ProjectExecutionItem[]> {
     return request(`/api/v2/projects/${id}/executions`, {
-      params: { ...params, ...(workspaceId ? { workspace_id: workspaceId } : {}) },
+      params: {
+        ...params,
+        ...(workspaceId ? { workspace_id: workspaceId } : {}),
+      },
     });
   },
 
@@ -1238,15 +1356,18 @@ export const api = {
     projectId: string,
     datasetId: string,
     solverName?: string,
-    workspaceId?: string
+    workspaceId?: string,
   ): Promise<AsyncTask> {
-    return request(`/api/v2/projects/${projectId}/datasets/${datasetId}/solve`, {
-      method: "POST",
-      params: {
-        ...(solverName ? { solver_name: solverName } : {}),
-        ...(workspaceId ? { workspace_id: workspaceId } : {}),
+    return request(
+      `/api/v2/projects/${projectId}/datasets/${datasetId}/solve`,
+      {
+        method: "POST",
+        params: {
+          ...(solverName ? { solver_name: solverName } : {}),
+          ...(workspaceId ? { workspace_id: workspaceId } : {}),
+        },
       },
-    });
+    );
   },
 
   /** Replace the HEAD draft. `lockVersion` becomes the `If-Match` optimistic-concurrency token. */
@@ -1254,12 +1375,13 @@ export const api = {
     id: string,
     body: DraftUpdateBody,
     lockVersion?: number,
-    workspaceId?: string
+    workspaceId?: string,
   ): Promise<ProjectRead> {
     return request(`/api/v2/projects/${id}/draft`, {
       method: "PUT",
       body: JSON.stringify(body),
-      headers: lockVersion != null ? { "If-Match": String(lockVersion) } : undefined,
+      headers:
+        lockVersion != null ? { "If-Match": String(lockVersion) } : undefined,
       params: workspaceId ? { workspace_id: workspaceId } : undefined,
     });
   },
@@ -1267,7 +1389,7 @@ export const api = {
   commitProjectVersion(
     id: string,
     payload: { summary: string; body?: string },
-    workspaceId?: string
+    workspaceId?: string,
   ): Promise<ProjectVersionRead> {
     return request(`/api/v2/projects/${id}/commit`, {
       method: "POST",
@@ -1279,17 +1401,20 @@ export const api = {
   listProjectVersions(
     id: string,
     params?: { skip?: number; limit?: number },
-    workspaceId?: string
+    workspaceId?: string,
   ): Promise<ProjectVersionSummary[]> {
     return request(`/api/v2/projects/${id}/versions`, {
-      params: { ...params, ...(workspaceId ? { workspace_id: workspaceId } : {}) },
+      params: {
+        ...params,
+        ...(workspaceId ? { workspace_id: workspaceId } : {}),
+      },
     });
   },
 
   getProjectVersion(
     id: string,
     versionId: string,
-    workspaceId?: string
+    workspaceId?: string,
   ): Promise<ProjectVersionRead> {
     return request(`/api/v2/projects/${id}/versions/${versionId}`, {
       params: workspaceId ? { workspace_id: workspaceId } : undefined,
@@ -1300,7 +1425,7 @@ export const api = {
     id: string,
     a: string,
     b: string,
-    workspaceId?: string
+    workspaceId?: string,
   ): Promise<ProjectVersionDiff> {
     return request(`/api/v2/projects/${id}/versions/${a}/diff/${b}`, {
       params: workspaceId ? { workspace_id: workspaceId } : undefined,
@@ -1311,7 +1436,7 @@ export const api = {
     id: string,
     versionId: string,
     discardDraft?: boolean,
-    workspaceId?: string
+    workspaceId?: string,
   ): Promise<ProjectRead> {
     return request(`/api/v2/projects/${id}/versions/${versionId}/restore`, {
       method: "POST",
@@ -1334,7 +1459,11 @@ export const api = {
 
   createProjectDataset(
     id: string,
-    payload: { name: string; description?: string | null; data_json: Record<string, unknown> }
+    payload: {
+      name: string;
+      description?: string | null;
+      data_json: Record<string, unknown>;
+    },
   ): Promise<ProjectDataset> {
     return request(`/api/v2/projects/${id}/datasets`, {
       method: "POST",
@@ -1349,7 +1478,7 @@ export const api = {
       name?: string;
       description?: string | null;
       data_json?: Record<string, unknown>;
-    }
+    },
   ): Promise<ProjectDataset> {
     return request(`/api/v2/projects/${id}/datasets/${datasetId}`, {
       method: "PUT",
@@ -1358,7 +1487,9 @@ export const api = {
   },
 
   deleteProjectDataset(id: string, datasetId: string): Promise<void> {
-    return request(`/api/v2/projects/${id}/datasets/${datasetId}`, { method: "DELETE" });
+    return request(`/api/v2/projects/${id}/datasets/${datasetId}`, {
+      method: "DELETE",
+    });
   },
 
   /** Parse a data file (.dat / .json / .csv) into a dataset PREVIEW (S2c) — nothing
@@ -1366,7 +1497,7 @@ export const api = {
   async importProjectDataset(
     id: string,
     file: File,
-    paramName?: string | null
+    paramName?: string | null,
   ): Promise<DatasetImportPreview> {
     const doUpload = async (): Promise<Response> => {
       const formData = new FormData();
@@ -1387,7 +1518,11 @@ export const api = {
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       const detail = typeof body.detail === "string" ? body.detail : undefined;
-      throw new ApiError(res.status, detail || `Import failed (${res.status})`, detail);
+      throw new ApiError(
+        res.status,
+        detail || `Import failed (${res.status})`,
+        detail,
+      );
     }
     return res.json();
   },
@@ -1400,7 +1535,11 @@ export const api = {
     return request(`/api/v2/solve/templates/${templateId}`);
   },
 
-  solveTemplate(templateId: string, input: Record<string, unknown>, workspaceId?: string): Promise<SolveResult> {
+  solveTemplate(
+    templateId: string,
+    input: Record<string, unknown>,
+    workspaceId?: string,
+  ): Promise<SolveResult> {
     return request(`/api/v2/solve/templates/${templateId}/solve`, {
       method: "POST",
       body: JSON.stringify(input),
@@ -1409,36 +1548,57 @@ export const api = {
     });
   },
 
-  previewModel(modelId: string, inputData: Record<string, unknown>): Promise<OptimizationProblem> {
+  previewModel(
+    modelId: string,
+    inputData: Record<string, unknown>,
+  ): Promise<OptimizationProblem> {
     return request(`/api/v2/models/${modelId}/preview`, {
       method: "POST",
       body: JSON.stringify({ input_data: inputData }),
     });
   },
 
-  previewTemplate(templateId: string, inputData?: Record<string, unknown>): Promise<OptimizationProblem> {
+  previewTemplate(
+    templateId: string,
+    inputData?: Record<string, unknown>,
+  ): Promise<OptimizationProblem> {
     return request(`/api/v2/solve/templates/${templateId}/preview`, {
       method: "POST",
       body: JSON.stringify(inputData ?? null),
     });
   },
 
-  listVersions(documentId: string, params?: { limit?: number; skip?: number }, workspaceId?: string): Promise<ModelVersionListItem[]> {
+  listVersions(
+    documentId: string,
+    params?: { limit?: number; skip?: number },
+    workspaceId?: string,
+  ): Promise<ModelVersionListItem[]> {
     // Trailing slash matches the backend collection route (@router.get("/")).
     // Without it FastAPI issues a 307 redirect that downgrades https→http behind
     // the proxy, which browsers block as mixed content. See createVersion below.
     return request(`/api/v2/builder/${documentId}/versions/`, {
-      params: { ...params, ...(workspaceId ? { workspace_id: workspaceId } : {}) },
+      params: {
+        ...params,
+        ...(workspaceId ? { workspace_id: workspaceId } : {}),
+      },
     });
   },
 
-  getVersion(documentId: string, versionId: string, workspaceId?: string): Promise<ModelVersion> {
+  getVersion(
+    documentId: string,
+    versionId: string,
+    workspaceId?: string,
+  ): Promise<ModelVersion> {
     return request(`/api/v2/builder/${documentId}/versions/${versionId}`, {
       params: workspaceId ? { workspace_id: workspaceId } : undefined,
     });
   },
 
-  createVersion(documentId: string, data: { canvas_json: Record<string, unknown> }, workspaceId?: string): Promise<ModelVersion> {
+  createVersion(
+    documentId: string,
+    data: { canvas_json: Record<string, unknown> },
+    workspaceId?: string,
+  ): Promise<ModelVersion> {
     // Trailing slash matches the backend collection route (@router.post("/")) to
     // avoid the 307 redirect that downgrades https→http (mixed content) in prod.
     return request(`/api/v2/builder/${documentId}/versions/`, {
@@ -1467,15 +1627,21 @@ export const api = {
     data: { current_canvas_json: Record<string, unknown> },
     workspaceId?: string,
   ): Promise<{ checkpoint_id: string; document: BuilderDocument }> {
-    return request(`/api/v2/builder/${documentId}/versions/${versionId}/restore`, {
-      method: "POST",
-      body: JSON.stringify(data),
-      params: workspaceId ? { workspace_id: workspaceId } : undefined,
-    });
+    return request(
+      `/api/v2/builder/${documentId}/versions/${versionId}/restore`,
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+        params: workspaceId ? { workspace_id: workspaceId } : undefined,
+      },
+    );
   },
 
   triggers: {
-    list: (documentId?: string, workspaceId?: string): Promise<SolveTrigger[]> => {
+    list: (
+      documentId?: string,
+      workspaceId?: string,
+    ): Promise<SolveTrigger[]> => {
       const params: QueryParams = {};
       if (documentId) params.document_id = documentId;
       if (workspaceId) params.workspace_id = workspaceId;
@@ -1485,13 +1651,20 @@ export const api = {
       request<SolveTrigger>(`/api/v2/triggers/${triggerId}`, {
         params: workspaceId ? { workspace_id: workspaceId } : undefined,
       }),
-    create: (body: CreateTriggerRequest, workspaceId?: string): Promise<CreateTriggerResponse> =>
+    create: (
+      body: CreateTriggerRequest,
+      workspaceId?: string,
+    ): Promise<CreateTriggerResponse> =>
       request<CreateTriggerResponse>("/api/v2/triggers/", {
         method: "POST",
         body: JSON.stringify(body),
         params: workspaceId ? { workspace_id: workspaceId } : undefined,
       }),
-    update: (triggerId: string, body: Partial<CreateTriggerRequest>, workspaceId?: string): Promise<SolveTrigger> =>
+    update: (
+      triggerId: string,
+      body: Partial<CreateTriggerRequest>,
+      workspaceId?: string,
+    ): Promise<SolveTrigger> =>
       request<SolveTrigger>(`/api/v2/triggers/${triggerId}`, {
         method: "PATCH",
         body: JSON.stringify(body),
@@ -1502,7 +1675,11 @@ export const api = {
         method: "DELETE",
         params: workspaceId ? { workspace_id: workspaceId } : undefined,
       }),
-    toggle: (triggerId: string, enabled: boolean, workspaceId?: string): Promise<SolveTrigger> =>
+    toggle: (
+      triggerId: string,
+      enabled: boolean,
+      workspaceId?: string,
+    ): Promise<SolveTrigger> =>
       request<SolveTrigger>(`/api/v2/triggers/${triggerId}/toggle`, {
         method: "POST",
         body: JSON.stringify({ enabled }),
@@ -1514,21 +1691,36 @@ export const api = {
         page = 1,
         pageSize = 20,
         workspaceId?: string,
-      ): Promise<{ items: TriggerRun[]; total: number; page: number; page_size: number }> => {
-        const params: QueryParams = { page: String(page), page_size: String(pageSize) };
+      ): Promise<{
+        items: TriggerRun[];
+        total: number;
+        page: number;
+        page_size: number;
+      }> => {
+        const params: QueryParams = {
+          page: String(page),
+          page_size: String(pageSize),
+        };
         if (workspaceId) params.workspace_id = workspaceId;
-        return request<{ items: TriggerRun[]; total: number; page: number; page_size: number }>(
-          `/api/v2/triggers/${triggerId}/runs`, { params }
-        );
+        return request<{
+          items: TriggerRun[];
+          total: number;
+          page: number;
+          page_size: number;
+        }>(`/api/v2/triggers/${triggerId}/runs`, { params });
       },
-      get: (triggerId: string, runId: string, workspaceId?: string): Promise<TriggerRun> =>
+      get: (
+        triggerId: string,
+        runId: string,
+        workspaceId?: string,
+      ): Promise<TriggerRun> =>
         request<TriggerRun>(`/api/v2/triggers/${triggerId}/runs/${runId}`, {
           params: workspaceId ? { workspace_id: workspaceId } : undefined,
         }),
       rerun: (triggerId: string, runId: string): Promise<{ run_id: string }> =>
         request<{ run_id: string }>(
           `/api/v2/triggers/${triggerId}/runs/${runId}/rerun`,
-          { method: "POST" }
+          { method: "POST" },
         ),
     },
   },
@@ -1537,20 +1729,34 @@ export const api = {
     get(triggerId: string): Promise<TriggerSchedule> {
       return request<TriggerSchedule>(`/api/v2/triggers/${triggerId}/schedule`);
     },
-    create(triggerId: string, body: ScheduleCreateRequest): Promise<TriggerSchedule> {
-      return request<TriggerSchedule>(`/api/v2/triggers/${triggerId}/schedule`, {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
+    create(
+      triggerId: string,
+      body: ScheduleCreateRequest,
+    ): Promise<TriggerSchedule> {
+      return request<TriggerSchedule>(
+        `/api/v2/triggers/${triggerId}/schedule`,
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+        },
+      );
     },
-    update(triggerId: string, body: ScheduleUpdateRequest): Promise<TriggerSchedule> {
-      return request<TriggerSchedule>(`/api/v2/triggers/${triggerId}/schedule`, {
-        method: "PATCH",
-        body: JSON.stringify(body),
-      });
+    update(
+      triggerId: string,
+      body: ScheduleUpdateRequest,
+    ): Promise<TriggerSchedule> {
+      return request<TriggerSchedule>(
+        `/api/v2/triggers/${triggerId}/schedule`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        },
+      );
     },
     delete(triggerId: string): Promise<void> {
-      return request<void>(`/api/v2/triggers/${triggerId}/schedule`, { method: "DELETE" });
+      return request<void>(`/api/v2/triggers/${triggerId}/schedule`, {
+        method: "DELETE",
+      });
     },
     validate(body: ScheduleCreateRequest): Promise<CronValidationResponse> {
       return request<CronValidationResponse>("/api/v2/schedules/validate", {
@@ -1572,7 +1778,7 @@ export const api = {
             headers: authHeaders(), // NO Content-Type — browser sets multipart boundary
             body: formData,
             credentials: "include",
-          }
+          },
         );
       };
 
@@ -1585,8 +1791,13 @@ export const api = {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        const detail = typeof body.detail === "string" ? body.detail : undefined;
-        throw new ApiError(res.status, detail || `Upload failed (${res.status})`, detail);
+        const detail =
+          typeof body.detail === "string" ? body.detail : undefined;
+        throw new ApiError(
+          res.status,
+          detail || `Upload failed (${res.status})`,
+          detail,
+        );
       }
 
       return res.json();
@@ -1595,7 +1806,7 @@ export const api = {
     async remove(conversationId: string, attachmentId: string): Promise<void> {
       return request<void>(
         `/api/v2/llm/conversations/${conversationId}/attachments/${attachmentId}`,
-        { method: "DELETE" }
+        { method: "DELETE" },
       );
     },
   },
@@ -1622,8 +1833,13 @@ export const api = {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        const detail = typeof body.detail === "string" ? body.detail : undefined;
-        throw new ApiError(res.status, detail || `Preview failed (${res.status})`, detail);
+        const detail =
+          typeof body.detail === "string" ? body.detail : undefined;
+        throw new ApiError(
+          res.status,
+          detail || `Preview failed (${res.status})`,
+          detail,
+        );
       }
 
       return res.json();
@@ -1653,8 +1869,13 @@ export const api = {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        const detail = typeof body.detail === "string" ? body.detail : undefined;
-        throw new ApiError(res.status, detail || `Import failed (${res.status})`, detail);
+        const detail =
+          typeof body.detail === "string" ? body.detail : undefined;
+        throw new ApiError(
+          res.status,
+          detail || `Import failed (${res.status})`,
+          detail,
+        );
       }
 
       // ADR-007 S5: a long import solve degrades to 202 — resolve it transparently
@@ -1686,15 +1907,23 @@ export const api = {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        const detail = typeof body.detail === "string" ? body.detail : undefined;
-        throw new ApiError(res.status, detail || `Export failed (${res.status})`, detail);
+        const detail =
+          typeof body.detail === "string" ? body.detail : undefined;
+        throw new ApiError(
+          res.status,
+          detail || `Export failed (${res.status})`,
+          detail,
+        );
       }
 
       return res.blob();
     },
 
     /** Export a MODEL (no solve needed) in a standard format. fmt: mps|lp|cip|json. */
-    async exportModel(problem: OptimizationProblem, fmt: string): Promise<Blob> {
+    async exportModel(
+      problem: OptimizationProblem,
+      fmt: string,
+    ): Promise<Blob> {
       const url = buildUrl(`/api/v2/solve/export/model/${fmt}`);
       const doFetch = async (): Promise<Response> =>
         fetch(url, {
@@ -1713,8 +1942,13 @@ export const api = {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        const detail = typeof body.detail === "string" ? body.detail : undefined;
-        throw new ApiError(res.status, detail || `Export failed (${res.status})`, detail);
+        const detail =
+          typeof body.detail === "string" ? body.detail : undefined;
+        throw new ApiError(
+          res.status,
+          detail || `Export failed (${res.status})`,
+          detail,
+        );
       }
 
       return res.blob();
@@ -1725,22 +1959,35 @@ export const api = {
     getSummary(days = 30): Promise<SolveAnalyticsSummary> {
       return request(`/api/v2/solve/analytics/summary`, { params: { days } });
     },
-    getTrends(days = 30, bucket: "day" | "week" = "day"): Promise<SolveAnalyticsTrends> {
-      return request(`/api/v2/solve/analytics/trends`, { params: { days, bucket } });
+    getTrends(
+      days = 30,
+      bucket: "day" | "week" = "day",
+    ): Promise<SolveAnalyticsTrends> {
+      return request(`/api/v2/solve/analytics/trends`, {
+        params: { days, bucket },
+      });
     },
     compare(ids: string[]): Promise<SolveAnalyticsCompare> {
-      return request(`/api/v2/solve/analytics/compare`, { params: { ids: ids.join(",") } });
+      return request(`/api/v2/solve/analytics/compare`, {
+        params: { ids: ids.join(",") },
+      });
     },
   },
 
-  createWorkspace(data: { name: string; description?: string }): Promise<Workspace> {
+  createWorkspace(data: {
+    name: string;
+    description?: string;
+  }): Promise<Workspace> {
     return request("/api/v2/workspaces/", {
       method: "POST",
       body: JSON.stringify(data),
     });
   },
 
-  listWorkspaces(page?: number, limit?: number): Promise<PaginatedResponse<Workspace>> {
+  listWorkspaces(
+    page?: number,
+    limit?: number,
+  ): Promise<PaginatedResponse<Workspace>> {
     return request("/api/v2/workspaces/", { params: { page, limit } });
   },
 
@@ -1748,7 +1995,10 @@ export const api = {
     return request(`/api/v2/workspaces/${workspaceId}`);
   },
 
-  updateWorkspace(workspaceId: string, data: { name?: string; description?: string }): Promise<Workspace> {
+  updateWorkspace(
+    workspaceId: string,
+    data: { name?: string; description?: string },
+  ): Promise<Workspace> {
     return request(`/api/v2/workspaces/${workspaceId}`, {
       method: "PATCH",
       body: JSON.stringify(data),
@@ -1763,7 +2013,11 @@ export const api = {
     return request(`/api/v2/workspaces/${workspaceId}/members/`);
   },
 
-  updateMemberRole(workspaceId: string, userId: string, role: WorkspaceRole): Promise<void> {
+  updateMemberRole(
+    workspaceId: string,
+    userId: string,
+    role: WorkspaceRole,
+  ): Promise<void> {
     return request(`/api/v2/workspaces/${workspaceId}/members/${userId}`, {
       method: "PATCH",
       body: JSON.stringify({ role }),
@@ -1771,12 +2025,14 @@ export const api = {
   },
 
   removeMember(workspaceId: string, userId: string): Promise<void> {
-    return request(`/api/v2/workspaces/${workspaceId}/members/${userId}`, { method: "DELETE" });
+    return request(`/api/v2/workspaces/${workspaceId}/members/${userId}`, {
+      method: "DELETE",
+    });
   },
 
   createEmailInvite(
     workspaceId: string,
-    data: { email: string; role: WorkspaceRole }
+    data: { email: string; role: WorkspaceRole },
   ): Promise<WorkspaceInvite> {
     return request(`/api/v2/workspaces/${workspaceId}/invites/email`, {
       method: "POST",
@@ -1786,7 +2042,7 @@ export const api = {
 
   createLinkInvite(
     workspaceId: string,
-    data: { role: WorkspaceRole }
+    data: { role: WorkspaceRole },
   ): Promise<{ invite_url: string; expires_at: string }> {
     return request(`/api/v2/workspaces/${workspaceId}/invites/link`, {
       method: "POST",
@@ -1806,7 +2062,9 @@ export const api = {
   },
 
   revokeInvite(workspaceId: string, inviteId: string): Promise<void> {
-    return request(`/api/v2/workspaces/${workspaceId}/invites/${inviteId}`, { method: "DELETE" });
+    return request(`/api/v2/workspaces/${workspaceId}/invites/${inviteId}`, {
+      method: "DELETE",
+    });
   },
 
   listAuditLogs(
@@ -1818,7 +2076,7 @@ export const api = {
       date_to?: string;
       page?: number;
       limit?: number;
-    }
+    },
   ): Promise<PaginatedResponse<AuditLogEntry>> {
     return request(`/api/v2/workspaces/${workspaceId}/audit/`, { params });
   },
@@ -1839,7 +2097,9 @@ export const api = {
       return request("/api/v2/admin/stats");
     },
 
-    getOrganizations(params?: QueryParams): Promise<PaginatedResponse<Organization>> {
+    getOrganizations(
+      params?: QueryParams,
+    ): Promise<PaginatedResponse<Organization>> {
       return request("/api/v2/admin/organizations", { params });
     },
 
@@ -1850,7 +2110,10 @@ export const api = {
       });
     },
 
-    updateOrganization(id: string, data: Record<string, unknown>): Promise<Organization> {
+    updateOrganization(
+      id: string,
+      data: Record<string, unknown>,
+    ): Promise<Organization> {
       return request(`/api/v2/admin/organizations/${id}`, {
         method: "PATCH",
         body: JSON.stringify(data),
@@ -1862,11 +2125,15 @@ export const api = {
     },
 
     verifyOrg(id: string): Promise<void> {
-      return request(`/api/v2/admin/organizations/${id}/verify`, { method: "POST" });
+      return request(`/api/v2/admin/organizations/${id}/verify`, {
+        method: "POST",
+      });
     },
 
     unverifyOrg(id: string): Promise<void> {
-      return request(`/api/v2/admin/organizations/${id}/verify`, { method: "DELETE" });
+      return request(`/api/v2/admin/organizations/${id}/verify`, {
+        method: "DELETE",
+      });
     },
 
     getOrganizationOverview(id: string): Promise<AdminOrganizationOverview> {
@@ -1907,21 +2174,28 @@ export const api = {
     },
 
     toggleApiKey(id: string): Promise<APIKey> {
-      return request(`/api/v2/admin/api-keys/${id}/toggle`, { method: "PATCH" });
+      return request(`/api/v2/admin/api-keys/${id}/toggle`, {
+        method: "PATCH",
+      });
     },
 
     deleteApiKey(id: string): Promise<void> {
       return request(`/api/v2/admin/api-keys/${id}`, { method: "DELETE" });
     },
 
-    getModels(params?: QueryParams): Promise<PaginatedResponse<ModelCatalogItem>> {
+    getModels(
+      params?: QueryParams,
+    ): Promise<PaginatedResponse<ModelCatalogItem>> {
       return request("/api/v2/admin/models", { params });
     },
 
     updateModelVisibility(id: string, isPublic: boolean): Promise<void> {
-      return request(`/api/v2/admin/models/${id}/visibility?is_public=${isPublic}`, {
-        method: "PATCH",
-      });
+      return request(
+        `/api/v2/admin/models/${id}/visibility?is_public=${isPublic}`,
+        {
+          method: "PATCH",
+        },
+      );
     },
 
     updateModel(id: string, data: Record<string, unknown>): Promise<void> {
@@ -1931,7 +2205,9 @@ export const api = {
       });
     },
 
-    getExecutions(params?: QueryParams): Promise<PaginatedResponse<ModelExecution>> {
+    getExecutions(
+      params?: QueryParams,
+    ): Promise<PaginatedResponse<ModelExecution>> {
       return request("/api/v2/admin/executions", { params });
     },
 
@@ -1944,9 +2220,12 @@ export const api = {
     },
 
     updateReviewVisibility(id: string, visible: boolean): Promise<void> {
-      return request(`/api/v2/admin/reviews/${id}/visibility?visible=${visible}`, {
-        method: "PATCH",
-      });
+      return request(
+        `/api/v2/admin/reviews/${id}/visibility?visible=${visible}`,
+        {
+          method: "PATCH",
+        },
+      );
     },
 
     getSettingsRegistry(): Promise<SettingsRegistryResponse> {
@@ -1956,22 +2235,33 @@ export const api = {
       const params = category ? { category } : undefined;
       return request("/api/v2/admin/settings/values", { params });
     },
-    updateSettings(updates: Record<string, string>): Promise<SettingsUpdateResponse> {
+    updateSettings(
+      updates: Record<string, string>,
+    ): Promise<SettingsUpdateResponse> {
       return request("/api/v2/admin/settings/values", {
         method: "PUT",
         body: JSON.stringify({ updates }),
       });
     },
-    resetSetting(key: string): Promise<{ value: string; env_default: string | null }> {
+    resetSetting(
+      key: string,
+    ): Promise<{ value: string; env_default: string | null }> {
       return request(`/api/v2/admin/settings/reset/${key}`, { method: "POST" });
     },
-    getSettingsAudit(params?: { page?: number; page_size?: number; category?: string; changed_by?: string }): Promise<SettingsAuditLogResponse> {
+    getSettingsAudit(params?: {
+      page?: number;
+      page_size?: number;
+      category?: string;
+      changed_by?: string;
+    }): Promise<SettingsAuditLogResponse> {
       return request("/api/v2/admin/settings/audit", { params });
     },
     getPlanTiers(): Promise<PlanTiersResponse> {
       return request("/api/v2/admin/settings/plans");
     },
-    updatePlanTiers(plans: Record<string, Record<string, string>>): Promise<PlanTiersResponse> {
+    updatePlanTiers(
+      plans: Record<string, Record<string, string>>,
+    ): Promise<PlanTiersResponse> {
       return request("/api/v2/admin/settings/plans", {
         method: "PUT",
         body: JSON.stringify({ plans }),

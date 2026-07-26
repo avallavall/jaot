@@ -239,6 +239,13 @@ class DSLGenerateRequest(BaseModel):
         max_length=1_000_000,
         description="An existing JModel draft to refine instead of starting fresh.",
     )
+    use_advanced_model: bool = Field(
+        default=False,
+        description=(
+            "Formulate with the advanced model instead of the default one. Same opt-in the "
+            "chats and the explainers expose; costs more per call, so it is never implicit."
+        ),
+    )
 
 
 class DSLGenerateResponse(BaseModel):

@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useRef,
+  useState,
+} from "react";
+import { useAdvancedModel } from "@/hooks/useAdvancedModel";
 import { api } from "@/lib/api";
 import { useExplanationStream } from "@/hooks/useExplanationStream";
 import type { LLMErrorCode } from "@/lib/llm-event-codes";
@@ -37,13 +44,17 @@ export interface ModelExplanationSession {
   runExplain: () => void;
 }
 
-const ModelExplanationContext = createContext<ModelExplanationSession | null>(null);
+const ModelExplanationContext = createContext<ModelExplanationSession | null>(
+  null,
+);
 
 /** Read the studio model-explanation session. Throws if used outside its provider. */
 export function useModelExplanation(): ModelExplanationSession {
   const ctx = useContext(ModelExplanationContext);
   if (!ctx) {
-    throw new Error("useModelExplanation must be used within a ModelExplanationProvider");
+    throw new Error(
+      "useModelExplanation must be used within a ModelExplanationProvider",
+    );
   }
   return ctx;
 }
@@ -54,8 +65,14 @@ interface ModelExplanationProviderProps {
   children: React.ReactNode;
 }
 
-export function ModelExplanationProvider({ projectId, children }: ModelExplanationProviderProps) {
+export function ModelExplanationProvider({
+  projectId,
+  children,
+}: ModelExplanationProviderProps) {
   const stream = useExplanationStream();
+  // Read from the shared external store, not local state: the toggle lives in the panel
+  // while this provider is what sends, so two copies of the choice would drift.
+  const [advancedModel] = useAdvancedModel();
   const conversationIdRef = useRef<string | null>(null);
   const [started, setStarted] = useState(false);
   const [setupFailed, setSetupFailed] = useState(false);
@@ -67,20 +84,23 @@ export function ModelExplanationProvider({ projectId, children }: ModelExplanati
       // A short-lived conversation is created once per session and reused for every
       // regenerate, so each explanation streams into the same scoped conversation.
       if (!conversationIdRef.current) {
-        const conv = await api.request<Conversation>("/api/v2/llm/conversations", {
-          method: "POST",
-          body: JSON.stringify({}),
-        });
+        const conv = await api.request<Conversation>(
+          "/api/v2/llm/conversations",
+          {
+            method: "POST",
+            body: JSON.stringify({}),
+          },
+        );
         conversationIdRef.current = conv.id;
       }
       await stream.explain(
         `/api/v2/llm/conversations/${conversationIdRef.current}/explain-model`,
-        { project_id: projectId }
+        { project_id: projectId, use_advanced_model: advancedModel },
       );
     } catch {
       setSetupFailed(true);
     }
-  }, [projectId, stream]);
+  }, [projectId, stream, advancedModel]);
 
   const value: ModelExplanationSession = {
     text: stream.text,
@@ -93,6 +113,8 @@ export function ModelExplanationProvider({ projectId, children }: ModelExplanati
   };
 
   return (
-    <ModelExplanationContext.Provider value={value}>{children}</ModelExplanationContext.Provider>
+    <ModelExplanationContext.Provider value={value}>
+      {children}
+    </ModelExplanationContext.Provider>
   );
 }
