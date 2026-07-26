@@ -166,3 +166,15 @@ migration (ADR-009 gets the same benefit for a fraction of the cost).
 `favorite.py` `Column()`). Additive-only discipline makes the `DROP`s release-shaped, not
 refactor-shaped — they need their own window, and until they land
 `alembic --autogenerate` stays unreliable.
+
+**Addendum (same day, after owner review):** two precisions on the audit above.
+
+- **D-12 has a clear head of the queue.** ADR-007 already removed every in-request solve, so
+  F-01 is not about solving — but `get_async_solve_status` (`solve.py:1257`), the endpoint the
+  studio **polls for the whole duration of every solve**, is an `async def` that queries the DB
+  on the event loop. Highest-traffic item in F-01; it is in the mechanical group.
+  `cancel_async_task` (`solve.py:1362`) has the same shape and negligible traffic.
+- **D-20 (new, minutes):** `deploy/docker-compose.prod.yml:199-201` still justifies the API
+  container's 5 GB / 6 CPU limits with "SCIP sync solves on large models" — a rationale ADR-007
+  retired in July 2026. Harmless (it is a ceiling, not a reserve) but misleading for the next
+  capacity decision.
