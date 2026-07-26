@@ -19,7 +19,7 @@ from app.domains.solver.adapters.base import (
 from app.domains.solver.queue_routing import resolve_queue
 from app.domains.solver.services import get_solver_service
 from app.models import ExecutionStatus, ModelExecution
-from app.models.model_project import ModelProject, ModelProjectListing
+from app.models.model_project import ModelProject
 from app.schemas.optimization import (
     MultiObjectiveConfig,
     MultiObjectiveResult,
@@ -27,6 +27,7 @@ from app.schemas.optimization import (
     SolverStatus,
 )
 from app.schemas.solution_structure import annotate_variable_structure
+from app.services.marketplace_fusion import record_listing_execution
 from app.shared.core.celery_app import celery_app
 from app.shared.core.prometheus_metrics import (
     ACTIVE_SOLVES,
@@ -143,6 +144,17 @@ def _assert_queue_match(solver_name: str | None) -> None:
             f"Worker on queue '{expected_queue}' cannot process solver "
             f"'{requested}' (expected queue '{requested_queue}')."
         )
+
+
+def _listing_id_for(model: ModelProject) -> str:
+    """The listing a run should be attributed to.
+
+    A fork credits the listing it came from; a project with its own listing
+    credits that. Returns the project id either way, which is also the listing PK.
+    """
+    if model.source_type == "marketplace" and model.source_ref:
+        return model.source_ref
+    return model.id
 
 
 @celery_app.task(bind=True, name="solve_async")  # type: ignore[misc]
@@ -572,6 +584,7 @@ def solve_model_async(
 
     db = SessionLocal()
     execution = None
+    model: ModelProject | None = None
     try:
         _assert_queue_match(solver_name)
 
@@ -670,6 +683,11 @@ def solve_model_async(
                 execution.result_data = result.to_result_data()
                 execution.execution_time_ms = execution_time_ms
                 execution.solver_status = result.status.value
+            # A failed run counts too — otherwise the listing's success rate has
+            # no denominator and every model looks flawless.
+            record_listing_execution(
+                db, _listing_id_for(model), succeeded=False, execution_time_ms=None
+            )
             db.commit()
             SOLVE_TOTAL.labels(status="error", generator="model_async").inc()
             update_task_progress(1.0, "failed", error_message)
@@ -715,23 +733,12 @@ def solve_model_async(
             generator="model_async",
         ).inc()
 
-        # Roll the execution count onto the marketplace listing (a fork bumps its
-        # SOURCE listing; a project with its own listing bumps that). Per-project
-        # counts are computed from model_executions — no per-project counter.
-        listing_id = (
-            model.source_ref
-            if model.source_type == "marketplace" and model.source_ref
-            else model.id
+        # Roll the execution onto the marketplace listing (a fork bumps its SOURCE
+        # listing; a project with its own listing bumps that). Per-project counts
+        # are computed from model_executions — no per-project counter.
+        record_listing_execution(
+            db, _listing_id_for(model), succeeded=True, execution_time_ms=execution_time_ms
         )
-        listing = (
-            db.query(ModelProjectListing)
-            .filter(ModelProjectListing.model_project_id == listing_id)
-            .first()
-        )
-        if listing is not None:
-            # SQL-expression assignment → atomic UPDATE (concurrent workers
-            # bumping the same listing must not lose increments).
-            listing.total_executions = ModelProjectListing.total_executions + 1
 
         db.commit()
 
@@ -801,6 +808,13 @@ def solve_model_async(
                 )
                 execution.error_message = execution.error_message or "Cancelled by user"
                 execution.completed_at = execution.completed_at or utcnow()
+            elif model is not None:
+                # Only a genuine failure counts against the listing: a user
+                # cancellation says nothing about whether the model works, and a
+                # crash before the model loaded has no listing to attribute.
+                record_listing_execution(
+                    db, _listing_id_for(model), succeeded=False, execution_time_ms=None
+                )
 
             db.commit()
 

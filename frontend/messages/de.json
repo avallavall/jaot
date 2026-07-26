@@ -2445,13 +2445,7 @@
         "features": "Funktionen",
         "howItWorks": "So funktioniert es",
         "exampleIo": "Beispiel-E/A",
-        "changelog": "Änderungsprotokoll",
-        "overviewEmpty": "Es wurde noch keine Übersicht hinzugefügt",
-        "featuresEmpty": "Es wurden noch keine Funktionen aufgelistet",
-        "howItWorksEmpty": "Nutzungsanweisungen wurden noch nicht hinzugefügt",
-        "exampleIoEmpty": "Es wurden noch keine Beispiele bereitgestellt",
-        "changelogEmpty": "Noch keine Änderungsprotokoll-Einträge",
-        "emptyHint": "Der Herausgeber hat für diesen Abschnitt noch keinen Inhalt hinzugefügt."
+        "changelog": "Änderungsprotokoll"
       },
       "signInToUse": "Melden Sie sich an, um dieses Modell zu verwenden"
     },

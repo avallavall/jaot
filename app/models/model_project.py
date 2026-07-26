@@ -328,6 +328,14 @@ class ModelProjectListing(Base):
     # Statistics (rollups mirrored from the catalog)
     total_activations: Mapped[int] = mapped_column(Integer, default=0)
     total_executions: Mapped[int] = mapped_column(Integer, default=0)
+    # Raw tallies the two derived figures below are computed from. Kept as
+    # counters so concurrent workers can bump them in one atomic UPDATE — a
+    # read-modify-write of the averages would lose increments under load.
+    successful_executions: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # Counted apart from the successes: backfilled rows are successes without a
+    # recorded duration, so they must not dilute the average.
+    timed_executions: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    total_execution_time_ms: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
     avg_execution_time_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
     success_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
     avg_rating: Mapped[float | None] = mapped_column(Float, nullable=True)

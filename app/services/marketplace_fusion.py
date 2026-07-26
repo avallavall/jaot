@@ -7,8 +7,56 @@ public ``ModelCatalogResponse`` wire shape the frontend + API/MCP consumers expe
 
 from __future__ import annotations
 
+from sqlalchemy import Float, case, cast
+from sqlalchemy.orm import Session
+
 from app.models import ModelProjectListing
 from app.schemas.model import ModelCatalogResponse
+
+
+def record_listing_execution(
+    db: Session,
+    listing_id: str,
+    *,
+    succeeded: bool,
+    execution_time_ms: float | None,
+) -> None:
+    """Roll one execution onto a listing's public statistics.
+
+    Both outcomes count: the run tally used to be bumped only on success, which
+    left ``success_rate`` with no denominator to work from — it stayed NULL
+    forever and the marketplace rendered a dash next to a model with fourteen
+    recorded runs.
+
+    Written as a single UPDATE of SQL expressions so parallel workers finishing
+    solves for the same listing cannot lose an increment.
+
+    ``timed_executions`` is counted apart from ``successful_executions`` on
+    purpose: rows recorded before any timing was kept are backfilled as
+    successes (which they were — only successes were ever tallied) but carry no
+    duration, and dividing accumulated time by that larger count would report an
+    average several times too fast. The average stays NULL until timed runs exist.
+    """
+    timed = execution_time_ms is not None and succeeded
+    total = ModelProjectListing.total_executions + 1
+    successful = ModelProjectListing.successful_executions + (1 if succeeded else 0)
+    timed_count = ModelProjectListing.timed_executions + (1 if timed else 0)
+    elapsed = ModelProjectListing.total_execution_time_ms + (execution_time_ms if timed else 0.0)
+
+    db.query(ModelProjectListing).filter(ModelProjectListing.model_project_id == listing_id).update(
+        {
+            ModelProjectListing.total_executions: total,
+            ModelProjectListing.successful_executions: successful,
+            ModelProjectListing.timed_executions: timed_count,
+            ModelProjectListing.total_execution_time_ms: elapsed,
+            ModelProjectListing.success_rate: cast(successful, Float) / cast(total, Float),
+            ModelProjectListing.avg_execution_time_ms: case(
+                (timed_count > 0, cast(elapsed, Float) / cast(timed_count, Float)),
+                else_=None,
+            ),
+        },
+        synchronize_session=False,
+    )
 
 
 def listing_to_catalog_response(listing: ModelProjectListing) -> ModelCatalogResponse:

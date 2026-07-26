@@ -177,6 +177,14 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
     );
   }
 
+  const hasSectionContent = Boolean(
+    model.section_overview ||
+      model.section_features ||
+      model.section_how_it_works ||
+      model.section_example_io ||
+      model.section_changelog,
+  );
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <Link
@@ -302,17 +310,14 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
         </div>
       )}
 
-      <div className="bg-card border rounded-lg p-6 mb-8">
-        <ModelTabs model={model} />
-      </div>
+      {hasSectionContent && (
+        <div className="bg-card border rounded-lg p-6 mb-8">
+          <ModelTabs model={model} />
+        </div>
+      )}
 
       {/* Fallback description for models without section content */}
-      {model.description &&
-        !model.section_overview &&
-        !model.section_features &&
-        !model.section_how_it_works &&
-        !model.section_example_io &&
-        !model.section_changelog && (
+      {model.description && !hasSectionContent && (
         <div className="bg-card border rounded-lg p-6 mb-8">
           <h2 className="text-lg font-semibold mb-4">{t("description")}</h2>
           <p className="text-muted-foreground whitespace-pre-wrap">

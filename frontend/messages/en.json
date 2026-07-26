@@ -2474,13 +2474,7 @@
         "features": "Features",
         "howItWorks": "How it Works",
         "exampleIo": "Example I/O",
-        "changelog": "Changelog",
-        "overviewEmpty": "No overview has been added yet",
-        "featuresEmpty": "No features have been listed yet",
-        "howItWorksEmpty": "Usage instructions haven't been added yet",
-        "exampleIoEmpty": "No examples have been provided yet",
-        "changelogEmpty": "No changelog entries yet",
-        "emptyHint": "The publisher hasn't added content for this section yet."
+        "changelog": "Changelog"
       },
       "signInToUse": "Sign in to use this model"
     },

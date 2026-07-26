@@ -2445,13 +2445,7 @@
         "features": "Funcionalitats",
         "howItWorks": "Com funciona",
         "exampleIo": "Exemple E/S",
-        "changelog": "Registre de canvis",
-        "overviewEmpty": "Encara no s'ha afegit una descripció general",
-        "featuresEmpty": "Encara no s'han llistat funcionalitats",
-        "howItWorksEmpty": "Encara no s'han afegit instruccions d'us",
-        "exampleIoEmpty": "Encara no s'han proporcionat exemples",
-        "changelogEmpty": "Encara no hi ha entrades al registre de canvis",
-        "emptyHint": "L'editor encara no ha afegit contingut per a aquesta secció."
+        "changelog": "Registre de canvis"
       },
       "signInToUse": "Inicia la sessió per usar aquest model"
     },

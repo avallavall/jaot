@@ -2445,13 +2445,7 @@
         "features": "Funcionalidades",
         "howItWorks": "Cómo funciona",
         "exampleIo": "Ejemplo E/S",
-        "changelog": "Registro de cambios",
-        "overviewEmpty": "Aún no se ha añadido una descripción general",
-        "featuresEmpty": "Aún no se han listado funcionalidades",
-        "howItWorksEmpty": "Aún no se han añadido instrucciones de uso",
-        "exampleIoEmpty": "Aún no se han proporcionado ejemplos",
-        "changelogEmpty": "Aún no hay entradas en el registro de cambios",
-        "emptyHint": "El editor aún no ha añadido contenido para esta sección."
+        "changelog": "Registro de cambios"
       },
       "signInToUse": "Inicia sesión para usar este modelo"
     },
