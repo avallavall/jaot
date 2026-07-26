@@ -12,9 +12,14 @@ jaot.io {
     # Each zone is independent; the most specific match applies first
     # because Caddy evaluates handle blocks top-to-bottom.
     rate_limit {
+        # Brute-forceable credential endpoints only. NOT /api/v2/auth/*: that
+        # prefix also covers /auth/me and /auth/refresh, which the frontend calls
+        # on every navigation, so 10/min logged the user out after ~10 pages —
+        # and since /auth/login shares the zone, they could not get back in until
+        # the window expired. Session upkeep belongs to api_rl (100/min).
         zone auth_rl {
             match {
-                path /api/v2/auth/*
+                path /api/v2/auth/login /api/v2/auth/signup /api/v2/auth/forgot-password /api/v2/auth/reset-password /api/v2/auth/verify-email
             }
             key    {remote_host}
             events 10

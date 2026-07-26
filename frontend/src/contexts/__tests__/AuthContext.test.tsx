@@ -5,8 +5,18 @@ import React from "react";
 import { AuthProvider, useAuth } from "../AuthContext";
 import type { Plan, UserInfo } from "@/lib/types";
 
-// Mock the api module
+// Mock the api module. ApiError is a real class here because AuthContext uses
+// `instanceof` on it to tell "your session is gone" apart from "the request
+// happened to fail".
 vi.mock("@/lib/api", () => ({
+  ApiError: class ApiError extends Error {
+    status: number;
+    constructor(status: number, message = "failed") {
+      super(message);
+      this.name = "ApiError";
+      this.status = status;
+    }
+  },
   api: {
     login: vi.fn(),
     getMe: vi.fn(),
@@ -17,7 +27,7 @@ vi.mock("@/lib/api", () => ({
   },
 }));
 
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 
 const mockMe: UserInfo = {
   user_id: "u1",
@@ -213,5 +223,87 @@ describe("AuthContext", () => {
     );
     // Safe fallback: missing is_org_owner → false, never silently grants access
     expect(screen.getByTestId("is-owner").textContent).toBe("not-owner");
+  });
+
+  // CONTRACT-TEST: only the server rejecting the credential ends the session.
+  // Session validation used to funnel every failure into one catch that wiped
+  // the stored key, so a 429 — which a user reaches just by navigating quickly,
+  // since /auth/me runs on every page — logged them out mid-session.
+  describe("session validation only ends on a real rejection", () => {
+    it("recovers from a rate-limited /me instead of logging the user out", async () => {
+      localStorage.setItem("jaot_api_key", "ok_throttled");
+      vi.mocked(api.getApiKey).mockReturnValue("ok_throttled");
+      vi.mocked(api.getMe)
+        .mockRejectedValueOnce(new ApiError(429, "Too Many Requests"))
+        .mockResolvedValueOnce({ ...mockMe, is_org_owner: true } as UserInfo);
+
+      render(
+        <AuthProvider>
+          <TestConsumer />
+        </AuthProvider>
+      );
+
+      await waitFor(
+        () => expect(screen.getByTestId("loading").textContent).toBe("ready"),
+        { timeout: 5000 },
+      );
+      expect(screen.getByTestId("auth").textContent).toBe("authed");
+      expect(localStorage.getItem("jaot_api_key")).toBe("ok_throttled");
+    });
+
+    it("keeps the stored credential when /me keeps failing transiently", async () => {
+      localStorage.setItem("jaot_api_key", "ok_server_down");
+      vi.mocked(api.getApiKey).mockReturnValue("ok_server_down");
+      vi.mocked(api.getMe).mockRejectedValue(new ApiError(503, "Service Unavailable"));
+
+      render(
+        <AuthProvider>
+          <TestConsumer />
+        </AuthProvider>
+      );
+
+      await waitFor(
+        () => expect(screen.getByTestId("loading").textContent).toBe("ready"),
+        { timeout: 5000 },
+      );
+      // Not signed in for this render, but the credential survives so the next
+      // navigation can pick the session back up.
+      expect(localStorage.getItem("jaot_api_key")).toBe("ok_server_down");
+    });
+
+    it("clears the credential when the server rejects it (401)", async () => {
+      localStorage.setItem("jaot_api_key", "ok_revoked");
+      vi.mocked(api.getApiKey).mockReturnValue("ok_revoked");
+      vi.mocked(api.getMe).mockRejectedValue(new ApiError(401, "Unauthorized"));
+
+      render(
+        <AuthProvider>
+          <TestConsumer />
+        </AuthProvider>
+      );
+
+      await waitFor(() =>
+        expect(screen.getByTestId("loading").textContent).toBe("ready"),
+      );
+      expect(screen.getByTestId("auth").textContent).toBe("anon");
+      expect(localStorage.getItem("jaot_api_key")).toBeNull();
+    });
+
+    it("does not retry a rejected credential", async () => {
+      localStorage.setItem("jaot_api_key", "ok_revoked_once");
+      vi.mocked(api.getApiKey).mockReturnValue("ok_revoked_once");
+      vi.mocked(api.getMe).mockRejectedValue(new ApiError(403, "Forbidden"));
+
+      render(
+        <AuthProvider>
+          <TestConsumer />
+        </AuthProvider>
+      );
+
+      await waitFor(() =>
+        expect(screen.getByTestId("loading").textContent).toBe("ready"),
+      );
+      expect(vi.mocked(api.getMe)).toHaveBeenCalledTimes(1);
+    });
   });
 });

@@ -9,8 +9,32 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import type { PlanLimits, WorkspaceRole } from "@/lib/types";
+
+/** Only the server saying "this session is not valid" is final. */
+function isSessionRejection(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 401 || error.status === 403);
+}
+
+/**
+ * Read the current session, retrying failures that say nothing about it.
+ *
+ * A 429 (a rate-limit window the user happened to fill by navigating quickly),
+ * a 5xx or a dropped connection are not evidence that the session ended, but
+ * they used to land in the same catch as a genuine 401 — which logged the user
+ * out mid-session. Retry those briefly; let a real rejection through at once.
+ */
+async function getMeWithRetry(attempts = 3): Promise<Awaited<ReturnType<typeof api.getMe>>> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await api.getMe();
+    } catch (error) {
+      if (isSessionRejection(error) || attempt >= attempts) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 400 * 2 ** (attempt - 1)));
+    }
+  }
+}
 
 interface User {
   id: string;
@@ -284,7 +308,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Try /me with cookies even if no API key — supports cookie-based sessions.
       if (!key) {
         try {
-          const me = await api.getMe();
+          const me = await getMeWithRetry();
           setUser({
             id: me.user_id,
             name: me.user_name,
@@ -310,7 +334,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const me = await api.getMe();
+        const me = await getMeWithRetry();
         const loadedUser: User = {
           id: me.user_id,
           name: me.user_name,
@@ -330,8 +354,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         setPlanLimits(me.plan_limits ?? null);
         await restoreWorkspace(me.user_id, me.is_admin);
-      } catch {
-        clearAuth();
+      } catch (error) {
+        // Discard the stored credential only when the server rejected it. A
+        // transient failure that survived the retries leaves it in place, so the
+        // next navigation can recover instead of forcing a fresh login.
+        if (isSessionRejection(error)) clearAuth();
       } finally {
         setIsLoading(false);
       }

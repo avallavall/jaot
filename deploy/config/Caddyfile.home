@@ -48,9 +48,15 @@ http://www.jaot.io {
     # ----- Rate limiting (caddy-ratelimit plugin) -----
     # Clave = {client_ip} (IP real del visitante vía CF-Connecting-IP), no la del túnel.
     rate_limit {
+        # Solo los endpoints con valor para un atacante por fuerza bruta. NO vale
+        # /api/v2/auth/*: ahí viven tambien /auth/me y /auth/refresh, que el
+        # frontend llama en cada navegacion, asi que 10/min echaba al usuario a
+        # /login tras ~10 paginas — y como /auth/login comparte la zona, tampoco
+        # podia volver a entrar hasta que expirase la ventana. Sesion y
+        # credenciales quedan bajo api_rl (100/min).
         zone auth_rl {
             match {
-                path /api/v2/auth/*
+                path /api/v2/auth/login /api/v2/auth/signup /api/v2/auth/forgot-password /api/v2/auth/reset-password /api/v2/auth/verify-email
             }
             key    {client_ip}
             events 10
