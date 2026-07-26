@@ -54,9 +54,13 @@ http://www.jaot.io {
         # /login tras ~10 paginas — y como /auth/login comparte la zona, tampoco
         # podia volver a entrar hasta que expirase la ventana. Sesion y
         # credenciales quedan bajo api_rl (100/min).
+        # Caddy's `path` matcher is EXACT, not a prefix — the sub-routes need their
+        # own patterns. /login/email and /signup/email are the ones the frontend
+        # actually calls, so listing only /login and /signup left the real doors
+        # uncovered here (the app's own per-IP limit and account lockout still held).
         zone auth_rl {
             match {
-                path /api/v2/auth/login /api/v2/auth/signup /api/v2/auth/forgot-password /api/v2/auth/reset-password /api/v2/auth/verify-email
+                path /api/v2/auth/login /api/v2/auth/login/* /api/v2/auth/signup /api/v2/auth/signup/* /api/v2/auth/forgot-password /api/v2/auth/reset-password /api/v2/auth/verify-email
             }
             key    {client_ip}
             events 10
