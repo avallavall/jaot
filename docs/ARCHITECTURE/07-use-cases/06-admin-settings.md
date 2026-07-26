@@ -85,7 +85,13 @@ sequenceDiagram
 | **System / feature flags** | MAINTENANCE_MODE, SOLVE_MAINTENANCE_MODE, JAOT_DSL, REGISTRATION_ENABLED | bool |
 | **Plans & limits** | max_daily_solves, max_variables (per plan tier) | int/float |
 | **Rate limits** | AUTH_LOGIN_RATE_LIMIT_PER_MINUTE, LLM_RATE_LIMIT_PER_DAY | int |
-| **Solver** | SOLVER_DEFAULT_TIMEOUT, SOLVER_POOL_SIZE, hexaly_default_time_limit_seconds | int/float |
+| **Solver** | SOLVER_DEFAULT_TIMEOUT, SOLVER_POOL_SIZE, dsl_max_grounded_elements | int/float |
+
+> **Every capacity limit accepts 0, which means unlimited** — plan limits, per-plan rate
+> limits, and the JModel grounding budget alike. None of them has an upper bound in the
+> panel either: this is self-hosted software, and an operator with large hardware must be
+> able to type any number. A rate limit of 0 allows all requests; it does *not* mean "no
+> requests allowed".
 | **LLM / RAG** | LLM_DEFAULT_MODEL, LLM_MONTHLY_BUDGET_EUR, RAG_ENABLED, RAG_TOP_K | string/int/bool |
 | **Email / SMTP** | EMAIL_BACKEND, SMTP_HOST, EMAIL_FROM | string |
 

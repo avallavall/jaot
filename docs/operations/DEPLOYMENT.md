@@ -122,8 +122,16 @@ Loaded at container startup, before the database is available. Contains only inf
 | `DB_POOL_SIZE` | No | Default: `5` |
 | `DB_MAX_OVERFLOW` | No | Default: `5` |
 | `WORKERS` | No | Uvicorn workers, default: `4` |
+| `MAX_REQUEST_BODY_MB` | No | Largest accepted request body. Default `0` = **unlimited** |
 
 See `deploy/.env.production.example` for the full list.
+
+> **`MAX_REQUEST_BODY_MB` on a public instance.** The default is unlimited because a
+> legitimate model is genuinely large — a 400×400 assignment model is ~30 MB of JSON, and
+> nothing in this repo can honestly tell a self-hoster what their own hardware can take.
+> That reasoning does not hold for an instance with open registration: there, set a real
+> number (the old hardcoded value was 50). Uploads (`/solve/import`, LLM attachments) are
+> exempt and enforce their own caps either way.
 
 ### Tier 2 — `platform_settings` DB table (business config)
 

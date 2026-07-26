@@ -180,3 +180,52 @@ refactor-shaped — they need their own window, and until they land
   capacity decision. Rewritten to the real reason the headroom exists: the API does load SCIP
   — to import an MPS/LP, to export a model, and to validate a submitted problem — plus a note
   that exports are written to the 256 MB tmpfs, which counts against the same memory limit.
+
+---
+
+## D-21 · Capacity limits inherited from the paid tiers — ✅ RESOLVED
+
+**Found:** while measuring how large a transport model JAOT can actually take (the MDPDPTW
+scale work), a 1000×1000 assignment model failed — not in the solver, not in the compiler,
+but in Pydantic: `Objective.expression` was capped at 5,000,000 characters. The cap had
+already been raised once (500K → 5M, 2026-06-29) for exactly the same reason, which is the
+tell that the number was never principled.
+
+**Why it mattered:** a 400×400 assignment model — a *small* haulage fleet, per the owner's
+domain input — grounds to a **3,679,901-character** objective. The platform was operating
+at 74 % of a hard wall on a problem size its target market considers trivial, and 500×500
+failed outright.
+
+**The wider finding:** that constant was not alone. JAOT was sold in tiers before ADR-008
+removed billing, and the shape survived everywhere — `threads ≤ 8` (on a machine the
+operator owns), `time_limit ≤ 24 h`, a hardcoded 50 MB body limit, `max_variables ≤ 10 M`
+enforced as a *registry ceiling* so the admin panel refused a larger number even from the
+instance owner, and limit errors that returned `upgrade_to: "Pro"` / `upgrade_url:
+"/billing"` — an upsell to tiers that no longer exist, pointing at a page ADR-008 deleted.
+
+**Resolution.** Every capacity limit is now removed or operator-configured, with **0 =
+unlimited** throughout: expression caps deleted, `MAX_REQUEST_BODY_MB` (default 0) replaces
+the hardcoded 50 MB, `threads` and `time_limit_seconds` unbounded, the grounding budget
+moved to `dsl_max_grounded_elements`, and no plan field has a registry ceiling. The upsell
+fields are gone; errors now carry `setting_key`.
+
+Two real bugs surfaced while doing it, both of which would have made the new "0 = unlimited"
+contract a trap:
+
+1. **The grounding budget was applied inconsistently** — the range (`1..n`) and computed
+   `cross` checks read `MAX_GROUNDED_ELEMENTS` directly instead of the value threaded
+   through `compile_jmodel`, so raising or disabling the budget left them enforcing the old
+   number.
+2. **A rate limit of 0 blocked every request.** The check is `count >= limit`, immediately
+   true at zero — an operator setting 0 to mean "unlimited" would have locked their own
+   instance out entirely.
+
+**Measured after the change** (HiGHS, proven optimal): 1000×1000 → 905,400 variables, a
+**23.5 M-character** objective, 147 s; 1500×1500 → 2,044,800 variables, **54.5 M
+characters**, 532 s at 8.5 GB RSS. The expression parser was never the bottleneck — it is
+linear, and chewed through 2 M terms (42.7 MB) in 13 s. Memory is the only ceiling left,
+which is precisely the operator's call to make.
+
+**Kept on purpose:** limits that protect a *real external cost* rather than a made-up notion
+of "too big" — the `/dsl/generate` request caps and the LLM attachment cap, since every byte
+there is forwarded to Anthropic and billed against the monthly EUR budget.
