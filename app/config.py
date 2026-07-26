@@ -55,6 +55,13 @@ class Settings(BaseSettings):
 
     REDIS_URL: str = ""
 
+    # Max accepted HTTP request body, in megabytes. 0 = no limit.
+    # Infra-tier because the middleware is mounted before the DB exists. Large
+    # models are legitimate payloads — a 400x400 assignment model is ~30 MB of
+    # JSON — so this is the ONE place that bounds request size, and a self-hosted
+    # operator owns it. Public instances should set a real number here.
+    MAX_REQUEST_BODY_MB: int = 0
+
     # Celery (read at module-import time by celery_app.py / email_tasks)
     CELERY_BROKER_URL: str = ""
     CELERY_RESULT_EXPIRES: int = 604800

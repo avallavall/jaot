@@ -1,11 +1,12 @@
 """HTTP-level tests for LLM conversation document attachments.
 
-These go through the full ASGI stack on purpose: the global
-BodyLimitMiddleware (50 MB) must NOT swallow uploads that the attachment
-endpoint itself is designed to accept (50 MB cap enforced in
-app/api/v2/llm.py from document_extraction.MAX_FILE_SIZE). The attachments
-route is exempt from the global body limit so real-world PDFs reach the
-endpoint instead of being rejected with a generic 413.
+These go through the full ASGI stack on purpose: the global BodyLimitMiddleware
+(operator-configured via MAX_REQUEST_BODY_MB, unlimited by default) must NOT
+swallow uploads that the attachment endpoint itself is designed to accept (50 MB
+cap enforced in app/api/v2/llm.py from document_extraction.MAX_FILE_SIZE — an LLM
+cost ceiling, which is why it stays). The attachments route is exempt from the
+global body limit so real-world PDFs reach the endpoint instead of being rejected
+with a generic 413.
 """
 
 from __future__ import annotations
@@ -53,9 +54,42 @@ class TestAttachmentUploadSizeContract:
         # The endpoint's own message, not the middleware's generic body
         assert "Maximum size" in response.json()["detail"]
 
-    def test_non_upload_routes_keep_global_limit(self, authenticated_client) -> None:
-        """The exemption is surgical: a >50 MB JSON body on a normal route still 413s."""
-        big_payload = {"title": "x" * (50 * 1024 * 1024 + 1)}
-        response = authenticated_client.post("/api/v2/llm/conversations", json=big_payload)
-        assert response.status_code == 413
-        assert response.json()["detail"] == "Request body too large"
+    def test_upload_exemption_is_surgical(self) -> None:
+        """The exemption must skip ONLY the upload routes.
+
+        The global body limit is now operator-configured and off by default
+        (MAX_REQUEST_BODY_MB), so this exercises the middleware with a limit set —
+        which is the state in which the exemption means anything at all.
+        """
+        from starlette.applications import Starlette
+        from starlette.responses import JSONResponse
+        from starlette.routing import Route
+        from starlette.testclient import TestClient
+
+        from app.shared.core.body_limit import BodyLimitMiddleware
+
+        async def ok(request):
+            return JSONResponse({"received": len(await request.body())})
+
+        app = Starlette(
+            routes=[
+                Route("/api/v2/llm/conversations", ok, methods=["POST"]),
+                Route("/api/v2/llm/conversations/{cid}/attachments", ok, methods=["POST"]),
+                Route("/api/v2/solve/import", ok, methods=["POST"]),
+            ]
+        )
+        app.add_middleware(BodyLimitMiddleware, max_bytes=1024)
+        client = TestClient(app, raise_server_exceptions=False)
+        oversized = b"x" * 4096
+
+        # Normal route: the configured limit applies.
+        assert client.post("/api/v2/llm/conversations", content=oversized).status_code == 413
+
+        # Upload routes enforce their own caps, so the middleware steps aside.
+        assert client.post("/api/v2/solve/import", content=oversized).status_code == 200
+        assert (
+            client.post(
+                "/api/v2/llm/conversations/cnv_1/attachments", content=oversized
+            ).status_code
+            == 200
+        )

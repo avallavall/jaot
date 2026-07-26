@@ -60,12 +60,15 @@ def _clamp_time_limit_to_plan(
 ) -> OptimizationProblem:
     """Return a new OptimizationProblem with options.time_limit_seconds clamped.
 
+    A ``plan_max_seconds`` of 0 means no ceiling — the operator has opted out and the
+    request's own ``time_limit_seconds`` stands.
+
     If the input already satisfies the limit, returns the input unchanged.
     Otherwise returns a new instance via nested `model_copy(update=...)` —
     the original `problem` and `problem.options` are guaranteed untouched
     per the project immutability rule.
     """
-    if problem.options.time_limit_seconds <= plan_max_seconds:
+    if plan_max_seconds <= 0 or problem.options.time_limit_seconds <= plan_max_seconds:
         return problem
     return problem.model_copy(
         update={
@@ -82,32 +85,25 @@ def _enforce_tier_caps(
     """Check tier caps and reject if exceeded. Return problem with time_limit clamped."""
     plan_config = PSS.get_plan_config_dynamic(db, org.plan)
 
+    # 0 = unlimited. Nothing to upgrade to on a free, self-hosted platform, so the
+    # message tells the operator which knob to turn instead of selling them a tier.
+    max_vars = plan_config["max_variables"]
     num_vars = len(problem.variables)
-    if num_vars > plan_config["max_variables"]:
-        upgrade_map = {"free": "Starter", "starter": "Pro", "pro": "Business"}
-        # Dynamically look up the next tier's limit instead of hard-coding
-        tier_order = ["free", "starter", "pro", "business"]
-        current_idx = tier_order.index(org.plan) if org.plan in tier_order else 0
-        if current_idx < len(tier_order) - 1:
-            next_tier = tier_order[current_idx + 1]
-            next_config = PSS.get_plan_config_dynamic(db, next_tier)
-            next_limit_str = f"{next_config['max_variables']:,}"
-        else:
-            next_limit_str = "unlimited"
+    if max_vars > 0 and num_vars > max_vars:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=tier_cap_detail(
                 error="variable_limit_exceeded",
                 message=(
-                    f"This model has {num_vars:,} variables. "
-                    f"Your {org.plan.capitalize()} plan supports up to "
-                    f"{plan_config['max_variables']:,}. "
-                    f"Upgrade to {upgrade_map.get(org.plan, 'Business')} "
-                    f"for up to {next_limit_str} variables."
+                    f"This model has {num_vars:,} variables and this instance is "
+                    f"configured to allow up to {max_vars:,}. An administrator can "
+                    f"raise or remove the limit in Settings (plan_{org.plan}_max_variables; "
+                    f"0 means unlimited)."
                 ),
                 current_plan=org.plan,
-                limit=plan_config["max_variables"],
+                limit=max_vars,
                 current_value=num_vars,
+                setting_key=f"plan_{org.plan}_max_variables",
             ),
         )
 
@@ -124,12 +120,14 @@ def _enforce_tier_caps(
             detail=tier_cap_detail(
                 error="daily_solve_quota_exceeded",
                 message=(
-                    f"You've reached the daily rate limit of "
-                    f"{plan_config['max_daily_solves']:,} solves. "
-                    f"This limit resets daily. Need more? Upgrade your plan."
+                    f"You've reached this instance's daily limit of "
+                    f"{plan_config['max_daily_solves']:,} solves, which resets daily. "
+                    f"An administrator can raise or remove it in Settings "
+                    f"(plan_{org.plan}_max_daily_solves; 0 means unlimited)."
                 ),
                 current_plan=org.plan,
                 limit=plan_config["max_daily_solves"],
+                setting_key=f"plan_{org.plan}_max_daily_solves",
             ),
         )
 

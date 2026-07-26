@@ -116,9 +116,7 @@ class Constraint(BaseModel):
     name: str | None = Field(
         default=None, max_length=256, description="Constraint name for debugging"
     )
-    expression: str = Field(
-        ..., max_length=5_000_000, description="Constraint expression (e.g., 'x + 2*y <= 10')"
-    )
+    expression: str = Field(..., description="Constraint expression (e.g., 'x + 2*y <= 10')")
     # Same contract as Variable.family: set AUTHORITATIVELY by the JModel compiler
     # when it grounds an indexed constraint family ("cap_s1" → "cap"); best-effort
     # parsed for flat/imported problems; None for genuine scalar rows.
@@ -155,9 +153,7 @@ class Objective(BaseModel):
     """Definition of the objective function."""
 
     sense: ObjectiveSense = Field(..., description="Minimize or maximize")
-    expression: str = Field(
-        ..., max_length=5_000_000, description="Objective expression (e.g., '3*x + 2*y')"
-    )
+    expression: str = Field(..., description="Objective expression (e.g., '3*x + 2*y')")
 
     @field_validator("expression", mode="before")
     @classmethod
@@ -168,11 +164,16 @@ class Objective(BaseModel):
 class SolverOptions(BaseModel):
     """Solver configuration options."""
 
+    # No upper bound on either: this is self-hosted software and the operator's
+    # hardware decides. A public instance caps solve time per organization through
+    # the `max_solve_time_seconds` platform setting, which clamps this value.
     time_limit_seconds: float = Field(
-        default=300.0, ge=1, le=86400, description="Max solve time (seconds, up to 24h)"
+        default=300.0, ge=1, description="Max solve time in seconds (no ceiling — see plan caps)"
     )
     gap_tolerance: float = Field(default=0.0001, ge=0, le=1, description="MIP gap tolerance")
-    threads: int = Field(default=0, ge=0, le=8, description="Number of threads (0=auto)")
+    threads: int = Field(
+        default=0, ge=0, description="Number of solver threads (0=auto, no ceiling)"
+    )
     verbose: bool = Field(default=False, description="Enable solver output")
 
 
@@ -187,9 +188,7 @@ class WarmStartConfig(BaseModel):
 class ObjectiveSpec(BaseModel):
     """Specification of a single objective in a multi-objective problem."""
 
-    expression: str = Field(
-        ..., max_length=5_000_000, description="Objective expression (e.g., '3*x + 2*y')"
-    )
+    expression: str = Field(..., description="Objective expression (e.g., '3*x + 2*y')")
     sense: ObjectiveSense = Field(..., description="Minimize or maximize this objective")
     weight: float | None = Field(
         default=None,

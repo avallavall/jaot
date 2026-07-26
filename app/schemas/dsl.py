@@ -14,7 +14,6 @@ class DSLCompileRequest(BaseModel):
 
     source: str = Field(
         ...,
-        max_length=1_000_000,
         description="JModel source text (sets / params / indexed families / sum / filters).",
     )
     dataset_id: str | None = Field(
@@ -53,7 +52,6 @@ class DSLInspectRequest(BaseModel):
 
     source: str = Field(
         ...,
-        max_length=1_000_000,
         description="JModel source text — parsed only, never grounded.",
     )
 
@@ -109,7 +107,6 @@ class DSLLatexRequest(BaseModel):
 
     source: str = Field(
         ...,
-        max_length=1_000_000,
         description="JModel source text — parsed only, never grounded.",
     )
 
@@ -200,6 +197,11 @@ DSL_GENERATE_MEDIA_TYPES: frozenset[str] = DSL_GENERATE_IMAGE_TYPES | {DSL_GENER
 DSL_GENERATE_MAX_ATTACHMENTS = 4
 DSL_GENERATE_MAX_ATTACHMENT_CHARS = 7_000_000
 DSL_GENERATE_MAX_DESCRIPTION_CHARS = 8_000
+#: Unlike the compile/inspect/latex sources — which are bounded only by the
+#: operator's hardware — everything on this request is forwarded to Anthropic and
+#: billed per token against the platform's monthly EUR budget. These caps protect a
+#: real external cost, not a made-up notion of "too big", so they stay.
+DSL_GENERATE_MAX_SOURCE_CHARS = 1_000_000
 
 
 class DSLGenerateAttachment(BaseModel):
@@ -236,7 +238,7 @@ class DSLGenerateRequest(BaseModel):
     )
     current_source: str | None = Field(
         default=None,
-        max_length=1_000_000,
+        max_length=DSL_GENERATE_MAX_SOURCE_CHARS,
         description="An existing JModel draft to refine instead of starting fresh.",
     )
     use_advanced_model: bool = Field(

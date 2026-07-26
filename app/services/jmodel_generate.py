@@ -24,7 +24,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from app.domains.dsl import JModelError, compile_jmodel
+from app.domains.dsl import MAX_GROUNDED_ELEMENTS, JModelError, compile_jmodel
 from app.schemas.dsl import (
     DSL_GENERATE_MEDIA_TYPES,
     DSL_GENERATE_PDF_TYPE,
@@ -164,6 +164,7 @@ async def generate_jmodel(
     current_source: str | None = None,
     locale: str | None = None,
     max_attempts: int = MAX_ATTEMPTS,
+    max_grounded_elements: int = MAX_GROUNDED_ELEMENTS,
 ) -> GenerateOutcome:
     """Generate a JModel source, retrying against the compiler until it compiles.
 
@@ -216,7 +217,7 @@ async def generate_jmodel(
         last_source = source
 
         try:
-            compile_jmodel(source)
+            compile_jmodel(source, max_grounded_elements=max_grounded_elements)
         except JModelError as exc:
             last_msg, last_pos = exc.message, exc.position
             logger.info(

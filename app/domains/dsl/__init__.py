@@ -16,6 +16,7 @@ the ``domains-independent`` import-linter contract.
 """
 
 from app.domains.dsl.compiler import (
+    MAX_GROUNDED_ELEMENTS,
     JModelData,
     JModelError,
     LatexLine,
@@ -29,6 +30,7 @@ from app.domains.dsl.compiler import (
 )
 
 __all__ = [
+    "MAX_GROUNDED_ELEMENTS",
     "JModelData",
     "JModelError",
     "LatexLine",

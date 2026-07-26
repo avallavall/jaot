@@ -29,26 +29,22 @@ class TestTierCapDetail:
             current_plan="free",
             limit=1000,
             current_value=1500,
+            setting_key="plan_free_max_variables",
         )
         assert detail["error"] == "variable_limit_exceeded"
         assert detail["message"] == "Too many variables"
         assert detail["current_plan"] == "free"
         assert detail["limit"] == 1000
         assert detail["current_value"] == 1500
-        assert detail["upgrade_to"] == "Starter"
-        assert detail["upgrade_url"] == "/billing"
+        assert detail["setting_key"] == "plan_free_max_variables"
 
-    def test_upgrade_map_starter(self):
-        detail = tier_cap_detail(error="test", message="msg", current_plan="starter", limit=5000)
-        assert detail["upgrade_to"] == "Pro"
-
-    def test_upgrade_map_pro(self):
-        detail = tier_cap_detail(error="test", message="msg", current_plan="pro", limit=25000)
-        assert detail["upgrade_to"] == "Business"
-
-    def test_upgrade_map_business(self):
-        detail = tier_cap_detail(error="test", message="msg", current_plan="business", limit=100000)
-        assert detail["upgrade_to"] == "Business"
+    # CONTRACT-TEST: no upsell in limit errors — ADR-008 removed billing, so a
+    # limit error must point at the setting an operator can raise, never at a
+    # paid tier or a /billing page that no longer exists.
+    def test_carries_no_upgrade_fields(self):
+        detail = tier_cap_detail(error="test", message="msg", current_plan="free", limit=5000)
+        assert "upgrade_to" not in detail
+        assert "upgrade_url" not in detail
 
     def test_schema_validation(self):
         """TierCapError validates correctly."""
@@ -57,10 +53,9 @@ class TestTierCapDetail:
             message="msg",
             current_plan="free",
             limit=1000,
-            upgrade_to="Starter",
         )
         assert err.current_value is None
-        assert err.upgrade_url == "/billing"
+        assert err.setting_key is None
 
 
 FREE_PLAN_CONFIG = {
@@ -254,6 +249,83 @@ class TestEnforceTierCapsUnit:
         assert result.options.time_limit_seconds == 120
 
 
+UNLIMITED_PLAN_CONFIG = {
+    **FREE_PLAN_CONFIG,
+    "max_solve_time_seconds": 0,
+    "max_variables": 0,
+    "max_daily_solves": 0,
+    "max_cron_schedules": 0,
+}
+
+
+class TestZeroMeansUnlimited:
+    """Self-hosted open source: 0 on a capacity limit means unlimited, not zero.
+
+    These are the caps that used to encode paid tiers. An operator who owns the
+    hardware must be able to switch each one off, and switching it off must not
+    read as "nothing allowed" anywhere in the chain.
+    """
+
+    # CONTRACT-TEST: max_variables = 0 means unlimited
+    @patch("app.api.v2.solve.PSS.get_plan_config_dynamic", return_value=UNLIMITED_PLAN_CONFIG)
+    @patch("app.api.v2.solve.check_rate_limit", return_value=(True, None))
+    def test_variable_limit_zero_accepts_any_model(self, mock_rl, mock_pss):
+        from app.api.v2.solve import _enforce_tier_caps
+
+        org = _make_org("free")
+        problem = OptimizationProblem(**_make_problem(num_vars=20_000))
+
+        # 20k variables against a limit of 0 — must pass, not raise 403.
+        result = _enforce_tier_caps(MagicMock(), org, problem)
+        assert len(result.variables) == 20_000
+
+    # CONTRACT-TEST: max_solve_time_seconds = 0 means no clamp
+    @patch("app.api.v2.solve.PSS.get_plan_config_dynamic", return_value=UNLIMITED_PLAN_CONFIG)
+    @patch("app.api.v2.solve.check_rate_limit", return_value=(True, None))
+    def test_time_limit_zero_leaves_request_untouched(self, mock_rl, mock_pss):
+        from app.api.v2.solve import _enforce_tier_caps
+
+        org = _make_org("free")
+        problem = OptimizationProblem(**_make_problem(time_limit=604_800))  # a week
+
+        result = _enforce_tier_caps(MagicMock(), org, problem)
+        assert result.options.time_limit_seconds == 604_800
+
+    def test_solver_options_accept_hardware_scale_values(self):
+        """A 128-core box must be able to ask for 128 threads and a week of solving."""
+        from app.schemas.optimization import SolverOptions
+
+        opts = SolverOptions(time_limit_seconds=604_800, threads=128)
+        assert opts.threads == 128
+        assert opts.time_limit_seconds == 604_800
+
+
+class TestRateLimiterZeroIsUnlimited:
+    """A limit of 0 must not lock the instance out — the naive `count >= limit`
+    check would reject every single request."""
+
+    @pytest.fixture(autouse=True)
+    def _real_limiter(self, real_rate_limiter):
+        """The autouse test bypass would make these assertions vacuous."""
+
+    # CONTRACT-TEST: rate limit 0 = unlimited, never "no requests allowed"
+    def test_zero_per_minute_allows_requests(self):
+        from app.shared.core import rate_limiter
+
+        rate_limiter.clear("org_zero_limit")
+        for _ in range(50):
+            allowed, _info = rate_limiter.check_rate_limit("org_zero_limit", 0, 0)
+            assert allowed is True
+
+    def test_positive_limit_still_bites(self):
+        from app.shared.core import rate_limiter
+
+        rate_limiter.clear("org_small_limit")
+        results = [rate_limiter.check_rate_limit("org_small_limit", 3, 100)[0] for _ in range(5)]
+        assert results[:3] == [True, True, True]
+        assert results[3] is False
+
+
 class TestLLMFeatureGateRemoved:
     """Verify LLM endpoints no longer feature-gate free users.
 
@@ -294,8 +366,6 @@ class TestErrorResponseSchema:
         assert parsed.current_plan == "free"
         assert parsed.limit == 1000
         assert parsed.current_value == 1500
-        assert parsed.upgrade_to == "Starter"
-        assert parsed.upgrade_url == "/billing"
 
     def test_feature_gate_error_has_all_fields(self):
         detail = tier_cap_detail(

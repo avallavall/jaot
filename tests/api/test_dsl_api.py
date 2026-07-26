@@ -158,9 +158,17 @@ def test_compile_internal_error_is_structured_not_500(
 
 
 @pytest.mark.integration
-def test_compile_source_size_cap(authenticated_client, test_organization, db_session, enable_dsl):
+def test_compile_accepts_a_source_past_the_old_size_cap(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
+    """Self-hosted: source size is bounded by the operator's machine, not a schema
+    constant. A source past the old 1M cap must reach the compiler and come back as
+    the usual structured error — never a 422 that says "too big"."""
     resp = authenticated_client.post("/api/v2/dsl/compile", json={"source": "x" * 1_000_001})
-    assert resp.status_code == 422, resp.text
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ok"] is False
+    assert "max_length" not in resp.text
 
 
 # --------------------------------------------------------------------------- #
@@ -581,6 +589,9 @@ def test_standalone_spend_ledger_create_race_adopts_winner(
 def test_generate_source_size_cap_on_current_source(
     authenticated_client, test_organization, db_session, enable_dsl
 ):
+    """/dsl/generate KEEPS its caps: everything on this request is forwarded to
+    Anthropic and billed per token, so the ceiling protects a real EUR cost — unlike
+    /dsl/compile, whose only ceiling is the operator's hardware."""
     resp = authenticated_client.post(
         "/api/v2/dsl/generate",
         json={"description": "refine", "current_source": "x" * 1_000_001},
@@ -780,9 +791,12 @@ def test_latex_internal_error_is_structured_not_500(
 
 
 @pytest.mark.integration
-def test_latex_source_size_cap(authenticated_client, test_organization, db_session, enable_dsl):
+def test_latex_accepts_a_source_past_the_old_size_cap(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
     resp = authenticated_client.post("/api/v2/dsl/latex", json={"source": "x" * 1_000_001})
-    assert resp.status_code == 422, resp.text
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["ok"] is False
 
 
 @pytest.mark.integration

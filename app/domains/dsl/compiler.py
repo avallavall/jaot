@@ -83,12 +83,16 @@ from app.schemas.optimization import (
     VariableType,
 )
 
-#: Hard cap on grounded work per compile: expanded variables + constraint rows + summed
-#: terms. Generous for real models (the TFM's largest flow scenario — 243 vehicles ×
-#: 199 orders over sparse tuple arc sets — grounds to ~850k elements) while rejecting
-#: accidental combinatorial blowups (three-index families over large sets) before they
-#: pin a CPU. Equality-filter slicing in ``_iter_env`` keeps honest sparse models from
+#: Default cap on grounded work per compile: expanded variables + constraint rows +
+#: summed terms. It exists to catch accidental combinatorial blowups (three-index
+#: families over large sets) before they pin a CPU — NOT to bound how large a legitimate
+#: model may be. Equality-filter slicing in ``_iter_env`` keeps honest sparse models from
 #: burning budget on members their filters would discard.
+#:
+#: Self-hosted operators own this number: it is a platform setting
+#: (``dsl_max_grounded_elements``), and **0 disables the budget entirely** for anyone
+#: whose hardware can take it. Every budget check honours the value threaded through
+#: :func:`compile_jmodel`, never this constant directly.
 MAX_GROUNDED_ELEMENTS = 2_000_000
 
 #: Maximum expression nesting depth (parens / unary signs / sum bodies) before the
@@ -482,10 +486,16 @@ class ModelAst:
 
 
 class _Parser:
-    def __init__(self, tokens: list[Token]) -> None:
+    def __init__(
+        self, tokens: list[Token], max_grounded_elements: int = MAX_GROUNDED_ELEMENTS
+    ) -> None:
         self._toks = tokens
         self._i = 0
         self._depth = 0
+        # Ranges materialize at PARSE time, so the parser needs the same budget the
+        # grounder gets — otherwise a raised (or disabled) budget silently keeps the
+        # old cap on `set T := 1..n`.
+        self._budget = max_grounded_elements
 
     def _peek(self) -> Token:
         return self._toks[self._i]
@@ -773,10 +783,10 @@ class _Parser:
                 position=start_tok.pos,
             )
         size = hi - lo + 1
-        if size > MAX_GROUNDED_ELEMENTS:
+        if self._budget > 0 and size > self._budget:
             raise JModelError(
                 f"range {lo}..{hi} in set {set_name!r} has {size:,} members — more than "
-                f"the {MAX_GROUNDED_ELEMENTS:,} grounded-element budget",
+                f"the {self._budget:,} grounded-element budget",
                 position=start_tok.pos,
             )
         return [(str(value),) for value in range(lo, hi + 1)]
@@ -1169,7 +1179,9 @@ class _Parser:
 # --------------------------------------------------------------------------- #
 
 
-def _apply_data(model: ModelAst, data: JModelData | None) -> None:
+def _apply_data(
+    model: ModelAst, data: JModelData | None, budget: int = MAX_GROUNDED_ELEMENTS
+) -> None:
     """Fill the model's declared sets/params from a dataset, then require completeness.
 
     A dataset value replaces the WHOLE symbol (sets: the member list; params: every
@@ -1220,7 +1232,7 @@ def _apply_data(model: ModelAst, data: JModelData | None) -> None:
     # time its consumer runs. A dataset value for the computed set itself wins.
     for name, set_def in model.sets.items():
         if set_def.expr is not None and set_def.members is None:
-            set_def.members = _eval_set_expr(set_def.expr, model, name)
+            set_def.members = _eval_set_expr(set_def.expr, model, name, budget)
     for name, set_def in model.sets.items():
         if set_def.members is None:
             raise JModelError(
@@ -1234,7 +1246,9 @@ def _apply_data(model: ModelAst, data: JModelData | None) -> None:
             )
 
 
-def _eval_set_expr(node: SetExpr, model: ModelAst, target: str) -> list[tuple[str, ...]]:
+def _eval_set_expr(
+    node: SetExpr, model: ModelAst, target: str, budget: int
+) -> list[tuple[str, ...]]:
     """Members of a computed set. ``union`` keeps first-appearance order and
     deduplicates; ``diff`` keeps the left operand's order; ``cross`` concatenates
     member tuples (left-outer order) and is budget-checked before materializing."""
@@ -1249,8 +1263,8 @@ def _eval_set_expr(node: SetExpr, model: ModelAst, target: str) -> list[tuple[st
                 position=node.pos,
             )
         return list(operand.members)
-    left = _eval_set_expr(node.left, model, target)
-    right = _eval_set_expr(node.right, model, target)
+    left = _eval_set_expr(node.left, model, target, budget)
+    right = _eval_set_expr(node.right, model, target, budget)
     if node.op == "union":
         seen = set(left)
         merged = list(left)
@@ -1263,10 +1277,10 @@ def _eval_set_expr(node: SetExpr, model: ModelAst, target: str) -> list[tuple[st
         removed = set(right)
         return [member for member in left if member not in removed]
     # cross
-    if len(left) * len(right) > MAX_GROUNDED_ELEMENTS:
+    if budget > 0 and len(left) * len(right) > budget:
         raise JModelError(
             f"computed set {target!r} crosses {len(left):,} × {len(right):,} members — "
-            f"more than the {MAX_GROUNDED_ELEMENTS:,} grounded-element budget",
+            f"more than the {budget:,} grounded-element budget",
             position=node.pos,
         )
     return [lm + rm for lm in left for rm in right]
@@ -1280,14 +1294,17 @@ def _eval_set_expr(node: SetExpr, model: ModelAst, target: str) -> list[tuple[st
 @dataclass
 class _Budget:
     """Grounding work budget: counts expanded variables, constraint rows and summed
-    terms, and refuses (with a clear error) before a combinatorial blowup is built."""
+    terms, and refuses (with a clear error) before a combinatorial blowup is built.
+
+    A ``limit`` of 0 (or negative) means no budget: the operator has opted out and the
+    only ceiling left is the machine's memory."""
 
     limit: int
     used: int = 0
 
     def consume(self, amount: int, position: int | None = None) -> None:
         self.used += amount
-        if self.used > self.limit:
+        if self.limit > 0 and self.used > self.limit:
             raise JModelError(
                 f"model expands to more than {self.limit:,} grounded elements — "
                 "reduce set sizes or index dimensions",
@@ -1990,9 +2007,13 @@ def compile_jmodel(
     replaces inline defaults, whole-symbol. Raises :class:`JModelError` on any lex,
     parse, dataset, or grounding error, including a grounding expansion beyond
     ``max_grounded_elements``.
+
+    ``max_grounded_elements`` is honoured by every budget check — parse-time ranges,
+    computed ``cross`` sets, and grounding alike. Pass 0 to disable the budget: the
+    operator's hardware becomes the only ceiling.
     """
-    model = _Parser(tokenize(src)).parse()
-    _apply_data(model, data)
+    model = _Parser(tokenize(src), max_grounded_elements).parse()
+    _apply_data(model, data, max_grounded_elements)
     return _lower(model, max_grounded_elements)
 
 
@@ -2031,14 +2052,16 @@ class ModelDeclarations:
     params: tuple[ParamInfo, ...]
 
 
-def inspect_declarations(src: str) -> ModelDeclarations:
+def inspect_declarations(
+    src: str, *, max_grounded_elements: int = MAX_GROUNDED_ELEMENTS
+) -> ModelDeclarations:
     """Parse-only view of the source's sets/params (``POST /dsl/inspect``, S2a).
 
     NO data application and NO grounding, so it succeeds for declaration-only
     sources and for sources whose dataset is missing — exactly the states in which
     the editor needs a skeleton. Raises :class:`JModelError` on lex/parse errors only.
     """
-    model = _Parser(tokenize(src)).parse()
+    model = _Parser(tokenize(src), max_grounded_elements).parse()
 
     def flat_arity(index_sets: list[str]) -> int:
         # Unknown set names (a typo the compile will reject) count as dimension 1 —
@@ -2294,7 +2317,7 @@ def _constraint_latex(con: ConstraintDecl) -> LatexLine:
     return LatexLine(latex=body, label=con.name)
 
 
-def latexify(src: str) -> LatexModel:
+def latexify(src: str, *, max_grounded_elements: int = MAX_GROUNDED_ELEMENTS) -> LatexModel:
     """Parse-only LaTeX pretty-print of a JModel source (``POST /dsl/latex``, B1).
 
     Renders the SYMBOLIC model — objective, constraint families with their
@@ -2304,7 +2327,7 @@ def latexify(src: str) -> LatexModel:
     declaration-only sources exactly like :func:`inspect_declarations`. Raises
     :class:`JModelError` on lex/parse errors only.
     """
-    model = _Parser(tokenize(src)).parse()
+    model = _Parser(tokenize(src), max_grounded_elements).parse()
     return LatexModel(
         objective=_objective_latex(model.objective) if model.objective else None,
         constraints=tuple(_constraint_latex(con) for con in model.constraints),

@@ -124,6 +124,23 @@ SETTINGS_REGISTRY.extend(
             unit="seconds",
         ),
         SettingDefinition(
+            key="dsl_max_grounded_elements",
+            label="JModel: Grounding Budget",
+            description=(
+                "Ceiling on the work one JModel compile may expand to (variables + "
+                "constraint rows + summed terms). It exists to catch an accidental "
+                "combinatorial blowup — a three-index family over large sets — before "
+                "it pins a CPU, NOT to bound how large a legitimate model may be. "
+                "Set 0 to remove the budget entirely and let the machine's memory be "
+                "the only ceiling."
+            ),
+            category=SettingCategory.SOLVER,
+            setting_type=SettingType.INT,
+            default_value="2000000",
+            min_value=0,
+            max_value=None,
+        ),
+        SettingDefinition(
             key="SOLVER_VIOLATION_TOLERANCE",
             label="Violation Tolerance",
             description="Solver violation tolerance (0.0 to 1.0)",
@@ -742,21 +759,26 @@ SETTINGS_REGISTRY.append(
 _PLAN_TIERS = ["free", "starter", "pro", "business"]
 # ADR-008: plan tiers are LIMIT PROFILES only — the credits/monthly_quota
 # fields left with the credit system.
+#
+# No field has an upper bound any more. These caps were sized for a paid SaaS with
+# tiers; on self-hosted open source an operator with big hardware must be able to
+# type any number, and **0 means unlimited** for every one of them. The admin panel
+# would otherwise refuse the value before it ever reached the DB.
 _PLAN_FIELDS: list[tuple[str, str, SettingType, float | None, float | None, str | None]] = [
-    # (field, label, type, min, max, unit)
-    ("rate_limit_per_minute", "Rate Limit/Min", SettingType.INT, 0, 10000, None),
-    ("rate_limit_per_day", "Rate Limit/Day", SettingType.INT, 0, 1000000, None),
+    # (field, label, type, min, max, unit) — max None = no ceiling, 0 = unlimited
+    ("rate_limit_per_minute", "Rate Limit/Min", SettingType.INT, 0, None, None),
+    ("rate_limit_per_day", "Rate Limit/Day", SettingType.INT, 0, None, None),
     (
         "max_solve_time_seconds",
         "Max Solve Time",
         SettingType.INT,
-        1,
-        86400,
+        0,
+        None,
         "seconds",
     ),
-    ("max_variables", "Max Variables", SettingType.INT, 1, 10000000, None),
-    ("max_daily_solves", "Max Daily Solves", SettingType.INT, 1, 100000, None),
-    ("max_cron_schedules", "Max Cron Schedules", SettingType.INT, 0, 1000, None),
+    ("max_variables", "Max Variables", SettingType.INT, 0, None, None),
+    ("max_daily_solves", "Max Daily Solves", SettingType.INT, 0, None, None),
+    ("max_cron_schedules", "Max Cron Schedules", SettingType.INT, 0, None, None),
     ("allowed_features", "Allowed Features", SettingType.JSON, None, None, None),
 ]
 
@@ -774,34 +796,34 @@ _PLAN_DEFAULTS: dict[tuple[str, str], str] = {
     # also relaxed for consistency.)
     ("free", "rate_limit_per_minute"): "120",
     ("free", "rate_limit_per_day"): "50000",
-    ("free", "max_solve_time_seconds"): "86400",
-    ("free", "max_variables"): "10000000",
-    ("free", "max_daily_solves"): "100000",
-    ("free", "max_cron_schedules"): "50",
+    ("free", "max_solve_time_seconds"): "0",
+    ("free", "max_variables"): "0",
+    ("free", "max_daily_solves"): "0",
+    ("free", "max_cron_schedules"): "0",
     ("free", "allowed_features"): _ALLOWED_FEATURES_DEFAULT,
     # Starter tier
     ("starter", "rate_limit_per_minute"): "20",
     ("starter", "rate_limit_per_day"): "500",
-    ("starter", "max_solve_time_seconds"): "86400",
-    ("starter", "max_variables"): "100000",
-    ("starter", "max_daily_solves"): "100000",
-    ("starter", "max_cron_schedules"): "5",
+    ("starter", "max_solve_time_seconds"): "0",
+    ("starter", "max_variables"): "0",
+    ("starter", "max_daily_solves"): "0",
+    ("starter", "max_cron_schedules"): "0",
     ("starter", "allowed_features"): _ALLOWED_FEATURES_DEFAULT,
     # Pro tier
     ("pro", "rate_limit_per_minute"): "60",
     ("pro", "rate_limit_per_day"): "5000",
-    ("pro", "max_solve_time_seconds"): "86400",
-    ("pro", "max_variables"): "1000000",
-    ("pro", "max_daily_solves"): "100000",
-    ("pro", "max_cron_schedules"): "15",
+    ("pro", "max_solve_time_seconds"): "0",
+    ("pro", "max_variables"): "0",
+    ("pro", "max_daily_solves"): "0",
+    ("pro", "max_cron_schedules"): "0",
     ("pro", "allowed_features"): _ALLOWED_FEATURES_DEFAULT,
     # Business tier
     ("business", "rate_limit_per_minute"): "120",
     ("business", "rate_limit_per_day"): "50000",
-    ("business", "max_solve_time_seconds"): "86400",
-    ("business", "max_variables"): "10000000",
-    ("business", "max_daily_solves"): "100000",
-    ("business", "max_cron_schedules"): "50",
+    ("business", "max_solve_time_seconds"): "0",
+    ("business", "max_variables"): "0",
+    ("business", "max_daily_solves"): "0",
+    ("business", "max_cron_schedules"): "0",
     ("business", "allowed_features"): _ALLOWED_FEATURES_DEFAULT,
 }
 

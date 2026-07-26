@@ -6,10 +6,15 @@ streamed body grows past the limit.
 
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-# 50 MB default — open-source self-hosted: large JSON models / canvases are
-# posted to /solve and the builder without hitting an artificial cap. File
-# imports (/solve/import) and LLM attachments are exempt and enforce their own.
-MAX_BODY_BYTES = 50 * 1024 * 1024
+from app.config import settings
+
+# Self-hosted open source: the operator owns this, via MAX_REQUEST_BODY_MB in
+# .env, and the default is NO limit. Real models are big — a 400x400 assignment
+# model is ~30 MB of JSON, and there is no size at which we can honestly tell a
+# self-hoster their model is "too large" for their own hardware. A public
+# instance with open signup should set a real number.
+# File imports (/solve/import) and LLM attachments are exempt and enforce their own.
+MAX_BODY_BYTES = settings.MAX_REQUEST_BODY_MB * 1024 * 1024
 
 # Paths that handle their own size limits (e.g., file upload endpoints)
 EXEMPT_PREFIXES = ("/api/v2/solve/import",)
@@ -29,7 +34,7 @@ class BodyLimitMiddleware:
         self.max_bytes = max_bytes
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http":
+        if scope["type"] != "http" or self.max_bytes <= 0:
             await self.app(scope, receive, send)
             return
 

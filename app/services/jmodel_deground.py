@@ -24,7 +24,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
-from app.domains.dsl import JModelData, JModelError, compile_jmodel
+from app.domains.dsl import (
+    MAX_GROUNDED_ELEMENTS,
+    JModelData,
+    JModelError,
+    compile_jmodel,
+)
 from app.domains.solver.services.expression_parser import ExpressionParser, ParseError
 from app.schemas.optimization import OptimizationProblem, Variable, VariableType
 from app.schemas.solution_structure import annotate_variable_structure
@@ -47,7 +52,9 @@ class DegroundDraft:
     dataset: dict | None
 
 
-def deground_problem(problem: OptimizationProblem) -> str | None:
+def deground_problem(
+    problem: OptimizationProblem, *, max_grounded_elements: int = MAX_GROUNDED_ELEMENTS
+) -> str | None:
     """Reconstruct a compact, self-contained JModel source, or ``None``.
 
     Returns source only when it is recoverable AND verifiably round-trips to a
@@ -55,11 +62,13 @@ def deground_problem(problem: OptimizationProblem) -> str | None:
     Set/param data is inlined (``:=``) — see :func:`deground_problem_split` for
     the model/data-separated form.
     """
-    draft = _deground(problem, split=False)
+    draft = _deground(problem, split=False, max_grounded_elements=max_grounded_elements)
     return draft.source if draft else None
 
 
-def deground_problem_split(problem: OptimizationProblem) -> DegroundDraft | None:
+def deground_problem_split(
+    problem: OptimizationProblem, *, max_grounded_elements: int = MAX_GROUNDED_ELEMENTS
+) -> DegroundDraft | None:
     """Reconstruct a JModel draft with the model/data separation JModel is FOR.
 
     The source carries only the general formulation — declaration-only sets and
@@ -73,10 +82,12 @@ def deground_problem_split(problem: OptimizationProblem) -> DegroundDraft | None
     (a small flat model with no indexed structure) stays self-contained
     (``dataset=None``).
     """
-    return _deground(problem, split=True)
+    return _deground(problem, split=True, max_grounded_elements=max_grounded_elements)
 
 
-def _deground(problem: OptimizationProblem, *, split: bool) -> DegroundDraft | None:
+def _deground(
+    problem: OptimizationProblem, *, split: bool, max_grounded_elements: int
+) -> DegroundDraft | None:
     try:
         emission = _reconstruct(problem)
     except (_DegroundError, ParseError):
@@ -88,23 +99,26 @@ def _deground(problem: OptimizationProblem, *, split: bool) -> DegroundDraft | N
         source = _scalar_jmodel(problem)
         if source is None:
             return None
-        return _verified(problem, source, None)
+        return _verified(problem, source, None, max_grounded_elements)
     if split:
         try:
             source, dataset = _render_split(emission)
         except _DegroundError:
             return None
-        return _verified(problem, source, dataset)
-    return _verified(problem, _render_inline(emission), None)
+        return _verified(problem, source, dataset, max_grounded_elements)
+    return _verified(problem, _render_inline(emission), None, max_grounded_elements)
 
 
 def _verified(
-    problem: OptimizationProblem, source: str, dataset: dict | None
+    problem: OptimizationProblem,
+    source: str,
+    dataset: dict | None,
+    max_grounded_elements: int,
 ) -> DegroundDraft | None:
     """Honesty gate: the draft (+ its data) must recompile to an equivalent problem."""
     try:
         data = JModelData.from_json(dataset) if dataset is not None else None
-        rebuilt = compile_jmodel(source, data=data)
+        rebuilt = compile_jmodel(source, data=data, max_grounded_elements=max_grounded_elements)
     except JModelError:
         return None
     if not _problems_equivalent(problem, rebuilt):

@@ -1,4 +1,4 @@
-"""Tier cap error response schemas."""
+"""Instance-limit error response schemas."""
 
 from typing import Any
 
@@ -6,15 +6,21 @@ from pydantic import BaseModel
 
 
 class TierCapError(BaseModel):
-    """Returned when a request exceeds a tier cap."""
+    """Returned when a request exceeds a limit this instance is configured to enforce.
+
+    ADR-008 removed billing and there are no paid tiers, so this payload no longer
+    carries an upsell (``upgrade_to`` / ``upgrade_url`` pointed at a ``/billing`` page
+    that no longer exists). What a caller actually needs is the limit they hit and the
+    name of the setting an administrator can raise — every limit accepts 0 for
+    unlimited.
+    """
 
     error: str  # e.g. "variable_limit_exceeded"
     message: str  # Human-readable explanation
     current_plan: str
     limit: int | str
     current_value: int | str | None = None
-    upgrade_to: str  # e.g. "Starter"
-    upgrade_url: str = "/billing"
+    setting_key: str | None = None  # e.g. "plan_free_max_variables"
 
 
 def tier_cap_detail(
@@ -23,19 +29,14 @@ def tier_cap_detail(
     current_plan: str,
     limit: int | str,
     current_value: int | str | None = None,
+    setting_key: str | None = None,
 ) -> dict[str, Any]:
-    """Build tier cap error detail dict for HTTPException."""
-    upgrade_map = {
-        "free": "Starter",
-        "starter": "Pro",
-        "pro": "Business",
-        "business": "Business",
-    }
+    """Build the limit-exceeded error detail dict for HTTPException."""
     return TierCapError(
         error=error,
         message=message,
         current_plan=current_plan,
         limit=limit,
         current_value=current_value,
-        upgrade_to=upgrade_map.get(current_plan, "Business"),
+        setting_key=setting_key,
     ).model_dump()

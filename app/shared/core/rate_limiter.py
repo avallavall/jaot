@@ -76,7 +76,7 @@ def _check_memory(
     day_count = len(requests)
 
     # Minute limit
-    if minute_count >= limit_per_minute:
+    if limit_per_minute > 0 and minute_count >= limit_per_minute:
         retry_after = max(
             1, int(60 - (now - min((ts for ts in requests if ts > minute_ago), default=now)))
         )
@@ -90,7 +90,7 @@ def _check_memory(
         }
 
     # Day limit
-    if day_count >= limit_per_day:
+    if limit_per_day > 0 and day_count >= limit_per_day:
         tomorrow_midnight = int((now // 86400 + 1) * 86400)
         retry_after = tomorrow_midnight - int(now)
         return False, {
@@ -143,7 +143,7 @@ def _check_redis(
         minute_count = results[2]
         day_count = results[3]
 
-        if minute_count >= limit_per_minute:
+        if limit_per_minute > 0 and minute_count >= limit_per_minute:
             oldest = _redis_client.zrangebyscore(minute_key, minute_ago, "+inf", start=0, num=1)
             if oldest:
                 retry_after = max(1, int(60 - (now - float(oldest[0]))))
@@ -158,7 +158,7 @@ def _check_redis(
                 "retry_after": retry_after,
             }
 
-        if day_count >= limit_per_day:
+        if limit_per_day > 0 and day_count >= limit_per_day:
             tomorrow_midnight = int((now // 86400 + 1) * 86400)
             retry_after = tomorrow_midnight - int(now)
             return False, {
@@ -244,6 +244,12 @@ def _check_memory_window(
     label: str,
 ) -> tuple[bool, dict[str, Any] | None]:
     """In-memory sliding window rate limit check for a single named window."""
+    if limit <= 0:
+        # Not "zero requests allowed" — unlimited. Self-hosted operators set 0 to
+        # turn a limit off, and the naive `count >= limit` below would lock the
+        # whole instance out instead.
+        return True, None
+
     now = time.time()
     window_ago = now - window_seconds
 
@@ -275,6 +281,9 @@ def _check_redis_window(
     label: str,
 ) -> tuple[bool, dict[str, Any] | None]:
     """Redis sliding window rate limit check for a single named window."""
+    if limit <= 0:
+        return True, None  # unlimited — see _check_memory_window
+
     now = time.time()
     now_str = str(now)
     window_ago = now - window_seconds

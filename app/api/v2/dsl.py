@@ -16,6 +16,7 @@ calls this endpoint on every debounced keystroke).
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentOrg, CurrentUser, DBSession, RequestLocale
 from app.api.v2.deps.dsl_feature_gate import dsl_enabled, dsl_feature_gate
@@ -65,6 +66,15 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/dsl", tags=["dsl"])
 
 
+def _grounding_budget(db: Session) -> int:
+    """How much a compile may expand to on THIS instance (0 = no budget).
+
+    Self-hosted operators own the ceiling; the compiler's own constant is only the
+    seeded default.
+    """
+    return PSS.get_int(db, "dsl_max_grounded_elements")
+
+
 @router.get("/status", operation_id="dsl_status")
 def dsl_status(db: DBSession, _user: CurrentUser) -> DSLStatusResponse:
     """Report whether the JModel DSL feature is enabled on this instance."""
@@ -98,7 +108,9 @@ def dsl_compile(body: DSLCompileRequest, db: DBSession, org: CurrentOrg) -> DSLC
                     ),
                 )
             data = JModelData.from_json(dataset.data_json)
-        problem = compile_jmodel(body.source, data=data)
+        problem = compile_jmodel(
+            body.source, data=data, max_grounded_elements=_grounding_budget(db)
+        )
     except JModelError as exc:
         return DSLCompileResponse(
             ok=False,
@@ -121,7 +133,7 @@ def dsl_compile(body: DSLCompileRequest, db: DBSession, org: CurrentOrg) -> DSLC
     operation_id="dsl_inspect",
     dependencies=[Depends(dsl_feature_gate)],
 )
-def dsl_inspect(body: DSLInspectRequest, _user: CurrentUser) -> DSLInspectResponse:
+def dsl_inspect(body: DSLInspectRequest, db: DBSession, _user: CurrentUser) -> DSLInspectResponse:
     """List a source's data-facing declarations — parse-only, never grounded (S2a).
 
     Powers the dataset editor's "skeleton from the model" button and the live
@@ -130,7 +142,7 @@ def dsl_inspect(body: DSLInspectRequest, _user: CurrentUser) -> DSLInspectRespon
     Same structured-error contract as compile (no 4xx mid-keystroke).
     """
     try:
-        decls = inspect_declarations(body.source)
+        decls = inspect_declarations(body.source, max_grounded_elements=_grounding_budget(db))
     except JModelError as exc:
         return DSLInspectResponse(
             ok=False,
@@ -162,7 +174,7 @@ def dsl_inspect(body: DSLInspectRequest, _user: CurrentUser) -> DSLInspectRespon
     operation_id="dsl_latex",
     dependencies=[Depends(dsl_feature_gate)],
 )
-def dsl_latex(body: DSLLatexRequest, _user: CurrentUser) -> DSLLatexResponse:
+def dsl_latex(body: DSLLatexRequest, db: DBSession, _user: CurrentUser) -> DSLLatexResponse:
     """Pretty-print a source as symbolic math for the JModel split-pane (B1).
 
     Parse-only: it renders the indexed objective / ∀-quantified constraint families /
@@ -172,7 +184,7 @@ def dsl_latex(body: DSLLatexRequest, _user: CurrentUser) -> DSLLatexResponse:
     errors. Same structured-error contract as compile (no 4xx mid-keystroke).
     """
     try:
-        rendered = latexify(body.source)
+        rendered = latexify(body.source, max_grounded_elements=_grounding_budget(db))
     except JModelError as exc:
         return DSLLatexResponse(
             ok=False,
@@ -207,7 +219,9 @@ def dsl_latex(body: DSLLatexRequest, _user: CurrentUser) -> DSLLatexResponse:
     operation_id="dsl_deground",
     dependencies=[Depends(dsl_feature_gate)],
 )
-def dsl_deground(body: DSLDegroundRequest, _user: CurrentUser) -> DSLDegroundResponse:
+def dsl_deground(
+    body: DSLDegroundRequest, db: DBSession, _user: CurrentUser
+) -> DSLDegroundResponse:
     """Reconstruct a compact JModel draft from a flat problem (B2, phase 1).
 
     The inverse of compile: a model built on the canvas or imported (MPS/LP/CIP) has
@@ -223,11 +237,13 @@ def dsl_deground(body: DSLDegroundRequest, _user: CurrentUser) -> DSLDegroundRes
         if body.allow_dataset:
             # The elegant form: the source is the GENERAL formulation and the data
             # goes where data belongs — a dataset the caller stores and selects.
-            draft = deground_problem_split(body.problem)
+            draft = deground_problem_split(
+                body.problem, max_grounded_elements=_grounding_budget(db)
+            )
             if draft is not None:
                 source, dataset = draft.source, draft.dataset
         else:
-            source = deground_problem(body.problem)
+            source = deground_problem(body.problem, max_grounded_elements=_grounding_budget(db))
     except Exception:
         # The service is contracted to return draft-or-None; anything else is a bug.
         # Decline gracefully (never a 500) and log it for us.
@@ -349,6 +365,7 @@ async def dsl_generate(
             attachments=body.attachments,
             current_source=body.current_source,
             locale=locale,
+            max_grounded_elements=_grounding_budget(db),
         )
     except Exception as exc:
         # Anthropic transport / API failure. handle_anthropic_failure logs + classifies;

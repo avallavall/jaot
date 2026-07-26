@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 import pytest
 
+from app.schemas.optimization import Constraint, Objective
 from app.services.llm.moderation import moderate_message
 from app.services.llm.prompt_templates import FORMULATION_SYSTEM_PROMPT
 from app.services.solve_orchestrator import load_warm_start_solution
@@ -560,49 +561,73 @@ class TestRateLimiting:
 
 
 class TestRequestBodySize:
-    """Test oversized request body handling."""
+    """The body limit is a mechanism the operator switches on, not a fixed ceiling.
 
-    def test_oversized_request_body(
-        self,
-        app,
-        db_session,
-        test_api_key,
-        test_user,
-        mock_auth,
-    ):
-        """60MB request body is rejected with 413 by BodyLimitMiddleware."""
+    Self-hosted default is 0 (unlimited): a 400x400 assignment model is ~30 MB of
+    perfectly legitimate JSON, and no constant in this repo can honestly tell a
+    self-hoster their model is too big for their own hardware. A public instance sets
+    MAX_REQUEST_BODY_MB and gets its 413s back. Both halves are tested, because "off
+    by default" is only defensible if "on" demonstrably still works.
+    """
+
+    @staticmethod
+    def _client(max_bytes: int):
+        from starlette.applications import Starlette
+        from starlette.responses import JSONResponse
+        from starlette.routing import Route
         from starlette.testclient import TestClient
 
-        mock_auth(test_user)
+        from app.shared.core.body_limit import BodyLimitMiddleware
 
-        client = TestClient(app, raise_server_exceptions=False)
-        client.headers = {"Authorization": f"Bearer {test_api_key.plaintext}"}
+        async def echo(request):
+            return JSONResponse({"received": len(await request.body())})
 
-        big_name = "x" * 60_000_000
-        body = _make_solve_body(name=big_name)
-        resp = client.post("/api/v2/solve", json=body)
-        assert resp.status_code == 413, (
-            f"Expected 413 for 60MB body, got {resp.status_code}: {resp.text[:200]}"
-        )
+        app = Starlette(routes=[Route("/echo", echo, methods=["POST"])])
+        app.add_middleware(BodyLimitMiddleware, max_bytes=max_bytes)
+        return TestClient(app, raise_server_exceptions=False)
+
+    def test_limit_enforced_when_operator_configures_one(self):
+        resp = self._client(max_bytes=1024).post("/echo", content=b"x" * 4096)
+        assert resp.status_code == 413, resp.text
+
+    def test_body_under_the_configured_limit_passes(self):
+        resp = self._client(max_bytes=1024).post("/echo", content=b"x" * 512)
+        assert resp.status_code == 200, resp.text
+
+    def test_limit_enforced_without_a_content_length_header(self):
+        """The streaming guard is the one that matters: a client that omits
+        Content-Length must not slip past the fast path."""
+        resp = self._client(max_bytes=1024).post("/echo", content=iter([b"x" * 4096]))
+        assert resp.status_code == 413, resp.text
+
+    # CONTRACT-TEST: MAX_REQUEST_BODY_MB = 0 means unlimited, not "no body allowed"
+    def test_zero_disables_the_limit(self):
+        resp = self._client(max_bytes=0).post("/echo", content=b"x" * 200_000)
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["received"] == 200_000
 
 
 class TestMaxLengthValidation:
     """Verify max_length enforcement on expression and name fields."""
 
-    def test_expression_exceeds_max_chars(self, authenticated_client):
-        """Expression over the max_length cap (5,000,000) is rejected with 422.
+    # CONTRACT-TEST: no character ceiling on expressions
+    def test_expression_has_no_character_ceiling(self):
+        """The 5M-char cap is gone.
 
-        The cap was raised 500K -> 5M so that large indexed models (whose flat
-        objective is a single multi-hundred-thousand-char sum, e.g. a 200x200
-        assignment) are accepted; the bound still exists as a DoS guard.
+        A flat objective for a large indexed model IS one enormous sum — a 400x400
+        assignment grounds to ~3.7M characters, so the old cap sat 26% away from a
+        model this platform is meant to solve. The ceiling on how much a client may
+        send belongs at the request-body layer, where the operator configures it
+        (see TestRequestBodySize), not baked into a schema constant.
         """
-        big_expr = "x + " * 1_300_000  # ~5.2M chars, over the 5,000,000 limit
-        body = _make_solve_body()
-        body["objective"]["expression"] = big_expr.rstrip(" +")
-        resp = authenticated_client.post("/api/v2/solve", json=body)
-        assert resp.status_code == 422, (
-            f"Expected 422 for a >5M-char expression, got {resp.status_code}: {resp.text[:200]}"
-        )
+        big_expr = ("x + " * 1_300_000).rstrip(" +")  # ~5.2M chars, over the old cap
+        assert len(big_expr) > 5_000_000
+
+        obj = Objective(sense="minimize", expression=big_expr)
+        assert len(obj.expression) == len(big_expr)
+
+        con = Constraint(expression=f"{big_expr} <= 10")
+        assert con.expression.endswith("<= 10")
 
     def test_name_field_max_length(self, authenticated_client):
         """Name > 256 chars is rejected with 422 by max_length=256."""
