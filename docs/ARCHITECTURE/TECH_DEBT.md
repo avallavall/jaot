@@ -14,8 +14,8 @@
 | D-02 | `import-linter` contracts consolidated (6→5) | Low (PR friction) | 0.5 day | ✅ **Resolved** |
 | D-03 | **CR-01**: double refund possible in `cancel_async_task` | **High (monetary loss)** | 2–3 days | ✅ **Resolved** |
 | D-04 | **CR-02**: IDOR in `GET /api/v2/models/async/{task_id}` | **High (cross-tenant leak)** | 1 day | ✅ **Resolved** |
-| D-05 | `WR-03`: `SolverNotFoundError` exposes the full solver list | Medium (license info leak in Phase 7) | 1 h | Medium |
-| D-06 | `WR-06`: `celery_beat` uses the `app.core.celery_app` shim while workers use the canonical module | Low (cosmetic) | 15 min | Low |
+| D-05 | `WR-03`: `SolverNotFoundError` exposes the full solver list | Medium (license info leak in Phase 7) | 1 h | ✅ **Resolved** |
+| D-06 | `WR-06`: `celery_beat` uses the `app.core.celery_app` shim while workers use the canonical module | Low (cosmetic) | 15 min | ✅ **Resolved** (by D-01) |
 | D-07 | `CeleryWorkerDown` alert still references the legacy container | Medium (alert silenced post-rotate) | 15 min | **High (pre-rotate)** |
 | D-08 | 5 consecutive `fix(ci):` commits (fixtures + postgres readiness) | Medium (flaky pipeline) | Resolved in `9357e9dd` | Monitor |
 | D-09 | The server 180 commits behind + CI red for 7 days | High (blocks Phase 6 UAT) | 1 day (fix CI → deploy) | **High** |
@@ -61,6 +61,35 @@ exec = db.query(ModelExecution).filter(
     ModelExecution.organization_id == current_user.organization_id,
 ).first()
 ```
+
+---
+
+## D-05 · WR-03 · Solver refusals as a licence oracle — ✅ RESOLVED
+
+**What:** `GET /solvers/available` lists only adapters whose `is_available()` is true, so a
+commercial solver that is installed but unlicensed is deliberately absent. The refusal
+messages handed that back: `SolverNotFoundError` said a name was *not registered* while
+`SolverUnavailableError` said it *was registered but not available at runtime*, and both
+reached the client verbatim through `detail=str(exc)`. Probing names enumerated which
+commercial solvers the deployment carries — information about the operator's licences.
+
+**Status:** ✅ **Resolved** — `app/api/v2/solver_errors.py` maps both exceptions to one 422
+body (`Solver '<name>' is not available.`) at all four call sites (`solve.py`,
+`routes/models/execution.py` ×2, `routes/models/analysis.py`). The real reason is logged
+server-side, where it is a diagnostic rather than an oracle; the stored execution error
+keeps it too, since that row is the operator's own record. Pinned by
+`tests/unit/test_solver_error_uniformity.py`.
+
+---
+
+## D-06 · `celery_beat` on the shim — ✅ RESOLVED (by D-01)
+
+**What:** beat was documented as booting through `app.core.celery_app` while the workers
+used the canonical module.
+
+**Status:** ✅ **Resolved** — `app/core/` no longer exists (D-01 removed every shim), and
+both compose files start beat with `-A app.shared.core.celery_app`, the same module the
+workers use. Nothing left to change; verified 2026-07-26.
 
 ---
 
@@ -127,7 +156,7 @@ exec = db.query(ModelExecution).filter(
 1. ~~**Urgent** — D-09 (unblock CI and the server), D-07 (pre-rotate alert).~~ ✅ Done.
 2. ~~**Security** — D-03 (CR-01 double refund), D-04 (CR-02 IDOR).~~ ✅ Resolved.
 3. ~~**Architecture** — D-01 (shims), D-02 (import-linter contracts).~~ ✅ Resolved.
-4. **Cosmetic** — D-05, D-06 when time allows.
+4. ~~**Cosmetic** — D-05, D-06 when time allows.~~ ✅ Done (2026-07-26).
 
 ---
 
@@ -149,7 +178,7 @@ exec = db.query(ModelExecution).filter(
 | D-12 | 113 endpoints were `async def` with no `await` yet issued synchronous DB calls → every query stalled the event loop (4 workers in prod) | Medium-high (concurrency ceiling) | 1 day | ✅ **Resolved** (`27c1ae8`, ADR-009 Accepted) |
 | D-13 | 7 handlers did genuinely heavy work on the loop — MPS/LP parsing, 16 MB dataset parsing, PDF text extraction, boto3 uploads, SCIP export — not the short commits the audit assumed | Medium | 1 day | ✅ **Resolved** (`2b81868`) |
 | D-14 | 23 foreign keys with no index | Low-medium (scales badly) | 0.5 day | ✅ **Resolved** — 18 indexed (`20260726_index_fks`); the other 5 deliberately skipped: they point at `model_catalog` / `organization_models` (legacy DROP list) or at ADR-008 orphans with no ORM model |
-| D-15 | No `import-linter` contract on the vertical direction (api → services → domains), which is why D-16 went unnoticed | Medium (architectural) | 0.5 day | Medium |
+| D-15 | No `import-linter` contract on the vertical direction (api → services → domains), which is why D-16 went unnoticed | Medium (architectural) | 0.5 day | ✅ **Resolved** — contract 7, D-16's call sites frozen as listed exceptions |
 | D-16 | Upward imports: `domains → services` (11), `domains → api` (7), `shared → services` (9 — a gap in an existing contract) | Medium (blocks extraction) | 1 day | Medium |
 | D-17 | 55 endpoints return `dict[str, Any]` with no `response_model` → OpenAPI cannot describe them and the frontend hand-writes those types | Medium (contract drift) | 2–3 days | Medium |
 | D-18 | 113 `Depends(get_db)` instead of the `DBSession` alias the project rule mandates | Low (consistency) | Folded into D-12 | Low |
@@ -158,13 +187,29 @@ exec = db.query(ModelExecution).filter(
 **Suggested first batch:** D-10 + D-11 + D-12 — the three that change something real, ~2 days,
 no architectural commitment.
 
+**D-15 · ✅ Resolved (2026-07-26) — and it now carries D-16's inventory.**
+Contract 7 in `pyproject.toml` (`domains-no-upward-imports`) forbids
+`app.domains → app.services` and `app.domains → app.api`. The 17 call sites that exist
+today are listed as `ignore_imports` rather than fixed, because untangling them *is*
+D-16 and several want an injected port or an event rather than a moved import. What the
+contract buys immediately:
+
+- **The debt cannot grow.** A new upward import fails `lint-imports` with file and line.
+  Verified by adding one deliberately and watching the build go red.
+- **The inventory lives where the build reads it**, not in prose here. Deleting an entry
+  as D-16 lands makes the contract stricter for free, and an entry that no longer matches
+  a real import makes import-linter complain — so the list cannot rot.
+
+One entry is not a domain dependency at all: `app.shared.core.celery_app →
+app.services.email_service` is a transitive chain the domain inherits by importing the
+Celery app, already deferred inside `worker_process_init` where it belongs. It belongs to
+the `shared → services` strand of D-16.
+
 **D-16 grew by one (2026-07-26).** Rolling a solve onto its marketplace listing needs the
-listing statistics writer, which lives in `app/services/marketplace_fusion.py`, so
-`app/domains/solver/tasks/solve_tasks.py` now imports it. No contract objects — the six
-`import-linter` contracts stay KEPT, because none of them guards the vertical direction;
-that absence *is* D-15. Whoever takes D-15/D-16 should expect this call site: the listing
-rollup is marketplace knowledge that the solver domain should be telling, not fetching
-(an event or an injected port), not another module to shuffle.
+listing statistics writer in `app/services/marketplace_fusion.py`, so
+`app/domains/solver/tasks/solve_tasks.py` imports it. The right shape is the solver
+*telling* the marketplace a solve finished, not fetching its writer — an event or an
+injected port, not another module to shuffle.
 
 **Not proposed:** microservices (discarded by the owner, 2026-07-25), a dynamic `auto_router`
 (discarded with rationale — its reason slugs are public API contract), and an async-SQLAlchemy

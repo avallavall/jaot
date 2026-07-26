@@ -179,6 +179,60 @@ forbidden_modules = [
     "app.utils",
 ]
 
+[[tool.importlinter.contracts]]
+# Contract 7 (D-15) — the vertical direction. ADR-001 layers the monolith
+# api -> services -> domains, but nothing enforced it, which is exactly why the
+# upward imports of D-16 accumulated unnoticed: contracts 3 and 6 guard
+# app/shared/ and the DSL compiler, and a bounded context reaching back up into
+# app/services/ or app/api/ broke no rule anyone could run.
+#
+# The 17 call sites that exist today are listed below rather than fixed here:
+# untangling them is D-16 (a day of work, and several want an injected port or an
+# event rather than a moved import). What this contract buys now is that the list
+# cannot grow — a new upward import fails the build — and that the debt is
+# enumerated in the place the build reads instead of prose in TECH_DEBT.md.
+#
+# Deleting an entry as D-16 lands is the intended way to use this: the contract
+# gets stricter for free, and an entry that no longer corresponds to a real import
+# makes import-linter complain, so the list cannot rot.
+id = "domains-no-upward-imports"
+name = "app/domains/ never imports from app/services/ or app/api/ (D-15)"
+type = "forbidden"
+source_modules = ["app.domains"]
+forbidden_modules = [
+    "app.services",
+    "app.api",
+]
+ignore_imports = [
+    # --- D-16: routes inside the solver domain depend on the API's own deps ---
+    "app.domains.solver.routes.analytics -> app.api.deps",
+    "app.domains.solver.routes.file_export -> app.api.deps",
+    "app.domains.solver.routes.file_io -> app.api.deps",
+    "app.domains.solver.routes.file_io -> app.api.v2.solve",
+    "app.domains.solver.routes.insights -> app.api.deps",
+    "app.domains.solver.routes.templates -> app.api.deps",
+    "app.domains.solver.routes.templates -> app.api.v2.solve",
+    # --- D-16: the domain reaches up for orchestration and platform services ---
+    "app.domains.solver.routes.file_export -> app.services.solve_orchestrator",
+    "app.domains.solver.routes.file_io -> app.services.solve_orchestrator",
+    "app.domains.solver.routes.templates -> app.services.solve_orchestrator",
+    "app.domains.solver.routes.templates -> app.services.template_resolver",
+    "app.domains.solver.routes.templates -> app.services.analytics_service",
+    "app.domains.solver.services.pool -> app.services.platform_settings_service",
+    "app.domains.solver.tasks.scenario_tasks -> app.services.platform_settings_service",
+    "app.domains.solver.tasks.solve_tasks -> app.services.notification_service",
+    "app.domains.solver.time_limits -> app.services.platform_settings_service",
+    # Added 2026-07-26 with the marketplace listing rollup. The right shape is the
+    # solver telling the marketplace a solve finished, not fetching its writer.
+    "app.domains.solver.tasks.solve_tasks -> app.services.marketplace_fusion",
+    # Not a domain dependency: a TRANSITIVE chain the domain inherits by importing
+    # the Celery app. The import is already deferred inside `worker_process_init`,
+    # where it belongs — the SMTP backend is a process-local cache that must be
+    # configured per prefork child — so there is nothing to move. It belongs to the
+    # separate `shared -> services` strand of D-16.
+    "app.shared.core.celery_app -> app.services.email_service",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
