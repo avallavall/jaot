@@ -147,8 +147,8 @@ exec = db.query(ModelExecution).filter(
 | D-10 | `/api/v2/health` blocked the event loop 100 ms per call via `psutil.cpu_percent(interval=0.1)` | Medium (availability) | Minutes | ✅ **Resolved** (`7a7623c`) |
 | D-11 | CI had **no** security gate at all — they were lost in the Woodpecker→GHA migration, while `app/CLAUDE.md` claimed they ran | Medium (supply chain) | 0.5 day | ✅ **Resolved** — `pip-audit` (strict) + `bandit -lll` + `npm audit` (critical blocks, high informational) |
 | D-12 | 113 endpoints were `async def` with no `await` yet issued synchronous DB calls → every query stalled the event loop (4 workers in prod) | Medium-high (concurrency ceiling) | 1 day | ✅ **Resolved** (`27c1ae8`, ADR-009 Accepted) |
-| D-13 | 10 endpoints mix a real `await` with synchronous `db.commit()` — need the DB work moved off the loop, case by case | Medium | 1 day | Medium |
-| D-14 | 23 foreign keys with no index (incl. `users.organization_id`, `api_keys.user_id`, `refresh_tokens.user_id`) | Low-medium (scales badly) | 0.5 day | Medium |
+| D-13 | 7 handlers did genuinely heavy work on the loop — MPS/LP parsing, 16 MB dataset parsing, PDF text extraction, boto3 uploads, SCIP export — not the short commits the audit assumed | Medium | 1 day | ✅ **Resolved** (`2b81868`) |
+| D-14 | 23 foreign keys with no index | Low-medium (scales badly) | 0.5 day | ✅ **Resolved** — 18 indexed (`20260726_index_fks`); the other 5 deliberately skipped: they point at `model_catalog` / `organization_models` (legacy DROP list) or at ADR-008 orphans with no ORM model |
 | D-15 | No `import-linter` contract on the vertical direction (api → services → domains), which is why D-16 went unnoticed | Medium (architectural) | 0.5 day | Medium |
 | D-16 | Upward imports: `domains → services` (10), `domains → api` (7), `shared → services` (9 — a gap in an existing contract) | Medium (blocks extraction) | 1 day | Medium |
 | D-17 | 55 endpoints return `dict[str, Any]` with no `response_model` → OpenAPI cannot describe them and the frontend hand-writes those types | Medium (contract drift) | 2–3 days | Medium |

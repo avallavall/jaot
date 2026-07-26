@@ -172,6 +172,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
   process. No behaviour changed; the busiest one is the endpoint the studio polls for the
   duration of every solve. Recorded as ADR-009.
 
+- **Uploads, imports and exports stop holding up everyone else.** Parsing an uploaded MPS or
+  LP file, reading a 16 MB dataset, pulling text out of a PDF, pushing an image to storage and
+  rebuilding a model for export all used to run on the thread that serves every other request
+  — so one large file froze the server for as long as it took. They now run on a worker
+  thread. Same behaviour, no waiting on somebody else's upload.
+
+- **Foreign keys are indexed.** PostgreSQL does not index them for you, and 18 columns on live
+  paths had none — including the one every user lookup uses to scope by organisation. Joins on
+  those columns no longer scan the table, and deleting a parent row no longer scans its
+  children. Five more were deliberately left alone because they point at tables already
+  scheduled for removal.
+
 - **Security gates are back in the pipeline.** Dependency and static-analysis checks used to
   run on every build, then quietly stopped when the pipeline moved to GitHub Actions — the
   documentation still claimed they ran. The build now audits production dependencies and
