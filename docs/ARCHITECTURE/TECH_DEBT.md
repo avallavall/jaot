@@ -128,3 +128,41 @@ exec = db.query(ModelExecution).filter(
 2. ~~**Security** — D-03 (CR-01 double refund), D-04 (CR-02 IDOR).~~ ✅ Resolved.
 3. ~~**Architecture** — D-01 (shims), D-02 (import-linter contracts).~~ ✅ Resolved.
 4. **Cosmetic** — D-05, D-06 when time allows.
+
+---
+
+# Backend audit 2026-07-26 — D-10 … D-19
+
+> Second full audit of `app/` (299 files, 61,149 LOC), this time against ADR-001 and the
+> project's own rules rather than against a pre-refactor baseline. Findings, evidence and
+> the things that turned out to be **fine** are in
+> [`02-backend/07-audit-2026-07-26.md`](02-backend/07-audit-2026-07-26.md); the concurrency
+> rule it proposes is [ADR-009](08-decisions/ADR-009-sync-endpoints-with-a-sync-session.md).
+>
+> **Owner decision (2026-07-26): report only.** Nothing below has been implemented; these
+> are candidates, ordered by benefit ÷ effort.
+
+| # | Debt | Impact | Effort | Priority |
+|---|------|--------|--------|----------|
+| D-10 | `/api/v2/health` calls `psutil.cpu_percent(interval=0.1)` on the event loop — 100 ms blocked per call, on the most-called (and rate-limit-exempt for internal traffic) endpoint | Medium (availability) | Minutes | **High** |
+| D-11 | CI has **no** security gate: no `pip-audit`, no `bandit`, and the frontend `npm audit` gate is gone | Medium (supply chain) | 0.5 day + threshold policy | **High** |
+| D-12 | 99 endpoints are `async def` with no `await` yet issue synchronous DB calls → every query stalls the event loop (4 workers in prod) | Medium-high (concurrency ceiling) | 1 day | **High** |
+| D-13 | 10 endpoints mix a real `await` with synchronous `db.commit()` — need the DB work moved off the loop, case by case | Medium | 1 day | Medium |
+| D-14 | 23 foreign keys with no index (incl. `users.organization_id`, `api_keys.user_id`, `refresh_tokens.user_id`) | Low-medium (scales badly) | 0.5 day | Medium |
+| D-15 | No `import-linter` contract on the vertical direction (api → services → domains), which is why D-16 went unnoticed | Medium (architectural) | 0.5 day | Medium |
+| D-16 | Upward imports: `domains → services` (10), `domains → api` (7), `shared → services` (9 — a gap in an existing contract) | Medium (blocks extraction) | 1 day | Medium |
+| D-17 | 55 endpoints return `dict[str, Any]` with no `response_model` → OpenAPI cannot describe them and the frontend hand-writes those types | Medium (contract drift) | 2–3 days | Medium |
+| D-18 | 113 `Depends(get_db)` instead of the `DBSession` alias the project rule mandates | Low (consistency) | Folded into D-12 | Low |
+| D-19 | 187 direct queries in `app/api/` — routes are also the data layer; `execution.py` now 839 LOC | Low-medium (architectural) | 1–2 days | Low |
+
+**Suggested first batch:** D-10 + D-11 + D-12 — the three that change something real, ~2 days,
+no architectural commitment.
+
+**Not proposed:** microservices (discarded by the owner, 2026-07-25), a dynamic `auto_router`
+(discarded with rationale — its reason slugs are public API contract), and an async-SQLAlchemy
+migration (ADR-009 gets the same benefit for a fraction of the cost).
+
+**Still deferred:** the §5 contract-release work (legacy `DROP`s, `/seller/*` → `/author/*`,
+`favorite.py` `Column()`). Additive-only discipline makes the `DROP`s release-shaped, not
+refactor-shaped — they need their own window, and until they land
+`alembic --autogenerate` stays unreliable.
