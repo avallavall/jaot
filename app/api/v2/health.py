@@ -110,7 +110,16 @@ async def health_check(db: Session = Depends(get_db)) -> HealthResponse:
     - Python version
     - Maintenance mode flag
     """
-    cpu_percent = psutil.cpu_percent(interval=0.1)
+    # interval=None is REQUIRED here, not a preference: interval=0.1 sleeps 100ms
+    # inside the call, and this handler runs on the event loop, so every health
+    # check froze the whole worker for that long. This endpoint is the most-called
+    # one in the system (the container health check polls it, and that traffic is
+    # classified internal, hence exempt from the public rate limit).
+    # interval=None reads the CPU delta since the previous call in this process
+    # instead of sampling, which for a polled endpoint is the more meaningful
+    # number anyway (average over the polling gap, not a 100ms snapshot).
+    # The counter is primed at startup so the first request is not 0.0.
+    cpu_percent = psutil.cpu_percent(interval=None)
     memory = psutil.virtual_memory()
     disk = psutil.disk_usage("/")
     app_stats = metrics_collector.get_stats()

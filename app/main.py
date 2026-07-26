@@ -4,6 +4,7 @@ import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+import psutil
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -120,6 +121,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Self-heal: ensure all registry settings exist in DB (do first)
     _ensure_settings_seeded()
+
+    # Prime psutil's per-process CPU counter. /api/v2/health reads it with
+    # interval=None (non-blocking — see health_check), which returns the delta
+    # since the previous call and therefore 0.0 the very first time. Priming here
+    # means the first real health check already reports a meaningful number.
+    psutil.cpu_percent(interval=None)
 
     # Single DB session for all startup config reads
     startup_db = SessionLocal()
