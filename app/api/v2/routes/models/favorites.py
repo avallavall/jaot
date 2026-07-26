@@ -58,7 +58,7 @@ def _author_names(db: Session, listings: list[ModelProjectListing]) -> dict[str,
 
 
 @router.get("/favorites")
-async def get_user_favorites(
+def get_user_favorites(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
@@ -98,7 +98,7 @@ async def get_user_favorites(
 
 
 @router.post("/favorites/{model_id}")
-async def add_favorite(
+def add_favorite(
     model_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -135,7 +135,7 @@ async def add_favorite(
 
 
 @router.delete("/favorites/{model_id}")
-async def remove_favorite(
+def remove_favorite(
     model_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -158,7 +158,7 @@ async def remove_favorite(
 
 
 @router.get("/favorites/{model_id}/status")
-async def get_favorite_status(
+def get_favorite_status(
     model_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -177,7 +177,7 @@ async def get_favorite_status(
 
 
 @router.get("/recents")
-async def get_recent_models(
+def get_recent_models(
     current_user: User = Depends(get_current_user),
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),

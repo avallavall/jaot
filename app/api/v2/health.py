@@ -100,7 +100,7 @@ class MetricsResponse(BaseModel):
 
 
 @router.get("", response_model=HealthResponse)
-async def health_check(db: Session = Depends(get_db)) -> HealthResponse:
+def health_check(db: Session = Depends(get_db)) -> HealthResponse:
     """Check API health and readiness with system metrics.
 
     Returns detailed health information including:
@@ -143,7 +143,7 @@ async def health_check(db: Session = Depends(get_db)) -> HealthResponse:
 
 
 @router.get("/metrics", response_model=MetricsResponse)
-async def get_metrics() -> MetricsResponse:
+def get_metrics() -> MetricsResponse:
     """Get application performance metrics."""
     stats = metrics_collector.get_stats()
 
@@ -158,7 +158,7 @@ async def get_metrics() -> MetricsResponse:
 
 
 @router.get("/metrics/recent")
-async def get_recent_requests(
+def get_recent_requests(
     limit: int = Query(default=10, ge=1, le=100, description="Number of recent requests to return"),
 ) -> dict[str, Any]:
     """Get recent request history."""
@@ -191,7 +191,7 @@ class DetailedStatusResponse(BaseModel):
 
 
 @router.get("/status", response_model=DetailedStatusResponse)
-async def detailed_status(db: Session = Depends(get_db)) -> DetailedStatusResponse:
+def detailed_status(db: Session = Depends(get_db)) -> DetailedStatusResponse:
     """Detailed health status with component checks.
 
     Used for SLA monitoring and uptime tracking. Checks:

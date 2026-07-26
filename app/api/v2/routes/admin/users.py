@@ -18,7 +18,7 @@ router = APIRouter(tags=["admin-users"])
 
 
 @router.get("/users", response_model=AdminPaginatedResponse)
-async def list_users(
+def list_users(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     organization_id: str | None = None,
@@ -48,7 +48,7 @@ async def list_users(
 
 
 @router.get("/users/{user_id}", response_model=UserResponse)
-async def get_user(user_id: str, db: Session = Depends(get_db)) -> UserResponse:
+def get_user(user_id: str, db: Session = Depends(get_db)) -> UserResponse:
     """Get user by ID."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -57,7 +57,7 @@ async def get_user(user_id: str, db: Session = Depends(get_db)) -> UserResponse:
 
 
 @router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def create_user(data: UserCreate, db: Session = Depends(get_db)) -> UserResponse:
+def create_user(data: UserCreate, db: Session = Depends(get_db)) -> UserResponse:
     """Create new user."""
     org = db.query(Organization).filter(Organization.id == data.organization_id).first()
     if not org:
@@ -80,9 +80,7 @@ async def create_user(data: UserCreate, db: Session = Depends(get_db)) -> UserRe
 
 
 @router.patch("/users/{user_id}", response_model=UserResponse)
-async def update_user(
-    user_id: str, data: UserUpdate, db: Session = Depends(get_db)
-) -> UserResponse:
+def update_user(user_id: str, data: UserUpdate, db: Session = Depends(get_db)) -> UserResponse:
     """Update user."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -103,7 +101,7 @@ async def update_user(
 
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: str, db: Session = Depends(get_db)) -> None:
+def delete_user(user_id: str, db: Session = Depends(get_db)) -> None:
     """Delete user (soft delete)."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:

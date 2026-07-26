@@ -414,7 +414,7 @@ The `OptimizationProblem` schema defines how to structure a problem for the `/ap
     response_class=RedirectResponse,
     include_in_schema=False,
 )
-async def get_llms_txt() -> RedirectResponse:
+def get_llms_txt() -> RedirectResponse:
     """Permanently redirect to the canonical /llms.txt served at the site root.
 
     Single source of truth for the AI-discovery index (Phase 13.3, D-09): the
@@ -430,6 +430,6 @@ async def get_llms_txt() -> RedirectResponse:
     response_class=PlainTextResponse,
     include_in_schema=False,
 )
-async def get_llms_full_txt() -> PlainTextResponse:
+def get_llms_full_txt() -> PlainTextResponse:
     """Serve comprehensive llms-full.txt documentation for AI agents."""
     return PlainTextResponse(content=LLMS_FULL_TXT, media_type="text/plain; charset=utf-8")

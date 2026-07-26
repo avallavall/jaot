@@ -39,7 +39,7 @@ router = APIRouter()
 
 
 @router.get("/metadata", operation_id="get_solve_metadata")
-async def get_solve_metadata() -> dict[str, Any]:
+def get_solve_metadata() -> dict[str, Any]:
     """Return available categories and generator types for model creation.
 
     Includes ``category_generators`` mapping each category to the generator
@@ -73,7 +73,7 @@ _SUMMARY_FIELDS = {
 
 
 @router.get("/templates", operation_id="list_templates")
-async def list_templates(
+def list_templates(
     category: str | None = None,
     featured: bool | None = None,
 ) -> dict[str, Any]:
@@ -92,7 +92,7 @@ async def list_templates(
 
 
 @router.get("/templates/{template_id}", operation_id="get_template")
-async def get_template(
+def get_template(
     template_id: str,
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
@@ -113,7 +113,7 @@ async def get_template(
     response_model=OptimizationProblem,
     operation_id="preview_template",
 )
-async def preview_template(
+def preview_template(
     template_id: str,
     user_input: dict[str, Any] | None = None,
     db: Session = Depends(get_db),
@@ -259,7 +259,7 @@ def _log_template_use(
 
 
 @router.get("/examples", operation_id="get_example_problems")
-async def get_example_problems() -> dict[str, Any]:
+def get_example_problems() -> dict[str, Any]:
     """Get example optimization problems for testing."""
     return {
         "examples": [

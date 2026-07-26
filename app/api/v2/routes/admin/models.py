@@ -19,7 +19,7 @@ router = APIRouter(tags=["admin-models"])
 
 
 @router.get("/stats")
-async def get_admin_stats(db: Session = Depends(get_db)) -> dict[str, Any]:
+def get_admin_stats(db: Session = Depends(get_db)) -> dict[str, Any]:
     """Get admin dashboard statistics."""
     return {
         "organizations": {
@@ -48,7 +48,7 @@ async def get_admin_stats(db: Session = Depends(get_db)) -> dict[str, Any]:
 
 
 @router.get("/models", response_model=AdminPaginatedResponse)
-async def list_all_models(
+def list_all_models(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     category: str | None = None,
@@ -104,7 +104,7 @@ def _listing_or_404(db: Session, model_id: str) -> ModelProjectListing:
 
 
 @router.patch("/models/{model_id}/visibility")
-async def toggle_model_visibility(
+def toggle_model_visibility(
     model_id: str,
     is_public: bool = Query(...),
     db: Session = Depends(get_db),
@@ -119,7 +119,7 @@ async def toggle_model_visibility(
 
 
 @router.patch("/models/{model_id}")
-async def update_model_badges(
+def update_model_badges(
     model_id: str,
     body: UpdateModelBadgesRequest,
     db: Session = Depends(get_db),

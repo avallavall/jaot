@@ -149,7 +149,7 @@ def _build_auth_response_data(user: User, org: Organization) -> dict[str, Any]:
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login(request: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse:
+def login(request: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse:
     """Validate API key and return user/org info.
 
     Used by frontend to validate credentials and get initial state.
@@ -194,7 +194,7 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)) -> LoginRe
 
 
 @router.post("/login/email")
-async def login_email(
+def login_email(
     body: EmailLoginRequest,
     request: Request,
     db: Session = Depends(get_db),
@@ -307,7 +307,7 @@ async def login_email(
 
 
 @router.post("/signup/email")
-async def signup_email(
+def signup_email(
     body: EmailSignupRequest,
     request: Request,
     db: Session = Depends(get_db),
@@ -480,7 +480,7 @@ async def signup_email(
 
 
 @router.post("/verify-email")
-async def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
     """Verify user email with a token."""
     _rate_limit_or_raise(
         f"verify_email:{body.token[:16]}",
@@ -524,9 +524,7 @@ async def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)) 
 
 
 @router.post("/forgot-password")
-async def forgot_password(
-    body: ForgotPasswordRequest, db: Session = Depends(get_db)
-) -> dict[str, Any]:
+def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
     """Send a password reset email.
 
     Always returns 200 to prevent email enumeration.
@@ -572,9 +570,7 @@ async def forgot_password(
 
 
 @router.post("/reset-password")
-async def reset_password(
-    body: ResetPasswordRequest, db: Session = Depends(get_db)
-) -> dict[str, Any]:
+def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
     """Reset password using a token."""
     _rate_limit_or_raise(
         f"reset_password:{body.token[:16]}",
@@ -622,7 +618,7 @@ async def reset_password(
 
 
 @router.post("/refresh")
-async def refresh_token(request: Request, db: Session = Depends(get_db)) -> Response:
+def refresh_token(request: Request, db: Session = Depends(get_db)) -> Response:
     """Refresh access token using refresh token cookie.
 
     Implements token rotation: old refresh token is revoked and a new one
@@ -702,7 +698,7 @@ async def refresh_token(request: Request, db: Session = Depends(get_db)) -> Resp
 
 
 @router.post("/logout")
-async def logout(request: Request, db: Session = Depends(get_db)) -> Response:
+def logout(request: Request, db: Session = Depends(get_db)) -> Response:
     """Log out by clearing cookies and revoking refresh token."""
     import jwt as pyjwt
 
@@ -771,7 +767,7 @@ def get_me(
 
 
 @router.post("/signup", response_model=SignupResponse)
-async def signup(
+def signup(
     request: SignupRequest,
     raw_request: Request,
     db: Session = Depends(get_db),

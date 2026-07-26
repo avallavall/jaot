@@ -51,7 +51,7 @@ class MarkReadResponse(BaseModel):
 
 
 @router.get("", response_model=NotificationListResponse)
-async def list_notifications(
+def list_notifications(
     unread_only: bool = Query(False, description="Only return unread notifications"),
     limit: int = Query(50, ge=1, le=100, description="Maximum notifications to return"),
     current_user: User = Depends(get_current_user),
@@ -91,7 +91,7 @@ async def list_notifications(
 
 
 @router.get("/unread-count", response_model=UnreadCountResponse)
-async def get_unread_count(
+def get_unread_count(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> UnreadCountResponse:
@@ -102,7 +102,7 @@ async def get_unread_count(
 
 
 @router.post("/{notification_id}/read", response_model=MarkReadResponse)
-async def mark_notification_read(
+def mark_notification_read(
     notification_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -121,7 +121,7 @@ async def mark_notification_read(
 
 
 @router.post("/read-all", response_model=MarkReadResponse)
-async def mark_all_notifications_read(
+def mark_all_notifications_read(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> MarkReadResponse:

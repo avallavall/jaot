@@ -20,7 +20,7 @@ def _require_admin(user: User) -> None:
 
 
 @router.post("/organizations/{org_id}/verify")
-async def verify_organization(
+def verify_organization(
     org_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -40,7 +40,7 @@ async def verify_organization(
 
 
 @router.delete("/organizations/{org_id}/verify")
-async def unverify_organization(
+def unverify_organization(
     org_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -60,7 +60,7 @@ async def unverify_organization(
 
 
 @router.get("/reviews/reported")
-async def get_reported_reviews(
+def get_reported_reviews(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
@@ -125,7 +125,7 @@ async def get_reported_reviews(
 
 
 @router.delete("/reviews/{review_id}")
-async def admin_delete_review(
+def admin_delete_review(
     review_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -168,7 +168,7 @@ async def admin_delete_review(
 
 
 @router.patch("/reviews/{review_id}/visibility")
-async def toggle_review_visibility(
+def toggle_review_visibility(
     review_id: str,
     visible: bool = Query(...),
     current_user: User = Depends(get_current_user),

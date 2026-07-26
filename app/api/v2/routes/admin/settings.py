@@ -38,7 +38,7 @@ router = APIRouter(prefix="/settings", tags=["admin-settings"])
 
 
 @router.get("/registry", response_model=SettingsRegistryResponse)
-async def get_registry() -> SettingsRegistryResponse:
+def get_registry() -> SettingsRegistryResponse:
     """Return full settings registry grouped by category.
 
     ADMIN-01: Admin can view all runtime-configurable settings grouped by category.
@@ -67,7 +67,7 @@ async def get_registry() -> SettingsRegistryResponse:
 
 
 @router.get("/values", response_model=SettingsValuesResponse)
-async def get_values(
+def get_values(
     category: str | None = Query(None, description="Filter by category"),
     db: Session = Depends(get_db),
 ) -> SettingsValuesResponse:
@@ -106,7 +106,7 @@ async def get_values(
 
 
 @router.put("/values", response_model=SettingsUpdateResponse)
-async def update_values(
+def update_values(
     body: SettingsUpdateRequest,
     request: Request,
     db: Session = Depends(get_db),
@@ -145,7 +145,7 @@ async def update_values(
 
 
 @router.post("/reset/{key}")
-async def reset_setting(
+def reset_setting(
     key: str,
     request: Request,
     db: Session = Depends(get_db),
@@ -169,7 +169,7 @@ async def reset_setting(
 
 
 @router.get("/audit", response_model=AuditLogResponse)
-async def get_audit_log(
+def get_audit_log(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(50, ge=1, le=200, description="Items per page"),
     category: str | None = Query(None, description="Filter by category"),
@@ -211,7 +211,7 @@ async def get_audit_log(
 
 
 @router.get("/plans", response_model=PlanTiersResponse)
-async def get_plan_tiers(
+def get_plan_tiers(
     db: Session = Depends(get_db),
 ) -> PlanTiersResponse:
     """Return all plan tier configurations.
@@ -223,7 +223,7 @@ async def get_plan_tiers(
 
 
 @router.put("/plans", response_model=PlanTiersResponse)
-async def update_plan_tiers(
+def update_plan_tiers(
     body: PlanTiersUpdateRequest,
     request: Request,
     db: Session = Depends(get_db),

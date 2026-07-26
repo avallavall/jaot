@@ -19,7 +19,7 @@ router = APIRouter(tags=["users"])
 
 
 @router.get("/users/{user_id}/public", response_model=UserPublicProfile)
-async def get_user_public_profile(
+def get_user_public_profile(
     user_id: str,
     db: Session = Depends(get_db),
 ) -> UserPublicProfile:
@@ -66,7 +66,7 @@ async def get_user_public_profile(
 
 
 @router.get("/users/by-slug/{slug}", response_model=UserPublicProfile)
-async def get_user_by_slug(
+def get_user_by_slug(
     slug: str,
     db: Session = Depends(get_db),
 ) -> UserPublicProfile:
@@ -83,11 +83,11 @@ async def get_user_by_slug(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    return await get_user_public_profile(user.id, db)
+    return get_user_public_profile(user.id, db)
 
 
 @router.get("/users/{user_id}/reviews", response_model=list[UserReviewResponse])
-async def get_user_reviews(
+def get_user_reviews(
     user_id: str,
     db: Session = Depends(get_db),
 ) -> list[UserReviewResponse]:
@@ -133,7 +133,7 @@ async def get_user_reviews(
 
 
 @router.patch("/users/profile")
-async def update_user_profile(
+def update_user_profile(
     body: UpdateUserProfileRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

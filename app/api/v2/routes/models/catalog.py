@@ -29,7 +29,7 @@ router = APIRouter(tags=["catalog"])
 
 
 @router.get("/catalog", response_model=ModelCatalogListResponse, operation_id="list_catalog_models")
-async def list_catalog_models(
+def list_catalog_models(
     request: Request,
     category: str | None = Query(None, description="Filter by category"),
     search: str | None = Query(None, description="Search in name and description"),
@@ -125,7 +125,7 @@ async def list_catalog_models(
 @router.get(
     "/catalog/{model_id}", response_model=ModelCatalogResponse, operation_id="get_catalog_model"
 )
-async def get_catalog_model(
+def get_catalog_model(
     request: Request,
     model_id: str,
     db: Session = Depends(get_db),
@@ -168,7 +168,7 @@ async def get_catalog_model(
 
 
 @router.get("/catalog/{model_id}/schema", operation_id="get_catalog_model_schema")
-async def get_catalog_model_schema(
+def get_catalog_model_schema(
     model_id: str,
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:

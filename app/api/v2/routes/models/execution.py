@@ -99,7 +99,7 @@ def _resolve_generator_template(db: Session, project: ModelProject) -> dict[str,
 
 
 @router.post("/{model_id}/preview", response_model=OptimizationProblem)
-async def preview_model(
+def preview_model(
     model_id: str,
     body: PreviewRequest,
     current_user: User = Depends(get_current_user),
@@ -386,7 +386,7 @@ def _shape_model_execution_response(
 
 
 @router.get("/async/{task_id}")
-async def get_async_execution_status(
+def get_async_execution_status(
     task_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -469,7 +469,7 @@ async def get_async_execution_status(
 
 
 @router.post("/async/{task_id}/cancel")
-async def cancel_model_execution(
+def cancel_model_execution(
     task_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -528,7 +528,7 @@ async def cancel_model_execution(
 
 
 @router.get("/{model_id}/executions", response_model=ExecutionListResponse)
-async def list_model_executions(
+def list_model_executions(
     model_id: str,
     status: str | None = Query(None),
     origin: str | None = Query(None),
@@ -626,7 +626,7 @@ def _attach_model_names(
 
 
 @router.get("/executions/all", response_model=ExecutionListResponse)
-async def list_all_executions(
+def list_all_executions(
     status: str | None = Query(None),
     origin: str | None = Query(None),
     page: int = Query(1, ge=1),
@@ -659,7 +659,7 @@ async def list_all_executions(
     response_model=ModelExecutionResponse,
     operation_id="get_execution",
 )
-async def get_execution(
+def get_execution(
     execution_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

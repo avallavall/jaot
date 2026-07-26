@@ -107,7 +107,7 @@ async def upload_logo(
 
 
 @router.delete("/catalog/{model_id}/logo", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_logo(
+def delete_logo(
     model_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -157,7 +157,7 @@ async def upload_screenshot(
 
 
 @router.delete("/catalog/{model_id}/screenshots/{index}")
-async def delete_screenshot(
+def delete_screenshot(
     model_id: str,
     index: int,
     current_user: User = Depends(get_current_user),
@@ -185,7 +185,7 @@ async def delete_screenshot(
 
 
 @router.put("/catalog/{model_id}/sections", response_model=ModelCatalogResponse)
-async def update_sections(
+def update_sections(
     model_id: str,
     body: UpdateCatalogSectionsRequest,
     current_user: User = Depends(get_current_user),

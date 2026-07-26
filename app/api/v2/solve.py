@@ -1251,7 +1251,7 @@ def _shape_multi_objective_result(
 
 
 @router.get("/async/{task_id}")
-async def get_async_solve_status(
+def get_async_solve_status(
     task_id: str,
     request: Request,
     db: Session = Depends(get_db),
@@ -1356,7 +1356,7 @@ async def get_async_solve_status(
 
 
 @router.post("/async/{task_id}/cancel")
-async def cancel_async_task(
+def cancel_async_task(
     task_id: str,
     request: Request,
     db: Session = Depends(get_db),

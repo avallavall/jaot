@@ -17,7 +17,7 @@ router = APIRouter(tags=["organizations"])
 
 
 @router.get("/organizations/{org_id}/public", response_model=OrganizationPublicProfile)
-async def get_organization_public_profile(
+def get_organization_public_profile(
     org_id: str,
     db: Session = Depends(get_db),
 ) -> OrganizationPublicProfile:
@@ -85,7 +85,7 @@ async def get_organization_public_profile(
 
 
 @router.get("/organizations/by-slug/{slug}", response_model=OrganizationPublicProfile)
-async def get_organization_by_slug(
+def get_organization_by_slug(
     slug: str,
     db: Session = Depends(get_db),
 ) -> OrganizationPublicProfile:
@@ -102,11 +102,11 @@ async def get_organization_by_slug(
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    return await get_organization_public_profile(org.id, db)
+    return get_organization_public_profile(org.id, db)
 
 
 @router.patch("/organizations/profile")
-async def update_organization_profile(
+def update_organization_profile(
     body: UpdateOrgProfileRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -153,7 +153,7 @@ async def update_organization_profile(
 
 
 @router.get("/organizations/{org_id}/models", response_model=list[ModelCatalogResponse])
-async def get_organization_models(
+def get_organization_models(
     org_id: str,
     db: Session = Depends(get_db),
 ) -> list[ModelCatalogResponse]:

@@ -23,7 +23,7 @@ router = APIRouter(prefix="/keys", tags=["api-keys"])
 
 
 @router.post("/", response_model=CreateKeyResponse)
-async def create_api_key(
+def create_api_key(
     request: CreateKeyRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -54,7 +54,7 @@ async def create_api_key(
 
 
 @router.get("/", response_model=KeyListResponse)
-async def list_api_keys(
+def list_api_keys(
     page: int = 1,
     page_size: int = 20,
     search: str | None = None,
@@ -106,7 +106,7 @@ async def list_api_keys(
 
 
 @router.delete("/{key_id}")
-async def revoke_api_key(
+def revoke_api_key(
     key_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

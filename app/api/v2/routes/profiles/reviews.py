@@ -61,7 +61,7 @@ def _recompute_avg_rating(db: Session, listing: ModelProjectListing, model_id: s
 
 
 @router.get("/models/catalog/{catalog_id}/reviews", response_model=ReviewListResponse)
-async def get_model_reviews(
+def get_model_reviews(
     catalog_id: str,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -138,7 +138,7 @@ async def get_model_reviews(
 
 
 @router.post("/models/catalog/{catalog_id}/reviews", response_model=ReviewResponse)
-async def create_review(
+def create_review(
     catalog_id: str,
     body: CreateReviewRequest,
     current_user: User = Depends(get_current_user),
@@ -229,7 +229,7 @@ async def create_review(
 
 
 @router.delete("/models/reviews/{review_id}")
-async def delete_review(
+def delete_review(
     review_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -266,7 +266,7 @@ async def delete_review(
 
 
 @router.post("/models/reviews/{review_id}/report")
-async def report_review(
+def report_review(
     review_id: str,
     body: ReportRequest,
     current_user: User = Depends(get_current_user),

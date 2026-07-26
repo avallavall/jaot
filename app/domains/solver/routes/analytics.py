@@ -86,7 +86,7 @@ class CompareResponse(BaseModel):
     response_model=SummaryResponse,
     operation_id="get_analytics_summary",
 )
-async def get_analytics_summary(
+def get_analytics_summary(
     current_user: CurrentUser,
     org: CurrentOrg,
     db: DBSession,
@@ -114,7 +114,7 @@ async def get_analytics_summary(
     response_model=TrendsResponse,
     operation_id="get_analytics_trends",
 )
-async def get_analytics_trends(
+def get_analytics_trends(
     current_user: CurrentUser,
     org: CurrentOrg,
     db: DBSession,
@@ -144,7 +144,7 @@ async def get_analytics_trends(
     response_model=CompareResponse,
     operation_id="compare_executions",
 )
-async def compare_executions_endpoint(
+def compare_executions_endpoint(
     current_user: CurrentUser,
     org: CurrentOrg,
     db: DBSession,

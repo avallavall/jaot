@@ -46,7 +46,7 @@ router = APIRouter(prefix="/seller", tags=["seller"])
 
 
 @router.get("/analytics/summary", response_model=AnalyticsSummaryResponse)
-async def get_analytics_summary(
+def get_analytics_summary(
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -57,7 +57,7 @@ async def get_analytics_summary(
 
 
 @router.get("/analytics/time-series", response_model=TimeSeriesResponse)
-async def get_analytics_time_series(
+def get_analytics_time_series(
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -68,7 +68,7 @@ async def get_analytics_time_series(
 
 
 @router.get("/analytics/geo", response_model=GeoDistributionResponse)
-async def get_analytics_geo(
+def get_analytics_geo(
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -79,7 +79,7 @@ async def get_analytics_geo(
 
 
 @router.get("/analytics/models", response_model=list[ModelPerformanceRow])
-async def get_analytics_models(
+def get_analytics_models(
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -90,7 +90,7 @@ async def get_analytics_models(
 
 
 @router.get("/analytics/funnel", response_model=ConversionFunnelResponse)
-async def get_analytics_funnel(
+def get_analytics_funnel(
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -105,7 +105,7 @@ async def get_analytics_funnel(
     response_model=VerificationRequestResponse,
     status_code=201,
 )
-async def request_verification(
+def request_verification(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> VerificationRequestResponse:
@@ -133,7 +133,7 @@ async def request_verification(
     "/verification/status",
     response_model=VerificationRequestResponse | None,
 )
-async def get_verification_status(
+def get_verification_status(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> VerificationRequestResponse | None:
@@ -164,7 +164,7 @@ DEFAULT_PREFERENCES: dict[str, bool] = {"in_app": True, "email": False}
 
 
 @router.get("/notifications/preferences", response_model=NotificationPreferencesResponse)
-async def get_notification_preferences(
+def get_notification_preferences(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> NotificationPreferencesResponse:
@@ -194,7 +194,7 @@ async def get_notification_preferences(
 
 
 @router.put("/notifications/preferences", response_model=NotificationPreferencesResponse)
-async def update_notification_preference(
+def update_notification_preference(
     body: UpdatePreferenceRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -227,11 +227,11 @@ async def update_notification_preference(
 
     db.commit()
 
-    return await get_notification_preferences(current_user=current_user, db=db)
+    return get_notification_preferences(current_user=current_user, db=db)
 
 
 @router.get("/onboarding/status", response_model=OnboardingStatusResponse)
-async def get_onboarding_status(
+def get_onboarding_status(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> OnboardingStatusResponse:

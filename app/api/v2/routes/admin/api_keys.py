@@ -16,7 +16,7 @@ router = APIRouter(tags=["admin-api-keys"])
 
 
 @router.get("/api-keys", response_model=AdminPaginatedResponse)
-async def list_api_keys(
+def list_api_keys(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     organization_id: str | None = None,
@@ -46,7 +46,7 @@ async def list_api_keys(
 
 
 @router.post("/api-keys", response_model=APIKeyResponse, status_code=status.HTTP_201_CREATED)
-async def create_api_key(data: APIKeyCreate, db: Session = Depends(get_db)) -> APIKeyResponse:
+def create_api_key(data: APIKeyCreate, db: Session = Depends(get_db)) -> APIKeyResponse:
     """Create new API key. Returns full key only once."""
     from app.services.auth import APIKeyService
 
@@ -72,7 +72,7 @@ async def create_api_key(data: APIKeyCreate, db: Session = Depends(get_db)) -> A
 
 
 @router.patch("/api-keys/{key_id}/toggle", response_model=APIKeyResponse)
-async def toggle_api_key(key_id: str, db: Session = Depends(get_db)) -> APIKeyResponse:
+def toggle_api_key(key_id: str, db: Session = Depends(get_db)) -> APIKeyResponse:
     """Toggle API key active status."""
     key = db.query(APIKey).filter(APIKey.id == key_id).first()
     if not key:
@@ -85,7 +85,7 @@ async def toggle_api_key(key_id: str, db: Session = Depends(get_db)) -> APIKeyRe
 
 
 @router.delete("/api-keys/{key_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_api_key(key_id: str, db: Session = Depends(get_db)) -> None:
+def delete_api_key(key_id: str, db: Session = Depends(get_db)) -> None:
     """Delete API key (hard delete)."""
     key = db.query(APIKey).filter(APIKey.id == key_id).first()
     if not key:

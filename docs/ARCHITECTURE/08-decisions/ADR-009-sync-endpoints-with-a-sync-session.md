@@ -1,6 +1,7 @@
 # ADR-009 — Endpoints that use the synchronous session are declared `def`, not `async def`
 
-**Status:** Proposed (backend audit 2026-07-26 — awaiting owner decision)
+**Status:** Accepted (owner decision, 2026-07-26 — "empezamos la auditoría"; implemented the
+same day for the mechanical group, see the Implementation note at the end)
 **Context:** post-v3.2, before v4.0 (in-repo solver). Companion to
 `docs/ARCHITECTURE/02-backend/07-audit-2026-07-26.md` (findings F-01, F-02).
 
@@ -89,3 +90,32 @@ Before/after on the same box, since the claim is about concurrency and not about
 request: N concurrent calls to an endpoint with a deliberately slow query, measuring the
 latency of an *unrelated* fast endpoint during the burst. Today the fast one degrades with N;
 under this rule it should stay flat until the threadpool or the DB pool saturates.
+
+## Implementation note (2026-07-26)
+
+Rule 1 is **done**: 113 route handlers went from `async def` to `def` across 26 files
+(110 found by scanning `app/`, plus 3 that became mechanical once the awaits below were
+removed). Nothing else changed — same bodies, same dependencies, same responses.
+
+Three handlers were calling *another handler* directly with `await`
+(`update_notification_preference` → `get_notification_preferences`, and the two `by-slug`
+profile routes → their `..._public_profile` counterparts). Those awaits are gone, since the
+callees are now plain functions. Endpoint-calling-endpoint is itself a smell — the shared
+logic belongs in a service — but that is a separate change and is left alone here.
+
+**Deliberately NOT converted (6, rule 2 / D-13):** the four `explain_*` SSE endpoints in
+`llm.py` and the two `export_*` handlers in `domains/solver/routes/file_export.py`. They
+return `StreamingResponse`, so whether they may leave the loop needs to be reasoned about one
+by one rather than swept.
+
+**Verified** by the full suite (3,785 passed + 204 slow/load, 0 failed) and by driving the
+real app: `/health`, both `by-slug` profiles, the notification-preference `GET`/`PUT` pair
+(the place an `await` was removed), and an async solve followed by its polling endpoint —
+`get_async_solve_status`, the highest-traffic handler in the batch — which returned
+`completed` / `optimal` as before.
+
+The threadpool-vs-DB-pool question in "Consequences" stands: `DB_POOL_SIZE` defaults to 20
+(+10 overflow) per process against anyio's 40 threads, so under saturation the DB pool is the
+binding constraint, not the threadpool. That was already true for every `def` endpoint,
+including the solve facade; this change widens how many endpoints reach it. Worth measuring
+under load before assuming it is fine.

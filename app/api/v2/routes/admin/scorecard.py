@@ -16,7 +16,7 @@ router = APIRouter(prefix="/scorecard", tags=["admin-scorecard"])
 
 
 @router.get("", operation_id="get_template_scorecard")
-async def get_template_scorecard(
+def get_template_scorecard(
     min_score: int | None = Query(None, ge=0, le=100, description="Filter: minimum total score"),
     max_score: int | None = Query(None, ge=0, le=100, description="Filter: maximum total score"),
     grade: str | None = Query(None, description="Filter by grade: A, B, C, D, F"),

@@ -32,7 +32,7 @@ router = APIRouter(prefix="/marketplace", tags=["admin-marketplace"])
 
 
 @router.get("/seller-analytics", response_model=AdminAnalyticsResponse)
-async def get_admin_author_analytics(
+def get_admin_author_analytics(
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
     db: Session = Depends(get_db),
 ) -> AdminAnalyticsResponse:
@@ -49,7 +49,7 @@ async def get_admin_author_analytics(
 
 
 @router.get("/seller-analytics/{org_id}", response_model=AnalyticsSummaryResponse)
-async def get_admin_author_detail(
+def get_admin_author_detail(
     org_id: str,
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
     db: Session = Depends(get_db),
@@ -60,7 +60,7 @@ async def get_admin_author_detail(
 
 
 @router.get("/feature-analytics", response_model=FeatureAnalyticsOverview)
-async def get_admin_feature_analytics(
+def get_admin_feature_analytics(
     period: str = Query("7d", pattern="^(1h|12h|today|7d|30d|90d|all)$"),
     event_type: str | None = Query(None),
     country_code: str | None = Query(None, max_length=2),
@@ -91,7 +91,7 @@ async def get_admin_feature_analytics(
     "/feature-analytics/events",
     response_model=PaginatedRecentEventsResponse,
 )
-async def get_admin_feature_analytics_events(
+def get_admin_feature_analytics_events(
     period: str = Query("7d", pattern="^(1h|12h|today|7d|30d|90d|all)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -111,7 +111,7 @@ async def get_admin_feature_analytics_events(
 
 
 @router.get("/verification", response_model=list[AdminVerificationEntry])
-async def get_admin_verification_requests(
+def get_admin_verification_requests(
     db: Session = Depends(get_db),
 ) -> list[AdminVerificationEntry]:
     """List all pending verification requests for admin review."""
@@ -120,7 +120,7 @@ async def get_admin_verification_requests(
 
 
 @router.post("/verification/{request_id}/decide")
-async def decide_verification(
+def decide_verification(
     request_id: str,
     body: AdminVerificationDecision,
     request: Request,

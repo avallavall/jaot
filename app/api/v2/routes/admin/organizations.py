@@ -34,7 +34,7 @@ router = APIRouter(tags=["admin-organizations"])
 
 
 @router.get("/organizations", response_model=AdminPaginatedResponse)
-async def list_organizations(
+def list_organizations(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     search: str | None = None,
@@ -108,7 +108,7 @@ async def list_organizations(
 
 
 @router.get("/organizations/{org_id}", response_model=OrganizationResponse)
-async def get_organization(org_id: str, db: Session = Depends(get_db)) -> OrganizationResponse:
+def get_organization(org_id: str, db: Session = Depends(get_db)) -> OrganizationResponse:
     """Get organization by ID."""
     org = db.query(Organization).filter(Organization.id == org_id).first()
     if not org:
@@ -125,7 +125,7 @@ async def get_organization(org_id: str, db: Session = Depends(get_db)) -> Organi
 
 
 @router.get("/organizations/{org_id}/overview", response_model=OrganizationOverviewResponse)
-async def get_organization_overview(
+def get_organization_overview(
     org_id: str, db: Session = Depends(get_db)
 ) -> OrganizationOverviewResponse:
     """Rich read-only overview of one organization for platform admins.
@@ -256,7 +256,7 @@ async def get_organization_overview(
 @router.post(
     "/organizations", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED
 )
-async def create_organization(
+def create_organization(
     data: OrganizationCreate, db: Session = Depends(get_db)
 ) -> OrganizationResponse:
     """Create new organization."""
@@ -276,7 +276,7 @@ async def create_organization(
 
 
 @router.patch("/organizations/{org_id}", response_model=OrganizationResponse)
-async def update_organization(
+def update_organization(
     org_id: str, data: OrganizationUpdate, db: Session = Depends(get_db)
 ) -> OrganizationResponse:
     """Update organization."""
@@ -294,7 +294,7 @@ async def update_organization(
 
 
 @router.delete("/organizations/{org_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_organization(org_id: str, db: Session = Depends(get_db)) -> None:
+def delete_organization(org_id: str, db: Session = Depends(get_db)) -> None:
     """Delete organization (soft delete by setting is_active=False)."""
     org = db.query(Organization).filter(Organization.id == org_id).first()
     if not org:

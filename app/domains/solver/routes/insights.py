@@ -42,7 +42,7 @@ class InsightsResponse(BaseModel):
     response_model=InsightsResponse,
     operation_id="get_execution_insights",
 )
-async def get_execution_insights(
+def get_execution_insights(
     execution_id: str,
     current_user: CurrentUser,
     org: CurrentOrg,

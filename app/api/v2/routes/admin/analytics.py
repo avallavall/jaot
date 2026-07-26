@@ -132,7 +132,7 @@ class AiUsageResponse(BaseModel):
     response_model=PlatformOverviewResponse,
     operation_id="get_platform_overview",
 )
-async def get_platform_overview(db: DBSession, days: int = _DAYS) -> PlatformOverviewResponse:
+def get_platform_overview(db: DBSession, days: int = _DAYS) -> PlatformOverviewResponse:
     """Growth, usage, and per-category breakdown across the whole platform."""
     return PlatformOverviewResponse(**svc.compute_platform_overview(db, days))
 
@@ -142,7 +142,7 @@ async def get_platform_overview(db: DBSession, days: int = _DAYS) -> PlatformOve
     response_model=ReliabilityResponse,
     operation_id="get_platform_reliability",
 )
-async def get_platform_reliability(db: DBSession, days: int = _DAYS) -> ReliabilityResponse:
+def get_platform_reliability(db: DBSession, days: int = _DAYS) -> ReliabilityResponse:
     """SLO percentiles, failure modes, queue time, and automation health."""
     return ReliabilityResponse(**svc.compute_reliability(db, days))
 
@@ -152,6 +152,6 @@ async def get_platform_reliability(db: DBSession, days: int = _DAYS) -> Reliabil
     response_model=AiUsageResponse,
     operation_id="get_platform_ai_usage",
 )
-async def get_platform_ai_usage(db: DBSession, days: int = _DAYS) -> AiUsageResponse:
+def get_platform_ai_usage(db: DBSession, days: int = _DAYS) -> AiUsageResponse:
     """LLM adoption, token/cost totals, acceptance rate, and thumbs ratings."""
     return AiUsageResponse(**svc.compute_ai_usage(db, days))
