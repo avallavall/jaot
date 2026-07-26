@@ -227,12 +227,17 @@ class TestQueueRoutingE2E:
         else:
             detail_text = str(detail)
 
-        # Client must see what they asked for and a generic rejection.
-        assert "Unknown solver" in detail_text, (
-            f"Expected 'Unknown solver' in 422 body, got: {detail_text!r}"
+        # Client must see what they asked for and a generic rejection. The wording
+        # is deliberately the same one an unlicensed-but-registered solver gets
+        # (D-05): the body must not reveal which of the two happened.
+        assert "is not available" in detail_text, (
+            f"Expected the uniform refusal in the 422 body, got: {detail_text!r}"
         )
         assert bad_solver_name in detail_text, (
             f"Expected rejected name {bad_solver_name!r} echoed in 422 body, got: {detail_text!r}"
+        )
+        assert "registered" not in detail_text.lower(), (
+            f"D-05 regressed: the body says whether the solver is registered: {detail_text!r}"
         )
 
         # Must NOT enumerate installed solvers via the 422 body.

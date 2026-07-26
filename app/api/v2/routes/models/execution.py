@@ -13,6 +13,7 @@ from app.api.v2.auth import get_current_user
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
 from app.api.v2.routes.models._access import execution_or_404
 from app.api.v2.solve import _wait_for_task
+from app.api.v2.solver_errors import solver_unavailable
 from app.domains.solver import execution_writer
 from app.domains.solver.adapters.base import (
     DEFAULT_SOLVER_NAME,
@@ -208,7 +209,7 @@ def execute_model(
         try:
             get_solver_service(solver_name=effective_solver_name)
         except (SolverNotFoundError, SolverUnavailableError) as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
+            raise solver_unavailable(exc, effective_solver_name) from exc
 
     execution = ModelExecution(
         id=generate_id("exe_"),
@@ -238,9 +239,10 @@ def execute_model(
     try:
         target_queue = resolve_queue(effective_solver_name)
     except SolverNotFoundError as exc:
+        # The stored error keeps the real reason: it is the operator's own record.
         execution_writer.apply_failed(execution, error=str(exc))
         db.commit()
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        raise solver_unavailable(exc, effective_solver_name) from exc
 
     # W15/F-01: derive Celery soft/hard kill limits from the rendered
     # problem's own solver time limit so a hung worker child cannot pin

@@ -79,6 +79,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ### Security
 
+- **Refusing a solver no longer says which ones the server has.** Asking for a solver that does not exist and asking for one the server carries but cannot license produced different messages, so trying names revealed the commercial solvers a deployment holds — the solver list itself already hides them. Both now refuse identically; the real reason stays in the server log.
 - **Next.js patched to 16.2.11**, closing seven advisories present in 16.2.9: SSRF via rewrites and via Server Actions, a middleware bypass in App Router, unauthenticated disclosure of internal Server Function endpoints, plus denial-of-service and cache-confusion issues.
 
 ---

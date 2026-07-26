@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.api.v2.auth import get_current_user
 from app.api.v2.routes.models._access import execution_or_404
+from app.api.v2.solver_errors import solver_unavailable
 from app.domains.solver import scenario_job
 from app.domains.solver.adapters.base import SolverNotFoundError
 from app.domains.solver.queue_routing import resolve_queue
@@ -101,7 +102,7 @@ def start_execution_scenario_analysis(
     try:
         queue = resolve_queue(solver_name)
     except SolverNotFoundError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        raise solver_unavailable(exc, solver_name) from exc
 
     budget = read_budget(db)
     # The batch's own budget derives the worker kill limits, exactly as a

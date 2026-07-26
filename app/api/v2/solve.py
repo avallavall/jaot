@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import OptionalRequireSolver
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
+from app.api.v2.solver_errors import solver_unavailable
 from app.domains.solver import execution_writer
 from app.domains.solver.adapters.base import (
     DEFAULT_SOLVER_NAME,
@@ -821,10 +822,7 @@ def _enqueue_async_solve(
     try:
         target_queue = resolve_queue(effective_solver_name)
     except SolverNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(exc),
-        ) from exc
+        raise solver_unavailable(exc, effective_solver_name) from exc
 
     # W15/F-01: worker-level kill switch. Solver-internal limits stop
     # well-behaved solves; a C-level hang survives them. Derive Celery
