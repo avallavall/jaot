@@ -10,6 +10,7 @@ Provides:
 - DELETE /conversations/{conversation_id}/attachments/{attachment_id} — Delete attachment
 """
 
+import asyncio
 import json
 import logging
 import os
@@ -708,13 +709,20 @@ def _resolve_explanation_context(
     db: Session,
     org_id: str,
     body: ExplainSolutionRequest,
-) -> tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]:
-    """Resolve (formulation, solution, sensitivity) for an explanation request.
+) -> tuple[
+    dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None
+]:
+    """Resolve (formulation, solution, sensitivity, exact_analysis) for an explanation.
 
     ``execution_id`` takes precedence: the ModelExecution is loaded and org
     ownership enforced (404 if missing or owned by another org — never leak the
     existence of another org's execution). Falls back to the inline request fields
     when no ``execution_id`` is supplied.
+
+    The exact analysis is recomputed here rather than read from the row because it
+    is an on-demand product (see ``get_execution_exact_analysis``); without it the
+    explanation had only LP-relaxation duals to reason from and would report a
+    saturated constraint as having headroom.
     """
     if body.execution_id:
         from app.models.optimization_model import ModelExecution
@@ -743,9 +751,46 @@ def _resolve_explanation_context(
             "solver_status": result_data.get("solver_status"),
         }
         sensitivity = result_data.get("sensitivity")
-        return execution.input_data or None, solution, sensitivity
+        # Hand back the raw payload rather than the analysis: computing it re-parses
+        # every constraint, so the caller runs it off the event loop (ADR-009).
+        return (
+            execution.input_data or None,
+            solution,
+            sensitivity,
+            (execution.input_data, execution.result_data),
+        )
 
-    return body.formulation, body.solution, body.sensitivity
+    return body.formulation, body.solution, body.sensitivity, None
+
+
+def _compute_exact_analysis_for_explanation(
+    payload_source: tuple[Any, Any] | None,
+) -> dict[str, Any] | None:
+    """Exact, solution-based analysis of an execution, or None if it cannot be had.
+
+    CPU-bound (it re-parses every constraint), so callers must run it in a worker
+    thread. Best-effort by design: an explanation is still worth producing without
+    it, and the prompt tells the model to withhold binding claims when it is absent.
+    """
+    if payload_source is None:
+        return None
+
+    from app.domains.solver.services.exact_analysis import compute_exact_analysis
+    from app.domains.solver.services.execution_payload import load_execution_payload
+
+    input_data, result_data = payload_source
+    try:
+        payload = load_execution_payload(input_data, result_data)
+        analysis = compute_exact_analysis(
+            payload.problem, payload.solution, objective_value=payload.objective_value
+        )
+    except Exception:
+        logger.debug("Exact analysis unavailable for explanation", exc_info=True)
+        return None
+
+    if not analysis.computed:
+        return None
+    return analysis.model_dump(mode="json")
 
 
 @router.post("/conversations/{conversation_id}/explain-solution")
@@ -802,7 +847,9 @@ async def explain_solution_endpoint(
 
     # Resolve what to explain (execution ownership enforced here) up front, so an
     # invalid execution_id fails cleanly.
-    formulation, solution, sensitivity = _resolve_explanation_context(db, org.id, body)
+    formulation, solution, sensitivity, payload_source = _resolve_explanation_context(
+        db, org.id, body
+    )
     if not solution and not formulation:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -825,12 +872,17 @@ async def explain_solution_endpoint(
     model, use_thinking = select_model(body.use_advanced_model, db=db)
     request_id = getattr(request.state, "request_id", None) or ""
 
+    exact_analysis = await asyncio.to_thread(
+        _compute_exact_analysis_for_explanation, payload_source
+    )
+
     stream_gen = explain_solution(
         [],
         formulation,
         solution,
         sensitivity,
         model,
+        exact_analysis=exact_analysis,
         thinking=use_thinking,
         locale=locale,
         client=byok_client,

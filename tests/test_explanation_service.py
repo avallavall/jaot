@@ -30,6 +30,32 @@ SENSITIVITY = {
     "variables": [{"name": "x", "reduced_cost": 0.0, "is_at_bound": False}],
     "is_approximate": False,
 }
+# A row the LP relaxation prices at zero while the integer solution saturates it —
+# the shape that made the explanation claim nothing was at capacity.
+EXACT_ANALYSIS = {
+    "objective_value": 34.0,
+    "total_constraints": 7,
+    "binding_count": 4,
+    "constraints": [
+        {
+            "name": "workload_w2",
+            "activity": 2.0,
+            "rhs": 2.0,
+            "slack": 0.0,
+            "is_binding": True,
+            "utilization": 1.0,
+        },
+        {
+            "name": "workload_w1",
+            "activity": 1.0,
+            "rhs": 2.0,
+            "slack": 1.0,
+            "is_binding": False,
+            "utilization": 0.5,
+        },
+    ],
+    "computed": True,
+}
 
 
 def _text_events(text: str):
@@ -84,6 +110,30 @@ class TestBuildSolutionExplanationPrompt:
         prompt = build_solution_explanation_prompt(FORMULATION, SOLUTION, SENSITIVITY)
         assert "SAMPLED" not in prompt
         assert "_solution_omitted" not in prompt
+
+    # CONTRACT-TEST: which constraints bind must reach the model from the exact,
+    # solution-based analysis. On a MIP the LP relaxation prices binding rows at
+    # zero, and a prompt carrying only sensitivity produced explanations stating
+    # that a constraint saturated at 2 <= 2 had headroom.
+    def test_embeds_the_exact_analysis_when_available(self):
+        prompt = build_solution_explanation_prompt(
+            FORMULATION, SOLUTION, SENSITIVITY, EXACT_ANALYSIS
+        )
+        assert "workload_w2" in prompt
+        assert "utilization" in prompt
+        assert "this is what binds" in prompt
+        # The exact block must be read before the relaxation's numbers.
+        assert prompt.index("Exact analysis") < prompt.index("Sensitivity analysis")
+
+    def test_forbids_binding_claims_when_exact_analysis_is_missing(self):
+        prompt = build_solution_explanation_prompt(FORMULATION, SOLUTION, SENSITIVITY)
+        assert "do not state which constraints are binding" in prompt
+
+    def test_system_prompt_denies_the_relaxation_authority_over_binding(self):
+        """The prompt must not let a zero shadow price stand in for "has slack"."""
+        assert "exact analysis" in SOLUTION_EXPLANATION_SYSTEM_PROMPT.lower()
+        assert "LP RELAXATION" in SOLUTION_EXPLANATION_SYSTEM_PROMPT
+        assert "NEVER infer" in SOLUTION_EXPLANATION_SYSTEM_PROMPT
 
     # CONTRACT-TEST: a large solution is SAMPLED so the prompt never blows the context
     # window. A real 10k-variable solve reached 11.6M tokens (> the 1M provider max)

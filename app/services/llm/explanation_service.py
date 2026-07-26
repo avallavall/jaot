@@ -46,6 +46,7 @@ async def explain_solution(
     sensitivity: dict[str, Any] | None,
     model: str,
     *,
+    exact_analysis: dict[str, Any] | None = None,
     thinking: bool = False,
     rag_context: str | None = None,
     locale: str | None = None,
@@ -71,6 +72,10 @@ async def explain_solution(
         solution: Variable values + objective for the solved model.
         sensitivity: Sensitivity analysis dict (constraints/variables/ranges) or None.
         model: Model ID to use (e.g. "claude-sonnet-5").
+        exact_analysis: Solution-based analysis (binding rows, slack, utilization).
+            The authority on what binds — sensitivity is an LP relaxation on a MIP
+            and prices binding rows at zero, which read alone becomes "nothing is
+            at capacity" for a solution where something plainly is.
         thinking: Whether to enable extended thinking.
         rag_context: Optional pre-formatted optimization-knowledge block appended
             to the system prompt.
@@ -80,7 +85,9 @@ async def explain_solution(
     # first token streams. Stable enum code — the endpoint forwards it verbatim.
     yield {"type": "status", "code": LLMStatusCode.EXPLAINING}
 
-    user_turn = build_solution_explanation_prompt(formulation, solution, sensitivity)
+    user_turn = build_solution_explanation_prompt(
+        formulation, solution, sensitivity, exact_analysis
+    )
     explain_messages = [*messages, {"role": "user", "content": user_turn}]
 
     system_prompt = SOLUTION_EXPLANATION_SYSTEM_PROMPT
