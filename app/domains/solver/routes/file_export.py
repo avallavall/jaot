@@ -61,7 +61,7 @@ def _validate_fmt(fmt: str, allowed: frozenset[str]) -> str:
         422: {"description": "Cannot export (missing data or invalid format)"},
     },
 )
-async def export_execution(
+def export_execution(  # sync ON PURPOSE -> threadpool (ADR-009): rebuilds the model + writes a file
     execution_id: str,
     fmt: str,
     current_user: CurrentUser,
@@ -157,7 +157,7 @@ async def export_execution(
         422: {"description": "Invalid problem or unsupported format"},
     },
 )
-async def export_model(
+def export_model(  # sync ON PURPOSE -> threadpool (ADR-009): rebuilds the model + writes a file
     fmt: str,
     problem: OptimizationProblem,
     current_user: CurrentUser,

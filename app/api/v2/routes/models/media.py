@@ -47,14 +47,21 @@ def _get_listing_for_owner(
     return listing
 
 
-async def _validate_image(file: UploadFile) -> bytes:
-    """Validate content type and size, return raw bytes."""
+def _validate_image(file: UploadFile) -> bytes:
+    """Validate content type and size, return raw bytes.
+
+    Sync so its callers can be sync ``def`` handlers (ADR-009): they upload to object
+    storage through boto3, which is blocking network I/O, and on the event loop that
+    stalled every other request for the duration of the upload. Reading the
+    already-spooled multipart file directly is safe — Starlette buffers the upload
+    before the handler runs.
+    """
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(
             status_code=400,
             detail=f"Unsupported image type '{file.content_type}'. Allowed: JPEG, PNG, WebP.",
         )
-    content = await file.read()
+    content = file.file.read()
     if len(content) > MAX_SIZE:
         raise HTTPException(
             status_code=400,
@@ -75,7 +82,7 @@ def _get_storage():  # noqa: ANN202
 
 
 @router.post("/catalog/{model_id}/logo")
-async def upload_logo(
+def upload_logo(  # sync ON PURPOSE -> threadpool (ADR-009): boto3 upload blocks
     model_id: str,
     file: UploadFile,
     current_user: User = Depends(get_current_user),
@@ -84,7 +91,7 @@ async def upload_logo(
     """Upload or replace a model logo image."""
     storage = _get_storage()
     model = _get_listing_for_owner(model_id, current_user, db)
-    content = await _validate_image(file)
+    content = _validate_image(file)
 
     if model.logo_url:
         try:
@@ -129,7 +136,7 @@ def delete_logo(
 
 
 @router.post("/catalog/{model_id}/screenshots")
-async def upload_screenshot(
+def upload_screenshot(  # sync ON PURPOSE -> threadpool (ADR-009): boto3 upload blocks
     model_id: str,
     file: UploadFile,
     current_user: User = Depends(get_current_user),
@@ -138,7 +145,7 @@ async def upload_screenshot(
     """Upload a screenshot image for a model (max 6)."""
     storage = _get_storage()
     model = _get_listing_for_owner(model_id, current_user, db)
-    content = await _validate_image(file)
+    content = _validate_image(file)
 
     current_urls: list[str] = model.screenshot_urls or []
     if len(current_urls) >= MAX_SCREENSHOTS:

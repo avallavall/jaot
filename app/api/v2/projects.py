@@ -713,7 +713,7 @@ def create_project_dataset(
     response_model=DatasetImportPreview,
     operation_id="import_project_dataset",
 )
-async def import_project_dataset(
+def import_project_dataset(  # sync ON PURPOSE -> threadpool (ADR-009): parses the file
     project_id: str,
     db: DBSession,
     org: CurrentOrg,
@@ -731,7 +731,10 @@ async def import_project_dataset(
     from app.services import dataset_import_service  # noqa: PLC0415
 
     _project_or_404(db, project_id, org.id)
-    content = await file.read()
+    # Read the already-spooled upload directly: Starlette buffers it before the
+    # handler runs, and parsing up to 16 MB of dataset is CPU-bound work that has no
+    # business on the event loop (ADR-009).
+    content = file.file.read()
     if len(content) > svc.MAX_DATASET_JSON_BYTES:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

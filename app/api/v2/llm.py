@@ -1264,7 +1264,7 @@ _EXT_TO_MIME = {
 
 
 @router.post("/conversations/{conversation_id}/attachments")
-async def upload_attachment(
+def upload_attachment(  # sync ON PURPOSE -> threadpool (ADR-009): PDF text extraction
     conversation_id: str,
     db: DBSession,
     user: CurrentUser,
@@ -1288,7 +1288,10 @@ async def upload_attachment(
     content_type = _EXT_TO_MIME[ext]
 
     # Read and validate content size
-    content = await file.read()
+    # Read the already-spooled upload directly (Starlette buffers it before the
+    # handler runs): extracting text from a PDF is CPU-bound and has no business on
+    # the event loop (ADR-009).
+    content = file.file.read()
     if len(content) == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

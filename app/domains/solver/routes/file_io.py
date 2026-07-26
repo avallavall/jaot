@@ -43,18 +43,15 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/import")
 
 
-async def _read_upload(file: UploadFile) -> bytes:
-    """Read upload file bytes with size validation."""
-    content = await file.read()
-    return _validate_upload_bytes(content)
-
-
 def _read_upload_sync(file: UploadFile) -> bytes:
     """Blocking read of an upload for a sync (threadpool) handler.
 
-    ``import_and_solve`` is a sync ``def`` (ADR-007 S4a — it blocks on the queued
-    solve result), so it reads the already-spooled multipart file directly instead
-    of awaiting. Starlette has fully buffered the upload before the handler runs.
+    Both handlers in this module are sync ``def``: ``import_and_solve`` because it
+    blocks on the queued solve result (ADR-007 S4a), ``import_preview`` because
+    parsing the file is CPU-bound (ADR-009). Reading the already-spooled multipart
+    file directly is safe — Starlette has fully buffered the upload before the
+    handler runs — and it is what lets the whole handler live in the threadpool.
+    (The async twin this replaced had no callers left once both went sync.)
     """
     return _validate_upload_bytes(file.file.read())
 
@@ -108,7 +105,7 @@ def _build_metadata(
     response_model=FileImportPreviewResponse,
     operation_id="import_preview",
 )
-async def import_preview(
+def import_preview(  # sync ON PURPOSE -> threadpool (ADR-009): parses the whole file
     file: UploadFile,
     current_user: CurrentUser,
     org: CurrentOrg,
@@ -118,8 +115,13 @@ async def import_preview(
 
     Does NOT solve. Use this to inspect the imported
     problem before committing to a solve.
+
+    Sync like its ``import_and_solve`` sibling: parsing an MPS/LP is CPU-bound and
+    the upload cap is tens of megabytes, so on the event loop it stalled every other
+    request for the duration of the parse. Reads the already-spooled file directly
+    (see ``_read_upload_sync``).
     """
-    file_bytes = await _read_upload(file)
+    file_bytes = _read_upload_sync(file)
     filename = file.filename or "unknown"
 
     importer = get_file_import_service()
