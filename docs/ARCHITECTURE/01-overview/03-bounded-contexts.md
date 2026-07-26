@@ -9,7 +9,7 @@
 | **BC1 · Solver** | core | 2/5 | `app/domains/solver/` | **yes** — Phase 3 |
 | BC2 · Marketplace | sub-core | 3/5 | `app/services/` + `app/api/v2/routes/models/` | no — planned |
 | BC3 · Billing | — | — | **Removed (ADR-008)** — money layer + credit system deleted; fair use = rate limits + quotas | n/a |
-| BC4 · Identity | generic | 2/5 | `app/services/auth/`, `app/services/gdpr/`, User/Org/APIKey/RefreshToken models | no — planned |
+| BC4 · Identity | generic | 2/5 | `app/services/auth/`, `app/services/gdpr_service.py`, User/Org/APIKey/RefreshToken models | no — planned |
 | BC5 · AI Assistant | supporting | 2/5 | `app/services/llm/`, `app/services/rag/`, `document_extraction` | no — planned |
 | BC6 · Automation | supporting | 4/5 | `app/services/` (trigger, schedule, webhook), `app/tasks/` | no — planned |
 | BC7 · Observability | generic | 1/5 | `app/services/` (analytics, audit, notification) | no — **easiest candidate** |
@@ -61,7 +61,7 @@ flowchart LR
 
 - **Solver logic** → `app/domains/solver/` (adapters, services, routes, schemas, tasks).
 - **Marketplace / listings** → `app/api/v2/routes/models/` (over `ModelProjectListing`) + `app/services/author_analytics_service.py`, `template_scorecard`.
-- **Auth / signup / API keys / GDPR** → `app/services/auth/`, `app/services/gdpr/`.
+- **Auth / signup / API keys / GDPR** → `app/services/auth/`, `app/services/gdpr_service.py`.
 - **LLM / RAG / formulation assistant** → `app/services/llm/`, `app/services/rag/`.
 - **Triggers / schedules / webhooks** → `app/services/trigger_service.py`, `schedule_service.py`, `webhook_service.py`; async in `app/tasks/trigger_tasks.py`, `webhook_tasks.py`.
 - **Analytics / audit / notifications** → `app/services/analytics_service.py`, `audit_service.py`, `notification_service.py`.

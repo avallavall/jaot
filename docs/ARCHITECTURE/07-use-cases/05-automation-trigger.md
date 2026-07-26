@@ -113,4 +113,4 @@ sequenceDiagram
 - `app/tasks/trigger_tasks.py` — Celery beat task definition
 - `app/services/trigger_service.py` — business logic (fire, validate, etc.)
 - `app/shared/core/celery_app.py` — Celery config + Beat schedule (`beat_schedule` dict)
-- `app/core/prometheus_metrics.py` — trigger execution counters
+- `app/shared/core/prometheus_metrics.py` — trigger execution counters

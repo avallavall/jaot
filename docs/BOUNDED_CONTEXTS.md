@@ -12,7 +12,7 @@
 | **BC1: Solver** | Core | 2/5 | `app/domains/solver/` | ✅ Phase 3 (2026-04-13) |
 | **BC2: Marketplace** | Core sub | 3/5 | `app/services/` (author_analytics, verification, storage, template_scorecard), `app/api/v2/routes/models/` (listings), `app/api/v2/author.py` | ❌ Planned §6 |
 | **BC3: Billing** | — | — | **Removed (ADR-008)** — the money layer and the credit system were deleted; fair use = rate limits + quotas | n/a |
-| **BC4: Identity** | Generic | 2/5 | `app/services/auth/`, `app/services/gdpr/`, User/Organization/APIKey/RefreshToken models | ❌ Planned §6 |
+| **BC4: Identity** | Generic | 2/5 | `app/services/auth/`, `app/services/gdpr_service.py`, User/Organization/APIKey/RefreshToken models | ❌ Planned §6 |
 | **BC5: AI Assistant** | Supporting | 2/5 | `app/services/llm/`, `app/services/rag/`, document_extraction | ❌ Planned §6 |
 | **BC6: Automation** | Supporting | 4/5 | `app/services/` (trigger, schedule, webhook, version), `app/tasks/` (trigger_tasks, webhook_tasks) | ❌ Planned §6 |
 | **BC7: Observability** | Generic | 1/5 | `app/services/` (analytics, audit, notification) | ❌ Easiest extraction — pure leaf |
@@ -24,7 +24,7 @@
 
 **Adding marketplace / listing features** → `app/api/v2/routes/models/` (catalog/favorites/media over `ModelProjectListing`) + `app/services/author_analytics_service.py` / `template_scorecard`.
 
-**Adding auth / signup / API keys / GDPR** → `app/services/auth/`, `app/services/gdpr/`.
+**Adding auth / signup / API keys / GDPR** → `app/services/auth/`, `app/services/gdpr_service.py`.
 
 **Adding LLM / RAG / formulation assistant** → `app/services/llm/`, `app/services/rag/`.
 

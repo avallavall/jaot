@@ -44,7 +44,7 @@ flowchart TB
     subgraph AdapterLayer["Domain Adapters (app/domains/solver/adapters/)"]
         Protocol["SolverAdapter Protocol"]
         SCIP["SCIPAdapter"]
-        Highs["HighsAdapter"]
+        Highs["HiGHSAdapter"]
     end
 
     subgraph ProducerPath["Celery Producer Path"]
@@ -89,7 +89,7 @@ flowchart TB
     SolveEnqueue --> Producer
     Producer --> RabbitMQ
 
-    SolveOrch --> SQLAlchemy
+    SolveEnqueue --> SQLAlchemy
     SettingsService --> SQLAlchemy
     Analytics --> SQLAlchemy
 

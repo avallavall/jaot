@@ -109,4 +109,4 @@ async def get_execution(execution_id: str, db: DBSession):
 - `app/api/deps.py:CurrentOrg` — dependency resolver
 - `app/shared/core/auth_middleware.py` — JWT/APIKey extraction
 - `app/api/v2/auth.py` — user management endpoints
-- `app/domains/solver/services/execution_writer.py` — single ModelExecution writer
+- `app/domains/solver/execution_writer.py` — single ModelExecution writer

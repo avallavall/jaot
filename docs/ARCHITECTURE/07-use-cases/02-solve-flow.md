@@ -98,8 +98,8 @@ sequenceDiagram
 
 - `app/api/v2/solve.py` — entry points + `_enqueue_async_solve` + sync wrappers/shapers
 - `app/domains/solver/tasks/solve_tasks.py:solve_async` — the Celery worker task
-- `app/domains/solver/services/execution_writer.py` — the single ModelExecution writer
+- `app/domains/solver/execution_writer.py` — the single ModelExecution writer
 - `app/tasks/execution_reaper.py` — stale-row reconciler (terminal-wins)
-- `app/domains/solver/adapters/scip_adapter.py` / `highs_adapter.py` — SolverAdapter impls
+- `app/domains/solver/adapters/scip.py` / `highs_adapter.py` — SolverAdapter impls
 - `app/domains/solver/queue_routing.py:resolve_queue()` — queue selection
 - `app/models/optimization_model.py:ModelExecution` — execution record
