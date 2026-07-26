@@ -4,7 +4,9 @@
  * Walks through every case described in the verification plan, taking
  * screenshots at each step so a human reviewer can see the feature in
  * action without running anything themselves. Output lands in
- * docs/screenshots/announcement-banner/.
+ * docs/screenshots/announcement-banner/, which is gitignored: these are test
+ * artifacts to review locally, not documentation. The live site is the shared
+ * reference.
  *
  * Each test is self-contained: it sets the admin settings via the platform
  * settings API (not by clicking the form) where possible to keep state

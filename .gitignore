@@ -306,3 +306,8 @@ frontend/CLAUDE.md
 /deploy/cloud-init.yml
 /deploy/deploy.env.example
 /docs/operations/deploy-runbook.md
+
+# E2E verification captures — output of frontend/e2e/*.spec.ts, regenerated on demand.
+# Reviewed locally; the live demo at jaot.io is the shared reference, so they are not
+# carried in the repo (they were 18 MB that no document ever linked).
+docs/screenshots/
