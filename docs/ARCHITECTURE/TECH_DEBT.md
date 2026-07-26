@@ -144,9 +144,9 @@ exec = db.query(ModelExecution).filter(
 
 | # | Debt | Impact | Effort | Priority |
 |---|------|--------|--------|----------|
-| D-10 | `/api/v2/health` calls `psutil.cpu_percent(interval=0.1)` on the event loop — 100 ms blocked per call, on the most-called (and rate-limit-exempt for internal traffic) endpoint | Medium (availability) | Minutes | **High** |
-| D-11 | CI has **no** security gate: no `pip-audit`, no `bandit`, and the frontend `npm audit` gate is gone | Medium (supply chain) | 0.5 day + threshold policy | **High** |
-| D-12 | 99 endpoints are `async def` with no `await` yet issue synchronous DB calls → every query stalls the event loop (4 workers in prod) | Medium-high (concurrency ceiling) | 1 day | **High** |
+| D-10 | `/api/v2/health` blocked the event loop 100 ms per call via `psutil.cpu_percent(interval=0.1)` | Medium (availability) | Minutes | ✅ **Resolved** (`7a7623c`) |
+| D-11 | CI had **no** security gate at all — they were lost in the Woodpecker→GHA migration, while `app/CLAUDE.md` claimed they ran | Medium (supply chain) | 0.5 day | ✅ **Resolved** — `pip-audit` (strict) + `bandit -lll` + `npm audit` (critical blocks, high informational) |
+| D-12 | 113 endpoints were `async def` with no `await` yet issued synchronous DB calls → every query stalled the event loop (4 workers in prod) | Medium-high (concurrency ceiling) | 1 day | ✅ **Resolved** (`27c1ae8`, ADR-009 Accepted) |
 | D-13 | 10 endpoints mix a real `await` with synchronous `db.commit()` — need the DB work moved off the loop, case by case | Medium | 1 day | Medium |
 | D-14 | 23 foreign keys with no index (incl. `users.organization_id`, `api_keys.user_id`, `refresh_tokens.user_id`) | Low-medium (scales badly) | 0.5 day | Medium |
 | D-15 | No `import-linter` contract on the vertical direction (api → services → domains), which is why D-16 went unnoticed | Medium (architectural) | 0.5 day | Medium |

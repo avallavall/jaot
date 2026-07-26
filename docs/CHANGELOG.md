@@ -162,7 +162,29 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 - **`LLM_THINKING_BUDGET_TOKENS`** — no longer read by any code path; superseded by
   `LLM_THINKING_EFFORT`. The setting row stays for one release before removal.
 
+### Changed
+
+- **The server no longer stalls itself while it answers.** 113 endpoints were declared as
+  asynchronous handlers while doing ordinary, synchronous database work, which means each of
+  those queries ran on the single thread that serves every other request in flight — one slow
+  query and everybody waited. They now run the way the solve endpoints always did
+  deliberately: on a worker thread, so a slow query costs one thread instead of the whole
+  process. No behaviour changed; the busiest one is the endpoint the studio polls for the
+  duration of every solve. Recorded as ADR-009.
+
+- **Security gates are back in the pipeline.** Dependency and static-analysis checks used to
+  run on every build, then quietly stopped when the pipeline moved to GitHub Actions — the
+  documentation still claimed they ran. The build now audits production dependencies and
+  fails on any new advisory, runs static analysis at high severity, and blocks on critical
+  npm advisories while printing the known lower ones so they stay visible.
+
 ### Fixed
+
+- **The health check no longer freezes the server for a tenth of a second.** Every call to
+  `/api/v2/health` sampled CPU usage in a way that sleeps 100 ms mid-request, on the thread
+  that serves everything else — and it is the most-called endpoint there is, since the
+  container polls it. It now reads the CPU delta since the previous call, which for a polled
+  endpoint is a more meaningful number anyway.
 
 - **Looking at the canvas no longer counts as changing the model.** Opening the Canvas
   sub-lens — just looking, touching nothing — locked the JModel editor read-only behind

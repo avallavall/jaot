@@ -27,6 +27,29 @@ jobs:
       - run: ruff check app/
       - run: ruff format --check app/
 
+  # Supply-chain + static security gates. These existed in the Woodpecker pipeline
+  # and were lost in the migration to GitHub Actions — nobody deleted them on
+  # purpose, they simply did not come across, and app/CLAUDE.md kept claiming CI
+  # ran them (backend audit 2026-07-26, F-03 / D-11).
+  security-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install pip-audit bandit
+      # Declared production dependencies (and their transitives). Clean as of
+      # 2026-07-26, so this gate is strict: any NEW advisory fails the build.
+      - name: pip-audit (production dependencies)
+        run: pip-audit -r requirements.txt --progress-spinner off
+      # HIGH severity only. Bandit reports 5 medium / 31 low today — mostly
+      # f-string SQL over hardcoded table names in migration backfills — so
+      # gating at medium would fail on day one and teach everyone to ignore it.
+      # Raise to -ll once those are triaged.
+      - name: bandit (high severity)
+        run: bandit -r app/ -lll
+
   test-backend:
     runs-on: ubuntu-latest
     services:
@@ -85,6 +108,17 @@ jobs:
       - run: npm ci --prefer-offline
       - run: npm run lint
       - run: npm run check-i18n
+      # Blocking at CRITICAL, not HIGH, and that is a deliberate call: today there
+      # are 4 high advisories in the PRODUCTION tree, all transitive through Next
+      # (postcss, sharp) plus js-yaml/brace-expansion, and npm's only offered "fix"
+      # is a downgrade to next@9.3.3. Gating at high would fail every build for
+      # something we cannot fix without breaking the app — the fastest way to
+      # teach a team to ignore a red pipeline. Critical blocks; high is printed
+      # below so it stays visible and gets re-checked when Next ships an update.
+      - name: npm audit (critical blocks)
+        run: npm audit --audit-level=critical
+      - name: npm audit (high — informational)
+        run: npm audit --audit-level=high || true
 
   test-frontend:
     runs-on: ubuntu-latest
