@@ -61,6 +61,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ### Fixed
 
+- **The platform admin console no longer shows up in every account's sidebar** — the menu was gated on owning an organisation, which everyone who signs up does, rather than on being a platform administrator. The pages themselves were never reachable: the server refused them and the app returned you to the studio.
 - **A rate limit of 0 blocked every request** instead of allowing them all, so an administrator setting 0 to mean "no limit" would have locked their instance out.
 - **The JModel grounding budget applied inconsistently** — two of its three checks read the built-in constant instead of the configured value.
 - **The health check no longer freezes the server for 100 ms per call** — it sampled CPU usage in a way that sleeps mid-request, on the most-polled endpoint there is.

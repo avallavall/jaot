@@ -31,8 +31,13 @@ import { usePermission } from "@/hooks/usePermission";
 import { FEEDBACK_URL } from "@/lib/community";
 
 export function useNavItems() {
-  const { activeWorkspaceId } = useAuth();
-  const isAdmin = usePermission("admin");
+  const { activeWorkspaceId, user } = useAuth();
+  // Two different "admin" scopes, and conflating them leaks the platform console:
+  // usePermission("admin") is workspace-scoped and returns true for any org owner
+  // (everyone who signs up owns the org they create), while /admin/* is gated on
+  // the platform-admin flag — the same one ProtectedRoute enforces.
+  const isWorkspaceAdmin = usePermission("admin");
+  const isPlatformAdmin = user?.is_admin ?? false;
   const hasWorkspace = !!activeWorkspaceId;
   const t = useTranslations("common");
 
@@ -102,7 +107,7 @@ export function useNavItems() {
               { label: t("nav.organization"), href: "/workspace/profile", icon: <Building2 className="w-4 h-4" /> },
               { label: t("nav.workspaces"), href: "/workspace/workspaces", icon: <Building2 className="w-4 h-4" /> },
               { label: t("nav.teamMembers"), href: "/workspace/team", icon: <Users className="w-4 h-4" /> },
-              ...(isAdmin
+              ...(isWorkspaceAdmin
                 ? [
                     { label: t("nav.auditLog"), href: "/workspace/audit", icon: <ScrollText className="w-4 h-4" /> },
                   ]
@@ -112,7 +117,7 @@ export function useNavItems() {
         ]
       : []),
 
-    ...(isAdmin
+    ...(isPlatformAdmin
       ? [
           {
             label: t("nav.adminPanel"),

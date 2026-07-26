@@ -86,20 +86,28 @@ function findCollapsibleByLabel(
 
 // --- Auth state presets ---
 
+// The two "admin" scopes are deliberately separate knobs. Tying them together is
+// what let the platform console leak into every signup's sidebar: everyone owns
+// the org they create, so workspace-admin is true for all of them.
 function setAuthState(opts: {
-  isAdmin?: boolean;
+  /** Platform admin (`user.is_admin`) — gates the /admin/* console. */
+  isPlatformAdmin?: boolean;
+  /** Workspace-scoped admin (`usePermission("admin")`) — true for any org owner. */
+  isWorkspaceAdmin?: boolean;
   hasWorkspace?: boolean;
 }) {
+  const platform = opts.isPlatformAdmin ?? false;
+  const workspace = opts.isWorkspaceAdmin ?? platform;
   mockUseAuth.mockReturnValue({
-    user: { id: "usr_1", name: "Test", email: "test@test.com", is_admin: opts.isAdmin ?? false },
+    user: { id: "usr_1", name: "Test", email: "test@test.com", is_admin: platform },
     activeWorkspaceId: opts.hasWorkspace ? "ws_123" : null,
     activeWorkspaceName: opts.hasWorkspace ? "Test Workspace" : null,
-    isOwner: opts.isAdmin ?? false,
-    workspaceRole: opts.isAdmin ? "admin" : "viewer",
+    isOwner: workspace,
+    workspaceRole: workspace ? "admin" : "viewer",
     isAuthenticated: true,
     isLoading: false,
   });
-  mockUsePermission.mockReturnValue(opts.isAdmin ?? false);
+  mockUsePermission.mockReturnValue(workspace);
 }
 
 // --- Tests ---
@@ -108,7 +116,7 @@ function setAuthState(opts: {
 describe("useNavItems", () => {
   describe("NAV-01: Section structure", () => {
     it("admin user with workspace sees 3 primary separators + 4 collapsible groups", () => {
-      setAuthState({ isAdmin: true, hasWorkspace: true });
+      setAuthState({ isPlatformAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
       const headers = getSectionHeaders(result.current);
       const headerLabels = headers.map((h) => h.label);
@@ -136,7 +144,7 @@ describe("useNavItems", () => {
     });
 
     it("non-admin without workspace sees 3 primary separators + 2 collapsible groups", () => {
-      setAuthState({ isAdmin: false, hasWorkspace: false });
+      setAuthState({ isPlatformAdmin: false, hasWorkspace: false });
       const { result } = renderHook(() => useNavItems());
       const headers = getSectionHeaders(result.current);
       const headerLabels = headers.map((h) => h.label);
@@ -159,7 +167,7 @@ describe("useNavItems", () => {
     });
 
     it("admin without workspace sees 3 primary separators + 3 collapsible groups (no Team)", () => {
-      setAuthState({ isAdmin: true, hasWorkspace: false });
+      setAuthState({ isPlatformAdmin: true, hasWorkspace: false });
       const { result } = renderHook(() => useNavItems());
       const headers = getSectionHeaders(result.current);
 
@@ -175,7 +183,7 @@ describe("useNavItems", () => {
     });
 
     it("non-admin with workspace sees 3 primary separators + 3 collapsible groups (no Admin)", () => {
-      setAuthState({ isAdmin: false, hasWorkspace: true });
+      setAuthState({ isPlatformAdmin: false, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
       const headers = getSectionHeaders(result.current);
 
@@ -191,7 +199,7 @@ describe("useNavItems", () => {
     });
 
     it("has a single 'My Models' (-> /studio); the legacy /solve entry is gone (P1.5 fusion)", () => {
-      setAuthState({ isAdmin: true, hasWorkspace: true });
+      setAuthState({ isPlatformAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
 
       // Exactly one "My Models" entry, and it funnels to the studio hub (not legacy /solve).
@@ -216,7 +224,7 @@ describe("useNavItems", () => {
 
   describe("NAV-02: Previously missing pages", () => {
     it("hub has Templates entry at /studio/templates (the studio gallery)", () => {
-      setAuthState({ isAdmin: true, hasWorkspace: true });
+      setAuthState({ isPlatformAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
       const templates = findItemByHref(result.current, "/studio/templates");
 
@@ -225,7 +233,7 @@ describe("useNavItems", () => {
     });
 
     it("Team collapsible has Team Members at /workspace/team when workspace active", () => {
-      setAuthState({ isAdmin: false, hasWorkspace: true });
+      setAuthState({ isPlatformAdmin: false, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
       const teamMembers = findItemByHref(result.current, "/workspace/team");
 
@@ -234,7 +242,7 @@ describe("useNavItems", () => {
     });
 
     it("Team collapsible has Audit Log at /workspace/audit when admin + workspace", () => {
-      setAuthState({ isAdmin: true, hasWorkspace: true });
+      setAuthState({ isPlatformAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
       const auditLog = findItemByHref(result.current, "/workspace/audit");
 
@@ -245,7 +253,7 @@ describe("useNavItems", () => {
 
   describe("NAV-03: Admin section", () => {
     it("Admin Panel collapsible has exactly 11 children with correct hrefs and is collapsed by default", () => {
-      setAuthState({ isAdmin: true, hasWorkspace: true });
+      setAuthState({ isPlatformAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
       // Find Admin Panel collapsible by checking for a child with href "/admin"
       const adminPanel = result.current.find(
@@ -272,11 +280,41 @@ describe("useNavItems", () => {
       const childHrefs = adminPanel!.children!.map((c: NavItem) => c.href);
       expect(childHrefs).toEqual(expectedHrefs);
     });
+
+    // CONTRACT-TEST: the platform console is gated on user.is_admin, never on
+    // org ownership. Every public signup owns the org it creates, so binding the
+    // Admin Panel to the workspace-scoped permission showed all eleven /admin/*
+    // entries to every new account (the backend still returned 403, but the app
+    // advertised a console the user could not use).
+    it("org owner who is not a platform admin sees no Admin Panel", () => {
+      setAuthState({ isPlatformAdmin: false, isWorkspaceAdmin: true, hasWorkspace: true });
+      const { result } = renderHook(() => useNavItems());
+
+      const collapsibleLabels = getCollapsibleGroups(result.current).map((c) => c.label);
+      expect(collapsibleLabels).not.toContain("common.nav.adminPanel");
+      for (const href of ["/admin", "/admin/users", "/admin/settings", "/admin/organizations"]) {
+        expect(findItemByHref(result.current, href)).toBeUndefined();
+      }
+
+      // The workspace-scoped audit log is a different scope and must survive.
+      expect(findItemByHref(result.current, "/workspace/audit")).toBeDefined();
+    });
+
+    it("platform admin sees the Admin Panel even without workspace-admin rights", () => {
+      setAuthState({ isPlatformAdmin: true, isWorkspaceAdmin: false, hasWorkspace: true });
+      const { result } = renderHook(() => useNavItems());
+
+      const collapsibleLabels = getCollapsibleGroups(result.current).map((c) => c.label);
+      expect(collapsibleLabels).toContain("common.nav.adminPanel");
+      expect(findItemByHref(result.current, "/admin")).toBeDefined();
+      // ...but not the workspace-scoped audit log.
+      expect(findItemByHref(result.current, "/workspace/audit")).toBeUndefined();
+    });
   });
 
   describe("NAV-04: Account and Team are collapsible groups", () => {
     it("Account and Team are separate collapsible groups with icons", () => {
-      setAuthState({ isAdmin: true, hasWorkspace: true });
+      setAuthState({ isPlatformAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
 
       const account = findCollapsibleByLabel(result.current, "common.nav.account");
@@ -294,7 +332,7 @@ describe("useNavItems", () => {
     });
 
     it("Account collapsible includes personal items (Dashboard, Profile, API Keys, Settings)", () => {
-      setAuthState({ isAdmin: true, hasWorkspace: true });
+      setAuthState({ isPlatformAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
 
       const account = findCollapsibleByLabel(result.current, "common.nav.account");
@@ -308,7 +346,7 @@ describe("useNavItems", () => {
     });
 
     it("Team collapsible includes workspace items (Organization, Workspaces, Team Members, Audit Log)", () => {
-      setAuthState({ isAdmin: true, hasWorkspace: true });
+      setAuthState({ isPlatformAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
 
       const team = findCollapsibleByLabel(result.current, "common.nav.team");
@@ -324,7 +362,7 @@ describe("useNavItems", () => {
 
   describe("NAV-05: All pages discoverable", () => {
     it("has at least 20 unique href values across all nav items", () => {
-      setAuthState({ isAdmin: true, hasWorkspace: true });
+      setAuthState({ isPlatformAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
       const hrefs = collectAllHrefs(result.current);
 
@@ -339,7 +377,7 @@ describe("useNavItems", () => {
 
   describe("NAV-06: Collapsed by default behavior", () => {
     it("Account, Team, and Admin groups have collapsedByDefault set to true", () => {
-      setAuthState({ isAdmin: true, hasWorkspace: true });
+      setAuthState({ isPlatformAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
 
       const account = findCollapsibleByLabel(result.current, "common.nav.account");
@@ -354,7 +392,7 @@ describe("useNavItems", () => {
     });
 
     it("Community group does NOT have collapsedByDefault (it uses backend filtering instead)", () => {
-      setAuthState({ isAdmin: true, hasWorkspace: true });
+      setAuthState({ isPlatformAdmin: true, hasWorkspace: true });
       const { result } = renderHook(() => useNavItems());
 
       const community = findCollapsibleByHref(result.current, "#community");
