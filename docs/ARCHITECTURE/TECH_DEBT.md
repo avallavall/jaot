@@ -150,13 +150,21 @@ exec = db.query(ModelExecution).filter(
 | D-13 | 7 handlers did genuinely heavy work on the loop — MPS/LP parsing, 16 MB dataset parsing, PDF text extraction, boto3 uploads, SCIP export — not the short commits the audit assumed | Medium | 1 day | ✅ **Resolved** (`2b81868`) |
 | D-14 | 23 foreign keys with no index | Low-medium (scales badly) | 0.5 day | ✅ **Resolved** — 18 indexed (`20260726_index_fks`); the other 5 deliberately skipped: they point at `model_catalog` / `organization_models` (legacy DROP list) or at ADR-008 orphans with no ORM model |
 | D-15 | No `import-linter` contract on the vertical direction (api → services → domains), which is why D-16 went unnoticed | Medium (architectural) | 0.5 day | Medium |
-| D-16 | Upward imports: `domains → services` (10), `domains → api` (7), `shared → services` (9 — a gap in an existing contract) | Medium (blocks extraction) | 1 day | Medium |
+| D-16 | Upward imports: `domains → services` (11), `domains → api` (7), `shared → services` (9 — a gap in an existing contract) | Medium (blocks extraction) | 1 day | Medium |
 | D-17 | 55 endpoints return `dict[str, Any]` with no `response_model` → OpenAPI cannot describe them and the frontend hand-writes those types | Medium (contract drift) | 2–3 days | Medium |
 | D-18 | 113 `Depends(get_db)` instead of the `DBSession` alias the project rule mandates | Low (consistency) | Folded into D-12 | Low |
 | D-19 | `execution.py` had grown to 839 LOC mixing the marketplace execution flow with the post-solve analysis endpoints, and the org filter was hand-typed at 4 call sites | Low-medium (architectural) | 1–2 days | ✅ **Partly resolved** (`f4dd487`) — analysis split into its own module + one shared `execution_or_404`; the remaining ~180 route-level queries stay as opportunistic cleanup |
 
 **Suggested first batch:** D-10 + D-11 + D-12 — the three that change something real, ~2 days,
 no architectural commitment.
+
+**D-16 grew by one (2026-07-26).** Rolling a solve onto its marketplace listing needs the
+listing statistics writer, which lives in `app/services/marketplace_fusion.py`, so
+`app/domains/solver/tasks/solve_tasks.py` now imports it. No contract objects — the six
+`import-linter` contracts stay KEPT, because none of them guards the vertical direction;
+that absence *is* D-15. Whoever takes D-15/D-16 should expect this call site: the listing
+rollup is marketplace knowledge that the solver domain should be telling, not fetching
+(an event or an injected port), not another module to shuffle.
 
 **Not proposed:** microservices (discarded by the owner, 2026-07-25), a dynamic `auto_router`
 (discarded with rationale — its reason slugs are public API contract), and an async-SQLAlchemy
