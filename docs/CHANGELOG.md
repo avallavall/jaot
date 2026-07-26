@@ -61,6 +61,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ### Fixed
 
+- **"Explain this model" and the version-diff explanation answer in your language.** Both were sent without the header that tells the server what you are reading in, so they came back in English however the app was set — while every other explanation honoured the locale.
 - **A model written in JModel arrives in the list with a name.** The assistant already titled the models it wrote, but a source typed into the JModel lens stayed "Untitled Model" until you renamed it by hand — so a studio full of DSL models read as a column of identical rows. The project now takes the compiled model's name, and only while it is still untitled: a name you chose is never overwritten.
 - **The multi-objective importer opens on your models**, not on the pre-fusion builder documents — which are empty for almost everyone, so the panel greeted you with "no builder documents found" while your models sat one tab over.
 - **A marketplace model's success rate is a number again.** Nothing had written it since the marketplace and the studio became one entity: each solve bumped the run counter and stopped there, so every listing showed a dash where its reliability should be — beside a model with fourteen recorded runs. Failed runs now count too, which is what the rate needs to mean anything, and models published before the fix read 100% because a success was the only outcome the old counter recorded.

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BASE_URL, getApiKey, parseSSEEvents } from "@/hooks/useSSE";
+import { localeHeader } from "@/lib/locale-header";
 import type { SSEEvent } from "@/lib/llm-types";
 import {
   isLLMErrorCode,
@@ -130,7 +131,13 @@ export function useExplanationStream(): ExplanationStreamState {
 
       try {
         const apiKey = getApiKey();
-        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+          // Without this the backend never learns what the reader is reading in
+          // and answers in the default language — the sibling explanation hooks
+          // all send it, and this one was missed.
+          ...localeHeader(),
+        };
         if (apiKey) {
           headers["Authorization"] = `Bearer ${apiKey}`;
         }
