@@ -20,6 +20,7 @@ import {
   useModelProjectStore,
   useModelProjectStoreApi,
 } from "../../store/useModelProjectStore";
+import { nameToAdopt } from "../../adopt-name";
 import { useProjectDatasets } from "../../datasets/useProjectDatasets";
 import { JModelMathView } from "./JModelMathView";
 import { JModelGenerateDialog } from "./JModelGenerateDialog";
@@ -106,6 +107,17 @@ export function JModelEditorPanel() {
           if (res.ok && res.problem) {
             storeApi.getState().setParseError("dsl", false);
             storeApi.getState().setProblem(res.problem, { source: "dsl" });
+
+            // A JModel source names itself through its objective, so let the
+            // project take that name while it is still the placeholder.
+            const state = storeApi.getState();
+            const adopted = nameToAdopt(state.name, res.problem.name);
+            if (adopted && state.modelId && state.modelId !== "new") {
+              state.setName(adopted);
+              api.updateProject(state.modelId, { name: adopted }).catch(() => {
+                /* best-effort rename — never block a compile on it */
+              });
+            }
           } else {
             storeApi.getState().setParseError("dsl", true);
           }

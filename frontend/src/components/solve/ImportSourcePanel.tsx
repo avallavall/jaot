@@ -59,7 +59,11 @@ export function ImportSourcePanel({ onImport, importedFrom, onClear }: ImportSou
   const t = useTranslations("solve.multiObjective");
   const { activeWorkspaceId } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<TabId>("builder");
+  // Open on the models the user actually has. Builder documents are the
+  // pre-fusion entity — the studio has been the home of model work since P1.5,
+  // so opening there greeted most people with "No builder documents found"
+  // while their models sat one tab over.
+  const [activeTab, setActiveTab] = useState<TabId>("models");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -231,10 +235,12 @@ export function ImportSourcePanel({ onImport, importedFrom, onClear }: ImportSou
     );
   }
 
+  // Order follows where models actually live: the studio first, then templates,
+  // with the pre-fusion builder documents last.
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
-    { id: "builder", label: t("tabBuilder"), icon: <FileCode className="h-4 w-4" /> },
     { id: "models", label: t("tabMyModels"), icon: <Box className="h-4 w-4" /> },
     { id: "templates", label: t("tabTemplates"), icon: <LayoutTemplate className="h-4 w-4" /> },
+    { id: "builder", label: t("tabBuilder"), icon: <FileCode className="h-4 w-4" /> },
   ];
 
   return (
