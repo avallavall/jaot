@@ -196,9 +196,19 @@ services:
     deploy:
       resources:
         limits:
-          # 4 uvicorn workers + SCIP sync solves on large models. Bumped for the
-          # 26 GB / 16-core VM — sync solves of large models (tens of thousands of
-          # vars) are memory- and CPU-hungry, and the cap is a ceiling, not a reserve.
+          # 4 uvicorn workers. NOT for solving: since ADR-007 no solve runs in this
+          # process — every one is enqueued to Celery and the API only waits for the
+          # result. The headroom is for the SCIP work that DOES happen here: importing
+          # an MPS/LP (the API loads the file through SCIP to build the problem),
+          # exporting a model (it rebuilds the SCIP model and writes the file), and
+          # validating a submitted problem. On a model with tens of thousands of
+          # variables those are memory- and CPU-hungry, they now run in the threadpool
+          # (ADR-009), so several can overlap across the 4 workers.
+          # Note the tmpfs above: exports are written to /tmp (256 MB, and tmpfs counts
+          # against this memory limit) before being streamed back.
+          # The cap is a ceiling, not a reserve. Sized for the 26 GB / 16-core VM;
+          # anyone re-tuning it should measure what the API actually uses now rather
+          # than inherit these numbers.
           memory: 5G
           cpus: '6.0'
           pids: 256

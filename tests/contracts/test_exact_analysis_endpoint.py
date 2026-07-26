@@ -96,6 +96,8 @@ def test_exact_analysis_uncomputed_without_solution(
 def test_exact_analysis_endpoint_is_sync_def():
     import inspect
 
-    from app.api.v2.routes.models.execution import get_execution_exact_analysis
+    # Lives in `analysis` since D-19 split the post-solve analysis endpoints out of
+    # `execution` (the routes and operation ids are unchanged). The invariant is not.
+    from app.api.v2.routes.models.analysis import get_execution_exact_analysis
 
     assert not inspect.iscoroutinefunction(get_execution_exact_analysis)
