@@ -153,7 +153,7 @@ exec = db.query(ModelExecution).filter(
 | D-16 | Upward imports: `domains → services` (10), `domains → api` (7), `shared → services` (9 — a gap in an existing contract) | Medium (blocks extraction) | 1 day | Medium |
 | D-17 | 55 endpoints return `dict[str, Any]` with no `response_model` → OpenAPI cannot describe them and the frontend hand-writes those types | Medium (contract drift) | 2–3 days | Medium |
 | D-18 | 113 `Depends(get_db)` instead of the `DBSession` alias the project rule mandates | Low (consistency) | Folded into D-12 | Low |
-| D-19 | 187 direct queries in `app/api/` — routes are also the data layer; `execution.py` now 839 LOC | Low-medium (architectural) | 1–2 days | Low |
+| D-19 | `execution.py` had grown to 839 LOC mixing the marketplace execution flow with the post-solve analysis endpoints, and the org filter was hand-typed at 4 call sites | Low-medium (architectural) | 1–2 days | ✅ **Partly resolved** (`f4dd487`) — analysis split into its own module + one shared `execution_or_404`; the remaining ~180 route-level queries stay as opportunistic cleanup |
 
 **Suggested first batch:** D-10 + D-11 + D-12 — the three that change something real, ~2 days,
 no architectural commitment.
@@ -174,7 +174,9 @@ refactor-shaped — they need their own window, and until they land
   studio **polls for the whole duration of every solve**, is an `async def` that queries the DB
   on the event loop. Highest-traffic item in F-01; it is in the mechanical group.
   `cancel_async_task` (`solve.py:1362`) has the same shape and negligible traffic.
-- **D-20 (new, minutes):** `deploy/docker-compose.prod.yml:199-201` still justifies the API
+- **D-20 — ✅ RESOLVED (`f4dd487`):** `deploy/docker-compose.prod.yml:199-201` still justifies the API
   container's 5 GB / 6 CPU limits with "SCIP sync solves on large models" — a rationale ADR-007
   retired in July 2026. Harmless (it is a ceiling, not a reserve) but misleading for the next
-  capacity decision.
+  capacity decision. Rewritten to the real reason the headroom exists: the API does load SCIP
+  — to import an MPS/LP, to export a model, and to validate a submitted problem — plus a note
+  that exports are written to the 256 MB tmpfs, which counts against the same memory limit.
