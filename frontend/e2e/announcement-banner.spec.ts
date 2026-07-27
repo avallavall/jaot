@@ -63,14 +63,15 @@ test.describe.configure({ mode: "serial" });
 
 test.use({ storageState: ADMIN_AUTH });
 
-// Helper used by tests 01 and 02 — opens the System tab, expands the
-// "HOME ANNOUNCEMENT" group, and returns the page object.
+// Helper used by tests 01 and 02 — opens the Instance tab, expands the
+// "Announcement Banner" group, and returns the page object.
 async function openAnnouncementGroup(page: import("@playwright/test").Page) {
   await page.goto("/en/admin/settings");
   await page.waitForLoadState("networkidle");
-  // Settings are grouped by inferred prefix (HOME_ANNOUNCEMENT_*); the group
-  // header is rendered as collapsed by default. Click to expand.
-  const groupHeader = page.getByText(/HOME ANNOUNCEMENT \(7 settings\)/i).first();
+  // The group used to be named by the key prefix ("HOME ANNOUNCEMENT"); the
+  // 1.9 panel review gave these settings a heading a human would write. The
+  // group is collapsed by default — click to expand.
+  const groupHeader = page.getByText(/Announcement Banner \(7 settings\)/i).first();
   await groupHeader.waitFor({ timeout: 15_000 });
   await groupHeader.scrollIntoViewIfNeeded();
   await groupHeader.click();
