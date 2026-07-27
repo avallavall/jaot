@@ -1,6 +1,6 @@
 # Use Case: Admin Platform Settings — Global Configuration
 
-> Administration flow: an admin edits one of the 87 platform settings → the next request
+> Administration flow: an admin edits one of the 88 platform settings → the next request
 > that reads it sees the new value.
 
 ## Diagram
@@ -63,7 +63,12 @@ A setting that no code path reads is a control that does nothing when an operato
 it. The 1.9 panel review removed 23 of those — dead keys plus keys the panel let an admin
 edit while the runtime took the value from `.env` (`HOST`, `PORT`, `WORKERS`, `CELERY_*`,
 `DATABASE_URL`). `tests/api/test_admin_settings.py` now fails if a registry entry has no
-reader, and if any category has no settings.
+reader, and if any category has no settings. Read-only entries are exempt: they mirror a
+code constant for display (`APP_VERSION`) and are refreshed at startup, so nothing can be
+typed into them.
+
+The check requires the key as a STRING. Matching the bare word let a Python constant of the
+same name vouch for a setting nothing loads.
 
 **Infrastructure stays in `.env`** (`app/config.py`): it is read before a database session
 exists, so it cannot live in this table. The panel must not offer it.
@@ -75,7 +80,7 @@ exists, so it cannot live in this table. The panel must not offer it.
 | `system` | MAINTENANCE_MODE, SOLVE_MAINTENANCE_MODE, JAOT_DSL, HOME_ANNOUNCEMENT_* | Instance |
 | `app` | APP_NAME, APP_VERSION (read-only) | Instance |
 | `security` | REGISTRATION_ENABLED, JWT_*, AUTH_*_RATE_LIMIT_* | Access |
-| `limits` | instance_max_variables, instance_max_daily_solves, instance_allowed_features | Access |
+| `limits` | instance_max_variables, instance_max_daily_solves, instance_min_cron_interval_minutes, instance_allowed_features | Access |
 | `solver` | SOLVER_DEFAULT_TIMEOUT, SOLVER_POOL_SIZE, SENSITIVITY_*, IIS_* | Solver |
 | `llm` | LLM_DEFAULT_MODEL, LLM_MONTHLY_BUDGET_EUR, LLM_THINKING_EFFORT | AI |
 | `rag` | RAG_ENABLED, RAG_TOP_K, RAG_RERANKER_ENABLED | AI |
@@ -89,7 +94,7 @@ among them — had no tab at all and could only be changed with SQL.
 
 ### One limit profile, not four plan tiers
 
-`limits` holds seven `instance_*` settings that apply to every organization.
+`limits` holds eight `instance_*` settings that apply to every organization.
 `organizations.plan` survives as a label but no longer selects a different ceiling: the
 four tiers were a leftover of the billing ADR-008 removed, and after D-21 relaxed the caps
 they were identical apart from rate limits.
