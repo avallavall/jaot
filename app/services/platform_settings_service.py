@@ -233,6 +233,7 @@ class PlatformSettingsService:
         "max_variables",
         "max_daily_solves",
         "max_cron_schedules",
+        "min_cron_interval_minutes",
         "allowed_features",
     )
 

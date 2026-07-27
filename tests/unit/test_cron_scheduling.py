@@ -177,6 +177,43 @@ class TestCronValidation:
         result = validate_cron_expression("0 * * * *", "UTC")
         assert result["valid"] is True
 
+    def test_min_interval_is_the_operator_s_to_set(self, db_session):
+        """The hourly floor is a setting, not a constant baked into the code.
+
+        A half-hourly job is ordinary on hardware that can take it; it used to
+        be unreachable because 60 minutes was hardcoded.
+        """
+        from app.services.platform_settings_service import PlatformSettingsService as PSS
+        from app.services.schedule_service import (
+            resolve_min_interval_minutes,
+            validate_cron_expression,
+        )
+
+        # Shipped default still rejects a half-hourly schedule.
+        with pytest.raises(ValueError, match="too frequently"):
+            validate_cron_expression(
+                "*/30 * * * *", "UTC", resolve_min_interval_minutes(db_session)
+            )
+
+        PSS.set(db_session, "instance_min_cron_interval_minutes", "15")
+        db_session.commit()
+        assert (
+            validate_cron_expression(
+                "*/30 * * * *", "UTC", resolve_min_interval_minutes(db_session)
+            )["valid"]
+            is True
+        )
+
+        # 0 removes the floor entirely, like every other capacity limit.
+        PSS.set(db_session, "instance_min_cron_interval_minutes", "0")
+        db_session.commit()
+        assert (
+            validate_cron_expression("* * * * *", "UTC", resolve_min_interval_minutes(db_session))[
+                "valid"
+            ]
+            is True
+        )
+
 
 class TestOverlapDetection:
     """Test overlap detection in cron_fire_task with real DB rows."""

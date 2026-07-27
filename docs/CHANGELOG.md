@@ -66,6 +66,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 ### Fixed
 
 - **Creating a scheduled run always failed with "Schedule limit reached (0)".** Zero means unlimited everywhere else since capacity limits became the operator's to set, but this check read it as "allow none", so cron scheduling was unusable out of the box.
+- **The hour between scheduled runs is now yours to set.** A schedule could not fire more often than hourly, whatever the hardware underneath — the last inherited capacity ceiling left in the code. It is a setting now, and 0 removes the floor.
 - **Hexaly's configurable time limit now applies.** The setting has always been in the panel, and the solver ignored it in favour of a fixed 300 seconds — so on a solver that searches until told to stop, the one control over when it stops did nothing.
 
 - **"Explain this model" and the version-diff explanation answer in your language.** Both were sent without the header that tells the server what you are reading in, so they came back in English however the app was set — while every other explanation honoured the locale.

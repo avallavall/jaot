@@ -765,6 +765,19 @@ _INSTANCE_LIMITS: list[tuple[str, str, str, SettingType, str, float | None, str 
         None,
     ),
     (
+        "instance_min_cron_interval_minutes",
+        "Min Cron Interval",
+        (
+            "Shortest gap allowed between two runs of a schedule. It exists so a "
+            "misconfigured cron cannot queue a solve every minute, not to decide "
+            "how often your hardware can work. 0 removes the floor."
+        ),
+        SettingType.INT,
+        "60",
+        0,
+        "minutes",
+    ),
+    (
         "instance_allowed_features",
         "Allowed Features",
         (

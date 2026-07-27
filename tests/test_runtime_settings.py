@@ -267,18 +267,9 @@ class TestPlanConfigIntegration:
         assert config["allowed_features"] == features
 
     def test_plan_config_returns_all_fields(self, db_session):
-        """get_instance_limits returns all 9 expected fields."""
+        """get_instance_limits returns exactly the declared limit fields."""
         config = PSS.get_instance_limits(db_session)
-        expected_fields = {
-            "rate_limit_per_minute",
-            "rate_limit_per_day",
-            "max_solve_time_seconds",
-            "max_variables",
-            "max_daily_solves",
-            "max_cron_schedules",
-            "allowed_features",
-        }
-        assert set(config.keys()) == expected_fields
+        assert set(config.keys()) == set(PSS.INSTANCE_LIMIT_FIELDS)
 
     def test_plan_config_drives_feature_gate(
         self, authenticated_client, db_session, test_organization

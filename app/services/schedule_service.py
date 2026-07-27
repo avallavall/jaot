@@ -19,16 +19,36 @@ from app.shared.utils.id_generator import generate_id
 
 logger = logging.getLogger(__name__)
 
-# Minimum interval between cron runs: 60 minutes
+# Fallback minimum interval between cron runs, for the callers that have no
+# session to read `instance_min_cron_interval_minutes` from.
 _MIN_INTERVAL_MINUTES = 60
 
 
-def validate_cron_expression(expression: str, timezone_str: str = "UTC") -> dict[str, Any]:
+def resolve_min_interval_minutes(db: Session) -> int:
+    """Shortest gap this instance allows between two runs of a schedule, in minutes.
+
+    A fixed hour used to be hardcoded here, which put a 30-minute job out of
+    reach on hardware that could easily take it — the sort of inherited ceiling
+    D-21 moved into the operator's hands. ``0`` removes the floor.
+    """
+    from app.services.platform_settings_service import PlatformSettingsService as PSS
+
+    return PSS.get_instance_limits(db)["min_cron_interval_minutes"]
+
+
+def validate_cron_expression(
+    expression: str,
+    timezone_str: str = "UTC",
+    min_interval_minutes: int = _MIN_INTERVAL_MINUTES,
+) -> dict[str, Any]:
     """Validate a cron expression and return next run times.
 
     Args:
         expression: Standard 5-field cron expression (minute hour dom month dow).
         timezone_str: IANA timezone name (e.g. "America/New_York").
+        min_interval_minutes: Shortest allowed gap between runs; 0 = no floor.
+            Callers with a session should pass
+            :func:`resolve_min_interval_minutes` so the operator's setting wins.
 
     Returns:
         {"valid": True, "next_runs": [iso_strings_of_next_3_runs]}
@@ -58,17 +78,17 @@ def validate_cron_expression(expression: str, timezone_str: str = "UTC") -> dict
         except StopIteration:
             break
 
-    # Validate minimum interval (must not fire more than once per hour)
-    if len(next_runs) >= 2:
+    # Enforce the configured floor between runs (0 = no floor).
+    if min_interval_minutes > 0 and len(next_runs) >= 2:
         from datetime import datetime as dt_cls
 
         t1 = dt_cls.fromisoformat(next_runs[0])
         t2 = dt_cls.fromisoformat(next_runs[1])
         diff_minutes = (t2 - t1).total_seconds() / 60
-        if diff_minutes < _MIN_INTERVAL_MINUTES:
+        if diff_minutes < min_interval_minutes:
             raise ValueError(
                 f"Schedule fires too frequently ({int(diff_minutes)} min interval). "
-                f"Minimum interval is {_MIN_INTERVAL_MINUTES} minutes."
+                f"Minimum interval is {min_interval_minutes} minutes."
             )
 
     return {"valid": True, "next_runs": next_runs}
@@ -116,7 +136,7 @@ def create_schedule(
     """
     from cronsim import CronSim  # noqa: PLC0415
 
-    validate_cron_expression(cron_expression, timezone_str)
+    validate_cron_expression(cron_expression, timezone_str, resolve_min_interval_minutes(db))
 
     parts = cron_expression.strip().split()
     if len(parts) != 5:
@@ -211,13 +231,13 @@ def update_schedule(
 
     if cron_expression is not None and cron_expression != schedule.cron_expression:
         tz_to_validate = timezone_str or schedule.timezone
-        validate_cron_expression(cron_expression, tz_to_validate)
+        validate_cron_expression(cron_expression, tz_to_validate, resolve_min_interval_minutes(db))
         schedule.cron_expression = cron_expression
         expression_changed = True
 
     if timezone_str is not None and timezone_str != schedule.timezone:
         expr_to_validate = cron_expression or schedule.cron_expression
-        validate_cron_expression(expr_to_validate, timezone_str)
+        validate_cron_expression(expr_to_validate, timezone_str, resolve_min_interval_minutes(db))
         schedule.timezone = timezone_str
         expression_changed = True
 

@@ -251,13 +251,18 @@ def delete_schedule(
 def validate_cron(
     body: ScheduleCreateRequest,
     user: CurrentUser,
+    db: DBSession,
 ) -> CronValidationResponse:
     """Validate a cron expression and return the next 3 run times.
 
     Does not require a trigger -- useful for preview in the UI.
     """
     try:
-        result = schedule_service.validate_cron_expression(body.cron_expression, body.timezone)
+        result = schedule_service.validate_cron_expression(
+            body.cron_expression,
+            body.timezone,
+            schedule_service.resolve_min_interval_minutes(db),
+        )
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
