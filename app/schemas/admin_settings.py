@@ -79,15 +79,3 @@ class AuditLogResponse(BaseModel):
     total: int
     page: int
     page_size: int
-
-
-class PlanTiersResponse(BaseModel):
-    """All plan tier configurations."""
-
-    plans: dict[str, dict[str, str]]
-
-
-class PlanTiersUpdateRequest(BaseModel):
-    """Update plan tier configurations."""
-
-    plans: dict[str, dict[str, str]]

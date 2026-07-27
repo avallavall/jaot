@@ -1993,16 +1993,15 @@
       "activeUsers": "Usuaris Actius",
       "catalogModels": "Models del Catàleg",
       "tabs": {
-        "system": "Sistema",
         "solver": "Solver",
-        "llm": "LLM",
         "email": "Correu electronic",
-        "security": "Seguretat",
-        "marketplace": "Marketplace",
         "secrets": "Secrets",
         "auditLog": "Registre d'auditoria",
-        "systemSettings": "Configuració del sistema",
-        "billing": "Plans i límits"
+        "instance": "Instància",
+        "access": "Accés i límits",
+        "ai": "IA",
+        "advanced": "Avançat",
+        "limits": "Límits de la instància"
       },
       "saveChanges": "Desar canvis",
       "saving": "Desant...",
@@ -2029,7 +2028,8 @@
         "save": "Desar",
         "saving": "Desant...",
         "updated": "Secret actualitzat correctament",
-        "updateFailed": "Error en actualitzar el secret"
+        "updateFailed": "Error en actualitzar el secret",
+        "signsEveryoneOut": "Desar un valor nou tanca la sessió de tots els usuaris a l'instant, inclosa la teva."
       },
       "audit": {
         "title": "Canvis de configuració",
@@ -2052,27 +2052,8 @@
           "page": "Pàgina {page} de {total}"
         }
       },
-      "plans": {
-        "title": "Nivells de pla",
-        "description": "Configurar límits i quotes dels plans de subscripció",
-        "allowedFeaturesLabel": "{plan} - Funcionalitats permeses",
-        "allowedFeaturesHelp": "Array JSON de cadenes de funcionalitats, p. ex. [\"basic\", \"export\"]",
-        "headers": {
-          "plan": "Pla",
-          "monthlyQuota": "Quota mensual",
-          "rateLimitMin": "Limit/min",
-          "rateLimitDay": "Limit/dia",
-          "maxSolveTime": "Temps max. resolució (s)",
-          "maxVariables": "Variables max.",
-          "maxDailySolves": "Resolucions max./dia",
-          "maxCronSchedules": "Programacions max.",
-          "allowedFeatures": "Funcionalitats permeses"
-        },
-        "free": "Gratuit",
-        "starter": "Starter",
-        "pro": "Pro",
-        "business": "Business"
-      }
+      "advancedWarning": "Identificadors i valors per defecte de baix nivell. Els canvis s'apliquen als registres que es creïn a partir d'ara, mai als que ja existeixen.",
+      "defaultValue": "Per defecte: {value}"
     },
     "users": {
       "title": "Usuaris",

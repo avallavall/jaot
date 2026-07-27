@@ -220,8 +220,8 @@ def create_conversation(
     from datetime import timedelta
 
     # Feature gate: check that the org's plan includes llm_assistant
-    plan_config = PSS.get_plan_config_dynamic(db, org.plan)
-    if "llm_assistant" not in plan_config.get("allowed_features", []):
+    limits = PSS.get_instance_limits(db)
+    if "llm_assistant" not in limits.get("allowed_features", []):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={

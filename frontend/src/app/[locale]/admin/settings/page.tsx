@@ -7,38 +7,39 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
-import type {
-  RegistryEntry,
-  SettingValue,
-  PlanTiersResponse,
-} from "@/lib/api";
+import type { RegistryEntry, SettingValue } from "@/lib/api";
 import type { AdminStats } from "@/lib/types";
 import { useTranslations } from "next-intl";
 
 import { SystemTab } from "@/components/admin/settings/SystemTab";
 import type { HealthData } from "@/components/admin/settings/SystemTab";
 import { SettingsTab } from "@/components/admin/settings/SettingsTab";
-import { PlanTierTable } from "@/components/admin/settings/PlanTierTable";
 import { SecretsTab } from "@/components/admin/settings/SecretsTab";
 import { AuditLogTab } from "@/components/admin/settings/AuditLogTab";
 
-const SETTING_TABS = [
-  { key: "system", category: null },
-  { key: "billing", category: "billing" },
-  { key: "solver", category: "solver" },
-  { key: "llm", category: "llm" },
-  { key: "email", category: "email" },
-  { key: "security", category: "security" },
-  { key: "marketplace", category: "marketplace" },
-  { key: "secrets", category: null },
-  { key: "auditLog", category: null },
+/**
+ * Tabs group backend categories by what an operator came to do, not by which
+ * table the value lives in.
+ *
+ * `secrets` is deliberately absent: it has its own tab with a different editor.
+ * Any other category the backend adds and this list does not name falls into
+ * `advanced` (see ADVANCED_TAB) rather than vanishing — before that fallback
+ * existed, six categories including all of RAG had no tab at all and could
+ * only be changed with SQL.
+ */
+const TAB_GROUPS = [
+  { key: "instance", categories: ["system", "app"] },
+  { key: "access", categories: ["security", "limits"] },
+  { key: "ai", categories: ["llm", "rag"] },
+  { key: "solver", categories: ["solver"] },
+  { key: "email", categories: ["email"] },
 ] as const;
 
-/** Tabs that have a SettingsTab with searchable entries */
-const SEARCHABLE_TABS = SETTING_TABS.filter(
-  (tab): tab is (typeof SETTING_TABS)[number] & { category: string } =>
-    tab.category !== null
-);
+/** Catch-all for low-level categories: named ones plus anything unmapped. */
+const ADVANCED_CATEGORIES = ["identifiers"];
+
+/** Handled by dedicated tabs, never folded into `advanced`. */
+const NON_SETTING_CATEGORIES = new Set(["secrets"]);
 
 export default function SettingsPage() {
   const t = useTranslations("admin.settings");
@@ -50,14 +51,12 @@ export default function SettingsPage() {
   const [allEntries, setAllEntries] = useState<RegistryEntry[]>([]);
   const [allValues, setAllValues] = useState<Record<string, SettingValue>>({});
   const [categories, setCategories] = useState<string[]>([]);
-  const [planTiers, setPlanTiers] = useState<PlanTiersResponse | null>(null);
 
   const fetchSettingsData = useCallback(async () => {
     try {
-      const [registryData, valuesData, planData] = await Promise.all([
+      const [registryData, valuesData] = await Promise.all([
         api.admin.getSettingsRegistry(),
         api.admin.getSettingsValues(),
-        api.admin.getPlanTiers(),
       ]);
 
       // Flatten all entries from all categories
@@ -70,7 +69,6 @@ export default function SettingsPage() {
       setAllEntries(entries);
       setCategories(cats);
       setAllValues(valuesData.settings);
-      setPlanTiers(planData);
     } catch (err) {
       console.warn('Failed to load settings data:', err);
     }
@@ -97,8 +95,38 @@ export default function SettingsPage() {
 
   const isSearching = searchQuery.trim().length > 0;
 
-  // Find which categories have matching results during search
-  const searchMatchCategories = useMemo(() => {
+  /**
+   * Advanced absorbs its own categories plus every category the backend sent
+   * that no tab claims — the guarantee that a new backend category is always
+   * reachable somewhere.
+   */
+  const advancedCategories = useMemo(() => {
+    const claimed = new Set<string>([
+      ...TAB_GROUPS.flatMap((tab) => tab.categories as readonly string[]),
+      ...ADVANCED_CATEGORIES,
+    ]);
+    const unmapped = categories.filter(
+      (c) => !claimed.has(c) && !NON_SETTING_CATEGORIES.has(c)
+    );
+    return [...ADVANCED_CATEGORIES, ...unmapped];
+  }, [categories]);
+
+  /** Every tab that renders editable settings, in display order. */
+  const settingTabs = useMemo(
+    () => [
+      ...TAB_GROUPS.map((tab) => ({
+        key: tab.key as string,
+        categories: tab.categories as readonly string[],
+      })),
+      { key: "advanced", categories: advancedCategories as readonly string[] },
+    ],
+    [advancedCategories]
+  );
+
+  // Which tabs have a setting matching the query. Searches every tab that
+  // holds settings — the previous version skipped System entirely, so half
+  // the panel was unsearchable.
+  const searchMatchTabs = useMemo(() => {
     if (!isSearching) return [];
     const q = searchQuery.toLowerCase();
     const matched = new Set<string>();
@@ -106,13 +134,16 @@ export default function SettingsPage() {
       if (entry.is_secret) continue;
       if (
         entry.label.toLowerCase().includes(q) ||
-        entry.description.toLowerCase().includes(q)
+        entry.description.toLowerCase().includes(q) ||
+        entry.key.toLowerCase().includes(q)
       ) {
         matched.add(entry.category);
       }
     }
-    return SEARCHABLE_TABS.filter((tab) => tab.category && matched.has(tab.category));
-  }, [isSearching, searchQuery, allEntries]);
+    return settingTabs.filter((tab) =>
+      tab.categories.some((c) => matched.has(c))
+    );
+  }, [isSearching, searchQuery, allEntries, settingTabs]);
 
   return (
     <div className="space-y-6">
@@ -145,14 +176,14 @@ export default function SettingsPage() {
           <Skeleton className="h-64 w-full" />
         </div>
       ) : isSearching ? (
-        /* Search results: flat list of matching SettingsTabs with category badges */
+        /* Search results: matching tabs, flattened, each labelled with its tab */
         <div className="space-y-4">
-          {searchMatchCategories.length === 0 ? (
+          {searchMatchTabs.length === 0 ? (
             <p className="text-muted-foreground text-sm py-8 text-center">
               {t("searchNoResults")}
             </p>
           ) : (
-            searchMatchCategories.map((tab) => (
+            searchMatchTabs.map((tab) => (
               <div key={tab.key} className="relative">
                 <Badge
                   variant="secondary"
@@ -161,7 +192,7 @@ export default function SettingsPage() {
                   {t(`tabs.${tab.key}`)}
                 </Badge>
                 <SettingsTab
-                  category={tab.category!}
+                  categories={tab.categories}
                   categoryLabel={t(`tabs.${tab.key}`)}
                   entries={allEntries}
                   values={allValues}
@@ -173,32 +204,49 @@ export default function SettingsPage() {
           )}
         </div>
       ) : (
-        <Tabs defaultValue="system" className="space-y-4">
+        <Tabs defaultValue="instance" className="space-y-4">
           <TabsList className="flex flex-wrap h-auto gap-1">
-            {SETTING_TABS.map((tab) => (
+            {settingTabs.map((tab) => (
               <TabsTrigger key={tab.key} value={tab.key}>
                 {t(`tabs.${tab.key}`)}
               </TabsTrigger>
             ))}
+            <TabsTrigger value="secrets">{t("tabs.secrets")}</TabsTrigger>
+            <TabsTrigger value="auditLog">{t("tabs.auditLog")}</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="system" className="space-y-6">
+          <TabsContent value="instance" className="space-y-6">
             <SystemTab health={health} stats={stats} loading={loading} />
             <SettingsTab
-              category="system"
-              categoryLabel={t("tabs.systemSettings")}
+              categories={["system", "app"]}
+              categoryLabel={t("tabs.instance")}
               entries={allEntries}
               values={allValues}
               onRefresh={fetchSettingsData}
             />
           </TabsContent>
 
-          {/* Plans & limits tab — plan tier table + the backend's `billing` settings category (limits only, ADR-008) */}
-          <TabsContent value="billing" className="space-y-6">
-            <PlanTierTable data={planTiers} onRefresh={fetchSettingsData} />
+          <TabsContent value="access" className="space-y-6">
             <SettingsTab
-              category="billing"
-              categoryLabel={t("tabs.billing")}
+              categories={["security"]}
+              categoryLabel={t("tabs.access")}
+              entries={allEntries}
+              values={allValues}
+              onRefresh={fetchSettingsData}
+            />
+            <SettingsTab
+              categories={["limits"]}
+              categoryLabel={t("tabs.limits")}
+              entries={allEntries}
+              values={allValues}
+              onRefresh={fetchSettingsData}
+            />
+          </TabsContent>
+
+          <TabsContent value="ai">
+            <SettingsTab
+              categories={["llm", "rag"]}
+              categoryLabel={t("tabs.ai")}
               entries={allEntries}
               values={allValues}
               onRefresh={fetchSettingsData}
@@ -207,18 +255,8 @@ export default function SettingsPage() {
 
           <TabsContent value="solver">
             <SettingsTab
-              category="solver"
+              categories={["solver"]}
               categoryLabel={t("tabs.solver")}
-              entries={allEntries}
-              values={allValues}
-              onRefresh={fetchSettingsData}
-            />
-          </TabsContent>
-
-          <TabsContent value="llm">
-            <SettingsTab
-              category="llm"
-              categoryLabel={t("tabs.llm")}
               entries={allEntries}
               values={allValues}
               onRefresh={fetchSettingsData}
@@ -227,7 +265,7 @@ export default function SettingsPage() {
 
           <TabsContent value="email">
             <SettingsTab
-              category="email"
+              categories={["email"]}
               categoryLabel={t("tabs.email")}
               entries={allEntries}
               values={allValues}
@@ -235,20 +273,11 @@ export default function SettingsPage() {
             />
           </TabsContent>
 
-          <TabsContent value="security">
+          <TabsContent value="advanced">
             <SettingsTab
-              category="security"
-              categoryLabel={t("tabs.security")}
-              entries={allEntries}
-              values={allValues}
-              onRefresh={fetchSettingsData}
-            />
-          </TabsContent>
-
-          <TabsContent value="marketplace">
-            <SettingsTab
-              category="marketplace"
-              categoryLabel={t("tabs.marketplace")}
+              categories={advancedCategories}
+              categoryLabel={t("tabs.advanced")}
+              warning={t("advancedWarning")}
               entries={allEntries}
               values={allValues}
               onRefresh={fetchSettingsData}

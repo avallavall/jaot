@@ -23,6 +23,7 @@ export interface SettingFieldProps {
 export function SettingField({
   entry,
   value,
+  envDefault,
   isModified,
   lastChangedBy,
   lastChangedAt,
@@ -31,6 +32,14 @@ export function SettingField({
   disabled = false,
 }: SettingFieldProps) {
   const t = useTranslations("admin.settings");
+
+  // Only worth showing when it differs from what the field already displays,
+  // and never for secrets (the value is masked, so a default tells nothing).
+  const showDefault =
+    !entry.is_secret &&
+    envDefault !== null &&
+    envDefault !== "" &&
+    envDefault !== value;
 
   const renderInput = () => {
     // Secret entries: masked read-only
@@ -136,6 +145,11 @@ export function SettingField({
       </div>
       <p className="text-xs text-muted-foreground">{entry.description}</p>
       <div className="pt-1">{renderInput()}</div>
+      {showDefault && (
+        <p className="text-xs text-muted-foreground/70">
+          {t("defaultValue", { value: envDefault })}
+        </p>
+      )}
       {lastChangedBy && lastChangedAt && (
         <p className="text-xs text-muted-foreground/70 italic">
           {t("lastChanged", {

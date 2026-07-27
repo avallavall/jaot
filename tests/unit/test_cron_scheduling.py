@@ -351,7 +351,7 @@ class TestTierLimits:
         db_session.commit()
 
         with patch(
-            "app.services.platform_settings_service.PlatformSettingsService.get_plan_config_dynamic",
+            "app.services.platform_settings_service.PlatformSettingsService.get_instance_limits",
             return_value={"max_cron_schedules": 1, "allowed_features": ["cron_scheduling"]},
         ):
             with pytest.raises(HTTPException) as exc_info:
@@ -376,7 +376,7 @@ class TestTierLimits:
         db_session.commit()
 
         with patch(
-            "app.services.platform_settings_service.PlatformSettingsService.get_plan_config_dynamic",
+            "app.services.platform_settings_service.PlatformSettingsService.get_instance_limits",
             return_value={"max_cron_schedules": 5, "allowed_features": ["cron_scheduling"]},
         ):
             with pytest.raises(HTTPException) as exc_info:
@@ -399,7 +399,7 @@ class TestTierLimits:
         db_session.commit()
 
         with patch(
-            "app.services.platform_settings_service.PlatformSettingsService.get_plan_config_dynamic",
+            "app.services.platform_settings_service.PlatformSettingsService.get_instance_limits",
             return_value={"max_cron_schedules": 5, "allowed_features": ["cron_scheduling"]},
         ):
             # Should NOT raise

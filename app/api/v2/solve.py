@@ -86,12 +86,12 @@ def _enforce_tier_caps(
     org: Organization,
     problem: OptimizationProblem,
 ) -> OptimizationProblem:
-    """Check tier caps and reject if exceeded. Return problem with time_limit clamped."""
-    plan_config = PSS.get_plan_config_dynamic(db, org.plan)
+    """Check instance caps and reject if exceeded. Return problem with time_limit clamped."""
+    limits = PSS.get_instance_limits(db)
 
     # 0 = unlimited. Nothing to upgrade to on a free, self-hosted platform, so the
     # message tells the operator which knob to turn instead of selling them a tier.
-    max_vars = plan_config["max_variables"]
+    max_vars = limits["max_variables"]
     num_vars = len(problem.variables)
     if max_vars > 0 and num_vars > max_vars:
         raise HTTPException(
@@ -101,22 +101,22 @@ def _enforce_tier_caps(
                 message=(
                     f"This model has {num_vars:,} variables and this instance is "
                     f"configured to allow up to {max_vars:,}. An administrator can "
-                    f"raise or remove the limit in Settings (plan_{org.plan}_max_variables; "
+                    f"raise or remove the limit in Settings (instance_max_variables; "
                     f"0 means unlimited)."
                 ),
                 current_plan=org.plan,
                 limit=max_vars,
                 current_value=num_vars,
-                setting_key=f"plan_{org.plan}_max_variables",
+                setting_key="instance_max_variables",
             ),
         )
 
-    problem = _clamp_time_limit_to_plan(problem, plan_config["max_solve_time_seconds"])
+    problem = _clamp_time_limit_to_plan(problem, limits["max_solve_time_seconds"])
 
     allowed, _rate_info = check_rate_limit(
         f"solve_daily:{org.id}",
-        plan_config["max_daily_solves"],
-        plan_config["max_daily_solves"],
+        limits["max_daily_solves"],
+        limits["max_daily_solves"],
     )
     if not allowed:
         raise HTTPException(
@@ -125,13 +125,13 @@ def _enforce_tier_caps(
                 error="daily_solve_quota_exceeded",
                 message=(
                     f"You've reached this instance's daily limit of "
-                    f"{plan_config['max_daily_solves']:,} solves, which resets daily. "
+                    f"{limits['max_daily_solves']:,} solves, which resets daily. "
                     f"An administrator can raise or remove it in Settings "
-                    f"(plan_{org.plan}_max_daily_solves; 0 means unlimited)."
+                    f"(instance_max_daily_solves; 0 means unlimited)."
                 ),
                 current_plan=org.plan,
-                limit=plan_config["max_daily_solves"],
-                setting_key=f"plan_{org.plan}_max_daily_solves",
+                limit=limits["max_daily_solves"],
+                setting_key="instance_max_daily_solves",
             ),
         )
 

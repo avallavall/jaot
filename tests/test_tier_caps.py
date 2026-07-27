@@ -1,7 +1,7 @@
 """Tests for tier cap enforcement on solve and LLM endpoints.
 
 Updated for pricing restructure (2026-03):
-- _enforce_tier_caps now takes (db, org, problem) and uses PSS.get_plan_config_dynamic
+- _enforce_tier_caps now takes (db, org, problem) and uses PSS.get_instance_limits
 - Feature gating removed: all features available on all tiers
 - No more warm_start rejection on free tier
 - No more LLM feature_not_available on free tier
@@ -29,14 +29,14 @@ class TestTierCapDetail:
             current_plan="free",
             limit=1000,
             current_value=1500,
-            setting_key="plan_free_max_variables",
+            setting_key="instance_max_variables",
         )
         assert detail["error"] == "variable_limit_exceeded"
         assert detail["message"] == "Too many variables"
         assert detail["current_plan"] == "free"
         assert detail["limit"] == 1000
         assert detail["current_value"] == 1500
-        assert detail["setting_key"] == "plan_free_max_variables"
+        assert detail["setting_key"] == "instance_max_variables"
 
     # CONTRACT-TEST: no upsell in limit errors — ADR-008 removed billing, so a
     # limit error must point at the setting an operator can raise, never at a
@@ -126,10 +126,10 @@ def _make_problem(num_vars: int = 2, time_limit: int = 30, warm_start: bool = Fa
 class TestEnforceTierCapsUnit:
     """Unit tests for the _enforce_tier_caps function.
 
-    _enforce_tier_caps(db, org, problem) uses PSS.get_plan_config_dynamic.
+    _enforce_tier_caps(db, org, problem) uses PSS.get_instance_limits.
     """
 
-    @patch("app.api.v2.solve.PSS.get_plan_config_dynamic", return_value=FREE_PLAN_CONFIG)
+    @patch("app.api.v2.solve.PSS.get_instance_limits", return_value=FREE_PLAN_CONFIG)
     @patch("app.api.v2.solve.check_rate_limit", return_value=(True, None))
     def test_variable_limit_exceeded_free(self, mock_rl, mock_pss):
         from app.api.v2.solve import _enforce_tier_caps
@@ -148,7 +148,7 @@ class TestEnforceTierCapsUnit:
         assert exc_info.value.detail["limit"] == 5000
         assert exc_info.value.detail["current_value"] == 5500
 
-    @patch("app.api.v2.solve.PSS.get_plan_config_dynamic", return_value=FREE_PLAN_CONFIG)
+    @patch("app.api.v2.solve.PSS.get_instance_limits", return_value=FREE_PLAN_CONFIG)
     @patch("app.api.v2.solve.check_rate_limit", return_value=(True, None))
     def test_variable_limit_ok_free(self, mock_rl, mock_pss):
         from app.api.v2.solve import _enforce_tier_caps
@@ -160,7 +160,7 @@ class TestEnforceTierCapsUnit:
         # Should not raise
         _enforce_tier_caps(db, org, problem)
 
-    @patch("app.api.v2.solve.PSS.get_plan_config_dynamic", return_value=FREE_PLAN_CONFIG)
+    @patch("app.api.v2.solve.PSS.get_instance_limits", return_value=FREE_PLAN_CONFIG)
     @patch("app.api.v2.solve.check_rate_limit", return_value=(True, None))
     def test_time_limit_clamped_free(self, mock_rl, mock_pss):
         from app.api.v2.solve import _enforce_tier_caps
@@ -172,7 +172,7 @@ class TestEnforceTierCapsUnit:
         clamped = _enforce_tier_caps(db, org, problem)
         assert clamped.options.time_limit_seconds == 60
 
-    @patch("app.api.v2.solve.PSS.get_plan_config_dynamic", return_value=FREE_PLAN_CONFIG)
+    @patch("app.api.v2.solve.PSS.get_instance_limits", return_value=FREE_PLAN_CONFIG)
     @patch("app.api.v2.solve.check_rate_limit", return_value=(True, None))
     def test_time_limit_not_clamped_when_under(self, mock_rl, mock_pss):
         from app.api.v2.solve import _enforce_tier_caps
@@ -184,7 +184,7 @@ class TestEnforceTierCapsUnit:
         result = _enforce_tier_caps(db, org, problem)
         assert result.options.time_limit_seconds == 20
 
-    @patch("app.api.v2.solve.PSS.get_plan_config_dynamic", return_value=FREE_PLAN_CONFIG)
+    @patch("app.api.v2.solve.PSS.get_instance_limits", return_value=FREE_PLAN_CONFIG)
     @patch("app.api.v2.solve.check_rate_limit", return_value=(False, {"error": "rate limited"}))
     def test_daily_solve_quota_exceeded(self, mock_rl, mock_pss):
         from app.api.v2.solve import _enforce_tier_caps
@@ -200,7 +200,7 @@ class TestEnforceTierCapsUnit:
         assert exc_info.value.status_code == 403
         assert exc_info.value.detail["error"] == "daily_solve_quota_exceeded"
 
-    @patch("app.api.v2.solve.PSS.get_plan_config_dynamic", return_value=FREE_PLAN_CONFIG)
+    @patch("app.api.v2.solve.PSS.get_instance_limits", return_value=FREE_PLAN_CONFIG)
     @patch("app.api.v2.solve.check_rate_limit", return_value=(True, None))
     def test_warm_start_accepted_free(self, mock_rl, mock_pss):
         """Post-restructure: warm_start is accepted on free tier (no feature gating).
@@ -227,7 +227,7 @@ class TestEnforceTierCapsUnit:
         # 30 < 60 cap -> time limit unchanged
         assert result.options.time_limit_seconds == 30
 
-    @patch("app.api.v2.solve.PSS.get_plan_config_dynamic", return_value=STARTER_PLAN_CONFIG)
+    @patch("app.api.v2.solve.PSS.get_instance_limits", return_value=STARTER_PLAN_CONFIG)
     @patch("app.api.v2.solve.check_rate_limit", return_value=(True, None))
     def test_warm_start_allowed_starter(self, mock_rl, mock_pss):
         """Starter plan accepts warm_start (no feature gating).
@@ -267,7 +267,7 @@ class TestZeroMeansUnlimited:
     """
 
     # CONTRACT-TEST: max_variables = 0 means unlimited
-    @patch("app.api.v2.solve.PSS.get_plan_config_dynamic", return_value=UNLIMITED_PLAN_CONFIG)
+    @patch("app.api.v2.solve.PSS.get_instance_limits", return_value=UNLIMITED_PLAN_CONFIG)
     @patch("app.api.v2.solve.check_rate_limit", return_value=(True, None))
     def test_variable_limit_zero_accepts_any_model(self, mock_rl, mock_pss):
         from app.api.v2.solve import _enforce_tier_caps
@@ -280,7 +280,7 @@ class TestZeroMeansUnlimited:
         assert len(result.variables) == 20_000
 
     # CONTRACT-TEST: max_solve_time_seconds = 0 means no clamp
-    @patch("app.api.v2.solve.PSS.get_plan_config_dynamic", return_value=UNLIMITED_PLAN_CONFIG)
+    @patch("app.api.v2.solve.PSS.get_instance_limits", return_value=UNLIMITED_PLAN_CONFIG)
     @patch("app.api.v2.solve.check_rate_limit", return_value=(True, None))
     def test_time_limit_zero_leaves_request_untouched(self, mock_rl, mock_pss):
         from app.api.v2.solve import _enforce_tier_caps

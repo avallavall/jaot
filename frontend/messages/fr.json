@@ -1993,16 +1993,15 @@
       "activeUsers": "Utilisateurs actifs",
       "catalogModels": "Modèles du catalogue",
       "tabs": {
-        "system": "Système",
         "solver": "Solveur",
-        "llm": "LLM",
         "email": "E-mail",
-        "security": "Sécurité",
-        "marketplace": "Marketplace",
         "secrets": "Secrets",
         "auditLog": "Journal d'Audit",
-        "systemSettings": "Parametres système",
-        "billing": "Plans et limites"
+        "instance": "Instance",
+        "access": "Accès et limites",
+        "ai": "IA",
+        "advanced": "Avancé",
+        "limits": "Limites de l'instance"
       },
       "saveChanges": "Enregistrer les modifications",
       "saving": "Enregistrement...",
@@ -2029,7 +2028,8 @@
         "save": "Enregistrer",
         "saving": "Enregistrement...",
         "updated": "Secret mis à jour avec succès",
-        "updateFailed": "Échec de la mise à jour du secret"
+        "updateFailed": "Échec de la mise à jour du secret",
+        "signsEveryoneOut": "Enregistrer une nouvelle valeur déconnecte immédiatement tous les utilisateurs, vous compris."
       },
       "audit": {
         "title": "Modifications des Paramètres",
@@ -2052,27 +2052,8 @@
           "page": "Page {page} sur {total}"
         }
       },
-      "plans": {
-        "title": "Niveaux de Plan",
-        "description": "Configurer les limites et quotas des plans d'abonnement",
-        "allowedFeaturesLabel": "{plan} - Fonctionnalités Autorisées",
-        "allowedFeaturesHelp": "Tableau JSON de chaînes de fonctionnalités, ex. [\"basic\", \"export\"]",
-        "headers": {
-          "plan": "Plan",
-          "monthlyQuota": "Quota Mensuel",
-          "rateLimitMin": "Limite/min",
-          "rateLimitDay": "Limite/jour",
-          "maxSolveTime": "Temps Max (s)",
-          "maxVariables": "Variables Max",
-          "maxDailySolves": "Résolutions/jour Max",
-          "maxCronSchedules": "Programmes Max",
-          "allowedFeatures": "Fonctionnalités Autorisées"
-        },
-        "free": "Gratuit",
-        "starter": "Starter",
-        "pro": "Pro",
-        "business": "Business"
-      }
+      "advancedWarning": "Identifiants et valeurs par défaut de bas niveau. Les modifications s'appliquent aux enregistrements créés à partir de maintenant, jamais à ceux qui existent déjà.",
+      "defaultValue": "Par défaut : {value}"
     },
     "users": {
       "title": "Utilisateurs",

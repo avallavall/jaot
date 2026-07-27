@@ -342,7 +342,7 @@ def signup_email(
             detail="Email already registered",
         )
 
-    plan_config = PSS.get_plan_config_dynamic(db, body.plan)
+    limits = PSS.get_instance_limits(db)
 
     password_hash = PasswordService.hash_password(body.password)
 
@@ -352,8 +352,8 @@ def signup_email(
         id=org_id,
         name=body.organization_name,
         plan=body.plan,
-        rate_limit_per_minute=plan_config["rate_limit_per_minute"],
-        rate_limit_per_day=plan_config["rate_limit_per_day"],
+        rate_limit_per_minute=limits["rate_limit_per_minute"],
+        rate_limit_per_day=limits["rate_limit_per_day"],
     )
     db.add(organization)
 
@@ -736,12 +736,12 @@ def get_me(
     user = get_current_user(request)
     org = get_current_organization(request)
 
-    plan_config = PSS.get_plan_config_dynamic(db, org.plan)
+    limits = PSS.get_instance_limits(db)
     plan_limits = PlanLimitsResponse(
-        max_variables=plan_config["max_variables"],
-        max_solve_time_seconds=plan_config["max_solve_time_seconds"],
-        max_daily_solves=plan_config["max_daily_solves"],
-        allowed_features=plan_config["allowed_features"],
+        max_variables=limits["max_variables"],
+        max_solve_time_seconds=limits["max_solve_time_seconds"],
+        max_daily_solves=limits["max_daily_solves"],
+        allowed_features=limits["allowed_features"],
     )
 
     # D-7.1-06: is_org_owner is a READ-ONLY signal derived server-side.
@@ -796,7 +796,7 @@ def signup(
             detail="Email already registered",
         )
 
-    plan_config = PSS.get_plan_config_dynamic(db, request.plan)
+    limits = PSS.get_instance_limits(db)
 
     org_prefix = PSS.get_str(db, "ID_PREFIX_ORGANIZATION")
     org_id = f"{org_prefix}{secrets.token_hex(8)}"
@@ -804,8 +804,8 @@ def signup(
         id=org_id,
         name=request.organization_name,
         plan=request.plan,
-        rate_limit_per_minute=plan_config["rate_limit_per_minute"],
-        rate_limit_per_day=plan_config["rate_limit_per_day"],
+        rate_limit_per_minute=limits["rate_limit_per_minute"],
+        rate_limit_per_day=limits["rate_limit_per_day"],
     )
     db.add(organization)
 

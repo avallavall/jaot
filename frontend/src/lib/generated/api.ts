@@ -558,34 +558,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v2/admin/settings/plans": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Plan Tiers
-         * @description Return all plan tier configurations.
-         *
-         *     Returns all 4 plans (free, starter, pro, business) with 7 fields each.
-         */
-        get: operations["get_plan_tiers_api_v2_admin_settings_plans_get"];
-        /**
-         * Update Plan Tiers
-         * @description Update plan tier configurations.
-         *
-         *     Validates each field against registry constraints (per-field only).
-         */
-        put: operations["update_plan_tiers_api_v2_admin_settings_plans_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v2/admin/settings/registry": {
         parameters: {
             query?: never;
@@ -7956,30 +7928,6 @@ export interface components {
             /** Max Variables */
             max_variables: number;
         };
-        /**
-         * PlanTiersResponse
-         * @description All plan tier configurations.
-         */
-        PlanTiersResponse: {
-            /** Plans */
-            plans: {
-                [key: string]: {
-                    [key: string]: string;
-                };
-            };
-        };
-        /**
-         * PlanTiersUpdateRequest
-         * @description Update plan tier configurations.
-         */
-        PlanTiersUpdateRequest: {
-            /** Plans */
-            plans: {
-                [key: string]: {
-                    [key: string]: string;
-                };
-            };
-        };
         /** PlatformOverviewResponse */
         PlatformOverviewResponse: {
             /** Avg Users Per Org */
@@ -8884,13 +8832,13 @@ export interface components {
             gap_tolerance: number;
             /**
              * Threads
-             * @description Number of threads (0=auto)
+             * @description Number of solver threads (0=auto, no ceiling)
              * @default 0
              */
             threads: number;
             /**
              * Time Limit Seconds
-             * @description Max solve time (seconds, up to 24h)
+             * @description Max solve time in seconds (no ceiling — see plan caps)
              * @default 300
              */
             time_limit_seconds: number;
@@ -9992,8 +9940,6 @@ export type PaginatedResponseWorkspaceResponse = components['schemas']['Paginate
 export type ParetoPoint = components['schemas']['ParetoPoint'];
 export type Percentiles = components['schemas']['Percentiles'];
 export type PlanLimitsResponse = components['schemas']['PlanLimitsResponse'];
-export type PlanTiersResponse = components['schemas']['PlanTiersResponse'];
-export type PlanTiersUpdateRequest = components['schemas']['PlanTiersUpdateRequest'];
 export type PlatformOverviewResponse = components['schemas']['PlatformOverviewResponse'];
 export type PreviewRequest = components['schemas']['PreviewRequest'];
 export type ProgressPoint = components['schemas']['ProgressPoint'];
@@ -11102,59 +11048,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["app__schemas__admin_settings__AuditLogResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_plan_tiers_api_v2_admin_settings_plans_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PlanTiersResponse"];
-                };
-            };
-        };
-    };
-    update_plan_tiers_api_v2_admin_settings_plans_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PlanTiersUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PlanTiersResponse"];
                 };
             };
             /** @description Validation Error */

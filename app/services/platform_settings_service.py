@@ -225,50 +225,41 @@ class PlatformSettingsService:
             )
         )
 
+    #: Limit fields, without the ``instance_`` prefix the settings carry.
+    INSTANCE_LIMIT_FIELDS = (
+        "rate_limit_per_minute",
+        "rate_limit_per_day",
+        "max_solve_time_seconds",
+        "max_variables",
+        "max_daily_solves",
+        "max_cron_schedules",
+        "allowed_features",
+    )
+
     @classmethod
-    def get_plan_config_dynamic(cls, db: Session, plan_name: str) -> dict[str, Any]:
-        """Get plan configuration from DB for a given plan name.
+    def get_instance_limits(cls, db: Session) -> dict[str, Any]:
+        """Get what this instance allows, as one profile for every organization.
 
-        Returns a dict with keys: rate_limit_per_minute,
-        rate_limit_per_day, max_solve_time_seconds, max_variables,
-        max_daily_solves, max_cron_schedules, allowed_features.
+        Replaces the per-plan lookup: the four tiers were a leftover of the paid
+        plans ADR-008 removed, and a self-hosted instance has one set of limits.
+        ``organizations.plan`` still exists as a label but no longer selects a
+        different ceiling.
 
-        Falls back to registry defaults via the standard get() chain.
+        Every numeric field is an int where **0 means unlimited**, and
+        ``allowed_features`` is a decoded list. An unparseable value reads as 0
+        (unlimited) rather than 0 (forbid everything) — callers guard for zero.
 
         Args:
             db: Database session.
-            plan_name: Plan name (e.g. "free", "starter").
 
         Returns:
-            Dict of plan configuration values.
+            Dict keyed by :data:`INSTANCE_LIMIT_FIELDS`.
         """
-        fields = [
-            "rate_limit_per_minute",
-            "rate_limit_per_day",
-            "max_solve_time_seconds",
-            "max_variables",
-            "max_daily_solves",
-            "max_cron_schedules",
-            "allowed_features",
-        ]
-        plan_key = (plan_name or cls.get_str(db, "DEFAULT_PLAN", "free")).lower()
-
-        _known_tiers = {"free", "starter", "pro", "business"}
-        if plan_key not in _known_tiers:
-            logger.warning(
-                "Unknown plan '%s', falling back to 'free'",
-                plan_key,
-            )
-            plan_key = "free"
-
-        # Batch-fetch all plan fields in a single DB query
-        db_keys = [f"plan_{plan_key}_{field}" for field in fields]
-        raw_values = cls.get_many(db, db_keys)
+        raw_values = cls.get_many(db, [f"instance_{field}" for field in cls.INSTANCE_LIMIT_FIELDS])
 
         result: dict[str, Any] = {}
-        for field in fields:
-            key = f"plan_{plan_key}_{field}"
-            raw = raw_values.get(key, "")
+        for field in cls.INSTANCE_LIMIT_FIELDS:
+            raw = raw_values.get(f"instance_{field}", "")
             if field == "allowed_features":
                 try:
                     result[field] = json.loads(raw) if raw else []
@@ -480,56 +471,3 @@ class PlatformSettingsService:
             }
 
         return result
-
-    @classmethod
-    def get_plan_tiers(cls, db: Session) -> dict[str, dict[str, str]]:
-        """Return plan configs grouped by tier name.
-
-        Returns:
-            Dict of tier_name -> {field: value} for all 4 tiers x 7 fields.
-        """
-        tiers = ["free", "starter", "pro", "business"]
-        fields = [
-            "rate_limit_per_minute",
-            "rate_limit_per_day",
-            "max_solve_time_seconds",
-            "max_variables",
-            "max_daily_solves",
-            "max_cron_schedules",
-            "allowed_features",
-        ]
-
-        result: dict[str, dict[str, str]] = {}
-        for tier in tiers:
-            tier_data: dict[str, str] = {}
-            for field in fields:
-                key = f"plan_{tier}_{field}"
-                tier_data[field] = cls.get(db, key)
-            result[tier] = tier_data
-        return result
-
-    @classmethod
-    def set_plan_tiers(
-        cls,
-        db: Session,
-        plans: dict[str, dict[str, str]],
-        changed_by: str,
-    ) -> list[PlatformSettingAudit]:
-        """Batch-update plan tier settings.
-
-        Args:
-            db: Database session.
-            plans: Dict of tier_name -> {field: value}.
-            changed_by: Admin user email/ID.
-
-        Returns:
-            List of audit records created.
-        """
-        updates: dict[str, str] = {}
-        for tier, fields in plans.items():
-            for field, value in fields.items():
-                key = f"plan_{tier}_{field}"
-                if key in REGISTRY_BY_KEY:
-                    updates[key] = value
-
-        return cls.bulk_set(db, updates, changed_by)

@@ -17,8 +17,6 @@ from app.models.platform_setting_audit import PlatformSettingAudit
 from app.schemas.admin_settings import (
     AuditEntryResponse,
     AuditLogResponse,
-    PlanTiersResponse,
-    PlanTiersUpdateRequest,
     SettingDefinitionResponse,
     SettingsRegistryResponse,
     SettingsUpdateRequest,
@@ -210,45 +208,7 @@ def get_audit_log(
     )
 
 
-@router.get("/plans", response_model=PlanTiersResponse)
-def get_plan_tiers(
-    db: Session = Depends(get_db),
-) -> PlanTiersResponse:
-    """Return all plan tier configurations.
-
-    Returns all 4 plans (free, starter, pro, business) with 7 fields each.
-    """
-    plans = PlatformSettingsService.get_plan_tiers(db)
-    return PlanTiersResponse(plans=plans)
-
-
-@router.put("/plans", response_model=PlanTiersResponse)
-def update_plan_tiers(
-    body: PlanTiersUpdateRequest,
-    request: Request,
-    db: Session = Depends(get_db),
-) -> PlanTiersResponse:
-    """Update plan tier configurations.
-
-    Validates each field against registry constraints (per-field only).
-    """
-    user = getattr(request.state, "user", None)
-    changed_by = getattr(user, "email", "admin") if user else "admin"
-
-    errors: dict[str, str] = {}
-    for tier, fields in body.plans.items():
-        for field, value in fields.items():
-            key = f"plan_{tier}_{field}"
-            if key not in REGISTRY_BY_KEY:
-                errors[key] = f"Unknown plan field: {tier}.{field}"
-                continue
-            ok, err = PlatformSettingsService.validate_value(key, value)
-            if not ok:
-                errors[key] = err or "Validation failed"
-
-    if not errors:
-        PlatformSettingsService.set_plan_tiers(db, body.plans, changed_by=changed_by)
-        db.commit()
-
-    plans = PlatformSettingsService.get_plan_tiers(db)
-    return PlanTiersResponse(plans=plans)
+# GET/PUT /plans are gone with the four tiers. The instance limits are seven
+# ordinary settings in the `limits` category now, so the generic values
+# endpoints above edit them — the tier table and the loose fields used to render
+# the SAME 28 keys twice on one tab, with two different editors.

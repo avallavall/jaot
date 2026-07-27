@@ -87,9 +87,9 @@ def check_schedule_limit(db: Session, org_id: str, plan_name: str) -> None:
     """
     from app.services.platform_settings_service import PlatformSettingsService as PSS
 
-    plan_config = PSS.get_plan_config_dynamic(db, plan_name)
+    limits = PSS.get_instance_limits(db)
 
-    max_schedules = plan_config["max_cron_schedules"]
+    max_schedules = limits["max_cron_schedules"]
     if max_schedules <= 0:
         return
 

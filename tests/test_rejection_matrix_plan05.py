@@ -103,19 +103,6 @@ def test_patch_admin_reviews_visibility_returns_422_for_missing_query_param(admi
     assert resp.status_code == 422
 
 
-def test_put_admin_settings_plans_returns_422_for_malformed_body(admin_client):
-    """SC3 (cell #11, owner=PLAN_05): PUT /api/v2/admin/settings/plans -> 422.
-
-    ``update_plans`` at app/api/v2/routes/admin/settings.py:253 accepts a
-    structured body schema. A malformed body (wrong shape) triggers 422.
-    """
-    resp = admin_client.put(
-        "/api/v2/admin/settings/plans",
-        json={"not_a_valid_plan_shape": True},
-    )
-    assert resp.status_code == 422
-
-
 def test_put_admin_settings_values_returns_422_for_malformed_body(admin_client):
     """SC3 (cell #12, owner=PLAN_05): PUT /api/v2/admin/settings/values -> 422.
 

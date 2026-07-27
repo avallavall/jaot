@@ -15,8 +15,8 @@ _REGISTRY_FILE = _APP_DIR / "services" / "settings_registry.py"
 # literal. Each entry names the reader that must keep existing — an f-string
 # that stops matching is a real break, and the assertion below catches it.
 _DYNAMIC_READERS: dict[str, tuple[str, str]] = {
-    "plan_": ("services/platform_settings_service.py", 'f"plan_{plan_key}_{field}"'),
     "HOME_ANNOUNCEMENT_TEXT_": ("api/v2/home.py", 'f"HOME_ANNOUNCEMENT_TEXT_{locale.upper()}"'),
+    "instance_": ("services/platform_settings_service.py", 'f"instance_{field}"'),
 }
 
 
@@ -33,11 +33,11 @@ class TestSettingsRegistry:
     """Test the settings registry data structure."""
 
     def test_registry_has_all_categories(self):
-        """ADMIN-01: Registry covers all 8 categories."""
+        """ADMIN-01: Registry covers the core categories."""
         from app.services.settings_registry import REGISTRY_BY_CATEGORY, SettingCategory
 
         expected = {
-            SettingCategory.BILLING,
+            SettingCategory.LIMITS,
             SettingCategory.SOLVER,
             SettingCategory.LLM,
             SettingCategory.EMAIL,
@@ -97,11 +97,21 @@ class TestSettingsRegistry:
         empty = [c.value for c in SettingCategory if not REGISTRY_BY_CATEGORY.get(c)]
         assert not empty, f"Categories with no settings (would render an empty tab): {empty}"
 
-    def test_registry_has_minimum_entries(self):
-        """Registry contains 88+ entries across all categories."""
+    def test_registry_keys_are_unique(self):
+        """No key declared twice — the later one silently wins in REGISTRY_BY_KEY.
+
+        Replaces a "registry has 88+ entries" floor. That number only ever went
+        up, so it caught nothing while the panel filled with settings nobody
+        read; the reader and empty-category checks above are the real guards.
+        A duplicate key, on the other hand, is a live hazard: the panel would
+        show two fields writing to one row.
+        """
         from app.services.settings_registry import SETTINGS_REGISTRY
 
-        assert len(SETTINGS_REGISTRY) >= 88, f"Expected >= 88 entries, got {len(SETTINGS_REGISTRY)}"
+        keys = [d.key for d in SETTINGS_REGISTRY]
+        duplicates = sorted({k for k in keys if keys.count(k) > 1})
+        assert not duplicates, f"Duplicate setting keys: {duplicates}"
+        assert keys, "Registry is empty"
 
     def test_registry_by_key_lookup(self):
         """REGISTRY_BY_KEY allows key-based lookup."""
@@ -138,24 +148,17 @@ class TestSettingsRegistry:
             assert s.is_secret is True, f"{s.key} should be is_secret=True"
             assert s.is_readonly is False, f"{s.key} should be is_readonly=False"
 
-    def test_plan_tier_keys_exist(self):
-        """Billing category has all plan tier keys (4 tiers x 9 fields)."""
+    def test_instance_limit_keys_exist(self):
+        """One limit profile, seven fields — the four tiers are gone."""
+        from app.services.platform_settings_service import PlatformSettingsService as PSS
         from app.services.settings_registry import REGISTRY_BY_KEY
 
-        tiers = ["free", "starter", "pro", "business"]
-        fields = [
-            "rate_limit_per_minute",
-            "rate_limit_per_day",
-            "max_solve_time_seconds",
-            "max_variables",
-            "max_daily_solves",
-            "max_cron_schedules",
-            "allowed_features",
-        ]
-        for tier in tiers:
-            for field in fields:
-                key = f"plan_{tier}_{field}"
-                assert key in REGISTRY_BY_KEY, f"Missing plan key: {key}"
+        for field in PSS.INSTANCE_LIMIT_FIELDS:
+            key = f"instance_{field}"
+            assert key in REGISTRY_BY_KEY, f"Missing instance limit: {key}"
+
+        leftover = [k for k in REGISTRY_BY_KEY if k.startswith("plan_")]
+        assert not leftover, f"Plan tier settings still declared: {leftover}"
 
 
 class TestPlatformSettingsServiceGet:
@@ -522,39 +525,43 @@ class TestSettingsAuditEndpoint:
             assert item["category"] == "solver"
 
 
-class TestSettingsPlansEndpoint:
-    """ADMIN-02: GET/PUT /admin/settings/plans."""
+class TestInstanceLimits:
+    """The four plan tiers collapsed into one instance profile (1.9 review)."""
 
-    def test_get_plans_returns_all_tiers(self, admin_client):
-        """GET /plans returns all 4 plan tiers."""
-        response = admin_client.get("/api/v2/admin/settings/plans")
-        assert response.status_code == 200
-        data = response.json()
-        assert "plans" in data
-        assert "free" in data["plans"]
-        assert "starter" in data["plans"]
-        assert "pro" in data["plans"]
-        assert "business" in data["plans"]
-        # Each tier should have 7 fields (credits/monthly_quota died with ADR-008)
-        assert len(data["plans"]["free"]) == 7
+    def test_limits_are_editable_through_the_normal_values_endpoint(self, admin_client, db_session):
+        """No dedicated /plans endpoint any more — they are ordinary settings.
 
-    def test_put_plans_updates_tiers(self, admin_client, db_session):
-        """PUT /plans updates plan tier values."""
+        This is what removes the duplication: the tier table and the loose
+        fields rendered the same 28 keys on one tab, with two editors that
+        wrote through different endpoints.
+        """
         response = admin_client.put(
-            "/api/v2/admin/settings/plans",
-            json={
-                "plans": {
-                    "free": {"rate_limit_per_minute": "120"},
-                }
-            },
+            "/api/v2/admin/settings/values",
+            json={"updates": {"instance_rate_limit_per_minute": "240"}},
         )
-        assert response.status_code == 200
+        assert response.status_code == 200, response.text
+        assert "instance_rate_limit_per_minute" in response.json()["updated"]
 
-        # Verify persisted
         from app.services.platform_settings_service import PlatformSettingsService
 
-        val = PlatformSettingsService.get(db_session, "plan_free_rate_limit_per_minute")
-        assert val == "120"
+        assert PlatformSettingsService.get(db_session, "instance_rate_limit_per_minute") == "240"
+
+    def test_plans_endpoint_is_gone(self, admin_client):
+        """The tier endpoints left with the tiers."""
+        assert admin_client.get("/api/v2/admin/settings/plans").status_code == 404
+
+    def test_get_instance_limits_returns_every_field_typed(self, db_session):
+        """All seven fields, numbers as ints and features as a list."""
+        from app.services.platform_settings_service import PlatformSettingsService as PSS
+
+        limits = PSS.get_instance_limits(db_session)
+
+        assert set(limits) == set(PSS.INSTANCE_LIMIT_FIELDS)
+        for field in PSS.INSTANCE_LIMIT_FIELDS:
+            if field == "allowed_features":
+                assert isinstance(limits[field], list)
+            else:
+                assert isinstance(limits[field], int)
 
 
 class TestSettingsNonAdminAccess:

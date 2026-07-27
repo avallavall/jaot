@@ -40,7 +40,7 @@ class SettingCategory(str, Enum):
 
     SYSTEM = "system"
     APP = "app"
-    BILLING = "billing"
+    LIMITS = "limits"
     SOLVER = "solver"
     LLM = "llm"
     EMAIL = "email"
@@ -690,105 +690,109 @@ SETTINGS_REGISTRY.extend(
     ]
 )
 
-# BILLING category — legacy tier LIMIT profiles (DEFAULT_PLAN + 4 tiers x 9 fields; ADR-008 removed all money settings)
-
-SETTINGS_REGISTRY.append(
-    SettingDefinition(
-        key="DEFAULT_PLAN",
-        label="Default Plan",
-        description="Default subscription plan for new organizations",
-        category=SettingCategory.BILLING,
-        setting_type=SettingType.STRING,
-        default_value="free",
-    ),
-)
-
-_PLAN_TIERS = ["free", "starter", "pro", "business"]
-# ADR-008: plan tiers are LIMIT PROFILES only — the credits/monthly_quota
-# fields left with the credit system.
+# LIMITS category — what this instance allows, as ONE profile.
 #
-# No field has an upper bound any more. These caps were sized for a paid SaaS with
-# tiers; on self-hosted open source an operator with big hardware must be able to
-# type any number, and **0 means unlimited** for every one of them. The admin panel
-# would otherwise refuse the value before it ever reached the DB.
-_PLAN_FIELDS: list[tuple[str, str, SettingType, float | None, float | None, str | None]] = [
-    # (field, label, type, min, max, unit) — max None = no ceiling, 0 = unlimited
-    ("rate_limit_per_minute", "Rate Limit/Min", SettingType.INT, 0, None, None),
-    ("rate_limit_per_day", "Rate Limit/Day", SettingType.INT, 0, None, None),
+# It used to be four: free / starter / pro / business, 7 fields each, a leftover
+# of the paid tiers ADR-008 removed. By the time D-21 had relaxed the caps the
+# four were identical apart from rate limits, and the panel rendered all 28 keys
+# twice — once in a tier table, once as loose fields. A self-hosted instance has
+# one operator and one machine, so it has one set of limits.
+#
+# No field has an upper bound: an operator with big hardware must be able to type
+# any number, and **0 means unlimited** for every one of them. Anything that
+# compares against these MUST guard for 0 first (D-21) — a plain `count >= limit`
+# is true at zero and locks the instance out.
+_INSTANCE_LIMITS: list[tuple[str, str, str, SettingType, str, float | None, str | None]] = [
+    # (key, label, description, type, default, min, unit)
     (
-        "max_solve_time_seconds",
-        "Max Solve Time",
+        "instance_rate_limit_per_minute",
+        "Rate Limit/Min",
+        "Max API requests per minute for one organization. 0 = unlimited.",
         SettingType.INT,
+        "120",
         0,
         None,
+    ),
+    (
+        "instance_rate_limit_per_day",
+        "Rate Limit/Day",
+        "Max API requests per day for one organization. 0 = unlimited.",
+        SettingType.INT,
+        "50000",
+        0,
+        None,
+    ),
+    (
+        "instance_max_solve_time_seconds",
+        "Max Solve Time",
+        (
+            "Ceiling on a single solve. A request asking for longer is clamped "
+            "to this, not rejected. 0 = unlimited."
+        ),
+        SettingType.INT,
+        "0",
+        0,
         "seconds",
     ),
-    ("max_variables", "Max Variables", SettingType.INT, 0, None, None),
-    ("max_daily_solves", "Max Daily Solves", SettingType.INT, 0, None, None),
-    ("max_cron_schedules", "Max Cron Schedules", SettingType.INT, 0, None, None),
-    ("allowed_features", "Allowed Features", SettingType.JSON, None, None, None),
+    (
+        "instance_max_variables",
+        "Max Variables",
+        (
+            "Largest model this instance accepts, in variables. Sized by the "
+            "memory of the machine that solves it. 0 = unlimited."
+        ),
+        SettingType.INT,
+        "0",
+        0,
+        None,
+    ),
+    (
+        "instance_max_daily_solves",
+        "Max Daily Solves",
+        "Solves one organization may run per day. 0 = unlimited.",
+        SettingType.INT,
+        "0",
+        0,
+        None,
+    ),
+    (
+        "instance_max_cron_schedules",
+        "Max Cron Schedules",
+        "Scheduled triggers one organization may keep. 0 = unlimited.",
+        SettingType.INT,
+        "0",
+        0,
+        None,
+    ),
+    (
+        "instance_allowed_features",
+        "Allowed Features",
+        (
+            "JSON array of features enabled on this instance. Removing one hides "
+            "it from every organization: llm_assistant, warm_start, "
+            "sensitivity_analysis, cron_scheduling."
+        ),
+        SettingType.JSON,
+        '["llm_assistant","warm_start","sensitivity_analysis","cron_scheduling"]',
+        None,
+        None,
+    ),
 ]
 
-_ALLOWED_FEATURES_DEFAULT = (
-    '["llm_assistant","warm_start","sensitivity_analysis","cron_scheduling"]'
-)
-
-# Default values per tier, keyed by (tier, field)
-_PLAN_DEFAULTS: dict[tuple[str, str], str] = {
-    # Default plan ("free"): no paid tiers anymore — every signup gets full,
-    # business-level access. Open-source self-hosted: business/usage limits
-    # relaxed (solve time up to 24h, 100k daily solves). The platform-wide
-    # monthly LLM budget remains the only real cost ceiling. Mirrored here so
-    # fresh installs / DB reseeds match. (starter/pro/business kept as legacy,
-    # also relaxed for consistency.)
-    ("free", "rate_limit_per_minute"): "120",
-    ("free", "rate_limit_per_day"): "50000",
-    ("free", "max_solve_time_seconds"): "0",
-    ("free", "max_variables"): "0",
-    ("free", "max_daily_solves"): "0",
-    ("free", "max_cron_schedules"): "0",
-    ("free", "allowed_features"): _ALLOWED_FEATURES_DEFAULT,
-    # Starter tier
-    ("starter", "rate_limit_per_minute"): "20",
-    ("starter", "rate_limit_per_day"): "500",
-    ("starter", "max_solve_time_seconds"): "0",
-    ("starter", "max_variables"): "0",
-    ("starter", "max_daily_solves"): "0",
-    ("starter", "max_cron_schedules"): "0",
-    ("starter", "allowed_features"): _ALLOWED_FEATURES_DEFAULT,
-    # Pro tier
-    ("pro", "rate_limit_per_minute"): "60",
-    ("pro", "rate_limit_per_day"): "5000",
-    ("pro", "max_solve_time_seconds"): "0",
-    ("pro", "max_variables"): "0",
-    ("pro", "max_daily_solves"): "0",
-    ("pro", "max_cron_schedules"): "0",
-    ("pro", "allowed_features"): _ALLOWED_FEATURES_DEFAULT,
-    # Business tier
-    ("business", "rate_limit_per_minute"): "120",
-    ("business", "rate_limit_per_day"): "50000",
-    ("business", "max_solve_time_seconds"): "0",
-    ("business", "max_variables"): "0",
-    ("business", "max_daily_solves"): "0",
-    ("business", "max_cron_schedules"): "0",
-    ("business", "allowed_features"): _ALLOWED_FEATURES_DEFAULT,
-}
-
-for _tier in _PLAN_TIERS:
-    for _field, _label, _stype, _min, _max, _unit in _PLAN_FIELDS:
-        SETTINGS_REGISTRY.append(
-            SettingDefinition(
-                key=f"plan_{_tier}_{_field}",
-                label=f"{_tier.title()} {_label}",
-                description=f"{_label} for {_tier.title()} plan",
-                category=SettingCategory.BILLING,
-                setting_type=_stype,
-                default_value=_PLAN_DEFAULTS.get((_tier, _field)),
-                min_value=_min,
-                max_value=_max,
-                unit=_unit,
-            ),
-        )
+for _key, _label, _desc, _stype, _default, _min, _unit in _INSTANCE_LIMITS:
+    SETTINGS_REGISTRY.append(
+        SettingDefinition(
+            key=_key,
+            label=_label,
+            description=_desc,
+            category=SettingCategory.LIMITS,
+            setting_type=_stype,
+            default_value=_default,
+            min_value=_min,
+            max_value=None,
+            unit=_unit,
+        ),
+    )
 
 
 # SECRETS category — masked in the panel, editable, and READ FROM HERE at runtime.

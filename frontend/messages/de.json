@@ -1993,16 +1993,15 @@
       "activeUsers": "Aktive Benutzer",
       "catalogModels": "Katalogmodelle",
       "tabs": {
-        "system": "System",
         "solver": "Solver",
-        "llm": "LLM",
         "email": "E-Mail",
-        "security": "Sicherheit",
-        "marketplace": "Marktplatz",
         "secrets": "Secrets",
         "auditLog": "Audit-Log",
-        "systemSettings": "Systemeinstellungen",
-        "billing": "Pläne & Limits"
+        "instance": "Instanz",
+        "access": "Zugang & Limits",
+        "ai": "KI",
+        "advanced": "Erweitert",
+        "limits": "Instanzlimits"
       },
       "saveChanges": "Änderungen speichern",
       "saving": "Speichern...",
@@ -2029,7 +2028,8 @@
         "save": "Speichern",
         "saving": "Speichern...",
         "updated": "Secret erfolgreich aktualisiert",
-        "updateFailed": "Fehler beim Aktualisieren des Secrets"
+        "updateFailed": "Fehler beim Aktualisieren des Secrets",
+        "signsEveryoneOut": "Ein neuer Wert meldet sofort alle Benutzer ab, auch dich."
       },
       "audit": {
         "title": "EinstellungsÄnderungen",
@@ -2052,27 +2052,8 @@
           "page": "Seite {page} von {total}"
         }
       },
-      "plans": {
-        "title": "Tarifübersicht",
-        "description": "Abonnement-Tarif-Limits und Kontingente konfigurieren",
-        "allowedFeaturesLabel": "{plan} - Erlaubte Funktionen",
-        "allowedFeaturesHelp": "JSON-Array von Feature-Strings, z.B. [\"basic\", \"export\"]",
-        "headers": {
-          "plan": "Tarif",
-          "monthlyQuota": "Monatliches Kontingent",
-          "rateLimitMin": "Limit/Min",
-          "rateLimitDay": "Limit/Tag",
-          "maxSolveTime": "Max. Lösungszeit (s)",
-          "maxVariables": "Max. Variablen",
-          "maxDailySolves": "Max. Lösungen/Tag",
-          "maxCronSchedules": "Max. Zeitpläne",
-          "allowedFeatures": "Erlaubte Funktionen"
-        },
-        "free": "Kostenlos",
-        "starter": "Starter",
-        "pro": "Pro",
-        "business": "Business"
-      }
+      "advancedWarning": "Systemnahe Bezeichner und Standardwerte. Änderungen gelten für künftig erstellte Datensätze, nie für bereits vorhandene.",
+      "defaultValue": "Standard: {value}"
     },
     "users": {
       "title": "Benutzer",

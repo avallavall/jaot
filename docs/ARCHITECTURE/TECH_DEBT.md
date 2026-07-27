@@ -183,6 +183,7 @@ workers use. Nothing left to change; verified 2026-07-26.
 | D-17 | 55 endpoints return `dict[str, Any]` with no `response_model` → OpenAPI cannot describe them and the frontend hand-writes those types | Medium (contract drift) | 2–3 days | Medium |
 | D-18 | 113 `Depends(get_db)` instead of the `DBSession` alias the project rule mandates | Low (consistency) | Folded into D-12 | Low |
 | D-19 | `execution.py` had grown to 839 LOC mixing the marketplace execution flow with the post-solve analysis endpoints, and the org filter was hand-typed at 4 call sites | Low-medium (architectural) | 1–2 days | ✅ **Partly resolved** (`f4dd487`) — analysis split into its own module + one shared `execution_or_404`; the remaining ~180 route-level queries stay as opportunistic cleanup |
+| D-22 | Orphaned `platform_settings` rows — 98 on the reference install, of which 51 come from the 1.9 panel review (23 retired settings + the 28 `plan_*` tier keys the instance profile replaced) and the rest predate it, mostly ADR-008 billing keys. Additive-only means the code stopped reading them but nothing deleted them | Low (cosmetic; invisible to the panel, which renders the registry) | Minutes | Deferred to the contract-release window, with the other legacy DROPs |
 
 **Suggested first batch:** D-10 + D-11 + D-12 — the three that change something real, ~2 days,
 no architectural commitment.

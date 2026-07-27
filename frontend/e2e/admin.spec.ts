@@ -186,6 +186,55 @@ test.describe("Admin Dashboard", () => {
       expect(tabCount).toBeGreaterThanOrEqual(2);
     });
 
+    test("every settings category the backend returns is reachable in a tab", async ({
+      page,
+    }) => {
+      // The panel used to hardcode its tab list, so six categories — the whole
+      // RAG configuration among them — had no tab and could only be changed
+      // with SQL. Tabs are derived from the registry now, with anything
+      // unmapped falling into Advanced. This is the test that says so: it asks
+      // the API which categories exist and requires each one to render.
+      const registry = await page.request.get(
+        "/api/v2/admin/settings/registry"
+      );
+      expect(registry.ok()).toBe(true);
+      const categories: Record<string, Array<{ label: string }>> = (
+        await registry.json()
+      ).categories;
+
+      const adminPage = new AdminPage(page);
+      await adminPage.gotoSettings();
+      await expect(page.getByRole("tab").first()).toBeVisible({
+        timeout: 15_000,
+      });
+
+      // Search is the check: it renders matches flat (no accordion to expand)
+      // and it reaches every tab that holds settings. It used to skip System
+      // and the six categories that had no tab, so this covers both fixes at
+      // once — a category with no tab has nothing to render a match into.
+      const search = page.getByPlaceholder(/search settings/i);
+      const unreachable: string[] = [];
+
+      for (const [category, entries] of Object.entries(categories)) {
+        if (entries.length === 0 || category === "secrets") continue; // secrets: own tab, masked
+        const probe = entries[0].label;
+
+        await search.fill(probe);
+        const match = page.getByText(probe, { exact: true }).first();
+        const visible = await match
+          .waitFor({ state: "visible", timeout: 5_000 })
+          .then(() => true)
+          .catch(() => false);
+        if (!visible) unreachable.push(`${category} (searched "${probe}")`);
+      }
+      await search.fill("");
+
+      expect(
+        unreachable,
+        `Categories whose settings the panel never renders: ${unreachable.join(", ")}`
+      ).toEqual([]);
+    });
+
     test("settings page can switch between tabs", async ({ page }) => {
       const adminPage = new AdminPage(page);
       await adminPage.gotoSettings();

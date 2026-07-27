@@ -78,7 +78,7 @@ class TestSolverIntegration:
         """Plan config max_solve_time_seconds from DB is used by _enforce_tier_caps
         to clamp the requested time limit."""
         # Set the free plan max_solve_time_seconds to 5 (very low)
-        PSS.set(db_session, "plan_free_max_solve_time_seconds", "5")
+        PSS.set(db_session, "instance_max_solve_time_seconds", "5")
         db_session.commit()
 
         problem = {**self.SIMPLE_PROBLEM, "options": {"time_limit_seconds": 300}}
@@ -91,9 +91,9 @@ class TestSolverIntegration:
         assert data["status"] == "optimal"
 
     def test_solve_plan_config_uses_db_max_variables(self, authenticated_client, db_session):
-        """Setting plan_free_max_variables to 1 in DB causes the solve endpoint
+        """Setting instance_max_variables to 1 in DB causes the solve endpoint
         to reject a problem with 2 variables."""
-        PSS.set(db_session, "plan_free_max_variables", "1")
+        PSS.set(db_session, "instance_max_variables", "1")
         db_session.commit()
 
         resp = authenticated_client.post("/api/v2/solve", json=self.SIMPLE_PROBLEM)
@@ -115,7 +115,7 @@ class TestLLMIntegration:
         PSS.set(db_session, "LLM_RATE_LIMIT_PER_DAY", "1000")
         PSS.set(
             db_session,
-            "plan_starter_allowed_features",
+            "instance_allowed_features",
             json.dumps(["llm_assistant", "warm_start"]),
         )
         db_session.commit()
@@ -245,30 +245,30 @@ class TestJWTIntegration:
 
 
 class TestPlanConfigIntegration:
-    """get_plan_config_dynamic returns DB-overridden values that drive
+    """get_instance_limits returns DB-overridden values that drive
     actual application behavior (tier caps, feature gates)."""
 
     def test_plan_config_dynamic_overrides_static(self, db_session):
-        """Set plan_free_rate_limit_per_minute to 9999 in DB, verify
-        get_plan_config_dynamic returns 9999 (not the registry default)."""
-        PSS.set(db_session, "plan_free_rate_limit_per_minute", "9999")
+        """Set instance_rate_limit_per_minute to 9999 in DB, verify
+        get_instance_limits returns 9999 (not the registry default)."""
+        PSS.set(db_session, "instance_rate_limit_per_minute", "9999")
         db_session.flush()
 
-        config = PSS.get_plan_config_dynamic(db_session, "free")
+        config = PSS.get_instance_limits(db_session)
         assert config["rate_limit_per_minute"] == 9999
 
     def test_plan_config_allowed_features_from_db(self, db_session):
-        """Set plan_free_allowed_features to a custom JSON list in DB."""
+        """Set instance_allowed_features to a custom JSON list in DB."""
         features = ["custom_feature_a", "custom_feature_b", "warm_start"]
-        PSS.set(db_session, "plan_free_allowed_features", json.dumps(features))
+        PSS.set(db_session, "instance_allowed_features", json.dumps(features))
         db_session.flush()
 
-        config = PSS.get_plan_config_dynamic(db_session, "free")
+        config = PSS.get_instance_limits(db_session)
         assert config["allowed_features"] == features
 
     def test_plan_config_returns_all_fields(self, db_session):
-        """get_plan_config_dynamic returns all 9 expected fields."""
-        config = PSS.get_plan_config_dynamic(db_session, "free")
+        """get_instance_limits returns all 9 expected fields."""
+        config = PSS.get_instance_limits(db_session)
         expected_fields = {
             "rate_limit_per_minute",
             "rate_limit_per_day",
@@ -283,10 +283,10 @@ class TestPlanConfigIntegration:
     def test_plan_config_drives_feature_gate(
         self, authenticated_client, db_session, test_organization
     ):
-        """Setting plan_free_allowed_features WITHOUT 'llm_assistant' causes
+        """Setting instance_allowed_features WITHOUT 'llm_assistant' causes
         the LLM conversation creation endpoint to return 403."""
         test_organization.plan = "free"
-        PSS.set(db_session, "plan_free_allowed_features", json.dumps(["warm_start"]))
+        PSS.set(db_session, "instance_allowed_features", json.dumps(["warm_start"]))
         db_session.commit()
 
         resp = authenticated_client.post("/api/v2/llm/conversations", json={})
@@ -294,9 +294,9 @@ class TestPlanConfigIntegration:
         assert "feature_not_available" in resp.text
 
     def test_plan_config_drives_variable_limit(self, authenticated_client, db_session):
-        """Setting plan_free_max_variables to 1 in DB causes 403 for a
+        """Setting instance_max_variables to 1 in DB causes 403 for a
         problem with 2 variables — proving the tier cap reads from DB."""
-        PSS.set(db_session, "plan_free_max_variables", "1")
+        PSS.set(db_session, "instance_max_variables", "1")
         db_session.commit()
 
         problem = {

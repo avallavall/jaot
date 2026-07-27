@@ -54,12 +54,19 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Routing variable names are readable** — arc variables in pickup-and-delivery models now group by family in the solution view and carry family-level KPIs, instead of rendering as an unstructured wall.
 - **The Sensitivity tab collapses degenerate shadow prices** — in a MIP most constraints often share one shadow price, so a per-constraint bar chart carried no information. Identical values now collapse to one row with a note pointing at the exact analysis.
 - **"Derive draft" respects JModel's model/data separation** — deriving a saved project produces the general formulation plus a generated dataset, instead of inlining 22,500 values into the source.
+- **One set of limits for the instance, instead of four plan tiers.** The tiers outlived the paid plans they came from and had drifted into four identical copies. Organisations keep their plan label; what they may do is now decided in one place. Existing installs keep whatever numbers they had configured — the migration carries across the value that restricts nobody.
+- **The admin settings panel is grouped by what you came to do** — Instance, Access, AI, Solver, Email, Advanced — instead of by which table a value lives in. Search covers every setting rather than half of them, each field shows the default it would return to, and tabs are built from what the server actually offers, so a setting can no longer exist without a place to edit it. Twenty-eight were in that state, the RAG configuration among them, reachable only through SQL.
 
-### Deprecated
+### Removed
 
-- **`LLM_THINKING_BUDGET_TOKENS`** — superseded by `LLM_THINKING_EFFORT`; the setting row stays for one release before removal.
+- **Twenty-three settings that changed nothing.** Some had no reader at all — a gzip threshold the server hardcoded past, two metrics counters, four ID prefixes, both rate-limit windows. Others the panel let you edit while the value was really taken from the environment file: bind host, port, worker count, the Celery retry settings and the database URL. Each one looked like a working control.
+- **`LLM_THINKING_BUDGET_TOKENS`**, deprecated last release in favour of `LLM_THINKING_EFFORT`.
+- **The plan-tier editor.** Instance limits are ordinary settings now, so the tier table and the loose fields no longer render the same values twice on one tab.
 
 ### Fixed
+
+- **Creating a scheduled run always failed with "Schedule limit reached (0)".** Zero means unlimited everywhere else since capacity limits became the operator's to set, but this check read it as "allow none", so cron scheduling was unusable out of the box.
+- **Hexaly's configurable time limit now applies.** The setting has always been in the panel, and the solver ignored it in favour of a fixed 300 seconds — so on a solver that searches until told to stop, the one control over when it stops did nothing.
 
 - **"Explain this model" and the version-diff explanation answer in your language.** Both were sent without the header that tells the server what you are reading in, so they came back in English however the app was set — while every other explanation honoured the locale.
 - **A model written in JModel arrives in the list with a name.** The assistant already titled the models it wrote, but a source typed into the JModel lens stayed "Untitled Model" until you renamed it by hand — so a studio full of DSL models read as a column of identical rows. The project now takes the compiled model's name, and only while it is still untitled: a name you chose is never overwritten.

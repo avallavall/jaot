@@ -24,6 +24,14 @@ interface SecretsTabProps {
   values: Record<string, SettingValue>;
 }
 
+/**
+ * Secrets whose rotation takes effect immediately and logs everyone out.
+ * The JWT secret signs every access and refresh token in circulation, so
+ * saving a new one invalidates all of them — including the admin's own
+ * session, mid-edit, with no way back through the UI.
+ */
+const DISRUPTIVE_SECRETS = new Set(["JWT_SECRET"]);
+
 export function SecretsTab({ entries, values }: SecretsTabProps) {
   const t = useTranslations("admin.settings");
 
@@ -148,7 +156,15 @@ export function SecretsTab({ entries, values }: SecretsTabProps) {
             <DialogTitle>{editingEntry?.label}</DialogTitle>
             <DialogDescription>{editingEntry?.description}</DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-4 space-y-3">
+            {editingKey && DISRUPTIVE_SECRETS.has(editingKey) && (
+              <p
+                role="alert"
+                className="text-sm text-destructive border border-destructive/40 rounded-md px-3 py-2"
+              >
+                {t("secrets.signsEveryoneOut")}
+              </p>
+            )}
             <Input
               type="password"
               placeholder={t("secrets.enterValue")}

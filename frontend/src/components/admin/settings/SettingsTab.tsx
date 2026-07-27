@@ -19,9 +19,12 @@ const SETTING_GROUPS: Record<string, Record<string, string>> = {
   llm: {
     LLM_DEFAULT_MODEL: "Models",
     LLM_ADVANCED_MODEL: "Models",
+    LLM_THINKING_EFFORT: "Models",
     LLM_MAX_TOKENS: "Limits",
     LLM_MAX_RETRIES: "Limits",
     LLM_MAX_OUTPUT_TOKENS_LIMIT: "Limits",
+    LLM_MONTHLY_BUDGET_EUR: "Cost",
+    LLM_MODEL_PRICING_EUR_PER_MTOK: "Cost",
     LLM_RATE_LIMIT_PER_MINUTE: "Rate Limits",
     LLM_RATE_LIMIT_PER_DAY: "Rate Limits",
     LLM_CONVERSATION_TTL_HOURS: "Conversations",
@@ -29,6 +32,7 @@ const SETTING_GROUPS: Record<string, Record<string, string>> = {
   email: {
     EMAIL_BACKEND: "General",
     EMAIL_FROM: "General",
+    CONTACT_RECIPIENT: "General",
     SMTP_HOST: "SMTP Server",
     SMTP_PORT: "SMTP Server",
     SMTP_USER: "SMTP Server",
@@ -41,29 +45,27 @@ const SETTING_GROUPS: Record<string, Record<string, string>> = {
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "JWT Tokens",
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: "JWT Tokens",
     JWT_REFRESH_TOKEN_REMEMBER_DAYS: "JWT Tokens",
-    API_KEY_DEFAULT_EXPIRY_DAYS: "API Keys",
-    API_KEY_ACTIVE_BY_DEFAULT: "API Keys",
-    RATE_LIMIT_WINDOW_SECONDS: "Rate Limits",
-    RATE_LIMIT_DAILY_WINDOW_SECONDS: "Rate Limits",
+    JWT_ALGORITHM: "JWT Tokens",
   },
 };
 
 /** Threshold: categories with this many settings or fewer render flat (no accordion) */
 const ACCORDION_THRESHOLD = 4;
 
-function getGroupName(category: string, key: string): string {
-  // Check explicit mapping first
-  const categoryMap = SETTING_GROUPS[category];
-  if (categoryMap && categoryMap[key]) {
-    return categoryMap[key];
+function getGroupName(entry: RegistryEntry): string {
+  // Check explicit mapping first — keyed by the entry's OWN category, since a
+  // tab may render several of them.
+  const categoryMap = SETTING_GROUPS[entry.category];
+  if (categoryMap && categoryMap[entry.key]) {
+    return categoryMap[entry.key];
   }
 
   // Fallback: derive group from key prefix (first segment before _)
-  const parts = key.split("_");
+  const parts = entry.key.split("_");
   if (parts.length >= 2) {
     return parts.slice(0, 2).join(" ").replace(/\b\w/g, (c) => c.toUpperCase());
   }
-  return key;
+  return entry.key;
 }
 
 interface GroupedSettings {
@@ -71,11 +73,11 @@ interface GroupedSettings {
   entries: RegistryEntry[];
 }
 
-function groupEntries(category: string, entries: RegistryEntry[]): GroupedSettings[] {
+function groupEntries(entries: RegistryEntry[]): GroupedSettings[] {
   const groupMap = new Map<string, RegistryEntry[]>();
 
   for (const entry of entries) {
-    const group = getGroupName(category, entry.key);
+    const group = getGroupName(entry);
     if (!groupMap.has(group)) {
       groupMap.set(group, []);
     }
@@ -90,21 +92,25 @@ function groupEntries(category: string, entries: RegistryEntry[]): GroupedSettin
 }
 
 interface SettingsTabProps {
-  category: string;
+  /** Backend categories this tab renders, in order. */
+  categories: readonly string[];
   categoryLabel: string;
   entries: RegistryEntry[];
   values: Record<string, SettingValue>;
   onRefresh: () => void;
   searchQuery?: string;
+  /** Shown above the fields when the whole group deserves a caution note. */
+  warning?: string;
 }
 
 export function SettingsTab({
-  category,
+  categories,
   categoryLabel,
   entries,
   values,
   onRefresh,
   searchQuery,
+  warning,
 }: SettingsTabProps) {
   const t = useTranslations("admin.settings");
   const [dirtyValues, setDirtyValues] = useState<Record<string, string>>({});
@@ -115,9 +121,15 @@ export function SettingsTab({
   } | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // Filter entries for this category, excluding secrets
-  const categoryEntries = entries.filter((e) => e.category === category);
-  const visibleEntries = categoryEntries.filter((e) => !e.is_secret);
+  // Entries for this tab's categories, in the order the tab declares them.
+  // Secrets are excluded here: they have their own tab and a masked editor.
+  const visibleEntries = useMemo(
+    () =>
+      categories.flatMap((category) =>
+        entries.filter((e) => e.category === category && !e.is_secret)
+      ),
+    [entries, categories]
+  );
 
   // Apply search filter if provided
   const filteredEntries = useMemo(() => {
@@ -125,15 +137,14 @@ export function SettingsTab({
     const q = searchQuery.toLowerCase();
     return visibleEntries.filter(
       (e) =>
-        e.label.toLowerCase().includes(q) || e.description.toLowerCase().includes(q)
+        e.label.toLowerCase().includes(q) ||
+        e.description.toLowerCase().includes(q) ||
+        e.key.toLowerCase().includes(q)
     );
   }, [visibleEntries, searchQuery]);
 
   // Group entries for accordion display
-  const groups = useMemo(
-    () => groupEntries(category, filteredEntries),
-    [category, filteredEntries]
-  );
+  const groups = useMemo(() => groupEntries(filteredEntries), [filteredEntries]);
 
   const useAccordion = !searchQuery && filteredEntries.length > ACCORDION_THRESHOLD;
 
@@ -235,6 +246,11 @@ export function SettingsTab({
         <CardTitle className="text-lg font-serif">{categoryLabel}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-1">
+        {warning && (
+          <p className="text-sm text-muted-foreground border-l-2 border-[var(--health-warning,theme(colors.amber.500))] pl-3 py-1 mb-3">
+            {warning}
+          </p>
+        )}
         {useAccordion ? (
           <Accordion
             type="multiple"

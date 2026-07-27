@@ -49,15 +49,15 @@ def _create_admin_with_org(
     from app.shared.utils.datetime_helpers import utcnow  # noqa: PLC0415
     from app.shared.utils.id_generator import generate_id  # noqa: PLC0415
 
-    plan_config = PlatformSettingsService.get_plan_config_dynamic(db, "pro")
+    limits = PlatformSettingsService.get_instance_limits(db)
 
     org_prefix = PlatformSettingsService.get_str(db, "ID_PREFIX_ORGANIZATION")
     organization = Organization(
         id=generate_id(org_prefix),
         name=org_name or f"{name}'s Organization",
         plan="pro",
-        rate_limit_per_minute=plan_config["rate_limit_per_minute"],
-        rate_limit_per_day=plan_config["rate_limit_per_day"],
+        rate_limit_per_minute=limits["rate_limit_per_minute"],
+        rate_limit_per_day=limits["rate_limit_per_day"],
     )
     db.add(organization)
 

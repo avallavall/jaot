@@ -223,10 +223,6 @@ export interface SettingsAuditLogResponse {
   page_size: number;
 }
 
-export interface PlanTiersResponse {
-  plans: Record<string, Record<string, string>>;
-}
-
 export class ApiError extends Error {
   status: number;
   detail?: string;
@@ -2255,17 +2251,6 @@ export const api = {
       changed_by?: string;
     }): Promise<SettingsAuditLogResponse> {
       return request("/api/v2/admin/settings/audit", { params });
-    },
-    getPlanTiers(): Promise<PlanTiersResponse> {
-      return request("/api/v2/admin/settings/plans");
-    },
-    updatePlanTiers(
-      plans: Record<string, Record<string, string>>,
-    ): Promise<PlanTiersResponse> {
-      return request("/api/v2/admin/settings/plans", {
-        method: "PUT",
-        body: JSON.stringify({ plans }),
-      });
     },
   },
 };

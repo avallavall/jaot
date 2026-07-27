@@ -1993,16 +1993,15 @@
       "activeUsers": "Usuarios activos",
       "catalogModels": "Modelos del catálogo",
       "tabs": {
-        "system": "Sistema",
         "solver": "Solver",
-        "llm": "LLM",
         "email": "Correo electrónico",
-        "security": "Seguridad",
-        "marketplace": "Marketplace",
         "secrets": "Secretos",
         "auditLog": "Registro de auditoría",
-        "systemSettings": "Configuración del sistema",
-        "billing": "Planes y límites"
+        "instance": "Instancia",
+        "access": "Acceso y límites",
+        "ai": "IA",
+        "advanced": "Avanzado",
+        "limits": "Límites de la instancia"
       },
       "saveChanges": "Guardar cambios",
       "saving": "Guardando...",
@@ -2029,7 +2028,8 @@
         "save": "Guardar",
         "saving": "Guardando...",
         "updated": "Secreto actualizado correctamente",
-        "updateFailed": "Error al actualizar el secreto"
+        "updateFailed": "Error al actualizar el secreto",
+        "signsEveryoneOut": "Guardar un valor nuevo cierra la sesión de todos los usuarios al instante, incluida la tuya."
       },
       "audit": {
         "title": "Cambios en la configuración",
@@ -2052,27 +2052,8 @@
           "page": "Página {page} de {total}"
         }
       },
-      "plans": {
-        "title": "Niveles de plan",
-        "description": "Configurar límites y cuotas de los planes de suscripción",
-        "allowedFeaturesLabel": "{plan} - Funcionalidades permitidas",
-        "allowedFeaturesHelp": "Array JSON de cadenas de funcionalidades, p. ej. [\"basic\", \"export\"]",
-        "headers": {
-          "plan": "Plan",
-          "monthlyQuota": "Cuota mensual",
-          "rateLimitMin": "Limite/min",
-          "rateLimitDay": "Limite/dia",
-          "maxSolveTime": "Tiempo max. resolución (s)",
-          "maxVariables": "Variables max.",
-          "maxDailySolves": "Resoluciones max./día",
-          "maxCronSchedules": "Programaciones max.",
-          "allowedFeatures": "Funcionalidades permitidas"
-        },
-        "free": "Gratuito",
-        "starter": "Starter",
-        "pro": "Pro",
-        "business": "Business"
-      }
+      "advancedWarning": "Identificadores y valores por defecto de bajo nivel. Los cambios se aplican a los registros que se creen a partir de ahora, nunca a los que ya existen.",
+      "defaultValue": "Por defecto: {value}"
     },
     "users": {
       "title": "Usuarios",

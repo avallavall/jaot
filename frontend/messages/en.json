@@ -1993,16 +1993,15 @@
       "activeUsers": "Active Users",
       "catalogModels": "Catalog Models",
       "tabs": {
-        "system": "System",
         "solver": "Solver",
-        "llm": "LLM",
         "email": "Email",
-        "security": "Security",
-        "marketplace": "Marketplace",
         "secrets": "Secrets",
         "auditLog": "Audit Log",
-        "systemSettings": "System Settings",
-        "billing": "Plans & limits"
+        "instance": "Instance",
+        "access": "Access & limits",
+        "ai": "AI",
+        "advanced": "Advanced",
+        "limits": "Instance limits"
       },
       "saveChanges": "Save Changes",
       "saving": "Saving...",
@@ -2029,7 +2028,8 @@
         "save": "Save",
         "saving": "Saving...",
         "updated": "Secret updated successfully",
-        "updateFailed": "Failed to update secret"
+        "updateFailed": "Failed to update secret",
+        "signsEveryoneOut": "Saving a new value signs out every user immediately, including you."
       },
       "audit": {
         "title": "Setting Changes",
@@ -2052,27 +2052,8 @@
           "page": "Page {page} of {total}"
         }
       },
-      "plans": {
-        "title": "Plan Tiers",
-        "description": "Configure subscription plan limits and quotas",
-        "allowedFeaturesLabel": "{plan} - Allowed Features",
-        "allowedFeaturesHelp": "JSON array of feature strings, e.g. [\"basic\", \"export\"]",
-        "headers": {
-          "plan": "Plan",
-          "monthlyQuota": "Monthly Quota",
-          "rateLimitMin": "Rate/min",
-          "rateLimitDay": "Rate/day",
-          "maxSolveTime": "Max Solve (s)",
-          "maxVariables": "Max Variables",
-          "maxDailySolves": "Max Solves/day",
-          "maxCronSchedules": "Max Schedules",
-          "allowedFeatures": "Allowed Features"
-        },
-        "free": "Free",
-        "starter": "Starter",
-        "pro": "Pro",
-        "business": "Business"
-      }
+      "advancedWarning": "Low-level identifiers and defaults. Changes apply to records created from now on, never to the ones that already exist.",
+      "defaultValue": "Default: {value}"
     },
     "users": {
       "title": "Users",
