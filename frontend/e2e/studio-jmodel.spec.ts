@@ -544,18 +544,30 @@ subject to reach_c: sum{(i, j) in ARCS : j == c} use[i, j] >= 1;`);
     // debounced compile returns — the compiled model. The first "Saved" is the source
     // one, so reloading on it rehydrates a project with NO model, and the lock
     // deliberately does not arm (with no model, no keystroke can clobber anything).
-    // Wait for the save that actually carries the model, which is the state this test
-    // is about.
-    await page.waitForResponse(
-      (r) => {
-        if (r.request().method() !== "PUT" || !r.url().endsWith("/draft")) return false;
-        const sent = JSON.parse(r.request().postData() ?? "{}") as {
-          model_json?: { variables?: unknown[] };
-        };
-        return (sent.model_json?.variables?.length ?? 0) > 0;
-      },
-      { timeout: NAV }
-    );
+    // What this test needs is the PERSISTED state — a draft that carries the
+    // compiled model — so it polls for that rather than listening for the save.
+    //
+    // Watching the traffic made it a race the test could only lose: whether the
+    // model is written by a second autosave or by the first depends on the
+    // debounce beating the compile round-trip, and on a fast machine the compile
+    // wins, there is exactly ONE save, and a listener registered after it waits
+    // forever for a second one that is never coming.
+    await expect
+      .poll(
+        async () => {
+          const res = await page.request.get(`/api/v2/projects/${projectId}`);
+          if (!res.ok()) return 0;
+          const project = (await res.json()) as {
+            draft_model_json?: { variables?: unknown[] } | null;
+          };
+          return project.draft_model_json?.variables?.length ?? 0;
+        },
+        {
+          timeout: NAV,
+          message: "the compiled model never reached the saved draft",
+        }
+      )
+      .toBeGreaterThan(0);
 
     // A real reload: model + source rehydrate with their sync state unknowable.
     await page.reload();
