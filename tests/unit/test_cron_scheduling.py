@@ -314,6 +314,29 @@ class TestFailureEscalation:
 class TestTierLimits:
     """Test tier-based schedule limits with real DB rows."""
 
+    # CONTRACT-TEST: 0 means unlimited, never "reject everything" (D-21)
+    def test_zero_limit_means_unlimited(self, db_session, test_organization, test_user):
+        """The SHIPPED configuration must let a schedule be created.
+
+        Every other test here patches the limit to 1 or 5, so none of them ever
+        exercised the value the platform actually ships: 0, which D-21 defined
+        as unlimited. With the plain `count >= limit` this raised 403
+        "Schedule limit reached (0)" on the very first schedule — cron was
+        unusable out of the box.
+
+        No patching on purpose: the real registry default is the whole point.
+        """
+        from app.services.schedule_service import check_schedule_limit
+
+        doc = _make_real_doc(db_session, test_organization, test_user)
+        ver = _make_real_version(db_session, doc)
+        trigger = _make_real_trigger(db_session, test_organization, test_user, doc, ver)
+        _make_real_schedule(db_session, trigger)
+        db_session.commit()
+
+        # Does not raise — with the shipped default there is no ceiling.
+        check_schedule_limit(db_session, test_organization.id, test_organization.plan)
+
     def test_free_limited_to_1_schedule(self, db_session, test_organization, test_user):
         """FREE plan limited to 1 schedule (hits limit when at 1)."""
         from fastapi import HTTPException

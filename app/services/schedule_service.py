@@ -75,19 +75,27 @@ def validate_cron_expression(expression: str, timezone_str: str = "UTC") -> dict
 
 
 def check_schedule_limit(db: Session, org_id: str, plan_name: str) -> None:
-    """Enforce tier-based schedule creation limits.
+    """Enforce the configured cap on how many schedules an organization may keep.
 
-    Raises HTTPException(403) if cron scheduling is not available on the plan
-    or the schedule limit has been reached.
+    Raises HTTPException(403) once the limit is reached.
+
+    ``0`` means UNLIMITED, the convention D-21 established across the platform
+    when the capacity caps left. Without the ``> 0`` guard the plain
+    ``count >= limit`` below is true at zero, so the default configuration
+    rejected every schedule with "Schedule limit reached (0)" — the same
+    zero-blocks-everything shape D-21 already fixed in the rate limiter.
     """
     from app.services.platform_settings_service import PlatformSettingsService as PSS
 
     plan_config = PSS.get_plan_config_dynamic(db, plan_name)
 
+    max_schedules = plan_config["max_cron_schedules"]
+    if max_schedules <= 0:
+        return
+
     current_count = (
         db.query(TriggerSchedule).filter(TriggerSchedule.organization_id == org_id).count()
     )
-    max_schedules = plan_config["max_cron_schedules"]
     if current_count >= max_schedules:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
