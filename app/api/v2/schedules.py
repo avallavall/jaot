@@ -84,7 +84,7 @@ def create_schedule(
         )
 
     # Enforce tier limits
-    schedule_service.check_schedule_limit(db, org.id, org.plan)
+    schedule_service.check_schedule_limit(db, org.id)
 
     # Validate cron expression (raises ValueError on invalid)
     try:

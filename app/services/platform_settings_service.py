@@ -363,6 +363,7 @@ class PlatformSettingsService:
                 continue  # No change
 
             cls.set(db, key, new_value, updated_by=changed_by)
+            cls._propagate_rate_limit(db, key, old_value, new_value)
 
             audit = PlatformSettingAudit(
                 setting_key=key,
@@ -376,6 +377,57 @@ class PlatformSettingsService:
 
         db.flush()
         return audits
+
+    #: Instance limit -> the Organization column that mirrors it.
+    _RATE_LIMIT_COLUMNS = {
+        "instance_rate_limit_per_minute": "rate_limit_per_minute",
+        "instance_rate_limit_per_day": "rate_limit_per_day",
+    }
+
+    @classmethod
+    def _propagate_rate_limit(cls, db: Session, key: str, old_value: str, new_value: str) -> None:
+        """Carry a changed instance rate limit onto the organizations that inherit it.
+
+        These two limits are the only ones enforced from a column on
+        ``organizations`` rather than read from settings on each request: the
+        value is copied at signup, and nine call sites read the copy. So editing
+        them in the admin panel changed what NEW organizations would get and
+        nothing about the ones already there — the panel appeared to work and
+        did not.
+
+        An organization still sitting on the OLD instance value has never been
+        given a limit of its own, so it follows the new one. One whose column
+        differs was set deliberately (there is an admin endpoint for exactly
+        that) and is left alone — this must not silently undo a per-org
+        decision an operator made.
+
+        Called from ``bulk_set`` after the setting is written, with the value it
+        replaced; a no-op for every other key.
+        """
+        column = cls._RATE_LIMIT_COLUMNS.get(key)
+        if column is None:
+            return
+
+        try:
+            previous, current = int(old_value), int(new_value)
+        except (TypeError, ValueError):
+            return
+
+        from app.models.organization import Organization  # noqa: PLC0415
+
+        updated = (
+            db.query(Organization)
+            .filter(getattr(Organization, column) == previous)
+            .update({column: current}, synchronize_session=False)
+        )
+        if updated:
+            logger.info(
+                "Rate limit %s: %s -> %s applied to %d organization(s) that inherited it",
+                column,
+                previous,
+                current,
+                updated,
+            )
 
     @classmethod
     def reset_to_default(
@@ -406,6 +458,10 @@ class PlatformSettingsService:
 
         # Write registry default back to DB
         cls.set(db, key, default, updated_by=changed_by)
+        # Reset is a change like any other: a rate limit put back to its default
+        # must reach the organizations inheriting it, or the two write paths
+        # would disagree about what the panel means.
+        cls._propagate_rate_limit(db, key, old_value, default)
 
         audit = PlatformSettingAudit(
             setting_key=key,

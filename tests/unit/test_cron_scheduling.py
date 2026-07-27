@@ -372,7 +372,7 @@ class TestTierLimits:
         db_session.commit()
 
         # Does not raise — with the shipped default there is no ceiling.
-        check_schedule_limit(db_session, test_organization.id, test_organization.plan)
+        check_schedule_limit(db_session, test_organization.id)
 
     def test_free_limited_to_1_schedule(self, db_session, test_organization, test_user):
         """FREE plan limited to 1 schedule (hits limit when at 1)."""
@@ -392,7 +392,7 @@ class TestTierLimits:
             return_value={"max_cron_schedules": 1, "allowed_features": ["cron_scheduling"]},
         ):
             with pytest.raises(HTTPException) as exc_info:
-                check_schedule_limit(db_session, test_organization.id, "free")
+                check_schedule_limit(db_session, test_organization.id)
 
             assert exc_info.value.status_code == 403
             assert "limit reached" in exc_info.value.detail
@@ -417,7 +417,7 @@ class TestTierLimits:
             return_value={"max_cron_schedules": 5, "allowed_features": ["cron_scheduling"]},
         ):
             with pytest.raises(HTTPException) as exc_info:
-                check_schedule_limit(db_session, test_organization.id, "starter")
+                check_schedule_limit(db_session, test_organization.id)
 
             assert exc_info.value.status_code == 403
             assert "limit reached" in exc_info.value.detail
@@ -440,7 +440,7 @@ class TestTierLimits:
             return_value={"max_cron_schedules": 5, "allowed_features": ["cron_scheduling"]},
         ):
             # Should NOT raise
-            check_schedule_limit(db_session, test_organization.id, "starter")
+            check_schedule_limit(db_session, test_organization.id)
 
 
 class TestScheduleCrud:

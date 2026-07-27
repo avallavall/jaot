@@ -50,7 +50,11 @@ export default function SettingsPage() {
 
   const [allEntries, setAllEntries] = useState<RegistryEntry[]>([]);
   const [allValues, setAllValues] = useState<Record<string, SettingValue>>({});
-  const [categories, setCategories] = useState<string[]>([]);
+  // Tracked separately from `loading`, which belongs to the health/stats
+  // request. Keying the skeleton off that one let the panel render its tabs,
+  // then REPLACE them with the skeleton when health resolved first and the
+  // settings were still in flight.
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   const fetchSettingsData = useCallback(async () => {
     try {
@@ -59,18 +63,13 @@ export default function SettingsPage() {
         api.admin.getSettingsValues(),
       ]);
 
-      // Flatten all entries from all categories
-      const entries: RegistryEntry[] = [];
-      const cats: string[] = [];
-      for (const [cat, catEntries] of Object.entries(registryData.categories)) {
-        cats.push(cat);
-        entries.push(...catEntries);
-      }
-      setAllEntries(entries);
-      setCategories(cats);
+      // Flatten all entries; each one carries its own category.
+      setAllEntries(Object.values(registryData.categories).flat());
       setAllValues(valuesData.settings);
     } catch (err) {
       console.warn('Failed to load settings data:', err);
+    } finally {
+      setSettingsLoaded(true);
     }
   }, []);
 
@@ -95,6 +94,12 @@ export default function SettingsPage() {
 
   const isSearching = searchQuery.trim().length > 0;
 
+  /** Categories present in the registry, in the order the API returned them. */
+  const categories = useMemo(
+    () => [...new Set(allEntries.map((e) => e.category))],
+    [allEntries]
+  );
+
   /**
    * Advanced absorbs its own categories plus every category the backend sent
    * that no tab claims — the guarantee that a new backend category is always
@@ -111,17 +116,25 @@ export default function SettingsPage() {
     return [...ADVANCED_CATEGORIES, ...unmapped];
   }, [categories]);
 
-  /** Every tab that renders editable settings, in display order. */
-  const settingTabs = useMemo(
-    () => [
+  /**
+   * Tabs that render editable settings, in display order — and only those that
+   * have something to show. A tab whose categories are all empty renders as a
+   * blank panel, which is precisely the defect `marketplace` shipped with for
+   * the life of this panel; nothing is gained by moving it from a hardcoded
+   * list to a derived one if the derived list can produce it too.
+   */
+  const settingTabs = useMemo(() => {
+    const populated = new Set(
+      allEntries.filter((e) => !e.is_secret).map((e) => e.category)
+    );
+    return [
       ...TAB_GROUPS.map((tab) => ({
         key: tab.key as string,
         categories: tab.categories as readonly string[],
       })),
       { key: "advanced", categories: advancedCategories as readonly string[] },
-    ],
-    [advancedCategories]
-  );
+    ].filter((tab) => tab.categories.some((c) => populated.has(c)));
+  }, [advancedCategories, allEntries]);
 
   // Which tabs have a setting matching the query. Searches every tab that
   // holds settings — the previous version skipped System entirely, so half
@@ -170,7 +183,7 @@ export default function SettingsPage() {
         )}
       </div>
 
-      {allEntries.length === 0 && !loading ? (
+      {!settingsLoaded ? (
         <div className="space-y-2">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-64 w-full" />
@@ -204,7 +217,10 @@ export default function SettingsPage() {
           )}
         </div>
       ) : (
-        <Tabs defaultValue="instance" className="space-y-4">
+        <Tabs
+          defaultValue={settingTabs[0]?.key ?? "secrets"}
+          className="space-y-4"
+        >
           <TabsList className="flex flex-wrap h-auto gap-1">
             {settingTabs.map((tab) => (
               <TabsTrigger key={tab.key} value={tab.key}>

@@ -29,6 +29,23 @@ def _app_sources() -> dict[Path, str]:
     }
 
 
+def _quoted_names(sources: dict[Path, str]) -> set[str]:
+    """Every string literal in the backend that could name a setting.
+
+    A setting is always referenced by its NAME — passed to a PSS accessor
+    directly, or collected in a list of keys the module fetches in one go
+    (``email_service`` and the LLM cost tracker both do that). What it is never
+    referenced as is a Python identifier, and that distinction is the whole
+    point: `from app.version import APP_VERSION` used to vouch for a SETTING of
+    the same name that nothing loaded.
+    """
+    names: set[str] = set()
+    for text in sources.values():
+        names |= set(re.findall(r'"([A-Za-z][A-Za-z0-9_]{2,})"', text))
+        names |= set(re.findall(r"'([A-Za-z][A-Za-z0-9_]{2,})'", text))
+    return names
+
+
 class TestSettingsRegistry:
     """Test the settings registry data structure."""
 
@@ -62,11 +79,23 @@ class TestSettingsRegistry:
         """
         from app.services.settings_registry import SETTINGS_REGISTRY
 
-        sources = _app_sources()
+        # The key must appear as a STRING, the only way a setting is ever
+        # referenced. Matching the bare word let a Python constant of the same
+        # name vouch for a setting nobody loads — how APP_VERSION passed while
+        # `app.version.APP_VERSION` was what the code actually used.
+        read_keys = _quoted_names(_app_sources())
         unread: list[str] = []
 
         for definition in SETTINGS_REGISTRY:
             key = definition.key
+            # Read-only entries are MIRRORS of a code constant, shown in the
+            # panel and refreshed at startup (see tests/test_settings_seed_race).
+            # They are displayed, not loaded, so "who reads it" does not apply —
+            # and they cannot mislead an operator, because nothing can be typed
+            # into them.
+            if definition.is_readonly:
+                continue
+
             dynamic = next((p for p in _DYNAMIC_READERS if key.startswith(p)), None)
             if dynamic is not None:
                 reader_file, reader_expr = _DYNAMIC_READERS[dynamic]
@@ -75,8 +104,7 @@ class TestSettingsRegistry:
                     unread.append(f"{key} (dynamic reader {reader_expr} gone from {reader_file})")
                 continue
 
-            pattern = re.compile(rf"\b{re.escape(key)}\b")
-            if not any(pattern.search(text) for text in sources.values()):
+            if key not in read_keys:
                 unread.append(key)
 
         assert not unread, (
@@ -194,6 +222,61 @@ class TestPlatformSettingsServiceGet:
 
 class TestPlatformSettingsServiceBulkSet:
     """ADMIN-02 + ADMIN-03: Bulk set with audit."""
+
+    # CONTRACT-TEST: editing the instance rate limit reaches existing organizations
+    def test_rate_limit_change_reaches_organizations_that_inherit_it(
+        self, db_session, test_organization
+    ):
+        """Changing the limit in the panel must change what existing orgs get.
+
+        These two limits are enforced from a column on `organizations`, copied
+        at signup. Editing the setting therefore used to change what NEW
+        organizations would receive and nothing about the ones already there —
+        the panel looked like it worked and did not.
+
+        An organization that was never given a limit of its own follows the new
+        value; one an operator set deliberately keeps theirs.
+        """
+        from app.models.organization import Organization
+        from app.services.platform_settings_service import PlatformSettingsService as PSS
+        from app.shared.utils.id_generator import generate_id
+
+        instance_value = int(PSS.get(db_session, "instance_rate_limit_per_minute"))
+        test_organization.rate_limit_per_minute = instance_value  # inherited
+
+        customised = Organization(
+            id=generate_id("org_"),
+            name="Deliberately throttled",
+            plan="free",
+            rate_limit_per_minute=7,  # an operator's own decision
+            rate_limit_per_day=1000,
+        )
+        db_session.add(customised)
+        db_session.flush()
+
+        PSS.bulk_set(
+            db_session,
+            {"instance_rate_limit_per_minute": str(instance_value + 55)},
+            changed_by="admin@test.com",
+        )
+        db_session.flush()
+
+        db_session.refresh(test_organization)
+        db_session.refresh(customised)
+        assert test_organization.rate_limit_per_minute == instance_value + 55
+        assert customised.rate_limit_per_minute == 7, (
+            "A per-organization limit an operator set must survive an instance-wide change"
+        )
+
+        # Reset is the other write path into the same setting, and must behave
+        # the same — otherwise "save" and "reset to default" would disagree
+        # about what the panel means.
+        PSS.reset_to_default(db_session, "instance_rate_limit_per_minute", "admin@test.com")
+        db_session.flush()
+        db_session.refresh(test_organization)
+        db_session.refresh(customised)
+        assert test_organization.rate_limit_per_minute == instance_value
+        assert customised.rate_limit_per_minute == 7
 
     def test_bulk_set_creates_audit_records(self, db_session):
         """bulk_set() updates settings and creates audit records."""

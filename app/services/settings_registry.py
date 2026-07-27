@@ -150,7 +150,11 @@ SETTINGS_REGISTRY.extend(
         SettingDefinition(
             key="SOLVER_POOL_SIZE",
             label="Pool Size",
-            description="Number of solver threads in pool",
+            description=(
+                "Threads the solver pool runs concurrently. The pool is built once "
+                "and reused, so a change here takes effect when the API restarts, "
+                "not on the next solve."
+            ),
             category=SettingCategory.SOLVER,
             setting_type=SettingType.INT,
             default_value="4",
@@ -702,110 +706,99 @@ SETTINGS_REGISTRY.extend(
 # any number, and **0 means unlimited** for every one of them. Anything that
 # compares against these MUST guard for 0 first (D-21) — a plain `count >= limit`
 # is true at zero and locks the instance out.
-_INSTANCE_LIMITS: list[tuple[str, str, str, SettingType, str, float | None, str | None]] = [
-    # (key, label, description, type, default, min, unit)
-    (
-        "instance_rate_limit_per_minute",
-        "Rate Limit/Min",
-        "Max API requests per minute for one organization. 0 = unlimited.",
-        SettingType.INT,
-        "120",
-        0,
-        None,
-    ),
-    (
-        "instance_rate_limit_per_day",
-        "Rate Limit/Day",
-        "Max API requests per day for one organization. 0 = unlimited.",
-        SettingType.INT,
-        "50000",
-        0,
-        None,
-    ),
-    (
-        "instance_max_solve_time_seconds",
-        "Max Solve Time",
-        (
-            "Ceiling on a single solve. A request asking for longer is clamped "
-            "to this, not rejected. 0 = unlimited."
-        ),
-        SettingType.INT,
-        "0",
-        0,
-        "seconds",
-    ),
-    (
-        "instance_max_variables",
-        "Max Variables",
-        (
-            "Largest model this instance accepts, in variables. Sized by the "
-            "memory of the machine that solves it. 0 = unlimited."
-        ),
-        SettingType.INT,
-        "0",
-        0,
-        None,
-    ),
-    (
-        "instance_max_daily_solves",
-        "Max Daily Solves",
-        "Solves one organization may run per day. 0 = unlimited.",
-        SettingType.INT,
-        "0",
-        0,
-        None,
-    ),
-    (
-        "instance_max_cron_schedules",
-        "Max Cron Schedules",
-        "Scheduled triggers one organization may keep. 0 = unlimited.",
-        SettingType.INT,
-        "0",
-        0,
-        None,
-    ),
-    (
-        "instance_min_cron_interval_minutes",
-        "Min Cron Interval",
-        (
-            "Shortest gap allowed between two runs of a schedule. It exists so a "
-            "misconfigured cron cannot queue a solve every minute, not to decide "
-            "how often your hardware can work. 0 removes the floor."
-        ),
-        SettingType.INT,
-        "60",
-        0,
-        "minutes",
-    ),
-    (
-        "instance_allowed_features",
-        "Allowed Features",
-        (
-            "JSON array of features enabled on this instance. Removing one hides "
-            "it from every organization: llm_assistant, warm_start, "
-            "sensitivity_analysis, cron_scheduling."
-        ),
-        SettingType.JSON,
-        '["llm_assistant","warm_start","sensitivity_analysis","cron_scheduling"]',
-        None,
-        None,
-    ),
-]
-
-for _key, _label, _desc, _stype, _default, _min, _unit in _INSTANCE_LIMITS:
-    SETTINGS_REGISTRY.append(
+SETTINGS_REGISTRY.extend(
+    [
         SettingDefinition(
-            key=_key,
-            label=_label,
-            description=_desc,
+            key="instance_rate_limit_per_minute",
+            label="Rate Limit/Min",
+            description="Max API requests per minute for one organization. 0 = unlimited.",
             category=SettingCategory.LIMITS,
-            setting_type=_stype,
-            default_value=_default,
-            min_value=_min,
-            max_value=None,
-            unit=_unit,
+            setting_type=SettingType.INT,
+            default_value="120",
+            min_value=0,
         ),
-    )
+        SettingDefinition(
+            key="instance_rate_limit_per_day",
+            label="Rate Limit/Day",
+            description="Max API requests per day for one organization. 0 = unlimited.",
+            category=SettingCategory.LIMITS,
+            setting_type=SettingType.INT,
+            default_value="50000",
+            min_value=0,
+        ),
+        SettingDefinition(
+            key="instance_max_solve_time_seconds",
+            label="Max Solve Time",
+            description=(
+                "Ceiling on a single solve. A request asking for longer is clamped "
+                "to this, not rejected. 0 = unlimited."
+            ),
+            category=SettingCategory.LIMITS,
+            setting_type=SettingType.INT,
+            default_value="0",
+            min_value=0,
+            unit="seconds",
+        ),
+        SettingDefinition(
+            key="instance_max_variables",
+            label="Max Variables",
+            description=(
+                "Largest model this instance accepts, in variables. Sized by the "
+                "memory of the machine that solves it. 0 = unlimited."
+            ),
+            category=SettingCategory.LIMITS,
+            setting_type=SettingType.INT,
+            default_value="0",
+            min_value=0,
+        ),
+        SettingDefinition(
+            key="instance_max_daily_solves",
+            label="Max Daily Solves",
+            description="Solves one organization may run per day. 0 = unlimited.",
+            category=SettingCategory.LIMITS,
+            setting_type=SettingType.INT,
+            default_value="0",
+            min_value=0,
+        ),
+        SettingDefinition(
+            key="instance_max_cron_schedules",
+            label="Max Cron Schedules",
+            description="Scheduled triggers one organization may keep. 0 = unlimited.",
+            category=SettingCategory.LIMITS,
+            setting_type=SettingType.INT,
+            default_value="0",
+            min_value=0,
+        ),
+        SettingDefinition(
+            key="instance_min_cron_interval_minutes",
+            label="Min Cron Interval",
+            description=(
+                "Shortest gap allowed between two runs of a schedule. It exists so a "
+                "misconfigured cron cannot queue a solve every minute, not to decide "
+                "how often your hardware can work. 0 removes the floor."
+            ),
+            category=SettingCategory.LIMITS,
+            setting_type=SettingType.INT,
+            default_value="60",
+            min_value=0,
+            unit="minutes",
+        ),
+        SettingDefinition(
+            key="instance_allowed_features",
+            label="Allowed Features",
+            description=(
+                "JSON array of features enabled on this instance. Removing one hides "
+                "it from every organization: llm_assistant, warm_start, "
+                "sensitivity_analysis, cron_scheduling."
+            ),
+            category=SettingCategory.LIMITS,
+            setting_type=SettingType.JSON,
+            default_value=(
+                '["llm_assistant","warm_start","sensitivity_analysis","cron_scheduling"]'
+            ),
+        ),
+    ]
+)
 
 
 # SECRETS category — masked in the panel, editable, and READ FROM HERE at runtime.
@@ -850,7 +843,11 @@ SETTINGS_REGISTRY.extend(
         SettingDefinition(
             key="APP_NAME",
             label="Application Name",
-            description="Name of the application",
+            description=(
+                "Name this instance calls itself in its own startup log. It does "
+                "NOT rebrand the interface or the API documentation, which carry "
+                "the product name — read the label literally before setting it."
+            ),
             category=SettingCategory.APP,
             setting_type=SettingType.STRING,
             default_value="JAOT",

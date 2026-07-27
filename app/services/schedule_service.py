@@ -94,7 +94,7 @@ def validate_cron_expression(
     return {"valid": True, "next_runs": next_runs}
 
 
-def check_schedule_limit(db: Session, org_id: str, plan_name: str) -> None:
+def check_schedule_limit(db: Session, org_id: str) -> None:
     """Enforce the configured cap on how many schedules an organization may keep.
 
     Raises HTTPException(403) once the limit is reached.
