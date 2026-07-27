@@ -3,7 +3,30 @@
 Covers requirements: ADMIN-01, ADMIN-02, ADMIN-03, ADMIN-04.
 """
 
+import re
+from pathlib import Path
+
 from app.models.platform_setting import PlatformSetting
+
+_APP_DIR = Path(__file__).resolve().parents[2] / "app"
+_REGISTRY_FILE = _APP_DIR / "services" / "settings_registry.py"
+
+# Keys whose reader builds the name at runtime, so no source file contains the
+# literal. Each entry names the reader that must keep existing — an f-string
+# that stops matching is a real break, and the assertion below catches it.
+_DYNAMIC_READERS: dict[str, tuple[str, str]] = {
+    "plan_": ("services/platform_settings_service.py", 'f"plan_{plan_key}_{field}"'),
+    "HOME_ANNOUNCEMENT_TEXT_": ("api/v2/home.py", 'f"HOME_ANNOUNCEMENT_TEXT_{locale.upper()}"'),
+}
+
+
+def _app_sources() -> dict[Path, str]:
+    """Every backend source file except the registry that declares the settings."""
+    return {
+        path: path.read_text(encoding="utf-8")
+        for path in _APP_DIR.rglob("*.py")
+        if path != _REGISTRY_FILE
+    }
 
 
 class TestSettingsRegistry:
@@ -23,6 +46,56 @@ class TestSettingsRegistry:
         }
         actual = set(REGISTRY_BY_CATEGORY.keys())
         assert expected.issubset(actual), f"Missing categories: {expected - actual}"
+
+    # CONTRACT-TEST: every declared setting is read by some live code path
+    def test_every_setting_has_a_runtime_reader(self):
+        """A setting nobody reads is a control that does nothing when an operator turns it.
+
+        The 1.9 panel review found 17 of them — including a gzip threshold the
+        middleware hardcoded past, and a Hexaly time limit the adapter ignored
+        in favour of a module constant. Each looked configurable in the admin
+        panel and changed nothing at all.
+
+        This is the check that was missing. It fails on the DECLARING side: if a
+        setting is genuinely retired, delete it from the registry; if it is new,
+        wire the code that reads it before shipping the control.
+        """
+        from app.services.settings_registry import SETTINGS_REGISTRY
+
+        sources = _app_sources()
+        unread: list[str] = []
+
+        for definition in SETTINGS_REGISTRY:
+            key = definition.key
+            dynamic = next((p for p in _DYNAMIC_READERS if key.startswith(p)), None)
+            if dynamic is not None:
+                reader_file, reader_expr = _DYNAMIC_READERS[dynamic]
+                reader = _APP_DIR / reader_file
+                if reader_expr not in reader.read_text(encoding="utf-8"):
+                    unread.append(f"{key} (dynamic reader {reader_expr} gone from {reader_file})")
+                continue
+
+            pattern = re.compile(rf"\b{re.escape(key)}\b")
+            if not any(pattern.search(text) for text in sources.values()):
+                unread.append(key)
+
+        assert not unread, (
+            "Settings declared in the registry that no backend code reads — "
+            "the admin panel would offer an edit that changes nothing:\n  "
+            + "\n  ".join(sorted(unread))
+        )
+
+    # CONTRACT-TEST: no category exists without settings (renders an empty tab)
+    def test_every_category_has_settings(self):
+        """An empty category is a tab that renders blank.
+
+        ``marketplace`` was one for the entire life of the panel: declared in the
+        enum, given a tab in the UI, and never assigned a single setting.
+        """
+        from app.services.settings_registry import REGISTRY_BY_CATEGORY, SettingCategory
+
+        empty = [c.value for c in SettingCategory if not REGISTRY_BY_CATEGORY.get(c)]
+        assert not empty, f"Categories with no settings (would render an empty tab): {empty}"
 
     def test_registry_has_minimum_entries(self):
         """Registry contains 88+ entries across all categories."""
@@ -140,7 +213,7 @@ class TestPlatformSettingsServiceBulkSet:
         from app.services.platform_settings_service import PlatformSettingsService
 
         updates = {
-            "DATABASE_URL": "postgresql://new-db-url",
+            "ANTHROPIC_API_KEY": "sk-ant-rotated-in-the-panel",
             "SOLVER_DEFAULT_TIMEOUT": "120",
         }
         audits = PlatformSettingsService.bulk_set(db_session, updates, changed_by="admin@test.com")
@@ -148,7 +221,7 @@ class TestPlatformSettingsServiceBulkSet:
 
         audit_keys = {a.setting_key for a in audits}
         # Both should be updated since secrets are no longer readonly
-        assert "DATABASE_URL" in audit_keys
+        assert "ANTHROPIC_API_KEY" in audit_keys
         assert "SOLVER_DEFAULT_TIMEOUT" in audit_keys
 
     def test_bulk_set_skips_unchanged(self, db_session):
@@ -308,13 +381,26 @@ class TestSettingsValuesEndpoint:
         assert response.status_code == 403, response.text
 
     def test_values_secrets_masked(self, admin_client):
-        """Secret values are masked as ****."""
+        """EVERY secret is masked, never just the one the test happened to name.
+
+        The previous version guarded on `if "DATABASE_URL" in settings` and
+        asserted nothing when it was absent — so removing that key from the
+        registry would have left the masking of the remaining secrets, the
+        Anthropic key among them, completely unverified.
+        """
+        from app.services.settings_registry import REGISTRY_BY_CATEGORY, SettingCategory
+
         response = admin_client.get("/api/v2/admin/settings/values")
-        data = response.json()
-        # DATABASE_URL should be masked
-        if "DATABASE_URL" in data["settings"]:
-            val = data["settings"]["DATABASE_URL"]["value"]
-            assert val in ("****", ""), f"Secret not masked: {val}"
+        assert response.status_code == 200, response.text
+        settings = response.json()["settings"]
+
+        secret_keys = [s.key for s in REGISTRY_BY_CATEGORY[SettingCategory.SECRETS]]
+        assert secret_keys, "No secrets in the registry — this test would prove nothing"
+
+        for key in secret_keys:
+            assert key in settings, f"Secret {key} missing from the values response"
+            value = settings[key]["value"]
+            assert value in ("****", ""), f"Secret {key} served in the clear: {value}"
 
     def test_values_filter_by_category(self, admin_client):
         """Filtering by category returns only that category."""

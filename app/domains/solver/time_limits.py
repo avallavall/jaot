@@ -34,6 +34,42 @@ SOFT_MARGIN_SECONDS = 60
 HARD_GRACE_SECONDS = 30
 
 
+def resolve_solver_time_limit(
+    db: Session,
+    solver_name: str | None,
+    requested_seconds: float | None,
+) -> float | None:
+    """Return the time limit the solve should carry, in seconds.
+
+    An absent limit means "run to proven optimality" — legitimate for the
+    exact solvers, whose search terminates on its own. Hexaly is
+    metaheuristic: it improves an incumbent until something stops it, so an
+    absent limit there is not "no limit", it is "never returns". Those
+    requests get ``hexaly_default_time_limit_seconds``.
+
+    An explicit request always wins, including for Hexaly — the setting is
+    the floor under requests that name no limit, not a cap on the ones that do.
+
+    Args:
+        db: Database session (used only for the platform-setting lookup).
+        solver_name: The EFFECTIVE solver, after auto-routing. Passing the
+            requested name instead would miss every ``auto`` request the
+            router sends to Hexaly.
+        requested_seconds: The per-request limit, if the caller set one.
+
+    Returns:
+        The effective limit, or ``None`` to leave the solve unbounded.
+    """
+    if requested_seconds is not None and requested_seconds > 0:
+        return requested_seconds
+    if (solver_name or "").lower() != "hexaly":
+        return requested_seconds
+
+    from app.services.platform_settings_service import PlatformSettingsService as PSS
+
+    return float(PSS.get_int(db, "hexaly_default_time_limit_seconds"))
+
+
 def compute_celery_time_limits(
     db: Session,
     time_limit_seconds: float | None,
@@ -66,4 +102,5 @@ __all__ = [
     "HARD_GRACE_SECONDS",
     "SOFT_MARGIN_SECONDS",
     "compute_celery_time_limits",
+    "resolve_solver_time_limit",
 ]

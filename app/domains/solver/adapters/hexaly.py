@@ -32,7 +32,12 @@ metaheuristic). Key design points:
 
 - **Phase-based time limit**: ``optimizer.param.time_limit`` is set from
   ``OptimizationProblem.options.time_limit_seconds`` — Hexaly's metaheuristic
-  requires an explicit stop criterion.
+  requires an explicit stop criterion. The operator-configurable default for
+  requests that name no limit is applied UPSTREAM, by
+  ``resolve_solver_time_limit`` at the enqueue helpers, because only they know
+  the effective solver after auto-routing and can reach platform settings.
+  :data:`_DEFAULT_TIME_LIMIT_SECONDS` below is the last-resort floor for direct
+  adapter calls that bypass those helpers (tests, scripts).
 """
 
 from __future__ import annotations

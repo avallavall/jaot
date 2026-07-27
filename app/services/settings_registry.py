@@ -25,20 +25,27 @@ class SettingType(str, Enum):
 
 
 class SettingCategory(str, Enum):
-    """Categories for organizing settings in the admin UI."""
+    """Categories for organizing settings in the admin UI.
+
+    Every category here MUST have at least one entry and MUST be reachable from
+    the admin panel — ``tests/api/test_admin_settings.py`` enforces both. A
+    category with no settings renders as an empty tab (``marketplace`` did,
+    for the whole life of the panel), and one with no tab hides its settings
+    from the only UI that can edit them.
+
+    ``server``, ``celery`` and ``metrics`` were removed in the 1.9 review: their
+    settings were either dead or shadowed by ``.env`` values that the runtime
+    reads directly, so the panel offered edits that changed nothing.
+    """
 
     SYSTEM = "system"
     APP = "app"
-    SERVER = "server"
     BILLING = "billing"
     SOLVER = "solver"
     LLM = "llm"
     EMAIL = "email"
     SECURITY = "security"
     IDENTIFIERS = "identifiers"
-    CELERY = "celery"
-    METRICS = "metrics"
-    MARKETPLACE = "marketplace"
     SECRETS = "secrets"
     RAG = "rag"
 
@@ -141,16 +148,6 @@ SETTINGS_REGISTRY.extend(
             max_value=None,
         ),
         SettingDefinition(
-            key="SOLVER_VIOLATION_TOLERANCE",
-            label="Violation Tolerance",
-            description="Solver violation tolerance (0.0 to 1.0)",
-            category=SettingCategory.SOLVER,
-            setting_type=SettingType.FLOAT,
-            default_value="0.000001",
-            min_value=0.0,
-            max_value=1.0,
-        ),
-        SettingDefinition(
             key="SOLVER_POOL_SIZE",
             label="Pool Size",
             description="Number of solver threads in pool",
@@ -161,24 +158,13 @@ SETTINGS_REGISTRY.extend(
             max_value=32,
         ),
         SettingDefinition(
-            key="SOLVER_TIMEOUT_SECONDS",
-            label="Timeout Seconds",
-            description="Synchronous /solve wall-clock timeout in seconds (per execution)",
-            category=SettingCategory.SOLVER,
-            setting_type=SettingType.INT,
-            default_value="120",
-            min_value=1,
-            max_value=3600,
-            unit="seconds",
-        ),
-        SettingDefinition(
             key="hexaly_default_time_limit_seconds",
             label="Hexaly Default Time Limit",
             description=(
                 "Default time_limit (seconds) passed to Hexaly "
                 "model.param.time_limit when the request omits it. "
-                "Hexaly is metaheuristic — an explicit stop is required. "
-                "Phase 7 / D-12."
+                "Hexaly is metaheuristic — it searches until told to stop, so "
+                "without this every limitless request would run forever."
             ),
             category=SettingCategory.SOLVER,
             setting_type=SettingType.INT,
@@ -191,9 +177,10 @@ SETTINGS_REGISTRY.extend(
             key="EXECUTION_REAPER_PENDING_MAX_SECONDS",
             label="Reaper: Max Pending Age",
             description=(
-                "Age in seconds after which a ModelExecution stuck in 'pending' "
-                "with no active Celery worker is marked failed and its pre-paid "
-                "credits refunded by the execution reaper beat task (W1/F-01)."
+                "Age in seconds after which an execution stuck in 'pending' with "
+                "no active worker is marked failed by the reaper. Its only job is "
+                "keeping history truthful: a row nobody will ever finish should "
+                "not read as still running."
             ),
             category=SettingCategory.SOLVER,
             setting_type=SettingType.INT,
@@ -206,10 +193,11 @@ SETTINGS_REGISTRY.extend(
             key="EXECUTION_REAPER_RUNNING_MAX_SECONDS",
             label="Reaper: Max Running Age",
             description=(
-                "Age in seconds after which a ModelExecution still running (DB "
-                "status 'running' or an active Celery worker state) is considered "
-                "hung, marked failed, and refunded by the execution reaper. "
-                "Default is 2x the maximum per-request solver time limit (86400s)."
+                "Age in seconds after which an execution still marked running is "
+                "considered hung and failed by the reaper. Raise it above the "
+                "longest solve you expect to allow — a legitimate multi-hour solve "
+                "that outlives this value gets reported as failed while it is "
+                "still working."
             ),
             category=SettingCategory.SOLVER,
             setting_type=SettingType.INT,
@@ -314,7 +302,7 @@ SETTINGS_REGISTRY.extend(
                 "infeasibility explainer runs exact IIS computation (deletion "
                 "filtering). Each constraint costs one extra re-solve, so the "
                 "analysis is O(n) solves; above this cap it falls back to "
-                "heuristic LLM-only reasoning over the formulation. P2."
+                "heuristic LLM-only reasoning over the formulation."
             ),
             category=SettingCategory.SOLVER,
             setting_type=SettingType.INT,
@@ -330,7 +318,7 @@ SETTINGS_REGISTRY.extend(
                 "Wall-clock budget (seconds) for the deletion-filtering IIS "
                 "search. When exceeded mid-search the analysis aborts and falls "
                 "back to heuristic LLM-only reasoning. Each candidate re-solve "
-                "also gets a tight per-solve time limit derived from this. P2."
+                "also gets a tight per-solve time limit derived from this."
             ),
             category=SettingCategory.SOLVER,
             setting_type=SettingType.INT,
@@ -440,7 +428,7 @@ SETTINGS_REGISTRY.extend(
                 "the assistant auto-pauses with a friendly notice until the "
                 "new month or a budget increase. Prometheus alerts fire at "
                 ">80% (warning) and >=100% (critical). Set 0 to disable the "
-                "guardrail. W17."
+                "guardrail."
             ),
             category=SettingCategory.LLM,
             setting_type=SettingType.FLOAT,
@@ -455,7 +443,7 @@ SETTINGS_REGISTRY.extend(
             description=(
                 'JSON map of Anthropic model id -> {"input": eur, "output": '
                 "eur} per million tokens, used to compute llm_messages.cost_eur "
-                'from the real token usage returned by the API (W17). The "default" '
+                'from the real token usage returned by the API. The "default" '
                 "entry prices unknown/future models at Opus rates, so surprises "
                 "over-estimate rather than under-estimate. Values are Anthropic USD "
                 "list prices at ~1.08 USD/EUR; Sonnet 5 is priced at its list rate, "
@@ -549,7 +537,7 @@ SETTINGS_REGISTRY.extend(
                 "Email address that receives messages submitted via the public "
                 "/contact form. Single recipient (not CSV). Runtime-editable. "
                 "This is the public-form inbox; change in admin if you want a "
-                "separate triage mailbox. Phase 9 / D-07."
+                "separate triage mailbox."
             ),
             category=SettingCategory.EMAIL,
             setting_type=SettingType.STRING,
@@ -604,47 +592,6 @@ SETTINGS_REGISTRY.extend(
             min_value=1,
             max_value=365,
             unit="days",
-        ),
-        SettingDefinition(
-            key="API_KEY_DEFAULT_EXPIRY_DAYS",
-            label="API Key Default Expiry",
-            description="Default expiration for new API keys",
-            category=SettingCategory.SECURITY,
-            setting_type=SettingType.INT,
-            default_value="365",
-            min_value=1,
-            max_value=3650,
-            unit="days",
-        ),
-        SettingDefinition(
-            key="API_KEY_ACTIVE_BY_DEFAULT",
-            label="API Key Active by Default",
-            description="Whether new API keys are active immediately",
-            category=SettingCategory.SECURITY,
-            setting_type=SettingType.BOOL,
-            default_value="true",
-        ),
-        SettingDefinition(
-            key="RATE_LIMIT_WINDOW_SECONDS",
-            label="Rate Limit Window",
-            description="Time window for rate limiting",
-            category=SettingCategory.SECURITY,
-            setting_type=SettingType.INT,
-            default_value="60",
-            min_value=1,
-            max_value=3600,
-            unit="seconds",
-        ),
-        SettingDefinition(
-            key="RATE_LIMIT_DAILY_WINDOW_SECONDS",
-            label="Daily Rate Limit Window",
-            description="Time window for daily rate limiting",
-            category=SettingCategory.SECURITY,
-            setting_type=SettingType.INT,
-            default_value="86400",
-            min_value=1,
-            max_value=172800,
-            unit="seconds",
         ),
         SettingDefinition(
             key="AUTH_LOGIN_RATE_LIMIT_PER_MINUTE",
@@ -844,11 +791,22 @@ for _tier in _PLAN_TIERS:
         )
 
 
-# SECRETS category (all readonly, masked)
-
+# SECRETS category — masked in the panel, editable, and READ FROM HERE at runtime.
+#
+# That last part is the entry requirement: a secret only belongs in this list if
+# some code path actually reads it through PSS. DATABASE_URL used to be here and
+# nothing read it — `app/config.py` takes the connection string from the
+# environment before a session exists — so the panel was offering an edit that
+# could not take effect. It was removed in the 1.9 review.
 _SECRET_KEYS = [
-    ("DATABASE_URL", "Database URL", "PostgreSQL connection string"),
-    ("JWT_SECRET", "JWT Secret", "Secret key for JWT signing"),
+    (
+        "JWT_SECRET",
+        "JWT Secret",
+        "Secret key for JWT signing. Takes precedence over the JWT_SECRET in the "
+        "environment, and every access and refresh token in circulation was signed "
+        "with the current value — changing it signs everyone out immediately, "
+        "including you. Rotate only during a maintenance window.",
+    ),
     ("ANTHROPIC_API_KEY", "Anthropic API Key", "API key for Claude LLM"),
     ("SMTP_PASSWORD", "SMTP Password", "SMTP authentication password"),
     ("DISCOURSE_SSO_SECRET", "Discourse SSO Secret", "Discourse single sign-on secret"),
@@ -888,14 +846,6 @@ SETTINGS_REGISTRY.extend(
             setting_type=SettingType.STRING,
             default_value=APP_VERSION,
             is_readonly=True,
-        ),
-        SettingDefinition(
-            key="API_DESCRIPTION",
-            label="API Description",
-            description="Description shown in API documentation",
-            category=SettingCategory.APP,
-            setting_type=SettingType.STRING,
-            default_value=("Multi-tenant optimization-as-a-service platform"),
         ),
         SettingDefinition(
             key="HOME_ANNOUNCEMENT_ENABLED",
@@ -945,50 +895,6 @@ SETTINGS_REGISTRY.extend(
     ]
 )
 
-SETTINGS_REGISTRY.extend(
-    [
-        SettingDefinition(
-            key="HOST",
-            label="Host",
-            description="Server bind host address",
-            category=SettingCategory.SERVER,
-            setting_type=SettingType.STRING,
-            default_value="0.0.0.0",
-        ),
-        SettingDefinition(
-            key="PORT",
-            label="Port",
-            description="Server bind port",
-            category=SettingCategory.SERVER,
-            setting_type=SettingType.INT,
-            default_value="8001",
-            min_value=1,
-            max_value=65535,
-        ),
-        SettingDefinition(
-            key="WORKERS",
-            label="Workers",
-            description="Number of uvicorn worker processes",
-            category=SettingCategory.SERVER,
-            setting_type=SettingType.INT,
-            default_value="1",
-            min_value=1,
-            max_value=32,
-        ),
-        SettingDefinition(
-            key="GZIP_MINIMUM_SIZE",
-            label="Gzip Minimum Size",
-            description=("Minimum response size in bytes to apply gzip"),
-            category=SettingCategory.SERVER,
-            setting_type=SettingType.INT,
-            default_value="1000",
-            min_value=0,
-            max_value=100000,
-            unit="bytes",
-        ),
-    ]
-)
-
 # IDENTIFIERS category — ID prefixes and API key defaults
 SETTINGS_REGISTRY.extend(
     [
@@ -1007,30 +913,6 @@ SETTINGS_REGISTRY.extend(
             category=SettingCategory.IDENTIFIERS,
             setting_type=SettingType.STRING,
             default_value="usr_",
-        ),
-        SettingDefinition(
-            key="ID_PREFIX_API_KEY",
-            label="API Key ID Prefix",
-            description="Prefix for API key IDs",
-            category=SettingCategory.IDENTIFIERS,
-            setting_type=SettingType.STRING,
-            default_value="key_",
-        ),
-        SettingDefinition(
-            key="ID_PREFIX_USAGE_RECORD",
-            label="Usage Record ID Prefix",
-            description="Prefix for usage record IDs",
-            category=SettingCategory.IDENTIFIERS,
-            setting_type=SettingType.STRING,
-            default_value="usage_",
-        ),
-        SettingDefinition(
-            key="ID_PREFIX_RATE_LIMIT_EVENT",
-            label="Rate Limit Event ID Prefix",
-            description="Prefix for rate limit event IDs",
-            category=SettingCategory.IDENTIFIERS,
-            setting_type=SettingType.STRING,
-            default_value="rl_",
         ),
         SettingDefinition(
             key="API_KEY_DEFAULT_NAME",
@@ -1056,76 +938,6 @@ SETTINGS_REGISTRY.extend(
             setting_type=SettingType.STRING,
             default_value="ok_test_",
         ),
-        SettingDefinition(
-            key="DEFAULT_USER_ROLE",
-            label="Default User Role",
-            description="Default role assigned to new users",
-            category=SettingCategory.IDENTIFIERS,
-            setting_type=SettingType.STRING,
-            default_value="member",
-        ),
-    ]
-)
-
-SETTINGS_REGISTRY.extend(
-    [
-        SettingDefinition(
-            key="CELERY_MAX_RETRIES",
-            label="Max Retries",
-            description="Maximum retry attempts for failed tasks",
-            category=SettingCategory.CELERY,
-            setting_type=SettingType.INT,
-            default_value="3",
-            min_value=0,
-            max_value=20,
-        ),
-        SettingDefinition(
-            key="CELERY_DEFAULT_RETRY_DELAY",
-            label="Default Retry Delay",
-            description="Seconds between retry attempts",
-            category=SettingCategory.CELERY,
-            setting_type=SettingType.INT,
-            default_value="300",
-            min_value=1,
-            max_value=3600,
-            unit="seconds",
-        ),
-        SettingDefinition(
-            key="CELERY_RESULT_EXPIRES",
-            label="Result Expiry",
-            description="Seconds before task results expire",
-            category=SettingCategory.CELERY,
-            setting_type=SettingType.INT,
-            default_value="604800",
-            min_value=60,
-            max_value=2592000,
-            unit="seconds",
-        ),
-    ]
-)
-
-SETTINGS_REGISTRY.extend(
-    [
-        SettingDefinition(
-            key="METRICS_MAX_RECENT_REQUESTS",
-            label="Max Recent Requests",
-            description=("Maximum number of recent requests stored for metrics"),
-            category=SettingCategory.METRICS,
-            setting_type=SettingType.INT,
-            default_value="100",
-            min_value=1,
-            max_value=10000,
-        ),
-        SettingDefinition(
-            key="METRICS_DEFAULT_RECENT_LIMIT",
-            label="Default Recent Limit",
-            description="Default limit for recent metrics queries",
-            category=SettingCategory.METRICS,
-            setting_type=SettingType.INT,
-            default_value="10",
-            min_value=1,
-            max_value=1000,
-        ),
     ]
 )
 
@@ -1139,17 +951,6 @@ SETTINGS_REGISTRY.extend(
             category=SettingCategory.RAG,
             setting_type=SettingType.BOOL,
             default_value="false",
-        ),
-        SettingDefinition(
-            key="RAG_AB_TEST_PERCENTAGE",
-            label="A/B Test Percentage",
-            description="Percentage of requests using RAG (0-100, for A/B testing)",
-            category=SettingCategory.RAG,
-            setting_type=SettingType.INT,
-            default_value="0",
-            min_value=0,
-            max_value=100,
-            unit="%",
         ),
         SettingDefinition(
             key="RAG_TOP_K",
@@ -1207,27 +1008,6 @@ SETTINGS_REGISTRY.extend(
             default_value="cross-encoder/ms-marco-MiniLM-L-6-v2",
         ),
     ]
-)
-
-SETTINGS_REGISTRY.append(
-    SettingDefinition(
-        key="LLM_THINKING_BUDGET_TOKENS",
-        label="Thinking Budget Tokens (deprecated)",
-        description=(
-            "DEPRECATED and unused. Manual extended thinking "
-            '({"type": "enabled", "budget_tokens": N}) is rejected with a 400 '
-            "by every model from Opus 4.7 / Sonnet 5 onwards. The advanced "
-            "model now uses adaptive thinking; control its depth with "
-            "LLM_THINKING_EFFORT. Kept only because settings rows are removed "
-            "one release after the code that reads them."
-        ),
-        category=SettingCategory.LLM,
-        setting_type=SettingType.INT,
-        default_value="2048",
-        min_value=0,
-        max_value=100000,
-        unit="tokens",
-    ),
 )
 
 SETTINGS_REGISTRY.append(

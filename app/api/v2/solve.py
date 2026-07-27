@@ -23,7 +23,10 @@ from app.domains.solver.adapters.base import (
 from app.domains.solver.queue_routing import resolve_queue
 from app.domains.solver.services import SolverService, get_solver_service
 from app.domains.solver.services.availability_gate import ensure_hexaly_worker_or_503
-from app.domains.solver.time_limits import compute_celery_time_limits
+from app.domains.solver.time_limits import (
+    compute_celery_time_limits,
+    resolve_solver_time_limit,
+)
 from app.models import ModelExecution, ModelProject, Organization
 from app.models.audit_log import AuditAction
 from app.schemas.optimization import (
@@ -807,6 +810,13 @@ def _enqueue_async_solve(
     # (undefined var refs, inverted bounds) raises HTTP 400 here — never reaches
     # the worker.
     validate_problem(problem)
+
+    # Stamp the effective time limit before the dump, so whatever the worker
+    # receives is what it runs with. Only Hexaly is affected: it has no natural
+    # stopping point, so a request that names no limit gets the configured one.
+    problem.options.time_limit_seconds = resolve_solver_time_limit(
+        db, effective_async_solver, problem.options.time_limit_seconds
+    )
 
     problem_data = problem.model_dump(mode="json")
     # Phase 7.4: use the post-auto-routing effective solver (computed above).

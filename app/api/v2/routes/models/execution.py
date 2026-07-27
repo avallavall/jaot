@@ -24,7 +24,10 @@ from app.domains.solver.queue_routing import resolve_queue
 from app.domains.solver.services.availability_gate import ensure_hexaly_worker_or_503
 from app.domains.solver.services.solver_service import SolverService, get_solver_service
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
-from app.domains.solver.time_limits import compute_celery_time_limits
+from app.domains.solver.time_limits import (
+    compute_celery_time_limits,
+    resolve_solver_time_limit,
+)
 from app.models import ExecutionStatus, ModelExecution, Organization, User
 from app.models.model_project import ModelProject, ModelProjectListing
 from app.schemas.model import (
@@ -210,6 +213,12 @@ def execute_model(
             get_solver_service(solver_name=effective_solver_name)
         except (SolverNotFoundError, SolverUnavailableError) as exc:
             raise solver_unavailable(exc, effective_solver_name) from exc
+
+    # Before input_data is frozen onto the row: Hexaly has no natural stopping
+    # point, so a request that names no limit gets the configured default.
+    problem.options.time_limit_seconds = resolve_solver_time_limit(
+        db, effective_solver_name, problem.options.time_limit_seconds
+    )
 
     execution = ModelExecution(
         id=generate_id("exe_"),

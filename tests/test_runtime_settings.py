@@ -29,25 +29,50 @@ class TestSolverIntegration:
         ],
     }
 
-    def test_solve_timeout_uses_db_value(self, authenticated_client, db_session):
-        """When SOLVER_TIMEOUT_SECONDS is set in DB, the solve endpoint timeout
-        error message reflects that DB value (not the env default)."""
-        # Set a custom timeout value in DB
-        PSS.set(db_session, "SOLVER_TIMEOUT_SECONDS", "777")
+    def test_hexaly_default_time_limit_comes_from_db(self, db_session):
+        """A Hexaly request with no time limit picks up the configured default.
+
+        Replaces a test that set SOLVER_TIMEOUT_SECONDS and then asserted the
+        DB returned it — which held whether or not any code read the setting,
+        and indeed nothing did.
+        """
+        from app.domains.solver.time_limits import resolve_solver_time_limit
+
+        PSS.set(db_session, "hexaly_default_time_limit_seconds", "777")
         db_session.commit()
 
-        # We can verify the solve endpoint reads this value by checking the
-        # pool-exhausted error path which also reads SOLVER_POOL_SIZE from DB.
-        # Here we verify the value is what the solve code would read at runtime.
-        val = PSS.get_int(db_session, "SOLVER_TIMEOUT_SECONDS")
-        assert val == 777
+        assert resolve_solver_time_limit(db_session, "hexaly", None) == 777
 
-        # Actually call solve and verify it succeeds (using the DB timeout)
-        resp = authenticated_client.post("/api/v2/solve", json=self.SIMPLE_PROBLEM)
-        # The solver should succeed within the generous 777s timeout
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["status"] == "optimal"
+        # An explicit request wins — the setting is the floor under limitless
+        # requests, not a cap on the ones that ask for something.
+        assert resolve_solver_time_limit(db_session, "hexaly", 30) == 30
+
+        # Exact solvers terminate on their own: absent stays absent, so
+        # "run to proven optimality" survives.
+        assert resolve_solver_time_limit(db_session, "scip", None) is None
+        assert resolve_solver_time_limit(db_session, "highs", None) is None
+
+    # CONTRACT-TEST: every enqueue helper resolves the effective time limit
+    def test_all_enqueue_paths_resolve_the_time_limit(self):
+        """Both enqueue helpers must stamp the limit before freezing the problem.
+
+        They are the two funnels every solve entry point goes through. A third
+        one, or one that stops calling this, silently returns Hexaly to
+        searching forever on limitless requests.
+        """
+        from pathlib import Path
+
+        app_dir = Path(__file__).resolve().parent.parent / "app"
+        enqueue_files = [
+            app_dir / "api" / "v2" / "solve.py",
+            app_dir / "api" / "v2" / "routes" / "models" / "execution.py",
+        ]
+        for path in enqueue_files:
+            source = path.read_text(encoding="utf-8")
+            assert "resolve_solver_time_limit(" in source, (
+                f"{path.name} enqueues solves without resolving the effective "
+                "time limit — Hexaly requests with no limit will never stop"
+            )
 
     def test_solve_plan_config_uses_db_max_solve_time(self, authenticated_client, db_session):
         """Plan config max_solve_time_seconds from DB is used by _enforce_tier_caps
@@ -338,30 +363,30 @@ class TestAdminAPIE2E:
         # 1. GET default value
         resp = admin_client.get("/api/v2/admin/settings/values?category=solver")
         assert resp.status_code == 200
-        original = resp.json()["settings"]["SOLVER_TIMEOUT_SECONDS"]["value"]
+        original = resp.json()["settings"]["SOLVER_DEFAULT_TIMEOUT"]["value"]
 
         # 2. PUT new value
         resp = admin_client.put(
             "/api/v2/admin/settings/values",
-            json={"updates": {"SOLVER_TIMEOUT_SECONDS": "777"}},
+            json={"updates": {"SOLVER_DEFAULT_TIMEOUT": "777"}},
         )
         assert resp.status_code == 200
-        assert "SOLVER_TIMEOUT_SECONDS" in resp.json()["updated"]
+        assert "SOLVER_DEFAULT_TIMEOUT" in resp.json()["updated"]
 
         # 3. GET shows new value with is_modified=True
         resp = admin_client.get("/api/v2/admin/settings/values?category=solver")
-        setting = resp.json()["settings"]["SOLVER_TIMEOUT_SECONDS"]
+        setting = resp.json()["settings"]["SOLVER_DEFAULT_TIMEOUT"]
         assert setting["value"] == "777"
         assert setting["is_modified"] is True
 
         # 4. POST reset
-        resp = admin_client.post("/api/v2/admin/settings/reset/SOLVER_TIMEOUT_SECONDS")
+        resp = admin_client.post("/api/v2/admin/settings/reset/SOLVER_DEFAULT_TIMEOUT")
         assert resp.status_code == 200
         assert resp.json()["reset"] is True
 
         # 5. GET shows default with is_modified=False
         resp = admin_client.get("/api/v2/admin/settings/values?category=solver")
-        setting = resp.json()["settings"]["SOLVER_TIMEOUT_SECONDS"]
+        setting = resp.json()["settings"]["SOLVER_DEFAULT_TIMEOUT"]
         assert setting["value"] == original
         assert setting["is_modified"] is False
 
@@ -369,10 +394,10 @@ class TestAdminAPIE2E:
         resp = admin_client.get("/api/v2/admin/settings/audit")
         assert resp.status_code == 200
         entries = resp.json()["items"]
-        matching = [e for e in entries if e["setting_key"] == "SOLVER_TIMEOUT_SECONDS"]
+        matching = [e for e in entries if e["setting_key"] == "SOLVER_DEFAULT_TIMEOUT"]
         assert len(matching) == 2
         # Most recent first (reset), then set
-        assert matching[0]["new_value"] == "120"  # reset to registry default
+        assert matching[0]["new_value"] == "300"  # reset to registry default
         assert matching[1]["new_value"] == "777"  # set
 
     def test_batch_update_multiple_settings(self, admin_client, db_session):
@@ -382,7 +407,7 @@ class TestAdminAPIE2E:
             "/api/v2/admin/settings/values",
             json={
                 "updates": {
-                    "SOLVER_TIMEOUT_SECONDS": "100",
+                    "SOLVER_DEFAULT_TIMEOUT": "100",
                     "LLM_RATE_LIMIT_PER_MINUTE": "42",
                     "LLM_MONTHLY_BUDGET_EUR": "77",
                 }
@@ -390,51 +415,51 @@ class TestAdminAPIE2E:
         )
         assert resp.status_code == 200
         updated = resp.json()["updated"]
-        assert "SOLVER_TIMEOUT_SECONDS" in updated
+        assert "SOLVER_DEFAULT_TIMEOUT" in updated
         assert "LLM_RATE_LIMIT_PER_MINUTE" in updated
         assert "LLM_MONTHLY_BUDGET_EUR" in updated
 
         # Audit log should have entries for each
         resp = admin_client.get("/api/v2/admin/settings/audit")
         keys_in_audit = {e["setting_key"] for e in resp.json()["items"]}
-        assert "SOLVER_TIMEOUT_SECONDS" in keys_in_audit
+        assert "SOLVER_DEFAULT_TIMEOUT" in keys_in_audit
         assert "LLM_RATE_LIMIT_PER_MINUTE" in keys_in_audit
         assert "LLM_MONTHLY_BUDGET_EUR" in keys_in_audit
 
     def test_validation_rejects_non_integer(self, admin_client, db_session):
-        """PUT SOLVER_TIMEOUT_SECONDS with 'abc' is rejected."""
+        """PUT SOLVER_DEFAULT_TIMEOUT with 'abc' is rejected."""
         resp = admin_client.put(
             "/api/v2/admin/settings/values",
-            json={"updates": {"SOLVER_TIMEOUT_SECONDS": "abc"}},
+            json={"updates": {"SOLVER_DEFAULT_TIMEOUT": "abc"}},
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert "SOLVER_TIMEOUT_SECONDS" not in data["updated"]
-        assert "SOLVER_TIMEOUT_SECONDS" in data["errors"]
+        assert "SOLVER_DEFAULT_TIMEOUT" not in data["updated"]
+        assert "SOLVER_DEFAULT_TIMEOUT" in data["errors"]
 
     def test_validation_rejects_below_min(self, admin_client, db_session):
-        """PUT SOLVER_TIMEOUT_SECONDS with 0 (below min=1) is rejected."""
+        """PUT SOLVER_DEFAULT_TIMEOUT with 0 (below min=1) is rejected."""
         resp = admin_client.put(
             "/api/v2/admin/settings/values",
-            json={"updates": {"SOLVER_TIMEOUT_SECONDS": "0"}},
+            json={"updates": {"SOLVER_DEFAULT_TIMEOUT": "0"}},
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert "SOLVER_TIMEOUT_SECONDS" not in data["updated"]
-        assert "SOLVER_TIMEOUT_SECONDS" in data["errors"]
-        assert "below minimum" in data["errors"]["SOLVER_TIMEOUT_SECONDS"]
+        assert "SOLVER_DEFAULT_TIMEOUT" not in data["updated"]
+        assert "SOLVER_DEFAULT_TIMEOUT" in data["errors"]
+        assert "below minimum" in data["errors"]["SOLVER_DEFAULT_TIMEOUT"]
 
     def test_validation_rejects_above_max(self, admin_client, db_session):
-        """PUT SOLVER_TIMEOUT_SECONDS with 9999 (above max=3600) is rejected."""
+        """PUT SOLVER_DEFAULT_TIMEOUT with 9999 (above max=3600) is rejected."""
         resp = admin_client.put(
             "/api/v2/admin/settings/values",
-            json={"updates": {"SOLVER_TIMEOUT_SECONDS": "9999"}},
+            json={"updates": {"SOLVER_DEFAULT_TIMEOUT": "9999"}},
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert "SOLVER_TIMEOUT_SECONDS" not in data["updated"]
-        assert "SOLVER_TIMEOUT_SECONDS" in data["errors"]
-        assert "exceeds maximum" in data["errors"]["SOLVER_TIMEOUT_SECONDS"]
+        assert "SOLVER_DEFAULT_TIMEOUT" not in data["updated"]
+        assert "SOLVER_DEFAULT_TIMEOUT" in data["errors"]
+        assert "exceeds maximum" in data["errors"]["SOLVER_DEFAULT_TIMEOUT"]
 
 
 class TestFallbackChain:
@@ -442,27 +467,27 @@ class TestFallbackChain:
 
     def test_db_overrides_env(self, db_session):
         """When a value exists in DB, get() returns the DB value, not the env default."""
-        PSS.set(db_session, "SOLVER_TIMEOUT_SECONDS", "999")
+        PSS.set(db_session, "SOLVER_DEFAULT_TIMEOUT", "999")
         db_session.flush()
 
-        val = PSS.get(db_session, "SOLVER_TIMEOUT_SECONDS")
+        val = PSS.get(db_session, "SOLVER_DEFAULT_TIMEOUT")
         assert val == "999"
 
     def test_reset_reverts_to_env(self, db_session):
         """Set a value in DB, reset it, verify get() returns env default."""
         # Set in DB
-        PSS.set(db_session, "SOLVER_TIMEOUT_SECONDS", "999")
+        PSS.set(db_session, "SOLVER_DEFAULT_TIMEOUT", "999")
         db_session.flush()
-        assert PSS.get(db_session, "SOLVER_TIMEOUT_SECONDS") == "999"
+        assert PSS.get(db_session, "SOLVER_DEFAULT_TIMEOUT") == "999"
 
         # Delete the DB row (simulating reset)
         db_session.query(PlatformSetting).filter(
-            PlatformSetting.key == "SOLVER_TIMEOUT_SECONDS"
+            PlatformSetting.key == "SOLVER_DEFAULT_TIMEOUT"
         ).delete()
         db_session.flush()
 
         # Should fall back to env default
-        val = PSS.get(db_session, "SOLVER_TIMEOUT_SECONDS")
+        val = PSS.get(db_session, "SOLVER_DEFAULT_TIMEOUT")
         assert val != "999"
         # Env default exists and is a positive number
         assert int(val) > 0
@@ -471,11 +496,11 @@ class TestFallbackChain:
         """When no DB row exists, get() returns the env default."""
         # Ensure no DB row
         db_session.query(PlatformSetting).filter(
-            PlatformSetting.key == "SOLVER_TIMEOUT_SECONDS"
+            PlatformSetting.key == "SOLVER_DEFAULT_TIMEOUT"
         ).delete()
         db_session.flush()
 
-        val = PSS.get(db_session, "SOLVER_TIMEOUT_SECONDS")
+        val = PSS.get(db_session, "SOLVER_DEFAULT_TIMEOUT")
         # Must be the env default, not empty
         assert val != ""
         assert int(val) > 0
