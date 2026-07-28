@@ -7,6 +7,8 @@ means seeding a fork ModelProject via ``POST /projects/from-marketplace/{id}``.
 """
 
 from app.models import ModelCategory, ModelProject, ModelProjectListing
+from app.models.model_view_event import ModelViewEvent
+from app.services.author_analytics_service import AuthorAnalyticsService
 
 
 def _make_listing(db, org, *, pid, **overrides) -> ModelProjectListing:
@@ -212,3 +214,78 @@ class TestActivateModel:
             "/api/v2/models/catalog/test_activate_retired/activate", json={}
         )
         assert response.status_code == 404
+
+
+class TestVisitTelemetryIsStored:
+    """The view and impression events must outlive the request that logged them.
+
+    They did not. Both were written with ``add()`` + ``flush()`` and nothing
+    committed — ``get_db`` only closes the session — so every event was rolled
+    back on the way out and the author analytics dashboard read an empty table
+    on every install. A 200 from these endpoints proves nothing about that,
+    which is why these tests count rows instead.
+    """
+
+    # CONTRACT-TEST: marketplace visit telemetry is committed, not just flushed
+    def test_a_detail_page_stores_its_view_event(
+        self, authenticated_client, db_session, test_organization
+    ):
+        _make_listing(db_session, test_organization, pid="test_view_persisted")
+
+        assert (
+            authenticated_client.get("/api/v2/models/catalog/test_view_persisted").status_code
+            == 200
+        )
+
+        events = (
+            db_session.query(ModelViewEvent)
+            .filter(
+                ModelViewEvent.model_project_id == "test_view_persisted",
+                ModelViewEvent.event_type == "view",
+            )
+            .all()
+        )
+        assert len(events) == 1
+
+    # CONTRACT-TEST: marketplace visit telemetry is committed, not just flushed
+    def test_a_listing_page_stores_its_impressions(
+        self, authenticated_client, db_session, test_organization
+    ):
+        _make_listing(
+            db_session,
+            test_organization,
+            pid="test_impression_persisted",
+            name="impressionprobe",
+            display_name="Impression Probe",
+        )
+
+        assert (
+            authenticated_client.get("/api/v2/models/catalog?search=impressionprobe").status_code
+            == 200
+        )
+
+        events = (
+            db_session.query(ModelViewEvent)
+            .filter(
+                ModelViewEvent.model_project_id == "test_impression_persisted",
+                ModelViewEvent.event_type == "impression",
+            )
+            .all()
+        )
+        assert len(events) == 1
+
+    def test_a_failed_view_log_still_serves_the_page(
+        self, authenticated_client, db_session, test_organization, monkeypatch
+    ):
+        """Telemetry is not worth a reader's page: if the write blows up, the
+        detail response must still arrive intact."""
+        _make_listing(db_session, test_organization, pid="test_view_failure")
+
+        def _explode(*args, **kwargs):
+            raise RuntimeError("analytics is down")
+
+        monkeypatch.setattr(AuthorAnalyticsService, "log_view", _explode)
+
+        response = authenticated_client.get("/api/v2/models/catalog/test_view_failure")
+        assert response.status_code == 200
+        assert response.json()["id"] == "test_view_failure"

@@ -9,6 +9,8 @@ These tests verify the favorites/recents functionality:
 
 from datetime import timedelta
 
+from sqlalchemy.orm import sessionmaker
+
 from app.models import (
     ModelCategory,
     ModelProject,
@@ -17,6 +19,8 @@ from app.models import (
     RecentModel,
     UserFavorite,
 )
+from app.services import favorites_service
+from app.shared.core import auth_middleware
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
 
@@ -348,3 +352,112 @@ class TestRecents:
 
         data = authenticated_client.get("/api/v2/models/recents").json()
         assert "test_recent_other_user" not in [i["id"] for i in data["items"]]
+
+
+def _rows_for(db, user, pid) -> list[RecentModel]:
+    return (
+        db.query(RecentModel)
+        .filter(RecentModel.user_id == user.id, RecentModel.model_project_id == pid)
+        .all()
+    )
+
+
+class TestOpeningAModelRecordsIt:
+    """Opening a marketplace listing is what puts it in "Recent".
+
+    Nothing used to write this table at all — the list read a table only GDPR
+    erasure and a backfill ever touched, so the tab showed an empty state for
+    every account. The write goes where the visit is already recorded: the
+    detail page the Recent cards themselves link to.
+    """
+
+    def test_opening_a_listing_puts_it_in_recents(
+        self, authenticated_client, db_session, test_user, test_organization
+    ):
+        _listing(db_session, test_organization, pid="test_open_records")
+
+        assert (
+            authenticated_client.get("/api/v2/models/catalog/test_open_records").status_code == 200
+        )
+
+        rows = _rows_for(db_session, test_user, "test_open_records")
+        assert len(rows) == 1
+        assert rows[0].access_count == "1"
+
+        data = authenticated_client.get("/api/v2/models/recents").json()
+        assert [i["id"] for i in data["items"]] == ["test_open_records"]
+        assert data["items"][0]["access_count"] == 1
+
+    def test_opening_twice_updates_the_same_row(
+        self, authenticated_client, db_session, test_user, test_organization
+    ):
+        """A second visit moves the entry up the list instead of duplicating it.
+
+        ``(user_id, model_project_id)`` is unique, so a read-then-write would
+        raise here under any concurrency — two tabs, or an impatient double
+        click. The upsert is what makes the second visit an update.
+        """
+        _listing(db_session, test_organization, pid="test_open_twice")
+
+        authenticated_client.get("/api/v2/models/catalog/test_open_twice")
+        first = _rows_for(db_session, test_user, "test_open_twice")[0].last_accessed
+
+        authenticated_client.get("/api/v2/models/catalog/test_open_twice")
+        db_session.expire_all()
+
+        rows = _rows_for(db_session, test_user, "test_open_twice")
+        assert len(rows) == 1
+        assert rows[0].access_count == "2"
+        assert rows[0].last_accessed >= first
+
+    def test_an_anonymous_visit_records_nothing(self, client, db_session, test_organization):
+        """The catalog is public, and a visitor with no account has no history."""
+        _listing(db_session, test_organization, pid="test_open_anonymous")
+
+        assert client.get("/api/v2/models/catalog/test_open_anonymous").status_code == 200
+
+        assert (
+            db_session.query(RecentModel)
+            .filter(RecentModel.model_project_id == "test_open_anonymous")
+            .count()
+            == 0
+        )
+
+    # CONTRACT-TEST: a public path's opportunistic user survives its own auth session
+    def test_it_works_when_the_auth_session_expires_its_instances(
+        self, authenticated_client, db_session, test_user, test_organization, monkeypatch
+    ):
+        """The same visit, with the session settings production actually runs.
+
+        On a public path the auth middleware authenticates in its own session
+        and closes it *before* the handler runs. The suite hands that middleware
+        a ``expire_on_commit=False`` sessionmaker, so instances stay readable
+        afterwards and every other test here passes whether or not the handler
+        can use them. Production uses the default, where the rollback expires
+        them and reading ``user.id`` raises ``DetachedInstanceError`` — which the
+        telemetry's broad except swallowed, dropping the write with a 200 on the
+        wire. Recreating that here is the only way this file can tell.
+        """
+        production_like = sessionmaker(bind=db_session.get_bind(), expire_on_commit=True)
+        monkeypatch.setattr(auth_middleware, "_session_factory", production_like)
+        _listing(db_session, test_organization, pid="test_open_expiring_session")
+
+        response = authenticated_client.get("/api/v2/models/catalog/test_open_expiring_session")
+
+        assert response.status_code == 200
+        assert len(_rows_for(db_session, test_user, "test_open_expiring_session")) == 1
+
+    def test_a_failed_recent_write_still_serves_the_page(
+        self, authenticated_client, db_session, test_organization, monkeypatch
+    ):
+        """The entry is a convenience; the listing is what the reader asked for."""
+        _listing(db_session, test_organization, pid="test_open_failure")
+
+        def _explode(*args, **kwargs):
+            raise RuntimeError("cannot write recents")
+
+        monkeypatch.setattr(favorites_service, "touch_recent", _explode)
+
+        response = authenticated_client.get("/api/v2/models/catalog/test_open_failure")
+        assert response.status_code == 200
+        assert response.json()["id"] == "test_open_failure"

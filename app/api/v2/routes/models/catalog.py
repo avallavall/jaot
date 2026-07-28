@@ -14,11 +14,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.models import ModelProjectListing, Organization
+from app.api.deps import OptionalCurrentUser
+from app.models import ModelProjectListing, Organization, User
 from app.schemas.model import (
     ModelCatalogListResponse,
     ModelCatalogResponse,
 )
+from app.services import favorites_service
 from app.services.author_analytics_service import AuthorAnalyticsService
 from app.services.marketplace_fusion import listing_to_catalog_response
 from app.shared.db.base import get_db
@@ -28,9 +30,59 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["catalog"])
 
 
+def _record_impressions(
+    db: Session, request: Request, viewer: User | None, model_ids: list[str]
+) -> None:
+    """Store one impression per listing this page returned.
+
+    Telemetry must never cost the reader their page, so a failure here is
+    swallowed. The commit is the part that matters: ``get_db`` does not commit,
+    so a flush on its own is discarded when the session closes — which is
+    exactly how these events came to be recorded and never stored.
+    """
+    if not model_ids:
+        return
+    try:
+        with db.begin_nested():
+            AuthorAnalyticsService(db).log_impression(
+                model_ids,
+                viewer.organization_id if viewer else None,
+                request.client.host if request.client else None,
+            )
+        db.commit()
+    except Exception:
+        db.rollback()
+        logger.debug("Failed to log impressions", exc_info=True)
+
+
+def _record_visit(db: Session, request: Request, viewer: User | None, model_id: str) -> None:
+    """Store the view event, and the opener's "recently opened" entry.
+
+    Same commit note as :func:`_record_impressions`. The recent entry is per
+    user and the catalog is public, so it is only written when the request
+    carried credentials the middleware could resolve. Both writes share one
+    SAVEPOINT: they describe the same visit, and neither is worth keeping
+    without the other.
+    """
+    try:
+        with db.begin_nested():
+            AuthorAnalyticsService(db).log_view(
+                model_id,
+                viewer.organization_id if viewer else None,
+                request.client.host if request.client else None,
+            )
+            if viewer is not None:
+                favorites_service.touch_recent(db, viewer.id, model_id)
+        db.commit()
+    except Exception:
+        db.rollback()
+        logger.debug("Failed to record the visit to %s", model_id, exc_info=True)
+
+
 @router.get("/catalog", response_model=ModelCatalogListResponse, operation_id="list_catalog_models")
 def list_catalog_models(
     request: Request,
+    viewer: OptionalCurrentUser,
     category: str | None = Query(None, description="Filter by category"),
     search: str | None = Query(None, description="Search in name and description"),
     is_official: bool | None = Query(None, description="Filter official models"),
@@ -99,19 +151,8 @@ def list_catalog_models(
                 item.author_verified = author_org.is_verified
         items.append(item)
 
-    # Fire-and-forget: log impressions for the returned listings (keyed by their
-    # model_project_id — the marketplace identity).
-    try:
-        if models:
-            analytics = AuthorAnalyticsService(db)
-            model_ids = [i.id for i in items]
-            # Catalog list is public -- viewer may not be authenticated
-            viewer_user = getattr(request.state, "user", None)
-            viewer_org_id = getattr(viewer_user, "organization_id", None) if viewer_user else None
-            viewer_ip = request.client.host if request.client else None
-            analytics.log_impression(model_ids, viewer_org_id, viewer_ip)
-    except Exception:
-        logger.debug("Failed to log impressions", exc_info=True)
+    # Impressions are keyed by model_project_id — the marketplace identity.
+    _record_impressions(db, request, viewer, [i.id for i in items])
 
     return ModelCatalogListResponse(
         items=items,
@@ -127,6 +168,7 @@ def list_catalog_models(
 )
 def get_catalog_model(
     request: Request,
+    viewer: OptionalCurrentUser,
     model_id: str,
     db: Session = Depends(get_db),
 ) -> ModelCatalogResponse:
@@ -154,15 +196,7 @@ def get_catalog_model(
             response.author_name = author_org.name
             response.author_verified = author_org.is_verified
 
-    # Fire-and-forget: log view event for this model detail page
-    try:
-        analytics = AuthorAnalyticsService(db)
-        viewer_user = getattr(request.state, "user", None)
-        viewer_org_id = getattr(viewer_user, "organization_id", None) if viewer_user else None
-        viewer_ip = request.client.host if request.client else None
-        analytics.log_view(model_id, viewer_org_id, viewer_ip)
-    except Exception:
-        logger.debug("Failed to log view event for %s", model_id, exc_info=True)
+    _record_visit(db, request, viewer, model_id)
 
     return response
 

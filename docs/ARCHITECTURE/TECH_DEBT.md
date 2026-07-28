@@ -184,6 +184,7 @@ workers use. Nothing left to change; verified 2026-07-26.
 | D-18 | 113 `Depends(get_db)` instead of the `DBSession` alias the project rule mandates | Low (consistency) | Folded into D-12 | Low |
 | D-19 | `execution.py` had grown to 839 LOC mixing the marketplace execution flow with the post-solve analysis endpoints, and the org filter was hand-typed at 4 call sites | Low-medium (architectural) | 1–2 days | ✅ **Partly resolved** (`f4dd487`) — analysis split into its own module + one shared `execution_or_404`; the remaining ~180 route-level queries stay as opportunistic cleanup |
 | D-23 | The two API rate limits are enforced from a COPY on `organizations` (written at signup, read by 9 call sites) instead of from the instance profile. Editing them in the panel is made to work by propagating the change to the organizations still on the old value — honest, but a mirror that can drift. The deep fix is a nullable column meaning "inherit", which needs a schema change the rollback window cannot take today | Low (works; the mechanism is the debt) | 0.5 day | Deferred — do it with the contract-release schema pass |
+| D-24 | Nothing a public path learned about its caller was usable, and nothing it wrote survived. `recent_models` had no writer at all; `model_view_events` was flushed and never committed; and the opportunistic principal the auth middleware attaches came back expired, so reading `user.id` raised — a swallowed exception in the telemetry, a 500 in the contact form | Medium-high (silent data loss on three live surfaces, one of them user-facing) | 0.5 day | ✅ **Resolved (2026-07-28)** — principal detached before its session closes, writes committed |
 | D-22 | Orphaned `platform_settings` rows — 98 on the reference install, of which 51 come from the 1.9 panel review (23 retired settings + the 28 `plan_*` tier keys the instance profile replaced) and the rest predate it, mostly ADR-008 billing keys. Additive-only means the code stopped reading them but nothing deleted them | Low (cosmetic; invisible to the panel, which renders the registry) | Minutes | ✅ **Resolved** (`20260728_prune_orphan_settings`) — 186 rows → 88, exactly the registry |
 
 **Suggested first batch:** D-10 + D-11 + D-12 — the three that change something real, ~2 days,
@@ -254,11 +255,44 @@ Typing them found a defect rather than merely describing one. `access_count` is 
 column, so the count reached the browser quoted, while the page that renders it declares a
 number and hands it to a plural rule. The schema converts it, and a test pins the type.
 
-One note for whoever finishes D-17, found while writing those tests: **nothing in the backend
-ever inserts a `recent_models` row.** Reading it, erasing it for GDPR and the P1.5 backfill of
-its key are the only code that touches the table, so the "Recent" tab shows whatever legacy
-rows an install still carries and nothing more. Typing the endpoint does not change that —
-what counts as "opening" a model is a product decision, not a cleanup.
+Writing those tests turned up something the typing could not fix on its own: **nothing in the
+backend ever inserted a `recent_models` row.** That became D-24 below, and is now closed.
+
+**D-24 · ✅ Resolved (2026-07-28) — three dead surfaces, two causes, and a harness that hid
+both.** Start at the visible end: the "Recent" tab read a table nothing wrote. Fixing that
+meant deciding what counts as opening a model. The write goes on the marketplace detail
+page, because that is where the Recent cards themselves link and where the visit was already
+being recorded. *Using* a model is a different thing and is already kept — that is what
+executions are.
+
+**Cause one: nothing committed.** `get_db` closes the session and never commits, and the
+view/impression writers only flushed, so every analytics event since the feature shipped was
+discarded on the way out. Not a slow leak — nothing was ever stored, on any install.
+Measured before the fix against the running server: 108 published listings, one catalog
+request and one detail request, `model_view_events` still empty.
+
+**Cause two: the principal arrived dead.** On a public path the auth middleware
+authenticates in its own session and closes it *before* the handler runs, and resolving a
+principal commits (the API key's `last_used_at`), which under the default `expire_on_commit`
+expires every instance it just loaded. So `user.id` in a public handler was not a read but a
+`DetachedInstanceError` — swallowed by the telemetry's broad except, and **a 500 in the
+contact form**, for exactly the signed-in visitors that auto-tagging exists to serve. The
+middleware now refreshes anything a commit expired and detaches the principal before its
+session closes, so what it hands over stays readable.
+
+**Why no test caught either.** The suite gives that middleware an
+`expire_on_commit=False` sessionmaker, so instances survive there whatever the handler does
+— the harness was more forgiving than production in precisely the place that mattered. And
+every assertion involved was a status code, which stayed 200 throughout. The new
+`CONTRACT-TEST`s count rows instead, and two of them recreate production's session settings
+to prove the point: with the fix reverted they fail, one on `DetachedInstanceError` and one
+on an empty table.
+
+The visit write is an upsert on `(user_id, model_project_id)`, so two tabs open at once
+update one row instead of racing into an integrity error, and it runs inside a `SAVEPOINT`:
+telemetry is not worth a reader's page. `access_count` stays a `String` column — it joins
+`favorite.py`'s `Column()` on the contract-release list; the increment casts through integer
+in the meantime.
 
 **Addendum (same day, after owner review):** two precisions on the audit above.
 

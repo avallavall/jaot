@@ -66,6 +66,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ### Fixed
 
+- **The "Recent" tab fills up again.** Opening a model left no trace — nothing ever wrote that list — so it greeted every account with an empty state next to a Favourites tab that worked. Opening a model's page now records it, and opening it again moves it to the top instead of adding a second entry.
+- **Author analytics count the visits they receive.** Views and impressions were recorded on every marketplace page and then thrown away when the request ended, so a listing with real traffic reported zeros to its author. Both are stored now, and a visit from a signed-in reader is again attributed to their organisation.
 - **The contact form works while you are signed in.** On the public pages the server identifies you for the sole purpose of attaching your account to what you send — and that identification came back unusable, so the submission failed outright. Signing out and sending was the only way through.
 - **Changing an API rate limit in the admin panel now reaches the organisations already signed up.** The two rate limits are kept on the organisation, copied when it is created, so editing the setting changed what new organisations would get and nothing about the existing ones. A limit set deliberately for one organisation still overrides the instance-wide value.
 - **Creating a scheduled run always failed with "Schedule limit reached (0)".** Zero means unlimited everywhere else since capacity limits became the operator's to set, but this check read it as "allow none", so cron scheduling was unusable out of the box.

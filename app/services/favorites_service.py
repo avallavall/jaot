@@ -8,6 +8,8 @@ list views.
 
 from __future__ import annotations
 
+from sqlalchemy import Integer, String, cast, func
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -23,6 +25,7 @@ from app.schemas.model import (
     RecentListResponse,
     RecentModelSummary,
 )
+from app.shared.utils.datetime_helpers import utcnow
 
 
 def _author_names(db: Session, listings: list[ModelProjectListing]) -> dict[str, str]:
@@ -124,6 +127,36 @@ def remove_favorite(db: Session, user_id: str, model_id: str) -> None:
     if favorite is not None:
         db.delete(favorite)
         db.commit()
+
+
+def touch_recent(db: Session, user_id: str, model_project_id: str) -> None:
+    """Record that this user just opened a model. Does not commit.
+
+    An upsert rather than read-then-write: ``(user_id, model_project_id)`` is
+    unique, and this runs on a page load — two tabs, or a double click, would
+    otherwise race into an integrity error on the second insert.
+
+    ``access_count`` is a ``String`` column (legacy, on the contract-release
+    list with the rest of ``favorite.py``), so the increment casts through
+    integer and back, and treats a NULL from an older row as zero.
+    """
+    stmt = pg_insert(RecentModel).values(
+        user_id=user_id,
+        model_project_id=model_project_id,
+        last_accessed=utcnow(),
+        access_count="1",
+    )
+    db.execute(
+        stmt.on_conflict_do_update(
+            index_elements=["user_id", "model_project_id"],
+            set_={
+                "last_accessed": stmt.excluded.last_accessed,
+                "access_count": cast(
+                    func.coalesce(cast(RecentModel.access_count, Integer), 0) + 1, String
+                ),
+            },
+        )
+    )
 
 
 def list_recents(db: Session, user_id: str, limit: int) -> RecentListResponse:
