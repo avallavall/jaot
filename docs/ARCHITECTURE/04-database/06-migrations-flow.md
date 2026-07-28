@@ -23,7 +23,7 @@ flowchart LR
     N --> O["Rollback strategy:<br/>Container restart =<br/>prior image (prior schema)"]
 ```
 
-## Current Migration Structure (56 total)
+## Current Migration Structure (64 total, single head)
 
 ```
 infra/alembic/versions/
@@ -42,13 +42,20 @@ infra/alembic/versions/
 ├── 20260326_add_credit_pools.py
 ├── 20260327_seed_platform_settings.py
 ├── ... (2026-04 → 2026-07: provenance, model projects, datasets, timestamptz, ...)
-├── 20260711_money_columns_nullable.py
-├── 20260712_llmconv_ondelete.py
 ├── 20260712_p15_listings.py
 ├── 20260712_p15_backfill.py
 ├── 20260713_p15_view_events_project.py
-└── 20260713_p15_reviews_favorites_project.py  ← Latest
+├── 20260713_p15_reviews_favorites_project.py
+├── ... (2026-07: conversation ledger, LLM v5 models, analysis cache, ...)
+├── 20260726_index_unindexed_fks.py
+├── 20260726_unlimit_plan_capacity.py
+├── 20260726_listing_success_tallies.py
+├── 20260727_instance_limits.py
+└── 20260728_prune_orphan_settings.py  ← Latest
 ```
+
+> Ask the tool rather than this list, which ages: `alembic -c infra/alembic.ini heads`
+> must print exactly one head. Two means a branch that `upgrade head` will refuse.
 
 > **Note (ADR-008):** the money/credit migrations in the history above (idempotency
 > constraint, credit pools, financial hardening) built tables and columns that are now
@@ -57,25 +64,27 @@ infra/alembic/versions/
 
 ### Last 5 Migrations
 
-1. **20260713_p15_reviews_favorites_project.py**
-   - P1.5 fusion: `model_reviews.catalog_id` + `user_favorites/recent_models.model_id` →
-     nullable; uniqueness re-keyed onto `(user_id, model_project_id)`
+1. **20260728_prune_orphan_settings.py**
+   - Deletes the 98 `platform_settings` rows no code reads (D-22): the `plan_*` tiers the
+     instance profile replaced, ADR-008's billing keys, and the settings the 1.9 panel
+     review retired. Data only — no schema touched, and `downgrade()` is a documented no-op
 
-2. **20260713_p15_view_events_project.py**
-   - P1.5 fusion: `model_view_events.catalog_model_id` → nullable; impression/view logging
-     writes `model_project_id`
+2. **20260727_instance_limits.py**
+   - Collapses the four `plan_*` limit tiers into one `instance_*` profile, carrying across
+     the value that restricts nobody so a seeded install keeps what its operator configured
 
-3. **20260712_p15_backfill.py**
-   - P1.5 fusion (R13): idempotent, count-verified backfill — every `model_catalog` row →
-     `ModelProject` + `ModelProjectListing` (ids preserved; officials → `org_jaot_official`),
-     every `organization_models` row → `ModelProject`
+3. **20260726_listing_success_tallies.py**
+   - Adds the raw counters `success_rate` / `avg_execution_time_ms` are computed from —
+     both had stayed NULL since the P1.5 fusion left them with no writer
 
-4. **20260712_p15_listings.py**
-   - `model_project_listings` facet table (1:1, PK==FK to `model_projects`) + nullable
-     `model_project_id` FK columns on reviews/favorites/recents/view-events
+4. **20260726_unlimit_plan_capacity.py**
+   - Sets the per-plan capacity ceilings to `0` (unlimited) on already-seeded installs
+     (D-21) — the 20260327 seed is `ON CONFLICT DO NOTHING`, so new registry defaults alone
+     never reach them
 
-5. **20260712_llmconv_ondelete.py**
-   - `llm_conversations.organization_model_id` → ondelete SET NULL (ADR-007 debt)
+5. **20260726_index_unindexed_fks.py**
+   - Indexes 18 of the 23 unindexed foreign keys (D-14); the other 5 point at tables on the
+     legacy DROP list or at ADR-008 orphans with no ORM model
 
 ## Conventions + Rules
 

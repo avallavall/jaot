@@ -20,7 +20,7 @@ class TierCapError(BaseModel):
     current_plan: str
     limit: int | str
     current_value: int | str | None = None
-    setting_key: str | None = None  # e.g. "plan_free_max_variables"
+    setting_key: str | None = None  # e.g. "instance_max_variables"
 
 
 def tier_cap_detail(

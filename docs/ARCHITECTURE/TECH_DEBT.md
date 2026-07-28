@@ -184,7 +184,7 @@ workers use. Nothing left to change; verified 2026-07-26.
 | D-18 | 113 `Depends(get_db)` instead of the `DBSession` alias the project rule mandates | Low (consistency) | Folded into D-12 | Low |
 | D-19 | `execution.py` had grown to 839 LOC mixing the marketplace execution flow with the post-solve analysis endpoints, and the org filter was hand-typed at 4 call sites | Low-medium (architectural) | 1–2 days | ✅ **Partly resolved** (`f4dd487`) — analysis split into its own module + one shared `execution_or_404`; the remaining ~180 route-level queries stay as opportunistic cleanup |
 | D-23 | The two API rate limits are enforced from a COPY on `organizations` (written at signup, read by 9 call sites) instead of from the instance profile. Editing them in the panel is made to work by propagating the change to the organizations still on the old value — honest, but a mirror that can drift. The deep fix is a nullable column meaning "inherit", which needs a schema change the rollback window cannot take today | Low (works; the mechanism is the debt) | 0.5 day | Deferred — do it with the contract-release schema pass |
-| D-22 | Orphaned `platform_settings` rows — 98 on the reference install, of which 51 come from the 1.9 panel review (23 retired settings + the 28 `plan_*` tier keys the instance profile replaced) and the rest predate it, mostly ADR-008 billing keys. Additive-only means the code stopped reading them but nothing deleted them | Low (cosmetic; invisible to the panel, which renders the registry) | Minutes | Deferred to the contract-release window, with the other legacy DROPs |
+| D-22 | Orphaned `platform_settings` rows — 98 on the reference install, of which 51 come from the 1.9 panel review (23 retired settings + the 28 `plan_*` tier keys the instance profile replaced) and the rest predate it, mostly ADR-008 billing keys. Additive-only means the code stopped reading them but nothing deleted them | Low (cosmetic; invisible to the panel, which renders the registry) | Minutes | ✅ **Resolved** (`20260728_prune_orphan_settings`) — 186 rows → 88, exactly the registry |
 
 **Suggested first batch:** D-10 + D-11 + D-12 — the three that change something real, ~2 days,
 no architectural commitment.
@@ -217,10 +217,30 @@ injected port, not another module to shuffle.
 (discarded with rationale — its reason slugs are public API contract), and an async-SQLAlchemy
 migration (ADR-009 gets the same benefit for a fraction of the cost).
 
-**Still deferred:** the §5 contract-release work (legacy `DROP`s, `/seller/*` → `/author/*`,
+**Still deferred:** the contract-release work (legacy `DROP`s, `/seller/*` → `/author/*`,
 `favorite.py` `Column()`). Additive-only discipline makes the `DROP`s release-shaped, not
 refactor-shaped — they need their own window, and until they land
 `alembic --autogenerate` stays unreliable.
+
+**D-22 · ✅ Resolved (2026-07-28) — and it did not need that window.**
+`20260728_prune_orphan_settings` deletes the 98 rows by an explicit list, grouped by where
+each came from: 43 `plan_*` tier keys, 31 billing/marketplace keys from ADR-008, and 24 the
+1.9 review retired. The reference install went from 186 rows to 88 — exactly the registry —
+and a restart logged *"All platform settings present in database"*, confirming the self-heal
+does not put them back.
+
+It was deferred here on the assumption that it belonged with the schema `DROP`s. It does
+not, and the distinction is worth keeping: that window exists because rollback restores
+images, not schema, so an image that still selects a dropped column crashes. Deleting *rows*
+has no such failure mode — an older image re-seeds any key its own registry declares on the
+next boot, and the numbers that mattered (an operator's own plan limits) were already carried
+into `instance_*` by `20260727_instance_limits`. What a rollback would lose is a customised
+value on a row nothing reads.
+
+The explicit list is what makes the migration deterministic and auditable, and also what
+could go wrong — a key in it that the registry still declares would wipe a live setting. A
+`CONTRACT-TEST` in `tests/api/test_admin_settings.py` intersects the two and fails if they
+ever overlap.
 
 **Addendum (same day, after owner review):** two precisions on the audit above.
 

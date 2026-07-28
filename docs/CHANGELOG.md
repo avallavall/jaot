@@ -62,6 +62,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Twenty-three settings that changed nothing.** Some had no reader at all — a gzip threshold the server hardcoded past, two metrics counters, four ID prefixes, both rate-limit windows. Others the panel let you edit while the value was really taken from the environment file: bind host, port, worker count, the Celery retry settings and the database URL. Each one looked like a working control.
 - **`LLM_THINKING_BUDGET_TOKENS`**, deprecated last release in favour of `LLM_THINKING_EFFORT`.
 - **The plan-tier editor.** Instance limits are ordinary settings now, so the tier table and the loose fields no longer render the same values twice on one tab.
+- **Ninety-eight settings rows left behind by billing, the paid tiers and last release's clean-up.** Code had stopped reading them long ago but nothing deleted them, so the table held twice what the panel could show. Anyone querying the database directly now sees exactly the settings that exist.
 
 ### Fixed
 
