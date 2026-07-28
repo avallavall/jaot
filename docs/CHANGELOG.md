@@ -66,6 +66,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ### Fixed
 
+- **The contact form works while you are signed in.** On the public pages the server identifies you for the sole purpose of attaching your account to what you send — and that identification came back unusable, so the submission failed outright. Signing out and sending was the only way through.
 - **Changing an API rate limit in the admin panel now reaches the organisations already signed up.** The two rate limits are kept on the organisation, copied when it is created, so editing the setting changed what new organisations would get and nothing about the existing ones. A limit set deliberately for one organisation still overrides the instance-wide value.
 - **Creating a scheduled run always failed with "Schedule limit reached (0)".** Zero means unlimited everywhere else since capacity limits became the operator's to set, but this check read it as "allow none", so cron scheduling was unusable out of the box.
 - **The hour between scheduled runs is now yours to set.** A schedule could not fire more often than hourly, whatever the hardware underneath — the last inherited capacity ceiling left in the code. It is a setting now, and 0 removes the floor.

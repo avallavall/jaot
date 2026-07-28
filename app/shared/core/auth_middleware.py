@@ -10,6 +10,8 @@ Public endpoints are matched via explicit allowlist only (no substring matching)
 import logging
 from typing import Any
 
+from sqlalchemy import inspect as sa_inspect
+from sqlalchemy.orm import Session
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -25,10 +27,18 @@ from app.shared.utils.request_helpers import (
 
 logger = logging.getLogger(__name__)
 
+
 # Module-level session factory, overridable for tests.
 # In production this is SessionLocal. Tests swap it to a factory that creates
 # Sessions bound to the test connection (same transaction, separate Session object).
-_session_factory = SessionLocal
+#
+# ``expire_on_commit=False`` because the principals authenticated here outlive
+# this session: resolving them commits (the API key's ``last_used_at``), and on
+# a public path the session is closed before the handler even runs. With the
+# default, that commit expires every instance and the handler cannot read so
+# much as ``user.id``.
+def _session_factory() -> Session:
+    return SessionLocal(expire_on_commit=False)
 
 
 # Public endpoints that do not require authentication.
@@ -187,6 +197,21 @@ class ASGIAuthMiddleware:
                 try:
                     user, org, api_key = await self._authenticate(request, db)
                     if user is not None and org is not None:
+                        # Hand the handler instances it can actually read. This
+                        # session is closed in the finally below, before the
+                        # request is served, so anything still expired at that
+                        # point raises on first attribute access — and because
+                        # public-path handlers guard that read with a broad
+                        # except, the row they meant to tag was dropped in
+                        # silence. Refresh only what a commit left expired
+                        # (normally nothing), then detach so the rollback cannot
+                        # expire them again.
+                        for instance in (user, org, api_key):
+                            if instance is None:
+                                continue
+                            if sa_inspect(instance).expired:
+                                db.refresh(instance)
+                            db.expunge(instance)
                         scope.setdefault("state", {})
                         scope["state"]["user"] = user
                         scope["state"]["organization"] = org

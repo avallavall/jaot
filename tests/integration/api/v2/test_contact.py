@@ -22,8 +22,10 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from sqlalchemy import text
+from sqlalchemy.orm import sessionmaker
 
 from app.models.contact_message import ContactMessage  # noqa: F401
+from app.shared.core import auth_middleware
 from app.shared.core.prometheus_metrics import (  # noqa: F401
     CONTACT_SEND_ATTEMPTS,
     CONTACT_SPAM_BLOCKED,
@@ -97,6 +99,36 @@ def test_post_contact_happy_path_authenticated(
     row = db_session.execute(
         text("SELECT user_id, organization_id FROM contact_messages WHERE id = :id"),
         {"id": body["id"]},
+    ).fetchone()
+    assert row is not None
+    assert row.user_id == test_user.id
+    assert row.organization_id == test_organization.id
+
+
+# CONTRACT-TEST: the auto-tagged principal outlives the middleware's own session
+def test_post_contact_authenticated_when_the_auth_session_expires_its_instances(
+    authenticated_client, db_session, test_user, test_organization, monkeypatch
+):
+    """The same submission, with the session settings production runs.
+
+    This is a public path, so the middleware authenticates in a session of its
+    own and closes it before this handler runs. The suite hands that middleware
+    an ``expire_on_commit=False`` sessionmaker, so the test above passes on
+    instances production would have expired: resolving a principal commits (the
+    API key's ``last_used_at``), and under the default that commit expires them
+    all. ``user.id`` here is then a raise, not a read — a 500 on the submission,
+    for precisely the signed-in visitors this auto-tagging exists to serve.
+    """
+    production_like = sessionmaker(bind=db_session.get_bind(), expire_on_commit=True)
+    monkeypatch.setattr(auth_middleware, "_session_factory", production_like)
+
+    with patch("app.tasks.contact_tasks.send_contact_email.delay"):
+        resp = authenticated_client.post("/api/v2/contact", json=_valid_payload())
+
+    assert resp.status_code == 200, resp.text
+    row = db_session.execute(
+        text("SELECT user_id, organization_id FROM contact_messages WHERE id = :id"),
+        {"id": resp.json()["id"]},
     ).fetchone()
     assert row is not None
     assert row.user_id == test_user.id
