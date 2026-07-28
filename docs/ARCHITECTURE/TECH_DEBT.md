@@ -180,7 +180,7 @@ workers use. Nothing left to change; verified 2026-07-26.
 | D-14 | 23 foreign keys with no index | Low-medium (scales badly) | 0.5 day | ✅ **Resolved** — 18 indexed (`20260726_index_fks`); the other 5 deliberately skipped: they point at `model_catalog` / `organization_models` (legacy DROP list) or at ADR-008 orphans with no ORM model |
 | D-15 | No `import-linter` contract on the vertical direction (api → services → domains), which is why D-16 went unnoticed | Medium (architectural) | 0.5 day | ✅ **Resolved** — contract 7, D-16's call sites frozen as listed exceptions |
 | D-16 | Upward imports: `domains → services` (11), `domains → api` (7), `shared → services` (9 — a gap in an existing contract) | Medium (blocks extraction) | 1 day | Medium |
-| D-17 | 55 endpoints return `dict[str, Any]` with no `response_model` → OpenAPI cannot describe them and the frontend hand-writes those types | Medium (contract drift) | 2–3 days | Medium |
+| D-17 | 55 endpoints return `dict[str, Any]` with no `response_model` → OpenAPI cannot describe them and the frontend hand-writes those types | Medium (contract drift) | 2–3 days | 🔸 **Started** — 53 left; favourites and recents now answer with declared schemas |
 | D-18 | 113 `Depends(get_db)` instead of the `DBSession` alias the project rule mandates | Low (consistency) | Folded into D-12 | Low |
 | D-19 | `execution.py` had grown to 839 LOC mixing the marketplace execution flow with the post-solve analysis endpoints, and the org filter was hand-typed at 4 call sites | Low-medium (architectural) | 1–2 days | ✅ **Partly resolved** (`f4dd487`) — analysis split into its own module + one shared `execution_or_404`; the remaining ~180 route-level queries stay as opportunistic cleanup |
 | D-23 | The two API rate limits are enforced from a COPY on `organizations` (written at signup, read by 9 call sites) instead of from the instance profile. Editing them in the panel is made to work by propagating the change to the organizations still on the old value — honest, but a mirror that can drift. The deep fix is a nullable column meaning "inherit", which needs a schema change the rollback window cannot take today | Low (works; the mechanism is the debt) | 0.5 day | Deferred — do it with the contract-release schema pass |
@@ -241,6 +241,24 @@ The explicit list is what makes the migration deterministic and auditable, and a
 could go wrong — a key in it that the registry still declares would wipe a live setting. A
 `CONTRACT-TEST` in `tests/api/test_admin_settings.py` intersects the two and fails if they
 ever overlap.
+
+**D-17 · 🔸 Started (2026-07-28): 55 → 53.**
+The favourites shelf and the recently-opened list are the two endpoints behind one screen,
+and both returned `dict[str, Any]`. They answer with declared schemas now
+(`FavoriteListResponse`, `RecentListResponse`), and their queries moved out of the route into
+`app/services/favorites_service.py` — one of the opportunistic route-level cleanups D-19 left
+open. The summaries are deliberately narrower than `ModelCatalogResponse`: that shelf renders
+a card, not a listing page.
+
+Typing them found a defect rather than merely describing one. `access_count` is a `String`
+column, so the count reached the browser quoted, while the page that renders it declares a
+number and hands it to a plural rule. The schema converts it, and a test pins the type.
+
+One note for whoever finishes D-17, found while writing those tests: **nothing in the backend
+ever inserts a `recent_models` row.** Reading it, erasing it for GDPR and the P1.5 backfill of
+its key are the only code that touches the table, so the "Recent" tab shows whatever legacy
+rows an install still carries and nothing more. Typing the endpoint does not change that —
+what counts as "opening" a model is a product decision, not a cleanup.
 
 **Addendum (same day, after owner review):** two precisions on the audit above.
 

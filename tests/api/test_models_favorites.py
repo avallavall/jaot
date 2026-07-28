@@ -7,8 +7,24 @@ These tests verify the favorites/recents functionality:
 - Getting favorite status
 """
 
-from app.models import ModelCategory, ModelProject, ModelProjectListing, Organization, UserFavorite
+from datetime import timedelta
+
+from app.models import (
+    ModelCategory,
+    ModelProject,
+    ModelProjectListing,
+    Organization,
+    RecentModel,
+    UserFavorite,
+)
+from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
+
+
+def _project(db, org, *, pid) -> None:
+    """A ModelProject with no marketplace listing facet."""
+    db.add(ModelProject(id=pid, organization_id=org.id, name="Proj " + pid, status="active"))
+    db.commit()
 
 
 def _listing(db, org, *, pid) -> None:
@@ -228,3 +244,107 @@ class TestFavoriteStatus:
         assert response.status_code == 200
         data = response.json()
         assert not data["is_favorite"]
+
+
+def _recent(db, user, *, pid, minutes_ago: int = 0, count: str = "1") -> None:
+    """A row in this user's recently-opened list."""
+    db.add(
+        RecentModel(
+            user_id=user.id,
+            model_project_id=pid,
+            last_accessed=utcnow() - timedelta(minutes=minutes_ago),
+            access_count=count,
+        )
+    )
+    db.commit()
+
+
+class TestRecents:
+    """Tests for GET /api/v2/models/recents"""
+
+    def test_recents_empty(self, authenticated_client):
+        """A user who has opened nothing gets an empty list, not an error."""
+        response = authenticated_client.get("/api/v2/models/recents")
+        assert response.status_code == 200
+        assert response.json() == {"items": [], "total": 0}
+
+    def test_recents_are_newest_first(
+        self, authenticated_client, db_session, test_user, test_organization
+    ):
+        """The list is ordered by when each model was last opened."""
+        _listing(db_session, test_organization, pid="test_recent_older")
+        _listing(db_session, test_organization, pid="test_recent_newer")
+        _recent(db_session, test_user, pid="test_recent_older", minutes_ago=30)
+        _recent(db_session, test_user, pid="test_recent_newer", minutes_ago=1)
+
+        data = authenticated_client.get("/api/v2/models/recents").json()
+        assert [i["id"] for i in data["items"]] == ["test_recent_newer", "test_recent_older"]
+        assert data["total"] == 2
+
+    def test_access_count_is_a_number(
+        self, authenticated_client, db_session, test_user, test_organization
+    ):
+        """``access_count`` reaches the client as a number.
+
+        The column is a ``String``, so the route used to hand the raw ORM value
+        straight out and the count arrived quoted — while the page that renders
+        it declares a number and feeds it to a plural rule, which cannot count a
+        string. The response schema is what converts it now.
+        """
+        _listing(db_session, test_organization, pid="test_recent_count")
+        _recent(db_session, test_user, pid="test_recent_count", count="7")
+
+        item = authenticated_client.get("/api/v2/models/recents").json()["items"][0]
+        assert item["access_count"] == 7
+        assert isinstance(item["access_count"], int)
+
+    def test_recent_without_a_listing_drops_out(
+        self, authenticated_client, db_session, test_user, test_organization
+    ):
+        """A model that left the marketplace disappears from the list quietly.
+
+        Recents point at projects, and a project can lose its listing facet
+        (unpublished, or never published). That entry has no card to render, so
+        it is skipped — it must not blank the whole list or 500 the request.
+        """
+        _listing(db_session, test_organization, pid="test_recent_listed")
+        _project(db_session, test_organization, pid="test_recent_unlisted")
+        _recent(db_session, test_user, pid="test_recent_unlisted", minutes_ago=1)
+        _recent(db_session, test_user, pid="test_recent_listed", minutes_ago=5)
+
+        response = authenticated_client.get("/api/v2/models/recents")
+        assert response.status_code == 200
+        data = response.json()
+        assert [i["id"] for i in data["items"]] == ["test_recent_listed"]
+        assert data["total"] == 1
+
+    def test_recents_respect_the_limit(
+        self, authenticated_client, db_session, test_user, test_organization
+    ):
+        """``limit`` caps the list, keeping the most recent entries."""
+        for minutes, pid in enumerate(("test_limit_a", "test_limit_b", "test_limit_c"), start=1):
+            _listing(db_session, test_organization, pid=pid)
+            _recent(db_session, test_user, pid=pid, minutes_ago=minutes)
+
+        data = authenticated_client.get("/api/v2/models/recents?limit=2").json()
+        assert [i["id"] for i in data["items"]] == ["test_limit_a", "test_limit_b"]
+        assert data["total"] == 2
+
+    def test_recents_reject_an_out_of_range_limit(self, authenticated_client):
+        """The limit is bounded — 0 and 51 are refused, not clamped silently."""
+        assert authenticated_client.get("/api/v2/models/recents?limit=0").status_code == 422
+        assert authenticated_client.get("/api/v2/models/recents?limit=51").status_code == 422
+
+    def test_recents_require_authentication(self, client):
+        """The list is per-user, so an anonymous caller gets nothing."""
+        assert client.get("/api/v2/models/recents").status_code == 401
+
+    def test_recents_are_scoped_to_the_caller(
+        self, authenticated_client, db_session, test_user_2, test_organization
+    ):
+        """Another user's history never appears in mine."""
+        _listing(db_session, test_organization, pid="test_recent_other_user")
+        _recent(db_session, test_user_2, pid="test_recent_other_user")
+
+        data = authenticated_client.get("/api/v2/models/recents").json()
+        assert "test_recent_other_user" not in [i["id"] for i in data["items"]]

@@ -166,6 +166,52 @@ class FavoriteResponse(BaseModel):
     is_favorite: bool
 
 
+class FavoriteModelSummary(BaseModel):
+    """One entry of the favourites list.
+
+    A deliberate subset of ``ModelCatalogResponse``: the favourites shelf shows a
+    card, not a listing page, and sending the full catalog payload would put the
+    rich description sections and the media URLs on a screen that renders none
+    of them.
+    """
+
+    id: str
+    name: str
+    display_name: str
+    description: str
+    category: str
+    author_name: str
+    is_official: bool
+    is_featured: bool
+    avg_rating: float | None = None
+
+
+class FavoriteListResponse(BaseModel):
+    """The user's favourite models."""
+
+    items: list[FavoriteModelSummary]
+    total: int
+
+
+class RecentModelSummary(BaseModel):
+    """One entry of the recently-opened list."""
+
+    id: str
+    name: str
+    display_name: str
+    category: str
+    author_name: str
+    last_accessed: datetime
+    access_count: int
+
+
+class RecentListResponse(BaseModel):
+    """The user's recently opened models, most recent first."""
+
+    items: list[RecentModelSummary]
+    total: int
+
+
 class ReviewCreate(BaseModel):
     """Request to create a review."""
 
