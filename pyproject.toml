@@ -186,15 +186,11 @@ forbidden_modules = [
 # app/shared/ and the DSL compiler, and a bounded context reaching back up into
 # app/services/ or app/api/ broke no rule anyone could run.
 #
-# The 17 call sites that exist today are listed below rather than fixed here:
-# untangling them is D-16 (a day of work, and several want an injected port or an
-# event rather than a moved import). What this contract buys now is that the list
-# cannot grow — a new upward import fails the build — and that the debt is
-# enumerated in the place the build reads instead of prose in TECH_DEBT.md.
-#
-# Deleting an entry as D-16 lands is the intended way to use this: the contract
-# gets stricter for free, and an entry that no longer corresponds to a real import
-# makes import-linter complain, so the list cannot rot.
+# D-16 is paid off (2026-07-29): the domain's last platform needs — the what-if
+# budget, "tell the user", "tell the marketplace" — became ports it declares in
+# app/domains/solver/ports.py and JAOT registers at both boots
+# (app/tasks/solver_ports.py). What remains below is the stated routes-are-API
+# rule and one transitive edge that was never the domain's.
 id = "domains-no-upward-imports"
 name = "app/domains/ never imports from app/services/ or app/api/ (D-15)"
 type = "forbidden"
@@ -217,12 +213,6 @@ ignore_imports = [
     # into another endpoint's privates is what this used to be — see D-16 below.
     "app.domains.*.routes.* -> app.api.deps",
     "app.domains.*.routes.* -> app.api.v2.solve_pipeline",
-    # --- D-16: the domain reaches up for orchestration and platform services ---
-    "app.domains.solver.tasks.scenario_tasks -> app.services.platform_settings_service",
-    "app.domains.solver.tasks.solve_tasks -> app.services.notification_service",
-    # Added 2026-07-26 with the marketplace listing rollup. The right shape is the
-    # solver telling the marketplace a solve finished, not fetching its writer.
-    "app.domains.solver.tasks.solve_tasks -> app.services.marketplace_fusion",
     # Not a domain dependency: a TRANSITIVE chain the domain inherits by importing
     # the Celery app. The import is already deferred inside `worker_process_init`,
     # where it belongs — the SMTP backend is a process-local cache that must be

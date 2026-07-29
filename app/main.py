@@ -118,6 +118,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         PlatformSettingsService as PSS,
     )
     from app.shared.db.session import SessionLocal
+    from app.tasks.solver_ports import register_solver_ports
+
+    # The API side of the solver domain's host ports (D-16). The worker side is
+    # the Celery include list — miss either and the domain raises at first use.
+    register_solver_ports()
 
     # Self-heal: ensure all registry settings exist in DB (do first)
     _ensure_settings_seeded()

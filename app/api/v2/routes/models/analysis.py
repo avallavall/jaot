@@ -21,7 +21,7 @@ from app.api.v2._access import execution_or_404
 from app.api.v2._solver_limits import compute_celery_time_limits
 from app.api.v2.auth import get_current_user
 from app.api.v2.solver_errors import solver_unavailable
-from app.domains.solver import scenario_job
+from app.domains.solver import ports, scenario_job
 from app.domains.solver.adapters.base import SolverNotFoundError
 from app.domains.solver.queue_routing import resolve_queue
 from app.domains.solver.services.exact_analysis import compute_exact_analysis
@@ -29,7 +29,7 @@ from app.domains.solver.services.execution_payload import (
     ExecutionPayloadError,
     load_execution_payload,
 )
-from app.domains.solver.tasks.scenario_tasks import read_budget, scenario_analysis_async
+from app.domains.solver.tasks.scenario_tasks import scenario_analysis_async
 from app.models import User
 from app.schemas.optimization import (
     ExactAnalysis,
@@ -104,7 +104,7 @@ def start_execution_scenario_analysis(
     except SolverNotFoundError as exc:
         raise solver_unavailable(exc, solver_name) from exc
 
-    budget = read_budget(db)
+    budget = ports.scenario_budget(db)
     # The batch's own budget derives the worker kill limits, exactly as a
     # solve's time limit does — a hung analysis must not pin a worker.
     soft_limit, hard_limit = compute_celery_time_limits(db, budget.total_seconds)

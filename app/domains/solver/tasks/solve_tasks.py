@@ -10,7 +10,7 @@ from typing import Any
 from celery import current_task
 from celery.exceptions import SoftTimeLimitExceeded
 
-from app.domains.solver import execution_writer
+from app.domains.solver import execution_writer, ports
 from app.domains.solver.adapters.base import (
     DEFAULT_SOLVER_NAME,
     SolverNotFoundError,
@@ -27,7 +27,6 @@ from app.schemas.optimization import (
     SolverStatus,
 )
 from app.schemas.solution_structure import annotate_variable_structure
-from app.services.marketplace_fusion import record_listing_execution
 from app.shared.core.celery_app import celery_app
 from app.shared.core.prometheus_metrics import (
     ACTIVE_SOLVES,
@@ -685,7 +684,7 @@ def solve_model_async(
                 execution.solver_status = result.status.value
             # A failed run counts too — otherwise the listing's success rate has
             # no denominator and every model looks flawless.
-            record_listing_execution(
+            ports.solve_events().listing_executed(
                 db, _listing_id_for(model), succeeded=False, execution_time_ms=None
             )
             db.commit()
@@ -736,17 +735,16 @@ def solve_model_async(
         # Roll the execution onto the marketplace listing (a fork bumps its SOURCE
         # listing; a project with its own listing bumps that). Per-project counts
         # are computed from model_executions — no per-project counter.
-        record_listing_execution(
+        events = ports.solve_events()
+        events.listing_executed(
             db, _listing_id_for(model), succeeded=True, execution_time_ms=execution_time_ms
         )
 
         db.commit()
 
         try:
-            from app.services.notification_service import NotificationService
-
-            notification_service = NotificationService(db)
-            notification_service.notify_execution_completed(
+            events.solve_completed(
+                db,
                 user_id=execution.executed_by_user_id or "",
                 organization_id=organization_id,
                 execution_id=execution_id,
@@ -812,17 +810,15 @@ def solve_model_async(
                 # Only a genuine failure counts against the listing: a user
                 # cancellation says nothing about whether the model works, and a
                 # crash before the model loaded has no listing to attribute.
-                record_listing_execution(
+                ports.solve_events().listing_executed(
                     db, _listing_id_for(model), succeeded=False, execution_time_ms=None
                 )
 
             db.commit()
 
             try:
-                from app.services.notification_service import NotificationService
-
-                notification_service = NotificationService(db)
-                notification_service.notify_execution_failed(
+                ports.solve_events().solve_failed(
+                    db,
                     user_id=execution.executed_by_user_id or "",
                     organization_id=organization_id,
                     execution_id=execution_id,

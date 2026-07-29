@@ -27,6 +27,11 @@ celery_app = Celery(
     broker=CELERY_BROKER_URL,
     backend=CELERY_RESULT_BACKEND,
     include=[
+        # Not a task module: importing it registers JAOT's implementations of the
+        # solver domain's host ports (D-16). The API registers in its lifespan;
+        # THIS entry is the worker's registration point — remove it and every
+        # solve fails loudly at its first port use instead of running unhosted.
+        "app.tasks.solver_ports",
         "app.domains.solver.tasks.solve_tasks",
         "app.domains.solver.tasks.scenario_tasks",  # Sensitivity L2 — on-demand what-if batch
         "app.tasks.email_tasks",

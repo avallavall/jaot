@@ -12,16 +12,13 @@ from typing import Any
 
 from celery.exceptions import SoftTimeLimitExceeded
 
-from app.domains.solver import scenario_job
+from app.domains.solver import ports, scenario_job
 from app.domains.solver.services import get_solver_service
 from app.domains.solver.services.execution_payload import (
     ExecutionPayloadError,
     load_execution_payload,
 )
-from app.domains.solver.services.scenario_analysis import (
-    ScenarioBudget,
-    compute_scenario_analysis,
-)
+from app.domains.solver.services.scenario_analysis import compute_scenario_analysis
 from app.domains.solver.tasks.solve_tasks import _assert_queue_match
 from app.models import ModelExecution
 from app.schemas.optimization import OptimizationProblem, ScenarioAnalysis
@@ -29,26 +26,6 @@ from app.shared.core.celery_app import celery_app
 from app.shared.db.session import SessionLocal
 
 logger = logging.getLogger(__name__)
-
-
-def read_budget(db: Any) -> ScenarioBudget:
-    """Build the batch budget from the platform settings.
-
-    Read at the producer AND consumer: the API needs the total to derive the
-    task's kill limits, the worker needs the whole shape. Reading it twice is
-    cheaper than threading a settings blob through the queue, and an admin edit
-    between the two only changes the batch's own ceiling.
-    """
-    from app.services.platform_settings_service import PlatformSettingsService as PSS
-
-    return ScenarioBudget(
-        max_resolves=PSS.get_int(db, "SENSITIVITY_MAX_RESOLVES"),
-        top_constraints=PSS.get_int(db, "SENSITIVITY_TOP_CONSTRAINTS"),
-        top_decisions=PSS.get_int(db, "SENSITIVITY_TOP_DECISIONS"),
-        per_solve_multiplier=PSS.get_float(db, "SENSITIVITY_PER_SOLVE_MULTIPLIER"),
-        per_solve_cap_seconds=PSS.get_int(db, "SENSITIVITY_PER_SOLVE_CAP_SECONDS"),
-        total_seconds=PSS.get_int(db, "SENSITIVITY_TOTAL_BUDGET_SECONDS"),
-    )
 
 
 @celery_app.task(bind=True, name="scenario_analysis_async")  # type: ignore[misc]
@@ -83,7 +60,7 @@ def scenario_analysis_async(
             _persist(db, execution, analysis=ScenarioAnalysis(computed=False, note=exc.reason))
             return {"status": "success", "execution_id": execution_id, "computed": False}
 
-        budget = read_budget(db)
+        budget = ports.scenario_budget(db)
         service = get_solver_service(solver_name=solver_name or execution.solver_name)
 
         def _solve(problem: OptimizationProblem, warm_start: dict[str, float] | None):
