@@ -367,12 +367,36 @@ import a question with one right answer: *could this run outside JAOT?*
   `platform_settings` lives.
 - **The solver thread pool was dead code**, and with it `SOLVER_POOL_SIZE` — see below.
 
-**Four remain**, and they are the ones the bounded-context work has to answer: the scenario
-task reading six settings *inside the worker* (a genuine injected port, registered at both
-entry points), `solve_tasks` telling notifications and the marketplace that a solve finished
-(an event), and `templates` reaching for template resolution and analytics. Note that moving
-`PlatformSettingsService` to `app/shared/` would NOT solve the first one — a separate
-repository does not share `app/shared/` either. Only the port does.
+**Template routes moved instead of being patched.** `templates.py` resolved a template id —
+which may answer with a YAML template *or a published marketplace listing* — and logged the
+result to platform analytics. A solver packaged on its own has no marketplace to search, so
+this was never domain code: it now lives at `app/api/v2/routes/solve_templates.py`, mounted
+under the same `/solve` prefix with the paths unchanged. What the domain does own, rendering
+a resolved template into a problem, stays as `template_engine`.
+
+### The last three (deferred 2026-07-29, owner's call — do them with a fresh head)
+
+All three sit **inside the Celery tasks that run every solve**, which is why they are last
+and why they are not a typing exercise:
+
+| Import | What it wants |
+|---|---|
+| `scenario_tasks -> platform_settings_service` | Reads six `SENSITIVITY_*` settings **in the worker** — an injected settings port |
+| `solve_tasks -> notification_service` (×2) | "Tell the user their solve finished/failed" — an event |
+| `solve_tasks -> marketplace_fusion` | "Tell the marketplace a listing was executed" — an event |
+
+**The design.** The domain declares what it needs from whoever hosts it (a settings reader,
+and something to hand solve outcomes to); JAOT registers its implementation at startup. That
+is the same shape that lets a solver in its own repository run under a different host — and
+it is why moving `PlatformSettingsService` into `app/shared/` would be the wrong fix: a
+separate repository does not share `app/shared/` either.
+
+**The risk that decides the pace.** The port has to be registered at *two* entry points, the
+API process and the Celery worker. Miss one and the domain falls back to defaults **in
+silence**: solves keep succeeding, but with the wrong budget or with no notification sent,
+and the test suite would not notice, because in tests everything runs in one process. So the
+verification cannot be the suite alone — it needs a real solve, end to end, checking that
+the notification arrives and the listing counters move.
 
 **A control that did nothing (2026-07-29).** `app/domains/solver/services/pool.py` built a
 `ThreadPoolExecutor` "shared across all synchronous solve paths" — and ADR-007 moved every

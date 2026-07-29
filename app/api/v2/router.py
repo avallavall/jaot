@@ -27,9 +27,10 @@ from app.api.v2 import (
 from app.api.v2.routes.admin import router as admin_router
 from app.api.v2.routes.models import router as models_router
 from app.api.v2.routes.profiles import router as profiles_router
+from app.api.v2.routes.solve_templates import router as solve_templates_api_router
 from app.api.v2.routes.workspaces import router as workspaces_router
 from app.api.v2.ws import router as ws_router
-from app.domains.solver.routes import router as solve_templates_router
+from app.domains.solver.routes import router as solve_domain_router
 
 api_v2_router = APIRouter(prefix="/api/v2")
 
@@ -44,7 +45,8 @@ api_v2_router.include_router(solve.router, tags=["solve"])
 api_v2_router.include_router(solvers.router, tags=["solvers"])
 
 # Solve sub-router - Template endpoints (metadata, templates list/detail/solve)
-api_v2_router.include_router(solve_templates_router, prefix="/solve", tags=["solve"])
+api_v2_router.include_router(solve_templates_api_router, prefix="/solve", tags=["solve"])
+api_v2_router.include_router(solve_domain_router, prefix="/solve", tags=["solve"])
 
 # API Keys - Key management
 api_v2_router.include_router(keys.router, tags=["api-keys"])

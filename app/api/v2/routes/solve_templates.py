@@ -1,11 +1,14 @@
-"""Template-based solve endpoints.
+"""Template-based solve endpoints — list a template, read one, solve through it.
 
-Extracted from app/api/v2/solve.py to reduce file size and improve
-maintainability. These endpoints allow users to:
+Mounted under ``/solve`` alongside the solver domain's own routes; the paths are
+unchanged.
 
-- List available optimization templates
-- Get a specific template with full details
-- Solve a problem using a template
+It sits in the API layer, not in ``app/domains/solver/``, because resolving a
+template id is a JAOT question: the answer may be a YAML template or a published
+marketplace listing, and it is recorded in the platform's analytics. A solver
+packaged on its own has no marketplace to search. What it does own — rendering a
+resolved template into a problem — stays in the domain as ``template_engine``
+(D-16).
 """
 
 import logging
