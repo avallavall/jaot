@@ -10,7 +10,7 @@ flowchart LR
     Req --> Routing["next-intl routing<br/>src/i18n/routing.ts"]
     Routing --> Detect["detects locale (URL → cookie)"]
     Detect --> Fallback["fallback: defaultLocale = en"]
-    Fallback --> Load["loads src/i18n/messages/{locale}.json"]
+    Fallback --> Load["loads messages/{locale}.json"]
     Load --> Provider["NextIntlClientProvider"]
     Provider --> Hook["useTranslations() / getTranslations()"]
     Hook --> Render["t('key') → text"]
@@ -44,7 +44,7 @@ export const routing = defineRouting({
 ## Message files
 
 ```
-frontend/src/i18n/messages/
+frontend/messages/
   en.json   (canonical source)
   es.json
   ca.json
