@@ -16,7 +16,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import OptionalRequireSolver
-from app.api.v2.solve import _enqueue_async_solve, _shape_sync_result, _wait_for_task
+from app.api.v2.solve_pipeline import enqueue_async_solve, shape_sync_result, wait_for_task
 from app.data.templates import load_all_templates
 from app.domains.solver.services import SolverService, get_solver_service
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
@@ -143,7 +143,7 @@ def solve_with_template(  # def: blocks on the queued result in the threadpool (
 
     ADR-007 S4a — async-under-the-hood: renders the template into an
     OptimizationProblem server-side, then rides the ONE async pipeline
-    (``_enqueue_async_solve``) exactly like ``POST /solve`` — tier caps,
+    (``enqueue_async_solve``) exactly like ``POST /solve`` — tier caps,
     auto-routing, the pending
     ModelExecution row (tagged ``template`` provenance), and the Celery worker.
     The classic ``OptimizationResult`` comes back on completion; a solve that
@@ -192,7 +192,7 @@ def solve_with_template(  # def: blocks on the queued result in the threadpool (
 
     # Tier caps, "auto" routing, per-solver credit pricing (pre-pay), the pending
     # row, and Celery time limits all happen inside the ONE enqueue path.
-    enqueued = _enqueue_async_solve(
+    enqueued = enqueue_async_solve(
         db=db,
         org=org,
         user=getattr(request.state, "user", None),
@@ -211,7 +211,7 @@ def solve_with_template(  # def: blocks on the queued result in the threadpool (
     # regardless of whether the solve completes inline or degrades to 202.
     _log_template_use(db, request, org, template_id)
 
-    payload = _wait_for_task(enqueued.task)
+    payload = wait_for_task(enqueued.task)
     if payload is None:
         return JSONResponse(
             status_code=status.HTTP_202_ACCEPTED,
@@ -223,7 +223,7 @@ def solve_with_template(  # def: blocks on the queued result in the threadpool (
                 ),
             },
         )
-    return _shape_sync_result(
+    return shape_sync_result(
         payload,
         db=db,
         org_id=org.id,

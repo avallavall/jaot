@@ -1,6 +1,6 @@
 """ModelProject API (P1a) — first-class model entity, commit-grade versions, solve.
 
-The project solve rides the SAME async pipeline (``_enqueue_async_solve``) as the
+The project solve rides the SAME async pipeline (``enqueue_async_solve``) as the
 universal ``POST /solve`` endpoint (ADR-007: no parallel solve path), tagging the
 run with ``source_kind="model_project"`` provenance and the typed
 ``model_project_id``/``model_project_version_id`` columns.
@@ -39,11 +39,11 @@ from app.api.deps import (
 from app.api.v2._access import builder_document_or_404
 from app.api.v2.deps.dsl_feature_gate import dsl_feature_gate
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
-from app.api.v2.solve import (
-    _apply_solution_filter,
-    _enqueue_async_solve,
-    _shape_sync_result,
-    _wait_for_task,
+from app.api.v2.solve_pipeline import (
+    apply_solution_filter,
+    enqueue_async_solve,
+    shape_sync_result,
+    wait_for_task,
 )
 from app.domains.dsl import JModelData, JModelError, compile_jmodel
 from app.domains.solver.services import SolverService, get_solver_service
@@ -972,7 +972,7 @@ def solve_model_project(  # def: blocks on the queued result in the threadpool (
     """Solve a ModelProject's draft (or a specific committed version).
 
     ADR-007 S4a — async-under-the-hood: resolves the project/version model
-    server-side, then rides the ONE async pipeline (``_enqueue_async_solve``)
+    server-side, then rides the ONE async pipeline (``enqueue_async_solve``)
     exactly like ``POST /solve`` — tier caps, auto-routing, the
     pending ModelExecution row (tagged ``model_project`` provenance + typed
     project/version columns), and the Celery worker. The classic
@@ -1022,7 +1022,7 @@ def solve_model_project(  # def: blocks on the queued result in the threadpool (
     # Tier caps, auto-routing, credit pre-pay, provenance, and the pending row all
     # happen inside the ONE enqueue path — the typed model_project_id resolves from
     # source_id ownership (project is in-org above), and mpv_id rides alongside it.
-    enqueued = _enqueue_async_solve(
+    enqueued = enqueue_async_solve(
         db=db,
         org=org,
         user=getattr(request.state, "user", None),
@@ -1036,7 +1036,7 @@ def solve_model_project(  # def: blocks on the queued result in the threadpool (
         model_project_version_id=mpv_id,
         parser=solver.parser,
     )
-    payload = _wait_for_task(enqueued.task)
+    payload = wait_for_task(enqueued.task)
     if payload is None:
         return JSONResponse(
             status_code=status.HTTP_202_ACCEPTED,
@@ -1048,8 +1048,8 @@ def solve_model_project(  # def: blocks on the queued result in the threadpool (
                 ),
             },
         )
-    return _apply_solution_filter(
-        _shape_sync_result(
+    return apply_solution_filter(
+        shape_sync_result(
             payload,
             db=db,
             org_id=org.id,
@@ -1123,7 +1123,7 @@ def solve_project_dataset(  # def: the CPU-bound compile belongs in the threadpo
     # Same enqueue path and provenance the browser-side launch produced (origin
     # visual_builder + model_project source + S1 dataset snapshot), so history
     # rows are indistinguishable from pre-S7 scenario runs.
-    enqueued = _enqueue_async_solve(
+    enqueued = enqueue_async_solve(
         db=db,
         org=org,
         user=getattr(request.state, "user", None),

@@ -204,14 +204,19 @@ forbidden_modules = [
     "app.api",
 ]
 ignore_imports = [
-    # --- D-16: routes inside the solver domain depend on the API's own deps ---
-    "app.domains.solver.routes.analytics -> app.api.deps",
-    "app.domains.solver.routes.file_export -> app.api.deps",
-    "app.domains.solver.routes.file_io -> app.api.deps",
-    "app.domains.solver.routes.file_io -> app.api.v2.solve",
-    "app.domains.solver.routes.insights -> app.api.deps",
-    "app.domains.solver.routes.templates -> app.api.deps",
-    "app.domains.solver.routes.templates -> app.api.v2.solve",
+    # --- NOT debt: a domain's own routes ARE its API layer (owner, 2026-07-29) ---
+    # BOUNDED_CONTEXTS.md puts routes inside the domain tree on purpose — a bounded
+    # context is a vertical slice, adapters through routes. So a route asking for
+    # CurrentUser/DBSession, or for the shared solve pipeline every entry point
+    # rides (ADR-007), is that slice using the API layer it belongs to, not a
+    # layering violation. The contract measures by directory, which is why these
+    # showed up as upward imports at all.
+    #
+    # Deliberately two named modules rather than "app.api": the surface a domain
+    # route may consume is the shared plumbing, not any endpoint module. Reaching
+    # into another endpoint's privates is what this used to be — see D-16 below.
+    "app.domains.*.routes.* -> app.api.deps",
+    "app.domains.*.routes.* -> app.api.v2.solve_pipeline",
     # --- D-16: the domain reaches up for orchestration and platform services ---
     "app.domains.solver.routes.file_export -> app.services.solve_orchestrator",
     "app.domains.solver.routes.file_io -> app.services.solve_orchestrator",

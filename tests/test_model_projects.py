@@ -222,7 +222,7 @@ class TestSolve:
         return pid
 
     # CONTRACT-TEST: a project solve persists a ModelExecution with source_kind="model_project"
-    # and model_project_id set, riding the single async pipeline (_enqueue_async_solve, ADR-007 S4a).
+    # and model_project_id set, riding the single async pipeline (enqueue_async_solve, ADR-007 S4a).
     def test_solve_persists_model_project_provenance(
         self,
         authenticated_client: TestClient,

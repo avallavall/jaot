@@ -179,7 +179,7 @@ workers use. Nothing left to change; verified 2026-07-26.
 | D-13 | 7 handlers did genuinely heavy work on the loop — MPS/LP parsing, 16 MB dataset parsing, PDF text extraction, boto3 uploads, SCIP export — not the short commits the audit assumed | Medium | 1 day | ✅ **Resolved** (`2b81868`) |
 | D-14 | 23 foreign keys with no index | Low-medium (scales badly) | 0.5 day | ✅ **Resolved** — 18 indexed (`20260726_index_fks`); the other 5 deliberately skipped: they point at `model_catalog` / `organization_models` (legacy DROP list) or at ADR-008 orphans with no ORM model |
 | D-15 | No `import-linter` contract on the vertical direction (api → services → domains), which is why D-16 went unnoticed | Medium (architectural) | 0.5 day | ✅ **Resolved** — contract 7, D-16's call sites frozen as listed exceptions |
-| D-16 | Upward imports: `domains → services` (11), `domains → api` (7), `shared → services` (9 — a gap in an existing contract) | Medium (blocks extraction) | 1 day | Medium |
+| D-16 | Upward imports: `domains → services` (11), `domains → api` (7), `shared → services` (9 — a gap in an existing contract) | Medium (blocks extraction) | 1 day | 🔸 **Halved (2026-07-29)** — 6 were never debt (a domain's routes ARE its API layer) and 2 reached into another endpoint's privates, now a named module. 8 real ones left: the domain calling platform services |
 | D-17 | 55 endpoints return `dict[str, Any]` with no `response_model` → OpenAPI cannot describe them and the frontend hand-writes those types | Medium (contract drift) | 2–3 days | 🔸 **Started** — 53 left; favourites and recents now answer with declared schemas |
 | D-18 | 113 `Depends(get_db)` instead of the `DBSession` alias the project rule mandates | Low (consistency) | Folded into D-12 | Low |
 | D-19 | `execution.py` had grown to 839 LOC mixing the marketplace execution flow with the post-solve analysis endpoints, and the org filter was hand-typed at 4 call sites | Low-medium (architectural) | 1–2 days | ✅ **Resolved where it bit** (`f4dd487` + 2026-07-29) — analysis split out; both org-scoped lookups that were being re-typed now have one shared helper each. The remaining 164 route-level queries are single reads with no repeated shape — audited for missing org filters, none found |
@@ -322,6 +322,32 @@ Both helpers moved to `app/api/v2/_access.py`, one layer up from the package the
 private to, because that is where their callers turned out to live. 170 → 164 queries; the
 rest are single reads with no repeated shape, which is opportunistic cleanup for real rather
 than a name for work left undone.
+
+**D-16 · 🔸 Halved (2026-07-29) — 16 entries, of which 6 were never debt.**
+The inventory frozen in contract 7 turned out to hold two different things, and reading them
+as one list is what made D-16 look like a day of untangling.
+
+**Six were the contract measuring by directory.** `BOUNDED_CONTEXTS.md` puts routes inside
+the domain tree deliberately — a bounded context is a vertical slice, adapters through
+routes — so a solver route asking for `CurrentUser` or `DBSession` is that slice using the
+API layer it belongs to, not a layer inversion. Owner's call (2026-07-29): make it a stated
+rule instead of a listed exception. The contract now allows `app.domains.*.routes.* ->
+app.api.deps` by pattern, with the reasoning in the file the build reads.
+
+**Two were real, and not of the kind the list suggested.** `file_io` and `templates` imported
+`_enqueue_async_solve`, `_wait_for_task` and `_shape_sync_result` — private functions of the
+`solve.py` *endpoint module*, by their underscore names, across a package. Those three are
+not endpoint code: they are the one path ADR-007 requires every solve to ride, whoever asks
+for it. They now live in `app/api/v2/solve_pipeline.py` with names of their own, together
+with what only they used (tier caps, the sync-wait semaphore, the multi-objective enqueue,
+the solution filter). `solve.py` drops from 1407 lines to 692, and what the domain consumes
+is a declared API rather than another module's privates — which is why the contract names
+that module explicitly instead of opening up `app.api` wholesale.
+
+**Eight remain, and they are the ones that block extraction**: the domain calling
+`platform_settings_service` (×3), `solve_orchestrator` (×3), `notification_service` and
+`marketplace_fusion`. These want an injected port or an event — a design decision, not a
+moved import — and they are what the bounded-context work has to answer.
 
 **Addendum (same day, after owner review):** two precisions on the audit above.
 

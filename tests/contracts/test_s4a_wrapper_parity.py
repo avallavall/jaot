@@ -39,7 +39,7 @@ _SYNC_RESULT_KEYS = {"status", "execution_id"}
 
 
 class TestTemplateWrapperParity:
-    """The template solve rides ``_enqueue_async_solve`` yet must look sync."""
+    """The template solve rides ``enqueue_async_solve`` yet must look sync."""
 
     def test_template_solve_returns_sync_result_shape(
         self,

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.api.v2.solve import _clamp_time_limit_to_plan
+from app.api.v2.solve_pipeline import _clamp_time_limit_to_plan
 from app.schemas.optimization import OptimizationProblem, SolverOptions
 
 

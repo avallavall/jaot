@@ -13,11 +13,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentOrg, CurrentUser
-from app.api.v2.solve import (
-    _enqueue_async_solve,
-    _shape_sync_result,
-    _wait_for_task,
-)
+from app.api.v2.solve_pipeline import enqueue_async_solve, shape_sync_result, wait_for_task
 from app.domains.solver.services.file_import import (
     FileImportError,
     get_file_import_service,
@@ -158,7 +154,7 @@ def import_and_solve(  # def: blocks on the queued result in the threadpool (ADR
 
     ADR-007 S4a — async-under-the-hood: parses the uploaded file + applies solver
     options server-side, then rides the ONE async pipeline
-    (``_enqueue_async_solve``) exactly like ``POST /solve`` — tier caps,
+    (``enqueue_async_solve``) exactly like ``POST /solve`` — tier caps,
     auto-routing, the pending
     ModelExecution row (tagged ``imported_file`` provenance), and the Celery
     worker. The classic ``OptimizationResult`` comes back on completion; a solve
@@ -192,7 +188,7 @@ def import_and_solve(  # def: blocks on the queued result in the threadpool (ADR
         }
     )
 
-    enqueued = _enqueue_async_solve(
+    enqueued = enqueue_async_solve(
         db=db,
         org=org,
         user=current_user,
@@ -204,7 +200,7 @@ def import_and_solve(  # def: blocks on the queued result in the threadpool (ADR
         source_id=None,
         dataset_id=None,
     )
-    payload = _wait_for_task(enqueued.task)
+    payload = wait_for_task(enqueued.task)
     if payload is None:
         return JSONResponse(
             status_code=status.HTTP_202_ACCEPTED,
@@ -216,7 +212,7 @@ def import_and_solve(  # def: blocks on the queued result in the threadpool (ADR
                 ),
             },
         )
-    return _shape_sync_result(
+    return shape_sync_result(
         payload,
         db=db,
         org_id=org.id,

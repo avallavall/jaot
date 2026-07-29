@@ -144,7 +144,7 @@ class TestS6ExecuteModelParity:
         envelope (poll_url/ws_url), never an indefinite block."""
         import app.api.v2.routes.models.execution as exec_mod
 
-        monkeypatch.setattr(exec_mod, "_wait_for_task", lambda task: None)
+        monkeypatch.setattr(exec_mod, "wait_for_task", lambda task: None)
         model_id = _seed_model(db_session, test_organization, "degrade")
 
         response = authenticated_client.post(

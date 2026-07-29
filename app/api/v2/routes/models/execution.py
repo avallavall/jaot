@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.api.v2._access import execution_or_404
 from app.api.v2.auth import get_current_user
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
-from app.api.v2.solve import _wait_for_task
+from app.api.v2.solve_pipeline import wait_for_task
 from app.api.v2.solver_errors import solver_unavailable
 from app.domains.solver import execution_writer
 from app.domains.solver.adapters.base import (
@@ -312,7 +312,7 @@ def execute_model(
 
     # Wrapped sync mode: bounded blocking wait (threadpool), then the exact
     # historic contract — or the 202 degrade past the budget (ADR-007).
-    payload = _wait_for_task(task)
+    payload = wait_for_task(task)
     if payload is None:
         return JSONResponse(
             status_code=status.HTTP_202_ACCEPTED,

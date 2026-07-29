@@ -64,7 +64,9 @@ class TestSolverIntegration:
 
         app_dir = Path(__file__).resolve().parent.parent / "app"
         enqueue_files = [
-            app_dir / "api" / "v2" / "solve.py",
+            # The shared pipeline every entry point rides — it left solve.py when
+            # the solver domain's routes stopped importing it by its private names.
+            app_dir / "api" / "v2" / "solve_pipeline.py",
             app_dir / "api" / "v2" / "routes" / "models" / "execution.py",
         ]
         for path in enqueue_files:
