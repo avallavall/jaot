@@ -179,7 +179,7 @@ workers use. Nothing left to change; verified 2026-07-26.
 | D-13 | 7 handlers did genuinely heavy work on the loop — MPS/LP parsing, 16 MB dataset parsing, PDF text extraction, boto3 uploads, SCIP export — not the short commits the audit assumed | Medium | 1 day | ✅ **Resolved** (`2b81868`) |
 | D-14 | 23 foreign keys with no index | Low-medium (scales badly) | 0.5 day | ✅ **Resolved** — 18 indexed (`20260726_index_fks`); the other 5 deliberately skipped: they point at `model_catalog` / `organization_models` (legacy DROP list) or at ADR-008 orphans with no ORM model |
 | D-15 | No `import-linter` contract on the vertical direction (api → services → domains), which is why D-16 went unnoticed | Medium (architectural) | 0.5 day | ✅ **Resolved** — contract 7, D-16's call sites frozen as listed exceptions |
-| D-16 | Upward imports: `domains → services` (11), `domains → api` (7), `shared → services` (9 — a gap in an existing contract) | Medium (blocks extraction) | 1 day | 🔸 **Halved (2026-07-29)** — 6 were never debt (a domain's routes ARE its API layer) and 2 reached into another endpoint's privates, now a named module. 8 real ones left: the domain calling platform services |
+| D-16 | Upward imports: `domains → services` (11), `domains → api` (7), `shared → services` (9 — a gap in an existing contract) | Medium (blocks extraction) | 1 day | ✅ **Resolved (2026-07-29)** — 6 were never debt (a domain's routes ARE its API layer), 2 reached into another endpoint's privates (now a named module), 5 moved down or died, and the last 3 became host ports the domain declares (`app/domains/solver/ports.py`) and JAOT registers at both boots |
 | D-17 | 55 endpoints return `dict[str, Any]` with no `response_model` → OpenAPI cannot describe them and the frontend hand-writes those types | Medium (contract drift) | 2–3 days | 🔸 **Started — and re-measured: 44, not 53** (2026-07-29). Favourites and recents declared; the original count included endpoints that already carry a `response_model` |
 | D-18 | 113 `Depends(get_db)` instead of the `DBSession` alias the project rule mandates | Low (consistency) | Folded into D-12 | Low |
 | D-19 | `execution.py` had grown to 839 LOC mixing the marketplace execution flow with the post-solve analysis endpoints, and the org filter was hand-typed at 4 call sites | Low-medium (architectural) | 1–2 days | ✅ **Resolved where it bit** (`f4dd487` + 2026-07-29) — analysis split out; both org-scoped lookups that were being re-typed now have one shared helper each. The remaining 164 route-level queries are single reads with no repeated shape — audited for missing org filters, none found |
@@ -192,10 +192,11 @@ no architectural commitment.
 
 **D-15 · ✅ Resolved (2026-07-26) — and it now carries D-16's inventory.**
 Contract 7 in `pyproject.toml` (`domains-no-upward-imports`) forbids
-`app.domains → app.services` and `app.domains → app.api`. The 17 call sites that exist
-today are listed as `ignore_imports` rather than fixed, because untangling them *is*
-D-16 and several want an injected port or an event rather than a moved import. What the
-contract buys immediately:
+`app.domains → app.services` and `app.domains → app.api`. The 17 call sites that existed
+were listed as `ignore_imports` rather than fixed, because untangling them *was* D-16 —
+that list has since been emptied as D-16 landed (2026-07-29); what remains is the stated
+routes-are-API rule and one transitive edge that was never the domain's. What the
+contract bought immediately:
 
 - **The debt cannot grow.** A new upward import fails `lint-imports` with file and line.
   Verified by adding one deliberately and watching the build go red.
@@ -331,7 +332,7 @@ private to, because that is where their callers turned out to live. 170 → 164 
 rest are single reads with no repeated shape, which is opportunistic cleanup for real rather
 than a name for work left undone.
 
-**D-16 · 🔸 Halved (2026-07-29) — 16 entries, of which 6 were never debt.**
+**D-16 · ✅ Resolved (2026-07-29) — 16 entries: 6 were never debt, 7 moved down or died, 3 became host ports.**
 The inventory frozen in contract 7 turned out to hold two different things, and reading them
 as one list is what made D-16 look like a day of untangling.
 
@@ -374,29 +375,42 @@ this was never domain code: it now lives at `app/api/v2/routes/solve_templates.p
 under the same `/solve` prefix with the paths unchanged. What the domain does own, rendering
 a resolved template into a problem, stays as `template_engine`.
 
-### The last three (deferred 2026-07-29, owner's call — do them with a fresh head)
+### The last three · ✅ Resolved (2026-07-29) — the domain declares ports, JAOT registers them
 
-All three sit **inside the Celery tasks that run every solve**, which is why they are last
-and why they are not a typing exercise:
-
-| Import | What it wants |
-|---|---|
-| `scenario_tasks -> platform_settings_service` | Reads six `SENSITIVITY_*` settings **in the worker** — an injected settings port |
-| `solve_tasks -> notification_service` (×2) | "Tell the user their solve finished/failed" — an event |
-| `solve_tasks -> marketplace_fusion` | "Tell the marketplace a listing was executed" — an event |
-
-**The design.** The domain declares what it needs from whoever hosts it (a settings reader,
-and something to hand solve outcomes to); JAOT registers its implementation at startup. That
-is the same shape that lets a solver in its own repository run under a different host — and
-it is why moving `PlatformSettingsService` into `app/shared/` would be the wrong fix: a
+All three sat **inside the Celery tasks that run every solve**: `scenario_tasks` reading six
+`SENSITIVITY_*` settings in the worker, and `solve_tasks` telling notifications (×2) and the
+marketplace about outcomes. They are now the two ports of `app/domains/solver/ports.py` —
+a scenario-budget reader and a `SolveEventSink` (`listing_executed` / `solve_completed` /
+`solve_failed`) — and `app/tasks/solver_ports.py` is JAOT's side: it binds them to
+`PlatformSettingsService`, `NotificationService` and `marketplace_fusion`, and registers on
+import. That is the shape that lets a solver in its own repository run under a different
+host — and why moving `PlatformSettingsService` into `app/shared/` was never the fix: a
 separate repository does not share `app/shared/` either.
 
-**The risk that decides the pace.** The port has to be registered at *two* entry points, the
-API process and the Celery worker. Miss one and the domain falls back to defaults **in
-silence**: solves keep succeeding, but with the wrong budget or with no notification sent,
-and the test suite would not notice, because in tests everything runs in one process. So the
-verification cannot be the suite alone — it needs a real solve, end to end, checking that
-the notification arrives and the listing counters move.
+**The two-boot risk, and how it is held.** Registration must happen in *two* processes — the
+API (which reads the budget at enqueue to derive kill limits) and the Celery worker (which
+runs everything else). The design the risk warned about — fall back to defaults if a boot
+forgot to register — is exactly what was NOT built: an unregistered port **raises**, so a
+missing registration fails every solve loudly instead of shipping wrong budgets or dropping
+notifications in silence. The API registers in the lifespan; the worker's registration point
+is the Celery `include` list, which imports `app.tasks.solver_ports` at boot exactly like a
+task module. Contract tests pin the include entry and the raise-not-default behaviour; the
+end-to-end check (a real marketplace solve through the running stack: notification row
+written, listing counters moved, what-if batch under the platform budget) verified the two
+processes really do both register.
+
+**What the end-to-end check caught: solve notifications had never been delivered.** The
+first real solve came back half green — counters moved, notification table empty — while
+the worker logged *"Created notification"*. Two defects, one swallow: the notification
+writer only flushes and the task committed *before* notifying, never after, so the row died
+with the worker's session on every solve since the path existed (D-24's lesson, one process
+over); and the failure path read `model.display_name`, a column that lives on the *listing*,
+so an `AttributeError` fell into the log-and-continue handler and the failed-solve
+notification never went out at all. The suite could not see either: in tests the session
+outlives the task. Fixed by committing the notification after the solve's own terminal
+commit and naming the model as the success path does; two regression tests now read back
+through a *different* session after the worker's is closed, and fail with either defect
+restored.
 
 **A control that did nothing (2026-07-29).** `app/domains/solver/services/pool.py` built a
 `ThreadPoolExecutor` "shared across all synchronous solve paths" — and ADR-007 moved every
