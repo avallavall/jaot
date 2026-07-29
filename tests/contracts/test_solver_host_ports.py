@@ -76,6 +76,118 @@ def test_budget_reader_reads_the_six_sensitivity_settings(db_session):
     assert budget.total_seconds == PSS.get_int(db_session, "SENSITIVITY_TOTAL_BUDGET_SECONDS")
 
 
+BOUNDED_LP_INPUT = {
+    "variables": [{"name": "x", "type": "continuous", "lower_bound": 0, "upper_bound": 4}],
+    "objective": {"sense": "maximize", "expression": "x"},
+}
+
+
+def _seed_listed_fork(db_session, organization, suffix: str) -> str:
+    """A fork of a published generic listing, so the whole outcome path has
+    somewhere real to land: a listing row for the counters, a user's model to
+    execute. Returns the fork's id (its source listing id is ``hp_src_{suffix}``)."""
+    db_session.add(
+        ModelProject(
+            id=f"hp_src_{suffix}",
+            organization_id=organization.id,
+            name=f"hp_src_{suffix}",
+            status="active",
+        )
+    )
+    db_session.flush()
+    db_session.add(
+        ModelProjectListing(
+            model_project_id=f"hp_src_{suffix}",
+            name=f"hp_src_{suffix}",
+            display_name="Host Ports Listing",
+            description="D-16 host-port wiring",
+            generator_type="generic",
+            input_schema={},
+            input_fields=[],
+            example_input={},
+            status="published",
+            is_public=True,
+            author_organization_id=organization.id,
+        )
+    )
+    fork = ModelProject(
+        id=f"hp_fork_{suffix}",
+        organization_id=organization.id,
+        name="Host ports fork",
+        status="active",
+        source_type="marketplace",
+        source_ref=f"hp_src_{suffix}",
+    )
+    db_session.add(fork)
+    db_session.commit()
+    return fork.id
+
+
+class TestSolveOutcomesSurviveTheWorkerSession:
+    """The worker writes outcomes on its OWN session and closes it when the task
+    ends. The notification writer only flushes, so without the task's follow-up
+    commit the row silently died with that session — the log line printed, the
+    bell stayed empty, and no assertion on the test's long-lived shared session
+    could tell the difference. These tests read back through a DIFFERENT session
+    after the worker's is gone, so only committed truth passes."""
+
+    # CONTRACT-TEST: the completed-solve notification must survive the worker's
+    # session. It was flushed and never committed — lost on close, invisible to
+    # the suite, gone in production where the worker is a separate process.
+    def test_completed_solve_notification_survives_the_worker_session(
+        self, authenticated_client, db_session, test_organization
+    ):
+        model_id = _seed_listed_fork(db_session, test_organization, "done")
+
+        response = authenticated_client.post(
+            f"/api/v2/models/{model_id}/execute",
+            json={"input_data": BOUNDED_LP_INPUT, "async_mode": True},
+        )
+        assert response.status_code == 200, response.text
+        execution_id = response.json()["execution_id"]
+
+        # The eager worker ran on its own session and closed it. Expire ours so
+        # every read below is DB truth, not this session's stale identity map.
+        db_session.expire_all()
+
+        rows = db_session.query(Notification).filter_by(organization_id=test_organization.id).all()
+        row = next((r for r in rows if r.data.get("execution_id") == execution_id), None)
+        assert row is not None, "the completed-solve notification did not survive the worker"
+        assert row.type == NotificationType.EXECUTION_COMPLETED.value
+
+        listing = db_session.get(ModelProjectListing, "hp_src_done")
+        assert listing.total_executions == 1
+        assert listing.successful_executions == 1
+
+    # CONTRACT-TEST: the failed-solve notification takes a different path (the
+    # except handler, after the failed row's own commit) and must survive too.
+    def test_failed_solve_notification_survives_the_worker_session(
+        self, authenticated_client, db_session, test_organization, monkeypatch
+    ):
+        import app.domains.solver.tasks.solve_tasks as solve_tasks_mod
+
+        def _boom(*args, **kwargs):
+            raise RuntimeError("solver exploded before loading")
+
+        monkeypatch.setattr(solve_tasks_mod, "get_solver_service", _boom)
+        model_id = _seed_listed_fork(db_session, test_organization, "fail")
+
+        response = authenticated_client.post(
+            f"/api/v2/models/{model_id}/execute",
+            json={"input_data": BOUNDED_LP_INPUT, "async_mode": True},
+        )
+        assert response.status_code == 200, response.text
+        execution_id = response.json()["execution_id"]
+
+        db_session.expire_all()
+
+        rows = db_session.query(Notification).filter_by(organization_id=test_organization.id).all()
+        row = next((r for r in rows if r.data.get("execution_id") == execution_id), None)
+        assert row is not None, "the failed-solve notification did not survive the worker"
+        assert row.type == NotificationType.EXECUTION_FAILED.value
+        assert "solver exploded" in row.data["error"]
+
+
 class TestPlatformSolveEvents:
     """JAOT's sink hands each event to the real service, real rows included."""
 

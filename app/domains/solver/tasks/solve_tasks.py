@@ -751,6 +751,13 @@ def solve_model_async(
                 model_name=model.name,
                 objective_value=result.objective_value,
             )
+            # The notification writer only flushes; without this commit the row
+            # dies with the session when the task ends — the log line printed,
+            # the bell stayed empty, and no test saw it because in tests the
+            # session outlives the task. Committed apart from the solve's own
+            # commit above so a notification failure can never take the
+            # execution's persistence with it.
+            db.commit()
         except Exception as notify_error:
             logger.warning(f"Failed to send notification: {notify_error}")
 
@@ -822,9 +829,16 @@ def solve_model_async(
                     user_id=execution.executed_by_user_id or "",
                     organization_id=organization_id,
                     execution_id=execution_id,
-                    model_name=model.display_name if model else "Unknown",
+                    # model.name, as in the success path: display_name lives on
+                    # the LISTING — reading it here raised AttributeError into
+                    # the swallow below, so this notification never went out.
+                    model_name=model.name if model else "Unknown",
                     error=str(e),
                 )
+                # Same as the success path: the writer only flushes, and the
+                # failed row was already committed above — this commit persists
+                # only the notification.
+                db.commit()
             except Exception as notify_error:
                 logger.warning(f"Failed to send failure notification: {notify_error}")
 
