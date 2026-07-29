@@ -21,8 +21,6 @@ base when a request carries no usable time limit.
 
 from __future__ import annotations
 
-from sqlalchemy.orm import Session
-
 # Margin on top of the solver's own time limit before the soft kill fires.
 # Covers problem parsing, model build, warm-start loading, and result
 # serialization that happen around the actual solve inside the task.
@@ -35,9 +33,9 @@ HARD_GRACE_SECONDS = 30
 
 
 def resolve_solver_time_limit(
-    db: Session,
     solver_name: str | None,
     requested_seconds: float | None,
+    hexaly_default_seconds: float,
 ) -> float | None:
     """Return the time limit the solve should carry, in seconds.
 
@@ -65,14 +63,12 @@ def resolve_solver_time_limit(
     if (solver_name or "").lower() != "hexaly":
         return requested_seconds
 
-    from app.services.platform_settings_service import PlatformSettingsService as PSS
-
-    return float(PSS.get_int(db, "hexaly_default_time_limit_seconds"))
+    return float(hexaly_default_seconds)
 
 
 def compute_celery_time_limits(
-    db: Session,
     time_limit_seconds: float | None,
+    default_timeout_seconds: float,
 ) -> tuple[int, int]:
     """Return ``(soft_time_limit, time_limit)`` seconds for a solve task.
 
@@ -87,12 +83,10 @@ def compute_celery_time_limits(
         Tuple of (soft limit, hard limit) in whole seconds, with
         ``hard = soft + HARD_GRACE_SECONDS``.
     """
-    from app.services.platform_settings_service import PlatformSettingsService as PSS
-
     if time_limit_seconds is not None and time_limit_seconds > 0:
         base = float(time_limit_seconds)
     else:
-        base = float(PSS.get_int(db, "SOLVER_DEFAULT_TIMEOUT"))
+        base = float(default_timeout_seconds)
 
     soft = int(base) + SOFT_MARGIN_SECONDS
     return soft, soft + HARD_GRACE_SECONDS

@@ -25,6 +25,7 @@ from uuid import uuid4
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.api.v2._solver_limits import compute_celery_time_limits, resolve_solver_time_limit
 from app.api.v2.solver_errors import solver_unavailable
 from app.domains.solver import execution_writer
 from app.domains.solver.adapters.base import (
@@ -33,10 +34,6 @@ from app.domains.solver.adapters.base import (
 )
 from app.domains.solver.queue_routing import resolve_queue
 from app.domains.solver.services.availability_gate import ensure_hexaly_worker_or_503
-from app.domains.solver.time_limits import (
-    compute_celery_time_limits,
-    resolve_solver_time_limit,
-)
 from app.models import ModelExecution, ModelProject, Organization
 from app.models.audit_log import AuditAction
 from app.schemas.optimization import (

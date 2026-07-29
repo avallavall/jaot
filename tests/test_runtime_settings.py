@@ -36,7 +36,7 @@ class TestSolverIntegration:
         DB returned it — which held whether or not any code read the setting,
         and indeed nothing did.
         """
-        from app.domains.solver.time_limits import resolve_solver_time_limit
+        from app.api.v2._solver_limits import resolve_solver_time_limit
 
         PSS.set(db_session, "hexaly_default_time_limit_seconds", "777")
         db_session.commit()

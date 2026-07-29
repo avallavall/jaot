@@ -321,11 +321,8 @@ class TestCeleryTimeLimitDerivation:
     """W15: producers derive worker soft/hard limits from the request's own limit."""
 
     def test_limits_derived_from_request_time_limit(self, db_session):
-        from app.domains.solver.time_limits import (
-            HARD_GRACE_SECONDS,
-            SOFT_MARGIN_SECONDS,
-            compute_celery_time_limits,
-        )
+        from app.api.v2._solver_limits import compute_celery_time_limits
+        from app.domains.solver.time_limits import HARD_GRACE_SECONDS, SOFT_MARGIN_SECONDS
 
         soft, hard = compute_celery_time_limits(db_session, 120.0)
         assert soft == 120 + SOFT_MARGIN_SECONDS
@@ -333,11 +330,8 @@ class TestCeleryTimeLimitDerivation:
 
     def test_fallback_uses_solver_default_timeout_setting(self, db_session):
         """W9 cleanup: the previously dead SOLVER_DEFAULT_TIMEOUT key is the fallback."""
-        from app.domains.solver.time_limits import (
-            HARD_GRACE_SECONDS,
-            SOFT_MARGIN_SECONDS,
-            compute_celery_time_limits,
-        )
+        from app.api.v2._solver_limits import compute_celery_time_limits
+        from app.domains.solver.time_limits import HARD_GRACE_SECONDS, SOFT_MARGIN_SECONDS
         from app.services.platform_settings_service import PlatformSettingsService as PSS
 
         default_timeout = PSS.get_int(db_session, "SOLVER_DEFAULT_TIMEOUT")

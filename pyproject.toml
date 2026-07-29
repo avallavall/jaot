@@ -223,7 +223,6 @@ ignore_imports = [
     "app.domains.solver.services.pool -> app.services.platform_settings_service",
     "app.domains.solver.tasks.scenario_tasks -> app.services.platform_settings_service",
     "app.domains.solver.tasks.solve_tasks -> app.services.notification_service",
-    "app.domains.solver.time_limits -> app.services.platform_settings_service",
     # Added 2026-07-26 with the marketplace listing rollup. The right shape is the
     # solver telling the marketplace a solve finished, not fetching its writer.
     "app.domains.solver.tasks.solve_tasks -> app.services.marketplace_fusion",

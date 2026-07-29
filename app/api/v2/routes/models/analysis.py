@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.v2._access import execution_or_404
+from app.api.v2._solver_limits import compute_celery_time_limits
 from app.api.v2.auth import get_current_user
 from app.api.v2.solver_errors import solver_unavailable
 from app.domains.solver import scenario_job
@@ -29,7 +30,6 @@ from app.domains.solver.services.execution_payload import (
     load_execution_payload,
 )
 from app.domains.solver.tasks.scenario_tasks import read_budget, scenario_analysis_async
-from app.domains.solver.time_limits import compute_celery_time_limits
 from app.models import User
 from app.schemas.optimization import (
     ExactAnalysis,

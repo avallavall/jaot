@@ -10,6 +10,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.api.v2._access import execution_or_404
+from app.api.v2._solver_limits import compute_celery_time_limits, resolve_solver_time_limit
 from app.api.v2.auth import get_current_user
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
 from app.api.v2.solve_pipeline import wait_for_task
@@ -24,10 +25,6 @@ from app.domains.solver.queue_routing import resolve_queue
 from app.domains.solver.services.availability_gate import ensure_hexaly_worker_or_503
 from app.domains.solver.services.solver_service import SolverService, get_solver_service
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
-from app.domains.solver.time_limits import (
-    compute_celery_time_limits,
-    resolve_solver_time_limit,
-)
 from app.models import ExecutionStatus, ModelExecution, Organization, User
 from app.models.model_project import ModelProject, ModelProjectListing
 from app.schemas.model import (
