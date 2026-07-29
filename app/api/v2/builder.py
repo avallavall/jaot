@@ -2,7 +2,7 @@
 
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, status
 from sqlalchemy import desc
 
 from app.api.deps import (
@@ -13,6 +13,7 @@ from app.api.deps import (
     OptionalRequireSolver,
     OptionalRequireViewer,
 )
+from app.api.v2._access import builder_document_or_404
 from app.models.audit_log import AuditAction
 from app.models.builder_document import ModelBuilderDocument
 from app.schemas.builder import (
@@ -28,29 +29,6 @@ from app.shared.utils.id_generator import generate_id
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/builder", tags=["builder"])
-
-
-def _get_doc_or_404(
-    db: DBSession,
-    document_id: str,
-    org_id: str,
-) -> ModelBuilderDocument:
-    """Fetch an active document owned by the org or raise 404."""
-    doc = (
-        db.query(ModelBuilderDocument)
-        .filter(
-            ModelBuilderDocument.id == document_id,
-            ModelBuilderDocument.organization_id == org_id,
-            ModelBuilderDocument.is_active.is_(True),
-        )
-        .first()
-    )
-    if not doc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Builder document not found",
-        )
-    return doc
 
 
 @router.post(
@@ -134,7 +112,7 @@ def get_document(
     _ws: OptionalRequireViewer,
 ) -> ModelBuilderDocument:
     """Return a builder document by ID (must belong to current organization)."""
-    return _get_doc_or_404(db, document_id, org.id)
+    return builder_document_or_404(db, document_id, org.id)
 
 
 @router.put(
@@ -151,7 +129,7 @@ def update_document(
     _ws: OptionalRequireEditor,
 ) -> ModelBuilderDocument:
     """Partially update a builder document.  Only supplied fields are applied."""
-    doc = _get_doc_or_404(db, document_id, org.id)
+    doc = builder_document_or_404(db, document_id, org.id)
 
     updates = body.model_dump(exclude_unset=True)
     for field, value in updates.items():
@@ -185,7 +163,7 @@ def delete_document(
     _ws: OptionalRequireEditor,
 ) -> None:
     """Soft-delete a builder document by setting is_active=False."""
-    doc = _get_doc_or_404(db, document_id, org.id)
+    doc = builder_document_or_404(db, document_id, org.id)
     log_action(
         db=db,
         organization_id=org.id,

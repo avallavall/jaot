@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.api.deps import OptionalRequireSolver
+from app.api.v2._access import execution_or_404
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
 from app.api.v2.solver_errors import solver_unavailable
 from app.domains.solver import execution_writer
@@ -410,19 +411,7 @@ def analyze_infeasibility(
         raise HTTPException(status_code=429, detail=rate_info)
 
     # Load + enforce org ownership (404 hides the existence of other orgs' executions).
-    execution = (
-        db.query(ModelExecution)
-        .filter(
-            ModelExecution.id == execution_id,
-            ModelExecution.organization_id == org.id,
-        )
-        .first()
-    )
-    if not execution:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Execution not found",
-        )
+    execution = execution_or_404(db, execution_id, org.id)
 
     result_data = execution.result_data or {}
     if result_data.get("solver_status") != SolverStatus.INFEASIBLE.value:

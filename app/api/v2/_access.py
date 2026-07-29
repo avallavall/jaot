@@ -1,4 +1,4 @@
-"""Org-scoped lookups shared by the execution routes.
+"""Org-scoped lookups shared across the v2 API layer.
 
 Every org-scoped query must filter by ``organization_id`` — a missing filter is a
 cross-tenant leak, not a bug in the usual sense. That filter was being re-typed by
@@ -7,6 +7,11 @@ four, but correct by vigilance rather than by construction (backend audit F-09).
 
 One function, used by every caller, so the filter cannot be forgotten by the next
 endpoint added.
+
+It lived under ``routes/models/`` while those were its only callers. The explainer
+and solve endpoints were re-typing the same lookup from a different package, so it
+moved up to the layer they share rather than being imported across packages by its
+private name (D-19).
 
 (The solver domain has an equivalent helper of its own under
 ``domains/solver/routes/_helpers.py``. Unifying them means either importing another
@@ -18,7 +23,7 @@ belongs to the bounded-context extraction, not here.)
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.models import ModelExecution
+from app.models import ModelBuilderDocument, ModelExecution
 
 
 def execution_or_404(db: Session, execution_id: str, org_id: str) -> ModelExecution:
@@ -38,3 +43,28 @@ def execution_or_404(db: Session, execution_id: str, org_id: str) -> ModelExecut
     if not execution:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Execution not found")
     return execution
+
+
+def builder_document_or_404(db: Session, document_id: str, org_id: str) -> ModelBuilderDocument:
+    """Load an active builder document owned by ``org_id``, or raise 404.
+
+    Same story as :func:`execution_or_404`: it lived as a private helper in
+    ``builder.py``, which ``versions.py`` was already importing by its private
+    name while ``projects.py`` and ``triggers.py`` re-typed the three filters
+    instead (``is_active`` among them — the one easiest to forget, and the one
+    that would resurrect a deleted document).
+    """
+    doc = (
+        db.query(ModelBuilderDocument)
+        .filter(
+            ModelBuilderDocument.id == document_id,
+            ModelBuilderDocument.organization_id == org_id,
+            ModelBuilderDocument.is_active.is_(True),
+        )
+        .first()
+    )
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Builder document not found"
+        )
+    return doc

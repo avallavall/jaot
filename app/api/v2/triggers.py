@@ -28,8 +28,8 @@ from app.api.deps import (
     OptionalRequireEditor,
     OptionalRequireViewer,
 )
+from app.api.v2._access import builder_document_or_404
 from app.models.audit_log import AuditAction
-from app.models.builder_document import ModelBuilderDocument
 from app.models.model_version import ModelVersion
 from app.models.trigger import SolveTrigger, TriggerRun
 from app.schemas.trigger import (
@@ -151,20 +151,7 @@ def create_trigger(
     a named version to protect it from the retention pruning policy.
     """
     # Verify the document belongs to this org
-    doc = (
-        db.query(ModelBuilderDocument)
-        .filter(
-            ModelBuilderDocument.id == body.document_id,
-            ModelBuilderDocument.organization_id == org.id,
-            ModelBuilderDocument.is_active.is_(True),
-        )
-        .first()
-    )
-    if not doc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Builder document not found",
-        )
+    doc = builder_document_or_404(db, body.document_id, org.id)
 
     # Verify the version belongs to the document
     version = (

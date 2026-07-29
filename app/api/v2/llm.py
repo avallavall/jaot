@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session, joinedload
 from sse_starlette.sse import EventSourceResponse
 
 from app.api.deps import CurrentOrg, CurrentUser, DBSession, RequestLocale
+from app.api.v2._access import execution_or_404
 from app.domains.solver import scenario_job
 from app.models import ModelExecution
 from app.models.conversation_attachment import ConversationAttachment
@@ -725,21 +726,7 @@ def _resolve_explanation_context(
     saturated constraint as having headroom.
     """
     if body.execution_id:
-        from app.models.optimization_model import ModelExecution
-
-        execution = (
-            db.query(ModelExecution)
-            .filter(
-                ModelExecution.id == body.execution_id,
-                ModelExecution.organization_id == org_id,
-            )
-            .first()
-        )
-        if not execution:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Execution not found",
-            )
+        execution = execution_or_404(db, body.execution_id, org_id)
         result_data = execution.result_data or {}
         # result_data follows OptimizationResult.to_result_data(): model (the
         # variable->value dict), objective_value, solver_status, variables,
@@ -918,21 +905,7 @@ def _resolve_infeasibility_context(
     fields when no ``execution_id`` is supplied.
     """
     if body.execution_id:
-        from app.models.optimization_model import ModelExecution
-
-        execution = (
-            db.query(ModelExecution)
-            .filter(
-                ModelExecution.id == body.execution_id,
-                ModelExecution.organization_id == org_id,
-            )
-            .first()
-        )
-        if not execution:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Execution not found",
-            )
+        execution = execution_or_404(db, body.execution_id, org_id)
         result_data = execution.result_data or {}
         infeasibility = result_data.get("infeasibility_analysis")
         return execution.input_data or None, infeasibility
@@ -1452,16 +1425,7 @@ async def explain_execution_scenarios(
     The cache is keyed by the model that wrote the text, so asking for the other
     tier regenerates (and bills) while asking again for the same one does not.
     """
-    execution = (
-        db.query(ModelExecution)
-        .filter(
-            ModelExecution.id == execution_id,
-            ModelExecution.organization_id == org.id,
-        )
-        .first()
-    )
-    if not execution:
-        raise HTTPException(status_code=404, detail="Execution not found")
+    execution = execution_or_404(db, execution_id, org.id)
 
     job = execution.scenario_analysis or {}
     analysis = job.get("result") if job.get("status") == scenario_job.STATUS_COMPLETED else None

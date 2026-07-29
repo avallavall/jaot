@@ -12,7 +12,7 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import desc
 
 from app.api.deps import CurrentOrg, CurrentUser, DBSession
-from app.api.v2.builder import _get_doc_or_404
+from app.api.v2._access import builder_document_or_404
 from app.models.model_version import ModelVersion
 from app.schemas.version import (
     CreateCheckpointRequest,
@@ -59,7 +59,7 @@ def list_versions(
     limit: int = 50,
 ) -> list[ModelVersion]:
     """Return version list for a document (newest first, no canvas_json)."""
-    _get_doc_or_404(db, document_id, org.id)
+    builder_document_or_404(db, document_id, org.id)
     return version_service.list_versions(db, document_id, org.id, limit=limit, skip=skip)
 
 
@@ -75,7 +75,7 @@ def get_version(
     org: CurrentOrg,
 ) -> ModelVersion:
     """Return a single version including the full canvas_json snapshot."""
-    _get_doc_or_404(db, document_id, org.id)
+    builder_document_or_404(db, document_id, org.id)
     return _get_version_or_404(db, version_id, document_id, org.id)
 
 
@@ -97,7 +97,7 @@ def create_checkpoint(
     If the canvas is unchanged since the last checkpoint, the existing version
     is returned (201 status, no duplicate row created).
     """
-    doc = _get_doc_or_404(db, document_id, org.id)
+    doc = builder_document_or_404(db, document_id, org.id)
 
     # Fetch the latest version to compute the change summary
     prev = (
@@ -136,7 +136,7 @@ def promote_version(
 
     Named versions are never pruned by the retention policy.
     """
-    _get_doc_or_404(db, document_id, org.id)
+    builder_document_or_404(db, document_id, org.id)
     version = _get_version_or_404(db, version_id, document_id, org.id)
     updated = version_service.promote_to_named(
         db, version, body.version_name, body.version_description
@@ -164,7 +164,7 @@ def restore_version(
 
     Returns the ID of the safety checkpoint and the updated document.
     """
-    doc = _get_doc_or_404(db, document_id, org.id)
+    doc = builder_document_or_404(db, document_id, org.id)
     target = _get_version_or_404(db, version_id, document_id, org.id)
 
     safety_checkpoint, updated_doc = version_service.restore_version(

@@ -182,7 +182,7 @@ workers use. Nothing left to change; verified 2026-07-26.
 | D-16 | Upward imports: `domains → services` (11), `domains → api` (7), `shared → services` (9 — a gap in an existing contract) | Medium (blocks extraction) | 1 day | Medium |
 | D-17 | 55 endpoints return `dict[str, Any]` with no `response_model` → OpenAPI cannot describe them and the frontend hand-writes those types | Medium (contract drift) | 2–3 days | 🔸 **Started** — 53 left; favourites and recents now answer with declared schemas |
 | D-18 | 113 `Depends(get_db)` instead of the `DBSession` alias the project rule mandates | Low (consistency) | Folded into D-12 | Low |
-| D-19 | `execution.py` had grown to 839 LOC mixing the marketplace execution flow with the post-solve analysis endpoints, and the org filter was hand-typed at 4 call sites | Low-medium (architectural) | 1–2 days | ✅ **Partly resolved** (`f4dd487`) — analysis split into its own module + one shared `execution_or_404`; the remaining ~180 route-level queries stay as opportunistic cleanup |
+| D-19 | `execution.py` had grown to 839 LOC mixing the marketplace execution flow with the post-solve analysis endpoints, and the org filter was hand-typed at 4 call sites | Low-medium (architectural) | 1–2 days | ✅ **Resolved where it bit** (`f4dd487` + 2026-07-29) — analysis split out; both org-scoped lookups that were being re-typed now have one shared helper each. The remaining 164 route-level queries are single reads with no repeated shape — audited for missing org filters, none found |
 | D-23 | The two API rate limits are enforced from a COPY on `organizations` (written at signup, read by 9 call sites) instead of from the instance profile. Editing them in the panel is made to work by propagating the change to the organizations still on the old value — honest, but a mirror that can drift. The deep fix is a nullable column meaning "inherit", which needs a schema change the rollback window cannot take today | Low (works; the mechanism is the debt) | 0.5 day | Deferred — do it with the contract-release schema pass |
 | D-24 | Nothing a public path learned about its caller was usable, and nothing it wrote survived. `recent_models` had no writer at all; `model_view_events` was flushed and never committed; and the opportunistic principal the auth middleware attaches came back expired, so reading `user.id` raised — a swallowed exception in the telemetry, a 500 in the contact form | Medium-high (silent data loss on three live surfaces, one of them user-facing) | 0.5 day | ✅ **Resolved (2026-07-28)** — principal detached before its session closes, writes committed |
 | D-22 | Orphaned `platform_settings` rows — 98 on the reference install, of which 51 come from the 1.9 panel review (23 retired settings + the 28 `plan_*` tier keys the instance profile replaced) and the rest predate it, mostly ADR-008 billing keys. Additive-only means the code stopped reading them but nothing deleted them | Low (cosmetic; invisible to the panel, which renders the registry) | Minutes | ✅ **Resolved** (`20260728_prune_orphan_settings`) — 186 rows → 88, exactly the registry |
@@ -293,6 +293,35 @@ update one row instead of racing into an integrity error, and it runs inside a `
 telemetry is not worth a reader's page. `access_count` stays a `String` column — it joins
 `favorite.py`'s `Column()` on the contract-release list; the increment casts through integer
 in the meantime.
+
+**D-19 · ✅ Resolved where it bit (2026-07-29) — after checking where that actually was.**
+What was left of D-19 read as "~180 route-level queries", which invites a mechanical sweep
+into services. Two questions decided the shape of the work instead.
+
+**Do those queries hide a cross-tenant leak?** The project's own rule says a missing
+`organization_id` filter is a security bug, so that is worth knowing before anything else.
+Every query on an org-scoped model was matched against its filter chain: 58 came back with
+no organization filter in sight, and each was read. **All 58 are correct** — they filter by
+`user_id` (strictly narrower), fetch-then-authorize (the execution WebSocket closes with
+4003 right after loading), look up by a secret token hash, serve the public marketplace, or
+sit behind the admin router's `dependencies=[Depends(get_admin_user)]`, which covers the six
+admin modules that never name `AdminUser` themselves. **Nothing to fix.**
+
+**Is any query shape written more than once?** That is the part that actually bit — the
+audit's own F-09 was one lookup re-typed at four call sites. Two shapes were:
+
+- `execution_or_404` already existed, and `llm.py` (×3) and `solve.py` re-typed it anyway,
+  identical down to the 404 detail string. Now they call it. Two of those also carried a
+  function-local `import ModelExecution` that went with them.
+- The builder-document lookup had a private `_get_doc_or_404` in `builder.py` that
+  `versions.py` was importing **by its private name across modules**, while `projects.py` and
+  `triggers.py` re-typed its three filters — including `is_active`, the one easiest to omit,
+  and the one whose absence would resurrect a deleted document.
+
+Both helpers moved to `app/api/v2/_access.py`, one layer up from the package they were
+private to, because that is where their callers turned out to live. 170 → 164 queries; the
+rest are single reads with no repeated shape, which is opportunistic cleanup for real rather
+than a name for work left undone.
 
 **Addendum (same day, after owner review):** two precisions on the audit above.
 

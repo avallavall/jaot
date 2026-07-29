@@ -9,9 +9,9 @@ from pydantic import BaseModel, ValidationError
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.api.v2._access import execution_or_404
 from app.api.v2.auth import get_current_user
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
-from app.api.v2.routes.models._access import execution_or_404
 from app.api.v2.solve import _wait_for_task
 from app.api.v2.solver_errors import solver_unavailable
 from app.domains.solver import execution_writer

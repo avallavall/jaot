@@ -17,8 +17,8 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.api.v2._access import execution_or_404
 from app.api.v2.auth import get_current_user
-from app.api.v2.routes.models._access import execution_or_404
 from app.api.v2.solver_errors import solver_unavailable
 from app.domains.solver import scenario_job
 from app.domains.solver.adapters.base import SolverNotFoundError

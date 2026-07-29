@@ -36,6 +36,7 @@ from app.api.deps import (
     OptionalRequireSolver,
     OptionalRequireViewer,
 )
+from app.api.v2._access import builder_document_or_404
 from app.api.v2.deps.dsl_feature_gate import dsl_feature_gate
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
 from app.api.v2.solve import (
@@ -49,7 +50,6 @@ from app.domains.solver.services import SolverService, get_solver_service
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
 from app.models import Organization, User
 from app.models.audit_log import AuditAction
-from app.models.builder_document import ModelBuilderDocument
 from app.models.model_project import (
     ModelProject,
     ModelProjectDataset,
@@ -166,19 +166,7 @@ def create_from_builder(
     _ws: OptionalRequireSolver,
 ) -> ModelProject:
     """Seed a ModelProject from an existing builder document (migration helper)."""
-    doc = (
-        db.query(ModelBuilderDocument)
-        .filter(
-            ModelBuilderDocument.id == document_id,
-            ModelBuilderDocument.organization_id == org.id,
-            ModelBuilderDocument.is_active.is_(True),
-        )
-        .first()
-    )
-    if doc is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Builder document not found"
-        )
+    doc = builder_document_or_404(db, document_id, org.id)
     project = svc.create_seeded(
         db,
         org_id=org.id,
