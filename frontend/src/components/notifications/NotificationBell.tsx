@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Notification } from "@/lib/types";
 
 export function NotificationBell() {
@@ -22,9 +23,14 @@ export function NotificationBell() {
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
   const prevUnreadCountRef = useRef<number | null>(null);
   const t = useTranslations("common");
+  // Session state comes from the auth context, not from a `jaot_api_key` in
+  // localStorage: the web app authenticates with HttpOnly cookies, so that key
+  // is absent for every browser login and these guards returned early every
+  // time — the bell stayed empty and silent no matter what the API held.
+  const { isAuthenticated } = useAuth();
 
   const fetchNotifications = async () => {
-    if (!localStorage.getItem("jaot_api_key")) return;
+    if (!isAuthenticated) return;
 
     try {
       const data = await api.getNotifications({ limit: 10 });
@@ -36,7 +42,7 @@ export function NotificationBell() {
   };
 
   const markAsRead = async (notificationId: string) => {
-    if (!localStorage.getItem("jaot_api_key")) return;
+    if (!isAuthenticated) return;
 
     try {
       await api.markAsRead(notificationId);
@@ -53,7 +59,7 @@ export function NotificationBell() {
   };
 
   const markAllAsRead = async () => {
-    if (!localStorage.getItem("jaot_api_key")) return;
+    if (!isAuthenticated) return;
 
     setIsLoading(true);
     try {
@@ -105,6 +111,10 @@ export function NotificationBell() {
   };
 
   useEffect(() => {
+    // Keyed on the session: the context resolves it asynchronously, so mounting
+    // before it lands must not leave the bell permanently unfetched.
+    if (!isAuthenticated) return;
+
     // Poll with full notification content so toast can read latest notification
     fetchNotifications();
     pollInterval.current = setInterval(fetchNotifications, 30000);
@@ -114,12 +124,14 @@ export function NotificationBell() {
         clearInterval(pollInterval.current);
       }
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (isOpen) {
       fetchNotifications();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Fire toast when unread count increases
