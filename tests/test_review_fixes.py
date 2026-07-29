@@ -114,16 +114,6 @@ class TestAnthropicClientThreadSafety:
         assert isinstance(anthropic_client._client_cache_lock, type(threading.Lock()))
 
 
-class TestSolverPoolThreadSafety:
-    """HIGH: get_solver_pool must be thread-safe."""
-
-    def test_has_lock(self):
-        from app.domains.solver.services import pool
-
-        assert hasattr(pool, "_solver_pool_lock")
-        assert isinstance(pool._solver_pool_lock, type(threading.Lock()))
-
-
 class TestFeedbackOrgFilter:
     """HIGH: get_conversation_rating must filter by organization_id."""
 

@@ -81,7 +81,7 @@ exists, so it cannot live in this table. The panel must not offer it.
 | `app` | APP_NAME, APP_VERSION (read-only) | Instance |
 | `security` | REGISTRATION_ENABLED, JWT_*, AUTH_*_RATE_LIMIT_* | Access |
 | `limits` | instance_max_variables, instance_max_daily_solves, instance_min_cron_interval_minutes, instance_allowed_features | Access |
-| `solver` | SOLVER_DEFAULT_TIMEOUT, SOLVER_POOL_SIZE, SENSITIVITY_*, IIS_* | Solver |
+| `solver` | SOLVER_DEFAULT_TIMEOUT, SENSITIVITY_*, IIS_* | Solver |
 | `llm` | LLM_DEFAULT_MODEL, LLM_MONTHLY_BUDGET_EUR, LLM_THINKING_EFFORT | AI |
 | `rag` | RAG_ENABLED, RAG_TOP_K, RAG_RERANKER_ENABLED | AI |
 | `email` | EMAIL_BACKEND, SMTP_*, CONTACT_RECIPIENT | Email |

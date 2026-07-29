@@ -148,20 +148,6 @@ SETTINGS_REGISTRY.extend(
             max_value=None,
         ),
         SettingDefinition(
-            key="SOLVER_POOL_SIZE",
-            label="Pool Size",
-            description=(
-                "Threads the solver pool runs concurrently. The pool is built once "
-                "and reused, so a change here takes effect when the API restarts, "
-                "not on the next solve."
-            ),
-            category=SettingCategory.SOLVER,
-            setting_type=SettingType.INT,
-            default_value="4",
-            min_value=1,
-            max_value=32,
-        ),
-        SettingDefinition(
             key="hexaly_default_time_limit_seconds",
             label="Hexaly Default Time Limit",
             description=(

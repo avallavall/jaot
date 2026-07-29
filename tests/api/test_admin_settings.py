@@ -198,7 +198,7 @@ class TestSettingsRegistry:
         solver_settings = REGISTRY_BY_CATEGORY[SettingCategory.SOLVER]
         solver_keys = {s.key for s in solver_settings}
         assert "SOLVER_DEFAULT_TIMEOUT" in solver_keys
-        assert "SOLVER_POOL_SIZE" in solver_keys
+        assert "SOLVER_DEFAULT_TIMEOUT" in solver_keys
 
     def test_secret_settings_are_editable(self):
         """Secret settings must have is_secret=True and is_readonly=False (editable)."""
@@ -320,7 +320,7 @@ class TestPlatformSettingsServiceBulkSet:
 
         updates = {
             "SOLVER_DEFAULT_TIMEOUT": "120",
-            "SOLVER_POOL_SIZE": "8",
+            "SENSITIVITY_MAX_RESOLVES": "8",
         }
         audits = PlatformSettingsService.bulk_set(db_session, updates, changed_by="admin@test.com")
         db_session.flush()
@@ -328,7 +328,7 @@ class TestPlatformSettingsServiceBulkSet:
         assert len(audits) >= 2
         keys = {a.setting_key for a in audits}
         assert "SOLVER_DEFAULT_TIMEOUT" in keys
-        assert "SOLVER_POOL_SIZE" in keys
+        assert "SENSITIVITY_MAX_RESOLVES" in keys
 
     def test_bulk_set_updates_secrets(self, db_session):
         """bulk_set() now processes secret settings (no longer readonly)."""
@@ -713,16 +713,16 @@ class TestSettingsFullFlow:
         # 1. Set
         resp = admin_client.put(
             "/api/v2/admin/settings/values",
-            json={"updates": {"SOLVER_POOL_SIZE": "16"}},
+            json={"updates": {"SOLVER_DEFAULT_TIMEOUT": "16"}},
         )
         assert resp.status_code == 200
-        assert "SOLVER_POOL_SIZE" in resp.json()["updated"]
+        assert "SOLVER_DEFAULT_TIMEOUT" in resp.json()["updated"]
 
         # 2. Verify value reflected
         resp = admin_client.get("/api/v2/admin/settings/values?category=solver")
         assert resp.status_code == 200
-        assert resp.json()["settings"]["SOLVER_POOL_SIZE"]["value"] == "16"
-        assert resp.json()["settings"]["SOLVER_POOL_SIZE"]["is_modified"] is True
+        assert resp.json()["settings"]["SOLVER_DEFAULT_TIMEOUT"]["value"] == "16"
+        assert resp.json()["settings"]["SOLVER_DEFAULT_TIMEOUT"]["is_modified"] is True
 
         # 3. Check audit
         resp = admin_client.get("/api/v2/admin/settings/audit?category=solver")
@@ -730,18 +730,18 @@ class TestSettingsFullFlow:
         assert resp.json()["total"] >= 1
 
         # 4. Reset
-        resp = admin_client.post("/api/v2/admin/settings/reset/SOLVER_POOL_SIZE")
+        resp = admin_client.post("/api/v2/admin/settings/reset/SOLVER_DEFAULT_TIMEOUT")
         assert resp.status_code == 200
 
         # 5. Verify reverted (no longer modified)
         resp = admin_client.get("/api/v2/admin/settings/values?category=solver")
         assert resp.status_code == 200
-        assert resp.json()["settings"]["SOLVER_POOL_SIZE"]["is_modified"] is False
+        assert resp.json()["settings"]["SOLVER_DEFAULT_TIMEOUT"]["is_modified"] is False
 
         # 6. Check audit has reset entry (new_value = registry default)
         from app.services.settings_registry import REGISTRY_BY_KEY
 
-        registry_default = REGISTRY_BY_KEY["SOLVER_POOL_SIZE"].default_value
+        registry_default = REGISTRY_BY_KEY["SOLVER_DEFAULT_TIMEOUT"].default_value
         resp = admin_client.get(
             "/api/v2/admin/settings/audit?category=solver",
         )
@@ -749,6 +749,6 @@ class TestSettingsFullFlow:
         reset_entries = [
             i
             for i in audit_items
-            if i["setting_key"] == "SOLVER_POOL_SIZE" and i["new_value"] == registry_default
+            if i["setting_key"] == "SOLVER_DEFAULT_TIMEOUT" and i["new_value"] == registry_default
         ]
         assert len(reset_entries) >= 1

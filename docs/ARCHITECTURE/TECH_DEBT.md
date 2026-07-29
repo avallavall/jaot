@@ -352,10 +352,36 @@ the solution filter). `solve.py` drops from 1407 lines to 692, and what the doma
 is a declared API rather than another module's privates — which is why the contract names
 that module explicitly instead of opening up `app.api` wholesale.
 
-**Eight remain, and they are the ones that block extraction**: the domain calling
-`platform_settings_service` (×3), `solve_orchestrator` (×3), `notification_service` and
-`marketplace_fusion`. These want an injected port or an event — a design decision, not a
-moved import — and they are what the bounded-context work has to answer.
+**Then eight more went (2026-07-29), once the owner settled what the domain is for**: the
+solver moves to its own repository, and JAOT must take any solver — today's, one written
+there, a GPU one later — by writing an adapter and nothing else. That makes every upward
+import a question with one right answer: *could this run outside JAOT?*
+
+- **Provenance** (`ORIGIN_*`, `ExecutionSource`) was two string constants. To
+  `app/shared/constants/`.
+- **Problem validation** moved into the domain with `InvalidProblemError`; the API keeps a
+  thin translation to 400 with the same message. A packaged solver can now check its input
+  without importing FastAPI.
+- **Time limits** stopped taking a `Session` to answer a question about seconds. The values
+  come in as numbers; `app/api/v2/_solver_limits.py` is where knowing about
+  `platform_settings` lives.
+- **The solver thread pool was dead code**, and with it `SOLVER_POOL_SIZE` — see below.
+
+**Four remain**, and they are the ones the bounded-context work has to answer: the scenario
+task reading six settings *inside the worker* (a genuine injected port, registered at both
+entry points), `solve_tasks` telling notifications and the marketplace that a solve finished
+(an event), and `templates` reaching for template resolution and analytics. Note that moving
+`PlatformSettingsService` to `app/shared/` would NOT solve the first one — a separate
+repository does not share `app/shared/` either. Only the port does.
+
+**A control that did nothing (2026-07-29).** `app/domains/solver/services/pool.py` built a
+`ThreadPoolExecutor` "shared across all synchronous solve paths" — and ADR-007 moved every
+in-request solve to the queue, leaving the module with **no callers at all**. Its only
+reason to exist was reading `SOLVER_POOL_SIZE`, which therefore configured nothing, while
+the admin panel offered it with a help text explaining when a change would take effect.
+Module, setting, row (`20260729_drop_solver_pool_size`) and the seven tests that kept it
+alive — four of which only asserted that the database returned a number — all gone. The
+23 settings §1.9 retired had a twenty-fourth.
 
 **Addendum (same day, after owner review):** two precisions on the audit above.
 

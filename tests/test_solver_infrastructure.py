@@ -22,14 +22,6 @@ class TestCeleryConfiguration:
 class TestSolverPoolConfig:
     """Test solver thread pool configuration (via platform_settings DB)."""
 
-    def test_default_pool_size(self, db_session):
-        """Default solver pool size should be 4."""
-        from app.services.platform_settings_service import (
-            PlatformSettingsService as PSS,
-        )
-
-        assert PSS.get_int(db_session, "SOLVER_POOL_SIZE") == 4
-
     def test_default_timeout(self, db_session):
         """Fallback solver timeout is 300s when a request carries no limit."""
         from app.services.platform_settings_service import (
@@ -37,14 +29,6 @@ class TestSolverPoolConfig:
         )
 
         assert PSS.get_int(db_session, "SOLVER_DEFAULT_TIMEOUT") == 300
-
-    def test_pool_size_is_positive(self, db_session):
-        """Pool size must be a positive integer."""
-        from app.services.platform_settings_service import (
-            PlatformSettingsService as PSS,
-        )
-
-        assert PSS.get_int(db_session, "SOLVER_POOL_SIZE") > 0
 
     def test_timeout_is_positive(self, db_session):
         """Timeout must be a positive integer."""
@@ -170,32 +154,3 @@ class TestVerboseMode:
         resp = _error_response("POOL_EXHAUSTED", "At capacity", mock_request)
         assert resp["error"] == "POOL_EXHAUSTED"
         assert resp["message"] == "At capacity"
-
-
-class TestThreadPoolExecutor:
-    """Test that solver thread pool executor is created lazily."""
-
-    def test_solver_pool_exists(self):
-        """get_solver_pool() should return a pool."""
-        from app.domains.solver.services.pool import get_solver_pool
-
-        pool = get_solver_pool()
-        assert pool is not None
-
-    def test_solver_pool_max_workers(self, db_session):
-        """Pool max_workers should match config."""
-        from app.domains.solver.services.pool import get_solver_pool
-        from app.services.platform_settings_service import (
-            PlatformSettingsService as PSS,
-        )
-
-        pool = get_solver_pool()
-        expected = PSS.get_int(db_session, "SOLVER_POOL_SIZE")
-        assert pool._max_workers == expected
-
-    def test_solver_pool_thread_prefix(self):
-        """Pool threads should have 'solver' prefix."""
-        from app.domains.solver.services.pool import get_solver_pool
-
-        pool = get_solver_pool()
-        assert pool._thread_name_prefix == "solver"
