@@ -26,6 +26,10 @@ from app.domains.solver.services.file_export import (
     FileExportError,
     get_file_export_service,
 )
+from app.domains.solver.services.problem_validation import (
+    InvalidProblemError,
+    validate_problem,
+)
 from app.schemas.optimization import OptimizationProblem
 from app.shared.db import get_db
 
@@ -172,12 +176,12 @@ def export_model(  # sync ON PURPOSE -> threadpool (ADR-009): rebuilds the model
     the {problem, result} bundle. ``sol``/``csv`` are unavailable here — they
     need a solution.
     """
-    # Lazy import avoids any route<->orchestrator import-time coupling.
-    from app.services.solve_orchestrator import validate_problem
-
     fmt = _validate_fmt(fmt, MODEL_EXPORT_FORMATS)
 
-    validate_problem(problem)  # clean 400 on undefined-variable references etc.
+    try:
+        validate_problem(problem)  # clean 400 on undefined-variable references etc.
+    except InvalidProblemError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=exc.detail) from exc
     exporter = get_file_export_service()
     problem_name = problem.name or "model"
 

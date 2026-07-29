@@ -30,7 +30,7 @@ from app.schemas.optimization import (
     OptimizationResult,
     VariableType,
 )
-from app.services.solve_orchestrator import ORIGIN_IMPORT
+from app.shared.constants.execution_provenance import ORIGIN_IMPORT
 from app.shared.core.rate_limiter import check_rate_limit
 from app.shared.db import get_db
 

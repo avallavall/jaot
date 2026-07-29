@@ -38,8 +38,8 @@ from app.schemas.model import (
 from app.schemas.optimization import (
     OptimizationProblem,
 )
-from app.services.solve_orchestrator import ORIGIN_MARKETPLACE
 from app.services.template_resolver import listing_to_template_dict
+from app.shared.constants.execution_provenance import ORIGIN_MARKETPLACE
 from app.shared.db.base import get_db
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id

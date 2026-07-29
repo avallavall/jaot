@@ -218,9 +218,6 @@ ignore_imports = [
     "app.domains.*.routes.* -> app.api.deps",
     "app.domains.*.routes.* -> app.api.v2.solve_pipeline",
     # --- D-16: the domain reaches up for orchestration and platform services ---
-    "app.domains.solver.routes.file_export -> app.services.solve_orchestrator",
-    "app.domains.solver.routes.file_io -> app.services.solve_orchestrator",
-    "app.domains.solver.routes.templates -> app.services.solve_orchestrator",
     "app.domains.solver.routes.templates -> app.services.template_resolver",
     "app.domains.solver.routes.templates -> app.services.analytics_service",
     "app.domains.solver.services.pool -> app.services.platform_settings_service",

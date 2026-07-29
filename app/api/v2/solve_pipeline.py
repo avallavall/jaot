@@ -49,10 +49,8 @@ from app.schemas.solution_structure import annotate_variable_structure
 from app.schemas.tier import tier_cap_detail
 from app.services.audit_service import log_action
 from app.services.platform_settings_service import PlatformSettingsService as PSS
-from app.services.solve_orchestrator import (
-    ExecutionSource,
-    validate_problem,
-)
+from app.services.solve_orchestrator import validate_problem
+from app.shared.constants.execution_provenance import ExecutionSource
 from app.shared.core.prometheus_metrics import SOLVER_AUTO_ROUTE_DECISIONS
 from app.shared.core.rate_limiter import check_rate_limit
 

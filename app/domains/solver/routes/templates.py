@@ -22,8 +22,8 @@ from app.domains.solver.services import SolverService, get_solver_service
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
 from app.models import Organization
 from app.schemas.optimization import OptimizationProblem
-from app.services.solve_orchestrator import ORIGIN_TEMPLATE
 from app.services.template_resolver import resolve_template_dict as _resolve_template_dict
+from app.shared.constants.execution_provenance import ORIGIN_TEMPLATE
 from app.shared.core.rate_limiter import check_rate_limit
 from app.shared.db import get_db
 

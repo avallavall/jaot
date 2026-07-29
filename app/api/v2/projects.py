@@ -82,12 +82,12 @@ from app.services.audit_service import log_action
 from app.services.marketplace_fusion import listing_to_catalog_response
 from app.services.model_project_service import ProjectConflictError, ProjectNotPublishableError
 from app.services.model_stats_service import compute_cached
-from app.services.solve_orchestrator import ORIGIN_VISUAL_BUILDER
 from app.services.template_resolver import (
     ORIGIN_MARKETPLACE,
     resolve_static_listing,
     resolve_template_dict,
 )
+from app.shared.constants.execution_provenance import ORIGIN_VISUAL_BUILDER
 from app.shared.core.rate_limiter import check_rate_limit
 from app.shared.db import get_db
 
