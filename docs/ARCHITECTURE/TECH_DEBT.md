@@ -180,7 +180,7 @@ workers use. Nothing left to change; verified 2026-07-26.
 | D-14 | 23 foreign keys with no index | Low-medium (scales badly) | 0.5 day | ✅ **Resolved** — 18 indexed (`20260726_index_fks`); the other 5 deliberately skipped: they point at `model_catalog` / `organization_models` (legacy DROP list) or at ADR-008 orphans with no ORM model |
 | D-15 | No `import-linter` contract on the vertical direction (api → services → domains), which is why D-16 went unnoticed | Medium (architectural) | 0.5 day | ✅ **Resolved** — contract 7, D-16's call sites frozen as listed exceptions |
 | D-16 | Upward imports: `domains → services` (11), `domains → api` (7), `shared → services` (9 — a gap in an existing contract) | Medium (blocks extraction) | 1 day | 🔸 **Halved (2026-07-29)** — 6 were never debt (a domain's routes ARE its API layer) and 2 reached into another endpoint's privates, now a named module. 8 real ones left: the domain calling platform services |
-| D-17 | 55 endpoints return `dict[str, Any]` with no `response_model` → OpenAPI cannot describe them and the frontend hand-writes those types | Medium (contract drift) | 2–3 days | 🔸 **Started** — 53 left; favourites and recents now answer with declared schemas |
+| D-17 | 55 endpoints return `dict[str, Any]` with no `response_model` → OpenAPI cannot describe them and the frontend hand-writes those types | Medium (contract drift) | 2–3 days | 🔸 **Started — and re-measured: 44, not 53** (2026-07-29). Favourites and recents declared; the original count included endpoints that already carry a `response_model` |
 | D-18 | 113 `Depends(get_db)` instead of the `DBSession` alias the project rule mandates | Low (consistency) | Folded into D-12 | Low |
 | D-19 | `execution.py` had grown to 839 LOC mixing the marketplace execution flow with the post-solve analysis endpoints, and the org filter was hand-typed at 4 call sites | Low-medium (architectural) | 1–2 days | ✅ **Resolved where it bit** (`f4dd487` + 2026-07-29) — analysis split out; both org-scoped lookups that were being re-typed now have one shared helper each. The remaining 164 route-level queries are single reads with no repeated shape — audited for missing org filters, none found |
 | D-23 | The two API rate limits are enforced from a COPY on `organizations` (written at signup, read by 9 call sites) instead of from the instance profile. Editing them in the panel is made to work by propagating the change to the organizations still on the old value — honest, but a mirror that can drift. The deep fix is a nullable column meaning "inherit", which needs a schema change the rollback window cannot take today | Low (works; the mechanism is the debt) | 0.5 day | Deferred — do it with the contract-release schema pass |
@@ -257,6 +257,14 @@ number and hands it to a plural rule. The schema converts it, and a test pins th
 
 Writing those tests turned up something the typing could not fix on its own: **nothing in the
 backend ever inserted a `recent_models` row.** That became D-24 below, and is now closed.
+
+**The count was wrong, in our favour (2026-07-29): 44, not 55.** Both the original figure and
+the "53 left" that replaced it counted handlers annotated `-> dict[str, Any]`. Eleven of those
+already declare a `response_model`, which is the part that matters — OpenAPI describes them
+and a generated client can see them; the annotation on the Python function is cosmetic beside
+that. `triggers.py` is the clearest case: eight handlers annotated `dict`, every one of them
+typed in its decorator. Measured with the AST instead of by grep, the endpoints OpenAPI
+genuinely cannot describe are **44**, and they are spread thin — the worst file has five.
 
 **D-24 · ✅ Resolved (2026-07-28) — three dead surfaces, two causes, and a harness that hid
 both.** Start at the visible end: the "Recent" tab read a table nothing wrote. Fixing that
