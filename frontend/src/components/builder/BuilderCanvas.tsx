@@ -7,6 +7,7 @@ import {
   Controls,
   MiniMap,
   useReactFlow,
+  useNodesInitialized,
   type NodeTypes,
   type EdgeTypes,
 } from "@xyflow/react";
@@ -42,8 +43,10 @@ const edgeTypes: EdgeTypes = {
 
 export function BuilderCanvas() {
   const t = useTranslations("builder");
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, fitView } = useReactFlow();
+  const nodesInitialized = useNodesInitialized();
   const contextMenuPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const lastFittedCount = useRef(0);
 
   const {
     nodes,
@@ -121,6 +124,25 @@ export function BuilderCanvas() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [undo, redo]);
 
+  // Frame a model that arrives after mount.
+  //
+  // React Flow's `fitView` prop runs once, on mount, against whatever nodes exist
+  // then — and the store starts with a single objective node, so it fit to one
+  // node and, having no extent to work with, zoomed to `maxZoom`. A 42-node model
+  // loading a moment later inherited that 4x zoom: two nodes on screen out of 42,
+  // and nothing ever re-framed it. Measured before the fix: scale(4) with 2 of 42
+  // visible; the toolbar's own fit button gave scale(0.28) with 42 of 42.
+  //
+  // A loaded document arrives as one batch, so a jump of more than one node means
+  // "a model was just loaded" — while dragging a node in adds exactly one and must
+  // NOT move the view the user is working in.
+  useEffect(() => {
+    const previous = lastFittedCount.current;
+    lastFittedCount.current = nodes.length;
+    if (!nodesInitialized || nodes.length - previous <= 1) return;
+    fitView({ padding: 0.3, maxZoom: 1 });
+  }, [nodesInitialized, nodes.length, fitView]);
+
   return (
     <div className="flex-1" data-onboarding-target="canvas">
       <ContextMenu>
@@ -142,7 +164,11 @@ export function BuilderCanvas() {
               edgeTypes={edgeTypes}
               defaultEdgeOptions={{ type: "coefficient" }}
               fitView
-              fitViewOptions={{ padding: 0.3 }}
+              // `maxZoom: 1` applies to FRAMING only, not to what the user may zoom
+              // to by hand (that is `maxZoom` below). Without it, fitting a canvas
+              // holding just the initial objective node has no extent to scale to
+              // and blows up to 4x — the state this lens opened in.
+              fitViewOptions={{ padding: 0.3, maxZoom: 1 }}
               minZoom={0.1}
               maxZoom={4}
               proOptions={{ hideAttribution: true }}

@@ -312,4 +312,111 @@ test.describe("Studio — critical path (guards live bugs A/B/C)", () => {
     // #B — tagged as a studio model, not the generic "Editor visual".
     await expect(row).toContainText(/estudio|studio/i);
   });
+  test("opening a saved model frames the whole graph instead of zooming to one node", async ({
+    page,
+  }) => {
+    // React Flow's `fitView` prop runs once on mount. In the studio the model
+    // arrives from the API a moment LATER, so it framed the store's single initial
+    // objective node — and with no extent to scale to, zoomed to maxZoom (4x). The
+    // 42-node model that landed next inherited that zoom and nothing re-framed it:
+    // measured on the owner's model, two nodes on screen out of forty-two.
+    //
+    // Note this reproduces only through the studio: /builder rehydrates its store
+    // before React Flow mounts, so there `fitView` already sees the nodes.
+    test.slow();
+    const projectId = await createBlankProject(page);
+
+    // A wide, tall graph so the correct framing zoom is unmistakably below 1.
+    const nodes: unknown[] = [
+      {
+        id: "objective-1",
+        type: "objective",
+        position: { x: 280, y: 900 },
+        deletable: false,
+        data: { sense: "minimize", formula: "" },
+      },
+    ];
+    const edges: unknown[] = [];
+    const variables: unknown[] = [];
+    const constraints: unknown[] = [];
+    for (let i = 1; i <= 12; i++) {
+      const name = `x${i}`;
+      nodes.push({
+        id: `var-${name}`,
+        type: "variable",
+        position: { x: 0, y: (i - 1) * 150 },
+        data: { name, type: "continuous", lower_bound: 0, upper_bound: 23 },
+      });
+      nodes.push({
+        id: `constraint-${i}`,
+        type: "constraint",
+        position: { x: 280, y: (i - 1) * 150 },
+        data: { name: `c${i}`, operator: ">=", rhs: 1, formula: `${name} >= 1` },
+      });
+      edges.push({
+        id: `edge-obj-${name}`,
+        source: `var-${name}`,
+        target: "objective-1",
+        type: "coefficient",
+        data: { coefficient: 1 },
+      });
+      edges.push({
+        id: `edge-c${i}-${name}`,
+        source: `var-${name}`,
+        target: `constraint-${i}`,
+        type: "coefficient",
+        data: { coefficient: 1 },
+      });
+      variables.push({ name, type: "continuous", lower_bound: 0, upper_bound: 23 });
+      constraints.push({ name: `c${i}`, expression: `${name} >= 1` });
+    }
+
+    const get = await page.request.get(`/api/v2/projects/${projectId}`);
+    await expect(get).toBeOK();
+    const lock = (await get.json()).draft_lock_version ?? 0;
+    const put = await page.request.put(`/api/v2/projects/${projectId}/draft`, {
+      headers: { "If-Match": String(lock) },
+      data: {
+        model_json: {
+          ...SEED_MODEL,
+          name: "E2E Framing Model",
+          variables,
+          objective: { sense: "minimize", expression: variables.map((v) => (v as { name: string }).name).join(" + ") },
+          constraints,
+        },
+        canvas_json: { nodes, edges },
+      },
+    });
+    await expect(put, `seed failed: ${put.status()}`).toBeOK();
+
+    // Open the Build lens fresh — this is the path where the model lands after mount.
+    await page.goto(`/studio/${projectId}/build`);
+    await expect(page.locator(".react-flow__renderer")).toBeVisible({ timeout: NAV });
+    await expect(async () => {
+      expect(await page.locator(".react-flow__node").count()).toBe(25);
+    }).toPass({ timeout: NAV });
+
+    await expect(async () => {
+      const view = await page.evaluate(() => {
+        const vp = document.querySelector<HTMLElement>(".react-flow__viewport");
+        const pane = document.querySelector<HTMLElement>(".react-flow");
+        const scale = /scale\(([\d.]+)\)/.exec(vp?.style.transform ?? "");
+        const box = pane?.getBoundingClientRect();
+        const all = document.querySelectorAll(".react-flow__node");
+        let visible = 0;
+        all.forEach((n) => {
+          const r = n.getBoundingClientRect();
+          if (box && r.bottom > box.top && r.top < box.bottom && r.right > box.left && r.left < box.right) {
+            visible++;
+          }
+        });
+        return { zoom: scale ? Number(scale[1]) : null, total: all.length, visible };
+      });
+      // A zoom pinned at maxZoom is the signature of framing an empty canvas, and
+      // every node of a just-opened model must be on screen.
+      expect(view.zoom).not.toBeNull();
+      expect(view.zoom).toBeLessThan(1.01);
+      expect(view.visible).toBe(view.total);
+    }).toPass({ timeout: 15_000 });
+  });
 });
