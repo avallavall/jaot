@@ -681,3 +681,60 @@ def test_arity_beyond_the_index_letter_pool_declines_gracefully():
         constraints=[Constraint(name="c", expression=f"{names[0]} >= 0")],
     )
     assert deground_problem(problem) is None
+
+
+def _flat_named(names: list[str]):
+    """A flat problem over the given variable names — no lineage, no structure."""
+    from app.schemas.optimization import (
+        Constraint,
+        Objective,
+        ObjectiveSense,
+        OptimizationProblem,
+        Variable,
+        VariableType,
+    )
+
+    return OptimizationProblem(
+        variables=[
+            Variable(name=n, type=VariableType.CONTINUOUS, lower_bound=0, upper_bound=23)
+            for n in names
+        ],
+        objective=Objective(sense=ObjectiveSense.MINIMIZE, expression=" + ".join(names)),
+        constraints=[
+            Constraint(name=f"c{i}", expression=f"{n} >= 1") for i, n in enumerate(names, start=1)
+        ],
+    )
+
+
+def test_scalar_draft_names_the_naming_that_kept_it_flat():
+    """A scalar draft is correct but verbose, and the reader cannot tell whether that
+    is inherent to the model. When it is the naming — several variables sharing a
+    prefix but no separator — the header says so and what to rename."""
+    draft = deground_problem(_flat_named([f"x{i}" for i in range(1, 13)]))
+    assert draft is not None
+    header = "\n".join(draft.split("\n")[:3])
+    assert "Not grouped" in header
+    assert '"x1" is one whole name' in header
+    assert "x_1" in header
+    assert "Rename x1…x12 to x_1…x_12" in header
+    # The hint is a comment, so the draft must still compile and round-trip.
+    assert _recompiles_equivalent(draft, _flat_named([f"x{i}" for i in range(1, 13)]))
+
+
+def test_a_lone_digit_ending_name_is_not_told_to_rename_itself():
+    """`co2` and `pm10` are whole names, and the separator rule is what protects them.
+    Advising their author to rename would be wrong, so the hint needs TWO variables
+    sharing a prefix — the evidence a family was meant."""
+    draft = deground_problem(_flat_named(["co2", "pm10", "budget"]))
+    assert draft is not None
+    assert "Not grouped" not in draft
+    assert "Rename" not in draft
+
+
+def test_a_correctly_named_family_groups_and_needs_no_hint():
+    """The same model with the separator recovers its structure — no scalar dump,
+    so no hint to give."""
+    draft = deground_problem(_flat_named([f"x_{i}" for i in range(1, 13)]))
+    assert draft is not None
+    assert "var x{" in draft  # compact, not one `var` per variable
+    assert "Not grouped" not in draft

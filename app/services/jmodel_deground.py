@@ -21,6 +21,7 @@ import contract forbids it from importing.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from decimal import Decimal
 
@@ -32,7 +33,7 @@ from app.domains.dsl import (
 )
 from app.domains.solver.services.expression_parser import ExpressionParser, ParseError
 from app.schemas.optimization import OptimizationProblem, Variable, VariableType
-from app.schemas.solution_structure import annotate_variable_structure
+from app.schemas.solution_structure import annotate_variable_structure, parse_flat_name
 
 _EPS = 1e-9
 # Index letters for reconstructed sums / ∀-quantifiers (i, j, k, …).
@@ -373,7 +374,53 @@ def _scalar_jmodel(problem: OptimizationProblem) -> str | None:
     for i, con in enumerate(problem.constraints, start=1):
         lines.append(f"subject to c{i}: {con.expression};")
     header = "# JModel draft — derived from a flat model, review before relying on it"
+    hint = _naming_hint(problem)
+    if hint is not None:
+        header = f"{header}\n{hint}"
     return header + "\n" + "\n".join(lines)
+
+
+# "x1" / "co2" — a name ending in digits that carries no separator before them.
+_UNSEPARATED_ORDINAL = re.compile(r"^(?P<prefix>[A-Za-z][A-Za-z0-9]*?)(?P<ordinal>\d+)$")
+
+
+def _naming_hint(problem: OptimizationProblem) -> str | None:
+    """Say why a model came back flat — but only when renaming would actually fix it.
+
+    A scalar draft is correct, just verbose, and the reader has no way to tell
+    whether that is inherent to their model or something they can change. Usually
+    it is the naming: an index needs a separator, so ``x_1`` reads as family ``x`` at
+    index ``1`` while ``x1`` is one whole name. That rule is what keeps ``co2`` and
+    ``pm10`` from being torn into invented families, so it is not going away —
+    which makes it worth naming when it is the thing standing in the way.
+
+    Only fires when at least TWO variables share a prefix, because that is the
+    evidence a family was meant: one lone ``co2`` is a name, not a family missing
+    its underscore, and telling its author to rename it would be wrong.
+    """
+    groups: dict[str, list[tuple[int, str]]] = {}
+    for var in problem.variables:
+        if parse_flat_name(var.name) is not None:
+            continue  # already reads as family + index; not what kept this flat
+        match = _UNSEPARATED_ORDINAL.fullmatch(var.name)
+        if match is not None:
+            groups.setdefault(match.group("prefix"), []).append(
+                (int(match.group("ordinal")), var.name)
+            )
+
+    families = {prefix: names for prefix, names in groups.items() if len(names) >= 2}
+    if not families:
+        return None
+
+    prefix, members = max(families.items(), key=lambda item: len(item[1]))
+    members.sort()
+    (first_n, first), (last_n, last) = members[0], members[-1]
+    return (
+        f'# Not grouped: "{first}" is one whole name — an index needs a separator, so '
+        f'"{prefix}_{first_n}" reads as family "{prefix}" at index {first_n} and "{first}" does not.\n'
+        f"# Rename {first}…{last} to {prefix}_{first_n}…{prefix}_{last_n} and derive again "
+        f"to get `var {prefix}{{S}}` over a set."
+    )
 
 
 class _SetRegistry:

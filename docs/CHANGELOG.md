@@ -65,6 +65,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **The solver "Pool Size" setting.** It configured a thread pool that nothing builds — the pool existed for the in-request solves that moved to the queue a release ago, and no code has asked for it since. The panel offered the control anyway, down to a help text explaining when a change would take effect.
 - **Ninety-eight settings rows left behind by billing, the paid tiers and last release's clean-up.** Code had stopped reading them long ago but nothing deleted them, so the table held twice what the panel could show. Anyone querying the database directly now sees exactly the settings that exist.
 
+### Changed
+
+- **A derived JModel says why it came out long.** Deriving a draft from a model with no indexed structure writes one line per variable, which is correct but reads like a wall — and nothing told you whether that was inherent to your model or something you could change. Usually it is the naming: an index needs a separator, so `x_1` reads as a family and `x1` is one whole name. The draft now says so, and which names to rename, but only when several variables share a prefix — a lone `co2` is a name, not a family missing an underscore.
+
 ### Fixed
 
 - **Opening a saved model shows the whole model.** The canvas framed itself once, before the model had loaded, so it sized the view to the single empty node that was there and magnified it to the maximum. A model arriving a moment later inherited that zoom and nothing corrected it: a twenty-variable model opened showing two boxes and a lot of empty space. It now frames what actually loaded, and no longer magnifies a nearly empty canvas.
