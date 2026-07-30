@@ -88,9 +88,12 @@ def test_rate_limiter_returns_retry_after():
 
 def test_solve_endpoint_enforces_rate_limit(authenticated_client, test_organization, db_session):
     """Use authenticated_client to hit solve until 429."""
-    # Set very low rate limit on the test org
-    test_organization.rate_limit_per_minute = 2
-    test_organization.rate_limit_per_day = 100
+    # D-23: the limit is an instance setting, not a column on the organization.
+    PSS.bulk_set(
+        db_session,
+        {"instance_rate_limit_per_minute": "2", "instance_rate_limit_per_day": "100"},
+        changed_by="test",
+    )
     db_session.commit()
 
     # Clear any prior counts for this org
@@ -118,9 +121,12 @@ def test_template_solve_endpoint_enforces_rate_limit(
     authenticated_client, test_organization, db_session
 ):
     """Use authenticated_client to hit template solve until 429."""
-    # Set very low rate limit on the test org
-    test_organization.rate_limit_per_minute = 2
-    test_organization.rate_limit_per_day = 100
+    # D-23: the limit is an instance setting, not a column on the organization.
+    PSS.bulk_set(
+        db_session,
+        {"instance_rate_limit_per_minute": "2", "instance_rate_limit_per_day": "100"},
+        changed_by="test",
+    )
     db_session.commit()
 
     # Clear any prior counts for this org

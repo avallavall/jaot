@@ -150,7 +150,6 @@ def _enforce_tier_caps(
                     f"raise or remove the limit in Settings (instance_max_variables; "
                     f"0 means unlimited)."
                 ),
-                current_plan=org.plan,
                 limit=max_vars,
                 current_value=num_vars,
                 setting_key="instance_max_variables",
@@ -175,7 +174,6 @@ def _enforce_tier_caps(
                     f"An administrator can raise or remove it in Settings "
                     f"(instance_max_daily_solves; 0 means unlimited)."
                 ),
-                current_plan=org.plan,
                 limit=limits["max_daily_solves"],
                 setting_key="instance_max_daily_solves",
             ),

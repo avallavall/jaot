@@ -35,6 +35,7 @@ from app.api.deps import (
     OptionalRequireEditor,
     OptionalRequireSolver,
     OptionalRequireViewer,
+    enforce_org_rate_limit,
 )
 from app.api.v2._access import builder_document_or_404
 from app.api.v2.deps.dsl_feature_gate import dsl_feature_gate
@@ -92,7 +93,6 @@ from app.services.template_resolver import (
     resolve_template_dict,
 )
 from app.shared.constants.execution_provenance import ORIGIN_VISUAL_BUILDER
-from app.shared.core.rate_limiter import check_rate_limit
 from app.shared.db import get_db
 
 logger = logging.getLogger(__name__)
@@ -1011,9 +1011,7 @@ def solve_model_project(  # def: blocks on the queued result in the threadpool (
             detail="Project has no model to solve.",
         )
 
-    allowed, rate_info = check_rate_limit(org.id, org.rate_limit_per_minute, org.rate_limit_per_day)
-    if not allowed:
-        raise HTTPException(status_code=429, detail=rate_info)
+    enforce_org_rate_limit(db, org)
 
     try:
         problem = OptimizationProblem.model_validate(model_json)
@@ -1113,9 +1111,7 @@ def solve_project_dataset(  # def: the CPU-bound compile belongs in the threadpo
     if dataset is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
 
-    allowed, rate_info = check_rate_limit(org.id, org.rate_limit_per_minute, org.rate_limit_per_day)
-    if not allowed:
-        raise HTTPException(status_code=429, detail=rate_info)
+    enforce_org_rate_limit(db, org)
 
     try:
         problem = compile_jmodel(source, data=JModelData.from_json(dataset.data_json))

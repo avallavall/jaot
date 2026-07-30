@@ -225,19 +225,21 @@ def create_conversation(
 
     A studio conversation (``model_project_id``) is seeded with the project's
     current model so the first message refines it. Requires the
-    ``llm_assistant`` feature in the organization's plan.
+    ``llm_assistant`` feature to be enabled on this instance.
     """
     from datetime import timedelta
 
-    # Feature gate: check that the org's plan includes llm_assistant
+    # Feature gate: the instance must have llm_assistant enabled
     limits = PSS.get_instance_limits(db)
     if "llm_assistant" not in limits.get("allowed_features", []):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={
                 "error": "feature_not_available",
-                "message": "The LLM assistant is not available on your current plan.",
-                "plan": org.plan,
+                "message": (
+                    "The LLM assistant is not enabled on this instance. An "
+                    "administrator can turn it on in Settings."
+                ),
             },
         )
 

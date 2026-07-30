@@ -533,11 +533,6 @@
       "skillExpert": "Ich weiß, was ich tue",
       "skillExpertSubtext": "Minimale Anleitung, maximale Geschwindigkeit"
     },
-    "tier": {
-      "viewPlans": "Pläne anzeigen",
-      "plan": "{plan}-Plan",
-      "solvesPerDay": "{count} Lösungen/Tag"
-    },
     "filters": {
       "filtersActive": "{count} Filter aktiv",
       "clearFilters": "Filter löschen"
@@ -1458,7 +1453,6 @@
     "dashboard": {
       "organization": "Organisation",
       "orgName": "Name",
-      "plan": "Tarif",
       "organizationId": "Organisations-ID",
       "yourAccount": "Ihr Konto",
       "name": "Name",
@@ -1907,7 +1901,6 @@
       "searchPlaceholder": "Organisationen suchen...",
       "tableHeaders": {
         "name": "Name",
-        "plan": "Tarif",
         "users": "Benutzer",
         "verified": "Verifiziert",
         "status": "Status",
@@ -1921,13 +1914,6 @@
       "edit": "Bearbeiten",
       "delete": "Löschen",
       "nameLabel": "Name",
-      "planLabel": "Tarif",
-      "plans": {
-        "free": "Kostenlos",
-        "starter": "Starter",
-        "pro": "Pro",
-        "business": "Business"
-      },
       "enableAiBuilder": "KI-Builder aktivieren",
       "create": "Erstellen",
       "saveChanges": "Änderungen speichern",
@@ -2209,7 +2195,6 @@
         "successRate": "Erfolgsrate",
         "avgSolveTime": "Ø Lösezeit",
         "medianSolveTime": "Median Lösezeit",
-        "planMix": "Plan-Verteilung",
         "dailyExecutions": "Ausführungen pro Tag",
         "byCategory": "Nach Kategorie",
         "category": "Kategorie",
@@ -2277,10 +2262,7 @@
         "executions": "Ausführungen"
       },
       "config": {
-        "plan": "Tarif",
         "monthlyQuota": "Monatliches Kontingent",
-        "rateLimitMin": "Limit (pro Minute)",
-        "rateLimitDay": "Limit (pro Tag)",
         "aiBuilder": "AI Builder",
         "byok": "Eigener LLM-Schlüssel (BYOK)",
         "maxPrivatePlugins": "Max. private Modelle",

@@ -67,10 +67,6 @@ vi.mock("@/components/i18n/LanguageSwitcher", () => ({
   LanguageSwitcher: () => <div data-testid="language-switcher" />,
 }));
 
-vi.mock("@/components/tier/UsageIndicator", () => ({
-  UsageIndicator: () => <div data-testid="usage-indicator" />,
-}));
-
 // NavItem structure matching what nav-items.tsx produces for community
 const communityItems = [
   { label: "Dashboard", href: "/dashboard", icon: <span>D</span> },

@@ -6,6 +6,8 @@ Covers requirements: ADMIN-01, ADMIN-02, ADMIN-03, ADMIN-04.
 import re
 from pathlib import Path
 
+import pytest
+
 from app.models.platform_setting import PlatformSetting
 
 _APP_DIR = Path(__file__).resolve().parents[2] / "app"
@@ -260,59 +262,58 @@ class TestPlatformSettingsServiceBulkSet:
     """ADMIN-02 + ADMIN-03: Bulk set with audit."""
 
     # CONTRACT-TEST: editing the instance rate limit reaches existing organizations
-    def test_rate_limit_change_reaches_organizations_that_inherit_it(
-        self, db_session, test_organization
+    def test_rate_limit_change_reaches_existing_organizations(
+        self, db_session, test_organization, real_rate_limiter
     ):
         """Changing the limit in the panel must change what existing orgs get.
 
-        These two limits are enforced from a column on `organizations`, copied
-        at signup. Editing the setting therefore used to change what NEW
-        organizations would receive and nothing about the ones already there —
-        the panel looked like it worked and did not.
+        These two limits used to be enforced from a column on `organizations`,
+        copied at signup — so editing the setting changed what NEW organizations
+        would receive and nothing about the ones already there. The panel looked
+        like it worked and did not.
 
-        An organization that was never given a limit of its own follows the new
-        value; one an operator set deliberately keeps theirs.
+        D-23 removed the copy: one instance means one set of limits, read on
+        every request. The assertion is therefore made where it matters — at the
+        point the limit is applied — and it holds for an organization that
+        existed long before the setting was touched. Its stale column is set to
+        a different number on purpose: if anything still read it, this fails.
         """
-        from app.models.organization import Organization
+        from fastapi import HTTPException
+
+        from app.api.deps import enforce_org_rate_limit
         from app.services.platform_settings_service import PlatformSettingsService as PSS
-        from app.shared.utils.id_generator import generate_id
+        from app.shared.core.rate_limiter import clear
 
-        instance_value = int(PSS.get(db_session, "instance_rate_limit_per_minute"))
-        test_organization.rate_limit_per_minute = instance_value  # inherited
-
-        customised = Organization(
-            id=generate_id("org_"),
-            name="Deliberately throttled",
-            plan="free",
-            rate_limit_per_minute=7,  # an operator's own decision
-            rate_limit_per_day=1000,
-        )
-        db_session.add(customised)
+        test_organization.rate_limit_per_minute = 999  # stale column, must not be read
+        test_organization.rate_limit_per_day = 999
         db_session.flush()
 
         PSS.bulk_set(
             db_session,
-            {"instance_rate_limit_per_minute": str(instance_value + 55)},
+            {"instance_rate_limit_per_minute": "2", "instance_rate_limit_per_day": "1000"},
             changed_by="admin@test.com",
         )
         db_session.flush()
 
-        db_session.refresh(test_organization)
-        db_session.refresh(customised)
-        assert test_organization.rate_limit_per_minute == instance_value + 55
-        assert customised.rate_limit_per_minute == 7, (
-            "A per-organization limit an operator set must survive an instance-wide change"
-        )
+        clear(test_organization.id)
+        enforce_org_rate_limit(db_session, test_organization)  # 1st
+        enforce_org_rate_limit(db_session, test_organization)  # 2nd
+        with pytest.raises(HTTPException) as exc:
+            enforce_org_rate_limit(db_session, test_organization)  # 3rd — over the new limit
+        assert exc.value.status_code == 429
 
         # Reset is the other write path into the same setting, and must behave
         # the same — otherwise "save" and "reset to default" would disagree
         # about what the panel means.
         PSS.reset_to_default(db_session, "instance_rate_limit_per_minute", "admin@test.com")
+        PSS.reset_to_default(db_session, "instance_rate_limit_per_day", "admin@test.com")
         db_session.flush()
-        db_session.refresh(test_organization)
-        db_session.refresh(customised)
-        assert test_organization.rate_limit_per_minute == instance_value
-        assert customised.rate_limit_per_minute == 7
+
+        clear(test_organization.id)
+        default_per_minute = int(PSS.get(db_session, "instance_rate_limit_per_minute"))
+        assert default_per_minute > 2, "the registry default must differ from the value just set"
+        for _ in range(3):
+            enforce_org_rate_limit(db_session, test_organization)  # no longer capped at 2
 
     def test_bulk_set_creates_audit_records(self, db_session):
         """bulk_set() updates settings and creates audit records."""

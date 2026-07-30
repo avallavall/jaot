@@ -48,7 +48,6 @@ interface User {
 interface Organization {
   id: string;
   name: string;
-  plan: string;
 }
 
 interface AuthState {
@@ -130,7 +129,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setOrganization({
         id: result.organization.id,
         name: result.organization.name,
-        plan: result.organization.plan,
       });
       localStorage.setItem(
         "jaot_user_info",
@@ -167,7 +165,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setOrganization({
           id: result.organization.id,
           name: result.organization.name,
-          plan: result.organization.plan,
         });
         // Cookie-based session — no API key in localStorage. Cached user info enables optimistic UI.
         localStorage.setItem(
@@ -323,7 +320,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setOrganization({
             id: me.organization_id,
             name: me.organization_name,
-            plan: me.plan,
           });
           setPlanLimits(me.plan_limits ?? null);
           await restoreWorkspace(me.user_id, me.is_admin);
@@ -350,7 +346,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setOrganization({
           id: me.organization_id,
           name: me.organization_name,
-          plan: me.plan,
         });
         setPlanLimits(me.plan_limits ?? null);
         await restoreWorkspace(me.user_id, me.is_admin);

@@ -1511,7 +1511,7 @@ export interface paths {
          *
          *     A studio conversation (``model_project_id``) is seeded with the project's
          *     current model so the first message refines it. Requires the
-         *     ``llm_assistant`` feature in the organization's plan.
+         *     ``llm_assistant`` feature to be enabled on this instance.
          */
         post: operations["create_conversation_api_v2_llm_conversations_post"];
         delete?: never;
@@ -6005,12 +6005,6 @@ export interface components {
             /** Password */
             password: string;
             /**
-             * Plan
-             * @default free
-             * @constant
-             */
-            plan: "free";
-            /**
              * Tos Accepted
              * @default false
              */
@@ -6989,8 +6983,6 @@ export interface components {
             organization_id: string;
             /** Organization Name */
             organization_name: string;
-            /** Plan */
-            plan: string;
             plan_limits?: components["schemas"]["PlanLimitsResponse"] | null;
             /**
              * Skill Level
@@ -7795,6 +7787,10 @@ export interface components {
         /**
          * OrganizationCreate
          * @description Create organization request.
+         *
+         *     D-23: no per-organization request limits. One instance means one set of
+         *     limits, read from settings on every request — the same decision that retired
+         *     the four plan tiers.
          */
         OrganizationCreate: {
             /**
@@ -7809,21 +7805,6 @@ export interface components {
             max_private_plugins: number;
             /** Name */
             name: string;
-            /**
-             * Plan
-             * @default free
-             */
-            plan: string;
-            /**
-             * Rate Limit Per Day
-             * @default 10
-             */
-            rate_limit_per_day: number;
-            /**
-             * Rate Limit Per Minute
-             * @default 2
-             */
-            rate_limit_per_minute: number;
         };
         /**
          * OrganizationOverviewResponse
@@ -7926,12 +7907,6 @@ export interface components {
             model_count?: number | null;
             /** Name */
             name: string;
-            /** Plan */
-            plan: string;
-            /** Rate Limit Per Day */
-            rate_limit_per_day: number;
-            /** Rate Limit Per Minute */
-            rate_limit_per_minute: number;
             /** User Count */
             user_count?: number | null;
         };
@@ -7950,12 +7925,6 @@ export interface components {
             max_private_plugins?: number | null;
             /** Name */
             name?: string | null;
-            /** Plan */
-            plan?: string | null;
-            /** Rate Limit Per Day */
-            rate_limit_per_day?: number | null;
-            /** Rate Limit Per Minute */
-            rate_limit_per_minute?: number | null;
         };
         /**
          * OrganizationVerificationResponse
@@ -8016,12 +7985,6 @@ export interface components {
             name: string;
             /** Owner User Id */
             owner_user_id?: string | null;
-            /** Plan */
-            plan: string;
-            /** Rate Limit Per Day */
-            rate_limit_per_day: number;
-            /** Rate Limit Per Minute */
-            rate_limit_per_minute: number;
             /** Slug */
             slug?: string | null;
             /** Website Url */
@@ -8421,10 +8384,6 @@ export interface components {
             days: number;
             executions: components["schemas"]["ExecutionStats"];
             orgs: components["schemas"]["EntityCounts"];
-            /** Plan Distribution */
-            plan_distribution: {
-                [key: string]: number;
-            };
             users: components["schemas"]["EntityCounts"];
         };
         /** PreviewRequest */
@@ -9496,12 +9455,6 @@ export interface components {
             name: string;
             /** Organization Name */
             organization_name: string;
-            /**
-             * Plan
-             * @default free
-             * @constant
-             */
-            plan: "free";
         };
         /**
          * SignupResponse
@@ -9514,8 +9467,6 @@ export interface components {
             message: string;
             /** Organization Id */
             organization_id: string;
-            /** Plan */
-            plan: string;
             /** User Id */
             user_id: string;
         };
@@ -11466,7 +11417,6 @@ export interface operations {
                 is_active?: boolean | null;
                 page?: number;
                 page_size?: number;
-                plan?: string | null;
                 search?: string | null;
             };
             header?: never;

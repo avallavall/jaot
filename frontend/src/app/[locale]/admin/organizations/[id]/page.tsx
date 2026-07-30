@@ -30,17 +30,6 @@ const RECENT_LIMIT = 20;
 
 type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
 
-function planBadgeVariant(plan: string): BadgeVariant {
-  switch (plan) {
-    case "business":
-      return "default";
-    case "pro":
-      return "secondary";
-    default:
-      return "outline";
-  }
-}
-
 function executionStatusVariant(status: string): BadgeVariant {
   switch (status) {
     case "completed":
@@ -145,8 +134,6 @@ export default function OrganizationDetailPage() {
 
   const { organization: org, owner, counts, execution_stats: stats } = data;
 
-  const planVariant = planBadgeVariant(org.plan);
-
   const statusBadge = (status: string) => (
     <Badge variant={executionStatusVariant(status)}>{status}</Badge>
   );
@@ -163,10 +150,7 @@ export default function OrganizationDetailPage() {
   ];
 
   const configRows: { label: string; value: React.ReactNode }[] = [
-    { label: t("config.plan"), value: <Badge variant={planVariant}>{org.plan}</Badge> },
     { label: t("config.owner"), value: owner ? `${owner.name} (${owner.email ?? "—"})` : "—" },
-    { label: t("config.rateLimitMin"), value: num(org.rate_limit_per_minute) },
-    { label: t("config.rateLimitDay"), value: num(org.rate_limit_per_day) },
     { label: t("config.maxPrivatePlugins"), value: num(org.max_private_plugins) },
     {
       label: t("config.aiBuilder"),
@@ -201,7 +185,6 @@ export default function OrganizationDetailPage() {
         <div>
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-3xl font-serif text-foreground">{org.name}</h1>
-            <Badge variant={planVariant}>{org.plan}</Badge>
             {org.is_verified && <Badge variant="secondary">✓ {t("config.verified")}</Badge>}
             <Badge variant={org.is_active ? "default" : "secondary"}>
               {org.is_active ? t("active") : t("inactive")}

@@ -81,7 +81,6 @@ export type {
 // kept here until the API types converge and these can be replaced with generated re-exports.
 // Union literal types are not separate schemas in the OpenAPI spec (backend uses plain `str`).
 
-export type Plan = "free" | "starter" | "pro" | "business" | "unlimited";
 export type Currency = "EUR" | "USD" | "GBP" | "CHF";
 export type ModelCategory =
   | "linear"
@@ -134,7 +133,6 @@ export interface LoginResult {
   organization: {
     id: string;
     name: string;
-    plan: Plan;
   };
   permissions: {
     can_build_plugins: boolean;
@@ -149,7 +147,6 @@ export interface UserInfo {
   user_email?: string;
   organization_id: string;
   organization_name: string;
-  plan: Plan;
   is_admin: boolean;
   is_org_owner?: boolean;
   can_build_plugins: boolean;
@@ -164,7 +161,6 @@ export interface Organization {
   slug: string;
   description?: string;
   website?: string;
-  plan: Plan;
   is_active: boolean;
   is_verified: boolean;
   total_users: number;
@@ -842,7 +838,6 @@ export interface AdminStats {
 export interface AdminOrganizationSummary {
   id: string;
   name: string;
-  plan: string;
   user_count: number;
   created_at: string;
 }

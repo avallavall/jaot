@@ -32,7 +32,6 @@ import type { PaginatedResponse } from "@/lib/types";
 interface AdminOrganization {
   id: string;
   name: string;
-  plan: string;
   user_count?: number;
   is_verified: boolean;
   is_active: boolean;
@@ -79,22 +78,12 @@ export default function OrganizationsPage() {
     try {
       await api.admin.createOrganization({
         name: formData.get("name") as string,
-        plan: formData.get("plan") as string || "free",
         ai_builder_enabled: formData.get("ai_builder") === "on",
       });
       setIsCreateOpen(false);
       loadOrganizations();
     } catch {
       toast.error(t("operationFailed"));
-    }
-  };
-
-  const getPlanBadgeVariant = (plan: string) => {
-    switch (plan) {
-      case "business": return "default";
-      case "pro": return "secondary";
-      case "starter": return "outline";
-      default: return "outline";
     }
   };
 
@@ -112,7 +101,6 @@ export default function OrganizationsPage() {
     try {
       await api.admin.updateOrganization(editingOrg.id, {
         name: formData.get("name") as string,
-        plan: formData.get("plan") as string,
         is_active: formData.get("is_active") === "on",
         ai_builder_enabled: formData.get("ai_builder") === "on",
       });
@@ -162,19 +150,6 @@ export default function OrganizationsPage() {
                 <Label htmlFor="name">{t("nameLabel")}</Label>
                 <Input id="name" name="name" required />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="plan">{t("planLabel")}</Label>
-                <select
-                  id="plan"
-                  name="plan"
-                  className="w-full p-2 border border-input bg-background"
-                >
-                  <option value="free">{t("plans.free")}</option>
-                  <option value="starter">{t("plans.starter")}</option>
-                  <option value="pro">{t("plans.pro")}</option>
-                  <option value="business">{t("plans.business")}</option>
-                </select>
-              </div>
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="ai_builder" name="ai_builder" />
                 <Label htmlFor="ai_builder">{t("enableAiBuilder")}</Label>
@@ -204,7 +179,6 @@ export default function OrganizationsPage() {
             <TableHeader>
               <TableRow className="border-border">
                 <TableHead>{t("tableHeaders.name")}</TableHead>
-                <TableHead>{t("tableHeaders.plan")}</TableHead>
                 <TableHead>{t("tableHeaders.users")}</TableHead>
                 <TableHead>{t("tableHeaders.verified")}</TableHead>
                 <TableHead>{t("tableHeaders.status")}</TableHead>
@@ -214,13 +188,13 @@ export default function OrganizationsPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                     {tc("loading")}
                   </TableCell>
                 </TableRow>
               ) : loadError ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     <p className="text-destructive mb-3">{loadError}</p>
                     <Button variant="outline" size="sm" onClick={loadOrganizations}>
                       {t("retry")}
@@ -229,7 +203,7 @@ export default function OrganizationsPage() {
                 </TableRow>
               ) : organizations.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                     {t("noOrganizations")}
                   </TableCell>
                 </TableRow>
@@ -237,11 +211,6 @@ export default function OrganizationsPage() {
                 organizations.map((org) => (
                   <TableRow key={org.id} className="border-border">
                     <TableCell className="font-medium">{org.name}</TableCell>
-                    <TableCell>
-                      <Badge variant={getPlanBadgeVariant(org.plan)}>
-                        {org.plan}
-                      </Badge>
-                    </TableCell>
                     <TableCell>{org.user_count || 0}</TableCell>
                     <TableCell>
                       <button
@@ -324,20 +293,6 @@ export default function OrganizationsPage() {
               <div className="space-y-2">
                 <Label htmlFor="edit-name">{t("nameLabel")}</Label>
                 <Input id="edit-name" name="name" defaultValue={editingOrg.name} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-plan">{t("planLabel")}</Label>
-                <select
-                  id="edit-plan"
-                  name="plan"
-                  defaultValue={editingOrg.plan}
-                  className="w-full h-10 px-3 border border-input bg-background rounded-md"
-                >
-                  <option value="free">{t("plans.free")}</option>
-                  <option value="starter">{t("plans.starter")}</option>
-                  <option value="pro">{t("plans.pro")}</option>
-                  <option value="business">{t("plans.business")}</option>
-                </select>
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">

@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.api.deps import OptionalRequireSolver
+from app.api.deps import OptionalRequireSolver, enforce_org_rate_limit
 from app.api.v2._access import execution_or_404
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
 from app.api.v2.solve_pipeline import (
@@ -43,7 +43,6 @@ from app.services.platform_settings_service import PlatformSettingsService as PS
 from app.services.solve_orchestrator import (
     validate_problem,
 )
-from app.shared.core.rate_limiter import check_rate_limit
 from app.shared.db import get_db
 
 logger = logging.getLogger(__name__)
@@ -124,9 +123,7 @@ def solve_optimization_problem(  # def: blocks on the queued result (ADR-007 S2)
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required."
         )
 
-    allowed, rate_info = check_rate_limit(org.id, org.rate_limit_per_minute, org.rate_limit_per_day)
-    if not allowed:
-        raise HTTPException(status_code=429, detail=rate_info)
+    enforce_org_rate_limit(db, org)
 
     # Idempotency: if a key is present, derive an execution_id that binds
     # (org_id, key, request body). Reusing the same key with a DIFFERENT
@@ -316,9 +313,7 @@ def analyze_infeasibility(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required."
         )
 
-    allowed, rate_info = check_rate_limit(org.id, org.rate_limit_per_minute, org.rate_limit_per_day)
-    if not allowed:
-        raise HTTPException(status_code=429, detail=rate_info)
+    enforce_org_rate_limit(db, org)
 
     # Load + enforce org ownership (404 hides the existence of other orgs' executions).
     execution = execution_or_404(db, execution_id, org.id)
@@ -404,9 +399,7 @@ def solve_multi_objective_endpoint(  # def: blocks on the queued result in the t
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required."
         )
 
-    allowed, rate_info = check_rate_limit(org.id, org.rate_limit_per_minute, org.rate_limit_per_day)
-    if not allowed:
-        raise HTTPException(status_code=429, detail=rate_info)
+    enforce_org_rate_limit(db, org)
 
     enqueued = _enqueue_multi_objective_async(
         db=db,
@@ -475,9 +468,7 @@ def solve_optimization_problem_async(  # sync ON PURPOSE -> FastAPI threadpool
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required."
         )
 
-    allowed, rate_info = check_rate_limit(org.id, org.rate_limit_per_minute, org.rate_limit_per_day)
-    if not allowed:
-        raise HTTPException(status_code=429, detail=rate_info)
+    enforce_org_rate_limit(db, org)
 
     enqueued = enqueue_async_solve(
         db=db,

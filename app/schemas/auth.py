@@ -3,7 +3,7 @@
 Contains both API-key-based and email/password-based auth schemas.
 """
 
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
@@ -29,9 +29,6 @@ class SignupRequest(BaseModel):
     email: EmailStr
     name: str = Field(..., min_length=2)
     organization_name: str = Field(..., min_length=2)
-    # Self-serve signup only grants the free tier; other tiers are legacy limit
-    # profiles an admin can assign (ADR-008: no paid plans exist).
-    plan: Literal["free"] = Field(default="free")
 
 
 class SignupResponse(BaseModel):
@@ -40,7 +37,6 @@ class SignupResponse(BaseModel):
     user_id: str
     organization_id: str
     api_key: str
-    plan: str
     message: str
 
 
@@ -61,7 +57,6 @@ class MeResponse(BaseModel):
     user_email: str | None
     organization_id: str
     organization_name: str
-    plan: str
     is_admin: bool
     # READ-ONLY signal derived server-side from Organization.owner_user_id == user.id.
     # FE uses this for UI gating (mutating controls); actual authorization checks
@@ -99,8 +94,6 @@ class EmailSignupRequest(BaseModel):
     email: EmailStr
     name: str = Field(..., min_length=2)
     organization_name: str = Field(..., min_length=2)
-    # Same free-tier-only rule as SignupRequest (see comment there).
-    plan: Literal["free"] = Field(default="free")
     password: str = Field(..., min_length=12)
     confirm_password: str = Field(..., min_length=12)
     tos_accepted: bool = Field(default=False)
@@ -118,7 +111,6 @@ class EmailSignupResponse(BaseModel):
     user_id: str
     organization_id: str
     api_key: str
-    plan: str
     message: str
     email_verified: bool
 

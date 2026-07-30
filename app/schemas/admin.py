@@ -10,12 +10,14 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class OrganizationCreate(BaseModel):
-    """Create organization request."""
+    """Create organization request.
+
+    D-23: no per-organization request limits. One instance means one set of
+    limits, read from settings on every request — the same decision that retired
+    the four plan tiers.
+    """
 
     name: str
-    plan: str = "free"
-    rate_limit_per_minute: int = 2
-    rate_limit_per_day: int = 10
     ai_builder_enabled: bool = False
     max_private_plugins: int = 5
 
@@ -24,9 +26,6 @@ class OrganizationUpdate(BaseModel):
     """Update organization request."""
 
     name: str | None = None
-    plan: str | None = None
-    rate_limit_per_minute: int | None = None
-    rate_limit_per_day: int | None = None
     ai_builder_enabled: bool | None = None
     max_private_plugins: int | None = None
     is_active: bool | None = None
@@ -38,9 +37,6 @@ class OrganizationResponse(BaseModel):
 
     id: str
     name: str
-    plan: str
-    rate_limit_per_minute: int
-    rate_limit_per_day: int
     ai_builder_enabled: bool
     max_private_plugins: int
     is_active: bool
@@ -160,9 +156,6 @@ class OrgDetail(BaseModel):
 
     id: str
     name: str
-    plan: str
-    rate_limit_per_minute: int
-    rate_limit_per_day: int
     ai_builder_enabled: bool
     # True when the org has its own Anthropic key configured (BYOK). The key
     # itself is never exposed — only whether one exists.

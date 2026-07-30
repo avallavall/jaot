@@ -63,7 +63,7 @@ function defaultAuthReturn(overrides = {}) {
     activeWorkspaceId: null,
     activeWorkspaceName: null,
     user: { id: "u1", name: "Test", email: "t@t.com", is_admin: false },
-    organization: { id: "o1", name: "Org", plan: "free" },
+    organization: { id: "o1", name: "Org" },
     isAuthenticated: true,
     isLoading: false,
     workspaceRole: null,

@@ -45,8 +45,6 @@ _MAX_LOOKBACK_DAYS = 365
 _LOW_SUCCESS_THRESHOLD = 0.8
 _LOW_SUCCESS_MIN_EXECUTIONS = 5
 
-_PLAN_KEYS = ("free", "starter", "pro", "business")
-
 
 def _cutoff(days: int):
     """Resolve the look-back cutoff datetime (0 = all time, capped at 365d)."""
@@ -74,12 +72,6 @@ def compute_platform_overview(db: Session, days: int) -> dict[str, Any]:
         db.query(func.count(Organization.id)).filter(Organization.created_at >= cutoff).scalar()
         or 0
     )
-
-    plan_rows = (
-        db.query(Organization.plan, func.count(Organization.id)).group_by(Organization.plan).all()
-    )
-    plan_counts = {plan: count for plan, count in plan_rows}
-    plan_distribution = {key: int(plan_counts.get(key, 0)) for key in _PLAN_KEYS}
 
     # ── Usage: executions in window ───────────────────────────────────────
     exec_window = [ModelExecution.created_at >= cutoff]
@@ -207,7 +199,6 @@ def compute_platform_overview(db: Session, days: int) -> dict[str, Any]:
         "users": {"total": int(total_users), "active": int(active_users), "new": int(new_users)},
         "orgs": {"total": int(total_orgs), "active": int(active_orgs), "new": int(new_orgs)},
         "avg_users_per_org": _ratio(int(total_users), int(total_orgs)),
-        "plan_distribution": plan_distribution,
         "executions": {
             "total": int(total_executions),
             "per_user": _ratio(int(total_executions), int(distinct_users)),

@@ -43,7 +43,6 @@ export interface PlatformOverview {
   users: EntityCounts;
   orgs: EntityCounts;
   avg_users_per_org: number;
-  plan_distribution: Record<string, number>;
   executions: ExecutionStats;
   builder_solves: BuilderSolves;
   by_category: CategoryStat[];

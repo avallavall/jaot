@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentOrg, CurrentUser
+from app.api.deps import CurrentOrg, CurrentUser, enforce_org_rate_limit
 from app.api.v2.solve_pipeline import enqueue_async_solve, shape_sync_result, wait_for_task
 from app.domains.solver.services.file_import import (
     FileImportError,
@@ -31,7 +31,6 @@ from app.schemas.optimization import (
     VariableType,
 )
 from app.shared.constants.execution_provenance import ORIGIN_IMPORT
-from app.shared.core.rate_limiter import check_rate_limit
 from app.shared.db import get_db
 
 logger = logging.getLogger(__name__)
@@ -160,9 +159,7 @@ def import_and_solve(  # def: blocks on the queued result in the threadpool (ADR
     worker. The classic ``OptimizationResult`` comes back on completion; a solve
     that outlives the wait budget returns 202 + the task envelope (poll/subscribe).
     """
-    allowed, rate_info = check_rate_limit(org.id, org.rate_limit_per_minute, org.rate_limit_per_day)
-    if not allowed:
-        raise HTTPException(status_code=429, detail=rate_info)
+    enforce_org_rate_limit(db, org)
 
     file_bytes = _read_upload_sync(file)
     filename = file.filename or "unknown"

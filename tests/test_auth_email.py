@@ -251,45 +251,37 @@ class TestSignupEmail:
 
     # CONTRACT-TEST: self-serve signup grants only the free tier — paid plans require Stripe
     # checkout or an admin. Accepting them at signup handed out paid quotas with no payment.
-    def test_paid_plan_rejected_at_signup(self, client, db_session):
-        email_payload = {
-            "email": "paid-plan@example.com",
-            "name": "Paid Plan",
-            "organization_name": "Paid Org",
-            "plan": "pro",
-            "password": "securepassword123",
-            "confirm_password": "securepassword123",
-            "tos_accepted": True,
-        }
-        response = client.post("/api/v2/auth/signup/email", json=email_payload)
-        assert response.status_code == 422
+    # CONTRACT-TEST: signup grants no plan, whatever the client sends
+    def test_plan_sent_at_signup_grants_nothing(self, client, db_session):
+        """A `plan` in the body must not reach the organization.
 
-        apikey_payload = {
-            "email": "paid-plan@example.com",
-            "name": "Paid Plan",
-            "organization_name": "Paid Org",
-            "plan": "pro",
-        }
-        response = client.post("/api/v2/auth/signup", json=apikey_payload)
-        assert response.status_code == 422
-
-        user = db_session.query(User).filter(User.email == "paid-plan@example.com").first()
-        assert user is None
-
-    def test_explicit_free_plan_accepted(self, client):
+        Signup used to accept the field and reject anything but "free", which
+        was the guard while plans still named a limit profile. They name nothing
+        now, so the field left the request schema entirely — and a client that
+        still sends one must simply be ignored, never obeyed. The row is read
+        back to prove it: asserting on the 201 alone would pass even if the
+        value were being written.
+        """
         response = client.post(
             "/api/v2/auth/signup/email",
             json={
-                "email": "explicit-free@example.com",
-                "name": "Free User",
-                "organization_name": "Free Org",
-                "plan": "free",
+                "email": "sends-a-plan@example.com",
+                "name": "Sends A Plan",
+                "organization_name": "Ignored Plan Org",
+                "plan": "business",
                 "password": "securepassword123",
                 "confirm_password": "securepassword123",
                 "tos_accepted": True,
             },
         )
-        assert response.status_code == 201
+        assert response.status_code == 201, response.text
+        assert "plan" not in response.json()
+
+        user = db_session.query(User).filter(User.email == "sends-a-plan@example.com").first()
+        assert user is not None
+        org = db_session.query(Organization).filter(Organization.id == user.organization_id).first()
+        assert org is not None
+        assert org.plan == "free", "a client-supplied plan must never be written"
 
     def test_short_password_rejected(self, client):
         response = client.post(

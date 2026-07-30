@@ -51,11 +51,6 @@ vi.mock("@/lib/community", () => ({
   fetchCommunityStatus: vi.fn().mockResolvedValue(null),
 }));
 
-// Mock UsageIndicator
-vi.mock("@/components/tier/UsageIndicator", () => ({
-  UsageIndicator: () => <div data-testid="usage-indicator" />,
-}));
-
 // Mock sonner
 vi.mock("sonner", () => ({
   Toaster: () => null,

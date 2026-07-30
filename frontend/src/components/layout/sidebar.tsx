@@ -15,7 +15,6 @@ import { useGuidance } from "@/contexts/GuidanceContext";
 import { fetchCommunityStatus, type CommunityStatus } from "@/lib/community";
 import { HelpMenu } from "@/components/layout/HelpMenu";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
-import { UsageIndicator } from "@/components/tier/UsageIndicator";
 
 interface NavItem {
   label: string;
@@ -287,7 +286,6 @@ export function Sidebar({ items, title, subtitle }: SidebarProps) {
             {t("sidebar.logout")}
           </Button>
         </div>
-        <UsageIndicator />
         <div className="px-4 pb-3 flex items-center justify-center gap-3 text-xs text-sidebar-foreground/70">
           <Link href="/terms" className="hover:text-sidebar-foreground hover:underline">{t("sidebar.terms")}</Link>
           <span>·</span>

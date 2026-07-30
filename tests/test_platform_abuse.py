@@ -509,14 +509,19 @@ class TestRateLimiting:
     ):
         """Rate limit boundary is exact: first N pass, request N+1 returns 429.
 
-        Sets the org's per-minute limit to 5 explicitly so the test does not
-        depend on inherited fixture defaults.
+        Sets the instance per-minute limit to 5 explicitly so the test does not
+        depend on the seeded default.
         """
+        from app.services.platform_settings_service import PlatformSettingsService as PSS
         from app.shared.core.rate_limiter import clear
 
-        # Force a known per-minute limit so we can pin the boundary
-        test_organization.rate_limit_per_minute = 5
-        test_organization.rate_limit_per_day = 1000
+        # Force a known per-minute limit so we can pin the boundary (D-23: the
+        # limit is instance-wide; there is no per-organization column any more).
+        PSS.bulk_set(
+            db_session,
+            {"instance_rate_limit_per_minute": "5", "instance_rate_limit_per_day": "1000"},
+            changed_by="test",
+        )
         db_session.commit()
 
         # Reset any in-memory rate limiter state from a previous test

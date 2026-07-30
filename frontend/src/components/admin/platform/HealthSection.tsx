@@ -5,9 +5,6 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
-  BarChart,
-  Bar,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -29,10 +26,6 @@ export function HealthSection({ data }: { data: PlatformOverview }) {
   const t = useTranslations("admin.platformAnalytics");
   const e = data.executions;
 
-  const planData = Object.entries(data.plan_distribution).map(([name, value]) => ({
-    name,
-    value,
-  }));
   const dailyData = data.daily.map((d) => ({ label: d.date.slice(5), executions: d.executions }));
 
   return (
@@ -73,7 +66,7 @@ export function HealthSection({ data }: { data: PlatformOverview }) {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">{t("health.dailyExecutions")}</CardTitle>
@@ -97,26 +90,6 @@ export function HealthSection({ data }: { data: PlatformOverview }) {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">{t("health.planMix")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={planData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                  {planData.map((_, i) => (
-                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
       </div>
 
       <Card>

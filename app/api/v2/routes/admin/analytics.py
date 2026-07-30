@@ -64,7 +64,6 @@ class PlatformOverviewResponse(BaseModel):
     users: EntityCounts
     orgs: EntityCounts
     avg_users_per_org: float
-    plan_distribution: dict[str, int]
     executions: ExecutionStats
     builder_solves: BuilderSolves
     by_category: list[CategoryStat]

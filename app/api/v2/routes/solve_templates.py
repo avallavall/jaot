@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.api.deps import OptionalRequireSolver
+from app.api.deps import OptionalRequireSolver, enforce_org_rate_limit
 from app.api.v2.solve_pipeline import enqueue_async_solve, shape_sync_result, wait_for_task
 from app.data.templates import load_all_templates
 from app.domains.solver.services import SolverService, get_solver_service
@@ -34,7 +34,6 @@ from app.schemas.template import (
 )
 from app.services.template_resolver import resolve_template_dict as _resolve_template_dict
 from app.shared.constants.execution_provenance import ORIGIN_TEMPLATE
-from app.shared.core.rate_limiter import check_rate_limit
 from app.shared.db import get_db
 
 logger = logging.getLogger(__name__)
@@ -194,9 +193,7 @@ def solve_with_template(  # def: blocks on the queued result in the threadpool (
         )
 
     # Rate limit check
-    allowed, rate_info = check_rate_limit(org.id, org.rate_limit_per_minute, org.rate_limit_per_day)
-    if not allowed:
-        raise HTTPException(status_code=429, detail=rate_info)
+    enforce_org_rate_limit(db, org)
 
     # Transform input using template engine
     engine = get_template_engine()

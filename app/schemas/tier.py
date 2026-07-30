@@ -10,14 +10,14 @@ class TierCapError(BaseModel):
 
     ADR-008 removed billing and there are no paid tiers, so this payload no longer
     carries an upsell (``upgrade_to`` / ``upgrade_url`` pointed at a ``/billing`` page
-    that no longer exists). What a caller actually needs is the limit they hit and the
-    name of the setting an administrator can raise — every limit accepts 0 for
-    unlimited.
+    that no longer exists). ``current_plan`` went the same way: with one set of limits
+    per instance, naming a plan alongside a limit only invited the reader to look for
+    a bigger one. What a caller actually needs is the limit they hit and the name of
+    the setting an administrator can raise — every limit accepts 0 for unlimited.
     """
 
     error: str  # e.g. "variable_limit_exceeded"
     message: str  # Human-readable explanation
-    current_plan: str
     limit: int | str
     current_value: int | str | None = None
     setting_key: str | None = None  # e.g. "instance_max_variables"
@@ -26,7 +26,6 @@ class TierCapError(BaseModel):
 def tier_cap_detail(
     error: str,
     message: str,
-    current_plan: str,
     limit: int | str,
     current_value: int | str | None = None,
     setting_key: str | None = None,
@@ -35,7 +34,6 @@ def tier_cap_detail(
     return TierCapError(
         error=error,
         message=message,
-        current_plan=current_plan,
         limit=limit,
         current_value=current_value,
         setting_key=setting_key,

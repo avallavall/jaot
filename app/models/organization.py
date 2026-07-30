@@ -26,9 +26,21 @@ class Organization(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    plan: Mapped[str] = mapped_column(String, default="free")  # free, starter, pro, business
 
-    # Rate limits (requests per minute)
+    # DEPRECATED, drops in the schema window (§5). Nothing reads these three.
+    #
+    # `plan` stopped selecting anything when ADR-008 removed billing and the four
+    # tiers became one instance-wide profile; it survived as a label the UI
+    # printed. The two rate limits were the last per-organization limits: copied
+    # at signup and read on every request, so editing them in the admin panel
+    # changed what NEW organizations would get and nothing about the ones already
+    # there (D-23). Requests are now limited by `instance_rate_limit_*`, read
+    # from settings on each call — see `enforce_org_rate_limit` in app/api/deps.py.
+    #
+    # They are still WRITTEN with the effective values, and must stay that way
+    # until the columns are dropped: a rollback restores images, not schema, so an
+    # older image will read them and has to find what it would have written itself.
+    plan: Mapped[str] = mapped_column(String, default="free")
     rate_limit_per_minute: Mapped[int] = mapped_column(Integer, default=60)
     rate_limit_per_day: Mapped[int] = mapped_column(Integer, default=2000)
 
@@ -72,4 +84,4 @@ class Organization(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<Organization(id={self.id}, name={self.name}, plan={self.plan})>"
+        return f"<Organization(id={self.id}, name={self.name})>"

@@ -26,14 +26,12 @@ class TestTierCapDetail:
         detail = tier_cap_detail(
             error="variable_limit_exceeded",
             message="Too many variables",
-            current_plan="free",
             limit=1000,
             current_value=1500,
             setting_key="instance_max_variables",
         )
         assert detail["error"] == "variable_limit_exceeded"
         assert detail["message"] == "Too many variables"
-        assert detail["current_plan"] == "free"
         assert detail["limit"] == 1000
         assert detail["current_value"] == 1500
         assert detail["setting_key"] == "instance_max_variables"
@@ -42,16 +40,18 @@ class TestTierCapDetail:
     # limit error must point at the setting an operator can raise, never at a
     # paid tier or a /billing page that no longer exists.
     def test_carries_no_upgrade_fields(self):
-        detail = tier_cap_detail(error="test", message="msg", current_plan="free", limit=5000)
+        detail = tier_cap_detail(error="test", message="msg", limit=5000)
         assert "upgrade_to" not in detail
         assert "upgrade_url" not in detail
+        # D-23: naming a plan alongside a limit was the last trace of the tiers,
+        # and it only invited the reader to go looking for a bigger one.
+        assert "current_plan" not in detail
 
     def test_schema_validation(self):
         """TierCapError validates correctly."""
         err = TierCapError(
             error="variable_limit_exceeded",
             message="msg",
-            current_plan="free",
             limit=1000,
         )
         assert err.current_value is None
@@ -144,7 +144,6 @@ class TestEnforceTierCapsUnit:
             _enforce_tier_caps(db, org, problem)
         assert exc_info.value.status_code == 403
         assert exc_info.value.detail["error"] == "variable_limit_exceeded"
-        assert exc_info.value.detail["current_plan"] == "free"
         assert exc_info.value.detail["limit"] == 5000
         assert exc_info.value.detail["current_value"] == 5500
 
@@ -358,7 +357,6 @@ class TestErrorResponseSchema:
         detail = tier_cap_detail(
             error="variable_limit_exceeded",
             message="Too many variables",
-            current_plan="free",
             limit=1000,
             current_value=1500,
         )
@@ -366,7 +364,6 @@ class TestErrorResponseSchema:
         parsed = TierCapError(**detail)
         assert parsed.error == "variable_limit_exceeded"
         assert parsed.message == "Too many variables"
-        assert parsed.current_plan == "free"
         assert parsed.limit == 1000
         assert parsed.current_value == 1500
 
@@ -374,7 +371,6 @@ class TestErrorResponseSchema:
         detail = tier_cap_detail(
             error="feature_not_available",
             message="Feature not available",
-            current_plan="free",
             limit="llm_assistant",
         )
         parsed = TierCapError(**detail)

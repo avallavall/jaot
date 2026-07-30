@@ -20,6 +20,40 @@ DBSession = Annotated[Session, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
+def enforce_org_rate_limit(db: Session, org: Organization) -> None:
+    """Raise 429 when the organization is over the instance's request limits.
+
+    D-23: the two request limits used to be read from columns on
+    ``organizations``, copied at signup — so an operator editing them in the
+    admin panel changed what NEW organizations would get and nothing about the
+    ones already there. One set of limits per instance is the same decision that
+    retired the four plan tiers: the value is read from settings on each request
+    and there is nothing left to keep in sync.
+
+    Lives here because a bounded context's routes may consume ``app.api.deps``
+    and nothing else of the API layer (import contract 7) — ``file_io`` is one
+    of the callers.
+
+    Args:
+        db: Database session.
+        org: The organization the request is billed to.
+
+    Raises:
+        HTTPException 429: with the limiter's ``retry_after`` detail.
+    """
+    from app.services.platform_settings_service import (  # noqa: PLC0415
+        PlatformSettingsService as PSS,
+    )
+    from app.shared.core.rate_limiter import check_rate_limit  # noqa: PLC0415
+
+    limits = PSS.get_instance_limits(db)
+    allowed, rate_info = check_rate_limit(
+        org.id, limits["rate_limit_per_minute"], limits["rate_limit_per_day"]
+    )
+    if not allowed:
+        raise HTTPException(status_code=429, detail=rate_info)
+
+
 def get_current_admin_user(
     current_user: User = Depends(get_current_user),
 ) -> User:

@@ -139,7 +139,6 @@ def _build_auth_response_data(user: User, org: Organization) -> dict[str, Any]:
         "organization": {
             "id": org.id,
             "name": org.name,
-            "plan": org.plan,
         },
         "permissions": {
             "can_build_plugins": user.can_build_plugins,
@@ -185,7 +184,6 @@ def login(request: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse
         organization={
             "id": org.id,
             "name": org.name,
-            "plan": org.plan,
         },
         permissions={
             "can_build_plugins": user.can_build_plugins,
@@ -352,7 +350,6 @@ def signup_email(
     organization = Organization(
         id=org_id,
         name=body.organization_name,
-        plan=body.plan,
         rate_limit_per_minute=limits["rate_limit_per_minute"],
         rate_limit_per_day=limits["rate_limit_per_day"],
     )
@@ -467,7 +464,6 @@ def signup_email(
         "user_id": user_id,
         "organization_id": org_id,
         "api_key": plaintext_key,
-        "plan": body.plan,
         "message": (
             "Welcome to JAOT! Your account has been created. "
             "Please check your email to verify your address."
@@ -756,7 +752,6 @@ def get_me(
         user_email=user.email,
         organization_id=org.id,
         organization_name=org.name,
-        plan=org.plan,
         is_admin=user.is_admin,
         is_org_owner=is_org_owner,
         can_build_plugins=user.can_build_plugins,
@@ -804,7 +799,6 @@ def signup(
     organization = Organization(
         id=org_id,
         name=request.organization_name,
-        plan=request.plan,
         rate_limit_per_minute=limits["rate_limit_per_minute"],
         rate_limit_per_day=limits["rate_limit_per_day"],
     )
@@ -856,7 +850,6 @@ def signup(
         user_id=user_id,
         organization_id=org_id,
         api_key=plaintext_key,
-        plan=request.plan,
         message=(
             "Welcome to JAOT! Your organization has been created. "
             "Save your API key securely - it won't be shown again."

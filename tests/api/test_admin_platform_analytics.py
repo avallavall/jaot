@@ -159,7 +159,6 @@ class TestOverviewService:
         # test_user + test_admin_user both belong to test_organization
         assert out["users"]["total"] >= 2
         assert out["orgs"]["total"] >= 1
-        assert sum(out["plan_distribution"].values()) == out["orgs"]["total"]
 
     def test_execution_ratios(self, db_session, test_organization, test_user):
         for _ in range(4):
@@ -391,7 +390,6 @@ class TestPlatformAnalyticsEndpoints:
             "users",
             "orgs",
             "avg_users_per_org",
-            "plan_distribution",
             "executions",
             "by_category",
             "daily",

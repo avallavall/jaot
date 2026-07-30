@@ -533,11 +533,6 @@
       "skillExpert": "Sé el que faig",
       "skillExpertSubtext": "Mínima guia, màxima velocitat"
     },
-    "tier": {
-      "viewPlans": "Veure plans",
-      "plan": "Pla {plan}",
-      "solvesPerDay": "{count} resolucions/dia"
-    },
     "filters": {
       "filtersActive": "{count} filtres actius",
       "clearFilters": "Esborra filtres"
@@ -1458,7 +1453,6 @@
     "dashboard": {
       "organization": "Organització",
       "orgName": "Nom",
-      "plan": "Pla",
       "organizationId": "ID de l'Organització",
       "yourAccount": "El Teu Compte",
       "name": "Nom",
@@ -1907,7 +1901,6 @@
       "searchPlaceholder": "Cercar organitzacions...",
       "tableHeaders": {
         "name": "Nom",
-        "plan": "Pla",
         "users": "Usuaris",
         "verified": "Verificat",
         "status": "Estat",
@@ -1921,13 +1914,6 @@
       "edit": "Editar",
       "delete": "Eliminar",
       "nameLabel": "Nom",
-      "planLabel": "Pla",
-      "plans": {
-        "free": "Gratuït",
-        "starter": "Starter",
-        "pro": "Pro",
-        "business": "Business"
-      },
       "enableAiBuilder": "Activar Constructor IA",
       "create": "Crear",
       "saveChanges": "Desar Canvis",
@@ -2209,7 +2195,6 @@
         "successRate": "Taxa d'èxit",
         "avgSolveTime": "Temps mitjà",
         "medianSolveTime": "Temps medià",
-        "planMix": "Distribució de plans",
         "dailyExecutions": "Execucions per dia",
         "byCategory": "Per categoria",
         "category": "Categoria",
@@ -2277,10 +2262,7 @@
         "executions": "Execucions"
       },
       "config": {
-        "plan": "Pla",
         "monthlyQuota": "Quota mensual",
-        "rateLimitMin": "Límit (per minut)",
-        "rateLimitDay": "Límit (per dia)",
         "aiBuilder": "AI Builder",
         "byok": "Clau LLM pròpia (BYOK)",
         "maxPrivatePlugins": "Màx. models privats",

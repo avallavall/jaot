@@ -58,7 +58,6 @@ def export_user_data(db: Session, user: User, org: Organization) -> dict[str, An
     org_data = {
         "id": org.id,
         "name": org.name,
-        "plan": org.plan,
     }
 
     # Model projects (the single model entity post-fusion; legacy org-model rows

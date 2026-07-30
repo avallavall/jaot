@@ -149,7 +149,6 @@ def _get_or_create_org(db: Session) -> tuple[Organization, bool]:
     org = Organization(
         id=generate_id("org_"),
         name=DEMO_ORG_NAME,
-        plan="pro",
         rate_limit_per_minute=60,
         rate_limit_per_day=1000,
         is_active=True,

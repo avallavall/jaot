@@ -630,7 +630,6 @@ export const api = {
     email: string;
     name: string;
     organization_name: string;
-    plan: string;
     password: string;
     confirm_password: string;
     tos_accepted?: boolean;

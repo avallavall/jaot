@@ -26,6 +26,7 @@ from app.schemas.admin import (
     OrgOwnerSummary,
     UserResponse,
 )
+from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.shared.db.base import get_db
 from app.shared.utils.id_generator import generate_id
 from app.shared.utils.pagination import paginate_query
@@ -38,7 +39,6 @@ def list_organizations(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     search: str | None = None,
-    plan: str | None = None,
     is_active: bool | None = None,
     db: Session = Depends(get_db),
 ) -> AdminPaginatedResponse:
@@ -47,8 +47,6 @@ def list_organizations(
 
     if search:
         query = query.filter(Organization.name.ilike(f"%{search}%"))
-    if plan:
-        query = query.filter(Organization.plan == plan)
     if is_active is not None:
         query = query.filter(Organization.is_active == is_active)
 
@@ -260,12 +258,17 @@ def create_organization(
     data: OrganizationCreate, db: Session = Depends(get_db)
 ) -> OrganizationResponse:
     """Create new organization."""
+    # The two rate-limit columns are no longer read by anything (D-23: limits come
+    # from instance settings on each request), but they are still WRITTEN with the
+    # effective values. A rollback restores images, not schema — an older image
+    # would read these columns, and it must find the same numbers it would have
+    # written itself. They drop in the schema window.
+    limits = PSS.get_instance_limits(db)
     org = Organization(
         id=generate_id("org_"),
         name=data.name,
-        plan=data.plan,
-        rate_limit_per_minute=data.rate_limit_per_minute,
-        rate_limit_per_day=data.rate_limit_per_day,
+        rate_limit_per_minute=limits["rate_limit_per_minute"],
+        rate_limit_per_day=limits["rate_limit_per_day"],
         ai_builder_enabled=data.ai_builder_enabled,
         max_private_plugins=data.max_private_plugins,
     )

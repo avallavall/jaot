@@ -64,7 +64,6 @@ export default function SignupPage() {
         email,
         name,
         organization_name: organizationName,
-        plan: "free",
         password,
         confirm_password: confirmPassword,
         tos_accepted: tosAccepted,

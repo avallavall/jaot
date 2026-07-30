@@ -55,7 +55,6 @@ def _create_admin_with_org(
     organization = Organization(
         id=generate_id(org_prefix),
         name=org_name or f"{name}'s Organization",
-        plan="pro",
         rate_limit_per_minute=limits["rate_limit_per_minute"],
         rate_limit_per_day=limits["rate_limit_per_day"],
     )

@@ -49,25 +49,6 @@ class TestAdminOrganizations:
         org_names = [o["name"] for o in data["items"]]
         assert any(test_organization.name in name for name in org_names)
 
-    def test_list_organizations_filter_by_plan(self, admin_client, db_session):
-        """Test filtering organizations by plan."""
-        # Create org with specific plan
-        org = Organization(
-            id="org_plan_test",
-            name="Plan Test Org",
-            plan="business",
-            is_active=True,
-        )
-        db_session.add(org)
-        db_session.commit()
-
-        response = admin_client.get("/api/v2/admin/organizations?plan=business")
-        assert response.status_code == 200
-        data = response.json()
-
-        for item in data["items"]:
-            assert item["plan"] == "business"
-
     def test_list_organizations_pagination(self, admin_client, db_session, test_organization):
         """Test organization pagination."""
         # Create multiple orgs (5 here + at least the test org → page 1 must be full)
@@ -108,12 +89,11 @@ class TestAdminOrganizations:
 
     def test_create_organization(self, admin_client, db_session):
         """Test creating new organization."""
+        from app.services.platform_settings_service import PlatformSettingsService as PSS
+
         response = admin_client.post(
             "/api/v2/admin/organizations",
-            json={
-                "name": "New Test Organization",
-                "plan": "pro",
-            },
+            json={"name": "New Test Organization"},
         )
         assert response.status_code == 201
         data = response.json()
@@ -121,12 +101,17 @@ class TestAdminOrganizations:
         # Project rule: IDs must always be prefixed
         assert data["id"].startswith("org_")
         assert data["name"] == "New Test Organization"
-        assert data["plan"] == "pro"
         # DB round-trip: row must actually exist with the returned id
         created = db_session.query(Organization).filter(Organization.id == data["id"]).first()
         assert created is not None
         assert created.name == "New Test Organization"
-        assert created.plan == "pro"
+
+        # D-23: nothing reads these columns any more, but they are still written
+        # with the effective instance values — a rollback restores images, not
+        # schema, and an older image reads them.
+        limits = PSS.get_instance_limits(db_session)
+        assert created.rate_limit_per_minute == limits["rate_limit_per_minute"]
+        assert created.rate_limit_per_day == limits["rate_limit_per_day"]
 
     def test_update_organization(self, admin_client, db_session, test_organization):
         """Test updating organization."""
@@ -316,7 +301,7 @@ class TestAdminOrganizationOverview:
 
         # Org block
         assert data["organization"]["id"] == test_organization.id
-        assert data["organization"]["plan"] == test_organization.plan
+        assert data["organization"]["name"] == test_organization.name
         assert "byok_configured" in data["organization"]
 
         # Members + keys

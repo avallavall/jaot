@@ -533,11 +533,6 @@
       "skillExpert": "Sé lo que hago",
       "skillExpertSubtext": "Mínima guía, máxima velocidad"
     },
-    "tier": {
-      "viewPlans": "Ver planes",
-      "plan": "Plan {plan}",
-      "solvesPerDay": "{count} resoluciones/día"
-    },
     "filters": {
       "filtersActive": "{count} filtros activos",
       "clearFilters": "Borrar filtros"
@@ -1458,7 +1453,6 @@
     "dashboard": {
       "organization": "Organización",
       "orgName": "Nombre",
-      "plan": "Plan",
       "organizationId": "ID de organización",
       "yourAccount": "Tu cuenta",
       "name": "Nombre",
@@ -1907,7 +1901,6 @@
       "searchPlaceholder": "Buscar organizaciones...",
       "tableHeaders": {
         "name": "Nombre",
-        "plan": "Plan",
         "users": "Usuarios",
         "verified": "Verificada",
         "status": "Estado",
@@ -1921,13 +1914,6 @@
       "edit": "Editar",
       "delete": "Eliminar",
       "nameLabel": "Nombre",
-      "planLabel": "Plan",
-      "plans": {
-        "free": "Gratis",
-        "starter": "Starter",
-        "pro": "Pro",
-        "business": "Business"
-      },
       "enableAiBuilder": "Activar constructor IA",
       "create": "Crear",
       "saveChanges": "Guardar cambios",
@@ -2209,7 +2195,6 @@
         "successRate": "Tasa de éxito",
         "avgSolveTime": "Tiempo medio",
         "medianSolveTime": "Tiempo mediano",
-        "planMix": "Distribución de planes",
         "dailyExecutions": "Ejecuciones por día",
         "byCategory": "Por categoría",
         "category": "Categoría",
@@ -2277,10 +2262,7 @@
         "executions": "Ejecuciones"
       },
       "config": {
-        "plan": "Plan",
         "monthlyQuota": "Cuota mensual",
-        "rateLimitMin": "Límite (por minuto)",
-        "rateLimitDay": "Límite (por día)",
         "aiBuilder": "AI Builder",
         "byok": "Clave LLM propia (BYOK)",
         "maxPrivatePlugins": "Máx. modelos privados",

@@ -3,7 +3,7 @@ import { render, screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 import { AuthProvider, useAuth } from "../AuthContext";
-import type { Plan, UserInfo } from "@/lib/types";
+import type { UserInfo } from "@/lib/types";
 
 // Mock the api module. ApiError is a real class here because AuthContext uses
 // `instanceof` on it to tell "your session is gone" apart from "the request
@@ -35,7 +35,6 @@ const mockMe: UserInfo = {
   user_email: "test@example.com",
   organization_id: "o1",
   organization_name: "Test Org",
-  plan: "free" as Plan,
   is_admin: false,
   can_build_plugins: false,
 };
@@ -90,7 +89,7 @@ describe("AuthContext", () => {
     vi.mocked(api.login).mockResolvedValue({
       success: true,
       user: { id: "u1", name: "Test User", email: "test@test.com", is_admin: false },
-      organization: { id: "o1", name: "Org", plan: "free" as Plan },
+      organization: { id: "o1", name: "Org" },
       permissions: { can_build_plugins: false, can_publish: false, can_manage_keys: false },
     });
     vi.mocked(api.getMe).mockResolvedValue(mockMe);
