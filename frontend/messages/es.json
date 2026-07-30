@@ -478,7 +478,6 @@
       "title": "Notificaciones",
       "markAllRead": "Marcar todo como leído",
       "noNotifications": "Aún no hay notificaciones",
-      "viewAll": "Ver todas las notificaciones",
       "justNow": "ahora mismo",
       "minutesAgo": "hace {count}m",
       "hoursAgo": "hace {count}h",

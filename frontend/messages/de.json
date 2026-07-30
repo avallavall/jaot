@@ -478,7 +478,6 @@
       "title": "Benachrichtigungen",
       "markAllRead": "Alle als gelesen markieren",
       "noNotifications": "Noch keine Benachrichtigungen",
-      "viewAll": "Alle Benachrichtigungen anzeigen",
       "justNow": "gerade eben",
       "minutesAgo": "vor {count} Min.",
       "hoursAgo": "vor {count} Std.",

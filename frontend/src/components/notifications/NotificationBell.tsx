@@ -237,18 +237,10 @@ export function NotificationBell() {
           )}
         </div>
 
-        {notifications.length > 0 && (
-          <div className="p-2 border-t">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full text-xs"
-              onClick={() => (window.location.href = "/workspace/notifications")}
-            >
-              {t("notifications.viewAll")}
-            </Button>
-          </div>
-        )}
+        {/* No "view all" footer: there is no notifications page to send anyone to.
+            The link pointed at /workspace/notifications, which has never existed —
+            invisible until now only because the list it sat under was always empty.
+            This panel shows the latest ten; add the footer back with the page. */}
       </PopoverContent>
     </Popover>
   );

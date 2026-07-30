@@ -72,6 +72,18 @@ describe("NotificationBell", () => {
     expect(screen.queryByText(/notifications\.noNotifications/)).not.toBeInTheDocument();
   });
 
+  it("offers no 'view all' footer, because there is no notifications page", async () => {
+    // The footer linked to /workspace/notifications, which does not exist — it 404'd
+    // the moment the list stopped being empty and the button became reachable.
+    // If someone brings it back, build the page first and update this test.
+    render(<NotificationBell />);
+    await waitFor(() => expect(getNotifications).toHaveBeenCalled());
+    await userEvent.click(screen.getByRole("button", { name: /notifications\.title/ }));
+
+    await screen.findByText("Execution Completed");
+    expect(screen.queryByText(/notifications\.viewAll/)).not.toBeInTheDocument();
+  });
+
   it("does not call the API when there is no session", async () => {
     useAuthMock.mockReturnValue({ isAuthenticated: false, user: null, isLoading: false });
 
