@@ -34,3 +34,20 @@ class MetricsResponse(BaseModel):
     database: dict[str, int]  # table counts
     api: dict[str, int]  # request counts
     solver: dict[str, float]  # solver stats
+
+
+class RecentRequestEntry(BaseModel):
+    """One solve request as the in-process metrics collector recorded it."""
+
+    problem_type: str | None = None
+    timestamp: str
+    duration_ms: float
+    success: bool
+    error: str | None = None
+
+
+class RecentRequestsResponse(BaseModel):
+    """The most recent solve requests, oldest first."""
+
+    recent_requests: list[RecentRequestEntry]
+    count: int

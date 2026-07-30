@@ -28,8 +28,11 @@ from app.domains.solver.services.template_engine import TemplateEngine, get_temp
 from app.models import ExecutionStatus, ModelExecution, Organization, User
 from app.models.model_project import ModelProject, ModelProjectListing
 from app.schemas.model import (
+    AsyncExecutionResponse,
     ExecuteModelRequest,
+    ExecutionCancelResponse,
     ExecutionListResponse,
+    ExecutionStatusResponse,
     ModelExecutionResponse,
 )
 from app.schemas.optimization import (
@@ -116,6 +119,10 @@ def preview_model(
 
 @router.post(
     "/{model_id}/execute",
+    # Two shapes by design: the queue acknowledgement (``async_mode``), or the
+    # completed execution. The 202-degrade path returns a JSONResponse, which
+    # bypasses the response model entirely.
+    response_model=ModelExecutionResponse | AsyncExecutionResponse,
     operation_id="execute_model",
     dependencies=[Depends(solve_maintenance_gate)],
 )
@@ -384,7 +391,7 @@ def _shape_model_execution_response(
     )
 
 
-@router.get("/async/{task_id}")
+@router.get("/async/{task_id}", response_model=ExecutionStatusResponse)
 def get_async_execution_status(
     task_id: str,
     current_user: User = Depends(get_current_user),
@@ -424,11 +431,18 @@ def get_async_execution_status(
             "message": "Task is waiting to be processed",
         }
     if result.state == "PROGRESS":
+        # task_id/execution_id/status LAST — same reason as the solve poll
+        # endpoint: the task's own progress meta carries a "status" that reads
+        # "completed" on the final "Model found!" tick while Celery is still in
+        # PROGRESS. Spread first, and that value overwrites "running", so the
+        # client reads a completed payload with no result and reports a false
+        # failure.
+        info = result.info if isinstance(result.info, dict) else {}
         return {
+            **info,
             "task_id": task_id,
             "execution_id": execution.id,
             "status": "running",
-            **result.info,
         }
     if result.state == "SUCCESS":
         celery_result = result.result
@@ -467,12 +481,12 @@ def get_async_execution_status(
     }
 
 
-@router.post("/async/{task_id}/cancel")
+@router.post("/async/{task_id}/cancel", response_model=ExecutionCancelResponse)
 def cancel_model_execution(
     task_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
+) -> ExecutionCancelResponse:
     """Cancel a running async model execution."""
     from celery.result import AsyncResult
 
@@ -493,12 +507,12 @@ def cancel_model_execution(
     result = AsyncResult(task_id, app=celery_app)
 
     if result.state in ["SUCCESS", "FAILURE"]:
-        return {
-            "task_id": task_id,
-            "execution_id": execution.id,
-            "cancelled": False,
-            "message": f"Task already {result.state.lower()}, cannot cancel",
-        }
+        return ExecutionCancelResponse(
+            task_id=task_id,
+            execution_id=execution.id,
+            cancelled=False,
+            message=f"Task already {result.state.lower()}, cannot cancel",
+        )
 
     # Mark the execution cancelled BEFORE revoking the Celery task so
     # solve_model_async's except handler sees the terminal row and preserves
@@ -518,12 +532,12 @@ def cancel_model_execution(
 
     celery_app.control.revoke(task_id, terminate=True, signal="SIGTERM")
 
-    return {
-        "task_id": task_id,
-        "execution_id": execution.id,
-        "cancelled": True,
-        "message": "Execution cancelled",
-    }
+    return ExecutionCancelResponse(
+        task_id=task_id,
+        execution_id=execution.id,
+        cancelled=True,
+        message="Execution cancelled",
+    )
 
 
 @router.get("/{model_id}/executions", response_model=ExecutionListResponse)

@@ -32,6 +32,7 @@ from app.models.llm_conversation import LLMConversation, LLMMessage
 from app.schemas.attachment import AttachmentResponse
 from app.schemas.llm import (
     ChatMessageRequest,
+    ConversationResponse,
     ExplainInfeasibilityRequest,
     ExplainModelRequest,
     ExplainScenariosRequest,
@@ -70,7 +71,11 @@ from app.shared.core.prometheus_metrics import LLM_REQUESTS_TOTAL
 from app.shared.core.rate_limiter import check_rate_limit
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
-from app.shared.utils.pagination import create_paginated_response, paginate_query
+from app.shared.utils.pagination import (
+    PaginatedResponse,
+    create_paginated_response,
+    paginate_query,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -205,7 +210,11 @@ def _conv_to_response(conv: LLMConversation, include_messages: bool = True) -> d
     return data
 
 
-@router.post("/conversations", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/conversations",
+    response_model=ConversationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_conversation(
     body: CreateConversationRequest,
     db: DBSession,
@@ -269,7 +278,7 @@ def create_conversation(
     return _conv_to_response(conv)
 
 
-@router.get("/conversations")
+@router.get("/conversations", response_model=PaginatedResponse[ConversationResponse])
 def list_conversations(
     db: DBSession,
     user: CurrentUser,
@@ -308,7 +317,7 @@ def list_conversations(
     return create_paginated_response(response_items, total, page, page_size)
 
 
-@router.get("/conversations/{conversation_id}")
+@router.get("/conversations/{conversation_id}", response_model=ConversationResponse)
 def get_conversation(
     conversation_id: str,
     db: DBSession,
@@ -526,7 +535,12 @@ async def _stream_llm_response(
         }
 
 
-@router.post("/conversations/{conversation_id}/messages")
+@router.post(
+    "/conversations/{conversation_id}/messages",
+    # Streams SSE, so there is no response body to model — declaring the
+    # media type is the only honest thing OpenAPI can say about it.
+    response_class=EventSourceResponse,
+)
 async def send_message(
     conversation_id: str,
     body: ChatMessageRequest,
@@ -780,7 +794,12 @@ def _compute_exact_analysis_for_explanation(
     return analysis.model_dump(mode="json")
 
 
-@router.post("/conversations/{conversation_id}/explain-solution")
+@router.post(
+    "/conversations/{conversation_id}/explain-solution",
+    # Streams SSE, so there is no response body to model — declaring the
+    # media type is the only honest thing OpenAPI can say about it.
+    response_class=EventSourceResponse,
+)
 async def explain_solution_endpoint(
     conversation_id: str,
     body: ExplainSolutionRequest,
@@ -913,7 +932,12 @@ def _resolve_infeasibility_context(
     return body.formulation, body.infeasibility
 
 
-@router.post("/conversations/{conversation_id}/explain-infeasibility")
+@router.post(
+    "/conversations/{conversation_id}/explain-infeasibility",
+    # Streams SSE, so there is no response body to model — declaring the
+    # media type is the only honest thing OpenAPI can say about it.
+    response_class=EventSourceResponse,
+)
 async def explain_infeasibility_endpoint(
     conversation_id: str,
     body: ExplainInfeasibilityRequest,
@@ -1057,7 +1081,12 @@ def _resolve_model_explanation_context(
     return formulation, stats
 
 
-@router.post("/conversations/{conversation_id}/explain-model")
+@router.post(
+    "/conversations/{conversation_id}/explain-model",
+    # Streams SSE, so there is no response body to model — declaring the
+    # media type is the only honest thing OpenAPI can say about it.
+    response_class=EventSourceResponse,
+)
 async def explain_model_endpoint(
     conversation_id: str,
     body: ExplainModelRequest,
@@ -1187,7 +1216,12 @@ def _resolve_diff_explanation_context(
     )
 
 
-@router.post("/conversations/{conversation_id}/explain-diff")
+@router.post(
+    "/conversations/{conversation_id}/explain-diff",
+    # Streams SSE, so there is no response body to model — declaring the
+    # media type is the only honest thing OpenAPI can say about it.
+    response_class=EventSourceResponse,
+)
 async def explain_diff_endpoint(
     conversation_id: str,
     body: ExplainVersionDiffRequest,

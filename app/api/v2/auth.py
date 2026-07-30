@@ -27,6 +27,7 @@ from app.schemas.auth import (
     SignupResponse,
     VerifyEmailRequest,
 )
+from app.schemas.common import SuccessResponse
 from app.services.auth import APIKeyService, JWTService, PasswordService
 from app.services.auth.password_service import DUMMY_HASH
 from app.services.platform_settings_service import PlatformSettingsService as PSS
@@ -479,8 +480,8 @@ def signup_email(
     return response
 
 
-@router.post("/verify-email")
-def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+@router.post("/verify-email", response_model=SuccessResponse)
+def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)) -> SuccessResponse:
     """Verify user email with a token."""
     _rate_limit_or_raise(
         f"verify_email:{body.token[:16]}",
@@ -520,11 +521,11 @@ def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)) -> dic
     user.email_verified_at = utcnow()
     db.commit()
 
-    return {"success": True, "message": "Email verified successfully"}
+    return SuccessResponse(success=True, message="Email verified successfully")
 
 
-@router.post("/forgot-password")
-def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+@router.post("/forgot-password", response_model=SuccessResponse)
+def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)) -> SuccessResponse:
     """Send a password reset email.
 
     Always returns 200 to prevent email enumeration.
@@ -563,14 +564,14 @@ def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)) 
             logger.warning(f"Failed to send reset email: {e}")
 
     # Always return success (anti-enumeration)
-    return {
-        "success": True,
-        "message": "If this email is registered, you will receive a password reset link",
-    }
+    return SuccessResponse(
+        success=True,
+        message="If this email is registered, you will receive a password reset link",
+    )
 
 
-@router.post("/reset-password")
-def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+@router.post("/reset-password", response_model=SuccessResponse)
+def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)) -> SuccessResponse:
     """Reset password using a token."""
     _rate_limit_or_raise(
         f"reset_password:{body.token[:16]}",
@@ -611,10 +612,10 @@ def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)) ->
 
     db.commit()
 
-    return {
-        "success": True,
-        "message": "Password has been reset. Please log in with your new password.",
-    }
+    return SuccessResponse(
+        success=True,
+        message="Password has been reset. Please log in with your new password.",
+    )
 
 
 @router.post("/refresh")

@@ -19,7 +19,6 @@ import hashlib
 import logging
 import secrets
 from datetime import timedelta
-from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
 
@@ -30,6 +29,7 @@ from app.models.workspace import InviteMethod, WorkspaceInvite, WorkspaceMember
 from app.schemas.workspace import (
     EmailInviteCreate,
     InviteAccept,
+    InviteAcceptResponse,
     InviteResponse,
     LinkInviteCreate,
     LinkInviteResponse,
@@ -227,11 +227,13 @@ def create_link_invite(
 
 @router.post(
     "/accept",
+    response_model=InviteAcceptResponse,
     status_code=status.HTTP_200_OK,
     summary="Accept a workspace invite token",
 )
 @accept_router.post(
     "/accept",
+    response_model=InviteAcceptResponse,
     status_code=status.HTTP_200_OK,
     summary="Accept a workspace invite token",
     include_in_schema=False,  # avoid duplicate in OpenAPI docs
@@ -241,7 +243,7 @@ def accept_invite(
     db: DBSession,
     user: CurrentUser,
     org: CurrentOrg,
-) -> dict[str, Any]:
+) -> InviteAcceptResponse:
     """Accept an invite token and join the workspace.
 
     The token is hashed and compared against stored token_hash entries.
@@ -291,11 +293,11 @@ def accept_invite(
         .first()
     )
     if existing:
-        return {
-            "message": "You are already a member of this workspace",
-            "workspace_id": invite.workspace_id,
-            "role": existing.role,
-        }
+        return InviteAcceptResponse(
+            message="You are already a member of this workspace",
+            workspace_id=invite.workspace_id,
+            role=existing.role,
+        )
 
     member = WorkspaceMember(
         id=generate_id("wkm_"),
@@ -334,11 +336,11 @@ def accept_invite(
         invite.method,
     )
 
-    return {
-        "message": "Successfully joined workspace",
-        "workspace_id": invite.workspace_id,
-        "role": invite.role,
-    }
+    return InviteAcceptResponse(
+        message="Successfully joined workspace",
+        workspace_id=invite.workspace_id,
+        role=invite.role,
+    )
 
 
 # GET /{workspace_id}/invites — List pending invites

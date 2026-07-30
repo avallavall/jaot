@@ -28,6 +28,12 @@ class SuccessResponse(BaseModel):
     message: str = "Operation completed successfully"
 
 
+class StatusResponse(BaseModel):
+    """Acknowledgement carrying only the outcome verb (``deleted``, ``updated``, ...)."""
+
+    status: str
+
+
 class ErrorResponse(BaseModel):
     """Generic error response."""
 

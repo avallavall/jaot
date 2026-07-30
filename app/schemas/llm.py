@@ -256,13 +256,20 @@ class ChatMessageResponse(BaseModel):
 
 
 class ConversationResponse(BaseModel):
-    """Full conversation with messages and current formulation."""
+    """Full conversation with messages and current formulation.
+
+    ``model_id`` (builder document) and ``model_project_id`` (studio project) say
+    what the conversation is *about*: at most one is set, and the listing is
+    filtered by either.
+    """
 
     id: str
     created_at: datetime
     expires_at: datetime
     messages: list[ChatMessageResponse] = []
     current_formulation: dict[str, Any] | None = None
+    model_id: str | None = None
+    model_project_id: str | None = None
 
 
 class SSEEvent(BaseModel):

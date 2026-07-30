@@ -7,8 +7,6 @@ never logged. Reads are available to any org member (so the UI can show whether 
 is active); writes require the org owner.
 """
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
@@ -35,33 +33,44 @@ class SetAnthropicKeyRequest(BaseModel):
     )
 
 
-def _key_status(org: Organization, *, include_hint: bool) -> dict[str, Any]:
+class AnthropicKeyStatusResponse(BaseModel):
+    """Whether BYOK is active, and — for the owner only — a masked hint.
+
+    The plaintext key is never part of this contract. ``hint`` is null for a
+    non-owner member, who may see *that* a key is set but not any of it.
+    """
+
+    enabled: bool
+    hint: str | None = None
+
+
+def _key_status(org: Organization, *, include_hint: bool) -> AnthropicKeyStatusResponse:
     """Build the masked status payload. The plaintext key is never returned."""
     plaintext = get_org_api_key(org)
-    return {
-        "enabled": bool(plaintext),
-        "hint": mask_api_key(plaintext) if include_hint else None,
-    }
+    return AnthropicKeyStatusResponse(
+        enabled=bool(plaintext),
+        hint=mask_api_key(plaintext) if include_hint else None,
+    )
 
 
-@router.get("/anthropic-key")
+@router.get("/anthropic-key", response_model=AnthropicKeyStatusResponse)
 def get_anthropic_key_status(
     db: DBSession,
     org: CurrentOrg,
     user: CurrentUser,
-) -> dict[str, Any]:
+) -> AnthropicKeyStatusResponse:
     """Whether the org has a BYOK key set. The owner also sees a masked hint."""
     is_owner = org.owner_user_id == user.id
     return _key_status(org, include_hint=is_owner)
 
 
-@router.put("/anthropic-key")
+@router.put("/anthropic-key", response_model=AnthropicKeyStatusResponse)
 def set_anthropic_key(
     body: SetAnthropicKeyRequest,
     db: DBSession,
     org: CurrentOrg,
     _owner: OrgOwnerUser,
-) -> dict[str, Any]:
+) -> AnthropicKeyStatusResponse:
     """Store the org's Anthropic API key (encrypted). Owner only."""
     key = body.api_key.strip()
     if not key.startswith(ANTHROPIC_KEY_PREFIX):
@@ -75,12 +84,12 @@ def set_anthropic_key(
     return _key_status(org, include_hint=True)
 
 
-@router.delete("/anthropic-key")
+@router.delete("/anthropic-key", response_model=AnthropicKeyStatusResponse)
 def clear_anthropic_key(
     db: DBSession,
     org: CurrentOrg,
     _owner: OrgOwnerUser,
-) -> dict[str, Any]:
+) -> AnthropicKeyStatusResponse:
     """Remove the org's BYOK key — the org falls back to the platform key. Owner only."""
     org.anthropic_api_key_encrypted = None
     db.commit()

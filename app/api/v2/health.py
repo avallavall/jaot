@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.schemas.health import RecentRequestEntry, RecentRequestsResponse
 from app.shared.core.metrics import metrics_collector
 from app.shared.db.base import get_db
 from app.version import APP_VERSION
@@ -157,16 +158,16 @@ def get_metrics() -> MetricsResponse:
     )
 
 
-@router.get("/metrics/recent")
+@router.get("/metrics/recent", response_model=RecentRequestsResponse)
 def get_recent_requests(
     limit: int = Query(default=10, ge=1, le=100, description="Number of recent requests to return"),
-) -> dict[str, Any]:
+) -> RecentRequestsResponse:
     """Get recent request history."""
     recent = metrics_collector.get_recent_requests(limit=limit)
-    return {
-        "recent_requests": recent,
-        "count": len(recent),
-    }
+    return RecentRequestsResponse(
+        recent_requests=[RecentRequestEntry(**entry) for entry in recent],
+        count=len(recent),
+    )
 
 
 class ComponentStatus(BaseModel):

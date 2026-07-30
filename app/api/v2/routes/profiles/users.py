@@ -1,13 +1,12 @@
 """User public profile endpoints."""
 
-from typing import Any
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.v2.auth import get_current_user
 from app.models import ModelProjectListing, ModelReview, Organization, User
+from app.schemas.common import StatusResponse
 from app.schemas.profile import (
     UpdateUserProfileRequest,
     UserPublicProfile,
@@ -132,12 +131,12 @@ def get_user_reviews(
     return result
 
 
-@router.patch("/users/profile")
+@router.patch("/users/profile", response_model=StatusResponse)
 def update_user_profile(
     body: UpdateUserProfileRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
+) -> StatusResponse:
     """Update the current user's profile."""
     user = db.query(User).filter(User.id == current_user.id).first()
 
@@ -175,4 +174,4 @@ def update_user_profile(
 
     db.commit()
 
-    return {"status": "updated"}
+    return StatusResponse(status="updated")

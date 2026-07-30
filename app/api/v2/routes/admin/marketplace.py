@@ -19,6 +19,7 @@ from app.schemas.author_analytics import (
     AdminAnalyticsResponse,
     AnalyticsSummaryResponse,
 )
+from app.schemas.common import StatusResponse
 from app.schemas.verification import (
     AdminVerificationDecision,
     AdminVerificationEntry,
@@ -119,13 +120,13 @@ def get_admin_verification_requests(
     return service.get_pending_requests()
 
 
-@router.post("/verification/{request_id}/decide")
+@router.post("/verification/{request_id}/decide", response_model=StatusResponse)
 def decide_verification(
     request_id: str,
     body: AdminVerificationDecision,
     request: Request,
     db: Session = Depends(get_db),
-) -> dict[str, str]:
+) -> StatusResponse:
     """Approve or reject a verification request (admin action)."""
     admin_user = getattr(request.state, "user", None)
     admin_user_id = admin_user.id if admin_user else "admin"
@@ -135,4 +136,4 @@ def decide_verification(
     else:
         service.reject(request_id, admin_user_id, note=body.admin_note, admin_user=admin_user)
     db.commit()
-    return {"status": body.status}
+    return StatusResponse(status=body.status)

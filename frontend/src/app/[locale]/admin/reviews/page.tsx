@@ -20,14 +20,14 @@ import { useTranslations } from "next-intl";
 
 interface ReportedReview {
   id: string;
-  model_id: string;
-  model_name?: string;
+  catalog_id: string;
+  model_name?: string | null;
   user_id: string;
-  user_name?: string;
+  user_name?: string | null;
   rating: number;
-  comment?: string;
-  report_count: number;
-  report_reasons: string[];
+  title?: string | null;
+  comment?: string | null;
+  report_reason?: string | null;
   is_visible: boolean;
   created_at: string;
 }
@@ -135,7 +135,7 @@ export default function ReportedReviewsPage() {
                   <TableRow key={review.id} className="border-border">
                     <TableCell>
                       <Link
-                        href={`/marketplace/${review.model_id}`}
+                        href={`/marketplace/${review.catalog_id}`}
                         className="flex items-center gap-1 hover:text-primary"
                       >
                         {review.model_name}
@@ -156,19 +156,17 @@ export default function ReportedReviewsPage() {
                         {review.rating}
                       </div>
                     </TableCell>
-                    <TableCell className="max-w-xs truncate" title={review.comment}>
+                    <TableCell className="max-w-xs truncate" title={review.comment ?? undefined}>
                       {review.comment || <span className="text-muted-foreground italic">{t("noComment")}</span>}
                     </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <Badge variant="destructive">{t("reportCount", { count: review.report_count })}</Badge>
-                        {review.report_reasons.length > 0 && (
-                          <div className="text-xs text-muted-foreground">
-                            {review.report_reasons.slice(0, 2).join(", ")}
-                            {review.report_reasons.length > 2 && "..."}
-                          </div>
-                        )}
-                      </div>
+                    <TableCell className="max-w-xs">
+                      {review.report_reason ? (
+                        <span className="text-sm truncate block" title={review.report_reason}>
+                          {review.report_reason}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground italic text-sm">{t("noReason")}</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant={review.is_visible ? "default" : "secondary"}>

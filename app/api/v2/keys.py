@@ -1,7 +1,6 @@
 """API Key management endpoints for V2."""
 
 from datetime import timedelta
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_
@@ -14,6 +13,7 @@ from app.schemas.api_key import (
     CreateKeyRequest,
     CreateKeyResponse,
     KeyListResponse,
+    RevokeKeyResponse,
 )
 from app.services.auth import APIKeyService
 from app.shared.db.base import get_db
@@ -105,12 +105,12 @@ def list_api_keys(
     )
 
 
-@router.delete("/{key_id}")
+@router.delete("/{key_id}", response_model=RevokeKeyResponse)
 def revoke_api_key(
     key_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
+) -> RevokeKeyResponse:
     """Revoke an API key."""
     # Verify key belongs to user
     key = (
@@ -132,4 +132,4 @@ def revoke_api_key(
     key.is_active = False
     db.commit()
 
-    return {"message": "API key revoked successfully", "key_id": key_id}
+    return RevokeKeyResponse(message="API key revoked successfully", key_id=key_id)

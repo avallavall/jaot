@@ -24,7 +24,14 @@ from app.data.templates import load_all_templates
 from app.domains.solver.services import SolverService, get_solver_service
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
 from app.models import Organization
-from app.schemas.optimization import OptimizationProblem
+from app.schemas.optimization import OptimizationProblem, OptimizationResult
+from app.schemas.template import (
+    ExampleProblemsResponse,
+    SolveMetadataResponse,
+    TemplateDetailResponse,
+    TemplateListResponse,
+    TemplateSummaryResponse,
+)
 from app.services.template_resolver import resolve_template_dict as _resolve_template_dict
 from app.shared.constants.execution_provenance import ORIGIN_TEMPLATE
 from app.shared.core.rate_limiter import check_rate_limit
@@ -41,8 +48,8 @@ router = APIRouter()
 # ``_resolve_template_dict`` (YAML template or published marketplace listing → dict).
 
 
-@router.get("/metadata", operation_id="get_solve_metadata")
-def get_solve_metadata() -> dict[str, Any]:
+@router.get("/metadata", response_model=SolveMetadataResponse, operation_id="get_solve_metadata")
+def get_solve_metadata() -> SolveMetadataResponse:
     """Return available categories and generator types for model creation.
 
     Includes ``category_generators`` mapping each category to the generator
@@ -52,11 +59,11 @@ def get_solve_metadata() -> dict[str, Any]:
     from app.domains.solver.services.generators import GENERATOR_REGISTRY
     from app.models.optimization_model import ModelCategory
 
-    return {
-        "categories": [c.value for c in ModelCategory],
-        "generator_types": sorted(set(GENERATOR_REGISTRY.list_generators())),
-        "category_generators": get_category_generator_map(),
-    }
+    return SolveMetadataResponse(
+        categories=[c.value for c in ModelCategory],
+        generator_types=sorted(set(GENERATOR_REGISTRY.list_generators())),
+        category_generators=get_category_generator_map(),
+    )
 
 
 _SUMMARY_FIELDS = {
@@ -75,30 +82,32 @@ _SUMMARY_FIELDS = {
 }
 
 
-@router.get("/templates", operation_id="list_templates")
+@router.get("/templates", response_model=TemplateListResponse, operation_id="list_templates")
 def list_templates(
     category: str | None = None,
     featured: bool | None = None,
-) -> dict[str, Any]:
+) -> TemplateListResponse:
     """List all available optimization templates from YAML definitions."""
     yaml_templates = load_all_templates()
-    results: list[dict[str, Any]] = []
+    results: list[TemplateSummaryResponse] = []
 
     for t in yaml_templates:
         if category and t.category != category:
             continue
         if featured is not None and t.is_featured != featured:
             continue
-        results.append(t.model_dump(include=_SUMMARY_FIELDS))
+        results.append(TemplateSummaryResponse(**t.model_dump(include=_SUMMARY_FIELDS)))
 
-    return {"templates": results, "total": len(results)}
+    return TemplateListResponse(templates=results, total=len(results))
 
 
-@router.get("/templates/{template_id}", operation_id="get_template")
+@router.get(
+    "/templates/{template_id}", response_model=TemplateDetailResponse, operation_id="get_template"
+)
 def get_template(
     template_id: str,
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
+) -> TemplateDetailResponse:
     """Get a specific template with full details including input schema and example.
 
     Resolution order: YAML templates → published marketplace listing.
@@ -108,7 +117,7 @@ def get_template(
     if tmpl_dict is None:
         raise HTTPException(status_code=404, detail="Template not found")
 
-    return tmpl_dict
+    return TemplateDetailResponse(**tmpl_dict)
 
 
 @router.post(
@@ -132,7 +141,13 @@ def preview_template(
     return template_engine.render(tmpl_dict, input_data)
 
 
-@router.post("/templates/{template_id}/solve", operation_id="solve_with_template")
+@router.post(
+    "/templates/{template_id}/solve",
+    # The 202-degrade path returns a JSONResponse, which bypasses the response
+    # model — so what this declares is exactly what the completed solve returns.
+    response_model=OptimizationResult,
+    operation_id="solve_with_template",
+)
 def solve_with_template(  # def: blocks on the queued result in the threadpool (ADR-007 S4a)
     template_id: str,
     user_input: dict[str, Any],
@@ -261,7 +276,9 @@ def _log_template_use(
         logger.debug("Failed to log TEMPLATE_USE analytics event", exc_info=True)
 
 
-@router.get("/examples", operation_id="get_example_problems")
+@router.get(
+    "/examples", response_model=ExampleProblemsResponse, operation_id="get_example_problems"
+)
 def get_example_problems() -> dict[str, Any]:
     """Get example optimization problems for testing."""
     return {

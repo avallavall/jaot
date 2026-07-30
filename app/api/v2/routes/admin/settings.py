@@ -7,13 +7,13 @@ All endpoints are protected by the admin router's ``get_admin_user`` dependency.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from app.models.platform_setting_audit import PlatformSettingAudit
+from app.schemas.admin import SettingResetResponse
 from app.schemas.admin_settings import (
     AuditEntryResponse,
     AuditLogResponse,
@@ -142,12 +142,12 @@ def update_values(
     return SettingsUpdateResponse(updated=updated_keys, errors=errors)
 
 
-@router.post("/reset/{key}")
+@router.post("/reset/{key}", response_model=SettingResetResponse)
 def reset_setting(
     key: str,
     request: Request,
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
+) -> SettingResetResponse:
     """Reset a single setting to its registry default value.
 
     ADMIN-03: Logs the reset in audit trail.
@@ -160,10 +160,10 @@ def reset_setting(
     db.commit()
 
     if audit is None:
-        return {"key": key, "reset": False, "reason": "Key not found or is readonly"}
+        return SettingResetResponse(key=key, reset=False, reason="Key not found or is readonly")
 
     new_value = PlatformSettingsService.get(db, key)
-    return {"key": key, "reset": True, "default_value": new_value}
+    return SettingResetResponse(key=key, reset=True, default_value=new_value)
 
 
 @router.get("/audit", response_model=AuditLogResponse)

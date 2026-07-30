@@ -12,7 +12,13 @@ from sqlalchemy.orm import Session
 
 from app.api.v2.auth import get_current_user
 from app.models import ModelProjectListing, User
-from app.schemas.model import ModelCatalogResponse, UpdateCatalogSectionsRequest
+from app.schemas.model import (
+    LogoUploadResponse,
+    ModelCatalogResponse,
+    ScreenshotListResponse,
+    ScreenshotUploadResponse,
+    UpdateCatalogSectionsRequest,
+)
 from app.services.marketplace_fusion import listing_to_catalog_response
 from app.services.storage_service import get_storage_service
 from app.shared.db.base import get_db
@@ -81,13 +87,13 @@ def _get_storage():  # noqa: ANN202
         ) from exc
 
 
-@router.post("/catalog/{model_id}/logo")
+@router.post("/catalog/{model_id}/logo", response_model=LogoUploadResponse)
 def upload_logo(  # sync ON PURPOSE -> threadpool (ADR-009): boto3 upload blocks
     model_id: str,
     file: UploadFile,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> dict[str, str]:
+) -> LogoUploadResponse:
     """Upload or replace a model logo image."""
     storage = _get_storage()
     model = _get_listing_for_owner(model_id, current_user, db)
@@ -110,7 +116,7 @@ def upload_logo(  # sync ON PURPOSE -> threadpool (ADR-009): boto3 upload blocks
     model.logo_url = url
     db.commit()
 
-    return {"url": url}
+    return LogoUploadResponse(url=url)
 
 
 @router.delete("/catalog/{model_id}/logo", status_code=status.HTTP_204_NO_CONTENT)
@@ -135,13 +141,13 @@ def delete_logo(
     db.commit()
 
 
-@router.post("/catalog/{model_id}/screenshots")
+@router.post("/catalog/{model_id}/screenshots", response_model=ScreenshotUploadResponse)
 def upload_screenshot(  # sync ON PURPOSE -> threadpool (ADR-009): boto3 upload blocks
     model_id: str,
     file: UploadFile,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> dict[str, str | list[str]]:
+) -> ScreenshotUploadResponse:
     """Upload a screenshot image for a model (max 6)."""
     storage = _get_storage()
     model = _get_listing_for_owner(model_id, current_user, db)
@@ -160,16 +166,16 @@ def upload_screenshot(  # sync ON PURPOSE -> threadpool (ADR-009): boto3 upload 
     model.screenshot_urls = updated
     db.commit()
 
-    return {"url": url, "screenshots": model.screenshot_urls}
+    return ScreenshotUploadResponse(url=url, screenshots=model.screenshot_urls)
 
 
-@router.delete("/catalog/{model_id}/screenshots/{index}")
+@router.delete("/catalog/{model_id}/screenshots/{index}", response_model=ScreenshotListResponse)
 def delete_screenshot(
     model_id: str,
     index: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> dict[str, list[str]]:
+) -> ScreenshotListResponse:
     """Delete a screenshot by index (0-based)."""
     storage = _get_storage()
     model = _get_listing_for_owner(model_id, current_user, db)
@@ -188,7 +194,7 @@ def delete_screenshot(
     model.screenshot_urls = updated if updated else None
     db.commit()
 
-    return {"screenshots": model.screenshot_urls or []}
+    return ScreenshotListResponse(screenshots=model.screenshot_urls or [])
 
 
 @router.put("/catalog/{model_id}/sections", response_model=ModelCatalogResponse)

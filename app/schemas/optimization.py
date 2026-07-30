@@ -741,3 +741,74 @@ class OptimizationResult(BaseModel):
                 [p.model_dump() for p in self.progress_history] if self.progress_history else None
             ),
         }
+
+
+class ProblemValidationResponse(BaseModel):
+    """Verdict of ``POST /solve/validate`` — a dry run that never touches a solver.
+
+    ``errors`` and ``warnings`` are ALWAYS present arrays: the JSON editor lens
+    reads ``warnings.length`` on every validated edit. The counts ride only on a
+    valid problem, which is why they are optional here.
+    """
+
+    valid: bool
+    errors: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    num_variables: int | None = None
+    num_constraints: int | None = None
+    variable_types: dict[str, int] | None = Field(
+        default=None, description="Count of variables per type (continuous / integer / binary)"
+    )
+
+
+class AsyncSolveEnvelope(BaseModel):
+    """Acknowledgement of a solve queued on the ONE async pipeline (ADR-007).
+
+    ``task_id`` keys Celery and the WebSocket; ``execution_id`` keys history.
+    They are generated together at enqueue time and never diverge.
+    """
+
+    task_id: str
+    execution_id: str
+    status: str = "pending"
+    message: str
+    ws_url: str
+    poll_url: str
+
+
+class AsyncSolveStatusResponse(BaseModel):
+    """Poll response for a queued solve.
+
+    One shape for every Celery state, so a client reads the same fields whichever
+    branch answers: ``status`` is the discriminator (``pending`` / ``running`` /
+    ``completed`` / ``failed`` / the raw Celery state lowercased) and the rest are
+    filled per branch. The progress fields carry the worker's own ticks while the
+    solve runs; the routing telemetry is hoisted to the top level in ALL terminal
+    branches (D-13 / INT-01) so callers read it regardless of outcome.
+    """
+
+    task_id: str
+    status: str
+    message: str | None = None
+    error: str | None = None
+    result: dict[str, Any] | None = None
+
+    # Auto-routing telemetry, hoisted from the worker's result dict.
+    solver_used: str | None = None
+    auto_route_reason: str | None = None
+    warning: str | None = None
+
+    # Live progress meta (Celery PROGRESS state).
+    progress: float | None = None
+    iteration: int | None = None
+    objective_value: float | None = None
+    gap: float | None = None
+    timestamp: str | None = None
+
+
+class AsyncSolveCancelResponse(BaseModel):
+    """Outcome of a cancellation request against a queued or running solve."""
+
+    task_id: str
+    cancelled: bool
+    message: str

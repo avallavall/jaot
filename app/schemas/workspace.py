@@ -166,3 +166,15 @@ class AuditLogResponse(BaseModel):
             metadata=log.log_metadata,
             created_at=log.created_at,
         )
+
+
+class InviteAcceptResponse(BaseModel):
+    """Outcome of redeeming an invite token.
+
+    A second redemption by an existing member is a no-op, not an error: the
+    message says so and the role reported is the one they already hold.
+    """
+
+    message: str
+    workspace_id: str
+    role: str

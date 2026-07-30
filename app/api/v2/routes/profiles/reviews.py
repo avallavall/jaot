@@ -8,7 +8,6 @@ seeded a fork ModelProject from the listing (``source_ref``) and completed an ex
 """
 
 import uuid
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, func, or_
@@ -23,6 +22,7 @@ from app.models import (
     Organization,
     User,
 )
+from app.schemas.common import StatusResponse
 from app.schemas.profile import (
     CreateReviewRequest,
     ReportRequest,
@@ -228,12 +228,12 @@ def create_review(
     )
 
 
-@router.delete("/models/reviews/{review_id}")
+@router.delete("/models/reviews/{review_id}", response_model=StatusResponse)
 def delete_review(
     review_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
+) -> StatusResponse:
     """Delete own review."""
     review = (
         db.query(ModelReview)
@@ -262,16 +262,16 @@ def delete_review(
 
     db.commit()
 
-    return {"status": "deleted"}
+    return StatusResponse(status="deleted")
 
 
-@router.post("/models/reviews/{review_id}/report")
+@router.post("/models/reviews/{review_id}/report", response_model=StatusResponse)
 def report_review(
     review_id: str,
     body: ReportRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
+) -> StatusResponse:
     """Report a review as inappropriate."""
     review = (
         db.query(ModelReview)
@@ -288,4 +288,4 @@ def report_review(
     review.report_reason = body.reason
     db.commit()
 
-    return {"status": "reported"}
+    return StatusResponse(status="reported")

@@ -140,23 +140,52 @@ class ExecutionListResponse(BaseModel):
 
 
 class AsyncExecutionResponse(BaseModel):
-    """Response for async execution start."""
+    """Acknowledgement of a model execution queued on the async pipeline.
+
+    ``id`` and ``execution_id`` are the same value, served under both names for
+    callers that read either.
+    """
 
     id: str
     execution_id: str
+    model_project_id: str | None = None
     task_id: str
     status: str = "pending"
     message: str = "Execution started"
+    ws_url: str | None = None
+    poll_url: str | None = None
 
 
 class ExecutionStatusResponse(BaseModel):
-    """Response for execution status check."""
+    """Poll response for a queued model execution.
 
+    One shape for every Celery state — ``status`` discriminates and the rest are
+    filled per branch, mirroring the solve endpoint's own poll contract.
+    """
+
+    task_id: str | None = None
     execution_id: str
     status: str
-    progress: float | None = None
-    result: dict[str, Any] | None = None
+    message: str | None = None
+    result: Any = None
+    execution_time_ms: int | None = None
     error: str | None = None
+
+    # Live progress meta (Celery PROGRESS state).
+    progress: float | None = None
+    iteration: int | None = None
+    objective_value: float | None = None
+    gap: float | None = None
+    timestamp: str | None = None
+
+
+class ExecutionCancelResponse(BaseModel):
+    """Outcome of a cancellation request against a queued model execution."""
+
+    task_id: str
+    execution_id: str
+    cancelled: bool
+    message: str
 
 
 class FavoriteResponse(BaseModel):
@@ -246,3 +275,34 @@ class ReviewListResponse(BaseModel):
     page_size: int
     avg_rating: float | None = None
     rating_distribution: dict[int, int] | None = None
+
+
+class LogoUploadResponse(BaseModel):
+    """URL of the stored logo image."""
+
+    url: str
+
+
+class ScreenshotUploadResponse(BaseModel):
+    """The uploaded screenshot's URL plus the listing's full screenshot list."""
+
+    url: str
+    screenshots: list[str]
+
+
+class ScreenshotListResponse(BaseModel):
+    """The listing's screenshots after a deletion."""
+
+    screenshots: list[str]
+
+
+class CatalogModelSchemaResponse(BaseModel):
+    """The input contract of a catalog model: what to fill in to run it."""
+
+    id: str
+    name: str
+    generator_type: str | None = None
+    input_schema: dict[str, Any] | None = None
+    input_fields: list[dict[str, Any]] | None = None
+    example_input: dict[str, Any] | None = None
+    scenario_description: str | None = None

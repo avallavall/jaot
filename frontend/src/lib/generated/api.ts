@@ -2723,7 +2723,7 @@ export interface paths {
          * @description Solve a ModelProject's draft (or a specific committed version).
          *
          *     ADR-007 S4a — async-under-the-hood: resolves the project/version model
-         *     server-side, then rides the ONE async pipeline (``_enqueue_async_solve``)
+         *     server-side, then rides the ONE async pipeline (``enqueue_async_solve``)
          *     exactly like ``POST /solve`` — tier caps, auto-routing, the
          *     pending ModelExecution row (tagged ``model_project`` provenance + typed
          *     project/version columns), and the Celery worker. The classic
@@ -3430,7 +3430,7 @@ export interface paths {
          *
          *     ADR-007 S4a — async-under-the-hood: parses the uploaded file + applies solver
          *     options server-side, then rides the ONE async pipeline
-         *     (``_enqueue_async_solve``) exactly like ``POST /solve`` — tier caps,
+         *     (``enqueue_async_solve``) exactly like ``POST /solve`` — tier caps,
          *     auto-routing, the pending
          *     ModelExecution row (tagged ``imported_file`` provenance), and the Celery
          *     worker. The classic ``OptimizationResult`` comes back on completion; a solve
@@ -3617,7 +3617,7 @@ export interface paths {
          *
          *     ADR-007 S4a — async-under-the-hood: renders the template into an
          *     OptimizationProblem server-side, then rides the ONE async pipeline
-         *     (``_enqueue_async_solve``) exactly like ``POST /solve`` — tier caps,
+         *     (``enqueue_async_solve``) exactly like ``POST /solve`` — tier caps,
          *     auto-routing, the pending
          *     ModelExecution row (tagged ``template`` provenance), and the Celery worker.
          *     The classic ``OptimizationResult`` comes back on completion; a solve that
@@ -4319,6 +4319,28 @@ export interface components {
             sellers: components["schemas"]["SellerLeaderboardEntry"][];
         };
         /**
+         * AdminCountPair
+         * @description Total vs. active count of one resource on the admin dashboard.
+         */
+        AdminCountPair: {
+            /** Active */
+            active: number;
+            /** Total */
+            total: number;
+        };
+        /**
+         * AdminModelCounts
+         * @description Marketplace counts. ``activated_total`` counts fork projects seeded from a listing.
+         */
+        AdminModelCounts: {
+            /** Activated Total */
+            activated_total: number;
+            /** Catalog Public */
+            catalog_public: number;
+            /** Catalog Total */
+            catalog_total: number;
+        };
+        /**
          * AdminPaginatedResponse
          * @description Paginated response for admin endpoints.
          */
@@ -4333,6 +4355,16 @@ export interface components {
             pages: number;
             /** Total */
             total: number;
+        };
+        /**
+         * AdminStatsResponse
+         * @description Admin dashboard headline numbers.
+         */
+        AdminStatsResponse: {
+            api_keys: components["schemas"]["AdminCountPair"];
+            models: components["schemas"]["AdminModelCounts"];
+            organizations: components["schemas"]["AdminCountPair"];
+            users: components["schemas"]["AdminCountPair"];
         };
         /**
          * AdminVerificationDecision
@@ -4418,6 +4450,19 @@ export interface components {
             total_impressions: number;
             /** Total Views */
             total_views: number;
+        };
+        /**
+         * AnthropicKeyStatusResponse
+         * @description Whether BYOK is active, and — for the owner only — a masked hint.
+         *
+         *     The plaintext key is never part of this contract. ``hint`` is null for a
+         *     non-owner member, who may see *that* a key is set but not any of it.
+         */
+        AnthropicKeyStatusResponse: {
+            /** Enabled */
+            enabled: boolean;
+            /** Hint */
+            hint?: string | null;
         };
         /**
          * APIKeyCreate
@@ -4558,6 +4603,114 @@ export interface components {
             workspace_id?: string | null;
         };
         /**
+         * AsyncExecutionResponse
+         * @description Acknowledgement of a model execution queued on the async pipeline.
+         *
+         *     ``id`` and ``execution_id`` are the same value, served under both names for
+         *     callers that read either.
+         */
+        AsyncExecutionResponse: {
+            /** Execution Id */
+            execution_id: string;
+            /** Id */
+            id: string;
+            /**
+             * Message
+             * @default Execution started
+             */
+            message: string;
+            /** Model Project Id */
+            model_project_id?: string | null;
+            /** Poll Url */
+            poll_url?: string | null;
+            /**
+             * Status
+             * @default pending
+             */
+            status: string;
+            /** Task Id */
+            task_id: string;
+            /** Ws Url */
+            ws_url?: string | null;
+        };
+        /**
+         * AsyncSolveCancelResponse
+         * @description Outcome of a cancellation request against a queued or running solve.
+         */
+        AsyncSolveCancelResponse: {
+            /** Cancelled */
+            cancelled: boolean;
+            /** Message */
+            message: string;
+            /** Task Id */
+            task_id: string;
+        };
+        /**
+         * AsyncSolveEnvelope
+         * @description Acknowledgement of a solve queued on the ONE async pipeline (ADR-007).
+         *
+         *     ``task_id`` keys Celery and the WebSocket; ``execution_id`` keys history.
+         *     They are generated together at enqueue time and never diverge.
+         */
+        AsyncSolveEnvelope: {
+            /** Execution Id */
+            execution_id: string;
+            /** Message */
+            message: string;
+            /** Poll Url */
+            poll_url: string;
+            /**
+             * Status
+             * @default pending
+             */
+            status: string;
+            /** Task Id */
+            task_id: string;
+            /** Ws Url */
+            ws_url: string;
+        };
+        /**
+         * AsyncSolveStatusResponse
+         * @description Poll response for a queued solve.
+         *
+         *     One shape for every Celery state, so a client reads the same fields whichever
+         *     branch answers: ``status`` is the discriminator (``pending`` / ``running`` /
+         *     ``completed`` / ``failed`` / the raw Celery state lowercased) and the rest are
+         *     filled per branch. The progress fields carry the worker's own ticks while the
+         *     solve runs; the routing telemetry is hoisted to the top level in ALL terminal
+         *     branches (D-13 / INT-01) so callers read it regardless of outcome.
+         */
+        AsyncSolveStatusResponse: {
+            /** Auto Route Reason */
+            auto_route_reason?: string | null;
+            /** Error */
+            error?: string | null;
+            /** Gap */
+            gap?: number | null;
+            /** Iteration */
+            iteration?: number | null;
+            /** Message */
+            message?: string | null;
+            /** Objective Value */
+            objective_value?: number | null;
+            /** Progress */
+            progress?: number | null;
+            /** Result */
+            result?: {
+                [key: string]: unknown;
+            } | null;
+            /** Solver Used */
+            solver_used?: string | null;
+            /** Status */
+            status: string;
+            /** Task Id */
+            task_id: string;
+            /** Timestamp */
+            timestamp?: string | null;
+            /** Warning */
+            warning?: string | null;
+        };
+        /**
          * AttachmentResponse
          * @description Response schema for a conversation attachment.
          */
@@ -4620,6 +4773,35 @@ export interface components {
             total_triggers: number;
             /** Webhook Delivery Rate */
             webhook_delivery_rate: number;
+        };
+        /**
+         * AvailableSolver
+         * @description One entry of the solver listing.
+         *
+         *     ``reason`` and ``retry_after`` ride only on an unavailable solver (D-11);
+         *     ``capabilities`` is optional because a solver that is listable must stay
+         *     listable even when its declared capabilities cannot be read.
+         */
+        AvailableSolver: {
+            /** Available */
+            available: boolean;
+            capabilities?: components["schemas"]["SolverCapabilityFlags"] | null;
+            /** Description */
+            description: string;
+            /** Name */
+            name: string;
+            /** Reason */
+            reason?: string | null;
+            /** Retry After */
+            retry_after?: number | null;
+        };
+        /**
+         * AvailableSolversResponse
+         * @description Solvers this server can run right now, with live availability.
+         */
+        AvailableSolversResponse: {
+            /** Solvers */
+            solvers: components["schemas"]["AvailableSolver"][];
         };
         /** Body_import_and_solve */
         Body_import_and_solve: {
@@ -4796,6 +4978,32 @@ export interface components {
             /** Total */
             total: number;
         };
+        /**
+         * CatalogModelSchemaResponse
+         * @description The input contract of a catalog model: what to fill in to run it.
+         */
+        CatalogModelSchemaResponse: {
+            /** Example Input */
+            example_input?: {
+                [key: string]: unknown;
+            } | null;
+            /** Generator Type */
+            generator_type?: string | null;
+            /** Id */
+            id: string;
+            /** Input Fields */
+            input_fields?: {
+                [key: string]: unknown;
+            }[] | null;
+            /** Input Schema */
+            input_schema?: {
+                [key: string]: unknown;
+            } | null;
+            /** Name */
+            name: string;
+            /** Scenario Description */
+            scenario_description?: string | null;
+        };
         /** CategoryStat */
         CategoryStat: {
             /** Avg Solve Time Ms */
@@ -4826,6 +5034,27 @@ export interface components {
              * @default false
              */
             use_advanced_model: boolean;
+        };
+        /**
+         * ChatMessageResponse
+         * @description A message in a conversation (returned to client).
+         */
+        ChatMessageResponse: {
+            /** Content */
+            content: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Formulation Json */
+            formulation_json?: {
+                [key: string]: unknown;
+            } | null;
+            /** Id */
+            id: string;
+            /** Role */
+            role: string;
         };
         /**
          * CoefConditioning
@@ -5082,6 +5311,41 @@ export interface components {
             id: string;
             /** Status */
             status: string;
+        };
+        /**
+         * ConversationResponse
+         * @description Full conversation with messages and current formulation.
+         *
+         *     ``model_id`` (builder document) and ``model_project_id`` (studio project) say
+         *     what the conversation is *about*: at most one is set, and the listing is
+         *     filtered by either.
+         */
+        ConversationResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Current Formulation */
+            current_formulation?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Id */
+            id: string;
+            /**
+             * Messages
+             * @default []
+             */
+            messages: components["schemas"]["ChatMessageResponse"][];
+            /** Model Id */
+            model_id?: string | null;
+            /** Model Project Id */
+            model_project_id?: string | null;
         };
         /**
          * ConversionFunnelStep
@@ -5837,6 +6101,28 @@ export interface components {
             truncated_families: boolean;
         };
         /**
+         * ExampleProblem
+         * @description A ready-to-solve sample problem.
+         */
+        ExampleProblem: {
+            /** Description */
+            description: string;
+            /** Name */
+            name: string;
+            /** Problem */
+            problem: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * ExampleProblemsResponse
+         * @description Example optimization problems served for testing and onboarding.
+         */
+        ExampleProblemsResponse: {
+            /** Examples */
+            examples: components["schemas"]["ExampleProblem"][];
+        };
+        /**
          * ExecuteModelRequest
          * @description Request to execute a model.
          */
@@ -5850,6 +6136,20 @@ export interface components {
             input_data: {
                 [key: string]: unknown;
             };
+        };
+        /**
+         * ExecutionCancelResponse
+         * @description Outcome of a cancellation request against a queued model execution.
+         */
+        ExecutionCancelResponse: {
+            /** Cancelled */
+            cancelled: boolean;
+            /** Execution Id */
+            execution_id: string;
+            /** Message */
+            message: string;
+            /** Task Id */
+            task_id: string;
         };
         /**
          * ExecutionListResponse
@@ -5891,6 +6191,39 @@ export interface components {
             success_rate: number;
             /** Total */
             total: number;
+        };
+        /**
+         * ExecutionStatusResponse
+         * @description Poll response for a queued model execution.
+         *
+         *     One shape for every Celery state — ``status`` discriminates and the rest are
+         *     filled per branch, mirroring the solve endpoint's own poll contract.
+         */
+        ExecutionStatusResponse: {
+            /** Error */
+            error?: string | null;
+            /** Execution Id */
+            execution_id: string;
+            /** Execution Time Ms */
+            execution_time_ms?: number | null;
+            /** Gap */
+            gap?: number | null;
+            /** Iteration */
+            iteration?: number | null;
+            /** Message */
+            message?: string | null;
+            /** Objective Value */
+            objective_value?: number | null;
+            /** Progress */
+            progress?: number | null;
+            /** Result */
+            result?: unknown;
+            /** Status */
+            status: string;
+            /** Task Id */
+            task_id?: string | null;
+            /** Timestamp */
+            timestamp?: string | null;
         };
         /**
          * ExplainInfeasibilityRequest
@@ -6058,6 +6391,45 @@ export interface components {
              * @default false
              */
             use_advanced_model: boolean;
+        };
+        /**
+         * FavoriteListResponse
+         * @description The user's favourite models.
+         */
+        FavoriteListResponse: {
+            /** Items */
+            items: components["schemas"]["FavoriteModelSummary"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * FavoriteModelSummary
+         * @description One entry of the favourites list.
+         *
+         *     A deliberate subset of ``ModelCatalogResponse``: the favourites shelf shows a
+         *     card, not a listing page, and sending the full catalog payload would put the
+         *     rich description sections and the media URLs on a screen that renders none
+         *     of them.
+         */
+        FavoriteModelSummary: {
+            /** Author Name */
+            author_name: string;
+            /** Avg Rating */
+            avg_rating?: number | null;
+            /** Category */
+            category: string;
+            /** Description */
+            description: string;
+            /** Display Name */
+            display_name: string;
+            /** Id */
+            id: string;
+            /** Is Featured */
+            is_featured: boolean;
+            /** Is Official */
+            is_official: boolean;
+            /** Name */
+            name: string;
         };
         /**
          * FavoriteResponse
@@ -6443,6 +6815,21 @@ export interface components {
             token: string;
         };
         /**
+         * InviteAcceptResponse
+         * @description Outcome of redeeming an invite token.
+         *
+         *     A second redemption by an existing member is a no-op, not an error: the
+         *     message says so and the role reported is the one they already hold.
+         */
+        InviteAcceptResponse: {
+            /** Message */
+            message: string;
+            /** Role */
+            role: string;
+            /** Workspace Id */
+            workspace_id: string;
+        };
+        /**
          * InviteResponse
          * @description Response schema for a workspace invite (email or link, without plaintext token).
          */
@@ -6532,6 +6919,14 @@ export interface components {
             user: {
                 [key: string]: unknown;
             };
+        };
+        /**
+         * LogoUploadResponse
+         * @description URL of the stored logo image.
+         */
+        LogoUploadResponse: {
+            /** Url */
+            url: string;
         };
         /** LowSuccessModel */
         LowSuccessModel: {
@@ -6628,6 +7023,22 @@ export interface components {
             total_successful: number;
             /** Uptime Seconds */
             uptime_seconds: number;
+        };
+        /**
+         * ModelBadgesResponse
+         * @description The listing's badge state after an update.
+         */
+        ModelBadgesResponse: {
+            /** Id */
+            id: string;
+            /** Is Featured */
+            is_featured: boolean;
+            /** Is Official */
+            is_official: boolean;
+            /** Is Public */
+            is_public: boolean;
+            /** Success */
+            success: boolean;
         };
         /**
          * ModelCatalogListResponse
@@ -6953,6 +7364,16 @@ export interface components {
             version_description: string | null;
             /** Version Name */
             version_name: string | null;
+        };
+        /**
+         * ModelVisibilityResponse
+         * @description Outcome of flipping a listing's public visibility.
+         */
+        ModelVisibilityResponse: {
+            /** Is Public */
+            is_public: boolean;
+            /** Success */
+            success: boolean;
         };
         /**
          * MultiObjectiveConfig
@@ -7537,6 +7958,16 @@ export interface components {
             rate_limit_per_minute?: number | null;
         };
         /**
+         * OrganizationVerificationResponse
+         * @description Outcome of flipping an organization's verified badge.
+         */
+        OrganizationVerificationResponse: {
+            /** Organization Id */
+            organization_id: string;
+            /** Status */
+            status: string;
+        };
+        /**
          * OrgCounts
          * @description Aggregate counts for an organization.
          */
@@ -7778,6 +8209,55 @@ export interface components {
             total_pages: number;
         };
         /**
+         * PaginatedResponse[ConversationResponse]
+         * @example {
+         *       "has_next": true,
+         *       "has_prev": false,
+         *       "items": [],
+         *       "page": 1,
+         *       "page_size": 20,
+         *       "total": 100,
+         *       "total_pages": 5
+         *     }
+         */
+        PaginatedResponse_ConversationResponse_: {
+            /**
+             * Has Next
+             * @description Whether there is a next page
+             */
+            has_next: boolean;
+            /**
+             * Has Prev
+             * @description Whether there is a previous page
+             */
+            has_prev: boolean;
+            /**
+             * Items
+             * @description List of items for current page
+             */
+            items: components["schemas"]["ConversationResponse"][];
+            /**
+             * Page
+             * @description Current page number
+             */
+            page: number;
+            /**
+             * Page Size
+             * @description Items per page
+             */
+            page_size: number;
+            /**
+             * Total
+             * @description Total number of items
+             */
+            total: number;
+            /**
+             * Total Pages
+             * @description Total number of pages
+             */
+            total_pages: number;
+        };
+        /**
          * PaginatedResponse[TriggerRunResponse]
          * @example {
          *       "has_next": true,
@@ -7953,6 +8433,33 @@ export interface components {
             input_data: {
                 [key: string]: unknown;
             };
+        };
+        /**
+         * ProblemValidationResponse
+         * @description Verdict of ``POST /solve/validate`` — a dry run that never touches a solver.
+         *
+         *     ``errors`` and ``warnings`` are ALWAYS present arrays: the JSON editor lens
+         *     reads ``warnings.length`` on every validated edit. The counts ride only on a
+         *     valid problem, which is why they are optional here.
+         */
+        ProblemValidationResponse: {
+            /** Errors */
+            errors?: string[];
+            /** Num Constraints */
+            num_constraints?: number | null;
+            /** Num Variables */
+            num_variables?: number | null;
+            /** Valid */
+            valid: boolean;
+            /**
+             * Variable Types
+             * @description Count of variables per type (continuous / integer / binary)
+             */
+            variable_types?: {
+                [key: string]: number;
+            } | null;
+            /** Warnings */
+            warnings?: string[];
         };
         /**
          * ProgressPoint
@@ -8245,6 +8752,65 @@ export interface components {
             /** User Id */
             user_id: string;
         };
+        /**
+         * RecentListResponse
+         * @description The user's recently opened models, most recent first.
+         */
+        RecentListResponse: {
+            /** Items */
+            items: components["schemas"]["RecentModelSummary"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * RecentModelSummary
+         * @description One entry of the recently-opened list.
+         */
+        RecentModelSummary: {
+            /** Access Count */
+            access_count: number;
+            /** Author Name */
+            author_name: string;
+            /** Category */
+            category: string;
+            /** Display Name */
+            display_name: string;
+            /** Id */
+            id: string;
+            /**
+             * Last Accessed
+             * Format: date-time
+             */
+            last_accessed: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * RecentRequestEntry
+         * @description One solve request as the in-process metrics collector recorded it.
+         */
+        RecentRequestEntry: {
+            /** Duration Ms */
+            duration_ms: number;
+            /** Error */
+            error?: string | null;
+            /** Problem Type */
+            problem_type?: string | null;
+            /** Success */
+            success: boolean;
+            /** Timestamp */
+            timestamp: string;
+        };
+        /**
+         * RecentRequestsResponse
+         * @description The most recent solve requests, oldest first.
+         */
+        RecentRequestsResponse: {
+            /** Count */
+            count: number;
+            /** Recent Requests */
+            recent_requests: components["schemas"]["RecentRequestEntry"][];
+        };
         /** ReliabilityResponse */
         ReliabilityResponse: {
             /** Async Count */
@@ -8269,6 +8835,54 @@ export interface components {
             timeout_rate: number;
             /** Total Executions */
             total_executions: number;
+        };
+        /**
+         * ReportedReviewListResponse
+         * @description Paginated list of reviews awaiting moderation.
+         */
+        ReportedReviewListResponse: {
+            /** Items */
+            items: components["schemas"]["ReportedReviewResponse"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /**
+         * ReportedReviewResponse
+         * @description A review flagged for moderation.
+         *
+         *     A review carries a single report flag and a single reason — there is no
+         *     per-review report counter anywhere in the model.
+         */
+        ReportedReviewResponse: {
+            /** Catalog Id */
+            catalog_id: string;
+            /** Comment */
+            comment?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Is Visible */
+            is_visible: boolean;
+            /** Model Name */
+            model_name?: string | null;
+            /** Rating */
+            rating: number;
+            /** Report Reason */
+            report_reason?: string | null;
+            /** Title */
+            title?: string | null;
+            /** User Id */
+            user_id: string;
+            /** User Name */
+            user_name?: string | null;
         };
         /**
          * ReportRequest
@@ -8370,6 +8984,26 @@ export interface components {
             user_id: string;
             /** User Name */
             user_name: string;
+        };
+        /**
+         * ReviewVisibilityResponse
+         * @description Outcome of flipping a review's visibility.
+         */
+        ReviewVisibilityResponse: {
+            /** Is Visible */
+            is_visible: boolean;
+            /** Status */
+            status: string;
+        };
+        /**
+         * RevokeKeyResponse
+         * @description Acknowledgement that an API key was revoked.
+         */
+        RevokeKeyResponse: {
+            /** Key Id */
+            key_id: string;
+            /** Message */
+            message: string;
         };
         /**
          * RhsRange
@@ -8615,6 +9249,60 @@ export interface components {
             timezone?: string | null;
         };
         /**
+         * ScorecardCategoryScore
+         * @description One scoring dimension of a template, with the notes that justify it.
+         */
+        ScorecardCategoryScore: {
+            /** Max Score */
+            max_score: number;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string[];
+            /** Score */
+            score: number;
+        };
+        /**
+         * ScorecardTemplateScore
+         * @description A single template's quality score.
+         */
+        ScorecardTemplateScore: {
+            /** Categories */
+            categories: components["schemas"]["ScorecardCategoryScore"][];
+            /** Category */
+            category: string;
+            /** Generator Type */
+            generator_type: string;
+            /** Grade */
+            grade: string;
+            /** Max Total */
+            max_total: number;
+            /** Template Id */
+            template_id: string;
+            /** Template Name */
+            template_name: string;
+            /** Total */
+            total: number;
+        };
+        /**
+         * ScreenshotListResponse
+         * @description The listing's screenshots after a deletion.
+         */
+        ScreenshotListResponse: {
+            /** Screenshots */
+            screenshots: string[];
+        };
+        /**
+         * ScreenshotUploadResponse
+         * @description The uploaded screenshot's URL plus the listing's full screenshot list.
+         */
+        ScreenshotUploadResponse: {
+            /** Screenshots */
+            screenshots: string[];
+            /** Url */
+            url: string;
+        };
+        /**
          * SellerLeaderboardEntry
          * @description Leaderboard entry for a model author (admin view).
          */
@@ -8713,6 +9401,23 @@ export interface components {
             setting_type: string;
             /** Unit */
             unit?: string | null;
+        };
+        /**
+         * SettingResetResponse
+         * @description Outcome of resetting one platform setting to its registry default.
+         *
+         *     ``reset=False`` carries ``reason`` instead of a value — the key is unknown
+         *     or readonly, which is not an error the caller should retry.
+         */
+        SettingResetResponse: {
+            /** Default Value */
+            default_value?: unknown;
+            /** Key */
+            key: string;
+            /** Reason */
+            reason?: string | null;
+            /** Reset */
+            reset: boolean;
         };
         /**
          * SettingsRegistryResponse
@@ -8820,6 +9525,49 @@ export interface components {
          */
         SkillLevel: "beginner" | "intermediate" | "expert";
         /**
+         * SolveMetadataResponse
+         * @description Categories and generator types available for model creation.
+         */
+        SolveMetadataResponse: {
+            /** Categories */
+            categories: string[];
+            /**
+             * Category Generators
+             * @description Category -> generator types that have templates in it
+             */
+            category_generators: {
+                [key: string]: string[];
+            };
+            /** Generator Types */
+            generator_types: string[];
+        };
+        /**
+         * SolverCapabilityFlags
+         * @description What a solver can actually deliver, as the UI reads it.
+         */
+        SolverCapabilityFlags: {
+            /**
+             * Progress
+             * @description Per-incumbent streaming (Live Solve)
+             */
+            progress: boolean;
+            /**
+             * Quadratic
+             * @description Models carrying quadratic terms can run
+             */
+            quadratic: boolean;
+            /**
+             * Sensitivity
+             * @description Shadow prices / reduced costs
+             */
+            sensitivity: boolean;
+            /**
+             * Warm Start
+             * @description A re-solve can be seeded from the incumbent
+             */
+            warm_start: boolean;
+        };
+        /**
          * SolverOptions
          * @description Solver configuration options.
          */
@@ -8855,6 +9603,30 @@ export interface components {
          * @enum {string}
          */
         SolverStatus: "optimal" | "feasible" | "infeasible" | "unbounded" | "time_limit" | "error";
+        /**
+         * StatusResponse
+         * @description Acknowledgement carrying only the outcome verb (``deleted``, ``updated``, ...).
+         */
+        StatusResponse: {
+            /** Status */
+            status: string;
+        };
+        /**
+         * SuccessResponse
+         * @description Generic success response.
+         */
+        SuccessResponse: {
+            /**
+             * Message
+             * @default Operation completed successfully
+             */
+            message: string;
+            /**
+             * Success
+             * @default true
+             */
+            success: boolean;
+        };
         /**
          * SummaryResponse
          * @description Aggregated execution statistics.
@@ -8914,6 +9686,134 @@ export interface components {
              * @description Memory usage percentage
              */
             memory_percent: number;
+        };
+        /**
+         * TemplateDetailResponse
+         * @description A template with everything needed to render its form and solve it.
+         *
+         *     ``short_description``, ``problem_type_tags``, ``generator_params``,
+         *     ``is_featured``, the estimates and ``version`` come from YAML definitions
+         *     only; ``generator`` rides only on a marketplace listing.
+         */
+        TemplateDetailResponse: {
+            /** Category */
+            category: string;
+            /** Description */
+            description: string;
+            /** Display Name */
+            display_name: string;
+            /** Estimated Constraints */
+            estimated_constraints?: number | null;
+            /** Estimated Variables */
+            estimated_variables?: number | null;
+            /** Example Input */
+            example_input?: {
+                [key: string]: unknown;
+            } | null;
+            /** Generator */
+            generator?: string | null;
+            /** Generator Params */
+            generator_params?: {
+                [key: string]: unknown;
+            } | null;
+            /** Generator Type */
+            generator_type?: string | null;
+            /** Id */
+            id: string;
+            /** Input Fields */
+            input_fields?: {
+                [key: string]: unknown;
+            }[] | null;
+            /** Input Schema */
+            input_schema?: {
+                [key: string]: unknown;
+            } | null;
+            /** Is Featured */
+            is_featured?: boolean | null;
+            /** Name */
+            name: string;
+            /** Problem Type Tags */
+            problem_type_tags?: string[] | null;
+            /** Scenario Description */
+            scenario_description?: string | null;
+            /** Short Description */
+            short_description?: string | null;
+            /** Tags */
+            tags?: string[];
+            /** Version */
+            version?: string | null;
+        };
+        /**
+         * TemplateListResponse
+         * @description The template catalog, optionally filtered by category or featured flag.
+         */
+        TemplateListResponse: {
+            /** Templates */
+            templates: components["schemas"]["TemplateSummaryResponse"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * TemplateScorecardResponse
+         * @description Automated quality scoring across all YAML templates.
+         *
+         *     ``filtered_count`` rides only when the request narrowed the report; the
+         *     aggregates always describe the FULL run, not the filtered subset.
+         */
+        TemplateScorecardResponse: {
+            /** Average Score */
+            average_score: number;
+            /** Bottom 5 */
+            bottom_5: string[];
+            /** By Generator Type */
+            by_generator_type: {
+                [key: string]: number;
+            };
+            /** Filtered Count */
+            filtered_count?: number | null;
+            /** Grade Distribution */
+            grade_distribution: {
+                [key: string]: number;
+            };
+            /** Templates */
+            templates: components["schemas"]["ScorecardTemplateScore"][];
+            /** Top 5 */
+            top_5: string[];
+            /** Total Templates */
+            total_templates: number;
+        };
+        /**
+         * TemplateSummaryResponse
+         * @description One entry of the template catalog — the card, not the form.
+         */
+        TemplateSummaryResponse: {
+            /** Category */
+            category: string;
+            /** Description */
+            description: string;
+            /** Display Name */
+            display_name: string;
+            /** Estimated Constraints */
+            estimated_constraints?: number | null;
+            /** Estimated Variables */
+            estimated_variables?: number | null;
+            /** Generator Type */
+            generator_type: string;
+            /** Id */
+            id: string;
+            /**
+             * Is Featured
+             * @default false
+             */
+            is_featured: boolean;
+            /** Name */
+            name: string;
+            /** Problem Type Tags */
+            problem_type_tags?: string[];
+            /** Short Description */
+            short_description: string;
+            /** Tags */
+            tags?: string[];
         };
         /**
          * TimeSeriesDataPoint
@@ -9768,11 +10668,15 @@ export interface components {
 }
 export type AccountDeleteRequest = components['schemas']['AccountDeleteRequest'];
 export type AdminAnalyticsResponse = components['schemas']['AdminAnalyticsResponse'];
+export type AdminCountPair = components['schemas']['AdminCountPair'];
+export type AdminModelCounts = components['schemas']['AdminModelCounts'];
 export type AdminPaginatedResponse = components['schemas']['AdminPaginatedResponse'];
+export type AdminStatsResponse = components['schemas']['AdminStatsResponse'];
 export type AdminVerificationDecision = components['schemas']['AdminVerificationDecision'];
 export type AdminVerificationEntry = components['schemas']['AdminVerificationEntry'];
 export type AiUsageResponse = components['schemas']['AiUsageResponse'];
 export type AnalyticsSummaryResponse = components['schemas']['AnalyticsSummaryResponse'];
+export type AnthropicKeyStatusResponse = components['schemas']['AnthropicKeyStatusResponse'];
 export type ApiKeyCreate = components['schemas']['APIKeyCreate'];
 export type ApiKeyInfo = components['schemas']['APIKeyInfo'];
 export type ApiKeyResponse = components['schemas']['APIKeyResponse'];
@@ -9780,9 +10684,15 @@ export type AppSchemasAdminSettingsAuditLogResponse = components['schemas']['app
 export type AppSchemasAnalyticsConversionFunnelResponse = components['schemas']['app__schemas__analytics__ConversionFunnelResponse'];
 export type AppSchemasAuthorAnalyticsConversionFunnelResponse = components['schemas']['app__schemas__author_analytics__ConversionFunnelResponse'];
 export type AppSchemasWorkspaceAuditLogResponse = components['schemas']['app__schemas__workspace__AuditLogResponse'];
+export type AsyncExecutionResponse = components['schemas']['AsyncExecutionResponse'];
+export type AsyncSolveCancelResponse = components['schemas']['AsyncSolveCancelResponse'];
+export type AsyncSolveEnvelope = components['schemas']['AsyncSolveEnvelope'];
+export type AsyncSolveStatusResponse = components['schemas']['AsyncSolveStatusResponse'];
 export type AttachmentResponse = components['schemas']['AttachmentResponse'];
 export type AuditEntryResponse = components['schemas']['AuditEntryResponse'];
 export type AutomationStats = components['schemas']['AutomationStats'];
+export type AvailableSolver = components['schemas']['AvailableSolver'];
+export type AvailableSolversResponse = components['schemas']['AvailableSolversResponse'];
 export type BodyImportAndSolve = components['schemas']['Body_import_and_solve'];
 export type BodyImportPreview = components['schemas']['Body_import_preview'];
 export type BodyImportProjectDataset = components['schemas']['Body_import_project_dataset'];
@@ -9795,8 +10705,10 @@ export type BuilderDocumentListResponse = components['schemas']['BuilderDocument
 export type BuilderDocumentResponse = components['schemas']['BuilderDocumentResponse'];
 export type BuilderDocumentUpdate = components['schemas']['BuilderDocumentUpdate'];
 export type BuilderSolves = components['schemas']['BuilderSolves'];
+export type CatalogModelSchemaResponse = components['schemas']['CatalogModelSchemaResponse'];
 export type CategoryStat = components['schemas']['CategoryStat'];
 export type ChatMessageRequest = components['schemas']['ChatMessageRequest'];
+export type ChatMessageResponse = components['schemas']['ChatMessageResponse'];
 export type CoefConditioning = components['schemas']['CoefConditioning'];
 export type CommitRequest = components['schemas']['CommitRequest'];
 export type CommunityStatusResponse = components['schemas']['CommunityStatusResponse'];
@@ -9809,6 +10721,7 @@ export type ConstraintSensitivity = components['schemas']['ConstraintSensitivity
 export type ConstraintUtilization = components['schemas']['ConstraintUtilization'];
 export type ContactCreate = components['schemas']['ContactCreate'];
 export type ContactResponse = components['schemas']['ContactResponse'];
+export type ConversationResponse = components['schemas']['ConversationResponse'];
 export type ConversionFunnelStep = components['schemas']['ConversionFunnelStep'];
 export type CountryDistributionEntry = components['schemas']['CountryDistributionEntry'];
 export type CreateCheckpointRequest = components['schemas']['CreateCheckpointRequest'];
@@ -9852,14 +10765,20 @@ export type EmailSignupRequest = components['schemas']['EmailSignupRequest'];
 export type EntityCounts = components['schemas']['EntityCounts'];
 export type EventBreakdownEntry = components['schemas']['EventBreakdownEntry'];
 export type ExactAnalysis = components['schemas']['ExactAnalysis'];
+export type ExampleProblem = components['schemas']['ExampleProblem'];
+export type ExampleProblemsResponse = components['schemas']['ExampleProblemsResponse'];
 export type ExecuteModelRequest = components['schemas']['ExecuteModelRequest'];
+export type ExecutionCancelResponse = components['schemas']['ExecutionCancelResponse'];
 export type ExecutionListResponse = components['schemas']['ExecutionListResponse'];
 export type ExecutionStats = components['schemas']['ExecutionStats'];
+export type ExecutionStatusResponse = components['schemas']['ExecutionStatusResponse'];
 export type ExplainInfeasibilityRequest = components['schemas']['ExplainInfeasibilityRequest'];
 export type ExplainModelRequest = components['schemas']['ExplainModelRequest'];
 export type ExplainScenariosRequest = components['schemas']['ExplainScenariosRequest'];
 export type ExplainSolutionRequest = components['schemas']['ExplainSolutionRequest'];
 export type ExplainVersionDiffRequest = components['schemas']['ExplainVersionDiffRequest'];
+export type FavoriteListResponse = components['schemas']['FavoriteListResponse'];
+export type FavoriteModelSummary = components['schemas']['FavoriteModelSummary'];
 export type FavoriteResponse = components['schemas']['FavoriteResponse'];
 export type FeatureAnalyticsKpi = components['schemas']['FeatureAnalyticsKPI'];
 export type FeatureAnalyticsOverview = components['schemas']['FeatureAnalyticsOverview'];
@@ -9884,17 +10803,20 @@ export type InfeasibilityAnalysis = components['schemas']['InfeasibilityAnalysis
 export type InsightResponse = components['schemas']['InsightResponse'];
 export type InsightsResponse = components['schemas']['InsightsResponse'];
 export type InviteAccept = components['schemas']['InviteAccept'];
+export type InviteAcceptResponse = components['schemas']['InviteAcceptResponse'];
 export type InviteResponse = components['schemas']['InviteResponse'];
 export type KeyListResponse = components['schemas']['KeyListResponse'];
 export type LinkInviteCreate = components['schemas']['LinkInviteCreate'];
 export type LinkInviteResponse = components['schemas']['LinkInviteResponse'];
 export type LoginRequest = components['schemas']['LoginRequest'];
 export type LoginResponse = components['schemas']['LoginResponse'];
+export type LogoUploadResponse = components['schemas']['LogoUploadResponse'];
 export type LowSuccessModel = components['schemas']['LowSuccessModel'];
 export type MarkReadResponse = components['schemas']['MarkReadResponse'];
 export type MemberRoleUpdate = components['schemas']['MemberRoleUpdate'];
 export type MeResponse = components['schemas']['MeResponse'];
 export type MetricsResponse = components['schemas']['MetricsResponse'];
+export type ModelBadgesResponse = components['schemas']['ModelBadgesResponse'];
 export type ModelCatalogListResponse = components['schemas']['ModelCatalogListResponse'];
 export type ModelCatalogResponse = components['schemas']['ModelCatalogResponse'];
 export type ModelExecutionResponse = components['schemas']['ModelExecutionResponse'];
@@ -9903,6 +10825,7 @@ export type ModelPerformanceRow = components['schemas']['ModelPerformanceRow'];
 export type ModelStats = components['schemas']['ModelStats'];
 export type ModelVersionListItem = components['schemas']['ModelVersionListItem'];
 export type ModelVersionResponse = components['schemas']['ModelVersionResponse'];
+export type ModelVisibilityResponse = components['schemas']['ModelVisibilityResponse'];
 export type MultiObjectiveConfig = components['schemas']['MultiObjectiveConfig'];
 export type MultiObjectiveResult = components['schemas']['MultiObjectiveResult'];
 export type MultiObjectiveSolveRequest = components['schemas']['MultiObjectiveSolveRequest'];
@@ -9926,6 +10849,7 @@ export type OrganizationOverviewResponse = components['schemas']['OrganizationOv
 export type OrganizationPublicProfile = components['schemas']['OrganizationPublicProfile'];
 export type OrganizationResponse = components['schemas']['OrganizationResponse'];
 export type OrganizationUpdate = components['schemas']['OrganizationUpdate'];
+export type OrganizationVerificationResponse = components['schemas']['OrganizationVerificationResponse'];
 export type OrgCounts = components['schemas']['OrgCounts'];
 export type OrgDetail = components['schemas']['OrgDetail'];
 export type OrgExecutionStats = components['schemas']['OrgExecutionStats'];
@@ -9935,6 +10859,7 @@ export type OrgOwnerSummary = components['schemas']['OrgOwnerSummary'];
 export type OverrideFieldSchema = components['schemas']['OverrideFieldSchema'];
 export type PaginatedRecentEventsResponse = components['schemas']['PaginatedRecentEventsResponse'];
 export type PaginatedResponseAuditLogResponse = components['schemas']['PaginatedResponse_AuditLogResponse_'];
+export type PaginatedResponseConversationResponse = components['schemas']['PaginatedResponse_ConversationResponse_'];
 export type PaginatedResponseTriggerRunResponse = components['schemas']['PaginatedResponse_TriggerRunResponse_'];
 export type PaginatedResponseWorkspaceResponse = components['schemas']['PaginatedResponse_WorkspaceResponse_'];
 export type ParetoPoint = components['schemas']['ParetoPoint'];
@@ -9942,6 +10867,7 @@ export type Percentiles = components['schemas']['Percentiles'];
 export type PlanLimitsResponse = components['schemas']['PlanLimitsResponse'];
 export type PlatformOverviewResponse = components['schemas']['PlatformOverviewResponse'];
 export type PreviewRequest = components['schemas']['PreviewRequest'];
+export type ProblemValidationResponse = components['schemas']['ProblemValidationResponse'];
 export type ProgressPoint = components['schemas']['ProgressPoint'];
 export type ProjectCreate = components['schemas']['ProjectCreate'];
 export type ProjectExecutionItem = components['schemas']['ProjectExecutionItem'];
@@ -9953,13 +10879,21 @@ export type PublishModelRequest = components['schemas']['PublishModelRequest'];
 export type RatingCreate = components['schemas']['RatingCreate'];
 export type RatingResponse = components['schemas']['RatingResponse'];
 export type RecentEventEntry = components['schemas']['RecentEventEntry'];
+export type RecentListResponse = components['schemas']['RecentListResponse'];
+export type RecentModelSummary = components['schemas']['RecentModelSummary'];
+export type RecentRequestEntry = components['schemas']['RecentRequestEntry'];
+export type RecentRequestsResponse = components['schemas']['RecentRequestsResponse'];
 export type ReliabilityResponse = components['schemas']['ReliabilityResponse'];
+export type ReportedReviewListResponse = components['schemas']['ReportedReviewListResponse'];
+export type ReportedReviewResponse = components['schemas']['ReportedReviewResponse'];
 export type ReportRequest = components['schemas']['ReportRequest'];
 export type ResetPasswordRequest = components['schemas']['ResetPasswordRequest'];
 export type RestoreRequest = components['schemas']['RestoreRequest'];
 export type RestoreResponse = components['schemas']['RestoreResponse'];
 export type ReviewListResponse = components['schemas']['ReviewListResponse'];
 export type ReviewResponse = components['schemas']['ReviewResponse'];
+export type ReviewVisibilityResponse = components['schemas']['ReviewVisibilityResponse'];
+export type RevokeKeyResponse = components['schemas']['RevokeKeyResponse'];
 export type RhsRange = components['schemas']['RhsRange'];
 export type RhsScenario = components['schemas']['RhsScenario'];
 export type ScenarioAnalysis = components['schemas']['ScenarioAnalysis'];
@@ -9969,10 +10903,15 @@ export type ScenarioStatus = components['schemas']['ScenarioStatus'];
 export type ScheduleCreateRequest = components['schemas']['ScheduleCreateRequest'];
 export type ScheduleResponse = components['schemas']['ScheduleResponse'];
 export type ScheduleUpdateRequest = components['schemas']['ScheduleUpdateRequest'];
+export type ScorecardCategoryScore = components['schemas']['ScorecardCategoryScore'];
+export type ScorecardTemplateScore = components['schemas']['ScorecardTemplateScore'];
+export type ScreenshotListResponse = components['schemas']['ScreenshotListResponse'];
+export type ScreenshotUploadResponse = components['schemas']['ScreenshotUploadResponse'];
 export type SellerLeaderboardEntry = components['schemas']['SellerLeaderboardEntry'];
 export type SensitivityResult = components['schemas']['SensitivityResult'];
 export type SetAnthropicKeyRequest = components['schemas']['SetAnthropicKeyRequest'];
 export type SettingDefinitionResponse = components['schemas']['SettingDefinitionResponse'];
+export type SettingResetResponse = components['schemas']['SettingResetResponse'];
 export type SettingsRegistryResponse = components['schemas']['SettingsRegistryResponse'];
 export type SettingsUpdateRequest = components['schemas']['SettingsUpdateRequest'];
 export type SettingsUpdateResponse = components['schemas']['SettingsUpdateResponse'];
@@ -9981,10 +10920,18 @@ export type SettingValueResponse = components['schemas']['SettingValueResponse']
 export type SignupRequest = components['schemas']['SignupRequest'];
 export type SignupResponse = components['schemas']['SignupResponse'];
 export type SkillLevel = components['schemas']['SkillLevel'];
+export type SolveMetadataResponse = components['schemas']['SolveMetadataResponse'];
+export type SolverCapabilityFlags = components['schemas']['SolverCapabilityFlags'];
 export type SolverOptions = components['schemas']['SolverOptions'];
 export type SolverStatus = components['schemas']['SolverStatus'];
+export type StatusResponse = components['schemas']['StatusResponse'];
+export type SuccessResponse = components['schemas']['SuccessResponse'];
 export type SummaryResponse = components['schemas']['SummaryResponse'];
 export type SystemMetrics = components['schemas']['SystemMetrics'];
+export type TemplateDetailResponse = components['schemas']['TemplateDetailResponse'];
+export type TemplateListResponse = components['schemas']['TemplateListResponse'];
+export type TemplateScorecardResponse = components['schemas']['TemplateScorecardResponse'];
+export type TemplateSummaryResponse = components['schemas']['TemplateSummaryResponse'];
 export type TimeSeriesDataPoint = components['schemas']['TimeSeriesDataPoint'];
 export type TimeSeriesResponse = components['schemas']['TimeSeriesResponse'];
 export type TrendBucketResponse = components['schemas']['TrendBucketResponse'];
@@ -10397,9 +11344,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
+                    "application/json": components["schemas"]["StatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -10468,9 +11413,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ModelBadgesResponse"];
                 };
             };
             /** @description Validation Error */
@@ -10503,9 +11446,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ModelVisibilityResponse"];
                 };
             };
             /** @description Validation Error */
@@ -10730,9 +11671,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OrganizationVerificationResponse"];
                 };
             };
             /** @description Validation Error */
@@ -10763,9 +11702,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OrganizationVerificationResponse"];
                 };
             };
             /** @description Validation Error */
@@ -10892,9 +11829,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["StatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -10927,9 +11862,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ReviewVisibilityResponse"];
                 };
             };
             /** @description Validation Error */
@@ -10961,9 +11894,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ReportedReviewListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -11003,9 +11934,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TemplateScorecardResponse"];
                 };
             };
             /** @description Validation Error */
@@ -11098,9 +12027,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SettingResetResponse"];
                 };
             };
             /** @description Validation Error */
@@ -11194,9 +12121,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AdminStatsResponse"];
                 };
             };
         };
@@ -11383,9 +12308,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SuccessResponse"];
                 };
             };
             /** @description Validation Error */
@@ -11544,9 +12467,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SuccessResponse"];
                 };
             };
             /** @description Validation Error */
@@ -11645,9 +12566,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SuccessResponse"];
                 };
             };
             /** @description Validation Error */
@@ -12454,9 +13373,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["RecentRequestsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -12606,9 +13523,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["RevokeKeyResponse"];
                 };
             };
             /** @description Validation Error */
@@ -12644,9 +13559,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["PaginatedResponse_ConversationResponse_"];
                 };
             };
             /** @description Validation Error */
@@ -12679,9 +13592,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ConversationResponse"];
                 };
             };
             /** @description Validation Error */
@@ -12712,9 +13623,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ConversationResponse"];
                 };
             };
             /** @description Validation Error */
@@ -12844,9 +13753,7 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": unknown;
-                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -12881,9 +13788,7 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": unknown;
-                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -12918,9 +13823,7 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": unknown;
-                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -12955,9 +13858,7 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": unknown;
-                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -12992,9 +13893,7 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": unknown;
-                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -13067,9 +13966,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ModelExecutionResponse"] | {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ModelExecutionResponse"] | components["schemas"]["AsyncExecutionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -13171,9 +14068,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ExecutionStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -13204,9 +14099,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ExecutionCancelResponse"];
                 };
             };
             /** @description Validation Error */
@@ -13382,9 +14275,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
+                    "application/json": components["schemas"]["LogoUploadResponse"];
                 };
             };
             /** @description Validation Error */
@@ -13444,9 +14335,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CatalogModelSchemaResponse"];
                 };
             };
             /** @description Validation Error */
@@ -13481,9 +14370,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: string | string[];
-                    };
+                    "application/json": components["schemas"]["ScreenshotUploadResponse"];
                 };
             };
             /** @description Validation Error */
@@ -13515,9 +14402,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: string[];
-                    };
+                    "application/json": components["schemas"]["ScreenshotListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -13739,9 +14624,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["FavoriteListResponse"];
                 };
             };
         };
@@ -13856,9 +14739,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["RecentListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -13889,9 +14770,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["StatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -13926,9 +14805,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["StatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -14062,9 +14939,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AnthropicKeyStatusResponse"];
                 };
             };
         };
@@ -14088,9 +14963,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AnthropicKeyStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -14119,9 +14992,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AnthropicKeyStatusResponse"];
                 };
             };
         };
@@ -14238,9 +15109,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["StatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -14659,9 +15528,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AsyncSolveEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -15677,9 +16544,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AsyncSolveEnvelope"] | components["schemas"]["OptimizationResult"];
                 };
             };
             /** @description Validation Error */
@@ -15710,9 +16575,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AsyncSolveStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -15743,9 +16606,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AsyncSolveCancelResponse"];
                 };
             };
             /** @description Validation Error */
@@ -15774,9 +16635,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ExampleProblemsResponse"];
                 };
             };
         };
@@ -15963,9 +16822,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SolveMetadataResponse"];
                 };
             };
         };
@@ -16026,9 +16883,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TemplateListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -16059,9 +16914,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TemplateDetailResponse"];
                 };
             };
             /** @description Validation Error */
@@ -16138,7 +16991,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["OptimizationResult"];
                 };
             };
             /** @description Validation Error */
@@ -16171,9 +17024,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ProblemValidationResponse"];
                 };
             };
             /** @description Validation Error */
@@ -16202,9 +17053,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AvailableSolversResponse"];
                 };
             };
         };
@@ -16843,9 +17692,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["StatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -17145,9 +17992,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["InviteAcceptResponse"];
                 };
             };
             /** @description Validation Error */

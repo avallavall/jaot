@@ -236,3 +236,96 @@ class OrganizationOverviewResponse(BaseModel):
     api_keys: list[APIKeyResponse]
     models: list[OrgModelSummary]
     recent_executions: list[OrgExecutionSummary]
+
+
+class AdminCountPair(BaseModel):
+    """Total vs. active count of one resource on the admin dashboard."""
+
+    total: int
+    active: int
+
+
+class AdminModelCounts(BaseModel):
+    """Marketplace counts. ``activated_total`` counts fork projects seeded from a listing."""
+
+    catalog_total: int
+    catalog_public: int
+    activated_total: int
+
+
+class AdminStatsResponse(BaseModel):
+    """Admin dashboard headline numbers."""
+
+    organizations: AdminCountPair
+    users: AdminCountPair
+    api_keys: AdminCountPair
+    models: AdminModelCounts
+
+
+class ModelVisibilityResponse(BaseModel):
+    """Outcome of flipping a listing's public visibility."""
+
+    success: bool
+    is_public: bool
+
+
+class ModelBadgesResponse(BaseModel):
+    """The listing's badge state after an update."""
+
+    success: bool
+    id: str
+    is_official: bool
+    is_featured: bool
+    is_public: bool
+
+
+class ScorecardCategoryScore(BaseModel):
+    """One scoring dimension of a template, with the notes that justify it."""
+
+    name: str
+    score: int
+    max_score: int
+    notes: list[str] = Field(default_factory=list)
+
+
+class ScorecardTemplateScore(BaseModel):
+    """A single template's quality score."""
+
+    template_id: str
+    template_name: str
+    category: str
+    generator_type: str
+    total: int
+    max_total: int
+    grade: str
+    categories: list[ScorecardCategoryScore]
+
+
+class TemplateScorecardResponse(BaseModel):
+    """Automated quality scoring across all YAML templates.
+
+    ``filtered_count`` rides only when the request narrowed the report; the
+    aggregates always describe the FULL run, not the filtered subset.
+    """
+
+    total_templates: int
+    average_score: float
+    grade_distribution: dict[str, int]
+    by_generator_type: dict[str, float]
+    top_5: list[str]
+    bottom_5: list[str]
+    templates: list[ScorecardTemplateScore]
+    filtered_count: int | None = None
+
+
+class SettingResetResponse(BaseModel):
+    """Outcome of resetting one platform setting to its registry default.
+
+    ``reset=False`` carries ``reason`` instead of a value — the key is unknown
+    or readonly, which is not an error the caller should retry.
+    """
+
+    key: str
+    reset: bool
+    default_value: Any = None
+    reason: str | None = None

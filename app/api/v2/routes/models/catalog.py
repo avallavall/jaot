@@ -8,7 +8,6 @@ means seeding a fork ModelProject via ``POST /projects/from-marketplace/{id}``
 """
 
 import logging
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import or_
@@ -17,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import OptionalCurrentUser
 from app.models import ModelProjectListing, Organization, User
 from app.schemas.model import (
+    CatalogModelSchemaResponse,
     ModelCatalogListResponse,
     ModelCatalogResponse,
 )
@@ -201,11 +201,15 @@ def get_catalog_model(
     return response
 
 
-@router.get("/catalog/{model_id}/schema", operation_id="get_catalog_model_schema")
+@router.get(
+    "/catalog/{model_id}/schema",
+    response_model=CatalogModelSchemaResponse,
+    operation_id="get_catalog_model_schema",
+)
 def get_catalog_model_schema(
     model_id: str,
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
+) -> CatalogModelSchemaResponse:
     """Get the input schema and example for a catalog model.
 
     Requires ``is_public`` (like the detail endpoint): the schema exposes the
@@ -222,12 +226,12 @@ def get_catalog_model_schema(
     )
     if not listing:
         raise HTTPException(status_code=404, detail="Model not found")
-    return {
-        "id": listing.model_project_id,
-        "name": listing.name,
-        "generator_type": listing.generator_type,
-        "input_schema": listing.input_schema,
-        "input_fields": listing.input_fields,
-        "example_input": listing.example_input,
-        "scenario_description": listing.scenario_description,
-    }
+    return CatalogModelSchemaResponse(
+        id=listing.model_project_id,
+        name=listing.name,
+        generator_type=listing.generator_type,
+        input_schema=listing.input_schema,
+        input_fields=listing.input_fields,
+        example_input=listing.example_input,
+        scenario_description=listing.scenario_description,
+    )

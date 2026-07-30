@@ -22,7 +22,6 @@ user. Per-solver credit multipliers died with the credit system (ADR-008).
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from fastapi import APIRouter
 
@@ -33,6 +32,11 @@ from app.api.deps import (  # OrgOwnerUser intentionally omitted (W7 fix — Bra
 from app.domains.solver.adapters import registry
 from app.domains.solver.adapters.base import HEXALY_SOLVER_NAME, SolverCapabilities
 from app.domains.solver.services import worker_health as _worker_health
+from app.schemas.solver import (
+    AvailableSolver,
+    AvailableSolversResponse,
+    SolverCapabilityFlags,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +51,7 @@ _SOLVER_DESCRIPTIONS: dict[str, str] = {
 }
 
 
-def _capabilities_payload(caps: SolverCapabilities) -> dict[str, bool]:
+def _capabilities_payload(caps: SolverCapabilities) -> SolverCapabilityFlags:
     """Project ``SolverCapabilities`` onto the flags the UI can act on.
 
     Only flags with an *observable consequence for the user* are exposed, so a
@@ -69,12 +73,12 @@ def _capabilities_payload(caps: SolverCapabilities) -> dict[str, bool]:
     ``supports_continuous`` / ``_integer`` / ``_binary`` are True on every
     adapter today and carry no decision for the user, so they stay internal.
     """
-    return {
-        "sensitivity": caps.supports_sensitivity,
-        "warm_start": caps.supports_warm_start,
-        "quadratic": caps.supports_quadratic,
-        "progress": caps.supports_progress,
-    }
+    return SolverCapabilityFlags(
+        sensitivity=caps.supports_sensitivity,
+        warm_start=caps.supports_warm_start,
+        quadratic=caps.supports_quadratic,
+        progress=caps.supports_progress,
+    )
 
 
 def _hexaly_capabilities() -> SolverCapabilities | None:
@@ -96,8 +100,17 @@ def _hexaly_capabilities() -> SolverCapabilities | None:
         return None
 
 
-@router.get("/available", operation_id="list_available_solvers")
-def list_available_solvers(user: CurrentUser, db: DBSession) -> dict[str, Any]:
+@router.get(
+    "/available",
+    response_model=AvailableSolversResponse,
+    # Absent, not null: a solver whose capabilities could not be read must carry
+    # NO ``capabilities`` key, so the consumer falls back to claiming nothing
+    # instead of reading a fabricated one. Same for ``reason``/``retry_after``,
+    # which only ride an unavailable solver.
+    response_model_exclude_none=True,
+    operation_id="list_available_solvers",
+)
+def list_available_solvers(user: CurrentUser, db: DBSession) -> AvailableSolversResponse:
     """Return solvers available on this server with real-time availability.
 
     D-11: SCIP and HiGHS are always ``available=True`` (in-image solvers);
@@ -141,19 +154,18 @@ def list_available_solvers(user: CurrentUser, db: DBSession) -> dict[str, Any]:
     if HEXALY_SOLVER_NAME not in registered_names and (hexaly_worker_healthy or hexaly_available()):
         listed.append((HEXALY_SOLVER_NAME, _hexaly_capabilities()))
 
-    solvers: list[dict[str, Any]] = []
+    solvers: list[AvailableSolver] = []
     for name, caps in listed:
-        entry: dict[str, Any] = {
-            "name": name,
-            "available": True,
-            "description": _SOLVER_DESCRIPTIONS.get(name, name),
-        }
-        if caps is not None:
-            entry["capabilities"] = _capabilities_payload(caps)
+        entry = AvailableSolver(
+            name=name,
+            available=True,
+            description=_SOLVER_DESCRIPTIONS.get(name, name),
+            capabilities=_capabilities_payload(caps) if caps is not None else None,
+        )
         if name == HEXALY_SOLVER_NAME and not hexaly_worker_healthy:
-            entry["available"] = False
-            entry["reason"] = "maintenance"
-            entry["retry_after"] = None
+            entry.available = False
+            entry.reason = "maintenance"
+            entry.retry_after = None
         solvers.append(entry)
 
     logger.debug(
@@ -161,4 +173,4 @@ def list_available_solvers(user: CurrentUser, db: DBSession) -> dict[str, Any]:
         len(solvers),
         hexaly_worker_healthy,
     )
-    return {"solvers": solvers}
+    return AvailableSolversResponse(solvers=solvers)

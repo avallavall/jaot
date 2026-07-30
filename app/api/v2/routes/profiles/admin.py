@@ -1,12 +1,17 @@
 """Admin profile management endpoints."""
 
-from typing import Any
-
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.v2.auth import get_current_user
 from app.models import ModelProjectListing, ModelReview, Organization, User
+from app.schemas.common import StatusResponse
+from app.schemas.profile import (
+    OrganizationVerificationResponse,
+    ReportedReviewListResponse,
+    ReportedReviewResponse,
+    ReviewVisibilityResponse,
+)
 from app.shared.db.base import get_db
 from app.shared.utils.pagination import paginate_query
 
@@ -19,12 +24,12 @@ def _require_admin(user: User) -> None:
         raise HTTPException(status_code=403, detail="Admin access required")
 
 
-@router.post("/organizations/{org_id}/verify")
+@router.post("/organizations/{org_id}/verify", response_model=OrganizationVerificationResponse)
 def verify_organization(
     org_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
+) -> OrganizationVerificationResponse:
     """Verify an organization (admin only)."""
     _require_admin(current_user)
 
@@ -36,15 +41,15 @@ def verify_organization(
     org.is_verified = True
     db.commit()
 
-    return {"status": "verified", "organization_id": org_id}
+    return OrganizationVerificationResponse(status="verified", organization_id=org_id)
 
 
-@router.delete("/organizations/{org_id}/verify")
+@router.delete("/organizations/{org_id}/verify", response_model=OrganizationVerificationResponse)
 def unverify_organization(
     org_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
+) -> OrganizationVerificationResponse:
     """Remove verification from an organization (admin only)."""
     _require_admin(current_user)
 
@@ -56,16 +61,16 @@ def unverify_organization(
     org.is_verified = False
     db.commit()
 
-    return {"status": "unverified", "organization_id": org_id}
+    return OrganizationVerificationResponse(status="unverified", organization_id=org_id)
 
 
-@router.get("/reviews/reported")
+@router.get("/reviews/reported", response_model=ReportedReviewListResponse)
 def get_reported_reviews(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
+) -> ReportedReviewListResponse:
     """Get reported reviews for moderation (admin only)."""
     _require_admin(current_user)
 
@@ -102,34 +107,35 @@ def get_reported_reviews(
         model = models_map.get(r.model_project_id)
 
         items.append(
-            {
-                "id": r.id,
-                "catalog_id": r.model_project_id,
-                "model_name": model.display_name if model else None,
-                "user_id": r.user_id,
-                "user_name": user.name if user else None,
-                "rating": r.rating,
-                "title": r.title,
-                "comment": r.comment,
-                "report_reason": r.report_reason,
-                "created_at": r.created_at,
-            }
+            ReportedReviewResponse(
+                id=r.id,
+                catalog_id=r.model_project_id,
+                model_name=model.display_name if model else None,
+                user_id=r.user_id,
+                user_name=user.name if user else None,
+                rating=r.rating,
+                title=r.title,
+                comment=r.comment,
+                report_reason=r.report_reason,
+                is_visible=r.is_visible,
+                created_at=r.created_at,
+            )
         )
 
-    return {
-        "items": items,
-        "total": total,
-        "page": page,
-        "page_size": page_size,
-    }
+    return ReportedReviewListResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
 
 
-@router.delete("/reviews/{review_id}")
+@router.delete("/reviews/{review_id}", response_model=StatusResponse)
 def admin_delete_review(
     review_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
+) -> StatusResponse:
     """Delete a review (admin only)."""
     _require_admin(current_user)
 
@@ -164,16 +170,16 @@ def admin_delete_review(
 
     db.commit()
 
-    return {"status": "deleted"}
+    return StatusResponse(status="deleted")
 
 
-@router.patch("/reviews/{review_id}/visibility")
+@router.patch("/reviews/{review_id}/visibility", response_model=ReviewVisibilityResponse)
 def toggle_review_visibility(
     review_id: str,
     visible: bool = Query(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
+) -> ReviewVisibilityResponse:
     """Toggle review visibility (admin only)."""
     _require_admin(current_user)
 
@@ -186,4 +192,4 @@ def toggle_review_visibility(
     review.is_reported = False  # Clear report flag
     db.commit()
 
-    return {"status": "updated", "is_visible": visible}
+    return ReviewVisibilityResponse(status="updated", is_visible=visible)

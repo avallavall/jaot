@@ -127,3 +127,48 @@ class UserReviewResponse(BaseModel):
     title: str | None = None
     comment: str | None = None
     created_at: datetime
+
+
+class ReportedReviewResponse(BaseModel):
+    """A review flagged for moderation.
+
+    A review carries a single report flag and a single reason — there is no
+    per-review report counter anywhere in the model.
+    """
+
+    id: str
+    catalog_id: str
+    model_name: str | None = None
+    user_id: str
+    user_name: str | None = None
+    rating: int
+    title: str | None = None
+    comment: str | None = None
+    report_reason: str | None = None
+    is_visible: bool
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ReportedReviewListResponse(BaseModel):
+    """Paginated list of reviews awaiting moderation."""
+
+    items: list[ReportedReviewResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+class OrganizationVerificationResponse(BaseModel):
+    """Outcome of flipping an organization's verified badge."""
+
+    status: str
+    organization_id: str
+
+
+class ReviewVisibilityResponse(BaseModel):
+    """Outcome of flipping a review's visibility."""
+
+    status: str
+    is_visible: bool

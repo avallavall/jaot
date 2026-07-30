@@ -10,12 +10,13 @@ from typing import Any
 
 from fastapi import APIRouter, Query
 
+from app.schemas.admin import TemplateScorecardResponse
 from app.services.template_scorecard import run_scorecard
 
 router = APIRouter(prefix="/scorecard", tags=["admin-scorecard"])
 
 
-@router.get("", operation_id="get_template_scorecard")
+@router.get("", response_model=TemplateScorecardResponse, operation_id="get_template_scorecard")
 def get_template_scorecard(
     min_score: int | None = Query(None, ge=0, le=100, description="Filter: minimum total score"),
     max_score: int | None = Query(None, ge=0, le=100, description="Filter: maximum total score"),

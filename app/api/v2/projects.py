@@ -76,7 +76,11 @@ from app.schemas.model_project import (
     VersionSummary,
 )
 from app.schemas.model_stats import ModelStats
-from app.schemas.optimization import OptimizationProblem, OptimizationResult
+from app.schemas.optimization import (
+    AsyncSolveEnvelope,
+    OptimizationProblem,
+    OptimizationResult,
+)
 from app.services import model_project_service as svc
 from app.services.audit_service import log_action
 from app.services.marketplace_fusion import listing_to_catalog_response
@@ -1064,6 +1068,7 @@ def solve_model_project(  # def: blocks on the queued result in the threadpool (
 
 @router.post(
     "/{project_id}/datasets/{dataset_id}/solve",
+    response_model=AsyncSolveEnvelope,
     operation_id="solve_project_dataset",
     dependencies=[Depends(dsl_feature_gate), Depends(solve_maintenance_gate)],
 )

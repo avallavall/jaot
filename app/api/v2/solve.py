@@ -27,11 +27,15 @@ from app.domains.solver.adapters.base import (
 from app.domains.solver.services import SolverService, get_solver_service
 from app.models import ModelExecution, Organization
 from app.schemas.optimization import (
+    AsyncSolveCancelResponse,
+    AsyncSolveEnvelope,
+    AsyncSolveStatusResponse,
     InfeasibilityAnalysis,
     MultiObjectiveConfig,
     MultiObjectiveResult,
     OptimizationProblem,
     OptimizationResult,
+    ProblemValidationResponse,
     SolverStatus,
 )
 from app.services.idempotency import idempotency_execution_id
@@ -249,17 +253,17 @@ def _attach_to_inflight_execution(
     )
 
 
-@router.post("/validate", operation_id="validate_problem")
+@router.post("/validate", response_model=ProblemValidationResponse, operation_id="validate_problem")
 def validate_problem_endpoint(  # sync ON PURPOSE -> threadpool (CPU-bound, no awaits)
     problem: OptimizationProblem,
     request: Request,
-) -> dict[str, Any]:
+) -> ProblemValidationResponse:
     """Validate an optimization problem without solving it."""
-    errors: list[Any] = []
+    errors: list[str] = []
     try:
         validate_problem(problem)
     except HTTPException as e:
-        errors.append(e.detail)
+        errors.append(str(e.detail))
     except Exception as e:
         errors.append(str(e))
 
@@ -267,20 +271,20 @@ def validate_problem_endpoint(  # sync ON PURPOSE -> threadpool (CPU-bound, no a
     # `warnings` are ALWAYS present arrays. Omitting `warnings` here crashed the JSON
     # editor lens, which reads `validation.warnings.length` on every validated edit.
     if errors:
-        return {"valid": False, "errors": errors, "warnings": []}
+        return ProblemValidationResponse(valid=False, errors=errors, warnings=[])
 
-    return {
-        "valid": True,
-        "errors": [],
-        "warnings": [],
-        "num_variables": len(problem.variables),
-        "num_constraints": len(problem.constraints),
-        "variable_types": {
+    return ProblemValidationResponse(
+        valid=True,
+        errors=[],
+        warnings=[],
+        num_variables=len(problem.variables),
+        num_constraints=len(problem.constraints),
+        variable_types={
             "continuous": sum(1 for v in problem.variables if v.type.value == "continuous"),
             "integer": sum(1 for v in problem.variables if v.type.value == "integer"),
             "binary": sum(1 for v in problem.variables if v.type.value == "binary"),
         },
-    }
+    )
 
 
 @router.post(
@@ -430,7 +434,13 @@ def solve_multi_objective_endpoint(  # def: blocks on the queued result in the t
     return _shape_multi_objective_result(payload)
 
 
-@router.post("/async", dependencies=[Depends(solve_maintenance_gate)])
+@router.post(
+    "/async",
+    # Two shapes by design (ADR-007 §4): the queue acknowledgement, or — with
+    # `wait=true` inside the budget — the exact synchronous result contract.
+    response_model=AsyncSolveEnvelope | OptimizationResult,
+    dependencies=[Depends(solve_maintenance_gate)],
+)
 def solve_optimization_problem_async(  # sync ON PURPOSE -> FastAPI threadpool
     # This handler awaits nothing and does real CPU work (tier caps, auto-routing,
     # 27MB model_dump for Celery). As `async def` all of it ran ON the event loop:
@@ -530,7 +540,7 @@ def _shape_multi_objective_result(
     return result.model_dump(mode="json")
 
 
-@router.get("/async/{task_id}")
+@router.get("/async/{task_id}", response_model=AsyncSolveStatusResponse)
 def get_async_solve_status(
     task_id: str,
     request: Request,
@@ -635,12 +645,12 @@ def get_async_solve_status(
     return {"task_id": task_id, "status": result.state.lower()}
 
 
-@router.post("/async/{task_id}/cancel")
+@router.post("/async/{task_id}/cancel", response_model=AsyncSolveCancelResponse)
 def cancel_async_task(
     task_id: str,
     request: Request,
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
+) -> AsyncSolveCancelResponse:
     """Cancel a running async optimization task."""
     from app.shared.core.celery_app import celery_app
 
@@ -665,11 +675,11 @@ def cancel_async_task(
 
     result = AsyncResult(task_id, app=celery_app)
     if result.state in ["SUCCESS", "FAILURE"]:
-        return {
-            "task_id": task_id,
-            "cancelled": False,
-            "message": f"Task already {result.state.lower()}, cannot cancel",
-        }
+        return AsyncSolveCancelResponse(
+            task_id=task_id,
+            cancelled=False,
+            message=f"Task already {result.state.lower()}, cannot cancel",
+        )
 
     # Mark the execution cancelled BEFORE revoking the Celery task so the
     # worker's SIGTERM handler (the except block in solve_tasks.solve_async)
@@ -689,4 +699,6 @@ def cancel_async_task(
         db.rollback()
 
     celery_app.control.revoke(task_id, terminate=True, signal="SIGTERM")
-    return {"task_id": task_id, "cancelled": True, "message": "Task cancellation requested"}
+    return AsyncSolveCancelResponse(
+        task_id=task_id, cancelled=True, message="Task cancellation requested"
+    )

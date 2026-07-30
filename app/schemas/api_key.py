@@ -42,3 +42,10 @@ class KeyListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class RevokeKeyResponse(BaseModel):
+    """Acknowledgement that an API key was revoked."""
+
+    message: str
+    key_id: str

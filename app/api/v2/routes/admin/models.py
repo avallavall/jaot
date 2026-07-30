@@ -5,46 +5,52 @@ P1.5 fusion: the marketplace inventory an admin manages is the
 ModelProject seeded from-marketplace.
 """
 
-from typing import Any
-
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.models import APIKey, ModelProject, ModelProjectListing, Organization, User
-from app.schemas.admin import AdminPaginatedResponse, UpdateModelBadgesRequest
+from app.schemas.admin import (
+    AdminCountPair,
+    AdminModelCounts,
+    AdminPaginatedResponse,
+    AdminStatsResponse,
+    ModelBadgesResponse,
+    ModelVisibilityResponse,
+    UpdateModelBadgesRequest,
+)
 from app.shared.db.base import get_db
 from app.shared.utils.pagination import paginate_query
 
 router = APIRouter(tags=["admin-models"])
 
 
-@router.get("/stats")
-def get_admin_stats(db: Session = Depends(get_db)) -> dict[str, Any]:
+@router.get("/stats", response_model=AdminStatsResponse)
+def get_admin_stats(db: Session = Depends(get_db)) -> AdminStatsResponse:
     """Get admin dashboard statistics."""
-    return {
-        "organizations": {
-            "total": db.query(Organization).count(),
-            "active": db.query(Organization).filter(Organization.is_active == True).count(),  # noqa: E712
-        },
-        "users": {
-            "total": db.query(User).count(),
-            "active": db.query(User).filter(User.is_active == True).count(),  # noqa: E712
-        },
-        "api_keys": {
-            "total": db.query(APIKey).count(),
-            "active": db.query(APIKey).filter(APIKey.is_active == True).count(),  # noqa: E712
-        },
-        "models": {
-            "catalog_total": db.query(ModelProjectListing).count(),
-            "catalog_public": db.query(ModelProjectListing)
+    return AdminStatsResponse(
+        organizations=AdminCountPair(
+            total=db.query(Organization).count(),
+            active=db.query(Organization).filter(Organization.is_active == True).count(),  # noqa: E712
+        ),
+        users=AdminCountPair(
+            total=db.query(User).count(),
+            active=db.query(User).filter(User.is_active == True).count(),  # noqa: E712
+        ),
+        api_keys=AdminCountPair(
+            total=db.query(APIKey).count(),
+            active=db.query(APIKey).filter(APIKey.is_active == True).count(),  # noqa: E712
+        ),
+        models=AdminModelCounts(
+            catalog_total=db.query(ModelProjectListing).count(),
+            catalog_public=db.query(ModelProjectListing)
             .filter(ModelProjectListing.is_public == True)  # noqa: E712
             .count(),
             # "Activated" = fork ModelProjects seeded from a marketplace listing.
-            "activated_total": db.query(ModelProject)
+            activated_total=db.query(ModelProject)
             .filter(ModelProject.source_type == "marketplace")
             .count(),
-        },
-    }
+        ),
+    )
 
 
 @router.get("/models", response_model=AdminPaginatedResponse)
@@ -103,27 +109,27 @@ def _listing_or_404(db: Session, model_id: str) -> ModelProjectListing:
     return listing
 
 
-@router.patch("/models/{model_id}/visibility")
+@router.patch("/models/{model_id}/visibility", response_model=ModelVisibilityResponse)
 def toggle_model_visibility(
     model_id: str,
     is_public: bool = Query(...),
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
+) -> ModelVisibilityResponse:
     """Toggle listing public visibility."""
     listing = _listing_or_404(db, model_id)
 
     listing.is_public = is_public
     db.commit()
 
-    return {"success": True, "is_public": is_public}
+    return ModelVisibilityResponse(success=True, is_public=is_public)
 
 
-@router.patch("/models/{model_id}")
+@router.patch("/models/{model_id}", response_model=ModelBadgesResponse)
 def update_model_badges(
     model_id: str,
     body: UpdateModelBadgesRequest,
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
+) -> ModelBadgesResponse:
     """Update listing badges (official, featured, public)."""
     listing = _listing_or_404(db, model_id)
 
@@ -136,10 +142,10 @@ def update_model_badges(
 
     db.commit()
 
-    return {
-        "success": True,
-        "id": listing.model_project_id,
-        "is_official": listing.is_official,
-        "is_featured": listing.is_featured,
-        "is_public": listing.is_public,
-    }
+    return ModelBadgesResponse(
+        success=True,
+        id=listing.model_project_id,
+        is_official=listing.is_official,
+        is_featured=listing.is_featured,
+        is_public=listing.is_public,
+    )
