@@ -51,6 +51,7 @@ boto3>=1.43.36
 
 # MCP server (Phase 73)
 fastapi-mcp==0.4.0
+mcp>=1.12.0,<2                     # fastapi-mcp 0.4.0 asks for `mcp>=1.12.0` with NO ceiling, and mcp 2.0.0 dropped the second argument of Server(): fastapi_mcp calls `Server(name, description)`, which now raises TypeError while building the app — every import of app.main dies. Pinned here until fastapi-mcp ships a 2.x-compatible release.
 
 # GeoIP lookup for analytics (Phase 78)
 geoip2fast>=1.2.2
