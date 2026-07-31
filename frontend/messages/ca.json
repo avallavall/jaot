@@ -326,7 +326,9 @@
       "scenarios": "Executa el mateix model amb diversos datasets d'una vegada i compara les execucions costat a costat — un model, molts escenaris.",
       "solverAuto": "«Auto» dirigeix el teu model al millor solver disponible segons la seva classe de problema. Tria un solver concret només quan necessitis les seves capacitats específiques.",
       "liveProgress": "Mentre el solver treballa, cada nova solució incumbent arriba en directe: el gràfic segueix el millor objectiu trobat i el gap d'optimalitat — quan el gap arriba al 0%, la solució queda demostrada com a òptima."
-    }
+    },
+    "listingPublished": "Publicat",
+    "listingWithdrawn": "Retirat"
   },
   "common": {
     "loading": "Carregant...",
@@ -4351,7 +4353,8 @@
       "colViews": "Visites",
       "colAdoptions": "Adopcions",
       "geoUnknown": "Encara no sabem d'on van venir les {views} visites registrades.",
-      "geoCoverage": "País conegut en {known} de {total} visites."
+      "geoCoverage": "País conegut en {known} de {total} visites.",
+      "loadFailed": "No s'han pogut carregar les teves analítiques. Torna-ho a provar en un moment."
     },
     "verification": {
       "title": "Insígnia de verificació",
@@ -4380,7 +4383,8 @@
       "subtitle": "Els teus models al marketplace: com els va i què en diu la gent.",
       "tabListings": "Publicacions",
       "tabAnalytics": "Analítiques",
-      "tabReviews": "Ressenyes"
+      "tabReviews": "Ressenyes",
+      "loadFailed": "No s'han pogut carregar les teves publicacions. Torna-ho a provar en un moment."
     },
     "listings": {
       "emptyTitle": "Encara no has publicat res",
@@ -4402,8 +4406,10 @@
       "status": {
         "published": "Publicat",
         "unpublished": "Retirat",
-        "draft": "Esborrany"
-      }
+        "draft": "Esborrany",
+        "deprecated": "Retirat per la plataforma"
+      },
+      "edit": "Edita la publicació"
     },
     "reviews": {
       "emptyTitle": "Encara no hi ha ressenyes",
@@ -4412,7 +4418,8 @@
       "onModel": "A {model}",
       "previous": "Anterior",
       "next": "Següent",
-      "pageOf": "Pàgina {page} de {pages}"
+      "pageOf": "Pàgina {page} de {pages}",
+      "loadFailed": "No s'han pogut carregar les teves ressenyes. Torna-ho a provar en un moment."
     },
     "onboarding": {
       "title": "Prepara't com a autor",

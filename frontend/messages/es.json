@@ -326,7 +326,9 @@
       "scenarios": "Ejecuta el mismo modelo con varios datasets de una vez y compara las ejecuciones lado a lado — un modelo, muchos escenarios.",
       "solverAuto": "«Auto» dirige tu modelo al mejor solver disponible según su clase de problema. Elige un solver concreto solo cuando necesites sus capacidades específicas.",
       "liveProgress": "Mientras el solver trabaja, cada nueva solución incumbente llega en directo: el gráfico sigue el mejor objetivo encontrado y el gap de optimalidad — cuando el gap llega al 0%, la solución queda demostrada como óptima."
-    }
+    },
+    "listingPublished": "Publicado",
+    "listingWithdrawn": "Retirado"
   },
   "common": {
     "loading": "Cargando...",
@@ -4351,7 +4353,8 @@
       "colViews": "Visitas",
       "colAdoptions": "Adopciones",
       "geoUnknown": "Todavía no sabemos de dónde vinieron las {views} visitas registradas.",
-      "geoCoverage": "País conocido en {known} de {total} visitas."
+      "geoCoverage": "País conocido en {known} de {total} visitas.",
+      "loadFailed": "No se han podido cargar tus analíticas. Inténtalo en un momento."
     },
     "verification": {
       "title": "Insignia de verificación",
@@ -4380,7 +4383,8 @@
       "subtitle": "Tus modelos en el marketplace: cómo les va y qué dice la gente.",
       "tabListings": "Publicaciones",
       "tabAnalytics": "Analíticas",
-      "tabReviews": "Reseñas"
+      "tabReviews": "Reseñas",
+      "loadFailed": "No se han podido cargar tus publicaciones. Inténtalo en un momento."
     },
     "listings": {
       "emptyTitle": "Aún no has publicado nada",
@@ -4402,8 +4406,10 @@
       "status": {
         "published": "Publicado",
         "unpublished": "Retirado",
-        "draft": "Borrador"
-      }
+        "draft": "Borrador",
+        "deprecated": "Retirado por la plataforma"
+      },
+      "edit": "Editar publicación"
     },
     "reviews": {
       "emptyTitle": "Todavía no hay reseñas",
@@ -4412,7 +4418,8 @@
       "onModel": "En {model}",
       "previous": "Anterior",
       "next": "Siguiente",
-      "pageOf": "Página {page} de {pages}"
+      "pageOf": "Página {page} de {pages}",
+      "loadFailed": "No se han podido cargar tus reseñas. Inténtalo en un momento."
     },
     "onboarding": {
       "title": "Prepárate como autor",

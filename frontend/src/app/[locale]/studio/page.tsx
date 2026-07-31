@@ -350,6 +350,17 @@ export default function StudioHomePage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
+                    {/* Which models are on the marketplace, without opening each one. */}
+                    {p.listing_status === "published" && (
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">
+                        {t("listingPublished")}
+                      </span>
+                    )}
+                    {p.listing_status === "unpublished" && (
+                      <span className="rounded-full bg-muted px-2 py-0.5">
+                        {t("listingWithdrawn")}
+                      </span>
+                    )}
                     <span className="rounded-full bg-muted px-2 py-0.5 font-mono">
                       {p.committed_count > 0 ? `v${p.committed_count}` : t("projectDraft")}
                     </span>

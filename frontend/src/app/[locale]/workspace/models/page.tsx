@@ -9,6 +9,7 @@ import { AuthorAnalyticsPanel } from "@/components/author/AuthorAnalyticsPanel";
 import { AuthorListingsTable } from "@/components/author/AuthorListingsTable";
 import { AuthorOnboarding } from "@/components/author/AuthorOnboarding";
 import { AuthorReviewsList } from "@/components/author/AuthorReviewsList";
+import { LoadFailed } from "@/components/author/LoadFailed";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -17,12 +18,24 @@ export default function AuthorModelsPage() {
   const locale = useLocale();
 
   const [listings, setListings] = useState<AuthorListingRow[] | null>(null);
+  // An outage must not read as "you haven't published anything yet" — that is a
+  // statement about the author's work, and it would be a false one.
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    api
-      .getAuthorListings()
-      .then(setListings)
-      .catch(() => setListings([]));
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const rows = await api.getAuthorListings();
+        if (!cancelled) setListings(rows);
+      } catch {
+        if (!cancelled) setFailed(true);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const onChanged = (updated: AuthorListingRow) => {
@@ -52,7 +65,9 @@ export default function AuthorModelsPage() {
         </TabsList>
 
         <TabsContent value="listings" className="mt-4">
-          {listings === null ? (
+          {failed ? (
+            <LoadFailed message={t("loadFailed")} />
+          ) : listings === null ? (
             <Skeleton className="h-48 w-full" />
           ) : (
             <AuthorListingsTable listings={listings} onChanged={onChanged} />
@@ -64,7 +79,9 @@ export default function AuthorModelsPage() {
         </TabsContent>
 
         <TabsContent value="reviews" className="mt-4">
-          <AuthorReviewsList hasListings={(listings?.length ?? 0) > 0} />
+          {/* When the listings never arrived we don't know, so fall back to the
+              wording that holds either way instead of guessing "nothing published". */}
+          <AuthorReviewsList hasListings={listings === null ? true : listings.length > 0} />
         </TabsContent>
       </Tabs>
     </div>

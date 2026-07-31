@@ -669,6 +669,8 @@ export interface ProjectListItem {
   updated_at: string;
   created_by?: string | null;
   created_by_name?: string | null;
+  /** Marketplace state of this project's listing, or null if never published. */
+  listing_status?: string | null;
 }
 
 /** A single JModel (DSL) lex/parse/grounding error (POST /api/v2/dsl/compile). */

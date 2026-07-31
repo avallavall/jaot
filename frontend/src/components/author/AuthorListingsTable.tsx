@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { ExternalLink, Loader2, PackageOpen, Star } from "lucide-react";
+import { ExternalLink, Loader2, PackageOpen, Pencil, Star } from "lucide-react";
 
 import { api } from "@/lib/api";
 import type { AuthorListingRow } from "@/lib/types";
@@ -84,6 +84,9 @@ export function AuthorListingsTable({ listings, onChanged }: AuthorListingsTable
         <TableBody>
           {listings.map((row) => {
             const isPublished = row.status === "published";
+            // Only this pair round-trips; the server refuses to promote anything
+            // else, so offering the button would be offering a 409.
+            const canToggle = isPublished || row.status === "unpublished";
             const busy = busyId === row.model_project_id;
             return (
               <TableRow key={row.model_project_id}>
@@ -97,7 +100,10 @@ export function AuthorListingsTable({ listings, onChanged }: AuthorListingsTable
                 </TableCell>
                 <TableCell>
                   <Badge variant={STATUS_VARIANT[row.status] ?? "outline"}>
-                    {t(`status.${row.status}`)}
+                    {/* The column holds states this table does not name (the seeder
+                        retires templates as "deprecated"); show the raw state rather
+                        than a translation key nobody wrote. */}
+                    {t.has(`status.${row.status}`) ? t(`status.${row.status}`) : row.status}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
@@ -118,7 +124,17 @@ export function AuthorListingsTable({ listings, onChanged }: AuthorListingsTable
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center justify-end gap-2">
-                    {isPublished && (
+                    {/* Edit is where the logo and screenshots live — without it the
+                        "add rich media" checklist step has nowhere to send anyone. */}
+                    <Button asChild variant="ghost" size="sm" className="gap-1">
+                      <Link href={`/studio/${row.model_project_id}/publish`}>
+                        <Pencil className="h-3 w-3" />
+                        {t("edit")}
+                      </Link>
+                    </Button>
+                    {/* The catalog needs BOTH: an unlisted model 404s just like a
+                        withdrawn one, so linking on status alone offers a dead page. */}
+                    {isPublished && row.is_public && (
                       <Button asChild variant="ghost" size="sm" className="gap-1">
                         <Link href={`/marketplace/${row.model_project_id}`}>
                           <ExternalLink className="h-3 w-3" />
@@ -126,15 +142,17 @@ export function AuthorListingsTable({ listings, onChanged }: AuthorListingsTable
                         </Link>
                       </Button>
                     )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={busy}
-                      onClick={() => toggle(row)}
-                    >
-                      {busy && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
-                      {isPublished ? t("withdraw") : t("restore")}
-                    </Button>
+                    {canToggle && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => toggle(row)}
+                      >
+                        {busy && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
+                        {isPublished ? t("withdraw") : t("restore")}
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

@@ -326,7 +326,9 @@
       "scenarios": "Exécutez le même modèle avec plusieurs datasets en une fois, puis comparez les exécutions côte à côte — un modèle, de nombreux scénarios.",
       "solverAuto": "« Auto » dirige votre modèle vers le meilleur solveur disponible selon sa classe de problème. Choisissez un solveur précis uniquement si vous avez besoin de ses capacités particulières.",
       "liveProgress": "Pendant que le solveur travaille, chaque nouvelle solution incumbente arrive en direct : le graphique suit le meilleur objectif trouvé et le gap d'optimalité — quand le gap atteint 0 %, la solution est prouvée optimale."
-    }
+    },
+    "listingPublished": "Publié",
+    "listingWithdrawn": "Retiré"
   },
   "common": {
     "loading": "Chargement...",
@@ -4351,7 +4353,8 @@
       "colViews": "Vues",
       "colAdoptions": "Adoptions",
       "geoUnknown": "Nous ne savons pas encore d'où venaient les {views} visites enregistrées.",
-      "geoCoverage": "Pays connu pour {known} visites sur {total}."
+      "geoCoverage": "Pays connu pour {known} visites sur {total}.",
+      "loadFailed": "Impossible de charger tes statistiques. Réessaie dans un instant."
     },
     "verification": {
       "title": "Badge de Vérification",
@@ -4380,7 +4383,8 @@
       "subtitle": "Tes modèles sur la marketplace : comment ils marchent et ce qu'on en dit.",
       "tabListings": "Publications",
       "tabAnalytics": "Analytique",
-      "tabReviews": "Avis"
+      "tabReviews": "Avis",
+      "loadFailed": "Impossible de charger tes publications. Réessaie dans un instant."
     },
     "listings": {
       "emptyTitle": "Tu n'as encore rien publié",
@@ -4402,8 +4406,10 @@
       "status": {
         "published": "Publié",
         "unpublished": "Retiré",
-        "draft": "Brouillon"
-      }
+        "draft": "Brouillon",
+        "deprecated": "Retiré par la plateforme"
+      },
+      "edit": "Modifier la publication"
     },
     "reviews": {
       "emptyTitle": "Pas encore d'avis",
@@ -4412,7 +4418,8 @@
       "onModel": "Sur {model}",
       "previous": "Précédent",
       "next": "Suivant",
-      "pageOf": "Page {page} sur {pages}"
+      "pageOf": "Page {page} sur {pages}",
+      "loadFailed": "Impossible de charger tes avis. Réessaie dans un instant."
     },
     "onboarding": {
       "title": "Prépare ton espace auteur",

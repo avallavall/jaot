@@ -367,6 +367,10 @@ class ListingNotFoundError(Exception):
     """Withdrawing/restoring a project that was never published — routes map this to 404."""
 
 
+class ListingStateError(Exception):
+    """The listing is not in a state this transition applies to — routes map this to 409."""
+
+
 def set_listing_published(
     db: Session,
     project: ModelProject,
@@ -386,7 +390,16 @@ def set_listing_published(
     plain provenance text with no FK, so nothing dereferences the listing
     afterwards.
 
-    Idempotent: withdrawing an already-withdrawn listing is a no-op, not an error.
+    Only ``published <-> unpublished`` is a legal round trip. Restoring is NOT a
+    way into ``published`` from anywhere else: a ``draft`` listing has never
+    passed :func:`publish_listing`'s checks (committed version, the adopted-model
+    rule, pinning HEAD) and has no ``pinned_version_id``, so promoting it would
+    put a listing on the marketplace that 404s the moment somebody adopts it; a
+    ``deprecated`` one is a template the seeder retired on purpose. Both must go
+    through publish, which is why this raises instead of quietly widening.
+
+    Idempotent in both directions: repeating a transition already applied is a
+    no-op, not an error, so a double-clicked button is harmless.
     """
     listing = (
         db.query(ModelProjectListing)
@@ -396,7 +409,13 @@ def set_listing_published(
     if listing is None:
         raise ListingNotFoundError("This project has never been published to the marketplace.")
 
-    listing.status = "published" if published else "unpublished"
+    target = "published" if published else "unpublished"
+    if listing.status != target and listing.status not in ("published", "unpublished"):
+        raise ListingStateError(
+            f"A listing in state '{listing.status}' cannot be {target} from here; publish it."
+        )
+
+    listing.status = target
     db.flush()
     return listing
 

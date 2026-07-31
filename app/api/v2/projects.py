@@ -435,10 +435,8 @@ def publish_model_project(
     db.commit()
     db.refresh(listing)
     response = listing_to_catalog_response(listing)
-    author = db.query(Organization).filter(Organization.id == org.id).first()
-    if author:
-        response.author_name = author.name
-        response.author_verified = author.is_verified
+    response.author_name = org.name
+    response.author_verified = org.is_verified
     return response
 
 
@@ -497,11 +495,13 @@ def _set_publication(
         listing = svc.set_listing_published(db, project, published=published)
     except svc.ListingNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except svc.ListingStateError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     log_action(
         db=db,
         organization_id=org.id,
         actor=user,
-        action=AuditAction.MODEL_EDIT,
+        action=AuditAction.MODEL_PUBLISH if published else AuditAction.MODEL_UNPUBLISH,
         target_type="model_project",
         target_id=project.id,
         target_name=project.name,
@@ -509,10 +509,10 @@ def _set_publication(
     db.commit()
     db.refresh(listing)
     response = listing_to_catalog_response(listing)
-    author = db.query(Organization).filter(Organization.id == org.id).first()
-    if author:
-        response.author_name = author.name
-        response.author_verified = author.is_verified
+    # `org` is the CurrentOrg dependency — already loaded, so re-selecting it here
+    # only costs a round trip.
+    response.author_name = org.name
+    response.author_verified = org.is_verified
     return response
 
 

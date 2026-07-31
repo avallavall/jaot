@@ -7,6 +7,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import React from "react";
 
 const {
@@ -147,6 +148,46 @@ describe("AuthorAnalyticsPanel with thin data", () => {
       expect(screen.getByText(/author\.analytics\.geoUnknown/)).toBeInTheDocument();
     });
     expect(screen.queryByText("author.analytics.geoEmpty")).not.toBeInTheDocument();
+  });
+
+  it("reports a failure as a failure, not as an empty period", async () => {
+    getAuthorAnalyticsSummary.mockRejectedValue(new Error("500"));
+    getAuthorAnalyticsFunnel.mockResolvedValue({ impressions: 0, views: 0, activations: 0 });
+    getAuthorAnalyticsGeo.mockResolvedValue({ data: [] });
+    getAuthorAnalyticsModels.mockResolvedValue([]);
+    getAuthorAnalyticsTimeSeries.mockResolvedValue({ data: [], period: "30d" });
+    render(<AuthorAnalyticsPanel locale="en" />);
+
+    expect(await screen.findByText("author.analytics.loadFailed")).toBeInTheDocument();
+    // None of the "nothing happened yet" copy may appear on an outage.
+    expect(screen.queryByText("author.analytics.funnelEmpty")).not.toBeInTheDocument();
+    expect(screen.queryByText("author.analytics.geoEmpty")).not.toBeInTheDocument();
+    expect(screen.queryByText("author.analytics.perModelEmpty")).not.toBeInTheDocument();
+  });
+
+  it("does not draw a trend off a day the chart never shows", async () => {
+    // The API window is a timestamp, so 7d can return 8 dated buckets; the chart
+    // draws exactly 7. Activity only on the dropped day plus today used to pass
+    // the two-active-days gate and then render a single column.
+    const today = new Date();
+    const iso = (offset: number) => {
+      const d = new Date(today);
+      d.setUTCDate(d.getUTCDate() - offset);
+      return d.toISOString().slice(0, 10);
+    };
+    setup({
+      series: {
+        data: [
+          { date: iso(7), views: 5, impressions: 0, activations: 0 },
+          { date: iso(0), views: 3, impressions: 0, activations: 0 },
+        ],
+        period: "7d",
+      },
+    });
+
+    await userEvent.click(await screen.findByRole("button", { name: "author.analytics.period7d" }));
+
+    expect(await screen.findByText(/author\.analytics\.trendEmpty/)).toBeInTheDocument();
   });
 
   it("reports a genuinely empty period as empty", async () => {

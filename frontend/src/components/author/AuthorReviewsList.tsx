@@ -6,6 +6,7 @@ import { MessageSquare, Star } from "lucide-react";
 
 import { api } from "@/lib/api";
 import type { AuthorReviews } from "@/lib/types";
+import { LoadFailed } from "@/components/author/LoadFailed";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,6 +33,7 @@ export function AuthorReviewsList({ hasListings }: { hasListings: boolean }) {
   const [page, setPage] = useState(1);
   const [data, setData] = useState<AuthorReviews | null>(null);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     // `cancelled` also settles the page race: clicking through pages fast could
@@ -39,9 +41,14 @@ export function AuthorReviewsList({ hasListings }: { hasListings: boolean }) {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
+      setFailed(false);
       try {
         const result = await api.getAuthorReviews({ page, page_size: PAGE_SIZE });
         if (!cancelled) setData(result);
+      } catch {
+        // Otherwise a failed request renders as "no reviews yet" — a claim about
+        // the author's models that we have no grounds to make.
+        if (!cancelled) setFailed(true);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -53,6 +60,8 @@ export function AuthorReviewsList({ hasListings }: { hasListings: boolean }) {
   }, [page]);
 
   if (loading) return <Skeleton className="h-40 w-full" />;
+
+  if (failed) return <LoadFailed message={t("loadFailed")} />;
 
   if (!data || data.total === 0) {
     return (

@@ -326,7 +326,9 @@
       "scenarios": "Run the same model against several datasets in one go, then compare the runs side by side — one model, many scenarios.",
       "solverAuto": "'Auto' routes your model to the best available solver for its problem class. Pick a specific solver only when you need its particular capabilities.",
       "liveProgress": "While the solver runs, each new incumbent solution streams in live: the chart tracks the best objective found and the optimality gap — when the gap reaches 0%, the solution is proven optimal."
-    }
+    },
+    "listingPublished": "Published",
+    "listingWithdrawn": "Withdrawn"
   },
   "common": {
     "loading": "Loading...",
@@ -4351,7 +4353,8 @@
       "colViews": "Views",
       "colAdoptions": "Adoptions",
       "geoUnknown": "We don't know where the {views} recorded visits came from yet.",
-      "geoCoverage": "Country known for {known} of {total} visits."
+      "geoCoverage": "Country known for {known} of {total} visits.",
+      "loadFailed": "Could not load your analytics. Try again in a moment."
     },
     "verification": {
       "title": "Verification Badge",
@@ -4380,7 +4383,8 @@
       "subtitle": "Your models on the marketplace: how they are doing and what people say.",
       "tabListings": "Listings",
       "tabAnalytics": "Analytics",
-      "tabReviews": "Reviews"
+      "tabReviews": "Reviews",
+      "loadFailed": "Could not load your listings. Try again in a moment."
     },
     "listings": {
       "emptyTitle": "You haven't published anything yet",
@@ -4402,8 +4406,10 @@
       "status": {
         "published": "Published",
         "unpublished": "Withdrawn",
-        "draft": "Draft"
-      }
+        "draft": "Draft",
+        "deprecated": "Retired"
+      },
+      "edit": "Edit listing"
     },
     "reviews": {
       "emptyTitle": "No reviews yet",
@@ -4412,7 +4418,8 @@
       "onModel": "On {model}",
       "previous": "Previous",
       "next": "Next",
-      "pageOf": "Page {page} of {pages}"
+      "pageOf": "Page {page} of {pages}",
+      "loadFailed": "Could not load your reviews. Try again in a moment."
     },
     "onboarding": {
       "title": "Get set up as an author",

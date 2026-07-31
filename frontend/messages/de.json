@@ -326,7 +326,9 @@
       "scenarios": "Führen Sie dasselbe Modell in einem Durchgang mit mehreren Datensätzen aus und vergleichen Sie die Läufe nebeneinander — ein Modell, viele Szenarien.",
       "solverAuto": "„Auto“ leitet Ihr Modell an den besten verfügbaren Solver für seine Problemklasse weiter. Wählen Sie nur dann einen bestimmten Solver, wenn Sie dessen besondere Fähigkeiten benötigen.",
       "liveProgress": "Während der Solver läuft, trifft jede neue Zwischenlösung live ein: das Diagramm verfolgt das beste gefundene Ziel und den Optimalitätsgap — erreicht der Gap 0 %, ist die Lösung nachweislich optimal."
-    }
+    },
+    "listingPublished": "Veröffentlicht",
+    "listingWithdrawn": "Zurückgezogen"
   },
   "common": {
     "loading": "Wird geladen...",
@@ -4351,7 +4353,8 @@
       "colViews": "Aufrufe",
       "colAdoptions": "Übernahmen",
       "geoUnknown": "Woher die {views} erfassten Besuche kamen, wissen wir noch nicht.",
-      "geoCoverage": "Land bekannt bei {known} von {total} Besuchen."
+      "geoCoverage": "Land bekannt bei {known} von {total} Besuchen.",
+      "loadFailed": "Deine Analytik konnte nicht geladen werden. Versuch es gleich noch einmal."
     },
     "verification": {
       "title": "Verifizierungs-Abzeichen",
@@ -4380,7 +4383,8 @@
       "subtitle": "Deine Modelle im Marktplatz: wie sie laufen und was andere sagen.",
       "tabListings": "Veröffentlichungen",
       "tabAnalytics": "Analytik",
-      "tabReviews": "Rezensionen"
+      "tabReviews": "Rezensionen",
+      "loadFailed": "Deine Veröffentlichungen konnten nicht geladen werden. Versuch es gleich noch einmal."
     },
     "listings": {
       "emptyTitle": "Du hast noch nichts veröffentlicht",
@@ -4402,8 +4406,10 @@
       "status": {
         "published": "Veröffentlicht",
         "unpublished": "Zurückgezogen",
-        "draft": "Entwurf"
-      }
+        "draft": "Entwurf",
+        "deprecated": "Von der Plattform zurückgezogen"
+      },
+      "edit": "Veröffentlichung bearbeiten"
     },
     "reviews": {
       "emptyTitle": "Noch keine Rezensionen",
@@ -4412,7 +4418,8 @@
       "onModel": "Zu {model}",
       "previous": "Zurück",
       "next": "Weiter",
-      "pageOf": "Seite {page} von {pages}"
+      "pageOf": "Seite {page} von {pages}",
+      "loadFailed": "Deine Rezensionen konnten nicht geladen werden. Versuch es gleich noch einmal."
     },
     "onboarding": {
       "title": "Als Autor startklar werden",

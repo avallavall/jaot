@@ -25,6 +25,7 @@ from app.schemas.model import (
     RecentListResponse,
     RecentModelSummary,
 )
+from app.services.marketplace_fusion import MARKETPLACE_VISIBLE
 from app.shared.utils.datetime_helpers import utcnow
 
 
@@ -67,9 +68,12 @@ def list_favorites(db: Session, user_id: str) -> FavoriteListResponse:
     if not model_ids:
         return FavoriteListResponse(items=[], total=0)
 
+    # A favourited model whose listing has been withdrawn drops off the list: the
+    # card would link to a marketplace page that answers 404. The favourite row
+    # stays, so it comes back if the author publishes again.
     listings = (
         db.query(ModelProjectListing)
-        .filter(ModelProjectListing.model_project_id.in_(model_ids))
+        .filter(ModelProjectListing.model_project_id.in_(model_ids), *MARKETPLACE_VISIBLE)
         .all()
     )
     authors = _author_names(db, listings)
@@ -175,13 +179,15 @@ def list_recents(db: Session, user_id: str, limit: int) -> RecentListResponse:
     listings = {
         s.model_project_id: s
         for s in db.query(ModelProjectListing)
-        .filter(ModelProjectListing.model_project_id.in_(model_ids))
+        .filter(ModelProjectListing.model_project_id.in_(model_ids), *MARKETPLACE_VISIBLE)
         .all()
     }
     authors = _author_names(db, list(listings.values()))
 
-    # Driven by `recents`, not by `listings`: the order is the recency order, and
-    # a model whose listing has since been unpublished simply drops out.
+    # Driven by `recents`, not by `listings`: the order is the recency order, and a
+    # model whose listing is no longer on the marketplace drops out. That used to
+    # follow from the row being gone; since withdrawal keeps the row, the filter
+    # above is what makes it true.
     items = [
         RecentModelSummary(
             id=listing.model_project_id,

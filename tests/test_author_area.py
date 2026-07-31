@@ -19,9 +19,11 @@ from app.models import (
     ModelProject,
     ModelProjectListing,
     ModelReview,
-    Organization,
-    User,
+    RecentModel,
+    UserFavorite,
 )
+from app.models.audit_log import AuditAction, AuditLog
+from app.models.model_view_event import ModelViewEvent
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
 
@@ -188,6 +190,191 @@ class TestWithdrawListing:
         survivor = db_session.query(ModelProject).filter(ModelProject.id == fork.id).one()
         assert survivor.status == "active"
         assert survivor.draft_model_json == {"variables": [], "constraints": []}
+
+
+class TestWithdrawalIsHonouredEverywhere:
+    """# CONTRACT-TEST: a withdrawn listing must not be linked from anywhere.
+
+    The reversible withdrawal rests on "every marketplace surface filters
+    status == published". Catalog list/detail/schema did; favourites and
+    recently-viewed did not, because they were written when withdrawing deleted
+    the row — so they kept serving cards whose target answers 404.
+    """
+
+    def test_a_withdrawn_listing_leaves_favourites(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        listing = _publish(db_session, org_id=test_organization.id)
+        db_session.add(
+            UserFavorite(
+                id=generate_id("fav_"),
+                user_id=test_user.id,
+                model_project_id=listing.model_project_id,
+            )
+        )
+        db_session.commit()
+
+        assert authenticated_client.get("/api/v2/models/favorites").json()["total"] == 1
+
+        authenticated_client.post(f"/api/v2/projects/{listing.model_project_id}/unpublish")
+
+        assert authenticated_client.get("/api/v2/models/favorites").json()["total"] == 0
+
+    def test_it_comes_back_when_republished(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        """The favourite row survives — only the card is withheld while it is off."""
+        listing = _publish(db_session, org_id=test_organization.id)
+        db_session.add(
+            UserFavorite(
+                id=generate_id("fav_"),
+                user_id=test_user.id,
+                model_project_id=listing.model_project_id,
+            )
+        )
+        db_session.commit()
+
+        authenticated_client.post(f"/api/v2/projects/{listing.model_project_id}/unpublish")
+        authenticated_client.post(f"/api/v2/projects/{listing.model_project_id}/republish")
+
+        assert authenticated_client.get("/api/v2/models/favorites").json()["total"] == 1
+
+    def test_a_withdrawn_listing_leaves_recently_viewed(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        listing = _publish(db_session, org_id=test_organization.id)
+        db_session.add(
+            RecentModel(
+                id=generate_id("rec_"),
+                user_id=test_user.id,
+                model_project_id=listing.model_project_id,
+                last_accessed=utcnow(),
+                access_count=1,
+            )
+        )
+        db_session.commit()
+
+        assert authenticated_client.get("/api/v2/models/recents").json()["total"] == 1
+
+        authenticated_client.post(f"/api/v2/projects/{listing.model_project_id}/unpublish")
+
+        assert authenticated_client.get("/api/v2/models/recents").json()["total"] == 0
+
+    def test_an_unlisted_model_is_not_offered_either(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        """`is_public=False` 404s on the detail page exactly like a withdrawal does."""
+        listing = _publish(db_session, org_id=test_organization.id)
+        listing.is_public = False
+        db_session.add(
+            UserFavorite(
+                id=generate_id("fav_"),
+                user_id=test_user.id,
+                model_project_id=listing.model_project_id,
+            )
+        )
+        db_session.commit()
+
+        assert authenticated_client.get("/api/v2/models/favorites").json()["total"] == 0
+
+
+class TestPublicationTransitions:
+    """Republishing restores a withdrawal; it is not a back door into published."""
+
+    @pytest.mark.parametrize("state", ["draft", "deprecated"])
+    def test_republish_refuses_states_that_never_passed_publish(
+        self, authenticated_client, db_session, test_organization, state
+    ):
+        """A draft has no pinned version and a deprecated template was retired on
+        purpose — promoting either would put a broken card on the marketplace."""
+        listing = _publish(db_session, org_id=test_organization.id, status=state)
+        db_session.commit()
+
+        resp = authenticated_client.post(
+            f"/api/v2/projects/{listing.model_project_id}/republish"
+        )
+        assert resp.status_code == 409, resp.text
+
+        db_session.expire_all()
+        unchanged = (
+            db_session.query(ModelProjectListing)
+            .filter(ModelProjectListing.model_project_id == listing.model_project_id)
+            .one()
+        )
+        assert unchanged.status == state
+
+    def test_withdraw_refuses_them_too(
+        self, authenticated_client, db_session, test_organization
+    ):
+        listing = _publish(db_session, org_id=test_organization.id, status="deprecated")
+        db_session.commit()
+
+        resp = authenticated_client.post(
+            f"/api/v2/projects/{listing.model_project_id}/unpublish"
+        )
+        assert resp.status_code == 409
+
+    def test_the_audit_log_says_which_way_it_went(
+        self, authenticated_client, db_session, test_organization
+    ):
+        """'When did this leave the marketplace, and who took it off?' — model_edit
+        cannot answer that, and all three publication routes used to log it."""
+        listing = _publish(db_session, org_id=test_organization.id)
+        db_session.commit()
+        pid = listing.model_project_id
+
+        authenticated_client.post(f"/api/v2/projects/{pid}/unpublish")
+        authenticated_client.post(f"/api/v2/projects/{pid}/republish")
+
+        actions = [
+            row.action
+            for row in db_session.query(AuditLog)
+            .filter(AuditLog.target_id == pid)
+            .order_by(AuditLog.created_at)
+            .all()
+        ]
+        assert AuditAction.MODEL_UNPUBLISH.value in actions
+        assert AuditAction.MODEL_PUBLISH.value in actions
+
+
+class TestGeoCountsVisits:
+    """The geo card is titled "where your visitors are" and must count visitors."""
+
+    def test_impressions_are_not_counted_as_visits(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        listing = _publish(db_session, org_id=test_organization.id)
+        now = utcnow()
+        db_session.add_all(
+            [
+                ModelViewEvent(
+                    id=generate_id("mve_"),
+                    model_project_id=listing.model_project_id,
+                    event_type="view",
+                    viewer_country="ES",
+                    created_at=now,
+                ),
+                *[
+                    ModelViewEvent(
+                        id=generate_id("mve_"),
+                        model_project_id=listing.model_project_id,
+                        event_type="impression",
+                        viewer_country="ES",
+                        created_at=now,
+                    )
+                    for _ in range(30)
+                ],
+            ]
+        )
+        db_session.commit()
+
+        geo = authenticated_client.get("/api/v2/author/analytics/geo?period=30d").json()
+        summary = authenticated_client.get(
+            "/api/v2/author/analytics/summary?period=30d"
+        ).json()
+
+        # The breakdown must not exceed the total it breaks down.
+        assert sum(entry["count"] for entry in geo["data"]) == summary["total_views"] == 1
 
 
 class TestMyListings:

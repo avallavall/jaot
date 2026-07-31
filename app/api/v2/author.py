@@ -47,6 +47,7 @@ from app.schemas.verification import VerificationRequestResponse
 from app.services.author_analytics_service import AuthorAnalyticsService
 from app.services.verification_service import VerificationService
 from app.shared.db.base import get_db
+from app.shared.utils.pagination import paginate_query
 
 logger = logging.getLogger(__name__)
 
@@ -157,8 +158,7 @@ def list_reviews_received(
         )
         .order_by(ModelReview.created_at.desc())
     )
-    total = query.count()
-    reviews = query.offset((page - 1) * page_size).limit(page_size).all()
+    reviews, total = paginate_query(query, page, page_size)
 
     # Batch pre-fetch the reviewers (N+1 otherwise), same as the public endpoint.
     user_ids = list({r.user_id for r in reviews if r.user_id})

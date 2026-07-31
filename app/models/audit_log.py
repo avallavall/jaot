@@ -17,6 +17,10 @@ class AuditAction(str, Enum):
     SOLVE = "solve"
     MODEL_EDIT = "model_edit"
     MODEL_DELETE = "model_delete"
+    # Publication state is its own question ("when did this leave the marketplace,
+    # and who took it off?"), and model_edit cannot answer it.
+    MODEL_PUBLISH = "model_publish"
+    MODEL_UNPUBLISH = "model_unpublish"
     MEMBER_INVITE = "member_invite"
     MEMBER_REMOVE = "member_remove"
     ROLE_CHANGE = "role_change"

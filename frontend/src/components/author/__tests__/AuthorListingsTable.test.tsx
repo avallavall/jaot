@@ -89,6 +89,65 @@ describe("AuthorListingsTable", () => {
     expect(screen.queryByText("author.listings.viewPublic")).not.toBeInTheDocument();
   });
 
+  it("does not offer a public link for an unlisted model either", () => {
+    // is_public=false 404s on the catalog detail exactly like a withdrawal does,
+    // so a link gated on status alone hands the author a dead page.
+    render(
+      <AuthorListingsTable
+        listings={[row({ status: "published", is_public: false })]}
+        onChanged={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText("author.listings.viewPublic")).not.toBeInTheDocument();
+  });
+
+  it("always offers the edit link — it is where logos and screenshots live", () => {
+    render(<AuthorListingsTable listings={[row()]} onChanged={vi.fn()} />);
+
+    expect(screen.getByText("author.listings.edit").closest("a")).toHaveAttribute(
+      "href",
+      "/studio/mp_1/publish",
+    );
+  });
+
+  it("renders a listing in a state the table does not special-case", () => {
+    // The seeder retires templates as "deprecated" and the union did not cover it.
+    // (The mocked translator answers `has` with true, so what this pins is that
+    // the row renders at all; the message below is what stops a raw key showing.)
+    render(
+      <AuthorListingsTable
+        listings={[row({ status: "deprecated" as AuthorListingRow["status"] })]}
+        onChanged={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Vehicle routing")).toBeInTheDocument();
+  });
+
+  it("has a label for every listing state the database can hold", async () => {
+    const messages = (await import("../../../../messages/en.json")).default;
+    const labels = messages.author.listings.status;
+
+    // draft | published | unpublished | deprecated — see ModelProjectListing.status
+    // and app/shared/db/seed_models.py, which retires templates as deprecated.
+    for (const state of ["draft", "published", "unpublished", "deprecated"]) {
+      expect(labels, `no label for status "${state}"`).toHaveProperty(state);
+    }
+  });
+
+  it("offers no withdraw button for a state the server would refuse", () => {
+    render(
+      <AuthorListingsTable
+        listings={[row({ status: "deprecated" as AuthorListingRow["status"] })]}
+        onChanged={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "author.listings.withdraw" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "author.listings.restore" })).toBeNull();
+  });
+
   it("says there are no ratings rather than showing a zero", () => {
     render(<AuthorListingsTable listings={[row({ avg_rating: null })]} onChanged={vi.fn()} />);
 

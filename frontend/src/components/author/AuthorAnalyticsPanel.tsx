@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { BarChart3 } from "lucide-react";
 
@@ -14,6 +14,7 @@ import type {
   ModelPerformanceRow,
 } from "@/lib/types";
 import { AnalyticsKPICards } from "@/components/author/AnalyticsKPICards";
+import { LoadFailed } from "@/components/author/LoadFailed";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,13 +37,27 @@ const PERIOD_LABEL: Record<Period, string> = {
   all: "periodAll",
 };
 
-/** Country names come from the browser, so we never ship a 250-row table x5 locales. */
-function countryName(code: string, locale: string): string {
-  try {
-    return new Intl.DisplayNames([locale], { type: "region" }).of(code) ?? code;
-  } catch {
-    return code;
-  }
+/**
+ * Country names come from the browser, so we never ship a 250-row table x5
+ * locales. The formatter is built once per locale, not once per row: Intl
+ * constructors are expensive and the result is the same for the whole render.
+ */
+function useCountryNamer(locale: string): (code: string) => string {
+  return useMemo(() => {
+    let names: Intl.DisplayNames | null = null;
+    try {
+      names = new Intl.DisplayNames([locale], { type: "region" });
+    } catch {
+      names = null;
+    }
+    return (code: string) => {
+      try {
+        return names?.of(code) ?? code;
+      } catch {
+        return code;
+      }
+    };
+  }, [locale]);
 }
 
 const PERIOD_DAYS: Record<Period, number | null> = { "7d": 7, "30d": 30, "90d": 90, all: null };
@@ -96,9 +111,11 @@ function NotEnoughYet({ children }: { children: React.ReactNode }) {
 
 export function AuthorAnalyticsPanel({ locale }: { locale: string }) {
   const t = useTranslations("author.analytics");
+  const countryName = useCountryNamer(locale);
 
   const [period, setPeriod] = useState<Period>("30d");
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [funnel, setFunnel] = useState<ConversionFunnel | null>(null);
   const [geo, setGeo] = useState<GeoDistribution | null>(null);
@@ -107,6 +124,7 @@ export function AuthorAnalyticsPanel({ locale }: { locale: string }) {
 
   const load = useCallback(async (p: Period, isCurrent: () => boolean) => {
     setLoading(true);
+    setFailed(false);
     try {
       const [s, f, g, m, ts] = await Promise.all([
         api.getAuthorAnalyticsSummary(p),
@@ -122,6 +140,10 @@ export function AuthorAnalyticsPanel({ locale }: { locale: string }) {
       setGeo(g);
       setModels(m);
       setSeries(ts);
+    } catch {
+      // Without this every panel below would render its "nothing happened yet"
+      // copy, turning an outage into a confident report of an empty period.
+      if (isCurrent()) setFailed(true);
     } finally {
       if (isCurrent()) setLoading(false);
     }
@@ -144,10 +166,15 @@ export function AuthorAnalyticsPanel({ locale }: { locale: string }) {
     );
   }
 
-  const activeDays = series?.data.filter(
-    (d) => d.views > 0 || d.impressions > 0 || d.activations > 0,
-  ).length ?? 0;
+  if (failed) return <LoadFailed message={t("loadFailed")} />;
+
   const days = fillMissingDays(series?.data ?? [], period, new Date());
+  // Counted on the days actually plotted, not on the raw response: the API's
+  // window can reach one bucket further back than the chart's, and a day that is
+  // never drawn must not be what licenses drawing the chart.
+  const activeDays = days.filter(
+    (d) => d.views > 0 || d.impressions > 0 || d.activations > 0,
+  ).length;
   const peakViews = Math.max(...days.map((d) => d.views), 1);
   const countries = geo?.data ?? [];
   const totalGeo = countries.reduce((acc, c) => acc + c.count, 0);
@@ -191,9 +218,12 @@ export function AuthorAnalyticsPanel({ locale }: { locale: string }) {
                     <span className="tabular-nums font-medium">{value.toLocaleString()}</span>
                   </div>
                   <div className="h-2 w-full rounded-full bg-muted">
+                    {/* Impressions are only recorded on the catalog list, so a model
+                        reached by a shared link can hold more views than impressions
+                        — unclamped, that bar renders wider than its own track. */}
                     <div
                       className="h-2 rounded-full bg-primary"
-                      style={{ width: `${(value / funnel.impressions) * 100}%` }}
+                      style={{ width: `${Math.min((value / funnel.impressions) * 100, 100)}%` }}
                     />
                   </div>
                 </div>
@@ -244,7 +274,7 @@ export function AuthorAnalyticsPanel({ locale }: { locale: string }) {
             <NotEnoughYet>
               {t("geoSingle", {
                 count: countries[0].count,
-                country: countryName(countries[0].country, locale),
+                country: countryName(countries[0].country),
               })}
             </NotEnoughYet>
           ) : (
@@ -252,7 +282,7 @@ export function AuthorAnalyticsPanel({ locale }: { locale: string }) {
               {countries.map((c) => (
                 <div key={c.country} className="flex items-center gap-3">
                   <span className="w-32 shrink-0 truncate text-sm">
-                    {countryName(c.country, locale)}
+                    {countryName(c.country)}
                   </span>
                   <div className="h-2 flex-1 rounded-full bg-muted">
                     <div

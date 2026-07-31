@@ -218,9 +218,15 @@ class AuthorAnalyticsService:
         return TimeSeriesResponse(data=data, period=period)
 
     def get_geo_distribution(self, org_id: str | None, period: str) -> GeoDistributionResponse:
-        """Group views by viewer_country."""
+        """Group VIEWS by viewer_country.
+
+        ``_base_view_query`` carries both event types, and impressions outnumber
+        views by roughly thirty to one, so leaving the type unfiltered reported
+        impression counts under a heading that says visits — and made the total
+        exceed the view count it is supposed to break down.
+        """
         since = _period_since(period)
-        view_q = self._base_view_query(org_id, since)
+        view_q = self._base_view_query(org_id, since).filter(ModelViewEvent.event_type == "view")
 
         rows = (
             view_q.filter(ModelViewEvent.viewer_country.isnot(None))
