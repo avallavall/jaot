@@ -2893,7 +2893,6 @@
       "expression": "Expression",
       "bindingStatus": "Binding Status",
       "gapConvergence": "Gap Convergence",
-      "objectiveTrend": "Objective Trend",
       "generated": "Generated",
       "solveTime": "Solve Time",
       "triggerIdLabel": "Trigger ID",
@@ -2929,22 +2928,6 @@
       "zerosHidden": "{count, plural, one {# zero-valued variable hidden} other {# zero-valued variables hidden}}"
     },
     "charts": {
-      "gapConvergence": {
-        "noData": "Live convergence data available only during active solves",
-        "iteration": "Iteration",
-        "primalBound": "Primal Bound",
-        "dualBound": "Dual Bound (approx.)",
-        "gap": "Gap: {percent}%",
-        "gapLabel": "Gap"
-      },
-      "objectiveTrend": {
-        "noData": "No completed executions with objective values to chart",
-        "line": "Line",
-        "scatter": "Scatter",
-        "bar": "Bar",
-        "objective": "Objective: {value}",
-        "origin": "Origin: {origin}"
-      },
       "pareto": {
         "paretoFront": "Pareto Front",
         "paretoSolutions": "Pareto solutions:",
@@ -3141,42 +3124,6 @@
       "otherVariables": "Other variables",
       "countLabel": "{count, plural, one {# variable} other {# variables}}",
       "groupedListLabel": "Grouped solution"
-    },
-    "progress": {
-      "title": "Execution Progress",
-      "connected": "Connected",
-      "disconnected": "Disconnected",
-      "pending": "pending",
-      "running": "running",
-      "completed": "completed",
-      "failed": "failed",
-      "cancelled": "cancelled",
-      "waitingToStart": "Waiting to start...",
-      "connecting": "Connecting...",
-      "solvingMsg": "Solving...",
-      "modelFound": "Model found!",
-      "cancelledByUser": "Execution cancelled by user",
-      "cancelFailed": "Failed to cancel execution. Please try again.",
-      "progress": "Progress",
-      "progressPercent": "{percent}%",
-      "iteration": "Iteration",
-      "objective": "Objective",
-      "gap": "Gap",
-      "cancelExecution": "Cancel Execution",
-      "cancelling": "Cancelling...",
-      "convergenceGraph": "Convergence Graph",
-      "resultLabel": "Result",
-      "announceSolvingStarted": "Solving started",
-      "announceCompleted": "Solve completed: {message}",
-      "announceFailed": "Solve failed: {error}",
-      "announceCancelled": "Solve cancelled",
-      "unknownError": "An unexpected error occurred. Please try again.",
-      "executionFailed": "Execution failed. Check the solver logs for details.",
-      "asyncInfoTitle": "Running in Background",
-      "asyncInfoRunning": "Your optimization is running in the background.",
-      "asyncInfoSafeToLeave": "You can safely close this page — results will be available in your execution history.",
-      "asyncInfoEstimatedTime": "Estimated time depends on model complexity.",
-      "asyncInfoViewHistory": "View Execution History"
     },
     "helpTooltips": {
       "multiObjective": "Multi-objective optimization finds trade-offs between competing goals, generating a Pareto frontier of optimal solutions.",

@@ -2868,7 +2868,6 @@
       "expression": "Expresión",
       "bindingStatus": "Estado de binding",
       "gapConvergence": "Convergencia del gap",
-      "objectiveTrend": "Tendencia del objetivo",
       "generated": "Generado",
       "solveTime": "Tiempo de resolución",
       "triggerIdLabel": "ID del trigger",
@@ -2892,22 +2891,6 @@
       "rowsCapped": "Mostrando las primeras {shown} de {total} variables no nulas"
     },
     "charts": {
-      "gapConvergence": {
-        "noData": "Datos de convergencia en directo disponibles solo durante resoluciones activas",
-        "iteration": "Iteración",
-        "primalBound": "Límite primal",
-        "dualBound": "Límite dual (aprox.)",
-        "gap": "Gap: {percent}%",
-        "gapLabel": "Gap"
-      },
-      "objectiveTrend": {
-        "noData": "No hay ejecuciones completadas con valores de objetivo para graficar",
-        "line": "Línea",
-        "scatter": "Dispersión",
-        "bar": "Barras",
-        "objective": "Objetivo: {value}",
-        "origin": "Origen: {origin}"
-      },
       "pareto": {
         "paretoFront": "Pareto Front",
         "paretoSolutions": "Soluciones Pareto:",
@@ -3104,42 +3087,6 @@
       "otherVariables": "Otras variables",
       "countLabel": "{count, plural, one {# variable} other {# variables}}",
       "groupedListLabel": "Solución agrupada"
-    },
-    "progress": {
-      "title": "Progreso de ejecución",
-      "connected": "Conectado",
-      "disconnected": "Desconectado",
-      "pending": "pendiente",
-      "running": "en curso",
-      "completed": "completada",
-      "failed": "fallida",
-      "cancelled": "cancelada",
-      "waitingToStart": "Esperando para iniciar...",
-      "connecting": "Conectando...",
-      "solvingMsg": "Resolviendo...",
-      "modelFound": "¡Modelo encontrado!",
-      "cancelledByUser": "Ejecución cancelada por el usuario",
-      "cancelFailed": "Error al cancelar la ejecución. Inténtalo de nuevo.",
-      "progress": "Progreso",
-      "progressPercent": "{percent}%",
-      "iteration": "Iteración",
-      "objective": "Objetivo",
-      "gap": "Gap",
-      "cancelExecution": "Cancelar ejecución",
-      "cancelling": "Cancelando...",
-      "convergenceGraph": "Gráfico de convergencia",
-      "resultLabel": "Resultado",
-      "announceSolvingStarted": "Resolución iniciada",
-      "announceCompleted": "Resolución completada: {message}",
-      "announceFailed": "Resolución fallida: {error}",
-      "announceCancelled": "Resolución cancelada",
-      "unknownError": "Ha ocurrido un error inesperado. Por favor, inténtalo de nuevo.",
-      "executionFailed": "La ejecución falló. Consulta los registros del soluciónador para más detalles.",
-      "asyncInfoTitle": "Ejecutando en Segundo Plano",
-      "asyncInfoRunning": "Tu optimización se está ejecutando en segundo plano.",
-      "asyncInfoSafeToLeave": "Puedes cerrar esta página con seguridad — los resultados estarán disponibles en tu historial de ejecución.",
-      "asyncInfoEstimatedTime": "El tiempo estimado depende de la complejidad del modelo.",
-      "asyncInfoViewHistory": "Ver Historial de Ejecución"
     },
     "helpTooltips": {
       "multiObjective": "La optimización multiobjetivo encuentra equilibrios entre objetivos en competencia, generando una frontera de Pareto de soluciones óptimas.",

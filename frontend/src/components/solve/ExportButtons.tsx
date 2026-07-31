@@ -22,7 +22,6 @@ import { resolveOriginKey } from "@/lib/execution-origin";
 interface ExportButtonsProps {
   execution: ModelExecution;
   chartRef?: React.RefObject<HTMLDivElement | null>;
-  trendChartRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export interface ExportLabels {
@@ -50,7 +49,6 @@ export interface ExportLabels {
   expression: string;
   bindingStatus: string;
   gapConvergence: string;
-  objectiveTrend: string;
   generated: string;
   solveTime: string;
   triggerIdLabel: string;
@@ -156,7 +154,6 @@ export function buildReportHtml(
   labels: ExportLabels,
   locale: string,
   chartImageDataUrl?: string | null,
-  trendChartImageDataUrl?: string | null
 ): string {
   const resultData = execution.result_data as Record<string, unknown> | undefined;
   const allVariables = extractVariables(resultData);
@@ -204,12 +201,6 @@ export function buildReportHtml(
     chartImageDataUrl
       ? `<h2>${labels.gapConvergence}</h2>
          <img src="${chartImageDataUrl}" alt="${labels.gapConvergence}" />`
-      : "";
-
-  const trendChartSection =
-    trendChartImageDataUrl
-      ? `<h2>${labels.objectiveTrend}</h2>
-         <img src="${trendChartImageDataUrl}" alt="${labels.objectiveTrend}" />`
       : "";
 
   const dateStr = apiDate(execution.created_at).toLocaleString(locale);
@@ -542,7 +533,6 @@ export function buildReportHtml(
   </div>
 
   ${gapChartSection}
-  ${trendChartSection}
 
   <div class="footer">
     JAOT \u00B7 Optimization Platform \u00B7 ${new Date().getFullYear()}
@@ -567,7 +557,7 @@ function openPrintableReport(html: string, executionId: string, popupBlockedMsg:
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
-export function ExportButtons({ execution, chartRef, trendChartRef }: ExportButtonsProps) {
+export function ExportButtons({ execution, chartRef }: ExportButtonsProps) {
   const t = useTranslations("solve.export");
   const tOrigin = useTranslations("solve.origin");
   const locale = useLocale();
@@ -599,7 +589,6 @@ export function ExportButtons({ execution, chartRef, trendChartRef }: ExportButt
     expression: t("expression"),
     bindingStatus: t("bindingStatus"),
     gapConvergence: t("gapConvergence"),
-    objectiveTrend: t("objectiveTrend"),
     generated: t("generated"),
     solveTime: t("solveTime"),
     triggerIdLabel: t("triggerIdLabel"),
@@ -620,8 +609,7 @@ export function ExportButtons({ execution, chartRef, trendChartRef }: ExportButt
     setPdfLoading(true);
     try {
       const chartImg = chartRef ? await captureChartAsImage(chartRef) : null;
-      const trendImg = trendChartRef ? await captureChartAsImage(trendChartRef) : null;
-      const html = buildReportHtml(execution, labels, locale, chartImg, trendImg);
+      const html = buildReportHtml(execution, labels, locale, chartImg);
       openPrintableReport(html, execution.id, labels.popupBlocked);
     } finally {
       setPdfLoading(false);

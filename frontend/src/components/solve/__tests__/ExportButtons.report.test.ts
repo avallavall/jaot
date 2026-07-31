@@ -30,7 +30,6 @@ const labels: ExportLabels = {
   expression: "Expression",
   bindingStatus: "Binding",
   gapConvergence: "Gap convergence",
-  objectiveTrend: "Objective trend",
   generated: "Generated",
   solveTime: "Solve time",
   triggerIdLabel: "Trigger",

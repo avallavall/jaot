@@ -309,21 +309,6 @@ async def websocket_execution_progress(
         manager.disconnect(websocket, execution_id)
 
 
-async def notify_execution_progress(execution_id: str, progress_data: dict[str, Any]) -> None:
-    """
-    Utility function to notify all connected clients of progress.
-    Called from Celery tasks via Redis pub/sub or direct call.
-    """
-    await manager.broadcast_progress(
-        execution_id,
-        {
-            "type": "progress",
-            "execution_id": execution_id,
-            **progress_data,
-        },
-    )
-
-
 async def notify_execution_complete(execution_id: str, result: dict[str, Any]) -> None:
     """Notify all connected clients that execution is complete."""
     await manager.broadcast_progress(

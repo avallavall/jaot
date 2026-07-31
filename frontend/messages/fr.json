@@ -2868,7 +2868,6 @@
       "expression": "Expression",
       "bindingStatus": "Statut de liaison",
       "gapConvergence": "Convergence de l'écart",
-      "objectiveTrend": "Tendance de l'objectif",
       "generated": "Généré",
       "solveTime": "Temps de résolution",
       "triggerIdLabel": "ID du déclencheur",
@@ -2892,22 +2891,6 @@
       "rowsCapped": "Affichage des {shown} premières variables non nulles sur {total}"
     },
     "charts": {
-      "gapConvergence": {
-        "noData": "Les données de convergence en direct ne sont disponibles que pendant les résolutions actives",
-        "iteration": "Itération",
-        "primalBound": "Borne primale",
-        "dualBound": "Borne duale (approx.)",
-        "gap": "Écart : {percent} %",
-        "gapLabel": "Écart"
-      },
-      "objectiveTrend": {
-        "noData": "Aucune exécution terminée avec des valeurs d'objectif à afficher",
-        "line": "Ligne",
-        "scatter": "Nuage de points",
-        "bar": "Barres",
-        "objective": "Objectif : {value}",
-        "origin": "Origine : {origin}"
-      },
       "pareto": {
         "paretoFront": "Front de Pareto",
         "paretoSolutions": "Solutions de Pareto :",
@@ -3104,42 +3087,6 @@
       "otherVariables": "Autres variables",
       "countLabel": "{count, plural, one {# variable} other {# variables}}",
       "groupedListLabel": "Solution groupée"
-    },
-    "progress": {
-      "title": "Progression de l'exécution",
-      "connected": "Connecté",
-      "disconnected": "Déconnecté",
-      "pending": "en attente",
-      "running": "en cours",
-      "completed": "terminée",
-      "failed": "échouée",
-      "cancelled": "annulée",
-      "waitingToStart": "En attente de démarrage...",
-      "connecting": "Connexion...",
-      "solvingMsg": "Résolution...",
-      "modelFound": "Modèle trouvé !",
-      "cancelledByUser": "Exécution annulée par l'utilisateur",
-      "cancelFailed": "Échec de l'annulation de l'exécution. Veuillez réessayer.",
-      "progress": "Progression",
-      "progressPercent": "{percent} %",
-      "iteration": "Itération",
-      "objective": "Objectif",
-      "gap": "Écart",
-      "cancelExecution": "Annuler l'exécution",
-      "cancelling": "Annulation...",
-      "convergenceGraph": "Graphique de convergence",
-      "resultLabel": "Résultat",
-      "announceSolvingStarted": "Résolution démarrée",
-      "announceCompleted": "Résolution terminée : {message}",
-      "announceFailed": "Résolution échouée : {error}",
-      "announceCancelled": "Résolution annulée",
-      "unknownError": "Une erreur inattendue s'est produite. Veuillez réessayer.",
-      "executionFailed": "L'exécution a échoué. Consultez les journaux du solveur pour plus de détails.",
-      "asyncInfoTitle": "Exécution en Arrière-plan",
-      "asyncInfoRunning": "Votre optimisation s'exécute en arrière-plan.",
-      "asyncInfoSafeToLeave": "Vous pouvez fermer cette page en toute sécurité — les résultats seront disponibles dans votre historique d'exécution.",
-      "asyncInfoEstimatedTime": "Le temps estimé dépend de la complexité du modèle.",
-      "asyncInfoViewHistory": "Voir l'Historique d'Exécution"
     },
     "helpTooltips": {
       "multiObjective": "L'optimisation multi-objectif trouve des compromis entre des objectifs concurrents, générant une frontière de Pareto de solutions optimales.",

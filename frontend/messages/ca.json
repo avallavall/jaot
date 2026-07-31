@@ -2868,7 +2868,6 @@
       "expression": "Expressió",
       "bindingStatus": "Estat de Vinculació",
       "gapConvergence": "Convergència del Gap",
-      "objectiveTrend": "Tendència de l'Objectiu",
       "generated": "Generat",
       "solveTime": "Temps de Resolució",
       "triggerIdLabel": "ID del Trigger",
@@ -2892,22 +2891,6 @@
       "rowsCapped": "Es mostren les primeres {shown} de {total} variables no nul·les"
     },
     "charts": {
-      "gapConvergence": {
-        "noData": "Dades de convergència en viu disponibles només durant resolucions actives",
-        "iteration": "Iteració",
-        "primalBound": "Fita Primal",
-        "dualBound": "Fita Dual (aprox.)",
-        "gap": "Gap: {percent}%",
-        "gapLabel": "Gap"
-      },
-      "objectiveTrend": {
-        "noData": "No hi ha execucions completades amb valors d'objectiu per graficar",
-        "line": "Línia",
-        "scatter": "Dispersió",
-        "bar": "Barres",
-        "objective": "Objectiu: {value}",
-        "origin": "Origen: {origin}"
-      },
       "pareto": {
         "paretoFront": "Front de Pareto",
         "paretoSolutions": "Solucions Pareto:",
@@ -3104,42 +3087,6 @@
       "otherVariables": "Altres variables",
       "countLabel": "{count, plural, one {# variable} other {# variables}}",
       "groupedListLabel": "Solució agrupada"
-    },
-    "progress": {
-      "title": "Progrés de l'Execució",
-      "connected": "Connectat",
-      "disconnected": "Desconnectat",
-      "pending": "pendent",
-      "running": "en execució",
-      "completed": "completat",
-      "failed": "fallit",
-      "cancelled": "cancel·lat",
-      "waitingToStart": "Esperant per iniciar...",
-      "connecting": "Connectant...",
-      "solvingMsg": "Resolent...",
-      "modelFound": "Model trobat!",
-      "cancelledByUser": "Execució cancel·lada per l'usuari",
-      "cancelFailed": "Error en cancel·lar l'execució. Torna-ho a provar.",
-      "progress": "Progrés",
-      "progressPercent": "{percent}%",
-      "iteration": "Iteració",
-      "objective": "Objectiu",
-      "gap": "Gap",
-      "cancelExecution": "Cancel·lar Execució",
-      "cancelling": "Cancel·lant...",
-      "convergenceGraph": "Gràfic de Convergència",
-      "resultLabel": "Resultat",
-      "announceSolvingStarted": "Resolució iniciada",
-      "announceCompleted": "Resolució completada: {message}",
-      "announceFailed": "Resolució fallida: {error}",
-      "announceCancelled": "Resolució cancel·lada",
-      "unknownError": "S'ha produït un error inesperat. Si us plau, torna-ho a provar.",
-      "executionFailed": "L'execució ha fallat. Consulta els registres del solucionador per a més detalls.",
-      "asyncInfoTitle": "Executant en Segon Pla",
-      "asyncInfoRunning": "La teva optimització s'està executant en segon pla.",
-      "asyncInfoSafeToLeave": "Pots tancar aquesta pàgina amb seguretat — els resultats estaran disponibles al teu historial d'execució.",
-      "asyncInfoEstimatedTime": "El temps estimat depèn de la complexitat del model.",
-      "asyncInfoViewHistory": "Veure Historial d'Execució"
     },
     "helpTooltips": {
       "multiObjective": "L'optimització multiobjectiu troba equilibris entre objectius en competència, generant una frontera de Pareto de solucions òptimes.",

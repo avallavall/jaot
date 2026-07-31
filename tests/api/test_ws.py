@@ -11,7 +11,6 @@ from app.api.v2.ws import (
     ConnectionManager,
     notify_execution_complete,
     notify_execution_failed,
-    notify_execution_progress,
 )
 
 
@@ -109,20 +108,6 @@ class TestConnectionManager:
 
 class TestNotifyFunctions:
     """Tests for notification utility functions."""
-
-    @pytest.mark.asyncio
-    async def test_notify_execution_progress(self):
-        """Test notify_execution_progress sends correct data."""
-        with patch("app.api.v2.ws.manager") as mock_manager:
-            mock_manager.broadcast_progress = AsyncMock()
-
-            await notify_execution_progress("exec-123", {"status": "running", "progress": 0.5})
-
-            mock_manager.broadcast_progress.assert_called_once()
-            call_args = mock_manager.broadcast_progress.call_args
-            assert call_args[0][0] == "exec-123"
-            assert call_args[0][1]["type"] == "progress"
-            assert call_args[0][1]["execution_id"] == "exec-123"
 
     @pytest.mark.asyncio
     async def test_notify_execution_complete(self):
