@@ -738,3 +738,130 @@ def test_a_correctly_named_family_groups_and_needs_no_hint():
     assert draft is not None
     assert "var x{" in draft  # compact, not one `var` per variable
     assert "Not grouped" not in draft
+
+
+# --------------------------------------------------------------------------- #
+# Outcome reasons + the "what kept it flat" hint (prod Treasury, 2026-07-31)
+# --------------------------------------------------------------------------- #
+
+
+def _treasury_like():
+    """The prod Treasury shape in miniature: perfect families whose reconstruction
+    dies on ONE deviating bound (``invest_3 <= 0`` — "no investing in the final
+    period" written as a bound), recurrence constraints, a single-member objective."""
+    from app.schemas.optimization import (
+        Constraint,
+        Objective,
+        ObjectiveSense,
+        OptimizationProblem,
+        Variable,
+        VariableType,
+    )
+
+    periods = (1, 2, 3)
+    variables = [
+        Variable(name=f"cash_{i}", type=VariableType.CONTINUOUS, lower_bound=0) for i in periods
+    ] + [
+        Variable(
+            name=f"invest_{i}",
+            type=VariableType.CONTINUOUS,
+            lower_bound=0,
+            upper_bound=0 if i == 3 else None,
+        )
+        for i in periods
+    ]
+    constraints = [
+        Constraint(name="balance_1", expression="cash_1 + invest_1 == 30000 + 60000 - 50000"),
+        Constraint(name="balance_2", expression="cash_2 == cash_1 + 45000 - 75000 - invest_2"),
+        Constraint(name="balance_3", expression="cash_3 == cash_2 + 70000 - 15000 - invest_3"),
+    ]
+    return OptimizationProblem(
+        variables=variables,
+        objective=Objective(sense=ObjectiveSense.MAXIMIZE, expression="cash_3"),
+        constraints=constraints,
+    )
+
+
+def test_mixed_bounds_family_falls_back_flat_and_names_the_cause():
+    """One deviating per-member bound kills the compact family — the scalar draft
+    must SAY so instead of leaving the reader to wonder why nothing grouped."""
+    problem = _treasury_like()
+    draft = deground_problem(problem)
+    assert draft is not None
+    header = "\n".join(draft.split("\n")[:2])
+    assert "# Not grouped: family 'invest' mixes variable types/bounds." in header
+    # The hint is a comment, so the draft still compiles and round-trips.
+    assert _recompiles_equivalent(draft, problem)
+
+
+def test_outcome_success_carries_no_reason():
+    from app.services.jmodel_deground import deground_outcome
+
+    outcome = deground_outcome(_flat(ASSIGNMENT), split=False)
+    assert outcome.draft is not None
+    assert outcome.reason is None
+
+
+def test_outcome_too_large_reason():
+    """The 80-scalar wall declines with the reason spelled out for the API."""
+    from app.schemas.optimization import (
+        Constraint,
+        Objective,
+        ObjectiveSense,
+        OptimizationProblem,
+        Variable,
+        VariableType,
+    )
+    from app.services.jmodel_deground import deground_outcome
+
+    variables = [Variable(name=f"col{i}", type=VariableType.CONTINUOUS) for i in range(80)]
+    problem = OptimizationProblem(
+        variables=variables,
+        objective=Objective(
+            sense=ObjectiveSense.MINIMIZE, expression=" + ".join(v.name for v in variables)
+        ),
+        constraints=[Constraint(name="c", expression=variables[0].name + " >= 1")],
+    )
+    outcome = deground_outcome(problem, split=False)
+    assert outcome.draft is None
+    assert outcome.reason == "too_large"
+
+
+def test_canvas_mangled_trivial_rows_decline_as_not_representable():
+    """Regression (prod 2026-07-31): the old canvas deserializer rewrote rich rows
+    to ``0 <= 0`` and the UI blamed the decline on "no indexed structure". The
+    decline itself is right (the trivial rows do not survive a round-trip); the
+    REASON must say what actually happened so the UI can stop guessing."""
+    from app.schemas.optimization import Constraint
+    from app.services.jmodel_deground import deground_outcome
+
+    problem = _treasury_like()
+    problem.constraints = [
+        Constraint(name=c.name, expression="0 <= 0") for c in problem.constraints
+    ]
+    outcome = deground_outcome(problem, split=True)
+    assert outcome.draft is None
+    assert outcome.reason == "not_representable"
+
+
+def test_unknown_symbol_declines_as_not_representable():
+    """An expression over an undeclared name cannot compile, so no candidate can
+    be verified — the reason is representability, never "no structure"."""
+    from app.schemas.optimization import (
+        Constraint,
+        Objective,
+        ObjectiveSense,
+        OptimizationProblem,
+        Variable,
+        VariableType,
+    )
+    from app.services.jmodel_deground import deground_outcome
+
+    problem = OptimizationProblem(
+        variables=[Variable(name="x", type=VariableType.CONTINUOUS)],
+        objective=Objective(sense=ObjectiveSense.MINIMIZE, expression="x"),
+        constraints=[Constraint(name="c", expression="x + ghost <= 5")],
+    )
+    outcome = deground_outcome(problem, split=False)
+    assert outcome.draft is None
+    assert outcome.reason == "not_representable"

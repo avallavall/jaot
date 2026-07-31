@@ -4805,7 +4805,10 @@ export interface components {
         };
         /** Body_import_and_solve */
         Body_import_and_solve: {
-            /** File */
+            /**
+             * File
+             * Format: binary
+             */
             file: string;
             /**
              * Gap Tolerance
@@ -4823,30 +4826,45 @@ export interface components {
         };
         /** Body_import_preview */
         Body_import_preview: {
-            /** File */
+            /**
+             * File
+             * Format: binary
+             */
             file: string;
             objective_sense?: components["schemas"]["ObjectiveSense"] | null;
         };
         /** Body_import_project_dataset */
         Body_import_project_dataset: {
-            /** File */
+            /**
+             * File
+             * Format: binary
+             */
             file: string;
             /** Param Name */
             param_name?: string | null;
         };
         /** Body_upload_attachment_api_v2_llm_conversations__conversation_id__attachments_post */
         Body_upload_attachment_api_v2_llm_conversations__conversation_id__attachments_post: {
-            /** File */
+            /**
+             * File
+             * Format: binary
+             */
             file: string;
         };
         /** Body_upload_logo_api_v2_models_catalog__model_id__logo_post */
         Body_upload_logo_api_v2_models_catalog__model_id__logo_post: {
-            /** File */
+            /**
+             * File
+             * Format: binary
+             */
             file: string;
         };
         /** Body_upload_screenshot_api_v2_models_catalog__model_id__screenshots_post */
         Body_upload_screenshot_api_v2_models_catalog__model_id__screenshots_post: {
-            /** File */
+            /**
+             * File
+             * Format: binary
+             */
             file: string;
         };
         /**
@@ -5746,6 +5764,11 @@ export interface components {
             dataset?: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Reason
+             * @description Why there is no draft (only when source is null): `too_large` — no compact structure and the flat model is past the scalar-draft budget; `not_representable` — every candidate draft failed the round-trip verification; `error` — the de-grounder crashed (logged server-side).
+             */
+            reason?: ("too_large" | "not_representable" | "error") | null;
             /**
              * Source
              * @description Reconstructed JModel draft, or null when none is recoverable.

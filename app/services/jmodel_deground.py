@@ -53,6 +53,26 @@ class DegroundDraft:
     dataset: dict | None
 
 
+# Machine-readable decline reasons, surfaced by the API so the UI can say the truth
+# instead of guessing one cause for every decline.
+REASON_TOO_LARGE = "too_large"
+REASON_NOT_REPRESENTABLE = "not_representable"
+
+
+@dataclass(frozen=True)
+class DegroundOutcome:
+    """The de-ground verdict: a verified draft, or the reason there is none.
+
+    ``reason`` is set exactly when ``draft`` is ``None``: :data:`REASON_TOO_LARGE`
+    (no compact structure recovered and the flat model is past the scalar-draft
+    budget) or :data:`REASON_NOT_REPRESENTABLE` (every candidate draft failed the
+    round-trip verification gate).
+    """
+
+    draft: DegroundDraft | None
+    reason: str | None
+
+
 def deground_problem(
     problem: OptimizationProblem, *, max_grounded_elements: int = MAX_GROUNDED_ELEMENTS
 ) -> str | None:
@@ -63,7 +83,9 @@ def deground_problem(
     Set/param data is inlined (``:=``) — see :func:`deground_problem_split` for
     the model/data-separated form.
     """
-    draft = _deground(problem, split=False, max_grounded_elements=max_grounded_elements)
+    draft = deground_outcome(
+        problem, split=False, max_grounded_elements=max_grounded_elements
+    ).draft
     return draft.source if draft else None
 
 
@@ -83,31 +105,54 @@ def deground_problem_split(
     (a small flat model with no indexed structure) stays self-contained
     (``dataset=None``).
     """
-    return _deground(problem, split=True, max_grounded_elements=max_grounded_elements)
+    return deground_outcome(problem, split=True, max_grounded_elements=max_grounded_elements).draft
 
 
-def _deground(
-    problem: OptimizationProblem, *, split: bool, max_grounded_elements: int
-) -> DegroundDraft | None:
+def deground_outcome(
+    problem: OptimizationProblem,
+    *,
+    split: bool,
+    max_grounded_elements: int = MAX_GROUNDED_ELEMENTS,
+) -> DegroundOutcome:
+    """De-ground with the verdict spelled out: the draft, or WHY there is none.
+
+    The reason feeds the API response so the UI can state the actual cause of a
+    decline; a successful scalar fallback likewise carries the cause it stayed
+    flat as a header comment (see :func:`_scalar_jmodel`).
+    """
+    why: str | None = None  # what kept the compact reconstruction from happening
     try:
         emission = _reconstruct(problem)
-    except (_DegroundError, ParseError):
-        emission = None
-    # No compact structure recovered — fall back to a plain scalar JModel for a SMALL
-    # model (a large flat model would just be the wall of rows B2 exists to avoid, so
-    # it stays declined).
-    if emission is None:
-        source = _scalar_jmodel(problem)
-        if source is None:
-            return None
-        return _verified(problem, source, None, max_grounded_elements)
-    if split:
-        try:
-            source, dataset = _render_split(emission)
-        except _DegroundError:
-            return None
-        return _verified(problem, source, dataset, max_grounded_elements)
-    return _verified(problem, _render_inline(emission), None, max_grounded_elements)
+    except _DegroundError as exc:
+        emission, why = None, str(exc)
+    except ParseError:
+        emission, why = None, "an expression could not be parsed"
+
+    draft: DegroundDraft | None = None
+    if emission is not None:
+        if split:
+            try:
+                source, dataset = _render_split(emission)
+                draft = _verified(problem, source, dataset, max_grounded_elements)
+            except _DegroundError as exc:
+                why = str(exc)
+        else:
+            draft = _verified(problem, _render_inline(emission), None, max_grounded_elements)
+        if draft is None and why is None:
+            why = "the compact reconstruction did not round-trip"
+    if draft is not None:
+        return DegroundOutcome(draft=draft, reason=None)
+
+    # No verified compact draft — fall back to a plain scalar JModel for a SMALL
+    # model (a large flat model would just be the wall of rows B2 exists to avoid,
+    # so it stays declined). The header says what kept it flat.
+    source = _scalar_jmodel(problem, why=why)
+    if source is None:
+        return DegroundOutcome(draft=None, reason=REASON_TOO_LARGE)
+    draft = _verified(problem, source, None, max_grounded_elements)
+    if draft is None:
+        return DegroundOutcome(draft=None, reason=REASON_NOT_REPRESENTABLE)
+    return DegroundOutcome(draft=draft, reason=None)
 
 
 def _verified(
@@ -358,13 +403,18 @@ def _cartesian(position_values: list[list[str]]) -> list[tuple[str, ...]]:
 _SCALAR_MAX_ITEMS = 60
 
 
-def _scalar_jmodel(problem: OptimizationProblem) -> str | None:
+def _scalar_jmodel(problem: OptimizationProblem, why: str | None = None) -> str | None:
     """A plain, non-indexed JModel of a small flat model (no families to recover).
 
     Emits one ``var`` per variable and the objective/constraints verbatim (they are
     already valid JModel expressions over the flat names). Returns ``None`` past
     :data:`_SCALAR_MAX_ITEMS` — a large flat model has no compact form and a scalar
     dump would be a wall. Still gated by the round-trip check in the caller.
+
+    ``why`` is the cause the compact reconstruction declined (a ``_DegroundError``
+    message such as ``family 'invest' mixes variable types/bounds``); it lands in
+    the header so the reader learns what kept their model flat. Without it, the
+    naming hint fires when renaming would actually recover a family.
     """
     if len(problem.variables) > _SCALAR_MAX_ITEMS or len(problem.constraints) > _SCALAR_MAX_ITEMS:
         return None
@@ -374,7 +424,7 @@ def _scalar_jmodel(problem: OptimizationProblem) -> str | None:
     for i, con in enumerate(problem.constraints, start=1):
         lines.append(f"subject to c{i}: {con.expression};")
     header = "# JModel draft — derived from a flat model, review before relying on it"
-    hint = _naming_hint(problem)
+    hint = f"# Not grouped: {why}." if why else _naming_hint(problem)
     if hint is not None:
         header = f"{header}\n{hint}"
     return header + "\n" + "\n".join(lines)

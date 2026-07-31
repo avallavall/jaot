@@ -78,9 +78,14 @@ export function JModelEditorPanel() {
   // The split-pane math view is on by default (the flagship "see the notation" view);
   // the user can collapse it back to a plain editor.
   const [showMath, setShowMath] = useState(true);
-  // B2: de-grounding the current model into a JModel draft.
+  // B2: de-grounding the current model into a JModel draft. A DECLINE (the server
+  // answered "no verified draft", with its reason) and a FAILURE (transport error,
+  // dataset creation failed) are different truths and get different messages.
   const [deriving, setDeriving] = useState(false);
-  const [deriveDeclined, setDeriveDeclined] = useState(false);
+  const [deriveDeclined, setDeriveDeclined] = useState<
+    "too_large" | "not_representable" | "error" | "unknown" | null
+  >(null);
+  const [deriveFailed, setDeriveFailed] = useState(false);
   // B3: the "Generate with AI" dialog.
   const [genOpen, setGenOpen] = useState(false);
   const compileTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -139,7 +144,8 @@ export function JModelEditorPanel() {
   const handleChange = (value: string) => {
     setText(value);
     textRef.current = value;
-    if (deriveDeclined) setDeriveDeclined(false);
+    if (deriveDeclined) setDeriveDeclined(null);
+    if (deriveFailed) setDeriveFailed(false);
     // Persist the source (dirty) so a work-in-progress model survives navigation even
     // before it compiles.
     storeApi.getState().setDraftDslSource(value, { dirty: true });
@@ -255,13 +261,14 @@ export function JModelEditorPanel() {
   // model/data separation JModel is for (no 22k-number wall in the editor).
   const handleDerive = () => {
     setDeriving(true);
-    setDeriveDeclined(false);
+    setDeriveDeclined(null);
+    setDeriveFailed(false);
     const persistedId = modelId && modelId !== "new" ? modelId : null;
     api
       .degroundDsl(storeApi.getState().problem, persistedId !== null)
       .then(async (res) => {
         if (!res.source) {
-          setDeriveDeclined(true);
+          setDeriveDeclined(res.reason ?? "unknown");
           return;
         }
         if (res.dataset && persistedId) {
@@ -285,7 +292,9 @@ export function JModelEditorPanel() {
         compileTimer.current = null;
         runCompile(res.source);
       })
-      .catch(() => setDeriveDeclined(true))
+      // A transport/server/dataset-creation failure is NOT a decline — saying
+      // "your model has no structure" about a network error would be a lie.
+      .catch(() => setDeriveFailed(true))
       .finally(() => setDeriving(false));
   };
 
@@ -419,7 +428,22 @@ export function JModelEditorPanel() {
           data-testid="studio-jmodel-derive-declined"
           className="border-b border-amber-300/40 bg-amber-50 px-4 py-1.5 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
         >
-          {t("jmodelDeriveDeclined")}
+          {t(
+            deriveDeclined === "too_large"
+              ? "jmodelDeriveDeclinedTooLarge"
+              : deriveDeclined === "not_representable"
+                ? "jmodelDeriveDeclinedNotRepresentable"
+                : "jmodelDeriveDeclined"
+          )}
+        </div>
+      )}
+
+      {deriveFailed && (
+        <div
+          data-testid="studio-jmodel-derive-failed"
+          className="border-b border-destructive/30 bg-destructive/5 px-4 py-1.5 text-xs text-destructive"
+        >
+          {t("jmodelDeriveFailed")}
         </div>
       )}
 

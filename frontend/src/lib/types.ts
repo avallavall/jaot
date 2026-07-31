@@ -643,12 +643,16 @@ export interface DslLatexResult {
 }
 
 /** A JModel draft derived from a flat problem (POST /api/v2/dsl/deground, B2).
- * `source` is null (a graceful decline) when no compact structure is recoverable.
- * With `allow_dataset`, `dataset` carries the data (JModel dataset JSON) and the
- * source is the pure, declaration-only formulation. */
+ * `source` is null (a graceful decline) when no verified draft exists; `reason`
+ * then says why — `too_large` (no compact structure and past the flat-draft
+ * budget), `not_representable` (every candidate failed round-trip verification)
+ * or `error` (the de-grounder crashed, logged server-side). With `allow_dataset`,
+ * `dataset` carries the data (JModel dataset JSON) and the source is the pure,
+ * declaration-only formulation. */
 export interface DslDegroundResult {
   source?: string | null;
   dataset?: Record<string, unknown> | null;
+  reason?: "too_large" | "not_representable" | "error" | null;
 }
 
 /** One vision attachment for AI generation (POST /api/v2/dsl/generate, B3):

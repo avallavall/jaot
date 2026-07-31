@@ -198,7 +198,13 @@ export default function BuilderHomePage() {
           return;
         }
 
-        const { nodes, edges } = deserializeFromOptimizationProblem(problem);
+        const { nodes, edges, faithful } = deserializeFromOptimizationProblem(problem);
+        if (!faithful) {
+          // The canvas cannot hold this model exactly (nonlinear/rich
+          // expressions); a partial import would corrupt it on the next save.
+          toast.error(t("list.importNotRepresentable"));
+          return;
+        }
         reset();
         setDocument("new", baseName, nodes, edges);
         router.push("/builder/new");

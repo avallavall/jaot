@@ -2,6 +2,7 @@
 
 import type { BuilderNode, BuilderEdge, VariableNode, ConstraintNode, ObjectiveNode } from "@/lib/builder/types";
 import type { Formulation } from "@/lib/llm-types";
+import { parseLinearConstraint } from "@/lib/builder/linear";
 
 /**
  * Extract variable coefficients from a linear expression like "2*x + 3*y" or "-x + 2*y".
@@ -33,27 +34,40 @@ export function parseTerms(expression: string): Map<string, number> {
   return terms;
 }
 
-/** Split a constraint expression on its operator, parse LHS terms, extract RHS number. */
+/** Split a constraint expression on its operator, parse LHS terms, extract RHS number.
+ *
+ * Built on the shared linear reader, so variables on the RHS are moved left
+ * (negated) and constant arithmetic folds into `rhs` — the old split-and-parseFloat
+ * silently truncated `x == 30000 + y - z` to `x == 30000`. A lone `=` (LLM
+ * shorthand) reads as `==`; an expression the linear reader declines falls back to
+ * a best-effort LHS term scrape (the legacy behavior). */
 export function parseConstraintExpression(expression: string): {
   lhsTerms: Map<string, number>;
   operator: "<=" | ">=" | "==";
   rhs: number;
 } {
+  const normalized = expression.replace(/(?<![<>=!])=(?!=)/g, "==");
+  const parsed = parseLinearConstraint(normalized);
+  if (parsed) {
+    return {
+      lhsTerms: new Map(parsed.terms.map((t) => [t.varName, t.coefficient])),
+      operator: parsed.operator,
+      rhs: parsed.rhs,
+    };
+  }
+
+  // Legacy fallback for expressions the linear reader declines.
   let operator: "<=" | ">=" | "==" = "<=";
   let parts: string[];
-
-  if (expression.includes(">=")) {
+  if (normalized.includes(">=")) {
     operator = ">=";
-    parts = expression.split(">=");
-  } else if (expression.includes("<=")) {
+    parts = normalized.split(">=");
+  } else if (normalized.includes("<=")) {
     operator = "<=";
-    parts = expression.split("<=");
-  } else if (expression.includes("==")) {
+    parts = normalized.split("<=");
+  } else if (normalized.includes("==")) {
     operator = "==";
-    parts = expression.split("==");
-  } else if (expression.includes("=")) {
-    operator = "==";
-    parts = expression.split("=");
+    parts = normalized.split("==");
   } else {
     // No operator found — entire expression is LHS, RHS = 0.
     return {

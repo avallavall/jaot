@@ -10,7 +10,7 @@ import { PropertiesPanel } from "@/components/builder/PropertiesPanel";
 import { useBuilderStore } from "@/hooks/useBuilderStore";
 import { useModelProjectStore } from "../store/useModelProjectStore";
 import { useDslStatus } from "@/hooks/useDslStatus";
-import { modelElementCount } from "../store/model-scale";
+import { CANVAS_SCALE_CAP, modelElementCount } from "../store/model-scale";
 import { TooLargeNotice } from "../TooLargeNotice";
 import { ModelEditorPanel } from "./editor/ModelEditorPanel";
 import { JModelEditorPanel } from "./jmodel/JModelEditorPanel";
@@ -91,12 +91,24 @@ export function BuildPanel() {
       </div>
 
       {lens === "canvas" && canvasDisabled ? (
-        <TooLargeNotice
-          testid="studio-canvas-too-large"
-          icon={<LayoutGrid className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />}
-          title={t("canvasTooLargeTitle")}
-          body={t("canvasTooLarge", { count: elementCount })}
-        />
+        // Same withheld-canvas treatment, honest about WHICH limit was hit:
+        // scale (too many nodes) vs representability (expressions the canvas
+        // cannot hold exactly — nonlinear terms, functions, parentheses).
+        elementCount > CANVAS_SCALE_CAP ? (
+          <TooLargeNotice
+            testid="studio-canvas-too-large"
+            icon={<LayoutGrid className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />}
+            title={t("canvasTooLargeTitle")}
+            body={t("canvasTooLarge", { count: elementCount })}
+          />
+        ) : (
+          <TooLargeNotice
+            testid="studio-canvas-not-representable"
+            icon={<LayoutGrid className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />}
+            title={t("canvasNotRepresentableTitle")}
+            body={t("canvasNotRepresentable")}
+          />
+        )
       ) : lens === "editor" ? (
         <ModelEditorPanel />
       ) : lens === "jmodel" && dslEnabled ? (

@@ -47,7 +47,7 @@ from app.schemas.dsl import (
     DSLStatusResponse,
 )
 from app.services import model_project_service as project_svc
-from app.services.jmodel_deground import deground_problem, deground_problem_split
+from app.services.jmodel_deground import deground_outcome
 from app.services.jmodel_generate import generate_jmodel
 from app.services.llm.anthropic_client import get_anthropic_client
 from app.services.llm.byok import resolve_anthropic_client
@@ -233,23 +233,25 @@ def dsl_deground(
     """
     source: str | None = None
     dataset: dict | None = None
+    reason: str | None = None
     try:
-        if body.allow_dataset:
-            # The elegant form: the source is the GENERAL formulation and the data
-            # goes where data belongs — a dataset the caller stores and selects.
-            draft = deground_problem_split(
-                body.problem, max_grounded_elements=_grounding_budget(db)
-            )
-            if draft is not None:
-                source, dataset = draft.source, draft.dataset
+        # With allow_dataset, the elegant form: the source is the GENERAL formulation
+        # and the data goes where data belongs — a dataset the caller stores and selects.
+        outcome = deground_outcome(
+            body.problem,
+            split=body.allow_dataset,
+            max_grounded_elements=_grounding_budget(db),
+        )
+        if outcome.draft is not None:
+            source, dataset = outcome.draft.source, outcome.draft.dataset
         else:
-            source = deground_problem(body.problem, max_grounded_elements=_grounding_budget(db))
+            reason = outcome.reason
     except Exception:
-        # The service is contracted to return draft-or-None; anything else is a bug.
+        # The service is contracted to return a verdict; anything else is a bug.
         # Decline gracefully (never a 500) and log it for us.
         logger.exception("JModel de-grounder crashed on a flat problem")
-        source, dataset = None, None
-    return DSLDegroundResponse(source=source, dataset=dataset)
+        source, dataset, reason = None, None, "error"
+    return DSLDegroundResponse(source=source, dataset=dataset, reason=reason)
 
 
 @router.post(

@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { CANVAS_SCALE_CAP, exceedsCanvasScale, modelElementCount } from "../model-scale";
+import {
+  CANVAS_SCALE_CAP,
+  canvasCanRepresentModel,
+  exceedsCanvasScale,
+  modelElementCount,
+} from "../model-scale";
 import { resolveDraftCanvas } from "../draft-canvas";
 import type { OptimizationProblem } from "@/lib/types";
 
@@ -46,5 +51,47 @@ describe("resolveDraftCanvas never deserializes a too-large model", () => {
     const small = problemWith(3, 1);
     const { nodes } = resolveDraftCanvas(null, small);
     expect(nodes.length).toBeGreaterThan(0);
+  });
+});
+
+describe("canvasCanRepresentModel — the canvas representability guard", () => {
+  const base: OptimizationProblem = {
+    variables: [
+      { name: "x", type: "continuous", lower_bound: 0 },
+      { name: "y", type: "continuous", lower_bound: 0 },
+    ],
+    objective: { sense: "minimize", expression: "x + 2*y" },
+    constraints: [{ name: "c", expression: "x == y + 4" }],
+  };
+
+  it("accepts a general linear model (variables on both sides, constants folded)", () => {
+    expect(canvasCanRepresentModel(base)).toBe(true);
+  });
+
+  it("rejects nonlinear constraints", () => {
+    expect(
+      canvasCanRepresentModel({
+        ...base,
+        constraints: [{ name: "nl", expression: "x * y <= 5" }],
+      })
+    ).toBe(false);
+  });
+
+  it("rejects an objective constant (no edge can carry it)", () => {
+    expect(
+      canvasCanRepresentModel({
+        ...base,
+        objective: { sense: "minimize", expression: "x + 5" },
+      })
+    ).toBe(false);
+  });
+
+  it("rejects a term over an undeclared variable", () => {
+    expect(
+      canvasCanRepresentModel({
+        ...base,
+        constraints: [{ name: "ghost", expression: "x + ghost <= 5" }],
+      })
+    ).toBe(false);
   });
 });

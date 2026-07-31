@@ -10,9 +10,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { useBuilderStore } from "@/hooks/useBuilderStore";
 import { serializeToOptimizationProblem } from "@/lib/builder/serializer";
-import { deserializeFromOptimizationProblem } from "@/lib/builder/deserializer";
-import type { BuilderNode, BuilderEdge } from "@/lib/builder/types";
-import type { ProjectVersionSummary } from "@/lib/types";
+import type { OptimizationProblem, ProjectVersionSummary } from "@/lib/types";
+import { resolveDraftCanvas } from "../store/draft-canvas";
+import { canvasCanRepresentModel, exceedsCanvasScale } from "../store/model-scale";
 import {
   useModelProjectStore,
   useModelProjectStoreApi,
@@ -94,26 +94,33 @@ export function VersionControls() {
         // forces it past any uncommitted edits — restore is a deliberate action,
         // and every committed version remains recoverable.
         const project = await api.restoreProjectVersion(modelId, versionId, true, ws);
-        // Prefer the snapshot's canvas (preserves node positions); fall back to
-        // deserializing the model when the version has no canvas.
-        const canvasJson = project.draft_canvas_json as
-          | { nodes?: unknown[]; edges?: unknown[] }
-          | null;
-        let nodes = Array.isArray(canvasJson?.nodes)
-          ? (canvasJson!.nodes as BuilderNode[])
-          : [];
-        let edges = Array.isArray(canvasJson?.edges)
-          ? (canvasJson!.edges as BuilderEdge[])
-          : [];
-        if (nodes.length === 0 && project.draft_model_json) {
-          const d = deserializeFromOptimizationProblem(project.draft_model_json);
-          nodes = d.nodes;
-          edges = d.edges;
+        const modelJson = (project.draft_model_json ?? null) as OptimizationProblem | null;
+        // Same canvas-withheld gate as the provider's load: a version too large
+        // for the canvas OR not exactly representable on it hydrates the
+        // canonical model from model_json directly — a partial node view must
+        // never become the model (serializing it back would corrupt the restore).
+        if (
+          modelJson &&
+          (exceedsCanvasScale(modelJson) || !canvasCanRepresentModel(modelJson))
+        ) {
+          storeApi.getState().setCanvasDisabled(true);
+          useBuilderStore.getState().reset();
+          useBuilderStore.setState({ documentId: project.id, documentName: project.name });
+          storeApi.getState().hydrate(modelJson, project.name);
+        } else {
+          // Prefer the snapshot's canvas when it faithfully denotes the model
+          // (preserves node positions); resolveDraftCanvas discards a stale or
+          // degenerate snapshot canvas and re-derives from the model instead.
+          const { nodes, edges } = resolveDraftCanvas(
+            project.draft_canvas_json as { nodes?: unknown[]; edges?: unknown[] } | null,
+            modelJson
+          );
+          useBuilderStore.getState().setDocument(project.id, project.name, nodes, edges);
+          storeApi.getState().setCanvasDisabled(false);
+          storeApi
+            .getState()
+            .hydrate(serializeToOptimizationProblem(nodes, edges), project.name);
         }
-        useBuilderStore.getState().setDocument(project.id, project.name, nodes, edges);
-        storeApi
-          .getState()
-          .hydrate(serializeToOptimizationProblem(nodes, edges), project.name);
         // Rehydrate the JModel source to the restored version's — without this the
         // pre-restore source lingers and the next autosave pushes it back, silently
         // reverting the DSL half of the restore.

@@ -1,4 +1,5 @@
 import type { OptimizationProblem } from "@/lib/types";
+import { parseLinearSide, parseLinearConstraint } from "@/lib/builder/linear";
 
 /**
  * The visual canvas renders one node per variable and per constraint. Past a few
@@ -23,4 +24,37 @@ export function modelElementCount(problem: OptimizationProblem | null | undefine
 /** True when the model is too large to render on the visual canvas safely. */
 export function exceedsCanvasScale(problem: OptimizationProblem | null | undefined): boolean {
   return modelElementCount(problem) > CANVAS_SCALE_CAP;
+}
+
+/**
+ * Whether the visual canvas can hold this model EXACTLY — every constraint a
+ * linear `terms OP rhs` over declared variables, the objective a linear
+ * expression with no constant. When it can't (an assistant/imported model with
+ * nonlinear pieces, functions, parentheses…), the canvas must be withheld like
+ * the too-large case: rendering a partial view that later serializes back over
+ * the canonical model would silently corrupt it (that is exactly how a Treasury
+ * model's balance constraints once became `0 <= 0` rows in production).
+ */
+export function canvasCanRepresentModel(
+  problem: OptimizationProblem | null | undefined
+): boolean {
+  if (!problem) return true;
+  const declared = new Set((problem.variables ?? []).map((v) => v.name));
+  if (problem.objective) {
+    const objective = parseLinearSide(problem.objective.expression);
+    if (
+      objective === null ||
+      Math.abs(objective.constant) > 1e-9 || // no edge can carry a constant
+      objective.terms.some((t) => !declared.has(t.varName))
+    ) {
+      return false;
+    }
+  }
+  for (const constraint of problem.constraints ?? []) {
+    const parsed = parseLinearConstraint(constraint.expression);
+    if (parsed === null || parsed.terms.some((t) => !declared.has(t.varName))) {
+      return false;
+    }
+  }
+  return true;
 }

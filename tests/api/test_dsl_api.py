@@ -888,6 +888,39 @@ def test_deground_requires_auth(client):
     assert resp.status_code in (401, 403), resp.text
 
 
+# CONTRACT-TEST: a decline names its reason — the UI must state the actual cause,
+# never guess one (prod 2026-07-31: every decline was blamed on "no indexed structure").
+@pytest.mark.integration
+def test_deground_decline_carries_its_reason(
+    authenticated_client, test_organization, db_session, enable_dsl
+):
+    names = [f"col{i}" for i in range(80)]  # unstructured + past the scalar budget
+    problem = {
+        "variables": [{"name": n, "type": "continuous"} for n in names],
+        "objective": {"sense": "minimize", "expression": " + ".join(names)},
+        "constraints": [{"name": "c", "expression": f"{names[0]} >= 1"}],
+    }
+    resp = authenticated_client.post("/api/v2/dsl/deground", json={"problem": problem})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["source"] is None
+    assert body["reason"] == "too_large"
+
+    # A successful derive carries no reason.
+    ok = authenticated_client.post(
+        "/api/v2/dsl/deground",
+        json={
+            "problem": {
+                "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
+                "objective": {"sense": "minimize", "expression": "x"},
+                "constraints": [{"name": "c", "expression": "x >= 1"}],
+            }
+        },
+    ).json()
+    assert ok["source"] is not None
+    assert ok["reason"] is None
+
+
 # CONTRACT-TEST: the advanced-model choice reaches the model call. The owner asked for the
 # toggle on EVERY LLM surface; this endpoint had `select_model(use_advanced=False)` pinned in
 # the handler, so the UI could ask all it liked and the server always used the default.

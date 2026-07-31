@@ -5,7 +5,7 @@ import { temporal } from "zundo";
 import type { OptimizationProblem, SolveResult } from "@/lib/types";
 import type { ProgressPoint } from "@/lib/result-utils";
 import type { SolveProgressEvent } from "../panels/solve/live-solve-metrics";
-import { exceedsCanvasScale } from "./model-scale";
+import { canvasCanRepresentModel, exceedsCanvasScale } from "./model-scale";
 
 /** The lenses that can author the model. `scratch` = the JSON Editor, `dsl` = the JModel editor. */
 export type RepKey = "canvas" | "scratch" | "formulation" | "dsl";
@@ -214,17 +214,24 @@ export function createModelProjectStore(init: ModelProjectInit) {
             // The canonical model moved on, so any retained un-applied editor text
             // no longer describes a pending fix — drop it with its parse error.
             scratchText: null,
-            // Re-evaluate the canvas hairball guard whenever a NON-canvas source
-            // (AI Assistant / Editor) replaces the model. Without this the flag is
-            // sticky: a model loaded large (canvas disabled) that the Assistant then
-            // replaces with a SMALL one would keep the canvas disabled, leaving an
-            // empty/degenerate canvas saved next to the new model_json (the source of
-            // the "model shows 0 / empty after reload" data divergence). Recomputing
-            // re-enables the canvas for a large→small swap (so it lays out and
-            // autosave persists a canvas that matches the model) and disables it for
-            // a small→large swap. The canvas source never needs this — if it is
-            // authoring, the canvas is by definition already enabled.
-            ...(opts.source !== "canvas" ? { canvasDisabled: exceedsCanvasScale(next) } : {}),
+            // Re-evaluate the canvas guard whenever a NON-canvas source (AI
+            // Assistant / Editor / JModel) replaces the model. Without this the flag
+            // is sticky: a model loaded large (canvas disabled) that the Assistant
+            // then replaces with a SMALL one would keep the canvas disabled, leaving
+            // an empty/degenerate canvas saved next to the new model_json (the source
+            // of the "model shows 0 / empty after reload" data divergence).
+            // Recomputing re-enables the canvas for a large→small swap and disables
+            // it for a small→large one — and equally for representability: a model
+            // rewritten with expressions the canvas cannot hold exactly (nonlinear,
+            // functions) must withhold the canvas, or its partial node view would
+            // later serialize back OVER the real model. The canvas source never
+            // needs this — if it is authoring, the model is canvas-shaped already.
+            ...(opts.source !== "canvas"
+              ? {
+                  canvasDisabled:
+                    exceedsCanvasScale(next) || !canvasCanRepresentModel(next),
+                }
+              : {}),
           });
         },
 

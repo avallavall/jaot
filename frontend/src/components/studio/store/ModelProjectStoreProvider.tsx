@@ -15,7 +15,7 @@ import {
   type ModelProjectStore,
 } from "./createModelProjectStore";
 import { ModelProjectStoreContext } from "./useModelProjectStore";
-import { exceedsCanvasScale } from "./model-scale";
+import { canvasCanRepresentModel, exceedsCanvasScale } from "./model-scale";
 import { useCanvasBridge } from "./useCanvasBridge";
 import { useAutosave } from "./useAutosave";
 import { useSolveSession } from "./useSolveSession";
@@ -104,11 +104,15 @@ export function ModelProjectStoreProvider({
         firstLoadDone.current = true;
         const modelJson = (project.draft_model_json ?? null) as OptimizationProblem | null;
 
-        // Hairball guard: a model too large for the visual canvas is NEVER laid
-        // out as nodes (it would freeze the tab). Hydrate the canonical model
-        // DIRECTLY from model_json so Analyze/Solve work, leave the canvas empty,
-        // and flag it so the Build lens shows a notice and the bridge stays off.
-        if (exceedsCanvasScale(modelJson) && modelJson) {
+        // Canvas-withheld guard, two causes with one treatment: a model too large
+        // for the visual canvas (laying it out would freeze the tab) OR one the
+        // canvas cannot represent EXACTLY (nonlinear/rich expressions — a partial
+        // node view serialized back would silently corrupt the model, which is how
+        // a Treasury model's balance rows once became `0 <= 0` in production).
+        // Hydrate the canonical model DIRECTLY from model_json so Analyze/Solve
+        // work, leave the canvas empty, and flag it so the Build lens shows a
+        // notice and the bridge stays off.
+        if (modelJson && (exceedsCanvasScale(modelJson) || !canvasCanRepresentModel(modelJson))) {
           const st = store.getState();
           // Disable the canvas bridge BEFORE touching the builder store: `reset()`
           // emits a change, and if the bridge is still "live" it would project the

@@ -309,8 +309,17 @@ export function BuilderToolbar({ documentId, onHelpClick }: BuilderToolbarProps)
         return;
       }
 
-      const { nodes: importedNodes, edges: importedEdges } =
-        deserializeFromOptimizationProblem(problem);
+      const {
+        nodes: importedNodes,
+        edges: importedEdges,
+        faithful,
+      } = deserializeFromOptimizationProblem(problem);
+      if (!faithful) {
+        // The canvas cannot hold this model exactly (nonlinear/rich expressions);
+        // importing the partial view would silently corrupt it on the next save.
+        toast.error(t("toolbar.importNotRepresentable"));
+        return;
+      }
 
       useBuilderStore.getState().reset();
       setDocument("new", baseName, importedNodes, importedEdges);

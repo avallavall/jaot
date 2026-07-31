@@ -4,6 +4,8 @@ The DSL lowers a declarative source into the flat :class:`OptimizationProblem`;
 these models are the request/response wire shapes for ``/api/v2/dsl``.
 """
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 from app.schemas.optimization import OptimizationProblem
@@ -176,6 +178,15 @@ class DSLDegroundResponse(BaseModel):
         description=(
             "JModel dataset JSON with the draft's data (only when allow_dataset and "
             "the model carries indexed data; null for scalar/self-contained drafts)."
+        ),
+    )
+    reason: Literal["too_large", "not_representable", "error"] | None = Field(
+        default=None,
+        description=(
+            "Why there is no draft (only when source is null): `too_large` — no compact "
+            "structure and the flat model is past the scalar-draft budget; "
+            "`not_representable` — every candidate draft failed the round-trip "
+            "verification; `error` — the de-grounder crashed (logged server-side)."
         ),
     )
 
