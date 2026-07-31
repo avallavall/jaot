@@ -28,12 +28,17 @@ with millions of variables was an assignment problem with a few hundred thousand
 optimum, verified across instances. Worth saying out loud because it generalises: on this
 kind of model, how you write it decides more than which solver runs it.
 
+Publishing to the marketplace now has a home to come back to: authors can see what
+they published, take a listing down and put it back without losing its history, read
+the reviews people left, and ask for the verified badge instead of waiting to be
+granted one. The numbers it shows are deliberately quiet when there is little to
+report — a first-week author gets a sentence saying so, not a chart of one colour.
+
 ## Next
 
-- **A home for people who publish** — the marketplace can be published to, but an
-  author has nowhere to see what happens next: how their listings are being found and
-  adopted, and how to ask for the verified badge rather than wait to be granted one.
-  The measurements are already taken; what is missing is the place to read them.
+- **Designing for the empty case, everywhere else** — the author area is built to read
+  well before the data arrives. The solve analytics screen still assumes thousands of
+  runs, which is not what anyone sees on their first day.
 
 ## Later / Exploring
 

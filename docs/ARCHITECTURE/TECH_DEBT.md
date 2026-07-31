@@ -219,10 +219,17 @@ injected port, not another module to shuffle.
 (discarded with rationale — its reason slugs are public API contract), and an async-SQLAlchemy
 migration (ADR-009 gets the same benefit for a fraction of the cost).
 
-**Still deferred:** the contract-release work (legacy `DROP`s, `/seller/*` → `/author/*`,
+**Still deferred:** the rest of the contract-release work (legacy `DROP`s,
 `favorite.py` `Column()`). Additive-only discipline makes the `DROP`s release-shaped, not
 refactor-shaped — they need their own window, and until they land
 `alembic --autogenerate` stays unreliable.
+
+**The `/seller/*` rename came out of that window early (2026-07-31).** Building the author
+area meant touching every one of those routes anyway, and leaving half the surface named
+after a concept ADR-008 removed was the more expensive option. The owner chose a clean cut:
+`/api/v2/author/*` and `/admin/marketplace/author-analytics`, no alias, plus the
+`sellers` → `authors` response key. Unlike a `DROP`, this is reversible by rollback, so it
+never needed the release window — only the same-commit client update, which it got.
 
 **D-22 · ✅ Resolved (2026-07-28) — and it did not need that window.**
 `20260728_prune_orphan_settings` deletes the 98 rows by an explicit list, grouped by where
