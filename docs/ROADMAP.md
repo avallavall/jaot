@@ -16,14 +16,17 @@ lands on solid ground rather than on top of it.
 Landed so far: request handling no longer blocks the server on database work or on file
 parsing, foreign keys are indexed, the security gates are back in CI, and the capacity
 limits inherited from the hosted-product era are gone — model size is now bounded by
-your hardware, not by a constant in our schema.
+your hardware, not by a constant in our schema. The dependency direction between layers
+is settled and a lint contract keeps it that way, and every endpoint that used to answer
+with an undeclared object now publishes its response schema, so the API describes itself
+and clients stop hand-writing those types.
 
 ## Next
 
-- **Finishing the architecture pass** — the remaining items are the dependency
-  direction between layers (and a lint contract to keep it that way) and giving the
-  endpoints that still return untyped payloads a real response schema, so the API
-  describes itself and clients stop hand-writing those types.
+- **A home for people who publish** — the marketplace can be published to, but an
+  author has nowhere to see what happens next: how their listings are being found and
+  adopted, and how to ask for the verified badge rather than wait to be granted one.
+  The measurements are already taken; what is missing is the place to read them.
 - **Scaling the routing models** — a fleet-sized pickup-and-delivery problem is a
   realistic ask in transport, and we are working through what the platform needs to
   express and solve one honestly.

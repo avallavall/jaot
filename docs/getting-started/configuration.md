@@ -5,7 +5,7 @@ JAOT keeps configuration in **two layers**, on purpose:
 | Layer | Where | What | When |
 |---|---|---|---|
 | **Infrastructure** | `.env` file | DB, Redis, Celery broker, JWT secret, frontend URL | Loaded at boot, before the database is available |
-| **Business config** | `platform_settings` table | LLM, email/SMTP, plans & limits, security & rate limits, feature flags, object storage… | Managed at runtime from the **admin panel** (Settings) |
+| **Business config** | `platform_settings` table | LLM, email/SMTP, instance limits & quotas, security & rate limits, feature flags, object storage… | Managed at runtime from the **admin panel** (Settings) |
 
 You only edit `.env` once (infra). Everything else is changed live from the admin
 panel — no redeploy. The source of truth for every business setting (type,

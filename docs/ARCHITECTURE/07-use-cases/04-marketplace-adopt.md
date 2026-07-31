@@ -65,6 +65,10 @@ sequenceDiagram
 
 ### Analytics (non-monetary)
 - **ModelViewEvent**: records impressions + views per listing (`model_project_id`).
+- **Own traffic never counts**: our own server-side fetches (the sitemap crawl, the detail
+  page's SSR call for metadata/JSON-LD) declare themselves via a header and are excluded —
+  otherwise a full sitemap walk would bank an impression per listing on its own, and every
+  page load would double-count as a view.
 - **Author analytics**: views, impressions, and *adoption* (forks by other orgs) of your
   published models (`AuthorAnalyticsService`; forking your own model never counts).
 - **Ratings**: `ModelReview` keyed on `model_project_id`; the average is rolled up onto the

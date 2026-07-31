@@ -1,6 +1,6 @@
 # Use Case: Admin Platform Settings — Global Configuration
 
-> Administration flow: an admin edits one of the 88 platform settings → the next request
+> Administration flow: an admin edits one of the 87 platform settings → the next request
 > that reads it sees the new value.
 
 ## Diagram

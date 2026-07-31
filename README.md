@@ -60,9 +60,9 @@ library and not a hosted SaaS** — you run it yourself with `docker compose up`
   and a Prometheus/Grafana/Alertmanager monitoring stack** — included.
 
 JAOT is **free and collaborative** — there is no billing, no credits, no paid
-tier (ADR-008). Fair use is enforced with per-organization rate limits and
-configurable solve quotas; the AI assistant is bounded by a monthly EUR budget
-with bring-your-own-key support.
+tier (ADR-008). Fair use is enforced with one set of request limits for
+the instance and configurable solve quotas; the AI assistant is bounded by a
+monthly EUR budget with bring-your-own-key support.
 
 **Nothing caps the size of your models but your hardware.** There is no ceiling
 on model size, expression length, thread count or solve time — the limits that
