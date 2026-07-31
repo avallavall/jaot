@@ -24,6 +24,7 @@ from app.services import favorites_service
 from app.services.author_analytics_service import AuthorAnalyticsService
 from app.services.marketplace_fusion import listing_to_catalog_response
 from app.shared.db.base import get_db
+from app.shared.utils.request_helpers import is_trusted_internal_request
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +40,11 @@ def _record_impressions(
     swallowed. The commit is the part that matters: ``get_db`` does not commit,
     so a flush on its own is discarded when the session closes — which is
     exactly how these events came to be recorded and never stored.
+
+    Internal callers are not readers (see ``_is_own_traffic``): this endpoint is
+    what the sitemap generator walks, and it walked the whole catalogue hourly.
     """
-    if not model_ids:
+    if not model_ids or _is_own_traffic(request):
         return
     try:
         with db.begin_nested():
@@ -55,6 +59,28 @@ def _record_impressions(
         logger.debug("Failed to log impressions", exc_info=True)
 
 
+def _is_own_traffic(request: Request) -> bool:
+    """True when the caller is our own infrastructure rather than a reader.
+
+    Both writers below record a person looking at a listing, and both were
+    counting requests no person made:
+
+    * ``sitemap.ts`` pages the whole catalogue every hour (``revalidate: 3600``)
+      to build the SEO sitemap — 103 impressions per hour on the reference
+      install, 97.8% of every impression ever stored.
+    * the model detail page fetches this same endpoint server-side to fill its
+      metadata and JSON-LD, so each visit was counted twice: once as a phantom
+      view with no country and no organisation, once for real from the browser.
+
+    Detection reuses the deployment invariant the anonymous rate limit already
+    relies on (``is_trusted_internal_request``): a request with no forwarding
+    header from a private address cannot have crossed the edge proxy. No
+    user-agent guessing, and a reader cannot opt out of being counted — forging
+    an ``X-Forwarded-For`` only keeps them on the external path.
+    """
+    return is_trusted_internal_request(request.scope)
+
+
 def _record_visit(db: Session, request: Request, viewer: User | None, model_id: str) -> None:
     """Store the view event, and the opener's "recently opened" entry.
 
@@ -63,7 +89,13 @@ def _record_visit(db: Session, request: Request, viewer: User | None, model_id: 
     carried credentials the middleware could resolve. Both writes share one
     SAVEPOINT: they describe the same visit, and neither is worth keeping
     without the other.
+
+    Server-side renders are skipped (see ``_is_own_traffic``); the browser's own
+    fetch for the same page is what gets recorded, and it carries the reader's
+    IP and organisation.
     """
+    if _is_own_traffic(request):
+        return
     try:
         with db.begin_nested():
             AuthorAnalyticsService(db).log_view(

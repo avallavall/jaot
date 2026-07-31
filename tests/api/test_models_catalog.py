@@ -6,6 +6,8 @@ P1.5 fusion: the marketplace serves from the unified ``ModelProjectListing`` fac
 means seeding a fork ModelProject via ``POST /projects/from-marketplace/{id}``.
 """
 
+from fastapi.testclient import TestClient
+
 from app.models import ModelCategory, ModelProject, ModelProjectListing
 from app.models.model_view_event import ModelViewEvent
 from app.services.author_analytics_service import AuthorAnalyticsService
@@ -269,6 +271,82 @@ class TestVisitTelemetryIsStored:
             .filter(
                 ModelViewEvent.model_project_id == "test_impression_persisted",
                 ModelViewEvent.event_type == "impression",
+            )
+            .all()
+        )
+        assert len(events) == 1
+
+    # CONTRACT-TEST: our own infrastructure is never counted as a reader
+    def test_the_sitemap_walk_records_no_impressions(self, app, db_session, test_organization):
+        """A listing page fetched from inside the cluster stores nothing.
+
+        `sitemap.ts` pages this endpoint every hour to build the SEO sitemap, and
+        each page used to bank one impression per listing it returned: 103 an
+        hour on the reference install, 97.8% of every impression ever stored. An
+        author read those as an audience.
+
+        The caller is identified by the deployment invariant, not by user agent:
+        no forwarding header plus a private peer address cannot have crossed the
+        edge proxy. `client=` puts this request on exactly that footing.
+        """
+        _make_listing(
+            db_session,
+            test_organization,
+            pid="test_internal_impression",
+            name="internalprobe",
+            display_name="Internal Probe",
+        )
+
+        with TestClient(app, client=("172.18.0.5", 51000)) as internal:
+            assert internal.get("/api/v2/models/catalog?search=internalprobe").status_code == 200
+
+        assert (
+            db_session.query(ModelViewEvent)
+            .filter(ModelViewEvent.model_project_id == "test_internal_impression")
+            .count()
+            == 0
+        )
+
+    # CONTRACT-TEST: our own infrastructure is never counted as a reader
+    def test_the_ssr_metadata_fetch_records_no_view(self, app, db_session, test_organization):
+        """The detail page fetches this endpoint server-side for its metadata and
+        JSON-LD, so every visit was counted twice — once as a phantom view with
+        no country and no organisation, once for real from the browser. Only the
+        browser's own fetch is a view."""
+        _make_listing(db_session, test_organization, pid="test_internal_view")
+
+        with TestClient(app, client=("10.0.0.9", 51001)) as internal:
+            assert internal.get("/api/v2/models/catalog/test_internal_view").status_code == 200
+
+        assert (
+            db_session.query(ModelViewEvent)
+            .filter(ModelViewEvent.model_project_id == "test_internal_view")
+            .count()
+            == 0
+        )
+
+    # CONTRACT-TEST: a real reader behind the proxy is still counted
+    def test_a_forwarded_request_is_still_a_reader(self, app, db_session, test_organization):
+        """The same private peer address, but with the header the edge proxy
+        always appends, is an external reader — and must still be recorded.
+        Otherwise the fix for our own traffic would silence every real visit,
+        since in production every reader arrives from Caddy's container IP."""
+        _make_listing(db_session, test_organization, pid="test_forwarded_view")
+
+        with TestClient(app, client=("172.18.0.5", 51002)) as external:
+            assert (
+                external.get(
+                    "/api/v2/models/catalog/test_forwarded_view",
+                    headers={"X-Forwarded-For": "88.12.34.56"},
+                ).status_code
+                == 200
+            )
+
+        events = (
+            db_session.query(ModelViewEvent)
+            .filter(
+                ModelViewEvent.model_project_id == "test_forwarded_view",
+                ModelViewEvent.event_type == "view",
             )
             .all()
         )
