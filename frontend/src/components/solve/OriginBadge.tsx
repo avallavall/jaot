@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 
 import {
   UNKNOWN_ORIGIN_CLASS,
+  originLabel,
   resolveOriginKey,
   type OriginKey,
 } from "@/lib/execution-origin";
@@ -54,12 +55,10 @@ export function OriginBadge({ origin, sourceKind, triggerName }: OriginBadgeProp
         ? t("triggerName", { name: triggerName })
         : t("triggeredRun")
       : undefined;
-  // No origin recorded means a plain manual solve — the backend's own default.
-  // A slug this build does not know is shown as it was stored instead: the
-  // reference database holds rows tagged `cron`, which today's sanitiser would
-  // never write, and calling those "Manual" is a label the data does not support.
-  // Truthiness, not `??`: an empty string is not a name either.
-  const label = resolved ? t(resolved) : origin || t("manual");
+  // A slug this build does not know is shown as it was stored: the reference
+  // database holds rows tagged `cron`, which today's sanitiser would never write,
+  // and calling those "Manual" is a label the data does not support.
+  const label = originLabel(origin, sourceKind, t);
   // Unknown slugs get their own muted style so the pale slice they take in a
   // chart is recognisable in the list beside it, instead of reading as manual.
   const style = resolved

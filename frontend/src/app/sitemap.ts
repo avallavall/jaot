@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { buildAlternates, BASE_URL } from "@/lib/seo/urls";
 import { getDocsPages } from "@/lib/docs/navigation";
+import { SSR_REQUEST_HEADERS } from "@/lib/seo/ssrFetch";
 import path from "path";
 import fs from "fs";
 
@@ -118,7 +119,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     do {
       const res = await fetch(
         `${apiUrl}/api/v2/models/catalog?page_size=100&page=${page}`,
-        { next: { revalidate: 3600 } }
+        // SSR_REQUEST_HEADERS: this walk is not a reader. Without it the API
+        // banked one impression per listing on every pass — 103 an hour, 97.8%
+        // of every impression it had ever stored.
+        { next: { revalidate: 3600 }, headers: SSR_REQUEST_HEADERS }
       );
       if (!res.ok) {
         // CR-02: Mid-walk failure — abort the entire catalog block into the outer

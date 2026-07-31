@@ -103,6 +103,26 @@ export const UNKNOWN_ORIGIN_CLASS =
   "bg-gray-50 text-gray-500 border-gray-200 border-dashed " +
   "dark:bg-gray-900/40 dark:text-gray-400 dark:border-gray-700";
 
+/**
+ * The name to show for one run's origin: the translated label when the slug is
+ * known, the slug itself when it is not, and "manual" only when nothing was
+ * recorded (the backend's own default).
+ *
+ * Shared because the badge and the exported report were resolving it with two
+ * copies of the same three lines, and a copy is how the surfaces drifted apart in
+ * the first place. `t` takes the caller's `useTranslations("solve.origin")`.
+ */
+export function originLabel(
+  origin: string | null | undefined,
+  sourceKind: ExecutionSourceKind | null | undefined,
+  t: (key: OriginKey) => string
+): string {
+  const resolved = resolveOriginKey(origin, sourceKind);
+  if (resolved) return t(resolved);
+  // Truthiness, not `??`: an empty string is not a name either.
+  return origin || t("manual");
+}
+
 export interface OriginSlice {
   name: string;
   value: number;

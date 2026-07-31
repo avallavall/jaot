@@ -6,6 +6,18 @@
 # Limits are per-IP via {remote_host} key. Backend also enforces Redis-based
 # rate limits per user/plan -- this is a layered defense at the reverse proxy level.
 
+{
+    # {client_ip} must be the visitor, not the last hop. Without this Caddy uses
+    # the immediate peer: behind Cloudflare that is the edge, so every visitor
+    # would be stamped with one of a handful of addresses and share a rate-limit
+    # bucket. trusted_proxies gates it — a direct client is not in private_ranges,
+    # so its own address is used and the headers below are ignored.
+    servers {
+        trusted_proxies static private_ranges
+        client_ip_headers CF-Connecting-IP X-Forwarded-For
+    }
+}
+
 jaot.io {
     # ----- Rate limiting (caddy-ratelimit plugin) -----
     # Returns 429 Too Many Requests when thresholds are exceeded.
@@ -96,7 +108,12 @@ jaot.io {
 
     # Everything else -> frontend (Next.js)
     handle {
-        reverse_proxy frontend:3000
+        reverse_proxy frontend:3000 {
+            # Next forwards request headers verbatim into its /api/* rewrite,
+            # so this must be overwritten here as well or a caller could hand
+            # the API a top-of-trust address of its choosing.
+            header_up X-Real-IP {http.request.client_ip}
+        }
     }
 
     # Maintenance page when backend/frontend is unreachable (502/503/504)

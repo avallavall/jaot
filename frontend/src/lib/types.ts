@@ -337,7 +337,11 @@ export interface ModelExecution {
  * a hand-kept copy is how the analytics screen came to believe there were two
  * origins. `model_project` is excluded because it is a source_kind, not an origin.
  */
-export type ExecutionOrigin = Exclude<OriginKey, "model_project">;
+// `(string & {})` keeps the nine slugs as editor suggestions while admitting the
+// ones already in the data: the reference database holds rows tagged `cron`, and
+// `resolveOriginKey`/`originLabel`/`buildOriginSlices` are all built to handle a
+// slug they do not know. A closed union told tsc those branches were unreachable.
+export type ExecutionOrigin = Exclude<OriginKey, "model_project"> | (string & {});
 
 /** Declared beside the origin slugs, since the studio precedence rule needs both. */
 export type { ExecutionSourceKind };

@@ -17,7 +17,7 @@ import type { ModelExecution } from "@/lib/types";
 import { downloadCSV } from "@/lib/csv-utils";
 import { extractVariables } from "@/lib/result-utils";
 import { apiDate } from "@/lib/dates";
-import { resolveOriginKey } from "@/lib/execution-origin";
+import { originLabel } from "@/lib/execution-origin";
 
 interface ExportButtonsProps {
   execution: ModelExecution;
@@ -91,7 +91,12 @@ function exportSolutionCSV(execution: ModelExecution, labels: ExportLabels): voi
     execution.status,
     execution.solver_status ?? "",
     execution.objective_value ?? "",
-    labels.originValue,
+    // The stored slug, not the translated label the report uses: a CSV is data.
+    // A spreadsheet formula or a re-import keyed on `ai_builder` must not depend
+    // on the language of whoever clicked Export, and two exports of one run have
+    // to diff clean. `status` and `solver_status` beside it are raw for the same
+    // reason. The column header is translated; the value is not.
+    execution.origin ?? "manual",
   ]);
 
   rows.push([]);
@@ -563,10 +568,9 @@ export function ExportButtons({ execution, chartRef }: ExportButtonsProps) {
   const locale = useLocale();
   const [pdfLoading, setPdfLoading] = useState(false);
 
-  // Same resolution the badge does, so the exported document and the screen it
-  // was exported from cannot name the run's origin differently.
-  const originKey = resolveOriginKey(execution.origin, execution.source_kind ?? undefined);
-  const originValue = originKey ? tOrigin(originKey) : execution.origin || tOrigin("manual");
+  // Same resolver the badge uses, so the exported document and the screen it was
+  // exported from cannot name the run's origin differently.
+  const originValue = originLabel(execution.origin, execution.source_kind, tOrigin);
 
   const labels: ExportLabels = {
     solutionReport: t("solutionReport"),

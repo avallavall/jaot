@@ -45,7 +45,7 @@ components/
 ├── layout/            (Sidebar, Breadcrumbs, Footer, nav-items)
 ├── workspace/         (WorkspaceSelector, MemberList, InviteModal)
 ├── admin/             (Dashboard, SettingsRegistry, VerificationQueue)
-├── solver/            (SolveForm, SolveResultsDrawer, ExecutionProgress)
+├── solver/            (SolveForm, SolveResultsDrawer)
 ├── triggers/          (TriggerScheduler, CronEditor, WebhookConfig)
 ├── guidance/          (WelcomeWizard, SkillLevelSelector, EmptyState)
 ├── marketplace/       (ModelListing, ReviewCard, FeaturedPlacement)

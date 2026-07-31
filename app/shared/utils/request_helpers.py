@@ -1,6 +1,7 @@
 """HTTP request utility helpers."""
 
 import ipaddress
+from collections.abc import Mapping
 
 from starlette.requests import Request
 
@@ -17,7 +18,10 @@ from starlette.requests import Request
 #: 3. ``X-Forwarded-For`` — kept last and deliberately so: proxies *append* to
 #:    it, so the first entry is whatever the caller put there. It is a fallback
 #:    for a self-host fronted by neither of the above, not a source of truth.
-_CLIENT_IP_HEADERS = (b"x-real-ip", b"cf-connecting-ip", b"x-forwarded-for")
+_CLIENT_IP_HEADER_NAMES = ("x-real-ip", "cf-connecting-ip", "x-forwarded-for")
+#: Same list, pre-encoded: the ASGI scope carries header names as bytes, and this
+#: runs on the anonymous rate-limit path for every public request.
+_CLIENT_IP_HEADERS = tuple(name.encode() for name in _CLIENT_IP_HEADER_NAMES)
 
 
 def _is_private_or_loopback(ip: str) -> bool:
@@ -33,25 +37,29 @@ def is_trusted_internal_request(scope: dict) -> bool:
     """True when a request originates from inside the cluster (service-to-service)
     rather than from an external client via the edge proxy.
 
-    Security rests on a deployment invariant that holds for the shipped Compose
-    topology and must hold for any self-host:
+    A request that carries NO forwarding header (any of ``_CLIENT_IP_HEADERS``)
+    AND comes from a private/loopback address did not arrive through the edge
+    proxy, whose ``reverse_proxy`` always appends ``X-Forwarded-For``. It is
+    internal traffic: a server-side render, a container health check.
 
-      1. The backend publishes no host ports — it is reachable only on the
-         internal Docker network (verified: only Caddy publishes 80/443).
-      2. The edge proxy (Caddy) is the sole public ingress and its
-         ``reverse_proxy`` always appends ``X-Forwarded-For``.
+    Used to exempt those from the anonymous per-IP public rate limit — every SSR
+    egresses from one container address, so without the exemption they share a
+    single 60/min bucket across all visitors and a burst turns into 429 → SSR 500.
 
-    Therefore a request that carries NO forwarding header (any of
-    ``_CLIENT_IP_HEADERS``) AND comes from a private/loopback address cannot be an
-    external client — it is internal traffic such as the frontend's SSR fetches
-    or container health checks. An external client always arrives through Caddy
-    with a forwarding header set, and cannot strip it; forging a *fake* one only
-    keeps it on the external (rate-limited) path, never the internal one.
+    ⚠️ **This is not a security boundary, and must not be used as one.** The
+    invariant it would need — "nothing but the edge proxy can reach the API from a
+    private address" — does not hold for the shipped composes:
 
-    Used to exempt SSR traffic from the anonymous per-IP public rate limit (all
-    server-side renders egress from a single container IP, so without this they
-    would share one 60/min bucket across every visitor: a burst → 429 → SSR 500),
-    and to keep our own infrastructure out of the marketplace's visit telemetry.
+      * ``deploy/docker-compose.home.yml`` publishes the frontend on ``3000:3000``
+        (all interfaces), and ``next.config.ts`` rewrites ``/api/*`` to the API
+        without adding any forwarding header. Any host on the LAN can therefore
+        reach every public endpoint through that port and land on this exemption.
+      * ``docker-compose.yml`` publishes the API itself on ``127.0.0.1:8001``.
+
+    So treat it as "traffic that should not be rate-limited as if it were one
+    visitor", not as "trusted". Anything that must not be forgeable — telemetry
+    the marketplace bills nobody for, but an author reads — asks the caller to
+    declare itself instead (``_is_own_traffic`` in the catalog routes).
     """
     has_forward_header = any(name in _CLIENT_IP_HEADERS for name, _ in scope.get("headers", []))
     if has_forward_header:
@@ -62,13 +70,44 @@ def is_trusted_internal_request(scope: dict) -> bool:
     return _is_private_or_loopback(client[0])
 
 
-def _first_hop(value: str) -> str:
-    """First entry of a comma-separated forwarding header."""
-    return value.split(",")[0].strip()
+def _parse_hop(value: str) -> str | None:
+    """The first entry of a forwarding header, if it parses as an address.
+
+    Rejecting what does not parse is not tidiness. These values are persisted —
+    ``ContactMessage.ip_address`` is ``String(64)``, so a longer one raises
+    ``StringDataRightTruncation`` at commit, an unhandled 500 on a public
+    endpoint — and they are used as Redis keys, so accepting arbitrary text hands
+    a caller an unbounded key space. A header that does not carry an address is
+    treated as absent, and the next one gets its turn.
+    """
+    first = value.split(",")[0].strip()
+    if not first:
+        return None
+    try:
+        ipaddress.ip_address(first)
+    except ValueError:
+        return None
+    return first
+
+
+def get_client_ip_from_headers(headers: Mapping[str, str]) -> str | None:
+    """The caller's address from a plain header mapping, or ``None``.
+
+    Third entry point because the MCP layer holds a dict rather than a Request or
+    an ASGI scope — and it had grown its own copy of the defect this module
+    exists to prevent (first hop of ``X-Forwarded-For``, no questions asked).
+    """
+    for header in _CLIENT_IP_HEADER_NAMES:
+        value = headers.get(header)
+        if value:
+            parsed = _parse_hop(value)
+            if parsed:
+                return parsed
+    return None
 
 
 def get_client_ip(request: Request) -> str:
-    """The caller's address, from the most trustworthy header that is present.
+    """The caller's address, from the most trustworthy header that carries one.
 
     ``request.client.host`` is not consulted before the headers, and not because
     of the classic "behind a proxy it returns the proxy's IP": uvicorn runs with
@@ -79,10 +118,9 @@ def get_client_ip(request: Request) -> str:
     and opened its own ``rl:public_ip:8.8.8.8`` rate-limit bucket, which is a way
     around every per-IP limit including the one on login attempts.
     """
-    for header in _CLIENT_IP_HEADERS:
-        value = request.headers.get(header.decode())
-        if value and value.strip():
-            return _first_hop(value)
+    from_headers = get_client_ip_from_headers(request.headers)
+    if from_headers:
+        return from_headers
     return request.client.host if request.client else "unknown"
 
 
@@ -90,18 +128,23 @@ def get_client_ip_from_scope(scope: dict) -> str:
     """Same precedence as :func:`get_client_ip`, for pure ASGI middleware.
 
     Used by the anonymous per-IP rate limit, which runs before a Request object
-    exists. Header order in the scope is irrelevant: the loop below is driven by
-    the trust order, not by the order the headers happen to arrive in — the
-    previous implementation returned whichever came first, so a caller could put
-    ``X-Forwarded-For`` ahead of the header a proxy had set.
+    exists. Header order on the wire is irrelevant: the best-ranked header wins,
+    where the previous implementation returned whichever arrived first — so a
+    caller could simply put ``X-Forwarded-For`` ahead of the one a proxy had set.
     """
-    headers = scope.get("headers", [])
-    for wanted in _CLIENT_IP_HEADERS:
-        for header_name, header_value in headers:
-            if header_name == wanted:
-                decoded = header_value.decode().strip()
-                if decoded:
-                    return _first_hop(decoded)
+    best: tuple[int, str] | None = None
+    for header_name, header_value in scope.get("headers", []):
+        try:
+            rank = _CLIENT_IP_HEADERS.index(header_name)
+        except ValueError:
+            continue
+        if best is not None and rank >= best[0]:
+            continue
+        parsed = _parse_hop(header_value.decode())
+        if parsed:
+            best = (rank, parsed)
+    if best is not None:
+        return best[1]
     client = scope.get("client")
     if client:
         return client[0]

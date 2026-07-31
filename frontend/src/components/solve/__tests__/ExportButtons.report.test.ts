@@ -105,13 +105,19 @@ describe("buildReportHtml", () => {
     expect(text).toContain("x3 <= 10");
   });
 
-  it("names the origin in the reader's language, not by its internal slug", () => {
-    // The header beside it is translated, so an English slug in the value made
-    // the line read "Quelle: ai_builder" in a document meant to be handed on.
-    const doc = parse(buildReportHtml(makeExecution({ origin: "api" }), labels, "de"));
-    const text = doc.body.textContent ?? "";
-    expect(text).toContain("Visual builder");
-    expect(text).not.toContain("api");
+  it("prints the origin label it was handed, not the execution's raw slug", () => {
+    // Scope note: resolving slug → label is `originLabel`, tested directly in
+    // src/lib/__tests__/execution-origin.test.ts. What belongs here is that the
+    // template renders the resolved value and never reaches for `execution.origin`
+    // itself — the header beside it is translated, so an English slug in the value
+    // made the line read "Quelle: ai_builder" in a document meant to be handed on.
+    const doc = parse(
+      buildReportHtml(makeExecution({ origin: "ai_builder" }), labels, "de"),
+    );
+    const meta = [...doc.querySelectorAll(".meta-item")].map((n) => n.textContent ?? "");
+    const originItem = meta.find((t) => t.includes(labels.origin));
+    expect(originItem).toContain(labels.originValue);
+    expect(originItem).not.toContain("ai_builder");
   });
 
   it("omits zero variables by default and says how many", () => {

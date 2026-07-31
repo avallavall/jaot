@@ -43,6 +43,21 @@ interface SsrFetchOptions {
 }
 
 /**
+ * Marks a request as coming from a server-side render rather than from a reader.
+ *
+ * The API cannot work this out on its own. It used to infer it — no forwarding
+ * header from a private address means internal traffic — but Next's own `/api/*`
+ * rewrite proxy adds only `x-forwarded-host` and never `X-Forwarded-For`, so on
+ * any deployment where the browser reaches the API *through* Next (the default
+ * compose, any self-host without Caddy in front of `/api`) a real reader's call
+ * is indistinguishable from an SSR one. Saying it outright works everywhere.
+ *
+ * A caller who forges this header only excludes itself from an author's view
+ * counts. It grants nothing: rate limiting does not read it.
+ */
+export const SSR_REQUEST_HEADERS: Readonly<Record<string, string>> = { "X-JAOT-SSR": "1" };
+
+/**
  * Fetch JSON for an SSR page, classifying the outcome for graceful SEO degradation.
  * Never throws — a thrown SSR fetch is exactly what turns a backend hiccup into a 500.
  */
@@ -53,7 +68,7 @@ export async function ssrJsonFetch<T>(
   for (let attempt = 0; attempt <= retries; attempt++) {
     let res: Response;
     try {
-      res = await fetch(url, { next: { revalidate } });
+      res = await fetch(url, { next: { revalidate }, headers: SSR_REQUEST_HEADERS });
     } catch (err) {
       // Network-level failure (proxy down, DNS, connection reset).
       if (attempt < retries) {

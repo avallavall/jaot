@@ -24,6 +24,7 @@ from fastapi import FastAPI
 from fastapi_mcp import FastApiMCP
 
 from app.shared.constants.event_types import MCP_TOOL_CALL
+from app.shared.utils.request_helpers import get_client_ip_from_headers
 
 logger = logging.getLogger(__name__)
 
@@ -176,8 +177,10 @@ def _record_tool_call(tool_name: str, http_request_info: Any) -> None:
 
 
 def _client_ip(headers: dict[str, str]) -> str | None:
-    """First hop of ``X-Forwarded-For`` (the real client behind the proxy)."""
-    forwarded = headers.get("x-forwarded-for")
-    if not forwarded:
-        return None
-    return forwarded.split(",")[0].strip() or None
+    """The caller's address, by the same trust order as the rest of the platform.
+
+    This used to read the first hop of ``X-Forwarded-For`` directly — the entry a
+    caller chooses, since proxies append — so an MCP client could put any address
+    in its own audit-log row.
+    """
+    return get_client_ip_from_headers(headers)

@@ -246,7 +246,8 @@ value on a row nothing reads.
 The explicit list is what makes the migration deterministic and auditable, and also what
 could go wrong — a key in it that the registry still declares would wipe a live setting. A
 `CONTRACT-TEST` in `tests/api/test_admin_settings.py` intersects the two and fails if they
-ever overlap; it is parametrised over every prune migration, so a later one cannot skip it.
+ever overlap. It is parametrised over the two prune migrations that exist; a third has to be
+added to that list, which is a line of test and the reason this paragraph names it.
 
 **Featurebase follow-up · ✅ Resolved (2026-07-31).** Production carried 90 rows against 87
 declared, and the difference was exactly `FEATUREBASE_DEFAULT_BOARD`, `FEATUREBASE_JWT_SECRET`

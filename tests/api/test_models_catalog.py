@@ -276,68 +276,85 @@ class TestVisitTelemetryIsStored:
         )
         assert len(events) == 1
 
-    # CONTRACT-TEST: our own infrastructure is never counted as a reader
-    def test_the_sitemap_walk_records_no_impressions(self, app, db_session, test_organization):
-        """A listing page fetched from inside the cluster stores nothing.
+    # CONTRACT-TEST: our own server-side fetches are never counted as readers
+    def test_the_sitemap_walk_records_no_impressions(
+        self, authenticated_client, db_session, test_organization
+    ):
+        """A listing page fetched by the sitemap walk stores nothing.
 
         `sitemap.ts` pages this endpoint every hour to build the SEO sitemap, and
         each page used to bank one impression per listing it returned: 103 an
         hour on the reference install, 97.8% of every impression ever stored. An
         author read those as an audience.
 
-        The caller is identified by the deployment invariant, not by user agent:
-        no forwarding header plus a private peer address cannot have crossed the
-        edge proxy. `client=` puts this request on exactly that footing.
+        The caller says so with the header its own fetch sets
+        (`SSR_REQUEST_HEADERS` in frontend/src/lib/seo/ssrFetch.ts) — the API does
+        not guess. See `_is_own_traffic` for why guessing was wrong.
         """
         _make_listing(
             db_session,
             test_organization,
-            pid="test_internal_impression",
-            name="internalprobe",
-            display_name="Internal Probe",
+            pid="test_ssr_impression",
+            name="ssrprobe",
+            display_name="SSR Probe",
         )
 
-        with TestClient(app, client=("172.18.0.5", 51000)) as internal:
-            assert internal.get("/api/v2/models/catalog?search=internalprobe").status_code == 200
+        assert (
+            authenticated_client.get(
+                "/api/v2/models/catalog?search=ssrprobe", headers={"X-JAOT-SSR": "1"}
+            ).status_code
+            == 200
+        )
 
         assert (
             db_session.query(ModelViewEvent)
-            .filter(ModelViewEvent.model_project_id == "test_internal_impression")
+            .filter(ModelViewEvent.model_project_id == "test_ssr_impression")
             .count()
             == 0
         )
 
-    # CONTRACT-TEST: our own infrastructure is never counted as a reader
-    def test_the_ssr_metadata_fetch_records_no_view(self, app, db_session, test_organization):
+    # CONTRACT-TEST: our own server-side fetches are never counted as readers
+    def test_the_ssr_metadata_fetch_records_no_view(
+        self, authenticated_client, db_session, test_organization
+    ):
         """The detail page fetches this endpoint server-side for its metadata and
         JSON-LD, so every visit was counted twice — once as a phantom view with
         no country and no organisation, once for real from the browser. Only the
         browser's own fetch is a view."""
-        _make_listing(db_session, test_organization, pid="test_internal_view")
+        _make_listing(db_session, test_organization, pid="test_ssr_view")
 
-        with TestClient(app, client=("10.0.0.9", 51001)) as internal:
-            assert internal.get("/api/v2/models/catalog/test_internal_view").status_code == 200
+        assert (
+            authenticated_client.get(
+                "/api/v2/models/catalog/test_ssr_view", headers={"X-JAOT-SSR": "1"}
+            ).status_code
+            == 200
+        )
 
         assert (
             db_session.query(ModelViewEvent)
-            .filter(ModelViewEvent.model_project_id == "test_internal_view")
+            .filter(ModelViewEvent.model_project_id == "test_ssr_view")
             .count()
             == 0
         )
 
-    # CONTRACT-TEST: a real reader behind the proxy is still counted
-    def test_a_forwarded_request_is_still_a_reader(self, app, db_session, test_organization):
-        """The same private peer address, but with the header the edge proxy
-        always appends, is an external reader — and must still be recorded.
-        Otherwise the fix for our own traffic would silence every real visit,
-        since in production every reader arrives from Caddy's container IP."""
-        _make_listing(db_session, test_organization, pid="test_forwarded_view")
+    # CONTRACT-TEST: a reader whose call arrives with no forwarding header still counts
+    def test_a_reader_proxied_by_next_is_still_counted(self, app, db_session, test_organization):
+        """A browser call that reaches the API *through* Next's `/api/*` rewrite.
 
-        with TestClient(app, client=("172.18.0.5", 51002)) as external:
+        That proxy forwards only `x-forwarded-host` — never `X-Forwarded-For` — so
+        the request arrives from the frontend container's private address with no
+        forwarding header at all. Identifying our own traffic by *inferring* it
+        from that shape (the first attempt at this fix) therefore discarded every
+        genuine view and impression on the default compose, along with the
+        "recently opened" row. This test is that regression.
+        """
+        _make_listing(db_session, test_organization, pid="test_next_proxied_view")
+
+        with TestClient(app, client=("172.18.0.5", 51002)) as via_next:
             assert (
-                external.get(
-                    "/api/v2/models/catalog/test_forwarded_view",
-                    headers={"X-Forwarded-For": "88.12.34.56"},
+                via_next.get(
+                    "/api/v2/models/catalog/test_next_proxied_view",
+                    headers={"X-Forwarded-Host": "localhost:3000"},
                 ).status_code
                 == 200
             )
@@ -345,7 +362,7 @@ class TestVisitTelemetryIsStored:
         events = (
             db_session.query(ModelViewEvent)
             .filter(
-                ModelViewEvent.model_project_id == "test_forwarded_view",
+                ModelViewEvent.model_project_id == "test_next_proxied_view",
                 ModelViewEvent.event_type == "view",
             )
             .all()

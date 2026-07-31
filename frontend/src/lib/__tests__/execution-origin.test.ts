@@ -8,7 +8,9 @@ import {
   buildOriginSlices,
   executionOriginHref,
   isOriginKey,
+  originLabel,
   resolveOriginKey,
+  type OriginKey,
 } from "../execution-origin";
 
 const LOCALES = ["en", "es", "ca", "fr", "de"] as const;
@@ -75,6 +77,29 @@ describe("origin coverage (contract with the backend)", () => {
     // Half of the reported bug was three origins sharing the fallback grey.
     expect(new Set(used).size).toBe(ORIGIN_KEYS.length);
     expect(used).not.toContain(UNKNOWN_ORIGIN_COLOR);
+  });
+});
+
+describe("originLabel", () => {
+  const t = (key: OriginKey) => `label:${key}`;
+
+  it("translates a known slug", () => {
+    expect(originLabel("ai_builder", undefined, t)).toBe("label:ai_builder");
+  });
+
+  it("lets a studio source_kind win over the looser origin slug", () => {
+    expect(originLabel("visual_builder", "model_project", t)).toBe("label:model_project");
+  });
+
+  it("shows an unknown slug as stored instead of naming it wrongly", () => {
+    expect(originLabel("cron", undefined, t)).toBe("cron");
+  });
+
+  it("falls back to manual only when nothing was recorded", () => {
+    expect(originLabel(undefined, undefined, t)).toBe("label:manual");
+    expect(originLabel(null, undefined, t)).toBe("label:manual");
+    // An empty string is not a name either.
+    expect(originLabel("", undefined, t)).toBe("label:manual");
   });
 });
 

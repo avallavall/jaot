@@ -24,7 +24,7 @@ from app.services import favorites_service
 from app.services.author_analytics_service import AuthorAnalyticsService
 from app.services.marketplace_fusion import listing_to_catalog_response
 from app.shared.db.base import get_db
-from app.shared.utils.request_helpers import get_client_ip, is_trusted_internal_request
+from app.shared.utils.request_helpers import get_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +59,13 @@ def _record_impressions(
         logger.debug("Failed to log impressions", exc_info=True)
 
 
+#: Set by our own server-side fetches (``SSR_REQUEST_HEADERS`` in
+#: ``frontend/src/lib/seo/ssrFetch.ts`` and the sitemap walk).
+_SSR_HEADER = "x-jaot-ssr"
+
+
 def _is_own_traffic(request: Request) -> bool:
-    """True when the caller is our own infrastructure rather than a reader.
+    """True when the caller is one of our own server-side fetches, not a reader.
 
     Both writers below record a person looking at a listing, and both were
     counting requests no person made:
@@ -72,13 +77,20 @@ def _is_own_traffic(request: Request) -> bool:
       metadata and JSON-LD, so each visit was counted twice: once as a phantom
       view with no country and no organisation, once for real from the browser.
 
-    Detection reuses the deployment invariant the anonymous rate limit already
-    relies on (``is_trusted_internal_request``): a request with no forwarding
-    header from a private address cannot have crossed the edge proxy. No
-    user-agent guessing, and a reader cannot opt out of being counted — forging
-    an ``X-Forwarded-For`` only keeps them on the external path.
+    **The caller declares itself, we do not infer it.** Inferring looked cheaper —
+    ``is_trusted_internal_request`` already identifies internal traffic for the
+    anonymous rate limit — but Next's ``/api/*`` rewrite proxy forwards only
+    ``x-forwarded-host``, never ``X-Forwarded-For``. On any deployment where the
+    browser reaches the API *through* Next (the default compose; any self-host
+    without Caddy routing ``/api`` itself) a genuine reader arrives from the
+    frontend container with no forwarding header at all, so inference would have
+    dropped every real view and impression — and with them the "recently opened"
+    row, which had just been fixed.
+
+    Forging this header buys nothing: it only removes you from an author's view
+    counts. Rate limiting does not read it.
     """
-    return is_trusted_internal_request(request.scope)
+    return _SSR_HEADER in request.headers
 
 
 def _record_visit(db: Session, request: Request, viewer: User | None, model_id: str) -> None:
