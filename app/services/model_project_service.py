@@ -21,6 +21,11 @@ from app.models.model_project import (
 )
 from app.schemas.model import PublishModelRequest
 from app.schemas.model_project import DiffEntry, VersionDiff
+from app.shared.constants.listing_status import (
+    AUTHOR_TOGGLEABLE,
+    STATUS_PUBLISHED,
+    STATUS_UNPUBLISHED,
+)
 from app.shared.utils.datetime_helpers import utcnow
 
 logger = logging.getLogger(__name__)
@@ -348,7 +353,7 @@ def publish_listing(
     listing.category = req.category
     listing.tags = req.tags
     listing.is_public = req.is_public
-    listing.status = "published"
+    listing.status = STATUS_PUBLISHED
     listing.is_official = False
     listing.author_organization_id = author_org_id
     listing.pinned_version_id = project.current_version_id
@@ -409,8 +414,8 @@ def set_listing_published(
     if listing is None:
         raise ListingNotFoundError("This project has never been published to the marketplace.")
 
-    target = "published" if published else "unpublished"
-    if listing.status != target and listing.status not in ("published", "unpublished"):
+    target = STATUS_PUBLISHED if published else STATUS_UNPUBLISHED
+    if listing.status not in AUTHOR_TOGGLEABLE:
         raise ListingStateError(
             f"A listing in state '{listing.status}' cannot be {target} from here; publish it."
         )

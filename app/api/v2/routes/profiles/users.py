@@ -12,6 +12,7 @@ from app.schemas.profile import (
     UserPublicProfile,
     UserReviewResponse,
 )
+from app.services.marketplace_fusion import MARKETPLACE_VISIBLE
 from app.shared.db.base import get_db
 
 router = APIRouter(tags=["users"])
@@ -99,36 +100,37 @@ def get_user_reviews(
         .all()
     )
 
-    # Batch pre-fetch models (unified listing facet) to avoid N+1 queries
+    # Batch pre-fetch models (unified listing facet) to avoid N+1 queries. This is
+    # a public profile and each row links to /marketplace/{catalog_id}, so it may
+    # only carry models that page will actually serve.
     model_ids = list({r.model_project_id for r in reviews if r.model_project_id})
     models_map = (
         {
             m.model_project_id: m
             for m in db.query(ModelProjectListing)
-            .filter(ModelProjectListing.model_project_id.in_(model_ids))
+            .filter(ModelProjectListing.model_project_id.in_(model_ids), *MARKETPLACE_VISIBLE)
             .all()
         }
         if model_ids
         else {}
     )
 
-    result = []
-    for review in reviews:
-        model = models_map.get(review.model_project_id)
-
-        result.append(
-            UserReviewResponse(
-                id=review.id,
-                catalog_id=review.model_project_id,
-                model_name=model.display_name if model else "Unknown Model",
-                rating=review.rating,
-                title=review.title,
-                comment=review.comment,
-                created_at=review.created_at,
-            )
+    # A review whose model is no longer on the marketplace is dropped rather than
+    # rendered as "Unknown Model": the row is a link, and naming it Unknown would
+    # still offer the reader a page that 404s.
+    return [
+        UserReviewResponse(
+            id=review.id,
+            catalog_id=review.model_project_id,
+            model_name=model.display_name,
+            rating=review.rating,
+            title=review.title,
+            comment=review.comment,
+            created_at=review.created_at,
         )
-
-    return result
+        for review in reviews
+        if (model := models_map.get(review.model_project_id)) is not None
+    ]
 
 
 @router.patch("/users/profile", response_model=StatusResponse)

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { MessageSquare, Star } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { apiDate } from "@/lib/dates";
 import type { AuthorReviews } from "@/lib/types";
 import { LoadFailed } from "@/components/author/LoadFailed";
 import { Button } from "@/components/ui/button";
@@ -90,7 +91,7 @@ export function AuthorReviewsList({ hasListings }: { hasListings: boolean }) {
                 {review.title && <span className="font-medium">{review.title}</span>}
               </div>
               <span className="text-xs text-muted-foreground">
-                {new Date(review.created_at).toLocaleDateString()}
+                {apiDate(review.created_at).toLocaleDateString()}
               </span>
             </div>
             {review.comment && <p className="text-sm">{review.comment}</p>}

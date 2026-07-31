@@ -21,14 +21,12 @@ from sqlalchemy.orm import Session
 from app.api.v2.auth import get_current_user
 from app.models import (
     ModelProjectListing,
-    ModelReview,
     NotificationPreference,
     Organization,
     User,
 )
 from app.schemas.author import (
     AuthorListingRow,
-    AuthorReviewRow,
     AuthorReviewsResponse,
     NotificationPreferenceEntry,
     NotificationPreferencesResponse,
@@ -44,10 +42,11 @@ from app.schemas.author_analytics import (
     TimeSeriesResponse,
 )
 from app.schemas.verification import VerificationRequestResponse
+from app.services import author_listing_service as author_listings
 from app.services.author_analytics_service import AuthorAnalyticsService
 from app.services.verification_service import VerificationService
+from app.shared.constants.listing_status import STATUS_PUBLISHED
 from app.shared.db.base import get_db
-from app.shared.utils.pagination import paginate_query
 
 logger = logging.getLogger(__name__)
 
@@ -119,12 +118,7 @@ def list_my_listings(
     Includes withdrawn (``unpublished``) listings — this is the author's own
     view, not the catalog, and withdrawing is reversible from here.
     """
-    return (
-        db.query(ModelProjectListing)
-        .filter(ModelProjectListing.author_organization_id == current_user.organization_id)
-        .order_by(ModelProjectListing.updated_at.desc())
-        .all()
-    )
+    return author_listings.list_my_listings(db, org_id=current_user.organization_id)
 
 
 @router.get("/reviews", response_model=AuthorReviewsResponse)
@@ -134,56 +128,10 @@ def list_reviews_received(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> AuthorReviewsResponse:
-    """Reviews left on any of my models, newest first.
-
-    Moderation is respected: a review the admin hid is not shown to the author
-    either. Reviews on withdrawn listings still count — they were left on a
-    model of mine.
-    """
-    my_listings = (
-        db.query(ModelProjectListing.model_project_id, ModelProjectListing.display_name)
-        .filter(ModelProjectListing.author_organization_id == current_user.organization_id)
-        .all()
+    """Reviews left on any of my models, newest first."""
+    return author_listings.list_reviews_received(
+        db, org_id=current_user.organization_id, page=page, page_size=page_size
     )
-    if not my_listings:
-        return AuthorReviewsResponse(reviews=[], total=0)
-
-    names = {row.model_project_id: row.display_name for row in my_listings}
-
-    query = (
-        db.query(ModelReview)
-        .filter(
-            ModelReview.model_project_id.in_(list(names)),
-            ModelReview.is_visible == True,  # noqa: E712
-        )
-        .order_by(ModelReview.created_at.desc())
-    )
-    reviews, total = paginate_query(query, page, page_size)
-
-    # Batch pre-fetch the reviewers (N+1 otherwise), same as the public endpoint.
-    user_ids = list({r.user_id for r in reviews if r.user_id})
-    users = (
-        {u.id: u for u in db.query(User).filter(User.id.in_(user_ids)).all()} if user_ids else {}
-    )
-
-    rows = [
-        AuthorReviewRow(
-            id=r.id,
-            model_project_id=r.model_project_id,
-            model_display_name=names.get(r.model_project_id, "Unknown"),
-            rating=r.rating,
-            title=r.title,
-            comment=r.comment,
-            reviewer_name=(
-                (users[r.user_id].display_name or users[r.user_id].name)
-                if r.user_id in users
-                else None
-            ),
-            created_at=r.created_at,
-        )
-        for r in reviews
-    ]
-    return AuthorReviewsResponse(reviews=rows, total=total)
 
 
 @router.post(
@@ -341,7 +289,7 @@ def get_onboarding_status(
         db.query(ModelProjectListing)
         .filter(
             ModelProjectListing.author_organization_id == org_id,
-            ModelProjectListing.status == "published",
+            ModelProjectListing.status == STATUS_PUBLISHED,
         )
         .all()
     )

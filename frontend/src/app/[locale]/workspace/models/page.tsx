@@ -81,7 +81,7 @@ export default function AuthorModelsPage() {
         <TabsContent value="reviews" className="mt-4">
           {/* When the listings never arrived we don't know, so fall back to the
               wording that holds either way instead of guessing "nothing published". */}
-          <AuthorReviewsList hasListings={listings === null ? true : listings.length > 0} />
+          <AuthorReviewsList hasListings={listings === null || listings.length > 0} />
         </TabsContent>
       </Tabs>
     </div>

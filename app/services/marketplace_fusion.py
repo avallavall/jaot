@@ -12,14 +12,15 @@ from sqlalchemy.orm import Session
 
 from app.models import ModelProjectListing
 from app.schemas.model import ModelCatalogResponse
+from app.shared.constants.listing_status import STATUS_PUBLISHED
 
 # The one definition of "this listing is on the marketplace". Every surface that
 # links to a catalog page must filter by it, or it hands the reader a card whose
 # target 404s. Withdrawal (status -> "unpublished") keeps the row, so a filter on
-# row existence is no longer the same thing — favourites and recents were written
-# when it was.
+# row existence is no longer the same thing — favourites, recents and the public
+# user profile were all written when it was.
 MARKETPLACE_VISIBLE = (
-    ModelProjectListing.status == "published",
+    ModelProjectListing.status == STATUS_PUBLISHED,
     ModelProjectListing.is_public == True,  # noqa: E712
 )
 

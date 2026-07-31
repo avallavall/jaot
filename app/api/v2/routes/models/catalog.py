@@ -22,7 +22,7 @@ from app.schemas.model import (
 )
 from app.services import favorites_service
 from app.services.author_analytics_service import AuthorAnalyticsService
-from app.services.marketplace_fusion import listing_to_catalog_response
+from app.services.marketplace_fusion import MARKETPLACE_VISIBLE, listing_to_catalog_response
 from app.shared.db.base import get_db
 from app.shared.utils.request_helpers import get_client_ip
 
@@ -141,10 +141,7 @@ def list_catalog_models(
     # (the model content lives on the project/version; the listing is its presentation).
     model_cls = ModelProjectListing
 
-    query = db.query(model_cls).filter(
-        model_cls.status == "published",
-        model_cls.is_public == True,  # noqa: E712
-    )
+    query = db.query(model_cls).filter(*MARKETPLACE_VISIBLE)
 
     if category:
         query = query.filter(model_cls.category == category)
@@ -219,11 +216,7 @@ def get_catalog_model(
     """Get details of a specific model in the catalog."""
     listing = (
         db.query(ModelProjectListing)
-        .filter(
-            ModelProjectListing.model_project_id == model_id,
-            ModelProjectListing.status == "published",
-            ModelProjectListing.is_public == True,  # noqa: E712
-        )
+        .filter(ModelProjectListing.model_project_id == model_id, *MARKETPLACE_VISIBLE)
         .first()
     )
 
@@ -261,11 +254,7 @@ def get_catalog_model_schema(
     """
     listing = (
         db.query(ModelProjectListing)
-        .filter(
-            ModelProjectListing.model_project_id == model_id,
-            ModelProjectListing.status == "published",
-            ModelProjectListing.is_public == True,  # noqa: E712
-        )
+        .filter(ModelProjectListing.model_project_id == model_id, *MARKETPLACE_VISIBLE)
         .first()
     )
     if not listing:

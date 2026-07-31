@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 
 from app.data.templates import TemplateDefinition, get_yaml_template
 from app.models.model_project import ModelProjectListing, ModelProjectVersion
+from app.services.marketplace_fusion import MARKETPLACE_VISIBLE
 
 # Origin tags — also reused verbatim as the ModelProject ``source_type`` provenance.
 ORIGIN_TEMPLATE = "template"
@@ -58,8 +59,7 @@ def _published_listing(db: Session, model_id: str):  # noqa: ANN202
         db.query(ModelProjectListing)
         .filter(
             ModelProjectListing.model_project_id.in_([model_id, f"official_{model_id}"]),
-            ModelProjectListing.status == "published",
-            ModelProjectListing.is_public == True,  # noqa: E712
+            *MARKETPLACE_VISIBLE,
         )
         .first()
     )

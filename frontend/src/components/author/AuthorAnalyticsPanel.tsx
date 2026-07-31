@@ -60,6 +60,14 @@ function useCountryNamer(locale: string): (code: string) => string {
   }, [locale]);
 }
 
+interface AnalyticsData {
+  summary: AnalyticsSummary;
+  funnel: ConversionFunnel;
+  geo: GeoDistribution;
+  models: ModelPerformanceRow[];
+  series: AnalyticsTimeSeries;
+}
+
 const PERIOD_DAYS: Record<Period, number | null> = { "7d": 7, "30d": 30, "90d": 90, all: null };
 
 /**
@@ -116,17 +124,15 @@ export function AuthorAnalyticsPanel({ locale }: { locale: string }) {
   const [period, setPeriod] = useState<Period>("30d");
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
-  const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
-  const [funnel, setFunnel] = useState<ConversionFunnel | null>(null);
-  const [geo, setGeo] = useState<GeoDistribution | null>(null);
-  const [models, setModels] = useState<ModelPerformanceRow[]>([]);
-  const [series, setSeries] = useState<AnalyticsTimeSeries | null>(null);
+  // The five answers describe one period and are always read together, so they
+  // land together — five setters could otherwise paint a half-updated period.
+  const [data, setData] = useState<AnalyticsData | null>(null);
 
   const load = useCallback(async (p: Period, isCurrent: () => boolean) => {
     setLoading(true);
     setFailed(false);
     try {
-      const [s, f, g, m, ts] = await Promise.all([
+      const [summary, funnel, geo, models, series] = await Promise.all([
         api.getAuthorAnalyticsSummary(p),
         api.getAuthorAnalyticsFunnel(p),
         api.getAuthorAnalyticsGeo(p),
@@ -135,11 +141,7 @@ export function AuthorAnalyticsPanel({ locale }: { locale: string }) {
       ]);
       // Switching period fast must not let the older period's answer land last.
       if (!isCurrent()) return;
-      setSummary(s);
-      setFunnel(f);
-      setGeo(g);
-      setModels(m);
-      setSeries(ts);
+      setData({ summary, funnel, geo, models, series });
     } catch {
       // Without this every panel below would render its "nothing happened yet"
       // copy, turning an outage into a confident report of an empty period.
@@ -168,6 +170,7 @@ export function AuthorAnalyticsPanel({ locale }: { locale: string }) {
 
   if (failed) return <LoadFailed message={t("loadFailed")} />;
 
+  const { summary, funnel, models = [], series } = data ?? {};
   const days = fillMissingDays(series?.data ?? [], period, new Date());
   // Counted on the days actually plotted, not on the raw response: the API's
   // window can reach one bucket further back than the chart's, and a day that is
@@ -176,8 +179,9 @@ export function AuthorAnalyticsPanel({ locale }: { locale: string }) {
     (d) => d.views > 0 || d.impressions > 0 || d.activations > 0,
   ).length;
   const peakViews = Math.max(...days.map((d) => d.views), 1);
-  const countries = geo?.data ?? [];
+  const countries = data?.geo.data ?? [];
   const totalGeo = countries.reduce((acc, c) => acc + c.count, 0);
+  const totalViews = summary?.total_views ?? 0;
 
   return (
     <div className="space-y-6">
@@ -265,9 +269,7 @@ export function AuthorAnalyticsPanel({ locale }: { locale: string }) {
                drops views whose country is unknown, so with visits recorded and
                no country we must say that, not claim nobody came. */
             <NotEnoughYet>
-              {(summary?.total_views ?? 0) > 0
-                ? t("geoUnknown", { views: summary!.total_views })
-                : t("geoEmpty")}
+              {totalViews > 0 ? t("geoUnknown", { views: totalViews }) : t("geoEmpty")}
             </NotEnoughYet>
           ) : countries.length === 1 ? (
             /* One country is not a distribution — say it in words, don't draw it. */
@@ -294,9 +296,9 @@ export function AuthorAnalyticsPanel({ locale }: { locale: string }) {
                 </div>
               ))}
               {/* Don't let the bars imply they cover every visit. */}
-              {(summary?.total_views ?? 0) > totalGeo && (
+              {totalViews > totalGeo && (
                 <p className="pt-1 text-xs text-muted-foreground">
-                  {t("geoCoverage", { known: totalGeo, total: summary!.total_views })}
+                  {t("geoCoverage", { known: totalGeo, total: totalViews })}
                 </p>
               )}
             </div>

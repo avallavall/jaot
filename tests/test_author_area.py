@@ -63,16 +63,22 @@ def _publish(db, *, org_id: str, pid: str | None = None, status: str = "publishe
     return listing
 
 
+@pytest.fixture
+def published(db_session, test_organization):
+    """A published listing owned by the authenticated client's org, committed."""
+    listing = _publish(db_session, org_id=test_organization.id)
+    db_session.commit()
+    return listing
+
+
 class TestWithdrawListing:
     """POST /projects/{id}/unpublish and /republish."""
 
     def test_unpublish_removes_the_listing_from_every_catalog_surface(
-        self, authenticated_client, client, db_session, test_organization
+        self, authenticated_client, client, published
     ):
         """Withdrawing hides the model from list, detail and input schema."""
-        listing = _publish(db_session, org_id=test_organization.id)
-        db_session.commit()
-        pid = listing.model_project_id
+        pid = published.model_project_id
 
         assert client.get(f"/api/v2/models/catalog/{pid}").status_code == 200
 
@@ -85,12 +91,10 @@ class TestWithdrawListing:
         assert all(m["id"] != pid for m in listed["items"])
 
     def test_republish_puts_it_back_with_its_rollups_intact(
-        self, authenticated_client, client, db_session, test_organization
+        self, authenticated_client, client, db_session, published
     ):
         """The whole point of a reversible withdrawal: nothing is lost."""
-        listing = _publish(db_session, org_id=test_organization.id)
-        db_session.commit()
-        pid = listing.model_project_id
+        pid = published.model_project_id
 
         authenticated_client.post(f"/api/v2/projects/{pid}/unpublish")
         resp = authenticated_client.post(f"/api/v2/projects/{pid}/republish")
@@ -108,13 +112,9 @@ class TestWithdrawListing:
         assert restored.total_executions == 11
         assert restored.published_at is not None
 
-    def test_unpublish_is_idempotent(
-        self, authenticated_client, db_session, test_organization
-    ):
+    def test_unpublish_is_idempotent(self, authenticated_client, published):
         """Withdrawing twice is a no-op, not an error — the UI can retry safely."""
-        listing = _publish(db_session, org_id=test_organization.id)
-        db_session.commit()
-        pid = listing.model_project_id
+        pid = published.model_project_id
 
         assert authenticated_client.post(f"/api/v2/projects/{pid}/unpublish").status_code == 200
         assert authenticated_client.post(f"/api/v2/projects/{pid}/unpublish").status_code == 200
@@ -141,9 +141,7 @@ class TestWithdrawListing:
         listing = _publish(db_session, org_id=test_organization_2.id)
         db_session.commit()
 
-        resp = authenticated_client.post(
-            f"/api/v2/projects/{listing.model_project_id}/unpublish"
-        )
+        resp = authenticated_client.post(f"/api/v2/projects/{listing.model_project_id}/unpublish")
         assert resp.status_code == 404
 
         db_session.expire_all()
@@ -260,6 +258,30 @@ class TestWithdrawalIsHonouredEverywhere:
 
         assert authenticated_client.get("/api/v2/models/recents").json()["total"] == 0
 
+    def test_a_withdrawn_listing_leaves_the_public_user_profile(
+        self, authenticated_client, client, db_session, test_organization, test_user
+    ):
+        """The reviews on a user's public profile each link to the marketplace."""
+        listing = _publish(db_session, org_id=test_organization.id)
+        db_session.add(
+            ModelReview(
+                id=generate_id("rev_"),
+                model_project_id=listing.model_project_id,
+                user_id=test_user.id,
+                organization_id=test_organization.id,
+                rating=5,
+                comment="Solid",
+            )
+        )
+        db_session.commit()
+
+        assert len(client.get(f"/api/v2/users/{test_user.id}/reviews").json()) == 1
+
+        authenticated_client.post(f"/api/v2/projects/{listing.model_project_id}/unpublish")
+
+        # Dropped, not relabelled "Unknown Model": the row is a link either way.
+        assert client.get(f"/api/v2/users/{test_user.id}/reviews").json() == []
+
     def test_an_unlisted_model_is_not_offered_either(
         self, authenticated_client, db_session, test_organization, test_user
     ):
@@ -290,9 +312,7 @@ class TestPublicationTransitions:
         listing = _publish(db_session, org_id=test_organization.id, status=state)
         db_session.commit()
 
-        resp = authenticated_client.post(
-            f"/api/v2/projects/{listing.model_project_id}/republish"
-        )
+        resp = authenticated_client.post(f"/api/v2/projects/{listing.model_project_id}/republish")
         assert resp.status_code == 409, resp.text
 
         db_session.expire_all()
@@ -303,25 +323,19 @@ class TestPublicationTransitions:
         )
         assert unchanged.status == state
 
-    def test_withdraw_refuses_them_too(
-        self, authenticated_client, db_session, test_organization
-    ):
+    def test_withdraw_refuses_them_too(self, authenticated_client, db_session, test_organization):
         listing = _publish(db_session, org_id=test_organization.id, status="deprecated")
         db_session.commit()
 
-        resp = authenticated_client.post(
-            f"/api/v2/projects/{listing.model_project_id}/unpublish"
-        )
+        resp = authenticated_client.post(f"/api/v2/projects/{listing.model_project_id}/unpublish")
         assert resp.status_code == 409
 
     def test_the_audit_log_says_which_way_it_went(
-        self, authenticated_client, db_session, test_organization
+        self, authenticated_client, db_session, published
     ):
         """'When did this leave the marketplace, and who took it off?' — model_edit
         cannot answer that, and all three publication routes used to log it."""
-        listing = _publish(db_session, org_id=test_organization.id)
-        db_session.commit()
-        pid = listing.model_project_id
+        pid = published.model_project_id
 
         authenticated_client.post(f"/api/v2/projects/{pid}/unpublish")
         authenticated_client.post(f"/api/v2/projects/{pid}/republish")
@@ -369,9 +383,7 @@ class TestGeoCountsVisits:
         db_session.commit()
 
         geo = authenticated_client.get("/api/v2/author/analytics/geo?period=30d").json()
-        summary = authenticated_client.get(
-            "/api/v2/author/analytics/summary?period=30d"
-        ).json()
+        summary = authenticated_client.get("/api/v2/author/analytics/summary?period=30d").json()
 
         # The breakdown must not exceed the total it breaks down.
         assert sum(entry["count"] for entry in geo["data"]) == summary["total_views"] == 1

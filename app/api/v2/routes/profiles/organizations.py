@@ -9,7 +9,7 @@ from app.models import ModelProjectListing, ModelReview, Organization, User
 from app.schemas.common import StatusResponse
 from app.schemas.model import ModelCatalogResponse
 from app.schemas.profile import OrganizationPublicProfile, UpdateOrgProfileRequest
-from app.services.marketplace_fusion import listing_to_catalog_response
+from app.services.marketplace_fusion import MARKETPLACE_VISIBLE, listing_to_catalog_response
 from app.shared.db.base import get_db
 
 router = APIRouter(tags=["organizations"])
@@ -37,8 +37,7 @@ def get_organization_public_profile(
         db.query(ModelProjectListing)
         .filter(
             ModelProjectListing.author_organization_id == org_id,
-            ModelProjectListing.status == "published",
-            ModelProjectListing.is_public == True,  # noqa: E712
+            *MARKETPLACE_VISIBLE,
         )
         .all()
     )
@@ -173,8 +172,7 @@ def get_organization_models(
         db.query(ModelProjectListing)
         .filter(
             ModelProjectListing.author_organization_id == org_id,
-            ModelProjectListing.status == "published",
-            ModelProjectListing.is_public == True,  # noqa: E712
+            *MARKETPLACE_VISIBLE,
         )
         .order_by(ModelProjectListing.total_executions.desc())
         .limit(50)
