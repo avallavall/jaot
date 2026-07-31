@@ -2604,8 +2604,6 @@
       "running": "En cours",
       "pending": "En attente",
       "allOrigins": "Toutes les origines",
-      "manual": "Manuelle",
-      "triggered": "Déclenchée",
       "totalExecutions": "{count} exécutions au total",
       "external": "Externe",
       "tableHeaders": {
@@ -2909,7 +2907,7 @@
         "bar": "Barres",
         "objective": "Objectif : {value}",
         "origin": "Origine : {origin}",
-        "legendManual": "Manuelle",
+        "legendOther": "Toute autre origine",
         "legendTriggered": "Déclenchée"
       },
       "pareto": {
@@ -2959,8 +2957,6 @@
       "statusDistribution": "Distribution des statuts",
       "originDistribution": "Distribution des origines",
       "solverStatusDistribution": "Statut du solveur",
-      "manual": "Manuel",
-      "triggered": "Automatique",
       "noData": "Aucune exécution trouvée pour cette période.",
       "compare": "Comparer",
       "compareTitle": "Comparer les exécutions",

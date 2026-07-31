@@ -2604,8 +2604,6 @@
       "running": "En execució",
       "pending": "Pendent",
       "allOrigins": "Tots els Orígens",
-      "manual": "Manual",
-      "triggered": "Per trigger",
       "totalExecutions": "{count} execucions en total",
       "external": "Extern",
       "tableHeaders": {
@@ -2909,7 +2907,7 @@
         "bar": "Barres",
         "objective": "Objectiu: {value}",
         "origin": "Origen: {origin}",
-        "legendManual": "Manual",
+        "legendOther": "Qualsevol altre origen",
         "legendTriggered": "Per trigger"
       },
       "pareto": {
@@ -2959,8 +2957,6 @@
       "statusDistribution": "Distribució d'estat",
       "originDistribution": "Distribució d'origen",
       "solverStatusDistribution": "Estat del solver",
-      "manual": "Manual",
-      "triggered": "Automàtica",
       "noData": "No s'han trobat execucions per a aquest període.",
       "compare": "Comparar",
       "compareTitle": "Comparar execucions",

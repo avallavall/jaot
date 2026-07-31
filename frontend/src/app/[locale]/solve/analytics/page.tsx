@@ -10,7 +10,13 @@ import {
   type SolveAnalyticsCompare,
 } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
+import {
+  ORIGIN_CHART_COLORS,
+  UNKNOWN_ORIGIN_COLOR,
+  isOriginKey,
+} from "@/lib/execution-origin";
 import { Button } from "@/components/ui/button";
+import { OriginBadge } from "@/components/solve/OriginBadge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   BarChart2,
@@ -49,11 +55,6 @@ const STATUS_COLORS: Record<string, string> = {
   timeout: "#eab308",
   running: "#3b82f6",
   pending: "#9ca3af",
-};
-
-const ORIGIN_COLORS: Record<string, string> = {
-  manual: "#6366f1",
-  triggered: "#f59e0b",
 };
 
 function formatMs(ms: number | null): string {
@@ -114,6 +115,8 @@ function DistributionPieCard({ title, data, noDataLabel, capitalizeLabel }: Dist
 
 export default function SolveAnalyticsPage() {
   const t = useTranslations("solve.analytics");
+  // Origin labels live in one namespace shared with the badge — see execution-origin.
+  const tOrigin = useTranslations("solve.origin");
   const router = useRouter();
 
   const [period, setPeriod] = useState<Period>(30);
@@ -201,16 +204,23 @@ export default function SolveAnalyticsPage() {
     [summary],
   );
 
+  // One slice per origin the backend actually reports. A slug this build does not
+  // know keeps its raw name and the reserved colour rather than being folded into
+  // "manual": these are counts, and folding them would overstate that one.
   const originData = useMemo<PieEntry[]>(
     () =>
       summary
-        ? Object.entries(summary.executions_by_origin).map(([name, value]) => ({
-            name: name === "manual" ? t("manual") : t("triggered"),
-            value,
-            fill: ORIGIN_COLORS[name] || "#9ca3af",
-          }))
+        ? Object.entries(summary.executions_by_origin)
+            .map(([name, value]) => ({
+              name: isOriginKey(name) ? tOrigin(name) : name,
+              value,
+              fill: isOriginKey(name)
+                ? ORIGIN_CHART_COLORS[name]
+                : UNKNOWN_ORIGIN_COLOR,
+            }))
+            .sort((a, b) => b.value - a.value)
         : [],
-    [summary, t],
+    [summary, tOrigin],
   );
 
   const solverStatusData = useMemo(
@@ -521,7 +531,9 @@ export default function SolveAnalyticsPage() {
                             <td className="p-2 text-right">
                               {exe.gap != null ? formatPct(exe.gap) : "-"}
                             </td>
-                            <td className="p-2 capitalize">{exe.origin}</td>
+                            <td className="p-2">
+                              <OriginBadge origin={exe.origin} />
+                            </td>
                           </tr>
                         ))}
                       </tbody>

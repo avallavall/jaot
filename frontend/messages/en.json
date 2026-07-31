@@ -2629,8 +2629,6 @@
       "running": "Running",
       "pending": "Pending",
       "allOrigins": "All Origins",
-      "manual": "Manual",
-      "triggered": "Triggered",
       "totalExecutions": "{count} total executions",
       "external": "External",
       "tableHeaders": {
@@ -2946,7 +2944,7 @@
         "bar": "Bar",
         "objective": "Objective: {value}",
         "origin": "Origin: {origin}",
-        "legendManual": "Manual",
+        "legendOther": "Every other origin",
         "legendTriggered": "Triggered"
       },
       "pareto": {
@@ -2996,8 +2994,6 @@
       "statusDistribution": "Status Distribution",
       "originDistribution": "Origin Distribution",
       "solverStatusDistribution": "Solver Status",
-      "manual": "Manual",
-      "triggered": "Triggered",
       "noData": "No executions found for this period.",
       "compare": "Compare",
       "compareTitle": "Compare Executions",

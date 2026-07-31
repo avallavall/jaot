@@ -10,9 +10,14 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useCommonLabels } from "@/hooks/useCommonLabels";
 import { OriginBadge } from "@/components/solve/OriginBadge";
-import { executionOriginHref } from "@/lib/execution-origin";
+import { ORIGIN_KEYS, executionOriginHref } from "@/lib/execution-origin";
 import { EmptyState } from "@/components/guidance/EmptyState";
 import { apiDate } from "@/lib/dates";
+
+// The filter goes to `?origin=`, which the backend matches against the origin
+// column — so `model_project` is left out: it is a source_kind, and offering it
+// here would be a filter that always returns nothing.
+const ORIGIN_FILTER_KEYS = ORIGIN_KEYS.filter((key) => key !== "model_project");
 
 export default function ExecutionsPage() {
   const t = useTranslations("solve.executions");
@@ -98,13 +103,11 @@ export default function ExecutionsPage() {
           className="px-3 py-2 rounded-md border bg-background text-sm"
         >
           <option value="">{t("allOrigins")}</option>
-          <option value="visual_builder">{tOrigin("visual_builder")}</option>
-          <option value="ai_builder">{tOrigin("ai_builder")}</option>
-          <option value="template">{tOrigin("template")}</option>
-          <option value="import">{tOrigin("import")}</option>
-          <option value="marketplace">{tOrigin("marketplace")}</option>
-          <option value="manual">{t("manual")}</option>
-          <option value="triggered">{t("triggered")}</option>
+          {ORIGIN_FILTER_KEYS.map((key) => (
+            <option key={key} value={key}>
+              {tOrigin(key)}
+            </option>
+          ))}
         </select>
 
         <span className="text-sm text-muted-foreground">

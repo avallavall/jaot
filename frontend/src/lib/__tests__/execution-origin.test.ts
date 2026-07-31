@@ -1,5 +1,86 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, it, expect } from "vitest";
-import { executionOriginHref } from "../execution-origin";
+import {
+  ORIGIN_CHART_COLORS,
+  ORIGIN_KEYS,
+  UNKNOWN_ORIGIN_COLOR,
+  executionOriginHref,
+  isOriginKey,
+  resolveOriginKey,
+} from "../execution-origin";
+
+const LOCALES = ["en", "es", "ca", "fr", "de"] as const;
+
+// vitest runs with `frontend/` as its root (see vitest.config.ts), so the repo is
+// one level up. A wrong cwd surfaces as a read error naming the path it tried.
+function repoFile(relativeToRepoRoot: string): string {
+  return readFileSync(resolve(process.cwd(), "..", relativeToRepoRoot), "utf-8");
+}
+
+/** Only the slice these tests read; the bundle itself is far larger. */
+interface OriginMessages {
+  solve: { origin: Record<string, string> };
+}
+
+function originLabels(locale: string): Record<string, string> {
+  const parsed = JSON.parse(repoFile(`frontend/messages/${locale}.json`)) as OriginMessages;
+  return parsed.solve.origin;
+}
+
+/**
+ * The origin list is a contract with the backend, not a local convenience: the
+ * analytics legend printed "Automatic" three times, and called studio runs
+ * automatic, precisely because this side only knew two of the nine slugs. These
+ * tests fail when a slug is added on one side only — do not delete them.
+ */
+describe("origin coverage (contract with the backend)", () => {
+  const source = repoFile("app/shared/constants/execution_provenance.py");
+  const declared = [...source.matchAll(/^ORIGIN_\w+ = "([a-z_]+)"$/gm)].map((m) => m[1]);
+
+  it("reads the backend slugs it is asserting against", () => {
+    expect(declared.length).toBeGreaterThan(0);
+  });
+
+  it("knows every origin the backend can persist", () => {
+    // `model_project` is extra on purpose: a source_kind the studio shows in
+    // place of the looser origin its runs carry.
+    expect([...ORIGIN_KEYS].sort()).toEqual([...declared, "model_project"].sort());
+  });
+
+  it("has a label for every origin in all five locales", () => {
+    for (const locale of LOCALES) {
+      const labels = originLabels(locale);
+      for (const key of ORIGIN_KEYS) {
+        expect(labels[key], `${locale}.solve.origin.${key}`).toBeTruthy();
+      }
+    }
+  });
+
+  it("gives every origin its own chart colour", () => {
+    const used = ORIGIN_KEYS.map((key) => ORIGIN_CHART_COLORS[key]);
+    // Half of the reported bug was three origins sharing the fallback grey.
+    expect(new Set(used).size).toBe(ORIGIN_KEYS.length);
+    expect(used).not.toContain(UNKNOWN_ORIGIN_COLOR);
+  });
+});
+
+describe("resolveOriginKey", () => {
+  it("lets a studio source_kind win over the looser origin slug", () => {
+    expect(resolveOriginKey("visual_builder", "model_project")).toBe("model_project");
+  });
+
+  it("returns the origin when the slug is known", () => {
+    expect(resolveOriginKey("mcp")).toBe("mcp");
+  });
+
+  it("returns null for a slug this build does not know, so counts stay honest", () => {
+    // Folding it into "manual" would overstate manual in a distribution chart.
+    expect(resolveOriginKey("some_future_channel")).toBeNull();
+    expect(resolveOriginKey(undefined)).toBeNull();
+    expect(isOriginKey("some_future_channel")).toBe(false);
+  });
+});
 
 describe("executionOriginHref", () => {
   it("routes the visual builder to its document", () => {

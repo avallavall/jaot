@@ -2604,8 +2604,6 @@
       "running": "Läuft",
       "pending": "Ausstehend",
       "allOrigins": "Alle Quellen",
-      "manual": "Manuell",
-      "triggered": "Getriggert",
       "totalExecutions": "{count} Ausführungen gesamt",
       "external": "Extern",
       "tableHeaders": {
@@ -2909,7 +2907,7 @@
         "bar": "Balken",
         "objective": "Zielfunktion: {value}",
         "origin": "Quelle: {origin}",
-        "legendManual": "Manuell",
+        "legendOther": "Jede andere Quelle",
         "legendTriggered": "Getriggert"
       },
       "pareto": {
@@ -2959,8 +2957,6 @@
       "statusDistribution": "Statusverteilung",
       "originDistribution": "Ursprungsverteilung",
       "solverStatusDistribution": "Solver-Status",
-      "manual": "Manuell",
-      "triggered": "Automatisch",
       "noData": "Keine Ausführungen für diesen Zeitraum gefunden.",
       "compare": "Vergleichen",
       "compareTitle": "Ausführungen vergleichen",

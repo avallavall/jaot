@@ -20,13 +20,15 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { ModelExecution } from "@/lib/types";
 import { apiDate } from "@/lib/dates";
+import { isOriginKey } from "@/lib/execution-origin";
 
 interface TrendPoint {
   date: string;
   dateMs: number;
   objective: number;
   executionId: string;
-  origin: "manual" | "triggered";
+  /** The persisted slug, not a two-value guess: nine origins reach this chart. */
+  origin: string;
 }
 
 interface Props {
@@ -46,6 +48,12 @@ const TOOLTIP_STYLE = {
   },
 };
 
+/**
+ * Two shapes for nine origins: the diamond marks a run a trigger started, the
+ * circle everything a person or a client started. The legend names them that way
+ * — it used to call the circle "Manual", which mislabels the eight other origins.
+ * The exact origin of a point is in its tooltip.
+ */
 function renderShape(props: { cx?: number; cy?: number; payload?: { origin?: string } }) {
   const { cx = 0, cy = 0, payload } = props;
   const color = "hsl(var(--primary))";
@@ -59,13 +67,20 @@ function renderShape(props: { cx?: number; cy?: number; payload?: { origin?: str
       />
     );
   }
-  // Circle for manual (default)
   return <circle cx={cx} cy={cy} r={5} fill={color} />;
 }
 
 interface TooltipPayloadEntry {
   payload: TrendPoint;
 }
+
+const TOOLTIP_BOX_STYLE = {
+  background: "var(--card)",
+  border: "1px solid var(--border)",
+  fontSize: 12,
+  borderRadius: "6px",
+  padding: "8px 12px",
+} as const;
 
 function CustomTooltip({
   active,
@@ -74,23 +89,16 @@ function CustomTooltip({
   active?: boolean;
   payload?: TooltipPayloadEntry[];
 }) {
+  const t = useTranslations("solve.charts.objectiveTrend");
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--border)",
-        fontSize: 12,
-        borderRadius: "6px",
-        padding: "8px 12px",
-      }}
-    >
+    <div style={TOOLTIP_BOX_STYLE}>
       <p className="font-medium text-foreground mb-1">
         {new Date(d.dateMs).toLocaleString()}
       </p>
       <p className="text-muted-foreground">
-        Objective: {d.objective.toFixed(4)}
+        {t("objective", { value: d.objective.toFixed(4) })}
       </p>
     </div>
   );
@@ -104,25 +112,21 @@ function ScatterCustomTooltip({
   active?: boolean;
   payload?: { payload: TrendPoint }[];
 }) {
+  const t = useTranslations("solve.charts.objectiveTrend");
+  const tOrigin = useTranslations("solve.origin");
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
+  // A slug this build does not know is shown as-is rather than mislabelled.
+  const originLabel = isOriginKey(d.origin) ? tOrigin(d.origin) : d.origin;
   return (
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--border)",
-        fontSize: 12,
-        borderRadius: "6px",
-        padding: "8px 12px",
-      }}
-    >
+    <div style={TOOLTIP_BOX_STYLE}>
       <p className="font-medium text-foreground mb-1">
         {new Date(d.dateMs).toLocaleString()}
       </p>
       <p className="text-muted-foreground">
-        Objective: {d.objective.toFixed(4)}
+        {t("objective", { value: d.objective.toFixed(4) })}
       </p>
-      <p className="text-muted-foreground capitalize">Origin: {d.origin}</p>
+      <p className="text-muted-foreground">{t("origin", { origin: originLabel })}</p>
     </div>
   );
 }
@@ -148,7 +152,7 @@ export default function ObjectiveTrendChart({ executions, chartRef }: Props) {
         dateMs: apiDate(e.created_at).getTime(),
         objective: e.objective_value as number,
         executionId: e.id,
-        origin: (e.origin ?? "manual") as "manual" | "triggered",
+        origin: e.origin ?? "manual",
       }))
       .sort((a, b) => a.dateMs - b.dateMs);
   }, [executions]);
@@ -230,7 +234,7 @@ export default function ObjectiveTrendChart({ executions, chartRef }: Props) {
             </ScatterChart>
           </ResponsiveContainer>
           <p className="text-xs text-muted-foreground mt-2 text-center">
-            ● {t("legendManual")} &nbsp; ◆ {t("legendTriggered")}
+            ● {t("legendOther")} &nbsp; ◆ {t("legendTriggered")}
           </p>
         </TabsContent>
 
