@@ -24,7 +24,7 @@ from app.services import favorites_service
 from app.services.author_analytics_service import AuthorAnalyticsService
 from app.services.marketplace_fusion import listing_to_catalog_response
 from app.shared.db.base import get_db
-from app.shared.utils.request_helpers import is_trusted_internal_request
+from app.shared.utils.request_helpers import get_client_ip, is_trusted_internal_request
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ def _record_impressions(
             AuthorAnalyticsService(db).log_impression(
                 model_ids,
                 viewer.organization_id if viewer else None,
-                request.client.host if request.client else None,
+                get_client_ip(request),
             )
         db.commit()
     except Exception:
@@ -101,7 +101,7 @@ def _record_visit(db: Session, request: Request, viewer: User | None, model_id: 
             AuthorAnalyticsService(db).log_view(
                 model_id,
                 viewer.organization_id if viewer else None,
-                request.client.host if request.client else None,
+                get_client_ip(request),
             )
             if viewer is not None:
                 favorites_service.touch_recent(db, viewer.id, model_id)

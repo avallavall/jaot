@@ -76,6 +76,7 @@ from app.shared.utils.pagination import (
     create_paginated_response,
     paginate_query,
 )
+from app.shared.utils.request_helpers import get_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -627,7 +628,7 @@ async def send_message(
             user_id=user.id,
             org_id=org.id,
             event_type=evt.AI_BUILDER_MESSAGE,
-            ip_address=request.client.host if request.client else None,
+            ip_address=get_client_ip(request),
             metadata={"conversation_id": conversation_id},
         )
     except Exception:

@@ -35,6 +35,7 @@ from app.schemas.template import (
 from app.services.template_resolver import resolve_template_dict as _resolve_template_dict
 from app.shared.constants.execution_provenance import ORIGIN_TEMPLATE
 from app.shared.db import get_db
+from app.shared.utils.request_helpers import get_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -266,7 +267,7 @@ def _log_template_use(
             user_id=getattr(user, "id", "anonymous"),
             org_id=org.id,
             event_type=evt.TEMPLATE_USE,
-            ip_address=request.client.host if request.client else None,
+            ip_address=get_client_ip(request),
             metadata={"template_id": template_id},
         )
     except Exception:

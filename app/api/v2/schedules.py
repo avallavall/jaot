@@ -24,6 +24,7 @@ from app.schemas.schedule import (
 )
 from app.services import schedule_service
 from app.services.audit_service import log_action
+from app.shared.utils.request_helpers import get_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +120,7 @@ def create_schedule(
             user_id=user.id,
             org_id=org.id,
             event_type=evt.SCHEDULE_CREATE,
-            ip_address=request.client.host if request.client else None,
+            ip_address=get_client_ip(request),
             metadata={"trigger_id": trigger_id, "cron": schedule.cron_expression},
         )
     except Exception:
