@@ -127,12 +127,20 @@ class TestSettingsRegistry:
         empty = [c.value for c in SettingCategory if not REGISTRY_BY_CATEGORY.get(c)]
         assert not empty, f"Categories with no settings (would render an empty tab): {empty}"
 
-    # CONTRACT-TEST: the D-22 prune list never names a setting that is still live
-    def test_pruned_orphan_keys_are_not_in_the_registry(self):
-        """The orphan prune (D-22) deletes rows by an explicit list of keys.
+    # CONTRACT-TEST: no prune list ever names a setting that is still live
+    @pytest.mark.parametrize(
+        "migration_file",
+        [
+            "20260728_prune_orphan_settings.py",
+            "20260731_prune_featurebase.py",
+        ],
+    )
+    def test_pruned_orphan_keys_are_not_in_the_registry(self, migration_file: str):
+        """The orphan prunes (D-22 and the Featurebase follow-up) delete rows by
+        an explicit list of keys.
 
-        An explicit list is what keeps that migration deterministic, but it is
-        also what can go wrong: a key typed into it that the registry still
+        An explicit list is what keeps those migrations deterministic, but it is
+        also what can go wrong: a key typed into one that the registry still
         declares would delete a live setting's value, and the operator would
         find their number silently back at the shipped default after the next
         boot re-seeded it. Nothing in the migration itself can catch that — it
@@ -143,13 +151,9 @@ class TestSettingsRegistry:
         from app.services.settings_registry import SETTINGS_REGISTRY
 
         path = (
-            Path(__file__).resolve().parents[2]
-            / "infra"
-            / "alembic"
-            / "versions"
-            / "20260728_prune_orphan_settings.py"
+            Path(__file__).resolve().parents[2] / "infra" / "alembic" / "versions" / migration_file
         )
-        spec = importlib.util.spec_from_file_location("_prune_orphan_settings", path)
+        spec = importlib.util.spec_from_file_location(f"_prune_{path.stem}", path)
         assert spec and spec.loader
         migration = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(migration)
@@ -157,10 +161,10 @@ class TestSettingsRegistry:
         live = {d.key for d in SETTINGS_REGISTRY}
         collisions = sorted(live & set(migration.ORPHAN_KEYS))
         assert not collisions, (
-            f"The orphan prune would delete settings the registry still declares: {collisions}"
+            f"{migration_file} would delete settings the registry still declares: {collisions}"
         )
         assert len(set(migration.ORPHAN_KEYS)) == len(migration.ORPHAN_KEYS), (
-            "Duplicate keys in the prune list"
+            f"Duplicate keys in the prune list of {migration_file}"
         )
 
     def test_registry_keys_are_unique(self):
