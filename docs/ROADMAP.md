@@ -21,15 +21,19 @@ is settled and a lint contract keeps it that way, and every endpoint that used t
 with an undeclared object now publishes its response schema, so the API describes itself
 and clients stop hand-writing those types.
 
+A fleet-sized pickup-and-delivery model also went from "does not compile" to solving
+exactly in seconds — and the lesson was not about the solver. The formulation had tied
+three arcs of one journey together with equalities, so what looked like a routing problem
+with millions of variables was an assignment problem with a few hundred thousand. Same
+optimum, verified across instances. Worth saying out loud because it generalises: on this
+kind of model, how you write it decides more than which solver runs it.
+
 ## Next
 
 - **A home for people who publish** — the marketplace can be published to, but an
   author has nowhere to see what happens next: how their listings are being found and
   adopted, and how to ask for the verified badge rather than wait to be granted one.
   The measurements are already taken; what is missing is the place to read them.
-- **Scaling the routing models** — a fleet-sized pickup-and-delivery problem is a
-  realistic ask in transport, and we are working through what the platform needs to
-  express and solve one honestly.
 
 ## Later / Exploring
 
