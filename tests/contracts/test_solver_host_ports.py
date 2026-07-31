@@ -263,3 +263,77 @@ class TestPlatformSolveEvents:
         assert listing.total_executions == 1
         assert listing.successful_executions == 1
         assert listing.avg_execution_time_ms == pytest.approx(125.0)
+
+
+class TestEveryTerminalRunNotifies:
+    """# CONTRACT-TEST: finishing a solve must leave a notification, whoever ran it.
+
+    Only ``solve_model_async`` (running a catalog model) emitted the completion
+    event. ``solve_async`` — the path every studio solve takes, and the most
+    common origin on the reference install — never did, so a run finished, the
+    toast appeared, and the bell stayed empty forever. The emission now lives in
+    the single execution writer all three workers commit through, so a fourth
+    terminal path cannot quietly skip it.
+    """
+
+    def test_the_writer_notifies_when_it_completes_a_run(
+        self, db_session, test_user, test_organization, monkeypatch
+    ):
+        from app.domains.solver import execution_writer
+
+        project = ModelProject(
+            id=generate_id("mp_"),
+            organization_id=test_organization.id,
+            name="Studio Model",
+            status="active",
+        )
+        db_session.add(project)
+        db_session.flush()
+
+        execution = execution_writer.insert_pending(
+            db_session,
+            execution_id=generate_id("exe_"),
+            organization_id=test_organization.id,
+            celery_task_id=generate_id("task_"),
+            input_data={},
+            solver_name="scip",
+            executed_by_user_id=test_user.id,
+            origin="visual_builder",
+            model_project_id=project.id,
+        )
+        execution.objective_value = 12.0
+        db_session.flush()
+
+        register_solver_ports()
+        execution_writer._notify_completed(db_session, execution)
+        db_session.flush()
+
+        row = (
+            db_session.query(Notification)
+            .filter_by(user_id=test_user.id, type=NotificationType.EXECUTION_COMPLETED.value)
+            .first()
+        )
+        assert row is not None, "a studio solve finished and left no notification"
+        # The name comes from the project, since the execution row has none.
+        assert "Studio Model" in (row.message or "") + (row.title or "")
+
+    def test_a_run_with_no_person_behind_it_notifies_nobody(self, db_session, test_organization):
+        """API-key runs have no user to ring; that must not raise."""
+        from app.domains.solver import execution_writer
+
+        execution = execution_writer.insert_pending(
+            db_session,
+            execution_id=generate_id("exe_"),
+            organization_id=test_organization.id,
+            celery_task_id=generate_id("task_"),
+            input_data={},
+            solver_name="scip",
+            executed_by_user_id=None,
+            origin="api",
+        )
+        db_session.flush()
+
+        register_solver_ports()
+        execution_writer._notify_completed(db_session, execution)
+
+        assert db_session.query(Notification).count() == 0

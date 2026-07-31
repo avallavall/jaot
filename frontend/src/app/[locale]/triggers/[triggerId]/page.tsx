@@ -181,7 +181,10 @@ function TriggerDetailPageInner() {
           <div className="flex items-center gap-3 flex-wrap mb-1">
             <h1 className="text-2xl font-bold truncate">{trigger.name}</h1>
             <Badge variant={trigger.is_enabled ? "default" : "secondary"}>
-              {trigger.is_enabled ? t("enable") + "d" : t("disable") + "d"}
+              {/* Was t("enable") + "d" — English past tense by concatenation,
+                  which rendered "Activard"/"Desactivard" in Spanish and broke
+                  the other three locales the same way. */}
+              {trigger.is_enabled ? t("statusEnabled") : t("statusDisabled")}
             </Badge>
           </div>
           {trigger.description && (

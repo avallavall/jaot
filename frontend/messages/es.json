@@ -602,7 +602,10 @@
     "siteDescription": "Crea, usa y automatiza modelos de optimización: agnóstico al solver, asistido por IA y sin necesidad de un doctorado.",
     "breadcrumbsAriaLabel": "Ruta de navegación",
     "tableOfContentsAriaLabel": "Tabla de contenidos",
-    "onThisPage": "En esta página"
+    "onThisPage": "En esta página",
+    "accept": "Aceptar",
+    "warning": "Aviso",
+    "notice": "Aviso"
   },
   "public": {
     "nav": {
@@ -3212,7 +3215,9 @@
       "copiedLabel": "{label} copiado",
       "copiedClipboard": "Copiado al portapapeles",
       "copyError": "No se pudo copiar al portapapeles",
-      "copyLabel": "Copiar {label}"
+      "copyLabel": "Copiar {label}",
+      "statusEnabled": "Activado",
+      "statusDisabled": "Desactivado"
     },
     "codeSnippets": {
       "title": "Fragmentos de código",

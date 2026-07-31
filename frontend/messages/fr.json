@@ -602,7 +602,10 @@
     "siteDescription": "Créez, utilisez et automatisez des modèles d'optimisation : indépendant du solveur, assisté par IA, sans doctorat requis.",
     "breadcrumbsAriaLabel": "Fil d'Ariane",
     "tableOfContentsAriaLabel": "Table des matières",
-    "onThisPage": "Sur cette page"
+    "onThisPage": "Sur cette page",
+    "accept": "Accepter",
+    "warning": "Avertissement",
+    "notice": "Information"
   },
   "public": {
     "nav": {
@@ -3212,7 +3215,9 @@
       "copiedLabel": "{label} copié",
       "copiedClipboard": "Copié dans le presse-papiers",
       "copyError": "Impossible de copier dans le presse-papiers",
-      "copyLabel": "Copier {label}"
+      "copyLabel": "Copier {label}",
+      "statusEnabled": "Activé",
+      "statusDisabled": "Désactivé"
     },
     "codeSnippets": {
       "title": "Extraits de code",

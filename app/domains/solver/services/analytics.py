@@ -10,7 +10,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import timedelta
 from types import MappingProxyType
-from typing import Literal
+from typing import Any, Literal
 
 from sqlalchemy.orm import Session
 
@@ -68,10 +68,24 @@ class ComparedExecution:
 
 
 def _base_query(db: Session, org_id: str, days: int):
-    """Build org-scoped, time-bounded execution query."""
+    """Build the org-scoped, time-bounded query over the analytics columns ONLY.
+
+    Selecting whole ``ModelExecution`` rows is what made these endpoints take
+    7-16 seconds over a 650-row window: the table carries each run's problem and
+    solution JSON — 96 MB across 870 rows on the reference install — so counting
+    statuses dragged every model and every solution over the wire and built a
+    Python object for each. The aggregates read six columns; this selects six.
+    """
     effective_days = min(days, _MAX_LOOKBACK_DAYS) if days > 0 else _MAX_LOOKBACK_DAYS
     cutoff = utcnow() - timedelta(days=effective_days)
-    return db.query(ModelExecution).filter(
+    return db.query(
+        ModelExecution.created_at,
+        ModelExecution.status,
+        ModelExecution.origin,
+        ModelExecution.solver_status,
+        ModelExecution.execution_time_ms,
+        ModelExecution.objective_value,
+    ).filter(
         ModelExecution.organization_id == org_id,
         ModelExecution.created_at >= cutoff,
     )
@@ -172,8 +186,9 @@ def compute_trends(
     if not executions:
         return []
 
-    # Group into buckets
-    buckets: dict[str, list[ModelExecution]] = {}
+    # Group into buckets. The rows are column tuples, not ModelExecution
+    # instances — see _base_query for why.
+    buckets: dict[str, list[Any]] = {}
     for exe in executions:
         if bucket == "week":
             # ISO week start (Monday)

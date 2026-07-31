@@ -602,7 +602,10 @@
     "siteDescription": "Optimierungsmodelle erstellen, nutzen und automatisieren – solver-unabhängig, KI-gestützt, ohne Doktortitel.",
     "breadcrumbsAriaLabel": "Brotkrümelnavigation",
     "tableOfContentsAriaLabel": "Inhaltsverzeichnis",
-    "onThisPage": "Auf dieser Seite"
+    "onThisPage": "Auf dieser Seite",
+    "accept": "OK",
+    "warning": "Warnung",
+    "notice": "Hinweis"
   },
   "public": {
     "nav": {
@@ -614,7 +617,7 @@
     "hero": {
       "badge": "KI-gestützte Optimierungsplattform",
       "titleLine1": "Erstellen, nutzen oder automatisieren",
-      "titleLine2": "OptimierungsLösungen",
+      "titleLine2": "Optimierungslösungen",
       "titleLine3": "für jede Herausforderung",
       "subtitle": "Drei Wege zu optimalen Entscheidungen: Modelle mit KI erstellen, bewährte Lösungen aus dem Community-Marktplatz nutzen oder deinen KI-Agenten über MCP verbinden.",
       "tagline": "Die Optimierungsplattform für Menschen und KI-Agenten.",
@@ -3212,7 +3215,9 @@
       "copiedLabel": "{label} kopiert",
       "copiedClipboard": "In die Zwischenablage kopiert",
       "copyError": "Konnte nicht in die Zwischenablage kopieren",
-      "copyLabel": "{label} kopieren"
+      "copyLabel": "{label} kopieren",
+      "statusEnabled": "Aktiviert",
+      "statusDisabled": "Deaktiviert"
     },
     "codeSnippets": {
       "title": "Code-Snippets",

@@ -194,7 +194,9 @@ export default async function HomePage() {
               </span>
               {t("hero.badge")}
             </Badge>
-            <h1 className="mb-6 font-serif text-5xl leading-[1.05] text-foreground md:text-6xl xl:text-7xl">
+            {/* hyphens/break-words: German compounds one word long ("Optimierungslösungen")
+                have no space to wrap at and used to overflow into the screenshot beside it. */}
+            <h1 className="mb-6 hyphens-auto break-words font-serif text-5xl leading-[1.05] text-foreground md:text-6xl xl:text-7xl">
               {t("hero.titleLine1")}
               <br />
               {t("hero.titleLine2")}

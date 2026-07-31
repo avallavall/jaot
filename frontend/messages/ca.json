@@ -602,7 +602,10 @@
     "siteDescription": "Crea, usa i automatitza models d'optimització: agnòstic al solver, assistit per IA i sense necessitat d'un doctorat.",
     "breadcrumbsAriaLabel": "Ruta de navegació",
     "tableOfContentsAriaLabel": "Taula de continguts",
-    "onThisPage": "En aquesta pàgina"
+    "onThisPage": "En aquesta pàgina",
+    "accept": "Accepta",
+    "warning": "Avís",
+    "notice": "Avís"
   },
   "public": {
     "nav": {
@@ -3212,7 +3215,9 @@
       "copiedLabel": "{label} copiat",
       "copiedClipboard": "Copiat al porta-retalls",
       "copyError": "No s'ha pogut copiar al porta-retalls",
-      "copyLabel": "Copiar {label}"
+      "copyLabel": "Copiar {label}",
+      "statusEnabled": "Activat",
+      "statusDisabled": "Desactivat"
     },
     "codeSnippets": {
       "title": "Fragments de Codi",

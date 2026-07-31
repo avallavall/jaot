@@ -602,7 +602,10 @@
     "siteDescription": "Build, use, and automate optimization models — solver-agnostic, AI-assisted, no PhD required.",
     "breadcrumbsAriaLabel": "Breadcrumbs",
     "tableOfContentsAriaLabel": "Table of contents",
-    "onThisPage": "On this page"
+    "onThisPage": "On this page",
+    "accept": "Accept",
+    "warning": "Warning",
+    "notice": "Notice"
   },
   "public": {
     "nav": {
@@ -3212,7 +3215,9 @@
       "copiedLabel": "{label} copied",
       "copiedClipboard": "Copied to clipboard",
       "copyError": "Could not copy to clipboard",
-      "copyLabel": "Copy {label}"
+      "copyLabel": "Copy {label}",
+      "statusEnabled": "Enabled",
+      "statusDisabled": "Disabled"
     },
     "codeSnippets": {
       "title": "Code Snippets",

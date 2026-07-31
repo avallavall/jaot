@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Activity, Clock, Coins, ExternalLink } from "lucide-react";
+import { Activity, Clock, ExternalLink } from "lucide-react";
 import { api } from "@/lib/api";
 import { useTranslations } from "next-intl";
 import type { PaginatedResponse } from "@/lib/types";
@@ -129,13 +129,8 @@ export default function AdminExecutionsPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-border">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <Coins className="w-8 h-8 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
+        {/* The credits tile that used to sit here went with the billing layer
+            (ADR-008); its icon stayed behind, rendering a card with nothing in it. */}
         <Card className="border-border">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">

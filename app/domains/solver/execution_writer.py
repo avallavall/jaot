@@ -28,7 +28,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from app.domains.solver import ports
 from app.models import ExecutionStatus, ModelExecution
+from app.models.model_project import ModelProject
 from app.shared.db.session import SessionLocal
 from app.shared.utils.datetime_helpers import utcnow
 
@@ -268,6 +270,52 @@ def _lookup_by_task(
     return query.first()
 
 
+def _model_name_for(db: Any, execution: ModelExecution) -> str:
+    """The name to put in the notification, or a neutral fallback.
+
+    ``ModelExecution`` stores which project ran, not its name — and a run can
+    have no project at all (a raw ``POST /solve`` carries only a problem).
+    """
+    if execution.model_project_id:
+        name = (
+            db.query(ModelProject.name)
+            .filter(ModelProject.id == execution.model_project_id)
+            .scalar()
+        )
+        if name:
+            return str(name)
+    return "Your model"
+
+
+def _notify_completed(db: Any, execution: ModelExecution) -> None:
+    """Tell the platform a run finished, so the bell hears about it.
+
+    ``solve_model_async`` (running a marketplace/catalog model) emitted this and
+    the other two workers never did, so every solve started from the studio —
+    the common case, ``origin="visual_builder"`` — showed its toast and left no
+    notification behind. Emitting from the writer instead of from one task means
+    all three terminal paths report, and a fourth one cannot forget to.
+
+    Best-effort by design, like its caller: a notification failure must never
+    cost the execution row that was just committed.
+    """
+    if not execution.executed_by_user_id:
+        return  # API-key runs have no person to notify.
+    try:
+        ports.solve_events().solve_completed(
+            db,
+            user_id=execution.executed_by_user_id,
+            organization_id=execution.organization_id,
+            execution_id=execution.id,
+            model_name=_model_name_for(db, execution),
+            objective_value=execution.objective_value,
+        )
+        db.commit()
+    except Exception as exc:  # noqa: BLE001
+        db.rollback()
+        logger.warning("Failed to notify completion of execution %s: %s", execution.id, exc)
+
+
 def mark_completed_by_task(
     task_id: str,
     organization_id: str,
@@ -294,6 +342,7 @@ def mark_completed_by_task(
                 solver_name=solver_name,
             ):
                 db.commit()
+                _notify_completed(db, execution)
         finally:
             db.close()
     except Exception as exc:  # noqa: BLE001 — bookkeeping must not disturb the task

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "./button";
 import {
   Dialog,
@@ -17,7 +18,9 @@ interface CustomDialogProps {
   title?: string;
   message: string;
   type?: "info" | "success" | "error" | "warning";
+  /** Defaults to the translated "Accept" — pass only to override the wording. */
   confirmText?: string;
+  /** Defaults to the translated "Cancel" — pass only to override the wording. */
   cancelText?: string;
   onConfirm?: () => void;
   showCancel?: boolean;
@@ -43,19 +46,18 @@ export function CustomDialog({
   title,
   message,
   type = "info",
-  confirmText = "Accept",
-  cancelText = "Cancel",
+  confirmText,
+  cancelText,
   onConfirm,
   showCancel = false,
 }: CustomDialogProps) {
-  const defaultTitle =
-    type === "error"
-      ? "Error"
-      : type === "success"
-        ? "Success"
-        : type === "warning"
-          ? "Warning"
-          : "Notice";
+  // Every dialog in the app comes through here, so hardcoding these put two
+  // English buttons under a Spanish (or French, or German) message in all 18
+  // call sites of useDialog().
+  const t = useTranslations("common");
+  const defaultTitle = t(
+    type === "error" ? "error" : type === "success" ? "success" : type === "warning" ? "warning" : "notice",
+  );
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
@@ -72,7 +74,7 @@ export function CustomDialog({
         <DialogFooter>
           {showCancel && (
             <Button variant="outline" onClick={onClose}>
-              {cancelText}
+              {cancelText ?? t("cancel")}
             </Button>
           )}
           <Button
@@ -82,7 +84,7 @@ export function CustomDialog({
             }}
             className={type === "error" ? "bg-destructive hover:bg-destructive/90" : ""}
           >
-            {confirmText}
+            {confirmText ?? t("accept")}
           </Button>
         </DialogFooter>
       </DialogContent>

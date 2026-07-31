@@ -142,9 +142,11 @@ export default function ModelsPage() {
                 <TableHead className="w-[12%]">{t("tableHeaders.category")}</TableHead>
                 <TableHead className="w-[13%]">{t("tableHeaders.badges")}</TableHead>
                 <TableHead className="w-[8%]">{t("tableHeaders.version")}</TableHead>
-                <TableHead className="w-[10%]">{t("tableHeaders.cost")}</TableHead>
-                <TableHead className="w-[12%]">{t("tableHeaders.visibility")}</TableHead>
-                <TableHead className="w-[15%]">{t("tableHeaders.actions")}</TableHead>
+                {/* No "Cost" column: it outlived the billing layer ADR-008
+                    removed, and with no cell to match it every row rendered one
+                    column to the left — "Actions" came out empty. */}
+                <TableHead className="w-[15%]">{t("tableHeaders.visibility")}</TableHead>
+                <TableHead className="w-[22%]">{t("tableHeaders.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
