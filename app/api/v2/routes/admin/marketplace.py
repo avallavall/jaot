@@ -32,7 +32,7 @@ from app.shared.db.base import get_db
 router = APIRouter(prefix="/marketplace", tags=["admin-marketplace"])
 
 
-@router.get("/seller-analytics", response_model=AdminAnalyticsResponse)
+@router.get("/author-analytics", response_model=AdminAnalyticsResponse)
 def get_admin_author_analytics(
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
     db: Session = Depends(get_db),
@@ -44,12 +44,11 @@ def get_admin_author_analytics(
     """
     analytics = AuthorAnalyticsService(db)
     platform_totals = analytics.get_summary(org_id=None, period=period)
-    # `sellers` is the legacy wire key of AdminAnalyticsResponse (contract release).
-    sellers = analytics.get_author_leaderboard(period=period)
-    return AdminAnalyticsResponse(platform_totals=platform_totals, sellers=sellers)
+    authors = analytics.get_author_leaderboard(period=period)
+    return AdminAnalyticsResponse(platform_totals=platform_totals, authors=authors)
 
 
-@router.get("/seller-analytics/{org_id}", response_model=AnalyticsSummaryResponse)
+@router.get("/author-analytics/{org_id}", response_model=AnalyticsSummaryResponse)
 def get_admin_author_detail(
     org_id: str,
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),

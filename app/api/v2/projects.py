@@ -442,6 +442,80 @@ def publish_model_project(
     return response
 
 
+@router.post(
+    "/{project_id}/unpublish",
+    response_model=ModelCatalogResponse,
+    operation_id="unpublish_model_project",
+)
+def unpublish_model_project(
+    project_id: str,
+    db: DBSession,
+    user: CurrentUser,
+    org: CurrentOrg,
+    _ws: OptionalRequireEditor,
+) -> ModelCatalogResponse:
+    """Withdraw a published project from the marketplace, reversibly.
+
+    The listing keeps its rollups (adoptions, executions, rating) so
+    ``/republish`` restores it as it was. Forks already made keep working —
+    adoption copies the model, it does not reference the listing.
+    """
+    return _set_publication(db, project_id, user=user, org=org, published=False)
+
+
+@router.post(
+    "/{project_id}/republish",
+    response_model=ModelCatalogResponse,
+    operation_id="republish_model_project",
+)
+def republish_model_project(
+    project_id: str,
+    db: DBSession,
+    user: CurrentUser,
+    org: CurrentOrg,
+    _ws: OptionalRequireEditor,
+) -> ModelCatalogResponse:
+    """Put a withdrawn listing back on the marketplace, as it was.
+
+    The pinned version is left untouched: republishing restores the listing, it
+    does not re-pin HEAD. Use ``/publish`` to publish a newer version.
+    """
+    return _set_publication(db, project_id, user=user, org=org, published=True)
+
+
+def _set_publication(
+    db: Session,
+    project_id: str,
+    *,
+    user: User,
+    org: Organization,
+    published: bool,
+) -> ModelCatalogResponse:
+    """Shared body of un/republish: both differ only in the target status."""
+    project = _project_or_404(db, project_id, org.id)
+    try:
+        listing = svc.set_listing_published(db, project, published=published)
+    except svc.ListingNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    log_action(
+        db=db,
+        organization_id=org.id,
+        actor=user,
+        action=AuditAction.MODEL_EDIT,
+        target_type="model_project",
+        target_id=project.id,
+        target_name=project.name,
+    )
+    db.commit()
+    db.refresh(listing)
+    response = listing_to_catalog_response(listing)
+    author = db.query(Organization).filter(Organization.id == org.id).first()
+    if author:
+        response.author_name = author.name
+        response.author_verified = author.is_verified
+    return response
+
+
 @router.get("", response_model=list[ProjectListItem], operation_id="list_model_projects")
 def list_model_projects(
     db: DBSession,
@@ -454,13 +528,14 @@ def list_model_projects(
     mine: bool = Query(False),
     skip: int = 0,
     limit: int = 50,
-) -> list[ModelProject]:
+) -> list[ProjectListItem]:
     """List the organization's ModelProjects (newest-updated first).
 
     The list is org-wide (collaborative); pass ``mine=true`` to narrow it to the
-    current user's own models.
+    current user's own models. Each row carries its marketplace publication
+    state so the studio can show which models are published.
     """
-    return svc.list_projects(
+    projects = svc.list_projects(
         db,
         org_id=org.id,
         status=status_filter,
@@ -470,6 +545,22 @@ def list_model_projects(
         skip=skip,
         limit=limit,
     )
+    # One batch query for the listing facets — reading them per project would be N+1.
+    listing_status: dict[str, str] = {}
+    if projects:
+        rows = (
+            db.query(ModelProjectListing.model_project_id, ModelProjectListing.status)
+            .filter(ModelProjectListing.model_project_id.in_([p.id for p in projects]))
+            .all()
+        )
+        listing_status = {row.model_project_id: row.status for row in rows}
+
+    items: list[ProjectListItem] = []
+    for project in projects:
+        item = ProjectListItem.model_validate(project)
+        item.listing_status = listing_status.get(project.id)
+        items.append(item)
+    return items
 
 
 @router.get("/{project_id}", response_model=ProjectRead, operation_id="get_model_project")

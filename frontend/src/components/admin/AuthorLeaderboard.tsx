@@ -10,14 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslations } from "next-intl";
-
-export interface AuthorLeaderboardEntry {
-  org_id: string;
-  org_name: string;
-  total_activations: number;
-  models_published: number;
-  avg_rating: number | null;
-}
+import type { AuthorLeaderboardEntry } from "@/lib/types";
 
 interface AuthorLeaderboardProps {
   authors: AuthorLeaderboardEntry[];

@@ -19,11 +19,11 @@ from app.models.model_project import ModelProject, ModelProjectListing
 from app.models.model_view_event import ModelViewEvent
 from app.schemas.author_analytics import (
     AnalyticsSummaryResponse,
+    AuthorLeaderboardEntry,
     ConversionFunnelResponse,
     GeoDistributionEntry,
     GeoDistributionResponse,
     ModelPerformanceRow,
-    SellerLeaderboardEntry,
     TimeSeriesDataPoint,
     TimeSeriesResponse,
 )
@@ -314,7 +314,7 @@ class AuthorAnalyticsService:
             impressions=impressions, views=views, activations=activations
         )
 
-    def get_author_leaderboard(self, period: str) -> list[SellerLeaderboardEntry]:
+    def get_author_leaderboard(self, period: str) -> list[AuthorLeaderboardEntry]:
         """Admin-only leaderboard: top authors by adoption (activations)."""
         since = _period_since(period)
 
@@ -376,7 +376,7 @@ class AuthorAnalyticsService:
         result = []
         for row in activation_rows:
             result.append(
-                SellerLeaderboardEntry(
+                AuthorLeaderboardEntry(
                     org_id=row.org_id,
                     org_name=org_name_map.get(row.org_id, "Unknown"),
                     total_activations=row.total_activations,

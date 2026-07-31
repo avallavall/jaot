@@ -315,14 +315,14 @@ def test_patch_organizations_profile_returns_rejection(authenticated_client):
     )
 
 
-def test_put_seller_notification_preferences_returns_422_for_wrong_body_type(authenticated_client):
-    """SC3 (cell #27, owner=PLAN_05): PUT seller notification preferences -> 422.
+def test_put_author_notification_preferences_returns_422_for_wrong_body_type(authenticated_client):
+    """SC3 (cell #27, owner=PLAN_05): PUT author notification preferences -> 422.
 
-    ``update_notification_preferences`` at app/api/v2/seller.py:501 accepts a
-    body schema. A malformed body triggers Pydantic 422.
+    ``update_notification_preference`` in app/api/v2/author.py accepts a body
+    schema. A malformed body triggers Pydantic 422.
     """
     resp = authenticated_client.put(
-        "/api/v2/seller/notifications/preferences",
+        "/api/v2/author/notifications/preferences",
         json={"email_on_sale": "not-a-bool"},
     )
     assert resp.status_code == 422

@@ -433,7 +433,8 @@
       "marketplaceAdmin": "Marketplace",
       "verification": "Verificación",
       "marketplaceAnalytics": "Analíticas",
-      "platformAnalytics": "Plataforma"
+      "platformAnalytics": "Plataforma",
+      "whatIPublish": "Lo que publico"
     },
     "breadcrumbs": {
       "home": "Inicio",
@@ -1589,7 +1590,7 @@
       "subtitle": "Gestiona el perfil público de tu organización en el marketplace",
       "verifiedPublisher": "Editor verificado",
       "notVerified": "No verificado",
-      "verificationHint": "Los editores verificados obtienen una insignia en su perfil y modelos. Contacta con soporte para solicitar la verificación.",
+      "verificationHint": "Los editores verificados obtienen una insignia en su perfil y modelos.",
       "profileUrl": "URL del perfil",
       "urlHint": "Nombre compatible con URL. Solo letras minúsculas, números y guiones.",
       "bio": "Bio",
@@ -4327,13 +4328,30 @@
   },
   "author": {
     "analytics": {
-      "period7d": "7 dias",
-      "period30d": "30 dias",
-      "period90d": "90 dias",
+      "period7d": "7 días",
+      "period30d": "30 días",
+      "period90d": "90 días",
       "periodAll": "Todo el tiempo",
       "totalViews": "Visitas totales",
       "totalActivations": "Adopciones totales",
-      "conversionRate": "Tasa de conversion"
+      "conversionRate": "Tasa de conversión",
+      "funnelTitle": "De la impresión a la adopción",
+      "funnelEmpty": "Todavía nadie se ha cruzado con tus modelos en el marketplace.",
+      "funnelImpressions": "Impresiones",
+      "funnelViews": "Visitas",
+      "funnelAdoptions": "Adopciones",
+      "trendTitle": "Visitas por día",
+      "trendEmpty": "Una tendencia necesita al menos dos días con actividad; por ahora hay {days}.",
+      "geoTitle": "De dónde vienen tus visitas",
+      "geoEmpty": "No hay visitas registradas en este periodo.",
+      "geoSingle": "Todas las visitas registradas ({count}) vienen de un solo país: {country}.",
+      "perModelTitle": "Por modelo",
+      "perModelEmpty": "Ningún modelo se ha visto todavía en este periodo.",
+      "colModel": "Modelo",
+      "colViews": "Visitas",
+      "colAdoptions": "Adopciones",
+      "geoUnknown": "Todavía no sabemos de dónde vinieron las {views} visitas registradas.",
+      "geoCoverage": "País conocido en {known} de {total} visitas."
     },
     "verification": {
       "title": "Insignia de verificación",
@@ -4344,7 +4362,7 @@
       "rejectedNote": "Motivo",
       "reRequest": "Solicitar de nuevo",
       "requestSent": "Solicitud de verificación enviada",
-      "requestDescription": "Obtiene una insignia de verificación en tu perfil de autor para generar confianza con los usuarios."
+      "requestDescription": "Obtén una insignia de verificación en tu perfil de autor para generar confianza con los usuarios."
     },
     "notifications": {
       "title": "Preferencias de notificaciones",
@@ -4356,6 +4374,65 @@
       "disabled": "Desactivado",
       "preferencesUpdated": "Preferencias actualizadas",
       "eventModelActivated": "Modelo adoptado"
+    },
+    "page": {
+      "title": "Lo que publico",
+      "subtitle": "Tus modelos en el marketplace: cómo les va y qué dice la gente.",
+      "tabListings": "Publicaciones",
+      "tabAnalytics": "Analíticas",
+      "tabReviews": "Reseñas"
+    },
+    "listings": {
+      "emptyTitle": "Aún no has publicado nada",
+      "emptyBody": "Publica un modelo desde el estudio y aparecerá aquí, con sus adopciones y sus reseñas.",
+      "emptyCta": "Ir a mis modelos",
+      "colModel": "Modelo",
+      "colStatus": "Estado",
+      "colAdoptions": "Adopciones",
+      "colRuns": "Ejecuciones",
+      "colRating": "Valoración",
+      "colActions": "Acciones",
+      "noRating": "Sin valoraciones",
+      "viewPublic": "Ver página pública",
+      "withdraw": "Retirar",
+      "restore": "Volver a publicar",
+      "withdrawnToast": "Retirado del marketplace. Puedes volver a publicarlo cuando quieras.",
+      "restoredToast": "De vuelta en el marketplace.",
+      "actionFailed": "No ha funcionado. Inténtalo de nuevo.",
+      "status": {
+        "published": "Publicado",
+        "unpublished": "Retirado",
+        "draft": "Borrador"
+      }
+    },
+    "reviews": {
+      "emptyTitle": "Todavía no hay reseñas",
+      "emptyBodyPublished": "Solo pueden reseñar quienes hayan ejecutado alguno de tus modelos.",
+      "emptyBodyNothingPublished": "Publica un modelo y aquí aparecerán las reseñas que deje la gente.",
+      "onModel": "En {model}",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "pageOf": "Página {page} de {pages}"
+    },
+    "onboarding": {
+      "title": "Prepárate como autor",
+      "steps": {
+        "complete_profile": {
+          "title": "Completa el perfil de tu organización",
+          "description": "El nombre y una breve descripción es lo que se ve junto a tus modelos.",
+          "cta": "Editar perfil"
+        },
+        "publish_model": {
+          "title": "Publica tu primer modelo",
+          "description": "Elige un modelo con una versión confirmada y publícalo.",
+          "cta": "Ir a mis modelos"
+        },
+        "add_rich_media": {
+          "title": "Añade un logo o capturas",
+          "description": "Las publicaciones con imágenes se miran más.",
+          "cta": "Ver mis publicaciones"
+        }
+      }
     }
   },
   "llm": {

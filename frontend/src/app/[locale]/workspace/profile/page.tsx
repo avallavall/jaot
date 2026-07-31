@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { OrgProfile } from "@/lib/types";
+import { VerificationRequest } from "@/components/author/VerificationRequest";
 
 type OrganizationPublicProfile = OrgProfile & { is_public_profile?: boolean };
 
@@ -137,6 +138,14 @@ export default function OrganizationProfileSettingsPage() {
               {t("verificationHint")}
             </p>
           )}
+        </div>
+      )}
+
+      {/* Without this the badge was unreachable: the endpoint and the admin
+          review queue both existed, but nothing let an author ask for it. */}
+      {profile && !profile.is_verified && (
+        <div className="mb-6">
+          <VerificationRequest />
         </div>
       )}
 

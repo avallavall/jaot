@@ -363,6 +363,44 @@ def publish_listing(
     return listing
 
 
+class ListingNotFoundError(Exception):
+    """Withdrawing/restoring a project that was never published — routes map this to 404."""
+
+
+def set_listing_published(
+    db: Session,
+    project: ModelProject,
+    *,
+    published: bool,
+) -> ModelProjectListing:
+    """Withdraw a listing from the marketplace, or put it back. Reversible either way.
+
+    Owner decision 2026-07-31: withdrawing keeps the listing row and every rollup
+    on it (adoptions, executions, average rating), so restoring is one click and
+    the history survives. Every catalog surface — list, detail and input schema —
+    filters ``status == "published"``, so a withdrawn listing is simply absent
+    from all three.
+
+    Forks already made are unaffected: adoption COPIES the model into the
+    adopter's own project (``create_from_marketplace``), and ``source_ref`` is
+    plain provenance text with no FK, so nothing dereferences the listing
+    afterwards.
+
+    Idempotent: withdrawing an already-withdrawn listing is a no-op, not an error.
+    """
+    listing = (
+        db.query(ModelProjectListing)
+        .filter(ModelProjectListing.model_project_id == project.id)
+        .first()
+    )
+    if listing is None:
+        raise ListingNotFoundError("This project has never been published to the marketplace.")
+
+    listing.status = "published" if published else "unpublished"
+    db.flush()
+    return listing
+
+
 def list_versions(
     db: Session, project_id: str, org_id: str, *, skip: int = 0, limit: int = 50
 ) -> list[ModelProjectVersion]:

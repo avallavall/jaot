@@ -97,8 +97,7 @@ api_v2_router.include_router(gdpr.router, tags=["gdpr"])
 api_v2_router.include_router(schedules.router, tags=["schedules"])
 
 # Author — non-monetary analytics, verification, notification prefs, onboarding
-# Wire paths/tag stay "seller" until the contract release (API surface).
-api_v2_router.include_router(author.router, tags=["seller"])
+api_v2_router.include_router(author.router, tags=["author"])
 
 
 # Home — public announcement banner (no auth required)

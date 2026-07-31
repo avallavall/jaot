@@ -433,7 +433,8 @@
       "marketplaceAdmin": "Marketplace",
       "verification": "Verifizierung",
       "marketplaceAnalytics": "Analytik",
-      "platformAnalytics": "Plattform"
+      "platformAnalytics": "Plattform",
+      "whatIPublish": "Was ich veröffentliche"
     },
     "breadcrumbs": {
       "home": "Startseite",
@@ -1589,7 +1590,7 @@
       "subtitle": "Verwalten Sie das öffentliche Profil Ihrer Organisation im Marktplatz",
       "verifiedPublisher": "Verifizierter Herausgeber",
       "notVerified": "Nicht verifiziert",
-      "verificationHint": "Verifizierte Herausgeber erhalten ein Abzeichen auf ihrem Profil und ihren Modellen. Kontaktieren Sie den Support, um eine Verifizierung zu beantragen.",
+      "verificationHint": "Verifizierte Herausgeber erhalten ein Abzeichen auf ihrem Profil und ihren Modellen.",
       "profileUrl": "Profil-URL",
       "urlHint": "URL-freundlicher Name. Nur Kleinbuchstaben, Zahlen und Bindestriche.",
       "bio": "Biografie",
@@ -4333,7 +4334,24 @@
       "periodAll": "Gesamt",
       "totalViews": "Aufrufe gesamt",
       "totalActivations": "Übernahmen gesamt",
-      "conversionRate": "Konversionsrate"
+      "conversionRate": "Konversionsrate",
+      "funnelTitle": "Von der Impression zur Übernahme",
+      "funnelEmpty": "Bisher ist noch niemand im Marktplatz über deine Modelle gestolpert.",
+      "funnelImpressions": "Impressionen",
+      "funnelViews": "Aufrufe",
+      "funnelAdoptions": "Übernahmen",
+      "trendTitle": "Aufrufe pro Tag",
+      "trendEmpty": "Ein Trend braucht mindestens zwei Tage mit Aktivität; bisher sind es {days}.",
+      "geoTitle": "Woher deine Besuche kommen",
+      "geoEmpty": "In diesem Zeitraum keine Besuche erfasst.",
+      "geoSingle": "Alle erfassten Besuche ({count}) kommen aus einem einzigen Land: {country}.",
+      "perModelTitle": "Pro Modell",
+      "perModelEmpty": "In diesem Zeitraum wurde noch kein Modell angesehen.",
+      "colModel": "Modell",
+      "colViews": "Aufrufe",
+      "colAdoptions": "Übernahmen",
+      "geoUnknown": "Woher die {views} erfassten Besuche kamen, wissen wir noch nicht.",
+      "geoCoverage": "Land bekannt bei {known} von {total} Besuchen."
     },
     "verification": {
       "title": "Verifizierungs-Abzeichen",
@@ -4348,7 +4366,7 @@
     },
     "notifications": {
       "title": "Benachrichtigungseinstellungen",
-      "description": "Wähle, wie du über Autor-Ereignisse benachrichtigt werden mst",
+      "description": "Wähle, wie du über Autor-Ereignisse benachrichtigt werden möchtest",
       "eventNewReview": "Neue Rezension",
       "channelInApp": "In-App",
       "channelEmail": "E-Mail",
@@ -4356,6 +4374,65 @@
       "disabled": "Deaktiviert",
       "preferencesUpdated": "Einstellungen aktualisiert",
       "eventModelActivated": "Modell übernommen"
+    },
+    "page": {
+      "title": "Was ich veröffentliche",
+      "subtitle": "Deine Modelle im Marktplatz: wie sie laufen und was andere sagen.",
+      "tabListings": "Veröffentlichungen",
+      "tabAnalytics": "Analytik",
+      "tabReviews": "Rezensionen"
+    },
+    "listings": {
+      "emptyTitle": "Du hast noch nichts veröffentlicht",
+      "emptyBody": "Veröffentliche ein Modell aus dem Studio, dann erscheint es hier — mit Übernahmen und Rezensionen.",
+      "emptyCta": "Zu meinen Modellen",
+      "colModel": "Modell",
+      "colStatus": "Status",
+      "colAdoptions": "Übernahmen",
+      "colRuns": "Läufe",
+      "colRating": "Bewertung",
+      "colActions": "Aktionen",
+      "noRating": "Noch keine Bewertung",
+      "viewPublic": "Öffentliche Seite ansehen",
+      "withdraw": "Zurückziehen",
+      "restore": "Wieder veröffentlichen",
+      "withdrawnToast": "Vom Marktplatz zurückgezogen. Du kannst es jederzeit wieder veröffentlichen.",
+      "restoredToast": "Wieder im Marktplatz.",
+      "actionFailed": "Das hat nicht geklappt. Versuch es noch einmal.",
+      "status": {
+        "published": "Veröffentlicht",
+        "unpublished": "Zurückgezogen",
+        "draft": "Entwurf"
+      }
+    },
+    "reviews": {
+      "emptyTitle": "Noch keine Rezensionen",
+      "emptyBodyPublished": "Nur wer eines deiner Modelle ausgeführt hat, kann es bewerten.",
+      "emptyBodyNothingPublished": "Veröffentliche ein Modell, dann erscheinen hier die Rezensionen.",
+      "onModel": "Zu {model}",
+      "previous": "Zurück",
+      "next": "Weiter",
+      "pageOf": "Seite {page} von {pages}"
+    },
+    "onboarding": {
+      "title": "Als Autor startklar werden",
+      "steps": {
+        "complete_profile": {
+          "title": "Organisationsprofil vervollständigen",
+          "description": "Name und eine kurze Beschreibung stehen neben deinen Modellen.",
+          "cta": "Profil bearbeiten"
+        },
+        "publish_model": {
+          "title": "Veröffentliche dein erstes Modell",
+          "description": "Wähle ein Modell mit einer festgeschriebenen Version und veröffentliche es.",
+          "cta": "Zu meinen Modellen"
+        },
+        "add_rich_media": {
+          "title": "Logo oder Screenshots hinzufügen",
+          "description": "Veröffentlichungen mit Bildern werden häufiger angesehen.",
+          "cta": "Meine Veröffentlichungen ansehen"
+        }
+      }
     }
   },
   "llm": {

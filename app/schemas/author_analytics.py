@@ -64,8 +64,7 @@ class ConversionFunnelResponse(BaseModel):
     activations: int
 
 
-# Class name is an openapi schema name (wire) — renamed in the contract release.
-class SellerLeaderboardEntry(BaseModel):
+class AuthorLeaderboardEntry(BaseModel):
     """Leaderboard entry for a model author (admin view)."""
 
     org_id: str
@@ -79,4 +78,4 @@ class AdminAnalyticsResponse(BaseModel):
     """Platform-wide analytics for admin dashboard."""
 
     platform_totals: AnalyticsSummaryResponse
-    sellers: list[SellerLeaderboardEntry]
+    authors: list[AuthorLeaderboardEntry]

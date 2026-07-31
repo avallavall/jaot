@@ -308,7 +308,10 @@ class ModelProjectListing(Base):
     input_fields: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
     example_input: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
-    # Versioning + publication status
+    # Versioning + publication status.
+    # Lifecycle: draft -> published -> unpublished (and back). Withdrawing keeps
+    # the row and its rollups; every catalog surface filters status == "published",
+    # so an unpublished listing is simply absent from all of them.
     version: Mapped[str] = mapped_column(String(16), default="1.0.0")
     status: Mapped[str] = mapped_column(String(32), default="draft", index=True)
     # The committed version pinned as the public one (publish pins a version, never

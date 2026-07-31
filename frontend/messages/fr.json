@@ -433,7 +433,8 @@
       "marketplaceAdmin": "Marketplace",
       "verification": "Vérification",
       "marketplaceAnalytics": "Analytiques",
-      "platformAnalytics": "Plateforme"
+      "platformAnalytics": "Plateforme",
+      "whatIPublish": "Ce que je publie"
     },
     "breadcrumbs": {
       "home": "Accueil",
@@ -1589,7 +1590,7 @@
       "subtitle": "Gérez le profil public de votre organisation sur le marketplace",
       "verifiedPublisher": "Éditeur vérifié",
       "notVerified": "Non vérifié",
-      "verificationHint": "Les éditeurs vérifiés reçoivent un badge sur leur profil et leurs modèles. Contactez le support pour demander la vérification.",
+      "verificationHint": "Les éditeurs vérifiés reçoivent un badge sur leur profil et leurs modèles.",
       "profileUrl": "URL du profil",
       "urlHint": "Nom compatible URL. Uniquement des lettres minuscules, des chiffres et des tirets.",
       "bio": "Biographie",
@@ -4333,7 +4334,24 @@
       "periodAll": "Tout le temps",
       "totalViews": "Vues Totales",
       "totalActivations": "Adoptions totales",
-      "conversionRate": "Taux de Conversion"
+      "conversionRate": "Taux de Conversion",
+      "funnelTitle": "De l'impression à l'adoption",
+      "funnelEmpty": "Personne n'est encore tombé sur tes modèles dans la marketplace.",
+      "funnelImpressions": "Impressions",
+      "funnelViews": "Vues",
+      "funnelAdoptions": "Adoptions",
+      "trendTitle": "Vues par jour",
+      "trendEmpty": "Une tendance demande au moins deux jours d'activité ; il y en a {days} pour l'instant.",
+      "geoTitle": "D'où viennent tes visites",
+      "geoEmpty": "Aucune visite enregistrée sur cette période.",
+      "geoSingle": "Toutes les visites enregistrées ({count}) viennent d'un seul pays : {country}.",
+      "perModelTitle": "Par modèle",
+      "perModelEmpty": "Aucun modèle n'a encore été vu sur cette période.",
+      "colModel": "Modèle",
+      "colViews": "Vues",
+      "colAdoptions": "Adoptions",
+      "geoUnknown": "Nous ne savons pas encore d'où venaient les {views} visites enregistrées.",
+      "geoCoverage": "Pays connu pour {known} visites sur {total}."
     },
     "verification": {
       "title": "Badge de Vérification",
@@ -4356,6 +4374,65 @@
       "disabled": "Désactivé",
       "preferencesUpdated": "Préférences mises à jour",
       "eventModelActivated": "Modèle adopté"
+    },
+    "page": {
+      "title": "Ce que je publie",
+      "subtitle": "Tes modèles sur la marketplace : comment ils marchent et ce qu'on en dit.",
+      "tabListings": "Publications",
+      "tabAnalytics": "Analytique",
+      "tabReviews": "Avis"
+    },
+    "listings": {
+      "emptyTitle": "Tu n'as encore rien publié",
+      "emptyBody": "Publie un modèle depuis le studio et il apparaîtra ici, avec ses adoptions et ses avis.",
+      "emptyCta": "Aller à mes modèles",
+      "colModel": "Modèle",
+      "colStatus": "Statut",
+      "colAdoptions": "Adoptions",
+      "colRuns": "Exécutions",
+      "colRating": "Note",
+      "colActions": "Actions",
+      "noRating": "Pas encore de note",
+      "viewPublic": "Voir la page publique",
+      "withdraw": "Retirer",
+      "restore": "Republier",
+      "withdrawnToast": "Retiré de la marketplace. Tu peux le republier quand tu veux.",
+      "restoredToast": "De retour sur la marketplace.",
+      "actionFailed": "Ça n'a pas marché. Réessaie.",
+      "status": {
+        "published": "Publié",
+        "unpublished": "Retiré",
+        "draft": "Brouillon"
+      }
+    },
+    "reviews": {
+      "emptyTitle": "Pas encore d'avis",
+      "emptyBodyPublished": "Seules les personnes ayant exécuté un de tes modèles peuvent laisser un avis.",
+      "emptyBodyNothingPublished": "Publie un modèle et les avis laissés apparaîtront ici.",
+      "onModel": "Sur {model}",
+      "previous": "Précédent",
+      "next": "Suivant",
+      "pageOf": "Page {page} sur {pages}"
+    },
+    "onboarding": {
+      "title": "Prépare ton espace auteur",
+      "steps": {
+        "complete_profile": {
+          "title": "Complète le profil de ton organisation",
+          "description": "Le nom et une courte description, c'est ce qu'on voit à côté de tes modèles.",
+          "cta": "Modifier le profil"
+        },
+        "publish_model": {
+          "title": "Publie ton premier modèle",
+          "description": "Choisis un modèle avec une version validée et publie-le.",
+          "cta": "Aller à mes modèles"
+        },
+        "add_rich_media": {
+          "title": "Ajoute un logo ou des captures",
+          "description": "Les publications avec images sont plus consultées.",
+          "cta": "Voir mes publications"
+        }
+      }
     }
   },
   "llm": {

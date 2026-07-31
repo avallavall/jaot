@@ -1,7 +1,7 @@
-"""Tests for seller analytics endpoints and view event logging.
+"""Tests for author analytics endpoints and view event logging.
 
 Covers:
-- Seller analytics summary endpoint structure
+- Author analytics summary endpoint structure
 - Analytics time series endpoint
 - View/impression event creation via catalog endpoints
 - Admin marketplace analytics
@@ -46,11 +46,11 @@ def _add_listing(db, *, pid, author_org_id) -> None:
 
 
 @pytest.fixture
-def seller_org(db_session):
-    """Create a seller organization."""
+def author_org(db_session):
+    """Create a author organization."""
     org = Organization(
-        id="org_seller001",
-        name="Seller Corp",
+        id="org_author001",
+        name="Author Corp",
         is_active=True,
         is_verified=True,
     )
@@ -61,13 +61,13 @@ def seller_org(db_session):
 
 
 @pytest.fixture
-def seller_user(db_session, seller_org):
-    """Create a seller user."""
+def author_user(db_session, author_org):
+    """Create a author user."""
     user = User(
-        id="user_seller001",
-        email="seller@example.com",
-        name="Seller User",
-        organization_id=seller_org.id,
+        id="user_author001",
+        email="author@example.com",
+        name="Author User",
+        organization_id=author_org.id,
         is_active=True,
     )
     db_session.add(user)
@@ -77,13 +77,13 @@ def seller_user(db_session, seller_org):
 
 
 @pytest.fixture
-def catalog_model(db_session, seller_org):
-    """Create a published catalog model for the seller."""
+def catalog_model(db_session, author_org):
+    """Create a published catalog model for the author."""
     model = ModelCatalog(
         id="cat_model001",
         name="test-model",
         display_name="Test Optimization Model",
-        description="A test model for seller analytics",
+        description="A test model for author analytics",
         category="linear",
         generator_type="linear_programming",
         input_schema={"type": "object", "properties": {}},
@@ -91,14 +91,14 @@ def catalog_model(db_session, seller_org):
         example_input={},
         status="published",
         is_public=True,
-        author_organization_id=seller_org.id,
+        author_organization_id=author_org.id,
         total_activations=0,
         total_executions=0,
     )
     db_session.add(model)
     # The marketplace facet (view-side of analytics) + the bridge catalog row
     # (activation-side) share the id and author org.
-    _add_listing(db_session, pid=model.id, author_org_id=seller_org.id)
+    _add_listing(db_session, pid=model.id, author_org_id=author_org.id)
     db_session.commit()
     db_session.refresh(model)
     return model
@@ -144,8 +144,8 @@ def view_events(db_session, catalog_model):
 
 
 @pytest.fixture
-def activation(db_session, seller_org, catalog_model):
-    """Another org adopts the seller's model (a fork ModelProject seeded
+def activation(db_session, author_org, catalog_model):
+    """Another org adopts the author's model (a fork ModelProject seeded
     from-marketplace — the post-fusion analytics event)."""
     buyer_org = Organization(
         id=generate_id("org_"),
@@ -169,23 +169,23 @@ def activation(db_session, seller_org, catalog_model):
 
 
 class TestAnalyticsSummary:
-    """Test seller analytics summary endpoint."""
+    """Test author analytics summary endpoint."""
 
     def test_summary_returns_correct_structure(
         self,
         authenticated_client,
         db_session,
-        seller_org,
+        author_org,
         catalog_model,
         view_events,
         activation,
         mock_auth,
-        seller_user,
+        author_user,
     ):
         """Summary endpoint returns all expected fields."""
-        mock_auth(seller_user)
+        mock_auth(author_user)
         response = authenticated_client.get(
-            "/api/v2/seller/analytics/summary",
+            "/api/v2/author/analytics/summary",
             params={"period": "30d"},
         )
         assert response.status_code == 200
@@ -201,16 +201,16 @@ class TestAnalyticsSummary:
         self,
         authenticated_client,
         db_session,
-        seller_org,
+        author_org,
         catalog_model,
         view_events,
         mock_auth,
-        seller_user,
+        author_user,
     ):
         """Summary correctly aggregates view and impression counts."""
-        mock_auth(seller_user)
+        mock_auth(author_user)
         response = authenticated_client.get(
-            "/api/v2/seller/analytics/summary",
+            "/api/v2/author/analytics/summary",
             params={"period": "all"},
         )
         assert response.status_code == 200
@@ -222,17 +222,17 @@ class TestAnalyticsSummary:
         self,
         authenticated_client,
         db_session,
-        seller_org,
+        author_org,
         catalog_model,
         view_events,
         mock_auth,
-        seller_user,
+        author_user,
     ):
         """Period filter parameter works correctly."""
-        mock_auth(seller_user)
+        mock_auth(author_user)
         for period in ["7d", "30d", "90d", "all"]:
             response = authenticated_client.get(
-                "/api/v2/seller/analytics/summary",
+                "/api/v2/author/analytics/summary",
                 params={"period": period},
             )
             assert response.status_code == 200
@@ -240,22 +240,22 @@ class TestAnalyticsSummary:
 
 
 class TestAnalyticsTimeSeries:
-    """Test seller analytics time series endpoint."""
+    """Test author analytics time series endpoint."""
 
     def test_time_series_returns_data_array(
         self,
         authenticated_client,
         db_session,
-        seller_org,
+        author_org,
         catalog_model,
         view_events,
         mock_auth,
-        seller_user,
+        author_user,
     ):
         """Time series endpoint returns array of data points."""
-        mock_auth(seller_user)
+        mock_auth(author_user)
         response = authenticated_client.get(
-            "/api/v2/seller/analytics/time-series",
+            "/api/v2/author/analytics/time-series",
             params={"period": "30d"},
         )
         assert response.status_code == 200
@@ -332,7 +332,7 @@ class TestAnalyticsService:
     """Test AuthorAnalyticsService directly."""
 
     def test_get_summary_platform_wide(
-        self, db_session, seller_org, catalog_model, view_events, activation
+        self, db_session, author_org, catalog_model, view_events, activation
     ):
         """Platform-wide summary (org_id=None) includes all events."""
         service = AuthorAnalyticsService(db_session)
@@ -341,62 +341,62 @@ class TestAnalyticsService:
         assert summary.total_impressions >= 2
         assert summary.total_activations >= 1
 
-    def test_get_geo_distribution(self, db_session, seller_org, catalog_model, view_events):
+    def test_get_geo_distribution(self, db_session, author_org, catalog_model, view_events):
         """Geo distribution groups events by country."""
         service = AuthorAnalyticsService(db_session)
-        geo = service.get_geo_distribution(org_id=seller_org.id, period="all")
+        geo = service.get_geo_distribution(org_id=author_org.id, period="all")
         countries = {e.country for e in geo.data}
         assert "US" in countries
 
     def test_get_conversion_funnel(
-        self, db_session, seller_org, catalog_model, view_events, activation
+        self, db_session, author_org, catalog_model, view_events, activation
     ):
         """Conversion funnel returns impressions, views, activations."""
         service = AuthorAnalyticsService(db_session)
-        funnel = service.get_conversion_funnel(org_id=seller_org.id, period="all")
+        funnel = service.get_conversion_funnel(org_id=author_org.id, period="all")
         assert funnel.impressions >= 0
         assert funnel.views >= 0
         assert funnel.activations >= 0
 
-    def test_get_author_leaderboard(self, db_session, seller_org, catalog_model, activation):
-        """Leaderboard returns seller entries sorted by activations."""
+    def test_get_author_leaderboard(self, db_session, author_org, catalog_model, activation):
+        """Leaderboard returns author entries sorted by activations."""
         service = AuthorAnalyticsService(db_session)
         leaderboard = service.get_author_leaderboard(period="all")
         assert len(leaderboard) >= 1
-        assert leaderboard[0].org_id == seller_org.id
+        assert leaderboard[0].org_id == author_org.id
         assert leaderboard[0].total_activations > 0
 
 
-class TestSellerAnalyticsCrossOrgIsolation:
-    """Verify the seller analytics endpoints scope by organization_id.
+class TestAuthorAnalyticsCrossOrgIsolation:
+    """Verify the author analytics endpoints scope by organization_id.
 
-    The seller endpoints (/api/v2/seller/analytics/...) MUST only return
+    The author endpoints (/api/v2/author/analytics/...) MUST only return
     data for the authenticated user's own organization. A user from org A
     must never see counts belonging to org B's models, regardless
     of how many events org B has accumulated.
     """
 
-    def test_seller_summary_filters_by_authenticated_org_id(
+    def test_author_summary_filters_by_authenticated_org_id(
         self,
         authenticated_client,
         db_session,
-        seller_org,
+        author_org,
         catalog_model,
         view_events,
         activation,
-        seller_user,
+        author_user,
         mock_auth,
     ):
-        """The seller summary endpoint must NOT leak another org's events.
+        """The author summary endpoint must NOT leak another org's events.
 
-        Plant a second seller org with its own catalog model + view events
+        Plant a second author org with its own catalog model + view events
         + sale, then assert that authenticating as org_a's user never
         returns counts that include org_b's events.
         """
-        # Plant a foreign seller org with its own catalog model and events
+        # Plant a foreign author org with its own catalog model and events
         foreign_org = Organization(
-            id="org_foreign_seller",
-            name="Foreign Seller",
+            id="org_foreign_author",
+            name="Foreign Author",
             is_active=True,
             is_verified=True,
         )
@@ -447,21 +447,21 @@ class TestSellerAnalyticsCrossOrgIsolation:
         )
         db_session.commit()
 
-        # Authenticate as seller_org's user and pull the summary
-        mock_auth(seller_user)
+        # Authenticate as author_org's user and pull the summary
+        mock_auth(author_user)
         response = authenticated_client.get(
-            "/api/v2/seller/analytics/summary",
+            "/api/v2/author/analytics/summary",
             params={"period": "all"},
         )
         assert response.status_code == 200
         data = response.json()
 
-        # seller_org has 2 view events (from view_events fixture).
+        # author_org has 2 view events (from view_events fixture).
         # If foreign org's 99 leaked through, total_views would be 101.
         assert data["total_views"] == 2, (
             f"Cross-org view leak: expected 2 own views, got {data['total_views']}"
         )
-        # seller_org's own model has exactly ONE activation (the `activation`
+        # author_org's own model has exactly ONE activation (the `activation`
         # fixture: a buyer org activating cat_model001). foreign_org's
         # activation of its own model must NOT leak in — a leak reads 2.
         assert data["total_activations"] == 1, (
@@ -469,8 +469,8 @@ class TestSellerAnalyticsCrossOrgIsolation:
             f"got {data['total_activations']}"
         )
 
-    def test_seller_service_filters_by_org_id_at_service_layer(
-        self, db_session, seller_org, catalog_model, view_events
+    def test_author_service_filters_by_org_id_at_service_layer(
+        self, db_session, author_org, catalog_model, view_events
     ):
         """Direct service call: get_summary(org_id=other) returns zero own events.
 
@@ -489,7 +489,7 @@ class TestSellerAnalyticsCrossOrgIsolation:
         db_session.commit()
 
         service = AuthorAnalyticsService(db_session)
-        own = service.get_summary(org_id=seller_org.id, period="all")
+        own = service.get_summary(org_id=author_org.id, period="all")
         sibling_summary = service.get_summary(org_id=sibling.id, period="all")
 
         assert own.total_views >= 2

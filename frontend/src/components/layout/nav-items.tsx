@@ -105,6 +105,7 @@ export function useNavItems() {
             collapsedByDefault: true,
             children: [
               { label: t("nav.organization"), href: "/workspace/profile", icon: <Building2 className="w-4 h-4" /> },
+              { label: t("nav.whatIPublish"), href: "/workspace/models", icon: <Package className="w-4 h-4" /> },
               { label: t("nav.workspaces"), href: "/workspace/workspaces", icon: <Building2 className="w-4 h-4" /> },
               { label: t("nav.teamMembers"), href: "/workspace/team", icon: <Users className="w-4 h-4" /> },
               ...(isWorkspaceAdmin

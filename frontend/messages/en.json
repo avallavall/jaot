@@ -433,7 +433,8 @@
       "marketplaceAdmin": "Marketplace",
       "verification": "Verification",
       "marketplaceAnalytics": "Analytics",
-      "platformAnalytics": "Platform"
+      "platformAnalytics": "Platform",
+      "whatIPublish": "What I Publish"
     },
     "breadcrumbs": {
       "home": "Home",
@@ -1589,7 +1590,7 @@
       "subtitle": "Manage your organization's public profile on the marketplace",
       "verifiedPublisher": "Verified Publisher",
       "notVerified": "Not verified",
-      "verificationHint": "Verified publishers get a badge on their profile and models. Contact support to request verification.",
+      "verificationHint": "Verified publishers get a badge on their profile and models.",
       "profileUrl": "Profile URL",
       "urlHint": "URL-friendly name. Only lowercase letters, numbers, and hyphens.",
       "bio": "Bio",
@@ -4333,7 +4334,24 @@
       "periodAll": "All time",
       "totalViews": "Total Views",
       "totalActivations": "Total Adoptions",
-      "conversionRate": "Conversion Rate"
+      "conversionRate": "Conversion Rate",
+      "funnelTitle": "From impression to adoption",
+      "funnelEmpty": "Nobody has come across your models on the marketplace yet.",
+      "funnelImpressions": "Impressions",
+      "funnelViews": "Views",
+      "funnelAdoptions": "Adoptions",
+      "trendTitle": "Daily views",
+      "trendEmpty": "A trend needs at least two days with activity; there are {days} so far.",
+      "geoTitle": "Where your visitors are",
+      "geoEmpty": "No visits recorded in this period.",
+      "geoSingle": "Every visit recorded ({count}) comes from a single country: {country}.",
+      "perModelTitle": "Per model",
+      "perModelEmpty": "No model has been seen yet in this period.",
+      "colModel": "Model",
+      "colViews": "Views",
+      "colAdoptions": "Adoptions",
+      "geoUnknown": "We don't know where the {views} recorded visits came from yet.",
+      "geoCoverage": "Country known for {known} of {total} visits."
     },
     "verification": {
       "title": "Verification Badge",
@@ -4356,6 +4374,65 @@
       "disabled": "Disabled",
       "preferencesUpdated": "Preferences updated",
       "eventModelActivated": "Model adopted"
+    },
+    "page": {
+      "title": "What I Publish",
+      "subtitle": "Your models on the marketplace: how they are doing and what people say.",
+      "tabListings": "Listings",
+      "tabAnalytics": "Analytics",
+      "tabReviews": "Reviews"
+    },
+    "listings": {
+      "emptyTitle": "You haven't published anything yet",
+      "emptyBody": "Publish a model from the studio and it will appear here, with its adoptions and reviews.",
+      "emptyCta": "Go to my models",
+      "colModel": "Model",
+      "colStatus": "Status",
+      "colAdoptions": "Adoptions",
+      "colRuns": "Runs",
+      "colRating": "Rating",
+      "colActions": "Actions",
+      "noRating": "No ratings yet",
+      "viewPublic": "View public page",
+      "withdraw": "Withdraw",
+      "restore": "Publish again",
+      "withdrawnToast": "Withdrawn from the marketplace. You can publish it again whenever you want.",
+      "restoredToast": "Back on the marketplace.",
+      "actionFailed": "That didn't work. Try again.",
+      "status": {
+        "published": "Published",
+        "unpublished": "Withdrawn",
+        "draft": "Draft"
+      }
+    },
+    "reviews": {
+      "emptyTitle": "No reviews yet",
+      "emptyBodyPublished": "Only people who have run one of your models can review it.",
+      "emptyBodyNothingPublished": "Publish a model and the reviews people leave will show up here.",
+      "onModel": "On {model}",
+      "previous": "Previous",
+      "next": "Next",
+      "pageOf": "Page {page} of {pages}"
+    },
+    "onboarding": {
+      "title": "Get set up as an author",
+      "steps": {
+        "complete_profile": {
+          "title": "Complete your organization profile",
+          "description": "A name and a short bio is what readers see next to your models.",
+          "cta": "Edit profile"
+        },
+        "publish_model": {
+          "title": "Publish your first model",
+          "description": "Pick a model with a committed version and publish it.",
+          "cta": "Go to my models"
+        },
+        "add_rich_media": {
+          "title": "Add a logo or screenshots",
+          "description": "Listings with images get looked at more often.",
+          "cta": "See my listings"
+        }
+      }
     }
   },
   "llm": {

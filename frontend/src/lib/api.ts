@@ -60,6 +60,14 @@ import type {
   ScheduleUpdateRequest,
   CronValidationResponse,
   AdminAnalytics,
+  AnalyticsSummary,
+  AnalyticsTimeSeries,
+  GeoDistribution,
+  ModelPerformanceRow,
+  ConversionFunnel,
+  AuthorListingRow,
+  AuthorReviews,
+  OnboardingStatus,
   VerificationRequestStatus,
   AdminVerificationEntry,
   FileImportPreviewResponse,
@@ -159,6 +167,13 @@ export type {
   CronValidationResponse,
   AnalyticsSummary,
   AdminAnalytics,
+  AnalyticsTimeSeries,
+  GeoDistribution,
+  ModelPerformanceRow,
+  ConversionFunnel,
+  AuthorListingRow,
+  AuthorReviews,
+  OnboardingStatus,
   VerificationRequestStatus,
   AdminVerificationEntry,
   FileImportPreviewResponse,
@@ -1006,26 +1021,66 @@ export const api = {
   },
 
   getAdminAuthorAnalytics(period: string = "30d"): Promise<AdminAnalytics> {
-    // Legacy wire path — renamed to author-analytics in the contract release.
-    return request("/api/v2/admin/marketplace/seller-analytics", {
+    return request("/api/v2/admin/marketplace/author-analytics", {
       params: { period },
     });
   },
 
-  // The /api/v2/seller/* wire paths below are legacy — renamed in the contract release.
+  // --- Author area: what I publish, how it performs, what people say ---
+
+  getAuthorAnalyticsSummary(period: string = "30d"): Promise<AnalyticsSummary> {
+    return request("/api/v2/author/analytics/summary", { params: { period } });
+  },
+
+  getAuthorAnalyticsTimeSeries(period: string = "30d"): Promise<AnalyticsTimeSeries> {
+    return request("/api/v2/author/analytics/time-series", { params: { period } });
+  },
+
+  getAuthorAnalyticsGeo(period: string = "30d"): Promise<GeoDistribution> {
+    return request("/api/v2/author/analytics/geo", { params: { period } });
+  },
+
+  getAuthorAnalyticsModels(period: string = "30d"): Promise<ModelPerformanceRow[]> {
+    return request("/api/v2/author/analytics/models", { params: { period } });
+  },
+
+  getAuthorAnalyticsFunnel(period: string = "30d"): Promise<ConversionFunnel> {
+    return request("/api/v2/author/analytics/funnel", { params: { period } });
+  },
+
+  getAuthorListings(): Promise<AuthorListingRow[]> {
+    return request("/api/v2/author/listings");
+  },
+
+  getAuthorReviews(params?: { page?: number; page_size?: number }): Promise<AuthorReviews> {
+    return request("/api/v2/author/reviews", { params });
+  },
+
+  getAuthorOnboardingStatus(): Promise<OnboardingStatus> {
+    return request("/api/v2/author/onboarding/status");
+  },
+
+  unpublishModelProject(projectId: string): Promise<ModelCatalogItem> {
+    return request(`/api/v2/projects/${projectId}/unpublish`, { method: "POST" });
+  },
+
+  republishModelProject(projectId: string): Promise<ModelCatalogItem> {
+    return request(`/api/v2/projects/${projectId}/republish`, { method: "POST" });
+  },
+
   requestVerification(): Promise<VerificationRequestStatus> {
-    return request("/api/v2/seller/verification/request", {
+    return request("/api/v2/author/verification/request", {
       method: "POST",
       body: JSON.stringify({}),
     });
   },
 
   getVerificationStatus(): Promise<VerificationRequestStatus | null> {
-    return request("/api/v2/seller/verification/status");
+    return request("/api/v2/author/verification/status");
   },
 
   getNotificationPreferences(): Promise<NotificationPreferencesResponse> {
-    return request("/api/v2/seller/notifications/preferences");
+    return request("/api/v2/author/notifications/preferences");
   },
 
   updateNotificationPreference(data: {
@@ -1033,7 +1088,7 @@ export const api = {
     channel: string;
     enabled: boolean;
   }): Promise<NotificationPreferencesResponse> {
-    return request("/api/v2/seller/notifications/preferences", {
+    return request("/api/v2/author/notifications/preferences", {
       method: "PUT",
       body: JSON.stringify(data),
     });

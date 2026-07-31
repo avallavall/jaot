@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import type { AdminAnalytics } from "@/lib/types";
 import { AnalyticsKPICards } from "@/components/author/AnalyticsKPICards";
-import { AuthorLeaderboard, type AuthorLeaderboardEntry } from "@/components/admin/AuthorLeaderboard";
+import { AuthorLeaderboard } from "@/components/admin/AuthorLeaderboard";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Period = "7d" | "30d" | "90d" | "all";
@@ -24,15 +24,14 @@ export default function AdminAuthorAnalyticsPage() {
   const { user, isLoading: authLoading } = useAuth();
 
   const [period, setPeriod] = useState<Period>("30d");
-  // `sellers` is the wire key of the legacy-path API response (renamed in the contract release).
-  const [data, setData] = useState<(AdminAnalytics & { sellers: AuthorLeaderboardEntry[] }) | null>(null);
+  const [data, setData] = useState<AdminAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async (p: Period) => {
     setLoading(true);
     try {
       const result = await api.getAdminAuthorAnalytics(p);
-      setData(result as AdminAnalytics & { sellers: AuthorLeaderboardEntry[] });
+      setData(result);
     } catch (err) {
       console.warn('Failed to load admin author analytics:', err);
     } finally {
@@ -101,7 +100,7 @@ export default function AdminAuthorAnalyticsPage() {
         <>
           {data && <AnalyticsKPICards data={data.platform_totals} />}
 
-          {data && <AuthorLeaderboard authors={data.sellers} />}
+          {data && <AuthorLeaderboard authors={data.authors} />}
         </>
       )}
     </div>

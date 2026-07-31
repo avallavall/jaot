@@ -437,8 +437,102 @@ export interface AnalyticsSummary {
 }
 
 
+export interface AuthorLeaderboardEntry {
+  org_id: string;
+  org_name: string;
+  total_activations: number;
+  models_published: number;
+  avg_rating: number | null;
+}
+
+
 export interface AdminAnalytics {
   platform_totals: AnalyticsSummary;
+  authors: AuthorLeaderboardEntry[];
+}
+
+
+export interface AnalyticsTimeSeriesPoint {
+  date: string;
+  views: number;
+  impressions: number;
+  activations: number;
+}
+
+export interface AnalyticsTimeSeries {
+  data: AnalyticsTimeSeriesPoint[];
+  period: string;
+}
+
+export interface GeoDistributionEntry {
+  /** ISO 3166-1 alpha-2 */
+  country: string;
+  count: number;
+}
+
+export interface GeoDistribution {
+  data: GeoDistributionEntry[];
+}
+
+export interface ModelPerformanceRow {
+  model_id: string;
+  model_name: string;
+  views: number;
+  activations: number;
+  conversion_rate: number;
+}
+
+export interface ConversionFunnel {
+  impressions: number;
+  views: number;
+  activations: number;
+}
+
+/** draft | published | unpublished */
+export type ListingStatus = "draft" | "published" | "unpublished";
+
+export interface AuthorListingRow {
+  model_project_id: string;
+  display_name: string;
+  short_description: string | null;
+  category: string;
+  status: ListingStatus;
+  is_public: boolean;
+  version: string;
+  logo_url: string | null;
+  total_activations: number;
+  total_executions: number;
+  avg_rating: number | null;
+  success_rate: number | null;
+  published_at: string | null;
+  updated_at: string;
+}
+
+export interface AuthorReviewRow {
+  id: string;
+  model_project_id: string;
+  model_display_name: string;
+  rating: number;
+  title: string | null;
+  comment: string | null;
+  reviewer_name: string | null;
+  created_at: string;
+}
+
+export interface AuthorReviews {
+  reviews: AuthorReviewRow[];
+  total: number;
+}
+
+export interface OnboardingStep {
+  key: string;
+  completed: boolean;
+  link: string;
+}
+
+export interface OnboardingStatus {
+  steps: OnboardingStep[];
+  all_complete: boolean;
 }
 
 

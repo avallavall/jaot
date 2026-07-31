@@ -108,6 +108,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/admin/marketplace/author-analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Admin Author Analytics
+         * @description Get platform-wide analytics with the author leaderboard.
+         *
+         *     Returns aggregated platform totals (org_id=None) and a ranked list
+         *     of model authors by adoption.
+         */
+        get: operations["get_admin_author_analytics_api_v2_admin_marketplace_author_analytics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/admin/marketplace/author-analytics/{org_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Admin Author Detail
+         * @description Admin drill-down: get analytics summary for a specific author org.
+         */
+        get: operations["get_admin_author_detail_api_v2_admin_marketplace_author_analytics__org_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/admin/marketplace/feature-analytics": {
         parameters: {
             query?: never;
@@ -145,49 +188,6 @@ export interface paths {
          * @description Get paginated recent analytics events with optional filters.
          */
         get: operations["get_admin_feature_analytics_events_api_v2_admin_marketplace_feature_analytics_events_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/admin/marketplace/seller-analytics": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Admin Author Analytics
-         * @description Get platform-wide analytics with the author leaderboard.
-         *
-         *     Returns aggregated platform totals (org_id=None) and a ranked list
-         *     of model authors by adoption.
-         */
-        get: operations["get_admin_author_analytics_api_v2_admin_marketplace_seller_analytics_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/admin/marketplace/seller-analytics/{org_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Admin Author Detail
-         * @description Admin drill-down: get analytics summary for a specific author org.
-         */
-        get: operations["get_admin_author_detail_api_v2_admin_marketplace_seller_analytics__org_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -913,6 +913,254 @@ export interface paths {
          * @description Verify user email with a token.
          */
         post: operations["verify_email_api_v2_auth_verify_email_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/author/analytics/funnel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Analytics Funnel
+         * @description Get conversion funnel: impressions -> views -> activations.
+         */
+        get: operations["get_analytics_funnel_api_v2_author_analytics_funnel_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/author/analytics/geo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Analytics Geo
+         * @description Get geographic distribution of model views by country.
+         */
+        get: operations["get_analytics_geo_api_v2_author_analytics_geo_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/author/analytics/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Analytics Models
+         * @description Get per-model performance comparison for the author.
+         */
+        get: operations["get_analytics_models_api_v2_author_analytics_models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/author/analytics/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Analytics Summary
+         * @description Get author analytics summary: views, impressions, activations, conversion rate.
+         */
+        get: operations["get_analytics_summary_api_v2_author_analytics_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/author/analytics/time-series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Analytics Time Series
+         * @description Get daily time series of views, impressions, and activations.
+         */
+        get: operations["get_analytics_time_series_api_v2_author_analytics_time_series_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/author/listings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List My Listings
+         * @description List everything my organization has published, whatever its state.
+         *
+         *     Includes withdrawn (``unpublished``) listings — this is the author's own
+         *     view, not the catalog, and withdrawing is reversible from here.
+         */
+        get: operations["list_my_listings_api_v2_author_listings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/author/notifications/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Notification Preferences
+         * @description Get notification preferences for the current user.
+         *
+         *     Returns one entry per event type x channel; missing rows default to
+         *     in_app=True, email=False.
+         */
+        get: operations["get_notification_preferences_api_v2_author_notifications_preferences_get"];
+        /**
+         * Update Notification Preference
+         * @description Update a single notification preference toggle.
+         *
+         *     Upserts: creates if missing, updates if exists.
+         *     Returns the full updated preferences list.
+         */
+        put: operations["update_notification_preference_api_v2_author_notifications_preferences_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/author/onboarding/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Onboarding Status
+         * @description Get onboarding checklist status for the current creator.
+         *
+         *     Returns 3 steps with completion detection:
+         *     - complete_profile: org has name AND bio filled
+         *     - publish_model: at least 1 published model in catalog
+         *     - add_rich_media: at least 1 published model has logo_url or screenshot_urls
+         *
+         *     Every step links to a route that exists — two of them used to 404.
+         */
+        get: operations["get_onboarding_status_api_v2_author_onboarding_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/author/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Reviews Received
+         * @description Reviews left on any of my models, newest first.
+         *
+         *     Moderation is respected: a review the admin hid is not shown to the author
+         *     either. Reviews on withdrawn listings still count — they were left on a
+         *     model of mine.
+         */
+        get: operations["list_reviews_received_api_v2_author_reviews_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/author/verification/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Verification
+         * @description Submit a verification badge request for the author's organization.
+         *
+         *     Returns 409 if a request is already pending or approved.
+         */
+        post: operations["request_verification_api_v2_author_verification_request_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/author/verification/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Verification Status
+         * @description Get the current verification request status for the author's organization.
+         *
+         *     Returns null if no verification request exists.
+         */
+        get: operations["get_verification_status_api_v2_author_verification_status_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2462,7 +2710,8 @@ export interface paths {
          * @description List the organization's ModelProjects (newest-updated first).
          *
          *     The list is org-wide (collaborative); pass ``mine=true`` to narrow it to the
-         *     current user's own models.
+         *     current user's own models. Each row carries its marketplace publication
+         *     state so the studio can show which models are published.
          */
         get: operations["list_model_projects"];
         put?: never;
@@ -2709,6 +2958,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/projects/{project_id}/republish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Republish Model Project
+         * @description Put a withdrawn listing back on the marketplace, as it was.
+         *
+         *     The pinned version is left untouched: republishing restores the listing, it
+         *     does not re-pin HEAD. Use ``/publish`` to publish a newer version.
+         */
+        post: operations["republish_model_project"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/projects/{project_id}/solve": {
         parameters: {
             query?: never;
@@ -2755,6 +3027,30 @@ export interface paths {
         get: operations["get_model_stats"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/projects/{project_id}/unpublish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Unpublish Model Project
+         * @description Withdraw a published project from the marketplace, reversibly.
+         *
+         *     The listing keeps its rollups (adoptions, executions, rating) so
+         *     ``/republish`` restores it as it was. Forks already made keep working —
+         *     adoption copies the model, it does not reference the listing.
+         */
+        post: operations["unpublish_model_project"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2924,205 +3220,6 @@ export interface paths {
          *     Does not require a trigger -- useful for preview in the UI.
          */
         post: operations["validate_cron_api_v2_schedules_validate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/seller/analytics/funnel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Analytics Funnel
-         * @description Get conversion funnel: impressions -> views -> activations.
-         */
-        get: operations["get_analytics_funnel_api_v2_seller_analytics_funnel_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/seller/analytics/geo": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Analytics Geo
-         * @description Get geographic distribution of model views by country.
-         */
-        get: operations["get_analytics_geo_api_v2_seller_analytics_geo_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/seller/analytics/models": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Analytics Models
-         * @description Get per-model performance comparison for the author.
-         */
-        get: operations["get_analytics_models_api_v2_seller_analytics_models_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/seller/analytics/summary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Analytics Summary
-         * @description Get author analytics summary: views, impressions, activations, conversion rate.
-         */
-        get: operations["get_analytics_summary_api_v2_seller_analytics_summary_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/seller/analytics/time-series": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Analytics Time Series
-         * @description Get daily time series of views, impressions, and activations.
-         */
-        get: operations["get_analytics_time_series_api_v2_seller_analytics_time_series_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/seller/notifications/preferences": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Notification Preferences
-         * @description Get notification preferences for the current user.
-         *
-         *     Returns one entry per event type x channel; missing rows default to
-         *     in_app=True, email=False.
-         */
-        get: operations["get_notification_preferences_api_v2_seller_notifications_preferences_get"];
-        /**
-         * Update Notification Preference
-         * @description Update a single notification preference toggle.
-         *
-         *     Upserts: creates if missing, updates if exists.
-         *     Returns the full updated preferences list.
-         */
-        put: operations["update_notification_preference_api_v2_seller_notifications_preferences_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/seller/onboarding/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Onboarding Status
-         * @description Get onboarding checklist status for the current creator.
-         *
-         *     Returns 3 steps with completion detection:
-         *     - complete_profile: org has name AND bio filled
-         *     - publish_model: at least 1 published model in catalog
-         *     - add_rich_media: at least 1 published model has logo_url or screenshot_urls
-         */
-        get: operations["get_onboarding_status_api_v2_seller_onboarding_status_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/seller/verification/request": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Request Verification
-         * @description Submit a verification badge request for the author's organization.
-         *
-         *     Returns 409 if a request is already pending or approved.
-         */
-        post: operations["request_verification_api_v2_seller_verification_request_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/seller/verification/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Verification Status
-         * @description Get the current verification request status for the author's organization.
-         *
-         *     Returns null if no verification request exists.
-         */
-        get: operations["get_verification_status_api_v2_seller_verification_status_get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4314,9 +4411,9 @@ export interface components {
          * @description Platform-wide analytics for admin dashboard.
          */
         AdminAnalyticsResponse: {
+            /** Authors */
+            authors: components["schemas"]["AuthorLeaderboardEntry"][];
             platform_totals: components["schemas"]["AnalyticsSummaryResponse"];
-            /** Sellers */
-            sellers: components["schemas"]["SellerLeaderboardEntry"][];
         };
         /**
          * AdminCountPair
@@ -4759,6 +4856,94 @@ export interface components {
             /** Setting Key */
             setting_key: string;
         };
+        /**
+         * AuthorLeaderboardEntry
+         * @description Leaderboard entry for a model author (admin view).
+         */
+        AuthorLeaderboardEntry: {
+            /** Avg Rating */
+            avg_rating: number | null;
+            /** Models Published */
+            models_published: number;
+            /** Org Id */
+            org_id: string;
+            /** Org Name */
+            org_name: string;
+            /** Total Activations */
+            total_activations: number;
+        };
+        /**
+         * AuthorListingRow
+         * @description One of my marketplace listings, with the state and rollups the panel shows.
+         */
+        AuthorListingRow: {
+            /** Avg Rating */
+            avg_rating?: number | null;
+            /** Category */
+            category: string;
+            /** Display Name */
+            display_name: string;
+            /** Is Public */
+            is_public: boolean;
+            /** Logo Url */
+            logo_url?: string | null;
+            /** Model Project Id */
+            model_project_id: string;
+            /** Published At */
+            published_at?: string | null;
+            /** Short Description */
+            short_description?: string | null;
+            /** Status */
+            status: string;
+            /** Success Rate */
+            success_rate?: number | null;
+            /** Total Activations */
+            total_activations: number;
+            /** Total Executions */
+            total_executions: number;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: string;
+        };
+        /**
+         * AuthorReviewRow
+         * @description A review left on one of my models.
+         */
+        AuthorReviewRow: {
+            /** Comment */
+            comment?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Model Display Name */
+            model_display_name: string;
+            /** Model Project Id */
+            model_project_id: string;
+            /** Rating */
+            rating: number;
+            /** Reviewer Name */
+            reviewer_name?: string | null;
+            /** Title */
+            title?: string | null;
+        };
+        /**
+         * AuthorReviewsResponse
+         * @description Reviews across all of my listings, newest first.
+         */
+        AuthorReviewsResponse: {
+            /** Reviews */
+            reviews: components["schemas"]["AuthorReviewRow"][];
+            /** Total */
+            total: number;
+        };
         /** AutomationStats */
         AutomationStats: {
             /** Active Triggers */
@@ -4805,10 +4990,7 @@ export interface components {
         };
         /** Body_import_and_solve */
         Body_import_and_solve: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
             /**
              * Gap Tolerance
@@ -4826,45 +5008,30 @@ export interface components {
         };
         /** Body_import_preview */
         Body_import_preview: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
             objective_sense?: components["schemas"]["ObjectiveSense"] | null;
         };
         /** Body_import_project_dataset */
         Body_import_project_dataset: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
             /** Param Name */
             param_name?: string | null;
         };
         /** Body_upload_attachment_api_v2_llm_conversations__conversation_id__attachments_post */
         Body_upload_attachment_api_v2_llm_conversations__conversation_id__attachments_post: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
         };
         /** Body_upload_logo_api_v2_models_catalog__model_id__logo_post */
         Body_upload_logo_api_v2_models_catalog__model_id__logo_post: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
         };
         /** Body_upload_screenshot_api_v2_models_catalog__model_id__screenshots_post */
         Body_upload_screenshot_api_v2_models_catalog__model_id__screenshots_post: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
         };
         /**
@@ -8541,6 +8708,8 @@ export interface components {
             description?: string | null;
             /** Id */
             id: string;
+            /** Listing Status */
+            listing_status?: string | null;
             /** Name */
             name: string;
             /** Source Type */
@@ -9283,22 +9452,6 @@ export interface components {
             screenshots: string[];
             /** Url */
             url: string;
-        };
-        /**
-         * SellerLeaderboardEntry
-         * @description Leaderboard entry for a model author (admin view).
-         */
-        SellerLeaderboardEntry: {
-            /** Avg Rating */
-            avg_rating: number | null;
-            /** Models Published */
-            models_published: number;
-            /** Org Id */
-            org_id: string;
-            /** Org Name */
-            org_name: string;
-            /** Total Activations */
-            total_activations: number;
         };
         /**
          * SensitivityResult
@@ -10664,6 +10817,10 @@ export type AsyncSolveEnvelope = components['schemas']['AsyncSolveEnvelope'];
 export type AsyncSolveStatusResponse = components['schemas']['AsyncSolveStatusResponse'];
 export type AttachmentResponse = components['schemas']['AttachmentResponse'];
 export type AuditEntryResponse = components['schemas']['AuditEntryResponse'];
+export type AuthorLeaderboardEntry = components['schemas']['AuthorLeaderboardEntry'];
+export type AuthorListingRow = components['schemas']['AuthorListingRow'];
+export type AuthorReviewRow = components['schemas']['AuthorReviewRow'];
+export type AuthorReviewsResponse = components['schemas']['AuthorReviewsResponse'];
 export type AutomationStats = components['schemas']['AutomationStats'];
 export type AvailableSolver = components['schemas']['AvailableSolver'];
 export type AvailableSolversResponse = components['schemas']['AvailableSolversResponse'];
@@ -10881,7 +11038,6 @@ export type ScorecardCategoryScore = components['schemas']['ScorecardCategorySco
 export type ScorecardTemplateScore = components['schemas']['ScorecardTemplateScore'];
 export type ScreenshotListResponse = components['schemas']['ScreenshotListResponse'];
 export type ScreenshotUploadResponse = components['schemas']['ScreenshotUploadResponse'];
-export type SellerLeaderboardEntry = components['schemas']['SellerLeaderboardEntry'];
 export type SensitivityResult = components['schemas']['SensitivityResult'];
 export type SetAnthropicKeyRequest = components['schemas']['SetAnthropicKeyRequest'];
 export type SettingDefinitionResponse = components['schemas']['SettingDefinitionResponse'];
@@ -11142,6 +11298,70 @@ export interface operations {
             };
         };
     };
+    get_admin_author_analytics_api_v2_admin_marketplace_author_analytics_get: {
+        parameters: {
+            query?: {
+                period?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAnalyticsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_admin_author_detail_api_v2_admin_marketplace_author_analytics__org_id__get: {
+        parameters: {
+            query?: {
+                period?: string;
+            };
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyticsSummaryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_admin_feature_analytics_api_v2_admin_marketplace_feature_analytics_get: {
         parameters: {
             query?: {
@@ -11200,70 +11420,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedRecentEventsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_admin_author_analytics_api_v2_admin_marketplace_seller_analytics_get: {
-        parameters: {
-            query?: {
-                period?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdminAnalyticsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_admin_author_detail_api_v2_admin_marketplace_seller_analytics__org_id__get: {
-        parameters: {
-            query?: {
-                period?: string;
-            };
-            header?: never;
-            path: {
-                org_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AnalyticsSummaryResponse"];
                 };
             };
             /** @description Validation Error */
@@ -12549,6 +12705,326 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_analytics_funnel_api_v2_author_analytics_funnel_get: {
+        parameters: {
+            query?: {
+                period?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["app__schemas__author_analytics__ConversionFunnelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_analytics_geo_api_v2_author_analytics_geo_get: {
+        parameters: {
+            query?: {
+                period?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GeoDistributionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_analytics_models_api_v2_author_analytics_models_get: {
+        parameters: {
+            query?: {
+                period?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelPerformanceRow"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_analytics_summary_api_v2_author_analytics_summary_get: {
+        parameters: {
+            query?: {
+                period?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyticsSummaryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_analytics_time_series_api_v2_author_analytics_time_series_get: {
+        parameters: {
+            query?: {
+                period?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeSeriesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_my_listings_api_v2_author_listings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorListingRow"][];
+                };
+            };
+        };
+    };
+    get_notification_preferences_api_v2_author_notifications_preferences_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPreferencesResponse"];
+                };
+            };
+        };
+    };
+    update_notification_preference_api_v2_author_notifications_preferences_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePreferenceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPreferencesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_onboarding_status_api_v2_author_onboarding_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingStatusResponse"];
+                };
+            };
+        };
+    };
+    list_reviews_received_api_v2_author_reviews_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorReviewsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_verification_api_v2_author_verification_request_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationRequestResponse"];
+                };
+            };
+        };
+    };
+    get_verification_status_api_v2_author_verification_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationRequestResponse"] | null;
                 };
             };
         };
@@ -15663,6 +16139,39 @@ export interface operations {
             };
         };
     };
+    republish_model_project: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelCatalogResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     solve_model_project: {
         parameters: {
             query?: {
@@ -15721,6 +16230,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelStats"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unpublish_model_project: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelCatalogResponse"];
                 };
             };
             /** @description Validation Error */
@@ -16005,274 +16547,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_analytics_funnel_api_v2_seller_analytics_funnel_get: {
-        parameters: {
-            query?: {
-                period?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["app__schemas__author_analytics__ConversionFunnelResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_analytics_geo_api_v2_seller_analytics_geo_get: {
-        parameters: {
-            query?: {
-                period?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GeoDistributionResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_analytics_models_api_v2_seller_analytics_models_get: {
-        parameters: {
-            query?: {
-                period?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ModelPerformanceRow"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_analytics_summary_api_v2_seller_analytics_summary_get: {
-        parameters: {
-            query?: {
-                period?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AnalyticsSummaryResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_analytics_time_series_api_v2_seller_analytics_time_series_get: {
-        parameters: {
-            query?: {
-                period?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TimeSeriesResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_notification_preferences_api_v2_seller_notifications_preferences_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotificationPreferencesResponse"];
-                };
-            };
-        };
-    };
-    update_notification_preference_api_v2_seller_notifications_preferences_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdatePreferenceRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotificationPreferencesResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_onboarding_status_api_v2_seller_onboarding_status_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OnboardingStatusResponse"];
-                };
-            };
-        };
-    };
-    request_verification_api_v2_seller_verification_request_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VerificationRequestResponse"];
-                };
-            };
-        };
-    };
-    get_verification_status_api_v2_seller_verification_status_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VerificationRequestResponse"] | null;
                 };
             };
         };

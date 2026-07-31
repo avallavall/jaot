@@ -1,8 +1,8 @@
 """Author analytics, verification, notifications, and onboarding API endpoints.
 
 P1.5 G8: selling no longer exists — these are AUTHOR-facing endpoints (authors
-publish/share models; adoption, not sales). The /seller/* wire paths and tag are
-legacy and get renamed in the contract release.
+publish/share models; adoption, not sales). The wire paths were /seller/* until
+2026-07-31, when the owner chose a clean cut: /author/* with no alias.
 
 Provides author-facing endpoints for analytics dashboards (views, impressions,
 activations, geo distribution, funnel), verification badge requests,
@@ -19,8 +19,17 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.v2.auth import get_current_user
-from app.models import ModelProjectListing, NotificationPreference, Organization, User
+from app.models import (
+    ModelProjectListing,
+    ModelReview,
+    NotificationPreference,
+    Organization,
+    User,
+)
 from app.schemas.author import (
+    AuthorListingRow,
+    AuthorReviewRow,
+    AuthorReviewsResponse,
     NotificationPreferenceEntry,
     NotificationPreferencesResponse,
     OnboardingStatusResponse,
@@ -41,8 +50,7 @@ from app.shared.db.base import get_db
 
 logger = logging.getLogger(__name__)
 
-# Legacy wire prefix — renamed to /author in the contract release.
-router = APIRouter(prefix="/seller", tags=["seller"])
+router = APIRouter(prefix="/author", tags=["author"])
 
 
 @router.get("/analytics/summary", response_model=AnalyticsSummaryResponse)
@@ -98,6 +106,84 @@ def get_analytics_funnel(
     """Get conversion funnel: impressions -> views -> activations."""
     analytics = AuthorAnalyticsService(db)
     return analytics.get_conversion_funnel(org_id=current_user.organization_id, period=period)
+
+
+@router.get("/listings", response_model=list[AuthorListingRow])
+def list_my_listings(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[ModelProjectListing]:
+    """List everything my organization has published, whatever its state.
+
+    Includes withdrawn (``unpublished``) listings — this is the author's own
+    view, not the catalog, and withdrawing is reversible from here.
+    """
+    return (
+        db.query(ModelProjectListing)
+        .filter(ModelProjectListing.author_organization_id == current_user.organization_id)
+        .order_by(ModelProjectListing.updated_at.desc())
+        .all()
+    )
+
+
+@router.get("/reviews", response_model=AuthorReviewsResponse)
+def list_reviews_received(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> AuthorReviewsResponse:
+    """Reviews left on any of my models, newest first.
+
+    Moderation is respected: a review the admin hid is not shown to the author
+    either. Reviews on withdrawn listings still count — they were left on a
+    model of mine.
+    """
+    my_listings = (
+        db.query(ModelProjectListing.model_project_id, ModelProjectListing.display_name)
+        .filter(ModelProjectListing.author_organization_id == current_user.organization_id)
+        .all()
+    )
+    if not my_listings:
+        return AuthorReviewsResponse(reviews=[], total=0)
+
+    names = {row.model_project_id: row.display_name for row in my_listings}
+
+    query = (
+        db.query(ModelReview)
+        .filter(
+            ModelReview.model_project_id.in_(list(names)),
+            ModelReview.is_visible == True,  # noqa: E712
+        )
+        .order_by(ModelReview.created_at.desc())
+    )
+    total = query.count()
+    reviews = query.offset((page - 1) * page_size).limit(page_size).all()
+
+    # Batch pre-fetch the reviewers (N+1 otherwise), same as the public endpoint.
+    user_ids = list({r.user_id for r in reviews if r.user_id})
+    users = (
+        {u.id: u for u in db.query(User).filter(User.id.in_(user_ids)).all()} if user_ids else {}
+    )
+
+    rows = [
+        AuthorReviewRow(
+            id=r.id,
+            model_project_id=r.model_project_id,
+            model_display_name=names.get(r.model_project_id, "Unknown"),
+            rating=r.rating,
+            title=r.title,
+            comment=r.comment,
+            reviewer_name=(
+                (users[r.user_id].display_name or users[r.user_id].name)
+                if r.user_id in users
+                else None
+            ),
+            created_at=r.created_at,
+        )
+        for r in reviews
+    ]
+    return AuthorReviewsResponse(reviews=rows, total=total)
 
 
 @router.post(
@@ -241,6 +327,8 @@ def get_onboarding_status(
     - complete_profile: org has name AND bio filled
     - publish_model: at least 1 published model in catalog
     - add_rich_media: at least 1 published model has logo_url or screenshot_urls
+
+    Every step links to a route that exists — two of them used to 404.
     """
     org_id = current_user.organization_id
     org = db.query(Organization).filter(Organization.id == org_id).first()
@@ -263,15 +351,19 @@ def get_onboarding_status(
     has_rich_media = any(m.logo_url or m.screenshot_urls for m in published_models)
 
     steps = [
+        # The org name + bio this step measures are edited on /workspace/profile;
+        # /workspace/settings resolves but holds notification prefs, not the profile.
         OnboardingStep(
             key="complete_profile",
             completed=profile_complete,
-            link="/workspace/settings",
+            link="/workspace/profile",
         ),
+        # Publishing starts from a model, so the step points at the studio (each
+        # model publishes from its own page); /workspace/models/publish never existed.
         OnboardingStep(
             key="publish_model",
             completed=has_published,
-            link="/workspace/models/publish",
+            link="/studio",
         ),
         OnboardingStep(
             key="add_rich_media",

@@ -182,6 +182,11 @@ class ProjectListItem(BaseModel):
     # Attribution — the list is org-wide, so the row shows whose model it is.
     created_by: str | None = None
     created_by_name: str | None = None
+    # Marketplace publication state of this project's listing facet (draft |
+    # published | unpublished), or None if it was never published. Batch
+    # pre-fetched by the list route — there is no ORM relationship, so no other
+    # query pays for it.
+    listing_status: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

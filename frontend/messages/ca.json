@@ -433,7 +433,8 @@
       "marketplaceAdmin": "Marketplace",
       "verification": "Verificació",
       "marketplaceAnalytics": "Analítiques",
-      "platformAnalytics": "Plataforma"
+      "platformAnalytics": "Plataforma",
+      "whatIPublish": "El que publico"
     },
     "breadcrumbs": {
       "home": "Inici",
@@ -1589,7 +1590,7 @@
       "subtitle": "Gestioneu el perfil públic de la vostra organització al marketplace",
       "verifiedPublisher": "Editor Verificat",
       "notVerified": "No verificat",
-      "verificationHint": "Els editors verificats obtenen una insígnia al seu perfil i models. Contacteu amb suport per sol·licitar la verificació.",
+      "verificationHint": "Els editors verificats obtenen una insígnia al seu perfil i models.",
       "profileUrl": "URL del Perfil",
       "urlHint": "Nom amigable per a URL. Només lletres minúscules, números i guions.",
       "bio": "Biografia",
@@ -4333,7 +4334,24 @@
       "periodAll": "Tot el temps",
       "totalViews": "Visites totals",
       "totalActivations": "Adopcions totals",
-      "conversionRate": "Taxa de conversio"
+      "conversionRate": "Taxa de conversió",
+      "funnelTitle": "De la impressió a l'adopció",
+      "funnelEmpty": "Encara ningú no s'ha trobat els teus models al marketplace.",
+      "funnelImpressions": "Impressions",
+      "funnelViews": "Visites",
+      "funnelAdoptions": "Adopcions",
+      "trendTitle": "Visites per dia",
+      "trendEmpty": "Una tendència necessita almenys dos dies amb activitat; ara per ara n'hi ha {days}.",
+      "geoTitle": "D'on vénen les teves visites",
+      "geoEmpty": "No hi ha visites registrades en aquest període.",
+      "geoSingle": "Totes les visites registrades ({count}) vénen d'un sol país: {country}.",
+      "perModelTitle": "Per model",
+      "perModelEmpty": "Cap model no s'ha vist encara en aquest període.",
+      "colModel": "Model",
+      "colViews": "Visites",
+      "colAdoptions": "Adopcions",
+      "geoUnknown": "Encara no sabem d'on van venir les {views} visites registrades.",
+      "geoCoverage": "País conegut en {known} de {total} visites."
     },
     "verification": {
       "title": "Insígnia de verificació",
@@ -4351,11 +4369,70 @@
       "description": "Tria com vols rebre notificacions sobre esdeveniments d'autor",
       "eventNewReview": "Nova ressenya",
       "channelInApp": "A l'app",
-      "channelEmail": "Correu electronic",
+      "channelEmail": "Correu electrònic",
       "enabled": "Activat",
       "disabled": "Desactivat",
       "preferencesUpdated": "Preferències actualitzades",
       "eventModelActivated": "Model adoptat"
+    },
+    "page": {
+      "title": "El que publico",
+      "subtitle": "Els teus models al marketplace: com els va i què en diu la gent.",
+      "tabListings": "Publicacions",
+      "tabAnalytics": "Analítiques",
+      "tabReviews": "Ressenyes"
+    },
+    "listings": {
+      "emptyTitle": "Encara no has publicat res",
+      "emptyBody": "Publica un model des de l'estudi i apareixerà aquí, amb les seves adopcions i ressenyes.",
+      "emptyCta": "Vés als meus models",
+      "colModel": "Model",
+      "colStatus": "Estat",
+      "colAdoptions": "Adopcions",
+      "colRuns": "Execucions",
+      "colRating": "Valoració",
+      "colActions": "Accions",
+      "noRating": "Sense valoracions",
+      "viewPublic": "Veure pàgina pública",
+      "withdraw": "Retirar",
+      "restore": "Tornar a publicar",
+      "withdrawnToast": "Retirat del marketplace. Pots tornar a publicar-lo quan vulguis.",
+      "restoredToast": "De nou al marketplace.",
+      "actionFailed": "No ha funcionat. Torna-ho a provar.",
+      "status": {
+        "published": "Publicat",
+        "unpublished": "Retirat",
+        "draft": "Esborrany"
+      }
+    },
+    "reviews": {
+      "emptyTitle": "Encara no hi ha ressenyes",
+      "emptyBodyPublished": "Només poden ressenyar els qui hagin executat algun dels teus models.",
+      "emptyBodyNothingPublished": "Publica un model i aquí apareixeran les ressenyes que deixi la gent.",
+      "onModel": "A {model}",
+      "previous": "Anterior",
+      "next": "Següent",
+      "pageOf": "Pàgina {page} de {pages}"
+    },
+    "onboarding": {
+      "title": "Prepara't com a autor",
+      "steps": {
+        "complete_profile": {
+          "title": "Completa el perfil de la teva organització",
+          "description": "El nom i una breu descripció és el que es veu al costat dels teus models.",
+          "cta": "Edita el perfil"
+        },
+        "publish_model": {
+          "title": "Publica el teu primer model",
+          "description": "Tria un model amb una versió confirmada i publica'l.",
+          "cta": "Vés als meus models"
+        },
+        "add_rich_media": {
+          "title": "Afegeix un logotip o captures",
+          "description": "Les publicacions amb imatges es miren més.",
+          "cta": "Veure les meves publicacions"
+        }
+      }
     }
   },
   "llm": {

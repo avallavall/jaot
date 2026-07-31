@@ -1,6 +1,8 @@
-"""Pydantic schemas for author notification preference and onboarding API responses."""
+"""Pydantic schemas for the author area: listings, reviews, notification prefs, onboarding."""
 
-from pydantic import BaseModel
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict
 
 # --- Notification Preferences ---
 
@@ -43,3 +45,51 @@ class OnboardingStatusResponse(BaseModel):
 
     steps: list[OnboardingStep]
     all_complete: bool
+
+
+# --- What I publish ---
+
+
+class AuthorListingRow(BaseModel):
+    """One of my marketplace listings, with the state and rollups the panel shows."""
+
+    model_project_id: str
+    display_name: str
+    short_description: str | None = None
+    category: str
+    # draft | published | unpublished — see ModelProjectListing.status.
+    status: str
+    is_public: bool
+    version: str
+    logo_url: str | None = None
+    total_activations: int
+    total_executions: int
+    avg_rating: float | None = None
+    success_rate: float | None = None
+    published_at: datetime | None = None
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# --- Reviews received ---
+
+
+class AuthorReviewRow(BaseModel):
+    """A review left on one of my models."""
+
+    id: str
+    model_project_id: str
+    model_display_name: str
+    rating: int
+    title: str | None = None
+    comment: str | None = None
+    reviewer_name: str | None = None
+    created_at: datetime
+
+
+class AuthorReviewsResponse(BaseModel):
+    """Reviews across all of my listings, newest first."""
+
+    reviews: list[AuthorReviewRow]
+    total: int
