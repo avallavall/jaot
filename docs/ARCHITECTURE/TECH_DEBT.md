@@ -180,10 +180,10 @@ workers use. Nothing left to change; verified 2026-07-26.
 | D-14 | 23 foreign keys with no index | Low-medium (scales badly) | 0.5 day | ✅ **Resolved** — 18 indexed (`20260726_index_fks`); the other 5 deliberately skipped: they point at `model_catalog` / `organization_models` (legacy DROP list) or at ADR-008 orphans with no ORM model |
 | D-15 | No `import-linter` contract on the vertical direction (api → services → domains), which is why D-16 went unnoticed | Medium (architectural) | 0.5 day | ✅ **Resolved** — contract 7, D-16's call sites frozen as listed exceptions |
 | D-16 | Upward imports: `domains → services` (11), `domains → api` (7), `shared → services` (9 — a gap in an existing contract) | Medium (blocks extraction) | 1 day | ✅ **Resolved (2026-07-29)** — 6 were never debt (a domain's routes ARE its API layer), 2 reached into another endpoint's privates (now a named module), 5 moved down or died, and the last 3 became host ports the domain declares (`app/domains/solver/ports.py`) and JAOT registers at both boots |
-| D-17 | 55 endpoints return `dict[str, Any]` with no `response_model` → OpenAPI cannot describe them and the frontend hand-writes those types | Medium (contract drift) | 2–3 days | 🔸 **Started — and re-measured: 44, not 53** (2026-07-29). Favourites and recents declared; the original count included endpoints that already carry a `response_model` |
+| D-17 | 55 endpoints return `dict[str, Any]` with no `response_model` → OpenAPI cannot describe them and the frontend hand-writes those types | Medium (contract drift) | 2–3 days | ✅ **Resolved (2026-07-30)** — 44, not 55: measured with an AST walk, both earlier counts included handlers annotated `-> dict[str, Any]` that already declare a `response_model`. All 44 now declare one, and typing them surfaced two bugs (see below) |
 | D-18 | 113 `Depends(get_db)` instead of the `DBSession` alias the project rule mandates | Low (consistency) | Folded into D-12 | Low |
 | D-19 | `execution.py` had grown to 839 LOC mixing the marketplace execution flow with the post-solve analysis endpoints, and the org filter was hand-typed at 4 call sites | Low-medium (architectural) | 1–2 days | ✅ **Resolved where it bit** (`f4dd487` + 2026-07-29) — analysis split out; both org-scoped lookups that were being re-typed now have one shared helper each. The remaining 164 route-level queries are single reads with no repeated shape — audited for missing org filters, none found |
-| D-23 | The two API rate limits are enforced from a COPY on `organizations` (written at signup, read by 9 call sites) instead of from the instance profile. Editing them in the panel is made to work by propagating the change to the organizations still on the old value — honest, but a mirror that can drift. The deep fix is a nullable column meaning "inherit", which needs a schema change the rollback window cannot take today | Low (works; the mechanism is the debt) | 0.5 day | Deferred — do it with the contract-release schema pass |
+| D-23 | The two API rate limits are enforced from a COPY on `organizations` (written at signup, read by 9 call sites) instead of from the instance profile. Editing them in the panel is made to work by propagating the change to the organizations still on the old value — honest, but a mirror that can drift. The deep fix is a nullable column meaning "inherit", which needs a schema change the rollback window cannot take today | Low (works; the mechanism is the debt) | 0.5 day | ✅ **Resolved (2026-07-31)** — and it never needed the schema change: a nullable "inherit" column is only required if a *per-organization* limit exists, and this instance has one profile for everyone. The limiter reads the instance setting; the columns stay and are still written, so rollback is exact |
 | D-24 | Nothing a public path learned about its caller was usable, and nothing it wrote survived. `recent_models` had no writer at all; `model_view_events` was flushed and never committed; and the opportunistic principal the auth middleware attaches came back expired, so reading `user.id` raised — a swallowed exception in the telemetry, a 500 in the contact form | Medium-high (silent data loss on three live surfaces, one of them user-facing) | 0.5 day | ✅ **Resolved (2026-07-28)** — principal detached before its session closes, writes committed |
 | D-22 | Orphaned `platform_settings` rows — 98 on the reference install, of which 51 come from the 1.9 panel review (23 retired settings + the 28 `plan_*` tier keys the instance profile replaced) and the rest predate it, mostly ADR-008 billing keys. Additive-only means the code stopped reading them but nothing deleted them | Low (cosmetic; invisible to the panel, which renders the registry) | Minutes | ✅ **Resolved** (`20260728_prune_orphan_settings`) — 186 rows → 88, exactly the registry |
 
@@ -244,7 +244,7 @@ could go wrong — a key in it that the registry still declares would wipe a liv
 `CONTRACT-TEST` in `tests/api/test_admin_settings.py` intersects the two and fails if they
 ever overlap.
 
-**D-17 · 🔸 Started (2026-07-28): 55 → 53.**
+**D-17 · ✅ Resolved (2026-07-30). It started here (2026-07-28) at 55 → 53.**
 The favourites shelf and the recently-opened list are the two endpoints behind one screen,
 and both returned `dict[str, Any]`. They answer with declared schemas now
 (`FavoriteListResponse`, `RecentListResponse`), and their queries moved out of the route into
@@ -266,6 +266,40 @@ and a generated client can see them; the annotation on the Python function is co
 that. `triggers.py` is the clearest case: eight handlers annotated `dict`, every one of them
 typed in its decorator. Measured with the AST instead of by grep, the endpoints OpenAPI
 genuinely cannot describe are **44**, and they are spread thin — the worst file has five.
+
+**All 44 declare one now (2026-07-30), and five deliberately do not.** The five are SSE
+endpoints (`/messages` and the four explainers): a `response_model` there would describe a
+body that does not exist, so they declare `response_class=EventSourceResponse`, which is the
+only true thing OpenAPI can say about a stream. Two endpoints answer with a genuine union —
+`POST /solve/async` and `POST /models/{id}/execute` return either the queue acknowledgement or
+the result — and the two members are disjoint by construction (`SolverStatus` has no
+`"pending"`, and `solve_time_seconds` is required), so the union cannot serialise the wrong
+one. Paths that degrade to 202 return a `JSONResponse`, which bypasses the `response_model`
+entirely; endpoints that only degrade that way therefore declare the exact model.
+
+**Typing them found two bugs rather than merely describing them.** The reported-reviews queue
+crashed on the first flagged review: the page read `report_count` and `report_reasons`, and
+neither exists on `ModelReview` — it carries an `is_reported` boolean and a single
+`report_reason`. Reading `.length` off `undefined` threw during render. The same endpoint
+omitted `is_visible`, which is what the hide/show toggle reads, so every row rendered as
+hidden. And the execution poll reported a false "completed": the last progress tick carries
+`status: "completed"` while Celery is still in PROGRESS, and spreading the task meta *after*
+the handler's own keys let it overwrite `"running"` — the exact defect `/solve/async` fixed
+after a live incident on 2026-07-17, still present in its twin in `routes/models/execution.py`.
+The fix and its comment existed; the second entry point never got them. A test pins it, and
+fails with the bug restored.
+
+**D-23 · ✅ Resolved (2026-07-31) — the schema change it was waiting for was never needed.**
+The deferral above rested on a premise that had stopped holding: a nullable column meaning
+"inherit" is only necessary if a *per-organization* limit exists to inherit from. It does not.
+This platform runs one instance with one set of request limits for everyone, so the limiter
+reads the instance setting directly and the mirror on `organizations` stops being an input.
+The columns are left in place and still written at signup — additive-only, and a rollback to
+the previous images finds exactly the data they expect.
+
+The same pass retired the `plan` field from code and UI. It had 16 usages and not one of them
+decided anything: ADR-008 removed billing, and D-21 removed the capacity ceilings that were
+the last thing a tier could still mean. The column stays, for the same rollback reason.
 
 **D-24 · ✅ Resolved (2026-07-28) — three dead surfaces, two causes, and a harness that hid
 both.** Start at the visible end: the "Recent" tab read a table nothing wrote. Fixing that
