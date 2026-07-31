@@ -2,13 +2,18 @@
 
 import { useTranslations } from "next-intl";
 
-import { resolveOriginKey, type OriginKey } from "@/lib/execution-origin";
+import {
+  UNKNOWN_ORIGIN_CLASS,
+  resolveOriginKey,
+  type OriginKey,
+} from "@/lib/execution-origin";
+import type { ExecutionSourceKind } from "@/lib/types";
 
 interface OriginBadgeProps {
   origin?: string;
   /** When set to "model_project", the badge shows the studio-model style/label
    * regardless of the (looser) origin slug the async solve was tagged with. */
-  sourceKind?: string;
+  sourceKind?: ExecutionSourceKind;
   triggerName?: string;
 }
 
@@ -49,15 +54,23 @@ export function OriginBadge({ origin, sourceKind, triggerName }: OriginBadgeProp
         ? t("triggerName", { name: triggerName })
         : t("triggeredRun")
       : undefined;
-  // No origin at all means a plain manual solve — that is the backend's own
-  // default. A slug this build does not know is shown as it was stored instead:
-  // historical rows carry retired slugs (`cron` predates `triggered`), and
-  // calling one of those "Manual" would be a label the data does not support.
-  const label = resolved ? t(resolved) : (origin ?? t("manual"));
+  // No origin recorded means a plain manual solve — the backend's own default.
+  // A slug this build does not know is shown as it was stored instead: the
+  // reference database holds rows tagged `cron`, which today's sanitiser would
+  // never write, and calling those "Manual" is a label the data does not support.
+  // Truthiness, not `??`: an empty string is not a name either.
+  const label = resolved ? t(resolved) : origin || t("manual");
+  // Unknown slugs get their own muted style so the pale slice they take in a
+  // chart is recognisable in the list beside it, instead of reading as manual.
+  const style = resolved
+    ? ORIGIN_STYLES[resolved]
+    : origin
+      ? UNKNOWN_ORIGIN_CLASS
+      : ORIGIN_STYLES.manual;
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${ORIGIN_STYLES[resolved ?? "manual"]}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${style}`}
       title={title}
     >
       {label}

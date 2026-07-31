@@ -185,7 +185,7 @@ workers use. Nothing left to change; verified 2026-07-26.
 | D-19 | `execution.py` had grown to 839 LOC mixing the marketplace execution flow with the post-solve analysis endpoints, and the org filter was hand-typed at 4 call sites | Low-medium (architectural) | 1–2 days | ✅ **Resolved where it bit** (`f4dd487` + 2026-07-29) — analysis split out; both org-scoped lookups that were being re-typed now have one shared helper each. The remaining 164 route-level queries are single reads with no repeated shape — audited for missing org filters, none found |
 | D-23 | The two API rate limits are enforced from a COPY on `organizations` (written at signup, read by 9 call sites) instead of from the instance profile. Editing them in the panel is made to work by propagating the change to the organizations still on the old value — honest, but a mirror that can drift. The deep fix is a nullable column meaning "inherit", which needs a schema change the rollback window cannot take today | Low (works; the mechanism is the debt) | 0.5 day | ✅ **Resolved (2026-07-31)** — and it never needed the schema change: a nullable "inherit" column is only required if a *per-organization* limit exists, and this instance has one profile for everyone. The limiter reads the instance setting; the columns stay and are still written, so rollback is exact |
 | D-24 | Nothing a public path learned about its caller was usable, and nothing it wrote survived. `recent_models` had no writer at all; `model_view_events` was flushed and never committed; and the opportunistic principal the auth middleware attaches came back expired, so reading `user.id` raised — a swallowed exception in the telemetry, a 500 in the contact form | Medium-high (silent data loss on three live surfaces, one of them user-facing) | 0.5 day | ✅ **Resolved (2026-07-28)** — principal detached before its session closes, writes committed |
-| D-22 | Orphaned `platform_settings` rows — 98 on the reference install, of which 51 come from the 1.9 panel review (23 retired settings + the 28 `plan_*` tier keys the instance profile replaced) and the rest predate it, mostly ADR-008 billing keys. Additive-only means the code stopped reading them but nothing deleted them | Low (cosmetic; invisible to the panel, which renders the registry) | Minutes | ✅ **Resolved** (`20260728_prune_orphan_settings`) — 186 rows → 88, exactly the registry |
+| D-22 | Orphaned `platform_settings` rows — 98 on the reference install, of which 51 come from the 1.9 panel review (23 retired settings + the 28 `plan_*` tier keys the instance profile replaced) and the rest predate it, mostly ADR-008 billing keys. Additive-only means the code stopped reading them but nothing deleted them | Low (cosmetic; invisible to the panel, which renders the registry) | Minutes | ✅ **Resolved** (`20260728_prune_orphan_settings`) — 186 rows → 88, the registry as it stood that day (87 since the solver pool-size setting was removed) |
 
 **Suggested first batch:** D-10 + D-11 + D-12 — the three that change something real, ~2 days,
 no architectural commitment.
@@ -227,9 +227,13 @@ refactor-shaped — they need their own window, and until they land
 **D-22 · ✅ Resolved (2026-07-28) — and it did not need that window.**
 `20260728_prune_orphan_settings` deletes the 98 rows by an explicit list, grouped by where
 each came from: 43 `plan_*` tier keys, 31 billing/marketplace keys from ADR-008, and 24 the
-1.9 review retired. The reference install went from 186 rows to 88 — exactly the registry —
-and a restart logged *"All platform settings present in database"*, confirming the self-heal
-does not put them back.
+1.9 review retired. The reference install went from 186 rows to 88 — the registry as it stood
+that day — and a restart logged *"All platform settings present in database"*, confirming the
+self-heal does not put them back. The registry has been 87 since the solver pool-size setting
+was removed the next day, so 87 is the figure to compare a live count against now.
+
+Production kept three rows past this prune, because the list was built from a development
+inventory that had never had Featurebase configured — see the Featurebase follow-up below.
 
 It was deferred here on the assumption that it belonged with the schema `DROP`s. It does
 not, and the distinction is worth keeping: that window exists because rollback restores
@@ -242,7 +246,17 @@ value on a row nothing reads.
 The explicit list is what makes the migration deterministic and auditable, and also what
 could go wrong — a key in it that the registry still declares would wipe a live setting. A
 `CONTRACT-TEST` in `tests/api/test_admin_settings.py` intersects the two and fails if they
-ever overlap.
+ever overlap; it is parametrised over every prune migration, so a later one cannot skip it.
+
+**Featurebase follow-up · ✅ Resolved (2026-07-31).** Production carried 90 rows against 87
+declared, and the difference was exactly `FEATUREBASE_DEFAULT_BOARD`, `FEATUREBASE_JWT_SECRET`
+and `FEATUREBASE_ORG` — configuration for the hosted feedback board GitHub Issues replaced.
+`20260731_prune_featurebase` deletes them the same way, and logs how many rows it actually
+matched: `key` compares exactly, so an install that spelled them differently would delete
+nothing and still report success, and one of the three is a secret whose whole point is to stop
+being stored. **The lesson generalises past this migration:** a delete list built from a
+development inventory only covers what development happened to have configured. For anything
+row-scoped, take the inventory from the install that has the rows.
 
 **D-17 · ✅ Resolved (2026-07-30). It started here (2026-07-28) at 55 → 53.**
 The favourites shelf and the recently-opened list are the two endpoints behind one screen,

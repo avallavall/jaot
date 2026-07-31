@@ -2943,9 +2943,7 @@
         "scatter": "Scatter",
         "bar": "Bar",
         "objective": "Objective: {value}",
-        "origin": "Origin: {origin}",
-        "legendOther": "Every other origin",
-        "legendTriggered": "Triggered"
+        "origin": "Origin: {origin}"
       },
       "pareto": {
         "paretoFront": "Pareto Front",

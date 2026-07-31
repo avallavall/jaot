@@ -2906,9 +2906,7 @@
         "scatter": "Streudiagramm",
         "bar": "Balken",
         "objective": "Zielfunktion: {value}",
-        "origin": "Quelle: {origin}",
-        "legendOther": "Jede andere Quelle",
-        "legendTriggered": "Getriggert"
+        "origin": "Quelle: {origin}"
       },
       "pareto": {
         "paretoFront": "Pareto-Front",

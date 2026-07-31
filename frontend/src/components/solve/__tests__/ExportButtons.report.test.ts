@@ -18,6 +18,7 @@ const labels: ExportLabels = {
   solverStatus: "Solver status",
   objectiveValue: "Objective",
   origin: "Origin",
+  originValue: "Visual builder",
   modelLabel: "Model",
   solverLabel: "Solver",
   gapLabel: "Gap",
@@ -103,6 +104,15 @@ describe("buildReportHtml", () => {
     expect(text).toContain("1.25%");
     expect(text).toContain("x1 + x2 >= 1");
     expect(text).toContain("x3 <= 10");
+  });
+
+  it("names the origin in the reader's language, not by its internal slug", () => {
+    // The header beside it is translated, so an English slug in the value made
+    // the line read "Quelle: ai_builder" in a document meant to be handed on.
+    const doc = parse(buildReportHtml(makeExecution({ origin: "api" }), labels, "de"));
+    const text = doc.body.textContent ?? "";
+    expect(text).toContain("Visual builder");
+    expect(text).not.toContain("api");
   });
 
   it("omits zero variables by default and says how many", () => {

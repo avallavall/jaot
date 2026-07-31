@@ -10,11 +10,7 @@ import {
   type SolveAnalyticsCompare,
 } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import {
-  ORIGIN_CHART_COLORS,
-  UNKNOWN_ORIGIN_COLOR,
-  isOriginKey,
-} from "@/lib/execution-origin";
+import { buildOriginSlices } from "@/lib/execution-origin";
 import { Button } from "@/components/ui/button";
 import { OriginBadge } from "@/components/solve/OriginBadge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -204,22 +200,11 @@ export default function SolveAnalyticsPage() {
     [summary],
   );
 
-  // One slice per origin the backend actually reports. A slug this build does not
-  // know keeps its raw name and the reserved colour rather than being folded into
-  // "manual": these are counts, and folding them would overstate that one.
+  // One slice per origin the backend reports, largest first. The mapping itself
+  // lives in the library, where it is asserted directly — it is what carried the
+  // reported defect.
   const originData = useMemo<PieEntry[]>(
-    () =>
-      summary
-        ? Object.entries(summary.executions_by_origin)
-            .map(([name, value]) => ({
-              name: isOriginKey(name) ? tOrigin(name) : name,
-              value,
-              fill: isOriginKey(name)
-                ? ORIGIN_CHART_COLORS[name]
-                : UNKNOWN_ORIGIN_COLOR,
-            }))
-            .sort((a, b) => b.value - a.value)
-        : [],
+    () => (summary ? buildOriginSlices(summary.executions_by_origin, tOrigin) : []),
     [summary, tOrigin],
   );
 

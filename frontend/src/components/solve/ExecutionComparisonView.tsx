@@ -154,6 +154,7 @@ export function ExecutionComparisonView({ executionA, executionB }: ExecutionCom
             <div className="text-xs text-muted-foreground mb-1">{t("originRunA")}</div>
             <OriginBadge
               origin={executionA.origin}
+              sourceKind={executionA.source_kind ?? undefined}
               triggerName={executionA.input_data?.trigger_name as string | undefined}
             />
           </div>
@@ -161,6 +162,7 @@ export function ExecutionComparisonView({ executionA, executionB }: ExecutionCom
             <div className="text-xs text-muted-foreground mb-1">{t("originRunB")}</div>
             <OriginBadge
               origin={executionB.origin}
+              sourceKind={executionB.source_kind ?? undefined}
               triggerName={executionB.input_data?.trigger_name as string | undefined}
             />
           </div>

@@ -2906,9 +2906,7 @@
         "scatter": "Nuage de points",
         "bar": "Barres",
         "objective": "Objectif : {value}",
-        "origin": "Origine : {origin}",
-        "legendOther": "Toute autre origine",
-        "legendTriggered": "Déclenchée"
+        "origin": "Origine : {origin}"
       },
       "pareto": {
         "paretoFront": "Front de Pareto",

@@ -5,6 +5,7 @@ import {
   ORIGIN_CHART_COLORS,
   ORIGIN_KEYS,
   UNKNOWN_ORIGIN_COLOR,
+  buildOriginSlices,
   executionOriginHref,
   isOriginKey,
   resolveOriginKey,
@@ -36,10 +37,22 @@ function originLabels(locale: string): Record<string, string> {
  */
 describe("origin coverage (contract with the backend)", () => {
   const source = repoFile("app/shared/constants/execution_provenance.py");
-  const declared = [...source.matchAll(/^ORIGIN_\w+ = "([a-z_]+)"$/gm)].map((m) => m[1]);
 
-  it("reads the backend slugs it is asserting against", () => {
-    expect(declared.length).toBeGreaterThan(0);
+  // Read the membership of VALID_ORIGINS, not the ORIGIN_* constants above it:
+  // that frozenset is what the backend sanitises against, so it is the set a row
+  // can actually hold. A constant declared but left out of it (or a bare literal
+  // added straight to it) would make the two disagree.
+  const validOrigins = source.match(/VALID_ORIGINS = frozenset\(\s*\{([^}]*)\}/)?.[1] ?? "";
+  const constants = new Map(
+    [...source.matchAll(/^(ORIGIN_\w+) = "([a-z_]+)"$/gm)].map((m) => [m[1], m[2]])
+  );
+  const declared = [...validOrigins.matchAll(/(ORIGIN_\w+|"([a-z_]+)")/g)].map(
+    (m) => constants.get(m[1]) ?? m[2]
+  );
+
+  it("reads the members of VALID_ORIGINS it is asserting against", () => {
+    expect(declared.length).toBeGreaterThan(1);
+    expect(declared).not.toContain(undefined);
   });
 
   it("knows every origin the backend can persist", () => {
@@ -62,6 +75,50 @@ describe("origin coverage (contract with the backend)", () => {
     // Half of the reported bug was three origins sharing the fallback grey.
     expect(new Set(used).size).toBe(ORIGIN_KEYS.length);
     expect(used).not.toContain(UNKNOWN_ORIGIN_COLOR);
+  });
+});
+
+describe("buildOriginSlices", () => {
+  // `label` echoes the key so a translated slice and a raw one are told apart.
+  const label = (key: string) => `label:${key}`;
+
+  it("gives each origin its own translated label and colour, largest first", () => {
+    const slices = buildOriginSlices({ manual: 19, visual_builder: 40, api: 1 }, label);
+
+    expect(slices).toEqual([
+      { name: "label:visual_builder", value: 40, fill: ORIGIN_CHART_COLORS.visual_builder },
+      { name: "label:manual", value: 19, fill: ORIGIN_CHART_COLORS.manual },
+      { name: "label:api", value: 1, fill: ORIGIN_CHART_COLORS.api },
+    ]);
+  });
+
+  it("is the shape of the reported bug: three origins, three labels, three colours", () => {
+    // Before the fix these three collapsed to one label ("Automatic") and one
+    // grey, which is what the legend showed three times.
+    const slices = buildOriginSlices({ api: 1, marketplace: 4, visual_builder: 10 }, label);
+
+    expect(new Set(slices.map((s) => s.name)).size).toBe(3);
+    expect(new Set(slices.map((s) => s.fill)).size).toBe(3);
+  });
+
+  it("keeps an unknown slug as stored, with the reserved colour and its own count", () => {
+    const slices = buildOriginSlices({ manual: 5, cron: 16 }, label);
+
+    expect(slices).toEqual([
+      { name: "cron", value: 16, fill: UNKNOWN_ORIGIN_COLOR },
+      { name: "label:manual", value: 5, fill: ORIGIN_CHART_COLORS.manual },
+    ]);
+  });
+
+  it("never merges two origins into one slice", () => {
+    const slices = buildOriginSlices({ manual: 1, cron: 1, mystery: 1 }, label);
+
+    expect(slices).toHaveLength(3);
+    expect(slices.reduce((sum, s) => sum + s.value, 0)).toBe(3);
+  });
+
+  it("returns nothing for an empty period rather than a zero slice", () => {
+    expect(buildOriginSlices({}, label)).toEqual([]);
   });
 });
 

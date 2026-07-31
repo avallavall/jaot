@@ -2,7 +2,7 @@
 
 import { useMemo, useRef } from "react";
 import type React from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   LineChart,
   Line,
@@ -20,7 +20,11 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { ModelExecution } from "@/lib/types";
 import { apiDate } from "@/lib/dates";
-import { isOriginKey } from "@/lib/execution-origin";
+import {
+  ORIGIN_CHART_COLORS,
+  UNKNOWN_ORIGIN_COLOR,
+  isOriginKey,
+} from "@/lib/execution-origin";
 
 interface TrendPoint {
   date: string;
@@ -38,26 +42,33 @@ interface Props {
 
 const TICK_STYLE = { fontSize: 11, fill: "var(--muted-foreground)" };
 const GRID_STYLE = { strokeDasharray: "3 3", stroke: "var(--border)" };
-const TOOLTIP_STYLE = {
-  contentStyle: {
-    background: "var(--card)",
-    border: "1px solid var(--border)",
-    fontSize: 12,
-    borderRadius: "6px",
-    padding: "8px 12px",
-  },
-};
+
+/** Applied by the custom tooltip bodies below. recharts' own `contentStyle` prop
+ * is not an option here: it is read by `DefaultTooltipContent`, which a `content`
+ * of our own replaces — it used to be passed anyway, doing nothing. */
+const TOOLTIP_BOX_STYLE = {
+  background: "var(--card)",
+  border: "1px solid var(--border)",
+  fontSize: 12,
+  borderRadius: "6px",
+  padding: "8px 12px",
+} as const;
 
 /**
- * Two shapes for nine origins: the diamond marks a run a trigger started, the
- * circle everything a person or a client started. The legend names them that way
- * — it used to call the circle "Manual", which mislabels the eight other origins.
- * The exact origin of a point is in its tooltip.
+ * A point is coloured by its origin and keeps the diamond for a triggered run.
+ *
+ * Every point used to be one colour with two shapes, and the legend called the
+ * circle "Manual" — which mislabels the eight other origins that draw a circle.
+ * Naming the shape instead ("every other origin") was honest but told a reader
+ * with nothing but manual runs less than the wrong label did. The palette every
+ * other surface now uses gives the chart the same nine-way encoding, and the
+ * legend below lists only the origins actually present.
  */
 function renderShape(props: { cx?: number; cy?: number; payload?: { origin?: string } }) {
   const { cx = 0, cy = 0, payload } = props;
-  const color = "hsl(var(--primary))";
-  if (payload?.origin === "triggered") {
+  const origin = payload?.origin;
+  const color = isOriginKey(origin) ? ORIGIN_CHART_COLORS[origin] : UNKNOWN_ORIGIN_COLOR;
+  if (origin === "triggered") {
     // Diamond shape
     const s = 7;
     return (
@@ -74,14 +85,6 @@ interface TooltipPayloadEntry {
   payload: TrendPoint;
 }
 
-const TOOLTIP_BOX_STYLE = {
-  background: "var(--card)",
-  border: "1px solid var(--border)",
-  fontSize: 12,
-  borderRadius: "6px",
-  padding: "8px 12px",
-} as const;
-
 function CustomTooltip({
   active,
   payload,
@@ -90,12 +93,13 @@ function CustomTooltip({
   payload?: TooltipPayloadEntry[];
 }) {
   const t = useTranslations("solve.charts.objectiveTrend");
+  const locale = useLocale();
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
     <div style={TOOLTIP_BOX_STYLE}>
       <p className="font-medium text-foreground mb-1">
-        {new Date(d.dateMs).toLocaleString()}
+        {new Date(d.dateMs).toLocaleString(locale)}
       </p>
       <p className="text-muted-foreground">
         {t("objective", { value: d.objective.toFixed(4) })}
@@ -114,6 +118,7 @@ function ScatterCustomTooltip({
 }) {
   const t = useTranslations("solve.charts.objectiveTrend");
   const tOrigin = useTranslations("solve.origin");
+  const locale = useLocale();
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   // A slug this build does not know is shown as-is rather than mislabelled.
@@ -121,7 +126,7 @@ function ScatterCustomTooltip({
   return (
     <div style={TOOLTIP_BOX_STYLE}>
       <p className="font-medium text-foreground mb-1">
-        {new Date(d.dateMs).toLocaleString()}
+        {new Date(d.dateMs).toLocaleString(locale)}
       </p>
       <p className="text-muted-foreground">
         {t("objective", { value: d.objective.toFixed(4) })}
@@ -133,6 +138,10 @@ function ScatterCustomTooltip({
 
 export default function ObjectiveTrendChart({ executions, chartRef }: Props) {
   const t = useTranslations("solve.charts.objectiveTrend");
+  const tOrigin = useTranslations("solve.origin");
+  // Dates followed the browser's locale or a hardcoded "en-US" while the labels
+  // around them were translated, so the axis and the tooltip disagreed.
+  const locale = useLocale();
   const internalRef = useRef<HTMLDivElement>(null);
   const containerRef = chartRef ?? internalRef;
 
@@ -143,7 +152,7 @@ export default function ObjectiveTrendChart({ executions, chartRef }: Props) {
         (e) => e.status === "completed" && e.objective_value != null
       )
       .map((e) => ({
-        date: apiDate(e.created_at).toLocaleDateString("en-US", {
+        date: apiDate(e.created_at).toLocaleDateString(locale, {
           month: "short",
           day: "numeric",
           hour: "2-digit",
@@ -155,7 +164,23 @@ export default function ObjectiveTrendChart({ executions, chartRef }: Props) {
         origin: e.origin ?? "manual",
       }))
       .sort((a, b) => a.dateMs - b.dateMs);
-  }, [executions]);
+  }, [executions, locale]);
+
+  // Only the origins in view, largest group first — a legend should not name a
+  // category the chart does not contain.
+  const presentOrigins = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const point of trendData) {
+      counts.set(point.origin, (counts.get(point.origin) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([origin]) => ({
+        origin,
+        label: isOriginKey(origin) ? tOrigin(origin) : origin,
+        color: isOriginKey(origin) ? ORIGIN_CHART_COLORS[origin] : UNKNOWN_ORIGIN_COLOR,
+      }));
+  }, [trendData, tOrigin]);
 
   if (trendData.length === 0) {
     return (
@@ -190,7 +215,7 @@ export default function ObjectiveTrendChart({ executions, chartRef }: Props) {
                 interval="preserveStartEnd"
               />
               <YAxis tick={TICK_STYLE} width={70} />
-              <Tooltip content={<CustomTooltip />} {...TOOLTIP_STYLE} />
+              <Tooltip content={<CustomTooltip />} />
               <Line
                 type="monotone"
                 dataKey="objective"
@@ -215,7 +240,7 @@ export default function ObjectiveTrendChart({ executions, chartRef }: Props) {
                 type="number"
                 domain={["auto", "auto"]}
                 tickFormatter={(v: number) =>
-                  new Date(v).toLocaleDateString("en-US", {
+                  new Date(v).toLocaleDateString(locale, {
                     month: "short",
                     day: "numeric",
                   })
@@ -233,9 +258,16 @@ export default function ObjectiveTrendChart({ executions, chartRef }: Props) {
               shape={renderShape as any} />
             </ScatterChart>
           </ResponsiveContainer>
-          <p className="text-xs text-muted-foreground mt-2 text-center">
-            ● {t("legendOther")} &nbsp; ◆ {t("legendTriggered")}
-          </p>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+            {presentOrigins.map(({ origin, label, color }) => (
+              <span key={origin} className="inline-flex items-center gap-1">
+                <span aria-hidden style={{ color }}>
+                  {origin === "triggered" ? "◆" : "●"}
+                </span>
+                {label}
+              </span>
+            ))}
+          </div>
         </TabsContent>
 
         {/* ---- Bar Chart ---- */}
@@ -252,7 +284,7 @@ export default function ObjectiveTrendChart({ executions, chartRef }: Props) {
                 interval="preserveStartEnd"
               />
               <YAxis tick={TICK_STYLE} width={70} />
-              <Tooltip content={<CustomTooltip />} {...TOOLTIP_STYLE} />
+              <Tooltip content={<CustomTooltip />} />
               <Bar
                 dataKey="objective"
                 fill="var(--primary)"

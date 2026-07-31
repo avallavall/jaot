@@ -3,16 +3,36 @@
  * how to navigate back to the object that produced one.
  *
  * The slug list mirrors `VALID_ORIGINS` in
- * `app/shared/constants/execution_provenance.py` — the backend sanitises unknown
- * values to "manual", so anything else in a row predates a slug or was written by
- * hand. `model_project` is not an origin: it is the `source_kind` the studio shows
- * in place of the looser origin the universal async solve tags its runs with.
+ * `app/shared/constants/execution_provenance.py`, pinned by a test. Today's writers
+ * all sanitise against that set, but the column predates them: the reference
+ * database holds rows tagged `cron`, which nothing would write now. So a slug off
+ * the list is a real case, not a hypothetical — see `resolveOriginKey`.
+ * `model_project` is not an origin: it is the `source_kind` the studio shows in
+ * place of the looser origin the universal async solve tags its runs with.
  *
- * Every surface that renders an origin reads from here. Three of them used to
- * hardcode "manual vs triggered" instead, which is how the analytics legend ended
- * up printing "Automatic" three times in one chart — and calling studio runs
- * automatic when they are launched by hand.
+ * Every surface that shows an origin to a person reads from here. Three of them
+ * used to hardcode "manual vs triggered" instead, which is how the analytics
+ * legend ended up printing "Automatic" three times in one chart — and calling
+ * studio runs automatic when they are launched by hand.
  */
+
+/**
+ * The kind of object an execution can navigate back to. Mirrors the backend's
+ * `VALID_SOURCE_KINDS`. It lives here, beside the origin slugs, because the one
+ * rule that needs both is the studio precedence below — and `types.ts` re-exports
+ * it, so consumers still import it from the barrel.
+ */
+export type ExecutionSourceKind =
+  | "builder_document"
+  | "llm_conversation"
+  | "template"
+  | "organization_model"
+  | "trigger"
+  | "imported_file"
+  // P1a: a solve launched from a first-class ModelProject. The badge and the
+  // back-link both give this precedence over the looser origin slug the
+  // universal async solve tags studio runs with.
+  | "model_project";
 
 export const ORIGIN_KEYS = [
   "manual",
@@ -36,13 +56,17 @@ export function isOriginKey(value: string | null | undefined): value is OriginKe
 
 /**
  * Resolves what a row should be shown as: the studio's `source_kind` wins over the
- * looser origin slug (same precedence as `executionOriginHref`). Returns `null` for
- * a slug this build does not know, so a distribution chart can keep it as its own
- * slice instead of silently folding it into "manual" and inflating that count.
+ * looser origin slug. The single place that rule is written — `executionOriginHref`
+ * calls this rather than repeating it, so the label and the back-link cannot come
+ * to disagree about what a studio run is.
+ *
+ * Returns `null` for a slug this build does not know, so a distribution chart can
+ * keep it as its own slice instead of folding it into "manual" and inflating that
+ * count, and a badge can show it as stored instead of naming it wrongly.
  */
 export function resolveOriginKey(
   origin: string | null | undefined,
-  sourceKind?: string | null
+  sourceKind?: ExecutionSourceKind | null
 ): OriginKey | null {
   if (sourceKind === "model_project") return "model_project";
   return isOriginKey(origin) ? origin : null;
@@ -71,6 +95,43 @@ export const ORIGIN_CHART_COLORS: Record<OriginKey, string> = {
 export const UNKNOWN_ORIGIN_COLOR = "#d1d5db";
 
 /**
+ * The badge equivalent of `UNKNOWN_ORIGIN_COLOR`. Without it an unknown slug
+ * rendered in manual's own grey, so the pale slice in a chart had no counterpart
+ * in the list beside it — the disagreement the palette comment above rules out.
+ */
+export const UNKNOWN_ORIGIN_CLASS =
+  "bg-gray-50 text-gray-500 border-gray-200 border-dashed " +
+  "dark:bg-gray-900/40 dark:text-gray-400 dark:border-gray-700";
+
+export interface OriginSlice {
+  name: string;
+  value: number;
+  fill: string;
+}
+
+/**
+ * Turns the backend's `{origin: count}` map into chart slices, largest first.
+ *
+ * Lives here rather than in the analytics page because this mapping *is* the
+ * defect that was reported: the page folded eight origins into one label and one
+ * colour. As a function it can be asserted directly — a known slug takes its
+ * translated label, an unknown one keeps the name it was stored under, and
+ * neither is merged into another.
+ */
+export function buildOriginSlices(
+  counts: Record<string, number>,
+  label: (key: OriginKey) => string
+): OriginSlice[] {
+  return Object.entries(counts)
+    .map(([name, value]) => ({
+      name: isOriginKey(name) ? label(name) : name,
+      value,
+      fill: isOriginKey(name) ? ORIGIN_CHART_COLORS[name] : UNKNOWN_ORIGIN_COLOR,
+    }))
+    .sort((a, b) => b.value - a.value);
+}
+
+/**
  * Navigation back from an execution to the object that produced it.
  *
  * A studio `ModelProject` is matched by `source_kind` FIRST — the universal async
@@ -84,11 +145,15 @@ export const UNKNOWN_ORIGIN_COLOR = "#d1d5db";
 export function executionOriginHref(
   origin: string | undefined,
   sourceId: string | null | undefined,
-  sourceKind?: string | null
+  sourceKind?: ExecutionSourceKind | null
 ): string | null {
   if (!sourceId) return null;
-  if (sourceKind === "model_project") return `/studio/${sourceId}/build`;
-  switch (origin) {
+  // Resolved through the same function the badge uses, so "what counts as a
+  // studio run" is decided once. Writing the source_kind check out again here
+  // would let the label and the link drift apart.
+  switch (resolveOriginKey(origin, sourceKind)) {
+    case "model_project":
+      return `/studio/${sourceId}/build`;
     case "visual_builder":
       return `/builder/${sourceId}`;
     case "ai_builder":

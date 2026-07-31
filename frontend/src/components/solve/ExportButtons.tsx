@@ -17,6 +17,7 @@ import type { ModelExecution } from "@/lib/types";
 import { downloadCSV } from "@/lib/csv-utils";
 import { extractVariables } from "@/lib/result-utils";
 import { apiDate } from "@/lib/dates";
+import { resolveOriginKey } from "@/lib/execution-origin";
 
 interface ExportButtonsProps {
   execution: ModelExecution;
@@ -33,6 +34,11 @@ export interface ExportLabels {
   solverStatus: string;
   objectiveValue: string;
   origin: string;
+  /** The origin of *this* run, already resolved to a name a reader understands.
+   * The header beside it is translated, so the value cannot stay an English
+   * slug — a `de` reader was getting "Quelle: ai_builder" in a document they
+   * then hand to someone else. */
+  originValue: string;
   modelLabel: string;
   solverLabel: string;
   gapLabel: string;
@@ -87,7 +93,7 @@ function exportSolutionCSV(execution: ModelExecution, labels: ExportLabels): voi
     execution.status,
     execution.solver_status ?? "",
     execution.objective_value ?? "",
-    execution.origin ?? "manual",
+    labels.originValue,
   ]);
 
   rows.push([]);
@@ -491,7 +497,7 @@ export function buildReportHtml(
     </div>
     <div class="meta-item">
       <div class="meta-label">${labels.origin}</div>
-      <div class="meta-value">${escapeHtml(execution.origin ?? "manual")}</div>
+      <div class="meta-value">${escapeHtml(labels.originValue)}</div>
     </div>
     <div class="meta-item">
       <div class="meta-label">${labels.solverStatus}</div>
@@ -563,8 +569,14 @@ function openPrintableReport(html: string, executionId: string, popupBlockedMsg:
 
 export function ExportButtons({ execution, chartRef, trendChartRef }: ExportButtonsProps) {
   const t = useTranslations("solve.export");
+  const tOrigin = useTranslations("solve.origin");
   const locale = useLocale();
   const [pdfLoading, setPdfLoading] = useState(false);
+
+  // Same resolution the badge does, so the exported document and the screen it
+  // was exported from cannot name the run's origin differently.
+  const originKey = resolveOriginKey(execution.origin, execution.source_kind ?? undefined);
+  const originValue = originKey ? tOrigin(originKey) : execution.origin || tOrigin("manual");
 
   const labels: ExportLabels = {
     solutionReport: t("solutionReport"),
@@ -575,6 +587,7 @@ export function ExportButtons({ execution, chartRef, trendChartRef }: ExportButt
     solverStatus: t("solverStatus"),
     objectiveValue: t("objectiveValue"),
     origin: t("origin"),
+    originValue,
     modelLabel: t("modelLabel"),
     solverLabel: t("solverLabel"),
     gapLabel: t("gapLabel"),

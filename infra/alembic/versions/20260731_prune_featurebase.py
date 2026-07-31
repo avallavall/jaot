@@ -25,8 +25,12 @@ Create Date: 2026-07-31
 VARCHAR(32) — a longer one fails on insert, not on generation.)
 """
 
+import logging
+
 from alembic import op
 from sqlalchemy import text
+
+logger = logging.getLogger("alembic.runtime.migration")
 
 revision = "20260731_prune_featurebase"
 down_revision = "20260729_drop_solver_pool_size"
@@ -47,10 +51,28 @@ def upgrade() -> None:
     # An explicit list, for the same reason as the D-22 prune: "everything the
     # registry does not declare" would delete a different set of rows depending
     # on when the migration runs.
-    conn.execute(
+    result = conn.execute(
         text("DELETE FROM platform_settings WHERE key = ANY(:keys)"),
         {"keys": list(ORPHAN_KEYS)},
     )
+    # Say what was deleted. `key` matches exactly, so an install that spelled or
+    # cased these differently would delete nothing and still report success —
+    # and the point of the migration is that a stale secret stops being stored.
+    # The count in the log is what tells an operator which of the two happened.
+    logger.info(
+        "Featurebase settings prune: deleted %d of %d candidate rows (%s)",
+        result.rowcount,
+        len(ORPHAN_KEYS),
+        ", ".join(ORPHAN_KEYS),
+    )
+    if result.rowcount == 0:
+        # No args, so logging does no %-substitution here and the LIKE pattern
+        # must not be escaped — it is meant to be copied out of the log as-is.
+        logger.info(
+            "No Featurebase rows found. Expected on an install that never "
+            "configured it; if this instance did, check for a different spelling: "
+            "SELECT key FROM platform_settings WHERE key ILIKE '%featurebase%';"
+        )
 
 
 def downgrade() -> None:

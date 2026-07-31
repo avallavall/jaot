@@ -2906,9 +2906,7 @@
         "scatter": "Dispersión",
         "bar": "Barras",
         "objective": "Objetivo: {value}",
-        "origin": "Origen: {origin}",
-        "legendOther": "Cualquier otro origen",
-        "legendTriggered": "Disparada"
+        "origin": "Origen: {origin}"
       },
       "pareto": {
         "paretoFront": "Pareto Front",

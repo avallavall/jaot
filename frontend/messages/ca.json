@@ -2906,9 +2906,7 @@
         "scatter": "Dispersió",
         "bar": "Barres",
         "objective": "Objectiu: {value}",
-        "origin": "Origen: {origin}",
-        "legendOther": "Qualsevol altre origen",
-        "legendTriggered": "Per trigger"
+        "origin": "Origen: {origin}"
       },
       "pareto": {
         "paretoFront": "Front de Pareto",
