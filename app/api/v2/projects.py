@@ -389,7 +389,13 @@ def create_from_marketplace(
                     message=(
                         f"Your model '{listing.display_name}' was added to another team's studio"
                     ),
-                    data={"model_id": listing.model_project_id},
+                    # model_name travels in the payload so the interface can
+                    # write this sentence in the reader's language; `message`
+                    # above stays as the English fallback and the API value.
+                    data={
+                        "model_id": listing.model_project_id,
+                        "model_name": listing.display_name,
+                    },
                     link="/workspace/models",
                 )
             db.commit()

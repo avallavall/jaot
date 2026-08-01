@@ -35,6 +35,7 @@ from app.schemas.workspace import (
     LinkInviteResponse,
 )
 from app.services.audit_service import log_action
+from app.shared.core.http_errors import CodedHTTPException
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
 
@@ -257,30 +258,34 @@ def accept_invite(
     invite = db.query(WorkspaceInvite).filter(WorkspaceInvite.token_hash == token_hash).first()
 
     if not invite:
-        raise HTTPException(
+        raise CodedHTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Invite not found or invalid token",
+            code="invite.not_found",
         )
 
     if invite.is_revoked:
-        raise HTTPException(
+        raise CodedHTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This invite has been revoked",
+            code="invite.revoked",
         )
 
     now = utcnow()
     if invite.expires_at < now:
-        raise HTTPException(
+        raise CodedHTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This invite has expired",
+            code="invite.expired",
         )
 
     # Email invite: single-use check
     if invite.method == InviteMethod.EMAIL.value:
         if invite.accepted_at is not None:
-            raise HTTPException(
+            raise CodedHTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="This email invite has already been accepted",
+                code="invite.already_accepted",
             )
 
     # Link invite: idempotent — check if user is already a member

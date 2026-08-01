@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Bell, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { notificationText } from "@/lib/notification-text";
 import type { Notification } from "@/lib/types";
 
 export function NotificationBell() {
@@ -23,6 +24,10 @@ export function NotificationBell() {
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
   const prevUnreadCountRef = useRef<number | null>(null);
   const t = useTranslations("common");
+  // The notification body itself is written from `type` + `data`, not from the
+  // English title/message the server stored — see lib/notification-text.
+  const tType = useTranslations("common.notifications.types");
+  const locale = useLocale();
   // Session state comes from the auth context, not from a `jaot_api_key` in
   // localStorage: the web app authenticates with HttpOnly cookies, so that key
   // is absent for every browser login and these guards returned early every
@@ -138,21 +143,17 @@ export function NotificationBell() {
   useEffect(() => {
     if (prevUnreadCountRef.current !== null && unreadCount > prevUnreadCountRef.current) {
       const latest = notifications.find((n) => !n.is_read);
-      const isError = latest?.type === "execution_failed";
-      if (isError) {
-        toast.error(latest?.title ?? "Trigger failed", {
-          description: latest?.message ?? "A trigger execution failed.",
-          action: { label: t("view"), onClick: () => setIsOpen(true) },
-        });
-      } else {
-        toast.success(latest?.title ?? "Solve completed", {
-          description: latest?.message ?? "A solve has completed.",
+      if (latest) {
+        const { title, message } = notificationText(latest, tType, locale);
+        const show = latest.type === "execution_failed" ? toast.error : toast.success;
+        show(title, {
+          description: message,
           action: { label: t("view"), onClick: () => setIsOpen(true) },
         });
       }
     }
     prevUnreadCountRef.current = unreadCount;
-  }, [unreadCount, notifications, t]);
+  }, [unreadCount, notifications, t, tType, locale]);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -196,7 +197,9 @@ export function NotificationBell() {
             </div>
           ) : (
             <div className="divide-y">
-              {notifications.map((notification) => (
+              {notifications.map((notification) => {
+                const { title, message } = notificationText(notification, tType, locale);
+                return (
                 <button
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
@@ -217,14 +220,14 @@ export function NotificationBell() {
                             !notification.is_read && "font-medium"
                           )}
                         >
-                          {notification.title}
+                          {title}
                         </p>
                         {!notification.is_read && (
                           <span className="h-2 w-2 rounded-full bg-blue-500 flex-shrink-0 mt-1.5" />
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
-                        {notification.message}
+                        {message}
                       </p>
                       <p className="text-xs text-muted-foreground/60 mt-1">
                         {formatTimeAgo(notification.created_at)}
@@ -232,7 +235,8 @@ export function NotificationBell() {
                     </div>
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

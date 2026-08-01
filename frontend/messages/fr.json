@@ -494,7 +494,26 @@
       "justNow": "à l'instant",
       "minutesAgo": "il y a {count}m",
       "hoursAgo": "il y a {count}h",
-      "daysAgo": "il y a {count}j"
+      "daysAgo": "il y a {count}j",
+      "types": {
+        "execution_completed": {
+          "title": "Exécution terminée",
+          "message": "Votre optimisation « {model} » s’est terminée correctement.",
+          "messageWithObjective": "Votre optimisation « {model} » s’est terminée correctement. Valeur objectif : {objective}"
+        },
+        "execution_failed": {
+          "title": "Échec de l’exécution",
+          "message": "Votre optimisation « {model} » a échoué : {error}"
+        },
+        "model_activated": {
+          "title": "Modèle adopté",
+          "message": "Votre modèle « {model} » a été ajouté au studio d’une autre équipe."
+        },
+        "new_review": {
+          "title": "Nouvel avis",
+          "message": "Votre modèle « {model} » a reçu un avis : {stars}"
+        }
+      }
     },
     "theme": {
       "toggleTheme": "Changer de thème",
@@ -4269,6 +4288,21 @@
       "digest": "Référence de l'erreur : {digest}",
       "retry": "Réessayer",
       "backHome": "Retour à l'accueil"
+    },
+    "codes": {
+      "auth": {
+        "account_locked": "Compte temporairement verrouillé après trop de tentatives échouées. Réessayez dans {minutes, plural, one {# minute} other {# minutes}}.",
+        "invalid_credentials": "Cet e-mail et ce mot de passe ne correspondent à aucun compte.",
+        "verification_link_expired": "Ce lien de vérification a expiré. Demandez-en un nouveau.",
+        "verification_link_invalid": "Ce lien de vérification n’est pas valide.",
+        "reset_link_invalid": "Ce lien de réinitialisation a expiré ou n’est pas valide."
+      },
+      "invite": {
+        "not_found": "Ce lien d’invitation n’est pas valide.",
+        "revoked": "Cette invitation a été révoquée.",
+        "expired": "Cette invitation a expiré. Demandez-en une nouvelle.",
+        "already_accepted": "Cette invitation a déjà été utilisée."
+      }
     }
   },
   "solvers": {

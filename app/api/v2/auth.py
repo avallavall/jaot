@@ -32,6 +32,7 @@ from app.services.auth import APIKeyService, JWTService, PasswordService
 from app.services.auth.password_service import DUMMY_HASH
 from app.services.email_translations import get_email_string
 from app.services.platform_settings_service import PlatformSettingsService as PSS
+from app.shared.core.http_errors import CodedHTTPException
 from app.shared.core.rate_limiter import check_rate_limit, check_rate_limit_hourly
 from app.shared.db.base import get_db
 from app.shared.utils.datetime_helpers import utcnow
@@ -216,17 +217,20 @@ def login_email(
     # Check account lockout (before password verification)
     if user and user.locked_until and user.locked_until > utcnow():
         minutes_left = int((user.locked_until - utcnow()).total_seconds() / 60) + 1
-        raise HTTPException(
+        raise CodedHTTPException(
             status_code=status.HTTP_423_LOCKED,
             detail=f"Account temporarily locked. Try again in {minutes_left} minutes.",
+            code="auth.account_locked",
+            params={"minutes": minutes_left},
         )
 
     # Timing-safe: always verify password even if user not found
     if not user or not user.password_hash:
         PasswordService.verify_password("dummy", DUMMY_HASH)
-        raise HTTPException(
+        raise CodedHTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
+            code="auth.invalid_credentials",
         )
 
     # Verify password
@@ -236,9 +240,10 @@ def login_email(
         if user.failed_login_attempts >= MAX_FAILED_ATTEMPTS:
             user.locked_until = utcnow() + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
         db.commit()
-        raise HTTPException(
+        raise CodedHTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
+            code="auth.invalid_credentials",
         )
 
     # Reset lockout on successful login
@@ -495,27 +500,33 @@ def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)) -> Suc
     try:
         payload = JWTService.decode_token(body.token, db=db)
     except pyjwt.ExpiredSignatureError:
-        raise HTTPException(
+        raise CodedHTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Verification link has expired",
+            code="auth.verification_link_expired",
         ) from None
     except pyjwt.InvalidTokenError:
-        raise HTTPException(
+        raise CodedHTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid verification token",
+            code="auth.verification_link_invalid",
         ) from None
 
     if payload.get("type") != "verify" or not payload.get("sub"):
-        raise HTTPException(
+        raise CodedHTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid verification token",
+            code="auth.verification_link_invalid",
         )
 
     user = db.query(User).filter(User.id == payload["sub"]).first()
     if not user:
-        raise HTTPException(
+        # Deliberately the same code the client shows for a malformed token: a
+        # verification form must not become a way to test whether an id exists.
+        raise CodedHTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User not found",
+            code="auth.verification_link_invalid",
         )
 
     user.email_verified = True
@@ -588,22 +599,25 @@ def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)) ->
     try:
         payload = JWTService.decode_token(body.token, db=db)
     except (pyjwt.ExpiredSignatureError, pyjwt.InvalidTokenError):
-        raise HTTPException(
+        raise CodedHTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Reset link has expired or is invalid",
+            code="auth.reset_link_invalid",
         ) from None
 
     if payload.get("type") != "reset" or not payload.get("sub"):
-        raise HTTPException(
+        raise CodedHTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Reset link has expired or is invalid",
+            code="auth.reset_link_invalid",
         )
 
     user = db.query(User).filter(User.id == payload["sub"]).first()
     if not user:
-        raise HTTPException(
+        raise CodedHTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Reset link has expired or is invalid",
+            code="auth.reset_link_invalid",
         )
 
     user.password_hash = PasswordService.hash_password(body.password)

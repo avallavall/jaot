@@ -494,7 +494,26 @@
       "justNow": "ahora mismo",
       "minutesAgo": "hace {count}m",
       "hoursAgo": "hace {count}h",
-      "daysAgo": "hace {count}d"
+      "daysAgo": "hace {count}d",
+      "types": {
+        "execution_completed": {
+          "title": "Ejecución completada",
+          "message": "Tu optimización «{model}» ha terminado correctamente.",
+          "messageWithObjective": "Tu optimización «{model}» ha terminado correctamente. Valor objetivo: {objective}"
+        },
+        "execution_failed": {
+          "title": "Ejecución fallida",
+          "message": "Tu optimización «{model}» ha fallado: {error}"
+        },
+        "model_activated": {
+          "title": "Modelo adoptado",
+          "message": "Tu modelo «{model}» se ha añadido al estudio de otro equipo."
+        },
+        "new_review": {
+          "title": "Nueva reseña",
+          "message": "Tu modelo «{model}» ha recibido una reseña: {stars}"
+        }
+      }
     },
     "theme": {
       "toggleTheme": "Cambiar tema",
@@ -4269,6 +4288,21 @@
       "digest": "Referencia del error: {digest}",
       "retry": "Reintentar",
       "backHome": "Volver al inicio"
+    },
+    "codes": {
+      "auth": {
+        "account_locked": "Cuenta bloqueada temporalmente tras demasiados intentos fallidos. Inténtalo de nuevo en {minutes, plural, one {# minuto} other {# minutos}}.",
+        "invalid_credentials": "Ese correo y esa contraseña no corresponden a ninguna cuenta.",
+        "verification_link_expired": "Este enlace de verificación ha caducado. Pide uno nuevo.",
+        "verification_link_invalid": "Este enlace de verificación no es válido.",
+        "reset_link_invalid": "Este enlace de restablecimiento ha caducado o no es válido."
+      },
+      "invite": {
+        "not_found": "Este enlace de invitación no es válido.",
+        "revoked": "Esta invitación se ha revocado.",
+        "expired": "Esta invitación ha caducado. Pide una nueva.",
+        "already_accepted": "Esta invitación ya se ha usado."
+      }
     }
   },
   "solvers": {

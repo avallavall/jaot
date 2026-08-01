@@ -146,3 +146,63 @@ class TestAccountLockout:
 
         db_session.refresh(lockout_user)
         assert lockout_user.failed_login_attempts == 1
+
+
+# ---------------------------------------------------------------------------
+# The browser cannot show `detail`: it is English by contract, and the four auth
+# screens were printing it under otherwise translated pages. Each failure now
+# also names itself, additively — `detail` is byte-for-byte what it always was.
+# ---------------------------------------------------------------------------
+
+
+class TestAuthErrorsNameThemselves:
+    # CONTRACT-TEST: adding `code` must not change `detail` — API clients read it.
+    def test_locked_account_carries_a_code_and_the_minutes(
+        self, test_client, lockout_user, db_session
+    ):
+        lockout_user.locked_until = utcnow() + timedelta(minutes=10)
+        db_session.commit()
+
+        resp = test_client.post(
+            LOGIN_URL, json={"email": lockout_user.email, "password": CORRECT_PASSWORD}
+        )
+        assert resp.status_code == 423
+        body = resp.json()
+        assert "temporarily locked" in body["detail"]  # unchanged for API clients
+        assert body["code"] == "auth.account_locked"
+        assert body["params"]["minutes"] >= 1
+
+    def test_bad_credentials_carry_a_code(self, test_client, lockout_user):
+        resp = test_client.post(
+            LOGIN_URL, json={"email": lockout_user.email, "password": WRONG_PASSWORD}
+        )
+        assert resp.status_code == 401
+        body = resp.json()
+        assert body["detail"] == "Invalid email or password"
+        assert body["code"] == "auth.invalid_credentials"
+
+    def test_an_unknown_email_is_indistinguishable_from_a_wrong_password(
+        self, test_client, lockout_user
+    ):
+        """The code must not become an account-enumeration oracle."""
+        unknown = test_client.post(
+            LOGIN_URL, json={"email": "nobody@example.com", "password": WRONG_PASSWORD}
+        )
+        known = test_client.post(
+            LOGIN_URL, json={"email": lockout_user.email, "password": WRONG_PASSWORD}
+        )
+        assert unknown.status_code == known.status_code == 401
+        assert unknown.json()["code"] == known.json()["code"] == "auth.invalid_credentials"
+
+    def test_a_bad_reset_token_carries_a_code(self, test_client):
+        resp = test_client.post(
+            "/api/v2/auth/reset-password",
+            json={"token": "not-a-jwt", "password": "a-very-long-password"},
+        )
+        assert resp.status_code == 400
+        assert resp.json()["code"] == "auth.reset_link_invalid"
+
+    def test_a_bad_verification_token_carries_a_code(self, test_client):
+        resp = test_client.post("/api/v2/auth/verify-email", json={"token": "not-a-jwt"})
+        assert resp.status_code == 400
+        assert resp.json()["code"] == "auth.verification_link_invalid"

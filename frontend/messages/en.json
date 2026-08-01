@@ -494,7 +494,26 @@
       "justNow": "just now",
       "minutesAgo": "{count}m ago",
       "hoursAgo": "{count}h ago",
-      "daysAgo": "{count}d ago"
+      "daysAgo": "{count}d ago",
+      "types": {
+        "execution_completed": {
+          "title": "Execution completed",
+          "message": "Your optimization “{model}” completed successfully.",
+          "messageWithObjective": "Your optimization “{model}” completed successfully. Objective value: {objective}"
+        },
+        "execution_failed": {
+          "title": "Execution failed",
+          "message": "Your optimization “{model}” failed: {error}"
+        },
+        "model_activated": {
+          "title": "Model adopted",
+          "message": "Your model “{model}” was added to another team's studio."
+        },
+        "new_review": {
+          "title": "New review",
+          "message": "Your model “{model}” got a review: {stars}"
+        }
+      }
     },
     "theme": {
       "toggleTheme": "Toggle theme",
@@ -4269,6 +4288,21 @@
       "digest": "Error reference: {digest}",
       "retry": "Try again",
       "backHome": "Back to home"
+    },
+    "codes": {
+      "auth": {
+        "account_locked": "Account temporarily locked after too many failed attempts. Try again in {minutes, plural, one {# minute} other {# minutes}}.",
+        "invalid_credentials": "That email and password do not match an account.",
+        "verification_link_expired": "This verification link has expired. Request a new one.",
+        "verification_link_invalid": "This verification link is not valid.",
+        "reset_link_invalid": "This reset link has expired or is not valid."
+      },
+      "invite": {
+        "not_found": "This invitation link is not valid.",
+        "revoked": "This invitation has been revoked.",
+        "expired": "This invitation has expired. Ask for a new one.",
+        "already_accepted": "This invitation has already been used."
+      }
     }
   },
   "solvers": {

@@ -12,11 +12,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/lib/api";
+import { translateApiError } from "@/lib/errors";
 
 export function VerifyEmailHandler() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const t = useTranslations("auth");
+  const tError = useTranslations("errors.codes");
 
   const [status, setStatus] = useState<"loading" | "success" | "error">(
     token ? "loading" : "error"
@@ -31,25 +33,22 @@ export function VerifyEmailHandler() {
     const verify = async () => {
       try {
         const result = await api.verifyEmail(token);
-        if (result.success) {
-          setStatus("success");
-          setMessage(result.message || t("verifyEmail.defaultSuccess"));
-        } else {
-          setStatus("error");
-          setMessage(result.message || t("verifyEmail.defaultError"));
-        }
+        // The API's `message` is English; the outcome is all this screen needs
+        // from it, and the words come from the locale files either way.
+        setStatus(result.success ? "success" : "error");
+        setMessage(
+          result.success ? t("verifyEmail.defaultSuccess") : t("verifyEmail.defaultError"),
+        );
       } catch (err) {
         setStatus("error");
-        setMessage(
-          err instanceof Error
-            ? err.message
-            : t("verifyEmail.verificationFailed")
-        );
+        // The API's `detail` is English by contract; render the error's code
+        // instead, and the translated generic message when there is none.
+        setMessage(translateApiError(err, tError, t("verifyEmail.verificationFailed")));
       }
     };
 
     verify();
-  }, [token, t]);
+  }, [token, t, tError]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">

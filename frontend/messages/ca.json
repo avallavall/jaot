@@ -494,7 +494,26 @@
       "justNow": "ara mateix",
       "minutesAgo": "fa {count}m",
       "hoursAgo": "fa {count}h",
-      "daysAgo": "fa {count}d"
+      "daysAgo": "fa {count}d",
+      "types": {
+        "execution_completed": {
+          "title": "Execució completada",
+          "message": "La teva optimització «{model}» ha acabat correctament.",
+          "messageWithObjective": "La teva optimització «{model}» ha acabat correctament. Valor objectiu: {objective}"
+        },
+        "execution_failed": {
+          "title": "Execució fallida",
+          "message": "La teva optimització «{model}» ha fallat: {error}"
+        },
+        "model_activated": {
+          "title": "Model adoptat",
+          "message": "El teu model «{model}» s’ha afegit a l’estudi d’un altre equip."
+        },
+        "new_review": {
+          "title": "Ressenya nova",
+          "message": "El teu model «{model}» ha rebut una ressenya: {stars}"
+        }
+      }
     },
     "theme": {
       "toggleTheme": "Canviar tema",
@@ -4269,6 +4288,21 @@
       "digest": "Referència de l'error: {digest}",
       "retry": "Tornar-ho a provar",
       "backHome": "Tornar a l'inici"
+    },
+    "codes": {
+      "auth": {
+        "account_locked": "Compte bloquejat temporalment després de massa intents fallits. Torna-ho a provar d’aquí a {minutes, plural, one {# minut} other {# minuts}}.",
+        "invalid_credentials": "Aquest correu i aquesta contrasenya no corresponen a cap compte.",
+        "verification_link_expired": "Aquest enllaç de verificació ha caducat. Demana’n un de nou.",
+        "verification_link_invalid": "Aquest enllaç de verificació no és vàlid.",
+        "reset_link_invalid": "Aquest enllaç de restabliment ha caducat o no és vàlid."
+      },
+      "invite": {
+        "not_found": "Aquest enllaç d’invitació no és vàlid.",
+        "revoked": "Aquesta invitació s’ha revocat.",
+        "expired": "Aquesta invitació ha caducat. Demana’n una de nova.",
+        "already_accepted": "Aquesta invitació ja s’ha fet servir."
+      }
     }
   },
   "solvers": {

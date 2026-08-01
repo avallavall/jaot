@@ -32,6 +32,34 @@ export function getErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+/** Minimal shape of next-intl's translator, so this stays unit-testable. */
+export interface ErrorTranslator {
+  (key: string, values?: Record<string, string | number>): string;
+  has(key: string): boolean;
+}
+
+/**
+ * Turn a caught API error into text in the reader's language.
+ *
+ * The backend sends `detail` in English — that is the API contract and what
+ * non-browser clients read — plus a `code` naming what went wrong. A screen
+ * shows the code's translation; when there is no code, or no text for it, it
+ * shows the caller's translated fallback rather than the raw English body.
+ *
+ * @param t         Translator scoped to a namespace holding the error codes.
+ * @param fallback  Already-translated generic message for this surface.
+ */
+export function translateApiError(
+  error: unknown,
+  t: ErrorTranslator,
+  fallback: string,
+): string {
+  if (error instanceof ApiError && error.code && t.has(error.code)) {
+    return t(error.code, (error.params ?? {}) as Record<string, string | number>);
+  }
+  return fallback;
+}
+
 /**
  * Extract the HTTP status code from a caught error, if available.
  *

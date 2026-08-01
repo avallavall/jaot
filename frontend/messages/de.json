@@ -494,7 +494,26 @@
       "justNow": "gerade eben",
       "minutesAgo": "vor {count} Min.",
       "hoursAgo": "vor {count} Std.",
-      "daysAgo": "vor {count} T."
+      "daysAgo": "vor {count} T.",
+      "types": {
+        "execution_completed": {
+          "title": "Ausführung abgeschlossen",
+          "message": "Ihre Optimierung „{model}“ wurde erfolgreich abgeschlossen.",
+          "messageWithObjective": "Ihre Optimierung „{model}“ wurde erfolgreich abgeschlossen. Zielwert: {objective}"
+        },
+        "execution_failed": {
+          "title": "Ausführung fehlgeschlagen",
+          "message": "Ihre Optimierung „{model}“ ist fehlgeschlagen: {error}"
+        },
+        "model_activated": {
+          "title": "Modell übernommen",
+          "message": "Ihr Modell „{model}“ wurde dem Studio eines anderen Teams hinzugefügt."
+        },
+        "new_review": {
+          "title": "Neue Bewertung",
+          "message": "Ihr Modell „{model}“ hat eine Bewertung erhalten: {stars}"
+        }
+      }
     },
     "theme": {
       "toggleTheme": "Design umschalten",
@@ -4269,6 +4288,21 @@
       "digest": "Fehlerreferenz: {digest}",
       "retry": "Erneut versuchen",
       "backHome": "Zurück zur Startseite"
+    },
+    "codes": {
+      "auth": {
+        "account_locked": "Konto nach zu vielen Fehlversuchen vorübergehend gesperrt. Versuchen Sie es in {minutes, plural, one {# Minute} other {# Minuten}} erneut.",
+        "invalid_credentials": "Diese E-Mail-Adresse und dieses Passwort gehören zu keinem Konto.",
+        "verification_link_expired": "Dieser Bestätigungslink ist abgelaufen. Fordern Sie einen neuen an.",
+        "verification_link_invalid": "Dieser Bestätigungslink ist nicht gültig.",
+        "reset_link_invalid": "Dieser Link zum Zurücksetzen ist abgelaufen oder nicht gültig."
+      },
+      "invite": {
+        "not_found": "Dieser Einladungslink ist nicht gültig.",
+        "revoked": "Diese Einladung wurde widerrufen.",
+        "expired": "Diese Einladung ist abgelaufen. Bitten Sie um eine neue.",
+        "already_accepted": "Diese Einladung wurde bereits verwendet."
+      }
     }
   },
   "solvers": {

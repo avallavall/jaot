@@ -101,11 +101,15 @@ export type ExecutionStatus =
   | "failed"
   | "cancelled"
   | "timeout";
+// Mirrors app/models/notification.py:NotificationType. That enum is Python-side
+// only — historic rows can carry any string — so consumers must tolerate a value
+// outside this union rather than assume exhaustiveness.
 export type NotificationType =
   | "execution_completed"
   | "execution_failed"
-  | "model_published"
-  | "system_announcement";
+  | "system"
+  | "new_review"
+  | "model_activated";
 export type TriggerRunStatus =
   | "pending" | "running" | "completed" | "failed" | "timeout" | "validation_failed"
   | "skipped_overlap";

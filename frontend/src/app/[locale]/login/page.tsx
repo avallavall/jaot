@@ -20,13 +20,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
-import { getErrorMessage } from "@/lib/errors";
+import { translateApiError } from "@/lib/errors";
 import { RETURN_PARAM, defaultLandingPath, safeReturnPath } from "@/lib/return-path";
 
 export default function LoginPage() {
   const router = useRouter();
   const { loginWithEmail, isAuthenticated, isLoading, user } = useAuth();
   const t = useTranslations("auth");
+  const tError = useTranslations("errors.codes");
 
   // Email login state
   const [email, setEmail] = useState("");
@@ -56,7 +57,9 @@ export default function LoginPage() {
       await loginWithEmail(email, password, rememberMe);
       // After login, user state will update and the useEffect above handles redirect
     } catch (err) {
-      setEmailError(getErrorMessage(err, t("login.loginFailed")));
+      // The API's `detail` is English by contract; render the error's code
+      // instead, and the translated generic message when there is none.
+      setEmailError(translateApiError(err, tError, t("login.loginFailed")));
     } finally {
       setEmailLoading(false);
     }

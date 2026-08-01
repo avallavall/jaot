@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 import LoginPage from "../page";
+import { ApiError } from "@/lib/api";
 
 // Mutable state so individual tests can change isAuthenticated/isLoading
 let mockAuthState = {
@@ -73,8 +74,11 @@ describe("LoginPage", () => {
     });
   });
 
-  it("shows error message when email login fails", async () => {
-    mockAuthState.loginWithEmail.mockRejectedValue(new Error("Invalid credentials"));
+  // CONTRACT-TEST: the API's English `detail` must never surface on this screen.
+  it("shows the translated fallback, not the API's English text, when login fails", async () => {
+    mockAuthState.loginWithEmail.mockRejectedValue(
+      new ApiError(401, "Invalid email or password", "Invalid email or password"),
+    );
     render(<LoginPage />);
 
     await userEvent.type(screen.getByPlaceholderText("auth.login.emailPlaceholder"), "bad@example.com");
@@ -82,7 +86,29 @@ describe("LoginPage", () => {
     await userEvent.click(screen.getByRole("button", { name: /auth\.login\.submit/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("Invalid credentials")).toBeInTheDocument();
+      expect(screen.getByText("auth.login.loginFailed")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Invalid email or password")).not.toBeInTheDocument();
+  });
+
+  it("renders the error code the server sent when there is one", async () => {
+    mockAuthState.loginWithEmail.mockRejectedValue(
+      new ApiError(
+        423,
+        "Account temporarily locked. Try again in 7 minutes.",
+        "Account temporarily locked. Try again in 7 minutes.",
+        "auth.account_locked",
+        { minutes: 7 },
+      ),
+    );
+    render(<LoginPage />);
+
+    await userEvent.type(screen.getByPlaceholderText("auth.login.emailPlaceholder"), "bad@example.com");
+    await userEvent.type(screen.getByPlaceholderText("auth.login.passwordPlaceholder"), "wrong");
+    await userEvent.click(screen.getByRole("button", { name: /auth\.login\.submit/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("errors.codes.auth.account_locked")).toBeInTheDocument();
     });
   });
 

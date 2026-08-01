@@ -302,9 +302,7 @@ def get_onboarding_status(
     # Point the step at a listing that actually needs an image, on the panel that
     # uploads it — linking to /workspace/models sent the reader back to the page
     # the checklist is on, then made them pick which listing was meant.
-    needs_media = next(
-        (m for m in published_models if not (m.logo_url or m.screenshot_urls)), None
-    )
+    needs_media = next((m for m in published_models if not (m.logo_url or m.screenshot_urls)), None)
     rich_media_link = (
         f"/studio/{needs_media.model_project_id}/publish" if needs_media else "/workspace/models"
     )

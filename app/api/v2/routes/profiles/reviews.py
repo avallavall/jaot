@@ -266,7 +266,14 @@ def _notify_author_of_review(db: Session, listing, review, *, reviewer: User) ->
                 event_type="review",
                 title="New review",
                 message=f"Your model '{listing.display_name}' got a review: {stars}",
-                data={"model_id": listing.model_project_id, "rating": review.rating},
+                # model_name travels in the payload so the interface can write
+                # this sentence in the reader's language; `message` above stays
+                # as the English fallback and the API value.
+                data={
+                    "model_id": listing.model_project_id,
+                    "model_name": listing.display_name,
+                    "rating": review.rating,
+                },
                 link="/workspace/models",
             )
         db.commit()

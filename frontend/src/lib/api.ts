@@ -241,12 +241,23 @@ export interface SettingsAuditLogResponse {
 export class ApiError extends Error {
   status: number;
   detail?: string;
+  /** Stable identifier the UI translates; absent on errors that carry no code. */
+  code?: string;
+  params?: Record<string, unknown>;
 
-  constructor(status: number, message: string, detail?: string) {
+  constructor(
+    status: number,
+    message: string,
+    detail?: string,
+    code?: string,
+    params?: Record<string, unknown>,
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.detail = detail;
+    this.code = code;
+    this.params = params;
   }
 }
 
@@ -488,6 +499,8 @@ async function request<T>(
 
       let message = `Request failed (${res.status})`;
       let detail: string | undefined;
+      let code: string | undefined;
+      let params: Record<string, unknown> | undefined;
       try {
         const body = await res.json();
         // Pydantic validation errors come as body.detail = [{msg, ...}, ...].
@@ -505,10 +518,17 @@ async function request<T>(
           message = body.error || body.detail || body.message || message;
         }
         detail = typeof body.detail === "string" ? body.detail : undefined;
+        // Additive on the wire: `detail` is unchanged, `code`+`params` are what a
+        // localized screen renders instead of the English text.
+        code = typeof body.code === "string" ? body.code : undefined;
+        params =
+          body.params && typeof body.params === "object" && !Array.isArray(body.params)
+            ? (body.params as Record<string, unknown>)
+            : undefined;
       } catch {
         // ignore parse errors
       }
-      throw new ApiError(res.status, message, detail);
+      throw new ApiError(res.status, message, detail, code, params);
     }
 
     if (res.status === 204) {

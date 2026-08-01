@@ -272,6 +272,14 @@ def create_app() -> FastAPI:
 
     app.add_exception_handler(RequestValidationError, contact_validation_exception_handler)
 
+    # Errors that name themselves, so a localized client can render them without
+    # printing the English `detail` (which is still sent, unchanged, for API and
+    # MCP clients). Registered for the subclass only — plain HTTPException keeps
+    # the framework default.
+    from app.shared.core.http_errors import CodedHTTPException, coded_http_exception_handler
+
+    app.add_exception_handler(CodedHTTPException, coded_http_exception_handler)
+
     # Add middleware (last added = outermost in request flow)
     app.add_middleware(GZipMiddleware, minimum_size=1000)
 

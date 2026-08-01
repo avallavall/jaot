@@ -15,12 +15,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/lib/api";
+import { translateApiError } from "@/lib/errors";
 import { getPasswordStrength } from "@/lib/password-strength";
 
 export function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const t = useTranslations("auth");
+  const tError = useTranslations("errors.codes");
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -56,11 +58,9 @@ export function ResetPasswordForm() {
       await api.resetPassword(token, password);
       setSuccess(true);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : t("resetPassword.resetFailed")
-      );
+      // The API's `detail` is English by contract; render the error's code
+      // instead, and the translated generic message when there is none.
+      setError(translateApiError(err, tError, t("resetPassword.resetFailed")));
     } finally {
       setLoading(false);
     }

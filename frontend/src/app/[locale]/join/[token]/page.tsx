@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { api } from "@/lib/api";
+import { translateApiError } from "@/lib/errors";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
@@ -21,6 +22,7 @@ export default function JoinPage({ params }: JoinPageProps) {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuth();
   const t = useTranslations("auth");
+  const tError = useTranslations("errors.codes");
   const [joinState, setJoinState] = useState<JoinState>("loading");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -45,13 +47,14 @@ export default function JoinPage({ params }: JoinPageProps) {
         sessionStorage.removeItem("jaot_pending_invite");
         setJoinState("success");
       } catch (err) {
-        const msg = err instanceof Error ? err.message : t("join.acceptFailed");
-        setErrorMessage(msg);
+        // The API's `detail` is English by contract; render the error's code
+        // instead, and the translated generic message when there is none.
+        setErrorMessage(translateApiError(err, tError, t("join.acceptFailed")));
         setJoinState("error");
       }
     };
     accept();
-  }, [isAuthenticated, isLoading, token, t]);
+  }, [isAuthenticated, isLoading, token, t, tError]);
 
   // Show loading while auth is resolving or redirect is pending
   if (isLoading || (!isAuthenticated && joinState === "loading")) {
