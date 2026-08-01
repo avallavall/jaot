@@ -1782,22 +1782,6 @@
       "reviewsBy": "Ressenyes de {name}",
       "noReviews": "Encara no s'han escrit ressenyes."
     },
-    "orgPublicProfile": {
-      "backToCatalog": "Tornar al Catàleg",
-      "orgNotFound": "Organització no trobada",
-      "loadError": "Error en carregar el perfil",
-      "verified": "Verificat",
-      "website": "Lloc Web",
-      "models": "Models",
-      "activations": "Adopcions",
-      "executions": "Execucions",
-      "reviews": "Ressenyes",
-      "avgRating": "Valoració Mitjana",
-      "publishedModels": "Models Publicats",
-      "noModels": "Encara no s'han publicat models.",
-      "free": "Gratuït",
-      "activationCount": "{count} adopcions"
-    },
     "accountData": {
       "account": "Compte",
       "accountDescription": "Gestioneu les dades del vostre compte i privacitat",
@@ -2491,7 +2475,10 @@
         "exampleIo": "Exemple E/S",
         "changelog": "Registre de canvis"
       },
-      "signInToUse": "Inicia la sessió per usar aquest model"
+      "signInToUse": "Inicia la sessió per usar aquest model",
+      "addToFavorites": "Afegeix a preferits",
+      "removeFromFavorites": "Treu de preferits",
+      "failedToUpdateFavorite": "No s’ha pogut actualitzar els teus preferits."
     },
     "catalog": {
       "title": "Catàleg de models",

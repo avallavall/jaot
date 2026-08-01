@@ -1782,22 +1782,6 @@
       "reviewsBy": "Reseñas de {name}",
       "noReviews": "Aún no hay reseñas escritas."
     },
-    "orgPublicProfile": {
-      "backToCatalog": "Volver al Marketplace",
-      "orgNotFound": "Organización no encontrada",
-      "loadError": "Error al cargar el perfil",
-      "verified": "Verificado",
-      "website": "Sitio web",
-      "models": "Modelos",
-      "activations": "Adopciones",
-      "executions": "Ejecuciones",
-      "reviews": "Reseñas",
-      "avgRating": "Valoración media",
-      "publishedModels": "Modelos publicados",
-      "noModels": "Aún no hay modelos publicados.",
-      "free": "Gratis",
-      "activationCount": "{count} adopciones"
-    },
     "accountData": {
       "account": "Cuenta",
       "accountDescription": "Gestiona los datos de tu cuenta y privacidad",
@@ -2491,7 +2475,10 @@
         "exampleIo": "Ejemplo E/S",
         "changelog": "Registro de cambios"
       },
-      "signInToUse": "Inicia sesión para usar este modelo"
+      "signInToUse": "Inicia sesión para usar este modelo",
+      "addToFavorites": "Añadir a favoritos",
+      "removeFromFavorites": "Quitar de favoritos",
+      "failedToUpdateFavorite": "No se han podido actualizar tus favoritos."
     },
     "catalog": {
       "title": "Catálogo de modelos",

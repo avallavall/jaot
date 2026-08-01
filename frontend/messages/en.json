@@ -1782,22 +1782,6 @@
       "reviewsBy": "Reviews by {name}",
       "noReviews": "No reviews written yet."
     },
-    "orgPublicProfile": {
-      "backToCatalog": "Back to Marketplace",
-      "orgNotFound": "Organization not found",
-      "loadError": "Failed to load profile",
-      "verified": "Verified",
-      "website": "Website",
-      "models": "Models",
-      "activations": "Adoptions",
-      "executions": "Executions",
-      "reviews": "Reviews",
-      "avgRating": "Avg Rating",
-      "publishedModels": "Published Models",
-      "noModels": "No models published yet.",
-      "free": "Free",
-      "activationCount": "{count} adoptions"
-    },
     "accountData": {
       "account": "Account",
       "accountDescription": "Manage your account data and privacy",
@@ -2520,7 +2504,10 @@
         "exampleIo": "Example I/O",
         "changelog": "Changelog"
       },
-      "signInToUse": "Sign in to use this model"
+      "signInToUse": "Sign in to use this model",
+      "addToFavorites": "Add to favourites",
+      "removeFromFavorites": "Remove from favourites",
+      "failedToUpdateFavorite": "Could not update your favourites."
     },
     "catalog": {
       "title": "Model Catalog",

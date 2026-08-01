@@ -293,10 +293,13 @@ export default function OrganizationProfileSettingsPage() {
           </Button>
         </div>
 
-        {slug && (
+        {organization && (
           <div className="text-center">
+            {/* The public profile is addressed by organization id: the endpoint
+                behind it matches on id, so linking the slug produced a 404 for
+                everyone who clicked "preview". */}
             <a
-              href={`/org/${slug}`}
+              href={`/marketplace/authors/${organization.id}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-primary hover:underline"

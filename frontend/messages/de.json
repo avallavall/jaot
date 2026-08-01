@@ -1782,22 +1782,6 @@
       "reviewsBy": "Bewertungen von {name}",
       "noReviews": "Noch keine Bewertungen geschrieben."
     },
-    "orgPublicProfile": {
-      "backToCatalog": "Zurück zum Marketplace",
-      "orgNotFound": "Organisation nicht gefunden",
-      "loadError": "Profil konnte nicht geladen werden",
-      "verified": "Verifiziert",
-      "website": "Webseite",
-      "models": "Modelle",
-      "activations": "Übernahmen",
-      "executions": "Ausführungen",
-      "reviews": "Bewertungen",
-      "avgRating": "Durchschn. Bewertung",
-      "publishedModels": "Veröffentlichte Modelle",
-      "noModels": "Noch keine Modelle veröffentlicht.",
-      "free": "Kostenlos",
-      "activationCount": "{count} Übernahmen"
-    },
     "accountData": {
       "account": "Konto",
       "accountDescription": "Verwalten Sie Ihre Kontodaten und Privatsphäre",
@@ -2491,7 +2475,10 @@
         "exampleIo": "Beispiel-E/A",
         "changelog": "Änderungsprotokoll"
       },
-      "signInToUse": "Melden Sie sich an, um dieses Modell zu verwenden"
+      "signInToUse": "Melden Sie sich an, um dieses Modell zu verwenden",
+      "addToFavorites": "Zu Favoriten hinzufügen",
+      "removeFromFavorites": "Aus Favoriten entfernen",
+      "failedToUpdateFavorite": "Ihre Favoriten konnten nicht aktualisiert werden."
     },
     "catalog": {
       "title": "Modellkatalog",

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { api, ModelCatalogItem } from "@/lib/api";
 import { getErrorMessage, getErrorStatus } from "@/lib/errors";
+import { loginPathReturningTo } from "@/lib/return-path";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTemplateTranslation } from "@/hooks/useTemplateTranslation";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useDialog } from "@/components/ui/dialog-custom";
 import {
   ArrowLeft,
+  Heart,
   Star,
   Building2,
   ExternalLink,
@@ -25,6 +27,7 @@ import type { Review } from "@/lib/types";
 import { ModelTabs } from "@/components/marketplace/ModelTabs";
 import { ImageGallery } from "@/components/marketplace/ImageGallery";
 import { apiDate } from "@/lib/dates";
+import { cn } from "@/lib/utils";
 
 interface ReviewsResponse {
   items: Review[];
@@ -45,6 +48,10 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openingStudio, setOpeningStudio] = useState(false);
+  // Favourites were only reachable from the lists, so marking one from the model
+  // you were reading meant navigating away and finding it again.
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [togglingFavorite, setTogglingFavorite] = useState(false);
 
   // Review form
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -61,6 +68,44 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
     loadModel();
     loadReviews();
   }, [modelId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setIsFavorite(false);
+      return;
+    }
+    let cancelled = false;
+    api
+      .getFavorites()
+      .then((favs) => {
+        if (!cancelled) setIsFavorite(favs.some((f) => f.id === modelId));
+      })
+      .catch(() => {
+        // The heart is an extra, not the page: an unreadable list leaves it unset.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, modelId]);
+
+  const toggleFavorite = async () => {
+    const next = !isFavorite;
+    setTogglingFavorite(true);
+    // Optimistic: the heart answers the click, and reverts if the server refuses.
+    setIsFavorite(next);
+    try {
+      if (next) {
+        await api.addFavorite(modelId);
+      } else {
+        await api.removeFavorite(modelId);
+      }
+    } catch {
+      setIsFavorite(!next);
+      dialog.showError(t("failedToUpdateFavorite"));
+    } finally {
+      setTogglingFavorite(false);
+    }
+  };
 
   const loadModel = async () => {
     setLoading(true);
@@ -91,7 +136,7 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
   const handleUseInStudio = async () => {
     if (!model) return;
     if (!isAuthenticated) {
-      router.push(`/login?returnUrl=/marketplace/${modelId}`);
+      router.push(loginPathReturningTo(`/marketplace/${modelId}`));
       return;
     }
     setOpeningStudio(true);
@@ -115,7 +160,7 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
     }
 
     if (!isAuthenticated) {
-      router.push(`/login?returnUrl=/marketplace/${modelId}`);
+      router.push(loginPathReturningTo(`/marketplace/${modelId}`));
       return;
     }
 
@@ -243,16 +288,32 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
             <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
               {isAuthenticated ? (
                 <div className="flex flex-col items-stretch sm:items-end gap-1.5">
-                  <Button
-                    onClick={handleUseInStudio}
-                    disabled={openingStudio || model.can_open_in_studio === false}
-                    size="lg"
-                    className="w-full sm:w-auto"
-                    data-testid="marketplace-use-in-studio"
-                  >
-                    <Package className="w-4 h-4 mr-2" />
-                    {openingStudio ? t("openingStudio") : t("useInStudio")}
-                  </Button>
+                  <div className="flex gap-2 sm:justify-end">
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      onClick={toggleFavorite}
+                      disabled={togglingFavorite}
+                      data-testid="marketplace-detail-favorite"
+                      aria-pressed={isFavorite}
+                      title={isFavorite ? t("removeFromFavorites") : t("addToFavorites")}
+                      aria-label={isFavorite ? t("removeFromFavorites") : t("addToFavorites")}
+                    >
+                      <Heart
+                        className={cn("w-4 h-4", isFavorite && "fill-current text-red-500")}
+                      />
+                    </Button>
+                    <Button
+                      onClick={handleUseInStudio}
+                      disabled={openingStudio || model.can_open_in_studio === false}
+                      size="lg"
+                      className="flex-1 sm:flex-none"
+                      data-testid="marketplace-use-in-studio"
+                    >
+                      <Package className="w-4 h-4 mr-2" />
+                      {openingStudio ? t("openingStudio") : t("useInStudio")}
+                    </Button>
+                  </div>
                   {/* Disabled up front instead of failing the click with a 422 —
                       legacy demo listings carry no materializable content. */}
                   {model.can_open_in_studio === false && (
@@ -263,7 +324,7 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
                 </div>
               ) : (
                 <Button
-                  onClick={() => router.push(`/login?returnUrl=/marketplace/${modelId}`)}
+                  onClick={() => router.push(loginPathReturningTo(`/marketplace/${modelId}`))}
                   size="lg"
                   className="w-full sm:w-auto"
                 >
