@@ -3137,6 +3137,47 @@
       "aggregateAtZero": "Variablen bei null",
       "showChartAnyway": "Diagramm trotzdem anzeigen",
       "zerosHidden": "{count, plural, one {# Null-Variable ausgeblendet} other {# Null-Variablen ausgeblendet}}"
+    },
+    "insights": {
+      "category": {
+        "objective": "Zielfunktion",
+        "constraints": "Nebenbedingungen",
+        "variables": "Variablen",
+        "performance": "Leistung"
+      },
+      "varTypes": {
+        "binary": "binäre",
+        "integer": "ganzzahlige",
+        "continuous": "kontinuierliche"
+      },
+      "varTypeCount": "{count} {type}",
+      "codes": {
+        "objective": {
+          "optimal_value": {
+            "maximize": "Optimaler maximierter Wert: {value}",
+            "minimize": "Optimaler minimierter Wert: {value}"
+          },
+          "globally_optimal": "Die Lösung ist global optimal — es gibt keine bessere zulässige Lösung.",
+          "feasible_not_proven": "Die Lösung ist zulässig, aber möglicherweise nicht global optimal. Erhöhen Sie das Zeitlimit.",
+          "infeasible": "Das Problem ist unzulässig — keine Lösung erfüllt alle Nebenbedingungen. Prüfen Sie sie auf Widersprüche.",
+          "unbounded": "Das Problem ist unbeschränkt — die Zielfunktion lässt sich beliebig verbessern. Prüfen Sie auf fehlende Variablenschranken oder Nebenbedingungen."
+        },
+        "performance": {
+          "gap_improvable": "Die MIP-Lücke beträgt {gap, number, percent}. Die Lösung ist möglicherweise verbesserbar — erhöhen Sie das Zeitlimit oder lockern Sie die Gap-Toleranz.",
+          "gap_negligible": "Die MIP-Lücke beträgt {gap, number, percent} — praktisch optimal.",
+          "solved_fast": "In {seconds} s gelöst — sehr schnell.",
+          "solved_slow": "Die Lösung dauerte {seconds} s. Für schnellere Ergebnisse verkleinern Sie das Problem oder lockern Sie die Gap-Toleranz."
+        },
+        "variables": {
+          "at_bounds": "{count} von {total} Variablen ({share, number, percent}) liegen auf ihren Schranken. Ein Lockern könnte die Zielfunktion verbessern.",
+          "zero_valued": "{count} von {total} Variablen ({share, number, percent}) sind in der Lösung null.",
+          "type_mix": "Variablenzusammensetzung: {mix}."
+        },
+        "constraints": {
+          "binding": "{count} von {total} Nebenbedingungen ({share, number, percent}) sind aktiv (im Optimum bindend).",
+          "most_impactful": "Einflussreichste Nebenbedingung: „{name}“ (Schattenpreis: {shadowPrice}). Sie zu lockern würde die Zielfunktion am stärksten verbessern."
+        }
+      }
     }
   },
   "triggers": {

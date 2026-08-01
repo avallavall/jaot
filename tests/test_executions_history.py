@@ -110,3 +110,76 @@ def test_all_executions_does_not_leak_cross_org_model_name(
     row = next(r for r in rows if r["id"] == "exe_hist_crossorg_test")
     assert row["model_name"] is None
     assert row["model_author"] is None
+
+
+# ---------------------------------------------------------------------------
+# The DETAIL endpoint owes the same answer as the list. It did not: it served
+# model_name=null and had no solver_name field at all, so the execution page —
+# and the printable report generated from it — showed "—" for a model and a
+# solver the list names correctly.
+# ---------------------------------------------------------------------------
+
+
+def test_execution_detail_resolves_model_name_like_the_list(
+    authenticated_client: TestClient, db_session: Session, test_organization
+):
+    project = _project(db_session, test_organization.id, name="Detail Named Model")
+    db_session.add(
+        ModelExecution(
+            id="exe_detail_name_test",
+            organization_id=test_organization.id,
+            status="completed",
+            input_data={},
+            origin="visual_builder",
+            source_kind="model_project",
+            source_id=project.id,
+        )
+    )
+    db_session.commit()
+
+    resp = authenticated_client.get("/api/v2/models/executions/exe_detail_name_test")
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["model_name"] == "Detail Named Model"
+
+
+def test_execution_detail_serves_the_solver_it_ran_with(
+    authenticated_client: TestClient, db_session: Session, test_organization
+):
+    db_session.add(
+        ModelExecution(
+            id="exe_detail_solver_test",
+            organization_id=test_organization.id,
+            status="completed",
+            input_data={},
+            origin="api",
+            solver_name="highs",
+        )
+    )
+    db_session.commit()
+
+    resp = authenticated_client.get("/api/v2/models/executions/exe_detail_solver_test")
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["solver_name"] == "highs"
+
+
+# CONTRACT-TEST: the detail endpoint resolves names org-scoped, same as the list.
+def test_execution_detail_does_not_leak_cross_org_model_name(
+    authenticated_client: TestClient, db_session: Session, test_organization, test_organization_2
+):
+    foreign = _project(db_session, test_organization_2.id, name="Secret Detail Model")
+    db_session.add(
+        ModelExecution(
+            id="exe_detail_crossorg_test",
+            organization_id=test_organization.id,
+            status="completed",
+            input_data={},
+            origin="visual_builder",
+            source_kind="model_project",
+            source_id=foreign.id,
+        )
+    )
+    db_session.commit()
+
+    body = authenticated_client.get("/api/v2/models/executions/exe_detail_crossorg_test").json()
+    assert body["model_name"] is None
+    assert body["model_author"] is None

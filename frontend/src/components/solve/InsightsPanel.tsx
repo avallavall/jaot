@@ -2,13 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { Lightbulb, AlertTriangle, CheckCircle, Info } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { api } from "@/lib/api";
 
 interface InsightData {
   category: string;
   message: string;
   severity: string;
+  /** Stable identifier for the localized text; empty on older stored insights. */
+  code?: string;
+  params?: Record<string, unknown>;
 }
 
 interface InsightsPanelProps {
@@ -36,8 +39,12 @@ const SEVERITY_STYLES: Record<string, { icon: typeof Info; bg: string; border: s
   },
 };
 
+const VARIABLE_TYPES = ["binary", "integer", "continuous"] as const;
+
 export function InsightsPanel({ executionId }: InsightsPanelProps) {
   const t = useTranslations("solve.visualization");
+  const ti = useTranslations("solve.insights");
+  const locale = useLocale();
   const [insights, setInsights] = useState<InsightData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -60,6 +67,32 @@ export function InsightsPanel({ executionId }: InsightsPanelProps) {
     fetchInsights();
     return () => { cancelled = true; };
   }, [executionId]);
+
+  // The API's `message` stays English — it is what MCP and API clients read. The UI
+  // renders the `code` instead, so the numbers get the reader's notation too, and
+  // falls back to the message for any insight whose code we do not have a text for.
+  const insightText = (insight: InsightData): string => {
+    if (!insight.code) return insight.message;
+    const key = `codes.${insight.code}`;
+    if (!ti.has(key)) return insight.message;
+    const params =
+      insight.code === "variables.type_mix"
+        ? { mix: variableMix(insight.params ?? {}) }
+        : (insight.params ?? {});
+    return ti(key, params as Record<string, string | number>);
+  };
+
+  // "8 binary, 12 continuous" is three translatable words and a list separator, so
+  // the backend sends counts and the phrase is assembled here.
+  const variableMix = (params: Record<string, unknown>): string => {
+    const parts = VARIABLE_TYPES.filter((type) => typeof params[type] === "number").map((type) =>
+      ti("varTypeCount", { count: params[type] as number, type: ti(`varTypes.${type}`) }),
+    );
+    return new Intl.ListFormat(locale, { style: "long", type: "conjunction" }).format(parts);
+  };
+
+  const categoryLabel = (category: string): string =>
+    ti.has(`category.${category}`) ? ti(`category.${category}`) : category;
 
   if (loading) {
     return (
@@ -89,9 +122,9 @@ export function InsightsPanel({ executionId }: InsightsPanelProps) {
             <Icon className={`h-4 w-4 mt-0.5 flex-shrink-0 ${style.text}`} />
             <div>
               <span className={`text-xs font-medium uppercase tracking-wide ${style.text}`}>
-                {insight.category}
+                {categoryLabel(insight.category)}
               </span>
-              <p className={`text-sm mt-0.5 ${style.text}`}>{insight.message}</p>
+              <p className={`text-sm mt-0.5 ${style.text}`}>{insightText(insight)}</p>
             </div>
           </div>
         );

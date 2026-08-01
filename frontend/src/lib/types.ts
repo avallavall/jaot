@@ -322,7 +322,8 @@ export interface ModelExecution {
   source_id?: string | null;
   solver_name?: string;
   // Resolved display name + author of the model behind the run (studio
-  // ModelProject or activated org model); filled by the history list endpoint.
+  // ModelProject or activated org model); filled by the history list and
+  // detail endpoints alike.
   model_name?: string | null;
   model_author?: string | null;
   // §8/S1: the named dataset the model was compiled against. `dataset_name`

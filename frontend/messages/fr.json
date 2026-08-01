@@ -3137,6 +3137,47 @@
       "aggregateAtZero": "variables à zéro",
       "showChartAnyway": "Afficher quand même le graphique",
       "zerosHidden": "{count, plural, one {# variable nulle masquée} other {# variables nulles masquées}}"
+    },
+    "insights": {
+      "category": {
+        "objective": "Objectif",
+        "constraints": "Contraintes",
+        "variables": "Variables",
+        "performance": "Performance"
+      },
+      "varTypes": {
+        "binary": "binaires",
+        "integer": "entières",
+        "continuous": "continues"
+      },
+      "varTypeCount": "{count} {type}",
+      "codes": {
+        "objective": {
+          "optimal_value": {
+            "maximize": "Valeur optimale maximisée : {value}",
+            "minimize": "Valeur optimale minimisée : {value}"
+          },
+          "globally_optimal": "La solution est optimale au sens global : aucune meilleure solution réalisable n’existe.",
+          "feasible_not_proven": "La solution est réalisable mais peut ne pas être optimale au sens global. Essayez d’augmenter la limite de temps.",
+          "infeasible": "Le problème est irréalisable : aucune solution ne satisfait toutes les contraintes. Vérifiez les contradictions entre elles.",
+          "unbounded": "Le problème est non borné : l’objectif peut être amélioré indéfiniment. Vérifiez les bornes de variables ou contraintes manquantes."
+        },
+        "performance": {
+          "gap_improvable": "L’écart MIP est de {gap, number, percent}. La solution pourrait être améliorée : augmentez la limite de temps ou relâchez la tolérance d’écart.",
+          "gap_negligible": "L’écart MIP est de {gap, number, percent} : optimale en pratique.",
+          "solved_fast": "Résolu en {seconds} s : très rapide.",
+          "solved_slow": "La résolution a pris {seconds} s. Pour aller plus vite, réduisez la taille du problème ou relâchez la tolérance d’écart."
+        },
+        "variables": {
+          "at_bounds": "{count} variables sur {total} ({share, number, percent}) sont à leurs bornes. Les relâcher pourrait améliorer l’objectif.",
+          "zero_valued": "{count} variables sur {total} ({share, number, percent}) valent zéro dans la solution.",
+          "type_mix": "Composition des variables : {mix}."
+        },
+        "constraints": {
+          "binding": "{count} contraintes sur {total} ({share, number, percent}) sont actives (saturées à l’optimum).",
+          "most_impactful": "Contrainte la plus influente : « {name} » (prix dual : {shadowPrice}). La relâcher améliorerait le plus l’objectif."
+        }
+      }
     }
   },
   "triggers": {

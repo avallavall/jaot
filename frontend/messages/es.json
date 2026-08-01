@@ -3137,6 +3137,47 @@
       "aggregateAtZero": "variables en cero",
       "showChartAnyway": "Mostrar el gráfico igualmente",
       "zerosHidden": "{count, plural, one {# variable en cero oculta} other {# variables en cero ocultas}}"
+    },
+    "insights": {
+      "category": {
+        "objective": "Objetivo",
+        "constraints": "Restricciones",
+        "variables": "Variables",
+        "performance": "Rendimiento"
+      },
+      "varTypes": {
+        "binary": "binarias",
+        "integer": "enteras",
+        "continuous": "continuas"
+      },
+      "varTypeCount": "{count} {type}",
+      "codes": {
+        "objective": {
+          "optimal_value": {
+            "maximize": "Valor óptimo maximizado: {value}",
+            "minimize": "Valor óptimo minimizado: {value}"
+          },
+          "globally_optimal": "La solución es óptima global: no existe ninguna solución factible mejor.",
+          "feasible_not_proven": "La solución es factible, pero puede no ser óptima global. Prueba a ampliar el límite de tiempo.",
+          "infeasible": "El problema es infactible: ninguna solución satisface todas las restricciones. Revisa si hay contradicciones entre ellas.",
+          "unbounded": "El problema es no acotado: el objetivo puede mejorarse indefinidamente. Comprueba si faltan cotas de variables o restricciones."
+        },
+        "performance": {
+          "gap_improvable": "El gap MIP es del {gap, number, percent}. La solución podría mejorarse: prueba a ampliar el límite de tiempo o a relajar la tolerancia de gap.",
+          "gap_negligible": "El gap MIP es del {gap, number, percent}: óptima a efectos prácticos.",
+          "solved_fast": "Resuelto en {seconds} s: muy rápido.",
+          "solved_slow": "La resolución tardó {seconds} s. Para ir más rápido, prueba a reducir el tamaño del problema o a relajar la tolerancia de gap."
+        },
+        "variables": {
+          "at_bounds": "{count} de {total} variables ({share, number, percent}) están en sus cotas. Relajarlas podría mejorar el objetivo.",
+          "zero_valued": "{count} de {total} variables ({share, number, percent}) valen cero en la solución.",
+          "type_mix": "Composición de variables: {mix}."
+        },
+        "constraints": {
+          "binding": "{count} de {total} restricciones ({share, number, percent}) son activas (saturadas en el óptimo).",
+          "most_impactful": "Restricción más influyente: «{name}» (precio sombra: {shadowPrice}). Relajarla es lo que más mejoraría el objetivo."
+        }
+      }
     }
   },
   "triggers": {

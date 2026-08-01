@@ -3137,6 +3137,47 @@
       "multiObjective": "Multi-objective optimization finds trade-offs between competing goals, generating a Pareto frontier of optimal solutions.",
       "sensitivityAnalysis": "Sensitivity analysis shows how your optimal solution changes when input parameters vary, helping identify robust decisions.",
       "paretoFrontier": "The Pareto frontier shows all solutions where improving one objective requires worsening another."
+    },
+    "insights": {
+      "category": {
+        "objective": "Objective",
+        "constraints": "Constraints",
+        "variables": "Variables",
+        "performance": "Performance"
+      },
+      "varTypes": {
+        "binary": "binary",
+        "integer": "integer",
+        "continuous": "continuous"
+      },
+      "varTypeCount": "{count} {type}",
+      "codes": {
+        "objective": {
+          "optimal_value": {
+            "maximize": "Optimal maximized value: {value}",
+            "minimize": "Optimal minimized value: {value}"
+          },
+          "globally_optimal": "Solution is globally optimal — no better feasible solution exists.",
+          "feasible_not_proven": "Solution is feasible but may not be globally optimal. Consider increasing the time limit.",
+          "infeasible": "Problem is infeasible — no solution satisfies all constraints. Review constraint definitions for contradictions.",
+          "unbounded": "Problem is unbounded — the objective can be improved indefinitely. Check for missing variable bounds or constraints."
+        },
+        "performance": {
+          "gap_improvable": "MIP gap is {gap, number, percent}. The solution may be improvable — consider increasing the time limit or relaxing gap tolerance.",
+          "gap_negligible": "MIP gap is {gap, number, percent} — effectively optimal.",
+          "solved_fast": "Solved in {seconds}s — very fast.",
+          "solved_slow": "Solve took {seconds}s. For faster results, consider reducing the problem size or relaxing gap tolerance."
+        },
+        "variables": {
+          "at_bounds": "{count} of {total} variables ({share, number, percent}) are at their bounds. Relaxing these bounds could improve the objective.",
+          "zero_valued": "{count} of {total} variables ({share, number, percent}) are zero in the solution.",
+          "type_mix": "Variable mix: {mix}."
+        },
+        "constraints": {
+          "binding": "{count} of {total} constraints ({share, number, percent}) are binding (active at optimality).",
+          "most_impactful": "Most impactful constraint: “{name}” (shadow price: {shadowPrice}). Relaxing this constraint would most improve the objective."
+        }
+      }
     }
   },
   "triggers": {

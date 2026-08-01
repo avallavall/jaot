@@ -833,7 +833,15 @@ export const api = {
     executionId: string,
   ): Promise<{
     execution_id: string;
-    insights: { category: string; message: string; severity: string }[];
+    // `message` is the English wire value API and MCP clients read; `code` +
+    // `params` is what the interface renders in the reader's language.
+    insights: {
+      category: string;
+      message: string;
+      severity: string;
+      code?: string;
+      params?: Record<string, unknown>;
+    }[];
   }> {
     return request(`/api/v2/solve/insights/${executionId}`);
   },

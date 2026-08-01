@@ -3,12 +3,17 @@
 Analyzes a solved OptimizationResult + the original problem definition
 to produce human-readable insights about the solution quality, binding
 constraints, variable utilization, and improvement suggestions.
+
+Each insight carries BOTH an English `message` and a machine-readable
+`code` + `params`. The message is the wire value API and MCP clients read;
+the code is what a localized interface renders, so the same analysis can be
+shown in the reader's language without the solver domain owning translations.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Literal
+from dataclasses import dataclass, field
+from typing import Any, Literal
 
 from app.domains.solver.services.file_export import extract_solution
 from app.schemas.optimization import OptimizationProblem
@@ -24,6 +29,11 @@ class Insight:
     category: InsightCategory
     message: str
     severity: InsightSeverity = "info"
+    #: Stable identifier for this insight, so a UI can localize it. Percentages
+    #: and gaps travel in `params` as fractions (0.4, not 40) — the renderer picks
+    #: the notation, which is the part that differs between locales.
+    code: str = ""
+    params: dict[str, Any] = field(default_factory=dict)
 
 
 def generate_insights(
@@ -55,6 +65,8 @@ def generate_insights(
                 category="objective",
                 message=f"Optimal {sense}d value: {objective_value:,.6g}",
                 severity="success" if solver_status == "optimal" else "info",
+                code=f"objective.optimal_value.{sense}",
+                params={"value": objective_value},
             )
         )
 
@@ -64,6 +76,7 @@ def generate_insights(
                 category="objective",
                 message="Solution is globally optimal — no better feasible solution exists.",
                 severity="success",
+                code="objective.globally_optimal",
             )
         )
     elif solver_status == "feasible":
@@ -73,6 +86,7 @@ def generate_insights(
                 message="Solution is feasible but may not be globally optimal. "
                 "Consider increasing the time limit.",
                 severity="warning",
+                code="objective.feasible_not_proven",
             )
         )
     elif solver_status == "infeasible":
@@ -82,6 +96,7 @@ def generate_insights(
                 message="Problem is infeasible — no solution satisfies all constraints. "
                 "Review constraint definitions for contradictions.",
                 severity="warning",
+                code="objective.infeasible",
             )
         )
     elif solver_status == "unbounded":
@@ -91,6 +106,7 @@ def generate_insights(
                 message="Problem is unbounded — the objective can be improved indefinitely. "
                 "Check for missing variable bounds or constraints.",
                 severity="warning",
+                code="objective.unbounded",
             )
         )
 
@@ -102,6 +118,8 @@ def generate_insights(
                 message=f"MIP gap is {gap:.2%}. The solution may be improvable — "
                 "consider increasing the time limit or relaxing gap tolerance.",
                 severity="warning",
+                code="performance.gap_improvable",
+                params={"gap": gap},
             )
         )
     elif gap is not None and gap <= 0.001:
@@ -110,6 +128,8 @@ def generate_insights(
                 category="performance",
                 message=f"MIP gap is {gap:.4%} — effectively optimal.",
                 severity="success",
+                code="performance.gap_negligible",
+                params={"gap": gap},
             )
         )
 
@@ -121,6 +141,8 @@ def generate_insights(
                     category="performance",
                     message=f"Solved in {solve_time:.2f}s — very fast.",
                     severity="info",
+                    code="performance.solved_fast",
+                    params={"seconds": solve_time},
                 )
             )
         elif solve_time > 60.0:
@@ -130,6 +152,8 @@ def generate_insights(
                     message=f"Solve took {solve_time:.1f}s. For faster results, "
                     "consider reducing the problem size or relaxing gap tolerance.",
                     severity="warning",
+                    code="performance.solved_slow",
+                    params={"seconds": solve_time},
                 )
             )
 
@@ -181,6 +205,8 @@ def _analyze_variables(
                 message=f"{at_bounds} of {total} variables ({pct:.0f}%) are at their bounds. "
                 "Relaxing these bounds could improve the objective.",
                 severity="warning" if pct > 50 else "info",
+                code="variables.at_bounds",
+                params={"count": at_bounds, "total": total, "share": at_bounds / total},
             )
         )
 
@@ -191,6 +217,8 @@ def _analyze_variables(
                 category="variables",
                 message=f"{zero_count} of {total} variables ({pct:.0f}%) are zero in the solution.",
                 severity="info",
+                code="variables.zero_valued",
+                params={"count": zero_count, "total": total, "share": zero_count / total},
             )
         )
 
@@ -205,6 +233,10 @@ def _analyze_variables(
                 category="variables",
                 message=f"Variable mix: {', '.join(parts)}.",
                 severity="info",
+                code="variables.type_mix",
+                # Counts, not a joined phrase: the type names and the way a list is
+                # punctuated ("a, b and c" / "a, b y c") both belong to the renderer.
+                params={vtype: count for vtype, count in type_counts.items() if count > 0},
             )
         )
 
@@ -229,6 +261,8 @@ def _analyze_sensitivity(
                 message=f"{len(binding)} of {total} constraints ({pct:.0f}%) are binding "
                 "(active at optimality).",
                 severity="info",
+                code="constraints.binding",
+                params={"count": len(binding), "total": total, "share": len(binding) / total},
             )
         )
 
@@ -247,5 +281,7 @@ def _analyze_sensitivity(
                 f"(shadow price: {top['shadow_price']:.4g}). "
                 "Relaxing this constraint would most improve the objective.",
                 severity="info",
+                code="constraints.most_impactful",
+                params={"name": top.get("name", "?"), "shadowPrice": top["shadow_price"]},
             )
         )

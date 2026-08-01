@@ -111,6 +111,9 @@ class ModelExecutionResponse(BaseModel):
     error_message: str | None = None
     execution_time_ms: int | None = None
     solver_status: str | None = None
+    # The solver the run REQUESTED. Under "auto" the one that actually ran is
+    # result_data.solver_used; readers should prefer that and fall back here.
+    solver_name: str | None = None
     objective_value: float | None = None
     origin: str | None = None
     trigger_id: str | None = None

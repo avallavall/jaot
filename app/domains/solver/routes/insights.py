@@ -6,9 +6,10 @@ Returns auto-generated analysis of a solve result.
 """
 
 import logging
+from typing import Any
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentOrg, CurrentUser
@@ -28,6 +29,10 @@ class InsightResponse(BaseModel):
     category: InsightCategory
     message: str
     severity: InsightSeverity
+    #: Stable identifier a localized interface renders instead of `message`,
+    #: which stays English for API and MCP clients. Empty for none.
+    code: str = ""
+    params: dict[str, Any] = Field(default_factory=dict)
 
 
 class InsightsResponse(BaseModel):
@@ -70,6 +75,8 @@ def get_execution_insights(
                 category=i.category,
                 message=i.message,
                 severity=i.severity,
+                code=i.code,
+                params=i.params,
             )
             for i in raw_insights
         ],

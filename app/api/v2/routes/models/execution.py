@@ -679,4 +679,8 @@ def get_execution(
 ) -> ModelExecutionResponse:
     """Get details of a specific execution."""
     execution = execution_or_404(db, execution_id, current_user.organization_id)
-    return ModelExecutionResponse.model_validate(execution)
+    item = ModelExecutionResponse.model_validate(execution)
+    # Same name resolution the list does — without it the detail page and the
+    # printable report it generates showed "—" for a model the list names.
+    _attach_model_names(db, current_user.organization_id, [execution], [item])
+    return item

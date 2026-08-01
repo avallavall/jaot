@@ -3137,6 +3137,47 @@
       "aggregateAtZero": "variables a zero",
       "showChartAnyway": "Mostra el gràfic igualment",
       "zerosHidden": "{count, plural, one {# variable a zero oculta} other {# variables a zero ocultes}}"
+    },
+    "insights": {
+      "category": {
+        "objective": "Objectiu",
+        "constraints": "Restriccions",
+        "variables": "Variables",
+        "performance": "Rendiment"
+      },
+      "varTypes": {
+        "binary": "binàries",
+        "integer": "enteres",
+        "continuous": "contínues"
+      },
+      "varTypeCount": "{count} {type}",
+      "codes": {
+        "objective": {
+          "optimal_value": {
+            "maximize": "Valor òptim maximitzat: {value}",
+            "minimize": "Valor òptim minimitzat: {value}"
+          },
+          "globally_optimal": "La solució és òptima global: no existeix cap solució factible millor.",
+          "feasible_not_proven": "La solució és factible, però pot no ser òptima global. Prova d’ampliar el límit de temps.",
+          "infeasible": "El problema és infactible: cap solució satisfà totes les restriccions. Revisa si hi ha contradiccions entre elles.",
+          "unbounded": "El problema no és acotat: l’objectiu es pot millorar indefinidament. Comprova si falten fites de variables o restriccions."
+        },
+        "performance": {
+          "gap_improvable": "El gap MIP és del {gap, number, percent}. La solució es podria millorar: prova d’ampliar el límit de temps o de relaxar la tolerància de gap.",
+          "gap_negligible": "El gap MIP és del {gap, number, percent}: òptima a efectes pràctics.",
+          "solved_fast": "Resolt en {seconds} s: molt ràpid.",
+          "solved_slow": "La resolució ha trigat {seconds} s. Per anar més ràpid, prova de reduir la mida del problema o de relaxar la tolerància de gap."
+        },
+        "variables": {
+          "at_bounds": "{count} de {total} variables ({share, number, percent}) són a les seves fites. Relaxar-les podria millorar l’objectiu.",
+          "zero_valued": "{count} de {total} variables ({share, number, percent}) valen zero en la solució.",
+          "type_mix": "Composició de variables: {mix}."
+        },
+        "constraints": {
+          "binding": "{count} de {total} restriccions ({share, number, percent}) són actives (saturades en l’òptim).",
+          "most_impactful": "Restricció més influent: «{name}» (preu ombra: {shadowPrice}). Relaxar-la és el que més milloraria l’objectiu."
+        }
+      }
     }
   },
   "triggers": {

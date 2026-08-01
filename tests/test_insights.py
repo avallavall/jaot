@@ -261,3 +261,92 @@ class TestInsightsEndpoint:
         resp = authenticated_client.get(f"/api/v2/solve/insights/{exe.id}")
         assert resp.status_code == 200
         assert resp.json()["insights"] == []
+
+
+# ---------------------------------------------------------------------------
+# LOCALIZATION CONTRACT
+#
+# Each insight carries a machine-readable `code` alongside the English `message`,
+# so the interface can render it in the reader's language. The set below is the
+# contract: adding a code here without adding its text to
+# frontend/messages/*.json (solve.insights.codes) means the UI silently falls
+# back to English — which is the defect this replaced.
+# ---------------------------------------------------------------------------
+
+INSIGHT_CODES = {
+    "objective.optimal_value.maximize",
+    "objective.optimal_value.minimize",
+    "objective.globally_optimal",
+    "objective.feasible_not_proven",
+    "objective.infeasible",
+    "objective.unbounded",
+    "performance.gap_improvable",
+    "performance.gap_negligible",
+    "performance.solved_fast",
+    "performance.solved_slow",
+    "variables.at_bounds",
+    "variables.zero_valued",
+    "variables.type_mix",
+    "constraints.binding",
+    "constraints.most_impactful",
+}
+
+
+class TestInsightCodes:
+    """Every insight is renderable in a language other than English."""
+
+    # CONTRACT-TEST: no insight reaches the UI without a localizable code.
+    def test_every_insight_carries_a_code_from_the_contract(self):
+        result = _optimal_result()
+        result["gap"] = 0.10
+        result["solve_time_seconds"] = 120.0
+        result["sensitivity"] = {
+            "constraints": [
+                {"name": "c1", "shadow_price": -1.5, "is_binding": True},
+                {"name": "c2", "shadow_price": 0.0, "is_binding": False},
+            ]
+        }
+        emitted = set()
+        for status in ("optimal", "feasible", "infeasible", "unbounded"):
+            variant = dict(result, solver_status=status)
+            for insight in generate_insights(_simple_problem(), variant):
+                assert insight.code, f"insight without code: {insight.message}"
+                emitted.add(insight.code)
+
+        fast = dict(result, solve_time_seconds=0.05, gap=0.0)
+        emitted.update(i.code for i in generate_insights(_simple_problem(), fast))
+
+        assert emitted <= INSIGHT_CODES, f"undeclared codes: {emitted - INSIGHT_CODES}"
+
+    def test_params_carry_numbers_not_formatted_text(self):
+        """Percentages travel as fractions so the renderer picks the notation."""
+        result = dict(_optimal_result(), gap=0.10)
+        insights = generate_insights(_simple_problem(), result)
+
+        gap = next(i for i in insights if i.code == "performance.gap_improvable")
+        assert gap.params["gap"] == 0.10
+
+        at_bounds = next(i for i in insights if i.code == "variables.at_bounds")
+        assert 0.0 < at_bounds.params["share"] <= 1.0
+        assert at_bounds.params["count"] + 0 == at_bounds.params["count"]
+
+    def test_sense_distinguishes_the_two_optimal_value_codes(self):
+        problem = _simple_problem()
+        minimized = generate_insights(problem, _optimal_result())
+        assert any(i.code == "objective.optimal_value.minimize" for i in minimized)
+
+        problem.objective.sense = ObjectiveSense.MAXIMIZE
+        maximized = generate_insights(problem, _optimal_result())
+        assert any(i.code == "objective.optimal_value.maximize" for i in maximized)
+
+    def test_endpoint_exposes_code_and_params(
+        self, authenticated_client, db_session, test_organization
+    ):
+        exe = _create_execution(db_session, test_organization.id)
+        resp = authenticated_client.get(f"/api/v2/solve/insights/{exe.id}")
+        assert resp.status_code == 200
+        insights = resp.json()["insights"]
+        assert insights
+        assert all(i["code"] in INSIGHT_CODES for i in insights)
+        value = next(i for i in insights if i["code"].startswith("objective.optimal_value"))
+        assert value["params"]["value"] == 2.0

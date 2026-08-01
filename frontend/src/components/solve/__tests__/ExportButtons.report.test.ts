@@ -99,10 +99,29 @@ describe("buildReportHtml", () => {
     const doc = parse(buildReportHtml(makeExecution(), labels, "en"));
     const text = doc.body.textContent ?? "";
     expect(text).toContain("Report Probe Model");
-    expect(text).toContain("scip");
+    expect(text).toContain("SCIP"); // brand casing, same as the page it came from
     expect(text).toContain("1.25%");
     expect(text).toContain("x1 + x2 >= 1");
     expect(text).toContain("x3 <= 10");
+  });
+
+  it("names the solver that actually ran, not the one requested", () => {
+    // Under solver_name="auto" only result_data.solver_used records where the
+    // backend routed — the detail page reads it, so the report must agree.
+    const execution = makeExecution({
+      solver_name: "auto",
+      result_data: {
+        status: "optimal",
+        solver_used: "highs",
+        variables: [{ name: "x1", type: "binary", value: 1 }],
+      } as unknown as ModelExecution["result_data"],
+    });
+    const doc = parse(buildReportHtml(execution, labels, "en"));
+    const solverItem = [...doc.querySelectorAll(".meta-item")]
+      .map((n) => n.textContent ?? "")
+      .find((t) => t.includes(labels.solverLabel));
+    expect(solverItem).toContain("HiGHS");
+    expect(solverItem).not.toContain("auto");
   });
 
   it("prints the origin label it was handed, not the execution's raw slug", () => {
@@ -146,6 +165,42 @@ describe("buildReportHtml", () => {
     );
     expect(varRows).toHaveLength(500);
     expect(doc.body.textContent).toContain("showing 500 of 620");
+  });
+
+  // CONTRACT-TEST: a printable report stays printable on a real indexed model.
+  it("caps the constraints table and truncates a runaway expression", () => {
+    // Measured on the reference install: 97,642 constraints totalling 11 MB of
+    // expressions, one of them 14,221 characters. Uncapped, with break-all
+    // wrapping, that is a "printable" document over 200,000 px tall.
+    const many = Array.from({ length: 900 }, (_, i) => ({
+      name: `c${i}`,
+      expression: `${"x".repeat(2000)} <= ${i}`,
+    }));
+    const execution = makeExecution({ input_data: { name: "Huge", constraints: many } });
+    const doc = parse(buildReportHtml(execution, labels, "en"));
+
+    const constraintRows = Array.from(doc.querySelectorAll(".constraint-expr"));
+    expect(constraintRows).toHaveLength(300);
+    expect(doc.body.textContent).toContain("showing 300 of 900");
+    for (const cell of constraintRows) {
+      expect((cell.textContent ?? "").length).toBeLessThanOrEqual(401);
+    }
+  });
+
+  it("treats a stringy zero as zero, like the on-screen explorer does", () => {
+    const execution = makeExecution({
+      result_data: {
+        status: "optimal",
+        variables: [
+          { name: "kept", type: "continuous", value: "3.5" },
+          { name: "dropped", type: "continuous", value: "0" },
+        ],
+      } as unknown as ModelExecution["result_data"],
+    });
+    const doc = parse(buildReportHtml(execution, labels, "en"));
+    const varNames = Array.from(doc.querySelectorAll(".var-name")).map((n) => n.textContent);
+    expect(varNames).toContain("kept");
+    expect(varNames).not.toContain("dropped");
   });
 
   it("stamps the caller's locale on the document (not a hardcoded en)", () => {

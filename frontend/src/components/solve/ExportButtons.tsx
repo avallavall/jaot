@@ -18,6 +18,7 @@ import { downloadCSV } from "@/lib/csv-utils";
 import { extractVariables } from "@/lib/result-utils";
 import { apiDate } from "@/lib/dates";
 import { originLabel } from "@/lib/execution-origin";
+import { solverDisplayName } from "@/lib/solver-display";
 
 interface ExportButtonsProps {
   execution: ModelExecution;
@@ -140,6 +141,13 @@ async function captureChartAsImage(
 const REPORT_NEAR_ZERO = 1e-9;
 const REPORT_VARIABLE_CAP = 500;
 
+/** The constraints table needs the same discipline, and it is the harsher case:
+ * a real routing model on the reference install carries 97,642 constraints whose
+ * expressions total 11 MB, one of them 14,221 characters long. Uncapped and
+ * unwrapped that produced a "printable" document 213,448 px tall. */
+const REPORT_CONSTRAINT_CAP = 300;
+const REPORT_EXPRESSION_MAX_CHARS = 400;
+
 /** The report is a hand-built HTML document served from a same-origin blob URL,
  * and variable/constraint names come from the MODEL AUTHOR — with the fused
  * marketplace that may be a third party. Everything user-controlled must be
@@ -151,6 +159,14 @@ function escapeHtml(value: unknown): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+/** A single expression can run to thousands of characters on an indexed model;
+ * `word-break: break-all` then turns one row into a page. Keep the head, say so. */
+function truncateExpression(expression: string): string {
+  return expression.length > REPORT_EXPRESSION_MAX_CHARS
+    ? `${expression.slice(0, REPORT_EXPRESSION_MAX_CHARS)}…`
+    : expression;
 }
 
 /** Build the printable solution report (pure — unit-testable). */
@@ -167,9 +183,10 @@ export function buildReportHtml(
     [];
 
   // Non-zero by default + hard cap — mirror the insights presentation.
-  const nonZero = allVariables.filter(
-    (v) => typeof v.value !== "number" || Math.abs(v.value) > REPORT_NEAR_ZERO
-  );
+  // Coerce rather than short-circuit on non-numbers: the on-screen explorer does
+  // `Math.abs(v.value)` on a value the API types as number|string, so a stringy
+  // "0" is filtered there and must be filtered here too, or the two disagree.
+  const nonZero = allVariables.filter((v) => !(Math.abs(Number(v.value)) <= REPORT_NEAR_ZERO));
   const omittedZeros = allVariables.length - nonZero.length;
   const shownVariables = nonZero.slice(0, REPORT_VARIABLE_CAP);
   const notices: string[] = [];
@@ -192,12 +209,18 @@ export function buildReportHtml(
     )
     .join("\n");
 
-  const constraintRows = constraints
+  const shownConstraints = constraints.slice(0, REPORT_CONSTRAINT_CAP);
+  const constraintsNotice =
+    constraints.length > shownConstraints.length
+      ? `<p class="table-notice">${labels.rowsCapped(shownConstraints.length, constraints.length)}</p>`
+      : "";
+
+  const constraintRows = shownConstraints
     .map(
       (c) =>
         `<tr>
           <td><span class="var-name">${escapeHtml(c.name ?? "—")}</span></td>
-          <td class="constraint-expr">${escapeHtml(c.expression ?? "—")}</td>
+          <td class="constraint-expr">${escapeHtml(truncateExpression(c.expression ?? "—"))}</td>
         </tr>`
     )
     .join("\n");
@@ -217,7 +240,11 @@ export function buildReportHtml(
 
   const modelName =
     execution.model_name || (execution.input_data?.name as string | undefined) || "\u2014";
-  const solverName = execution.solver_name || "\u2014";
+  // The solver that ACTUALLY ran: under solver_name="auto" the backend routes and
+  // only `solver_used` records where it landed. Same resolution and same brand
+  // casing as the detail page the report is generated from.
+  const effectiveSolver = (resultData?.solver_used as string | undefined) ?? execution.solver_name;
+  const solverName = effectiveSolver ? solverDisplayName(effectiveSolver) : "\u2014";
   const gap = (resultData?.gap as number | null | undefined) ?? null;
   const gapStr =
     gap != null
@@ -523,6 +550,7 @@ export function buildReportHtml(
   </div>
 
   <h2>${labels.constraintDetails}</h2>
+  ${constraintsNotice}
   <div class="table-card">
     <table>
       <thead>
