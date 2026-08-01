@@ -472,7 +472,12 @@
       "docs": "Documentación",
       "licenses": "Licencias",
       "history": "Historial",
-      "authorAnalytics": "Analíticas de autores"
+      "authorAnalytics": "Analíticas de autores",
+      "compare": "Comparar",
+      "import": "Importar",
+      "platform": "Plataforma",
+      "publish": "Publicar",
+      "studio": "Estudio"
     },
     "help": {
       "title": "Ayuda y recursos",
@@ -2605,10 +2610,6 @@
       "title": "Historial de ejecuciones",
       "subtitle": "Ver todas tus ejecuciones de modelos",
       "allStatus": "Todos los estados",
-      "completed": "Completada",
-      "failed": "Fallida",
-      "running": "En curso",
-      "pending": "Pendiente",
       "allOrigins": "Todos los orígenes",
       "totalExecutions": "{count} ejecuciones en total",
       "external": "Externa",
@@ -2742,7 +2743,8 @@
       "cannotCompare": "No se puede comparar: una o ambas ejecuciones no tienen datos de resultado.",
       "executionNotFound": "Ejecución no encontrada.",
       "goBack": "Volver",
-      "back": "Volver"
+      "back": "Volver",
+      "comparingPair": "Comparando <id>{a}</id> con <id>{b}</id>"
     },
     "favorites": {
       "title": "Mis modelos",

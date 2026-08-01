@@ -12,6 +12,11 @@ import { routing } from "@/i18n/routing";
  */
 const SEGMENT_KEYS: Record<string, string> = {
   solve: "breadcrumbs.solve",
+  studio: "breadcrumbs.studio",
+  compare: "breadcrumbs.compare",
+  import: "breadcrumbs.import",
+  platform: "breadcrumbs.platform",
+  publish: "breadcrumbs.publish",
   workspace: "breadcrumbs.workspace",
   marketplace: "breadcrumbs.marketplace",
   admin: "breadcrumbs.admin",

@@ -107,10 +107,13 @@ function ComparePageInner() {
         </button>
         <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Comparing{" "}
-          <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{idA}</span>
-          {" "}vs{" "}
-          <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{idB}</span>
+          {t.rich("comparingPair", {
+            a: idA,
+            b: idB,
+            id: (chunks) => (
+              <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{chunks}</span>
+            ),
+          })}
         </p>
       </div>
 

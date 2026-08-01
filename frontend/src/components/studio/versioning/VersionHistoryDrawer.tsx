@@ -22,6 +22,7 @@ import { ByokHint } from "@/components/llm/ByokHint";
 import type { Conversation } from "@/lib/llm-types";
 import type { ProjectVersionSummary, ProjectVersionDiff } from "@/lib/types";
 import { apiDate } from "@/lib/dates";
+import { diffCategoryLabel } from "./commit-helpers";
 
 interface VersionHistoryDrawerProps {
   projectId: string;
@@ -223,7 +224,12 @@ export function VersionHistoryDrawer({
                     ~ {t("versionDiffObjective")}
                   </li>
                 )}
-                {diff.entries.map((e, i) => (
+                {/* The objective entry duplicates the dedicated line above — same
+                    fact, and its name is literally "objective", so it rendered as
+                    "~ objective objective". Drop it and keep the readable line. */}
+                {diff.entries
+                  .filter((e) => e.kind !== "objective")
+                  .map((e, i) => (
                   <li
                     key={`${e.kind}-${e.name}-${i}`}
                     className={
@@ -239,7 +245,8 @@ export function VersionHistoryDrawer({
                       : e.change === "removed"
                         ? "−"
                         : "~"}{" "}
-                    {e.kind} <span className="font-medium">{e.name}</span>
+                    {diffCategoryLabel(e.kind, t)}{" "}
+                    <span className="font-medium">{e.name}</span>
                     {e.detail ? ` — ${e.detail}` : ""}
                   </li>
                 ))}

@@ -472,7 +472,12 @@
       "docs": "Documentation",
       "licenses": "Licenses",
       "history": "History",
-      "authorAnalytics": "Author Analytics"
+      "authorAnalytics": "Author Analytics",
+      "compare": "Compare",
+      "import": "Import",
+      "platform": "Platform",
+      "publish": "Publish",
+      "studio": "Studio"
     },
     "help": {
       "title": "Help & Resources",
@@ -2630,10 +2635,6 @@
       "title": "Execution History",
       "subtitle": "View all your model executions",
       "allStatus": "All Status",
-      "completed": "Completed",
-      "failed": "Failed",
-      "running": "Running",
-      "pending": "Pending",
       "allOrigins": "All Origins",
       "totalExecutions": "{count} total executions",
       "external": "External",
@@ -2767,7 +2768,8 @@
       "cannotCompare": "Cannot compare: one or both executions have no result data.",
       "executionNotFound": "Execution not found.",
       "goBack": "Go Back",
-      "back": "Back"
+      "back": "Back",
+      "comparingPair": "Comparing <id>{a}</id> vs <id>{b}</id>"
     },
     "favorites": {
       "title": "My Models",

@@ -12,6 +12,33 @@ interface RenameDeps {
   getName?: () => string;
 }
 
+/** What a blur on the name input should do, once Escape and blanks are accounted for. */
+export type RenameBlurOutcome =
+  | { action: "discard"; draft: string }
+  | { action: "commit"; draft: string };
+
+/**
+ * Decide what a blur on the model-name input means. Split out of the shell because
+ * `blur()` runs synchronously inside the keydown handler, so the blur handler still
+ * closes over the pre-Escape draft — the cancel intent has to travel as an argument,
+ * not as React state.
+ *
+ * Escape discards the edit outright (no PATCH). A blank name is not a rename either:
+ * it restores the stored name instead of leaving the field visually empty.
+ */
+export function resolveRenameBlur({
+  draft,
+  storedName,
+  cancelled,
+}: {
+  draft: string;
+  storedName: string;
+  cancelled: boolean;
+}): RenameBlurOutcome {
+  if (cancelled || !draft.trim()) return { action: "discard", draft: storedName };
+  return { action: "commit", draft: draft.trim() };
+}
+
 /**
  * Commit a model rename: optimistically update the store, persist via PATCH, and
  * revert the store on failure. No-op when the name is blank, unchanged, or the

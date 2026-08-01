@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   User,
@@ -15,6 +15,7 @@ import {
   Award,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { apiDate } from "@/lib/dates";
 import type { UserProfile, Review } from "@/lib/types";
 
 type UserPublicProfile = UserProfile & { created_at?: string };
@@ -27,6 +28,7 @@ export default function UserProfilePage() {
   const router = useRouter();
   const userId = params.userId as string;
   const t = useTranslations("workspace.userPublicProfile");
+  const format = useFormatter();
 
   const [profile, setProfile] = useState<UserPublicProfile | null>(null);
   const [reviews, setReviews] = useState<UserReview[]>([]);
@@ -58,12 +60,9 @@ export default function UserProfilePage() {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-    });
-  };
+  // next-intl's formatter follows the active locale — "junio de 2026", not "June 2026".
+  const formatDate = (dateStr: string) =>
+    format.dateTime(apiDate(dateStr), { year: "numeric", month: "long" });
 
   if (loading) {
     return (

@@ -472,7 +472,12 @@
       "docs": "Documentació",
       "licenses": "Llicències",
       "history": "Historial",
-      "authorAnalytics": "Analítiques d'autors"
+      "authorAnalytics": "Analítiques d'autors",
+      "compare": "Comparar",
+      "import": "Importar",
+      "platform": "Plataforma",
+      "publish": "Publicar",
+      "studio": "Estudi"
     },
     "help": {
       "title": "Ajuda i recursos",
@@ -2605,10 +2610,6 @@
       "title": "Historial d'Execucions",
       "subtitle": "Visualitzeu totes les execucions dels vostres models",
       "allStatus": "Tots els Estats",
-      "completed": "Completada",
-      "failed": "Fallida",
-      "running": "En execució",
-      "pending": "Pendent",
       "allOrigins": "Tots els Orígens",
       "totalExecutions": "{count} execucions en total",
       "external": "Extern",
@@ -2742,7 +2743,8 @@
       "cannotCompare": "No es pot comparar: una o ambdues execucions no tenen dades de resultat.",
       "executionNotFound": "Execució no trobada.",
       "goBack": "Tornar Enrere",
-      "back": "Tornar"
+      "back": "Tornar",
+      "comparingPair": "Comparant <id>{a}</id> amb <id>{b}</id>"
     },
     "favorites": {
       "title": "Els Meus Models",

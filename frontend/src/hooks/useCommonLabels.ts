@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 
 /**
@@ -21,15 +22,20 @@ function titleCase(value: string): string {
 export function useCommonLabels() {
   const tc = useTranslations("common");
 
-  return {
-    categoryLabel: (category: string): string =>
-      tc.has(`categories.${category}`)
-        ? tc(`categories.${category}`)
-        : titleCase(category),
+  // Memoized so callers can list these in a useMemo dependency array and still get
+  // the memo they asked for — a fresh object each render would re-derive every time.
+  return useMemo(
+    () => ({
+      categoryLabel: (category: string): string =>
+        tc.has(`categories.${category}`)
+          ? tc(`categories.${category}`)
+          : titleCase(category),
 
-    statusLabel: (status: string): string =>
-      tc.has(`executionStatus.${status}`)
-        ? tc(`executionStatus.${status}`)
-        : titleCase(status),
-  };
+      statusLabel: (status: string): string =>
+        tc.has(`executionStatus.${status}`)
+          ? tc(`executionStatus.${status}`)
+          : titleCase(status),
+    }),
+    [tc],
+  );
 }

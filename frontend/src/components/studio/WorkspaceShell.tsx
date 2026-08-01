@@ -13,7 +13,7 @@ import { LiveStatsPanel } from "./LiveStatsPanel";
 import { VersionControls } from "./versioning/VersionControls";
 import { useModelProjectStore, useModelProjectStoreApi } from "./store/useModelProjectStore";
 import type { SaveState } from "./store/createModelProjectStore";
-import { commitRename } from "./rename";
+import { commitRename, resolveRenameBlur } from "./rename";
 
 /**
  * The persistent workspace chrome: header (editable model name + save state +
@@ -49,10 +49,20 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
 
   const goToSolve = () => router.push(`/studio/${modelId}/solve`);
 
-  const onRenameBlur = () =>
+  // Escape has to hand its intent to the blur handler through a ref: `blur()` fires
+  // synchronously from the keydown handler, so `draft` there is still the pre-Escape
+  // text and a state update would land too late to be seen.
+  const cancelledRef = useRef(false);
+
+  const onRenameBlur = () => {
+    const cancelled = cancelledRef.current;
+    cancelledRef.current = false;
+    const outcome = resolveRenameBlur({ draft, storedName: name, cancelled });
+    setDraft(outcome.draft);
+    if (outcome.action === "discard") return;
     commitRename({
       modelId,
-      next: draft,
+      next: outcome.draft,
       current: name,
       setName,
       getName: () => storeApi.getState().name,
@@ -62,6 +72,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
         toast.error(t("renameError"));
       },
     });
+  };
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -86,7 +97,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
             onKeyDown={(e) => {
               if (e.key === "Enter") (e.target as HTMLInputElement).blur();
               if (e.key === "Escape") {
-                setDraft(name);
+                cancelledRef.current = true;
                 (e.target as HTMLInputElement).blur();
               }
             }}

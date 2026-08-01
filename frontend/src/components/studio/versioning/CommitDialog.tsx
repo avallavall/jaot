@@ -24,7 +24,7 @@ import {
   isValidSummary,
   suggestedSummary,
   detectedChanges,
-  type DiffCategory,
+  diffCategoryLabel,
 } from "./commit-helpers";
 
 interface CommitDialogProps {
@@ -90,18 +90,6 @@ export function CommitDialog({
   const suggestion = suggestedSummary(diff);
   const changes = detectedChanges(diff);
 
-  const categoryLabel = (category: DiffCategory): string => {
-    switch (category) {
-      case "variable":
-        return t("versionCatVariable");
-      case "constraint":
-        return t("versionCatConstraint");
-      case "objective":
-        return t("versionCatObjective");
-      case "link":
-        return t("versionCatLink");
-    }
-  };
 
   // Flush the on-screen model into the draft (so the committed version matches it),
   // refetching the lock once on a concurrency conflict.
@@ -220,7 +208,7 @@ export function CommitDialog({
                   {c.added > 0 && `+${c.added} `}
                   {c.removed > 0 && `−${c.removed} `}
                   {c.modified > 0 && `~${c.modified} `}
-                  {categoryLabel(c.category)}
+                  {diffCategoryLabel(c.category, t)}
                   {i < changes.length - 1 ? " · " : ""}
                 </span>
               ))}

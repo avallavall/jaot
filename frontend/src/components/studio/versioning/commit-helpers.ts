@@ -16,6 +16,28 @@ export function suggestedSummary(diff: CanvasDiff | null): string {
 
 export type DiffCategory = "variable" | "constraint" | "objective" | "link";
 
+/** The `studio.versionCat*` keys, by category. One definition for every diff surface. */
+const CATEGORY_KEYS: Record<DiffCategory, string> = {
+  variable: "versionCatVariable",
+  constraint: "versionCatConstraint",
+  objective: "versionCatObjective",
+  link: "versionCatLink",
+};
+
+/**
+ * Translate a diff category for display. Takes the `studio` translator so it stays
+ * React-free; the server-side diff sends these as raw English words ("variable",
+ * "constraint"), which is fine as a wire value and wrong as a label.
+ * Unknown categories fall through untouched rather than throwing.
+ */
+export function diffCategoryLabel(
+  category: string,
+  t: (key: string) => string,
+): string {
+  const key = CATEGORY_KEYS[category as DiffCategory];
+  return key ? t(key) : category;
+}
+
 export interface DetectedChange {
   category: DiffCategory;
   added: number;

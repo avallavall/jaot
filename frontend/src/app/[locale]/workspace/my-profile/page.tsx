@@ -19,8 +19,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGuidance } from "@/contexts/GuidanceContext";
 import { SkillLevelSelector } from "@/components/guidance/SkillLevelSelector";
 import { AccountDataSection } from "@/components/account/AccountDataSection";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { toast } from "sonner";
+import { apiDate } from "@/lib/dates";
 import type { UserProfile, SkillLevel } from "@/lib/types";
 
 type UserPublicProfile = UserProfile & { created_at: string };
@@ -29,6 +30,7 @@ export default function MyProfilePage() {
   const dialog = useDialog();
   const { user } = useAuth();
   const t = useTranslations("workspace.myProfile");
+  const format = useFormatter();
 
   const [profile, setProfile] = useState<UserPublicProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -104,12 +106,9 @@ export default function MyProfilePage() {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-    });
-  };
+  // next-intl's formatter follows the active locale — "junio de 2026", not "June 2026".
+  const formatDate = (dateStr: string) =>
+    format.dateTime(apiDate(dateStr), { year: "numeric", month: "long" });
 
   if (loading) {
     return (

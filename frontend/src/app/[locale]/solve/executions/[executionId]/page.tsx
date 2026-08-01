@@ -21,10 +21,15 @@ import { SolveFactCard } from "@/components/solve/SolveFactCard";
 import { useSolverCapabilities } from "@/hooks/useSolvers";
 import { solverDisplayName } from "@/lib/solver-display";
 import { useTranslations } from "next-intl";
+import { useCommonLabels } from "@/hooks/useCommonLabels";
 import { Database } from "lucide-react";
+
+/** How often an unfinished run is re-fetched while its detail page is open. */
+const EXECUTION_POLL_MS = 3000;
 
 export default function ExecutionDetailPage() {
   const t = useTranslations("solve.execution");
+  const { statusLabel } = useCommonLabels();
   const params = useParams();
   const router = useRouter();
   const executionId = params.executionId as string;
@@ -52,16 +57,33 @@ export default function ExecutionDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [executionId]);
 
-  const loadExecution = async () => {
-    setLoading(true);
-    setError(null);
+  // Arriving here with the run still in flight is a normal path — it is exactly what
+  // the list's "View" button offers on a pending row. Poll until it settles instead
+  // of freezing on "pending" until the user thinks to refresh by hand.
+  useEffect(() => {
+    const status = execution?.status;
+    if (status !== "pending" && status !== "running") return;
+    const timer = setInterval(() => {
+      void loadExecution({ silent: true });
+    }, EXECUTION_POLL_MS);
+    return () => clearInterval(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [execution?.status, executionId]);
+
+  // `silent` refreshes keep the rendered run on screen: no skeleton flash, and a
+  // transient poll failure does not replace a perfectly good page with an error.
+  const loadExecution = async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const data = await api.getExecution(executionId);
       setExecution(data);
     } catch (err) {
-      setError(getErrorMessage(err, t("failedToLoad")));
+      if (!silent) setError(getErrorMessage(err, t("failedToLoad")));
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -73,6 +95,8 @@ export default function ExecutionDetailPage() {
         return "bg-red-100 text-red-800 border-red-200";
       case "running":
         return "bg-blue-100 text-blue-800 border-blue-200";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
       case "timeout":
         return "bg-yellow-100 text-yellow-800 border-yellow-200";
       default:
@@ -133,7 +157,7 @@ export default function ExecutionDetailPage() {
           <span
             className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(execution.status)}`}
           >
-            {execution.status}
+            {statusLabel(execution.status)}
           </span>
           <OriginBadge
             origin={execution.origin}

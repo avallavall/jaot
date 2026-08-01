@@ -19,6 +19,18 @@ import { apiDate } from "@/lib/dates";
 // here would be a filter that always returns nothing.
 const ORIGIN_FILTER_KEYS = ORIGIN_KEYS.filter((key) => key !== "model_project");
 
+// Every status the backend can store (app/models/optimization_model.py:ExecutionStatus).
+// Kept whole so a status the table can paint is also a status the filter can reach —
+// "cancelled" and "timeout" were both showing up in rows with no way to filter for them.
+const STATUS_FILTER_KEYS = [
+  "completed",
+  "failed",
+  "running",
+  "pending",
+  "cancelled",
+  "timeout",
+] as const;
+
 export default function ExecutionsPage() {
   const t = useTranslations("solve.executions");
   const tOrigin = useTranslations("solve.origin");
@@ -91,10 +103,11 @@ export default function ExecutionsPage() {
           className="px-3 py-2 rounded-md border bg-background text-sm"
         >
           <option value="">{t("allStatus")}</option>
-          <option value="completed">{t("completed")}</option>
-          <option value="failed">{t("failed")}</option>
-          <option value="running">{t("running")}</option>
-          <option value="pending">{t("pending")}</option>
+          {STATUS_FILTER_KEYS.map((status) => (
+            <option key={status} value={status}>
+              {statusLabel(status)}
+            </option>
+          ))}
         </select>
 
         <select

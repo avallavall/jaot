@@ -11,6 +11,7 @@ import {
 } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { buildOriginSlices } from "@/lib/execution-origin";
+import { useCommonLabels } from "@/hooks/useCommonLabels";
 import { Button } from "@/components/ui/button";
 import { OriginBadge } from "@/components/solve/OriginBadge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -73,10 +74,9 @@ interface DistributionPieCardProps {
   title: string;
   data: PieEntry[];
   noDataLabel: string;
-  capitalizeLabel?: boolean;
 }
 
-function DistributionPieCard({ title, data, noDataLabel, capitalizeLabel }: DistributionPieCardProps) {
+function DistributionPieCard({ title, data, noDataLabel }: DistributionPieCardProps) {
   return (
     <div className="bg-card border border-border rounded-lg p-4">
       <h3 className="font-semibold mb-4">{title}</h3>
@@ -96,7 +96,7 @@ function DistributionPieCard({ title, data, noDataLabel, capitalizeLabel }: Dist
             {data.map((entry) => (
               <div key={entry.name} className="flex items-center gap-2 text-sm">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.fill }} />
-                <span className={capitalizeLabel ? "capitalize" : ""}>{entry.name}</span>
+                <span>{entry.name}</span>
                 <span className="font-medium">{entry.value}</span>
               </div>
             ))}
@@ -113,6 +113,7 @@ export default function SolveAnalyticsPage() {
   const t = useTranslations("solve.analytics");
   // Origin labels live in one namespace shared with the badge — see execution-origin.
   const tOrigin = useTranslations("solve.origin");
+  const { statusLabel } = useCommonLabels();
   const router = useRouter();
 
   const [period, setPeriod] = useState<Period>(30);
@@ -188,16 +189,19 @@ export default function SolveAnalyticsPage() {
   };
 
   // Prepare chart data (memoized to avoid re-derivation on unrelated renders)
+  // Labels come from the same statusLabel() the executions list uses, so the donut
+  // says "Completada" where the table says "Completada" — not a CSS-capitalized
+  // "Completed" straight out of the API.
   const statusData = useMemo<PieEntry[]>(
     () =>
       summary
-        ? Object.entries(summary.executions_by_status).map(([name, value]) => ({
-            name,
+        ? Object.entries(summary.executions_by_status).map(([status, value]) => ({
+            name: statusLabel(status),
             value,
-            fill: STATUS_COLORS[name] || "#9ca3af",
+            fill: STATUS_COLORS[status] || "#9ca3af",
           }))
         : [],
-    [summary],
+    [summary, statusLabel],
   );
 
   // One slice per origin the backend reports, largest first. The mapping itself
@@ -397,7 +401,6 @@ export default function SolveAnalyticsPage() {
                   title={t("statusDistribution")}
                   data={statusData}
                   noDataLabel={t("noData")}
-                  capitalizeLabel
                 />
                 <DistributionPieCard
                   title={t("originDistribution")}

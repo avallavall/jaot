@@ -1,5 +1,27 @@
 import { describe, it, expect, vi } from "vitest";
-import { commitRename } from "../rename";
+import { commitRename, resolveRenameBlur } from "../rename";
+
+describe("resolveRenameBlur", () => {
+  // CONTRACT-TEST: Escape discards a rename — it must never reach the server.
+  it("discards the edit and restores the stored name when Escape cancelled it", () => {
+    expect(
+      resolveRenameBlur({ draft: "Typed but cancelled", storedName: "Crew Scheduler", cancelled: true })
+    ).toEqual({ action: "discard", draft: "Crew Scheduler" });
+  });
+
+  it("restores the stored name when the field was left blank", () => {
+    expect(resolveRenameBlur({ draft: "   ", storedName: "Crew Scheduler", cancelled: false })).toEqual({
+      action: "discard",
+      draft: "Crew Scheduler",
+    });
+  });
+
+  it("commits the trimmed draft otherwise", () => {
+    expect(
+      resolveRenameBlur({ draft: "  Fleet Router  ", storedName: "Crew Scheduler", cancelled: false })
+    ).toEqual({ action: "commit", draft: "Fleet Router" });
+  });
+});
 
 describe("commitRename", () => {
   it("optimistically renames the store and persists via update", async () => {
