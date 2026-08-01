@@ -26,6 +26,7 @@ from app.domains.solver.adapters._scip_model_builder import (
     build_scip_model as _build_scip_model_impl,
 )
 from app.domains.solver.adapters.base import STRICT_EPSILON, SolverCapabilities
+from app.domains.solver.constraint_activity import is_binding_within_bounds
 from app.domains.solver.services.expression_parser import ExpressionParser, ParsedExpression
 from app.schemas.optimization import (
     ConstraintSensitivity,
@@ -523,15 +524,39 @@ class SCIPAdapter:
         """
         constraint_sensitivities = []
 
+        # "Binding" is a statement about slack, not about price — see
+        # app/domains/solver/constraint_activity.py for the measurements that
+        # forced this apart. On the MIP path this model is a *separate* LP
+        # relaxation whose solution is not the one the caller was given, so no
+        # honest answer about their solution exists here and we say None.
+        sol = None
+        if not is_approximate:
+            try:
+                sol = model.getBestSol()
+            except Exception as e:  # pragma: no cover — defensive
+                logger.debug("No solution available for binding status: %s", e)
+        infinity = model.infinity()
+
         for name, cons in constraint_refs.items():
             shadow_price = None
             is_binding = None
             try:
                 shadow_price = model.getDualSolVal(cons)
-                # A constraint is binding if |shadow_price| > small epsilon
-                is_binding = abs(shadow_price) > 1e-8
             except Exception as e:
                 logger.debug("Could not extract dual for constraint %s: %s", name, e)
+            if sol is not None:
+                try:
+                    # getActivity needs the solution passed explicitly: in SCIP's
+                    # solved stage the no-argument form reads no current LP and
+                    # returns 1e20 for every row.
+                    is_binding = is_binding_within_bounds(
+                        model.getActivity(cons, sol),
+                        model.getLhs(cons),
+                        model.getRhs(cons),
+                        infinity,
+                    )
+                except Exception as e:
+                    logger.debug("Could not read activity for constraint %s: %s", name, e)
 
             constraint_sensitivities.append(
                 ConstraintSensitivity(

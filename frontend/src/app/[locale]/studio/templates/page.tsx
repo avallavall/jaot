@@ -33,9 +33,9 @@ function TemplateCard({ template, onUse, busy }: TemplateCardProps) {
         </span>
       </div>
       <h3 className="font-semibold text-sm mt-2">{tmpl.displayName(template.display_name)}</h3>
-      {template.description && (
+      {template.short_description && (
         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-          {tmpl.description(template.description)}
+          {tmpl.description(template.short_description)}
         </p>
       )}
       <div className="mt-3 flex items-center justify-end">
@@ -95,7 +95,7 @@ export default function StudioTemplatesPage() {
       const name = tt.has(`${key}.displayName`) ? tt(`${key}.displayName`) : tpl.display_name;
       const desc = tt.has(`${key}.description`)
         ? tt(`${key}.description`)
-        : (tpl.description ?? "");
+        : (tpl.short_description ?? "");
       const categoryKey = `templates.categories.${tpl.category}`;
       const category = tb.has(categoryKey) ? tb(categoryKey) : tpl.category;
       return `${name} ${desc} ${category} ${tpl.display_name} ${tpl.id}`

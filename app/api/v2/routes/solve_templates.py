@@ -70,7 +70,6 @@ _SUMMARY_FIELDS = {
     "name",
     "display_name",
     "short_description",
-    "description",
     "category",
     "tags",
     "problem_type_tags",
@@ -85,19 +84,35 @@ _SUMMARY_FIELDS = {
 def list_templates(
     category: str | None = None,
     featured: bool | None = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=200),
 ) -> TemplateListResponse:
-    """List all available optimization templates from YAML definitions."""
+    """List optimization templates, one page at a time.
+
+    Paged like its sibling ``list_catalog_models``. It used to return all 102 in
+    one 90 KB response, which is a costly first call for an MCP client that only
+    wants to see what exists. Full descriptions come from ``get_template``.
+    """
     yaml_templates = load_all_templates()
-    results: list[TemplateSummaryResponse] = []
+    matched = [
+        t
+        for t in yaml_templates
+        if (not category or t.category == category)
+        and (featured is None or t.is_featured == featured)
+    ]
 
-    for t in yaml_templates:
-        if category and t.category != category:
-            continue
-        if featured is not None and t.is_featured != featured:
-            continue
-        results.append(TemplateSummaryResponse(**t.model_dump(include=_SUMMARY_FIELDS)))
+    start = (page - 1) * page_size
+    results = [
+        TemplateSummaryResponse(**t.model_dump(include=_SUMMARY_FIELDS))
+        for t in matched[start : start + page_size]
+    ]
 
-    return TemplateListResponse(templates=results, total=len(results))
+    return TemplateListResponse(
+        templates=results,
+        total=len(matched),
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router.get(

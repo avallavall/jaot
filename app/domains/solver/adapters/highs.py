@@ -17,6 +17,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from app.domains.solver.adapters.base import STRICT_EPSILON, SolverCapabilities
+from app.domains.solver.constraint_activity import is_binding as is_binding_at
 from app.domains.solver.services.expression_parser import ExpressionParser
 from app.schemas.optimization import (
     ConstraintSensitivity,
@@ -363,11 +364,23 @@ class HiGHSAdapter:
             return None
 
         # Rows are added in problem.constraints order (one addRow per constraint),
-        # so row index i maps 1:1 to constraints[i].
+        # so row index i maps 1:1 to constraints[i] — and to row_value[i], the
+        # activity HiGHS computed for the solution it just returned.
+        row_value = list(getattr(sol, "row_value", []) or [])
         constraint_sens: list[ConstraintSensitivity] = []
         for i, constraint in enumerate(problem.constraints):
             shadow_price = float(row_dual[i]) if i < len(row_dual) else None
-            is_binding = abs(shadow_price) > 1e-8 if shadow_price is not None else None
+            # Binding is slack, not price: HiGHS returns dual -0.0 for a row sitting
+            # exactly on its limit whenever the optimum is dual-degenerate.
+            is_binding = None
+            if i < len(row_value):
+                try:
+                    parsed = self._parser.parse_constraint(constraint.expression)
+                    is_binding = is_binding_at(
+                        float(row_value[i]), float(parsed.rhs), parsed.operator
+                    )
+                except Exception as exc:  # unparseable row → no claim, not a wrong one
+                    logger.debug("No binding status for constraint %s: %s", constraint.name, exc)
             constraint_sens.append(
                 ConstraintSensitivity(
                     name=constraint.name or f"c{i}",

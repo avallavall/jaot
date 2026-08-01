@@ -50,32 +50,52 @@ def extract_variable_names(expression: str) -> set[str]:
     return {t for t in tokens if t not in _EXCLUDED_TOKENS}
 
 
-def validate_problem(problem: OptimizationProblem) -> None:
-    """Validate an optimization problem. Raises ``InvalidProblemError`` if invalid."""
+def iter_problem_errors(problem: OptimizationProblem) -> list[str]:
+    """Every structural problem found, not just the first one.
+
+    A caller who asked "is this valid?" wants the list. Reporting one error at a
+    time turns fixing a hand-written model into as many round trips as it has
+    mistakes — and hides, for instance, that the constraints are broken too while
+    the author is still staring at the objective.
+    """
+    errors: list[str] = []
     variable_names = {v.name for v in problem.variables}
 
     obj_vars = extract_variable_names(problem.objective.expression)
     invalid_obj_vars = obj_vars - variable_names
     if invalid_obj_vars:
-        raise InvalidProblemError(f"Objective references undefined variables: {invalid_obj_vars}")
+        errors.append(f"Objective references undefined variables: {invalid_obj_vars}")
 
     for i, constraint in enumerate(problem.constraints):
         constraint_vars = extract_variable_names(constraint.expression)
         invalid_vars = constraint_vars - variable_names
         if invalid_vars:
-            raise InvalidProblemError(
+            errors.append(
                 f"Constraint {constraint.name or i} references undefined variables: {invalid_vars}"
             )
 
     for var in problem.variables:
         if var.lower_bound is not None and var.upper_bound is not None:
             if var.lower_bound > var.upper_bound:
-                raise InvalidProblemError(
+                errors.append(
                     f"Variable {var.name} has invalid bounds: {var.lower_bound} > {var.upper_bound}"
                 )
 
         if var.type.value == "binary":
             if var.lower_bound is not None and var.lower_bound < 0:
-                raise InvalidProblemError(f"Binary variable {var.name} cannot have lower bound < 0")
+                errors.append(f"Binary variable {var.name} cannot have lower bound < 0")
             if var.upper_bound is not None and var.upper_bound > 1:
-                raise InvalidProblemError(f"Binary variable {var.name} cannot have upper bound > 1")
+                errors.append(f"Binary variable {var.name} cannot have upper bound > 1")
+
+    return errors
+
+
+def validate_problem(problem: OptimizationProblem) -> None:
+    """Validate an optimization problem. Raises ``InvalidProblemError`` if invalid.
+
+    Raises on the first error: a solve is refused either way, and this message is
+    a 400 body. Use :func:`iter_problem_errors` when the caller wants the list.
+    """
+    errors = iter_problem_errors(problem)
+    if errors:
+        raise InvalidProblemError(errors[0])

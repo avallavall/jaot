@@ -13,13 +13,18 @@ from pydantic import BaseModel, Field
 
 
 class TemplateSummaryResponse(BaseModel):
-    """One entry of the template catalog — the card, not the form."""
+    """One entry of the template catalog — the card, not the form.
+
+    Deliberately without the long ``description``: it was 59% of a 90 KB listing
+    (~22.6k tokens for an MCP client's first discovery call) and ``get_template``
+    already serves it. ``short_description`` is what a card shows, and every
+    template has one.
+    """
 
     id: str
     name: str
     display_name: str
     short_description: str
-    description: str
     category: str
     tags: list[str] = Field(default_factory=list)
     problem_type_tags: list[str] = Field(default_factory=list)
@@ -30,10 +35,16 @@ class TemplateSummaryResponse(BaseModel):
 
 
 class TemplateListResponse(BaseModel):
-    """The template catalog, optionally filtered by category or featured flag."""
+    """One page of the template catalog, optionally filtered.
+
+    ``total`` counts everything that matched the filters, not the page — a client
+    that reads only ``templates`` would otherwise think it had them all.
+    """
 
     templates: list[TemplateSummaryResponse]
     total: int
+    page: int = 1
+    page_size: int = 0
 
 
 class TemplateDetailResponse(BaseModel):

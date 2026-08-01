@@ -25,6 +25,7 @@ from app.domains.solver.adapters.base import (
     DEFAULT_SOLVER_NAME,
 )
 from app.domains.solver.services import SolverService, get_solver_service
+from app.domains.solver.services.problem_validation import iter_problem_errors
 from app.models import ModelExecution, Organization
 from app.schemas.optimization import (
     AsyncSolveCancelResponse,
@@ -40,9 +41,6 @@ from app.schemas.optimization import (
 )
 from app.services.idempotency import idempotency_execution_id
 from app.services.platform_settings_service import PlatformSettingsService as PSS
-from app.services.solve_orchestrator import (
-    validate_problem,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -254,14 +252,16 @@ def validate_problem_endpoint(  # sync ON PURPOSE -> threadpool (CPU-bound, no a
     problem: OptimizationProblem,
     request: Request,
 ) -> ProblemValidationResponse:
-    """Validate an optimization problem without solving it."""
-    errors: list[str] = []
+    """Validate an optimization problem without solving it.
+
+    Reports EVERY structural error, not the first one: this endpoint exists to
+    answer "what is wrong with my model?", and one-at-a-time made fixing a
+    hand-written problem a round trip per mistake.
+    """
     try:
-        validate_problem(problem)
-    except HTTPException as e:
-        errors.append(str(e.detail))
-    except Exception as e:
-        errors.append(str(e))
+        errors = iter_problem_errors(problem)
+    except Exception as e:  # a malformed expression must not 500 a validity check
+        errors = [str(e)]
 
     # Honor the ValidationResult contract the frontend types declare: `errors` and
     # `warnings` are ALWAYS present arrays. Omitting `warnings` here crashed the JSON

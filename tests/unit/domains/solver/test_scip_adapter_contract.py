@@ -197,17 +197,46 @@ def test_scip_lp_shadow_prices_satisfy_strong_duality() -> None:
     )
 
 
+# CONTRACT-TEST: binding means zero slack, never "has a non-zero dual".
 @pytest.mark.unit
-def test_scip_lp_reports_the_binding_rows() -> None:
-    """All three rows sit exactly on their limit; at least one must be priced."""
+def test_scip_lp_reports_every_binding_row_including_the_unpriced_ones() -> None:
+    """All three rows sit exactly on their limit, so all three are binding.
+
+    At x=3, y=1: c1 = 4 = 4, c2 = 6 = 6, cap_x = 3 = 3. This optimum is
+    dual-degenerate, so at least one of those rows is priced at zero — and the
+    old rule (|dual| > 1e-8) dropped exactly those. This assertion used to be
+    `any`, which is why the bug survived: the panel reported 0 of 21 binding on
+    a real model where 13 rows were tight.
+    """
     from app.domains.solver.adapters.scip import SCIPAdapter
 
     result = SCIPAdapter().solve(_degenerate_lp())
 
     sensitivity = result.sensitivity
     assert sensitivity is not None
-    assert any(c.is_binding for c in sensitivity.constraints), (
-        "every row is tight at the optimum, yet none was reported as binding"
+    binding = {c.name: c.is_binding for c in sensitivity.constraints}
+    assert all(binding.values()), f"every row is tight at the optimum, got {binding}"
+
+
+@pytest.mark.unit
+def test_scip_mip_makes_no_binding_claim_about_a_solution_it_never_saw() -> None:
+    """MIP duals come from a separate LP relaxation, not from the integer solution.
+
+    Whatever is tight in that relaxation says nothing about the answer the caller
+    was handed, so the honest report is None — not a guess dressed as a fact.
+    """
+    from app.domains.solver.adapters.scip import SCIPAdapter
+    from app.schemas.optimization import VariableType
+
+    problem = _degenerate_lp()
+    problem.variables[0].type = VariableType.INTEGER
+    result = SCIPAdapter().solve(problem)
+
+    sensitivity = result.sensitivity
+    assert sensitivity is not None
+    assert sensitivity.is_approximate is True
+    assert all(c.is_binding is None for c in sensitivity.constraints), (
+        "the LP relaxation must not answer questions about the integer solution"
     )
 
 

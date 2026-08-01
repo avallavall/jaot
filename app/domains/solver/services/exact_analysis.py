@@ -18,6 +18,7 @@ returned rows are capped, so a pathological model degrades to a truncated view
 rather than a slow request.
 """
 
+from app.domains.solver.constraint_activity import BINDING_EPS, constraint_slack
 from app.domains.solver.services.expression_parser import ExpressionParser, ParseError
 from app.schemas.optimization import (
     Constraint,
@@ -30,8 +31,9 @@ from app.schemas.optimization import (
 )
 from app.schemas.solution_structure import parse_flat_name
 
-# Slack/contribution smaller than this is treated as zero (binding / negligible).
-_EPS = 1e-6
+# Contribution smaller than this is treated as negligible. Binding uses the
+# domain-wide BINDING_EPS, which is the same number by design.
+_EPS = BINDING_EPS
 # Bound worst-case latency: analyse at most this many constraints, return at most
 # this many rows (binding + tightest first), objective terms, and family groups.
 _MAX_CONSTRAINTS = 5000
@@ -100,13 +102,10 @@ def compute_exact_analysis(
         activity = _activity(parsed.lhs.terms, solution)
         rhs = parsed.rhs
         op = parsed.operator
-        if op in ("<=", "<"):
-            slack = rhs - activity
-        elif op in (">=", ">"):
-            slack = activity - rhs
-        else:  # == : distance from equality
-            slack = abs(activity - rhs)
-        is_binding = abs(slack) < _EPS
+        # The domain's single definition of binding — the adapters answer with the
+        # same rule now, so the two panels cannot disagree about the same run.
+        slack = constraint_slack(activity, rhs, op)
+        is_binding = abs(slack) < BINDING_EPS
         utilization = activity / rhs if op in ("<=", "<") and abs(rhs) > 1e-12 else None
         rows.append(
             ConstraintUtilization(

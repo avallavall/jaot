@@ -1591,6 +1591,12 @@ export interface paths {
          *     - Application uptime
          *     - Python version
          *     - Maintenance mode flag
+         *
+         *     Takes no DB session and no request-threadpool token (D-25). The maintenance
+         *     flag is read behind a 10s TTL cache that opens its own short-lived session,
+         *     and the work that cache does not cover runs on the health executor — so a
+         *     liveness answer never queues behind ordinary traffic, whether for a
+         *     connection or for a thread.
          */
         get: operations["health_check_api_v2_health_get"];
         put?: never;
@@ -1652,12 +1658,11 @@ export interface paths {
          * Detailed Status
          * @description Detailed health status with component checks.
          *
-         *     Used for SLA monitoring and uptime tracking. Checks:
-         *     - Database connectivity
-         *     - Solver availability
-         *     - System resources (memory, disk)
-         *
-         *     Returns overall status: healthy, degraded, or down.
+         *     Used for SLA monitoring and uptime tracking, and by the container health
+         *     check. The checks themselves block — a SELECT, a SCIP solve, a Celery
+         *     ping — so they run on the health executor rather than on the request
+         *     threadpool: this probe must not compete for a thread with the very load it
+         *     is reporting on.
          */
         get: operations["detailed_status_api_v2_health_status_get"];
         put?: never;
@@ -3643,7 +3648,11 @@ export interface paths {
         };
         /**
          * List Templates
-         * @description List all available optimization templates from YAML definitions.
+         * @description List optimization templates, one page at a time.
+         *
+         *     Paged like its sibling ``list_catalog_models``. It used to return all 102 in
+         *     one 90 KB response, which is a costly first call for an MCP client that only
+         *     wants to see what exists. Full descriptions come from ``get_template``.
          */
         get: operations["list_templates"];
         put?: never;
@@ -3750,6 +3759,10 @@ export interface paths {
         /**
          * Validate Problem Endpoint
          * @description Validate an optimization problem without solving it.
+         *
+         *     Reports EVERY structural error, not the first one: this endpoint exists to
+         *     answer "what is wrong with my model?", and one-at-a-time made fixing a
+         *     hand-written problem a round trip per mistake.
          */
         post: operations["validate_problem"];
         delete?: never;
@@ -4987,10 +5000,7 @@ export interface components {
         };
         /** Body_import_and_solve */
         Body_import_and_solve: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
             /**
              * Gap Tolerance
@@ -5008,45 +5018,30 @@ export interface components {
         };
         /** Body_import_preview */
         Body_import_preview: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
             objective_sense?: components["schemas"]["ObjectiveSense"] | null;
         };
         /** Body_import_project_dataset */
         Body_import_project_dataset: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
             /** Param Name */
             param_name?: string | null;
         };
         /** Body_upload_attachment_api_v2_llm_conversations__conversation_id__attachments_post */
         Body_upload_attachment_api_v2_llm_conversations__conversation_id__attachments_post: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
         };
         /** Body_upload_logo_api_v2_models_catalog__model_id__logo_post */
         Body_upload_logo_api_v2_models_catalog__model_id__logo_post: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
         };
         /** Body_upload_screenshot_api_v2_models_catalog__model_id__screenshots_post */
         Body_upload_screenshot_api_v2_models_catalog__model_id__screenshots_post: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
         };
         /**
@@ -9916,9 +9911,22 @@ export interface components {
         };
         /**
          * TemplateListResponse
-         * @description The template catalog, optionally filtered by category or featured flag.
+         * @description One page of the template catalog, optionally filtered.
+         *
+         *     ``total`` counts everything that matched the filters, not the page — a client
+         *     that reads only ``templates`` would otherwise think it had them all.
          */
         TemplateListResponse: {
+            /**
+             * Page
+             * @default 1
+             */
+            page: number;
+            /**
+             * Page Size
+             * @default 0
+             */
+            page_size: number;
             /** Templates */
             templates: components["schemas"]["TemplateSummaryResponse"][];
             /** Total */
@@ -9956,12 +9964,15 @@ export interface components {
         /**
          * TemplateSummaryResponse
          * @description One entry of the template catalog — the card, not the form.
+         *
+         *     Deliberately without the long ``description``: it was 59% of a 90 KB listing
+         *     (~22.6k tokens for an MCP client's first discovery call) and ``get_template``
+         *     already serves it. ``short_description`` is what a card shows, and every
+         *     template has one.
          */
         TemplateSummaryResponse: {
             /** Category */
             category: string;
-            /** Description */
-            description: string;
             /** Display Name */
             display_name: string;
             /** Estimated Constraints */
@@ -10052,7 +10063,17 @@ export interface components {
              * Document Id
              * @description Builder document this trigger is attached to
              */
-            document_id: string;
+            document_id?: string | null;
+            /**
+             * Model Project Id
+             * @description Studio model project this trigger is attached to
+             */
+            model_project_id?: string | null;
+            /**
+             * Model Project Version Id
+             * @description Pinned committed version of that project
+             */
+            model_project_version_id?: string | null;
             /**
              * Name
              * @description Trigger display name
@@ -10067,7 +10088,7 @@ export interface components {
              * Version Id
              * @description Pinned model version snapshot ID
              */
-            version_id: string;
+            version_id?: string | null;
             /**
              * Webhook Secret
              * @description Secret for signing outbound webhook payloads
@@ -10103,13 +10124,17 @@ export interface components {
             /** Description */
             description: string | null;
             /** Document Id */
-            document_id: string;
+            document_id: string | null;
             /** Id */
             id: string;
             /** Is Enabled */
             is_enabled: boolean;
             /** Last Fired At */
             last_fired_at: string | null;
+            /** Model Project Id */
+            model_project_id?: string | null;
+            /** Model Project Version Id */
+            model_project_version_id?: string | null;
             /** Name */
             name: string;
             /** Organization Id */
@@ -10118,6 +10143,12 @@ export interface components {
             override_schema: {
                 [key: string]: unknown;
             }[] | null;
+            /**
+             * Source
+             * @description Which kind of model this fires
+             * @enum {string}
+             */
+            source: "document" | "project";
             /** Total Runs */
             total_runs: number;
             /**
@@ -10136,7 +10167,7 @@ export interface components {
              */
             updated_at: string;
             /** Version Id */
-            version_id: string;
+            version_id: string | null;
             /** Webhook Secret Prefix */
             webhook_secret_prefix: string | null;
             /** Webhook Url */
@@ -10199,13 +10230,17 @@ export interface components {
             /** Description */
             description: string | null;
             /** Document Id */
-            document_id: string;
+            document_id: string | null;
             /** Id */
             id: string;
             /** Is Enabled */
             is_enabled: boolean;
             /** Last Fired At */
             last_fired_at: string | null;
+            /** Model Project Id */
+            model_project_id?: string | null;
+            /** Model Project Version Id */
+            model_project_version_id?: string | null;
             /** Name */
             name: string;
             /** Organization Id */
@@ -10214,6 +10249,12 @@ export interface components {
             override_schema: {
                 [key: string]: unknown;
             }[] | null;
+            /**
+             * Source
+             * @description Which kind of model this fires
+             * @enum {string}
+             */
+            source: "document" | "project";
             /** Total Runs */
             total_runs: number;
             /**
@@ -10227,7 +10268,7 @@ export interface components {
              */
             updated_at: string;
             /** Version Id */
-            version_id: string;
+            version_id: string | null;
             /** Webhook Secret Prefix */
             webhook_secret_prefix: string | null;
             /** Webhook Url */
@@ -17162,6 +17203,8 @@ export interface operations {
             query?: {
                 category?: string | null;
                 featured?: boolean | null;
+                page?: number;
+                page_size?: number;
             };
             header?: never;
             path?: never;

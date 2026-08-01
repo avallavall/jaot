@@ -134,6 +134,46 @@ class TestHiGHSAdapterContract:
         assert all(v.reduced_cost is not None for v in sens.variables)
         assert all(v.is_approximate is False for v in sens.variables)
 
+    # CONTRACT-TEST: binding means zero slack, never "has a non-zero dual".
+    def test_highs_reports_a_tight_row_priced_at_zero_as_binding(self) -> None:
+        """A dual-degenerate optimum prices some tight rows at zero.
+
+        max x + y s.t. x + y <= 5, x - y <= 0, x <= 8 → (2.5, 2.5). Measured with
+        highspy: row_value = [5.0, 0.0, 2.5] and row_dual = [-1.0, -0.0, -0.0].
+        Row 2 sits exactly on its limit with a dual of -0.0, so the old
+        |dual| > 1e-8 rule called it slack — while the exact analysis, reading the
+        same solution, called it binding. Same run, two answers.
+        """
+        from app.domains.solver.adapters.highs import HiGHSAdapter  # noqa: PLC0415
+        from app.schemas.optimization import (  # noqa: PLC0415
+            Constraint,
+            Objective,
+            ObjectiveSense,
+            OptimizationProblem,
+            Variable,
+            VariableType,
+        )
+
+        result = HiGHSAdapter().solve(
+            OptimizationProblem(
+                name="degenerate",
+                variables=[
+                    Variable(name="x", type=VariableType.CONTINUOUS, lower_bound=0, upper_bound=10),
+                    Variable(name="y", type=VariableType.CONTINUOUS, lower_bound=0, upper_bound=10),
+                ],
+                objective=Objective(sense=ObjectiveSense.MAXIMIZE, expression="x + y"),
+                constraints=[
+                    Constraint(name="cap", expression="x + y <= 5"),
+                    Constraint(name="fair", expression="x - y <= 0"),
+                    Constraint(name="room", expression="x <= 8"),
+                ],
+            )
+        )
+        assert result.status == SolverStatus.OPTIMAL
+        assert result.sensitivity is not None
+        binding = {c.name: c.is_binding for c in result.sensitivity.constraints}
+        assert binding == {"cap": True, "fair": True, "room": False}, binding
+
     def test_highs_mip_has_no_dual_sensitivity(self) -> None:
         """MIP solves carry no meaningful HiGHS duals — sensitivity stays None.
 

@@ -629,7 +629,8 @@ export interface TemplateSummary {
   id: string;
   name: string;
   display_name: string;
-  description: string;
+  /** The card line. The long `description` is only on the detail endpoint. */
+  short_description: string;
   category: string;
   tags: string[];
 }

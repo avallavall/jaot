@@ -1607,8 +1607,16 @@ export const api = {
     return res.json();
   },
 
-  listTemplates(): Promise<{ templates: TemplateSummary[] }> {
-    return request("/api/v2/solve/templates");
+  /** The template catalog is paged (25 by default) since it grew past 100 entries.
+   * Both template screens search and filter locally, so they take the whole
+   * catalog in one call — the summaries are small now that the long descriptions
+   * live only on the detail endpoint. */
+  listTemplates(
+    params: { page?: number; page_size?: number } = {},
+  ): Promise<{ templates: TemplateSummary[]; total: number }> {
+    return request("/api/v2/solve/templates", {
+      params: { page_size: 200, ...params },
+    });
   },
 
   getTemplate(templateId: string): Promise<Record<string, unknown>> {

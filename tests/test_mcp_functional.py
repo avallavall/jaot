@@ -144,35 +144,51 @@ class TestListTemplates:
         assert "templates" in data
         assert len(data["templates"]) > 0, "Expected at least one built-in template"
 
-    def test_list_templates_returns_all_yaml_templates(self, client):
-        """list_templates returns all YAML-defined templates (~102 total)."""
+    def test_list_templates_counts_the_whole_catalog_not_the_page(self, client):
+        """``total`` describes everything that matched, so a client knows to page on."""
         response = client.get("/api/v2/solve/templates")
         data = response.json()
 
-        assert "total" in data, "Response should include 'total' count"
         assert data["total"] >= 100, f"Expected >= 100 templates, got {data['total']}"
-        assert len(data["templates"]) == data["total"]
+        assert len(data["templates"]) <= data["page_size"]
+        assert len(data["templates"]) < data["total"], (
+            "the default page must not be the whole catalog — that was the 90 KB call"
+        )
 
-    def test_list_templates_includes_yaml_templates(self, client):
-        """YAML-only templates like nurse_scheduling should appear in list."""
-        response = client.get("/api/v2/solve/templates")
-        data = response.json()
+    # CONTRACT-TEST: paging must not lose or duplicate a template.
+    def test_paging_walks_the_whole_catalog_exactly_once(self, client):
+        """Every YAML template is reachable by paging, each exactly once."""
+        first = client.get("/api/v2/solve/templates?page_size=25").json()
+        total = first["total"]
 
-        ids = {t["id"] for t in data["templates"]}
-        yaml_only = {"nurse_scheduling", "demand_allocation", "store_layout"}
-        missing = yaml_only - ids
-        assert not missing, f"YAML templates missing from list: {missing}"
+        seen: list[str] = []
+        page = 1
+        while len(seen) < total:
+            data = client.get(f"/api/v2/solve/templates?page={page}&page_size=25").json()
+            if not data["templates"]:
+                break
+            seen.extend(t["id"] for t in data["templates"])
+            page += 1
+
+        assert len(seen) == total, f"paged {len(seen)} of {total}"
+        assert len(set(seen)) == total, "a template appeared on two pages"
+        yaml_only = {"nurse_scheduling", "demand_allocation", "store_layout", "budget_allocation"}
+        assert yaml_only <= set(seen), f"missing after paging: {yaml_only - set(seen)}"
 
     def test_list_templates_contains_required_fields(self, client):
-        """Each template has all required fields including new enriched ones."""
-        response = client.get("/api/v2/solve/templates")
+        """Each summary carries what a card needs — and not the long description.
+
+        The long ``description`` was 59% of a 90 KB response (~22.6k tokens for an
+        MCP client just looking at what exists) and ``get_template`` already
+        serves it. Every template has a ``short_description``.
+        """
+        response = client.get("/api/v2/solve/templates?page_size=200")
         data = response.json()
 
         required_fields = {
             "id",
             "name",
             "display_name",
-            "description",
             "category",
             "tags",
             "short_description",
@@ -185,20 +201,16 @@ class TestListTemplates:
         for template in data["templates"]:
             missing = required_fields - set(template.keys())
             assert not missing, f"Template {template.get('id', '?')} missing fields: {missing}"
-
-    def test_list_templates_includes_known_template(self, client):
-        """The built-in 'budget_allocation' template should be present."""
-        response = client.get("/api/v2/solve/templates")
-        data = response.json()
-
-        template_ids = [t["id"] for t in data["templates"]]
-        assert "budget_allocation" in template_ids, (
-            f"Expected 'budget_allocation' in templates, found: {template_ids}"
-        )
+            assert "description" not in template, (
+                f"Template {template['id']} still ships the long description in the listing"
+            )
+            assert template["short_description"].strip(), (
+                f"Template {template['id']} has no short_description to show on its card"
+            )
 
     def test_list_templates_tags_are_lists(self, client):
         """Template tags should be lists of strings."""
-        response = client.get("/api/v2/solve/templates")
+        response = client.get("/api/v2/solve/templates?page_size=200")
         data = response.json()
 
         for template in data["templates"]:
@@ -550,6 +562,34 @@ class TestValidateProblem:
         assert bad_data["valid"] is False
         assert isinstance(bad_data["errors"], list) and len(bad_data["errors"]) > 0
         assert bad_data["warnings"] == []
+
+    # CONTRACT-TEST: /solve/validate reports every structural error, not the first.
+    def test_validate_reports_all_error_classes_at_once(self, client):
+        """A problem broken in several ways lists every fault in one answer.
+
+        It used to stop at the first raise, so an author fixing a hand-written
+        model paid one round trip per mistake — and while they stared at the
+        objective, nothing hinted the constraint and the bounds were wrong too.
+        """
+        broken = {
+            "name": "broken",
+            "objective": {"sense": "minimize", "expression": "ghost"},
+            "variables": [
+                {"name": "x", "type": "continuous", "lower_bound": 5, "upper_bound": 1},
+                {"name": "b", "type": "binary", "upper_bound": 7},
+            ],
+            "constraints": [{"name": "c1", "expression": "phantom + x <= 4"}],
+        }
+        response = client.post("/api/v2/solve/validate", json=broken)
+        assert response.status_code == 200
+
+        errors = response.json()["errors"]
+        joined = " | ".join(errors)
+        assert any("Objective" in e for e in errors), joined
+        assert any("c1" in e for e in errors), joined
+        assert any("invalid bounds" in e for e in errors), joined
+        assert any("upper bound > 1" in e for e in errors), joined
+        assert len(errors) >= 4, f"expected every fault, got {len(errors)}: {joined}"
 
     def test_validate_empty_problem_returns_422(self, client):
         """validate_problem with empty body returns 422 (validation error)."""

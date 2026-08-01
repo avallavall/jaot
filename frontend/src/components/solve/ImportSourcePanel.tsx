@@ -123,7 +123,7 @@ export function ImportSourcePanel({ onImport, importedFrom, onClear }: ImportSou
   const filteredTemplates = useMemo(
     () => templates.filter((t) =>
       t.display_name.toLowerCase().includes(lowerSearch) ||
-      t.description.toLowerCase().includes(lowerSearch),
+      t.short_description.toLowerCase().includes(lowerSearch),
     ),
     [templates, lowerSearch],
   );
@@ -332,7 +332,7 @@ export function ImportSourcePanel({ onImport, importedFrom, onClear }: ImportSou
               <ListItem
                 key={tmpl.id}
                 name={tmpl.display_name}
-                subtitle={tmpl.description}
+                subtitle={tmpl.short_description}
                 onImport={() => importFromTemplate(tmpl)}
                 loading={loading}
                 t={t}
