@@ -1,31 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import type { ConstraintFamilyStats, ExactAnalysis, SensitivityResult } from "@/lib/types";
-import { ConceptTooltip } from "@/components/ui/concept-tooltip";
-import { ScenarioAnalysisSection } from "@/components/solve/ScenarioAnalysisSection";
+import type { ConstraintFamilyStats, ExactAnalysis } from "@/lib/types";
 
 interface ExactAnalysisPanelProps {
   executionId: string;
-  /** LP-relaxation sensitivity from the stored result — demoted to a collapsed
-   * "approximate" section under the exact, solution-based analysis (A3). */
-  sensitivity?: SensitivityResult | null;
 }
 
 const NEAR_ZERO = 1e-9;
 
 /**
- * Post-solve analysis (A3). Leads with EXACT, solution-based facts computed from
- * x* + the problem — binding constraints, per-constraint slack/utilization, and
- * which terms drive the objective — all exact for the integer solution and
- * solver-agnostic. The LP-relaxation shadow prices (a different, easier problem;
- * near-uniform under degeneracy for a MILP) are demoted to a collapsed section
- * so they never read as the primary artifact a decision is made from.
+ * Post-solve analysis (A3): EXACT, solution-based facts computed from x* + the
+ * problem — binding constraints, per-constraint slack/utilization, and which
+ * terms drive the objective — all exact for the integer solution and
+ * solver-agnostic. This answers "how did my solution come out?".
+ *
+ * "What if it changed?" is a different question and now lives entirely in the
+ * Sensitivity tab, together with the LP-relaxation duals it approximates. Both
+ * used to render here as well, which put the same shadow prices on screen three
+ * times and buried the what-if under five sections of a tab named Results.
  */
-export function ExactAnalysisPanel({ executionId, sensitivity }: ExactAnalysisPanelProps) {
+export function ExactAnalysisPanel({ executionId }: ExactAnalysisPanelProps) {
   const t = useTranslations("solve.execution.exactAnalysis");
   const [data, setData] = useState<ExactAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
@@ -130,14 +128,6 @@ export function ExactAnalysisPanel({ executionId, sensitivity }: ExactAnalysisPa
         </Section>
       )}
 
-      {/* What-if by re-solves (L2) sits between the exact facts above and the
-          LP-relaxation duals below — it is the honest answer to the question
-          those duals only approximate. */}
-      <ScenarioAnalysisSection executionId={executionId} />
-
-      {sensitivity && sensitivity.constraints.length > 0 && (
-        <ApproximateShadowPrices sensitivity={sensitivity} t={t} />
-      )}
     </div>
   );
 }
@@ -304,56 +294,6 @@ function UtilizationTable({
         </tbody>
       </table>
     </div>
-  );
-}
-
-/** LP-relaxation shadow prices, deduped and collapsed under the exact analysis. */
-function ApproximateShadowPrices({
-  sensitivity,
-  t,
-}: {
-  sensitivity: SensitivityResult;
-  t: ReturnType<typeof useTranslations>;
-}) {
-  // Dedupe identical shadow prices: "47 constraints · shadow price 1.0" beats 47
-  // identical rows (owner: banner blindness → decisions off artifacts).
-  const groups = useMemo(() => {
-    const byValue = new Map<string, number>();
-    for (const c of sensitivity.constraints) {
-      if (c.shadow_price == null) continue;
-      const key = c.shadow_price.toFixed(6);
-      byValue.set(key, (byValue.get(key) ?? 0) + 1);
-    }
-    return [...byValue.entries()]
-      .map(([value, count]) => ({ value: Number(value), count }))
-      .sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
-  }, [sensitivity]);
-
-  if (groups.length === 0) return null;
-
-  return (
-    <details className="rounded-lg border border-border bg-muted/20">
-      <summary className="cursor-pointer px-4 py-2 text-sm font-medium text-muted-foreground">
-        {sensitivity.is_approximate ? t("approximateSection") : t("exactDualsSection")}
-      </summary>
-      <div className="space-y-2 px-4 pb-4 pt-1">
-        {sensitivity.is_approximate && (
-          <p className="text-xs text-muted-foreground">{t("approximateNote")}</p>
-        )}
-        <ul className="space-y-1">
-          {groups.map((g) => (
-            <li key={g.value} className="flex items-baseline justify-between gap-3 text-xs">
-              <span className="text-muted-foreground">
-                {t("shadowPriceGroup", { count: g.count })}
-              </span>
-              <span className="font-mono tabular-nums text-foreground">
-                <ConceptTooltip termKey="shadow-price">{g.value.toFixed(4)}</ConceptTooltip>
-              </span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </details>
   );
 }
 

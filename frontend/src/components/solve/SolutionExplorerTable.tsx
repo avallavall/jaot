@@ -1,13 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { VariableSolution, VariableType, SensitivityResult } from "@/lib/types";
-import { ConceptTooltip } from "@/components/ui/concept-tooltip";
+import { VariableSolution, VariableType } from "@/lib/types";
 import { useTranslations } from "next-intl";
 
 interface SolutionExplorerTableProps {
   variables: VariableSolution[];
-  sensitivity?: SensitivityResult;
 }
 
 type TypeFilter = "all" | VariableType;
@@ -16,7 +14,7 @@ type TypeFilter = "all" | VariableType;
  * threshold the MCP solution_filter and the printable report use. */
 const NEAR_ZERO = 1e-9;
 
-export function SolutionExplorerTable({ variables, sensitivity }: SolutionExplorerTableProps) {
+export function SolutionExplorerTable({ variables }: SolutionExplorerTableProps) {
   const t = useTranslations("solve.explorer");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
@@ -147,64 +145,6 @@ export function SolutionExplorerTable({ variables, sensitivity }: SolutionExplor
         )}
       </div>
 
-      {/* Constraint Sensitivity subsection (shown when sensitivity data is available) */}
-      {sensitivity && sensitivity.constraints.length > 0 && (
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-foreground">{t("constraintSensitivity")}</h3>
-            {sensitivity.is_approximate && (
-              <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full font-medium">
-                {t("approximateLpRelaxation")}
-              </span>
-            )}
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-muted/40 border-b border-border">
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">{t("constraint")}</th>
-                  <th className="px-3 py-2 text-right font-medium text-muted-foreground"><ConceptTooltip termKey="shadow-price">{t("shadowPrice")}</ConceptTooltip></th>
-                  <th className="px-3 py-2 text-center font-medium text-muted-foreground"><ConceptTooltip termKey="binding-constraint">{t("bindingStatus")}</ConceptTooltip></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {sensitivity.constraints.map((c, idx) => (
-                  <tr
-                    key={`${c.name}-${idx}`}
-                    className={
-                      c.is_binding
-                        ? "bg-green-50/50 dark:bg-green-900/10 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
-                        : "hover:bg-muted/20 transition-colors"
-                    }
-                  >
-                    <td className="px-3 py-1.5 font-mono text-xs text-foreground truncate max-w-[200px]">
-                      {c.name}
-                    </td>
-                    <td className="px-3 py-1.5 text-right font-mono text-xs tabular-nums">
-                      {c.shadow_price !== null && c.shadow_price !== undefined
-                        ? c.shadow_price.toFixed(6)
-                        : "\u2014"}
-                    </td>
-                    <td className="px-3 py-1.5 text-center">
-                      {c.is_binding === null ? (
-                        <span className="text-xs text-muted-foreground">&mdash;</span>
-                      ) : c.is_binding ? (
-                        <span className="inline-block px-1.5 py-0.5 rounded text-[0.625rem] font-medium uppercase tracking-wide bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                          {t("yes")}
-                        </span>
-                      ) : (
-                        <span className="inline-block px-1.5 py-0.5 rounded text-[0.625rem] font-medium uppercase tracking-wide bg-muted text-muted-foreground">
-                          {t("no")}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

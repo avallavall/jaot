@@ -156,6 +156,10 @@ test.describe("Studio — post-solve analysis page (v3.1 A1-A5, gated by JAOT_DS
     // Sensitivity L2: the what-if batch is opt-in and runs REAL re-solves on the solver
     // queue. Here `cap` is the only thing standing between 12 and 13 chosen items, so
     // loosening it by one unit must measure exactly +1 on the objective.
+    // It lives in the Sensitivity tab — the tab that carries the name — not at the
+    // bottom of Results, where nobody looking for sensitivity ever scrolled.
+    await expect(page.getByTestId("scenario-analysis-start")).toHaveCount(0);
+    await page.getByTestId("execution-tab-sensitivity").click();
     const startScenarios = page.getByTestId("scenario-analysis-start");
     await expect(startScenarios).toBeVisible({ timeout: NAV });
     await startScenarios.click();
@@ -167,6 +171,7 @@ test.describe("Studio — post-solve analysis page (v3.1 A1-A5, gated by JAOT_DS
     // The finished batch is cached on the execution: a reload shows it without
     // re-solving anything (the button never comes back).
     await page.reload();
+    await page.getByTestId("execution-tab-sensitivity").click();
     await expect(page.getByTestId("scenario-tornado")).toBeVisible({ timeout: SOLVE });
     await expect(page.getByTestId("scenario-analysis-start")).toHaveCount(0);
 

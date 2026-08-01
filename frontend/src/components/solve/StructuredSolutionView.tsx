@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { VariableSolution, SensitivityResult } from "@/lib/types";
+import { VariableSolution } from "@/lib/types";
 import { SolutionExplorerTable } from "./SolutionExplorerTable";
 import {
   buildSolutionGroups,
@@ -30,22 +30,21 @@ const INITIAL_RECT = { width: 900, height: 640 };
 
 interface StructuredSolutionViewProps {
   variables: VariableSolution[];
-  sensitivity?: SensitivityResult;
 }
 
 /**
  * Primary post-solve variable view. When the solution carries recovered index
  * structure (A1), it leads with a family → first-index grouping — the answer to
  * "what did the model decide?" — instead of a wall of identical `assign_v3_o107
- * = 1` rows. The full flat table (with constraint sensitivity) is one toggle
- * away. When no structure was recovered it renders the flat table directly, so
- * nothing regresses for continuous / custom-named / legacy solutions.
+ * = 1` rows. The full flat table is one toggle away. When no structure was
+ * recovered it renders the flat table directly, so nothing regresses for
+ * continuous / custom-named / legacy solutions.
  *
  * Large solutions are WINDOWED, not truncated: only the rows near the viewport
  * are mounted, so a 20k-variable solution scrolls at full fidelity instead of
  * showing a bounded prefix behind a "show all" that then froze the page.
  */
-export function StructuredSolutionView({ variables, sensitivity }: StructuredSolutionViewProps) {
+export function StructuredSolutionView({ variables }: StructuredSolutionViewProps) {
   const t = useTranslations("solve.explorer");
   const [nonZeroOnly, setNonZeroOnly] = useState(true);
   const [view, setView] = useState<"grouped" | "table">("grouped");
@@ -61,7 +60,7 @@ export function StructuredSolutionView({ variables, sensitivity }: StructuredSol
   // No structure recovered → the grouping adds nothing. Fall back to the flat
   // table exactly as before (the graceful degradation the analysis layer relies on).
   if (!hasStructure) {
-    return <SolutionExplorerTable variables={variables} sensitivity={sensitivity} />;
+    return <SolutionExplorerTable variables={variables} />;
   }
 
   return (
@@ -118,7 +117,7 @@ export function StructuredSolutionView({ variables, sensitivity }: StructuredSol
       </div>
 
       {view === "table" ? (
-        <SolutionExplorerTable variables={variables} sensitivity={sensitivity} />
+        <SolutionExplorerTable variables={variables} />
       ) : shown.length === 0 ? (
         <div className="bg-card border border-border rounded-lg px-4 py-10 text-center">
           <p className="text-sm text-muted-foreground">{t("noMatch")}</p>

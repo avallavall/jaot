@@ -2,12 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 
 const mockGet = vi.fn();
-const mockGetScenarios = vi.fn();
+// Deliberately NOT stubbed: this panel must not reach for the what-if job or the
+// LP duals any more — both belong to the Sensitivity tab. A call would throw here.
 vi.mock("@/lib/api", () => ({
   api: {
     getExecutionExactAnalysis: (...args: unknown[]) => mockGet(...args),
-    // The panel now embeds the what-if section (L2); it reads its job on mount.
-    getExecutionScenarioAnalysis: (...args: unknown[]) => mockGetScenarios(...args),
   },
 }));
 
@@ -68,8 +67,6 @@ const withFamilies: ExactAnalysis = {
 describe("ExactAnalysisPanel (A3)", () => {
   beforeEach(() => {
     mockGet.mockReset();
-    mockGetScenarios.mockReset();
-    mockGetScenarios.mockResolvedValue({ status: "absent", analysis: null });
   });
 
   it("leads with binding constraints + objective contributions once loaded", async () => {
@@ -131,22 +128,22 @@ describe("ExactAnalysisPanel (A3)", () => {
     expect(screen.queryByTestId("exact-analysis-families")).not.toBeInTheDocument();
   });
 
-  it("demotes LP shadow prices into a collapsed section, deduped", async () => {
+  // CONTRACT-TEST: the exact analysis answers "how did my solution come out?" only.
+  // Shadow prices used to render here AND in the Sensitivity tab AND inside the
+  // solution explorer — the same numbers three times on one page — while the
+  // what-if sat at the bottom of a tab named Results. Both now live in the
+  // Sensitivity tab, and nothing here may bring them back.
+  it("shows no shadow prices and no what-if — those belong to the Sensitivity tab", async () => {
     mockGet.mockResolvedValue(computed);
-    const sensitivity = {
-      is_approximate: true,
-      constraints: [
-        { name: "c1", shadow_price: 1, is_binding: true },
-        { name: "c2", shadow_price: 1, is_binding: true },
-        { name: "c3", shadow_price: 0, is_binding: false },
-      ],
-      variables: [],
-    } as unknown as Parameters<typeof ExactAnalysisPanel>[0]["sensitivity"];
-    render(<ExactAnalysisPanel executionId="exe_3" sensitivity={sensitivity} />);
+    render(<ExactAnalysisPanel executionId="exe_3" />);
     await waitFor(() => expect(screen.getByTestId("exact-analysis")).toBeInTheDocument());
-    // collapsed <details> present with the approximate label
-    expect(
-      screen.getByText("solve.execution.exactAnalysis.approximateSection"),
-    ).toBeInTheDocument();
+    for (const key of [
+      "solve.execution.exactAnalysis.approximateSection",
+      "solve.execution.exactAnalysis.exactDualsSection",
+      "solve.execution.exactAnalysis.shadowPriceGroup",
+      "solve.execution.scenarioAnalysis.title",
+    ]) {
+      expect(screen.queryByText(key)).not.toBeInTheDocument();
+    }
   });
 });

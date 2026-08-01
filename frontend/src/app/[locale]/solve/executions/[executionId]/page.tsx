@@ -14,6 +14,7 @@ import { VariableValuesChart } from "@/components/solve/VariableValuesChart";
 import { InsightsPanel } from "@/components/solve/InsightsPanel";
 import { ExportButtons } from "@/components/solve/ExportButtons";
 import { SensitivityTab } from "@/components/solve/SensitivityTab";
+import { ScenarioAnalysisSection } from "@/components/solve/ScenarioAnalysisSection";
 import { SolutionExplainer } from "@/components/solve/SolutionExplainer";
 import { InfeasibilityPanel } from "@/components/solve/InfeasibilityPanel";
 import { OriginBadge } from "@/components/solve/OriginBadge";
@@ -265,10 +266,7 @@ export default function ExecutionDetailPage() {
             {variables.length > 0 && (
               <div className="mb-8">
                 <h2 className="text-lg font-semibold text-foreground mb-3">{t("solutionExplorer")}</h2>
-                <StructuredSolutionView
-                  variables={variables}
-                  sensitivity={resultData?.sensitivity ?? undefined}
-                />
+                <StructuredSolutionView variables={variables} />
               </div>
             )}
 
@@ -291,15 +289,12 @@ export default function ExecutionDetailPage() {
             )}
 
             {/* Exact, solution-based analysis (A3): binding constraints, slack/
-                utilization and objective contributions computed from x* — the
-                LP-relaxation shadow prices are demoted inside a collapsed section. */}
+                utilization and objective contributions computed from x*. Anything
+                that answers "what if it changed?" belongs to the Sensitivity tab. */}
             {resultData && !isInfeasible && variables.length > 0 && (
               <div className="mt-8">
                 <h2 className="text-lg font-semibold text-foreground mb-3">{t("analysisTitle")}</h2>
-                <ExactAnalysisPanel
-                  executionId={executionId}
-                  sensitivity={resultData?.sensitivity ?? undefined}
-                />
+                <ExactAnalysisPanel executionId={executionId} />
               </div>
             )}
           </TabsContent>
@@ -322,10 +317,20 @@ export default function ExecutionDetailPage() {
           </TabsContent>
 
           <TabsContent value="sensitivity">
+            {/* The what-if by re-solves (L2) leads: it is the honest answer to
+                the question the LP-relaxation duals below only approximate, and
+                it belongs in the tab that carries the name. It used to sit at
+                the bottom of Results, where nobody looking for sensitivity went. */}
+            {resultData && !isInfeasible && variables.length > 0 && (
+              <div className="mb-8">
+                <ScenarioAnalysisSection executionId={executionId} />
+              </div>
+            )}
             <SensitivityTab
               sensitivity={resultData?.sensitivity}
               solverName={effectiveSolver}
               capabilities={solverCapabilities}
+              solverStatus={execution.solver_status}
             />
           </TabsContent>
         </Tabs>

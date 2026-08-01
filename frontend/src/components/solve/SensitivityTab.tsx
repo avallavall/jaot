@@ -21,6 +21,8 @@ interface SensitivityTabProps {
   solverName?: string | null;
   /** What that solver can deliver. Undefined = unknown, so claim nothing. */
   capabilities?: SolverCapabilities;
+  /** Solver status of the run — also only used to explain an empty tab. */
+  solverStatus?: string | null;
 }
 
 interface ChartEntry {
@@ -34,7 +36,12 @@ function formatShadowPrice(value: number | null | undefined): string {
   return value.toFixed(6);
 }
 
-export function SensitivityTab({ sensitivity, solverName, capabilities }: SensitivityTabProps) {
+export function SensitivityTab({
+  sensitivity,
+  solverName,
+  capabilities,
+  solverStatus,
+}: SensitivityTabProps) {
   const t = useTranslations("solve.sensitivity");
   // Default ON (owner ask 2026-07-16): in large models most BASIC variables
   // have a zero reduced cost — the informative rows are the non-zero ones.
@@ -43,20 +50,26 @@ export function SensitivityTab({ sensitivity, solverName, capabilities }: Sensit
   const [nonZeroRcOnly, setNonZeroRcOnly] = useState(true);
 
   if (!sensitivity) {
-    // An empty tab has two very different causes, and "no data available" hid
-    // both behind one shrug. When the solver that ran this execution declares it
-    // computes no duals (Hexaly is a metaheuristic), say so and point at the
-    // analysis that IS available — it is solver-agnostic. Unknown capabilities
-    // keep the old wording rather than guessing a cause.
+    // An empty tab has three very different causes, and "no data available" hid
+    // them all behind one shrug. An infeasible run has no optimum, so there is
+    // nothing to price — and that run DOES have an explanation waiting for it
+    // (the conflict analysis). A solver that declares it computes no duals
+    // (Hexaly is a metaheuristic) never had any, so point at the exact analysis
+    // instead — it is solver-agnostic. Unknown capabilities keep the old wording
+    // rather than guessing a cause.
     const cannotComputeDuals = !!solverName && capabilities?.sensitivity === false;
+    const emptyMessage =
+      solverStatus === "infeasible"
+        ? t("infeasibleNoDuals")
+        : cannotComputeDuals
+          ? t("solverNoDuals", { solver: solverDisplayName(solverName ?? "") })
+          : t("noData");
     return (
       <div
         className="flex items-center justify-center py-16 px-6 text-center text-muted-foreground text-sm"
         data-testid="sensitivity-empty"
       >
-        {cannotComputeDuals
-          ? t("solverNoDuals", { solver: solverDisplayName(solverName ?? "") })
-          : t("noData")}
+        {emptyMessage}
       </div>
     );
   }

@@ -51,6 +51,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ### Changed
 
+- **The Sensitivity tab now holds the sensitivity analysis.** The what-if — the one that re-solves your model to measure what a unit of headroom is really worth — sat at the bottom of the Results tab, below five other sections, while the tab named Sensitivity showed only the LP-relaxation shadow prices. The what-if now opens that tab, with the shadow prices underneath as the approximation they are.
+- **The same shadow prices no longer appear three times on one page.** They were listed in the Sensitivity tab, again inside the solution explorer, and again at the foot of the analysis — the middle copy untruncated, so a 685-constraint model printed all 685 rows there. One list remains, in the Sensitivity tab.
 - **Capacity limits are the operator's to set.** JAOT no longer decides how large a model may be, how many solver threads you may use, or how long you may solve. Expression and source size caps are removed, request-body size moves to `MAX_REQUEST_BODY_MB` (unlimited by default), the JModel grounding budget becomes the `dsl_max_grounded_elements` setting, and no plan limit has a ceiling in the admin panel. **0 means unlimited** on all of them. A 1000×1000 model (905,400 variables) now solves where 500×500 used to be rejected. Limits that protect a real external cost — the AI request caps, billed per token — are unchanged.
 - **Limit errors name the setting to change** — they used to return `upgrade_to` / `upgrade_url` pointing at a checkout page removed with billing. They now carry `setting_key`.
 - **The AI assistant runs on Claude Sonnet 5 / Opus 5** at the same list price per token, using adaptive thinking with an `effort` hint (`LLM_THINKING_EFFORT`). A data-only migration moves existing installs, leaving deliberately pinned models alone.
@@ -80,6 +82,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ### Fixed
 
+- **An infeasible run says why it has no sensitivity data.** The Sensitivity tab answered "no sensitivity data available for this execution", which reads like a fault. A model with no feasible solution has no optimum to price, so shadow prices cannot exist for it — the tab now says that, and points at the infeasibility analysis that does explain the run.
 - **One review per person per model, enforced.** The rule was checked before writing, but nothing stopped two simultaneous posts from both getting through — the database constraint meant to catch that had quietly stopped applying when models were unified. Duplicates left behind are cleaned up on upgrade, keeping the most recent review of each pair.
 - **A busy server now fails fast instead of stalling.** The API would accept four times more concurrent work than its database connections could serve; requests beyond that waited thirty seconds and then errored, and the container health check waited in the same queue — so a slow server was restarted for being unresponsive, moving its load onto the others. Concurrency is now matched to the connections available, the wait is five seconds, and the health check no longer queues behind ordinary traffic.
 

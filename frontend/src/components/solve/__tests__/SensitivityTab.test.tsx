@@ -1,10 +1,11 @@
 /**
  * SensitivityTab — why the tab is empty (v3.2).
  *
- * An empty Sensitivity tab has two very different causes: the run genuinely
- * produced no duals, or the solver that ran it does not compute duals at all.
- * "No sensitivity data available" hid both behind one shrug. These tests pin the
- * rule that decides which explanation is honest.
+ * An empty Sensitivity tab has three very different causes: the model was
+ * infeasible so there is no optimum to price, the solver that ran it does not
+ * compute duals at all, or the run genuinely produced none. "No sensitivity data
+ * available" hid all three behind one shrug. These tests pin the rule that
+ * decides which explanation is honest.
  *
  * next-intl is mocked suite-wide to echo `namespace.key` (src/test/setup.tsx),
  * so assertions target the key that gets rendered, not translated copy.
@@ -29,6 +30,51 @@ const NO_DUALS = {
 };
 
 describe("SensitivityTab empty state", () => {
+  // An infeasible run has no optimum, so duals cannot exist — and unlike the
+  // other empty causes it has a real explanation waiting in the Results tab.
+  // Blaming "no data" here sent the user looking for a bug that isn't there.
+  it("explains that an infeasible run has no optimum to price", () => {
+    render(
+      <SensitivityTab
+        sensitivity={null}
+        solverName="scip"
+        capabilities={COMPUTES_DUALS}
+        solverStatus="infeasible"
+      />
+    );
+    expect(screen.getByTestId("sensitivity-empty")).toHaveTextContent(
+      "solve.sensitivity.infeasibleNoDuals"
+    );
+  });
+
+  // Infeasibility is the stronger cause: it explains the emptiness even when the
+  // solver also happens to be one that computes no duals.
+  it("prefers the infeasible explanation over the solver one", () => {
+    render(
+      <SensitivityTab
+        sensitivity={null}
+        solverName="hexaly"
+        capabilities={NO_DUALS}
+        solverStatus="infeasible"
+      />
+    );
+    expect(screen.getByTestId("sensitivity-empty")).toHaveTextContent(
+      "solve.sensitivity.infeasibleNoDuals"
+    );
+  });
+
+  it("keeps the neutral wording for a solved run that simply carries no duals", () => {
+    render(
+      <SensitivityTab
+        sensitivity={null}
+        solverName="scip"
+        capabilities={COMPUTES_DUALS}
+        solverStatus="optimal"
+      />
+    );
+    expect(screen.getByTestId("sensitivity-empty")).toHaveTextContent("solve.sensitivity.noData");
+  });
+
   it("blames the solver when it declares it computes no duals", () => {
     render(<SensitivityTab sensitivity={null} solverName="hexaly" capabilities={NO_DUALS} />);
     expect(screen.getByTestId("sensitivity-empty")).toHaveTextContent(
