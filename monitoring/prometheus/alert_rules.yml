@@ -1,5 +1,7 @@
 # Prometheus Alert Rules for JAOT Production
-# 24 rules across 7 groups: api, infrastructure, postgres, rabbitmq, redis, celery, containers
+# 45 rules across 14 groups: api, infrastructure, postgres, rabbitmq, redis, celery,
+# hexaly-platform-license, qdrant, llm, security, containers, contact_form,
+# queue-routing, backups
 # Referenced by prometheus.yml via rule_files directive
 
 groups:
@@ -36,6 +38,36 @@ groups:
         annotations:
           summary: "JAOT API is unreachable"
           description: "Prometheus cannot scrape the API metrics endpoint"
+
+      # D-25. Distinct from DbConnectionPoolExhausted below: that one watches
+      # PostgreSQL's own max_connections, which can sit at 40% while an API
+      # worker's pool is completely full. Workers are independent, so one
+      # saturated worker 500s while the others idle — and the Postgres-side
+      # metric never notices.
+      #
+      # Each scrape samples whichever worker answered it, so a sustained ratio
+      # means at least one worker is under real pressure.
+      - alert: ApiDbPoolSaturated
+        expr: jaot_db_pool_checked_out / jaot_db_pool_capacity > 0.90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API database pool above 90% capacity"
+          description: >-
+            {{ $value | humanizePercentage }} of an API worker's connections are checked out.
+            Requests beyond capacity wait out pool_timeout and then 500.
+
+      - alert: ApiDbPoolNearCapacity
+        expr: jaot_db_pool_checked_out / jaot_db_pool_capacity > 0.75
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API database pool above 75% capacity"
+          description: >-
+            {{ $value | humanizePercentage }} of an API worker's connections are checked out.
+            Leading indicator: raise the pool or lower admission before this saturates.
 
   - name: jaot-infrastructure
     rules:

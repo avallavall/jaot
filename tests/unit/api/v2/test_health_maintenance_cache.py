@@ -8,13 +8,23 @@ Covers D-7.1-13 / E-13:
     Test F: Single-flight lock, no stampede — 10 threads racing through
             _probe_maintenance_mode() with empty cache; PSS.get_bool called
             exactly 1 time.
+    Test G: Session hygiene (D-25) — a cache hit opens no session at all, and a
+            refresh closes the one it opens.
+    Test H: Stale-if-error (D-25) — when the pool cannot hand out a connection,
+            the probe serves the last known value instead of raising.
+
+D-25 changed the contract: the helper opens (and closes) its own short-lived
+session instead of receiving one from ``Depends(get_db)``, so that a health
+check stops checking out a pooled connection on every call. The TTL, expiry and
+single-flight invariants below are unchanged — only who owns the session moved.
 """
 
 from __future__ import annotations
 
 import threading
 import time
-from unittest.mock import MagicMock
+
+from sqlalchemy.exc import TimeoutError as SQLAlchemyTimeoutError
 
 
 def _make_pss_counter():
@@ -46,7 +56,6 @@ def test_cache_hit_reuses_pss_result(monkeypatch) -> None:
     _reset_cache()
 
     pss_impl, counter = _make_pss_counter()
-    fake_db = MagicMock()
 
     monkeypatch.setattr(
         "app.services.platform_settings_service.PlatformSettingsService.get_bool",
@@ -56,7 +65,7 @@ def test_cache_hit_reuses_pss_result(monkeypatch) -> None:
     from app.api.v2.health import _probe_maintenance_mode
 
     for _ in range(10):
-        result = _probe_maintenance_mode(fake_db)
+        result = _probe_maintenance_mode()
         assert result is False
 
     assert counter[0] == 1, (
@@ -73,7 +82,6 @@ def test_cache_ttl_expiry_refreshes(monkeypatch) -> None:
     _reset_cache()
 
     pss_impl, counter = _make_pss_counter()
-    fake_db = MagicMock()
 
     monkeypatch.setattr(
         "app.services.platform_settings_service.PlatformSettingsService.get_bool",
@@ -83,7 +91,7 @@ def test_cache_ttl_expiry_refreshes(monkeypatch) -> None:
     from app.api.v2.health import _MAINTENANCE_PROBE_CACHE_SECONDS, _probe_maintenance_mode
 
     # First call — populates cache (count=1)
-    _probe_maintenance_mode(fake_db)
+    _probe_maintenance_mode()
     assert counter[0] == 1
 
     # Advance monotonic time past TTL to simulate expiry.
@@ -98,7 +106,7 @@ def test_cache_ttl_expiry_refreshes(monkeypatch) -> None:
     health_mod._maintenance_probe_cache = (stale_ts, False)
 
     # Second call — cache is stale, should re-invoke PSS.get_bool (count=2)
-    _probe_maintenance_mode(fake_db)
+    _probe_maintenance_mode()
     assert counter[0] == 2, (
         f"PSS.get_bool should be called a second time after TTL expiry, "
         f"but call count is {counter[0]}"
@@ -113,7 +121,6 @@ def test_single_flight_lock_no_stampede(monkeypatch) -> None:
     _reset_cache()
 
     pss_impl, counter = _make_pss_counter()
-    fake_db = MagicMock()
 
     # Add a short sleep inside PSS mock to maximise race-condition surface.
     call_lock = threading.Lock()
@@ -136,7 +143,7 @@ def test_single_flight_lock_no_stampede(monkeypatch) -> None:
 
     def _thread_fn():
         try:
-            val = _probe_maintenance_mode(fake_db)
+            val = _probe_maintenance_mode()
             results.append(val)
         except Exception as exc:
             errors.append(exc)
@@ -154,3 +161,130 @@ def test_single_flight_lock_no_stampede(monkeypatch) -> None:
         f"Single-flight lock should allow PSS.get_bool exactly 1 time "
         f"under 10-thread race, but was called {counter[0]} times"
     )
+
+
+# Test G: session hygiene — a cache hit must not touch the pool at all
+
+
+def test_cache_hit_opens_no_session(monkeypatch) -> None:
+    """# CONTRACT-TEST: a cached maintenance read checks out no DB connection.
+
+    This is the whole point of D-25. ``Depends(get_db)`` acquired a pooled
+    connection before the handler ran, so every health check queued for one even
+    though the TTL cache answers ~9 out of 10 of them from memory. If this ever
+    regresses, the health check starts competing with real traffic for the pool
+    again — and under saturation that is what turns a slow API into a restarting
+    container.
+    """
+    _reset_cache()
+
+    pss_impl, _ = _make_pss_counter()
+    monkeypatch.setattr(
+        "app.services.platform_settings_service.PlatformSettingsService.get_bool",
+        pss_impl,
+    )
+
+    sessions_opened = [0]
+    sessions_closed = [0]
+
+    import app.shared.db.session as session_mod
+
+    real_session_factory = session_mod.SessionLocal
+
+    def _counting_session_factory(*args, **kwargs):
+        sessions_opened[0] += 1
+        session = real_session_factory(*args, **kwargs)
+        real_close = session.close
+
+        def _counting_close():
+            sessions_closed[0] += 1
+            return real_close()
+
+        session.close = _counting_close
+        return session
+
+    monkeypatch.setattr(session_mod, "SessionLocal", _counting_session_factory)
+
+    from app.api.v2.health import _probe_maintenance_mode
+
+    # First call is the refresh: exactly one session, and it must be returned.
+    _probe_maintenance_mode()
+    assert sessions_opened[0] == 1, "the refresh should open exactly one session"
+    assert sessions_closed[0] == 1, "the refresh leaked its session back to the pool"
+
+    # Every subsequent call inside the TTL window must open none.
+    for _ in range(10):
+        _probe_maintenance_mode()
+
+    assert sessions_opened[0] == 1, (
+        f"cached maintenance reads opened {sessions_opened[0]} sessions instead of 1; "
+        "the health check is checking out pooled connections it does not need"
+    )
+
+
+# Test H: stale-if-error — an exhausted pool must not break the health check
+
+
+def test_exhausted_pool_serves_last_known_value(monkeypatch) -> None:
+    """# CONTRACT-TEST: pool exhaustion degrades to the cached value, never raises.
+
+    An exhausted pool is precisely when the health endpoint most needs to
+    answer: if it raises here, the container health check fails and Docker
+    restarts a process whose only problem was load.
+    """
+    _reset_cache()
+
+    # Prime the cache with a known True so we can tell "stale value" apart from
+    # "default False".
+    def _pss_true(db, key, default=False):
+        return True
+
+    monkeypatch.setattr(
+        "app.services.platform_settings_service.PlatformSettingsService.get_bool",
+        _pss_true,
+    )
+
+    from app.api.v2.health import _MAINTENANCE_PROBE_CACHE_SECONDS, _probe_maintenance_mode
+
+    assert _probe_maintenance_mode() is True
+
+    # Expire the cache, then make the pool refuse to hand out a connection.
+    import app.api.v2.health as health_mod
+    import app.shared.db.session as session_mod
+
+    cached = health_mod._maintenance_probe_cache
+    assert cached is not None
+    health_mod._maintenance_probe_cache = (
+        cached[0] - (_MAINTENANCE_PROBE_CACHE_SECONDS + 1.0),
+        cached[1],
+    )
+
+    def _exhausted(*args, **kwargs):
+        raise SQLAlchemyTimeoutError("QueuePool limit of size 5 overflow 5 reached")
+
+    monkeypatch.setattr(session_mod, "SessionLocal", _exhausted)
+
+    assert _probe_maintenance_mode() is True, (
+        "with the pool exhausted the probe must serve the last known value, "
+        "not raise and not silently flip maintenance off"
+    )
+
+
+def test_exhausted_pool_with_cold_cache_defaults_to_off(monkeypatch) -> None:
+    """With no value ever read, an exhausted pool reports maintenance off.
+
+    False is the safe default: reporting maintenance ON would take a healthy
+    site down over a transient pool blip.
+    """
+    _reset_cache()
+
+    import app.shared.db.session as session_mod
+
+    def _exhausted(*args, **kwargs):
+        raise SQLAlchemyTimeoutError("QueuePool limit of size 5 overflow 5 reached")
+
+    monkeypatch.setattr(session_mod, "SessionLocal", _exhausted)
+
+    from app.api.v2.health import _probe_maintenance_mode
+
+    assert _probe_maintenance_mode() is False

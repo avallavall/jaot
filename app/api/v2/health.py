@@ -7,14 +7,13 @@ from threading import Lock
 from typing import Any
 
 import psutil
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import text
-from sqlalchemy.orm import Session
+from sqlalchemy.exc import TimeoutError as SQLAlchemyTimeoutError
 
 from app.schemas.health import RecentRequestEntry, RecentRequestsResponse
 from app.shared.core.metrics import metrics_collector
-from app.shared.db.base import get_db
 from app.version import APP_VERSION
 
 logger = logging.getLogger(__name__)
@@ -34,16 +33,24 @@ _maintenance_probe_cache: tuple[float, bool] | None = None
 _maintenance_probe_lock = Lock()
 
 
-def _probe_maintenance_mode(db: Session) -> bool:
+def _probe_maintenance_mode() -> bool:
     """TTL-cached PlatformSettingsService.get_bool('MAINTENANCE_MODE').
 
     Uses a 10s TTL + single-flight lock so that sustained healthcheck load
     (e.g. k8s liveness probes every 10s across N replicas) invokes
     PSS.get_bool at most once per 10s per process — not on every /health hit.
 
-    All PSS errors are swallowed and default to False (maintenance off), so
-    a broken platform_settings row cannot prevent the health endpoint from
-    responding.
+    D-25: this helper owns its session instead of receiving one from
+    ``Depends(get_db)``. FastAPI resolves dependencies *before* entering the
+    handler, so the old signature checked out a pooled connection on **every**
+    health request — including the ~9 out of 10 that the TTL cache serves
+    without touching the database at all. Under saturation that made the health
+    check queue behind ordinary traffic, which is how a slow API became a
+    restarting one.
+
+    All errors are swallowed: on failure we serve the last known value, or
+    False (maintenance off) if we have never had one. A saturated pool or a
+    broken platform_settings row must not stop the health endpoint answering.
     """
     global _maintenance_probe_cache
 
@@ -54,15 +61,22 @@ def _probe_maintenance_mode(db: Session) -> bool:
             return cached[1]
 
         from app.services.platform_settings_service import PlatformSettingsService
+        from app.shared.db.session import SessionLocal
 
         try:
-            is_maintenance = PlatformSettingsService.get_bool(
-                db,
-                "MAINTENANCE_MODE",
-                default=False,
-            )
+            db = SessionLocal()
+            try:
+                is_maintenance = PlatformSettingsService.get_bool(
+                    db,
+                    "MAINTENANCE_MODE",
+                    default=False,
+                )
+            finally:
+                db.close()
         except Exception:  # noqa: BLE001 — infra probe must degrade, never raise
-            is_maintenance = False
+            # Stale-if-error: an exhausted pool is exactly when the flag matters
+            # least and answering matters most.
+            return cached[1] if cached is not None else False
 
         _maintenance_probe_cache = (now, is_maintenance)
         return is_maintenance
@@ -101,7 +115,7 @@ class MetricsResponse(BaseModel):
 
 
 @router.get("", response_model=HealthResponse)
-def health_check(db: Session = Depends(get_db)) -> HealthResponse:
+def health_check() -> HealthResponse:
     """Check API health and readiness with system metrics.
 
     Returns detailed health information including:
@@ -110,6 +124,10 @@ def health_check(db: Session = Depends(get_db)) -> HealthResponse:
     - Application uptime
     - Python version
     - Maintenance mode flag
+
+    Takes no DB session (D-25): the maintenance flag is read behind a 10s TTL
+    cache that opens its own short-lived session, so a health check no longer
+    checks out a pooled connection on every call.
     """
     # interval=None is REQUIRED here, not a preference: interval=0.1 sleeps 100ms
     # inside the call, and this handler runs on the event loop, so every health
@@ -125,7 +143,7 @@ def health_check(db: Session = Depends(get_db)) -> HealthResponse:
     disk = psutil.disk_usage("/")
     app_stats = metrics_collector.get_stats()
 
-    is_maintenance = _probe_maintenance_mode(db)
+    is_maintenance = _probe_maintenance_mode()
 
     return HealthResponse(
         status="ok",
@@ -192,7 +210,7 @@ class DetailedStatusResponse(BaseModel):
 
 
 @router.get("/status", response_model=DetailedStatusResponse)
-def detailed_status(db: Session = Depends(get_db)) -> DetailedStatusResponse:
+def detailed_status() -> DetailedStatusResponse:
     """Detailed health status with component checks.
 
     Used for SLA monitoring and uptime tracking. Checks:
@@ -201,22 +219,49 @@ def detailed_status(db: Session = Depends(get_db)) -> DetailedStatusResponse:
     - System resources (memory, disk)
 
     Returns overall status: healthy, degraded, or down.
+
+    This is the endpoint the container health check polls, so it takes no DB
+    session (D-25). ``Depends(get_db)`` used to check out a pooled connection
+    before the handler ran: when the pool was exhausted the probe blocked for
+    the full ``pool_timeout`` and Docker's 10s timeout expired, marking a
+    merely-slow container unhealthy and restarting it — which moved its load
+    onto the remaining workers. Acquiring the connection *inside* the check
+    turns pool exhaustion into what it actually is: a reported "database is
+    down", answered promptly, instead of a restart cascade.
     """
     import time
 
     components = []
     app_stats = metrics_collector.get_stats()
 
-    # 1. Database check
+    # 1. Database check — owns its session, so exhaustion is reported, not queued on.
     try:
+        from app.shared.db.session import SessionLocal
+
         t0 = time.monotonic()
-        db.execute(text("SELECT 1"))
+        db = SessionLocal()
+        try:
+            db.execute(text("SELECT 1"))
+        finally:
+            db.close()
         db_latency = round((time.monotonic() - t0) * 1000, 2)
         components.append(
             ComponentStatus(
                 name="database",
                 status="healthy",
                 latency_ms=db_latency,
+            )
+        )
+    except SQLAlchemyTimeoutError as e:
+        # Distinguish "no free connection" from "the database is unreachable":
+        # they need different operator responses (raise the pool / bound
+        # admission vs. go look at Postgres).
+        logger.error("Health check: database pool exhausted: %s", e)
+        components.append(
+            ComponentStatus(
+                name="database",
+                status="down",
+                message="connection pool exhausted (no free connection within pool_timeout)",
             )
         )
     except Exception as e:

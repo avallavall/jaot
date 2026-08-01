@@ -111,6 +111,49 @@ def _ensure_settings_seeded() -> None:
         db.close()
 
 
+def _configure_threadpool() -> None:
+    """Bound concurrent request execution to what the DB pool can serve (D-25).
+
+    Our endpoints are synchronous by design (ADR-009 moved them off the event
+    loop deliberately, because import/export/validate is heavy SCIP work), so
+    every request runs in the AnyIO threadpool. That threadpool defaulted to 40
+    tokens per process and had never been tuned, while production gives each of
+    its four worker processes a pool of 10 connections — so each process
+    admitted four times the concurrent work it could actually serve.
+
+    The surplus did not fail fast: an endpoint holds its connection for the
+    whole request, so request 11 waited out ``pool_timeout`` and then 500'd,
+    having occupied a thread the entire time.
+
+    Matching tokens to pool capacity makes the queue land in one place, before
+    the work starts, instead of stranding threads on a resource that is already
+    fully committed.
+
+    Never raises: a failure to tune the limiter must not stop the app booting —
+    the old default is degraded, not broken.
+    """
+    try:
+        import anyio.to_thread
+
+        configured = settings.API_THREADPOOL_TOKENS
+        tokens = configured if configured > 0 else settings.DB_POOL_SIZE + settings.DB_MAX_OVERFLOW
+        if tokens <= 0:
+            return
+
+        limiter = anyio.to_thread.current_default_thread_limiter()
+        previous = limiter.total_tokens
+        limiter.total_tokens = tokens
+        logger.info(
+            "🧵 Request threadpool bounded to %d concurrent requests "
+            "(was %s; DB pool capacity is %d)",
+            tokens,
+            previous,
+            settings.DB_POOL_SIZE + settings.DB_MAX_OVERFLOW,
+        )
+    except Exception:
+        logger.warning("Could not size the request threadpool; using the default", exc_info=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Lifespan context manager for startup and shutdown events."""
@@ -123,6 +166,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # The API side of the solver domain's host ports (D-16). The worker side is
     # the Celery include list — miss either and the domain raises at first use.
     register_solver_ports()
+
+    # D-25: make admission coherent with the connection pool. Must run inside
+    # the running loop — the limiter lives in a RunVar, so setting it at import
+    # time would configure a different loop's limiter (or none at all).
+    _configure_threadpool()
 
     # Self-heal: ensure all registry settings exist in DB (do first)
     _ensure_settings_seeded()
@@ -386,6 +434,12 @@ def create_app() -> FastAPI:
     from app.shared.core.llm_budget_metrics import register_llm_budget_collector
 
     register_llm_budget_collector()
+
+    # D-25: jaot_db_pool_* gauges. The connection pool reached no metric at all,
+    # so exhaustion was invisible until a request timed out and 500'd.
+    from app.shared.core.db_pool_metrics import register_db_pool_collector
+
+    register_db_pool_collector()
 
     return app
 

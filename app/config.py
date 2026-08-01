@@ -53,6 +53,28 @@ class Settings(BaseSettings):
     DB_MAX_OVERFLOW: int = 10
     DB_POOL_RECYCLE: int = 3600
 
+    # Seconds a request waits for a free pooled connection before failing (D-25).
+    # SQLAlchemy's default is 30s, which is the worst possible answer under load:
+    # the caller has long given up, the client may have retried, and the request
+    # still occupies a thread for half a minute before 500ing. A short timeout
+    # turns "stall, then fail" into "fail fast", which is what a queue in front
+    # of a saturated resource should do.
+    DB_POOL_TIMEOUT: int = 5
+
+    # Concurrent requests one process will run at once, i.e. the size of the
+    # AnyIO threadpool that carries our synchronous endpoints (ADR-009).
+    #
+    # 0 = derive it from the pool (DB_POOL_SIZE + DB_MAX_OVERFLOW), which is the
+    # coherent default and what production should use. Endpoints hold their
+    # connection for the whole request — a long solve keeps one while it
+    # computes — so admitting more concurrent requests than there are
+    # connections guarantees the surplus waits. AnyIO's own default is 40, which
+    # against a production pool of 10 admitted four times what could be served.
+    #
+    # Raise it above the pool only if you know most of your traffic never
+    # touches the database.
+    API_THREADPOOL_TOKENS: int = 0
+
     REDIS_URL: str = ""
 
     # Max accepted HTTP request body, in megabytes. 0 = no limit.
