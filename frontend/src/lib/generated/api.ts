@@ -9336,6 +9336,7 @@ export interface components {
             explained_at?: string | null;
             /** Explanation */
             explanation?: string | null;
+            progress?: components["schemas"]["ScenarioProgress"] | null;
             /** Requested At */
             requested_at?: string | null;
             /**
@@ -9356,6 +9357,16 @@ export interface components {
             cached: boolean;
             /** Explanation */
             explanation: string;
+        };
+        /**
+         * ScenarioProgress
+         * @description How many scenarios of a running what-if batch have been solved.
+         */
+        ScenarioProgress: {
+            /** Done */
+            done: number;
+            /** Planned */
+            planned: number;
         };
         /**
          * ScenarioStatus
@@ -11063,6 +11074,7 @@ export type RhsScenario = components['schemas']['RhsScenario'];
 export type ScenarioAnalysis = components['schemas']['ScenarioAnalysis'];
 export type ScenarioAnalysisJob = components['schemas']['ScenarioAnalysisJob'];
 export type ScenarioExplanationResponse = components['schemas']['ScenarioExplanationResponse'];
+export type ScenarioProgress = components['schemas']['ScenarioProgress'];
 export type ScenarioStatus = components['schemas']['ScenarioStatus'];
 export type ScheduleCreateRequest = components['schemas']['ScheduleCreateRequest'];
 export type ScheduleResponse = components['schemas']['ScheduleResponse'];

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -25,10 +26,10 @@ interface AnalyticsTimelineProps {
   onModeChange: (mode: TimeSeriesMode) => void;
 }
 
-const MODE_LABELS: { value: TimeSeriesMode; label: string }[] = [
-  { value: "aggregate", label: "Aggregate" },
-  { value: "domain", label: "By Domain" },
-  { value: "event_type", label: "By Event Type" },
+const MODE_LABELS: { value: TimeSeriesMode; labelKey: string }[] = [
+  { value: "aggregate", labelKey: "modeAggregate" },
+  { value: "domain", labelKey: "modeDomain" },
+  { value: "event_type", labelKey: "modeEventType" },
 ];
 
 const STACKED_COLORS = [
@@ -63,6 +64,7 @@ export function AnalyticsTimeline({
   mode,
   onModeChange,
 }: AnalyticsTimelineProps) {
+  const t = useTranslations("admin.featureAnalytics");
   const aggregateData = useMemo(
     () => timeSeries.map((d) => ({ ...d, label: formatDate(d.date) })),
     [timeSeries]
@@ -77,7 +79,7 @@ export function AnalyticsTimeline({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Event Trends</CardTitle>
+        <CardTitle>{t("eventTrends")}</CardTitle>
         <div className="flex gap-1 bg-muted rounded-lg p-1">
           {MODE_LABELS.map((m) => (
             <button
@@ -89,7 +91,7 @@ export function AnalyticsTimeline({
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {m.label}
+              {t(m.labelKey)}
             </button>
           ))}
         </div>

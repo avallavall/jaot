@@ -1,7 +1,8 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { AnalyticsFilters } from "./analytics-types";
-import { EVENT_TYPES } from "./analytics-helpers";
+import { EVENT_TYPES, formatEventType } from "./analytics-helpers";
 
 const DOMAINS = [
   "Solver",
@@ -26,6 +27,7 @@ export function AnalyticsFilterBar({
   onFiltersChange,
   countryOptions,
 }: AnalyticsFilterBarProps) {
+  const t = useTranslations("admin.featureAnalytics");
   const hasFilters =
     filters.eventType || filters.countryCode || filters.domain;
 
@@ -42,10 +44,10 @@ export function AnalyticsFilterBar({
         }
         className={selectClass}
       >
-        <option value="">All Event Types</option>
+        <option value="">{t("allEventTypes")}</option>
         {EVENT_TYPES.map((et) => (
           <option key={et} value={et}>
-            {et}
+            {formatEventType(et, t)}
           </option>
         ))}
       </select>
@@ -57,10 +59,10 @@ export function AnalyticsFilterBar({
         }
         className={selectClass}
       >
-        <option value="">All Domains</option>
+        <option value="">{t("allDomains")}</option>
         {DOMAINS.map((d) => (
           <option key={d} value={d}>
-            {d}
+            {t.has(`domains.${d}`) ? t(`domains.${d}`) : d}
           </option>
         ))}
       </select>
@@ -72,7 +74,7 @@ export function AnalyticsFilterBar({
         }
         className={selectClass}
       >
-        <option value="">All Countries</option>
+        <option value="">{t("allCountries")}</option>
         {countryOptions.map((cc) => (
           <option key={cc} value={cc}>
             {cc}
@@ -88,7 +90,7 @@ export function AnalyticsFilterBar({
             : "border-input bg-background text-muted-foreground hover:text-foreground"
         }`}
       >
-        Compare
+        {t("compare")}
       </button>
 
       {hasFilters && (
@@ -103,7 +105,7 @@ export function AnalyticsFilterBar({
           }
           className="h-9 rounded-md px-3 text-sm text-muted-foreground hover:text-foreground"
         >
-          Clear filters
+          {t("clearFilters")}
         </button>
       )}
     </div>

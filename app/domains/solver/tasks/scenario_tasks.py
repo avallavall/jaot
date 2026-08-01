@@ -75,6 +75,9 @@ def scenario_analysis_async(
             objective_value=payload.objective_value,
             base_solve_seconds=base_seconds,
             budget=budget,
+            on_progress=lambda done, planned: _publish_progress(
+                db, execution_id, organization_id, done, planned
+            ),
         )
         logger.info(
             "Scenario analysis %s ran %d re-solves in %.1fs (partial=%s)",
@@ -105,6 +108,36 @@ def scenario_analysis_async(
         return {"status": "error", "execution_id": execution_id, "error": detail}
     finally:
         db.close()
+
+
+def _publish_progress(
+    db: Any, execution_id: str, organization_id: str, done: int, planned: int
+) -> None:
+    """Record "done of planned" on the row the UI already polls.
+
+    Best-effort by design: this is a progress line, and losing one must never
+    cost the batch that is being paid for in solver seconds. The row is re-read
+    each tick so a terminal write from anywhere else is respected rather than
+    clobbered by a stale in-memory copy.
+    """
+    try:
+        execution = (
+            db.query(ModelExecution)
+            .filter(
+                ModelExecution.id == execution_id,
+                ModelExecution.organization_id == organization_id,
+            )
+            .first()
+        )
+        if execution is None or not execution.scenario_analysis:
+            return
+        execution.scenario_analysis = scenario_job.with_progress(
+            execution.scenario_analysis, done, planned
+        )
+        db.commit()
+    except Exception as exc:  # pragma: no cover - progress is never worth a failure
+        logger.debug("Could not publish scenario progress for %s: %s", execution_id, exc)
+        db.rollback()
 
 
 def _persist(db: Any, execution: ModelExecution, *, analysis: ScenarioAnalysis) -> None:

@@ -45,23 +45,38 @@ export const PERIODS: { value: Period; labelKey: string }[] = [
   { value: "all", labelKey: "periodAll" },
 ];
 
-export function formatEventType(eventType: string): string {
+/** Minimal shape of next-intl's translator, so these helpers stay pure. */
+export interface AnalyticsTranslator {
+  (key: string, values?: Record<string, string | number>): string;
+  has(key: string): boolean;
+}
+
+/**
+ * Name an event type for a reader. Event types are wire values ("solver.solve");
+ * title-casing them produced screen text like "Solver Solve" and "Marketplace
+ * Activate". A type with no translation still falls back to title case, so a new
+ * one added on the server shows up readable rather than blank.
+ */
+export function formatEventType(eventType: string, t?: AnalyticsTranslator): string {
+  const key = `eventTypes.${eventType}`;
+  if (t?.has(key)) return t(key);
   return eventType
     .replace(/\./g, " ")
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function relativeTime(iso: string): string {
+/** "hace 5 min" / "5m ago" — reuses the same wording as the notification bell. */
+export function relativeTime(iso: string, t: AnalyticsTranslator): string {
   const diff = Date.now() - new Date(iso).getTime();
   const seconds = Math.floor(diff / 1000);
-  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 60) return t("justNow");
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return t("minutesAgo", { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t("hoursAgo", { count: hours });
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return t("daysAgo", { count: days });
 }
 
 export function getDomainForEvent(eventType: string): string {

@@ -11,6 +11,7 @@ import {
   Cell,
 } from "recharts";
 import { Globe } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { CountryEntry } from "./analytics-types";
 import { TOOLTIP_STYLE } from "./analytics-helpers";
@@ -24,6 +25,7 @@ export function AnalyticsGeography({
   countries,
   onCountryClick,
 }: AnalyticsGeographyProps) {
+  const t = useTranslations("admin.featureAnalytics");
   const top10 = countries.slice(0, 10);
 
   return (
@@ -31,7 +33,7 @@ export function AnalyticsGeography({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Globe className="h-4 w-4" />
-          Top Countries
+          {t("topCountries")}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -74,7 +76,7 @@ export function AnalyticsGeography({
           </ResponsiveContainer>
         ) : (
           <p className="text-center text-muted-foreground py-12">
-            No events recorded yet
+            {t("noEvents")}
           </p>
         )}
       </CardContent>

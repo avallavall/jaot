@@ -96,7 +96,15 @@ export function ScenarioAnalysisSection({ executionId }: ScenarioAnalysisSection
 
       {running && (
         <p className="text-sm text-muted-foreground" data-testid="scenario-analysis-running">
-          {t("running")}
+          {/* The batch can run for minutes. Until the first scenario lands there
+              is nothing to count, so the generic line stands; after that the
+              count is what distinguishes "still working" from "hung". */}
+          {job?.progress
+            ? t("runningProgress", {
+                done: job.progress.done,
+                planned: job.progress.planned,
+              })
+            : t("running")}
         </p>
       )}
 

@@ -387,3 +387,43 @@ class TestWebSocketReconnection:
             data2 = ws2.receive_json()
             assert data2["type"] == "snapshot"
             assert data2["status"] == execution_a.status
+
+
+# ---------------------------------------------------------------------------
+# A deployment must not refuse a socket from its own interface. The handshake is
+# rejected BEFORE the upgrade, so the browser sees a bare 403 with no reason and
+# the panel silently falls back to polling — a QA sweep reported it as a broken
+# feature when it was a misconfigured origin list.
+# ---------------------------------------------------------------------------
+
+
+class TestWebSocketAllowedOrigins:
+    def test_the_apps_own_frontend_origin_is_always_allowed(self):
+        from app.api.v2.ws import _ws_origins
+
+        origins = _ws_origins(["https://jaot.io"], "http://localhost:3000")
+        assert "http://localhost:3000" in origins
+        assert "https://jaot.io" in origins
+
+    def test_the_path_of_frontend_url_is_not_part_of_the_origin(self):
+        from app.api.v2.ws import _ws_origins
+
+        assert _ws_origins([], "https://jaot.io/es/studio") == ["https://jaot.io"]
+
+    def test_an_already_listed_origin_is_not_duplicated(self):
+        from app.api.v2.ws import _ws_origins
+
+        assert _ws_origins(["https://jaot.io"], "https://jaot.io") == ["https://jaot.io"]
+
+    def test_a_blank_or_malformed_frontend_url_adds_nothing(self):
+        from app.api.v2.ws import _ws_origins
+
+        assert _ws_origins(["https://jaot.io"], "") == ["https://jaot.io"]
+        assert _ws_origins(["https://jaot.io"], "not-a-url") == ["https://jaot.io"]
+
+    # CONTRACT-TEST: widening for our own origin must not open the door to others.
+    def test_an_unrelated_origin_is_still_refused(self):
+        from app.api.v2.ws import _ws_origins
+
+        origins = _ws_origins(["https://jaot.io"], "http://localhost:3000")
+        assert "https://evil.example" not in origins

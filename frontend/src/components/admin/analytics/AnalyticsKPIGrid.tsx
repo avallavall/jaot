@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import {
   Activity,
   Users,
@@ -83,6 +84,7 @@ export function AnalyticsKPIGrid({
   breakdown,
   compare,
 }: AnalyticsKPIGridProps) {
+  const t = useTranslations("admin.featureAnalytics");
   const bdMap = useBreakdownMap(breakdown);
   const solvesEntry = bdMap.get("solver.solve");
   const aiEntry = bdMap.get("ai_builder.message");
@@ -90,37 +92,37 @@ export function AnalyticsKPIGrid({
 
   const cards: KPICardConfig[] = [
     {
-      label: "Total Events",
+      label: t("totalEvents"),
       value: kpi.total_events,
       previous: kpi.prev_total_events,
       icon: <Activity className="h-4 w-4 text-muted-foreground" />,
     },
     {
-      label: "Active Users",
+      label: t("activeUsers"),
       value: kpi.active_users,
       previous: kpi.prev_active_users,
       icon: <Users className="h-4 w-4 text-muted-foreground" />,
     },
     {
-      label: "Solves",
+      label: t("solves"),
       value: solvesEntry?.count ?? 0,
       previous: solvesEntry?.prev_count,
       icon: <Zap className="h-4 w-4 text-muted-foreground" />,
     },
     {
-      label: "AI Messages",
+      label: t("aiMessages"),
       value: aiEntry?.count ?? 0,
       previous: aiEntry?.prev_count,
       icon: <MessageSquare className="h-4 w-4 text-muted-foreground" />,
     },
     {
-      label: "Adoptions",
+      label: t("adoptions"),
       value: adoptionsEntry?.count ?? 0,
       previous: adoptionsEntry?.prev_count,
       icon: <GitFork className="h-4 w-4 text-muted-foreground" />,
     },
     {
-      label: "Events Today",
+      label: t("eventsToday"),
       value: kpi.events_today,
       previous: kpi.prev_events_today,
       icon: <TrendingUp className="h-4 w-4 text-muted-foreground" />,

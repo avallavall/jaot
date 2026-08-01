@@ -466,6 +466,13 @@ class ScenarioAnalysis(BaseModel):
     partial: bool = False
 
 
+class ScenarioProgress(BaseModel):
+    """How many scenarios of a running what-if batch have been solved."""
+
+    done: int
+    planned: int
+
+
 class ScenarioAnalysisJob(BaseModel):
     """State of one execution's what-if batch (Sensitivity L2).
 
@@ -480,6 +487,10 @@ class ScenarioAnalysisJob(BaseModel):
     error: str | None = None
     requested_at: str | None = None
     completed_at: str | None = None
+    # How far a RUNNING batch has got. Null before the first scenario finishes
+    # and on every terminal state — a finished batch reports its analysis, not
+    # its progress.
+    progress: ScenarioProgress | None = None
     # Plain-language reading of the measured scenarios, produced on demand by the
     # assistant and cached alongside them (so a reload never re-bills a call).
     explanation: str | None = None

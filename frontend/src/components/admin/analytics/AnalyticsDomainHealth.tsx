@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DomainSummaryEntry } from "./analytics-types";
 import { DOMAIN_COLORS } from "./analytics-helpers";
@@ -15,17 +16,18 @@ function colorForDomain(domain: string): string {
 export function AnalyticsDomainHealth({
   domains,
 }: AnalyticsDomainHealthProps) {
+  const t = useTranslations("admin.featureAnalytics");
   const total = domains.reduce((sum, d) => sum + d.count, 0);
 
   if (domains.length === 0 || total === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Feature Domains</CardTitle>
+          <CardTitle>{t("featureDomains")}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-center text-muted-foreground py-12">
-            No events recorded yet
+            {t("noEvents")}
           </p>
         </CardContent>
       </Card>
@@ -35,7 +37,7 @@ export function AnalyticsDomainHealth({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Feature Domains</CardTitle>
+        <CardTitle>{t("featureDomains")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex h-10 rounded-lg overflow-hidden">

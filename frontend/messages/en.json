@@ -2184,7 +2184,52 @@
       "funnelSignups": "Signups",
       "funnelModelCreated": "Model Created",
       "funnelFirstSolve": "First Solve",
-      "funnelPaidAction": "Paid Action"
+      "retry": "Retry",
+      "allEventTypes": "All event types",
+      "allDomains": "All domains",
+      "allCountries": "All countries",
+      "compare": "Compare",
+      "clearFilters": "Clear filters",
+      "solves": "Solves",
+      "aiMessages": "AI messages",
+      "adoptions": "Adoptions",
+      "modeAggregate": "Aggregate",
+      "modeDomain": "By domain",
+      "modeEventType": "By event type",
+      "unusedCount": "{count, plural, one {# unused} other {# unused}}",
+      "share": "Share %",
+      "trend": "Trend",
+      "status": "Status",
+      "statusNotUsed": "Not used",
+      "statusActive": "Active",
+      "feature": "Feature",
+      "funnelUsers": "{count, plural, one {# user} other {# users}}",
+      "funnelStep": "{conversion}% conversion · {dropOff}% drop-off",
+      "allTypes": "All types",
+      "previous": "Previous",
+      "next": "Next",
+      "pageOf": "Page {page} of {totalPages}",
+      "loading": "Loading…",
+      "eventTypes": {
+        "user.signup": "Sign-up",
+        "user.login": "Sign-in",
+        "org.create": "Organization created",
+        "solver.solve": "Solve",
+        "model.create": "Model created",
+        "ai_builder.message": "AI assistant message",
+        "mcp.tool_call": "MCP tool call",
+        "marketplace.activate": "Marketplace adoption",
+        "marketplace.publish": "Marketplace publication",
+        "template.use": "Template used",
+        "schedule.create": "Schedule created"
+      },
+      "domains": {
+        "Solver": "Solver",
+        "AI Builder": "AI assistant",
+        "Marketplace": "Marketplace",
+        "MCP": "MCP",
+        "Scheduling": "Scheduling"
+      }
     },
     "layout": {
       "maintenanceBanner": "Maintenance mode is active — non-admin users see a maintenance page",
@@ -2752,7 +2797,8 @@
         "regretHeader": "Regret",
         "explain": "Explain this to me",
         "explaining": "Writing the explanation…",
-        "explainError": "Could not write the explanation."
+        "explainError": "Could not write the explanation.",
+        "runningProgress": "Solving the scenarios… {done} of {planned} done. This continues in the background; results appear here."
       },
       "solveSummary": "Solve summary",
       "summary": {

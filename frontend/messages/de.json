@@ -2184,7 +2184,52 @@
       "funnelSignups": "Registrierungen",
       "funnelModelCreated": "Modell erstellt",
       "funnelFirstSolve": "Erste Lösung",
-      "funnelPaidAction": "Bezahlte Aktion"
+      "retry": "Erneut versuchen",
+      "allEventTypes": "Alle Ereignistypen",
+      "allDomains": "Alle Bereiche",
+      "allCountries": "Alle Länder",
+      "compare": "Vergleichen",
+      "clearFilters": "Filter zurücksetzen",
+      "solves": "Lösungen",
+      "aiMessages": "KI-Nachrichten",
+      "adoptions": "Übernahmen",
+      "modeAggregate": "Gesamt",
+      "modeDomain": "Nach Bereich",
+      "modeEventType": "Nach Ereignistyp",
+      "unusedCount": "{count, plural, one {# ungenutzt} other {# ungenutzt}}",
+      "share": "% des Gesamten",
+      "trend": "Trend",
+      "status": "Status",
+      "statusNotUsed": "Ungenutzt",
+      "statusActive": "Aktiv",
+      "feature": "Funktion",
+      "funnelUsers": "{count, plural, one {# Nutzer} other {# Nutzer}}",
+      "funnelStep": "{conversion}% Konversion · {dropOff}% Absprung",
+      "allTypes": "Alle Typen",
+      "previous": "Zurück",
+      "next": "Weiter",
+      "pageOf": "Seite {page} von {totalPages}",
+      "loading": "Wird geladen…",
+      "eventTypes": {
+        "user.signup": "Registrierung",
+        "user.login": "Anmeldung",
+        "org.create": "Organisation erstellt",
+        "solver.solve": "Lösung",
+        "model.create": "Modell erstellt",
+        "ai_builder.message": "Nachricht an den KI-Assistenten",
+        "mcp.tool_call": "MCP-Werkzeugaufruf",
+        "marketplace.activate": "Übernahme aus dem Marktplatz",
+        "marketplace.publish": "Veröffentlichung im Marktplatz",
+        "template.use": "Vorlage verwendet",
+        "schedule.create": "Zeitplan erstellt"
+      },
+      "domains": {
+        "Solver": "Solver",
+        "AI Builder": "KI-Assistent",
+        "Marketplace": "Marktplatz",
+        "MCP": "MCP",
+        "Scheduling": "Zeitplanung"
+      }
     },
     "layout": {
       "maintenanceBanner": "Wartungsmodus ist aktiv — Nicht-Admin-Benutzer sehen eine Wartungsseite",
@@ -2724,7 +2769,8 @@
         "regretHeader": "Regret",
         "explain": "Erkläre mir das",
         "explaining": "Erklärung wird geschrieben…",
-        "explainError": "Die Erklärung konnte nicht geschrieben werden."
+        "explainError": "Die Erklärung konnte nicht geschrieben werden.",
+        "runningProgress": "Szenarien werden gelöst … {done} von {planned} fertig. Läuft im Hintergrund weiter; die Ergebnisse erscheinen hier."
       },
       "solveSummary": "Lösungsübersicht",
       "summary": {

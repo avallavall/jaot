@@ -27,6 +27,7 @@ Solver-agnostic: it only builds ``OptimizationProblem`` values and calls back
 into an injected solve function.
 """
 
+import logging
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -53,7 +54,13 @@ from app.schemas.optimization import (
 )
 
 # A solve of one perturbed problem: (problem, warm_start) -> result.
+logger = logging.getLogger(__name__)
+
 SolveFn = Callable[[OptimizationProblem, dict[str, float] | None], OptimizationResult]
+
+#: Called after each scenario with (done, planned) so a caller can report
+#: progress on a batch that takes minutes. Never raises into the batch.
+ProgressFn = Callable[[int, int], None]
 
 _EPS = 1e-9
 # The solver schema floors a time limit at 1s; never ask for less.
@@ -396,8 +403,17 @@ def compute_scenario_analysis(
     base_solve_seconds: float | None = None,
     budget: ScenarioBudget | None = None,
     clock: Callable[[], float] = time.monotonic,
+    on_progress: ProgressFn | None = None,
 ) -> ScenarioAnalysis:
-    """Run the bounded what-if batch for one solved execution."""
+    """Run the bounded what-if batch for one solved execution.
+
+    ``on_progress(done, planned)`` is called after every scenario. The batch is
+    minutes long and the screen showed one unchanging sentence for all of it,
+    which is indistinguishable from a hang; publishing the count is what lets the
+    caller say "8 of 20". Purely a notification — the domain stays free of
+    whatever the caller does with it, and a raising callback must not lose a
+    batch that is already paid for.
+    """
     budget = budget or ScenarioBudget()
     if objective_value is None:
         # Every row is a delta against the base objective; without it there is
@@ -432,14 +448,29 @@ def compute_scenario_analysis(
     # Order: relax every candidate, then the regret questions, then tighten.
     # Each step is strictly less informative than the one before it, so a batch
     # cut short by the budget still spent it on the most useful scenarios.
+    planned = len(rounds[0]) + len(rounds[1]) + len(decisions)
+    done = 0
+
+    def _tick() -> None:
+        nonlocal done
+        done += 1
+        if on_progress is None:
+            return
+        try:
+            on_progress(done, planned)
+        except Exception:  # pragma: no cover - a reporting failure is not a batch failure
+            logger.debug("Scenario progress callback failed", exc_info=True)
+
     for plan in rounds[0]:
         rhs_rows.append(_run_rhs(problem, plan, solve, tracker, objective_value, solution))
+        _tick()
     for plan in decisions:
         decision_rows.append(_run_decision(problem, plan, solve, tracker, objective_value))
+        _tick()
     for plan in rounds[1]:
         rhs_rows.append(_run_rhs(problem, plan, solve, tracker, objective_value, solution))
+        _tick()
 
-    planned = len(rounds[0]) + len(rounds[1]) + len(decisions)
     partial = any(r.status == ScenarioStatus.SKIPPED_BUDGET for r in rhs_rows) or any(
         d.status == ScenarioStatus.SKIPPED_BUDGET for d in decision_rows
     )

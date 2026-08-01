@@ -35,6 +35,7 @@ from app.schemas.optimization import (
     ExactAnalysis,
     ScenarioAnalysis,
     ScenarioAnalysisJob,
+    ScenarioProgress,
 )
 from app.shared.db.base import get_db
 
@@ -172,4 +173,11 @@ def _scenario_job_response(job: dict[str, Any]) -> ScenarioAnalysisJob:
         # bill another one for text we already have.
         explanation=job.get("explanation"),
         explained_at=job.get("explained_at"),
+        # Only while running: it is what turns "this is still working" into a
+        # number, on a batch that can take minutes.
+        progress=(
+            ScenarioProgress.model_validate(job["progress"])
+            if status_value == scenario_job.STATUS_RUNNING and job.get("progress")
+            else None
+        ),
     )

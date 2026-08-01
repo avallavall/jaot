@@ -367,3 +367,90 @@ def test_a_time_limited_scenario_is_reported_as_a_bound():
     assert row.status == ScenarioStatus.TIME_LIMIT
     assert row.objective_value == pytest.approx(99.0)
     assert row.objective_delta == pytest.approx(94.0)
+
+
+# ---------------------------------------------------------------------------
+# A batch is minutes of solving. It used to show one unchanging sentence for all
+# of it, which is indistinguishable from a hang, so the domain now publishes how
+# far it has got — as a notification, never as something that can cost the batch.
+# ---------------------------------------------------------------------------
+
+
+class TestScenarioProgress:
+    def test_reports_every_scenario_and_ends_at_the_planned_count(self):
+        seen: list[tuple[int, int]] = []
+        analysis = compute_scenario_analysis(
+            _lp_problem(),
+            {"x": 4.0, "y": 6.0},
+            solve=_real_solve(),
+            objective_value=26.0,
+            on_progress=lambda done, planned: seen.append((done, planned)),
+        )
+
+        assert seen, "no progress was reported at all"
+        planned = analysis.resolves_planned
+        assert [d for d, _ in seen] == list(range(1, len(seen) + 1))  # 1,2,3… no gaps
+        assert all(p == planned for _, p in seen)
+        assert seen[-1] == (planned, planned)
+
+    # CONTRACT-TEST: reporting progress must never cost a batch already paid for.
+    def test_a_raising_callback_does_not_lose_the_batch(self):
+        def _explode(done: int, planned: int) -> None:
+            raise RuntimeError("the reporting channel is down")
+
+        analysis = compute_scenario_analysis(
+            _lp_problem(),
+            {"x": 4.0, "y": 6.0},
+            solve=_real_solve(),
+            objective_value=26.0,
+            on_progress=_explode,
+        )
+        assert analysis.computed is True
+        assert analysis.resolves_used > 0
+
+    def test_no_callback_is_the_same_analysis(self):
+        with_cb = compute_scenario_analysis(
+            _lp_problem(),
+            {"x": 4.0, "y": 6.0},
+            solve=_real_solve(),
+            objective_value=26.0,
+            on_progress=lambda *_: None,
+        )
+        without = compute_scenario_analysis(
+            _lp_problem(),
+            {"x": 4.0, "y": 6.0},
+            solve=_real_solve(),
+            objective_value=26.0,
+        )
+        assert with_cb.resolves_used == without.resolves_used
+        assert with_cb.resolves_planned == without.resolves_planned
+
+
+class TestScenarioJobProgressEnvelope:
+    def test_progress_lands_on_a_running_job(self):
+        from app.domains.solver import scenario_job
+
+        job = scenario_job.running_job("task_1", 60.0)
+        assert scenario_job.with_progress(job, 3, 20)["progress"] == {"done": 3, "planned": 20}
+
+    # CONTRACT-TEST: a late tick must not resurrect a batch that already finished.
+    def test_a_terminal_job_is_left_alone(self):
+        from app.domains.solver import scenario_job
+        from app.schemas.optimization import ScenarioAnalysis
+
+        done_job = scenario_job.completed_job(
+            scenario_job.running_job("task_1", 60.0), ScenarioAnalysis(computed=True)
+        )
+        assert scenario_job.with_progress(done_job, 3, 20) == done_job
+        assert done_job["status"] == scenario_job.STATUS_COMPLETED
+        assert done_job["progress"] is None
+
+    def test_a_finished_batch_reports_its_analysis_not_its_progress(self):
+        from app.domains.solver import scenario_job
+        from app.schemas.optimization import ScenarioAnalysis
+
+        running = scenario_job.with_progress(scenario_job.running_job("t", 60.0), 19, 20)
+        finished = scenario_job.completed_job(running, ScenarioAnalysis(computed=True))
+        assert finished["progress"] is None
+        failed = scenario_job.failed_job(running, "boom")
+        assert failed["progress"] is None

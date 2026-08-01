@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { FunnelStep } from "./analytics-types";
 import { formatEventType } from "./analytics-helpers";
@@ -9,15 +10,17 @@ interface AnalyticsFunnelProps {
 }
 
 export function AnalyticsFunnel({ steps }: AnalyticsFunnelProps) {
+  const t = useTranslations("admin.featureAnalytics");
+
   if (steps.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Conversion Funnel</CardTitle>
+          <CardTitle>{t("conversionFunnel")}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-center text-muted-foreground py-8">
-            No events recorded yet
+            {t("noEvents")}
           </p>
         </CardContent>
       </Card>
@@ -29,7 +32,7 @@ export function AnalyticsFunnel({ steps }: AnalyticsFunnelProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Conversion Funnel</CardTitle>
+        <CardTitle>{t("conversionFunnel")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-1">
@@ -55,12 +58,12 @@ export function AnalyticsFunnel({ steps }: AnalyticsFunnelProps) {
               <div key={step.name}>
                 {dropOff !== null && (
                   <div className="text-xs text-muted-foreground py-1 pl-4">
-                    ↓ {convRate}% conversion · {dropOff}% drop-off
+                    ↓ {t("funnelStep", { conversion: convRate ?? "0", dropOff })}
                   </div>
                 )}
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium w-[160px] text-right shrink-0">
-                    {formatEventType(step.name)}
+                    {formatEventType(step.name, t)}
                   </span>
                   <div className="flex-1 relative">
                     {ghostWidthPct !== null && (
@@ -83,7 +86,7 @@ export function AnalyticsFunnel({ steps }: AnalyticsFunnelProps) {
                       }}
                     >
                       <span className="text-white font-bold text-sm drop-shadow-sm">
-                        {step.value.toLocaleString()} users
+                        {t("funnelUsers", { count: step.value })}
                       </span>
                     </div>
                   </div>

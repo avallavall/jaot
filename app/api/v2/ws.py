@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 from typing import Any
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
@@ -175,6 +176,25 @@ def _authenticate_websocket(
     return user, organization
 
 
+def _ws_origins(allowed_origins: list[str], frontend_url: str) -> list[str]:
+    """Origins allowed to open a progress socket.
+
+    ALLOWED_ORIGINS plus the origin of FRONTEND_URL, which is where this very
+    app is served from: a deployment whose own interface cannot open the socket
+    is a misconfiguration, and it fails silently — the handshake is refused
+    before the upgrade, so the browser sees a bare 403 and the panel quietly
+    falls back to polling while the UI still promises live progress.
+    """
+    origins = list(allowed_origins)
+    if frontend_url:
+        parsed = urlparse(frontend_url)
+        if parsed.scheme and parsed.netloc:
+            own = f"{parsed.scheme}://{parsed.netloc}"
+            if own not in origins:
+                origins.append(own)
+    return origins
+
+
 @router.websocket("/executions/{execution_id}")
 async def websocket_execution_progress(
     websocket: WebSocket,
@@ -206,9 +226,13 @@ async def websocket_execution_progress(
     from app.config import settings as _ws_settings
 
     origin = websocket.headers.get("origin")
-    allowed_origins = _ws_settings.ALLOWED_ORIGINS
+    allowed_origins = _ws_origins(_ws_settings.ALLOWED_ORIGINS, _ws_settings.FRONTEND_URL)
     if allowed_origins and origin and origin not in allowed_origins:
-        logger.warning(f"WebSocket origin rejected: {origin}")
+        # Closing before accept() means the browser only ever sees "403" with no
+        # reason, so the log line is the only place the cause is legible.
+        logger.warning(
+            "WebSocket origin rejected: %s (allowed: %s)", origin, ", ".join(allowed_origins)
+        )
         await websocket.close(code=4003, reason="Origin not allowed")
         return
 

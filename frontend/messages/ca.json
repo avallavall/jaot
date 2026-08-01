@@ -2184,7 +2184,52 @@
       "funnelSignups": "Registres",
       "funnelModelCreated": "Model creat",
       "funnelFirstSolve": "Primera resolució",
-      "funnelPaidAction": "Accio de pagament"
+      "retry": "Torna-ho a provar",
+      "allEventTypes": "Tots els tipus d’esdeveniment",
+      "allDomains": "Tots els dominis",
+      "allCountries": "Tots els països",
+      "compare": "Comparar",
+      "clearFilters": "Treu els filtres",
+      "solves": "Resolucions",
+      "aiMessages": "Missatges d’IA",
+      "adoptions": "Adopcions",
+      "modeAggregate": "Agregat",
+      "modeDomain": "Per domini",
+      "modeEventType": "Per tipus d’esdeveniment",
+      "unusedCount": "{count, plural, one {# sense usar} other {# sense usar}}",
+      "share": "% del total",
+      "trend": "Tendència",
+      "status": "Estat",
+      "statusNotUsed": "Sense usar",
+      "statusActive": "Activa",
+      "feature": "Funcionalitat",
+      "funnelUsers": "{count, plural, one {# usuari} other {# usuaris}}",
+      "funnelStep": "{conversion}% de conversió · {dropOff}% d’abandonament",
+      "allTypes": "Tots els tipus",
+      "previous": "Anterior",
+      "next": "Següent",
+      "pageOf": "Pàgina {page} de {totalPages}",
+      "loading": "Carregant…",
+      "eventTypes": {
+        "user.signup": "Registre",
+        "user.login": "Inici de sessió",
+        "org.create": "Organització creada",
+        "solver.solve": "Resolució",
+        "model.create": "Model creat",
+        "ai_builder.message": "Missatge a l’assistent d’IA",
+        "mcp.tool_call": "Crida d’eina MCP",
+        "marketplace.activate": "Adopció al marketplace",
+        "marketplace.publish": "Publicació al marketplace",
+        "template.use": "Plantilla usada",
+        "schedule.create": "Programació creada"
+      },
+      "domains": {
+        "Solver": "Solver",
+        "AI Builder": "Assistent d’IA",
+        "Marketplace": "Marketplace",
+        "MCP": "MCP",
+        "Scheduling": "Programació"
+      }
     },
     "layout": {
       "maintenanceBanner": "El mode de manteniment està actiu — els usuaris no administradors veuen una pàgina de manteniment",
@@ -2724,7 +2769,8 @@
         "regretHeader": "Penediment",
         "explain": "Explica-m'ho",
         "explaining": "Escrivint l'explicació…",
-        "explainError": "No s'ha pogut escriure l'explicació."
+        "explainError": "No s'ha pogut escriure l'explicació.",
+        "runningProgress": "Resolent els escenaris… {done} de {planned} resolts. Continua en segon pla; els resultats apareixeran aquí."
       },
       "solveSummary": "Resum de la resolució",
       "summary": {

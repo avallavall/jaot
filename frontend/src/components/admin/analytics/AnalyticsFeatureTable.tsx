@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { ChevronUp, ChevronDown, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { EventBreakdownEntry, SortConfig } from "./analytics-types";
@@ -56,6 +57,7 @@ export function AnalyticsFeatureTable({
   totalEvents,
   compare,
 }: AnalyticsFeatureTableProps) {
+  const t = useTranslations("admin.featureAnalytics");
   const [sort, setSort] = useState<SortConfig>({
     field: "count",
     direction: "desc",
@@ -80,11 +82,11 @@ export function AnalyticsFeatureTable({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          Feature Adoption
+          {t("featureAdoption")}
           {unusedCount > 0 && (
             <span className="inline-flex items-center gap-1 text-xs font-normal text-amber-500">
               <AlertTriangle className="h-3 w-3" />
-              {unusedCount} unused
+              {t("unusedCount", { count: unusedCount })}
             </span>
           )}
         </CardTitle>
@@ -95,18 +97,18 @@ export function AnalyticsFeatureTable({
             <thead>
               <tr className="border-b text-left">
                 {([
-                  ["event_type", "Feature", ""],
-                  ["count", "Count", "text-right"],
-                  ["share", "Share %", "text-right"],
-                ] as const).map(([field, label, align]) => (
+                  ["event_type", "feature", ""],
+                  ["count", "count", "text-right"],
+                  ["share", "share", "text-right"],
+                ] as const).map(([field, labelKey, align]) => (
                   <th key={field} className={`pb-2 font-medium text-muted-foreground cursor-pointer group ${align}`} onClick={() => toggleSort(field)}>
                     <span className={`inline-flex items-center gap-1 ${align ? "justify-end" : ""}`}>
-                      {label} <SortIcon field={field} sort={sort} />
+                      {t(labelKey)} <SortIcon field={field} sort={sort} />
                     </span>
                   </th>
                 ))}
-                {compare && <th className="pb-2 font-medium text-muted-foreground text-right">Trend</th>}
-                <th className="pb-2 font-medium text-muted-foreground text-right">Status</th>
+                {compare && <th className="pb-2 font-medium text-muted-foreground text-right">{t("trend")}</th>}
+                <th className="pb-2 font-medium text-muted-foreground text-right">{t("status")}</th>
               </tr>
             </thead>
             <tbody>
@@ -140,7 +142,7 @@ export function AnalyticsFeatureTable({
                             : color,
                         }}
                       >
-                        {formatEventType(entry.event_type)}
+                        {formatEventType(entry.event_type, t)}
                       </span>
                     </td>
                     <td className="py-2 text-right font-mono">
@@ -174,12 +176,12 @@ export function AnalyticsFeatureTable({
                     )}
                     <td className="py-2 text-right">
                       {isUnused ? (
-                        <span className="text-xs font-medium text-amber-600">
-                          NOT USED
+                        <span className="text-xs font-medium uppercase text-amber-600">
+                          {t("statusNotUsed")}
                         </span>
                       ) : (
                         <span className="text-xs font-medium text-green-600">
-                          Active
+                          {t("statusActive")}
                         </span>
                       )}
                     </td>

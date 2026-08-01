@@ -40,7 +40,20 @@ def running_job(task_id: str | None, budget_seconds: float) -> dict[str, Any]:
         "completed_at": None,
         "error": None,
         "result": None,
+        "progress": None,
     }
+
+
+def with_progress(job: dict[str, Any], done: int, planned: int) -> dict[str, Any]:
+    """Envelope carrying how far a still-running batch has got.
+
+    Minutes of solving used to show one unchanging sentence, which reads exactly
+    like a hang. Terminal states are never overwritten: a progress tick arriving
+    after the batch finished must not resurrect "running".
+    """
+    if job.get("status") != STATUS_RUNNING:
+        return job
+    return {**job, "progress": {"done": done, "planned": planned}}
 
 
 def completed_job(job: dict[str, Any], analysis: ScenarioAnalysis) -> dict[str, Any]:
@@ -49,6 +62,7 @@ def completed_job(job: dict[str, Any], analysis: ScenarioAnalysis) -> dict[str, 
         **job,
         "status": STATUS_COMPLETED,
         "completed_at": utcnow().isoformat(),
+        "progress": None,
         "error": None,
         "result": analysis.model_dump(mode="json"),
     }
@@ -60,6 +74,7 @@ def failed_job(job: dict[str, Any], error: str) -> dict[str, Any]:
         **job,
         "status": STATUS_FAILED,
         "completed_at": utcnow().isoformat(),
+        "progress": None,
         "error": error[:1000],
         "result": None,
     }

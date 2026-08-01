@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type {
   AnalyticsFilters,
@@ -27,6 +28,9 @@ export function AnalyticsRecentEvents({
   period,
   filters,
 }: AnalyticsRecentEventsProps) {
+  const t = useTranslations("admin.featureAnalytics");
+  // "hace 5 min" is worded once, next to the notification bell that also says it.
+  const tAgo = useTranslations("common.notifications");
   const [page, setPage] = useState(1);
   const [eventTypeFilter, setEventTypeFilter] = useState("");
   const [data, setData] = useState<PaginatedRecentEvents | null>(null);
@@ -95,26 +99,26 @@ export function AnalyticsRecentEvents({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Recent Events</CardTitle>
+        <CardTitle>{t("recentEvents")}</CardTitle>
         <select
           value={eventTypeFilter}
           onChange={(e) => setEventTypeFilter(e.target.value)}
           className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
         >
-          <option value="">All types</option>
+          <option value="">{t("allTypes")}</option>
           {EVENT_TYPES.map((et) => (
             <option key={et} value={et}>
-              {et}
+              {formatEventType(et, t)}
             </option>
           ))}
         </select>
       </CardHeader>
       <CardContent>
         {loading ? (
-          <p className="text-center text-muted-foreground py-8">Loading...</p>
+          <p className="text-center text-muted-foreground py-8">{t("loading")}</p>
         ) : !data || data.items.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
-            No events recorded yet
+            {t("noEvents")}
           </p>
         ) : (
           <>
@@ -122,8 +126,8 @@ export function AnalyticsRecentEvents({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left">
-                    {["Event Type", "User ID", "Country", "Time", "Metadata"].map((h) => (
-                      <th key={h} className="pb-2 font-medium text-muted-foreground">{h}</th>
+                    {(["eventType", "userId", "country", "time", "metadata"] as const).map((key) => (
+                      <th key={key} className="pb-2 font-medium text-muted-foreground">{t(key)}</th>
                     ))}
                   </tr>
                 </thead>
@@ -142,7 +146,7 @@ export function AnalyticsRecentEvents({
                             color: getColorForEvent(event.event_type),
                           }}
                         >
-                          {formatEventType(event.event_type)}
+                          {formatEventType(event.event_type, t)}
                         </span>
                       </td>
                       <td className="py-2 font-mono text-xs text-muted-foreground">
@@ -152,7 +156,7 @@ export function AnalyticsRecentEvents({
                         {event.country_code || "---"}
                       </td>
                       <td className="py-2 text-muted-foreground">
-                        {relativeTime(event.created_at)}
+                        {relativeTime(event.created_at, tAgo)}
                       </td>
                       <td className="py-2 font-mono text-xs text-muted-foreground max-w-[200px] truncate">
                         {event.metadata
@@ -171,17 +175,17 @@ export function AnalyticsRecentEvents({
                 disabled={page <= 1}
                 className="px-3 py-1.5 text-sm rounded-md border border-input bg-background disabled:opacity-40"
               >
-                Previous
+                {t("previous")}
               </button>
               <span className="text-sm text-muted-foreground">
-                Page {page} of {totalPages}
+                {t("pageOf", { page, totalPages })}
               </span>
               <button
                 onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
                 disabled={page >= totalPages}
                 className="px-3 py-1.5 text-sm rounded-md border border-input bg-background disabled:opacity-40"
               >
-                Next
+                {t("next")}
               </button>
             </div>
           </>
