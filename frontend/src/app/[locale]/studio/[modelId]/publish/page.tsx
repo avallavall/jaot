@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Link, useRouter } from "@/i18n/navigation";
 import { api } from "@/lib/api";
 import type { ModelCatalogItem, ProjectRead } from "@/lib/types";
-import { getErrorMessage, getErrorStatus } from "@/lib/errors";
+import { getErrorMessage, getErrorStatus, translateApiError } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +39,7 @@ const CATEGORY_IDS = [
  */
 export default function StudioPublishPage() {
   const t = useTranslations("solve.publish");
+  const tError = useTranslations("errors.codes");
   const { categoryLabel } = useCommonLabels();
   const params = useParams();
   const router = useRouter();
@@ -70,7 +71,14 @@ export default function StudioPublishPage() {
   const [screenshots, setScreenshots] = useState<string[]>([]);
 
   const isEditMode = listing !== null;
-  const canPublish = (project?.committed_count ?? 0) > 0;
+  const hasCommit = (project?.committed_count ?? 0) > 0;
+  // An adopted model may only be listed once the adopter commits a change of their
+  // own (owner decision 2026-07-17): adoption auto-commits v1, so one commit still
+  // means "unmodified". The backend refuses it either way — asking here saves the
+  // author from filling in the whole form to be told afterwards.
+  const needsOwnChange =
+    project?.source_type === "marketplace" && (project?.committed_count ?? 0) <= 1;
+  const canPublish = hasCommit && !needsOwnChange;
 
   useEffect(() => {
     let cancelled = false;
@@ -142,8 +150,10 @@ export default function StudioPublishPage() {
       const status = getErrorStatus(err);
       let msg: string;
       if (status === 400) {
-        // The backend refuses to publish a project with no committed version.
-        msg = t("commitFirstHelp");
+        // The backend refuses for one of two reasons and names which in `code`.
+        // This used to answer "commit first" to both, which is wrong — and wrong
+        // in the confusing direction — for an author who already committed.
+        msg = translateApiError(err, tError, t("commitFirstHelp"));
       } else if (status === 422) {
         // Map the known pydantic constraint to a friendly, localized message —
         // the raw "String should have at least 10 characters" leaked to users.
@@ -211,8 +221,9 @@ export default function StudioPublishPage() {
     );
   }
 
-  // A never-committed project cannot publish — the listing pins a committed
-  // version, never the dirty draft. Send the user to commit first.
+  // Two reasons a project cannot be listed yet, and they ask for different work:
+  // commit anything, or commit a change of your own. Saying "commit first" to
+  // someone who already committed sent them looking for a bug.
   if (!canPublish && !isEditMode) {
     return (
       <div className="flex-1 overflow-y-auto">
@@ -220,9 +231,11 @@ export default function StudioPublishPage() {
           <div className="bg-card border rounded-lg p-8 text-center">
             <GitCommitHorizontal className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-foreground mb-2">
-              {t("commitFirstTitle")}
+              {needsOwnChange ? t("ownChangeFirstTitle") : t("commitFirstTitle")}
             </h1>
-            <p className="text-muted-foreground mb-8">{t("commitFirstHelp")}</p>
+            <p className="text-muted-foreground mb-8">
+              {needsOwnChange ? t("ownChangeFirstHelp") : t("commitFirstHelp")}
+            </p>
             <Button
               size="lg"
               data-testid="studio-publish-commit-first"

@@ -2634,6 +2634,8 @@
       "publishInfoText": "Nach der Veröffentlichung ist Ihr Modell sofort im Marketplace sichtbar. Andere können es als bearbeitbare Kopie in ihr eigenes Studio übernehmen. Sie können Ihren Eintrag jederzeit in den Modelleinstellungen aktualisieren oder zurückziehen.",
       "commitFirstTitle": "Zuerst eine Version committen",
       "commitFirstHelp": "Beim Veröffentlichen wird Ihre letzte committete Version angeheftet — der Marketplace sieht nie Ihren Arbeitsentwurf. Committen Sie das Modell im Workspace und kommen Sie dann zurück.",
+      "ownChangeFirstTitle": "Mach es erst zu deinem",
+      "ownChangeFirstHelp": "Du hast dieses Modell aus dem Marktplatz übernommen und seitdem nicht geändert. Abgeleitete Arbeiten sind willkommen, identische Kopien nicht. Committe eine eigene Änderung und veröffentliche es dann als deinen Eintrag.",
       "goToBuild": "Zum Workspace",
       "updateListing": "Eintrag aktualisieren",
       "updating": "Wird aktualisiert...",
@@ -4339,6 +4341,10 @@
         "revoked": "Diese Einladung wurde widerrufen.",
         "expired": "Diese Einladung ist abgelaufen. Bitten Sie um eine neue.",
         "already_accepted": "Diese Einladung wurde bereits verwendet."
+      },
+      "projects": {
+        "publish_needs_commit": "Beim Veröffentlichen wird deine zuletzt committete Version festgeschrieben — den Arbeitsentwurf sieht der Marktplatz nie. Committe dein Modell im Arbeitsbereich und komm zurück.",
+        "publish_needs_own_change": "Dieses Modell stammt aus dem Marktplatz und hat sich seitdem nicht geändert. Committe eine eigene Änderung und veröffentliche es dann als deinen Eintrag."
       }
     }
   },

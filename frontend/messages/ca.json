@@ -2634,6 +2634,8 @@
       "publishInfoText": "En publicar-lo, el teu model serà visible immediatament al marketplace. Altres podran endur-se'l al seu propi estudi com una còpia editable. Pots actualitzar la teva fitxa o despublicar-la en qualsevol moment des dels ajustos del model.",
       "commitFirstTitle": "Primer fes un commit",
       "commitFirstHelp": "Publicar fixa la teva última versió commitejada — el marketplace mai veu el teu esborrany de treball. Fes commit del model al workspace i torna aquí.",
+      "ownChangeFirstTitle": "Fes-lo teu primer",
+      "ownChangeFirstHelp": "Vas adoptar aquest model del marketplace i encara no l'has canviat. Els treballs derivats són benvinguts; les còpies idèntiques no. Commiteja un canvi propi i publica'l com la teva fitxa.",
       "goToBuild": "Anar al workspace",
       "updateListing": "Actualitzar la publicació",
       "updating": "Actualitzant...",
@@ -4339,6 +4341,10 @@
         "revoked": "Aquesta invitació s’ha revocat.",
         "expired": "Aquesta invitació ha caducat. Demana’n una de nova.",
         "already_accepted": "Aquesta invitació ja s’ha fet servir."
+      },
+      "projects": {
+        "publish_needs_commit": "En publicar es fixa la teva darrera versió commitejada: el marketplace mai no veu el teu esborrany de treball. Commiteja el model a l'espai de treball i torna.",
+        "publish_needs_own_change": "Aquest model el vas adoptar del marketplace i no ha canviat des de llavors. Commiteja un canvi propi i publica'l com la teva fitxa."
       }
     }
   },

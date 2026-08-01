@@ -93,6 +93,7 @@ from app.services.template_resolver import (
     resolve_template_dict,
 )
 from app.shared.constants.execution_provenance import ORIGIN_VISUAL_BUILDER
+from app.shared.core.http_errors import CodedHTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -427,7 +428,13 @@ def publish_model_project(
     try:
         listing = svc.publish_listing(db, project, author_org_id=org.id, req=body)
     except ProjectNotPublishableError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        # Additive: `detail` is the same English sentence API/MCP clients already
+        # read; `code` is what lets the browser say WHICH of the two refusals it is.
+        raise CodedHTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+            code=exc.code,
+        ) from exc
     log_action(
         db=db,
         organization_id=org.id,

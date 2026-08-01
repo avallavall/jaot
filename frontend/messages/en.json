@@ -2659,6 +2659,8 @@
       "publishInfoText": "Once published, your model is immediately visible in the marketplace. Others can bring it into their own studio as an editable copy. You can update your listing or unpublish at any time from your model settings.",
       "commitFirstTitle": "Commit a version first",
       "commitFirstHelp": "Publishing pins your latest committed version — the marketplace never sees your working draft. Commit your model in the workspace, then come back.",
+      "ownChangeFirstTitle": "Make it yours first",
+      "ownChangeFirstHelp": "You adopted this model from the marketplace and have not changed it yet. Derivative works are welcome — identical copies are not. Commit a change of your own, then publish it as your listing.",
       "goToBuild": "Go to the workspace",
       "updateListing": "Update listing",
       "updating": "Updating...",
@@ -4339,6 +4341,10 @@
         "revoked": "This invitation has been revoked.",
         "expired": "This invitation has expired. Ask for a new one.",
         "already_accepted": "This invitation has already been used."
+      },
+      "projects": {
+        "publish_needs_commit": "Publishing pins your latest committed version — the marketplace never sees your working draft. Commit your model in the workspace, then come back.",
+        "publish_needs_own_change": "This model was adopted from the marketplace and has not changed since. Commit a change of your own, then publish it as your listing."
       }
     }
   },

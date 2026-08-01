@@ -304,7 +304,24 @@ def commit_version(
 
 
 class ProjectNotPublishableError(Exception):
-    """Publishing a project with no committed version — routes map this to 400."""
+    """A project that may not be published — routes map this to 400.
+
+    Two different reasons reach here, and they ask the author for two different
+    things: commit *anything*, or commit a change *of your own*. The interface
+    turned both into "commit first, then come back", which is a lie to somebody
+    who already committed. ``code`` is what lets a screen tell them apart; it is
+    the same stable-identifier convention as :class:`CodedHTTPException`.
+    """
+
+    def __init__(self, message: str, code: str) -> None:
+        super().__init__(message)
+        self.code = code
+
+
+#: No commit at all — the listing pins a committed version, never the draft.
+PUBLISH_NEEDS_COMMIT = "projects.publish_needs_commit"
+#: Adopted from the marketplace and still identical to what was adopted.
+PUBLISH_NEEDS_OWN_CHANGE = "projects.publish_needs_own_change"
 
 
 def publish_listing(
@@ -324,7 +341,9 @@ def publish_listing(
     versioned problem).
     """
     if project.current_version_id is None:
-        raise ProjectNotPublishableError("Commit a version before publishing.")
+        raise ProjectNotPublishableError(
+            "Commit a version before publishing.", PUBLISH_NEEDS_COMMIT
+        )
     # Owner decision 2026-07-17: an ADOPTED model (marketplace fork) may only be
     # republished after the adopter commits their own change — derivative works
     # are welcome, 1:1 authorship clones are not. The adoption seed auto-commits
@@ -333,7 +352,8 @@ def publish_listing(
     if project.source_type == "marketplace" and (project.committed_count or 0) <= 1:
         raise ProjectNotPublishableError(
             "This model was adopted from the marketplace. Commit a change of your "
-            "own before publishing it as your listing."
+            "own before publishing it as your listing.",
+            PUBLISH_NEEDS_OWN_CHANGE,
         )
 
     now = utcnow()

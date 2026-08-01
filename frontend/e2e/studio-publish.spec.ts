@@ -43,6 +43,38 @@ test.describe("Studio — publish to marketplace", () => {
     await page.waitForURL(new RegExp(`/studio/${projectId}/build`), { timeout: NAV });
   });
 
+  // An adopted model is committed (adoption auto-commits v1), so the commit-first
+  // guard let it through to the form — and the backend then refused it with a 400
+  // the UI translated back to "commit first". The author filled in the whole
+  // listing to be told to do something they had already done.
+  test("adopted model with no change of its own is guarded away from the form", async ({
+    page,
+  }) => {
+    const listed = await page.request.get("/api/v2/models/catalog?limit=100");
+    expect(listed.ok(), `catalog list failed: ${listed.status()}`).toBeTruthy();
+    const items: Array<{ id: string }> = (await listed.json()).items ?? [];
+    // Official (generator-backed) listings seed a runnable model without user
+    // input; some community rows in an old local DB predate the committed-HEAD
+    // rule and cannot be adopted at all.
+    const official = items.find((i) => i.id.startsWith("official_"));
+    test.skip(!official, "no official catalog model to adopt");
+
+    const adopt = await page.request.post(
+      `/api/v2/projects/from-marketplace/${encodeURIComponent(official!.id)}`,
+      { data: {} },
+    );
+    expect(adopt.ok(), `adopt failed: ${adopt.status()} ${await adopt.text()}`).toBeTruthy();
+    const projectId = (await adopt.json()).id as string;
+
+    await page.goto(`/studio/${projectId}/publish`);
+    const cta = page.getByTestId("studio-publish-commit-first");
+    await expect(cta).toBeVisible({ timeout: NAV });
+    // ...and it says to make it yours, NOT to commit something that already exists.
+    await expect(page.getByTestId("studio-publish-form")).toHaveCount(0);
+    const heading = page.locator("h1").first();
+    await expect(heading).toHaveText(/make it yours/i);
+  });
+
   test("commit → Analyze entry → publish form → marketplace listing → edit mode", async ({
     page,
   }) => {

@@ -2634,6 +2634,8 @@
       "publishInfoText": "Une fois publié, votre modèle est immédiatement visible sur la marketplace. Les autres peuvent l'importer dans leur propre studio comme copie modifiable. Vous pouvez mettre à jour votre fiche ou la dépublier à tout moment depuis les paramètres du modèle.",
       "commitFirstTitle": "Committez d'abord une version",
       "commitFirstHelp": "La publication épingle votre dernière version committée — le marketplace ne voit jamais votre brouillon de travail. Committez le modèle dans le workspace, puis revenez ici.",
+      "ownChangeFirstTitle": "Appropriez-le d'abord",
+      "ownChangeFirstHelp": "Vous avez adopté ce modèle depuis la place de marché et ne l'avez pas encore modifié. Les œuvres dérivées sont les bienvenues, les copies à l'identique non. Validez une modification qui vous est propre, puis publiez-le comme votre fiche.",
       "goToBuild": "Aller au workspace",
       "updateListing": "Mettre à jour la publication",
       "updating": "Mise à jour...",
@@ -4339,6 +4341,10 @@
         "revoked": "Cette invitation a été révoquée.",
         "expired": "Cette invitation a expiré. Demandez-en une nouvelle.",
         "already_accepted": "Cette invitation a déjà été utilisée."
+      },
+      "projects": {
+        "publish_needs_commit": "La publication épingle votre dernière version validée : la place de marché ne voit jamais votre brouillon de travail. Validez votre modèle dans l'espace de travail, puis revenez.",
+        "publish_needs_own_change": "Ce modèle a été adopté depuis la place de marché et n'a pas changé depuis. Validez une modification qui vous est propre, puis publiez-le comme votre fiche."
       }
     }
   },

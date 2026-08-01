@@ -108,6 +108,10 @@ class TestProjectPublish:
         res = authenticated_client.post("/api/v2/projects/proj_pub_nover/publish", json=_BODY)
         assert res.status_code == 400, res.text
         assert "commit" in res.json()["detail"].lower()
+        # CONTRACT-TEST: the two publish refusals ask the author for different work,
+        # so they must be distinguishable without parsing English. A browser that
+        # cannot tell them apart answers "commit first" to someone who did commit.
+        assert res.json()["code"] == "projects.publish_needs_commit"
 
     def test_republish_updates_listing(
         self, authenticated_client, db_session, test_organization, test_user
@@ -150,6 +154,8 @@ class TestProjectPublish:
         res = authenticated_client.post("/api/v2/projects/proj_pub_adopt/publish", json=_BODY)
         assert res.status_code == 400, res.text
         assert "adopted" in res.json()["detail"].lower()
+        # ...and it must NOT read as the no-commit refusal: this project has one.
+        assert res.json()["code"] == "projects.publish_needs_own_change"
 
     def test_publish_adopted_after_own_commit_succeeds(
         self, authenticated_client, db_session, test_organization, test_user
