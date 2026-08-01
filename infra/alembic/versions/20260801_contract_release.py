@@ -172,12 +172,31 @@ def upgrade() -> None:
             op.drop_table(table)
 
     # --- 6. access_count becomes the integer it always was --------------------
+    #
+    # Runs last on purpose, and defensively: by this point steps 3-5 have already
+    # dropped columns and tables, so a failure here leaves a half-applied release
+    # with no forward path. Two cases the naive cast gets wrong:
+    #
+    #   * the column is ALREADY integer — `Base.metadata.create_all` (the
+    #     bootstrap path in app/shared/db/init_db.py) builds it from the current
+    #     ORM, where it is Integer, and `NULLIF(integer, '')` is a type error;
+    #   * the text is non-numeric — '', '  ', or anything else a decade of rows
+    #     might hold. `regexp` + `NULLIF` turns those into the 1 they mean.
     if _column_exists(bind, "recent_models", "access_count"):
-        op.execute(
-            "ALTER TABLE recent_models "
-            "ALTER COLUMN access_count TYPE INTEGER "
-            "USING COALESCE(NULLIF(access_count, '')::INTEGER, 1)"
+        current_type = next(
+            c["type"]
+            for c in sa.inspect(bind).get_columns("recent_models")
+            if c["name"] == "access_count"
         )
+        if not isinstance(current_type, sa.Integer):
+            op.execute(
+                "ALTER TABLE recent_models "
+                "ALTER COLUMN access_count TYPE INTEGER "
+                "USING COALESCE("
+                "  NULLIF(regexp_replace(COALESCE(access_count, ''), '\\D', '', 'g'), '')::INTEGER,"
+                "  1"
+                ")"
+            )
         op.execute("ALTER TABLE recent_models ALTER COLUMN access_count SET DEFAULT 1")
 
     # --- 7. The money-era columns ADR-008 left behind -------------------------

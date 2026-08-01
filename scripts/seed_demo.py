@@ -36,12 +36,12 @@ from sqlalchemy.orm import Session  # noqa: E402
 
 from app.models import (  # noqa: E402
     ModelBuilderDocument,
-    ModelCatalog,
     ModelExecution,
+    ModelProject,
+    ModelProjectListing,
     ModelReview,
     ModelVersion,
     Organization,
-    OrganizationModel,
     SolveTrigger,
     User,
     Workspace,
@@ -218,53 +218,65 @@ def _ensure_api_key(db: Session, user: User, org: Organization) -> str | None:
     return plaintext
 
 
-def _activate_catalog_models(
-    db: Session, org: Organization, catalog_ids: list[str]
-) -> list[OrganizationModel]:
-    """Activate catalog models for the demo org. Returns the org models."""
-    org_models: list[OrganizationModel] = []
+def _adopt_marketplace_models(
+    db: Session, org: Organization, listing_ids: list[str]
+) -> list[ModelProject]:
+    """Adopt marketplace models into the demo org. Returns the forked projects.
 
-    for catalog_id in catalog_ids:
+    Adopting copies the model into a project the org owns (``source_ref`` records
+    where it came from) — the same thing "Use in studio" does. It used to create
+    an OrganizationModel row pointing at a catalog entry; both of those went with
+    the contract release (D-26).
+    """
+    forks: list[ModelProject] = []
+
+    for listing_id in listing_ids:
         existing = (
-            db.query(OrganizationModel)
+            db.query(ModelProject)
             .filter(
-                OrganizationModel.organization_id == org.id,
-                OrganizationModel.catalog_id == catalog_id,
+                ModelProject.organization_id == org.id,
+                ModelProject.source_ref == listing_id,
             )
             .first()
         )
         if existing:
-            org_models.append(existing)
+            forks.append(existing)
             continue
 
-        catalog = db.query(ModelCatalog).filter(ModelCatalog.id == catalog_id).first()
-        if not catalog:
-            print(f"  WARNING: Catalog model {catalog_id} not found, skipping")
-            continue
-
-        catalog.total_activations = (catalog.total_activations or 0) + 1
-
-        org_model = OrganizationModel(
-            id=str(uuid.uuid4()),
-            organization_id=org.id,
-            catalog_id=catalog_id,
-            is_active=True,
+        listing = (
+            db.query(ModelProjectListing)
+            .filter(ModelProjectListing.model_project_id == listing_id)
+            .first()
         )
-        db.add(org_model)
-        db.flush()
-        org_models.append(org_model)
-        print(f"  Activated catalog model: {catalog_id}")
+        if not listing:
+            print(f"  WARNING: Marketplace model {listing_id} not found, skipping")
+            continue
 
-    return org_models
+        listing.total_activations = (listing.total_activations or 0) + 1
+
+        fork = ModelProject(
+            id=generate_id("mp_"),
+            organization_id=org.id,
+            name=listing.display_name or listing.name,
+            status="active",
+            source_type="marketplace",
+            source_ref=listing_id,
+        )
+        db.add(fork)
+        db.flush()
+        forks.append(fork)
+        print(f"  Adopted marketplace model: {listing_id}")
+
+    return forks
 
 
 def _build_execution_records(
     db: Session,
     org: Organization,
-    org_models: list[OrganizationModel],
+    org_models: list[ModelProject],
     admin_user: User,
 ) -> None:
-    """Create 8 execution records across the first 3 org models."""
+    """Create 8 execution records across the first 3 adopted models."""
     if len(org_models) < 3:
         print("  WARNING: Not enough activated models for execution records")
         return
@@ -506,7 +518,9 @@ def _build_execution_records(
 
             execution = ModelExecution(
                 id=generate_id("exe_"),
-                organization_model_id=org_model.id,
+                model_project_id=org_model.id,
+                source_kind="model_project",
+                source_id=org_model.id,
                 organization_id=org.id,
                 executed_by_user_id=admin_user.id,
                 input_data=exec_data["input_data"],
@@ -524,8 +538,19 @@ def _build_execution_records(
             db.add(execution)
             created += 1
 
-        org_model.total_executions = (org_model.total_executions or 0) + len(executions)
-        org_model.last_executed_at = utcnow()
+        # Run counts live on the marketplace listing, and a fork's runs roll up
+        # onto the listing it was adopted from — that is what the marketplace
+        # shows as "executions". The fork project itself keeps no tally.
+        if org_model.source_ref:
+            source_listing = (
+                db.query(ModelProjectListing)
+                .filter(ModelProjectListing.model_project_id == org_model.source_ref)
+                .first()
+            )
+            if source_listing:
+                source_listing.total_executions = (source_listing.total_executions or 0) + len(
+                    executions
+                )
 
     db.flush()
     print(f"  Created {created} execution records")
@@ -547,7 +572,7 @@ def _create_reviews(
             db.query(ModelReview)
             .filter(
                 ModelReview.user_id == user.id,
-                ModelReview.catalog_id == catalog_id,
+                ModelReview.model_project_id == catalog_id,
             )
             .first()
         )
@@ -556,7 +581,7 @@ def _create_reviews(
 
         review = ModelReview(
             id=str(uuid.uuid4()),
-            catalog_id=catalog_id,
+            model_project_id=catalog_id,
             user_id=user.id,
             organization_id=org.id,
             rating=review_spec["rating"],
@@ -572,14 +597,21 @@ def _create_reviews(
     for catalog_id in catalog_ids:
         reviews = (
             db.query(ModelReview)
-            .filter(ModelReview.catalog_id == catalog_id, ModelReview.is_visible.is_(True))
+            .filter(
+                ModelReview.model_project_id == catalog_id,
+                ModelReview.is_visible.is_(True),
+            )
             .all()
         )
         if reviews:
             avg = sum(r.rating for r in reviews) / len(reviews)
-            catalog = db.query(ModelCatalog).filter(ModelCatalog.id == catalog_id).first()
-            if catalog:
-                catalog.avg_rating = round(avg, 2)
+            listing = (
+                db.query(ModelProjectListing)
+                .filter(ModelProjectListing.model_project_id == catalog_id)
+                .first()
+            )
+            if listing:
+                listing.avg_rating = round(avg, 2)
 
     db.flush()
     print(f"  Created {created} reviews")
@@ -1086,7 +1118,7 @@ def seed_demo() -> None:
         api_key_plaintext = _ensure_api_key(db, admin_user, org)
 
         print("\n[4/10] Catalog Model Activation")
-        org_models = _activate_catalog_models(db, org, DEMO_CATALOG_IDS)
+        org_models = _adopt_marketplace_models(db, org, DEMO_CATALOG_IDS)
 
         print("\n[5/10] Execution Records")
         _build_execution_records(db, org, org_models, admin_user)

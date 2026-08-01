@@ -1,8 +1,10 @@
 """Health check and metrics endpoints for API v2."""
 
+import asyncio
 import logging
 import platform
 import time
+from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from typing import Any
 
@@ -19,6 +21,20 @@ from app.version import APP_VERSION
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/health", tags=["health"])
+
+# The health probes run on threads of their own, never on the AnyIO threadpool
+# that carries ordinary requests (D-25).
+#
+# This is the second half of taking health out of the queue. Removing the DB
+# dependency stopped the probe waiting for a *connection*, but the handlers are
+# still synchronous work, and bounding the request threadpool to the pool size
+# made the remaining competition worse, not better: where a probe used to be one
+# of 40 tokens it would now be one of 10, so ten concurrent long solves could
+# starve it outright — and a starved probe is a restarted container.
+#
+# Two workers: one for the probe in flight, one so a slow probe cannot block the
+# next one. Nothing else is allowed to use this executor.
+_HEALTH_EXECUTOR = ThreadPoolExecutor(max_workers=2, thread_name_prefix="jaot-health")
 
 # Re-export the Hexaly worker probe from the domain-friendly module so the
 # /health/status handler keeps a stable reference target. Extraction breaks
@@ -54,9 +70,23 @@ def _probe_maintenance_mode() -> bool:
     """
     global _maintenance_probe_cache
 
-    with _maintenance_probe_lock:
-        now = time.monotonic()
+    cached = _maintenance_probe_cache
+    now = time.monotonic()
+    if cached is not None and (now - cached[0]) < _MAINTENANCE_PROBE_CACHE_SECONDS:
+        return cached[1]
+
+    # Non-blocking single flight. The lock now spans a session checkout, not just
+    # a cached query, so waiting on it means waiting out pool_timeout — and with
+    # a blocking acquire every caller would pay that in turn, serially. A caller
+    # that finds the refresh already running serves the stale value instead,
+    # which is what it would have got by waiting anyway.
+    if not _maintenance_probe_lock.acquire(blocking=False):
+        return cached[1] if cached is not None else False
+
+    try:
+        # Re-check: another thread may have refreshed while we were acquiring.
         cached = _maintenance_probe_cache
+        now = time.monotonic()
         if cached is not None and (now - cached[0]) < _MAINTENANCE_PROBE_CACHE_SECONDS:
             return cached[1]
 
@@ -74,12 +104,17 @@ def _probe_maintenance_mode() -> bool:
             finally:
                 db.close()
         except Exception:  # noqa: BLE001 — infra probe must degrade, never raise
-            # Stale-if-error: an exhausted pool is exactly when the flag matters
-            # least and answering matters most.
-            return cached[1] if cached is not None else False
+            # Cache the failure too, at the last known value. Returning without
+            # writing would leave the TTL expired, so the next probe would
+            # immediately pay another full pool_timeout, and the one after that.
+            fallback = cached[1] if cached is not None else False
+            _maintenance_probe_cache = (now, fallback)
+            return fallback
 
         _maintenance_probe_cache = (now, is_maintenance)
         return is_maintenance
+    finally:
+        _maintenance_probe_lock.release()
 
 
 class SystemMetrics(BaseModel):
@@ -115,7 +150,7 @@ class MetricsResponse(BaseModel):
 
 
 @router.get("", response_model=HealthResponse)
-def health_check() -> HealthResponse:
+async def health_check() -> HealthResponse:
     """Check API health and readiness with system metrics.
 
     Returns detailed health information including:
@@ -125,10 +160,17 @@ def health_check() -> HealthResponse:
     - Python version
     - Maintenance mode flag
 
-    Takes no DB session (D-25): the maintenance flag is read behind a 10s TTL
-    cache that opens its own short-lived session, so a health check no longer
-    checks out a pooled connection on every call.
+    Takes no DB session and no request-threadpool token (D-25). The maintenance
+    flag is read behind a 10s TTL cache that opens its own short-lived session,
+    and the work that cache does not cover runs on the health executor — so a
+    liveness answer never queues behind ordinary traffic, whether for a
+    connection or for a thread.
     """
+    return await asyncio.get_running_loop().run_in_executor(_HEALTH_EXECUTOR, _collect_health)
+
+
+def _collect_health() -> HealthResponse:
+    """The blocking half of /health. Runs on the health executor."""
     # interval=None is REQUIRED here, not a preference: interval=0.1 sleeps 100ms
     # inside the call, and this handler runs on the event loop, so every health
     # check froze the whole worker for that long. This endpoint is the most-called
@@ -210,19 +252,24 @@ class DetailedStatusResponse(BaseModel):
 
 
 @router.get("/status", response_model=DetailedStatusResponse)
-def detailed_status() -> DetailedStatusResponse:
+async def detailed_status() -> DetailedStatusResponse:
     """Detailed health status with component checks.
 
-    Used for SLA monitoring and uptime tracking. Checks:
-    - Database connectivity
-    - Solver availability
-    - System resources (memory, disk)
+    Used for SLA monitoring and uptime tracking, and by the container health
+    check. The checks themselves block — a SELECT, a SCIP solve, a Celery
+    ping — so they run on the health executor rather than on the request
+    threadpool: this probe must not compete for a thread with the very load it
+    is reporting on.
+    """
+    return await asyncio.get_running_loop().run_in_executor(_HEALTH_EXECUTOR, _collect_status)
 
-    Returns overall status: healthy, degraded, or down.
 
-    This is the endpoint the container health check polls, so it takes no DB
-    session (D-25). ``Depends(get_db)`` used to check out a pooled connection
-    before the handler ran: when the pool was exhausted the probe blocked for
+def _collect_status() -> DetailedStatusResponse:
+    """The blocking half of /health/status. Runs on the health executor.
+
+    Takes no DB session from FastAPI (D-25). ``Depends(get_db)`` used to check
+    out a pooled connection before the handler ran: when the pool was exhausted
+    the probe blocked for
     the full ``pool_timeout`` and Docker's 10s timeout expired, marking a
     merely-slow container unhealthy and restarting it — which moved its load
     onto the remaining workers. Acquiring the connection *inside* the check

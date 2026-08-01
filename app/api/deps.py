@@ -13,19 +13,17 @@ from starlette.requests import Request
 from app.api.v2.auth import get_current_user
 from app.models import Organization, User
 from app.models.workspace import WorkspaceMember, WorkspaceRole
-from app.shared.db.base import DBSession, get_db
 
-# Type aliases for cleaner endpoint signatures.
-#
-# DBSession is defined in app.shared.db.base and re-exported here: this module
-# is the one route modules import dependencies from, but it cannot own the alias
+# DBSession is defined in app.shared.db.base and re-exported here: this module is
+# the one route modules import dependencies from, but it cannot own the alias
 # because `auth` (which this module imports for CurrentUser) needs it too.
-CurrentUser = Annotated[User, Depends(get_current_user)]
+# The redundant alias is PEP 484's explicit re-export form — it tells ruff and
+# type checkers this name is public here, without an __all__ that would have to
+# enumerate (and keep enumerating) every other dependency this module exposes.
+from app.shared.db.base import DBSession as DBSession, get_db
 
-__all__ = [
-    "CurrentUser",
-    "DBSession",
-]
+# Type aliases for cleaner endpoint signatures
+CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 def enforce_org_rate_limit(db: Session, org: Organization) -> None:
