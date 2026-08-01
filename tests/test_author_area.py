@@ -421,9 +421,7 @@ class TestMyListings:
     def test_requires_authentication(self, client):
         assert client.get("/api/v2/author/listings").status_code == 401
 
-    def test_does_not_read_the_columns_the_panel_never_shows(
-        self, db_session, test_organization
-    ):
+    def test_does_not_read_the_columns_the_panel_never_shows(self, db_session, test_organization):
         """The rich text and the generator blobs are kilobytes per row, on a
         query with no upper bound on rows, for a panel that shows neither."""
         from sqlalchemy import inspect

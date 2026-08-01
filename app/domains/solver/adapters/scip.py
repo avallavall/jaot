@@ -336,8 +336,24 @@ class SCIPAdapter:
         if not options.verbose:
             model.setParam("display/verblevel", 0)
 
-        # Aggressive presolving for better performance
-        model.setPresolve(SCIP_PARAMSETTING.AGGRESSIVE)
+        # Presolving. Aggressive is what makes branch-and-bound tractable, so a MIP
+        # keeps it — its sensitivity comes from a separate LP relaxation anyway.
+        #
+        # A pure LP does NOT keep it, because this model IS where its shadow prices
+        # and reduced costs are read from, and presolve is allowed to remove the
+        # rows and columns they describe. `getDualSolVal` then answers 0 for what it
+        # removed, which is indistinguishable from a dual that is genuinely zero.
+        # Measured on `max 3x+2y ; x+y<=4 ; x+3y<=6 ; x<=3` (optimum 11 at (3,1),
+        # all three rows tight): with aggressive presolve the LP is never solved at
+        # all — 0 simplex iterations — and all three shadow prices come back -0.0
+        # with `is_approximate=False`, i.e. stamped as exact. Without it: c1=2,
+        # cap_x=1, and 2*4 + 1*3 = 11, which is strong duality holding exactly.
+        # Turning presolve off is what fixes it; heuristics and propagation make no
+        # difference (measured). Nor does it cost anything: on a 3000x2000 random
+        # sparse LP the two settings solve in 0.98 s and 1.04 s — presolve earns its
+        # keep on integer problems, not on the simplex.
+        has_integers = self._has_integer_variables(problem)
+        model.setPresolve(SCIP_PARAMSETTING.AGGRESSIVE if has_integers else SCIP_PARAMSETTING.OFF)
 
     def _create_variables(
         self,
@@ -605,11 +621,18 @@ class SCIPAdapter:
 
         Creates a fresh LP model where all variables are continuous, solves it,
         and extracts dual values. Results are marked as approximate.
+
+        Presolve is off here for the same reason as in ``_configure_solver``, and
+        SCIP's *defaults* are enough to trigger it: this model was built with them
+        and returned -0.0 for every shadow price of a relaxation whose true duals
+        are 2 and 1. "Approximate" is a statement about the relaxation, not a
+        licence to report zeros nobody computed.
         """
         try:
             lp_model = Model("lp_relaxation")
             lp_model.hideOutput()
             lp_model.setParam("display/verblevel", 0)
+            lp_model.setPresolve(SCIP_PARAMSETTING.OFF)
 
             variable_names = {v.name for v in problem.variables}
             lp_vars = self._create_lp_relaxation_vars(lp_model, problem)
