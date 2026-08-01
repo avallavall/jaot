@@ -195,12 +195,26 @@ def list_catalog_models(
     # Impressions are keyed by model_project_id — the marketplace identity.
     _record_impressions(db, request, viewer, [i.id for i in items])
 
+    # The facet is deliberately computed over the whole visible catalogue, not
+    # over this page and not narrowed by the active filters: a filter control
+    # that only offers what is already on screen cannot reach the rest.
+    categories = [
+        row[0]
+        for row in db.query(ModelProjectListing.category)
+        .filter(*MARKETPLACE_VISIBLE)
+        .distinct()
+        .order_by(ModelProjectListing.category)
+        .all()
+        if row[0]
+    ]
+
     return ModelCatalogListResponse(
         items=items,
         total=total,
         page=page,
         page_size=page_size,
         total_pages=(total + page_size - 1) // page_size,
+        categories=categories,
     )
 
 

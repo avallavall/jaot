@@ -30,6 +30,7 @@ function MarketplaceListingInner() {
   const dialog = useDialog();
 
   const [models, setModels] = useState<ModelCatalogItem[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -101,8 +102,12 @@ function MarketplaceListingInner() {
       ).toString();
       const data = (await api.request(
         `/api/v2/models/catalog?${queryString}`
-      )) as PaginatedResponse<ModelCatalogItem>;
+      )) as PaginatedResponse<ModelCatalogItem> & { categories?: string[] };
       setModels(data.items || []);
+      // The server sends the facet for the WHOLE catalogue. Keep the last
+      // non-empty one so a filtered page that returns nothing doesn't empty the
+      // filter that would let you undo it.
+      if (data.categories?.length) setAvailableCategories(data.categories);
       setTotalCount(data.total || 0);
       setTotalPages(data.total_pages || Math.ceil((data.total || 0) / 12));
     } catch (err) {
@@ -123,11 +128,9 @@ function MarketplaceListingInner() {
       .slice(0, 5);
   }, [models]);
 
-  // Extract unique categories from loaded models
-  const availableCategories = useMemo(() => {
-    const cats = new Set(models.map((m) => m.category));
-    return Array.from(cats).sort();
-  }, [models]);
+  // Categories come from the server (all of them), not from the models on this
+  // page: deriving them here offered a different list per page, so anything
+  // outside page 1 could not be filtered at all.
 
   // Auth-only: seed a fork ModelProject and open it in the studio (P1.5 fusion —
   // THE way to use a marketplace model; the legacy activate flow is gone).

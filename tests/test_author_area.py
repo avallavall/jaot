@@ -599,3 +599,89 @@ class TestOnboardingLinks:
 
         after = authenticated_client.get("/api/v2/author/onboarding/status").json()
         assert {s["key"]: s["completed"] for s in after["steps"]}["publish_model"] is True
+
+
+class TestAuthorHearsAboutReviews:
+    """# CONTRACT-TEST: a review must ring the author's bell.
+
+    The notification type and the preference plumbing existed
+    (``NotificationType.NEW_REVIEW``, ``_AUTHOR_EVENT_MAP["review"]``) and nobody
+    ever raised the event: adopting a model notified the author, reviewing it
+    did not. Verified by driving the real app across two organizations.
+    """
+
+    def test_reviewing_a_model_notifies_its_author(
+        self, authenticated_client, db_session, test_organization, test_organization_2, test_user_2
+    ):
+        from app.api.v2.routes.profiles.reviews import _notify_author_of_review
+        from app.models.notification import Notification, NotificationType
+
+        listing = _publish(db_session, org_id=test_organization.id)
+        review = ModelReview(
+            id=generate_id("rev_"),
+            model_project_id=listing.model_project_id,
+            user_id=test_user_2.id,
+            organization_id=test_organization_2.id,
+            rating=5,
+            comment="Excellent",
+        )
+        db_session.add(review)
+        db_session.flush()
+
+        _notify_author_of_review(db_session, listing, review, reviewer=test_user_2)
+        db_session.flush()
+
+        rows = (
+            db_session.query(Notification)
+            .filter(Notification.type == NotificationType.NEW_REVIEW.value)
+            .all()
+        )
+        assert rows, "the author was never told about the review"
+        assert listing.display_name in rows[0].message
+
+    def test_reviewing_your_own_model_notifies_nobody(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        """Same rule the adoption counter already follows: your own activity is not news."""
+        from app.api.v2.routes.profiles.reviews import _notify_author_of_review
+        from app.models.notification import Notification
+
+        listing = _publish(db_session, org_id=test_organization.id)
+        review = ModelReview(
+            id=generate_id("rev_"),
+            model_project_id=listing.model_project_id,
+            user_id=test_user.id,
+            organization_id=test_organization.id,
+            rating=4,
+        )
+        db_session.add(review)
+        db_session.flush()
+
+        _notify_author_of_review(db_session, listing, review, reviewer=test_user)
+
+        assert db_session.query(Notification).count() == 0
+
+
+class TestCatalogOffersEveryCategory:
+    """# CONTRACT-TEST: the category filter must cover the catalogue, not the page.
+
+    The sidebar derived its options from the models already loaded, so page 1 and
+    page 2 offered different lists and most of the catalogue could not be
+    filtered by category at all.
+    """
+
+    def test_the_facet_is_not_limited_to_the_current_page(
+        self, client, db_session, test_organization
+    ):
+        for i, category in enumerate(["logistics", "finance", "energy"]):
+            listing = _publish(db_session, org_id=test_organization.id, pid=f"mp_cat_{i}")
+            listing.category = category
+        db_session.commit()
+
+        page = client.get("/api/v2/models/catalog?page_size=1").json()
+
+        assert len(page["items"]) == 1, "page size not honoured; the test proves nothing"
+        for category in ("logistics", "finance", "energy"):
+            assert category in page["categories"], (
+                f"{category} is in the catalogue but the filter would not offer it"
+            )

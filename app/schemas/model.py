@@ -56,6 +56,10 @@ class ModelCatalogListResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
+    # Every category in the visible catalogue, not just the ones on this page.
+    # The filter sidebar used to derive its options from `items`, so it offered a
+    # different set on every page and most of the catalogue could not be filtered.
+    categories: list[str] = []
 
 
 class PublishModelRequest(BaseModel):

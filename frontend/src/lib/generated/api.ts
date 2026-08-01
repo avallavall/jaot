@@ -1109,10 +1109,6 @@ export interface paths {
         /**
          * List Reviews Received
          * @description Reviews left on any of my models, newest first.
-         *
-         *     Moderation is respected: a review the admin hid is not shown to the author
-         *     either. Reviews on withdrawn listings still count — they were left on a
-         *     model of mine.
          */
         get: operations["list_reviews_received_api_v2_author_reviews_get"];
         put?: never;
@@ -7227,6 +7223,11 @@ export interface components {
          * @description Paginated list of catalog models.
          */
         ModelCatalogListResponse: {
+            /**
+             * Categories
+             * @default []
+             */
+            categories: string[];
             /** Items */
             items: components["schemas"]["ModelCatalogResponse"][];
             /** Page */

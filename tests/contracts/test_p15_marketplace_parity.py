@@ -75,7 +75,17 @@ class TestMarketplaceResponseShapes:
         res = authenticated_client.get("/api/v2/models/catalog?search=p15listshapeuniq")
         assert res.status_code == 200, res.text
         body = res.json()
-        assert set(body.keys()) == {"items", "total", "page", "page_size", "total_pages"}
+        # "categories" joined the envelope 2026-08-01: the sidebar filter used to
+        # derive its options from the models on the current page, so it offered a
+        # different list per page. The facet covers the whole visible catalogue.
+        assert set(body.keys()) == {
+            "items",
+            "total",
+            "page",
+            "page_size",
+            "total_pages",
+            "categories",
+        }
         item = next(i for i in body["items"] if i["id"] == "p15_list_shape")
         assert set(item.keys()) == _CATALOG_KEYS
 

@@ -7,6 +7,7 @@ the model-project id. A user may review a model only after their org has *used* 
 seeded a fork ModelProject from the listing (``source_ref``) and completed an execution.
 """
 
+import logging
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -31,6 +32,8 @@ from app.schemas.profile import (
 )
 from app.shared.db.base import get_db
 from app.shared.utils.pagination import paginate_query
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["reviews"])
 
@@ -212,6 +215,8 @@ def create_review(
     db.commit()
     db.refresh(review)
 
+    _notify_author_of_review(db, listing, review, reviewer=current_user)
+
     org = db.query(Organization).filter(Organization.id == current_user.organization_id).first()
 
     return ReviewResponse(
@@ -226,6 +231,47 @@ def create_review(
         comment=review.comment,
         created_at=review.created_at,
     )
+
+
+def _notify_author_of_review(db: Session, listing, review, *, reviewer: User) -> None:
+    """Tell the author somebody reviewed their model.
+
+    The notification type and the preference plumbing already existed
+    (``NEW_REVIEW``, ``_AUTHOR_EVENT_MAP["review"]``) and nothing ever raised the
+    event: adopting a model rang the author's bell, reviewing it did not.
+    Mirrors the adoption notification in ``projects.py`` — every active member of
+    the author org, never the author reviewing their own model, and never at the
+    cost of the review that was just committed.
+    """
+    author_org_id = getattr(listing, "author_organization_id", None)
+    if not author_org_id or author_org_id == reviewer.organization_id:
+        return
+    try:
+        from app.services.notification_service import NotificationService  # noqa: PLC0415
+
+        author_users = (
+            db.query(User)
+            .filter(
+                User.organization_id == author_org_id,
+                User.is_active == True,  # noqa: E712
+            )
+            .all()
+        )
+        notification_svc = NotificationService(db)
+        stars = "★" * review.rating
+        for author_user in author_users:
+            notification_svc.send_author_notification(
+                user_id=author_user.id,
+                organization_id=author_org_id,
+                event_type="review",
+                title="New review",
+                message=f"Your model '{listing.display_name}' got a review: {stars}",
+                data={"model_id": listing.model_project_id, "rating": review.rating},
+                link="/workspace/models",
+            )
+        db.commit()
+    except Exception:
+        logger.debug("Failed to send review notification", exc_info=True)
 
 
 @router.delete("/models/reviews/{review_id}", response_model=StatusResponse)
