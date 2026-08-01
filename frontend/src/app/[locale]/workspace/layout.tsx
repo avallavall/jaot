@@ -19,7 +19,11 @@ export default function WorkspaceLayout({
           items={navItems}
           title="JAOT"
         />
-        <main id="main-content" className="flex-1 p-8">
+        {/* min-w-0: a flex child refuses to shrink below its content without it,
+            so a wide table pushed this column past the viewport instead of
+            scrolling inside its own container (the Table primitive already has
+            overflow-x-auto — it just never got the chance to apply). */}
+        <main id="main-content" className="min-w-0 flex-1 p-8">
           <div className="max-w-[96rem] mx-auto w-full">
             <Breadcrumbs />
             {children}
