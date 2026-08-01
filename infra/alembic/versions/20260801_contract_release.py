@@ -75,24 +75,56 @@ _CREDIT_COLUMNS = [
 ]
 
 
-def _table_exists(bind, name: str) -> bool:
-    return sa.inspect(bind).has_table(name)
+class _Schema:
+    """What is actually on disk, read once per table.
 
+    The guards below are consulted ~20 times across upgrade(), and SQLAlchemy's
+    Inspector caches nothing between calls — so building one per guard turned a
+    handful of questions into 30-odd catalog queries, several of them asking the
+    same thing twice in consecutive lines. Reflecting a table once and keeping
+    the answer is both cheaper and easier to read.
 
-def _column_exists(bind, table: str, column: str) -> bool:
-    if not _table_exists(bind, table):
-        return False
-    return any(c["name"] == column for c in sa.inspect(bind).get_columns(table))
+    Safe to cache because a migration is the only writer while it runs: entries
+    are dropped after a DDL statement changes the table (see ``forget``).
+    """
 
+    def __init__(self, bind) -> None:
+        self._inspector = sa.inspect(bind)
+        self._columns: dict[str, list[str]] = {}
+        self._indexes: dict[str, list[str]] = {}
 
-def _index_exists(bind, table: str, name: str) -> bool:
-    if not _table_exists(bind, table):
-        return False
-    return any(i["name"] == name for i in sa.inspect(bind).get_indexes(table))
+    def has_table(self, name: str) -> bool:
+        return self._inspector.has_table(name)
+
+    def has_column(self, table: str, column: str) -> bool:
+        if not self.has_table(table):
+            return False
+        if table not in self._columns:
+            self._columns[table] = [c["name"] for c in self._inspector.get_columns(table)]
+        return column in self._columns[table]
+
+    def column_type(self, table: str, column: str):  # noqa: ANN201 — SQLAlchemy type
+        return next(c["type"] for c in self._inspector.get_columns(table) if c["name"] == column)
+
+    def has_index(self, table: str, name: str) -> bool:
+        if not self.has_table(table):
+            return False
+        if table not in self._indexes:
+            self._indexes[table] = [i["name"] for i in self._inspector.get_indexes(table)]
+        return name in self._indexes[table]
+
+    def foreign_keys(self, table: str) -> list[dict]:
+        return self._inspector.get_foreign_keys(table)
+
+    def forget(self, table: str) -> None:
+        """Drop the cached reflection for a table this migration just altered."""
+        self._columns.pop(table, None)
+        self._indexes.pop(table, None)
 
 
 def upgrade() -> None:
     bind = op.get_bind()
+    schema = _Schema(bind)
 
     # --- 1. Reviews: restore the uniqueness the fusion silently removed -------
     #
@@ -100,7 +132,7 @@ def upgrade() -> None:
     # duplicates, and this migration must not fail halfway through on an install
     # that accumulated some while the guarantee was off. Keeps the newest review
     # per (user, model) — the one the author most recently meant to say.
-    if _column_exists(bind, "model_reviews", "model_project_id"):
+    if schema.has_column("model_reviews", "model_project_id"):
         removed = bind.execute(
             sa.text(
                 """
@@ -130,16 +162,17 @@ def upgrade() -> None:
         "ix_model_review_user_catalog",
         "ix_model_reviews_catalog_id",
     ):
-        if _index_exists(bind, "model_reviews", stale_index):
+        if schema.has_index("model_reviews", stale_index):
             op.drop_index(stale_index, table_name="model_reviews")
+            schema.forget("model_reviews")
 
-    if not _index_exists(bind, "model_reviews", "ix_model_review_project_rating"):
+    if not schema.has_index("model_reviews", "ix_model_review_project_rating"):
         op.create_index(
             "ix_model_review_project_rating",
             "model_reviews",
             ["model_project_id", "rating"],
         )
-    if not _index_exists(bind, "model_reviews", "ix_model_review_user_project"):
+    if not schema.has_index("model_reviews", "ix_model_review_user_project"):
         op.create_index(
             "ix_model_review_user_project",
             "model_reviews",
@@ -148,27 +181,28 @@ def upgrade() -> None:
         )
 
     # --- 2. View events: index first, then the column it covers ---------------
-    if _index_exists(bind, "model_view_events", "ix_mve_model_type_created"):
+    if schema.has_index("model_view_events", "ix_mve_model_type_created"):
         op.drop_index("ix_mve_model_type_created", table_name="model_view_events")
 
     # --- 3. Drop the forward-FK columns --------------------------------------
     for table, column in _LEGACY_FK_COLUMNS:
-        if _column_exists(bind, table, column):
+        if schema.has_column(table, column):
             op.drop_column(table, column)
+            schema.forget(table)
 
     # --- 4. Executions keep their id, lose the constraint --------------------
     #
     # Dropping the parent table would take the FK with it, but naming it makes
     # the intent explicit: the column survives on purpose.
-    if _table_exists(bind, "model_executions"):
-        for fk in sa.inspect(bind).get_foreign_keys("model_executions"):
+    if schema.has_table("model_executions"):
+        for fk in schema.foreign_keys("model_executions"):
             if fk["referred_table"] == "organization_models" and fk["name"]:
                 op.drop_constraint(fk["name"], "model_executions", type_="foreignkey")
 
     # --- 5. The legacy tables themselves -------------------------------------
     # organization_models first: it has an FK into model_catalog.
     for table in ("organization_models", "model_catalog"):
-        if _table_exists(bind, table):
+        if schema.has_table(table):
             op.drop_table(table)
 
     # --- 6. access_count becomes the integer it always was --------------------
@@ -182,12 +216,8 @@ def upgrade() -> None:
     #     ORM, where it is Integer, and `NULLIF(integer, '')` is a type error;
     #   * the text is non-numeric — '', '  ', or anything else a decade of rows
     #     might hold. `regexp` + `NULLIF` turns those into the 1 they mean.
-    if _column_exists(bind, "recent_models", "access_count"):
-        current_type = next(
-            c["type"]
-            for c in sa.inspect(bind).get_columns("recent_models")
-            if c["name"] == "access_count"
-        )
+    if schema.has_column("recent_models", "access_count"):
+        current_type = schema.column_type("recent_models", "access_count")
         if not isinstance(current_type, sa.Integer):
             op.execute(
                 "ALTER TABLE recent_models "
@@ -201,16 +231,17 @@ def upgrade() -> None:
 
     # --- 7. The money-era columns ADR-008 left behind -------------------------
     for column in _CREDIT_COLUMNS:
-        if _column_exists(bind, "organizations", column):
+        if schema.has_column("organizations", column):
             op.drop_column("organizations", column)
 
 
 def downgrade() -> None:
     """Rebuild the schema shape. The rows are NOT recoverable — restore a backup."""
     bind = op.get_bind()
+    schema = _Schema(bind)
 
     for column in _CREDIT_COLUMNS:
-        if not _column_exists(bind, "organizations", column):
+        if not schema.has_column("organizations", column):
             col_type = sa.Boolean() if column == "low_credits_notified" else sa.Integer()
             default = "false" if column == "low_credits_notified" else "0"
             op.add_column(
@@ -218,7 +249,7 @@ def downgrade() -> None:
                 sa.Column(column, col_type, nullable=True, server_default=default),
             )
 
-    if _column_exists(bind, "recent_models", "access_count"):
+    if schema.has_column("recent_models", "access_count"):
         op.execute("ALTER TABLE recent_models ALTER COLUMN access_count DROP DEFAULT")
         op.execute(
             "ALTER TABLE recent_models "
@@ -227,7 +258,7 @@ def downgrade() -> None:
         )
         op.execute("ALTER TABLE recent_models ALTER COLUMN access_count SET DEFAULT '1'")
 
-    if not _table_exists(bind, "model_catalog"):
+    if not schema.has_table("model_catalog"):
         op.create_table(
             "model_catalog",
             sa.Column("id", sa.String(64), primary_key=True),
@@ -268,7 +299,7 @@ def downgrade() -> None:
             ),
         )
 
-    if not _table_exists(bind, "organization_models"):
+    if not schema.has_table("organization_models"):
         op.create_table(
             "organization_models",
             sa.Column("id", sa.String(64), primary_key=True),
@@ -289,15 +320,15 @@ def downgrade() -> None:
         )
 
     for table, column in _LEGACY_FK_COLUMNS:
-        if _table_exists(bind, table) and not _column_exists(bind, table, column):
+        if schema.has_table(table) and not schema.has_column(table, column):
             op.add_column(table, sa.Column(column, sa.String(64), nullable=True))
 
-    if _index_exists(bind, "model_reviews", "ix_model_review_user_project"):
+    if schema.has_index("model_reviews", "ix_model_review_user_project"):
         op.drop_index("ix_model_review_user_project", table_name="model_reviews")
-    if _index_exists(bind, "model_reviews", "ix_model_review_project_rating"):
+    if schema.has_index("model_reviews", "ix_model_review_project_rating"):
         op.drop_index("ix_model_review_project_rating", table_name="model_reviews")
 
-    if _column_exists(bind, "model_reviews", "catalog_id"):
+    if schema.has_column("model_reviews", "catalog_id"):
         op.create_index("ix_model_reviews_catalog_id", "model_reviews", ["catalog_id"])
         op.create_index("ix_model_review_catalog_rating", "model_reviews", ["catalog_id", "rating"])
         op.create_index(
@@ -307,7 +338,7 @@ def downgrade() -> None:
             unique=True,
         )
 
-    if _column_exists(bind, "model_view_events", "catalog_model_id"):
+    if schema.has_column("model_view_events", "catalog_model_id"):
         op.create_index(
             "ix_mve_model_type_created",
             "model_view_events",

@@ -4,7 +4,7 @@ All metric names are prefixed with `jaot_` for namespace clarity.
 These are global metrics only -- no per-organization labels to avoid cardinality explosion.
 """
 
-from prometheus_client import Counter, Gauge, Histogram, Info
+from prometheus_client import REGISTRY, Counter, Gauge, Histogram, Info
 
 from app.version import APP_VERSION
 
@@ -106,3 +106,30 @@ APP_INFO = Info(
 def init_app_info(version: str = APP_VERSION) -> None:
     """Initialize application info metric. Called once at startup."""
     APP_INFO.info({"version": version, "solver": "scip"})
+
+
+#: Collector classes already registered on the default registry.
+_REGISTERED_COLLECTORS: set[type] = set()
+
+
+def register_collector_once(collector: object) -> None:
+    """Register a scrape-time custom collector on the default registry, at most once.
+
+    ``create_app()`` runs many times in the test suite, and a duplicate
+    registration raises ValueError — so every collector needs this guard. It was
+    written out twice (LLM budget, DB pool) before being pulled up here; the
+    third would have made it three.
+
+    Keyed on the collector's type rather than a per-module flag: one collector
+    class contributes one set of series, so a second instance of the same class
+    has nothing new to add. The ValueError is still caught, because another
+    process-wide registration can beat us to the name.
+    """
+    if type(collector) in _REGISTERED_COLLECTORS:
+        return
+    try:
+        REGISTRY.register(collector)  # type: ignore[arg-type]
+    except ValueError:
+        # Duplicated timeseries — something already registered these names.
+        pass
+    _REGISTERED_COLLECTORS.add(type(collector))

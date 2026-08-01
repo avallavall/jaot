@@ -35,9 +35,9 @@ from app.services.platform_settings_service import PlatformSettingsService as PS
 from app.shared.core.http_errors import CodedHTTPException
 from app.shared.core.rate_limiter import check_rate_limit, check_rate_limit_hourly
 
-# Imported from the definition site rather than app.api.deps: deps builds
-# CurrentUser on top of this module, so importing it back from there is a cycle.
-from app.shared.db.base import DBSession
+# From the leaf rather than app.api.deps: deps builds CurrentUser on top of this
+# module, so importing it back from there is a cycle.
+from app.shared.db.dependencies import DBSession
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.request_helpers import get_client_ip
 

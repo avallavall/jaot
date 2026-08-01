@@ -13,14 +13,14 @@ from starlette.requests import Request
 from app.api.v2.auth import get_current_user
 from app.models import Organization, User
 from app.models.workspace import WorkspaceMember, WorkspaceRole
+from app.shared.db.base import get_db
 
-# DBSession is defined in app.shared.db.base and re-exported here: this module is
-# the one route modules import dependencies from, but it cannot own the alias
-# because `auth` (which this module imports for CurrentUser) needs it too.
-# The redundant alias is PEP 484's explicit re-export form — it tells ruff and
-# type checkers this name is public here, without an __all__ that would have to
+# Re-exported so route modules take it from here with everything else, per the
+# project rule. Defined in a leaf module because this one cannot own it — see
+# app/shared/db/dependencies.py. The redundant alias is PEP 484's explicit
+# re-export form: it marks the name public without an __all__ that would have to
 # enumerate (and keep enumerating) every other dependency this module exposes.
-from app.shared.db.base import DBSession as DBSession, get_db
+from app.shared.db.dependencies import DBSession as DBSession
 
 # Type aliases for cleaner endpoint signatures
 CurrentUser = Annotated[User, Depends(get_current_user)]

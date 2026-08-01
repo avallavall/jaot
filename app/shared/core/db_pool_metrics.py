@@ -40,8 +40,9 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterator
 
-from prometheus_client import REGISTRY
 from prometheus_client.core import GaugeMetricFamily
+
+from app.shared.core.prometheus_metrics import register_collector_once
 
 logger = logging.getLogger(__name__)
 
@@ -118,25 +119,9 @@ class DBPoolCollector:
         ]
 
 
-_registered = False
-
-
 def register_db_pool_collector() -> None:
-    """Register the collector on the default registry, idempotently.
-
-    ``create_app()`` runs many times in the test suite — a duplicate
-    registration raises ValueError, so guard with a module flag and treat the
-    duplicate error as already-done (same pattern as the LLM budget collector).
-    """
-    global _registered
-    if _registered:
-        return
-    try:
-        REGISTRY.register(DBPoolCollector())
-        _registered = True
-    except ValueError:
-        # Duplicated timeseries — another instance already registered.
-        _registered = True
+    """Register the collector on the default registry, idempotently."""
+    register_collector_once(DBPoolCollector())
 
 
 __all__ = ["DBPoolCollector", "register_db_pool_collector"]

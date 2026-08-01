@@ -49,6 +49,28 @@ _maintenance_probe_cache: tuple[float, bool] | None = None
 _maintenance_probe_lock = Lock()
 
 
+def _cached_maintenance_flag() -> bool | None:
+    """The cached flag if it is still inside the TTL, else None.
+
+    Read twice per probe: once before taking the lock and once after, since a
+    concurrent refresh can land while this thread is acquiring.
+    """
+    cached = _maintenance_probe_cache
+    if cached is not None and (time.monotonic() - cached[0]) < _MAINTENANCE_PROBE_CACHE_SECONDS:
+        return cached[1]
+    return None
+
+
+def _last_known_maintenance_flag() -> bool:
+    """The last value read, however stale — False if there has never been one.
+
+    False is the safe default: reporting maintenance ON over a transient blip
+    would take a healthy site down.
+    """
+    cached = _maintenance_probe_cache
+    return cached[1] if cached is not None else False
+
+
 def _probe_maintenance_mode() -> bool:
     """TTL-cached PlatformSettingsService.get_bool('MAINTENANCE_MODE').
 
@@ -70,10 +92,9 @@ def _probe_maintenance_mode() -> bool:
     """
     global _maintenance_probe_cache
 
-    cached = _maintenance_probe_cache
-    now = time.monotonic()
-    if cached is not None and (now - cached[0]) < _MAINTENANCE_PROBE_CACHE_SECONDS:
-        return cached[1]
+    fresh = _cached_maintenance_flag()
+    if fresh is not None:
+        return fresh
 
     # Non-blocking single flight. The lock now spans a session checkout, not just
     # a cached query, so waiting on it means waiting out pool_timeout — and with
@@ -81,14 +102,12 @@ def _probe_maintenance_mode() -> bool:
     # that finds the refresh already running serves the stale value instead,
     # which is what it would have got by waiting anyway.
     if not _maintenance_probe_lock.acquire(blocking=False):
-        return cached[1] if cached is not None else False
+        return _last_known_maintenance_flag()
 
     try:
-        # Re-check: another thread may have refreshed while we were acquiring.
-        cached = _maintenance_probe_cache
-        now = time.monotonic()
-        if cached is not None and (now - cached[0]) < _MAINTENANCE_PROBE_CACHE_SECONDS:
-            return cached[1]
+        fresh = _cached_maintenance_flag()
+        if fresh is not None:
+            return fresh
 
         from app.services.platform_settings_service import PlatformSettingsService
         from app.shared.db.session import SessionLocal
@@ -107,11 +126,9 @@ def _probe_maintenance_mode() -> bool:
             # Cache the failure too, at the last known value. Returning without
             # writing would leave the TTL expired, so the next probe would
             # immediately pay another full pool_timeout, and the one after that.
-            fallback = cached[1] if cached is not None else False
-            _maintenance_probe_cache = (now, fallback)
-            return fallback
+            is_maintenance = _last_known_maintenance_flag()
 
-        _maintenance_probe_cache = (now, is_maintenance)
+        _maintenance_probe_cache = (time.monotonic(), is_maintenance)
         return is_maintenance
     finally:
         _maintenance_probe_lock.release()

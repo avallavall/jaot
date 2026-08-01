@@ -145,6 +145,41 @@ _ALL_TABLES = [
 ]
 
 
+def terminate_backends(admin_engine, database: str, attempts: int = 20) -> None:
+    """Kill every other backend on ``database`` and wait for them to actually go.
+
+    pg_terminate_backend is asynchronous — the target takes a moment to shut
+    down — so a CREATE/DROP DATABASE issued straight afterwards can still fail
+    with "database is being accessed by other users". Shared by the session
+    engine below and by any test that needs a scratch database of its own.
+    """
+    import time as _time
+
+    try:
+        with admin_engine.connect() as c:
+            c.execute(
+                text(
+                    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+                    "WHERE datname = :name AND pid <> pg_backend_pid()"
+                ),
+                {"name": database},
+            )
+        for _attempt in range(attempts):
+            with admin_engine.connect() as c:
+                remaining = c.execute(
+                    text(
+                        "SELECT count(*) FROM pg_stat_activity "
+                        "WHERE datname = :name AND pid <> pg_backend_pid()"
+                    ),
+                    {"name": database},
+                ).scalar()
+            if remaining == 0:
+                return
+            _time.sleep(0.5)
+    except Exception:
+        pass
+
+
 @pytest.fixture(scope="session")
 def db_engine():
     """Create test engine and run migrations once per session."""
@@ -159,34 +194,8 @@ def db_engine():
     admin_engine.dispose()
 
     # Kill zombie connections from previous crashed runs BEFORE creating engine.
-    # Loop until all stale backends are gone — pg_terminate_backend is async,
-    # the target process may take a moment to shut down.
-    import time as _time
-
     _admin = create_engine(admin_url, isolation_level="AUTOCOMMIT")
-    try:
-        with _admin.connect() as c:
-            c.execute(
-                text(
-                    "SELECT pg_terminate_backend(pid) "
-                    "FROM pg_stat_activity "
-                    "WHERE datname = 'jaot_test' AND pid <> pg_backend_pid()"
-                )
-            )
-        # Wait until all other backends are actually gone
-        for _attempt in range(20):
-            with _admin.connect() as c:
-                remaining = c.execute(
-                    text(
-                        "SELECT count(*) FROM pg_stat_activity "
-                        "WHERE datname = 'jaot_test' AND pid <> pg_backend_pid()"
-                    )
-                ).scalar()
-            if remaining == 0:
-                break
-            _time.sleep(0.5)
-    except Exception:
-        pass
+    terminate_backends(_admin, "jaot_test")
     _admin.dispose()
 
     # Dispose the app-level engine to drop stale pool references.
