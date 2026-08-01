@@ -179,6 +179,35 @@ class TestAddFavorite:
         response = authenticated_client.post("/api/v2/models/favorites/nonexistent_model")
         assert response.status_code == 404
 
+    def test_cannot_favorite_a_withdrawn_model(
+        self, authenticated_client, db_session, test_user, test_organization
+    ):
+        """Withdrawing keeps the row, so row existence was the wrong question.
+
+        The list view has always filtered by MARKETPLACE_VISIBLE, so favouriting
+        a withdrawn model succeeded, the heart lit up, and the shelf stayed empty
+        — with nothing on the list to undo it from.
+        """
+        _listing(db_session, test_organization, pid="test_withdrawn_fav")
+        listing = db_session.get(ModelProjectListing, "test_withdrawn_fav")
+        listing.status = "unpublished"
+        db_session.commit()
+
+        response = authenticated_client.post("/api/v2/models/favorites/test_withdrawn_fav")
+        assert response.status_code == 404
+
+        # Assert on the row, not on the status code: the endpoint must not have
+        # written a favourite the list can never show.
+        assert (
+            db_session.query(UserFavorite)
+            .filter(
+                UserFavorite.user_id == test_user.id,
+                UserFavorite.model_project_id == "test_withdrawn_fav",
+            )
+            .count()
+            == 0
+        )
+
 
 class TestRemoveFavorite:
     """Tests for DELETE /api/v2/models/favorites/{model_id}"""

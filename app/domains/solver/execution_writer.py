@@ -31,10 +31,24 @@ from typing import Any
 from app.domains.solver import ports
 from app.models import ExecutionStatus, ModelExecution
 from app.models.model_project import ModelProject
-from app.shared.db.session import SessionLocal
 from app.shared.utils.datetime_helpers import utcnow
 
 logger = logging.getLogger(__name__)
+
+
+def _own_session() -> Any:
+    """A session of this module's own, resolved at call time.
+
+    Deliberately not a name bound at import: the test harness swaps
+    ``SessionLocal`` on the session module, and an import-time binding keeps
+    pointing at the production engine — which is why every ``mark_*_by_task``
+    path went untested, each one silently reaching for a database the suite
+    never created.
+    """
+    from app.shared.db.session import SessionLocal  # noqa: PLC0415
+
+    return SessionLocal()
+
 
 # A row in any of these states has reached a user-visible verdict; no automatic
 # transition may overwrite it (a worker completing a row the user just cancelled,
@@ -330,7 +344,7 @@ def mark_completed_by_task(
     main solve transaction closed. Preserves terminal states; never raises.
     """
     try:
-        db = SessionLocal()
+        db = _own_session()
         try:
             execution = _lookup_by_task(db, task_id, organization_id, lock=True)
             if execution is None:
@@ -360,7 +374,7 @@ def mark_multi_objective_completed_by_task(
     ``celery_task_id`` (the ``solve_multi_objective_async`` worker). Preserves terminal
     states; never raises."""
     try:
-        db = SessionLocal()
+        db = _own_session()
         try:
             execution = _lookup_by_task(db, task_id, organization_id, lock=True)
             if execution is None:
@@ -371,6 +385,7 @@ def mark_multi_objective_completed_by_task(
                 execution_time_seconds=execution_time_seconds,
             ):
                 db.commit()
+                _notify_completed(db, execution)
         finally:
             db.close()
     except Exception as exc:  # noqa: BLE001 — bookkeeping must not disturb the task
@@ -387,7 +402,7 @@ def mark_failed_by_task(task_id: str, organization_id: str, error: str) -> None:
     never raises.
     """
     try:
-        db = SessionLocal()
+        db = _own_session()
         try:
             execution = _lookup_by_task(db, task_id, organization_id, lock=True)
             if execution is None:

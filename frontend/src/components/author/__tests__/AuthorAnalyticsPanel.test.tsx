@@ -34,7 +34,7 @@ vi.mock("@/lib/api", () => ({
   },
 }));
 
-import { AuthorAnalyticsPanel, fillMissingDays } from "../AuthorAnalyticsPanel";
+import { AuthorAnalyticsPanel, fillMissingDays, MAX_TREND_DAYS } from "../AuthorAnalyticsPanel";
 
 describe("fillMissingDays", () => {
   const day = (date: string, views: number) => ({
@@ -79,6 +79,53 @@ describe("fillMissingDays", () => {
 
   it("returns nothing for an all-time range with no data at all", () => {
     expect(fillMissingDays([], "all", new Date("2026-07-31T12:00:00Z"))).toEqual([]);
+  });
+
+  it("finds the earliest day wherever it sits in the response", () => {
+    // The API sorts today, but the contract does not promise it — and the start
+    // of an all-time range used to be whatever landed in points[0].
+    const filled = fillMissingDays(
+      [day("2026-07-31", 1), day("2026-07-28", 4), day("2026-07-30", 2)],
+      "all",
+      new Date("2026-07-31T12:00:00Z"),
+    );
+    expect(filled[0].date).toBe("2026-07-28");
+    expect(filled).toHaveLength(4);
+  });
+
+  it("survives a date it cannot parse instead of taking the tab down", () => {
+    // `new Date("not-a-date")` is an Invalid Date, and the loop's toISOString()
+    // threw RangeError on it — one malformed bucket blanked the whole panel.
+    const filled = fillMissingDays(
+      [day("not-a-date", 3), day("2026-07-30", 2)],
+      "all",
+      new Date("2026-07-31T12:00:00Z"),
+    );
+    expect(filled.map((d) => d.date)).toEqual(["2026-07-30", "2026-07-31"]);
+  });
+
+  it("returns nothing when every recorded day is unparseable", () => {
+    expect(fillMissingDays([day("", 1)], "all", new Date("2026-07-31T12:00:00Z"))).toEqual([]);
+  });
+
+  it("caps an all-time range instead of emitting one node per calendar day", () => {
+    // Two years of history used to mean ~730 sub-pixel bars overflowing the card.
+    const filled = fillMissingDays(
+      [day("2024-08-01", 5), day("2026-07-31", 9)],
+      "all",
+      new Date("2026-07-31T12:00:00Z"),
+    );
+    expect(filled).toHaveLength(MAX_TREND_DAYS);
+    expect(filled.at(-1)?.date).toBe("2026-07-31");
+  });
+
+  it("leaves the fixed periods alone — none of them can reach the cap", () => {
+    const filled = fillMissingDays(
+      [day("2026-07-31", 9)],
+      "90d",
+      new Date("2026-07-31T12:00:00Z"),
+    );
+    expect(filled).toHaveLength(90);
   });
 });
 

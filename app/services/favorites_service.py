@@ -108,10 +108,16 @@ def find_favorite(db: Session, user_id: str, model_id: str) -> UserFavorite | No
 
 
 def listing_exists(db: Session, model_id: str) -> bool:
-    """Whether the marketplace still carries this model."""
+    """Whether the marketplace still carries this model.
+
+    Row existence is not the question: withdrawal keeps the row. Favouriting a
+    withdrawn model used to succeed and then never show up, because
+    :func:`list_favorites` filters by the same predicate this now uses — the
+    heart lit up and the shelf stayed empty, with nothing on the list to undo.
+    """
     return (
         db.query(ModelProjectListing.model_project_id)
-        .filter(ModelProjectListing.model_project_id == model_id)
+        .filter(ModelProjectListing.model_project_id == model_id, *MARKETPLACE_VISIBLE)
         .first()
         is not None
     )

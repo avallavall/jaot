@@ -4477,6 +4477,7 @@
       "funnelAdoptions": "Adopcions",
       "trendTitle": "Visites per dia",
       "trendEmpty": "Una tendència necessita almenys dos dies amb activitat; ara per ara n'hi ha {days}.",
+      "trendClipped": "Es mostren els darrers {days} dies: l'activitat anterior és als totals de dalt, però el gràfic no la pot dibuixar de manera llegible.",
       "geoTitle": "D'on vénen les teves visites",
       "geoEmpty": "No hi ha visites registrades en aquest període.",
       "geoSingle": "Totes les visites registrades ({count}) vénen d'un sol país: {country}.",

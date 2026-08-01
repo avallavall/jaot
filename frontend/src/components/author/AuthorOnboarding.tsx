@@ -29,6 +29,20 @@ export function AuthorOnboarding() {
   // Nothing to nag about once every step is done.
   if (!status || status.all_complete) return null;
 
+  // The keys come from the server, so a step the backend adds before the locales
+  // catch up arrives here unnamed. `t()` does not throw on a missing message —
+  // measured against next-intl 4.13: the default handler logs and returns the key
+  // path — so the failure mode is not a blank page, it is a checklist item that
+  // reads "author.onboarding.steps.<key>.title" at the reader. Skip what we
+  // cannot name; a card with nothing nameable left does not render at all.
+  const steps = status.steps.filter(
+    (step) =>
+      t.has(`steps.${step.key}.title`) &&
+      (step.completed ||
+        (t.has(`steps.${step.key}.description`) && t.has(`steps.${step.key}.cta`))),
+  );
+  if (steps.length === 0) return null;
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -36,7 +50,7 @@ export function AuthorOnboarding() {
       </CardHeader>
       <CardContent>
         <ol className="space-y-3">
-          {status.steps.map((step) => (
+          {steps.map((step) => (
             <li key={step.key} className="flex items-start gap-3">
               {step.completed ? (
                 <Check className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />

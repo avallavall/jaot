@@ -4477,6 +4477,7 @@
       "funnelAdoptions": "Adoptions",
       "trendTitle": "Vues par jour",
       "trendEmpty": "Une tendance demande au moins deux jours d'activité ; il y en a {days} pour l'instant.",
+      "trendClipped": "Les {days} derniers jours sont affichés : l'activité antérieure figure dans les totaux ci-dessus, mais le graphique ne peut pas la tracer lisiblement.",
       "geoTitle": "D'où viennent tes visites",
       "geoEmpty": "Aucune visite enregistrée sur cette période.",
       "geoSingle": "Toutes les visites enregistrées ({count}) viennent d'un seul pays : {country}.",

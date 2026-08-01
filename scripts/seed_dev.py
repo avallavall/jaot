@@ -21,9 +21,9 @@ if str(PROJECT_ROOT) not in sys.path:
 
 
 def run_step(description: str, args: list[str]) -> None:
-    print(f"\n{'='*48}")
+    print(f"\n{'=' * 48}")
     print(f"  {description}")
-    print(f"{'='*48}")
+    print(f"{'=' * 48}")
     result = subprocess.run(args, cwd=PROJECT_ROOT)
     if result.returncode != 0:
         print(f"FAILED: {description}")
@@ -33,16 +33,25 @@ def run_step(description: str, args: list[str]) -> None:
 def main() -> None:
     print("JAOT dev seed — full database bootstrap")
 
-    run_step("Running migrations (alembic upgrade head)", [sys.executable, "-m", "alembic", "-c", "infra/alembic.ini", "upgrade", "head"])
+    run_step(
+        "Running migrations (alembic upgrade head)",
+        [sys.executable, "-m", "alembic", "-c", "infra/alembic.ini", "upgrade", "head"],
+    )
 
-    run_step("Creating admin user", [sys.executable, str(PROJECT_ROOT / "scripts" / "ensure_admin_api_key.py")])
+    run_step(
+        "Creating admin user",
+        [sys.executable, str(PROJECT_ROOT / "scripts" / "ensure_admin_api_key.py")],
+    )
 
-    run_step("Creating normal user", [sys.executable, str(PROJECT_ROOT / "scripts" / "ensure_normal_user.py")])
+    run_step(
+        "Creating normal user",
+        [sys.executable, str(PROJECT_ROOT / "scripts" / "ensure_normal_user.py")],
+    )
 
     # App lifespan seeds these too; run explicitly to be safe.
-    print(f"\n{'='*48}")
+    print(f"\n{'=' * 48}")
     print("  Seeding model catalog templates")
-    print(f"{'='*48}")
+    print(f"{'=' * 48}")
     from app.shared.db.seed_models import seed_official_models
     from app.shared.db.session import SessionLocal
 
@@ -54,9 +63,9 @@ def main() -> None:
     finally:
         db.close()
 
-    print(f"\n{'='*48}")
+    print(f"\n{'=' * 48}")
     print("  All done! Database is ready for development.")
-    print(f"{'='*48}\n")
+    print(f"{'=' * 48}\n")
 
 
 if __name__ == "__main__":

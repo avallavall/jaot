@@ -421,6 +421,33 @@ class TestMyListings:
     def test_requires_authentication(self, client):
         assert client.get("/api/v2/author/listings").status_code == 401
 
+    def test_does_not_read_the_columns_the_panel_never_shows(
+        self, db_session, test_organization
+    ):
+        """The rich text and the generator blobs are kilobytes per row, on a
+        query with no upper bound on rows, for a panel that shows neither."""
+        from sqlalchemy import inspect
+
+        from app.services import author_listing_service
+
+        _publish(db_session, org_id=test_organization.id)
+        db_session.commit()
+        db_session.expire_all()
+
+        rows = author_listing_service.list_my_listings(db_session, org_id=test_organization.id)
+        unloaded = inspect(rows[0]).unloaded
+        assert {
+            "description",
+            "scenario_description",
+            "section_overview",
+            "input_schema",
+            "input_fields",
+            "example_input",
+        } <= unloaded
+        # And every field the response promises IS there, without a second query.
+        assert "display_name" not in unloaded
+        assert "total_activations" not in unloaded
+
 
 class TestReviewsReceived:
     """GET /author/reviews."""

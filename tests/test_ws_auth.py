@@ -427,3 +427,45 @@ class TestWebSocketAllowedOrigins:
 
         origins = _ws_origins(["https://jaot.io"], "http://localhost:3000")
         assert "https://evil.example" not in origins
+
+
+# ---------------------------------------------------------------------------
+# A progress socket lives as long as the solve it watches. It used to hold the
+# request-scoped connection — and, polling with `db.refresh` every five seconds
+# and never committing, an open transaction — for that whole time. Ten spectators
+# of one long solve exhausted a thirty-connection pool with Postgres idle.
+# ---------------------------------------------------------------------------
+
+
+class TestTheSocketDoesNotSitOnAConnection:
+    # CONTRACT-TEST: the handshake's session goes back to the pool before the
+    # polling loop starts. Asserted on the session's transaction state rather
+    # than on pool counters, which the suite's shared-session override hides.
+    def test_the_request_session_is_handed_back_before_the_loop(
+        self, app, client, execution_a, api_key_a, db_session
+    ):
+        with client.websocket_connect(
+            f"/api/v2/ws/executions/{execution_a.id}?token={api_key_a.plaintext}"
+        ) as ws:
+            assert ws.receive_json()["type"] == "snapshot"
+            assert not db_session.in_transaction(), (
+                "the socket is still holding the transaction its handshake opened"
+            )
+
+    # CONTRACT-TEST: each poll borrows a connection and gives it straight back.
+    # This is the loop that runs every five seconds for the socket's whole life,
+    # so a leak here is a pool exhausted by spectators.
+    def test_a_poll_returns_the_connection_it_borrowed(self, execution_a):
+        from app.api.v2.ws import _read_progress
+        from app.shared.db.session import engine
+
+        before = engine.pool.checkedout()
+        state = _read_progress(execution_a.id)
+        assert state is not None
+        assert state["status"] == "running"
+        assert engine.pool.checkedout() == before
+
+    def test_a_poll_of_a_vanished_row_says_so(self):
+        from app.api.v2.ws import _read_progress
+
+        assert _read_progress("exe_does_not_exist") is None

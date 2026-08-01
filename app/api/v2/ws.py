@@ -7,6 +7,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
 from app.api.deps import DBSession
@@ -195,6 +196,106 @@ def _ws_origins(allowed_origins: list[str], frontend_url: str) -> list[str]:
     return origins
 
 
+class _Refused(Exception):  # noqa: N818 — this is a close code, not an error condition
+    """The handshake decided not to accept this socket. Carries the close frame."""
+
+    def __init__(self, code: int, reason: str) -> None:
+        super().__init__(reason)
+        self.code = code
+        self.reason = reason
+
+
+def _snapshot(execution_id: str, execution: ModelExecution) -> dict[str, Any]:
+    """The opening message: where this execution stands right now."""
+    snapshot: dict[str, Any] = {
+        "type": "snapshot",
+        "execution_id": execution_id,
+        "status": execution.status,
+        "progress_data": execution.progress_data,
+    }
+    if execution.status == "completed" and execution.result_data:
+        snapshot["result"] = execution.result_data
+        snapshot["objective_value"] = execution.objective_value
+    elif execution.status == "failed":
+        snapshot["error"] = execution.error_message
+    if execution.objective_value is not None:
+        snapshot["objective_value"] = execution.objective_value
+    if execution.solver_status:
+        snapshot["solver_status"] = execution.solver_status
+    return snapshot
+
+
+def _handshake(
+    db: Session, websocket: WebSocket, token: str | None, execution_id: str
+) -> tuple[str, dict[str, Any]]:
+    """Authenticate, check ownership and read the opening snapshot, in one hop.
+
+    Every database call the handshake makes lives here so the caller can run the
+    whole thing off the event loop: these are blocking psycopg calls, and inline
+    they stalled the loop for every other connection while they ran.
+
+    Returns ``(execution primary key, snapshot)``; raises :class:`_Refused`.
+    """
+    auth_result = _authenticate_websocket(db, websocket, token)
+    if auth_result is None:
+        raise _Refused(4001, "Authentication required")
+    _user, organization = auth_result
+
+    execution = db.query(ModelExecution).filter(ModelExecution.id == execution_id).first()
+    if not execution:
+        # Try finding by celery task ID
+        execution = (
+            db.query(ModelExecution).filter(ModelExecution.celery_task_id == execution_id).first()
+        )
+    if not execution:
+        raise _Refused(4004, "Execution not found")
+    if execution.organization_id != organization.id:
+        raise _Refused(4003, "Access denied")
+
+    return execution.id, _snapshot(execution_id, execution)
+
+
+def _read_progress(execution_pk: str) -> dict[str, Any] | None:
+    """One poll of the row this socket watches. Its own session, opened and closed.
+
+    The request-scoped session is handed back to the pool before the loop starts:
+    a socket lives as long as the solve it watches, and ``db.refresh`` every five
+    seconds without a commit also kept a transaction open the whole time. Ten
+    spectators of one long solve were enough to exhaust a thirty-connection pool
+    with Postgres otherwise idle. Read here, close here — the connection is held
+    for the milliseconds of the SELECT and nothing else.
+
+    ``None`` means the row is gone; the caller closes the socket.
+    """
+    # Resolved at call time, like the health probes do: the test harness swaps
+    # `SessionLocal` on the module, and a name bound at import would keep
+    # pointing at the production engine.
+    from app.shared.db.session import SessionLocal  # noqa: PLC0415
+
+    db = SessionLocal()
+    try:
+        row = (
+            db.query(
+                ModelExecution.status,
+                ModelExecution.progress_data,
+                ModelExecution.result_data,
+                ModelExecution.error_message,
+            )
+            .filter(ModelExecution.id == execution_pk)
+            .first()
+        )
+        if row is None:
+            return None
+        return {
+            "status": row.status,
+            "progress_data": row.progress_data,
+            "result_data": row.result_data,
+            "error_message": row.error_message,
+        }
+    finally:
+        db.close()
+
+
 @router.websocket("/executions/{execution_id}")
 async def websocket_execution_progress(
     websocket: WebSocket,
@@ -236,52 +337,25 @@ async def websocket_execution_progress(
         await websocket.close(code=4003, reason="Origin not allowed")
         return
 
-    # --- Authentication ---
+    # --- Authentication, ownership and opening snapshot ---
     # Same credentials as the HTTP API: JWT access cookie (auto-sent on the
     # handshake) or a Bearer API key passed via ?token= / Authorization header.
-    auth_result = _authenticate_websocket(db, websocket, token)
-    if auth_result is None:
-        await websocket.close(code=4001, reason="Authentication required")
-        return
-    _user, organization = auth_result
-
-    # --- Ownership check ---
-    execution = db.query(ModelExecution).filter(ModelExecution.id == execution_id).first()
-
-    if not execution:
-        # Try finding by celery task ID
-        execution = (
-            db.query(ModelExecution).filter(ModelExecution.celery_task_id == execution_id).first()
+    # Off the event loop, and then the connection goes back to the pool: what
+    # follows can run for as long as the solve does, and must not sit on one.
+    try:
+        execution_pk, snapshot = await run_in_threadpool(
+            _handshake, db, websocket, token, execution_id
         )
-
-    if not execution:
-        await websocket.close(code=4004, reason="Execution not found")
+    except _Refused as refused:
+        await websocket.close(code=refused.code, reason=refused.reason)
         return
-
-    if execution.organization_id != organization.id:
-        await websocket.close(code=4003, reason="Access denied")
-        return
+    finally:
+        db.close()
 
     # --- Connection accepted ---
     await manager.connect(websocket, execution_id)
 
     try:
-        snapshot: dict[str, Any] = {
-            "type": "snapshot",
-            "execution_id": execution_id,
-            "status": execution.status,
-            "progress_data": execution.progress_data,
-        }
-        if execution.status == "completed" and execution.result_data:
-            snapshot["result"] = execution.result_data
-            snapshot["objective_value"] = execution.objective_value
-        elif execution.status == "failed":
-            snapshot["error"] = execution.error_message
-        if execution.objective_value is not None:
-            snapshot["objective_value"] = execution.objective_value
-        if hasattr(execution, "solver_status") and execution.solver_status:
-            snapshot["solver_status"] = execution.solver_status
-
         await websocket.send_json(snapshot)
 
         # Keep connection alive and poll for updates (fallback when Redis unavailable)
@@ -299,29 +373,28 @@ async def websocket_execution_progress(
 
             except asyncio.TimeoutError:
                 # Poll database for updates
-                db.refresh(execution)
+                state = await run_in_threadpool(_read_progress, execution_pk)
+                if state is None:
+                    break  # The row is gone; there is nothing left to report.
 
-                if execution.status in ("completed", "failed", "cancelled"):
+                status = state["status"]
+                if status in ("completed", "failed", "cancelled"):
                     await websocket.send_json(
                         {
-                            "type": execution.status,
+                            "type": status,
                             "execution_id": execution_id,
-                            "status": execution.status,
-                            "result": (
-                                execution.result_data if execution.status == "completed" else None
-                            ),
-                            "error": (
-                                execution.error_message if execution.status == "failed" else None
-                            ),
+                            "status": status,
+                            "result": (state["result_data"] if status == "completed" else None),
+                            "error": (state["error_message"] if status == "failed" else None),
                         }
                     )
                     break
-                if execution.progress_data:
+                if state["progress_data"]:
                     await websocket.send_json(
                         {
                             "type": "progress",
                             "execution_id": execution_id,
-                            **execution.progress_data,
+                            **state["progress_data"],
                         }
                     )
 

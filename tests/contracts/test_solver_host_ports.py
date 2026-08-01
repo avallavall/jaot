@@ -317,6 +317,99 @@ class TestEveryTerminalRunNotifies:
         # The name comes from the project, since the execution row has none.
         assert "Studio Model" in (row.message or "") + (row.title or "")
 
+    # CONTRACT-TEST: the single-solve worker path, driven through its entry point.
+    # The test above calls `_notify_completed` directly, so deleting the hook from
+    # `mark_completed_by_task` broke nothing that pytest could see — measured, not
+    # assumed: removing that line left the whole suite green.
+    def test_the_solve_async_worker_path_notifies(self, db_session, test_user, test_organization):
+        from app.domains.solver import execution_writer
+        from app.schemas.optimization import OptimizationResult, SolverStatus
+
+        task_id = generate_id("task_")
+        execution_id = generate_id("exe_")
+        execution_writer.insert_pending(
+            db_session,
+            execution_id=execution_id,
+            organization_id=test_organization.id,
+            celery_task_id=task_id,
+            input_data={},
+            solver_name="scip",
+            executed_by_user_id=test_user.id,
+            origin="visual_builder",
+        )
+        db_session.commit()
+
+        register_solver_ports()
+        execution_writer.mark_completed_by_task(
+            task_id,
+            test_organization.id,
+            result=OptimizationResult(
+                status=SolverStatus.OPTIMAL,
+                objective_value=7.0,
+                solution={"x": 7.0},
+                solve_time_seconds=0.1,
+            ),
+            execution_time_seconds=0.1,
+            solver_name="scip",
+        )
+
+        db_session.expire_all()
+        rows = (
+            db_session.query(Notification)
+            .filter_by(user_id=test_user.id, type=NotificationType.EXECUTION_COMPLETED.value)
+            .all()
+        )
+        assert any(r.data.get("execution_id") == execution_id for r in rows), (
+            "the solve_async worker completed a run and left no notification"
+        )
+
+    # CONTRACT-TEST: the multi-objective worker is a terminal path too. It wrote
+    # its COMPLETED row through the same writer but skipped the notification —
+    # the hook had only been added to `mark_completed_by_task`, while the
+    # docstring claimed every terminal path reported. A Pareto front finished and
+    # the bell stayed empty. Driven through the worker entry point on its own
+    # session, so wiring the hook to the wrong function fails here.
+    def test_a_multi_objective_run_notifies_like_any_other(
+        self, db_session, test_user, test_organization
+    ):
+        from app.domains.solver import execution_writer
+
+        task_id = generate_id("task_")
+        execution_id = generate_id("exe_")
+        execution_writer.insert_pending(
+            db_session,
+            execution_id=execution_id,
+            organization_id=test_organization.id,
+            celery_task_id=task_id,
+            input_data={},
+            solver_name="scip",
+            executed_by_user_id=test_user.id,
+            origin="visual_builder",
+        )
+        # The worker opens its own session and locks the row: it must be committed.
+        db_session.commit()
+
+        register_solver_ports()
+        execution_writer.mark_multi_objective_completed_by_task(
+            task_id,
+            test_organization.id,
+            result_data={"multi_objective": {"solutions": []}, "solver_status": "optimal"},
+            execution_time_seconds=0.5,
+        )
+
+        db_session.expire_all()
+        # Keyed on THIS execution, not on "the user has some completion
+        # notification": the local jaot_test database accumulates residue between
+        # runs, and the looser assertion passed with the hook removed.
+        rows = (
+            db_session.query(Notification)
+            .filter_by(user_id=test_user.id, type=NotificationType.EXECUTION_COMPLETED.value)
+            .all()
+        )
+        assert any(r.data.get("execution_id") == execution_id for r in rows), (
+            "a multi-objective solve finished and left no notification"
+        )
+
     def test_a_run_with_no_person_behind_it_notifies_nobody(self, db_session, test_organization):
         """API-key runs have no user to ring; that must not raise."""
         from app.domains.solver import execution_writer

@@ -4477,6 +4477,7 @@
       "funnelAdoptions": "Übernahmen",
       "trendTitle": "Aufrufe pro Tag",
       "trendEmpty": "Ein Trend braucht mindestens zwei Tage mit Aktivität; bisher sind es {days}.",
+      "trendClipped": "Gezeigt werden die letzten {days} Tage — ältere Aktivität steckt in den Summen oben, das Diagramm kann sie aber nicht lesbar darstellen.",
       "geoTitle": "Woher deine Besuche kommen",
       "geoEmpty": "In diesem Zeitraum keine Besuche erfasst.",
       "geoSingle": "Alle erfassten Besuche ({count}) kommen aus einem einzigen Land: {country}.",

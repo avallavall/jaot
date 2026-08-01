@@ -278,7 +278,14 @@ def _notify_author_of_review(db: Session, listing, review, *, reviewer: User) ->
             )
         db.commit()
     except Exception:
-        logger.debug("Failed to send review notification", exc_info=True)
+        # The rollback is the whole point of catching here. Without it the session
+        # stays in a failed transaction and the *next* statement — the caller's
+        # response serialization — raises PendingRollbackError: a 500 for a review
+        # that was already committed, and a retry that now collides with the
+        # unique index. Its sibling `execution_writer._notify_completed` does the
+        # same, for the same reason.
+        db.rollback()
+        logger.warning("Failed to send review notification", exc_info=True)
 
 
 @router.delete("/models/reviews/{review_id}", response_model=StatusResponse)

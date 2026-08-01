@@ -11,17 +11,43 @@ restore from.
 
 from __future__ import annotations
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 
 from app.models import ModelProjectListing, ModelReview, User
 from app.schemas.author import AuthorReviewRow, AuthorReviewsResponse
 from app.shared.utils.pagination import paginate_query
 
+# Exactly the fields `AuthorListingRow` declares. Add one there, add it here, or
+# the panel reads an unloaded attribute and pays a SELECT per row for it.
+_LISTING_ROW_COLUMNS = (
+    ModelProjectListing.display_name,
+    ModelProjectListing.short_description,
+    ModelProjectListing.category,
+    ModelProjectListing.status,
+    ModelProjectListing.is_public,
+    ModelProjectListing.version,
+    ModelProjectListing.logo_url,
+    ModelProjectListing.total_activations,
+    ModelProjectListing.total_executions,
+    ModelProjectListing.avg_rating,
+    ModelProjectListing.success_rate,
+    ModelProjectListing.published_at,
+    ModelProjectListing.updated_at,
+)
+
 
 def list_my_listings(db: Session, *, org_id: str) -> list[ModelProjectListing]:
-    """Everything this organization has published, whatever state it is in."""
+    """Everything this organization has published, whatever state it is in.
+
+    Only the columns :class:`AuthorListingRow` serializes are read. The default
+    entity load also pulled the five ``section_*`` markdown documents, the three
+    generator JSON blobs (``input_schema``, ``input_fields``, ``example_input``)
+    and both descriptions — kilobytes per row that this panel never renders, on
+    a query with no upper bound on rows.
+    """
     return (
         db.query(ModelProjectListing)
+        .options(load_only(*_LISTING_ROW_COLUMNS))
         .filter(ModelProjectListing.author_organization_id == org_id)
         .order_by(ModelProjectListing.updated_at.desc())
         .all()

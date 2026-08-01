@@ -6,6 +6,8 @@ from the listing (``source_ref``) AND completed an execution. Creating a review 
 average rating up onto the listing.
 """
 
+from sqlalchemy import text
+
 from app.models import (
     ExecutionStatus,
     ModelCategory,
@@ -13,6 +15,8 @@ from app.models import (
     ModelProject,
     ModelProjectListing,
     ModelReview,
+    Organization,
+    User,
 )
 
 
@@ -146,3 +150,58 @@ class TestCreateReviewGate:
         res = authenticated_client.post("/api/v2/models/catalog/rev_dup/reviews", json=_REVIEW)
         assert res.status_code == 400, res.text
         assert "already reviewed" in res.json()["detail"].lower()
+
+
+class TestTheReviewSurvivesItsNotification:
+    """The review is committed before the author is told about it. Ringing the
+    bell is best-effort by design — but "best-effort" means the failure has to be
+    cleaned up, not merely caught."""
+
+    # CONTRACT-TEST: a notification that fails AT THE DATABASE must not turn a
+    # saved review into a 500. Swallowing the exception without db.rollback()
+    # left the session in a failed transaction, so the very next statement — the
+    # organization lookup that builds the response — raised PendingRollbackError.
+    # The reader saw an error for a review that was already stored, and retrying
+    # answered "you have already reviewed this model".
+    def test_a_failed_notification_does_not_500_a_review_that_was_saved(
+        self, authenticated_client, db_session, test_organization, test_user, monkeypatch
+    ):
+        author_org = Organization(id="org_rev_author", name="Author Org", is_active=True)
+        db_session.add(author_org)
+        db_session.flush()
+        db_session.add(
+            User(
+                id="usr_rev_author",
+                email="author_rev@example.com",
+                name="Author",
+                organization_id=author_org.id,
+                is_active=True,
+            )
+        )
+        _listing(db_session, test_organization, pid="rev_notify")
+        db_session.flush()
+        # A different org authors it, or there is nobody to notify.
+        db_session.get(ModelProjectListing, "rev_notify").author_organization_id = author_org.id
+        _fork(
+            db_session, test_organization, test_user, listing_id="rev_notify", fork_id="fork_rev_4"
+        )
+        _completed_execution(
+            db_session, test_organization, test_user, fork_id="fork_rev_4", exe_id="exe_rev_3"
+        )
+        db_session.commit()
+
+        from app.services.notification_service import NotificationService
+
+        def _fails_at_the_database(self, **kwargs):
+            # Not a bare raise: a plain Python error leaves the session usable and
+            # would pass with or without the fix. The real failure poisons the
+            # transaction, which is what the rollback is there for.
+            self.db.execute(text("SELECT 1 FROM a_table_that_does_not_exist"))
+
+        monkeypatch.setattr(NotificationService, "send_author_notification", _fails_at_the_database)
+
+        res = authenticated_client.post("/api/v2/models/catalog/rev_notify/reviews", json=_REVIEW)
+        assert res.status_code == 200, res.text
+
+        # And it is stored exactly once — a retry would now hit the unique index.
+        assert db_session.query(ModelReview).filter_by(model_project_id="rev_notify").count() == 1

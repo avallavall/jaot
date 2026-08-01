@@ -71,6 +71,23 @@ interface AnalyticsData {
 const PERIOD_DAYS: Record<Period, number | null> = { "7d": 7, "30d": 30, "90d": 90, all: null };
 
 /**
+ * Past this many days the strip stops being a chart — the bars fall below the
+ * pixel the layout reserves for each, so they overflow the card instead of
+ * shrinking. Only "all time" can reach it (the fixed periods top out at 90),
+ * and when it does the panel says the window was clipped rather than quietly
+ * drawing a different range than the button promises.
+ */
+export const MAX_TREND_DAYS = 180;
+
+/** A day the API dated, or null. Never trust the string: an unparseable date
+ *  reached `toISOString()` below and threw, taking the whole tab down. */
+function parseDay(date: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const parsed = new Date(`${date}T00:00:00Z`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/**
  * The API returns only the days that had events, so plotting it raw turns three
  * scattered days into three full-width blocks and reads as continuous activity.
  * Filling the quiet days with zeros is what makes the shape honest.
@@ -80,6 +97,8 @@ export function fillMissingDays(
   period: Period,
   today: Date,
 ): AnalyticsTimeSeriesPoint[] {
+  if (Number.isNaN(today.getTime())) return [];
+
   const span = PERIOD_DAYS[period];
   const iso = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -89,9 +108,20 @@ export function fillMissingDays(
     start.setUTCDate(start.getUTCDate() - (span - 1));
   } else {
     // "All time" has no fixed window: start at the first day we ever recorded.
-    if (points.length === 0) return [];
-    start = new Date(`${points[0].date}T00:00:00Z`);
+    // Scanned rather than taken from points[0] — the response is sorted today,
+    // but nothing in the contract says it has to be.
+    const earliest = points.reduce<Date | null>((acc, p) => {
+      const parsed = parseDay(p.date);
+      if (parsed === null) return acc;
+      return acc === null || parsed < acc ? parsed : acc;
+    }, null);
+    if (earliest === null) return [];
+    start = earliest;
   }
+
+  const floor = new Date(today);
+  floor.setUTCDate(floor.getUTCDate() - (MAX_TREND_DAYS - 1));
+  if (start < floor) start = floor;
 
   const known = new Map(points.map((p) => [p.date, p]));
   const filled: AnalyticsTimeSeriesPoint[] = [];
@@ -179,6 +209,13 @@ export function AuthorAnalyticsPanel({ locale }: { locale: string }) {
     (d) => d.views > 0 || d.impressions > 0 || d.activations > 0,
   ).length;
   const peakViews = Math.max(...days.map((d) => d.views), 1);
+  // Only "all time" can be clipped, and only it needs saying: the fixed periods
+  // routinely carry one bucket older than their window (the API window is a
+  // timestamp), and captioning that would be noise.
+  const clipped =
+    period === "all" &&
+    days.length > 0 &&
+    (series?.data ?? []).some((p) => p.date < days[0].date);
   const countries = data?.geo.data ?? [];
   const totalGeo = countries.reduce((acc, c) => acc + c.count, 0);
   const totalViews = summary?.total_views ?? 0;
@@ -245,16 +282,23 @@ export function AuthorAnalyticsPanel({ locale }: { locale: string }) {
           {activeDays < 2 ? (
             <NotEnoughYet>{t("trendEmpty", { days: activeDays })}</NotEnoughYet>
           ) : (
-            <div className="flex h-24 items-end gap-px">
-              {days.map((d) => (
-                <div
-                  key={d.date}
-                  className="min-w-px flex-1 rounded-t bg-primary/70"
-                  style={{ height: `${Math.max((d.views / peakViews) * 100, 2)}%` }}
-                  title={`${d.date}: ${d.views}`}
-                />
-              ))}
-            </div>
+            <>
+              <div className="flex h-24 items-end gap-px">
+                {days.map((d) => (
+                  <div
+                    key={d.date}
+                    className="min-w-px flex-1 rounded-t bg-primary/70"
+                    style={{ height: `${Math.max((d.views / peakViews) * 100, 2)}%` }}
+                    title={`${d.date}: ${d.views}`}
+                  />
+                ))}
+              </div>
+              {clipped && (
+                <p className="pt-2 text-xs text-muted-foreground">
+                  {t("trendClipped", { days: days.length })}
+                </p>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
