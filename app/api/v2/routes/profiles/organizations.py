@@ -2,15 +2,14 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
-from sqlalchemy.orm import Session
 
+from app.api.deps import DBSession
 from app.api.v2.auth import get_current_user
 from app.models import ModelProjectListing, ModelReview, Organization, User
 from app.schemas.common import StatusResponse
 from app.schemas.model import ModelCatalogResponse
 from app.schemas.profile import OrganizationPublicProfile, UpdateOrgProfileRequest
 from app.services.marketplace_fusion import MARKETPLACE_VISIBLE, listing_to_catalog_response
-from app.shared.db.base import get_db
 
 router = APIRouter(tags=["organizations"])
 
@@ -18,7 +17,7 @@ router = APIRouter(tags=["organizations"])
 @router.get("/organizations/{org_id}/public", response_model=OrganizationPublicProfile)
 def get_organization_public_profile(
     org_id: str,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> OrganizationPublicProfile:
     """Get public profile of an organization."""
     org = (
@@ -85,7 +84,7 @@ def get_organization_public_profile(
 @router.get("/organizations/by-slug/{slug}", response_model=OrganizationPublicProfile)
 def get_organization_by_slug(
     slug: str,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> OrganizationPublicProfile:
     """Get public profile of an organization by slug."""
     org = (
@@ -106,8 +105,8 @@ def get_organization_by_slug(
 @router.patch("/organizations/profile", response_model=StatusResponse)
 def update_organization_profile(
     body: UpdateOrgProfileRequest,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> StatusResponse:
     """Update the current user's organization profile."""
     org = db.query(Organization).filter(Organization.id == current_user.organization_id).first()
@@ -153,7 +152,7 @@ def update_organization_profile(
 @router.get("/organizations/{org_id}/models", response_model=list[ModelCatalogResponse])
 def get_organization_models(
     org_id: str,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> list[ModelCatalogResponse]:
     """Get public models published by an organization."""
     org = (

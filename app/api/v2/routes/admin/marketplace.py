@@ -8,9 +8,9 @@ ADR-008: promotion (featured placement) management left with the money layer;
 author analytics are non-monetary (adoption, not revenue) and no longer gated.
 """
 
-from fastapi import APIRouter, Depends, Query, Request
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Query, Request
 
+from app.api.deps import DBSession
 from app.schemas.analytics import (
     FeatureAnalyticsOverview,
     PaginatedRecentEventsResponse,
@@ -27,15 +27,14 @@ from app.schemas.verification import (
 from app.services.analytics_service import AnalyticsService
 from app.services.author_analytics_service import AuthorAnalyticsService
 from app.services.verification_service import VerificationService
-from app.shared.db.base import get_db
 
 router = APIRouter(prefix="/marketplace", tags=["admin-marketplace"])
 
 
 @router.get("/author-analytics", response_model=AdminAnalyticsResponse)
 def get_admin_author_analytics(
+    db: DBSession,
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
-    db: Session = Depends(get_db),
 ) -> AdminAnalyticsResponse:
     """Get platform-wide analytics with the author leaderboard.
 
@@ -51,8 +50,8 @@ def get_admin_author_analytics(
 @router.get("/author-analytics/{org_id}", response_model=AnalyticsSummaryResponse)
 def get_admin_author_detail(
     org_id: str,
+    db: DBSession,
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
-    db: Session = Depends(get_db),
 ) -> AnalyticsSummaryResponse:
     """Admin drill-down: get analytics summary for a specific author org."""
     analytics = AuthorAnalyticsService(db)
@@ -61,13 +60,13 @@ def get_admin_author_detail(
 
 @router.get("/feature-analytics", response_model=FeatureAnalyticsOverview)
 def get_admin_feature_analytics(
+    db: DBSession,
     period: str = Query("7d", pattern="^(1h|12h|today|7d|30d|90d|all)$"),
     event_type: str | None = Query(None),
     country_code: str | None = Query(None, max_length=2),
     domain: str | None = Query(None),
     compare: bool = Query(False),
     ts_group: str | None = Query(None, pattern="^(domain|event_type)$"),
-    db: Session = Depends(get_db),
 ) -> FeatureAnalyticsOverview:
     """Get platform-wide feature usage analytics overview.
 
@@ -92,12 +91,12 @@ def get_admin_feature_analytics(
     response_model=PaginatedRecentEventsResponse,
 )
 def get_admin_feature_analytics_events(
+    db: DBSession,
     period: str = Query("7d", pattern="^(1h|12h|today|7d|30d|90d|all)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     event_type: str | None = Query(None),
     country_code: str | None = Query(None, max_length=2),
-    db: Session = Depends(get_db),
 ) -> PaginatedRecentEventsResponse:
     """Get paginated recent analytics events with optional filters."""
     analytics = AnalyticsService(db)
@@ -112,7 +111,7 @@ def get_admin_feature_analytics_events(
 
 @router.get("/verification", response_model=list[AdminVerificationEntry])
 def get_admin_verification_requests(
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> list[AdminVerificationEntry]:
     """List all pending verification requests for admin review."""
     service = VerificationService(db)
@@ -124,7 +123,7 @@ def decide_verification(
     request_id: str,
     body: AdminVerificationDecision,
     request: Request,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> StatusResponse:
     """Approve or reject a verification request (admin action)."""
     admin_user = getattr(request.state, "user", None)

@@ -1,15 +1,14 @@
 """Admin API key management endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, Query, status
 
+from app.api.deps import DBSession
 from app.models import APIKey, Organization, User
 from app.schemas.admin import (
     AdminPaginatedResponse,
     APIKeyCreate,
     APIKeyResponse,
 )
-from app.shared.db.base import get_db
 from app.shared.utils.pagination import paginate_query
 
 router = APIRouter(tags=["admin-api-keys"])
@@ -17,12 +16,12 @@ router = APIRouter(tags=["admin-api-keys"])
 
 @router.get("/api-keys", response_model=AdminPaginatedResponse)
 def list_api_keys(
+    db: DBSession,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     organization_id: str | None = None,
     user_id: str | None = None,
     is_active: bool | None = None,
-    db: Session = Depends(get_db),
 ) -> AdminPaginatedResponse:
     """List API keys with pagination and filters."""
     query = db.query(APIKey)
@@ -46,7 +45,7 @@ def list_api_keys(
 
 
 @router.post("/api-keys", response_model=APIKeyResponse, status_code=status.HTTP_201_CREATED)
-def create_api_key(data: APIKeyCreate, db: Session = Depends(get_db)) -> APIKeyResponse:
+def create_api_key(data: APIKeyCreate, db: DBSession) -> APIKeyResponse:
     """Create new API key. Returns full key only once."""
     from app.services.auth import APIKeyService
 
@@ -72,7 +71,7 @@ def create_api_key(data: APIKeyCreate, db: Session = Depends(get_db)) -> APIKeyR
 
 
 @router.patch("/api-keys/{key_id}/toggle", response_model=APIKeyResponse)
-def toggle_api_key(key_id: str, db: Session = Depends(get_db)) -> APIKeyResponse:
+def toggle_api_key(key_id: str, db: DBSession) -> APIKeyResponse:
     """Toggle API key active status."""
     key = db.query(APIKey).filter(APIKey.id == key_id).first()
     if not key:
@@ -85,7 +84,7 @@ def toggle_api_key(key_id: str, db: Session = Depends(get_db)) -> APIKeyResponse
 
 
 @router.delete("/api-keys/{key_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_api_key(key_id: str, db: Session = Depends(get_db)) -> None:
+def delete_api_key(key_id: str, db: DBSession) -> None:
     """Delete API key (hard delete)."""
     key = db.query(APIKey).filter(APIKey.id == key_id).first()
     if not key:

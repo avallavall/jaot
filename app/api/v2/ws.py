@@ -6,12 +6,12 @@ import logging
 from typing import Any
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 
+from app.api.deps import DBSession
 from app.models import ModelExecution, Organization, User
 from app.services.auth import principal_from_jwt, resolve_principal
-from app.shared.db.base import get_db
 
 router = APIRouter(prefix="/ws", tags=["websocket"])
 logger = logging.getLogger(__name__)
@@ -199,8 +199,8 @@ def _ws_origins(allowed_origins: list[str], frontend_url: str) -> list[str]:
 async def websocket_execution_progress(
     websocket: WebSocket,
     execution_id: str,
+    db: DBSession,
     token: str | None = Query(None),
-    db: Session = Depends(get_db),
 ) -> None:
     """
     WebSocket endpoint for real-time execution progress.

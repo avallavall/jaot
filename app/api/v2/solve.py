@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.api.deps import OptionalRequireSolver, enforce_org_rate_limit
+from app.api.deps import DBSession, OptionalRequireSolver, enforce_org_rate_limit
 from app.api.v2._access import execution_or_404
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
 from app.api.v2.solve_pipeline import (
@@ -43,7 +43,6 @@ from app.services.platform_settings_service import PlatformSettingsService as PS
 from app.services.solve_orchestrator import (
     validate_problem,
 )
-from app.shared.db import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +89,7 @@ class MultiObjectiveSolveRequest(BaseModel):
 def solve_optimization_problem(  # def: blocks on the queued result (ADR-007 S2)
     problem: OptimizationProblem,
     request: Request,
-    db: Session = Depends(get_db),
+    db: DBSession,
     solver: SolverService = Depends(get_solver_service),
     workspace_member: OptionalRequireSolver = None,
     solver_name: str | None = Query(default=None, max_length=32),
@@ -292,7 +291,7 @@ def validate_problem_endpoint(  # sync ON PURPOSE -> threadpool (CPU-bound, no a
 def analyze_infeasibility(
     execution_id: str,
     request: Request,
-    db: Session = Depends(get_db),
+    db: DBSession,
     solver: SolverService = Depends(get_solver_service),
 ) -> InfeasibilityAnalysis:
     """Compute a minimal conflicting set (IIS) for an INFEASIBLE execution.
@@ -379,7 +378,7 @@ def analyze_infeasibility(
 def solve_multi_objective_endpoint(  # def: blocks on the queued result in the threadpool (S4b)
     body: MultiObjectiveSolveRequest,
     request: Request,
-    db: Session = Depends(get_db),
+    db: DBSession,
     workspace_member: OptionalRequireSolver = None,
     origin: str | None = Query(default=None, max_length=32),
     source_kind: str | None = Query(default=None, max_length=32),
@@ -442,7 +441,7 @@ def solve_optimization_problem_async(  # sync ON PURPOSE -> FastAPI threadpool
     problem: OptimizationProblem,
     request: Request,
     response: Response,
-    db: Session = Depends(get_db),
+    db: DBSession,
     workspace_member: OptionalRequireSolver = None,
     solver_name: str | None = Query(default=None, max_length=32),
     origin: str | None = Query(default=None, max_length=32),
@@ -535,7 +534,7 @@ def _shape_multi_objective_result(
 def get_async_solve_status(
     task_id: str,
     request: Request,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> dict[str, Any]:
     """Get the status of an async solve task."""
     org: Organization | None = getattr(request.state, "organization", None)
@@ -640,7 +639,7 @@ def get_async_solve_status(
 def cancel_async_task(
     task_id: str,
     request: Request,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> AsyncSolveCancelResponse:
     """Cancel a running async optimization task."""
     from app.shared.core.celery_app import celery_app

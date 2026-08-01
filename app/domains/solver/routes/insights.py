@@ -8,15 +8,13 @@ Returns auto-generated analysis of a solve result.
 import logging
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentOrg, CurrentUser
+from app.api.deps import CurrentOrg, CurrentUser, DBSession
 from app.domains.solver.routes._helpers import load_execution
 from app.domains.solver.services.insights import InsightCategory, InsightSeverity, generate_insights
 from app.schemas.optimization import OptimizationProblem
-from app.shared.db import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +49,7 @@ def get_execution_insights(
     execution_id: str,
     current_user: CurrentUser,
     org: CurrentOrg,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> InsightsResponse:
     """Generate auto-insights for a completed execution."""
     execution = load_execution(db, execution_id, org.id)

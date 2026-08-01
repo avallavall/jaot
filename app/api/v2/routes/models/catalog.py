@@ -9,11 +9,11 @@ means seeding a fork ModelProject via ``POST /projects/from-marketplace/{id}``
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.api.deps import OptionalCurrentUser
+from app.api.deps import DBSession, OptionalCurrentUser
 from app.models import ModelProjectListing, Organization, User
 from app.schemas.model import (
     CatalogModelSchemaResponse,
@@ -23,7 +23,6 @@ from app.schemas.model import (
 from app.services import favorites_service
 from app.services.author_analytics_service import AuthorAnalyticsService
 from app.services.marketplace_fusion import MARKETPLACE_VISIBLE, listing_to_catalog_response
-from app.shared.db.base import get_db
 from app.shared.utils.request_helpers import get_client_ip
 
 logger = logging.getLogger(__name__)
@@ -127,6 +126,7 @@ def _record_visit(db: Session, request: Request, viewer: User | None, model_id: 
 def list_catalog_models(
     request: Request,
     viewer: OptionalCurrentUser,
+    db: DBSession,
     category: str | None = Query(None, description="Filter by category"),
     search: str | None = Query(None, description="Search in name and description"),
     is_official: bool | None = Query(None, description="Filter official models"),
@@ -134,7 +134,6 @@ def list_catalog_models(
     sort_by: str = Query("popular", pattern="^(popular|newest|rating)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    db: Session = Depends(get_db),
 ) -> ModelCatalogListResponse:
     """List models available in the marketplace catalog."""
     # P1.5 fusion: the marketplace serves from the unified ModelProjectListing facet
@@ -225,7 +224,7 @@ def get_catalog_model(
     request: Request,
     viewer: OptionalCurrentUser,
     model_id: str,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> ModelCatalogResponse:
     """Get details of a specific model in the catalog."""
     listing = (
@@ -259,7 +258,7 @@ def get_catalog_model(
 )
 def get_catalog_model_schema(
     model_id: str,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> CatalogModelSchemaResponse:
     """Get the input schema and example for a catalog model.
 

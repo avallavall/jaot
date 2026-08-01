@@ -93,7 +93,6 @@ from app.services.template_resolver import (
     resolve_template_dict,
 )
 from app.shared.constants.execution_provenance import ORIGIN_VISUAL_BUILDER
-from app.shared.db import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -1055,7 +1054,7 @@ def restore_project_version(
 def solve_model_project(  # def: blocks on the queued result in the threadpool (ADR-007 S4a)
     project_id: str,
     request: Request,
-    db: Session = Depends(get_db),
+    db: DBSession,
     solver: SolverService = Depends(get_solver_service),
     workspace_member: OptionalRequireSolver = None,
     version_id: str | None = Query(default=None),
@@ -1171,7 +1170,7 @@ def solve_project_dataset(  # def: the CPU-bound compile belongs in the threadpo
     project_id: str,
     dataset_id: str,
     request: Request,
-    db: Session = Depends(get_db),
+    db: DBSession,
     solver: SolverService = Depends(get_solver_service),
     workspace_member: OptionalRequireSolver = None,
     solver_name: str | None = Query(default=None, max_length=32),

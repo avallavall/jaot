@@ -4,8 +4,8 @@ from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_
-from sqlalchemy.orm import Session
 
+from app.api.deps import DBSession
 from app.api.v2.auth import get_current_user
 from app.models import APIKey, User
 from app.schemas.api_key import (
@@ -16,7 +16,6 @@ from app.schemas.api_key import (
     RevokeKeyResponse,
 )
 from app.services.auth import APIKeyService
-from app.shared.db.base import get_db
 from app.shared.utils.datetime_helpers import utcnow
 
 router = APIRouter(prefix="/keys", tags=["api-keys"])
@@ -25,8 +24,8 @@ router = APIRouter(prefix="/keys", tags=["api-keys"])
 @router.post("/", response_model=CreateKeyResponse)
 def create_api_key(
     request: CreateKeyRequest,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> CreateKeyResponse:
     """Create a new API key for the authenticated user."""
     expires_at = None
@@ -55,12 +54,12 @@ def create_api_key(
 
 @router.get("/", response_model=KeyListResponse)
 def list_api_keys(
+    db: DBSession,
     page: int = 1,
     page_size: int = 20,
     search: str | None = None,
     is_active: bool | None = None,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> KeyListResponse:
     """List all API keys for the authenticated user."""
     # Limit max page size
@@ -108,8 +107,8 @@ def list_api_keys(
 @router.delete("/{key_id}", response_model=RevokeKeyResponse)
 def revoke_api_key(
     key_id: str,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> RevokeKeyResponse:
     """Revoke an API key."""
     # Verify key belongs to user

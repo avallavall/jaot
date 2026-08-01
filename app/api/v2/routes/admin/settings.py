@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Query, Request
 from sqlalchemy import desc, func
-from sqlalchemy.orm import Session
 
+from app.api.deps import DBSession
 from app.models.platform_setting_audit import PlatformSettingAudit
 from app.schemas.admin import SettingResetResponse
 from app.schemas.admin_settings import (
@@ -30,7 +30,6 @@ from app.services.settings_registry import (
     REGISTRY_BY_KEY,
     SettingCategory,
 )
-from app.shared.db.base import get_db
 
 router = APIRouter(prefix="/settings", tags=["admin-settings"])
 
@@ -66,8 +65,8 @@ def get_registry() -> SettingsRegistryResponse:
 
 @router.get("/values", response_model=SettingsValuesResponse)
 def get_values(
+    db: DBSession,
     category: str | None = Query(None, description="Filter by category"),
-    db: Session = Depends(get_db),
 ) -> SettingsValuesResponse:
     """Return all current setting values (or filtered by category).
 
@@ -107,7 +106,7 @@ def get_values(
 def update_values(
     body: SettingsUpdateRequest,
     request: Request,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> SettingsUpdateResponse:
     """Batch update settings with validation and audit trail.
 
@@ -146,7 +145,7 @@ def update_values(
 def reset_setting(
     key: str,
     request: Request,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> SettingResetResponse:
     """Reset a single setting to its registry default value.
 
@@ -168,13 +167,13 @@ def reset_setting(
 
 @router.get("/audit", response_model=AuditLogResponse)
 def get_audit_log(
+    db: DBSession,
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(50, ge=1, le=200, description="Items per page"),
     category: str | None = Query(None, description="Filter by category"),
     changed_by: str | None = Query(None, description="Filter by admin user"),
     from_date: datetime | None = Query(None, description="Filter from date"),
     to_date: datetime | None = Query(None, description="Filter to date"),
-    db: Session = Depends(get_db),
 ) -> AuditLogResponse:
     """Return paginated audit log with optional filters.
 

@@ -13,11 +13,19 @@ from starlette.requests import Request
 from app.api.v2.auth import get_current_user
 from app.models import Organization, User
 from app.models.workspace import WorkspaceMember, WorkspaceRole
-from app.shared.db.base import get_db
+from app.shared.db.base import DBSession, get_db
 
-# Type aliases for cleaner endpoint signatures
-DBSession = Annotated[Session, Depends(get_db)]
+# Type aliases for cleaner endpoint signatures.
+#
+# DBSession is defined in app.shared.db.base and re-exported here: this module
+# is the one route modules import dependencies from, but it cannot own the alias
+# because `auth` (which this module imports for CurrentUser) needs it too.
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+__all__ = [
+    "CurrentUser",
+    "DBSession",
+]
 
 
 def enforce_org_rate_limit(db: Session, org: Organization) -> None:

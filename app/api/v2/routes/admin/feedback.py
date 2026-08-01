@@ -2,10 +2,10 @@
 
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Query
 from sqlalchemy import Date, case, cast, func
-from sqlalchemy.orm import Session
 
+from app.api.deps import DBSession
 from app.models.formulation_rating import FormulationRating
 from app.schemas.feedback import (
     DailyTrend,
@@ -14,7 +14,6 @@ from app.schemas.feedback import (
     RatingResponse,
     ZoneStats,
 )
-from app.shared.db.base import get_db
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.pagination import paginate_query
 
@@ -23,12 +22,12 @@ router = APIRouter(tags=["admin-feedback"])
 
 @router.get("/feedback", response_model=FeedbackListResponse)
 def list_feedback(
+    db: DBSession,
     zone: str | None = None,
     rating: str | None = None,
     days: int = Query(30, ge=1, le=365),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    db: Session = Depends(get_db),
 ) -> FeedbackListResponse:
     """List feedback ratings with optional filters (zone, rating, date range)."""
     cutoff = utcnow() - timedelta(days=days)
@@ -57,9 +56,9 @@ def list_feedback(
 
 @router.get("/feedback/stats", response_model=FeedbackStatsResponse)
 def feedback_stats(
+    db: DBSession,
     zone: str | None = None,
     days: int = Query(30, ge=1, le=365),
-    db: Session = Depends(get_db),
 ) -> FeedbackStatsResponse:
     """Aggregate feedback statistics: totals, by-zone, avg_rating, daily_trend."""
     cutoff = utcnow() - timedelta(days=days)

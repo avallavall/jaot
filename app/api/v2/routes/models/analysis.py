@@ -15,8 +15,8 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 
+from app.api.deps import DBSession
 from app.api.v2._access import execution_or_404
 from app.api.v2._solver_limits import compute_celery_time_limits
 from app.api.v2.auth import get_current_user
@@ -37,7 +37,6 @@ from app.schemas.optimization import (
     ScenarioAnalysisJob,
     ScenarioProgress,
 )
-from app.shared.db.base import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +49,8 @@ router = APIRouter(tags=["execution"])
 )
 def get_execution_exact_analysis(  # sync ON PURPOSE -> threadpool (CPU-bound, no awaits)
     execution_id: str,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> ExactAnalysis:
     """Exact, solution-based analysis of a completed execution (A3).
 
@@ -80,8 +79,8 @@ def get_execution_exact_analysis(  # sync ON PURPOSE -> threadpool (CPU-bound, n
 )
 def start_execution_scenario_analysis(
     execution_id: str,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> ScenarioAnalysisJob:
     """Queue the what-if batch for a completed execution (Sensitivity L2).
 
@@ -146,8 +145,8 @@ def start_execution_scenario_analysis(
 )
 def get_execution_scenario_analysis(
     execution_id: str,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> ScenarioAnalysisJob:
     """Read the cached what-if batch of an execution (Sensitivity L2)."""
     execution = execution_or_404(db, execution_id, current_user.organization_id)

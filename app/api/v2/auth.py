@@ -8,7 +8,7 @@ import secrets
 from datetime import timedelta
 from typing import Any, cast
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -34,7 +34,10 @@ from app.services.email_translations import get_email_string
 from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.shared.core.http_errors import CodedHTTPException
 from app.shared.core.rate_limiter import check_rate_limit, check_rate_limit_hourly
-from app.shared.db.base import get_db
+
+# Imported from the definition site rather than app.api.deps: deps builds
+# CurrentUser on top of this module, so importing it back from there is a cycle.
+from app.shared.db.base import DBSession
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.request_helpers import get_client_ip
 
@@ -151,7 +154,7 @@ def _build_auth_response_data(user: User, org: Organization) -> dict[str, Any]:
 
 
 @router.post("/login", response_model=LoginResponse)
-def login(request: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse:
+def login(request: LoginRequest, db: DBSession) -> LoginResponse:
     """Validate API key and return user/org info.
 
     Used by frontend to validate credentials and get initial state.
@@ -198,7 +201,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse
 def login_email(
     body: EmailLoginRequest,
     request: Request,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> Response:
     """Authenticate with email and password.
 
@@ -315,7 +318,7 @@ def login_email(
 def signup_email(
     body: EmailSignupRequest,
     request: Request,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> Response:
     """Create a new user with email and password.
 
@@ -487,7 +490,7 @@ def signup_email(
 
 
 @router.post("/verify-email", response_model=SuccessResponse)
-def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)) -> SuccessResponse:
+def verify_email(body: VerifyEmailRequest, db: DBSession) -> SuccessResponse:
     """Verify user email with a token."""
     _rate_limit_or_raise(
         f"verify_email:{body.token[:16]}",
@@ -537,7 +540,7 @@ def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)) -> Suc
 
 
 @router.post("/forgot-password", response_model=SuccessResponse)
-def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)) -> SuccessResponse:
+def forgot_password(body: ForgotPasswordRequest, db: DBSession) -> SuccessResponse:
     """Send a password reset email.
 
     Always returns 200 to prevent email enumeration.
@@ -586,7 +589,7 @@ def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)) 
 
 
 @router.post("/reset-password", response_model=SuccessResponse)
-def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)) -> SuccessResponse:
+def reset_password(body: ResetPasswordRequest, db: DBSession) -> SuccessResponse:
     """Reset password using a token."""
     _rate_limit_or_raise(
         f"reset_password:{body.token[:16]}",
@@ -637,7 +640,7 @@ def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)) ->
 
 
 @router.post("/refresh")
-def refresh_token(request: Request, db: Session = Depends(get_db)) -> Response:
+def refresh_token(request: Request, db: DBSession) -> Response:
     """Refresh access token using refresh token cookie.
 
     Implements token rotation: old refresh token is revoked and a new one
@@ -717,7 +720,7 @@ def refresh_token(request: Request, db: Session = Depends(get_db)) -> Response:
 
 
 @router.post("/logout")
-def logout(request: Request, db: Session = Depends(get_db)) -> Response:
+def logout(request: Request, db: DBSession) -> Response:
     """Log out by clearing cookies and revoking refresh token."""
     import jwt as pyjwt
 
@@ -746,7 +749,7 @@ def logout(request: Request, db: Session = Depends(get_db)) -> Response:
 @router.get("/me", response_model=MeResponse)
 def get_me(
     request: Request,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> MeResponse:
     """Get current authenticated user info.
 
@@ -788,7 +791,7 @@ def get_me(
 def signup(
     request: SignupRequest,
     raw_request: Request,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> SignupResponse:
     """Create a new user and organization (API key flow).
 

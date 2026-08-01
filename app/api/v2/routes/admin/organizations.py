@@ -1,9 +1,9 @@
 """Admin organization CRUD endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func
-from sqlalchemy.orm import Session
 
+from app.api.deps import DBSession
 from app.models import (
     APIKey,
     ModelExecution,
@@ -27,7 +27,6 @@ from app.schemas.admin import (
     UserResponse,
 )
 from app.services.platform_settings_service import PlatformSettingsService as PSS
-from app.shared.db.base import get_db
 from app.shared.utils.id_generator import generate_id
 from app.shared.utils.pagination import paginate_query
 
@@ -36,11 +35,11 @@ router = APIRouter(tags=["admin-organizations"])
 
 @router.get("/organizations", response_model=AdminPaginatedResponse)
 def list_organizations(
+    db: DBSession,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     search: str | None = None,
     is_active: bool | None = None,
-    db: Session = Depends(get_db),
 ) -> AdminPaginatedResponse:
     """List all organizations with pagination and filters."""
     query = db.query(Organization)
@@ -106,7 +105,7 @@ def list_organizations(
 
 
 @router.get("/organizations/{org_id}", response_model=OrganizationResponse)
-def get_organization(org_id: str, db: Session = Depends(get_db)) -> OrganizationResponse:
+def get_organization(org_id: str, db: DBSession) -> OrganizationResponse:
     """Get organization by ID."""
     org = db.query(Organization).filter(Organization.id == org_id).first()
     if not org:
@@ -123,9 +122,7 @@ def get_organization(org_id: str, db: Session = Depends(get_db)) -> Organization
 
 
 @router.get("/organizations/{org_id}/overview", response_model=OrganizationOverviewResponse)
-def get_organization_overview(
-    org_id: str, db: Session = Depends(get_db)
-) -> OrganizationOverviewResponse:
+def get_organization_overview(org_id: str, db: DBSession) -> OrganizationOverviewResponse:
     """Rich read-only overview of one organization for platform admins.
 
     Aggregates everything an admin needs to "see" an org without editing it:
@@ -254,9 +251,7 @@ def get_organization_overview(
 @router.post(
     "/organizations", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED
 )
-def create_organization(
-    data: OrganizationCreate, db: Session = Depends(get_db)
-) -> OrganizationResponse:
+def create_organization(data: OrganizationCreate, db: DBSession) -> OrganizationResponse:
     """Create new organization."""
     # The two rate-limit columns are no longer read by anything (D-23: limits come
     # from instance settings on each request), but they are still WRITTEN with the
@@ -280,7 +275,7 @@ def create_organization(
 
 @router.patch("/organizations/{org_id}", response_model=OrganizationResponse)
 def update_organization(
-    org_id: str, data: OrganizationUpdate, db: Session = Depends(get_db)
+    org_id: str, data: OrganizationUpdate, db: DBSession
 ) -> OrganizationResponse:
     """Update organization."""
     org = db.query(Organization).filter(Organization.id == org_id).first()
@@ -297,7 +292,7 @@ def update_organization(
 
 
 @router.delete("/organizations/{org_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_organization(org_id: str, db: Session = Depends(get_db)) -> None:
+def delete_organization(org_id: str, db: DBSession) -> None:
     """Delete organization (soft delete by setting is_active=False)."""
     org = db.query(Organization).filter(Organization.id == org_id).first()
     if not org:

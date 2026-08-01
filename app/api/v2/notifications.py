@@ -4,12 +4,11 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 
+from app.api.deps import DBSession
 from app.api.v2.auth import get_current_user
 from app.models import User
 from app.services.notification_service import NotificationService
-from app.shared.db.base import get_db
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
@@ -52,10 +51,10 @@ class MarkReadResponse(BaseModel):
 
 @router.get("", response_model=NotificationListResponse)
 def list_notifications(
+    db: DBSession,
     unread_only: bool = Query(False, description="Only return unread notifications"),
     limit: int = Query(50, ge=1, le=100, description="Maximum notifications to return"),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> NotificationListResponse:
     """List notifications for the current user, scoped to their organization."""
     service = NotificationService(db)
@@ -92,8 +91,8 @@ def list_notifications(
 
 @router.get("/unread-count", response_model=UnreadCountResponse)
 def get_unread_count(
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> UnreadCountResponse:
     """Get count of unread notifications scoped to the current user's organization."""
     service = NotificationService(db)
@@ -104,8 +103,8 @@ def get_unread_count(
 @router.post("/{notification_id}/read", response_model=MarkReadResponse)
 def mark_notification_read(
     notification_id: str,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> MarkReadResponse:
     """Mark a specific notification as read (within the current user's organization)."""
     service = NotificationService(db)
@@ -122,8 +121,8 @@ def mark_notification_read(
 
 @router.post("/read-all", response_model=MarkReadResponse)
 def mark_all_notifications_read(
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> MarkReadResponse:
     """Mark all notifications as read (within the current user's organization)."""
     service = NotificationService(db)

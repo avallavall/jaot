@@ -8,11 +8,10 @@ Allows users to upload MPS, LP, CIP, or JSON files and either:
 import logging
 from typing import Any
 
-from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Form, HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentOrg, CurrentUser, enforce_org_rate_limit
+from app.api.deps import CurrentOrg, CurrentUser, DBSession, enforce_org_rate_limit
 from app.api.v2.solve_pipeline import enqueue_async_solve, shape_sync_result, wait_for_task
 from app.domains.solver.services.file_import import (
     FileImportError,
@@ -31,7 +30,6 @@ from app.schemas.optimization import (
     VariableType,
 )
 from app.shared.constants.execution_provenance import ORIGIN_IMPORT
-from app.shared.db import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +141,7 @@ def import_and_solve(  # def: blocks on the queued result in the threadpool (ADR
     file: UploadFile,
     current_user: CurrentUser,
     org: CurrentOrg,
-    db: Session = Depends(get_db),
+    db: DBSession,
     time_limit_seconds: float = Form(default=60.0, ge=1, le=3600),
     gap_tolerance: float = Form(default=0.0001, ge=0, le=1),
     objective_sense: ObjectiveSense | None = Form(default=None),

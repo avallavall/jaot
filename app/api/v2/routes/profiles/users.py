@@ -2,8 +2,8 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
-from sqlalchemy.orm import Session
 
+from app.api.deps import DBSession
 from app.api.v2.auth import get_current_user
 from app.models import ModelProjectListing, ModelReview, Organization, User
 from app.schemas.common import StatusResponse
@@ -13,7 +13,6 @@ from app.schemas.profile import (
     UserReviewResponse,
 )
 from app.services.marketplace_fusion import MARKETPLACE_VISIBLE
-from app.shared.db.base import get_db
 
 router = APIRouter(tags=["users"])
 
@@ -21,7 +20,7 @@ router = APIRouter(tags=["users"])
 @router.get("/users/{user_id}/public", response_model=UserPublicProfile)
 def get_user_public_profile(
     user_id: str,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> UserPublicProfile:
     """Get public profile of a user."""
     user = (
@@ -68,7 +67,7 @@ def get_user_public_profile(
 @router.get("/users/by-slug/{slug}", response_model=UserPublicProfile)
 def get_user_by_slug(
     slug: str,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> UserPublicProfile:
     """Get public profile of a user by slug."""
     user = (
@@ -89,7 +88,7 @@ def get_user_by_slug(
 @router.get("/users/{user_id}/reviews", response_model=list[UserReviewResponse])
 def get_user_reviews(
     user_id: str,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> list[UserReviewResponse]:
     """Get all reviews written by a user."""
     reviews = (
@@ -136,8 +135,8 @@ def get_user_reviews(
 @router.patch("/users/profile", response_model=StatusResponse)
 def update_user_profile(
     body: UpdateUserProfileRequest,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> StatusResponse:
     """Update the current user's profile."""
     user = db.query(User).filter(User.id == current_user.id).first()

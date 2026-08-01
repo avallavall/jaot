@@ -3,17 +3,16 @@
 import json
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import JSONResponse, Response
-from sqlalchemy.orm import Session
 
+from app.api.deps import DBSession
 from app.api.v2.auth import get_current_organization, get_current_user
 from app.config import settings
 from app.models import Organization, User
 from app.schemas.gdpr import AccountDeleteRequest
 from app.services.auth import PasswordService
 from app.services.gdpr_service import delete_user_account, export_user_data
-from app.shared.db.base import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +25,7 @@ router = APIRouter(prefix="/user")
 @router.get("/data-export")
 def data_export(
     request: Request,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> Response:
     """Export all user data as a downloadable JSON file (GDPR data portability)."""
     user: User = get_current_user(request)
@@ -48,7 +47,7 @@ def data_export(
 def delete_account(
     body: AccountDeleteRequest,
     request: Request,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> JSONResponse:
     """Delete user account and all associated data (GDPR right to erasure).
 

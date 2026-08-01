@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.api.deps import OptionalRequireSolver, enforce_org_rate_limit
+from app.api.deps import DBSession, OptionalRequireSolver, enforce_org_rate_limit
 from app.api.v2.solve_pipeline import enqueue_async_solve, shape_sync_result, wait_for_task
 from app.data.templates import load_all_templates
 from app.domains.solver.services import SolverService, get_solver_service
@@ -34,7 +34,6 @@ from app.schemas.template import (
 )
 from app.services.template_resolver import resolve_template_dict as _resolve_template_dict
 from app.shared.constants.execution_provenance import ORIGIN_TEMPLATE
-from app.shared.db import get_db
 from app.shared.utils.request_helpers import get_client_ip
 
 logger = logging.getLogger(__name__)
@@ -106,7 +105,7 @@ def list_templates(
 )
 def get_template(
     template_id: str,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> TemplateDetailResponse:
     """Get a specific template with full details including input schema and example.
 
@@ -127,8 +126,8 @@ def get_template(
 )
 def preview_template(
     template_id: str,
+    db: DBSession,
     user_input: dict[str, Any] | None = None,
-    db: Session = Depends(get_db),
     template_engine: TemplateEngine = Depends(get_template_engine),
 ) -> OptimizationProblem:
     """Render a template with input data and return the OptimizationProblem without solving."""
@@ -152,7 +151,7 @@ def solve_with_template(  # def: blocks on the queued result in the threadpool (
     template_id: str,
     user_input: dict[str, Any],
     request: Request,
-    db: Session = Depends(get_db),
+    db: DBSession,
     solver: SolverService = Depends(get_solver_service),
     workspace_member: OptionalRequireSolver = None,
     solver_name: str | None = Query(default=None, max_length=32),

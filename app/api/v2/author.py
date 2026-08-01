@@ -16,8 +16,8 @@ org adopting the model, not a sale).
 import logging
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
 
+from app.api.deps import DBSession
 from app.api.v2.auth import get_current_user
 from app.models import (
     ModelProjectListing,
@@ -46,7 +46,6 @@ from app.services import author_listing_service as author_listings
 from app.services.author_analytics_service import AuthorAnalyticsService
 from app.services.verification_service import VerificationService
 from app.shared.constants.listing_status import STATUS_PUBLISHED
-from app.shared.db.base import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -55,9 +54,9 @@ router = APIRouter(prefix="/author", tags=["author"])
 
 @router.get("/analytics/summary", response_model=AnalyticsSummaryResponse)
 def get_analytics_summary(
+    db: DBSession,
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> AnalyticsSummaryResponse:
     """Get author analytics summary: views, impressions, activations, conversion rate."""
     analytics = AuthorAnalyticsService(db)
@@ -66,9 +65,9 @@ def get_analytics_summary(
 
 @router.get("/analytics/time-series", response_model=TimeSeriesResponse)
 def get_analytics_time_series(
+    db: DBSession,
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> TimeSeriesResponse:
     """Get daily time series of views, impressions, and activations."""
     analytics = AuthorAnalyticsService(db)
@@ -77,9 +76,9 @@ def get_analytics_time_series(
 
 @router.get("/analytics/geo", response_model=GeoDistributionResponse)
 def get_analytics_geo(
+    db: DBSession,
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> GeoDistributionResponse:
     """Get geographic distribution of model views by country."""
     analytics = AuthorAnalyticsService(db)
@@ -88,9 +87,9 @@ def get_analytics_geo(
 
 @router.get("/analytics/models", response_model=list[ModelPerformanceRow])
 def get_analytics_models(
+    db: DBSession,
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> list[ModelPerformanceRow]:
     """Get per-model performance comparison for the author."""
     analytics = AuthorAnalyticsService(db)
@@ -99,9 +98,9 @@ def get_analytics_models(
 
 @router.get("/analytics/funnel", response_model=ConversionFunnelResponse)
 def get_analytics_funnel(
+    db: DBSession,
     period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> ConversionFunnelResponse:
     """Get conversion funnel: impressions -> views -> activations."""
     analytics = AuthorAnalyticsService(db)
@@ -110,8 +109,8 @@ def get_analytics_funnel(
 
 @router.get("/listings", response_model=list[AuthorListingRow])
 def list_my_listings(
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> list[ModelProjectListing]:
     """List everything my organization has published, whatever its state.
 
@@ -123,10 +122,10 @@ def list_my_listings(
 
 @router.get("/reviews", response_model=AuthorReviewsResponse)
 def list_reviews_received(
+    db: DBSession,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> AuthorReviewsResponse:
     """Reviews left on any of my models, newest first."""
     return author_listings.list_reviews_received(
@@ -140,8 +139,8 @@ def list_reviews_received(
     status_code=201,
 )
 def request_verification(
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> VerificationRequestResponse:
     """Submit a verification badge request for the author's organization.
 
@@ -168,8 +167,8 @@ def request_verification(
     response_model=VerificationRequestResponse | None,
 )
 def get_verification_status(
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> VerificationRequestResponse | None:
     """Get the current verification request status for the author's organization.
 
@@ -199,8 +198,8 @@ DEFAULT_PREFERENCES: dict[str, bool] = {"in_app": True, "email": False}
 
 @router.get("/notifications/preferences", response_model=NotificationPreferencesResponse)
 def get_notification_preferences(
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> NotificationPreferencesResponse:
     """Get notification preferences for the current user.
 
@@ -230,8 +229,8 @@ def get_notification_preferences(
 @router.put("/notifications/preferences", response_model=NotificationPreferencesResponse)
 def update_notification_preference(
     body: UpdatePreferenceRequest,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> NotificationPreferencesResponse:
     """Update a single notification preference toggle.
 
@@ -266,8 +265,8 @@ def update_notification_preference(
 
 @router.get("/onboarding/status", response_model=OnboardingStatusResponse)
 def get_onboarding_status(
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> OnboardingStatusResponse:
     """Get onboarding checklist status for the current creator.
 

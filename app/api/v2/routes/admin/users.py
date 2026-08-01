@@ -1,8 +1,8 @@
 """Admin user CRUD endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, Query, status
 
+from app.api.deps import DBSession
 from app.models import Organization, User
 from app.schemas.admin import (
     AdminPaginatedResponse,
@@ -10,7 +10,6 @@ from app.schemas.admin import (
     UserResponse,
     UserUpdate,
 )
-from app.shared.db.base import get_db
 from app.shared.utils.id_generator import generate_id
 from app.shared.utils.pagination import paginate_query
 
@@ -19,12 +18,12 @@ router = APIRouter(tags=["admin-users"])
 
 @router.get("/users", response_model=AdminPaginatedResponse)
 def list_users(
+    db: DBSession,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     organization_id: str | None = None,
     search: str | None = None,
     is_active: bool | None = None,
-    db: Session = Depends(get_db),
 ) -> AdminPaginatedResponse:
     """List users with pagination and filters."""
     query = db.query(User)
@@ -48,7 +47,7 @@ def list_users(
 
 
 @router.get("/users/{user_id}", response_model=UserResponse)
-def get_user(user_id: str, db: Session = Depends(get_db)) -> UserResponse:
+def get_user(user_id: str, db: DBSession) -> UserResponse:
     """Get user by ID."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -57,7 +56,7 @@ def get_user(user_id: str, db: Session = Depends(get_db)) -> UserResponse:
 
 
 @router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def create_user(data: UserCreate, db: Session = Depends(get_db)) -> UserResponse:
+def create_user(data: UserCreate, db: DBSession) -> UserResponse:
     """Create new user."""
     org = db.query(Organization).filter(Organization.id == data.organization_id).first()
     if not org:
@@ -80,7 +79,7 @@ def create_user(data: UserCreate, db: Session = Depends(get_db)) -> UserResponse
 
 
 @router.patch("/users/{user_id}", response_model=UserResponse)
-def update_user(user_id: str, data: UserUpdate, db: Session = Depends(get_db)) -> UserResponse:
+def update_user(user_id: str, data: UserUpdate, db: DBSession) -> UserResponse:
     """Update user."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -101,7 +100,7 @@ def update_user(user_id: str, data: UserUpdate, db: Session = Depends(get_db)) -
 
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(user_id: str, db: Session = Depends(get_db)) -> None:
+def delete_user(user_id: str, db: DBSession) -> None:
     """Delete user (soft delete)."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:

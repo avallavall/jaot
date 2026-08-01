@@ -9,6 +9,7 @@ from pydantic import BaseModel, ValidationError
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.api.deps import DBSession
 from app.api.v2._access import execution_or_404
 from app.api.v2._solver_limits import compute_celery_time_limits, resolve_solver_time_limit
 from app.api.v2.auth import get_current_user
@@ -40,7 +41,6 @@ from app.schemas.optimization import (
 )
 from app.services.template_resolver import listing_to_template_dict
 from app.shared.constants.execution_provenance import ORIGIN_MARKETPLACE
-from app.shared.db.base import get_db
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
 from app.shared.utils.pagination import paginate_query
@@ -97,8 +97,8 @@ def _resolve_generator_template(db: Session, project: ModelProject) -> dict[str,
 def preview_model(
     model_id: str,
     body: PreviewRequest,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
     template_engine: TemplateEngine = Depends(get_template_engine),
 ) -> OptimizationProblem:
     """Render a generator-backed model and return the OptimizationProblem without solving."""
@@ -129,8 +129,8 @@ def preview_model(
 def execute_model(
     model_id: str,
     body: ExecuteModelRequest,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
     solver: SolverService = Depends(get_solver_service),
     template_engine: TemplateEngine = Depends(get_template_engine),
     solver_name: str | None = Query(default=None, max_length=32),
@@ -394,8 +394,8 @@ def _shape_model_execution_response(
 @router.get("/async/{task_id}", response_model=ExecutionStatusResponse)
 def get_async_execution_status(
     task_id: str,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """Get the status of an async execution task."""
     from celery.result import AsyncResult
@@ -484,8 +484,8 @@ def get_async_execution_status(
 @router.post("/async/{task_id}/cancel", response_model=ExecutionCancelResponse)
 def cancel_model_execution(
     task_id: str,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> ExecutionCancelResponse:
     """Cancel a running async model execution."""
     from celery.result import AsyncResult
@@ -543,12 +543,12 @@ def cancel_model_execution(
 @router.get("/{model_id}/executions", response_model=ExecutionListResponse)
 def list_model_executions(
     model_id: str,
+    db: DBSession,
     status: str | None = Query(None),
     origin: str | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> ExecutionListResponse:
     """List execution history for a specific model (ModelProject)."""
     project = (
@@ -640,12 +640,12 @@ def _attach_model_names(
 
 @router.get("/executions/all", response_model=ExecutionListResponse)
 def list_all_executions(
+    db: DBSession,
     status: str | None = Query(None),
     origin: str | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> ExecutionListResponse:
     """List all executions for the organization."""
     query = db.query(ModelExecution).filter(
@@ -674,8 +674,8 @@ def list_all_executions(
 )
 def get_execution(
     execution_id: str,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> ModelExecutionResponse:
     """Get details of a specific execution."""
     execution = execution_or_404(db, execution_id, current_user.organization_id)

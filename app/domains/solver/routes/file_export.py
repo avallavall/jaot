@@ -11,12 +11,11 @@ import logging
 import os
 import re
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse, StreamingResponse
-from sqlalchemy.orm import Session
 from starlette.background import BackgroundTask
 
-from app.api.deps import CurrentOrg, CurrentUser
+from app.api.deps import CurrentOrg, CurrentUser, DBSession
 from app.domains.solver.routes._helpers import load_execution, parse_problem
 from app.domains.solver.services.file_export import (
     ALL_EXPORT_FORMATS,
@@ -31,7 +30,6 @@ from app.domains.solver.services.problem_validation import (
     validate_problem,
 )
 from app.schemas.optimization import OptimizationProblem
-from app.shared.db import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +68,7 @@ def export_execution(  # sync ON PURPOSE -> threadpool (ADR-009): rebuilds the m
     fmt: str,
     current_user: CurrentUser,
     org: CurrentOrg,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> FileResponse | StreamingResponse:
     """Export an execution's problem or solution in the requested format.
 

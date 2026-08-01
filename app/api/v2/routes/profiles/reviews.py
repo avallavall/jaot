@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
+from app.api.deps import DBSession
 from app.api.v2.auth import get_current_user
 from app.models import (
     ModelExecution,
@@ -30,7 +31,6 @@ from app.schemas.profile import (
     ReviewListResponse,
     ReviewResponse,
 )
-from app.shared.db.base import get_db
 from app.shared.utils.pagination import paginate_query
 
 logger = logging.getLogger(__name__)
@@ -66,9 +66,9 @@ def _recompute_avg_rating(db: Session, listing: ModelProjectListing, model_id: s
 @router.get("/models/catalog/{catalog_id}/reviews", response_model=ReviewListResponse)
 def get_model_reviews(
     catalog_id: str,
+    db: DBSession,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    db: Session = Depends(get_db),
 ) -> ReviewListResponse:
     """Get reviews for a model (``catalog_id`` is the model-project id)."""
     listing = _listing_or_404(db, catalog_id)
@@ -144,8 +144,8 @@ def get_model_reviews(
 def create_review(
     catalog_id: str,
     body: CreateReviewRequest,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> ReviewResponse:
     """Create a review for a model. The org must have used it (seeded fork + solved)."""
     listing = _listing_or_404(db, catalog_id)
@@ -284,8 +284,8 @@ def _notify_author_of_review(db: Session, listing, review, *, reviewer: User) ->
 @router.delete("/models/reviews/{review_id}", response_model=StatusResponse)
 def delete_review(
     review_id: str,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> StatusResponse:
     """Delete own review."""
     review = (
@@ -322,8 +322,8 @@ def delete_review(
 def report_review(
     review_id: str,
     body: ReportRequest,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> StatusResponse:
     """Report a review as inappropriate."""
     review = (

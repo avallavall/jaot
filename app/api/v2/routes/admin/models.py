@@ -5,9 +5,10 @@ P1.5 fusion: the marketplace inventory an admin manages is the
 ModelProject seeded from-marketplace.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.api.deps import DBSession
 from app.models import APIKey, ModelProject, ModelProjectListing, Organization, User
 from app.schemas.admin import (
     AdminCountPair,
@@ -18,14 +19,13 @@ from app.schemas.admin import (
     ModelVisibilityResponse,
     UpdateModelBadgesRequest,
 )
-from app.shared.db.base import get_db
 from app.shared.utils.pagination import paginate_query
 
 router = APIRouter(tags=["admin-models"])
 
 
 @router.get("/stats", response_model=AdminStatsResponse)
-def get_admin_stats(db: Session = Depends(get_db)) -> AdminStatsResponse:
+def get_admin_stats(db: DBSession) -> AdminStatsResponse:
     """Get admin dashboard statistics."""
     return AdminStatsResponse(
         organizations=AdminCountPair(
@@ -55,11 +55,11 @@ def get_admin_stats(db: Session = Depends(get_db)) -> AdminStatsResponse:
 
 @router.get("/models", response_model=AdminPaginatedResponse)
 def list_all_models(
+    db: DBSession,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     category: str | None = None,
     is_public: bool | None = None,
-    db: Session = Depends(get_db),
 ) -> AdminPaginatedResponse:
     """List all marketplace listings (admin view)."""
     query = db.query(ModelProjectListing)
@@ -112,8 +112,8 @@ def _listing_or_404(db: Session, model_id: str) -> ModelProjectListing:
 @router.patch("/models/{model_id}/visibility", response_model=ModelVisibilityResponse)
 def toggle_model_visibility(
     model_id: str,
+    db: DBSession,
     is_public: bool = Query(...),
-    db: Session = Depends(get_db),
 ) -> ModelVisibilityResponse:
     """Toggle listing public visibility."""
     listing = _listing_or_404(db, model_id)
@@ -128,7 +128,7 @@ def toggle_model_visibility(
 def update_model_badges(
     model_id: str,
     body: UpdateModelBadgesRequest,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> ModelBadgesResponse:
     """Update listing badges (official, featured, public)."""
     listing = _listing_or_404(db, model_id)

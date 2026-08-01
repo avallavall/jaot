@@ -10,6 +10,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
+from app.api.deps import DBSession
 from app.api.v2.auth import get_current_user
 from app.models import ModelProjectListing, User
 from app.schemas.model import (
@@ -21,7 +22,6 @@ from app.schemas.model import (
 )
 from app.services.marketplace_fusion import listing_to_catalog_response
 from app.services.storage_service import get_storage_service
-from app.shared.db.base import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -91,8 +91,8 @@ def _get_storage():  # noqa: ANN202
 def upload_logo(  # sync ON PURPOSE -> threadpool (ADR-009): boto3 upload blocks
     model_id: str,
     file: UploadFile,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> LogoUploadResponse:
     """Upload or replace a model logo image."""
     storage = _get_storage()
@@ -122,8 +122,8 @@ def upload_logo(  # sync ON PURPOSE -> threadpool (ADR-009): boto3 upload blocks
 @router.delete("/catalog/{model_id}/logo", status_code=status.HTTP_204_NO_CONTENT)
 def delete_logo(
     model_id: str,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> None:
     """Delete the model logo image."""
     storage = _get_storage()
@@ -145,8 +145,8 @@ def delete_logo(
 def upload_screenshot(  # sync ON PURPOSE -> threadpool (ADR-009): boto3 upload blocks
     model_id: str,
     file: UploadFile,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> ScreenshotUploadResponse:
     """Upload a screenshot image for a model (max 6)."""
     storage = _get_storage()
@@ -173,8 +173,8 @@ def upload_screenshot(  # sync ON PURPOSE -> threadpool (ADR-009): boto3 upload 
 def delete_screenshot(
     model_id: str,
     index: int,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> ScreenshotListResponse:
     """Delete a screenshot by index (0-based)."""
     storage = _get_storage()
@@ -201,8 +201,8 @@ def delete_screenshot(
 def update_sections(
     model_id: str,
     body: UpdateCatalogSectionsRequest,
+    db: DBSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> ModelCatalogResponse:
     """Update rich description sections on a published model."""
     model = _get_listing_for_owner(model_id, current_user, db)
