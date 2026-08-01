@@ -42,8 +42,6 @@ report — a first-week author gets a sentence saying so, not a chart of one col
 
 ## Later / Exploring
 
-- **Data → model drafting** — upload a dataset (CSV/XLSX) and get a draft optimization
-  model to edit, instead of starting from a blank canvas.
 - **A native solver** — we are researching what a solver built into the platform itself
   could look like. Early exploration; no design commitments yet.
 
