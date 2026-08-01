@@ -18,7 +18,6 @@ from app.models import (
     ModelExecution,
     ModelProject,
     ModelProjectListing,
-    OrganizationModel,
 )
 
 pytestmark = pytest.mark.contract
@@ -100,14 +99,9 @@ class TestMarketplaceResponseShapes:
     # model entity is ModelProject, managed via /api/v2/projects. These routes
     # must stay gone; resurrecting them would reintroduce the second entity.
     def test_my_models_routes_retired(self, authenticated_client, db_session, test_organization):
-        om = OrganizationModel(
-            id="p15_my_retired",
-            organization_id=test_organization.id,
-            custom_name="Legacy row",
-            is_active=True,
-        )
-        db_session.add(om)
-        db_session.commit()
+        # This used to plant an OrganizationModel row first, to show the routes
+        # stayed gone even with legacy data present. D-26 dropped that table, so
+        # the entity no longer exists at all — the routes must still 404.
         assert authenticated_client.get("/api/v2/models").status_code == 404
         assert authenticated_client.get("/api/v2/models/p15_my_retired").status_code == 404
         assert authenticated_client.get("/api/v2/models/p15_my_retired/schema").status_code == 404

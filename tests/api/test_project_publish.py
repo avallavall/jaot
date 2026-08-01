@@ -66,9 +66,12 @@ class TestProjectPublish:
         assert listing.author_organization_id == test_organization.id
         assert listing.pinned_version_id == "proj_pub_ok_v1"
         # No catalog copy is created — the fused publish is listing-only.
-        from app.models import ModelCatalog
+        # Publishing writes a listing facet and nothing else: the pre-fusion
+        # ``model_catalog`` table this used to assert against no longer exists
+        # (D-26), which makes the point permanently rather than per-run.
+        from sqlalchemy import inspect as sa_inspect
 
-        assert db_session.get(ModelCatalog, "proj_pub_ok") is None
+        assert "model_catalog" not in sa_inspect(db_session.get_bind()).get_table_names()
 
     def test_published_project_appears_in_browse(
         self, authenticated_client, db_session, test_organization, test_user

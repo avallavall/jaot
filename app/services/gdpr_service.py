@@ -18,7 +18,6 @@ from app.models import (
     ModelReview,
     Notification,
     Organization,
-    OrganizationModel,
     RecentModel,
     RefreshToken,
     SolveTrigger,
@@ -181,13 +180,10 @@ def delete_user_account(db: Session, user: User) -> None:
 
     # ---- If sole member, delete org-scoped records + org ----
     if sole_member:
-        # Executions, model projects (DB-level CASCADE removes their versions,
-        # datasets, listings, reviews, favorites and recents), and legacy
-        # org-model rows (inert since the P1.5 fusion, dropped next release —
-        # the right to erasure still applies to them).
+        # Executions and model projects (DB-level CASCADE removes their versions,
+        # datasets, listings, reviews, favorites and recents).
         db.query(ModelExecution).filter_by(organization_id=org_id).delete()
         db.query(ModelProject).filter_by(organization_id=org_id).delete(synchronize_session=False)
-        db.query(OrganizationModel).filter_by(organization_id=org_id).delete()
 
         # Legacy money-era tables (ADR-008): the ORM models are gone but the
         # tables remain under the additive rule — the right to erasure still

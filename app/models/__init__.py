@@ -21,12 +21,10 @@ from app.models.notification import Notification, NotificationChannel, Notificat
 from app.models.notification_preference import NotificationPreference
 from app.models.optimization_model import (
     ExecutionStatus,
-    ModelCatalog,
     ModelCategory,
     ModelExecution,
     ModelReview,
     ModelStatus,
-    OrganizationModel,
 )
 from app.models.organization import Organization, Plan
 from app.models.platform_setting import PlatformSetting
@@ -50,8 +48,6 @@ __all__ = [
     "User",
     "APIKey",
     # Optimization Models
-    "ModelCatalog",
-    "OrganizationModel",
     "ModelExecution",
     "ModelReview",
     "ModelCategory",

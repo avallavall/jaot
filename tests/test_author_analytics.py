@@ -10,7 +10,6 @@ Covers:
 import pytest
 
 from app.models import (
-    ModelCatalog,
     ModelProject,
     ModelProjectListing,
     Organization,
@@ -22,27 +21,27 @@ from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
 
 
-def _add_listing(db, *, pid, author_org_id) -> None:
+def _add_listing(db, *, pid, author_org_id) -> ModelProjectListing:
     """Add a ModelProject anchor + its marketplace listing (view-side of analytics)."""
     db.add(ModelProject(id=pid, organization_id=author_org_id, name="Proj " + pid, status="active"))
     db.flush()
-    db.add(
-        ModelProjectListing(
-            model_project_id=pid,
-            name=pid,
-            display_name="Model " + pid,
-            description="A listing for analytics",
-            category="linear",
-            generator_type="linear_programming",
-            input_schema={"type": "object"},
-            input_fields=[],
-            example_input={},
-            version="1.0.0",
-            status="published",
-            is_public=True,
-            author_organization_id=author_org_id,
-        )
+    listing = ModelProjectListing(
+        model_project_id=pid,
+        name=pid,
+        display_name="Model " + pid,
+        description="A listing for analytics",
+        category="linear",
+        generator_type="linear_programming",
+        input_schema={"type": "object"},
+        input_fields=[],
+        example_input={},
+        version="1.0.0",
+        status="published",
+        is_public=True,
+        author_organization_id=author_org_id,
     )
+    db.add(listing)
+    return listing
 
 
 @pytest.fixture
@@ -78,30 +77,15 @@ def author_user(db_session, author_org):
 
 @pytest.fixture
 def catalog_model(db_session, author_org):
-    """Create a published catalog model for the author."""
-    model = ModelCatalog(
-        id="cat_model001",
-        name="test-model",
-        display_name="Test Optimization Model",
-        description="A test model for author analytics",
-        category="linear",
-        generator_type="linear_programming",
-        input_schema={"type": "object", "properties": {}},
-        input_fields=[],
-        example_input={},
-        status="published",
-        is_public=True,
-        author_organization_id=author_org.id,
-        total_activations=0,
-        total_executions=0,
-    )
-    db_session.add(model)
-    # The marketplace facet (view-side of analytics) + the bridge catalog row
-    # (activation-side) share the id and author org.
-    _add_listing(db_session, pid=model.id, author_org_id=author_org.id)
+    """A published model of the author's, as the analytics read it.
+
+    D-26 removed the pre-fusion ``ModelCatalog`` row this used to plant beside
+    the listing; author analytics have always been served from the listing.
+    """
+    listing = _add_listing(db_session, pid="cat_model001", author_org_id=author_org.id)
     db_session.commit()
-    db_session.refresh(model)
-    return model
+    db_session.refresh(listing)
+    return listing
 
 
 @pytest.fixture
@@ -111,28 +95,28 @@ def view_events(db_session, catalog_model):
     events = [
         ModelViewEvent(
             id=generate_id("mve_"),
-            model_project_id=catalog_model.id,
+            model_project_id=catalog_model.model_project_id,
             event_type="impression",
             viewer_country="US",
             created_at=now,
         ),
         ModelViewEvent(
             id=generate_id("mve_"),
-            model_project_id=catalog_model.id,
+            model_project_id=catalog_model.model_project_id,
             event_type="impression",
             viewer_country="DE",
             created_at=now,
         ),
         ModelViewEvent(
             id=generate_id("mve_"),
-            model_project_id=catalog_model.id,
+            model_project_id=catalog_model.model_project_id,
             event_type="view",
             viewer_country="US",
             created_at=now,
         ),
         ModelViewEvent(
             id=generate_id("mve_"),
-            model_project_id=catalog_model.id,
+            model_project_id=catalog_model.model_project_id,
             event_type="view",
             viewer_country="ES",
             created_at=now,
@@ -161,7 +145,7 @@ def activation(db_session, author_org, catalog_model):
         name="Forked Test Model",
         status="active",
         source_type="marketplace",
-        source_ref=catalog_model.id,
+        source_ref=catalog_model.model_project_id,
     )
     db_session.add(fork)
     db_session.commit()
@@ -302,7 +286,7 @@ class TestViewEventLogging:
             db_session.query(ModelViewEvent).filter(ModelViewEvent.event_type == "view").count()
         )
 
-        response = client.get(f"/api/v2/models/catalog/{catalog_model.id}")
+        response = client.get(f"/api/v2/models/catalog/{catalog_model.model_project_id}")
         assert response.status_code == 200
 
         new_count = (
@@ -314,18 +298,18 @@ class TestViewEventLogging:
         self, client, db_session, catalog_model, override_db_dependency
     ):
         """View event references the correct model (by model_project_id)."""
-        client.get(f"/api/v2/models/catalog/{catalog_model.id}")
+        client.get(f"/api/v2/models/catalog/{catalog_model.model_project_id}")
 
         event = (
             db_session.query(ModelViewEvent)
             .filter(
                 ModelViewEvent.event_type == "view",
-                ModelViewEvent.model_project_id == catalog_model.id,
+                ModelViewEvent.model_project_id == catalog_model.model_project_id,
             )
             .first()
         )
         assert event is not None
-        assert event.model_project_id == catalog_model.id
+        assert event.model_project_id == catalog_model.model_project_id
 
 
 class TestAnalyticsService:
@@ -403,22 +387,9 @@ class TestAuthorAnalyticsCrossOrgIsolation:
         db_session.add(foreign_org)
         db_session.flush()
 
-        foreign_model = ModelCatalog(
-            id="cat_foreign_001",
-            name="foreign-model",
-            display_name="Foreign Model",
-            description="Foreign org's model",
-            category="linear",
-            generator_type="linear_programming",
-            input_schema={"type": "object", "properties": {}},
-            input_fields=[],
-            example_input={},
-            status="published",
-            is_public=True,
-            author_organization_id=foreign_org.id,
+        foreign_model = _add_listing(
+            db_session, pid="cat_foreign_001", author_org_id=foreign_org.id
         )
-        db_session.add(foreign_model)
-        _add_listing(db_session, pid=foreign_model.id, author_org_id=foreign_org.id)
         db_session.flush()
 
         # 99 view events on the foreign model (large enough to be obvious if leaked)
@@ -426,7 +397,7 @@ class TestAuthorAnalyticsCrossOrgIsolation:
             db_session.add(
                 ModelViewEvent(
                     id=generate_id("mve_"),
-                    model_project_id=foreign_model.id,
+                    model_project_id=foreign_model.model_project_id,
                     event_type="view",
                     viewer_country="JP",
                     created_at=utcnow(),
@@ -442,7 +413,7 @@ class TestAuthorAnalyticsCrossOrgIsolation:
                 name="Foreign Self Fork",
                 status="active",
                 source_type="marketplace",
-                source_ref=foreign_model.id,
+                source_ref=foreign_model.model_project_id,
             )
         )
         db_session.commit()

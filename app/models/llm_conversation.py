@@ -39,9 +39,7 @@ class LLMConversation(Base):
 
     Each conversation belongs to an organization/user pair and may optionally
     be linked to a ModelProject (``model_project_id``, written by the studio).
-    The legacy ``organization_model_id`` column was never written by any flow
-    and drops in the contract release. Conversations auto-expire after a
-    configurable TTL (default 24h).
+    Conversations auto-expire after a configurable TTL (default 24h).
     """
 
     __tablename__ = "llm_conversations"
@@ -68,14 +66,6 @@ class LLMConversation(Base):
     user_id: Mapped[str] = mapped_column(
         String(64), ForeignKey("users.id"), nullable=False, index=True
     )
-    organization_model_id: Mapped[str | None] = mapped_column(
-        String(64),
-        # SET NULL so deleting an OrganizationModel detaches (not blocks) its
-        # conversations — required by the P1.5 fusion (migration 20260712_llmconv_ondelete).
-        ForeignKey("organization_models.id", ondelete="SET NULL"),
-        nullable=True,
-    )
-
     # Current formulation state (latest structured output from LLM)
     current_formulation: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 

@@ -4,10 +4,8 @@ import logging
 
 from app.models import (  # noqa: F401
     APIKey,
-    ModelCatalog,
     ModelExecution,
     Organization,
-    OrganizationModel,
     User,
 )
 from app.shared.db.base import Base

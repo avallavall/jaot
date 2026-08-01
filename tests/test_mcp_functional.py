@@ -16,7 +16,6 @@ import pytest
 
 from app.domains.solver.services.generators import GENERATOR_REGISTRY
 from app.models import (
-    ModelCatalog,
     ModelCategory,
     ModelProject,
     ModelProjectListing,
@@ -24,52 +23,44 @@ from app.models import (
 )
 
 
-def _mirror_listing(db, model: ModelCatalog) -> None:
-    """Mirror a catalog row into the unified ModelProject + listing (P1.5 fusion).
+def _plant_listing(db, *, model_id: str, **fields) -> ModelProjectListing:
+    """Plant a marketplace model: the project plus the listing facet served to callers.
 
-    The marketplace/MCP catalog tools serve from the listing facet, so a test that
-    plants a ``ModelCatalog`` must also plant the listing that the endpoint reads.
+    Since the P1.5 fusion the marketplace and MCP catalog tools read
+    ``ModelProjectListing``; D-26 removed the pre-fusion ``ModelCatalog`` these
+    fixtures used to mirror from, which was never what the endpoints queried.
     """
     org_id = "org_mcp_test"
     if not db.query(Organization).filter(Organization.id == org_id).first():
         db.add(Organization(id=org_id, name="MCP Test Org"))
         db.flush()
     db.add(
-        ModelProject(id=model.id, organization_id=org_id, name=model.display_name, status="active")
-    )
-    db.flush()
-    category = model.category.value if hasattr(model.category, "value") else model.category
-    db.add(
-        ModelProjectListing(
-            model_project_id=model.id,
-            name=model.name,
-            display_name=model.display_name,
-            description=model.description,
-            short_description=model.short_description,
-            category=category,
-            tags=model.tags,
-            generator_type=model.generator_type,
-            input_schema=model.input_schema,
-            input_fields=model.input_fields,
-            example_input=model.example_input,
-            version=model.version,
-            status=model.status,
-            is_official=model.is_official,
-            is_public=model.is_public,
+        ModelProject(
+            id=model_id,
+            organization_id=org_id,
+            name=fields["display_name"],
+            status="active",
         )
     )
+    db.flush()
+    listing = ModelProjectListing(model_project_id=model_id, **fields)
+    db.add(listing)
+    db.commit()
+    db.refresh(listing)
+    return listing
 
 
 @pytest.fixture
 def published_catalog_model(db_session):
-    """Create a published, public catalog model in the DB."""
-    model = ModelCatalog(
-        id="mcp_test_model_001",
+    """A published, public marketplace model."""
+    return _plant_listing(
+        db_session,
+        model_id="mcp_test_model_001",
         name="mcp_test_knapsack",
         display_name="MCP Test Knapsack",
         description="A test model used by MCP functional tests",
         short_description="Test knapsack",
-        category=ModelCategory.LOGISTICS,
+        category=ModelCategory.LOGISTICS.value,
         tags=["test", "mcp"],
         generator_type="knapsack",
         input_schema={"type": "object", "properties": {"capacity": {"type": "number"}}},
@@ -80,22 +71,18 @@ def published_catalog_model(db_session):
         is_official=True,
         is_public=True,
     )
-    db_session.add(model)
-    _mirror_listing(db_session, model)
-    db_session.commit()
-    db_session.refresh(model)
-    return model
 
 
 @pytest.fixture
 def draft_catalog_model(db_session):
-    """Create a draft (unpublished) catalog model in the DB."""
-    model = ModelCatalog(
-        id="mcp_test_draft_001",
+    """A draft (unpublished) marketplace model — must not appear in the catalog."""
+    return _plant_listing(
+        db_session,
+        model_id="mcp_test_draft_001",
         name="mcp_test_draft",
         display_name="MCP Test Draft",
         description="A draft model that should NOT appear in catalog",
-        category=ModelCategory.GENERAL,
+        category=ModelCategory.GENERAL.value,
         generator_type="generic",
         input_schema={},
         input_fields=[],
@@ -105,22 +92,18 @@ def draft_catalog_model(db_session):
         is_official=False,
         is_public=True,
     )
-    db_session.add(model)
-    _mirror_listing(db_session, model)
-    db_session.commit()
-    db_session.refresh(model)
-    return model
 
 
 @pytest.fixture
 def private_catalog_model(db_session):
-    """Create a published but private catalog model in the DB."""
-    model = ModelCatalog(
-        id="mcp_test_private_001",
+    """A published but private marketplace model — must not appear in the public catalog."""
+    return _plant_listing(
+        db_session,
+        model_id="mcp_test_private_001",
         name="mcp_test_private",
         display_name="MCP Test Private",
         description="A private model that should NOT appear in public catalog",
-        category=ModelCategory.GENERAL,
+        category=ModelCategory.GENERAL.value,
         generator_type="generic",
         input_schema={},
         input_fields=[],
@@ -130,11 +113,6 @@ def private_catalog_model(db_session):
         is_official=False,
         is_public=False,
     )
-    db_session.add(model)
-    _mirror_listing(db_session, model)
-    db_session.commit()
-    db_session.refresh(model)
-    return model
 
 
 VALID_PROBLEM = {
@@ -311,19 +289,19 @@ class TestGetTemplate:
         assert response.status_code == 404
 
     def test_get_template_fallback_to_db(self, client, db_session, published_catalog_model):
-        """get_template falls back to DB ModelCatalog when not in YAML."""
-        response = client.get(f"/api/v2/solve/templates/{published_catalog_model.id}")
+        """get_template falls back to a published marketplace listing when not in YAML."""
+        response = client.get(f"/api/v2/solve/templates/{published_catalog_model.model_project_id}")
         assert response.status_code == 200
 
         data = response.json()
-        assert data["id"] == published_catalog_model.id
+        assert data["id"] == published_catalog_model.model_project_id
         assert data["display_name"] == published_catalog_model.display_name
 
     def test_get_template_db_fallback_draft_returns_404(
         self, client, db_session, draft_catalog_model
     ):
         """get_template DB fallback rejects draft (unpublished) models with 404."""
-        response = client.get(f"/api/v2/solve/templates/{draft_catalog_model.id}")
+        response = client.get(f"/api/v2/solve/templates/{draft_catalog_model.model_project_id}")
         assert response.status_code == 404
 
     def test_diet_optimization_has_correct_category(self, client):
@@ -459,11 +437,11 @@ class TestTemplateResolutionBySource:
 
     def test_db_only_template_resolves(self, client, db_session, published_catalog_model):
         """DB-only template (not in YAML or plugin) resolves via catalog fallback."""
-        response = client.get(f"/api/v2/solve/templates/{published_catalog_model.id}")
+        response = client.get(f"/api/v2/solve/templates/{published_catalog_model.model_project_id}")
         assert response.status_code == 200
 
         data = response.json()
-        assert data["id"] == published_catalog_model.id
+        assert data["id"] == published_catalog_model.model_project_id
         assert data["display_name"] == published_catalog_model.display_name
         assert data["generator_type"] == published_catalog_model.generator_type
 
@@ -600,7 +578,7 @@ class TestValidateProblem:
         assert "total" in data
 
         model_ids = [item["id"] for item in data["items"]]
-        assert published_catalog_model.id in model_ids
+        assert published_catalog_model.model_project_id in model_ids
 
     def test_list_catalog_excludes_draft_models(self, client, db_session, draft_catalog_model):
         """list_catalog_models excludes unpublished (draft) models."""
@@ -609,7 +587,7 @@ class TestValidateProblem:
 
         data = response.json()
         model_ids = [item["id"] for item in data["items"]]
-        assert draft_catalog_model.id not in model_ids
+        assert draft_catalog_model.model_project_id not in model_ids
 
     def test_list_catalog_excludes_private_models(self, client, db_session, private_catalog_model):
         """list_catalog_models excludes private (is_public=False) models."""
@@ -618,7 +596,7 @@ class TestValidateProblem:
 
         data = response.json()
         model_ids = [item["id"] for item in data["items"]]
-        assert private_catalog_model.id not in model_ids
+        assert private_catalog_model.model_project_id not in model_ids
 
     def test_list_catalog_model_has_required_fields(
         self, client, db_session, published_catalog_model
@@ -629,7 +607,11 @@ class TestValidateProblem:
 
         data = response.json()
         test_model = next(
-            (item for item in data["items"] if item["id"] == published_catalog_model.id),
+            (
+                item
+                for item in data["items"]
+                if item["id"] == published_catalog_model.model_project_id
+            ),
             None,
         )
         assert test_model is not None, "Test model not found in catalog response"
@@ -674,18 +656,20 @@ class TestCatalogErrorResponses:
 
     def test_get_catalog_model_draft_not_visible(self, client, db_session, draft_catalog_model):
         """GET /models/catalog/{draft_id} returns 404 for draft models."""
-        response = client.get(f"/api/v2/models/catalog/{draft_catalog_model.id}")
+        response = client.get(f"/api/v2/models/catalog/{draft_catalog_model.model_project_id}")
         assert response.status_code == 404
 
     def test_get_catalog_model_schema_for_published(
         self, client, db_session, published_catalog_model
     ):
         """GET /models/catalog/{id}/schema returns schema data for published model."""
-        response = client.get(f"/api/v2/models/catalog/{published_catalog_model.id}/schema")
+        response = client.get(
+            f"/api/v2/models/catalog/{published_catalog_model.model_project_id}/schema"
+        )
         assert response.status_code == 200
 
         data = response.json()
-        assert data["id"] == published_catalog_model.id
+        assert data["id"] == published_catalog_model.model_project_id
         assert "input_schema" in data
         assert "example_input" in data
         assert data["generator_type"] == "knapsack"

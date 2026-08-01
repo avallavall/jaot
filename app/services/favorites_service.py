@@ -8,7 +8,7 @@ list views.
 
 from __future__ import annotations
 
-from sqlalchemy import Integer, String, cast, func
+from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -140,24 +140,22 @@ def touch_recent(db: Session, user_id: str, model_project_id: str) -> None:
     unique, and this runs on a page load — two tabs, or a double click, would
     otherwise race into an integrity error on the second insert.
 
-    ``access_count`` is a ``String`` column (legacy, on the contract-release
-    list with the rest of ``favorite.py``), so the increment casts through
-    integer and back, and treats a NULL from an older row as zero.
+    ``access_count`` is a real integer since D-26 (it used to be a String
+    holding a number, which forced a cast on both sides of this increment).
+    A NULL from a row written before the column had a default reads as zero.
     """
     stmt = pg_insert(RecentModel).values(
         user_id=user_id,
         model_project_id=model_project_id,
         last_accessed=utcnow(),
-        access_count="1",
+        access_count=1,
     )
     db.execute(
         stmt.on_conflict_do_update(
             index_elements=["user_id", "model_project_id"],
             set_={
                 "last_accessed": stmt.excluded.last_accessed,
-                "access_count": cast(
-                    func.coalesce(cast(RecentModel.access_count, Integer), 0) + 1, String
-                ),
+                "access_count": func.coalesce(RecentModel.access_count, 0) + 1,
             },
         )
     )

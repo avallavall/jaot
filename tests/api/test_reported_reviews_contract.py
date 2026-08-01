@@ -124,7 +124,7 @@ class TestReportedReviewsShape:
         assert item["report_reason"] is None
 
     def test_only_reported_reviews_are_queued(
-        self, admin_client, db_session, test_organization, test_admin_user
+        self, admin_client, db_session, test_organization, test_admin_user, test_user_non_admin
     ):
         _flagged_review(
             db_session,
@@ -135,11 +135,16 @@ class TestReportedReviewsShape:
             reason="Off topic",
         )
         # A review nobody flagged must never reach the moderation queue.
+        #
+        # It belongs to a DIFFERENT user on purpose: one review per user per
+        # model is now enforced by the database (D-26), and two reviews of the
+        # same model by the same person is a state the app has always refused
+        # to create.
         db_session.add(
             ModelReview(
                 id="rev_mod_5",
                 model_project_id="mod_clean",
-                user_id=test_admin_user.id,
+                user_id=test_user_non_admin.id,
                 organization_id=test_organization.id,
                 rating=5,
                 comment="All good",

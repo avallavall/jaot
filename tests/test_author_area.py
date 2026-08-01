@@ -20,6 +20,7 @@ from app.models import (
     ModelProjectListing,
     ModelReview,
     RecentModel,
+    User,
     UserFavorite,
 )
 from app.models.audit_log import AuditAction, AuditLog
@@ -498,12 +499,23 @@ class TestReviewsReceived:
         self, authenticated_client, db_session, test_organization, test_user_2, test_organization_2
     ):
         listing = _publish(db_session, org_id=test_organization.id)
+        # Five reviewers, not one reviewer five times: one review per user per
+        # model is enforced by the database (D-26), and five reviews of a model
+        # is five people — which is also what the page is paginating.
         for i in range(5):
+            reviewer = User(
+                id=generate_id("usr_"),
+                email=f"reviewer{i}@paginate.test",
+                name=f"Reviewer {i}",
+                organization_id=test_organization_2.id,
+            )
+            db_session.add(reviewer)
+            db_session.flush()
             self._review(
                 db_session,
                 pid=listing.model_project_id,
                 org_id=test_organization_2.id,
-                user_id=test_user_2.id,
+                user_id=reviewer.id,
                 rating=(i % 5) + 1,
                 comment=f"Review {i}",
             )

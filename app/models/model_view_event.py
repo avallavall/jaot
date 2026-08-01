@@ -23,14 +23,7 @@ class ModelViewEvent(Base):
     id: Mapped[str] = mapped_column(
         String(64), primary_key=True, default=lambda: generate_id("mve_")
     )
-    # P1.5 fusion: events are keyed on the unified Model (model_project_id). The legacy
-    # catalog_model_id is now nullable (new events omit it) and drops in the contract release.
-    catalog_model_id: Mapped[str | None] = mapped_column(
-        String(64),
-        ForeignKey("model_catalog.id", ondelete="CASCADE"),
-        nullable=True,
-        index=True,
-    )
+    # P1.5 fusion: events are keyed on the unified Model.
     model_project_id: Mapped[str | None] = mapped_column(
         String(64),
         ForeignKey("model_projects.id", ondelete="CASCADE"),
@@ -48,12 +41,6 @@ class ModelViewEvent(Base):
 
     __table_args__ = (
         Index(
-            "ix_mve_model_type_created",
-            "catalog_model_id",
-            "event_type",
-            "created_at",
-        ),
-        Index(
             "ix_mve_project_type_created",
             "model_project_id",
             "event_type",
@@ -63,6 +50,6 @@ class ModelViewEvent(Base):
 
     def __repr__(self) -> str:
         return (
-            f"<ModelViewEvent(id={self.id!r}, model={self.catalog_model_id!r}, "
+            f"<ModelViewEvent(id={self.id!r}, model={self.model_project_id!r}, "
             f"type={self.event_type!r})>"
         )

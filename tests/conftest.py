@@ -120,7 +120,6 @@ _ALL_TABLES = [
     "model_builder_documents",
     "model_reviews",
     "model_executions",
-    "organization_models",
     "invoices",
     "audit_logs",
     "notifications",
@@ -142,7 +141,6 @@ _ALL_TABLES = [
     "refresh_tokens",
     "api_keys",
     "users",
-    "model_catalog",
     "organizations",
 ]
 

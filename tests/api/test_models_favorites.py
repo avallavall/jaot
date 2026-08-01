@@ -382,7 +382,9 @@ class TestOpeningAModelRecordsIt:
 
         rows = _rows_for(db_session, test_user, "test_open_records")
         assert len(rows) == 1
-        assert rows[0].access_count == "1"
+        # An integer since D-26; the stored value used to be the string "1" while
+        # the API already answered with a number.
+        assert rows[0].access_count == 1
 
         data = authenticated_client.get("/api/v2/models/recents").json()
         assert [i["id"] for i in data["items"]] == ["test_open_records"]
@@ -407,7 +409,7 @@ class TestOpeningAModelRecordsIt:
 
         rows = _rows_for(db_session, test_user, "test_open_twice")
         assert len(rows) == 1
-        assert rows[0].access_count == "2"
+        assert rows[0].access_count == 2
         assert rows[0].last_accessed >= first
 
     def test_an_anonymous_visit_records_nothing(self, client, db_session, test_organization):

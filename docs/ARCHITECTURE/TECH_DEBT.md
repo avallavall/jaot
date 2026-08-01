@@ -9,79 +9,26 @@ Ordered by benefit ÷ effort.
 
 | # | Debt | Impact | Effort |
 |---|------|--------|--------|
-| D-25 | The API admits four times more concurrent work than the DB pool can serve, and the health check queues behind it | Medium-high (availability under load) | 0.5 day for the first two steps |
-| D-26 | Contract-release: legacy schema `DROP`s, `favorite.py` on `Column()`, `access_count` stored as text | Low-medium (blocks reliable `--autogenerate`) | Needs its own release window |
-| D-18 | 118 `Depends(get_db)` alongside 118 `DBSession` — the project rule mandates the alias | Low (consistency) | 0.5 day, mechanical |
+| D-27 | PgBouncer in transaction mode, once there are real users or more workers | Low today, rising with load | Needs an infra window |
 
 ---
 
-## D-25 · Admission control is wider than the database pool
+## D-27 · PgBouncer, when the connection budget gets tight
 
-**Measured 2026-08-01.** Endpoints are synchronous by design (ADR-009 moved them off the
-event loop on purpose), so each runs in the AnyIO threadpool — **40 tokens per process, the
-default, never tuned**. Against that:
-
-| | Processes | DB pool per process | Threads per process | Ratio |
-|---|---|---|---|---|
-| Local | `WORKERS=1` | 20+10 = 30 | 40 | 1.3 : 1 |
-| **Production** | `WORKERS=4` | 5+5 = **10** | 40 | **4 : 1** |
-
-The threadpool is therefore a queue that admits four times what the pool can serve. Request 11
-on a worker waits out SQLAlchemy's `pool_timeout` (**30 s, unset, so the default**) and then
-500s. Workers are independent, so one hot worker fails while the other three idle.
-
-**The amplifier:** `/health` and `/health/status` are `def` *and* take a DB session
-(`app/api/v2/health.py`), so under saturation the health check queues with everything else →
-Docker marks the container unhealthy → restart → in-flight requests die and the load lands on
-the remaining workers. That is how "slow" becomes "down".
+The last step of D-25, deliberately deferred: the first three closed the failure mode, this one
+raises the ceiling.
 
 **Connection budget today** (`max_connections = 100`): API 4×10 = 40, Celery 4 containers ×10
-= 40, beat 10 → **≈ 90 in the worst case**. It fits, and it was clearly sized on purpose, but
-there is ~10% headroom and every new worker or queue re-opens the arithmetic.
+= 40, beat 10 → **≈ 90 in the worst case**. It fits, and it was sized on purpose, but there is
+~10% headroom and every new worker or queue re-opens the arithmetic.
 
-**Not yet decided; recommended order:**
+PgBouncer in transaction mode decouples app concurrency from the Postgres backend count, so
+pools can be generous without renegotiating `max_connections`. Two caveats to check before
+adopting it, both load-bearing here: `connect_args={"options": "-c timezone=utc"}` (session
+state does not survive transaction pooling the way it survives a session) and `pool_pre_ping`.
 
-1. **Expose the pool.** `engine.pool.status()` reaches no metric today, so this failure is
-   invisible until it 500s. A gauge for in-use / overflow / waiting, and an alert on pool wait
-   time > 0.
-2. **Make admission coherent.** Bound the threadpool to the pool size per process, and drop
-   `pool_timeout` to ~5 s. Turns "stall 30 s then 500" into backpressure or a fast failure.
-3. **Take health out of the queue.** `async def`, no DB session — this is the cheapest fix for
-   the worst failure mode (the restart cascade).
-4. **PgBouncer in transaction mode**, when there are real users or more workers. It decouples
-   app concurrency from Postgres backend count, so pools can be generous without renegotiating
-   `max_connections`. Caveats to check first: `connect_args={"options": "-c timezone=utc"}` and
-   `pool_pre_ping`.
-
-**Explicitly not the answer:** converting endpoints to `async def`. ADR-009 moved this work off
-the loop deliberately (import/export/validate is heavy SCIP work); putting it back would trade
-a 500 under load for a total stall.
-
-> The QA sweep that surfaced this ran 4 Playwright agents against **local** (`WORKERS=1`,
-> pool 30). A page load fires 5–15 API calls, so that was ~40 concurrent requests — a load
-> test, not four users. The defect is real; the "four users broke production" reading is not.
-
----
-
-## D-26 · Contract-release
-
-Additive-only migrations make these release-shaped, not refactor-shaped: rollback restores
-images, not schema, so an image that still selects a dropped column crashes. They need their
-own window, and until they land `alembic --autogenerate` stays unreliable.
-
-- Legacy `DROP`s: `model_catalog`, `organization_models` and the ADR-008 billing columns.
-- `app/models/favorite.py` still uses legacy `Column()` (11 of them) instead of
-  `Mapped` / `mapped_column`.
-- `access_count` is a `String` column holding a number. The schema converts it on the way out
-  and the increment casts through integer, so nothing is broken — the column is.
-
----
-
-## D-18 · `Depends(get_db)` vs the `DBSession` alias
-
-118 of each as of 2026-08-01, so the migration stalled halfway. Purely a consistency rule
-(`app/CLAUDE.md`); no behaviour depends on it. Mechanical, and safe to do opportunistically
-whenever a route is touched for another reason.
+Not urgent while the platform is quiet, and the gauges from D-25 now say when it stops being
+quiet: watch `jaot_db_pool_checked_out / jaot_db_pool_capacity`.
 
 ---
 
@@ -114,6 +61,9 @@ Full reasoning in the commit that closed each one, and in the CHANGELOG.
 | D-22 | 98 orphaned `platform_settings` rows (+3 Featurebase in prod) | ✅ `20260728_prune_orphan_settings`, `20260731_prune_featurebase` |
 | D-23 | Rate limits read from a mirror on `organizations` | ✅ 2026-07-31 — never needed the schema change |
 | D-24 | Three surfaces wrote nothing: `recent_models`, view events, detached principal | ✅ 2026-07-28 |
+| D-18 | 118 `Depends(get_db)` migrated to the `DBSession` alias; the alias moved to break a cycle | ✅ 2026-08-01 |
+| D-25 | Admission bounded to the pool, `pool_timeout` 30s→5s, health off the queue, pool gauges + alerts | ✅ 2026-08-01 (step 4 → D-27) |
+| D-26 | Contract-release: legacy tables + 6 FK columns + 6 credit columns dropped, `access_count` → integer; found reviews had lost their uniqueness guarantee | ✅ `20260801_contract_release` |
 
 **The 2026-04-18 comparative audit** (58% essential / 42% accidental complexity, the LOC
 tables) and the **2026-07-26 backend audit** that produced D-10…D-19 are in

@@ -14,7 +14,6 @@ from app.models import (
     ModelExecution,
     ModelProject,
     ModelProjectListing,
-    OrganizationModel,
 )
 from app.services import platform_analytics_service as svc
 from app.shared.utils.datetime_helpers import utcnow
@@ -218,19 +217,17 @@ class TestOverviewService:
 
     def test_by_category_legacy_org_model_id(self, db_session, test_organization):
         """Historic executions carry only organization_model_id; the P1.5 backfill
-        preserved that id as the project id, so the coalesce join resolves them."""
+        preserved that id as the project id, so the coalesce join resolves them.
+
+        D-26 dropped the ``organization_models`` table but deliberately kept this
+        column, precisely so these runs stay attributable — the shared id IS the
+        link now, which is what this reproduces.
+        """
         listed = _listed_project(db_session, test_organization.id, "finance")
-        # Simulate a backfilled legacy activation: an OrganizationModel row and a
-        # fork ModelProject SHARING its id (exactly what the F3 backfill produced).
-        om = OrganizationModel(
-            id=generate_id("omod_"),
-            organization_id=test_organization.id,
-        )
-        db_session.add(om)
-        db_session.flush()
+        legacy_id = generate_id("omod_")
         db_session.add(
             ModelProject(
-                id=om.id,
+                id=legacy_id,
                 organization_id=test_organization.id,
                 name="backfilled fork",
                 status="active",
@@ -239,7 +236,7 @@ class TestOverviewService:
             )
         )
         db_session.flush()
-        _exec(db_session, test_organization.id, org_model_id=om.id, status="completed")
+        _exec(db_session, test_organization.id, org_model_id=legacy_id, status="completed")
         db_session.commit()
         out = svc.compute_platform_overview(db_session, days=30)
         cats = {row["category"]: row for row in out["by_category"]}

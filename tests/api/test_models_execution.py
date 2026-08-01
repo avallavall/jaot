@@ -14,7 +14,6 @@ from app.models import (
     ModelExecution,
     ModelProject,
     ModelProjectListing,
-    OrganizationModel,
 )
 
 BOUNDED_MILP_INPUT = {
@@ -239,17 +238,12 @@ class TestExecutionHistory:
         self, authenticated_client, db_session, test_organization
     ):
         """Historic executions carry only organization_model_id — the P1.5
-        backfill preserved that id as the project id, so history includes them."""
+        backfill preserved that id as the project id, so history includes them.
+
+        D-26 dropped ``organization_models`` but kept this column for exactly
+        this reason: the shared id is what still ties an old run to its model.
+        """
         self._seed_project(db_session, test_organization, "test_legacy_history")
-        # The legacy org-model row sharing the project id (what F3 produced).
-        db_session.add(
-            OrganizationModel(
-                id="test_legacy_history",
-                organization_id=test_organization.id,
-                is_active=True,
-            )
-        )
-        db_session.flush()
         db_session.add(
             ModelExecution(
                 id="test_legacy_exec",

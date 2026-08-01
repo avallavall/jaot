@@ -1,10 +1,12 @@
 """Optimization Model definitions for the unified optimization platform.
 
 This module defines the core models for the OptimizationModel system:
-- ModelCatalog: Public marketplace of optimization models (official + community)
-- OrganizationModel: Models activated/created by an organization
 - ModelExecution: Execution history for models
 - ModelReview: Reviews and ratings for models
+
+The pre-fusion pair ``ModelCatalog`` (public marketplace) and ``OrganizationModel``
+(an org's activated copy) was retired by D-26: ``ModelProject`` owns a model's
+lifecycle and ``ModelProjectListing`` is its marketplace facet.
 """
 
 from __future__ import annotations
@@ -84,173 +86,6 @@ class ModelStatus(str, Enum):
     ARCHIVED = "archived"
 
 
-class ModelCatalog(Base):
-    """
-    Public catalog of optimization models available in the marketplace.
-
-    Models can be:
-    - Official (created by JAOT, is_official=True)
-    - Community (created by organizations and published)
-    """
-
-    __tablename__ = "model_catalog"
-
-    # Primary Key
-    id: Mapped[str] = mapped_column(String(64), primary_key=True)
-
-    # Basic Info
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-    display_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[str] = mapped_column(Text, nullable=False)
-    short_description: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    scenario_description: Mapped[str | None] = mapped_column(Text, nullable=True)
-
-    # Classification
-    category: Mapped[str] = mapped_column(String(64), default="general", index=True)
-    tags: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
-
-    # Model Definition (for SCIP solver)
-    generator_type: Mapped[str] = mapped_column(String(64), nullable=False)
-    input_schema: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    input_fields: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False)
-    example_input: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-
-    # Versioning
-    version: Mapped[str] = mapped_column(String(16), default="1.0.0")
-    status: Mapped[str] = mapped_column(String(32), default="published", index=True)
-
-    # Ownership & Origin
-    author_organization_id: Mapped[str | None] = mapped_column(
-        String(64), ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True, index=True
-    )
-    author_organization: Mapped[Organization | None] = relationship(
-        "Organization",
-        foreign_keys=[author_organization_id],
-        lazy="noload",
-    )
-    is_official: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
-
-    # Pricing
-
-    # Statistics
-    total_activations: Mapped[int] = mapped_column(Integer, default=0)
-    total_executions: Mapped[int] = mapped_column(Integer, default=0)
-    avg_execution_time_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
-    success_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
-    avg_rating: Mapped[float | None] = mapped_column(Float, nullable=True)
-
-    # Visibility
-    is_featured: Mapped[bool] = mapped_column(Boolean, default=False)
-    is_public: Mapped[bool] = mapped_column(Boolean, default=True)
-
-    # Media
-    logo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    screenshot_urls: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
-
-    # Rich description sections — markdown stored as text
-    section_overview: Mapped[str | None] = mapped_column(Text, nullable=True)
-    section_features: Mapped[str | None] = mapped_column(Text, nullable=True)
-    section_how_it_works: Mapped[str | None] = mapped_column(Text, nullable=True)
-    section_example_io: Mapped[str | None] = mapped_column(Text, nullable=True)
-    section_changelog: Mapped[str | None] = mapped_column(Text, nullable=True)
-
-    # Timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, index=True
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, onupdate=utcnow
-    )
-    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-
-    __table_args__ = (
-        Index("ix_model_catalog_category_status", "category", "status"),
-        Index("ix_model_catalog_official_featured", "is_official", "is_featured"),
-    )
-
-    def __repr__(self) -> str:
-        return f"<ModelCatalog(id={self.id}, name={self.name}, category={self.category})>"
-
-
-class OrganizationModel(Base):
-    """
-    Optimization models that belong to an organization.
-
-    These can be:
-    - Activated from marketplace (catalog_id is set)
-    - Created privately by the organization (catalog_id is NULL)
-    """
-
-    __tablename__ = "organization_models"
-
-    # Primary Key
-    id: Mapped[str] = mapped_column(String(64), primary_key=True)
-
-    # Ownership
-    organization_id: Mapped[str] = mapped_column(
-        String(64), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-
-    # Source (NULL = custom/private model)
-    catalog_id: Mapped[str | None] = mapped_column(
-        String(64), ForeignKey("model_catalog.id", ondelete="SET NULL"), nullable=True, index=True
-    )
-
-    # Custom Configuration
-    custom_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    custom_config: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
-
-    # For private models (when catalog_id is NULL)
-    private_definition: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
-
-    # Authoring ModelProject this was published from (P1a; no FK — opaque link).
-    # Used by the full-fusion path (P1.5) to point a marketplace listing back at
-    # its source project.
-    source_model_project_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
-
-    # Status
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    is_favorite: Mapped[bool] = mapped_column(Boolean, default=False)
-
-    # Usage Stats (ADR-008: total_credits_used unmapped — column stays, additive rule)
-    total_executions: Mapped[int] = mapped_column(Integer, default=0)
-    last_executed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-
-    # Timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, index=True
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, onupdate=utcnow
-    )
-
-    # Relationships
-    catalog_model: Mapped[ModelCatalog | None] = relationship(
-        "ModelCatalog", foreign_keys=[catalog_id], lazy="joined"
-    )
-
-    __table_args__ = (
-        Index("ix_org_model_org_active", "organization_id", "is_active"),
-        Index("ix_org_model_org_catalog", "organization_id", "catalog_id"),
-    )
-
-    def __repr__(self) -> str:
-        return f"<OrganizationModel(id={self.id}, org={self.organization_id}, catalog={self.catalog_id})>"
-
-    @property
-    def display_name(self) -> str:
-        """Get the display name (custom or from catalog)."""
-        if self.custom_name:
-            return self.custom_name
-        if self.catalog_model:
-            return self.catalog_model.display_name
-        if self.private_definition:
-            return str(self.private_definition.get("name", "Custom Model"))
-        return "Unknown Model"
-
-
 class ExecutionStatus(str, Enum):
     """Status of a model execution."""
 
@@ -276,9 +111,14 @@ class ModelExecution(Base):
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
 
     # References
+    # Historic provenance for runs that predate the P1.5 fusion (D-26). The
+    # ``organization_models`` table it pointed at is gone, so this is now an
+    # opaque id like source_id — kept, not dropped, because it is the only
+    # model identity those old runs have: the GDPR export falls back to it,
+    # platform analytics separates legacy from project runs by it, and the
+    # execution detail endpoint returns it.
     organization_model_id: Mapped[str | None] = mapped_column(
         String(64),
-        ForeignKey("organization_models.id", ondelete="CASCADE"),
         nullable=True,
         index=True,
     )
@@ -360,11 +200,6 @@ class ModelExecution(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    # Relationships
-    organization_model: Mapped[OrganizationModel | None] = relationship(
-        "OrganizationModel", foreign_keys=[organization_model_id], lazy="joined"
-    )
-
     __table_args__ = (
         Index("ix_model_exec_org_created", "organization_id", "created_at"),
         Index("ix_model_exec_status_created", "status", "created_at"),
@@ -386,12 +221,7 @@ class ModelReview(Base):
     # Primary Key
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
 
-    # What is being reviewed. P1.5 fusion: reviews are keyed on the unified Model
-    # (model_project_id); the legacy catalog_id is now nullable (new reviews omit it)
-    # and drops in the contract release.
-    catalog_id: Mapped[str | None] = mapped_column(
-        String(64), ForeignKey("model_catalog.id", ondelete="CASCADE"), nullable=True, index=True
-    )
+    # What is being reviewed. P1.5 fusion: reviews are keyed on the unified Model.
     model_project_id: Mapped[str | None] = mapped_column(
         String(64),
         ForeignKey("model_projects.id", ondelete="CASCADE"),
@@ -436,16 +266,18 @@ class ModelReview(Base):
         foreign_keys=[organization_id],
         lazy="noload",
     )
-    catalog_model: Mapped[ModelCatalog | None] = relationship(
-        "ModelCatalog",
-        foreign_keys=[catalog_id],
-        lazy="noload",
-    )
-
     __table_args__ = (
-        Index("ix_model_review_catalog_rating", "catalog_id", "rating"),
-        Index("ix_model_review_user_catalog", "user_id", "catalog_id", unique=True),
+        Index("ix_model_review_project_rating", "model_project_id", "rating"),
+        # One review per user per model — enforced by the database, not just by
+        # the read-then-write check in create_review (D-26).
+        #
+        # This replaces a unique index on (user_id, catalog_id) that had quietly
+        # stopped protecting anything: since the P1.5 fusion every new review
+        # leaves catalog_id NULL, and Postgres does not consider two NULLs equal,
+        # so the index admitted unlimited duplicates. Two concurrent POSTs could
+        # both pass the existence check and both insert.
+        Index("ix_model_review_user_project", "user_id", "model_project_id", unique=True),
     )
 
     def __repr__(self) -> str:
-        return f"<ModelReview(id={self.id}, catalog={self.catalog_id}, rating={self.rating})>"
+        return f"<ModelReview(id={self.id}, model={self.model_project_id}, rating={self.rating})>"
