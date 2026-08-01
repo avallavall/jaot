@@ -141,3 +141,122 @@ class TestScheduleOnboardingSequenceLocale:
                 assert kwargs_dict.get("locale") is None, (
                     f"locale unexpectedly set to {kwargs_dict.get('locale')!r}"
                 )
+
+
+# ---------------------------------------------------------------------------
+# The transactional auth emails follow the same rule as the onboarding sequence:
+# they are sent in the language the account was created in. Nothing wrote
+# User.locale at signup, so the entire translated email programme — onboarding
+# included — went out in English regardless of who signed up.
+# ---------------------------------------------------------------------------
+
+
+class TestSignupRecordsTheLocale:
+    @staticmethod
+    def _enable_registration(db_session):
+        from app.services.platform_settings_service import PlatformSettingsService
+
+        PlatformSettingsService.set(db_session, "REGISTRATION_ENABLED", "true")
+        db_session.commit()
+
+    def test_signup_persists_the_locale_it_was_made_in(self, client, db_session):
+        from app.models import User
+
+        self._enable_registration(db_session)
+        resp = client.post(
+            "/api/v2/auth/signup/email",
+            json={
+                "email": "locale.signup@example.com",
+                "name": "Locale Probe",
+                "organization_name": "Locale Probe Org",
+                "password": "a-very-long-password",
+                "confirm_password": "a-very-long-password",
+                "tos_accepted": True,
+                "locale": "de",
+            },
+        )
+        assert resp.status_code in (200, 201), resp.text
+
+        user = db_session.query(User).filter(User.email == "locale.signup@example.com").one()
+        assert user.locale == "de"
+
+    def test_signup_without_a_locale_is_still_accepted(self, client, db_session):
+        from app.models import User
+
+        self._enable_registration(db_session)
+        resp = client.post(
+            "/api/v2/auth/signup/email",
+            json={
+                "email": "no.locale@example.com",
+                "name": "No Locale",
+                "organization_name": "No Locale Org",
+                "password": "a-very-long-password",
+                "confirm_password": "a-very-long-password",
+                "tos_accepted": True,
+            },
+        )
+        assert resp.status_code in (200, 201), resp.text
+        user = db_session.query(User).filter(User.email == "no.locale@example.com").one()
+        assert user.locale is None
+
+
+class TestAuthEmailsAreTranslated:
+    def test_reset_and_verify_strings_exist_for_every_product_locale(self):
+        from app.services.email_translations import get_email_string
+
+        for locale in ("en", "es", "ca", "fr", "de"):
+            for key in ("subject", "heading", "body", "cta", "expiry"):
+                assert get_email_string("verify_email", key, locale), (
+                    f"verify_email.{key} missing for {locale}"
+                )
+            for key in ("subject", "heading", "body", "cta", "expiry", "ignore"):
+                assert get_email_string("reset_password", key, locale), (
+                    f"reset_password.{key} missing for {locale}"
+                )
+
+    def test_a_locale_we_do_not_translate_falls_back_to_english(self):
+        from app.services.email_translations import get_email_string
+
+        assert get_email_string("reset_password", "subject", "ja") == (
+            get_email_string("reset_password", "subject", "en")
+        )
+
+    def test_reset_email_is_sent_in_the_users_language(self, client, db_session, monkeypatch):
+        """# CONTRACT-TEST: a password reset arrives in the language of the account."""
+        from app.models import User
+        from app.services.auth.password_service import PasswordService
+
+        user = User(
+            id="usr_reset_locale_probe",
+            email="reset.locale@example.com",
+            name="Reset Probe",
+            organization_id="org_reset_locale_probe",
+            role="member",
+            password_hash=PasswordService.hash_password("a-very-long-password"),
+            locale="es",
+        )
+        from app.models import Organization
+
+        db_session.add(
+            Organization(id="org_reset_locale_probe", name="Reset Locale Org", slug="reset-locale")
+        )
+        db_session.add(user)
+        db_session.commit()
+
+        sent: dict[str, str] = {}
+
+        from app.services import email_service
+
+        def _capture(to: str, subject: str, html: str, **kwargs: object) -> bool:
+            sent["subject"] = subject
+            sent["html"] = html
+            return True
+
+        monkeypatch.setattr(email_service.EmailService, "send", staticmethod(_capture))
+
+        resp = client.post(
+            "/api/v2/auth/forgot-password", json={"email": "reset.locale@example.com"}
+        )
+        assert resp.status_code == 200, resp.text
+        assert sent["subject"] == "Restablece tu contraseña de JAOT"
+        assert "Restablecer contraseña" in sent["html"]

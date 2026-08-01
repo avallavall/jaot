@@ -648,6 +648,8 @@ export const api = {
     password: string;
     confirm_password: string;
     tos_accepted?: boolean;
+    /** The language the person signed up in — every later email follows it. */
+    locale?: string;
   }): Promise<EmailSignupResponse> {
     return request("/api/v2/auth/signup/email", {
       method: "POST",

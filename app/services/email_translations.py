@@ -986,6 +986,93 @@ EMAIL_TRANSLATIONS: dict[str, dict[str, dict[str, str]]] = {
             "ru": "Поделиться отзывом →",
         },
     },
+    # ---------------------------------------------------------------------
+    # Transactional auth emails. Unlike the onboarding sequence these are sent
+    # the moment someone acts, so they follow User.locale — which is set from the
+    # language they signed up in. Covered here are the five languages the product
+    # ships; get_email_string() falls back to English for anything else.
+    # ---------------------------------------------------------------------
+    "verify_email": {
+        "subject": {
+            "en": "Verify your JAOT email",
+            "es": "Verifica tu correo de JAOT",
+            "ca": "Verifica el teu correu de JAOT",
+            "fr": "Vérifiez votre adresse e-mail JAOT",
+            "de": "Bestätigen Sie Ihre JAOT-E-Mail-Adresse",
+        },
+        "heading": {
+            "en": "Welcome to JAOT!",
+            "es": "¡Te damos la bienvenida a JAOT!",
+            "ca": "Et donem la benvinguda a JAOT!",
+            "fr": "Bienvenue sur JAOT !",
+            "de": "Willkommen bei JAOT!",
+        },
+        "body": {
+            "en": "Please verify your email by clicking the link below:",
+            "es": "Verifica tu correo haciendo clic en el enlace de abajo:",
+            "ca": "Verifica el teu correu fent clic a l’enllaç de sota:",
+            "fr": "Veuillez vérifier votre adresse e-mail en cliquant sur le lien ci-dessous :",
+            "de": "Bitte bestätigen Sie Ihre E-Mail-Adresse über den folgenden Link:",
+        },
+        "cta": {
+            "en": "Verify Email",
+            "es": "Verificar correo",
+            "ca": "Verificar correu",
+            "fr": "Vérifier l’adresse e-mail",
+            "de": "E-Mail bestätigen",
+        },
+        "expiry": {
+            "en": "This link expires in 24 hours.",
+            "es": "Este enlace caduca en 24 horas.",
+            "ca": "Aquest enllaç caduca en 24 hores.",
+            "fr": "Ce lien expire dans 24 heures.",
+            "de": "Dieser Link läuft in 24 Stunden ab.",
+        },
+    },
+    "reset_password": {
+        "subject": {
+            "en": "Reset your JAOT password",
+            "es": "Restablece tu contraseña de JAOT",
+            "ca": "Restableix la teva contrasenya de JAOT",
+            "fr": "Réinitialisez votre mot de passe JAOT",
+            "de": "Setzen Sie Ihr JAOT-Passwort zurück",
+        },
+        "heading": {
+            "en": "Password Reset",
+            "es": "Restablecer contraseña",
+            "ca": "Restablir contrasenya",
+            "fr": "Réinitialisation du mot de passe",
+            "de": "Passwort zurücksetzen",
+        },
+        "body": {
+            "en": "Click the link below to reset your password:",
+            "es": "Haz clic en el enlace de abajo para restablecer tu contraseña:",
+            "ca": "Fes clic a l’enllaç de sota per restablir la teva contrasenya:",
+            "fr": "Cliquez sur le lien ci-dessous pour réinitialiser votre mot de passe :",
+            "de": "Klicken Sie auf den folgenden Link, um Ihr Passwort zurückzusetzen:",
+        },
+        "cta": {
+            "en": "Reset Password",
+            "es": "Restablecer contraseña",
+            "ca": "Restablir contrasenya",
+            "fr": "Réinitialiser le mot de passe",
+            "de": "Passwort zurücksetzen",
+        },
+        "expiry": {
+            "en": "This link expires in 1 hour.",
+            "es": "Este enlace caduca en 1 hora.",
+            "ca": "Aquest enllaç caduca en 1 hora.",
+            "fr": "Ce lien expire dans 1 heure.",
+            "de": "Dieser Link läuft in 1 Stunde ab.",
+        },
+        "ignore": {
+            "en": "If you didn't request this, please ignore this email.",
+            "es": "Si no has solicitado esto, ignora este mensaje.",
+            "ca": "Si no ho has sol·licitat, ignora aquest missatge.",
+            "fr": "Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail.",
+            "de": "Wenn Sie das nicht angefordert haben, ignorieren Sie diese E-Mail bitte.",
+        },
+    },
     "footer": {
         "brand": {
             "en": "JAOT — Optimization as a Service",

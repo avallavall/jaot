@@ -490,7 +490,13 @@ export default async function HomePage() {
         </div>
 
         <div className="mt-12 text-center">
-          <Badge variant="outline" className="mb-6 px-4 py-1.5 text-sm font-normal">
+          {/* The Badge primitive is whitespace-nowrap, which is right for a status
+              pill and wrong for a sentence: at 390px this one measured 403px and
+              pushed the page into horizontal scroll. Let it wrap here. */}
+          <Badge
+            variant="outline"
+            className="mb-6 max-w-full whitespace-normal text-balance px-4 py-1.5 text-sm font-normal"
+          >
             {t("mcp.agentBadge")}
           </Badge>
           <div className="mt-4">

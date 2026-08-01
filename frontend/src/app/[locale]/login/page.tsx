@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { getErrorMessage } from "@/lib/errors";
+import { RETURN_PARAM, defaultLandingPath, safeReturnPath } from "@/lib/return-path";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,10 +35,15 @@ export default function LoginPage() {
   const [emailError, setEmailError] = useState("");
   const [emailLoading, setEmailLoading] = useState(false);
 
-  // Redirect if already authenticated
+  // Redirect once authenticated — back to the page that sent us here when a
+  // protected route did, otherwise to the usual landing page. `next` is attacker
+  // -reachable (it is in the URL), so it goes through safeReturnPath first.
+  // Read off `window` inside the effect to keep this page statically renderable;
+  // useSearchParams would demand a Suspense boundary for no gain.
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.push(user?.is_admin ? "/admin" : "/studio");
+      const next = new URLSearchParams(window.location.search).get(RETURN_PARAM);
+      router.push(safeReturnPath(next, defaultLandingPath(user?.is_admin)));
     }
   }, [isLoading, isAuthenticated, user, router]);
 

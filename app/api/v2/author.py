@@ -276,7 +276,8 @@ def get_onboarding_status(
     - publish_model: at least 1 published model in catalog
     - add_rich_media: at least 1 published model has logo_url or screenshot_urls
 
-    Every step links to a route that exists — two of them used to 404.
+    Every step links to a route that exists — two of them used to 404 — and to the
+    place the step is actually done, not merely to the area it lives in.
     """
     org_id = current_user.organization_id
     org = db.query(Organization).filter(Organization.id == org_id).first()
@@ -298,6 +299,16 @@ def get_onboarding_status(
     # Step 3: Add rich media (logo or screenshots on a published listing)
     has_rich_media = any(m.logo_url or m.screenshot_urls for m in published_models)
 
+    # Point the step at a listing that actually needs an image, on the panel that
+    # uploads it — linking to /workspace/models sent the reader back to the page
+    # the checklist is on, then made them pick which listing was meant.
+    needs_media = next(
+        (m for m in published_models if not (m.logo_url or m.screenshot_urls)), None
+    )
+    rich_media_link = (
+        f"/studio/{needs_media.model_project_id}/publish" if needs_media else "/workspace/models"
+    )
+
     steps = [
         # The org name + bio this step measures are edited on /workspace/profile;
         # /workspace/settings resolves but holds notification prefs, not the profile.
@@ -316,7 +327,7 @@ def get_onboarding_status(
         OnboardingStep(
             key="add_rich_media",
             completed=has_rich_media,
-            link="/workspace/models",
+            link=rich_media_link,
         ),
     ]
 

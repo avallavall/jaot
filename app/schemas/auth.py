@@ -97,6 +97,10 @@ class EmailSignupRequest(BaseModel):
     password: str = Field(..., min_length=12)
     confirm_password: str = Field(..., min_length=12)
     tos_accepted: bool = Field(default=False)
+    #: The language the person signed up in. Every email JAOT sends afterwards is
+    #: keyed off User.locale, and nothing else writes it at account creation —
+    #: without this the whole translated email programme went out in English.
+    locale: str | None = Field(default=None, max_length=10)
 
     @model_validator(mode="after")
     def passwords_match(self) -> "EmailSignupRequest":

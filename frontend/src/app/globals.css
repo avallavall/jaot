@@ -469,3 +469,15 @@ html {
 .dark .react-flow {
   --xy-minimap-mask-background-color-default: rgba(30, 26, 24, 0.6);
 }
+
+/* Sonner — keep the toast stack inside the viewport on a phone.
+   Its own mobile rule sets `width: 100%` on the fixed container AND a left and a
+   right offset, so the box ends up wider than the screen and drags the whole
+   page into horizontal scroll (reported at 390x844). Take the offsets out of the
+   width instead of fighting the positioning. */
+@media (max-width: 600px) {
+  [data-sonner-toaster] {
+    width: calc(100% - var(--mobile-offset-left) - var(--mobile-offset-right));
+    max-width: 100%;
+  }
+}

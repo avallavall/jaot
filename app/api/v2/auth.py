@@ -30,6 +30,7 @@ from app.schemas.auth import (
 from app.schemas.common import SuccessResponse
 from app.services.auth import APIKeyService, JWTService, PasswordService
 from app.services.auth.password_service import DUMMY_HASH
+from app.services.email_translations import get_email_string
 from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.shared.core.rate_limiter import check_rate_limit, check_rate_limit_hourly
 from app.shared.db.base import get_db
@@ -369,6 +370,7 @@ def signup_email(
         password_hash=password_hash,
         email_verified=False,
         tos_accepted_at=utcnow() if body.tos_accepted else None,
+        locale=body.locale,
     )
     db.add(user)
     db.flush()
@@ -412,14 +414,17 @@ def signup_email(
 
         from app.services.email_service import EmailService
 
+        def t(key: str) -> str:
+            return get_email_string("verify_email", key, body.locale)
+
         EmailService.send(
             to=body.email,
-            subject="Verify your JAOT email",
+            subject=t("subject"),
             html=(
-                f"<h2>Welcome to JAOT!</h2>"
-                f"<p>Please verify your email by clicking the link below:</p>"
-                f'<p><a href="{verify_url}">Verify Email</a></p>'
-                f"<p>This link expires in 24 hours.</p>"
+                f"<h2>{t('heading')}</h2>"
+                f"<p>{t('body')}</p>"
+                f'<p><a href="{verify_url}">{t("cta")}</a></p>'
+                f"<p>{t('expiry')}</p>"
             ),
             db=db,
         )
@@ -544,15 +549,18 @@ def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)) 
 
             from app.services.email_service import EmailService
 
+            def t(key: str) -> str:
+                return get_email_string("reset_password", key, user.locale)
+
             EmailService.send(
                 to=body.email,
-                subject="Reset your JAOT password",
+                subject=t("subject"),
                 html=(
-                    f"<h2>Password Reset</h2>"
-                    f"<p>Click the link below to reset your password:</p>"
-                    f'<p><a href="{reset_url}">Reset Password</a></p>'
-                    f"<p>This link expires in 1 hour.</p>"
-                    f"<p>If you didn't request this, please ignore this email.</p>"
+                    f"<h2>{t('heading')}</h2>"
+                    f"<p>{t('body')}</p>"
+                    f'<p><a href="{reset_url}">{t("cta")}</a></p>'
+                    f"<p>{t('expiry')}</p>"
+                    f"<p>{t('ignore')}</p>"
                 ),
                 db=db,
             )

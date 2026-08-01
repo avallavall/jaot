@@ -563,13 +563,33 @@ class TestOnboardingLinks:
     """
 
     def _route_dir(self, link: str) -> Path:
-        return _APP_ROUTES.joinpath(*[seg for seg in link.strip("/").split("/") if seg])
+        """Resolve a concrete link to its Next.js route directory.
+
+        Links may carry ids (``/studio/mp_abc/publish``); the route that serves
+        them is a dynamic segment (``[modelId]``), so a literal id has to be
+        matched against the one bracketed child directory at that level.
+        """
+        directory = _APP_ROUTES
+        for segment in [s for s in link.strip("/").split("/") if s]:
+            if (directory / segment).is_dir():
+                directory = directory / segment
+                continue
+            dynamic = [d for d in directory.iterdir() if d.is_dir() and d.name.startswith("[")]
+            if len(dynamic) != 1:
+                return directory / segment  # let the caller report the miss
+            directory = dynamic[0]
+        return directory
 
     def test_every_step_links_to_an_existing_page(
         self, authenticated_client, db_session, test_organization
     ):
         if not _APP_ROUTES.exists():
             pytest.skip("frontend sources not mounted")
+
+        # With a published listing that has no image, the rich-media step links to
+        # that listing's publish panel — the dynamic-route case this must cover.
+        _publish(db_session, org_id=test_organization.id)
+        db_session.commit()
 
         steps = authenticated_client.get("/api/v2/author/onboarding/status").json()["steps"]
         assert len(steps) == 3
@@ -586,6 +606,25 @@ class TestOnboardingLinks:
         steps = authenticated_client.get("/api/v2/author/onboarding/status").json()["steps"]
         profile_step = next(s for s in steps if s["key"] == "complete_profile")
         assert profile_step["link"] == "/workspace/profile"
+
+    def test_rich_media_step_points_at_the_listing_that_needs_an_image(
+        self, authenticated_client, db_session, test_organization
+    ):
+        """One click to the upload panel — not back to the page the checklist is on."""
+        listing = _publish(db_session, org_id=test_organization.id)
+        db_session.commit()
+
+        steps = authenticated_client.get("/api/v2/author/onboarding/status").json()["steps"]
+        media_step = next(s for s in steps if s["key"] == "add_rich_media")
+        assert media_step["link"] == f"/studio/{listing.model_project_id}/publish"
+
+    def test_rich_media_step_falls_back_when_there_is_nothing_to_illustrate(
+        self, authenticated_client
+    ):
+        """With no published listing, the step has no particular one to point at."""
+        steps = authenticated_client.get("/api/v2/author/onboarding/status").json()["steps"]
+        media_step = next(s for s in steps if s["key"] == "add_rich_media")
+        assert media_step["link"] == "/workspace/models"
 
     def test_completion_tracks_the_real_state(
         self, authenticated_client, db_session, test_organization

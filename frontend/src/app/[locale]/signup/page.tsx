@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,7 @@ export default function SignupPage() {
   const router = useRouter();
   const { loginWithEmail } = useAuth();
   const t = useTranslations("auth");
+  const locale = useLocale();
 
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -67,6 +68,9 @@ export default function SignupPage() {
         password,
         confirm_password: confirmPassword,
         tos_accepted: tosAccepted,
+        // Remembered on the account: the verification mail that follows in a
+        // second, and every email after it, are sent in this language.
+        locale,
       });
 
       // Store the returned API key for SDK/programmatic use

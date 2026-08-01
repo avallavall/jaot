@@ -1088,7 +1088,8 @@ export interface paths {
          *     - publish_model: at least 1 published model in catalog
          *     - add_rich_media: at least 1 published model has logo_url or screenshot_urls
          *
-         *     Every step links to a route that exists — two of them used to 404.
+         *     Every step links to a route that exists — two of them used to 404 — and to the
+         *     place the step is actually done, not merely to the area it lives in.
          */
         get: operations["get_onboarding_status_api_v2_author_onboarding_status_get"];
         put?: never;
@@ -6202,6 +6203,8 @@ export interface components {
              * Format: email
              */
             email: string;
+            /** Locale */
+            locale?: string | null;
             /** Name */
             name: string;
             /** Organization Name */
