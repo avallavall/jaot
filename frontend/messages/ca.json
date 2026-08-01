@@ -3461,7 +3461,7 @@
       "pinnedVersion": "Versió Fixada del Model",
       "modelLabel": "Model *",
       "loadingModels": "Carregant models...",
-      "noModels": "No s'han trobat models. Creeu primer un model al <link>Constructor Visual</link>.",
+      "noModels": "Encara no hi ha models a punt. Crea'n un a l'<link>estudi</link> i fes commit d'una versió: un activador sempre executa una versió commitejada, mai un esborrany.",
       "selectModel": "Seleccioneu un model...",
       "versionLabel": "Versió *",
       "loadingVersions": "Carregant versions...",

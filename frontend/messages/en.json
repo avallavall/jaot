@@ -3461,7 +3461,7 @@
       "pinnedVersion": "Pinned Model Version",
       "modelLabel": "Model *",
       "loadingModels": "Loading models...",
-      "noModels": "No models found. Create a model in the <link>Visual Builder</link> first.",
+      "noModels": "No models ready yet. Build one in the <link>studio</link> and commit a version — a trigger always fires a committed version, never a draft.",
       "selectModel": "Select a model...",
       "versionLabel": "Version *",
       "loadingVersions": "Loading versions...",

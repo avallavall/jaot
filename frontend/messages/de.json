@@ -3461,7 +3461,7 @@
       "pinnedVersion": "Gepinnte Modellversion",
       "modelLabel": "Modell *",
       "loadingModels": "Modelle werden geladen...",
-      "noModels": "Keine Modelle gefunden. Erstellen Sie zuerst ein Modell im <link>Visuellen Builder</link>.",
+      "noModels": "Noch kein Modell bereit. Erstelle eines im <link>Studio</link> und committe eine Version — ein Trigger führt immer eine committete Version aus, nie einen Entwurf.",
       "selectModel": "Modell auswählen...",
       "versionLabel": "Version *",
       "loadingVersions": "Versionen werden geladen...",

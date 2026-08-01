@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
 
 class OverrideFieldSchema(BaseModel):
@@ -31,8 +31,19 @@ class TriggerCreate(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=255, description="Trigger display name")
     description: str | None = Field(default=None, description="Optional longer description")
-    document_id: str = Field(..., description="Builder document this trigger is attached to")
-    version_id: str = Field(..., description="Pinned model version snapshot ID")
+    # Exactly one pair, enforced below. A trigger used to accept only the builder
+    # pair, and the studio never creates a builder document — so nothing built in
+    # the studio could be automated.
+    document_id: str | None = Field(
+        default=None, description="Builder document this trigger is attached to"
+    )
+    version_id: str | None = Field(default=None, description="Pinned model version snapshot ID")
+    model_project_id: str | None = Field(
+        default=None, description="Studio model project this trigger is attached to"
+    )
+    model_project_version_id: str | None = Field(
+        default=None, description="Pinned committed version of that project"
+    )
     override_schema: list[OverrideFieldSchema] | None = Field(
         default=None,
         description="Declared override fields. If None, any key is accepted.",
@@ -42,6 +53,27 @@ class TriggerCreate(BaseModel):
         default=None, description="Secret for signing outbound webhook payloads"
     )
     workspace_id: str | None = Field(default=None, description="Workspace this run belongs to")
+
+    @model_validator(mode="after")
+    def exactly_one_model_source(self) -> "TriggerCreate":
+        """A trigger fires one model. Refuse ambiguity rather than pick for them.
+
+        Rejecting both-at-once matters as much as rejecting neither: with both
+        set, which model runs would be decided by a precedence rule the caller
+        never saw, and they would find out from the solve.
+        """
+        has_document = bool(self.document_id and self.version_id)
+        has_project = bool(self.model_project_id and self.model_project_version_id)
+        if has_document == has_project:
+            raise ValueError(
+                "Provide either document_id + version_id, or "
+                "model_project_id + model_project_version_id — exactly one pair."
+            )
+        if self.document_id and not self.version_id:
+            raise ValueError("document_id requires version_id")
+        if self.model_project_id and not self.model_project_version_id:
+            raise ValueError("model_project_id requires model_project_version_id")
+        return self
 
 
 class TriggerUpdate(BaseModel):
@@ -71,8 +103,15 @@ class TriggerResponse(BaseModel):
     created_by: str | None
     name: str
     description: str | None
-    document_id: str
-    version_id: str
+    # Exactly one pair is populated; `source` says which without the reader
+    # having to infer it from nulls.
+    source: Literal["document", "project"] = Field(
+        ..., description="Which kind of model this fires"
+    )
+    document_id: str | None
+    version_id: str | None
+    model_project_id: str | None = None
+    model_project_version_id: str | None = None
     trigger_secret_prefix: str = Field(
         ..., description="First 8 characters of the SHA-256 hash for identification"
     )

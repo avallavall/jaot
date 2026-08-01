@@ -3461,7 +3461,7 @@
       "pinnedVersion": "Version de modèle épinglée",
       "modelLabel": "Modèle *",
       "loadingModels": "Chargement des modèles...",
-      "noModels": "Aucun modèle trouvé. Créez d'abord un modèle dans le <link>Constructeur visuel</link>.",
+      "noModels": "Aucun modèle prêt pour l'instant. Créez-en un dans le <link>studio</link> et validez une version : un déclencheur exécute toujours une version validée, jamais un brouillon.",
       "selectModel": "Sélectionner un modèle...",
       "versionLabel": "Version *",
       "loadingVersions": "Chargement des versions...",

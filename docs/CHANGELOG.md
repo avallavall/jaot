@@ -47,6 +47,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Reviews you received, in one list** — reviews used to be readable only one model at a time, on each model's public page.
 - **Public roadmap** — `docs/ROADMAP.md`, linked from the README. The frozen JModel grammar now ships as `docs/JMODEL_GRAMMAR.md`.
 - **Connection-pool metrics on `/metrics`** — the database pool now reports how many connections are in use against its ceiling, with alerts before saturation. Previously the only sign of a full pool was requests starting to fail.
+- **Automate a model you actually built** — a trigger can now fire a model from the studio, pinned to one of its committed versions. Until now a trigger could only point at a document from the old visual builder, which the studio does not create, so nothing built since the studio became the place you build models could be automated at all. Triggers made before this keep working and firing exactly what they always did.
 
 ### Changed
 

@@ -42,17 +42,36 @@ class SolveTrigger(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    document_id: Mapped[str] = mapped_column(
+    # --- What this trigger solves: exactly one of the two pairs below ---
+    #
+    # A trigger used to be able to point at ONE thing: a builder document and one
+    # of its version snapshots. The studio never creates a builder document, so
+    # nothing built in the studio — which is where models are built since the P1.5
+    # fusion — could be automated at all. Both pairs are nullable now and the pair
+    # that is set decides which model runs; `trigger_source` reads it back.
+    document_id: Mapped[str | None] = mapped_column(
         String(64),
         ForeignKey("model_builder_documents.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
-    version_id: Mapped[str] = mapped_column(
+    version_id: Mapped[str | None] = mapped_column(
         String(64),
         # RESTRICT prevents deletion of the pinned version while referenced
         ForeignKey("model_version_snapshots.id", ondelete="RESTRICT"),
-        nullable=False,
+        nullable=True,
+    )
+    model_project_id: Mapped[str | None] = mapped_column(
+        String(64),
+        ForeignKey("model_projects.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    model_project_version_id: Mapped[str | None] = mapped_column(
+        String(64),
+        # Same RESTRICT: a pinned version must not vanish under a live trigger.
+        ForeignKey("model_project_versions.id", ondelete="RESTRICT"),
+        nullable=True,
     )
     workspace_id: Mapped[str | None] = mapped_column(
         String(64),
@@ -77,9 +96,21 @@ class SolveTrigger(Base):
         DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
     )
 
+    @property
+    def trigger_source(self) -> str:
+        """Which kind of model this trigger fires: ``project`` or ``document``.
+
+        One place answers the question, so a caller cannot invent a third rule.
+        A row with neither pair set is not creatable through the API and would be
+        a broken row; it reads as ``document`` here and fails loudly at run time
+        with "pinned model version not found" rather than silently solving.
+        """
+        return "project" if self.model_project_version_id else "document"
+
     def __repr__(self) -> str:
         return (
             f"<SolveTrigger(id={self.id!r}, name={self.name!r}, "
+            f"source={self.trigger_source!r}, "
             f"organization_id={self.organization_id!r}, is_enabled={self.is_enabled})>"
         )
 

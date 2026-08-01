@@ -3461,7 +3461,7 @@
       "pinnedVersion": "Versión fijada del modelo",
       "modelLabel": "Modelo *",
       "loadingModels": "Cargando modelos...",
-      "noModels": "No se encontraron modelos. Crea un modelo en el <link>Constructor visual</link> primero.",
+      "noModels": "Todavía no hay modelos listos. Crea uno en el <link>estudio</link> y commitea una versión: un disparador siempre ejecuta una versión commiteada, nunca un borrador.",
       "selectModel": "Selecciona un modelo...",
       "versionLabel": "Versión *",
       "loadingVersions": "Cargando versiones...",

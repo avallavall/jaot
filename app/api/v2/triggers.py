@@ -106,6 +106,45 @@ def _mask_secret(value: str | None, length: int = 8) -> str | None:
     return value[:length] + "..."
 
 
+def _verify_project_version(db: Any, body: TriggerCreate, org_id: str) -> None:
+    """The pinned project version must exist, belong to that project, and be ours.
+
+    Org-scoped on the PROJECT, which is what carries the tenancy: a version row
+    is reachable only through its project, so checking the project is what keeps
+    one organization from pinning another's model. A 404 either way — telling a
+    caller "that exists but is not yours" is an oracle.
+    """
+    from app.models.model_project import ModelProject, ModelProjectVersion  # noqa: PLC0415
+
+    project = (
+        db.query(ModelProject.id)
+        .filter(
+            ModelProject.id == body.model_project_id,
+            ModelProject.organization_id == org_id,
+        )
+        .first()
+    )
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Model project not found",
+        )
+
+    version = (
+        db.query(ModelProjectVersion.id)
+        .filter(
+            ModelProjectVersion.id == body.model_project_version_id,
+            ModelProjectVersion.model_project_id == body.model_project_id,
+        )
+        .first()
+    )
+    if not version:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Model version not found",
+        )
+
+
 def _trigger_to_response(trigger: SolveTrigger) -> dict[str, Any]:
     """Build response dict with masked secret prefixes."""
     return {
@@ -114,8 +153,11 @@ def _trigger_to_response(trigger: SolveTrigger) -> dict[str, Any]:
         "created_by": trigger.created_by,
         "name": trigger.name,
         "description": trigger.description,
+        "source": trigger.trigger_source,
         "document_id": trigger.document_id,
         "version_id": trigger.version_id,
+        "model_project_id": trigger.model_project_id,
+        "model_project_version_id": trigger.model_project_version_id,
         "trigger_secret_prefix": _mask_secret(trigger.trigger_secret),
         "override_schema": trigger.override_schema,
         "webhook_url": trigger.webhook_url,
@@ -150,35 +192,40 @@ def create_trigger(
     If the pinned version is unnamed, it is automatically promoted to
     a named version to protect it from the retention pruning policy.
     """
-    # Verify the document belongs to this org
-    doc = builder_document_or_404(db, body.document_id, org.id)
+    # A studio project pins a committed ModelProjectVersion; a builder document
+    # pins a version snapshot. The schema guarantees exactly one pair arrived, so
+    # each branch only has to prove the pair is this org's and that it holds.
+    if body.model_project_version_id:
+        _verify_project_version(db, body, org.id)
+    else:
+        doc = builder_document_or_404(db, body.document_id, org.id)
 
-    # Verify the version belongs to the document
-    version = (
-        db.query(ModelVersion)
-        .filter(
-            ModelVersion.id == body.version_id,
-            ModelVersion.document_id == body.document_id,
-            ModelVersion.organization_id == org.id,
+        # Verify the version belongs to the document
+        version = (
+            db.query(ModelVersion)
+            .filter(
+                ModelVersion.id == body.version_id,
+                ModelVersion.document_id == body.document_id,
+                ModelVersion.organization_id == org.id,
+            )
+            .first()
         )
-        .first()
-    )
-    if not version:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Model version not found",
-        )
+        if not version:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Model version not found",
+            )
 
-    # Auto-promote unnamed versions to named to protect from pruning
-    if not version.is_named:
-        version.is_named = True
-        version.version_name = f"Pinned for trigger: {body.name}"
-        db.flush()
+        # Auto-promote unnamed versions to named to protect from pruning
+        if not version.is_named:
+            version.is_named = True
+            version.version_name = f"Pinned for trigger: {body.name}"
+            db.flush()
 
-    # Backfill model_json if version was created before the model_json column existed
-    if version.model_json is None and doc.model_json is not None:
-        version.model_json = doc.model_json
-        db.flush()
+        # Backfill model_json if version was created before the model_json column existed
+        if version.model_json is None and doc.model_json is not None:
+            version.model_json = doc.model_json
+            db.flush()
 
     plaintext_secret = secrets.token_hex(32)
     secret_hash = _hash_secret(plaintext_secret)
@@ -199,6 +246,8 @@ def create_trigger(
         description=body.description,
         document_id=body.document_id,
         version_id=body.version_id,
+        model_project_id=body.model_project_id,
+        model_project_version_id=body.model_project_version_id,
         trigger_secret=secret_hash,
         override_schema=override_schema_data,
         webhook_url=webhook_url_str,

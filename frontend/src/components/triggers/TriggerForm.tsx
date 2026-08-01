@@ -4,7 +4,12 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { api } from "@/lib/api";
-import type { CreateTriggerRequest, OverrideField, BuilderDocumentListItem, ModelVersionListItem } from "@/lib/types";
+import type {
+  CreateTriggerRequest,
+  OverrideField,
+  ProjectListItem,
+  ProjectVersionSummary,
+} from "@/lib/types";
 import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { useRoleDisplayName } from "@/components/workspaces/PermissionTooltip";
 import { Button } from "@/components/ui/button";
@@ -43,22 +48,26 @@ export function TriggerForm({ onSuccess, workspaceId }: TriggerFormProps) {
   const [webhookSecret, setWebhookSecret] = useState("");
   const [overrideSchema, setOverrideSchema] = useState<OverrideField[]>([]);
 
-  const [documents, setDocuments] = useState<BuilderDocumentListItem[]>([]);
-  const [selectedDocumentId, setSelectedDocumentId] = useState("");
-  const [versions, setVersions] = useState<ModelVersionListItem[]>([]);
+  // Studio projects, not builder documents: the studio is where models are built
+  // since the P1.5 fusion, and it never creates a builder document — so a form
+  // that listed those could not automate anything anyone had made.
+  const [projects, setProjects] = useState<ProjectListItem[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState("");
+  const [versions, setVersions] = useState<ProjectVersionSummary[]>([]);
   const [selectedVersionId, setSelectedVersionId] = useState("");
 
   const [loadingDocs, setLoadingDocs] = useState(true);
   const [loadingVersions, setLoadingVersions] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Load builder documents on mount
+  // Load the organisation's studio models on mount. Only committed ones can be
+  // pinned: a trigger fires an immutable version, never the mutable draft.
   useEffect(() => {
     const load = async () => {
       setLoadingDocs(true);
       try {
-        const docs = await api.listBuilderDocuments(workspaceId);
-        setDocuments(docs);
+        const all = await api.listProjects({ status: "active" }, workspaceId);
+        setProjects(all.filter((p) => p.committed_count > 0));
       } catch (err) {
         toast.error(err instanceof Error ? err.message : t("loadModelsError"));
       } finally {
@@ -70,7 +79,7 @@ export function TriggerForm({ onSuccess, workspaceId }: TriggerFormProps) {
 
   // Load versions when document changes
   useEffect(() => {
-    if (!selectedDocumentId) {
+    if (!selectedProjectId) {
       setVersions([]);
       setSelectedVersionId("");
       return;
@@ -79,7 +88,7 @@ export function TriggerForm({ onSuccess, workspaceId }: TriggerFormProps) {
       setLoadingVersions(true);
       setSelectedVersionId("");
       try {
-        const vers = await api.listVersions(selectedDocumentId, { limit: 50 }, workspaceId);
+        const vers = await api.listProjectVersions(selectedProjectId, { limit: 50 }, workspaceId);
         setVersions(vers);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : t("loadVersionsError"));
@@ -88,7 +97,7 @@ export function TriggerForm({ onSuccess, workspaceId }: TriggerFormProps) {
       }
     };
     load();
-  }, [selectedDocumentId, workspaceId, t]);
+  }, [selectedProjectId, workspaceId, t]);
 
   const validateUrl = (url: string) => {
     try {
@@ -106,7 +115,7 @@ export function TriggerForm({ onSuccess, workspaceId }: TriggerFormProps) {
       toast.error(t("nameRequired"));
       return;
     }
-    if (!selectedDocumentId) {
+    if (!selectedProjectId) {
       toast.error(t("selectModelError"));
       return;
     }
@@ -128,8 +137,8 @@ export function TriggerForm({ onSuccess, workspaceId }: TriggerFormProps) {
       const body: CreateTriggerRequest = {
         name: name.trim(),
         description: description.trim() || undefined,
-        document_id: selectedDocumentId,
-        version_id: selectedVersionId,
+        model_project_id: selectedProjectId,
+        model_project_version_id: selectedVersionId,
         webhook_url: webhookUrl.trim(),
         webhook_secret: webhookSecret.trim() || undefined,
         override_schema: overrideSchema.length > 0 ? overrideSchema : undefined,
@@ -182,23 +191,27 @@ export function TriggerForm({ onSuccess, workspaceId }: TriggerFormProps) {
               <Loader2 className="w-4 h-4 animate-spin" />
               {t("loadingModels")}
             </div>
-          ) : documents.length === 0 ? (
+          ) : projects.length === 0 ? (
+            /* Points at the studio, not the retired /builder. The list is
+               already narrowed to models with a commit, so "none yet" here also
+               covers "you have models but none is committed" — which is why the
+               copy talks about committing, not only about creating. */
             <p className="text-sm text-muted-foreground">
               {t.rich("noModels", {
                 link: (chunks) => (
-                  <Link href="/builder/" className="text-primary underline">{chunks}</Link>
+                  <Link href="/studio" className="text-primary underline">{chunks}</Link>
                 ),
               })}
             </p>
           ) : (
-            <Select value={selectedDocumentId} onValueChange={setSelectedDocumentId} disabled={!canEdit}>
+            <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={!canEdit}>
               <SelectTrigger>
                 <SelectValue placeholder={t("selectModel")} />
               </SelectTrigger>
               <SelectContent>
-                {documents.map((doc) => (
-                  <SelectItem key={doc.id} value={doc.id}>
-                    {doc.name}
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -206,7 +219,7 @@ export function TriggerForm({ onSuccess, workspaceId }: TriggerFormProps) {
           )}
         </div>
 
-        {selectedDocumentId && (
+        {selectedProjectId && (
           <div className="space-y-2">
             <Label>{t("versionLabel")}</Label>
             {loadingVersions ? (
@@ -226,9 +239,10 @@ export function TriggerForm({ onSuccess, workspaceId }: TriggerFormProps) {
                 <SelectContent>
                   {versions.map((ver) => (
                     <SelectItem key={ver.id} value={ver.id}>
-                      {ver.version_name
-                        ? `v${ver.sequence} \u00b7 ${ver.version_name}`
-                        : `v${ver.sequence} \u00b7 ${ver.change_summary || "Unnamed checkpoint"}`}
+                      {/* A committed version always carries its message \u2014 the
+                          studio makes it mandatory \u2014 so there is no unnamed
+                          case to fall back from, unlike builder snapshots. */}
+                      {`v${ver.sequence} \u00b7 ${ver.commit_summary}`}
                     </SelectItem>
                   ))}
                 </SelectContent>

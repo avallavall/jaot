@@ -1016,8 +1016,17 @@ export interface TriggerRun {
 export interface CreateTriggerRequest {
   name: string;
   description?: string;
-  document_id: string;
-  version_id: string;
+  /**
+   * A trigger fires one model, pinned to one immutable version. Send EITHER the
+   * builder pair (document_id + version_id) or the studio pair
+   * (model_project_id + model_project_version_id) — the server rejects both and
+   * neither. New triggers use the studio pair; the builder pair remains only for
+   * the ones created before the studio could be automated at all.
+   */
+  document_id?: string;
+  version_id?: string;
+  model_project_id?: string;
+  model_project_version_id?: string;
   override_schema?: _OverrideField[];
   webhook_url: string;
   webhook_secret?: string;

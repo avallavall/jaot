@@ -948,3 +948,207 @@ class TestTriggerCrossOrgIsolation:
 
         response = authenticated_client.get(_triggers_url(f"/{trigger2.id}/runs"))
         assert response.status_code == 404
+
+
+def _create_studio_project(db: Session, org: Organization, *, committed: bool = True):
+    """A studio ModelProject and, unless told otherwise, one committed version.
+
+    The model solves to a known optimum (11 at x=3, y=1), so a fired trigger can
+    be checked on its answer and not merely on its status.
+    """
+    from app.models.model_project import ModelProject, ModelProjectVersion
+
+    model_json = {
+        "name": "trigger_studio_model",
+        "variables": [
+            {"name": "x", "type": "continuous", "lower_bound": 0},
+            {"name": "y", "type": "continuous", "lower_bound": 0},
+        ],
+        "objective": {"sense": "maximize", "expression": "3*x + 2*y"},
+        "constraints": [
+            {"name": "c1", "expression": "x + y <= 4"},
+            {"name": "cap_x", "expression": "x <= 3"},
+        ],
+    }
+    project = ModelProject(
+        id=generate_id("mp_"),
+        organization_id=org.id,
+        name="Studio model for triggers",
+        status="active",
+        draft_model_json=model_json,
+    )
+    db.add(project)
+    db.flush()
+    version = None
+    if committed:
+        version = ModelProjectVersion(
+            id=generate_id("mpv_"),
+            model_project_id=project.id,
+            organization_id=org.id,
+            sequence=1,
+            commit_summary="v1",
+            content_hash="hash_studio_trigger",
+            model_json=model_json,
+        )
+        db.add(version)
+        db.flush()
+    db.commit()
+    return project, version
+
+
+class TestTriggersOnStudioModels:
+    """# CONTRACT-TEST: a trigger can automate a model built in the studio.
+
+    `document_id` was a NOT NULL foreign key to `model_builder_documents` and the
+    studio never creates one, so nothing anyone built since the P1.5 fusion — when
+    the studio became the one place models are built — could be automated at all.
+    The trigger form listed builder documents and the empty state linked to
+    /builder, an area already taken out of the menu.
+    """
+
+    def test_a_studio_project_can_be_triggered(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization: Organization,
+    ):
+        project, version = _create_studio_project(db_session, test_organization)
+
+        response = authenticated_client.post(
+            _triggers_url("/"),
+            json={
+                "name": "Nightly re-plan",
+                "model_project_id": project.id,
+                "model_project_version_id": version.id,
+                "webhook_url": "https://example.com/hook",
+            },
+        )
+        assert response.status_code == 201, response.text
+        data = response.json()
+        assert data["source"] == "project"
+        assert data["model_project_version_id"] == version.id
+        assert data["document_id"] is None
+
+        stored = db_session.query(SolveTrigger).filter(SolveTrigger.id == data["id"]).one()
+        assert stored.model_project_version_id == version.id
+        assert stored.trigger_source == "project"
+
+    def test_the_worker_solves_the_pinned_project_version(
+        self,
+        db_session: Session,
+        test_organization: Organization,
+    ):
+        """The run must reach the model, not just the row. Asserted on the model
+        the worker resolved, which is where the builder-only lookup used to end."""
+        from app.tasks.trigger_tasks import _pinned_model_json
+
+        project, version = _create_studio_project(db_session, test_organization)
+        trigger = SolveTrigger(
+            id=generate_id("trg_"),
+            organization_id=test_organization.id,
+            name="Resolve check",
+            model_project_id=project.id,
+            model_project_version_id=version.id,
+            trigger_secret=_hash("s"),
+            webhook_url="https://example.com/hook",
+        )
+        db_session.add(trigger)
+        db_session.commit()
+
+        resolved = _pinned_model_json(db_session, trigger)
+        assert resolved is not None
+        assert resolved["objective"]["expression"] == "3*x + 2*y"
+        assert {v["name"] for v in resolved["variables"]} == {"x", "y"}
+
+    def test_a_vanished_project_version_fails_the_run_instead_of_solving(
+        self,
+        db_session: Session,
+        test_organization: Organization,
+    ):
+        """The database will not let this row exist — the foreign key is RESTRICT,
+        so a pinned version cannot be deleted from under a live trigger. The
+        object is therefore left unpersisted on purpose: what is pinned here is
+        the worker's behaviour if it ever does happen, which must be to fail the
+        run rather than solve an empty model."""
+        from app.tasks.trigger_tasks import _pinned_model_json
+
+        project, _ = _create_studio_project(db_session, test_organization, committed=False)
+        trigger = SolveTrigger(
+            id=generate_id("trg_"),
+            organization_id=test_organization.id,
+            name="Dangling",
+            model_project_id=project.id,
+            model_project_version_id="mpv_does_not_exist",
+            trigger_secret=_hash("s"),
+            webhook_url="https://example.com/hook",
+        )
+
+        assert _pinned_model_json(db_session, trigger) is None
+
+    def test_both_sources_at_once_is_refused(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization: Organization,
+        test_user: User,
+    ):
+        """Ambiguity is refused rather than resolved by a precedence rule the
+        caller never saw and would learn about from the solve."""
+        doc = _create_doc(db_session, test_organization, test_user)
+        ver = _create_version(db_session, doc)
+        project, version = _create_studio_project(db_session, test_organization)
+
+        response = authenticated_client.post(
+            _triggers_url("/"),
+            json={
+                "name": "Both",
+                "document_id": doc.id,
+                "version_id": ver.id,
+                "model_project_id": project.id,
+                "model_project_version_id": version.id,
+                "webhook_url": "https://example.com/hook",
+            },
+        )
+        assert response.status_code == 422
+
+    def test_another_orgs_project_is_a_404(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization_2: Organization,
+    ):
+        """Multi-tenancy: the project carries the tenancy, so it is what is checked."""
+        project, version = _create_studio_project(db_session, test_organization_2)
+
+        response = authenticated_client.post(
+            _triggers_url("/"),
+            json={
+                "name": "Not mine",
+                "model_project_id": project.id,
+                "model_project_version_id": version.id,
+                "webhook_url": "https://example.com/hook",
+            },
+        )
+        assert response.status_code == 404
+        assert db_session.query(SolveTrigger).count() == 0
+
+    def test_a_version_from_another_project_is_a_404(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization: Organization,
+    ):
+        """Pinning our own project to someone else's version must not work either."""
+        mine, _ = _create_studio_project(db_session, test_organization)
+        other, other_version = _create_studio_project(db_session, test_organization)
+
+        response = authenticated_client.post(
+            _triggers_url("/"),
+            json={
+                "name": "Crossed",
+                "model_project_id": mine.id,
+                "model_project_version_id": other_version.id,
+                "webhook_url": "https://example.com/hook",
+            },
+        )
+        assert response.status_code == 404

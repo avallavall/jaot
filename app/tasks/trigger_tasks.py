@@ -77,32 +77,11 @@ def trigger_solve_task(
         db.commit()
         logger.info("TriggerRun %s started (trigger=%s)", run_id, trigger_id)
 
-        from app.models.builder_document import ModelBuilderDocument  # noqa: PLC0415
-        from app.models.model_version import ModelVersion  # noqa: PLC0415
-
-        version = db.query(ModelVersion).filter(ModelVersion.id == trigger.version_id).first()
-        if not version:
+        base_model_json = _pinned_model_json(db, trigger)
+        if base_model_json is None:
             _fail_run(db, run, "Pinned model version not found")
             _deliver_webhook(trigger, run, "trigger.execution.failed")
             return {"status": "failed"}
-
-        # Use version's model_json if available (pinned at checkpoint time);
-        # fall back to the document's model_json for pre-migration versions.
-        base_model_json: dict[str, Any] = {}
-        if version.model_json:
-            base_model_json = dict(version.model_json)
-        else:
-            # Fallback for pre-migration versions without model_json
-            doc = (
-                db.query(ModelBuilderDocument)
-                .filter(ModelBuilderDocument.id == trigger.document_id)
-                .first()
-            )
-            if doc and doc.model_json:
-                base_model_json = dict(doc.model_json)
-            elif version.canvas_json:
-                # Canvas JSON is not directly solvable but preserve it as context
-                base_model_json = {"canvas": version.canvas_json}
 
         from app.services.trigger_service import apply_overrides  # noqa: PLC0415
 
@@ -297,6 +276,51 @@ def trigger_solve_task(
 
     finally:
         db.close()
+
+
+def _pinned_model_json(db: Any, trigger: Any) -> dict[str, Any] | None:
+    """The model this trigger fires, whichever kind of model it pins.
+
+    ``None`` means the pinned version is gone — the caller fails the run rather
+    than solving something the trigger did not ask for.
+
+    A studio project pins a committed ``ModelProjectVersion``, which always
+    carries ``model_json``. A builder document pins a version snapshot, which may
+    not: those predate the column, so that path keeps its two fallbacks (the
+    document's own JSON, then the canvas as context).
+    """
+    if trigger.trigger_source == "project":
+        from app.models.model_project import ModelProjectVersion  # noqa: PLC0415
+
+        version = (
+            db.query(ModelProjectVersion)
+            .filter(ModelProjectVersion.id == trigger.model_project_version_id)
+            .first()
+        )
+        if not version:
+            return None
+        return dict(version.model_json or {})
+
+    from app.models.builder_document import ModelBuilderDocument  # noqa: PLC0415
+    from app.models.model_version import ModelVersion  # noqa: PLC0415
+
+    version = db.query(ModelVersion).filter(ModelVersion.id == trigger.version_id).first()
+    if not version:
+        return None
+    if version.model_json:
+        return dict(version.model_json)
+
+    doc = (
+        db.query(ModelBuilderDocument)
+        .filter(ModelBuilderDocument.id == trigger.document_id)
+        .first()
+    )
+    if doc and doc.model_json:
+        return dict(doc.model_json)
+    if version.canvas_json:
+        # Canvas JSON is not directly solvable but preserve it as context.
+        return {"canvas": version.canvas_json}
+    return {}
 
 
 def _fail_run(db: Any, run: Any, error: str) -> None:
