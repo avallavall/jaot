@@ -472,11 +472,12 @@ html {
 
 /* Sonner — keep the toast stack inside the viewport on a phone.
    Its own mobile rule sets `width: 100%` on the fixed container AND a left and a
-   right offset, so the box ends up wider than the screen and drags the whole
-   page into horizontal scroll (reported at 390x844). Take the offsets out of the
-   width instead of fighting the positioning. */
+   right offset, so at 390px the box claims 16px it does not own. Take the
+   offsets out of the width instead of fighting the positioning.
+   The selector is doubled on purpose: sonner injects its stylesheet at runtime,
+   after this one, so an equally specific rule would lose on order. */
 @media (max-width: 600px) {
-  [data-sonner-toaster] {
+  [data-sonner-toaster][data-sonner-toaster] {
     width: calc(100% - var(--mobile-offset-left) - var(--mobile-offset-right));
     max-width: 100%;
   }

@@ -2195,17 +2195,35 @@
       "pageOf": "Página {page} de {totalPages}",
       "loading": "Cargando…",
       "eventTypes": {
-        "user.signup": "Registro",
-        "user.login": "Inicio de sesión",
-        "org.create": "Organización creada",
-        "solver.solve": "Resolución",
-        "model.create": "Modelo creado",
-        "ai_builder.message": "Mensaje al asistente de IA",
-        "mcp.tool_call": "Llamada de herramienta MCP",
-        "marketplace.activate": "Adopción en el marketplace",
-        "marketplace.publish": "Publicación en el marketplace",
-        "template.use": "Plantilla usada",
-        "schedule.create": "Programación creada"
+        "user": {
+          "signup": "Registro",
+          "login": "Inicio de sesión"
+        },
+        "org": {
+          "create": "Organización creada"
+        },
+        "solver": {
+          "solve": "Resolución"
+        },
+        "model": {
+          "create": "Modelo creado"
+        },
+        "ai_builder": {
+          "message": "Mensaje al asistente de IA"
+        },
+        "mcp": {
+          "tool_call": "Llamada de herramienta MCP"
+        },
+        "marketplace": {
+          "activate": "Adopción en el marketplace",
+          "publish": "Publicación en el marketplace"
+        },
+        "template": {
+          "use": "Plantilla usada"
+        },
+        "schedule": {
+          "create": "Programación creada"
+        }
       },
       "domains": {
         "Solver": "Solver",

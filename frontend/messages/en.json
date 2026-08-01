@@ -2195,17 +2195,35 @@
       "pageOf": "Page {page} of {totalPages}",
       "loading": "Loading…",
       "eventTypes": {
-        "user.signup": "Sign-up",
-        "user.login": "Sign-in",
-        "org.create": "Organization created",
-        "solver.solve": "Solve",
-        "model.create": "Model created",
-        "ai_builder.message": "AI assistant message",
-        "mcp.tool_call": "MCP tool call",
-        "marketplace.activate": "Marketplace adoption",
-        "marketplace.publish": "Marketplace publication",
-        "template.use": "Template used",
-        "schedule.create": "Schedule created"
+        "user": {
+          "signup": "Sign-up",
+          "login": "Sign-in"
+        },
+        "org": {
+          "create": "Organization created"
+        },
+        "solver": {
+          "solve": "Solve"
+        },
+        "model": {
+          "create": "Model created"
+        },
+        "ai_builder": {
+          "message": "AI assistant message"
+        },
+        "mcp": {
+          "tool_call": "MCP tool call"
+        },
+        "marketplace": {
+          "activate": "Marketplace adoption",
+          "publish": "Marketplace publication"
+        },
+        "template": {
+          "use": "Template used"
+        },
+        "schedule": {
+          "create": "Schedule created"
+        }
       },
       "domains": {
         "Solver": "Solver",

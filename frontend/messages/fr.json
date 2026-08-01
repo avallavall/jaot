@@ -2195,17 +2195,35 @@
       "pageOf": "Page {page} sur {totalPages}",
       "loading": "Chargement…",
       "eventTypes": {
-        "user.signup": "Inscription",
-        "user.login": "Connexion",
-        "org.create": "Organisation créée",
-        "solver.solve": "Résolution",
-        "model.create": "Modèle créé",
-        "ai_builder.message": "Message à l’assistant IA",
-        "mcp.tool_call": "Appel d’outil MCP",
-        "marketplace.activate": "Adoption sur la place de marché",
-        "marketplace.publish": "Publication sur la place de marché",
-        "template.use": "Modèle utilisé",
-        "schedule.create": "Planification créée"
+        "user": {
+          "signup": "Inscription",
+          "login": "Connexion"
+        },
+        "org": {
+          "create": "Organisation créée"
+        },
+        "solver": {
+          "solve": "Résolution"
+        },
+        "model": {
+          "create": "Modèle créé"
+        },
+        "ai_builder": {
+          "message": "Message à l’assistant IA"
+        },
+        "mcp": {
+          "tool_call": "Appel d’outil MCP"
+        },
+        "marketplace": {
+          "activate": "Adoption sur la place de marché",
+          "publish": "Publication sur la place de marché"
+        },
+        "template": {
+          "use": "Modèle utilisé"
+        },
+        "schedule": {
+          "create": "Planification créée"
+        }
       },
       "domains": {
         "Solver": "Solveur",

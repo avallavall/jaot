@@ -2195,17 +2195,35 @@
       "pageOf": "Pàgina {page} de {totalPages}",
       "loading": "Carregant…",
       "eventTypes": {
-        "user.signup": "Registre",
-        "user.login": "Inici de sessió",
-        "org.create": "Organització creada",
-        "solver.solve": "Resolució",
-        "model.create": "Model creat",
-        "ai_builder.message": "Missatge a l’assistent d’IA",
-        "mcp.tool_call": "Crida d’eina MCP",
-        "marketplace.activate": "Adopció al marketplace",
-        "marketplace.publish": "Publicació al marketplace",
-        "template.use": "Plantilla usada",
-        "schedule.create": "Programació creada"
+        "user": {
+          "signup": "Registre",
+          "login": "Inici de sessió"
+        },
+        "org": {
+          "create": "Organització creada"
+        },
+        "solver": {
+          "solve": "Resolució"
+        },
+        "model": {
+          "create": "Model creat"
+        },
+        "ai_builder": {
+          "message": "Missatge a l’assistent d’IA"
+        },
+        "mcp": {
+          "tool_call": "Crida d’eina MCP"
+        },
+        "marketplace": {
+          "activate": "Adopció al marketplace",
+          "publish": "Publicació al marketplace"
+        },
+        "template": {
+          "use": "Plantilla usada"
+        },
+        "schedule": {
+          "create": "Programació creada"
+        }
       },
       "domains": {
         "Solver": "Solver",

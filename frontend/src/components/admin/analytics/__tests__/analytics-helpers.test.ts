@@ -59,10 +59,16 @@ describe("relativeTime", () => {
 describe("feature analytics translations", () => {
   const LOCALES = ["en", "es", "ca", "fr", "de"];
 
+  // CONTRACT-TEST: the entries must be NESTED, because next-intl splits a key on
+  // dots — a flat "solver.solve" entry is unreachable and silently falls back to
+  // the title-cased wire value, which is what shipped and what QA saw on screen.
   it.each(LOCALES)("%s names every event type the filters offer", (locale) => {
     const m = JSON.parse(readFileSync(join(process.cwd(), "messages", `${locale}.json`), "utf8"));
     const types = m.admin.featureAnalytics.eventTypes;
-    const missing = EVENT_TYPES.filter((et) => typeof types?.[et] !== "string");
+    const missing = EVENT_TYPES.filter((et) => {
+      const [group, leaf] = et.split(".");
+      return typeof types?.[group]?.[leaf] !== "string";
+    });
     expect(missing).toEqual([]);
   });
 });

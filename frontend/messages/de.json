@@ -2195,17 +2195,35 @@
       "pageOf": "Seite {page} von {totalPages}",
       "loading": "Wird geladen…",
       "eventTypes": {
-        "user.signup": "Registrierung",
-        "user.login": "Anmeldung",
-        "org.create": "Organisation erstellt",
-        "solver.solve": "Lösung",
-        "model.create": "Modell erstellt",
-        "ai_builder.message": "Nachricht an den KI-Assistenten",
-        "mcp.tool_call": "MCP-Werkzeugaufruf",
-        "marketplace.activate": "Übernahme aus dem Marktplatz",
-        "marketplace.publish": "Veröffentlichung im Marktplatz",
-        "template.use": "Vorlage verwendet",
-        "schedule.create": "Zeitplan erstellt"
+        "user": {
+          "signup": "Registrierung",
+          "login": "Anmeldung"
+        },
+        "org": {
+          "create": "Organisation erstellt"
+        },
+        "solver": {
+          "solve": "Lösung"
+        },
+        "model": {
+          "create": "Modell erstellt"
+        },
+        "ai_builder": {
+          "message": "Nachricht an den KI-Assistenten"
+        },
+        "mcp": {
+          "tool_call": "MCP-Werkzeugaufruf"
+        },
+        "marketplace": {
+          "activate": "Übernahme aus dem Marktplatz",
+          "publish": "Veröffentlichung im Marktplatz"
+        },
+        "template": {
+          "use": "Vorlage verwendet"
+        },
+        "schedule": {
+          "create": "Zeitplan erstellt"
+        }
       },
       "domains": {
         "Solver": "Solver",

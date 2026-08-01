@@ -58,6 +58,9 @@ export interface AnalyticsTranslator {
  * one added on the server shows up readable rather than blank.
  */
 export function formatEventType(eventType: string, t?: AnalyticsTranslator): string {
+  // The dot in "solver.solve" IS the nesting: next-intl splits a key on dots, so
+  // a flat `eventTypes["solver.solve"]` entry is simply unreachable — it looked
+  // translated in the locale file and rendered "Solver Solve" on screen.
   const key = `eventTypes.${eventType}`;
   if (t?.has(key)) return t(key);
   return eventType
