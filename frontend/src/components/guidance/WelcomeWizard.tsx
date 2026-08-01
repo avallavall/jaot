@@ -78,7 +78,10 @@ export function WelcomeWizard() {
     if (displayStep === 1) {
       await setSkillLevel(selectedSkill);
     }
-    await advanceWizard();
+    // The step AFTER the one on screen, not after the one stored: a brand-new
+    // account is stored at 0 while showing step 1, so advancing by one showed
+    // step 1 a second time and the first click appeared to do nothing.
+    await advanceWizard(displayStep + 1);
   }, [displayStep, selectedSkill, setSkillLevel, advanceWizard]);
 
   const handleSkip = useCallback(async () => {
@@ -96,7 +99,12 @@ export function WelcomeWizard() {
         <DialogPrimitive.Content
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
-          className="fixed top-[50%] left-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] rounded-lg border bg-background p-6 shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+          /* The dialog is centred with a translate, so anything taller than the
+             viewport used to spill off BOTH edges with nothing to scroll — and
+             "Next" is at the bottom. It never bit while the last step was three
+             buttons; it would the moment a step grew. Cap the height, let the
+             step body scroll, and keep the footer pinned. */
+          className="fixed top-[50%] left-[50%] z-50 flex max-h-[calc(100dvh-2rem)] w-full max-w-md translate-x-[-50%] translate-y-[-50%] flex-col rounded-lg border bg-background p-6 shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
         >
           <DialogPrimitive.Title className="sr-only">
             {t("guidance.wizardTitle")}
@@ -105,11 +113,11 @@ export function WelcomeWizard() {
             {t("guidance.wizardDescription")}
           </DialogPrimitive.Description>
 
-          <div className="mb-6">
+          <div className="mb-6 shrink-0">
             <StepIndicator current={displayStep} total={TOTAL_STEPS} />
           </div>
 
-          <div className="min-h-[220px]">
+          <div className="min-h-[220px] flex-1 overflow-y-auto">
             <WizardStepContent
               step={displayStep}
               selectedSkillLevel={selectedSkill}
@@ -117,7 +125,7 @@ export function WelcomeWizard() {
             />
           </div>
 
-          <div className="mt-6 flex items-center justify-between">
+          <div className="mt-6 flex shrink-0 items-center justify-between">
             <button
               type="button"
               onClick={handleSkip}

@@ -166,3 +166,39 @@ describe("WelcomeWizard copy", () => {
     }
   });
 });
+
+/**
+ * The step the wizard STORES and the step it SHOWS are different numbers: a
+ * fresh account is stored at 0 and shown step 1. Advancing by one from the
+ * stored value landed back on step 1, so the first "Next" a new account ever
+ * pressed changed nothing on screen. Measured in the browser before the fix:
+ * four clicks produced five renders, the first two identical.
+ */
+describe("WelcomeWizard advances", () => {
+  it("moves to the step after the one on screen, not after the one stored", async () => {
+    const advanceWizard = vi.fn().mockResolvedValue(undefined);
+    const setSkillLevel = vi.fn().mockResolvedValue(undefined);
+
+    vi.doMock("@/contexts/AuthContext", () => ({ useAuth: () => ({ isAuthenticated: true }) }));
+    vi.doMock("@/contexts/GuidanceContext", () => ({
+      useGuidance: () => ({
+        wizardStep: 0, // a brand-new account
+        wizardDismissed: false,
+        wizardCompleted: false,
+        isLoading: false,
+        skillLevel: "beginner",
+        setSkillLevel,
+        advanceWizard,
+        dismissWizard: vi.fn(),
+      }),
+    }));
+
+    const { WelcomeWizard } = await import("../WelcomeWizard");
+    const { default: userEvent } = await import("@testing-library/user-event");
+    render(<WelcomeWizard />);
+
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+
+    expect(advanceWizard).toHaveBeenCalledWith(2);
+  });
+});

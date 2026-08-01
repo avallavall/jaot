@@ -20,7 +20,8 @@ interface GuidanceContextValue {
   wizardCompleted: boolean;
   isLoading: boolean;
   setSkillLevel: (level: SkillLevel) => Promise<void>;
-  advanceWizard: () => Promise<void>;
+  /** Move to `target`, or one past the stored step when the caller has none. */
+  advanceWizard: (target?: number) => Promise<void>;
   dismissWizard: () => Promise<void>;
   restartWizard: () => Promise<void>;
 }
@@ -95,8 +96,12 @@ export function GuidanceProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const advanceWizard = useCallback(async () => {
-    const nextStep = Math.min(wizardStep + 1, 5);
+  // `target` exists because the stored step and the displayed step are not the
+  // same number: a fresh account is stored at 0 and shown step 1, so `+1` landed
+  // back on step 1 and the first "Next" changed nothing on screen. Callers that
+  // know which step the reader is looking at pass the one after it.
+  const advanceWizard = useCallback(async (target?: number) => {
+    const nextStep = Math.min(target ?? wizardStep + 1, 5);
     const completed = nextStep >= 5;
     setWizardStep(nextStep);
     if (completed) setWizardCompleted(true);
