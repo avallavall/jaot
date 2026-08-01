@@ -208,6 +208,75 @@ class TestHealth:
         assert any("incomplete" in w.lower() for w in stats.warnings)
 
 
+class TestUnboundednessRisk:
+    """# CONTRACT-TEST: the flag means "nothing stops this variable", not
+    "this variable has no upper bound".
+
+    Capping decision variables with capacity rows instead of with their own
+    bounds is the ordinary way to write a model, so reading the flag off the
+    bounds alone fired on almost everything — including models JAOT had just
+    solved to a finite optimum — and docked 15 health points each time, live in
+    the studio while the reader types.
+    """
+
+    _CAPPED_BY_ROWS = (
+        [
+            {"name": "x", "type": "continuous", "lower_bound": 0},
+            {"name": "y", "type": "continuous", "lower_bound": 0},
+        ],
+        {"sense": "maximize", "expression": "3*x + 2*y"},
+        [
+            {"name": "c1", "expression": "x + y <= 4"},
+            {"name": "c2", "expression": "x + 3*y <= 6"},
+            {"name": "cap_x", "expression": "x <= 3"},
+        ],
+    )
+
+    def test_rows_that_cap_a_variable_clear_the_flag(self):
+        """Optimum 11 at (3,1) — finite, and JAOT solves it."""
+        stats = compute(_p(_model(*self._CAPPED_BY_ROWS)))
+
+        assert not any("UNBOUNDED" in w for w in stats.warnings), stats.warnings
+        assert all(d.code != "unboundedness_risk" for d in stats.health.deductions)
+        assert stats.health.band == "A"
+
+    def test_a_variable_nothing_caps_is_still_flagged(self):
+        """Precision, not silence: drop the rows that hold x down and it returns."""
+        variables, objective, _ = self._CAPPED_BY_ROWS
+        stats = compute(_p(_model(variables, objective, [{"name": "c2", "expression": "y <= 6"}])))
+
+        assert any("UNBOUNDED" in w for w in stats.warnings), stats.warnings
+        assert any(d.code == "unboundedness_risk" for d in stats.health.deductions)
+
+    def test_a_row_capping_the_wrong_way_does_not_clear_it(self):
+        """`x >= 1` bounds x from below; maximizing x is still unbounded above."""
+        stats = compute(
+            _p(
+                _model(
+                    [{"name": "x", "type": "continuous"}],
+                    {"sense": "maximize", "expression": "x"},
+                    [{"name": "floor", "expression": "x >= 1"}],
+                )
+            )
+        )
+
+        assert any("UNBOUNDED" in w for w in stats.warnings), stats.warnings
+
+    def test_minimizing_reads_the_other_direction(self):
+        """Minimizing a positive coefficient improves downward, so a floor caps it."""
+        stats = compute(
+            _p(
+                _model(
+                    [{"name": "x", "type": "continuous"}],
+                    {"sense": "minimize", "expression": "x"},
+                    [{"name": "floor", "expression": "x >= 1"}],
+                )
+            )
+        )
+
+        assert not any("UNBOUNDED" in w for w in stats.warnings), stats.warnings
+
+
 class TestStatsEndpoint:
     def _create_with_draft(self, client: TestClient) -> str:
         pid = client.post("/api/v2/projects", json={"name": "S"}).json()["id"]

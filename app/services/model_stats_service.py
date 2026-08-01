@@ -133,6 +133,12 @@ def compute(problem: OptimizationProblem, *, content_hash: str | None = None) ->
     # one per row — a large broken import must not balloon stats_json with 10k+ strings.
     unparseable = 0
     unparseable_sample: list[str] = []
+    # Which variables some row already caps, and in which direction. Bounding the
+    # decision variables through capacity rows rather than through their own
+    # bounds is the normal way to write a model, so the unboundedness flag below
+    # cannot be read off the bounds alone.
+    capped_up: set[str] = set()
+    capped_down: set[str] = set()
     for c in problem.constraints:
         if c.name is None or c.name == "":
             missing_names += 1
@@ -156,6 +162,19 @@ def compute(problem: OptimizationProblem, *, content_hash: str | None = None) ->
                 continue
             coefs.append(abs(t.coefficient))
             used_vars.update(t.variables)
+            # `a*x <= rhs` caps x from above when a > 0 and from below when a < 0;
+            # `>=` is the mirror; `==` caps both ways. Single-variable terms only —
+            # a bilinear term says nothing about either factor on its own.
+            if len(t.variables) == 1:
+                name, a = t.variables[0], t.coefficient
+                op = parsed.operator
+                if op == "==":
+                    capped_up.add(name)
+                    capped_down.add(name)
+                elif op == "<=":
+                    (capped_up if a > 0 else capped_down).add(name)
+                elif op == ">=":
+                    (capped_down if a > 0 else capped_up).add(name)
         if math.isfinite(parsed.rhs) and parsed.rhs != 0.0:
             coefs.append(abs(parsed.rhs))
         # A row with no variable terms is `0 <op> rhs` — possibly trivially infeasible.
@@ -188,7 +207,18 @@ def compute(problem: OptimizationProblem, *, content_hash: str | None = None) ->
     # --- Disconnected variables (in no constraint and zero objective coefficient) ---
     disconnected = sum(1 for v in problem.variables if v.name not in used_vars)
 
-    # --- Unboundedness-risk heuristic (ignores constraint capping; flag only) ---
+    # --- Unboundedness risk: nothing at all stops this variable improving ---
+    # This used to look only at the declared bounds, and so fired on almost every
+    # legitimate model: capping decision variables with capacity rows instead of
+    # with their own upper bounds is the ordinary way to write one. Measured on
+    # `max 3x+2y ; x+y<=4 ; x+3y<=6 ; x<=3` — a model JAOT itself solves to a
+    # finite 11 — it reported two variables at risk, warned "may be UNBOUNDED"
+    # and docked the health score from A to B, live in the studio while you type.
+    #
+    # A row that caps the variable in the improving direction now clears it. That
+    # trades some recall for precision on purpose: a warning that cries wolf on
+    # every model is one nobody reads, and a genuinely unbounded model is named as
+    # such by the solver the moment it runs.
     sense = getattr(problem.objective.sense, "value", problem.objective.sense)
     unbounded_risk = 0
     for v in problem.variables:
@@ -198,9 +228,10 @@ def compute(problem: OptimizationProblem, *, content_hash: str | None = None) ->
         if v.type == VariableType.BINARY:
             continue
         improves_up = (c > 0) if sense == "maximize" else (c < 0)
-        if improves_up and v.upper_bound is None:
-            unbounded_risk += 1
-        elif (not improves_up) and v.lower_bound is None:
+        if improves_up:
+            if v.upper_bound is None and v.name not in capped_up:
+                unbounded_risk += 1
+        elif v.lower_bound is None and v.name not in capped_down:
             unbounded_risk += 1
 
     # --- Warnings (human-readable) ---
