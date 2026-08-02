@@ -15,6 +15,7 @@ import {
   Webhook,
   Users,
   ScrollText,
+  Scale,
   MessageSquare,
   Bug,
   LayoutTemplate,
@@ -51,6 +52,11 @@ export function useNavItems() {
     { label: t("nav.myModels"), href: "/studio", icon: <Zap className="w-4 h-4" /> },
     { label: t("nav.newModel"), href: "/studio/new", icon: <Plus className="w-4 h-4" /> },
     { label: t("nav.templates"), href: "/studio/templates", icon: <LayoutTemplate className="w-4 h-4" /> },
+    // Both of these are finished screens that nothing linked to: reachable only by
+    // typing the URL, so in practice they did not exist (owner, 2026-08-02: surface
+    // them rather than delete them).
+    { label: t("nav.multiObjective"), href: "/solve/multi-objective", icon: <Scale className="w-4 h-4" /> },
+    { label: t("nav.customSolve"), href: "/solve/custom", icon: <Wrench className="w-4 h-4" /> },
 
     { label: t("nav.discover"), href: "#", icon: null },
     { label: t("nav.marketplace"), href: "/marketplace", icon: <ShoppingBag className="w-4 h-4" /> },

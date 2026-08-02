@@ -2702,7 +2702,13 @@
       "next": "Siguiente",
       "failedToLoad": "Error al cargar las ejecuciones",
       "openSource": "Abrir origen",
-      "datasetBadge": "Dataset usado en esta ejecución"
+      "datasetBadge": "Dataset usado en esta ejecución",
+      "selectToCompare": "Seleccionar para comparar",
+      "selectRow": "Seleccionar la ejecución {id}",
+      "selectedCount": "{count, plural, one {# seleccionada} other {# seleccionadas}}",
+      "clearSelection": "Quitar",
+      "compareSelected": "Comparar",
+      "selectTwoHint": "Selecciona exactamente dos ejecuciones para comparar."
     },
     "execution": {
       "title": "Detalles de ejecución",

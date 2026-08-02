@@ -2727,7 +2727,13 @@
       "next": "Next",
       "failedToLoad": "Failed to load executions",
       "openSource": "Open origin",
-      "datasetBadge": "Dataset used for this run"
+      "datasetBadge": "Dataset used for this run",
+      "selectToCompare": "Select to compare",
+      "selectRow": "Select execution {id}",
+      "selectedCount": "{count, plural, one {# selected} other {# selected}}",
+      "clearSelection": "Clear",
+      "compareSelected": "Compare",
+      "selectTwoHint": "Select exactly two runs to compare."
     },
     "execution": {
       "title": "Execution Details",

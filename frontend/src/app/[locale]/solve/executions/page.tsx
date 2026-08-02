@@ -43,6 +43,17 @@ export default function ExecutionsPage() {
   const [total, setTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [originFilter, setOriginFilter] = useState<string>("");
+  // The comparison view is a finished screen that nothing linked to: the only way
+  // in was typing two execution ids into a free-text box on the analytics page.
+  // Pick two rows here instead (owner, 2026-08-02: surface it, do not delete it).
+  const [selected, setSelected] = useState<string[]>([]);
+
+  // The comparison view takes exactly two (`?a=&b=`), so selecting a third drops
+  // the oldest pick rather than silently refusing the click.
+  const toggleSelected = (id: string) =>
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id].slice(-2),
+    );
 
   const pageSize = 20;
 
@@ -140,11 +151,38 @@ export default function ExecutionsPage() {
         </div>
       )}
 
+      {!loading && selected.length > 0 && (
+        <div className="mb-3 flex items-center gap-3 rounded-md bg-muted/40 px-3 py-2 text-sm">
+          <span className="text-muted-foreground">
+            {t("selectedCount", { count: selected.length })}
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setSelected([])}>
+              {t("clearSelection")}
+            </Button>
+            <Button
+              size="sm"
+              disabled={selected.length !== 2}
+              title={selected.length !== 2 ? t("selectTwoHint") : undefined}
+              data-testid="executions-compare"
+              onClick={() =>
+                router.push(
+                  `/solve/executions/compare?a=${selected[0]}&b=${selected[1]}`,
+                )
+              }
+            >
+              {t("compareSelected")}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {!loading && (
         <div className="bg-card border rounded-lg overflow-hidden">
           <table className="w-full">
             <thead className="bg-muted/50">
               <tr>
+                <th className="w-10 px-4 py-3" aria-label={t("selectToCompare")} />
                 <th className="text-left px-4 py-3 text-sm font-medium">{t("tableHeaders.status")}</th>
                 <th className="text-left px-4 py-3 text-sm font-medium">{t("tableHeaders.origin")}</th>
                 <th className="text-left px-4 py-3 text-sm font-medium">{t("tableHeaders.model")}</th>
@@ -157,6 +195,16 @@ export default function ExecutionsPage() {
             <tbody>
               {executions.map((exec) => (
                 <tr key={exec.id} className="border-t hover:bg-muted/30">
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(exec.id)}
+                      onChange={() => toggleSelected(exec.id)}
+                      aria-label={t("selectRow", { id: exec.id })}
+                      data-testid="execution-select"
+                      className="h-4 w-4 accent-primary"
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(exec.status)}`}>
                       {statusLabel(exec.status)}

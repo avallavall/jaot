@@ -2702,7 +2702,13 @@
       "next": "Weiter",
       "failedToLoad": "Ausführungen konnten nicht geladen werden",
       "openSource": "Quelle öffnen",
-      "datasetBadge": "Für diesen Lauf verwendeter Datensatz"
+      "datasetBadge": "Für diesen Lauf verwendeter Datensatz",
+      "selectToCompare": "Zum Vergleichen auswählen",
+      "selectRow": "Ausführung {id} auswählen",
+      "selectedCount": "{count, plural, one {# ausgewählt} other {# ausgewählt}}",
+      "clearSelection": "Aufheben",
+      "compareSelected": "Vergleichen",
+      "selectTwoHint": "Wähle genau zwei Ausführungen zum Vergleichen."
     },
     "execution": {
       "title": "Ausführungsdetails",
