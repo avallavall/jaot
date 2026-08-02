@@ -31,6 +31,7 @@ from app.domains.solver.constraint_activity import (
     is_binding as is_binding_at,
     is_binding_within_bounds,
 )
+from app.domains.solver.reduced_cost import derive_reduced_costs
 from app.domains.solver.services.expression_parser import ExpressionParser, ParsedExpression
 from app.schemas.optimization import (
     ConstraintSensitivity,
@@ -603,8 +604,23 @@ class SCIPAdapter:
                 )
             )
 
+        # Reduced costs come from the duals just published, not from the solver's
+        # own basis: with a cap written as a row SCIP bills that price twice, once
+        # as the row's dual and again here. See reduced_cost.py for the numbers.
+        derived_reduced_costs = (
+            derive_reduced_costs(
+                problem,
+                {c.name: c.shadow_price for c in constraint_sensitivities},
+                self._parser,
+            )
+            if problem is not None
+            else {}
+        )
+
         variable_sensitivities = (
-            self._extract_variable_sensitivity(model, var_refs, problem, is_approximate)
+            self._extract_variable_sensitivity(
+                model, var_refs, problem, is_approximate, derived_reduced_costs
+            )
             if var_refs
             else []
         )
@@ -626,13 +642,20 @@ class SCIPAdapter:
         var_refs: dict[str, Any],
         problem: OptimizationProblem | None,
         is_approximate: bool,
+        derived_reduced_costs: dict[str, float] | None = None,
     ) -> list[VariableSensitivity]:
         """Per-variable reduced costs + at-bound flags from a solved LP model.
+
+        The reduced cost is the one implied by the shadow prices we publish
+        (``derived_reduced_costs``), so the two halves of the Sensitivity tab agree;
+        ``getVarRedcost`` is the fallback for models the derivation cannot price —
+        quadratic ones, or any row whose dual is missing.
 
         ``getVarRedcost`` may be absent on some PySCIPOpt builds, and ``getVal``
         can fail mid-extraction; both are guarded so a single variable never
         aborts the whole sensitivity result.
         """
+        derived_reduced_costs = derived_reduced_costs or {}
         bounds: dict[str, tuple[float | None, float | None]] = {}
         if problem is not None:
             for v in problem.variables:
@@ -645,12 +668,13 @@ class SCIPAdapter:
 
         variable_sensitivities: list[VariableSensitivity] = []
         for name, var in var_refs.items():
-            reduced_cost = None
+            reduced_cost = derived_reduced_costs.get(name)
             is_at_bound = None
-            try:
-                reduced_cost = model.getVarRedcost(var)
-            except Exception as e:
-                logger.debug("Could not extract reduced cost for %s: %s", name, e)
+            if reduced_cost is None:
+                try:
+                    reduced_cost = model.getVarRedcost(var)
+                except Exception as e:
+                    logger.debug("Could not extract reduced cost for %s: %s", name, e)
             try:
                 value = model.getVal(var)
                 lb, ub = bounds.get(name, (None, None))
