@@ -45,7 +45,7 @@ jobs:
           # bit historically got lost on reset --hard (2026-07-07 incident).
           bash deploy/backup.sh
 
-      - name: Run DB migrations (additive-only)
+      - name: Run DB migrations
         run: |
           cd /opt/jaot
           # --build is REQUIRED. `compose run` reuses the migrate image from the
