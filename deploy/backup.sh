@@ -134,22 +134,30 @@ create_backup() {
         exit 1
     fi
 
-    # pg_restore --list reads TOC without restoring.
+    # Restore the whole archive to /dev/null: it decompresses every data block,
+    # so a dump truncated mid-write fails here. Measured on the 11 MB production
+    # dump: 171 ms, against 45 ms for the TOC-only check.
+    #
+    # Two things were wrong before. The check pointed at "/tmp/${FILENAME}"
+    # *inside* the container, but pg_dump above writes to the HOST by
+    # redirection and leaves no file in the container — so that exec always
+    # failed, fell through to a host-side pg_restore that is not installed, and
+    # logged "skipping integrity check". No backup was ever verified, while the
+    # deploy step claims a failed backup aborts the migration.
+    #
+    # And `--list` would not have been enough anyway: in the custom format the
+    # TOC sits at the head of the file, so listing it never reads the data.
+    # Measured against a dump truncated to 200 KB: `--list` passes it, `-f
+    # /dev/null` catches it. Truncation is the failure a disk filling up
+    # mid-dump produces, and it is exactly what the 0-byte test cannot see.
     log "Verifying backup integrity..."
-    if docker exec jaot_prod_postgres pg_restore --list "/tmp/${FILENAME}" > /dev/null 2>&1; then
-        log "Backup integrity verified (TOC readable)"
+    if docker exec -i jaot_prod_postgres pg_restore -f /dev/null \
+        < "${BACKUP_DIR}/daily/${FILENAME}" > /dev/null 2>&1; then
+        log "Backup integrity verified (full archive readable)"
     else
-        # Fall back to host-side verification since file is on host.
-        if command -v pg_restore &>/dev/null; then
-            pg_restore --list "${BACKUP_DIR}/daily/${FILENAME}" > /dev/null 2>&1 || {
-                log "ERROR: Backup integrity check FAILED -- dump may be corrupt"
-                send_failure_notification "Backup integrity verification failed for ${FILENAME}"
-                exit 1
-            }
-            log "Backup integrity verified (TOC readable)"
-        else
-            log "WARNING: pg_restore not available on host, skipping integrity check"
-        fi
+        log "ERROR: Backup integrity check FAILED -- dump may be corrupt"
+        send_failure_notification "Backup integrity verification failed for ${FILENAME}"
+        exit 1
     fi
 
     if [ -f /opt/jaot/.backup-key.gpg ]; then

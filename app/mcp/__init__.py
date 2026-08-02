@@ -98,8 +98,32 @@ def setup_mcp(app: FastAPI) -> FastApiMCP:
         describe_full_response_schema=True,
     )
     _install_tool_call_analytics(mcp)
+    _fix_server_identity(mcp, app)
     mcp.mount_http(mount_path="/mcp")
     return mcp
+
+
+def _fix_server_identity(mcp: FastApiMCP, app: FastAPI) -> None:
+    """Put the version in ``version`` and the description where clients read it.
+
+    The low-level server takes ``Server(name, version, instructions)``, but
+    fastapi-mcp 0.4.0 constructs it as ``Server(self.name, self.description)`` —
+    so the description lands in the version slot. Measured against production:
+    every client completing the handshake was told JAOT's version was a 722-char
+    paragraph, and ``instructions`` — the field a model actually reads to learn
+    what the server is for — arrived empty.
+
+    Best-effort and guarded: a library upgrade that fixes this upstream, or
+    renames the attribute, must degrade to "identity as the library set it",
+    never a boot crash.
+    """
+    server = getattr(mcp, "server", None)
+    if server is None:  # pragma: no cover - defensive against a lib change
+        logger.warning("fastapi-mcp exposes no .server; MCP serverInfo left as-is")
+        return
+    if getattr(server, "instructions", None) is None:
+        server.instructions = mcp.description
+    server.version = app.version
 
 
 def _install_tool_call_analytics(mcp: FastApiMCP) -> None:
