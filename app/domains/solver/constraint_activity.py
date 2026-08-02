@@ -32,6 +32,20 @@ rows rather than answering a question about a different problem.
 BINDING_EPS = 1e-6
 
 
+def activity_of(terms: list, solution: dict[str, float]) -> float:
+    """Evaluate a parsed left-hand side (constants already folded into the RHS)."""
+    total = 0.0
+    for term in terms:
+        if not term.variables:
+            total += term.coefficient
+            continue
+        value = term.coefficient
+        for var in term.variables:
+            value *= solution.get(var, 0.0)
+        total += value
+    return total
+
+
 def constraint_slack(activity: float, rhs: float, operator: str) -> float:
     """Signed room left over: ``0`` on the limit, positive when there is slack."""
     if operator in ("<=", "<"):

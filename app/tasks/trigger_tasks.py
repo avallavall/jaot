@@ -299,7 +299,13 @@ def _pinned_model_json(db: Any, trigger: Any) -> dict[str, Any] | None:
         )
         if not version:
             return None
-        return dict(version.model_json or {})
+        # `or {}` would turn "this version carries no model" into an empty problem,
+        # and the run would fail with "2 validation errors: variables, objective"
+        # — sending the operator to debug their overrides. None is the accurate
+        # answer, and the caller already reports it as a missing pinned version.
+        if not version.model_json:
+            return None
+        return dict(version.model_json)
 
     from app.models.builder_document import ModelBuilderDocument  # noqa: PLC0415
     from app.models.model_version import ModelVersion  # noqa: PLC0415

@@ -174,6 +174,41 @@ class TestHiGHSAdapterContract:
         binding = {c.name: c.is_binding for c in result.sensitivity.constraints}
         assert binding == {"cap": True, "fair": True, "room": False}, binding
 
+    # CONTRACT-TEST: a tight STRICT inequality is binding, not slack.
+    def test_highs_strict_inequality_on_its_bound_is_binding(self) -> None:
+        """`x < 5` is encoded as `x <= 5 - STRICT_EPSILON`, and that offset is 1e-6.
+
+        Measuring slack from the un-offset rhs put a row resting on its real bound
+        at exactly BINDING_EPS (also 1e-6), and `abs(slack) < eps` is false there —
+        so every genuinely tight strict inequality read as slack.
+        """
+        from app.domains.solver.adapters.highs import HiGHSAdapter  # noqa: PLC0415
+        from app.schemas.optimization import (  # noqa: PLC0415
+            Constraint,
+            Objective,
+            ObjectiveSense,
+            OptimizationProblem,
+            Variable,
+            VariableType,
+        )
+
+        result = HiGHSAdapter().solve(
+            OptimizationProblem(
+                name="strict",
+                variables=[
+                    Variable(name="x", type=VariableType.CONTINUOUS, lower_bound=0, upper_bound=99)
+                ],
+                objective=Objective(sense=ObjectiveSense.MAXIMIZE, expression="x"),
+                constraints=[Constraint(name="cap", expression="x < 5")],
+            )
+        )
+        assert result.status == SolverStatus.OPTIMAL
+        assert result.sensitivity is not None
+        row = result.sensitivity.constraints[0]
+        assert row.is_binding is True, (
+            f"x is pinned at its strict bound ({result.solution['x']}) yet cap reads as slack"
+        )
+
     def test_highs_mip_has_no_dual_sensitivity(self) -> None:
         """MIP solves carry no meaningful HiGHS duals — sensitivity stays None.
 

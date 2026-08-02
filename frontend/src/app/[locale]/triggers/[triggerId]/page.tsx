@@ -267,14 +267,18 @@ function TriggerDetailPageInner() {
               <div className="divide-y">
                 <div className="flex items-start gap-4 px-4 py-3">
                   <div className="w-40 shrink-0 text-sm text-muted-foreground">{t("model")}</div>
+                  {/* A studio trigger carries model_project_id and leaves
+                      document_id null — reading only the latter rendered two
+                      permanently blank rows, so the page never named the model
+                      it fires. */}
                   <div className="text-sm font-mono break-all flex-1">
-                    {trigger.document_id}
+                    {trigger.model_project_id ?? trigger.document_id ?? "—"}
                   </div>
                 </div>
                 <div className="flex items-start gap-4 px-4 py-3">
                   <div className="w-40 shrink-0 text-sm text-muted-foreground">{t("pinnedVersion")}</div>
                   <div className="text-sm font-mono break-all flex-1">
-                    {trigger.version_id}
+                    {trigger.model_project_version_id ?? trigger.version_id ?? "—"}
                   </div>
                 </div>
                 <div className="flex items-start gap-4 px-4 py-3">

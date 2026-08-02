@@ -61,8 +61,12 @@ def upgrade() -> None:
     )
 
     # The builder pair becomes optional; existing rows are untouched.
-    op.alter_column("solve_triggers", "document_id", existing_type=sa.String(length=64), nullable=True)
-    op.alter_column("solve_triggers", "version_id", existing_type=sa.String(length=64), nullable=True)
+    op.alter_column(
+        "solve_triggers", "document_id", existing_type=sa.String(length=64), nullable=True
+    )
+    op.alter_column(
+        "solve_triggers", "version_id", existing_type=sa.String(length=64), nullable=True
+    )
 
 
 def downgrade() -> None:

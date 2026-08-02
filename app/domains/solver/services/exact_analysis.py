@@ -18,7 +18,7 @@ returned rows are capped, so a pathological model degrades to a truncated view
 rather than a slow request.
 """
 
-from app.domains.solver.constraint_activity import BINDING_EPS, constraint_slack
+from app.domains.solver.constraint_activity import BINDING_EPS, activity_of, constraint_slack
 from app.domains.solver.services.expression_parser import ExpressionParser, ParseError
 from app.schemas.optimization import (
     Constraint,
@@ -42,18 +42,9 @@ _MAX_CONTRIBUTIONS = 100
 _MAX_FAMILIES = 100
 
 
-def _activity(terms: list, solution: dict[str, float]) -> float:
-    """Evaluate a parsed LHS (constants already moved to the RHS) at x*."""
-    total = 0.0
-    for term in terms:
-        if not term.variables:
-            total += term.coefficient
-            continue
-        value = term.coefficient
-        for var in term.variables:
-            value *= solution.get(var, 0.0)
-        total += value
-    return total
+#: Evaluating a parsed LHS lives with the binding rule — the adapters need the
+#: same arithmetic to answer the same question about the same solution.
+_activity = activity_of
 
 
 def _constraint_family(constraint: Constraint, authoritative: bool) -> str | None:

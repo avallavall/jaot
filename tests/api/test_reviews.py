@@ -205,3 +205,46 @@ class TestTheReviewSurvivesItsNotification:
 
         # And it is stored exactly once — a retry would now hit the unique index.
         assert db_session.query(ModelReview).filter_by(model_project_id="rev_notify").count() == 1
+
+
+class TestTheProfileCountMatchesTheList:
+    """The public profile header and its review list must describe the same set.
+
+    The list drops a review whose model has left the marketplace — its row is a
+    link that would 404 — while the header counted every review the user ever
+    wrote. Withdraw one reviewed model and the page read "Reviews 2" above a
+    list of one.
+    """
+
+    # CONTRACT-TEST: profile review count == the reviews the profile shows.
+    def test_withdrawn_model_leaves_the_profile_consistent(
+        self, client, db_session, test_organization, test_user
+    ):
+        for pid in ("prof_visible", "prof_gone"):
+            _listing(db_session, test_organization, pid=pid)
+        db_session.flush()
+        for pid in ("prof_visible", "prof_gone"):
+            db_session.add(
+                ModelReview(
+                    id=f"rev_{pid}",
+                    model_project_id=pid,
+                    user_id=test_user.id,
+                    organization_id=test_organization.id,
+                    rating=5,
+                    title="Good",
+                    comment="Solid model, would use again.",
+                )
+            )
+        # One of the two models is withdrawn from the marketplace.
+        db_session.get(ModelProjectListing, "prof_gone").is_public = False
+        db_session.commit()
+
+        profile = client.get(f"/api/v2/users/{test_user.id}/public")
+        assert profile.status_code == 200, profile.text
+        listed = client.get(f"/api/v2/users/{test_user.id}/reviews")
+        assert listed.status_code == 200, listed.text
+
+        assert profile.json()["total_reviews"] == len(listed.json()), (
+            f"header says {profile.json()['total_reviews']}, list shows {len(listed.json())}"
+        )
+        assert len(listed.json()) == 1, "only the still-visible model's review is shown"

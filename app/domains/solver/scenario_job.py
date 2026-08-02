@@ -108,8 +108,10 @@ def claim_batch(
             ModelExecution.id == execution_id,
             ModelExecution.organization_id == organization_id,
         )
-        # `of=` because the row eager-joins an optional OrganizationModel and
-        # Postgres refuses a bare FOR UPDATE over the nullable side of a join.
+        # `of=` names the table to lock. The original reason — an eager join to an
+        # optional OrganizationModel, which Postgres refuses to FOR UPDATE over —
+        # went away with that table, but naming the row you mean stays correct and
+        # survives the next relationship someone adds here.
         .with_for_update(of=ModelExecution)
         .first()
     )

@@ -37,12 +37,20 @@ def get_user_public_profile(
 
     org = db.query(Organization).filter(Organization.id == user.organization_id).first()
 
+    # Count the reviews this profile actually SHOWS. The list below drops any
+    # review whose model has left the marketplace (its row is a link that would
+    # 404), so counting every review the user ever wrote put "Reviews 12" above
+    # a list of three the moment one model was withdrawn.
     review_stats = (
         db.query(
             func.count(ModelReview.id).label("total"),
             func.avg(ModelReview.rating).label("avg_rating"),
         )
-        .filter(ModelReview.user_id == user_id)
+        .join(
+            ModelProjectListing,
+            ModelProjectListing.model_project_id == ModelReview.model_project_id,
+        )
+        .filter(ModelReview.user_id == user_id, *MARKETPLACE_VISIBLE)
         .first()
     )
 

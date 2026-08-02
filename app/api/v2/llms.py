@@ -154,7 +154,8 @@ Solver status values: `optimal`, `feasible`, `infeasible`, `unbounded`, `time_li
 
 ### Validate — POST /api/v2/solve/validate
 
-Check a problem without solving.
+Check a problem without solving. Reports EVERY structural error it finds, so one
+call is enough to fix a model — `errors` is not limited to the first fault.
 
 **Response (valid):**
 ```json
@@ -169,13 +170,19 @@ Check a problem without solving.
 ```json
 {
   "valid": false,
-  "errors": ["Objective references undefined variables: {'unknown_var'}"]
+  "errors": [
+    "Objective references undefined variables: {'unknown_var'}",
+    "Variable x has invalid bounds: 5.0 > 1.0"
+  ]
 }
 ```
 
 ### Templates — GET /api/v2/solve/templates
 
-List available problem templates (public, no auth).
+List available problem templates (public, no auth). Paged: `page` (from 1) and
+`page_size` (25 by default, 200 max). `total` counts the whole catalog, not the
+page. Summaries carry `short_description`; the full description comes from the
+template detail endpoint.
 
 ```json
 {
@@ -183,10 +190,13 @@ List available problem templates (public, no auth).
     {
       "id": "knapsack",
       "display_name": "Knapsack Problem",
-      "description": "Select items to maximize value within a weight limit",
+      "short_description": "Select items to maximize value within a weight limit",
       "category": "combinatorial"
     }
-  ]
+  ],
+  "total": 102,
+  "page": 1,
+  "page_size": 25
 }
 ```
 
@@ -293,7 +303,7 @@ The MCP endpoint is public (no auth to connect). Individual tools that require a
 
 ### Example Workflow: Template Path
 
-1. `list_templates` — browse available templates
+1. `list_templates` — browse available templates (25 per page of 102; pass `page` for the rest)
 2. `get_template("knapsack")` — see input schema and example
 3. `solve_with_template("knapsack", {"capacity": 50, "items": [...]})` — solve
 

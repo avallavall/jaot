@@ -980,8 +980,13 @@ export interface SolveTrigger {
   created_by: string | null;
   name: string;
   description?: string;
-  document_id: string;
-  version_id: string;
+  /** Which kind of model this fires, so nullability never has to be inferred. */
+  source: "document" | "project";
+  /** Exactly one pair is populated — a studio trigger leaves document_id/version_id null. */
+  document_id: string | null;
+  version_id: string | null;
+  model_project_id?: string | null;
+  model_project_version_id?: string | null;
   workspace_id?: string | null;
   override_schema: _OverrideField[] | null;
   webhook_url: string;

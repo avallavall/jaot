@@ -38,6 +38,11 @@ function formatDate(dateStr: string): string {
   return date.toLocaleDateString();
 }
 
+/** The pinned version, whichever pair this trigger carries (studio or builder). */
+function pinnedVersionId(trigger: SolveTrigger): string | null {
+  return trigger.model_project_version_id ?? trigger.version_id ?? null;
+}
+
 export default function TriggersPage() {
   const router = useRouter();
   const dialog = useDialog();
@@ -239,9 +244,14 @@ export default function TriggersPage() {
                       <span>{t("lastFired", { date: formatDate(trigger.last_fired_at) })}</span>
                     )}
                     <span>{t("created", { date: formatDate(trigger.created_at) })}</span>
-                    <span className="font-mono text-xs">
-                      {t("version", { id: trigger.version_id.slice(0, 12) + "..." })}
-                    </span>
+                    {/* A studio trigger pins model_project_version_id and leaves
+                        version_id null — reading .slice off it blanked the whole
+                        page to the error boundary the moment one existed. */}
+                    {pinnedVersionId(trigger) && (
+                      <span className="font-mono text-xs">
+                        {t("version", { id: pinnedVersionId(trigger)!.slice(0, 12) + "..." })}
+                      </span>
+                    )}
                   </div>
                 </div>
 

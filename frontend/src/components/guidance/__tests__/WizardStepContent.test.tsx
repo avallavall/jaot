@@ -127,16 +127,19 @@ describe("WelcomeWizard hands out the real map", () => {
       "/solve/favorites",
       "/solve/executions",
       "/solve/analytics",
+      "/triggers",
     ]) {
       expect(hrefsOf(container)).toContain(href);
     }
   });
 
-  it("does not send a new account to triggers, which cannot automate a studio model", () => {
-    // `Trigger.document_id` is a NOT NULL foreign key to model_builder_documents
-    // and the studio never creates one, so the feature is a dead end from here.
+  // The map used to omit Triggers because a trigger's document_id was a NOT NULL
+  // foreign key to model_builder_documents and the studio never created one.
+  // Triggers can fire studio models now, so omitting it hides a working area —
+  // and this test previously pinned the omission in place.
+  it("includes triggers, which can now fire a studio model", () => {
     const { container } = renderStep(4);
-    expect(hrefsOf(container).filter((h) => (h ?? "").includes("/triggers"))).toEqual([]);
+    expect(hrefsOf(container)).toContain("/triggers");
   });
 });
 

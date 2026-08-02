@@ -31,10 +31,11 @@ const EXAMPLE_PROBLEM = `I have a backpack that holds 15 kg. I want to pack item
  * The sidebar, as the wizard shows it — same routes, same `nav.*` labels, same
  * three groups (see components/layout/nav-items.tsx).
  *
- * Triggers is deliberately absent: a trigger's `document_id` is a NOT NULL
- * foreign key to `model_builder_documents`, and the studio never creates one, so
- * nothing built here can be automated yet. Sending a new account to it on its
- * first minute would be sending it to a dead end.
+ * Triggers used to be left out because a trigger's `document_id` was a NOT NULL
+ * foreign key to `model_builder_documents` and the studio never created one, so
+ * nothing built here could be automated. That stopped being true when triggers
+ * learned to fire studio models, and the map is a mirror: leaving it out now
+ * hides a working area from every new account.
  */
 const NAV_MAP = [
   {
@@ -57,6 +58,7 @@ const NAV_MAP = [
     entries: [
       { label: "nav.executions", href: "/solve/executions" },
       { label: "nav.solveAnalytics", href: "/solve/analytics" },
+      { label: "nav.triggers", href: "/triggers" },
     ],
   },
 ] as const;

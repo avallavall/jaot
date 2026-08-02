@@ -17,7 +17,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from app.domains.solver.adapters.base import STRICT_EPSILON, SolverCapabilities
-from app.domains.solver.constraint_activity import is_binding as is_binding_at
+from app.domains.solver.constraint_activity import is_binding_within_bounds
 from app.domains.solver.services.expression_parser import ExpressionParser
 from app.schemas.optimization import (
     ConstraintSensitivity,
@@ -376,8 +376,14 @@ class HiGHSAdapter:
             if i < len(row_value):
                 try:
                     parsed = self._parser.parse_constraint(constraint.expression)
-                    is_binding = is_binding_at(
-                        float(row_value[i]), float(parsed.rhs), parsed.operator
+                    # Compare against the bounds the ROW was built with, not the raw
+                    # rhs: a strict `<` is encoded as `rhs - STRICT_EPSILON`, and
+                    # STRICT_EPSILON equals BINDING_EPS, so measuring slack from the
+                    # un-offset rhs put every tight strict inequality at exactly the
+                    # tolerance — and `< eps` is false there. Reported as slack.
+                    lower, upper = self._operator_bounds(parsed.operator, float(parsed.rhs))
+                    is_binding = is_binding_within_bounds(
+                        float(row_value[i]), lower, upper, _HIGHS_INF
                     )
                 except Exception as exc:  # unparseable row → no claim, not a wrong one
                     logger.debug("No binding status for constraint %s: %s", constraint.name, exc)

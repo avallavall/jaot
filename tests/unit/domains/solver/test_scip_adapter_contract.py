@@ -218,14 +218,20 @@ def test_scip_lp_reports_every_binding_row_including_the_unpriced_ones() -> None
     assert all(binding.values()), f"every row is tight at the optimum, got {binding}"
 
 
+# CONTRACT-TEST: a MIP's binding flags describe the INTEGER solution, never the
+# relaxation the duals came from — and never nothing at all.
 @pytest.mark.unit
-def test_scip_mip_makes_no_binding_claim_about_a_solution_it_never_saw() -> None:
-    """MIP duals come from a separate LP relaxation, not from the integer solution.
+def test_scip_mip_binding_describes_the_integer_solution_not_the_relaxation() -> None:
+    """MIP duals come from a separate LP relaxation; the binding flags must not.
 
-    Whatever is tight in that relaxation says nothing about the answer the caller
-    was handed, so the honest report is None — not a guess dressed as a fact.
+    Reporting None for every row (the first cut of this fix) silently deleted the
+    "N of M constraints are binding" insight for every MIP — insights.py only
+    emits it `if binding:` — and blanked the column in the Sensitivity tab. The
+    slack answer for x* is computable, so it is computed, from the same x* the
+    exact analysis reads.
     """
     from app.domains.solver.adapters.scip import SCIPAdapter
+    from app.domains.solver.services.exact_analysis import compute_exact_analysis
     from app.schemas.optimization import VariableType
 
     problem = _degenerate_lp()
@@ -234,10 +240,18 @@ def test_scip_mip_makes_no_binding_claim_about_a_solution_it_never_saw() -> None
 
     sensitivity = result.sensitivity
     assert sensitivity is not None
-    assert sensitivity.is_approximate is True
-    assert all(c.is_binding is None for c in sensitivity.constraints), (
-        "the LP relaxation must not answer questions about the integer solution"
+    assert sensitivity.is_approximate is True, "the DUALS are still the relaxation's"
+    assert all(c.is_binding is not None for c in sensitivity.constraints), (
+        "every row must carry a binding verdict — None deletes the binding insight"
     )
+
+    # ...and it must be the SAME verdict the exact analysis reaches from x*.
+    exact = compute_exact_analysis(problem, result.solution)
+    by_name = {c.name: c.is_binding for c in exact.constraints}
+    for c in sensitivity.constraints:
+        assert c.is_binding == by_name[c.name], (
+            f"{c.name}: sensitivity says {c.is_binding}, exact analysis says {by_name[c.name]}"
+        )
 
 
 @pytest.mark.unit

@@ -26,7 +26,11 @@ from app.domains.solver.adapters._scip_model_builder import (
     build_scip_model as _build_scip_model_impl,
 )
 from app.domains.solver.adapters.base import STRICT_EPSILON, SolverCapabilities
-from app.domains.solver.constraint_activity import is_binding_within_bounds
+from app.domains.solver.constraint_activity import (
+    activity_of,
+    is_binding as is_binding_at,
+    is_binding_within_bounds,
+)
 from app.domains.solver.services.expression_parser import ExpressionParser, ParsedExpression
 from app.schemas.optimization import (
     ConstraintSensitivity,
@@ -493,6 +497,28 @@ class SCIPAdapter:
     # PySCIPOpt build, so we never fabricate ranges — we annotate their absence.
     _RANGING_NOTE = "Coefficient and RHS ranging are not available for this solver build."
 
+    def _binding_at(
+        self, problem: OptimizationProblem, solution: dict[str, float]
+    ) -> dict[str, bool]:
+        """Which constraints sit on their limit at ``solution``, by name.
+
+        Same arithmetic and same rule as the exact analysis, so the two never
+        report different counts for the same run. A constraint whose expression
+        will not parse is simply absent — no claim beats a wrong one.
+        """
+        known = set(solution)
+        out: dict[str, bool] = {}
+        for i, constraint in enumerate(problem.constraints):
+            name = constraint.name or f"c{i + 1}"
+            try:
+                parsed = self._parser.parse_constraint(constraint.expression, known)
+            except Exception:  # noqa: BLE001 — an unparseable row gets no claim
+                continue
+            out[name] = is_binding_at(
+                activity_of(parsed.lhs.terms, solution), parsed.rhs, parsed.operator
+            )
+        return out
+
     def _extract_sensitivity(
         self,
         model: Model,
@@ -502,6 +528,7 @@ class SCIPAdapter:
         *,
         is_approximate: bool = False,
         note: str | None = None,
+        integer_solution: dict[str, float] | None = None,
     ) -> SensitivityResult:
         """Extract sensitivity (shadow prices + reduced costs) from a solved LP model.
 
@@ -526,9 +553,13 @@ class SCIPAdapter:
 
         # "Binding" is a statement about slack, not about price — see
         # app/domains/solver/constraint_activity.py for the measurements that
-        # forced this apart. On the MIP path this model is a *separate* LP
-        # relaxation whose solution is not the one the caller was given, so no
-        # honest answer about their solution exists here and we say None.
+        # forced this apart.
+        #
+        # Which solution it is about matters. On the MIP path `model` is a
+        # *separate* LP relaxation, so its rows say nothing about the integer
+        # answer the caller was handed: binding is evaluated against
+        # `integer_solution` instead, the same x* the exact analysis reads. Only
+        # when neither is available do we report None.
         sol = None
         if not is_approximate:
             try:
@@ -536,15 +567,20 @@ class SCIPAdapter:
             except Exception as e:  # pragma: no cover — defensive
                 logger.debug("No solution available for binding status: %s", e)
         infinity = model.infinity()
+        binding_at_x_star = (
+            self._binding_at(problem, integer_solution)
+            if integer_solution is not None and problem is not None
+            else {}
+        )
 
         for name, cons in constraint_refs.items():
             shadow_price = None
-            is_binding = None
+            is_binding = binding_at_x_star.get(name)
             try:
                 shadow_price = model.getDualSolVal(cons)
             except Exception as e:
                 logger.debug("Could not extract dual for constraint %s: %s", name, e)
-            if sol is not None:
+            if is_binding is None and sol is not None:
                 try:
                     # getActivity needs the solution passed explicitly: in SCIP's
                     # solved stage the no-argument form reads no current LP and
@@ -641,11 +677,17 @@ class SCIPAdapter:
     def _extract_sensitivity_for_mip(
         self,
         problem: OptimizationProblem,
+        integer_solution: dict[str, float] | None = None,
     ) -> SensitivityResult:
         """Extract approximate sensitivity via LP relaxation for MIP problems.
 
         Creates a fresh LP model where all variables are continuous, solves it,
         and extracts dual values. Results are marked as approximate.
+
+        The DUALS are the relaxation's; the binding flags are not. Those are read
+        off ``integer_solution`` — the answer the caller actually got — so the
+        Sensitivity tab and the exact analysis agree, and the "N of M constraints
+        are binding" insight keeps working for MIPs (the majority of models).
 
         Presolve is off here for the same reason as in ``_configure_solver``, and
         SCIP's *defaults* are enough to trigger it: this model was built with them
@@ -682,6 +724,7 @@ class SCIPAdapter:
                 problem=problem,
                 is_approximate=True,
                 note="Approximate — based on LP relaxation",
+                integer_solution=integer_solution,
             )
 
         except Exception as e:
@@ -782,7 +825,7 @@ class SCIPAdapter:
 
             if constraint_refs:
                 result.sensitivity = self._compute_sensitivity(
-                    model, problem, constraint_refs, scip_vars
+                    model, problem, constraint_refs, scip_vars, result.solution
                 )
 
         except Exception as e:
@@ -846,6 +889,7 @@ class SCIPAdapter:
         problem: OptimizationProblem,
         constraint_refs: dict[str, Any],
         var_refs: dict[str, Any] | None = None,
+        integer_solution: dict[str, float] | None = None,
     ) -> SensitivityResult | None:
         """Extract sensitivity analysis (exact for LP, approximate for MIP).
 
@@ -861,7 +905,7 @@ class SCIPAdapter:
                     note="Sensitivity analysis is not available for quadratic problems.",
                 )
             if self._has_integer_variables(problem):
-                return self._extract_sensitivity_for_mip(problem)
+                return self._extract_sensitivity_for_mip(problem, integer_solution)
             return self._extract_sensitivity(
                 model, constraint_refs, var_refs=var_refs, problem=problem
             )
