@@ -151,7 +151,7 @@ export default function MyProfilePage() {
               {profile.display_name || profile.name}
             </h2>
             <Link
-              href={`/org/${profile.organization_id}`}
+              href={`/marketplace/authors/${profile.organization_id}`}
               className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
             >
               <Building2 className="w-4 h-4" />

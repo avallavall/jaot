@@ -105,7 +105,7 @@ export default function UserProfilePage() {
             <h1 className="text-2xl font-bold mb-2">{profile.name}</h1>
 
             <Link
-              href={`/org/${profile.organization_id}`}
+              href={`/marketplace/authors/${profile.organization_id}`}
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4"
             >
               <Building2 className="w-4 h-4" />

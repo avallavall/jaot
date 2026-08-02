@@ -288,3 +288,53 @@ def test_exhausted_pool_with_cold_cache_defaults_to_off(monkeypatch) -> None:
     from app.api.v2.health import _probe_maintenance_mode
 
     assert _probe_maintenance_mode() is False
+
+
+# CONTRACT-TEST: a cold-start race must not report maintenance OFF while it is ON.
+
+
+def test_cold_start_race_reports_maintenance_on(monkeypatch) -> None:
+    """Every caller in the first race gets the true value, not the safe default.
+
+    The single flight is non-blocking, so a caller that finds the refresh already
+    running serves the last known value — which, before anything has ever been
+    read, is a hard-coded False. A container starting inside a maintenance window
+    sees a liveness probe, a metrics scrape and a user request arrive together:
+    one won the lock, the others answered `maintenance_mode: false` while it was
+    on. With no stale value to fall back on, they now wait for the real one.
+    """
+    _reset_cache()
+
+    call_lock = threading.Lock()
+    calls = [0]
+
+    def _slow_pss_on(db, key, default=False):
+        time.sleep(0.05)  # hold the lock long enough for the others to pile up
+        with call_lock:
+            calls[0] += 1
+        return True
+
+    monkeypatch.setattr(
+        "app.services.platform_settings_service.PlatformSettingsService.get_bool",
+        _slow_pss_on,
+    )
+
+    from app.api.v2.health import _probe_maintenance_mode
+
+    results: list[bool] = []
+
+    def _thread_fn():
+        results.append(_probe_maintenance_mode())
+
+    threads = [threading.Thread(target=_thread_fn) for _ in range(5)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=10.0)
+
+    assert len(results) == 5
+    assert all(r is True for r in results), (
+        f"maintenance is ON, yet the cold-start race answered {results} — "
+        "the losers served the hard-coded False"
+    )
+    assert calls[0] == 1, "single flight still holds: one read for the whole race"

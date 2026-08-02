@@ -1,13 +1,13 @@
 """Tests for the JModel DSL endpoints (P5.2).
 
-Covers the JAOT_DSL feature gate (404 when off), the status probe, successful
-compilation, structured compile errors, and auth. Mirrors the toggling pattern in
-``test_solve_maintenance_gate.py`` (PSS.set on the shared db_session).
+Covers successful compilation, structured compile errors, and auth.
+
+The endpoints used to sit behind a ``JAOT_DSL`` flag and 404 when it was off.
+The flag was removed (owner, 2026-08-02) — JModel is part of the product, not an
+option — so the gate tests went with it, and the ``enable_dsl`` fixture with them.
 """
 
 import pytest
-
-from app.services.platform_settings_service import PlatformSettingsService as PSS
 
 SMALL_SOURCE = """
 var x >= 0;
@@ -16,45 +16,8 @@ subject to c: x >= 5;
 """
 
 
-@pytest.fixture
-def enable_dsl(db_session):
-    """Turn JAOT_DSL ON for a single test, then restore OFF."""
-    PSS.set(db_session, "JAOT_DSL", "true")
-    db_session.commit()
-    yield
-    PSS.set(db_session, "JAOT_DSL", "false")
-    db_session.commit()
-
-
 @pytest.mark.integration
-def test_status_disabled_by_default(authenticated_client, test_organization, db_session):
-    resp = authenticated_client.get("/api/v2/dsl/status")
-    assert resp.status_code == 200, resp.text
-    assert resp.json() == {"enabled": False}
-
-
-@pytest.mark.integration
-def test_status_enabled_when_flag_on(
-    authenticated_client, test_organization, db_session, enable_dsl
-):
-    resp = authenticated_client.get("/api/v2/dsl/status")
-    assert resp.status_code == 200, resp.text
-    assert resp.json() == {"enabled": True}
-
-
-# CONTRACT-TEST: the JModel DSL ships dark — /dsl/compile is invisible (404, not 403)
-# whenever the JAOT_DSL flag is off, so the feature cannot be probed on prod instances.
-@pytest.mark.integration
-def test_compile_404_when_flag_off(authenticated_client, test_organization, db_session):
-    """The compile endpoint is invisible (404) while the feature ships dark."""
-    resp = authenticated_client.post("/api/v2/dsl/compile", json={"source": SMALL_SOURCE})
-    assert resp.status_code == 404, resp.text
-    detail = resp.json()["detail"]
-    assert detail["error"] == "dsl_disabled"
-
-
-@pytest.mark.integration
-def test_compile_ok_when_flag_on(authenticated_client, test_organization, db_session, enable_dsl):
+def test_compile_ok_when_flag_on(authenticated_client, test_organization, db_session):
     resp = authenticated_client.post("/api/v2/dsl/compile", json={"source": SMALL_SOURCE})
     assert resp.status_code == 200, resp.text
     body = resp.json()
@@ -67,9 +30,7 @@ def test_compile_ok_when_flag_on(authenticated_client, test_organization, db_ses
 
 
 @pytest.mark.integration
-def test_compile_reports_structured_error(
-    authenticated_client, test_organization, db_session, enable_dsl
-):
+def test_compile_reports_structured_error(authenticated_client, test_organization, db_session):
     """A syntax error is a 200 with ok=false + message + position (no 4xx)."""
     resp = authenticated_client.post(
         "/api/v2/dsl/compile",
@@ -84,9 +45,7 @@ def test_compile_reports_structured_error(
 
 
 @pytest.mark.integration
-def test_compile_unknown_symbol_error(
-    authenticated_client, test_organization, db_session, enable_dsl
-):
+def test_compile_unknown_symbol_error(authenticated_client, test_organization, db_session):
     resp = authenticated_client.post(
         "/api/v2/dsl/compile",
         json={"source": "var x >= 0; minimize obj: x + y; subject to c: x >= 1;"},
@@ -106,14 +65,8 @@ def test_compile_requires_auth(client):
 
 
 @pytest.mark.integration
-def test_status_requires_auth(client):
-    resp = client.get("/api/v2/dsl/status")
-    assert resp.status_code in (401, 403), resp.text
-
-
-@pytest.mark.integration
 def test_compile_undefined_set_is_structured_error(
-    authenticated_client, test_organization, db_session, enable_dsl
+    authenticated_client, test_organization, db_session
 ):
     """Regression: `var x{J}` with J undeclared used to escape as a KeyError -> 500."""
     resp = authenticated_client.post(
@@ -128,9 +81,7 @@ def test_compile_undefined_set_is_structured_error(
 
 
 @pytest.mark.integration
-def test_compile_error_position_is_exact(
-    authenticated_client, test_organization, db_session, enable_dsl
-):
+def test_compile_error_position_is_exact(authenticated_client, test_organization, db_session):
     """The editor points at the offending character — the offset must be exact."""
     source = "var x >= 0;\nminimize obj: x + qq;\nsubject to c: x >= 1;"
     resp = authenticated_client.post("/api/v2/dsl/compile", json={"source": source})
@@ -142,7 +93,7 @@ def test_compile_error_position_is_exact(
 
 @pytest.mark.integration
 def test_compile_internal_error_is_structured_not_500(
-    authenticated_client, test_organization, db_session, enable_dsl, monkeypatch
+    authenticated_client, test_organization, db_session, monkeypatch
 ):
     """A compiler bug must surface as ok=false (the editor calls this per keystroke)."""
 
@@ -159,7 +110,7 @@ def test_compile_internal_error_is_structured_not_500(
 
 @pytest.mark.integration
 def test_compile_accepts_a_source_past_the_old_size_cap(
-    authenticated_client, test_organization, db_session, enable_dsl
+    authenticated_client, test_organization, db_session
 ):
     """Self-hosted: source size is bounded by the operator's machine, not a schema
     constant. A source past the old 1M cap must reach the compiler and come back as
@@ -198,7 +149,7 @@ def _create_dataset(client, data=None) -> str:
 
 @pytest.mark.integration
 def test_compile_with_dataset_fills_declarations(
-    authenticated_client, test_organization, db_session, enable_dsl
+    authenticated_client, test_organization, db_session
 ):
     dsid = _create_dataset(authenticated_client)
     resp = authenticated_client.post(
@@ -214,7 +165,7 @@ def test_compile_with_dataset_fills_declarations(
 
 @pytest.mark.integration
 def test_compile_declaration_only_without_dataset_names_the_missing_symbol(
-    authenticated_client, test_organization, db_session, enable_dsl
+    authenticated_client, test_organization, db_session
 ):
     resp = authenticated_client.post("/api/v2/dsl/compile", json={"source": PARAMETRIC_SOURCE})
     assert resp.status_code == 200, resp.text
@@ -225,7 +176,7 @@ def test_compile_declaration_only_without_dataset_names_the_missing_symbol(
 
 @pytest.mark.integration
 def test_compile_with_unknown_dataset_is_a_structured_error(
-    authenticated_client, test_organization, db_session, enable_dsl
+    authenticated_client, test_organization, db_session
 ):
     resp = authenticated_client.post(
         "/api/v2/dsl/compile",
@@ -244,7 +195,6 @@ def test_compile_with_foreign_dataset_matches_nonexistent(
     authenticated_client,
     test_organization,
     db_session,
-    enable_dsl,
     test_organization_2,
     test_user_2,
 ):
@@ -283,7 +233,7 @@ def test_compile_with_foreign_dataset_matches_nonexistent(
 
 @pytest.mark.integration
 def test_compile_dataset_overrides_inline_defaults(
-    authenticated_client, test_organization, db_session, enable_dsl
+    authenticated_client, test_organization, db_session
 ):
     inline = """
     set I := {a, b};
@@ -360,15 +310,6 @@ def _patch_client(monkeypatch, replies):
     return fake
 
 
-# CONTRACT-TEST: /dsl/generate ships dark with the rest of the DSL — 404 (not 403)
-# whenever JAOT_DSL is off, so the feature cannot be probed on prod instances.
-@pytest.mark.integration
-def test_generate_404_when_flag_off(authenticated_client, test_organization, db_session):
-    resp = authenticated_client.post("/api/v2/dsl/generate", json={"description": "a knapsack"})
-    assert resp.status_code == 404, resp.text
-    assert resp.json()["detail"]["error"] == "dsl_disabled"
-
-
 @pytest.mark.integration
 def test_generate_requires_auth(client):
     resp = client.post("/api/v2/dsl/generate", json={"description": "a knapsack"})
@@ -377,7 +318,7 @@ def test_generate_requires_auth(client):
 
 @pytest.mark.integration
 def test_generate_happy_path_returns_compiling_source(
-    authenticated_client, test_organization, db_session, enable_dsl, monkeypatch
+    authenticated_client, test_organization, db_session, monkeypatch
 ):
     _patch_client(monkeypatch, [GEN_GOOD])
     resp = authenticated_client.post(
@@ -393,7 +334,7 @@ def test_generate_happy_path_returns_compiling_source(
 
 @pytest.mark.integration
 def test_generate_retries_on_compile_error(
-    authenticated_client, test_organization, db_session, enable_dsl, monkeypatch
+    authenticated_client, test_organization, db_session, monkeypatch
 ):
     """A broken first draft is fed the compile error and corrected on retry."""
     fake = _patch_client(monkeypatch, [GEN_BROKEN, GEN_GOOD])
@@ -410,7 +351,7 @@ def test_generate_retries_on_compile_error(
 
 @pytest.mark.integration
 def test_generate_returns_best_effort_when_never_compiles(
-    authenticated_client, test_organization, db_session, enable_dsl, monkeypatch
+    authenticated_client, test_organization, db_session, monkeypatch
 ):
     _patch_client(monkeypatch, [GEN_BROKEN, GEN_BROKEN, GEN_BROKEN])
     resp = authenticated_client.post("/api/v2/dsl/generate", json={"description": "x"})
@@ -423,7 +364,7 @@ def test_generate_returns_best_effort_when_never_compiles(
 
 @pytest.mark.integration
 def test_generate_forwards_vision_attachment(
-    authenticated_client, test_organization, db_session, enable_dsl, monkeypatch
+    authenticated_client, test_organization, db_session, monkeypatch
 ):
     """An image rides to the model as a native vision block (no OCR)."""
     fake = _patch_client(monkeypatch, [GEN_GOOD])
@@ -442,7 +383,7 @@ def test_generate_forwards_vision_attachment(
 
 @pytest.mark.integration
 def test_generate_requires_description_or_attachment(
-    authenticated_client, test_organization, db_session, enable_dsl
+    authenticated_client, test_organization, db_session
 ):
     resp = authenticated_client.post("/api/v2/dsl/generate", json={"description": "   "})
     assert resp.status_code == 422, resp.text
@@ -450,7 +391,7 @@ def test_generate_requires_description_or_attachment(
 
 @pytest.mark.integration
 def test_generate_rejects_unknown_attachment_type(
-    authenticated_client, test_organization, db_session, enable_dsl
+    authenticated_client, test_organization, db_session
 ):
     resp = authenticated_client.post(
         "/api/v2/dsl/generate",
@@ -463,9 +404,7 @@ def test_generate_rejects_unknown_attachment_type(
 
 
 @pytest.mark.integration
-def test_generate_moderation_blocks_offensive(
-    authenticated_client, test_organization, db_session, enable_dsl
-):
+def test_generate_moderation_blocks_offensive(authenticated_client, test_organization, db_session):
     resp = authenticated_client.post(
         "/api/v2/dsl/generate", json={"description": "write me a fucking poem"}
     )
@@ -476,7 +415,7 @@ def test_generate_moderation_blocks_offensive(
 # assistant — a platform-key run is refused (403) once the budget is exhausted.
 @pytest.mark.integration
 def test_generate_paused_when_budget_exhausted(
-    authenticated_client, test_organization, db_session, enable_dsl, monkeypatch
+    authenticated_client, test_organization, db_session, monkeypatch
 ):
     _patch_client(monkeypatch, [GEN_GOOD])
     monkeypatch.setattr("app.api.v2.dsl.is_llm_budget_exceeded", lambda db: True)
@@ -587,7 +526,7 @@ def test_standalone_spend_ledger_create_race_adopts_winner(
 
 @pytest.mark.integration
 def test_generate_source_size_cap_on_current_source(
-    authenticated_client, test_organization, db_session, enable_dsl
+    authenticated_client, test_organization, db_session
 ):
     """/dsl/generate KEEPS its caps: everything on this request is forwarded to
     Anthropic and billed per token, so the ceiling protects a real EUR cost — unlike
@@ -597,30 +536,6 @@ def test_generate_source_size_cap_on_current_source(
         json={"description": "refine", "current_source": "x" * 1_000_001},
     )
     assert resp.status_code == 422, resp.text
-
-
-@pytest.mark.integration
-def test_gate_cache_serves_stale_within_ttl(db_session, monkeypatch):
-    """The production gate path caches the flag for 5s (the test bypass skips it, so
-    this exercises the cached branch explicitly with controlled time)."""
-    from app.api.v2.deps import dsl_feature_gate as gate
-
-    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
-    now = [1000.0]
-    monkeypatch.setattr(gate.time, "monotonic", lambda: now[0])
-    monkeypatch.setitem(gate._cache, "value", False)
-    monkeypatch.setitem(gate._cache, "expires_at", 0.0)
-
-    PSS.set(db_session, "JAOT_DSL", "true")
-    db_session.commit()
-    assert gate._is_on(db_session) is True  # fresh read, cached until t+5
-
-    PSS.set(db_session, "JAOT_DSL", "false")
-    db_session.commit()
-    assert gate._is_on(db_session) is True  # stale-but-within-TTL: cache still serves ON
-
-    now[0] = 1006.0
-    assert gate._is_on(db_session) is False  # TTL expired: fresh read sees OFF
 
 
 # ---------------------------------------------------------------------------
@@ -637,17 +552,9 @@ subject to c: sum{i in I} x[i] <= cap;
 """
 
 
-# CONTRACT-TEST: /dsl/inspect ships dark behind the same gate as compile (404 when off).
-@pytest.mark.integration
-def test_inspect_404_when_flag_off(authenticated_client, test_organization, db_session):
-    resp = authenticated_client.post("/api/v2/dsl/inspect", json={"source": DECL_ONLY_SOURCE})
-    assert resp.status_code == 404, resp.text
-    assert resp.json()["detail"]["error"] == "dsl_disabled"
-
-
 @pytest.mark.integration
 def test_inspect_lists_declaration_only_symbols(
-    authenticated_client, test_organization, db_session, enable_dsl
+    authenticated_client, test_organization, db_session
 ):
     """The whole point of inspect: it succeeds where compile errors (no data)."""
     resp = authenticated_client.post("/api/v2/dsl/inspect", json={"source": DECL_ONLY_SOURCE})
@@ -671,9 +578,7 @@ def test_inspect_lists_declaration_only_symbols(
 
 
 @pytest.mark.integration
-def test_inspect_marks_inline_values(
-    authenticated_client, test_organization, db_session, enable_dsl
-):
+def test_inspect_marks_inline_values(authenticated_client, test_organization, db_session):
     src = "set I := {a, b};\nparam w{I} := a 2, b 3;\nvar x{I} binary;\n"
     src += "maximize obj: sum{i in I} w[i] * x[i];\nsubject to c: sum{i in I} x[i] <= 1;"
     resp = authenticated_client.post("/api/v2/dsl/inspect", json={"source": src})
@@ -686,7 +591,7 @@ def test_inspect_marks_inline_values(
 
 @pytest.mark.integration
 def test_inspect_reports_structured_parse_error(
-    authenticated_client, test_organization, db_session, enable_dsl
+    authenticated_client, test_organization, db_session
 ):
     resp = authenticated_client.post(
         "/api/v2/dsl/inspect", json={"source": "set S := {a, b}\nvar x >= 0;"}
@@ -718,18 +623,8 @@ subject to pick{i in I}: x[i] <= 1;
 """
 
 
-# CONTRACT-TEST: /dsl/latex ships dark behind the same gate as compile (404 when off).
 @pytest.mark.integration
-def test_latex_404_when_flag_off(authenticated_client, test_organization, db_session):
-    resp = authenticated_client.post("/api/v2/dsl/latex", json={"source": LATEX_SOURCE})
-    assert resp.status_code == 404, resp.text
-    assert resp.json()["detail"]["error"] == "dsl_disabled"
-
-
-@pytest.mark.integration
-def test_latex_renders_symbolic_model(
-    authenticated_client, test_organization, db_session, enable_dsl
-):
+def test_latex_renders_symbolic_model(authenticated_client, test_organization, db_session):
     resp = authenticated_client.post("/api/v2/dsl/latex", json={"source": LATEX_SOURCE})
     assert resp.status_code == 200, resp.text
     body = resp.json()
@@ -748,7 +643,7 @@ def test_latex_renders_symbolic_model(
 
 @pytest.mark.integration
 def test_latex_declaration_only_source_succeeds(
-    authenticated_client, test_organization, db_session, enable_dsl
+    authenticated_client, test_organization, db_session
 ):
     """Parse-only, so a declaration-only source renders (compile would error)."""
     resp = authenticated_client.post("/api/v2/dsl/latex", json={"source": DECL_ONLY_SOURCE})
@@ -759,9 +654,7 @@ def test_latex_declaration_only_source_succeeds(
 
 
 @pytest.mark.integration
-def test_latex_reports_structured_parse_error(
-    authenticated_client, test_organization, db_session, enable_dsl
-):
+def test_latex_reports_structured_parse_error(authenticated_client, test_organization, db_session):
     resp = authenticated_client.post(
         "/api/v2/dsl/latex", json={"source": "set S := {a, b}\nvar x >= 0;"}
     )
@@ -775,7 +668,7 @@ def test_latex_reports_structured_parse_error(
 
 @pytest.mark.integration
 def test_latex_internal_error_is_structured_not_500(
-    authenticated_client, test_organization, db_session, enable_dsl, monkeypatch
+    authenticated_client, test_organization, db_session, monkeypatch
 ):
     """A renderer bug must surface as ok=false (the pane refreshes per keystroke)."""
 
@@ -792,7 +685,7 @@ def test_latex_internal_error_is_structured_not_500(
 
 @pytest.mark.integration
 def test_latex_accepts_a_source_past_the_old_size_cap(
-    authenticated_client, test_organization, db_session, enable_dsl
+    authenticated_client, test_organization, db_session
 ):
     resp = authenticated_client.post("/api/v2/dsl/latex", json={"source": "x" * 1_000_001})
     assert resp.status_code == 200, resp.text
@@ -818,17 +711,9 @@ def _compile(client, source: str) -> dict:
     return body["problem"]
 
 
-# CONTRACT-TEST: /dsl/deground ships dark behind the same gate as compile (404 when off).
-@pytest.mark.integration
-def test_deground_404_when_flag_off(authenticated_client, test_organization, db_session):
-    resp = authenticated_client.post("/api/v2/dsl/deground", json={"problem": {"variables": []}})
-    assert resp.status_code == 404, resp.text
-    assert resp.json()["detail"]["error"] == "dsl_disabled"
-
-
 @pytest.mark.integration
 def test_deground_returns_compact_source_that_round_trips(
-    authenticated_client, test_organization, db_session, enable_dsl
+    authenticated_client, test_organization, db_session
 ):
     problem = _compile(authenticated_client, LATEX_SOURCE)
     resp = authenticated_client.post("/api/v2/dsl/deground", json={"problem": problem})
@@ -846,7 +731,7 @@ def test_deground_returns_compact_source_that_round_trips(
 # separation the lens stores as a project dataset and compiles against.
 @pytest.mark.integration
 def test_deground_allow_dataset_splits_model_from_data(
-    authenticated_client, test_organization, db_session, enable_dsl
+    authenticated_client, test_organization, db_session
 ):
     problem = _compile(authenticated_client, LATEX_SOURCE)
     resp = authenticated_client.post(
@@ -868,7 +753,7 @@ def test_deground_allow_dataset_splits_model_from_data(
 
 @pytest.mark.integration
 def test_deground_small_scalar_model_gets_a_flat_jmodel(
-    authenticated_client, test_organization, db_session, enable_dsl
+    authenticated_client, test_organization, db_session
 ):
     """A small model with no indexed families de-grounds as a plain scalar JModel."""
     problem = _compile(authenticated_client, SMALL_SOURCE)
@@ -891,9 +776,7 @@ def test_deground_requires_auth(client):
 # CONTRACT-TEST: a decline names its reason — the UI must state the actual cause,
 # never guess one (prod 2026-07-31: every decline was blamed on "no indexed structure").
 @pytest.mark.integration
-def test_deground_decline_carries_its_reason(
-    authenticated_client, test_organization, db_session, enable_dsl
-):
+def test_deground_decline_carries_its_reason(authenticated_client, test_organization, db_session):
     names = [f"col{i}" for i in range(80)]  # unstructured + past the scalar budget
     problem = {
         "variables": [{"name": n, "type": "continuous"} for n in names],
@@ -925,7 +808,7 @@ def test_deground_decline_carries_its_reason(
 # toggle on EVERY LLM surface; this endpoint had `select_model(use_advanced=False)` pinned in
 # the handler, so the UI could ask all it liked and the server always used the default.
 def test_generate_honours_the_advanced_model_choice(
-    authenticated_client, test_organization, db_session, enable_dsl, monkeypatch
+    authenticated_client, test_organization, db_session, monkeypatch
 ):
     models_used: list[str] = []
 
@@ -964,7 +847,7 @@ def test_generate_honours_the_advanced_model_choice(
 
 
 def test_generate_defaults_to_the_standard_model(
-    authenticated_client, test_organization, db_session, enable_dsl, monkeypatch
+    authenticated_client, test_organization, db_session, monkeypatch
 ):
     """Omitting the field must not silently opt into the pricier model."""
     models_used: list[str] = []

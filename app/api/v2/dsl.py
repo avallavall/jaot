@@ -5,8 +5,10 @@ both the pure DSL compiler and any cross-cutting service without breaching the
 ``domains-independent`` import-linter contract. The compiler itself imports only
 ``app.schemas``.
 
-``POST /dsl/compile`` is gated behind the ``JAOT_DSL`` flag (404 when off).
-``GET /dsl/status`` is ungated so the SPA can decide whether to surface the lens.
+JModel is part of the product, not an option: it shipped behind a ``JAOT_DSL``
+flag while the compiler was a fresh spike, and the flag was removed once it had
+been on in production for a month (owner, 2026-08-02). There is no off state, so
+these routes carry no gate and there is no status to report.
 
 Both handlers are deliberately **sync** (``def``): FastAPI runs them in its thread
 pool, so a CPU-bound compile of a large model never blocks the event loop (the editor
@@ -15,11 +17,10 @@ calls this endpoint on every debounced keystroke).
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentOrg, CurrentUser, DBSession, RequestLocale
-from app.api.v2.deps.dsl_feature_gate import dsl_enabled, dsl_feature_gate
 from app.domains.dsl import (
     JModelData,
     JModelError,
@@ -44,7 +45,6 @@ from app.schemas.dsl import (
     DSLLatexResponse,
     DSLParamDecl,
     DSLSetDecl,
-    DSLStatusResponse,
 )
 from app.services import model_project_service as project_svc
 from app.services.jmodel_deground import deground_outcome
@@ -75,16 +75,9 @@ def _grounding_budget(db: Session) -> int:
     return PSS.get_int(db, "dsl_max_grounded_elements")
 
 
-@router.get("/status", operation_id="dsl_status")
-def dsl_status(db: DBSession, _user: CurrentUser) -> DSLStatusResponse:
-    """Report whether the JModel DSL feature is enabled on this instance."""
-    return DSLStatusResponse(enabled=dsl_enabled(db))
-
-
 @router.post(
     "/compile",
     operation_id="dsl_compile",
-    dependencies=[Depends(dsl_feature_gate)],
 )
 def dsl_compile(body: DSLCompileRequest, db: DBSession, org: CurrentOrg) -> DSLCompileResponse:
     """Compile JModel source into a flat optimization problem.
@@ -131,7 +124,6 @@ def dsl_compile(body: DSLCompileRequest, db: DBSession, org: CurrentOrg) -> DSLC
 @router.post(
     "/inspect",
     operation_id="dsl_inspect",
-    dependencies=[Depends(dsl_feature_gate)],
 )
 def dsl_inspect(body: DSLInspectRequest, db: DBSession, _user: CurrentUser) -> DSLInspectResponse:
     """List a source's data-facing declarations — parse-only, never grounded (S2a).
@@ -172,7 +164,6 @@ def dsl_inspect(body: DSLInspectRequest, db: DBSession, _user: CurrentUser) -> D
 @router.post(
     "/latex",
     operation_id="dsl_latex",
-    dependencies=[Depends(dsl_feature_gate)],
 )
 def dsl_latex(body: DSLLatexRequest, db: DBSession, _user: CurrentUser) -> DSLLatexResponse:
     """Pretty-print a source as symbolic math for the JModel split-pane (B1).
@@ -217,7 +208,6 @@ def dsl_latex(body: DSLLatexRequest, db: DBSession, _user: CurrentUser) -> DSLLa
 @router.post(
     "/deground",
     operation_id="dsl_deground",
-    dependencies=[Depends(dsl_feature_gate)],
 )
 def dsl_deground(
     body: DSLDegroundRequest, db: DBSession, _user: CurrentUser
@@ -257,7 +247,6 @@ def dsl_deground(
 @router.post(
     "/generate",
     operation_id="dsl_generate",
-    dependencies=[Depends(dsl_feature_gate)],
 )
 async def dsl_generate(
     body: DSLGenerateRequest,

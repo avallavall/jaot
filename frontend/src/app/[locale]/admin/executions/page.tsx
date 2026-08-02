@@ -206,7 +206,7 @@ export default function AdminExecutionsPage() {
                     </TableCell>
                     <TableCell>
                       <Link
-                        href={`/org/${exec.organization_id}`}
+                        href={`/marketplace/authors/${exec.organization_id}`}
                         className="hover:text-primary"
                       >
                         {exec.organization_name || exec.organization_id}

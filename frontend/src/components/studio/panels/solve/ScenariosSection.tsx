@@ -11,7 +11,6 @@ import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import type { ProjectExecutionItem } from "@/lib/types";
 import { useAuth } from "@/contexts/AuthContext";
-import { useDslStatus } from "@/hooks/useDslStatus";
 import { useModelProjectStore } from "../../store/useModelProjectStore";
 import { useProjectDatasets } from "../../datasets/useProjectDatasets";
 
@@ -68,7 +67,6 @@ function variableMap(result: unknown): Map<string, number> {
  */
 export function ScenariosSection({ solverName }: { solverName: string }) {
   const t = useTranslations("studio");
-  const dslEnabled = useDslStatus();
   const modelId = useModelProjectStore((s) => s.modelId);
   const draftDslSource = useModelProjectStore((s) => s.draftDslSource);
   const { activeWorkspaceId } = useAuth();
@@ -235,7 +233,7 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
     }
   };
 
-  if (!dslEnabled || !isPersisted || datasets.length === 0) return null;
+  if (!isPersisted || datasets.length === 0) return null;
 
   const hasSource = draftDslSource.trim().length > 0;
 

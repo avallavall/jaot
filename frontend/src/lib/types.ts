@@ -692,11 +692,6 @@ export interface DslCompileResult {
   error?: DslCompileError | null;
 }
 
-/** Whether the JModel DSL feature is enabled on this instance (GET /api/v2/dsl/status). */
-export interface DslStatusResult {
-  enabled: boolean;
-}
-
 /** A declared set as listed by POST /api/v2/dsl/inspect (S2a). */
 export interface DslSetDecl {
   name: string;

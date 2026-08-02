@@ -25,7 +25,6 @@ import {
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import type { DslInspectResult, ProjectDatasetSummary } from "@/lib/types";
-import { useDslStatus } from "@/hooks/useDslStatus";
 import { useModelProjectStore } from "../store/useModelProjectStore";
 import { useProjectDatasets } from "./useProjectDatasets";
 import { buildDatasetSkeleton } from "./dataset-skeleton";
@@ -64,7 +63,6 @@ interface EditorState {
  */
 export function DatasetsCard() {
   const t = useTranslations("studio");
-  const dslEnabled = useDslStatus();
   const modelId = useModelProjectStore((s) => s.modelId);
   const activeDataset = useModelProjectStore((s) => s.activeDataset);
   const setActiveDataset = useModelProjectStore((s) => s.setActiveDataset);
@@ -139,7 +137,7 @@ export function DatasetsCard() {
     return () => clearTimeout(id);
   }, [dialogOpen, editorText, decls]);
 
-  if (!dslEnabled || !isPersisted) return null;
+  if (!isPersisted) return null;
 
   const openCreate = () => {
     setView("json");

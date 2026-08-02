@@ -77,7 +77,7 @@ exists, so it cannot live in this table. The panel must not offer it.
 
 | Category | Examples | Panel tab |
 |---|---|---|
-| `system` | MAINTENANCE_MODE, SOLVE_MAINTENANCE_MODE, JAOT_DSL, HOME_ANNOUNCEMENT_* | Instance |
+| `system` | MAINTENANCE_MODE, SOLVE_MAINTENANCE_MODE, HOME_ANNOUNCEMENT_* | Instance |
 | `app` | APP_NAME, APP_VERSION (read-only) | Instance |
 | `security` | REGISTRATION_ENABLED, JWT_*, AUTH_*_RATE_LIMIT_* | Access |
 | `limits` | instance_max_variables, instance_max_daily_solves, instance_min_cron_interval_minutes, instance_allowed_features | Access |

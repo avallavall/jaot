@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const { mockListProjects, mockPush } = vi.hoisted(() => ({
@@ -48,5 +48,49 @@ describe("StudioHomePage — My Models list", () => {
     render(<StudioHomePage />);
     expect(await screen.findByText("studio.myModelsError")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "studio.retry" })).toBeInTheDocument();
+  });
+
+  // CONTRACT-TEST: the list must never stop at the page size in silence.
+  it("offers a way past the first page when one comes back full", async () => {
+    const full = Array.from({ length: 50 }, (_, i) => ({
+      id: `mp_${i}`,
+      name: `Model ${i}`,
+      status: "active",
+      committed_count: 0,
+      updated_at: "2026-06-29T10:00:00Z",
+    }));
+    mockListProjects.mockResolvedValue(full);
+    render(<StudioHomePage />);
+
+    await screen.findByText("Model 0");
+    expect(mockListProjects).toHaveBeenCalledWith(
+      expect.objectContaining({ limit: 50 }),
+      undefined,
+    );
+    expect(screen.getByTestId("studio-load-more")).toBeInTheDocument();
+  });
+
+  it("does not offer more when the page came back short", async () => {
+    mockListProjects.mockResolvedValue([
+      { id: "mp_1", name: "Only one", status: "active", committed_count: 0, updated_at: "2026-06-29T10:00:00Z" },
+    ]);
+    render(<StudioHomePage />);
+    await screen.findByText("Only one");
+    expect(screen.queryByTestId("studio-load-more")).not.toBeInTheDocument();
+  });
+
+  // Filtering what already arrived can only ever search the first page.
+  it("sends the search term to the server, not to the rows on screen", async () => {
+    mockListProjects.mockResolvedValue([]);
+    const { getByTestId } = render(<StudioHomePage />);
+    await screen.findByText("studio.myModelsEmpty");
+
+    fireEvent.change(getByTestId("studio-search"), { target: { value: "crew" } });
+    await waitFor(() =>
+      expect(mockListProjects).toHaveBeenCalledWith(
+        expect.objectContaining({ q: "crew" }),
+        undefined,
+      ),
+    );
   });
 });

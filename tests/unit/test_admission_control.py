@@ -19,7 +19,7 @@ import anyio
 import pytest
 
 from app.config import settings
-from app.main import _configure_threadpool
+from app.main import _OUT_OF_BAND_SESSIONS, _configure_threadpool
 
 
 class TestPoolTimeout:
@@ -59,18 +59,44 @@ class TestThreadpoolSizing:
         _configure_threadpool()
         return anyio.to_thread.current_default_thread_limiter().total_tokens
 
-    def test_defaults_to_pool_capacity(self, monkeypatch) -> None:
-        """With no explicit override, tokens == pool_size + max_overflow."""
+    def test_defaults_to_pool_capacity_minus_the_out_of_band_reserve(self, monkeypatch) -> None:
+        """Tokens stay BELOW pool capacity, not at it.
+
+        Not every connection is taken by a request: the maintenance probe, the
+        status collector, the websocket progress reader and the execution writer
+        each open their own session outside the request-scoped budget. Admitting
+        exactly `capacity` requests leaves those four with nothing.
+        """
         monkeypatch.setattr(settings, "API_THREADPOOL_TOKENS", 0)
         monkeypatch.setattr(settings, "DB_POOL_SIZE", 5)
         monkeypatch.setattr(settings, "DB_MAX_OVERFLOW", 5)
 
         tokens = anyio.run(self._tokens_after_configure)
 
-        assert tokens == 10, (
+        assert tokens == 10 - _OUT_OF_BAND_SESSIONS, (
             f"threadpool sized to {tokens} against a pool capacity of 10; "
             "admitting more concurrent requests than connections is exactly "
             "the 4:1 ratio D-25 exists to remove"
+        )
+
+    # CONTRACT-TEST: full admission must never consume the entire pool.
+    def test_leaves_room_for_the_sessions_opened_outside_a_request(self, monkeypatch) -> None:
+        """At full admission the health probe must still get a connection.
+
+        Otherwise it waits out DB_POOL_TIMEOUT and /health/status answers
+        `database: down` — a busy API reported as a broken one, which is the
+        symptom D-25 set out to remove, not to reintroduce.
+        """
+        monkeypatch.setattr(settings, "API_THREADPOOL_TOKENS", 0)
+        monkeypatch.setattr(settings, "DB_POOL_SIZE", 20)
+        monkeypatch.setattr(settings, "DB_MAX_OVERFLOW", 10)
+
+        tokens = anyio.run(self._tokens_after_configure)
+
+        spare = 30 - tokens
+        assert spare >= _OUT_OF_BAND_SESSIONS, (
+            f"{tokens} of 30 connections admitted as requests, leaving {spare} "
+            f"for the {_OUT_OF_BAND_SESSIONS} sessions opened outside one"
         )
 
     def test_explicit_override_wins(self, monkeypatch) -> None:

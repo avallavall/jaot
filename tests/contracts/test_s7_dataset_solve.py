@@ -9,7 +9,6 @@ the ONE async enqueue path with the exact provenance the old launch produced.
 import pytest
 
 from app.models import ModelExecution
-from app.services.platform_settings_service import PlatformSettingsService as PSS
 
 PARAMETRIC_SOURCE = """
 set I;
@@ -22,16 +21,6 @@ subject to cap: sum{i in I} x[i] <= 1;
 DATASET_JSON = {"sets": {"I": ["a", "b"]}, "params": {"w": {"a": 2, "b": 3}}}
 # Declares I but never fills w -> structured compile error, never a charge.
 INCOMPLETE_DATASET_JSON = {"sets": {"I": ["a", "b"]}, "params": {}}
-
-
-@pytest.fixture
-def enable_dsl(db_session):
-    """Turn JAOT_DSL ON for a single test, then restore OFF."""
-    PSS.set(db_session, "JAOT_DSL", "true")
-    db_session.commit()
-    yield
-    PSS.set(db_session, "JAOT_DSL", "false")
-    db_session.commit()
 
 
 def _seed_project(client, db_session, *, source: str | None = PARAMETRIC_SOURCE) -> str:
@@ -58,7 +47,7 @@ def _seed_dataset(client, project_id: str, data=None, name: str = "scenario 1") 
 @pytest.mark.integration
 class TestS7DatasetSolve:
     def test_solves_server_side_with_full_provenance(
-        self, authenticated_client, db_session, test_organization, enable_dsl
+        self, authenticated_client, db_session, test_organization
     ):
         """# CONTRACT-TEST: ADR-007 S7 — server compiles source+dataset and the run
         carries the same provenance the browser-side launch produced (origin
@@ -97,7 +86,7 @@ class TestS7DatasetSolve:
         assert solver_result["objective_value"] == 3.0  # pick "b" (w=3) under the <=1 cap
 
     def test_compile_error_is_422_and_never_solves(
-        self, authenticated_client, db_session, test_organization, enable_dsl
+        self, authenticated_client, db_session, test_organization
     ):
         """# CONTRACT-TEST: a dataset that does not fill the model is a structured
         422 {message, position} resolved BEFORE any enqueue or row insert."""
@@ -115,7 +104,7 @@ class TestS7DatasetSolve:
         assert db_session.query(ModelExecution).count() == before_rows
 
     def test_project_without_source_is_422(
-        self, authenticated_client, db_session, test_organization, enable_dsl
+        self, authenticated_client, db_session, test_organization
     ):
         pid = _seed_project(authenticated_client, db_session, source=None)
         dsid = _seed_dataset(authenticated_client, pid)
@@ -126,7 +115,7 @@ class TestS7DatasetSolve:
         assert "JModel source" in resp.json()["detail"]
 
     def test_foreign_or_unknown_dataset_is_404(
-        self, authenticated_client, db_session, test_organization, enable_dsl
+        self, authenticated_client, db_session, test_organization
     ):
         """# CONTRACT-TEST: the dataset is project-pinned — another project's
         dataset (or a nonexistent id) 404s without solving anything."""
@@ -138,12 +127,4 @@ class TestS7DatasetSolve:
         assert resp.status_code == 404, resp.text
 
         resp = authenticated_client.post(f"/api/v2/projects/{pid}/datasets/mpd_nope/solve")
-        assert resp.status_code == 404, resp.text
-
-    def test_gate_off_is_404(self, authenticated_client, db_session, test_organization):
-        """# CONTRACT-TEST: ships dark — invisible (404) while JAOT_DSL is off."""
-        pid = _seed_project(authenticated_client, db_session)
-        dsid = _seed_dataset(authenticated_client, pid)
-
-        resp = authenticated_client.post(f"/api/v2/projects/{pid}/datasets/{dsid}/solve")
         assert resp.status_code == 404, resp.text

@@ -80,7 +80,6 @@ import type {
   DslGenerateResult,
   DslInspectResult,
   DslLatexResult,
-  DslStatusResult,
   ProjectDataset,
   ProjectDatasetSummary,
   DatasetImportPreview,
@@ -990,11 +989,6 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ problem, allow_dataset: allowDataset }),
     });
-  },
-
-  /** Whether the JModel DSL feature is enabled, so the SPA can surface the lens. */
-  dslStatus(): Promise<DslStatusResult> {
-    return request("/api/v2/dsl/status");
   },
 
   /** Generate a JModel source from a description and/or screenshots/PDFs (B3). The

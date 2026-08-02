@@ -23,6 +23,9 @@ import type { ProjectListItem } from "@/lib/types";
 
 type View = "active" | "archived";
 type Scope = "all" | "mine";
+
+/** Rows per request — the backend's own default for this endpoint. */
+const PAGE_SIZE = 50;
 type Confirm =
   | { kind: "single"; project: ProjectListItem }
   | { kind: "bulk"; ids: string[] }
@@ -51,17 +54,36 @@ export default function StudioHomePage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [query, setQuery] = useState("");
+  const [search, setSearch] = useState("");
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const ws = activeWorkspaceId ?? undefined;
+
+  // The backend answers at most PAGE_SIZE rows and says nothing about the rest,
+  // so this page used to stop at 50 models in silence — no search, no way on.
+  // Search runs server-side (`q`), because filtering what already arrived can
+  // only ever find the first 50.
+  useEffect(() => {
+    const handle = setTimeout(() => setSearch(query.trim()), 300);
+    return () => clearTimeout(handle);
+  }, [query]);
 
   // State is only set from async callbacks here (never synchronously) so this
   // doesn't trip react-hooks/set-state-in-effect.
   useEffect(() => {
     let active = true;
     api
-      .listProjects({ status: view, mine: scope === "mine" }, ws)
+      .listProjects(
+        { status: view, mine: scope === "mine", q: search || undefined, limit: PAGE_SIZE },
+        ws,
+      )
       .then((p) => {
         if (active) {
           setProjects(p);
+          // A full page means there is probably another one. Asking for it and
+          // getting nothing is cheaper than an extra count query per keystroke.
+          setHasMore(p.length === PAGE_SIZE);
           setError(false);
         }
       })
@@ -71,7 +93,30 @@ export default function StudioHomePage() {
     return () => {
       active = false;
     };
-  }, [ws, reloadKey, view, scope]);
+  }, [ws, reloadKey, view, scope, search]);
+
+  const loadMore = async () => {
+    if (loadingMore || !projects) return;
+    setLoadingMore(true);
+    try {
+      const next = await api.listProjects(
+        {
+          status: view,
+          mine: scope === "mine",
+          q: search || undefined,
+          skip: projects.length,
+          limit: PAGE_SIZE,
+        },
+        ws,
+      );
+      setProjects((prev) => [...(prev ?? []), ...next]);
+      setHasMore(next.length === PAGE_SIZE);
+    } catch {
+      setHasMore(false);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const retry = () => {
     setProjects(null);
@@ -231,7 +276,17 @@ export default function StudioHomePage() {
             </button>
           ))}
         </div>
-        <div className="mb-1.5 inline-flex rounded-md border p-0.5 text-xs">
+        <div className="mb-1.5 flex items-center gap-2">
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t("searchPlaceholder")}
+            aria-label={t("searchPlaceholder")}
+            data-testid="studio-search"
+            className="h-8 w-44 rounded-md border bg-background px-2.5 text-xs outline-none focus:border-primary"
+          />
+        <div className="inline-flex rounded-md border p-0.5 text-xs">
           {scopes.map((s) => (
             <button
               key={s.key}
@@ -249,6 +304,7 @@ export default function StudioHomePage() {
               {s.label}
             </button>
           ))}
+        </div>
         </div>
       </div>
 
@@ -303,7 +359,11 @@ export default function StudioHomePage() {
         </div>
       ) : projects.length === 0 ? (
         <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
-          {view === "archived" ? t("archivedEmpty") : t("myModelsEmpty")}
+          {search
+            ? t("searchEmpty", { query: search })
+            : view === "archived"
+              ? t("archivedEmpty")
+              : t("myModelsEmpty")}
         </div>
       ) : (
         <ul className="space-y-2">
@@ -406,6 +466,21 @@ export default function StudioHomePage() {
             </li>
           ))}
         </ul>
+      )}
+
+      {/* The list stopped at 50 with nothing to say so; now it says so. */}
+      {hasMore && projects && projects.length > 0 && (
+        <div className="mt-4 flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadMore}
+            disabled={loadingMore}
+            data-testid="studio-load-more"
+          >
+            {loadingMore ? t("loadingMore") : t("loadMore")}
+          </Button>
+        </div>
       )}
 
       <AlertDialog open={confirm !== null} onOpenChange={(o) => !o && setConfirm(null)}>

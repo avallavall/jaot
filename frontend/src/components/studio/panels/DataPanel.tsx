@@ -3,7 +3,6 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
-import { useDslStatus } from "@/hooks/useDslStatus";
 import { useModelProjectStore } from "../store/useModelProjectStore";
 import { DatasetsCard } from "../datasets/DatasetsCard";
 
@@ -19,7 +18,6 @@ import { DatasetsCard } from "../datasets/DatasetsCard";
  */
 export function DataPanel() {
   const t = useTranslations("studio");
-  const dslEnabled = useDslStatus();
   const modelId = useModelProjectStore((s) => s.modelId);
   const isPersisted = !!modelId && modelId !== "new";
 
@@ -34,11 +32,7 @@ export function DataPanel() {
           <p className="text-sm text-muted-foreground">{t("dataSubtitle")}</p>
         </div>
 
-        {!dslEnabled ? (
-          <p className="rounded-lg border p-4 text-sm text-muted-foreground">
-            {t("dataUnavailable")}
-          </p>
-        ) : !isPersisted ? (
+        {!isPersisted ? (
           <p className="rounded-lg border p-4 text-sm text-muted-foreground">
             {t("dataNeedsSave")}
           </p>

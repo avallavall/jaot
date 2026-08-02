@@ -38,7 +38,6 @@ from app.api.deps import (
     enforce_org_rate_limit,
 )
 from app.api.v2._access import builder_document_or_404
-from app.api.v2.deps.dsl_feature_gate import dsl_feature_gate
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
 from app.api.v2.solve_pipeline import (
     apply_solution_filter,
@@ -1171,7 +1170,7 @@ def solve_model_project(  # def: blocks on the queued result in the threadpool (
     "/{project_id}/datasets/{dataset_id}/solve",
     response_model=AsyncSolveEnvelope,
     operation_id="solve_project_dataset",
-    dependencies=[Depends(dsl_feature_gate), Depends(solve_maintenance_gate)],
+    dependencies=[Depends(solve_maintenance_gate)],
 )
 def solve_project_dataset(  # def: the CPU-bound compile belongs in the threadpool
     project_id: str,

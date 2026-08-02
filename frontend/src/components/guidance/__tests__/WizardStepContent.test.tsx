@@ -19,9 +19,7 @@ import React from "react";
 
 import enMessages from "../../../../messages/en.json";
 
-const { dslStatus } = vi.hoisted(() => ({ dslStatus: vi.fn() }));
 
-vi.mock("@/lib/api", () => ({ api: { dslStatus } }));
 vi.mock("@/lib/community", () => ({
   FEEDBACK_URL: "https://example.invalid/feedback",
   fetchCommunityStatus: vi.fn().mockResolvedValue({ discourse_enabled: false }),
@@ -43,7 +41,6 @@ const hrefsOf = (container: HTMLElement) =>
 describe("WelcomeWizard steps", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    dslStatus.mockResolvedValue({ enabled: false });
   });
 
   it("never links into the retired /builder area", () => {
@@ -77,7 +74,6 @@ describe("WelcomeWizard names every way into a model", () => {
   });
 
   it("lists the launcher's own starting points", async () => {
-    dslStatus.mockResolvedValue({ enabled: false });
     renderStep(3);
 
     // The suite-wide next-intl mock renders keys, which is what makes this a
@@ -95,24 +91,17 @@ describe("WelcomeWizard names every way into a model", () => {
     }
   });
 
-  it("hides JModel exactly when the launcher hides it — JAOT_DSL ships off", async () => {
-    dslStatus.mockResolvedValue({ enabled: false });
-    const { unmount } = renderStep(3);
-    expect(screen.queryByText("studio.tileJModel")).not.toBeInTheDocument();
-    unmount();
-
-    dslStatus.mockResolvedValue({ enabled: true });
+  // The launcher used to hide JModel behind a JAOT_DSL flag; the flag is gone
+  // (owner, 2026-08-02) and the wizard is a mirror of the launcher, so it lists it.
+  it("lists JModel among the ways to start a model", () => {
     renderStep(3);
-    await waitFor(() => {
-      expect(screen.getByText("studio.tileJModel")).toBeInTheDocument();
-    });
+    expect(screen.getByText("studio.tileJModel")).toBeInTheDocument();
   });
 });
 
 describe("WelcomeWizard hands out the real map", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    dslStatus.mockResolvedValue({ enabled: false });
   });
 
   it("links every area of the sidebar's three groups", async () => {

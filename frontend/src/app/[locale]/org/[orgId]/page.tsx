@@ -4,8 +4,11 @@ import { redirect } from "@/i18n/navigation";
 // This route rendered a second, separately-written one — same entity, a
 // different set of figures (it counted executions and reviews, the canonical one
 // counts adoptions and rating), so the same author read differently depending on
-// which link you followed. The links into it (admin executions, a user profile,
-// the workspace) keep working and land on the canonical page.
+// which link you followed.
+//
+// It survives for URLs we do not control — anything bookmarked or linked from
+// outside. Every link inside the app points at the canonical page directly, so
+// nobody pays a redirect on a URL we could have written correctly.
 export default async function LegacyOrganizationProfilePage({
   params,
 }: {

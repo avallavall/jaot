@@ -75,7 +75,7 @@ api_v2_router.include_router(triggers.router, tags=["triggers"])
 # LLM — natural language formulation generation with SSE streaming
 api_v2_router.include_router(llm.router, tags=["llm"])
 
-# DSL — JModel declarative language compile endpoint (gated behind JAOT_DSL)
+# DSL — JModel declarative language compile endpoint
 api_v2_router.include_router(dsl.router, tags=["dsl"])
 
 # Organization settings — BYOK Anthropic API key (owner-managed)

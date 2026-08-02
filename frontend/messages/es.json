@@ -258,7 +258,6 @@
     "tabData": "Datos",
     "dataTitle": "Datos de entrada",
     "dataSubtitle": "La estructura del modelo se escribe en Construir; sus valores viven aquí como datasets con nombre (escenarios).",
-    "dataUnavailable": "Los datasets requieren la función JModel, que no está activada en esta instancia.",
     "dataNeedsSave": "Guarda primero el modelo — los datasets se asocian a un modelo persistido.",
     "dataExplainer": "Un dataset rellena los sets y params que un JModel solo-declaraciones deja abiertos.",
     "dataGoToJModel": "Abrir la lente JModel →",
@@ -328,7 +327,11 @@
       "liveProgress": "Mientras el solver trabaja, cada nueva solución incumbente llega en directo: el gráfico sigue el mejor objetivo encontrado y el gap de optimalidad — cuando el gap llega al 0%, la solución queda demostrada como óptima."
     },
     "listingPublished": "Publicado",
-    "listingWithdrawn": "Retirado"
+    "listingWithdrawn": "Retirado",
+    "searchPlaceholder": "Buscar modelos…",
+    "searchEmpty": "Ningún modelo coincide con \"{query}\".",
+    "loadMore": "Cargar más",
+    "loadingMore": "Cargando…"
   },
   "common": {
     "loading": "Cargando...",

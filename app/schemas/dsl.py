@@ -98,12 +98,6 @@ class DSLInspectResponse(BaseModel):
     error: DSLCompileError | None = None
 
 
-class DSLStatusResponse(BaseModel):
-    """Whether the JModel DSL feature is enabled on this instance."""
-
-    enabled: bool
-
-
 class DSLLatexRequest(BaseModel):
     """A JModel source to pretty-print as symbolic math (B1)."""
 

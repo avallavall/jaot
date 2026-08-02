@@ -9,7 +9,6 @@ import { NodePalette } from "@/components/builder/NodePalette";
 import { PropertiesPanel } from "@/components/builder/PropertiesPanel";
 import { useBuilderStore } from "@/hooks/useBuilderStore";
 import { useModelProjectStore } from "../store/useModelProjectStore";
-import { useDslStatus } from "@/hooks/useDslStatus";
 import { CANVAS_SCALE_CAP, modelElementCount } from "../store/model-scale";
 import { TooLargeNotice } from "../TooLargeNotice";
 import { ModelEditorPanel } from "./editor/ModelEditorPanel";
@@ -37,13 +36,12 @@ function isSubLens(value: string | null): value is SubLens {
 
 /**
  * The Build lens. Sub-lenses: Canvas (visual), Assistant (AI chat), Editor
- * (model-as-JSON text), and — when the JAOT_DSL feature is on — JModel (the DSL editor).
+ * (model-as-JSON text), and JModel (the DSL editor).
  * The active sub-lens is local UI state, but a `?lens=` query selects the initial one
  * (so a launcher tile can open straight into a specific lens).
  */
 export function BuildPanel() {
   const t = useTranslations("studio");
-  const dslEnabled = useDslStatus();
   const [lens, setLens] = useState<SubLens>("canvas");
   const selectedNodeId = useBuilderStore((s) => s.selectedNodeId);
   const canvasDisabled = useModelProjectStore((s) => s.canvasDisabled);
@@ -57,11 +55,6 @@ export function BuildPanel() {
     if (isSubLens(q)) setLens(q);
   }, []);
 
-  // The JModel lens is only offered when the JAOT_DSL feature is enabled.
-  const visibleLenses = dslEnabled
-    ? SUB_LENSES
-    : SUB_LENSES.filter((l) => l !== "jmodel");
-
   const labels: Record<SubLens, string> = {
     canvas: t("subLensCanvas"),
     assistant: t("subLensAssistant"),
@@ -72,7 +65,7 @@ export function BuildPanel() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="flex items-center gap-1 px-3 py-1.5 border-b">
-        {visibleLenses.map((l) => (
+        {SUB_LENSES.map((l) => (
           <button
             key={l}
             onClick={() => setLens(l)}
@@ -111,12 +104,12 @@ export function BuildPanel() {
         )
       ) : lens === "editor" ? (
         <ModelEditorPanel />
-      ) : lens === "jmodel" && dslEnabled ? (
+      ) : lens === "jmodel" ? (
         <JModelEditorPanel />
       ) : lens === "assistant" ? (
         <AssistantLens />
       ) : (
-        // Canvas view — also the fallback when "jmodel" is selected but disabled.
+        // Canvas view.
         <div className="flex flex-1 min-h-0 overflow-hidden">
           <NodePalette />
           <BuilderCanvas />

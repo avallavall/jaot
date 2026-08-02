@@ -1,4 +1,4 @@
-import { test, expect, request, type Page } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { interceptGuidanceApi } from "./helpers/dismiss-wizard";
 
 /**
@@ -14,9 +14,6 @@ import { interceptGuidanceApi } from "./helpers/dismiss-wizard";
 
 const NAV = 20_000;
 const SOLVE = 40_000;
-const BASE = process.env.BASE_URL || "http://localhost:3000";
-const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL || "admin@jaot.io";
-const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD || "AdminPass123!";
 
 // The docs' 3x3 assignment: 2-index binary family (grouped view shows per-worker
 // choices), equality constraints (all binding in the exact analysis), and varied
@@ -39,37 +36,6 @@ subject to one_worker_per_task{t in TASKS}:
 
 subject to one_task_per_worker{w in WORKERS}:
     sum{t in TASKS} assign[w, t] == 1;`;
-
-async function setDslFlag(value: "true" | "false"): Promise<void> {
-  const ctx = await request.newContext({ baseURL: BASE });
-  try {
-    const login = await ctx.post("/api/v2/auth/login/email", {
-      data: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD },
-    });
-    expect(login.ok(), `admin login failed: ${login.status()}`).toBeTruthy();
-    const resp = await ctx.put("/api/v2/admin/settings/values", {
-      data: { updates: { JAOT_DSL: value } },
-    });
-    expect(resp.ok(), `set JAOT_DSL=${value} failed: ${resp.status()}`).toBeTruthy();
-  } finally {
-    await ctx.dispose();
-  }
-}
-
-async function readDslFlag(): Promise<"true" | "false"> {
-  const ctx = await request.newContext({ baseURL: BASE });
-  try {
-    const login = await ctx.post("/api/v2/auth/login/email", {
-      data: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD },
-    });
-    expect(login.ok(), `admin login failed: ${login.status()}`).toBeTruthy();
-    const resp = await ctx.get("/api/v2/dsl/status");
-    expect(resp.ok(), `read JAOT_DSL failed: ${resp.status()}`).toBeTruthy();
-    return (await resp.json()).enabled ? "true" : "false";
-  } finally {
-    await ctx.dispose();
-  }
-}
 
 async function createBlankProject(page: Page): Promise<string> {
   await page.goto("/studio/new");
@@ -105,18 +71,10 @@ test.describe("v3.1 showcase screenshots (explicit capture only)", () => {
 
   test.use({ viewport: { width: 1240, height: 2600 }, deviceScaleFactor: 2 });
 
-  let priorDslFlag: "true" | "false" = "false";
 
-  test.beforeAll(async () => {
-    priorDslFlag = await readDslFlag();
-  });
 
-  test.afterAll(async () => {
-    await setDslFlag(priorDslFlag);
-  });
 
   test("capture the analysis page in light and dark", async ({ page }) => {
-    await setDslFlag("true");
     await interceptGuidanceApi(page);
     await page.addInitScript(() => {
       window.localStorage.setItem(

@@ -1504,26 +1504,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v2/dsl/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Dsl Status
-         * @description Report whether the JModel DSL feature is enabled on this instance.
-         */
-        get: operations["dsl_status"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v2/feedback/conversations/{conversation_id}/rating": {
         parameters: {
             query?: never;
@@ -6146,14 +6126,6 @@ export interface components {
             has_inline_values: boolean;
             /** Name */
             name: string;
-        };
-        /**
-         * DSLStatusResponse
-         * @description Whether the JModel DSL feature is enabled on this instance.
-         */
-        DSLStatusResponse: {
-            /** Enabled */
-            enabled: boolean;
         };
         /**
          * EmailInviteCreate
@@ -10974,7 +10946,6 @@ export type DslLatexRequest = components['schemas']['DSLLatexRequest'];
 export type DslLatexResponse = components['schemas']['DSLLatexResponse'];
 export type DslParamDecl = components['schemas']['DSLParamDecl'];
 export type DslSetDecl = components['schemas']['DSLSetDecl'];
-export type DslStatusResponse = components['schemas']['DSLStatusResponse'];
 export type EmailInviteCreate = components['schemas']['EmailInviteCreate'];
 export type EmailLoginRequest = components['schemas']['EmailLoginRequest'];
 export type EmailSignupRequest = components['schemas']['EmailSignupRequest'];
@@ -13707,26 +13678,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    dsl_status: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DSLStatusResponse"];
                 };
             };
         };

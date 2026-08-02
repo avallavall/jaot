@@ -1,21 +1,16 @@
-import { test, expect, request, type Page } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { interceptGuidanceApi } from "./helpers/dismiss-wizard";
 
 /**
- * Studio JModel (DSL) lens E2E (P5). The feature ships DARK behind the JAOT_DSL
- * platform flag, so this spec drives the flag itself via a throwaway admin API
- * context (the regular `page` session is a non-admin user), then asserts:
- *   - gating: flag OFF → the JModel sub-lens is hidden and ?lens=jmodel falls back;
- *   - flow: flag ON → a valid source compiles, a broken source blocks solve, and a
- *     valid model solves through the Solve tab.
- * The flag is restored to OFF in afterAll so it never leaks into other specs.
+ * Studio JModel (DSL) lens E2E (P5): a valid source compiles, a broken source
+ * blocks solve, and a valid model solves through the Solve tab.
+ *
+ * This spec used to drive a JAOT_DSL platform flag through an admin API context —
+ * the lens shipped dark — and asserted the gated-off state too. The flag is gone
+ * (owner, 2026-08-02), so both the plumbing and the gating test went with it.
  */
 
 const NAV = 20_000;
-const BASE = process.env.BASE_URL || "http://localhost:3000";
-const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL || "admin@jaot.io";
-const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD || "AdminPass123!";
-
 // pick 2 of {a:2, b:3, c:4} to maximize → c + b = 7.
 const VALID_JMODEL = `set I := {a, b, c};
 param w{I} := a 2, b 3, c 4;
@@ -60,39 +55,6 @@ const FLAT_FAMILY_MODEL = {
   constraints: [{ name: "pick_two", expression: "x_a + x_b + x_c <= 2" }],
 };
 
-async function setDslFlag(value: "true" | "false"): Promise<void> {
-  const ctx = await request.newContext({ baseURL: BASE });
-  try {
-    const login = await ctx.post("/api/v2/auth/login/email", {
-      data: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD },
-    });
-    expect(login.ok(), `admin login failed: ${login.status()}`).toBeTruthy();
-    const resp = await ctx.put("/api/v2/admin/settings/values", {
-      data: { updates: { JAOT_DSL: value } },
-    });
-    expect(resp.ok(), `set JAOT_DSL=${value} failed: ${resp.status()}`).toBeTruthy();
-  } finally {
-    await ctx.dispose();
-  }
-}
-
-/** Read the current JAOT_DSL flag so afterAll can restore it (the owner may run local
- *  with it ON to test — this spec must not silently turn it off for them). */
-async function readDslFlag(): Promise<"true" | "false"> {
-  const ctx = await request.newContext({ baseURL: BASE });
-  try {
-    const login = await ctx.post("/api/v2/auth/login/email", {
-      data: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD },
-    });
-    expect(login.ok(), `admin login failed: ${login.status()}`).toBeTruthy();
-    const resp = await ctx.get("/api/v2/dsl/status");
-    expect(resp.ok(), `read JAOT_DSL failed: ${resp.status()}`).toBeTruthy();
-    return (await resp.json()).enabled ? "true" : "false";
-  } finally {
-    await ctx.dispose();
-  }
-}
-
 async function createBlankProject(page: Page): Promise<string> {
   await page.goto("/studio/new");
   const blank = page.getByTestId("launcher-tile-blank");
@@ -104,13 +66,7 @@ async function createBlankProject(page: Page): Promise<string> {
   return match[1];
 }
 
-test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
-  let priorDslFlag: "true" | "false" = "false";
-
-  test.beforeAll(async () => {
-    priorDslFlag = await readDslFlag();
-  });
-
+test.describe("Studio — JModel DSL lens (P5)", () => {
   test.beforeEach(async ({ page }) => {
     await interceptGuidanceApi(page);
     // Pre-seed cookie consent (same pattern as feature-showcase): the fixed
@@ -128,31 +84,9 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
     });
   });
 
-  test.afterAll(async () => {
-    // Restore whatever the flag was before the suite ran (do not clobber the owner's ON).
-    await setDslFlag(priorDslFlag);
-  });
-
-  test("gating: flag OFF hides the lens and ?lens=jmodel falls back to canvas", async ({
+  test("valid source compiles, broken blocks solve, valid model solves", async ({
     page,
   }) => {
-    await setDslFlag("false");
-    const projectId = await createBlankProject(page);
-    await page.goto(`/studio/${projectId}/build?lens=jmodel`);
-
-    // The workspace renders (canvas sub-lens present)...
-    await expect(page.getByTestId("studio-sublens-canvas")).toBeVisible({ timeout: NAV });
-    // ...but the JModel tab is not offered and the deep-link shows no JModel editor.
-    await expect(page.getByTestId("studio-sublens-jmodel")).toHaveCount(0);
-    await expect(page.getByTestId("studio-jmodel-textarea")).toHaveCount(0);
-    // S4: the Datos tab shares the same gate — hidden while the flag is off.
-    await expect(page.getByTestId("studio-tab-data")).toHaveCount(0);
-  });
-
-  test("flag ON: valid source compiles, broken blocks solve, valid model solves", async ({
-    page,
-  }) => {
-    await setDslFlag("true");
     const projectId = await createBlankProject(page);
     await page.goto(`/studio/${projectId}/build?lens=jmodel`);
 
@@ -206,7 +140,6 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
   // S2c: a .dat file imports into the dataset editor as a PREVIEW (nothing stored
   // until saved through the normal create), suggesting the filename as the name.
   test("dataset import: a .dat file pre-fills the editor and saves", async ({ page }) => {
-    await setDslFlag("true");
     const projectId = await createBlankProject(page);
     await page.goto(`/studio/${projectId}/data`);
 
@@ -244,7 +177,6 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
   test("scenarios: declaration-only source compiles against a named dataset and solves", async ({
     page,
   }) => {
-    await setDslFlag("true");
     const projectId = await createBlankProject(page);
     await page.goto(`/studio/${projectId}/build?lens=jmodel`);
 
@@ -329,7 +261,6 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
   test("scenarios: without a JModel source the section explains why Run-all is off", async ({
     page,
   }) => {
-    await setDslFlag("true");
     const projectId = await createBlankProject(page);
 
     // A dataset exists, but the project never got a JModel formulation.
@@ -358,7 +289,6 @@ test.describe("Studio — JModel DSL lens (P5, gated by JAOT_DSL)", () => {
   test("scenarios: a tuple-set model (dimen 2) fills from composite members and solves", async ({
     page,
   }) => {
-    await setDslFlag("true");
     const projectId = await createBlankProject(page);
     await page.goto(`/studio/${projectId}/build?lens=jmodel`);
 
@@ -413,7 +343,6 @@ subject to reach_c: sum{(i, j) in ARCS : j == c} use[i, j] >= 1;`);
     page,
   }) => {
     test.setTimeout(180_000);
-    await setDslFlag("true");
     const projectId = await createBlankProject(page);
     await page.goto(`/studio/${projectId}/build?lens=jmodel`);
 
@@ -490,7 +419,6 @@ subject to reach_c: sum{(i, j) in ARCS : j == c} use[i, j] >= 1;`);
   test("stale source locks read-only until explicitly recompiled (deliberate replace)", async ({
     page,
   }) => {
-    await setDslFlag("true");
     const projectId = await createBlankProject(page);
     await page.goto(`/studio/${projectId}/build?lens=jmodel`);
 
@@ -530,7 +458,6 @@ subject to reach_c: sum{(i, j) in ARCS : j == c} use[i, j] >= 1;`);
   test("reload locks the rehydrated source read-only until explicitly recompiled", async ({
     page,
   }) => {
-    await setDslFlag("true");
     const projectId = await createBlankProject(page);
     await page.goto(`/studio/${projectId}/build?lens=jmodel`);
 
@@ -593,7 +520,6 @@ subject to reach_c: sum{(i, j) in ARCS : j == c} use[i, j] >= 1;`);
   test("B1: math split-pane renders the notation and the Σ toggle collapses it", async ({
     page,
   }) => {
-    await setDslFlag("true");
     const projectId = await createBlankProject(page);
     await page.goto(`/studio/${projectId}/build?lens=jmodel`);
 
@@ -620,7 +546,6 @@ subject to reach_c: sum{(i, j) in ARCS : j == c} use[i, j] >= 1;`);
   test("B2: derive a compiling JModel draft from a flat model built elsewhere", async ({
     page,
   }) => {
-    await setDslFlag("true");
     const projectId = await createBlankProject(page);
     await page.goto(`/studio/${projectId}/build?lens=jmodel`);
     await expect(page.getByTestId("studio-jmodel-textarea")).toBeVisible({ timeout: NAV });
@@ -654,7 +579,6 @@ subject to reach_c: sum{(i, j) in ARCS : j == c} use[i, j] >= 1;`);
   // boundary. That path is covered by the backend endpoint tests (real DB, faked
   // Anthropic client) + the JModelGenerateDialog unit test.
   test("B3: generate-with-AI dialog opens and guards input", async ({ page }) => {
-    await setDslFlag("true");
     const projectId = await createBlankProject(page);
     await page.goto(`/studio/${projectId}/build?lens=jmodel`);
     await expect(page.getByTestId("studio-jmodel-textarea")).toBeVisible({ timeout: NAV });
@@ -698,7 +622,6 @@ subject to reach_c: sum{(i, j) in ARCS : j == c} use[i, j] >= 1;`);
   test("B3 vision: an attached image is validated, listed and sent as raw base64", async ({
     page,
   }) => {
-    await setDslFlag("true");
     const projectId = await createBlankProject(page);
     await page.goto(`/studio/${projectId}/build?lens=jmodel`);
     await expect(page.getByTestId("studio-jmodel-textarea")).toBeVisible({ timeout: NAV });

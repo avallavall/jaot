@@ -45,6 +45,9 @@ from app.domains.solver.services.worker_health import _probe_hexaly_worker  # no
 # Scope: /health handler only. DO NOT generalize into a cross-cutting PSS
 # read-through cache (explicit anti-pattern per D-7.1-13).
 _MAINTENANCE_PROBE_CACHE_SECONDS = 10.0
+#: How long a caller waits for the FIRST read, when there is no stale value to
+#: fall back on. Well under DB_POOL_TIMEOUT, so it can never be the slow part.
+_FIRST_PROBE_WAIT_SECONDS = 2.0
 _maintenance_probe_cache: tuple[float, bool] | None = None
 _maintenance_probe_lock = Lock()
 
@@ -96,12 +99,22 @@ def _probe_maintenance_mode() -> bool:
     if fresh is not None:
         return fresh
 
-    # Non-blocking single flight. The lock now spans a session checkout, not just
-    # a cached query, so waiting on it means waiting out pool_timeout — and with
-    # a blocking acquire every caller would pay that in turn, serially. A caller
-    # that finds the refresh already running serves the stale value instead,
+    # Single flight, non-blocking ONCE WE HAVE AN ANSWER. The lock spans a session
+    # checkout, so waiting on it means waiting out pool_timeout, and with a
+    # blocking acquire every caller would pay that in turn, serially. A caller
+    # that finds the refresh already running serves the stale value instead —
     # which is what it would have got by waiting anyway.
-    if not _maintenance_probe_lock.acquire(blocking=False):
+    #
+    # Except on the very first probe, where there IS no stale value and the
+    # fallback is a hard-coded False. A container starting inside a maintenance
+    # window sees a liveness probe, a metrics scrape and a user request arrive
+    # together: one wins the lock, the others reported maintenance OFF while it
+    # was on. When nothing has ever been read, wait briefly for the answer.
+    if _maintenance_probe_cache is None:
+        acquired = _maintenance_probe_lock.acquire(timeout=_FIRST_PROBE_WAIT_SECONDS)
+    else:
+        acquired = _maintenance_probe_lock.acquire(blocking=False)
+    if not acquired:
         return _last_known_maintenance_flag()
 
     try:

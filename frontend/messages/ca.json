@@ -258,7 +258,6 @@
     "tabData": "Dades",
     "dataTitle": "Dades d'entrada",
     "dataSubtitle": "L'estructura del model s'escriu a Construir; els seus valors viuen aquí com a datasets amb nom (escenaris).",
-    "dataUnavailable": "Els datasets requereixen la funció JModel, que no està activada en aquesta instància.",
     "dataNeedsSave": "Desa primer el model — els datasets s'associen a un model persistit.",
     "dataExplainer": "Un dataset omple els sets i params que un JModel només-declaracions deixa oberts.",
     "dataGoToJModel": "Obrir la lent JModel →",
@@ -328,7 +327,11 @@
       "liveProgress": "Mentre el solver treballa, cada nova solució incumbent arriba en directe: el gràfic segueix el millor objectiu trobat i el gap d'optimalitat — quan el gap arriba al 0%, la solució queda demostrada com a òptima."
     },
     "listingPublished": "Publicat",
-    "listingWithdrawn": "Retirat"
+    "listingWithdrawn": "Retirat",
+    "searchPlaceholder": "Cerca models…",
+    "searchEmpty": "Cap model coincideix amb \"{query}\".",
+    "loadMore": "Carrega’n més",
+    "loadingMore": "S’està carregant…"
   },
   "common": {
     "loading": "Carregant...",

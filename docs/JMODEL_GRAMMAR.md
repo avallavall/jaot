@@ -8,7 +8,7 @@
 > **Status: FROZEN for the gate.** This is the written grammar the P5 STOP-gate requires
 > ("a frozen written grammar + a ≤2-week parser spike that round-trips 3 real models, else STOP").
 > The spike (`scratchpad/jmodel_spike/`) implements exactly this subset. If the gate PASSES, this
-> grammar graduates to `app/domains/dsl/` behind `JAOT_DSL`; if it STOPs, this file records why.
+> grammar graduates to `app/domains/dsl/`; if it STOPs, this file records why.
 >
 > ### ✅ GATE RESULT: **PASS** (2026-07-01, spike built in hours, well under the ≤2-week budget)
 > All four acceptance criteria met on all 3 real models (`assignment`, `knapsack`, `edge_select`):
@@ -22,7 +22,7 @@
 > `edge_select` exercises **set-filters** (`i != j` in both a `sum{}` and a constraint family) +
 > same-set double indexing (the TSP/routing precursor, directly on-thesis for the owner's MDPDP).
 > Evidence: `scratchpad/jmodel_spike/` (`jmodel.py`, `models/*.jmodel`, `verify.py`), run in the
-> `jaot-api` image. **⇒ P5 is GREEN to build** (graduate the spike → `app/domains/dsl/`, gated `JAOT_DSL`).
+> `jaot-api` image. **⇒ P5 is GREEN to build** (graduate the spike → `app/domains/dsl/`).
 
 ## 1. Design contract
 
@@ -134,7 +134,7 @@ If any of 1–4 fails and cannot be fixed within the spike budget → **STOP** (
   set operators (`union`, `cross`),
   ranges (`1..10`) — **SHIPPED, see §7**, conditional params, `if/then` in expressions, ZIMPL
   import, nonlinear terms,
-  the Monaco/editor lens + i18n, the `JAOT_DSL` flag plumbing, and round-trip *back* to JModel from
+  the Monaco/editor lens + i18n, and round-trip *back* to JModel from
   flat (lowering is one-way for the gate).
 
 ## 6. ADDENDUM (2026-07-03, S6 / DSL-expressivity #3) — Tuple sets

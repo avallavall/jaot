@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useGuidance } from "@/contexts/GuidanceContext";
-import { useDslStatus } from "@/hooks/useDslStatus";
 import { SkillLevelSelector } from "./SkillLevelSelector";
 import { Button } from "@/components/ui/button";
 import type { SkillLevel } from "@/lib/types";
@@ -74,7 +73,6 @@ export function WizardStepContent({
   // a wizard that paraphrases the product drifts from it the first time either
   // is renamed. Steps 3 and 4 below read the same strings those surfaces read.
   const tStudio = useTranslations("studio");
-  const dslEnabled = useDslStatus();
   const [communityStatus, setCommunityStatus] = useState<CommunityStatus | null>(null);
 
   useEffect(() => {
@@ -181,7 +179,7 @@ export function WizardStepContent({
               tStudio("tileAi"),
               tStudio("tileVisual"),
               tStudio("tileEditor"),
-              ...(dslEnabled ? [tStudio("tileJModel")] : []),
+              tStudio("tileJModel"),
               tStudio("tileImport"),
               tStudio("tileTemplate"),
               tStudio("tileMarketplace"),

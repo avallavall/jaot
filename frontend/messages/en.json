@@ -258,7 +258,6 @@
     "tabData": "Data",
     "dataTitle": "Input data",
     "dataSubtitle": "The model's structure is written in Build; its values live here as named datasets (scenarios).",
-    "dataUnavailable": "Datasets need the JModel feature, which is not enabled on this instance.",
     "dataNeedsSave": "Save the model first — datasets attach to a persisted model.",
     "dataExplainer": "A dataset fills the sets and params that a declaration-only JModel leaves open.",
     "dataGoToJModel": "Open the JModel lens →",
@@ -328,7 +327,11 @@
       "liveProgress": "While the solver runs, each new incumbent solution streams in live: the chart tracks the best objective found and the optimality gap — when the gap reaches 0%, the solution is proven optimal."
     },
     "listingPublished": "Published",
-    "listingWithdrawn": "Withdrawn"
+    "listingWithdrawn": "Withdrawn",
+    "searchPlaceholder": "Search models…",
+    "searchEmpty": "No models match \"{query}\".",
+    "loadMore": "Load more",
+    "loadingMore": "Loading…"
   },
   "common": {
     "loading": "Loading...",

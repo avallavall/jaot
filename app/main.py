@@ -111,6 +111,13 @@ def _ensure_settings_seeded() -> None:
         db.close()
 
 
+#: Connections held outside the request-scoped budget, so admission must stay
+#: below pool capacity by at least this much: the maintenance probe and the
+#: status collector (api/v2/health.py), the websocket progress reader
+#: (api/v2/ws.py) and the execution writer (domains/solver/execution_writer.py).
+_OUT_OF_BAND_SESSIONS = 4
+
+
 def _configure_threadpool() -> None:
     """Bound concurrent request execution to what the DB pool can serve (D-25).
 
@@ -129,14 +136,25 @@ def _configure_threadpool() -> None:
     the work starts, instead of stranding threads on a resource that is already
     fully committed.
 
+    Admission stops SHORT of capacity, though. Not every connection is taken by
+    a request: the health probe, the status collector, the websocket progress
+    reader and the execution writer each open their own session outside the
+    request-scoped budget. Admitting exactly `capacity` requests leaves those
+    with nothing, so the health probe waits out ``pool_timeout`` and reports
+    ``database: down`` — a busy API reported as a broken one, which is the exact
+    symptom D-25 set out to remove.
+
     Never raises: a failure to tune the limiter must not stop the app booting —
     the old default is degraded, not broken.
     """
     try:
         import anyio.to_thread
 
+        capacity = settings.DB_POOL_SIZE + settings.DB_MAX_OVERFLOW
         configured = settings.API_THREADPOOL_TOKENS
-        tokens = configured if configured > 0 else settings.DB_POOL_SIZE + settings.DB_MAX_OVERFLOW
+        # Leave room for the out-of-band sessions above. On a tiny pool the
+        # reserve would starve requests entirely, so never drop below one token.
+        tokens = configured if configured > 0 else max(1, capacity - _OUT_OF_BAND_SESSIONS)
         if tokens <= 0:
             return
 
@@ -145,10 +163,11 @@ def _configure_threadpool() -> None:
         limiter.total_tokens = tokens
         logger.info(
             "🧵 Request threadpool bounded to %d concurrent requests "
-            "(was %s; DB pool capacity is %d)",
+            "(was %s; DB pool capacity is %d, %d reserved for out-of-band sessions)",
             tokens,
             previous,
-            settings.DB_POOL_SIZE + settings.DB_MAX_OVERFLOW,
+            capacity,
+            capacity - tokens,
         )
     except Exception:
         logger.warning("Could not size the request threadpool; using the default", exc_info=True)

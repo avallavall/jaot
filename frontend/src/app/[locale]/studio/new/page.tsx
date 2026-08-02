@@ -18,7 +18,6 @@ import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { useBuilderStore } from "@/hooks/useBuilderStore";
-import { useDslStatus } from "@/hooks/useDslStatus";
 import { getErrorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 import { importFileToProject } from "@/components/studio/import-launch";
@@ -54,7 +53,6 @@ export default function StudioNewPage() {
   const router = useRouter();
   const { activeWorkspaceId } = useAuth();
   const reset = useBuilderStore((s) => s.reset);
-  const dslEnabled = useDslStatus();
   const [creating, setCreating] = useState(false);
   const [importing, setImporting] = useState(false);
   const busy = creating || importing;
@@ -100,7 +98,7 @@ export default function StudioNewPage() {
     { key: "ai", icon: <Sparkles className="h-6 w-6" />, label: t("tileAi"), desc: t("tileAiDesc"), available: true, onClick: () => handleCreate("assistant") },
     { key: "visual", icon: <Blocks className="h-6 w-6" />, label: t("tileVisual"), desc: t("tileVisualDesc"), available: true, onClick: () => handleCreate() },
     { key: "editor", icon: <Code2 className="h-6 w-6" />, label: t("tileEditor"), desc: t("tileEditorDesc"), available: true, onClick: () => handleCreate("editor") },
-    { key: "jmodel", icon: <Braces className="h-6 w-6" />, label: t("tileJModel"), desc: t("tileJModelDesc"), available: dslEnabled, onClick: () => handleCreate("jmodel") },
+    { key: "jmodel", icon: <Braces className="h-6 w-6" />, label: t("tileJModel"), desc: t("tileJModelDesc"), available: true, onClick: () => handleCreate("jmodel") },
     { key: "import", icon: <Upload className="h-6 w-6" />, label: t("tileImport"), desc: t("tileImportDesc"), available: true, onClick: handleImportClick },
     { key: "template", icon: <LayoutTemplate className="h-6 w-6" />, label: t("tileTemplate"), desc: t("tileTemplateDesc"), available: true, onClick: () => router.push("/studio/templates") },
     { key: "marketplace", icon: <ShoppingBag className="h-6 w-6" />, label: t("tileMarketplace"), desc: t("tileMarketplaceDesc"), available: true, onClick: () => router.push("/marketplace") },
