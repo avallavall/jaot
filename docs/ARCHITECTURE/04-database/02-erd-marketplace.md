@@ -11,7 +11,7 @@
 > **Note (P1.5 fusion, 2026-07-13):** the legacy tables `model_catalog` and
 > `organization_models` (plus the legacy FK columns `model_reviews.catalog_id`,
 > `user_favorites.model_id`, `recent_models.model_id`, `model_view_events.catalog_model_id`)
-> are **dead but still present** in the schema (additive-only policy). A later contract
+> are **dead but still present** in the schema (kept for one release). A later contract
 > release drops them.
 
 ## Diagram

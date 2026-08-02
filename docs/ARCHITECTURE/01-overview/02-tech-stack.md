@@ -106,7 +106,7 @@ flowchart TB
 - **ORM:** idiomatic SQLAlchemy 2.0 — `Mapped[str]`, `mapped_column()`, not `Column()`.
 - **Middleware:** pure ASGI, never `BaseHTTPMiddleware`.
 - **CORS:** explicit, never wildcard.
-- **Migrations:** additive-only. Never DROP/RENAME in the same release.
+- **Migrations:** a DROP or RENAME is allowed when it is the right change. A rollback restores the image, not the schema, so an irreversible one needs a backup first.
 - **Auth:** always on. There is no bypass flag.
 - **Commits:** Conventional Commits — `feat(scope):`, `fix(scope):`, `test(scope):`.
 - **Backend line length:** 100 chars (ruff).

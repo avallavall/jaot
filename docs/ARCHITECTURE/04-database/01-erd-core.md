@@ -6,7 +6,7 @@
 > `workspace_credit_pools`, `invoices`, plus the credit/Stripe columns on `organizations`
 > and `model_executions`) were removed from the application. Their tables/columns still
 > exist in the database — dead, unmapped, and nullable — because migrations are
-> additive-only; a later release drops them.
+> kept for one release; a later release drops them.
 
 ## Diagram
 

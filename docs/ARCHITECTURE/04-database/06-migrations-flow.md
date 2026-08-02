@@ -1,6 +1,8 @@
 # Alembic Migrations Pipeline
 
-> Incremental schema versioning. Additive-only: never DROP/RENAME in the same release.
+> Incremental schema versioning. A DROP or RENAME is allowed when it is the right
+> change (owner, 2026-08-02); what a rollback restores is the container image, not
+> the schema, so an irreversible migration needs a backup taken before the deploy.
 
 ## CI/CD Flow
 
@@ -60,7 +62,7 @@ infra/alembic/versions/
 > **Note (ADR-008):** the money/credit migrations in the history above (idempotency
 > constraint, credit pools, financial hardening) built tables and columns that are now
 > **dead** — the application no longer maps them. They stay in the chain untouched
-> (additive-only policy); a later release drops the schema.
+> (kept for one release); a later release drops the schema.
 
 ### Last 5 Migrations
 
