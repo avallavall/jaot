@@ -719,6 +719,252 @@ class TestLotSizingMultiItem:
         assert all("<= 2" in c.expression for c in reactor_rows)
 
 
+class TestPeriodSelectionGenerator:
+    """The honest model behind the harvest/mine/track cards, which used to be
+    served as an X-assigned-to-X scheduling model or an empty makespan."""
+
+    def test_select_mode_respects_precedence_capacity_and_grade(self) -> None:
+        from app.domains.solver.adapters.scip import SCIPAdapter
+        from app.domains.solver.services.generators.period_selection import (
+            PeriodSelectionGenerator,
+        )
+
+        problem = PeriodSelectionGenerator().generate(
+            {
+                "blocks": [
+                    {"name": "top", "tonnage": 60, "grade": 2.5, "value": 100},
+                    {
+                        "name": "deep",
+                        "tonnage": 60,
+                        "grade": 3.0,
+                        "value": 500,
+                        "requires": ["top"],
+                    },
+                    {"name": "lean", "tonnage": 60, "grade": 1.0, "value": 400},
+                ],
+                "num_periods": 2,
+                "plant_capacity": 60,
+                "min_grade": 2.0,
+            },
+            {},
+        )
+        result = SCIPAdapter().solve(problem)
+
+        assert result.status.value == "optimal"
+        # Only one block fits per period. The lean block (grade 1.0) can never
+        # meet the 2.0 floor alone, so the best plan is top in p1, deep in p2:
+        # 100 + 500 = 600 — even though lean alone is worth 400.
+        assert result.objective_value == pytest.approx(600.0)
+        assert result.solution["x_top_p1"] == pytest.approx(1.0)
+        assert result.solution["x_deep_p2"] == pytest.approx(1.0)
+
+    def test_assign_mode_fits_every_item_before_its_deadline(self) -> None:
+        from app.domains.solver.adapters.scip import SCIPAdapter
+        from app.domains.solver.services.generators.period_selection import (
+            PeriodSelectionGenerator,
+        )
+
+        problem = PeriodSelectionGenerator().generate(
+            {
+                "sections": [
+                    {
+                        "name": "urgent",
+                        "duration_hours": 8,
+                        "deadline_day": 5,
+                        "trains_affected": 30,
+                    },
+                    {
+                        "name": "later",
+                        "duration_hours": 6,
+                        "deadline_day": 20,
+                        "trains_affected": 5,
+                    },
+                ],
+                "maintenance_windows": [
+                    {"day": 3, "duration_hours": 8},
+                    {"day": 10, "duration_hours": 8},
+                ],
+            },
+            {"mode": "assign"},
+        )
+        result = SCIPAdapter().solve(problem)
+
+        assert result.status.value == "optimal"
+        # urgent (deadline day 5) can only take the day-3 window; later lands
+        # on day 10. Objective: 30*3 + 5*10.
+        assert result.objective_value == pytest.approx(140.0)
+
+    def test_assign_mode_refuses_an_impossible_deadline(self) -> None:
+        from app.domains.solver.services.generators.period_selection import (
+            PeriodSelectionGenerator,
+        )
+
+        with pytest.raises(ValueError, match="no admissible period"):
+            PeriodSelectionGenerator().generate(
+                {
+                    "sections": [{"name": "s", "duration_hours": 4, "deadline_day": 2}],
+                    "maintenance_windows": [{"day": 9, "duration_hours": 8}],
+                },
+                {"mode": "assign"},
+            )
+
+
+class TestNetworkDesignGenerator:
+    def test_two_edge_connectivity_needs_the_whole_triangle(self) -> None:
+        """A triangle is the smallest 2-edge-connected graph: dropping any edge
+        leaves a bridge, so all three must be bought."""
+        from app.domains.solver.adapters.scip import SCIPAdapter
+        from app.domains.solver.services.generators.network_design import (
+            NetworkDesignGenerator,
+        )
+
+        problem = NetworkDesignGenerator().generate(
+            {
+                "nodes": [{"name": "a"}, {"name": "b"}, {"name": "c"}],
+                "candidate_edges": [
+                    {"from_node": "a", "to_node": "b", "cost": 10},
+                    {"from_node": "b", "to_node": "c", "cost": 20},
+                    {"from_node": "a", "to_node": "c", "cost": 30},
+                ],
+                "min_paths": 2,
+            },
+            {},
+        )
+        result = SCIPAdapter().solve(problem)
+
+        assert result.status.value == "optimal"
+        assert result.objective_value == pytest.approx(60.0)
+
+    def test_a_cheap_detour_beats_an_expensive_direct_edge(self) -> None:
+        from app.domains.solver.adapters.scip import SCIPAdapter
+        from app.domains.solver.services.generators.network_design import (
+            NetworkDesignGenerator,
+        )
+
+        problem = NetworkDesignGenerator().generate(
+            {
+                "nodes": [{"name": "a"}, {"name": "b"}, {"name": "c"}, {"name": "d"}],
+                "candidate_edges": [
+                    {"from_node": "a", "to_node": "b", "cost": 10},
+                    {"from_node": "b", "to_node": "c", "cost": 10},
+                    {"from_node": "c", "to_node": "d", "cost": 10},
+                    {"from_node": "d", "to_node": "a", "cost": 10},
+                    {"from_node": "a", "to_node": "c", "cost": 100},
+                ],
+                "min_paths": 2,
+            },
+            {},
+        )
+        result = SCIPAdapter().solve(problem)
+
+        assert result.status.value == "optimal"
+        # The 4-cycle (cost 40) is 2-edge-connected; the 100-cost chord stays out.
+        assert result.objective_value == pytest.approx(40.0)
+        assert result.solution.get("e_a_c", 0) == pytest.approx(0.0)
+
+
+class TestNetworkFlowMaxFlowMode:
+    def test_maximizes_flow_instead_of_verifying_it(self) -> None:
+        """The shipped card had zero costs and supplies equal to the known
+        answer, so min-cost mode merely verified a flow of that value and
+        answered an optimal cost of 0. In max_flow mode the objective IS the
+        flow value, proven by the solver."""
+        from app.domains.solver.adapters.scip import SCIPAdapter
+
+        problem = NetworkFlowGenerator().generate(
+            {
+                "nodes": [
+                    {"id": "s", "supply": 100},
+                    {"id": "a", "supply": 0},
+                    {"id": "b", "supply": 0},
+                    {"id": "t", "supply": -100},
+                ],
+                "arcs": [
+                    {"from": "s", "to": "a", "cost": 0, "capacity": 5},
+                    {"from": "s", "to": "b", "cost": 0, "capacity": 3},
+                    {"from": "a", "to": "t", "cost": 0, "capacity": 4},
+                    {"from": "b", "to": "t", "cost": 0, "capacity": 5},
+                ],
+            },
+            {"mode": "max_flow"},
+        )
+        result = SCIPAdapter().solve(problem)
+
+        assert result.status.value == "optimal"
+        assert problem.name == "max_flow"
+        # min(5,4) + min(3,5) = 7, well under the loose 100 caps.
+        assert result.objective_value == pytest.approx(7.0)
+
+
+class TestCuttingStockPatternEnumeration:
+    def test_mixed_patterns_beat_the_old_pair_shapes(self) -> None:
+        """The old set (single-item patterns plus one arbitrary pair shape)
+        could not cut A+B+C from one stock, so this instance needed 3 stocks;
+        the full maximal-pattern set does it in 2."""
+        from app.domains.solver.adapters.scip import SCIPAdapter
+
+        problem = CuttingStockGenerator().generate(
+            {
+                "stock_length": 10,
+                "items": [
+                    {"name": "A", "length": 5, "demand": 2},
+                    {"name": "B", "length": 3, "demand": 2},
+                    {"name": "C", "length": 2, "demand": 2},
+                ],
+            },
+            {},
+        )
+        result = SCIPAdapter().solve(problem)
+
+        assert result.status.value == "optimal"
+        assert result.objective_value == pytest.approx(2.0)
+        assert "truncated" not in (problem.description or "")
+
+
+class TestCoveringUncoverable:
+    def test_an_element_no_set_covers_is_an_error_not_a_silent_pass(self) -> None:
+        """It used to be skipped, and the answer came back optimal with the
+        element uncovered — the one thing a covering model exists to prevent."""
+        with pytest.raises(ValueError, match="No set covers"):
+            CoveringGenerator().generate(
+                {
+                    "sets": [{"name": "s1", "cost": 1, "covers": [0, 1]}],
+                    "num_elements": 3,  # element 2 appears in no set
+                },
+                {},
+            )
+
+
+class TestSchedulingLineAssignment:
+    def test_lines_are_resources_with_their_hour_budgets(self) -> None:
+        """The production-line card ships lines with available_hours and orders
+        with production_hours; both went unread — lines were not a recognized
+        resource list, budgets defaulted to 40 and durations to 8."""
+        from app.domains.solver.adapters.scip import SCIPAdapter
+
+        problem = SchedulingGenerator().generate(
+            {
+                "orders": [
+                    {"name": "o1", "production_hours": 6},
+                    {"name": "o2", "production_hours": 6},
+                    {"name": "o3", "production_hours": 6},
+                ],
+                "lines": [
+                    {"name": "l1", "available_hours": 12},
+                    {"name": "l2", "available_hours": 12},
+                ],
+            },
+            {},
+        )
+        assert problem.name == "employee_scheduling"
+        result = SCIPAdapter().solve(problem)
+
+        assert result.status.value == "optimal"
+        # 18 hours of work at the default rate of 20 — and no line over 12h,
+        # which forces a 2+1 split (all three on one line would need 18h).
+        assert result.objective_value == pytest.approx(360.0)
+
+
 class TestProcurementGenerator:
     def test_material_and_supplier_rows_do_not_alias_by_name(self) -> None:
         """Rows were built by name prefix/suffix matching, so material "steel"
