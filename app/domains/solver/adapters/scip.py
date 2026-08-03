@@ -32,6 +32,7 @@ from app.domains.solver.constraint_activity import (
     is_binding_within_bounds,
 )
 from app.domains.solver.reduced_cost import derive_reduced_costs
+from app.domains.solver.sensitivity_values import publishable_value
 from app.domains.solver.services.expression_parser import ExpressionParser, ParsedExpression
 from app.schemas.optimization import (
     ConstraintSensitivity,
@@ -578,7 +579,11 @@ class SCIPAdapter:
             shadow_price = None
             is_binding = binding_at_x_star.get(name)
             try:
-                shadow_price = model.getDualSolVal(cons)
+                # SCIP answers SCIP_INVALID (1e99) through the same double a real
+                # dual rides on — e.g. for the surviving reference when two rows
+                # share a name. A sentinel is None here, or the derivation below
+                # prices reduced costs off it (measured: rc = 2e+99).
+                shadow_price = publishable_value(model.getDualSolVal(cons))
             except Exception as e:
                 logger.debug("Could not extract dual for constraint %s: %s", name, e)
             if is_binding is None and sol is not None:
@@ -672,7 +677,7 @@ class SCIPAdapter:
             is_at_bound = None
             if reduced_cost is None:
                 try:
-                    reduced_cost = model.getVarRedcost(var)
+                    reduced_cost = publishable_value(model.getVarRedcost(var))
                 except Exception as e:
                     logger.debug("Could not extract reduced cost for %s: %s", name, e)
             try:

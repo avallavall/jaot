@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 
 from app.domains.solver.adapters.base import STRICT_EPSILON, SolverCapabilities
 from app.domains.solver.constraint_activity import is_binding_within_bounds
+from app.domains.solver.sensitivity_values import publishable_value
 from app.domains.solver.services.expression_parser import ExpressionParser
 from app.schemas.optimization import (
     ConstraintSensitivity,
@@ -369,7 +370,7 @@ class HiGHSAdapter:
         row_value = list(getattr(sol, "row_value", []) or [])
         constraint_sens: list[ConstraintSensitivity] = []
         for i, constraint in enumerate(problem.constraints):
-            shadow_price = float(row_dual[i]) if i < len(row_dual) else None
+            shadow_price = publishable_value(float(row_dual[i])) if i < len(row_dual) else None
             # Binding is slack, not price: HiGHS returns dual -0.0 for a row sitting
             # exactly on its limit whenever the optimum is dual-degenerate.
             is_binding = None
@@ -399,7 +400,11 @@ class HiGHSAdapter:
         variable_sens: list[VariableSensitivity] = []
         for var in problem.variables:
             idx = col_map.get(var.name)
-            reduced_cost = float(col_dual[idx]) if idx is not None and idx < len(col_dual) else None
+            reduced_cost = (
+                publishable_value(float(col_dual[idx]))
+                if idx is not None and idx < len(col_dual)
+                else None
+            )
             is_at_bound: bool | None = None
             if idx is not None and idx < len(col_values):
                 value = col_values[idx]
