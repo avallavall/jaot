@@ -59,7 +59,13 @@ class NetworkFlowGenerator(BaseGenerator):
                 or arc.get("sink")
                 or ""
             )
-            cost = arc.get("cost", arc.get("cost_per_unit", arc.get("price", 1)))
+            cost = arc.get(
+                "cost",
+                arc.get(
+                    "cost_per_unit",
+                    arc.get("cost_per_m3", arc.get("unit_cost", arc.get("price", 1))),
+                ),
+            )
             capacity = arc.get("capacity", arc.get("max_flow", None))
             normalized.append(
                 {
@@ -82,13 +88,23 @@ class NetworkFlowGenerator(BaseGenerator):
         for s in sources:
             s_name = s.get("name", s.get("id", f"src_{len(nodes)}"))
             supply = s.get(
-                "supply", s.get("capacity", s.get("production", s.get("flow_volume", 10)))
+                "supply",
+                s.get(
+                    "capacity",
+                    s.get("production", s.get("loading_rate_tph", s.get("flow_volume", 10))),
+                ),
             )
             nodes.append({"name": s_name, "supply": supply})
 
         for d in sinks:
             d_name = d.get("name", d.get("id", f"sink_{len(nodes)}"))
-            demand = d.get("demand", d.get("capacity", d.get("required", d.get("flow_volume", 10))))
+            demand = d.get(
+                "demand",
+                d.get(
+                    "capacity",
+                    d.get("required", d.get("capacity_tph", d.get("flow_volume", 10))),
+                ),
+            )
             nodes.append({"name": d_name, "supply": -demand})
 
         for s in sources:
@@ -138,13 +154,38 @@ class NetworkFlowGenerator(BaseGenerator):
                     f"Got keys: {list(user_input.keys())}"
                 )
         elif arcs_raw and not nodes_raw:
-            # Arcs found but no nodes — derive nodes from arc endpoints
+            # Arcs found under a preferred key, but no "nodes" list. The other
+            # lists in the input are the nodes: throwing them away and deriving
+            # zero-supply nodes from the arc endpoints — what this branch did —
+            # zeroed every supply and demand, so the optimal flow was "move
+            # nothing" (measured: the timber card answered cost 0).
             arcs = self._normalize_arcs(arcs_raw)
+            arc_key = next(k for k in _ARC_KEYS if k in user_input)
+            other_lists = [
+                v
+                for k, v in user_input.items()
+                if k != arc_key and isinstance(v, list) and v and isinstance(v[0], dict)
+            ]
+            nodes = [
+                {
+                    "name": item.get("name", item.get("id", "")),
+                    "supply": item.get("supply", 0) - item.get("demand", 0),
+                }
+                for lst in other_lists
+                for item in lst
+                if item.get("name", item.get("id"))
+            ]
+            named = {self.sanitize_name(str(n["name"])) for n in nodes}
+            # Endpoints not described by any list are transshipment nodes.
             node_set: set[str] = set()
             for arc in arcs:
                 node_set.add(arc["from"])
                 node_set.add(arc["to"])
-            nodes = [{"name": n, "supply": 0} for n in sorted(node_set)]
+            nodes.extend(
+                {"name": n, "supply": 0}
+                for n in sorted(node_set)
+                if self.sanitize_name(n) not in named
+            )
         else:
             # No preferred keys matched -- auto-detect from all lists
             all_lists = [
@@ -242,6 +283,15 @@ class NetworkFlowGenerator(BaseGenerator):
 
         constraints: list[Constraint] = []
 
+        # With more supply than demand, sources may keep their surplus (the
+        # transportation convention): out - in <= supply there, while demand
+        # rows stay hard. Equality everywhere made ANY unbalanced instance
+        # infeasible outright. Balanced instances are unaffected — the demand
+        # rows pull every supply row tight.
+        total_pos = sum(s for s in node_supply.values() if s > 0)
+        total_neg = -sum(s for s in node_supply.values() if s < 0)
+        relax_supply_rows = total_pos > total_neg
+
         # Flow conservation at each node
         for node_name in node_names:
             supply = node_supply.get(node_name, 0)
@@ -271,10 +321,11 @@ class NetworkFlowGenerator(BaseGenerator):
 
             if parts:
                 expr = "".join(parts)
+                op = "<=" if relax_supply_rows and supply > 0 else "=="
                 constraints.append(
                     Constraint(
                         name=f"flow_{node_name}",
-                        expression=f"{expr} == {supply}",
+                        expression=f"{expr} {op} {supply}",
                     )
                 )
 
