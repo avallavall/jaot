@@ -30,6 +30,11 @@ class SchedulingGenerator(BaseGenerator):
     """
 
     def generate(self, user_input: dict[str, Any], params: dict[str, Any]) -> OptimizationProblem:
+        # No generic fallback here: shifts/tasks detection below also falls back
+        # to "the first list in the input", so a single-list input (stands,
+        # blocks, trial phases…) would hand the SAME list to both roles and the
+        # model became an X-assigned-to-X assignment answering nothing. Those
+        # single-list inputs are exactly what task scheduling below is for.
         employees = find_list_field(
             user_input,
             [
@@ -43,6 +48,7 @@ class SchedulingGenerator(BaseGenerator):
                 "machines",
                 "num_crews",
             ],
+            fallback=False,
         )
         shifts = find_list_field(
             user_input,
@@ -197,39 +203,71 @@ class SchedulingGenerator(BaseGenerator):
         tasks: list[dict[str, Any]],
         params: dict[str, Any],
     ) -> OptimizationProblem:
-        """Task/project scheduling: assign start times to tasks, minimize makespan."""
+        """Task/project scheduling: start times minimizing makespan, honestly.
+
+        Time-indexed: a binary z per (task, admissible start) carries the real
+        commitments — precedence declared on the tasks, and at most
+        ``num_crews``/``num_resources`` tasks ACTIVE in any period. The previous
+        version wrote none of that: its only resource row was a fabricated
+        "sum of starts >= n(n-1)/2r", which enforces no capacity and cuts off
+        legitimately optimal schedules — so every card served here answered
+        "everything starts at once".
+        """
         time_horizon = int(
             find_scalar_field(user_input, ["time_horizon", "num_periods", "horizon"], default=20)
         )
         num_resources = int(
-            find_scalar_field(user_input, ["num_crews", "num_resources"], default=2)
+            find_scalar_field(user_input, ["num_crews", "num_resources"], default=0)
         )
-        capacity = int(
-            find_scalar_field(
-                user_input,
-                ["plant_capacity", "capacity", "max_area_per_period"],
-                default=len(tasks),
+
+        names: list[str] = []
+        durations: list[int] = []
+        for i, task in enumerate(tasks):
+            names.append(self.sanitize_name(task.get("name", f"task_{i}")))
+            durations.append(
+                max(1, int(task.get("duration", task.get("duration_days", task.get("period", 1)))))
             )
-        )
 
         variables: list[Variable] = []
         constraints: list[Constraint] = []
 
-        # Start-time variables for each task (integer)
-        for i, task in enumerate(tasks):
-            t_name = self.sanitize_name(task.get("name", f"task_{i}"))
-            duration = task.get("duration", task.get("duration_days", task.get("period", 1)))
+        # z_{i,t}: task i starts at period t. start_i derives from them, so the
+        # published solution keeps the start_/makespan surface it always had.
+        starts_of: dict[str, list[tuple[int, str]]] = {}
+        for t_name, duration in zip(names, durations, strict=True):
+            latest = max(0, time_horizon - duration)
+            z_names: list[tuple[int, str]] = []
+            for t in range(latest + 1):
+                z = f"z_{t_name}_{t}"
+                variables.append(Variable(name=z, type=VariableType.BINARY))
+                z_names.append((t, z))
+            starts_of[t_name] = z_names
 
             variables.append(
                 Variable(
                     name=f"start_{t_name}",
                     type=VariableType.INTEGER,
                     lower_bound=0,
-                    upper_bound=max(0, time_horizon - duration),
+                    upper_bound=latest,
+                )
+            )
+            constraints.append(
+                Constraint(
+                    name=f"one_start_{t_name}",
+                    expression=f"{' + '.join(z for _, z in z_names)} == 1",
+                )
+            )
+            start_terms = " + ".join(f"{t}*{z}" for t, z in z_names if t > 0)
+            constraints.append(
+                Constraint(
+                    name=f"start_def_{t_name}",
+                    expression=f"start_{t_name} - ({start_terms}) == 0"
+                    if start_terms
+                    else f"start_{t_name} == 0",
                 )
             )
 
-        # Makespan variable
+        # Makespan
         variables.append(
             Variable(
                 name="makespan",
@@ -238,11 +276,7 @@ class SchedulingGenerator(BaseGenerator):
                 upper_bound=time_horizon,
             )
         )
-
-        # Makespan >= start_i + duration_i for all tasks
-        for i, task in enumerate(tasks):
-            t_name = self.sanitize_name(task.get("name", f"task_{i}"))
-            duration = task.get("duration", task.get("duration_days", task.get("period", 1)))
+        for t_name, duration in zip(names, durations, strict=True):
             constraints.append(
                 Constraint(
                     name=f"makespan_{t_name}",
@@ -250,21 +284,43 @@ class SchedulingGenerator(BaseGenerator):
                 )
             )
 
-        # Resource constraint: at most 'capacity' tasks active in each period
-        # Simplified as sum-of-all-starts constraint for tractability
-        if capacity < len(tasks):
-            all_starts = " + ".join(
-                f"start_{self.sanitize_name(task.get('name', f'task_{i}'))}"
-                for i, task in enumerate(tasks)
+        # Precedence declared on the tasks themselves (renovation cards list
+        # prerequisites; nothing read them before).
+        name_by_raw = {str(task.get("name", f"task_{i}")): names[i] for i, task in enumerate(tasks)}
+        for i, task in enumerate(tasks):
+            prereqs = task.get(
+                "prerequisites", task.get("depends_on", task.get("dependencies", []))
             )
-            # Encourage spread: sum of starts >= some minimum
-            min_spread = len(tasks) * (len(tasks) - 1) // (2 * max(1, num_resources))
-            constraints.append(
-                Constraint(
-                    name="resource_spread",
-                    expression=f"{all_starts} >= {min_spread}",
+            if not isinstance(prereqs, list):
+                continue
+            for prereq in prereqs:
+                p_name = name_by_raw.get(str(prereq), self.sanitize_name(str(prereq)))
+                if p_name not in starts_of or p_name == names[i]:
+                    continue
+                p_duration = durations[names.index(p_name)]
+                constraints.append(
+                    Constraint(
+                        name=f"prec_{p_name}_{names[i]}",
+                        expression=f"start_{names[i]} - start_{p_name} >= {p_duration}",
+                    )
                 )
-            )
+
+        # Real concurrency: at most num_crews tasks active in any period. Active
+        # at t = started within the last duration periods.
+        if 0 < num_resources < len(tasks):
+            for t in range(time_horizon):
+                active_terms: list[str] = []
+                for t_name, duration in zip(names, durations, strict=True):
+                    active_terms.extend(
+                        z for tau, z in starts_of[t_name] if tau <= t < tau + duration
+                    )
+                if len(active_terms) > num_resources:
+                    constraints.append(
+                        Constraint(
+                            name=f"crews_{t}",
+                            expression=f"{' + '.join(active_terms)} <= {num_resources}",
+                        )
+                    )
 
         return OptimizationProblem(
             name="task_scheduling",

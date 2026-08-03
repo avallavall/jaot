@@ -94,19 +94,25 @@ class GenericGenerator(BaseGenerator):
 def find_list_field(
     user_input: dict[str, Any],
     preferred_keys: list[str],
+    fallback: bool = True,
 ) -> list[dict[str, Any]]:
     """Auto-detect a list-of-dicts field from *user_input*.
 
-    Tries *preferred_keys* first, then falls back to the first list-of-dicts
-    value found in the input.
+    Tries *preferred_keys* first, then — unless ``fallback=False`` — falls back
+    to the first list-of-dicts value found in the input. Pass ``fallback=False``
+    when a generator detects TWO lists from the same input: with the fallback on
+    both sides, a single-list input hands the SAME list to both roles (measured:
+    six scheduling templates built a stands×stands assignment that answered
+    nothing the card asked).
     """
     for key in preferred_keys:
         if key in user_input and isinstance(user_input[key], list):
             return cast(list[dict[str, Any]], user_input[key])
 
-    for val in user_input.values():
-        if isinstance(val, list) and val and isinstance(val[0], dict):
-            return cast(list[dict[str, Any]], val)
+    if fallback:
+        for val in user_input.values():
+            if isinstance(val, list) and val and isinstance(val[0], dict):
+                return cast(list[dict[str, Any]], val)
 
     return []
 
