@@ -61,10 +61,10 @@ class LLMConversation(Base):
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True, default=_default_conv_id)
     organization_id: Mapped[str] = mapped_column(
-        String(64), ForeignKey("organizations.id"), nullable=False, index=True
+        String(64), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
     )
     user_id: Mapped[str] = mapped_column(
-        String(64), ForeignKey("users.id"), nullable=False, index=True
+        String(64), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     # Current formulation state (latest structured output from LLM)
     current_formulation: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)

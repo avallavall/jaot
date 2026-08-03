@@ -31,9 +31,11 @@ class FormulationRating(Base):
         ForeignKey("llm_conversations.id", ondelete="CASCADE"),
         nullable=False,
     )
-    user_id: Mapped[str] = mapped_column(String(64), ForeignKey("users.id"), nullable=False)
+    user_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     organization_id: Mapped[str] = mapped_column(
-        String(64), ForeignKey("organizations.id"), nullable=False
+        String(64), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
     )
 
     rating: Mapped[str] = mapped_column(String(10), nullable=False)  # "up" | "down"

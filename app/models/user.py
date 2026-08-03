@@ -19,9 +19,11 @@ class User(Base):
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
 
-    # Organization relationship
+    # Organization relationship. The organization IS the account: deleting it
+    # deletes its people (QA 2026-08-02 — without this, an account deletion
+    # trips on its own children).
     organization_id: Mapped[str] = mapped_column(
-        String, ForeignKey("organizations.id"), nullable=False
+        String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
     )
 
     # Role within organization

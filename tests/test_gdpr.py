@@ -6,13 +6,19 @@ from sqlalchemy.orm import Session
 
 from app.models import (
     APIKey,
+    FormulationRating,
+    LLMConversation,
+    ModelBuilderDocument,
     ModelProject,
     ModelProjectListing,
     Notification,
     Organization,
     RefreshToken,
+    SolveTrigger,
     User,
+    Workspace,
 )
+from app.models.verification_request import VerificationRequest
 from app.services.auth import PasswordService
 from app.shared.utils.datetime_helpers import utcnow
 
@@ -277,6 +283,145 @@ class TestAccountDeletion:
             text("SELECT count(*) FROM credit_transactions WHERE id = 'txn_gdpr01'")
         ).scalar()
         assert remaining_txns == 0
+
+
+class TestDeleteCascadesAtTheDatabase:
+    """The schema itself must let an account die.
+
+    QA against production (2026-08-02): raw ``DELETE FROM organizations`` failed
+    with a foreign-key violation on ``api_keys.organization_id``. The service
+    deletes children by hand, but any table it forgets — it forgot several —
+    blocks the erasure. These tests reproduce the failure at the level it was
+    measured: plain SQL, no service in between.
+    """
+
+    @staticmethod
+    def _seed_full_graph(db: Session, suffix: str) -> tuple[Organization, User]:
+        """An org with one of everything that used to block its deletion."""
+        org = Organization(id=f"org_fk{suffix}", name=f"FK Org {suffix}", is_active=True)
+        db.add(org)
+        db.flush()
+        user = _make_user_with_password(db, org, f"fk{suffix}")
+        db.add_all(
+            [
+                APIKey(
+                    id=f"ak_fk{suffix}",
+                    key_hash=f"hash_fk{suffix}",
+                    key_prefix="ok_fk_",
+                    user_id=user.id,
+                    organization_id=org.id,
+                ),
+                RefreshToken(user_id=user.id, jti=f"jti_fk{suffix}", expires_at=utcnow()),
+                VerificationRequest(organization_id=org.id, requested_by=user.id),
+                Workspace(
+                    id=f"ws_fk{suffix}",
+                    organization_id=org.id,
+                    name="ws",
+                    created_by=user.id,
+                ),
+                SolveTrigger(
+                    id=f"trg_fk{suffix}",
+                    organization_id=org.id,
+                    created_by=user.id,
+                    name="trigger",
+                    trigger_secret="x" * 64,
+                    webhook_url="https://example.com/hook",
+                ),
+                ModelBuilderDocument(
+                    id=f"mbd_fk{suffix}",
+                    organization_id=org.id,
+                    created_by=user.id,
+                    name="doc",
+                ),
+            ]
+        )
+        conv = LLMConversation(organization_id=org.id, user_id=user.id)
+        db.add(conv)
+        db.flush()
+        db.add(
+            FormulationRating(
+                conversation_id=conv.id,
+                user_id=user.id,
+                organization_id=org.id,
+                rating="up",
+                zone="studio",
+            )
+        )
+        # Legacy ORM-less tables whose FKs also blocked the delete.
+        db.execute(
+            text(
+                "INSERT INTO usage_records (id, organization_id, user_id, problem_type, "
+                "credits_used, execution_time_ms, status, timestamp) "
+                "VALUES (:id, :org, :usr, 'lp', 1, 1.0, 'completed', now())"
+            ),
+            {"id": f"ur_fk{suffix}", "org": org.id, "usr": user.id},
+        )
+        db.flush()
+        return org, user
+
+    # CONTRACT-TEST: DELETE FROM organizations succeeds and sweeps the account's data.
+    def test_delete_organization_cascades(self, db_session: Session):
+        org, user = self._seed_full_graph(db_session, "o1")
+        org_id, user_id = org.id, user.id
+        db_session.commit()
+
+        # The exact statement production refused with a FK violation.
+        db_session.execute(text("DELETE FROM organizations WHERE id = :id"), {"id": org_id})
+        db_session.commit()
+        # The rows died in the database; the identity map must not resurrect them.
+        db_session.expunge_all()
+
+        assert db_session.get(User, user_id) is None
+        for model in (APIKey, LLMConversation, FormulationRating, VerificationRequest, Workspace):
+            assert db_session.query(model).filter_by(organization_id=org_id).count() == 0, (
+                f"{model.__name__} rows survived their organization"
+            )
+        assert db_session.query(RefreshToken).filter_by(user_id=user_id).count() == 0
+        remaining = db_session.execute(
+            text("SELECT count(*) FROM usage_records WHERE organization_id = :org"),
+            {"org": org_id},
+        ).scalar()
+        assert remaining == 0, "legacy usage_records rows survived their organization"
+
+    def test_delete_user_keeps_org_work_and_drops_attribution(self, db_session: Session):
+        """Deleting one person must not delete the organization's work.
+
+        Credentials and personal data die with the user; the workspace, trigger
+        and builder document the user created stay, with ``created_by`` nulled.
+        """
+        org, user = self._seed_full_graph(db_session, "u1")
+        user_id = user.id
+        # A second member makes this an individual erasure, not an account one.
+        other = User(
+            id="usr_fkother",
+            email="fkother@example.com",
+            name="Other",
+            organization_id=org.id,
+            role="member",
+            is_active=True,
+        )
+        db_session.add(other)
+        db_session.commit()
+
+        db_session.execute(text("DELETE FROM users WHERE id = :id"), {"id": user_id})
+        db_session.commit()
+        db_session.expunge_all()
+
+        # Credentials and personal data are gone…
+        assert db_session.query(APIKey).filter_by(user_id=user_id).count() == 0
+        assert db_session.query(RefreshToken).filter_by(user_id=user_id).count() == 0
+        assert db_session.query(LLMConversation).filter_by(user_id=user_id).count() == 0
+        assert db_session.query(FormulationRating).filter_by(user_id=user_id).count() == 0
+
+        # …while the organization's work survives, unattributed.
+        for model, row_id in (
+            (Workspace, "ws_fku1"),
+            (SolveTrigger, "trg_fku1"),
+            (ModelBuilderDocument, "mbd_fku1"),
+        ):
+            row = db_session.get(model, row_id)
+            assert row is not None, f"{model.__name__} died with its creator"
+            assert row.created_by is None, f"{model.__name__}.created_by not nulled"
 
 
 @pytest.mark.usefixtures("enable_registration")

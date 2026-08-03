@@ -23,7 +23,9 @@ class RefreshToken(Base):
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: f"rt_{secrets.token_hex(8)}"
     )
-    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), nullable=False)
+    user_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     jti: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(

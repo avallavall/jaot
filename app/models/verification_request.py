@@ -39,7 +39,9 @@ class VerificationRequest(Base):
         nullable=False,
         index=True,
     )
-    requested_by: Mapped[str] = mapped_column(String(64), ForeignKey("users.id"), nullable=False)
+    requested_by: Mapped[str] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     status: Mapped[str] = mapped_column(
         String(16), nullable=False, default=VerificationStatus.PENDING.value, index=True
     )

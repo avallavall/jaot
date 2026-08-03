@@ -20,10 +20,14 @@ class APIKey(Base):
     key_hash: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     key_prefix: Mapped[str] = mapped_column(String, nullable=False)  # e.g., "ok_live_"
 
-    # Relationships
-    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), nullable=False)
+    # Relationships. A key is a credential of its principal: it must not survive
+    # the user or the organization it authenticates (QA 2026-08-02: this FK
+    # blocked deleting an organization at all).
+    user_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     organization_id: Mapped[str] = mapped_column(
-        String, ForeignKey("organizations.id"), nullable=False, index=True
+        String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
     # Metadata

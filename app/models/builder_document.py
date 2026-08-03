@@ -32,7 +32,7 @@ class ModelBuilderDocument(Base):
     )
     created_by: Mapped[str | None] = mapped_column(
         String(64),
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
     )
     name: Mapped[str] = mapped_column(
