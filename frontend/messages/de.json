@@ -3020,6 +3020,8 @@
       "originDistribution": "Ursprungsverteilung",
       "solverStatusDistribution": "Solver-Status",
       "noData": "Keine Ausführungen für diesen Zeitraum gefunden.",
+      "singleCategory": "{count, plural, one {Die bisher einzige Ausführung: {name}.} other {Alle {count} Ausführungen: {name}.}}",
+      "sparseTrend": "{count, plural, one {Nur eine Ausführung in diesem Zeitraum — der Trend zeichnet sich mit weiteren Läufen ab.} other {Nur {count} Ausführungen in diesem Zeitraum — der Trend zeichnet sich mit weiteren Läufen ab.}}",
       "compare": "Vergleichen",
       "compareTitle": "Ausführungen vergleichen",
       "compareDescription": "Wählen Sie Ausführungen zum Vergleich nebeneinander.",

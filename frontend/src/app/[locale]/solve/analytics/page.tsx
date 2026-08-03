@@ -74,13 +74,26 @@ interface DistributionPieCardProps {
   title: string;
   data: PieEntry[];
   noDataLabel: string;
+  formatSingle: (name: string, count: number) => string;
 }
 
-function DistributionPieCard({ title, data, noDataLabel }: DistributionPieCardProps) {
+// A distribution with one category is a sentence, not a donut of one colour —
+// the same sparse-data rule the author area follows.
+export function DistributionPieCard({
+  title,
+  data,
+  noDataLabel,
+  formatSingle,
+}: DistributionPieCardProps) {
   return (
     <div className="bg-card border border-border rounded-lg p-4">
       <h3 className="font-semibold mb-4">{title}</h3>
-      {data.length > 0 ? (
+      {data.length === 1 ? (
+        <p className="text-sm py-6 flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: data[0].fill }} />
+          {formatSingle(data[0].name, data[0].value)}
+        </p>
+      ) : data.length > 0 ? (
         <div className="flex items-center gap-4">
           <ResponsiveContainer width="50%" height={180}>
             <PieChart>
@@ -296,7 +309,14 @@ export default function SolveAnalyticsPage() {
                 <CheckCircle className="w-4 h-4" />
                 <span className="text-sm">{t("successRate")}</span>
               </div>
-              <div className="text-2xl font-bold text-green-600">{formatPct(summary.success_rate)}</div>
+              <div className="text-2xl font-bold text-green-600">
+                {/* A one-decimal percentage over a handful of runs reads as
+                    statistics it is not: below 20 runs the honest figure is
+                    the plain ratio. */}
+                {summary.total_executions < 20
+                  ? `${summary.completed}/${summary.total_executions}`
+                  : formatPct(summary.success_rate)}
+              </div>
             </div>
             <div className="bg-card border border-border rounded-lg p-4">
               <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -365,7 +385,12 @@ export default function SolveAnalyticsPage() {
                   </div>
                 </div>
 
-                {trends && trends.data.length > 0 ? (
+                {trends && trends.data.length > 0 && trends.data.length < 3 ? (
+                  /* One or two bars are not a trend: say what there is. */
+                  <p className="text-muted-foreground text-sm py-8 text-center">
+                    {t("sparseTrend", { count: summary.total_executions })}
+                  </p>
+                ) : trends && trends.data.length > 0 ? (
                   <div className="space-y-6">
                     <div>
                       <h4 className="text-sm font-medium text-muted-foreground mb-2">{t("executions")}</h4>
@@ -401,16 +426,25 @@ export default function SolveAnalyticsPage() {
                   title={t("statusDistribution")}
                   data={statusData}
                   noDataLabel={t("noData")}
+                  formatSingle={(name, count) => t("singleCategory", { name, count })}
                 />
                 <DistributionPieCard
                   title={t("originDistribution")}
                   data={originData}
                   noDataLabel={t("noData")}
+                  formatSingle={(name, count) => t("singleCategory", { name, count })}
                 />
 
                 <div className="bg-card border border-border rounded-lg p-4 md:col-span-2">
                   <h3 className="font-semibold mb-4">{t("solverStatusDistribution")}</h3>
-                  {solverStatusData.length > 0 ? (
+                  {solverStatusData.length === 1 ? (
+                    <p className="text-sm py-6">
+                      {t("singleCategory", {
+                        name: solverStatusData[0].name,
+                        count: solverStatusData[0].value,
+                      })}
+                    </p>
+                  ) : solverStatusData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={solverStatusData}>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />

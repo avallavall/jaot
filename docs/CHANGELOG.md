@@ -88,6 +88,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ### Fixed
 
+- **Solve analytics reads honestly on a first day, not just after thousands of runs.** A success rate over a handful of executions shows as the plain ratio ("5/6") instead of a one-decimal percentage, a distribution where every run shares one status reads as a sentence instead of a donut of a single colour, and one or two days of activity say so instead of posing as a trend — the same quiet-when-sparse rule the author area already follows.
 - **The maximum-flow card now proves its answer.** It shipped zero costs and a supply equal to the known result, so the model merely verified that value and reported an optimal cost of 0. The objective now is the flow itself, demonstrated by the solver against loose bounds.
 - **Cutting stock enumerates every maximal pattern**, not single-item shapes plus one arbitrary pair — its "optimal" is the true optimum at catalog scale, and if an instance ever exceeds the enumeration cap the answer says the pattern set was truncated instead of staying silent.
 - **A covering model with an uncoverable element refuses instead of approving.** It used to skip that element's requirement and answer "optimal" with the element uncovered — the one thing a covering model exists to prevent.

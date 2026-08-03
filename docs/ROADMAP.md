@@ -34,11 +34,15 @@ the reviews people left, and ask for the verified badge instead of waiting to be
 granted one. The numbers it shows are deliberately quiet when there is little to
 report — a first-week author gets a sentence saying so, not a chart of one colour.
 
+The solve analytics screen now follows the same rule. A success rate over a handful of
+runs shows as the plain ratio instead of a one-decimal percentage, a distribution with a
+single status reads as a sentence instead of a donut of one colour, and one or two days
+of activity say so instead of posing as a trend.
+
 ## Next
 
-- **Designing for the empty case, everywhere else** — the author area is built to read
-  well before the data arrives. The solve analytics screen still assumes thousands of
-  runs, which is not what anyone sees on their first day.
+Nothing queued right now — the last item here (the solve analytics screen reading
+well before the data arrives) shipped; see Now.
 
 ## Later / Exploring
 

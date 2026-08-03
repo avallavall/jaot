@@ -3020,6 +3020,8 @@
       "originDistribution": "Distribución de origen",
       "solverStatusDistribution": "Estado del solver",
       "noData": "No se encontraron ejecuciones para este período.",
+      "singleCategory": "{count, plural, one {La única ejecución hasta ahora: {name}.} other {Las {count} ejecuciones: {name}.}}",
+      "sparseTrend": "{count, plural, one {Solo una ejecución en este periodo — la tendencia se dibujará cuando haya más resoluciones.} other {Solo {count} ejecuciones en este periodo — la tendencia se dibujará cuando haya más resoluciones.}}",
       "compare": "Comparar",
       "compareTitle": "Comparar ejecuciones",
       "compareDescription": "Selecciona ejecuciones para comparar lado a lado.",

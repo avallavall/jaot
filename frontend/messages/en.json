@@ -3057,6 +3057,8 @@
       "originDistribution": "Origin Distribution",
       "solverStatusDistribution": "Solver Status",
       "noData": "No executions found for this period.",
+      "singleCategory": "{count, plural, one {The only run so far: {name}.} other {All {count} runs: {name}.}}",
+      "sparseTrend": "{count, plural, one {Just one run in this period — the trend will draw itself as more solves land.} other {Just {count} runs in this period — the trend will draw itself as more solves land.}}",
       "compare": "Compare",
       "compareTitle": "Compare Executions",
       "compareDescription": "Select executions to compare side-by-side.",

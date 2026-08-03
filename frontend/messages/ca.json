@@ -3020,6 +3020,8 @@
       "originDistribution": "Distribució d'origen",
       "solverStatusDistribution": "Estat del solver",
       "noData": "No s'han trobat execucions per a aquest període.",
+      "singleCategory": "{count, plural, one {L'única execució fins ara: {name}.} other {Les {count} execucions: {name}.}}",
+      "sparseTrend": "{count, plural, one {Només una execució en aquest període — la tendència es dibuixarà quan hi hagi més resolucions.} other {Només {count} execucions en aquest període — la tendència es dibuixarà quan hi hagi més resolucions.}}",
       "compare": "Comparar",
       "compareTitle": "Comparar execucions",
       "compareDescription": "Selecciona execucions per comparar costat a costat.",
