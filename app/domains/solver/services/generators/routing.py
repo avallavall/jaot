@@ -154,11 +154,15 @@ class RoutingGenerator(BaseGenerator):
                 )
             )
 
-        # MTZ capacity constraints
-        for v_idx, veh in enumerate(vehicles):
-            v_name = v_names[v_idx]
-            cap = veh.get("capacity", 100)
-
+        # MTZ subtour elimination. The u variables are SHARED across vehicles, so
+        # the big-M must be the fleet-wide max capacity for every vehicle: with
+        # per-vehicle caps here, the smallest vehicle's rows fire on x=0 pairs it
+        # never visits (u_i - u_j <= cap_small - d_j) and cap every route in the
+        # model at the SMALLEST vehicle's capacity. Measured: 3 customers of
+        # demand 6 with a cap-100 truck went INFEASIBLE the moment an idle cap-6
+        # van existed in the fleet.
+        max_cap = max(veh.get("capacity", 100) for veh in vehicles)
+        for v_name in v_names:
             for i_name in loc_names:
                 for j_name in loc_names:
                     if i_name == j_name:
@@ -168,11 +172,34 @@ class RoutingGenerator(BaseGenerator):
                         Constraint(
                             name=f"mtz_{v_name}_{i_name}_{j_name}",
                             expression=(
-                                f"u_{i_name} + -1*u_{j_name} + {cap}*{x_vars[(v_name, i_name, j_name)]}"
-                                f" <= {cap - demand_j}"
+                                f"u_{i_name} + -1*u_{j_name} "
+                                f"+ {max_cap}*{x_vars[(v_name, i_name, j_name)]}"
+                                f" <= {max_cap - demand_j}"
                             ),
                         )
                     )
+
+        # Each vehicle's OWN capacity, as an aggregate row over the customers it
+        # enters. The shared-u MTZ cannot enforce this (u is bounded by the fleet
+        # max), and before the fix above nothing did: a small vehicle could carry
+        # any load the largest one could. Linking to y_v also tightens the LP —
+        # an unused vehicle admits no fractional visits.
+        for v_idx, veh in enumerate(vehicles):
+            v_name = v_names[v_idx]
+            cap = veh.get("capacity", 100)
+            load_terms = [
+                f"{demands.get(j_name, 1)}*{x_vars[(v_name, i_name, j_name)]}"
+                for j_name in loc_names
+                for i_name in all_nodes
+                if i_name != j_name and (v_name, i_name, j_name) in x_vars
+            ]
+            if load_terms:
+                constraints.append(
+                    Constraint(
+                        name=f"capacity_{v_name}",
+                        expression=f"{' + '.join(load_terms)} + -{cap}*y_{v_name} <= 0",
+                    )
+                )
 
         # P4: Symmetry breaking for identical vehicles (same capacity + cost)
         vehicle_groups: dict[tuple[float, float], list[int]] = {}
