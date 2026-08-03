@@ -32,6 +32,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-08-03
+
 ### Added
 
 - **Two model classes the catalog was missing.** *Period selection* places items into periods under per-period capacity: it now powers the mine planning card (net present value with block precedence, plant capacity and a minimum ore grade per period), the forest harvest card (area caps, adjacency between neighboring stands, discounting) and the track maintenance card (every section into a possession window before its safety deadline). *Network design* buys candidate edges so the network survives any single link failure — the redundancy card returns a cheapest two-connected build instead of a zero.
