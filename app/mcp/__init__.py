@@ -100,7 +100,57 @@ def setup_mcp(app: FastAPI) -> FastApiMCP:
     _install_tool_call_analytics(mcp)
     _fix_server_identity(mcp, app)
     mcp.mount_http(mount_path="/mcp")
+    _force_stateless_http(mcp)
     return mcp
+
+
+def _force_stateless_http(mcp: FastApiMCP) -> None:
+    """Serve MCP over HTTP without server-side sessions — required under multiple workers.
+
+    fastapi-mcp 0.4.0 hardcodes ``stateless=False`` when it builds the SDK's
+    ``StreamableHTTPSessionManager``, which keeps every session in a dict owned
+    by ONE worker process. Production runs several uvicorn workers, so any
+    request whose ``mcp-session-id`` lands on a different worker than the one
+    that answered ``initialize`` gets 404 "Session not found". Measured against
+    production with 4 workers: 20/20 back-to-back calls succeed (keep-alive pins
+    the connection to one worker), while calls separated by realistic pauses
+    fail 3 out of 4 — exactly the odds of landing on another worker. A real
+    client thinks between calls, so this broke every real client.
+
+    The SDK supports ``stateless=True`` for precisely this deployment shape: a
+    fresh transport per request, no session id issued, and a client that still
+    sends a cached ``mcp-session-id`` is accepted (the header is ignored), so
+    the rollout cuts nobody off. Nothing we serve needs sessions: no event
+    store, no sampling, and JSON response mode already drops out-of-request
+    notifications.
+
+    The manager is created lazily on the first request deep inside fastapi-mcp,
+    so we wrap the transport's startup hook and flip the flag the moment the
+    manager exists — dispatch reads it per request, and every request passes
+    through this hook first. Guarded like the rest of this module: if a library
+    upgrade renames the attributes, degrade to stateful-as-shipped with a
+    warning, never a boot crash.
+    """
+    transport = getattr(mcp, "_http_transport", None)
+    ensure_started = getattr(transport, "_ensure_session_manager_started", None)
+    if transport is None or ensure_started is None:  # pragma: no cover - lib change
+        logger.warning(
+            "fastapi-mcp exposes no HTTP transport startup hook; "
+            "MCP stays session-bound (single-worker only)"
+        )
+        return
+
+    async def _ensure_started_stateless() -> None:
+        await ensure_started()
+        manager = getattr(transport, "_session_manager", None)
+        if manager is None:  # pragma: no cover - defensive against a lib change
+            logger.warning("MCP session manager missing after start; MCP stays session-bound")
+            return
+        if not manager.stateless:
+            manager.stateless = True
+            logger.info("MCP HTTP transport forced stateless (multi-worker safe)")
+
+    transport._ensure_session_manager_started = _ensure_started_stateless  # type: ignore[method-assign]
 
 
 def _fix_server_identity(mcp: FastApiMCP, app: FastAPI) -> None:
