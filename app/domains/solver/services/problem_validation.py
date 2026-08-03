@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import re
 
+from app.domains.solver.services.expression_parser import ExpressionParser
 from app.schemas.optimization import OptimizationProblem
 
 # Function names an expression may contain that are not variable references.
@@ -60,11 +61,21 @@ def iter_problem_errors(problem: OptimizationProblem) -> list[str]:
     """
     errors: list[str] = []
     variable_names = {v.name for v in problem.variables}
+    # The same parser every solver adapter runs at solve time. Name checks alone
+    # let "x <= <= 3" through as valid — the validator said yes and the solve
+    # then failed on the very expression it had approved, which is backwards:
+    # the typical caller is an agent validating precisely to avoid buying a
+    # doomed solve (measured against production, 2026-08-02).
+    parser = ExpressionParser()
 
     obj_vars = extract_variable_names(problem.objective.expression)
     invalid_obj_vars = obj_vars - variable_names
     if invalid_obj_vars:
         errors.append(f"Objective references undefined variables: {invalid_obj_vars}")
+    try:
+        parser.parse_expression(problem.objective.expression)
+    except ValueError as e:  # ParseError, or float() on a malformed number
+        errors.append(f"Objective expression cannot be parsed: {e}")
 
     for i, constraint in enumerate(problem.constraints):
         constraint_vars = extract_variable_names(constraint.expression)
@@ -73,6 +84,10 @@ def iter_problem_errors(problem: OptimizationProblem) -> list[str]:
             errors.append(
                 f"Constraint {constraint.name or i} references undefined variables: {invalid_vars}"
             )
+        try:
+            parser.parse_constraint(constraint.expression)
+        except ValueError as e:  # ParseError, or float() on a malformed number
+            errors.append(f"Constraint {constraint.name or i} cannot be parsed: {e}")
 
     for var in problem.variables:
         if var.lower_bound is not None and var.upper_bound is not None:

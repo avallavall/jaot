@@ -591,6 +591,47 @@ class TestValidateProblem:
         assert any("upper bound > 1" in e for e in errors), joined
         assert len(errors) >= 4, f"expected every fault, got {len(errors)}: {joined}"
 
+    # CONTRACT-TEST: an expression validate approves must parse at solve time.
+    def test_validate_rejects_syntactically_broken_expressions(self, client):
+        """Measured against production (2026-08-02): these three expressions came
+        back valid=True with zero errors, and the very same solve then failed.
+        The validator's typical caller is an agent validating precisely to avoid
+        buying a doomed solve, so approving what the solver will reject is the
+        one failure mode this endpoint exists to prevent.
+        """
+        broken_expressions = [
+            "x ++ 2 <= ",  # no right-hand side
+            "x <= <= 3",  # doubled comparison operator
+            "(x + 2 <= 3",  # unbalanced parenthesis
+        ]
+        for expression in broken_expressions:
+            problem = {
+                "name": "broken_syntax",
+                "objective": {"sense": "maximize", "expression": "x"},
+                "variables": [
+                    {"name": "x", "type": "continuous", "lower_bound": 0, "upper_bound": 4}
+                ],
+                "constraints": [{"name": "c1", "expression": expression}],
+            }
+            response = client.post("/api/v2/solve/validate", json=problem)
+            assert response.status_code == 200, response.text
+            data = response.json()
+            assert data["valid"] is False, f"{expression!r} was approved and solve would fail"
+            assert any("c1" in e for e in data["errors"]), data["errors"]
+
+        # A broken objective is caught too, not just constraints.
+        problem = {
+            "name": "broken_objective",
+            "objective": {"sense": "maximize", "expression": "x + * 2"},
+            "variables": [{"name": "x", "type": "continuous", "lower_bound": 0}],
+            "constraints": [],
+        }
+        response = client.post("/api/v2/solve/validate", json=problem)
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert data["valid"] is False
+        assert any("Objective" in e for e in data["errors"]), data["errors"]
+
     def test_validate_empty_problem_returns_422(self, client):
         """validate_problem with empty body returns 422 (validation error)."""
         response = client.post("/api/v2/solve/validate", json={})
