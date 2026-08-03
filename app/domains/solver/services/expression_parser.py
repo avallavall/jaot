@@ -684,9 +684,13 @@ class ExpressionParser:
         - Preserves whitespace (tokenizer handles stripping)
         """
         # Handle implicit multiplication: digit followed by letter/paren, but only
-        # when the digit is NOT inside a variable name (preceded by letter/underscore).
-        # e.g., "2x" -> "2*x" but "x_0_c" stays unchanged.
-        expr = re.sub(r"(?<![a-zA-Z_])(\d)([a-zA-Z(])", r"\1*\2", expr)
+        # when the digit run is NOT inside a variable name. The lookbehind must
+        # exclude digits too: with only letters/underscore excluded, the last
+        # digit of a run inside an identifier still matched, and any variable
+        # with digits-then-letters mid-name was corrupted — "prod_aspirin_500mg"
+        # became "prod_aspirin_500*mg" and the solve failed on a name the model
+        # never declared. e.g., "2x" -> "2*x"; "x_0_c" and "a_500mg" unchanged.
+        expr = re.sub(r"(?<![a-zA-Z_0-9])(\d+)([a-zA-Z(])", r"\1*\2", expr)
         # Handle implicit multiplication: ) followed by letter/digit/(
         expr = re.sub(r"\)([a-zA-Z0-9_(])", r")*\1", expr)
         return expr
