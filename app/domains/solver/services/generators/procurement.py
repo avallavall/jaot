@@ -134,12 +134,16 @@ class ProcurementGenerator(BaseGenerator):
         """Multi-material: one variable per (supplier, material) pair."""
         variables: list[Variable] = []
         cost_terms: list[str] = []
+        # Explicit pair bookkeeping — matching rows by name prefix/suffix put
+        # variables in the wrong rows whenever one name extends another
+        # ("steel" also matched every "…_stainless_steel" variable).
+        vars_by_material: dict[str, list[str]] = {}
+        vars_by_supplier: dict[str, list[str]] = {}
 
         # Build variable for each (supplier, material) pair
         for sup in suppliers:
             sup_name = self.sanitize_name(sup.get("name", f"sup_{len(variables)}"))
             pricing = sup.get("pricing", {})
-            max_total = sup.get("max_total_supply", sup.get("capacity"))
 
             for mat in materials:
                 mat_name = self.sanitize_name(mat.get("name", ""))
@@ -158,6 +162,8 @@ class ProcurementGenerator(BaseGenerator):
                     )
                 )
                 cost_terms.append(f"{price}*{var_name}")
+                vars_by_material.setdefault(mat_name, []).append(var_name)
+                vars_by_supplier.setdefault(sup_name, []).append(var_name)
 
         constraints: list[Constraint] = []
 
@@ -165,7 +171,7 @@ class ProcurementGenerator(BaseGenerator):
         for mat in materials:
             mat_name = self.sanitize_name(mat.get("name", ""))
             demand = float(mat.get("demand", 0))
-            mat_terms = [v.name for v in variables if v.name.endswith(f"_{mat_name}")]
+            mat_terms = vars_by_material.get(mat_name, [])
             if mat_terms and demand > 0:
                 constraints.append(
                     Constraint(
@@ -179,7 +185,7 @@ class ProcurementGenerator(BaseGenerator):
             sup_name = self.sanitize_name(sup.get("name", ""))
             max_total = sup.get("max_total_supply", sup.get("capacity"))
             if max_total is not None:
-                sup_terms = [v.name for v in variables if v.name.startswith(f"{sup_name}_")]
+                sup_terms = vars_by_supplier.get(sup_name, [])
                 if sup_terms:
                     constraints.append(
                         Constraint(
