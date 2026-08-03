@@ -37,7 +37,6 @@ from app.api.deps import (
     OptionalRequireViewer,
     enforce_org_rate_limit,
 )
-from app.api.v2._access import builder_document_or_404
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
 from app.api.v2.solve_pipeline import (
     apply_solution_filter,
@@ -158,37 +157,6 @@ def create_model_project(
     return project
 
 
-@router.post(
-    "/from-builder/{document_id}",
-    response_model=ProjectRead,
-    status_code=status.HTTP_201_CREATED,
-    operation_id="create_model_project_from_builder",
-)
-def create_from_builder(
-    document_id: str,
-    db: DBSession,
-    user: CurrentUser,
-    org: CurrentOrg,
-    _ws: OptionalRequireSolver,
-) -> ModelProject:
-    """Seed a ModelProject from an existing builder document (migration helper)."""
-    doc = builder_document_or_404(db, document_id, org.id)
-    project = svc.create_seeded(
-        db,
-        org_id=org.id,
-        user_id=user.id,
-        name=doc.name,
-        problem_json=doc.model_json,
-        canvas_json=doc.canvas_json,
-        source_type="builder_document",
-        source_ref=doc.id,
-        auto_commit_summary="Imported from builder document" if doc.model_json else None,
-    )
-    db.commit()
-    db.refresh(project)
-    return project
-
-
 def _seed_from_template(
     db: Session,
     *,
@@ -211,7 +179,7 @@ def _seed_from_template(
       committed version's ``model_json`` directly (nothing to render).
 
     Either way the new project is born with a v1 commit so it has history from the
-    first moment, exactly like ``create_from_builder``.
+    first moment.
     """
     template_dict, _origin = resolve_template_dict(template_id, db)
     if template_dict is not None:

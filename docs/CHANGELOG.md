@@ -32,6 +32,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Removed
+
+- **The last door to the retired visual builder.** An API endpoint that converted an old builder document into a studio project had no caller left anywhere — the builder area itself was retired months ago. Audited on the reference install before removal: of the ten documents it could still have rescued, nine were empty shells and the one real model dates from June, before the studio replaced the builder.
+
 ## [3.2.0] - 2026-08-03
 
 ### Added

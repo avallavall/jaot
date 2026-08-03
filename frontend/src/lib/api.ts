@@ -1299,16 +1299,6 @@ export const api = {
     });
   },
 
-  createProjectFromBuilder(
-    documentId: string,
-    workspaceId?: string,
-  ): Promise<ProjectRead> {
-    return request(`/api/v2/projects/from-builder/${documentId}`, {
-      method: "POST",
-      params: workspaceId ? { workspace_id: workspaceId } : undefined,
-    });
-  },
-
   /** Seed a ModelProject from a template (P2 centralization). The backend
    * materializes the template via the existing engine and auto-commits v1. */
   createProjectFromTemplate(

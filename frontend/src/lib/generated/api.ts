@@ -3119,26 +3119,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v2/projects/from-builder/{document_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create From Builder
-         * @description Seed a ModelProject from an existing builder document (migration helper).
-         */
-        post: operations["create_model_project_from_builder"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v2/projects/from-marketplace/{model_id}": {
         parameters: {
             query?: never;
@@ -16434,39 +16414,6 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProjectRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_model_project_from_builder: {
-        parameters: {
-            query?: {
-                workspace_id?: string | null;
-            };
-            header?: never;
-            path: {
-                document_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            201: {
                 headers: {
                     [name: string]: unknown;
                 };
