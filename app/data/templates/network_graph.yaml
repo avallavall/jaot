@@ -158,7 +158,7 @@ templates:
     tags: [network, graph, max-flow, capacity, throughput]
     problem_type_tags: [LP]
     generator_type: network_flow
-    generator_params: {}
+    generator_params: {mode: max_flow}
     input_schema:
       type: object
       required: [nodes, arcs]
@@ -169,7 +169,7 @@ templates:
       - name: nodes
         label: Nodes
         type: array
-        description: "Network nodes (source supply=large positive, sink supply=large negative)"
+        description: "Network nodes (positive supply = source cap, negative = sink cap, 0 = transshipment)"
         required: true
         items:
           type: object
@@ -179,7 +179,7 @@ templates:
       - name: arcs
         label: Arcs
         type: array
-        description: Directed arcs with capacity (cost=0 for max-flow, cost=-1 on source arcs)
+        description: Directed arcs with capacity (costs are ignored in max-flow mode)
         required: true
         items:
           type: object
@@ -190,12 +190,12 @@ templates:
             capacity: {type: number}
     example_input:
       nodes:
-        - {id: source, supply: 23}
+        - {id: source, supply: 100}
         - {id: A, supply: 0}
         - {id: B, supply: 0}
         - {id: C, supply: 0}
         - {id: D, supply: 0}
-        - {id: sink, supply: -23}
+        - {id: sink, supply: -100}
       arcs:
         - {from: source, to: A, cost: 0, capacity: 16}
         - {from: source, to: B, cost: 0, capacity: 13}

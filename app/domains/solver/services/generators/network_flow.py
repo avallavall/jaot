@@ -283,6 +283,14 @@ class NetworkFlowGenerator(BaseGenerator):
 
         constraints: list[Constraint] = []
 
+        # mode="max_flow" (template param): maximize the flow reaching the
+        # sinks instead of forcing pre-computed supplies through at min cost.
+        # The shipped max-flow card had zero costs and supplies equal to the
+        # known answer, so the model merely VERIFIED a flow of that value and
+        # reported an optimal cost of 0 — the objective now IS the flow value,
+        # and a node's supply/demand acts as a bound, not a requirement.
+        max_flow_mode = params.get("mode") == "max_flow"
+
         # With more supply than demand, sources may keep their surplus (the
         # transportation convention): out - in <= supply there, while demand
         # rows stay hard. Equality everywhere made ANY unbalanced instance
@@ -293,6 +301,7 @@ class NetworkFlowGenerator(BaseGenerator):
         relax_supply_rows = total_pos > total_neg
 
         # Flow conservation at each node
+        sink_inflow_terms: list[str] = []
         for node_name in node_names:
             supply = node_supply.get(node_name, 0)
 
@@ -319,15 +328,53 @@ class NetworkFlowGenerator(BaseGenerator):
                 else:
                     parts.append(f"-1*{' + -1*'.join(in_terms)}")
 
-            if parts:
-                expr = "".join(parts)
-                op = "<=" if relax_supply_rows and supply > 0 else "=="
-                constraints.append(
-                    Constraint(
-                        name=f"flow_{node_name}",
-                        expression=f"{expr} {op} {supply}",
+            if not parts:
+                continue
+            expr = "".join(parts)
+
+            if max_flow_mode:
+                # Sources push what they can, sinks absorb what arrives; the
+                # stated supply/demand caps the node instead of dictating it.
+                # Intermediates conserve exactly.
+                if supply > 0:
+                    constraints.append(
+                        Constraint(name=f"flow_{node_name}", expression=f"{expr} <= {supply}")
                     )
+                elif supply < 0:
+                    sink_inflow_terms.extend(in_terms)
+                    constraints.append(
+                        Constraint(name=f"flow_{node_name}", expression=f"{expr} >= {supply}")
+                    )
+                else:
+                    constraints.append(
+                        Constraint(name=f"flow_{node_name}", expression=f"{expr} == 0")
+                    )
+                continue
+
+            op = "<=" if relax_supply_rows and supply > 0 else "=="
+            constraints.append(
+                Constraint(
+                    name=f"flow_{node_name}",
+                    expression=f"{expr} {op} {supply}",
                 )
+            )
+
+        if max_flow_mode:
+            if not sink_inflow_terms:
+                raise ValueError(
+                    "max_flow mode needs at least one sink node (negative supply or a demand)."
+                )
+            return OptimizationProblem(
+                name="max_flow",
+                description=f"Maximum flow on {len(nodes)} nodes, {len(arcs)} arcs",
+                variables=variables,
+                objective=Objective(
+                    sense=ObjectiveSense.MAXIMIZE,
+                    expression=" + ".join(sink_inflow_terms),
+                ),
+                constraints=constraints,
+                options=SolverOptions(time_limit_seconds=60),
+            )
 
         return OptimizationProblem(
             name="network_flow",
