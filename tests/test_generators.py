@@ -26,6 +26,7 @@ from app.domains.solver.services.generators.knapsack import KnapsackGenerator
 from app.domains.solver.services.generators.lot_sizing import LotSizingGenerator
 from app.domains.solver.services.generators.network_flow import NetworkFlowGenerator
 from app.domains.solver.services.generators.portfolio import PortfolioGenerator
+from app.domains.solver.services.generators.procurement import ProcurementGenerator
 from app.domains.solver.services.generators.production import ProductionGenerator
 from app.domains.solver.services.generators.routing import RoutingGenerator
 from app.domains.solver.services.generators.scheduling import SchedulingGenerator
@@ -145,6 +146,73 @@ class TestSchedulingGenerator:
         coverage = [c for c in problem.constraints if c.name and "min_cover" in c.name]
         assert len(coverage) == 2
 
+    # CONTRACT-TEST: a single-list input schedules the list, never assigns it to itself.
+    def test_single_list_input_routes_to_task_scheduling(self) -> None:
+        """Measured before the fix: six shipped templates (stands, blocks, trial
+        phases…) fed the SAME list to both roles through the employee fallback
+        and served an X-assigned-to-X model that answered nothing the card asked."""
+        problem = SchedulingGenerator().generate(
+            {
+                "stands": [{"name": "S1"}, {"name": "S2"}, {"name": "S3"}],
+                "num_periods": 4,
+            },
+            {},
+        )
+        _assert_valid_problem(problem)
+        assert problem.name == "task_scheduling"
+        # The self-assignment disease had variables like s1_s2.
+        names = {v.name for v in problem.variables}
+        assert "s1_s2" not in names
+        assert "start_s1" in names
+
+    def test_task_scheduling_honors_crews_and_prerequisites(self) -> None:
+        """The renovation card promises three crews and dependency order. The
+        old model wrote neither — its only resource row was a fabricated
+        'sum of starts' bound — so it answered 'everything starts at once,
+        done in 5 days'. The true optimum is 10: the critical path is 9 and
+        the three-crew limit costs one more day."""
+        from app.domains.solver.adapters.scip import SCIPAdapter
+
+        tasks = [
+            {"name": "Demo-A", "duration": 3, "prerequisites": []},
+            {"name": "Plumbing-A", "duration": 4, "prerequisites": ["Demo-A"]},
+            {"name": "Electrical-A", "duration": 3, "prerequisites": ["Demo-A"]},
+            {"name": "Painting-A", "duration": 2, "prerequisites": ["Plumbing-A", "Electrical-A"]},
+            {"name": "Demo-B", "duration": 2, "prerequisites": []},
+            {"name": "Plumbing-B", "duration": 5, "prerequisites": ["Demo-B"]},
+            {"name": "Flooring-B", "duration": 3, "prerequisites": ["Demo-B"]},
+            {"name": "Painting-B", "duration": 2, "prerequisites": ["Plumbing-B", "Flooring-B"]},
+        ]
+        problem = SchedulingGenerator().generate(
+            {"tasks": tasks, "num_crews": 3, "time_horizon": 15}, {}
+        )
+        result = SCIPAdapter().solve(problem)
+
+        assert result.status.value == "optimal"
+        assert result.objective_value == pytest.approx(10.0)
+
+        def norm(raw: str) -> str:
+            return raw.lower().replace("-", "_")
+
+        starts = {
+            k[len("start_") :]: v for k, v in result.solution.items() if k.startswith("start_")
+        }
+        durations = {norm(t["name"]): t["duration"] for t in tasks}
+        for task in tasks:
+            for prereq in task["prerequisites"]:
+                assert (
+                    starts[norm(task["name"])]
+                    >= starts[norm(prereq)] + durations[norm(prereq)] - 1e-6
+                ), f"{task['name']} starts before its prerequisite {prereq} finishes"
+        # The three-crew limit is real: no period runs more than three tasks.
+        for t in range(15):
+            active = sum(
+                1
+                for name, duration in durations.items()
+                if starts[name] <= t < starts[name] + duration
+            )
+            assert active <= 3, f"period {t} runs {active} tasks with 3 crews"
+
 
 class TestRoutingGenerator:
     def test_produces_mtz_subtour_elimination(self) -> None:
@@ -169,6 +237,74 @@ class TestRoutingGenerator:
         _assert_valid_problem(problem)
         mtz = [c for c in problem.constraints if c.name and "mtz_" in c.name]
         assert len(mtz) > 0
+
+    @staticmethod
+    def _all_pairs_distances(nodes: list[str], distance: float = 10) -> list[dict]:
+        return [{"from": i, "to": j, "distance": distance} for i in nodes for j in nodes if i != j]
+
+    # CONTRACT-TEST: a mixed fleet is not capped by its smallest vehicle.
+    def test_heterogeneous_fleet_stays_feasible(self) -> None:
+        """Measured before the fix: three customers of demand 6 and a cap-100
+        truck went INFEASIBLE the moment an idle cap-6 van existed in the fleet.
+        The shared-u MTZ rows used each vehicle's OWN capacity as big-M, so on
+        x=0 pairs the smallest vehicle's rows capped every route in the model.
+        """
+        from app.domains.solver.adapters.scip import SCIPAdapter
+
+        problem = RoutingGenerator().generate(
+            {
+                "depot": {"name": "depot"},
+                "locations": [
+                    {"name": "A", "demand": 6},
+                    {"name": "B", "demand": 6},
+                    {"name": "C", "demand": 6},
+                ],
+                "vehicles": [
+                    {"name": "big", "capacity": 100, "cost_per_unit_distance": 1.0},
+                    {"name": "small", "capacity": 6, "cost_per_unit_distance": 1.0},
+                ],
+                "distances": self._all_pairs_distances(["depot", "A", "B", "C"]),
+            },
+            {},
+        )
+        result = SCIPAdapter().solve(problem)
+
+        assert result.status.value == "optimal", (
+            f"a cap-100 truck can serve 18 units of demand; got {result.status}"
+        )
+        # One route of four arcs at distance 10: the truck takes all three.
+        assert result.objective_value == pytest.approx(40.0)
+
+    def test_each_vehicle_held_to_its_own_capacity(self) -> None:
+        """The cheap cap-10 van must not carry 100 units of demand. Before the
+        fix nothing enforced a vehicle's own capacity — u is bounded by the
+        fleet-wide max — so the tempting-but-illegal answer cost 3.0."""
+        from app.domains.solver.adapters.scip import SCIPAdapter
+
+        problem = RoutingGenerator().generate(
+            {
+                "depot": {"name": "depot"},
+                "locations": [{"name": "A", "demand": 50}, {"name": "B", "demand": 50}],
+                "vehicles": [
+                    {"name": "big", "capacity": 100, "cost_per_unit_distance": 1.0},
+                    {"name": "small", "capacity": 10, "cost_per_unit_distance": 0.1},
+                ],
+                "distances": self._all_pairs_distances(["depot", "A", "B"]),
+            },
+            {},
+        )
+        result = SCIPAdapter().solve(problem)
+
+        assert result.status.value == "optimal"
+        assert result.objective_value == pytest.approx(30.0), (
+            "the only legal answer is the big truck taking both stops"
+        )
+        small_arcs = [
+            name
+            for name, value in (result.solution or {}).items()
+            if name.startswith("x_small_") and value > 0.5
+        ]
+        assert small_arcs == [], f"the cap-10 van carried demand: {small_arcs}"
 
 
 class TestBlendingGenerator:
@@ -417,6 +553,206 @@ class TestLotSizingGenerator:
         assert len(balance) == 3  # one per period
         setup = [c for c in problem.constraints if c.name and "setup_" in c.name]
         assert len(setup) == 3  # one per period
+
+    def test_setup_link_uses_remaining_demand_not_total(self) -> None:
+        """Producing more than the demand still ahead is never useful, so the
+        setup big-M declines with the horizon instead of sitting at total
+        demand for every period. Measured on 24 periods: root LP bound
+        3675 → 5968 at the identical MIP optimum — same rows, tighter model."""
+        from app.domains.solver.adapters.scip import SCIPAdapter
+
+        problem = LotSizingGenerator().generate(
+            {
+                "periods": 3,
+                "demand": [10, 20, 30],
+                "production_cost": 1,
+                "setup_cost": 100,
+                "holding_cost": 1,
+            },
+            {},
+        )
+        links = {
+            c.name: c.expression for c in problem.constraints if "setup_link" in (c.name or "")
+        }
+        assert "60" in links["setup_link_0"]  # full remaining demand
+        assert "50" in links["setup_link_1"]  # 20 + 30 still ahead
+        assert "30" in links["setup_link_2"]  # only the last period's demand
+
+        # The tightening must not move the optimum: produce 30 at t0 and 30 at
+        # t2 → two setups (200) + production (60) + holding (20) = 280? No —
+        # produce all 60 at t0 is cheaper: 100 + 60 + (50+30) = 240.
+        result = SCIPAdapter().solve(problem)
+        assert result.status.value == "optimal"
+        assert result.objective_value == pytest.approx(240.0)
+
+
+class TestBlendingCardFormats:
+    """The three blending cards that answered an optimal cost of 0.
+
+    Their costs (cost_per_liter / cost_per_tonne) went unread — buying was
+    free — and their batch/tonnage target only capped the mix, so producing
+    NOTHING satisfied every ratio spec.
+    """
+
+    def test_ore_style_input_produces_a_real_blend(self) -> None:
+        from app.domains.solver.adapters.scip import SCIPAdapter
+
+        problem = BlendingGenerator().generate(
+            {
+                "sources": [
+                    {"name": "cheap", "cost_per_tonne": 10, "composition": {"iron": 58.0}},
+                    {"name": "rich", "cost_per_tonne": 15, "composition": {"iron": 65.0}},
+                ],
+                "quality_specs": [{"parameter": "iron", "min_value": 62.0}],
+                "target_tonnage": 100,
+            },
+            {},
+        )
+        result = SCIPAdapter().solve(problem)
+
+        assert result.status.value == "optimal"
+        # Blend 100 t at iron >= 62: 4/7 rich + 3/7 cheap
+        # -> cost 10*(300/7) + 15*(400/7) = 9000/7.
+        assert result.objective_value == pytest.approx(9000 / 7, rel=1e-6)
+        total = result.solution["cheap"] + result.solution["rich"]
+        assert total == pytest.approx(100.0)
+
+    def test_nutrients_dict_and_per_kg_specs_are_read(self) -> None:
+        problem = BlendingGenerator().generate(
+            {
+                "ingredients": [
+                    {"name": "flour", "cost_per_kg": 1, "nutrients": {"protein": 10.0}},
+                    {"name": "whey", "cost_per_kg": 6, "nutrients": {"protein": 80.0}},
+                ],
+                "specifications": [{"nutrient": "protein", "min_per_kg": 12.0}],
+                "batch_size": 50,
+            },
+            {},
+        )
+        names = {c.name for c in problem.constraints}
+        assert "min_protein" in names, "the per-kg spec produced no constraint"
+        assert "mix_quantity_min" in names, "the batch size does not force production"
+
+
+class TestNetworkFlowNodeLists:
+    def test_supply_lists_survive_a_preferred_arc_key(self) -> None:
+        """`routes` matched a preferred arc key, and the depot/mill lists were
+        then thrown away: every node got supply 0 and the optimal flow was to
+        move nothing (measured: the timber card answered cost 0). A surplus at
+        the sources must also not make the model infeasible — sources may keep
+        what nobody demands."""
+        from app.domains.solver.adapters.scip import SCIPAdapter
+
+        problem = NetworkFlowGenerator().generate(
+            {
+                "depots": [
+                    {"name": "north", "supply": 60},
+                    {"name": "south", "supply": 50},
+                ],
+                "mills": [{"name": "mill", "demand": 80}],
+                "routes": [
+                    {"from_depot": "north", "to_mill": "mill", "cost_per_m3": 1, "capacity": 100},
+                    {"from_depot": "south", "to_mill": "mill", "cost_per_m3": 2, "capacity": 100},
+                ],
+            },
+            {},
+        )
+        result = SCIPAdapter().solve(problem)
+
+        assert result.status.value == "optimal"
+        # All 60 cheap units, then 20 expensive ones: 60*1 + 20*2.
+        assert result.objective_value == pytest.approx(100.0)
+
+
+class TestLotSizingMultiItem:
+    def test_sku_lists_build_a_real_multi_item_model(self) -> None:
+        """SKU-list inputs fell through to the single-item reader, which found
+        no top-level demand and served a one-period model of nothing — two
+        shipped cards answered an optimal cost of 0."""
+        from app.domains.solver.adapters.scip import SCIPAdapter
+
+        problem = LotSizingGenerator().generate(
+            {
+                "skus": [
+                    {
+                        "name": "hub",
+                        "demand": [20, 30],
+                        "ordering_cost": 100,
+                        "unit_cost": 2,
+                        "holding_cost": 1,
+                    },
+                    {
+                        "name": "stand",
+                        "demand": [10, 10],
+                        "ordering_cost": 50,
+                        "unit_cost": 5,
+                        "holding_cost": 1,
+                    },
+                ],
+                "num_periods": 2,
+            },
+            {},
+        )
+        assert problem.name == "multi_item_lot_sizing"
+        result = SCIPAdapter().solve(problem)
+
+        assert result.status.value == "optimal"
+        # hub: one order of 50 (100 + 100 + holding 30) beats two orders (300).
+        # stand: one order of 20 (50 + 100 + 10) beats two (250).
+        assert result.objective_value == pytest.approx(230.0 + 160.0)
+
+    def test_reactor_limit_couples_the_items(self) -> None:
+        problem = LotSizingGenerator().generate(
+            {
+                "products": [
+                    {"name": "a", "demand": [10, 10], "setup_cost": 1},
+                    {"name": "b", "demand": [10, 10], "setup_cost": 1},
+                    {"name": "c", "demand": [0, 10], "setup_cost": 1},
+                ],
+                "num_periods": 2,
+                "num_reactors": 2,
+            },
+            {},
+        )
+        reactor_rows = [c for c in problem.constraints if c.name and c.name.startswith("reactors_")]
+        assert len(reactor_rows) == 2, "one shared-lines row per period"
+        assert all("<= 2" in c.expression for c in reactor_rows)
+
+
+class TestProcurementGenerator:
+    def test_material_and_supplier_rows_do_not_alias_by_name(self) -> None:
+        """Rows were built by name prefix/suffix matching, so material "steel"
+        also swallowed every "…_stainless_steel" variable and a supplier's cap
+        row swallowed any supplier whose name extends it. Bookkeeping is now
+        explicit per (supplier, material) pair."""
+        problem = ProcurementGenerator().generate(
+            {
+                "suppliers": [
+                    {
+                        "name": "acme",
+                        "pricing": {"steel": 1, "stainless_steel": 1},
+                        "max_total_supply": 100,
+                    },
+                    {"name": "acme_2", "pricing": {"steel": 1, "stainless_steel": 1}},
+                ],
+                "materials": [
+                    {"name": "steel", "demand": 10},
+                    {"name": "stainless_steel", "demand": 5},
+                ],
+            },
+            {},
+        )
+        rows = {c.name: c.expression for c in problem.constraints}
+
+        assert "stainless" not in rows["demand_steel"], (
+            "buying stainless steel must not satisfy the steel demand"
+        )
+        assert "acme_2" not in rows["cap_acme"], (
+            "acme_2's purchases must not consume acme's capacity"
+        )
+        # And the rows still hold their own pairs.
+        assert "acme_steel" in rows["demand_steel"]
+        assert "acme_2_steel" in rows["demand_steel"]
 
 
 class TestTemplateEngineRegistryDispatch:

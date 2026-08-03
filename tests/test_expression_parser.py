@@ -76,6 +76,26 @@ class TestBackwardCompatibility:
         expr = self.parser.parse_expression("3*x + 2*y", ["x", "y"])
         assert expr.is_linear()
 
+    def test_digits_then_letters_inside_a_name_survive(self):
+        """# CONTRACT-TEST: implicit multiplication never splits an identifier.
+
+        The normalizer's lookbehind excluded only letters and underscore, so
+        the LAST digit of a run inside a name still matched: a variable named
+        prod_aspirin_500mg_0 was rewritten to "prod_aspirin_500*mg_0" and the
+        solve failed on a name the model never declared (measured: the batch
+        planning card errored on exactly this).
+        """
+        name = "prod_aspirin_500mg_0"
+        expr = self.parser.parse_expression(name, [name])
+        assert len(expr.terms) == 1
+        assert expr.terms[0].variables == [name]
+
+        # The legitimate rewrites still happen.
+        expr = self.parser.parse_expression("2x + 10y + 3(x + y)", ["x", "y"])
+        coefs = {tuple(t.variables): t.coefficient for t in expr.terms}
+        assert coefs[("x",)] == 5.0  # 2x + 3x
+        assert coefs[("y",)] == 13.0  # 10y + 3y
+
 
 class TestParenthesizedExpressions:
     """Tests for parenthesized expression support."""
