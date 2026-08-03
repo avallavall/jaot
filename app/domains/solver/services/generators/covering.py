@@ -120,6 +120,7 @@ class CoveringGenerator(BaseGenerator):
                         )
                     )
         else:
+            uncoverable: list[str] = []
             for e in range(num_elements):
                 covering_vars = []
 
@@ -136,18 +137,29 @@ class CoveringGenerator(BaseGenerator):
                         if e in covers:
                             covering_vars.append(s_name)
 
+                elem_name = (
+                    self.sanitize_name(elements[e].get("name", f"e_{e}"))
+                    if elements and e < len(elements) and isinstance(elements[e], dict)
+                    else str(e)
+                )
                 if covering_vars:
-                    elem_name = (
-                        self.sanitize_name(elements[e].get("name", f"e_{e}"))
-                        if elements and e < len(elements) and isinstance(elements[e], dict)
-                        else str(e)
-                    )
                     constraints.append(
                         Constraint(
                             name=f"cover_{elem_name}",
                             expression=f"{' + '.join(covering_vars)} {op}",
                         )
                     )
+                else:
+                    uncoverable.append(elem_name)
+
+            # An element no set covers used to be silently skipped, and the
+            # answer came back "optimal" with the element uncovered — the one
+            # thing a covering model exists to prevent. Say so instead.
+            if uncoverable:
+                raise ValueError(
+                    f"No set covers element(s): {', '.join(uncoverable)}. "
+                    "Every element must appear in at least one set's coverage."
+                )
 
         return OptimizationProblem(
             name="covering",
