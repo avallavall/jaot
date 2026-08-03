@@ -46,6 +46,7 @@ class SchedulingGenerator(BaseGenerator):
                 "vessels",
                 "crews",
                 "machines",
+                "lines",
                 "num_crews",
             ],
             fallback=False,
@@ -111,7 +112,12 @@ class SchedulingGenerator(BaseGenerator):
             for shift in shifts:
                 s_name = self.sanitize_name(shift.get("name", f"shift_{len(variables)}"))
                 var_name = f"{e_name}_{s_name}"
-                duration = shift.get("duration_hours", shift.get("duration", 8))
+                duration = shift.get(
+                    "duration_hours",
+                    shift.get(
+                        "duration", shift.get("production_hours", shift.get("processing_hours", 8))
+                    ),
+                )
 
                 if s_name in unavailable:
                     variables.append(
@@ -159,13 +165,18 @@ class SchedulingGenerator(BaseGenerator):
         # Hours constraints per employee
         for emp in employees:
             e_name = self.sanitize_name(emp.get("name", ""))
-            max_hours = emp.get("max_hours", 40)
+            max_hours = emp.get("max_hours", emp.get("available_hours", 40))
             min_hours = emp.get("min_hours", 0)
 
             hour_terms = []
             for shift in shifts:
                 s_name = self.sanitize_name(shift.get("name", ""))
-                duration = shift.get("duration_hours", shift.get("duration", 8))
+                duration = shift.get(
+                    "duration_hours",
+                    shift.get(
+                        "duration", shift.get("production_hours", shift.get("processing_hours", 8))
+                    ),
+                )
                 hour_terms.append(f"{duration}*{e_name}_{s_name}")
 
             hours_expr = " + ".join(hour_terms)

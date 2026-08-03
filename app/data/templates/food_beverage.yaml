@@ -88,14 +88,14 @@ templates:
   - id: production_line_scheduling
     name: Food Production Line Scheduling
     display_name: Production Line Scheduling
-    short_description: Schedule food products across production lines to minimize changeover times and meet daily order deadlines.
+    short_description: Assign food production orders to lines so every order is produced within each line's available hours.
     description: >
-      Assigns food product orders to production lines and sequences them to
-      minimize total changeover (cleaning) time. Changeover duration depends on
-      the product pair (allergen cleaning takes longer). Each order has a volume,
-      a production rate, and a delivery deadline. The model ensures all orders
-      are completed on time, lines do not exceed their daily capacity, and
-      allergen contamination rules are respected.
+      Assigns food product orders to production lines. Each order has a
+      production time in hours and each line a daily hour budget; the model
+      guarantees every order lands on a line and no line exceeds its available
+      hours, at minimum production cost. Sequencing within a line and
+      product-pair changeover (cleaning) times are planned downstream by the
+      line supervisor -- they are not part of this model.
     category: food_beverage
     tags: [food, production, scheduling, changeover]
     problem_type_tags: [MIP, scheduling]
