@@ -14,6 +14,10 @@ import { buildOriginSlices } from "@/lib/execution-origin";
 import { useCommonLabels } from "@/hooks/useCommonLabels";
 import { Button } from "@/components/ui/button";
 import { OriginBadge } from "@/components/solve/OriginBadge";
+import {
+  DistributionPieCard,
+  type PieEntry,
+} from "@/components/solve/DistributionPieCard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   BarChart2,
@@ -31,9 +35,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
 
 type Period = 7 | 30 | 90 | 0;
@@ -62,64 +63,6 @@ function formatMs(ms: number | null): string {
 
 function formatPct(rate: number): string {
   return `${(rate * 100).toFixed(1)}%`;
-}
-
-interface PieEntry {
-  name: string;
-  value: number;
-  fill: string;
-}
-
-interface DistributionPieCardProps {
-  title: string;
-  data: PieEntry[];
-  noDataLabel: string;
-  formatSingle: (name: string, count: number) => string;
-}
-
-// A distribution with one category is a sentence, not a donut of one colour —
-// the same sparse-data rule the author area follows.
-export function DistributionPieCard({
-  title,
-  data,
-  noDataLabel,
-  formatSingle,
-}: DistributionPieCardProps) {
-  return (
-    <div className="bg-card border border-border rounded-lg p-4">
-      <h3 className="font-semibold mb-4">{title}</h3>
-      {data.length === 1 ? (
-        <p className="text-sm py-6 flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: data[0].fill }} />
-          {formatSingle(data[0].name, data[0].value)}
-        </p>
-      ) : data.length > 0 ? (
-        <div className="flex items-center gap-4">
-          <ResponsiveContainer width="50%" height={180}>
-            <PieChart>
-              <Pie data={data} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value">
-                {data.map((entry) => (
-                  <Cell key={entry.name} fill={entry.fill} />
-                ))}
-              </Pie>
-              <Tooltip contentStyle={{ fontSize: 12 }} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="space-y-2">
-            {data.map((entry) => (
-              <div key={entry.name} className="flex items-center gap-2 text-sm">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.fill }} />
-                <span>{entry.name}</span>
-                <span className="font-medium">{entry.value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <p className="text-muted-foreground text-sm">{noDataLabel}</p>
-      )}
-    </div>
-  );
 }
 
 export default function SolveAnalyticsPage() {

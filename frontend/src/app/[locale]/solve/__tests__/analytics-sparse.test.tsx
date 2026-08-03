@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { DistributionPieCard } from "../analytics/page";
+import { DistributionPieCard } from "@/components/solve/DistributionPieCard";
 
 // A distribution with one category must read as a sentence, not draw a donut
 // of a single colour — the sparse-data rule the author area already follows.
