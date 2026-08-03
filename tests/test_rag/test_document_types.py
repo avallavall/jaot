@@ -422,12 +422,12 @@ class TestExtractAllDocuments:
 
     def test_total_count(self):
         docs = extract_all_documents()
-        # 186 base docs (templates + generators + constraint patterns + linearization
+        # 188 base docs (templates + generators + constraint patterns + linearization
         # + parser capabilities + vocabulary) plus one worked example per template that
         # renders from its example_input. The base stays pinned; worked examples float.
         worked = [d for d in docs if d["payload"]["doc_type"] == DocType.WORKED_EXAMPLE.value]
         assert len(worked) > 0, "expected worked-example docs to be extracted"
-        assert len(docs) == 186 + len(worked)
+        assert len(docs) == 188 + len(worked)
 
     def test_all_doc_types_present(self):
         docs = extract_all_documents()

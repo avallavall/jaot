@@ -27,7 +27,9 @@ from app.domains.solver.services.generators.knapsack import KnapsackGenerator
 from app.domains.solver.services.generators.lot_sizing import LotSizingGenerator
 from app.domains.solver.services.generators.markdown_pricing import MarkdownPricingGenerator
 from app.domains.solver.services.generators.mdpdp import MDPDPGenerator
+from app.domains.solver.services.generators.network_design import NetworkDesignGenerator
 from app.domains.solver.services.generators.network_flow import NetworkFlowGenerator
+from app.domains.solver.services.generators.period_selection import PeriodSelectionGenerator
 from app.domains.solver.services.generators.portfolio import PortfolioGenerator
 from app.domains.solver.services.generators.procurement import ProcurementGenerator
 from app.domains.solver.services.generators.production import (
@@ -73,6 +75,8 @@ GeneratorRegistry.register("markdown_pricing", MarkdownPricingGenerator)
 GeneratorRegistry.register("strip_packing", StripPackingGenerator)
 GeneratorRegistry.register("spanning_tree", SpanningTreeGenerator)
 GeneratorRegistry.register("mdpdp", MDPDPGenerator)
+GeneratorRegistry.register("period_selection", PeriodSelectionGenerator)
+GeneratorRegistry.register("network_design", NetworkDesignGenerator)
 GeneratorRegistry.register("generic", GenericGenerator)
 
 # Public API
@@ -106,7 +110,9 @@ __all__ = [
     "LotSizingGenerator",
     "MDPDPGenerator",
     "MarkdownPricingGenerator",
+    "NetworkDesignGenerator",
     "NetworkFlowGenerator",
+    "PeriodSelectionGenerator",
     "PortfolioGenerator",
     "ProcurementGenerator",
     "ProductionGenerator",

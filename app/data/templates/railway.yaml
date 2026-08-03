@@ -166,16 +166,16 @@ templates:
     short_description: Schedule track maintenance windows to minimize service disruption while keeping infrastructure safe.
     description: >
       Plans when to perform maintenance on track sections over a planning horizon.
-      Each section has a degradation state and a maintenance deadline. Maintenance
-      requires a track possession (closure) window during which no trains can run.
-      The model minimizes total service disruption (cancelled or rerouted trains)
-      while ensuring every section is maintained before its safety deadline. Helps
+      Each section has a maintenance deadline and a work duration; maintenance
+      requires a track possession (closure) window with enough hours in it. The
+      model fits every section into a window before its safety deadline and sends
+      the most heavily used sections to the earliest feasible windows. Helps
       infrastructure managers coordinate maintenance with timetable planners.
     category: railway
     tags: [railway, maintenance, infrastructure, planning]
     problem_type_tags: [MIP, scheduling]
-    generator_type: scheduling
-    generator_params: {}
+    generator_type: period_selection
+    generator_params: {mode: assign}
     input_schema:
       type: object
       properties:

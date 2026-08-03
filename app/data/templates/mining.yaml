@@ -16,7 +16,7 @@ templates:
     category: mining
     tags: [mining, extraction, scheduling, strategic-planning]
     problem_type_tags: [MIP, scheduling]
-    generator_type: scheduling
+    generator_type: period_selection
     generator_params: {}
     input_schema:
       type: object
@@ -61,12 +61,14 @@ templates:
       blocks:
         - {name: "Block-L1-A", tonnage: 5000, grade: 2.1, cost: 45000, value: 120000}
         - {name: "Block-L1-B", tonnage: 4200, grade: 1.8, cost: 38000, value: 95000}
-        - {name: "Block-L2-A", tonnage: 6000, grade: 3.2, cost: 52000, value: 210000}
-        - {name: "Block-L2-B", tonnage: 3800, grade: 1.5, cost: 35000, value: 70000}
-        - {name: "Block-L3-A", tonnage: 7000, grade: 4.0, cost: 65000, value: 340000}
-        - {name: "Block-L3-B", tonnage: 4500, grade: 2.5, cost: 42000, value: 145000}
+        - {name: "Block-L2-A", tonnage: 6000, grade: 3.2, cost: 52000, value: 210000, requires: ["Block-L1-A"]}
+        - {name: "Block-L2-B", tonnage: 3800, grade: 1.5, cost: 35000, value: 70000, requires: ["Block-L1-B"]}
+        - {name: "Block-L3-A", tonnage: 7000, grade: 4.0, cost: 65000, value: 340000, requires: ["Block-L2-A"]}
+        - {name: "Block-L3-B", tonnage: 4500, grade: 2.5, cost: 42000, value: 145000, requires: ["Block-L2-B"]}
       num_periods: 3
       plant_capacity: 10000
+      min_grade: 2.0
+      discount_rate: 0.1
     scenario_description: >
       A copper mine has six ore blocks across three bench levels. The processing
       plant can handle 10,000 tonnes per year. Upper-level blocks must be extracted

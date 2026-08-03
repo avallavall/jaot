@@ -10,14 +10,13 @@ templates:
       Plans which forest stands to harvest in each period of a multi-year horizon.
       Each stand has a timber volume, species mix, age, and expected revenue at
       harvest. The model maximizes total discounted revenue while respecting
-      sustainability constraints -- maximum area harvested per period, adjacency
-      rules (no two neighboring stands harvested in the same period), and minimum
-      ending forest inventory. Fundamental for forest management companies and
-      public land agencies.
+      sustainability constraints -- maximum area harvested per period and
+      adjacency rules (no two neighboring stands harvested in the same period).
+      Fundamental for forest management companies and public land agencies.
     category: forestry
     tags: [forestry, timber, sustainability, land-management]
     problem_type_tags: [MIP, scheduling]
-    generator_type: scheduling
+    generator_type: period_selection
     generator_params: {}
     input_schema:
       type: object
@@ -60,14 +59,15 @@ templates:
         minimum: 0
     example_input:
       stands:
-        - {name: "Stand-A", area_ha: 25, timber_volume: 4500, revenue_per_m3: 65, age_years: 45}
-        - {name: "Stand-B", area_ha: 30, timber_volume: 5200, revenue_per_m3: 58, age_years: 50}
-        - {name: "Stand-C", area_ha: 18, timber_volume: 3100, revenue_per_m3: 72, age_years: 60}
-        - {name: "Stand-D", area_ha: 35, timber_volume: 6800, revenue_per_m3: 55, age_years: 40}
-        - {name: "Stand-E", area_ha: 22, timber_volume: 3900, revenue_per_m3: 68, age_years: 55}
-        - {name: "Stand-F", area_ha: 28, timber_volume: 4800, revenue_per_m3: 60, age_years: 48}
+        - {name: "Stand-A", area_ha: 25, timber_volume: 4500, revenue_per_m3: 65, age_years: 45, adjacent_to: ["Stand-B"]}
+        - {name: "Stand-B", area_ha: 30, timber_volume: 5200, revenue_per_m3: 58, age_years: 50, adjacent_to: ["Stand-A", "Stand-C"]}
+        - {name: "Stand-C", area_ha: 18, timber_volume: 3100, revenue_per_m3: 72, age_years: 60, adjacent_to: ["Stand-B"]}
+        - {name: "Stand-D", area_ha: 35, timber_volume: 6800, revenue_per_m3: 55, age_years: 40, adjacent_to: ["Stand-E"]}
+        - {name: "Stand-E", area_ha: 22, timber_volume: 3900, revenue_per_m3: 68, age_years: 55, adjacent_to: ["Stand-D", "Stand-F"]}
+        - {name: "Stand-F", area_ha: 28, timber_volume: 4800, revenue_per_m3: 60, age_years: 48, adjacent_to: ["Stand-E"]}
       num_periods: 4
       max_area_per_period: 40
+      discount_rate: 0.05
     scenario_description: >
       A forestry company manages 158 hectares across six stands of Douglas fir
       and spruce. Over a four-year plan, no more than 40 hectares may be harvested

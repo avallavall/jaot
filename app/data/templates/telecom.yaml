@@ -170,7 +170,7 @@ templates:
     category: telecom
     tags: [telecom, network-design, reliability, fault-tolerance]
     problem_type_tags: [MIP, network-design]
-    generator_type: network_flow
+    generator_type: network_design
     generator_params: {}
     input_schema:
       type: object

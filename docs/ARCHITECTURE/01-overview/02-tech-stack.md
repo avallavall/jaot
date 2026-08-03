@@ -18,7 +18,7 @@
 | **Runtime infra** | PostgreSQL | 18 | database |
 | | Redis | 7 | rate limiting + result backend + pub/sub |
 | | RabbitMQ | 3 | Celery broker |
-| | Qdrant | — | vector DB (RAG, 288 docs indexed) |
+| | Qdrant | — | vector DB (RAG, 290 docs indexed) |
 | | Caddy | — | reverse proxy + TLS |
 | **Frontend** | Next.js | 16 | framework (App Router) |
 | | React | 19 | UI |
