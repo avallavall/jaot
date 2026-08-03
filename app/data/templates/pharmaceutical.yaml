@@ -160,6 +160,9 @@ templates:
           production_cost: 2000
           setup_cost: 5000
           holding_cost: 80
+          # Existing stock covers week one: with two reactors, only two of the
+          # three products can be set up in any one week.
+          initial_inventory: 450
       num_periods: 4
       num_reactors: 2
     scenario_description: >
