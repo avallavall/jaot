@@ -44,11 +44,15 @@ class BlendingGenerator(BaseGenerator):
                 "targets",
             ],
         )
+        # An explicit mix_quantity_min/max is a bound. A batch size or target
+        # tonnage is the quantity to PRODUCE: treating it as only a ceiling let
+        # "produce nothing" satisfy every ratio spec, and three shipped cards
+        # answered an optimal cost of 0 for blends nobody would make.
+        production_target = user_input.get("batch_size", user_input.get("target_tonnage", -1))
         mix_quantity_min = user_input.get("mix_quantity_min", 0)
-        mix_quantity_max = user_input.get(
-            "mix_quantity_max",
-            user_input.get("batch_size", user_input.get("target_tonnage", -1)),
-        )
+        mix_quantity_max = user_input.get("mix_quantity_max", production_target)
+        if not mix_quantity_min and production_target > 0:
+            mix_quantity_min = production_target
 
         variables: list[Variable] = []
         cost_terms: list[str] = []
@@ -56,8 +60,20 @@ class BlendingGenerator(BaseGenerator):
 
         for rm in raw_materials:
             rm_id = self.sanitize_name(rm.get("id", rm.get("name", f"rm_{len(variables)}")))
-            # Support multiple price field names
-            price = rm.get("price_per_ton", rm.get("cost_per_kg", rm.get("price", 0)))
+            # Support multiple price field names. Only price_per_ton normalizes
+            # (kg-denominated cards); the others already match their quantity
+            # unit. cost_per_liter / cost_per_tonne went unread before, so
+            # buying was free and the optimum was always a cost of 0.
+            price = rm.get(
+                "price_per_ton",
+                rm.get(
+                    "cost_per_kg",
+                    rm.get(
+                        "cost_per_liter",
+                        rm.get("cost_per_tonne", rm.get("unit_cost", rm.get("price", 0))),
+                    ),
+                ),
+            )
             if rm.get("price_per_ton"):
                 price = price / 1000.0  # normalize to per-kg
 
@@ -115,9 +131,24 @@ class BlendingGenerator(BaseGenerator):
         absolute_mode = params.get("mode") == "absolute"
 
         for target in target_nutrients:
-            nutrient_id = target.get("id", target.get("name", target.get("property", "")))
-            min_val = target.get("min", target.get("min_pct", 0))
-            max_val = target.get("max", target.get("max_pct", 0))
+            nutrient_id = target.get(
+                "id",
+                target.get(
+                    "name",
+                    target.get(
+                        "property",
+                        target.get(
+                            "component", target.get("nutrient", target.get("parameter", ""))
+                        ),
+                    ),
+                ),
+            )
+            min_val = target.get(
+                "min", target.get("min_pct", target.get("min_per_kg", target.get("min_value", 0)))
+            )
+            max_val = target.get(
+                "max", target.get("max_pct", target.get("max_per_kg", target.get("max_value", 0)))
+            )
 
             if absolute_mode:
                 self._add_absolute_constraints(
@@ -157,12 +188,19 @@ class BlendingGenerator(BaseGenerator):
 
     def _get_nutrient_value(self, rm: dict[str, Any], nutrient_id: str) -> float:
         """Extract nutrient content from a material, trying multiple formats."""
-        # Structured list: nutrient_percentages or nutrients
-        for np_item in rm.get("nutrient_percentages", rm.get("nutrients", [])):
-            if np_item.get("id") == nutrient_id:
-                return float(
-                    np_item.get("percentage", np_item.get("amount", np_item.get("value", 0)))
-                )
+        # Structured: list of {id, percentage} entries, or a flat {name: value}
+        # dict (the recipe cards ship the dict form).
+        structured = rm.get("nutrient_percentages", rm.get("nutrients", []))
+        if isinstance(structured, dict):
+            val = structured.get(nutrient_id, 0)
+            if val:
+                return float(val)
+        else:
+            for np_item in structured:
+                if np_item.get("id") == nutrient_id:
+                    return float(
+                        np_item.get("percentage", np_item.get("amount", np_item.get("value", 0)))
+                    )
         # Flat composition dict
         if "composition" in rm:
             val = rm["composition"].get(nutrient_id, 0)
