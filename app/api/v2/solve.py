@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from app.api.deps import DBSession, OptionalRequireSolver, enforce_org_rate_limit
@@ -71,6 +71,9 @@ class MultiObjectiveSolveRequest(BaseModel):
 
     problem: OptimizationProblem
     config: MultiObjectiveConfig
+
+    # MCP-facing body: a wrong argument name must be a 422, never a silent no-op.
+    model_config = ConfigDict(extra="forbid")
 
 
 @router.post(

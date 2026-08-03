@@ -95,6 +95,9 @@ class ExecuteModelRequest(BaseModel):
     input_data: dict[str, Any]
     async_mode: bool = False
 
+    # MCP-facing body: a wrong argument name must be a 422, never a silent no-op.
+    model_config = ConfigDict(extra="forbid")
+
 
 class ModelExecutionResponse(BaseModel):
     """Response for a model execution."""

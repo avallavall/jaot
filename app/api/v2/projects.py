@@ -24,7 +24,7 @@ from fastapi import (
     status,
 )
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
@@ -107,6 +107,9 @@ class FromMarketplaceRequest(BaseModel):
     """
 
     user_input: dict[str, Any] | None = None
+
+    # MCP-facing body: a wrong argument name must be a 422, never a silent no-op.
+    model_config = ConfigDict(extra="forbid")
 
 
 def _project_or_404(db: DBSession, project_id: str, org_id: str):

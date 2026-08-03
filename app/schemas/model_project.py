@@ -2,6 +2,14 @@
 
 A ModelProject is the first-class model entity: a mutable HEAD draft plus an
 append-only list of immutable, commit-grade versions.
+
+Every INPUT schema here rejects unknown keys (``extra="forbid"``). These bodies
+serve the MCP tools, whose typical caller is an LLM — and an LLM's typical
+mistake is a wrong argument name. Measured against production (2026-08-02):
+``update_model_project_draft`` called with ``problem=`` instead of
+``model_json`` returned the project as if it had worked, saved nothing, and the
+follow-up commit sealed an EMPTY model. A typo must be a 422, not a silent
+no-op that loses the caller's work.
 """
 
 from datetime import datetime
@@ -17,6 +25,8 @@ class ProjectCreate(BaseModel):
     description: str | None = None
     workspace_id: str | None = None
 
+    model_config = ConfigDict(extra="forbid")
+
 
 class ProjectMetaUpdate(BaseModel):
     """Patch a project's metadata (name / description / status)."""
@@ -24,6 +34,8 @@ class ProjectMetaUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=255)
     description: str | None = None
     status: str | None = Field(default=None, pattern="^(active|archived)$")
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class DraftUpdate(BaseModel):
@@ -34,7 +46,7 @@ class DraftUpdate(BaseModel):
     canvas_json: dict[str, Any] | None = None
     dsl_source: str | None = None
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
 
 class CommitRequest(BaseModel):
@@ -46,6 +58,8 @@ class CommitRequest(BaseModel):
 
     summary: str = Field(max_length=500)
     body: str | None = None
+
+    model_config = ConfigDict(extra="forbid")
 
     @field_validator("summary")
     @classmethod
@@ -64,6 +78,8 @@ class DatasetCreate(BaseModel):
     description: str | None = None
     data_json: dict[str, Any]
 
+    model_config = ConfigDict(extra="forbid")
+
     @field_validator("name")
     @classmethod
     def _name_not_blank(cls, v: str) -> str:
@@ -78,6 +94,8 @@ class DatasetUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=255)
     description: str | None = None
     data_json: dict[str, Any] | None = None
+
+    model_config = ConfigDict(extra="forbid")
 
     @field_validator("name")
     @classmethod

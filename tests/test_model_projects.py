@@ -136,6 +136,34 @@ class TestDraft:
         assert data["draft_model_json"]["name"] == "tiny_lp"
         assert data["draft_content_hash"]
 
+    # CONTRACT-TEST: an unknown body key is a 422, never a silent no-op.
+    def test_unknown_body_key_is_422_not_silent_noop(self, authenticated_client: TestClient):
+        """Measured against production (2026-08-02): ``problem=`` instead of
+        ``model_json`` returned the project as if it had worked, saved NOTHING,
+        and the follow-up commit sealed an empty model. A wrong argument name is
+        the typical LLM mistake, and the MCP draft tool is agent-facing.
+        """
+        pid = _create_project(authenticated_client)["id"]
+        resp = authenticated_client.put(
+            f"/api/v2/projects/{pid}/draft", json={"problem": _VALID_PROBLEM}
+        )
+        assert resp.status_code == 422, resp.text
+        # Nothing was saved — and nothing pretended to be.
+        proj = authenticated_client.get(f"/api/v2/projects/{pid}").json()
+        assert proj["draft_model_json"] is None
+
+        # The declared key still works after the rejection.
+        ok = authenticated_client.put(
+            f"/api/v2/projects/{pid}/draft", json={"model_json": _VALID_PROBLEM}
+        )
+        assert ok.status_code == 200, ok.text
+
+        # The commit body rejects a typo the same way.
+        bad_commit = authenticated_client.post(
+            f"/api/v2/projects/{pid}/commit", json={"summary": "v1", "mesage_body": "typo"}
+        )
+        assert bad_commit.status_code == 422, bad_commit.text
+
     def test_stale_if_match_conflicts_409(self, authenticated_client: TestClient):
         pid = _create_project(authenticated_client)["id"]
         # First write lands at lock 1.
