@@ -46,8 +46,12 @@ well before the data arrives) shipped; see Now.
 
 ## Later / Exploring
 
-- **A native solver** — we are researching what a solver built into the platform itself
-  could look like. Early exploration; no design commitments yet.
+- **A solver of our own** — we are researching what an in-house solver could look like. It
+  will be built as its own open-source project in a separate repository, published alongside
+  JAOT rather than inside it: a solver has no business depending on the platform that happens
+  to use it, and keeping it standalone means anyone can use it without JAOT at all. The
+  platform will then adopt it the way it adopts any other solver — through the adapter
+  contract, same as SCIP and HiGHS. Early exploration; no design commitments yet.
 
 ## Not planned (for now)
 
