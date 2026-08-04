@@ -9,6 +9,7 @@ Ordered by benefit ÷ effort.
 
 | # | Debt | Impact | Effort |
 |---|------|--------|--------|
+| D-28 | `fastapi<0.137.0` is pinned around a fragility of ours, not around FastAPI | Silent: the app would boot "healthy" with 228 routes missing | A bounded investigation |
 | D-27 | PgBouncer in transaction mode, once there are real users or more workers | Low today, rising with load | Needs an infra window |
 
 ---
@@ -29,6 +30,37 @@ state does not survive transaction pooling the way it survives a session) and `p
 
 Not urgent while the platform is quiet, and the gauges from D-25 now say when it stops being
 quiet: watch `jaot_db_pool_checked_out / jaot_db_pool_capacity`.
+
+---
+
+## D-28 · The FastAPI pin covers something of ours
+
+Two pins look alike and are not. **`mcp>=1.12.0,<2` is correct and is not ours**: `fastapi-mcp`
+0.4.0 calls `Server(name, description)` and 2.0 removed that argument, so the ceiling stays
+until `fastapi-mcp` ships a compatible release. **`fastapi<0.137.0` is a different animal.**
+
+Measured 2026-07-31 in a throwaway container, without touching the repo:
+
+| fastapi | `api_v2_router.routes` | `app.routes` |
+|---|---|---|
+| 0.136.1 (current) | populated | **236** |
+| 0.141.1 | **27** | **8** |
+
+**Nothing raises.** The app boots looking healthy — MCP mounted, Prometheus exposed — with 228
+routes that simply do not exist. That is the worst available failure mode: a deploy on that
+version serves 404 for almost everything with a green health check.
+
+The useful clue is that the intermediate router already arrives with 27 of ~228, so it is not
+`app.include_router` failing but composition losing pieces earlier, inside `app/api/v2/router.py`.
+The mounting is entirely idiomatic, which points at import order or cycles: a sub-router composed
+while its module is still half-imported arrives empty, and on 0.136 the order happens to work.
+
+If that is confirmed, the pin is not protecting us from FastAPI — it is protecting us from
+ourselves, and it gets more expensive with every release that passes. Bounded investigation:
+reproduce on 0.141 and bisect which `include_router` loses its routes.
+
+⏸️ **Deliberately asleep** (owner, 2026-07-31): *"if it works like this, leave it"*. The numbers
+are here for whoever picks it up. Do not reopen unprompted.
 
 ---
 
