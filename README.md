@@ -1,9 +1,10 @@
 # JAOT — Just Another Optimization Tool
 
-**A self-hostable optimization platform.** Describe a problem in natural
-language or JSON, get the optimal solution back — no solver expertise required.
-Build models with an AI assistant, share them in a marketplace, expose them to
-AI agents over MCP, or just hit the REST API.
+**Software that decides.** How much of each product to make, which orders go on which
+van, who covers which shift, what to buy and when — decisions with more combinations
+than anyone can weigh by hand, and a real cost to getting wrong. Describe one in plain
+language or JSON, and JAOT gives you the best answer, what it is worth, and which limit
+is the one holding you back.
 
 [![CI](https://github.com/avallavall/jaot/actions/workflows/ci.yml/badge.svg)](https://github.com/avallavall/jaot/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/avallavall/jaot?label=release)](https://github.com/avallavall/jaot/releases)
@@ -19,22 +20,31 @@ AI agents over MCP, or just hit the REST API.
 
 ## What it is
 
-JAOT wraps industrial MIP/LP solvers (SCIP, HiGHS) behind a multi-tenant API, a
-versioned model studio, and an LLM formulation assistant. It is **a platform,
-not a library and not a hosted SaaS** — you run it yourself with
-`docker compose up`.
+You say what you are deciding, what constrains you — capacity, budget, hours,
+stock — and what "best" means for you: cheapest, fastest, most profit. JAOT turns
+that into a mathematical model, hands it to an industrial solver, and gives you
+back the decision in the same terms you asked the question in.
 
-JAOT is **free and collaborative** — no billing, no credits, no paid tier
-(ADR-008). Fair use is enforced with one set of request limits for the instance
-and configurable solve quotas; the AI assistant is bounded by a monthly EUR
-budget, with bring-your-own-key support.
+**You do not need to know what a MIP is to use it.** If you do, nothing is hidden:
+the model, the solve log, the gap and the full post-solve analysis are all there,
+and an answer that could only be proven within a bound says so instead of posing
+as exact.
 
-**Nothing caps the size of your models but your hardware.** There is no ceiling
-on model size, expression length, thread count or solve time — the limits that
-survived from the hosted-product era are gone, and every remaining one is a
-setting you own, where `0` means unlimited. A model with two million variables
-solves if your machine can hold it. A public instance with open registration can
-set real numbers; a private one need not.
+It is **a platform, not a library and not a hosted service** — you run it yourself
+with `docker compose up`. It comes with a web interface, a REST API, and an MCP
+server so AI agents can use it too. Two solvers ship with it (SCIP and HiGHS) and
+adding another means writing one adapter.
+
+**Free, with no paid tier.** No billing, no credits, no upsell — the marketplace is
+people sharing models, not selling them. Fair use is a set of request limits and
+solve quotas you configure yourself, and the AI assistant runs on a monthly budget
+you set, or on your own API key.
+
+**Nothing caps the size of your models but your hardware.** There is no ceiling on
+model size, expression length, thread count or solve time — every limit is a setting
+you own, where `0` means unlimited. A model with two million variables solves if your
+machine can hold it. A public instance with open registration can set real numbers;
+a private one need not.
 
 ### Solve
 
