@@ -53,6 +53,13 @@ well before the data arrives) shipped; see Now.
   platform will then adopt it the way it adopts any other solver — through the adapter
   contract, same as SCIP and HiGHS. Early exploration; no design commitments yet.
 
+- **Optimization for Odoo** — an idea we want to explore: a module that brings real
+  optimization to Odoo, where the decisions worth optimizing already live (purchasing,
+  inventory, production, delivery routes, workforce planning are the obvious candidates).
+  Like the solver, it would be its own open-source repository published alongside JAOT rather
+  than part of it. Nothing is designed yet — including the first question, which is whether
+  it talks to a JAOT instance over the public API or stands on its own.
+
 ## Not planned (for now)
 
 Things we have considered and deliberately set aside — so you don't have to guess:
