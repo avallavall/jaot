@@ -46,13 +46,26 @@ export function JModelShowcase() {
         </pre>
       </div>
 
-      {/* The notation: what it means. */}
-      <div className="overflow-x-auto bg-card p-6 sm:p-8">
+      {/* The notation: what it means. Three formulas against thirteen lines of
+          source leaves a hole at the bottom of this column, so the heading stays
+          aligned with its opposite number and the maths centres in what is left. */}
+      <div className="flex min-w-0 flex-col bg-card p-6 sm:p-8">
         <h3 className="mb-5 font-mono text-[0.6875rem] uppercase tracking-widest text-muted-foreground">
           {t("notationHeading")}
         </h3>
 
-        <div className="space-y-5 text-foreground">
+        {/* The overrides live in globals.css under .jmodel-notation, NOT as
+            arbitrary variants here: katex.min.css is imported by this component,
+            so Next injects it after the Tailwind utilities and they lose on
+            order — the same trap sonner's stylesheet set. min-w-0 lets the long
+            constraint scroll instead of clipping, which a flex child will not do
+            on its own. */}
+        <div
+          className={cn(
+            "jmodel-notation flex min-w-0 flex-1 flex-col justify-center gap-4",
+            "text-[0.9rem] text-foreground sm:text-[0.95rem]",
+          )}
+        >
           {objective ? <BlockMath math={objective.latex} /> : null}
           {constraints.map((line) => (
             <div key={line.label ?? line.latex}>

@@ -482,3 +482,24 @@ html {
     max-width: 100%;
   }
 }
+
+/* JModel notation on the landing page. Same ordering trap as sonner above:
+   katex.min.css is imported from the component, so Next injects it AFTER the
+   Tailwind utilities and any `[&_.katex]` arbitrary variant loses on order.
+   The selector is doubled to clear KaTeX's own `.katex-display > .katex`, which
+   scales display mode to 1.21em and centres it — at that size the notation
+   towered over the source beside it and the long constraint clipped. */
+.jmodel-notation .katex-display,
+.jmodel-notation .katex-display {
+  margin: 0;
+  padding: 0.125rem 0;
+  text-align: left;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.jmodel-notation .katex-display > .katex,
+.jmodel-notation .katex-display > .katex {
+  font-size: 1em;
+  text-align: left;
+}
