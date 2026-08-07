@@ -35,6 +35,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 ### Changed
 
 - **The home page opens with a real optimization instead of a screenshot.** The hero replays an actual solver run: a 24-stop route that improves 68.5% from its first answer to the proven optimum, with the gap closing to 0.00%. Every figure on it comes from the solver, and it still reads with JavaScript off or motion reduced.
+- **The analysis section shows a solved plan rather than describing one.** It walks through a real production instance where the highest-margin product is built zero times, because it draws hardest on the two resources that run out — the utilisation and contribution figures are the same ones JAOT reports after any solve.
 
 ### Fixed
 
