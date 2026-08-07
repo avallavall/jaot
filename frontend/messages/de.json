@@ -637,21 +637,91 @@
       "signIn": "Anmelden",
       "goToDashboard": "Dashboard"
     },
+    "exactAnalysis": {
+      "eyebrow": "Nach dem Lösen",
+      "title": "Das Produkt mit der höchsten Marge kommt nicht in den Plan",
+      "subtitle": "Eine echte gelöste Instanz. Schreibtische bringen pro Stück am meisten, und das Optimum baut keinen einzigen — weil sie die beiden Ressourcen am stärksten beanspruchen, die zuerst ausgehen. Genau das übersieht eine Tabellenkalkulation.",
+      "planHeading": "Produktionsplan",
+      "bindingHeading": "Was ausgeht",
+      "perUnit": "{margin} / Stück",
+      "units": "{count} Stück",
+      "totalMargin": "Gesamtmarge",
+      "floorMet": "{actual} geliefert, {required} gefordert",
+      "binding": "ausgelastet",
+      "slack": "{slack} übrig",
+      "verdict": "{product} bringen {margin} pro Stück, aber jeder verbraucht {planks} Bretter und {hours} Werkstattstunden — und das sind {binding} der {total} Grenzen, die bereits ausgelastet sind. JAOT berechnet das aus der Lösung selbst, also gelten die Zahlen für den ganzzahligen Plan, den du wirklich fährst.",
+      "products": {
+        "chairs": "Stühle",
+        "tables": "Tische",
+        "desks": "Schreibtische",
+        "shelves": "Regale"
+      },
+      "resources": {
+        "machineHours": "Maschinenstunden",
+        "craftHours": "Werkstattstunden",
+        "oakPlanks": "Eichenbretter",
+        "chairContract": "Stuhl-Vertrag"
+      }
+    },
+    "conflict": {
+      "eyebrow": "Wenn es keine Lösung gibt",
+      "title": "Es benennt die zwei Regeln, die sich widersprechen — und entlastet die anderen zwei",
+      "subtitle": "Ein Solver sagt „unlösbar“ und lässt dich das ganze Modell prüfen. JAOT entfernt jede Regel und löst erneut, bis nur der Widerspruch übrig bleibt — so weißt du genau, wo du hinschauen musst.",
+      "chartHeading": "Wie weit jede Grenze reicht",
+      "method": "{rules} Regeln · {size} im Konflikt",
+      "rules": {
+        "chairContract": "Stuhl-Vertrag",
+        "craftHours": "Werkstattstunden",
+        "oakPlanks": "Eichenbretter",
+        "machineHours": "Maschinenstunden"
+      },
+      "inConflict": "im Konflikt",
+      "cleared": "nicht das Problem",
+      "reaches": "{units} Stühle",
+      "contractLine": "Vertrag fordert {demand}",
+      "verdict": "Die {resource} reichen für {reaches} Stühle, der Vertrag fordert {demand}. Sonst ist nichts schuld: JAOT entlastet die übrigen Grenzen namentlich. Mit {missing} mehr löst sich das Modell — das ist die Zahl, über die verhandelt wird."
+    },
+    "catalog": {
+      "headline": "{total} Vorlagen in {sectors} Branchen",
+      "browse": "Marktplatz durchsuchen"
+    },
+    "jmodel": {
+      "eyebrow": "Schreib das Modell, nicht die Zeilen",
+      "title": "Neun Zeilen. Die Daten bestimmen die Größe.",
+      "subtitle": "JModel beschreibt dein Problem mit Mengen und indizierten Familien, und JAOT stellt es als Mathematik dar, bevor es eine einzige Zahl anfasst. Derselbe Code unten baut ein Modell mit vier Variablen oder mit vierhundert — du schreibst nichts um.",
+      "sourceHeading": "Was du schreibst",
+      "notationHeading": "Was es bedeutet",
+      "scaleSmall": "{products} Produkte × {resources} Ressourcen",
+      "scaleLarge": "{products} Produkte × {resources} Ressourcen",
+      "scaleResult": "{variables} Variablen · {constraints} Restriktionen",
+      "scaleNote": "Beide Male dieselben {lines} Zeilen. Eine Tabelle oder ein handgeschriebenes Modell wachsen mit den Daten; ein indiziertes Modell nicht."
+    },
     "hero": {
-      "badge": "KI-gestützte Optimierungsplattform",
-      "titleLine1": "Erstellen, nutzen oder automatisieren",
-      "titleLine2": "Optimierungslösungen",
-      "titleLine3": "für jede Herausforderung",
-      "subtitle": "Drei Wege zu optimalen Entscheidungen: Modelle mit KI erstellen, bewährte Lösungen aus dem Community-Marktplatz nutzen oder deinen KI-Agenten über MCP verbinden.",
+      "badge": "Open-Source-Optimierungsplattform",
+      "titleLine1": "Deine Touren, Schichten und Budgets,",
+      "titleLine2": "gelöst mit der bestmöglichen Antwort",
+      "titleLine3": "— und bewiesen.",
+      "subtitle": "JAOT übersetzt dein Problem in ein mathematisches Modell, löst es und beweist, dass es keine bessere Antwort gibt. Baue es mit KI, starte von einer Community-Vorlage oder steuere es über MCP aus deinem eigenen Agenten.",
       "tagline": "Die Optimierungsplattform für Menschen und KI-Agenten.",
-      "visualBuilderLabel": "Visueller Modell-Builder",
+      "visual": {
+        "windowLabel": "Touren · {stops} Stopps · {solver}",
+        "alt": "Ein echter Optimierungslauf: eine Liefertour mit {stops} Stopps, die verbessert wird, bis sie ihre bewiesene optimale Länge von {optimum} erreicht — über {variables} Entscheidungsvariablen.",
+        "proven": "Optimalität bewiesen",
+        "legendStart": "Erste Lösung {cost}",
+        "legendProven": "Optimum {cost}",
+        "metrics": {
+          "cost": "Tourlänge",
+          "gap": "Abstand zum Optimum",
+          "nodes": "Suchknoten",
+          "variables": "Variablen"
+        }
+      },
       "getStartedFree": "Kostenlos starten",
       "browseTemplates": "Vorlagen durchsuchen",
       "openSourceSolver": "Open-Source-Solver",
       "templatesCount": "100+ Vorlagen",
       "firstMarketplace": "Marktplatz für Optimierungsmodelle",
       "mcpNative": "MCP-nativ",
-      "heroVisualAlt": "Visueller Modell-Builder von JAOT mit einem Optimierungsmodell aus Variablen-, Bedingungs- und Zielknoten",
       "viewSource": "Auf GitHub ansehen",
       "pillars": {
         "aiBuilder": {
@@ -672,6 +742,7 @@
       "ctaMcp": "Agent verbinden"
     },
     "platform": {
+      "samplePrompt": "„Plane die Lieferungen der Woche: 4 Transporter, 60 Stopps, alle zurück bis 18:00.“",
       "eyebrow": "Die Plattform",
       "title": "Drei Wege zur Optimierung",
       "subtitle": "Erstelle Modelle mit KI, nutze bewährte Lösungen aus dem Community-Marktplatz oder verbinde deinen KI-Agenten über MCP.",
@@ -746,10 +817,6 @@
       "eyebrow": "Lösungsanalyse",
       "title": "Verstehe deine Lösung",
       "subtitle": "Nicht nur lösen — verstehen. Jedes Ergebnis kommt mit der Begründung dahinter.",
-      "exactAnalysis": {
-        "title": "Exakte, lösungsbasierte Analyse",
-        "description": "Bindende Nebenbedingungen, Spielräume und Auslastung — berechnet aus deiner tatsächlichen Lösung: exakt für das ganzzahlige Optimum, mit jedem Solver."
-      },
       "whatIf": {
         "title": "Was-wäre-wenn, gemessen",
         "description": "Fragen Sie, was eine weitere Einheit bringt: JAOT löst das veränderte Modell erneut und zeigt die tatsächliche Veränderung — an Ihrem MIP gemessen, nicht aus einer Relaxation geschätzt."
@@ -963,6 +1030,7 @@
     },
     "solverDisclaimer": "Die Ergebnisse hängen von der Modellformulierung ab. Solver liefern Best-Effort-Lösungen — überprüfen Sie kritische Entscheidungen unabhängig.",
     "mcp": {
+      "toolCount": "{count} Tools, alle von einem Agenten aufrufbar",
       "title": "KI-Agenten treffen auf Optimierung",
       "subtitle": "JAOT ist eine Optimierungsplattform, die KI-Agenten nativ zugänglich ist. Verbinde jeden MCP-kompatiblen Agenten, um Optimierungsprobleme durchgängig zu lösen.",
       "workflow": {

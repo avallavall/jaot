@@ -1,14 +1,19 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Reveal } from "@/components/motion/Reveal";
+import { BottleneckShowcase } from "@/components/landing/BottleneckShowcase";
+import { CatalogIndex } from "@/components/landing/CatalogIndex";
+import { ConflictShowcase } from "@/components/landing/ConflictShowcase";
+import { JModelShowcase } from "@/components/landing/JModelShowcase";
 import { ProductFrame } from "@/components/landing/ProductFrame";
+import { ProvenOptimalHero } from "@/components/landing/ProvenOptimalHero";
 import { SectionHeading } from "@/components/landing/SectionHeading";
 import { StatStrip } from "@/components/landing/StatStrip";
+import { cn } from "@/lib/utils";
 import { GITHUB_REPO_URL } from "@/lib/community";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -63,11 +68,6 @@ const ACCENT_TERRACOTTA = "--node-objective-selected";
 const ACCENT_SAGE = "--node-constraint-selected";
 const ACCENT_SEPIA = "--node-variable-selected";
 
-const chipStyle = (accentVar: string) => ({
-  color: `var(${accentVar})`,
-  backgroundColor: `color-mix(in oklab, var(${accentVar}) 12%, transparent)`,
-});
-
 const HERO_PILLARS = [
   {
     icon: Sparkles,
@@ -89,6 +89,16 @@ const HERO_PILLARS = [
   },
 ] as const;
 
+// What each way in actually looks like. The prompt is a sentence a person types,
+// so it is translated; the other two are identifiers — a real template from
+// app/data/templates/agriculture.yaml and a real MCP tool — so they render as
+// authored, the same call made for the tool listing further down.
+const ENTRY_SAMPLES: Record<string, (t: (key: string) => string) => string> = {
+  aiBuilder: (t) => t("platform.samplePrompt"),
+  marketplace: () => "Fertilizer Mix Optimizer — agriculture",
+  mcp: () => 'solve_with_template(template_id="fertilizer_mixing")',
+};
+
 const AUDIENCE = [
   { icon: Building2, key: "teams", href: "/signup", accent: ACCENT_SEPIA },
   { icon: Store, key: "authors", href: "/marketplace", accent: ACCENT_TERRACOTTA },
@@ -106,9 +116,10 @@ const USE_CASE_KEYS = [
   { icon: Users, key: "resourceAssignment", source: "ai" as const },
 ] as const;
 
+// The exact-analysis card was dropped: BottleneckShowcase demonstrates it on a
+// real solve rather than describing it. These three are capabilities the panel
+// cannot show by itself.
 const SOLUTION_EXPLAINER_KEYS = [
-  { icon: PieChart, key: "exactAnalysis" },
-  { icon: TrendingUp, key: "whatIf" },
   { icon: Network, key: "structuredSolution" },
   { icon: Sparkles, key: "aiExplain" },
 ] as const;
@@ -194,14 +205,15 @@ export default async function HomePage() {
               </span>
               {t("hero.badge")}
             </Badge>
-            {/* hyphens/break-words: German compounds one word long ("Optimierungslösungen")
-                have no space to wrap at and used to overflow into the screenshot beside it. */}
-            <h1 className="mb-6 hyphens-auto break-words font-serif text-5xl leading-[1.05] text-foreground md:text-6xl xl:text-7xl">
-              {t("hero.titleLine1")}
-              <br />
-              {t("hero.titleLine2")}
-              <br />
-              <span className="text-primary">{t("hero.titleLine3")}</span>
+            {/* Each line is its own block so the three-beat rhythm survives, and
+                text-balance evens the wrap inside a line. No hyphens-auto here:
+                it broke English mid-word ("bud-gets"). German compounds are the
+                reason break-words stays — "Optimierungslösungen" has nowhere to
+                wrap — but the type scale is now small enough not to need it. */}
+            <h1 className="mb-6 font-serif text-4xl leading-[1.08] text-balance text-foreground md:text-5xl xl:text-6xl">
+              <span className="block break-words">{t("hero.titleLine1")}</span>
+              <span className="block break-words">{t("hero.titleLine2")}</span>
+              <span className="block break-words text-primary">{t("hero.titleLine3")}</span>
             </h1>
             <p className="mx-auto mb-3 max-w-xl text-lg text-muted-foreground lg:mx-0">
               {t("hero.subtitle")}
@@ -228,17 +240,11 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <Reveal delay={120}>
-            <ProductFrame
-              lightSrc="/home/builder-light.png"
-              darkSrc="/home/builder-dark.png"
-              alt={t("hero.heroVisualAlt")}
-              width={2504}
-              height={1724}
-              label={t("hero.visualBuilderLabel")}
-              priority
-            />
-          </Reveal>
+          {/* The hero visual is a real solve, replayed from a trace SCIP produced
+              (scripts/gen_hero_trace.py) — not a screenshot that goes stale. It
+              replaced a capture of the retired visual builder, which the front
+              page was still selling as a way in. */}
+          <ProvenOptimalHero />
         </div>
       </section>
 
@@ -262,169 +268,172 @@ export default async function HomePage() {
             subtitle={t("platform.subtitle")}
           />
         </Reveal>
-        <div className="mt-14 grid gap-6 lg:grid-cols-2">
-          {/* Featured cell — AI Builder, spans both rows on the left */}
-          <Reveal className="lg:row-span-2">
-            <Card className="h-full border-border shadow-warm-sm transition-shadow duration-300 hover:shadow-warm-md">
-              <CardContent className="flex h-full flex-col p-8">
-                <div
-                  className="mb-6 flex h-14 w-14 items-center justify-center rounded-md"
-                  style={chipStyle(HERO_PILLARS[0].accent)}
-                >
-                  <Sparkles className="h-7 w-7" />
-                </div>
-                <h3 className="mb-3 font-serif text-2xl">
-                  {t(`hero.pillars.${HERO_PILLARS[0].key}.title`)}
+        {/* Each way in is shown by the gesture it actually takes — a sentence you
+            type, a template you pick, a tool an agent calls — instead of three
+            cards asserting the door exists. The three samples deliberately share
+            one thread: the same real template, reached three different ways. */}
+        <div className="mt-14 grid gap-10 md:grid-cols-3 md:gap-0">
+          {HERO_PILLARS.map((pillar, idx) => (
+            <Reveal key={pillar.key} delay={idx * 90}>
+              <div
+                className={cn(
+                  "flex h-full flex-col md:px-8",
+                  idx === 0 && "md:pl-0",
+                  idx > 0 && "md:border-l md:border-border",
+                  idx === HERO_PILLARS.length - 1 && "md:pr-0",
+                )}
+              >
+                <h3 className="mb-2.5 flex items-center gap-2.5 font-serif text-xl">
+                  <pillar.icon
+                    className="h-5 w-5 shrink-0"
+                    style={{ color: `var(${pillar.accent})` }}
+                    aria-hidden
+                  />
+                  {t(`hero.pillars.${pillar.key}.title`)}
                 </h3>
-                <p className="mb-6 max-w-md text-muted-foreground">
-                  {t(`hero.pillars.${HERO_PILLARS[0].key}.description`)}
+                <p className="mb-5 text-sm leading-relaxed text-muted-foreground">
+                  {t(`hero.pillars.${pillar.key}.description`)}
                 </p>
-                <ProductFrame
-                  lightSrc="/home/ai-assistant-light.png"
-                  darkSrc="/home/ai-assistant-dark.png"
-                  alt={t("platform.aiVisualAlt")}
-                  width={2880}
-                  height={1800}
-                  label={t("hero.pillars.aiBuilder.title")}
-                  className="mb-8"
-                />
+
+                <div className="mb-5 border-l-2 border-border py-1 pl-4">
+                  <p className="font-mono text-xs leading-relaxed text-foreground">
+                    {ENTRY_SAMPLES[pillar.key](t)}
+                  </p>
+                </div>
+
                 <div className="mt-auto">
-                  <Link href={HERO_PILLARS[0].cta.href}>
-                    <Button variant="outline" className="gap-1.5">
-                      {t(HERO_PILLARS[0].cta.key)}
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </Button>
+                  <Link
+                    href={pillar.cta.href}
+                    className="font-mono text-xs uppercase tracking-widest text-primary underline-offset-4 hover:underline"
+                  >
+                    {t(pillar.cta.key)}
                   </Link>
                 </div>
-              </CardContent>
-            </Card>
-          </Reveal>
-
-          {HERO_PILLARS.slice(1).map((pillar, idx) => (
-            <Reveal key={pillar.key} delay={(idx + 1) * 90}>
-              <Card className="h-full border-border shadow-warm-sm transition-shadow duration-300 hover:shadow-warm-md">
-                <CardContent className="p-8">
-                  <div
-                    className="mb-4 flex h-11 w-11 items-center justify-center rounded-md"
-                    style={chipStyle(pillar.accent)}
-                  >
-                    <pillar.icon className="h-5 w-5" />
-                  </div>
-                  <h3 className="mb-2 font-serif text-xl">
-                    {t(`hero.pillars.${pillar.key}.title`)}
-                  </h3>
-                  <p className="mb-4 text-sm text-muted-foreground">
-                    {t(`hero.pillars.${pillar.key}.description`)}
-                  </p>
-                  <Link href={pillar.cta.href}>
-                    <Button variant="outline" size="sm" className="gap-1.5">
-                      {t(pillar.cta.key)}
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Understand your solution ───────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-6 py-24">
-        <Reveal>
-          <SectionHeading
-            eyebrow={t("solutionExplainer.eyebrow")}
-            title={t("solutionExplainer.title")}
-            subtitle={t("solutionExplainer.subtitle")}
-          />
-        </Reveal>
-        <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {SOLUTION_EXPLAINER_KEYS.map((item, idx) => (
-            <Reveal key={item.key} delay={(idx % 3) * 80}>
-              <Card className="h-full overflow-hidden border-border shadow-warm-sm transition-shadow duration-300 hover:shadow-warm-md">
-                <CardContent className="flex h-full flex-col p-6">
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
-                    <item.icon className="h-5 w-5" />
-                  </div>
-                  <h3 className="mb-2 font-serif text-lg">
-                    {t(`solutionExplainer.${item.key}.title`)}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {t(`solutionExplainer.${item.key}.description`)}
-                  </p>
-                </CardContent>
-              </Card>
+              </div>
             </Reveal>
           ))}
         </div>
 
-        <Reveal delay={160}>
-          <div className="mx-auto mt-14 max-w-3xl overflow-hidden rounded-xl border border-border shadow-warm-md">
-            <Image
-              src="/showcase/v31-analysis-light.png"
-              alt={t("solutionExplainer.title")}
-              width={1870}
-              height={2284}
-              className="block h-auto w-full dark:hidden"
-            />
-            <Image
-              src="/showcase/v31-analysis-dark.png"
-              alt={t("solutionExplainer.title")}
-              width={1870}
-              height={2284}
-              className="hidden h-auto w-full dark:block"
+        {/* The AI builder is the front door, and a line of sample prompt did not
+            carry it. This capture is a screen that genuinely exists, so it keeps
+            the window chrome — unlike the hero, which is the solver running. */}
+        <Reveal delay={200}>
+          <div className="mx-auto mt-14 max-w-4xl">
+            <ProductFrame
+              lightSrc="/home/ai-assistant-light.png"
+              darkSrc="/home/ai-assistant-dark.png"
+              alt={t("platform.aiVisualAlt")}
+              width={2880}
+              height={1800}
+              label={t("hero.pillars.aiBuilder.title")}
             />
           </div>
         </Reveal>
+      </section>
+
+      {/* ── JModel ─────────────────────────────────────────────────────────
+          The biggest gap in the page: JModel is the product (the JAOT_DSL flag
+          was retired for that reason) and the home never mentioned it. Source and
+          real compiler notation, side by side, same renderer as the studio. */}
+      <section className="border-y border-border bg-muted/30 py-24">
+        <div className="mx-auto max-w-6xl px-6">
+          <Reveal>
+            <SectionHeading
+              eyebrow={t("jmodel.eyebrow")}
+              title={t("jmodel.title")}
+              subtitle={t("jmodel.subtitle")}
+            />
+          </Reveal>
+          <Reveal delay={120}>
+            <div className="mt-14">
+              <JModelShowcase />
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── Understand your solution ───────────────────────────────────────
+          A solved instance whose answer contradicts the obvious one, instead of
+          four cards describing that analysis exists. The three capabilities that
+          the panel does not itself demonstrate stay below it as a compact strip. */}
+      <section className="mx-auto max-w-6xl px-6 py-24">
+        <Reveal>
+          <SectionHeading
+            eyebrow={t("exactAnalysis.eyebrow")}
+            title={t("exactAnalysis.title")}
+            subtitle={t("exactAnalysis.subtitle")}
+          />
+        </Reveal>
+
+        <Reveal delay={120}>
+          <div className="mt-14">
+            <BottleneckShowcase />
+          </div>
+        </Reveal>
+
+        {/* "What if" leads on its own: re-solving the perturbed MIP instead of
+            reading a number off a relaxation is the sharpest technical claim on
+            this page, and compressing it into a third of a row buried it. */}
+        <Reveal delay={160}>
+          <div className="mt-12 grid gap-8 border-t border-border pt-8 lg:grid-cols-[1fr_1.6fr] lg:gap-12">
+            <h3 className="flex items-start gap-3 font-serif text-2xl leading-snug">
+              <TrendingUp className="mt-1.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+              {t("solutionExplainer.whatIf.title")}
+            </h3>
+            <p className="text-base leading-relaxed text-muted-foreground">
+              {t("solutionExplainer.whatIf.description")}
+            </p>
+          </div>
+        </Reveal>
+
+        <div className="mt-10 grid gap-8 sm:grid-cols-2">
+          {SOLUTION_EXPLAINER_KEYS.map((item, idx) => (
+            <Reveal key={item.key} delay={(idx + 1) * 80}>
+              <div className="border-t border-border pt-4">
+                <h3 className="mb-1.5 flex items-center gap-2 font-serif text-base">
+                  <item.icon className="h-4 w-4 text-primary" aria-hidden />
+                  {t(`solutionExplainer.${item.key}.title`)}
+                </h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {t(`solutionExplainer.${item.key}.description`)}
+                </p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
       </section>
 
       {/* ── Infeasibility explainer ────────────────────────────────────── */}
       <section className="mx-auto max-w-6xl px-6 py-24">
         <Reveal>
           <SectionHeading
-            eyebrow={t("infeasibilityHighlight.eyebrow")}
-            title={t("infeasibilityHighlight.title")}
-            subtitle={t("infeasibilityHighlight.subtitle")}
+            eyebrow={t("conflict.eyebrow")}
+            title={t("conflict.title")}
+            subtitle={t("conflict.subtitle")}
           />
         </Reveal>
-        <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-3">
+
+        <Reveal delay={120}>
+          <div className="mt-14">
+            <ConflictShowcase />
+          </div>
+        </Reveal>
+
+        <div className="mt-12 grid gap-8 sm:grid-cols-3">
           {INFEASIBILITY_KEYS.map((item, idx) => (
-            <Reveal key={item.key} delay={(idx % 3) * 80}>
-              <Card className="h-full overflow-hidden border-border shadow-warm-sm transition-shadow duration-300 hover:shadow-warm-md">
-                <CardContent className="flex h-full flex-col p-6">
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
-                    <item.icon className="h-5 w-5" />
-                  </div>
-                  <h3 className="mb-2 font-serif text-lg">
-                    {t(`infeasibilityHighlight.${item.key}.title`)}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {t(`infeasibilityHighlight.${item.key}.description`)}
-                  </p>
-                </CardContent>
-              </Card>
+            <Reveal key={item.key} delay={(idx + 1) * 80}>
+              <div className="border-t border-border pt-4">
+                <h3 className="mb-1.5 flex items-center gap-2 font-serif text-base">
+                  <item.icon className="h-4 w-4 text-primary" aria-hidden />
+                  {t(`infeasibilityHighlight.${item.key}.title`)}
+                </h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {t(`infeasibilityHighlight.${item.key}.description`)}
+                </p>
+              </div>
             </Reveal>
           ))}
         </div>
-
-        <Reveal delay={160}>
-          <div className="mx-auto mt-14 max-w-3xl overflow-hidden rounded-xl border border-border shadow-warm-md">
-            <Image
-              src="/showcase/p2-infeasibility-light.png"
-              alt={t("infeasibilityHighlight.title")}
-              width={943}
-              height={1018}
-              className="block h-auto w-full dark:hidden"
-            />
-            <Image
-              src="/showcase/p2-infeasibility-dark.png"
-              alt={t("infeasibilityHighlight.title")}
-              width={943}
-              height={945}
-              className="hidden h-auto w-full dark:block"
-            />
-          </div>
-        </Reveal>
       </section>
 
       {/* ── MCP showcase ───────────────────────────────────────────────── */}
@@ -465,25 +474,33 @@ export default async function HomePage() {
                   {t("mcp.toolsTitle")}
                 </span>
               </div>
-              <CardContent className="space-y-4 p-6">
-                {MCP_TOOL_GROUPS.map((group) => (
-                  <div key={group.key}>
-                    <p className="mb-1 text-sm font-medium text-foreground">
-                      {t(`mcp.tools.${group.key}`)}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {group.tools.map((tool) => (
-                        <Badge
-                          key={tool}
-                          variant="secondary"
-                          className="font-mono text-xs font-normal"
-                        >
-                          {tool}
-                        </Badge>
-                      ))}
+              {/* An API index rather than a pile of pills: the tool names are the
+                  real ones an agent calls, so they read better as a listing. The
+                  count is computed, so it cannot drift from the array. */}
+              <CardContent className="p-6">
+                {/* Two columns: thirty names in one stack towered over the four
+                    steps beside it and left the section lopsided. */}
+                <div className="gap-x-6 sm:columns-2">
+                  {MCP_TOOL_GROUPS.map((group) => (
+                    <div key={group.key} className="mb-5 break-inside-avoid">
+                      <p className="mb-1.5 font-mono text-[0.625rem] uppercase tracking-widest text-muted-foreground">
+                        {t(`mcp.tools.${group.key}`)}
+                      </p>
+                      <ul className="space-y-0.5">
+                        {group.tools.map((tool) => (
+                          <li key={tool} className="font-mono text-xs text-foreground">
+                            {tool}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+                <p className="border-t border-border pt-4 font-mono text-xs text-muted-foreground">
+                  {t("mcp.toolCount", {
+                    count: MCP_TOOL_GROUPS.reduce((n, g) => n + g.tools.length, 0),
+                  })}
+                </p>
               </CardContent>
             </Card>
           </Reveal>
@@ -517,45 +534,48 @@ export default async function HomePage() {
           <Reveal>
             <SectionHeading title={t("audience.title")} />
           </Reveal>
-          <div className="mt-14 grid grid-cols-1 gap-8 md:grid-cols-3">
+          {/* Three columns divided by a rule, not three cards. The accent survives
+              as the heading's marker so the audiences stay distinguishable. */}
+          <div className="mt-14 grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-0">
             {AUDIENCE.map((aud, idx) => (
               <Reveal key={aud.key} delay={idx * 90}>
-                <Card className="relative h-full overflow-hidden border-border shadow-warm-sm transition-shadow duration-300 hover:shadow-warm-md">
-                  <span
-                    className="absolute inset-x-0 top-0 h-1"
-                    style={{ backgroundColor: `var(${aud.accent})` }}
-                    aria-hidden
-                  />
-                  <CardContent className="flex h-full flex-col p-8">
-                    <div
-                      className="mb-6 flex h-12 w-12 items-center justify-center rounded-md"
-                      style={chipStyle(aud.accent)}
+                <div
+                  className={cn(
+                    "flex h-full flex-col md:px-8",
+                    idx === 0 && "md:pl-0",
+                    idx > 0 && "md:border-l md:border-border",
+                    idx === AUDIENCE.length - 1 && "md:pr-0",
+                  )}
+                >
+                  <h3 className="mb-5 flex items-center gap-2.5 font-serif text-xl">
+                    <aud.icon
+                      className="h-5 w-5 shrink-0"
+                      style={{ color: `var(${aud.accent})` }}
+                      aria-hidden
+                    />
+                    {t(`audience.${aud.key}.title`)}
+                  </h3>
+                  <ul className="mb-6 space-y-2.5 text-sm leading-relaxed text-muted-foreground">
+                    {AUDIENCE_ITEMS.map((item) => (
+                      <li key={item} className="flex items-start gap-2">
+                        <Check
+                          className="mt-1 h-3.5 w-3.5 shrink-0"
+                          style={{ color: `var(${aud.accent})` }}
+                          aria-hidden
+                        />
+                        {t(`audience.${aud.key}.${item}`)}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-auto">
+                    <Link
+                      href={aud.href}
+                      className="font-mono text-xs uppercase tracking-widest text-primary underline-offset-4 hover:underline"
                     >
-                      <aud.icon className="h-6 w-6" />
-                    </div>
-                    <h3 className="mb-4 font-serif text-xl">
-                      {t(`audience.${aud.key}.title`)}
-                    </h3>
-                    <ul className="mb-6 space-y-3 text-sm text-muted-foreground">
-                      {AUDIENCE_ITEMS.map((item) => (
-                        <li key={item} className="flex items-start gap-2">
-                          <Check
-                            className="mt-0.5 h-4 w-4 shrink-0"
-                            style={{ color: `var(${aud.accent})` }}
-                          />
-                          {t(`audience.${aud.key}.${item}`)}
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="mt-auto">
-                      <Link href={aud.href}>
-                        <Button variant="outline" size="sm">
-                          {t(`audience.${aud.key}.cta`)}
-                        </Button>
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
+                      {t(`audience.${aud.key}.cta`)}
+                    </Link>
+                  </div>
+                </div>
               </Reveal>
             ))}
           </div>
@@ -570,69 +590,39 @@ export default async function HomePage() {
             subtitle={t("useCases.subtitle")}
           />
         </Reveal>
-        <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {USE_CASE_KEYS.map((uc, idx) => {
-            const accent = uc.source === "ai" ? ACCENT_TERRACOTTA : ACCENT_SAGE;
-            return (
-              <Reveal key={uc.key} delay={(idx % 3) * 80}>
-                <Card className="h-full overflow-hidden border-border shadow-warm-sm transition-shadow duration-300 hover:shadow-warm-md">
-                  <CardContent className="flex h-full flex-col p-6">
-                    <div
-                      className="mb-4 flex h-10 w-10 items-center justify-center rounded-md"
-                      style={chipStyle(accent)}
-                    >
-                      <uc.icon className="h-5 w-5" />
-                    </div>
-                    <h3 className="mb-2 font-serif text-lg">
-                      {t(`useCases.${uc.key}.title`)}
-                    </h3>
-                    <p className="mb-4 text-sm text-muted-foreground">
-                      {t(`useCases.${uc.key}.scenario`)}
-                    </p>
-                    <div className="mt-auto">
-                      <div className="mb-4 flex flex-wrap items-center gap-2">
-                        <span
-                          className="rounded-full px-2.5 py-0.5 text-xs font-medium"
-                          style={chipStyle(accent)}
-                        >
-                          {t(`useCases.${uc.key}.result`)}
-                        </span>
-                        <Badge
-                          variant="secondary"
-                          className="shrink-0 gap-1 text-xs font-normal"
-                        >
-                          {uc.source === "ai" ? (
-                            <>
-                              <Sparkles className="h-3 w-3" />
-                              {t("useCases.builtWithAi")}
-                            </>
-                          ) : (
-                            <>
-                              <Store className="h-3 w-3" />
-                              {t("useCases.fromMarketplace")}
-                            </>
-                          )}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Link href="/marketplace">
-                          <Button variant="outline" size="sm" className="text-xs">
-                            {t("useCases.tryTemplate")}
-                          </Button>
-                        </Link>
-                        <Link
-                          href="/signup"
-                          className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                          {t("useCases.getStarted")}
-                        </Link>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Reveal>
-            );
-          })}
+        {/* The real catalogue, counted from the YAML it ships from, instead of six
+            hand-picked cards that drift the moment a template is added. */}
+        <Reveal delay={100}>
+          <div className="mt-14">
+            <CatalogIndex />
+          </div>
+        </Reveal>
+
+        {/* The worked examples stay, compressed: they name concrete problems in
+            words a visitor recognises, which the sector index alone does not. */}
+        <div className="mt-14 grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+          {USE_CASE_KEYS.map((uc, idx) => (
+            <Reveal key={uc.key} delay={(idx % 3) * 70}>
+              <div className="border-t border-border pt-4">
+                <h3 className="mb-1.5 flex items-center gap-2 font-serif text-base">
+                  <uc.icon
+                    className="h-4 w-4"
+                    style={{
+                      color: `var(${uc.source === "ai" ? ACCENT_TERRACOTTA : ACCENT_SAGE})`,
+                    }}
+                    aria-hidden
+                  />
+                  {t(`useCases.${uc.key}.title`)}
+                </h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {t(`useCases.${uc.key}.scenario`)}
+                </p>
+                <p className="mt-1.5 font-mono text-xs text-muted-foreground">
+                  {uc.source === "ai" ? t("useCases.builtWithAi") : t("useCases.fromMarketplace")}
+                </p>
+              </div>
+            </Reveal>
+          ))}
         </div>
       </section>
 
@@ -642,24 +632,26 @@ export default async function HomePage() {
           <Reveal>
             <SectionHeading title={t("howItWorks.title")} />
           </Reveal>
-          <div className="relative mt-14 grid grid-cols-1 gap-8 md:grid-cols-3">
-            {/* Connecting hairline behind the numbered steps (desktop only) */}
-            <div
-              className="absolute left-[16.66%] right-[16.66%] top-5 hidden h-px bg-border md:block"
-              aria-hidden
-            />
+          {/* The numeral carries the sequence typographically — no pills, no
+              connector line pretending to be a diagram. */}
+          <div className="mt-14 grid grid-cols-1 gap-10 md:grid-cols-3">
             {HOW_IT_WORKS_KEYS.map((stepKey, idx) => (
               <Reveal key={stepKey} delay={idx * 90}>
-                <div className="relative text-center">
-                  <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground shadow-warm-sm">
+                <div className="flex gap-5">
+                  <span
+                    className="font-serif text-5xl leading-none text-primary/25 tabular-nums"
+                    aria-hidden
+                  >
                     {idx + 1}
+                  </span>
+                  <div className="pt-1">
+                    <h3 className="mb-1.5 font-serif text-lg">
+                      {t(`howItWorks.${stepKey}.title`)}
+                    </h3>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      {t(`howItWorks.${stepKey}.description`)}
+                    </p>
                   </div>
-                  <h3 className="mb-2 font-semibold">
-                    {t(`howItWorks.${stepKey}.title`)}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {t(`howItWorks.${stepKey}.description`)}
-                  </p>
                 </div>
               </Reveal>
             ))}

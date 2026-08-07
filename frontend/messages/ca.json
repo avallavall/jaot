@@ -637,21 +637,91 @@
       "signIn": "Iniciar sessió",
       "goToDashboard": "Tauler"
     },
+    "exactAnalysis": {
+      "eyebrow": "Després de resoldre",
+      "title": "El producte amb més marge no entra al pla",
+      "subtitle": "Una instància real resolta. Els escriptoris són els que més deixen per unitat i l'òptim no en fabrica cap, perquè són els que més consumeixen dels dos recursos que s'exhaureixen. Això és justament el que un full de càlcul falla.",
+      "planHeading": "Pla de producció",
+      "bindingHeading": "Què s'exhaureix",
+      "perUnit": "{margin} / unitat",
+      "units": "{count} unitats",
+      "totalMargin": "Marge total",
+      "floorMet": "{actual} lliurades, {required} exigides",
+      "binding": "al límit",
+      "slack": "{slack} de sobra",
+      "verdict": "Els {product} deixen {margin} per unitat, però cadascun es menja {planks} taulons i {hours} hores d'artesania, i aquests són {binding} dels {total} límits que ja estan al màxim. JAOT ho calcula des de la mateixa solució, així que les xifres valen per al pla enter que executaràs de debò.",
+      "products": {
+        "chairs": "Cadires",
+        "tables": "Taules",
+        "desks": "Escriptoris",
+        "shelves": "Prestatgeries"
+      },
+      "resources": {
+        "machineHours": "Hores de màquina",
+        "craftHours": "Hores d'artesania",
+        "oakPlanks": "Taulons de roure",
+        "chairContract": "Contracte de cadires"
+      }
+    },
+    "conflict": {
+      "eyebrow": "Quan no hi ha solució",
+      "title": "Assenyala les dues regles que xoquen — i exonera les altres dues",
+      "subtitle": "Un solver diu «no factible» i et deixa auditant el model sencer. JAOT va traient regles i tornant a resoldre fins a deixar només la contradicció, així saps exactament on mirar.",
+      "chartHeading": "Fins on arriba cada límit",
+      "method": "{rules} regles · {size} en el conflicte",
+      "rules": {
+        "chairContract": "Contracte de cadires",
+        "craftHours": "Hores d'artesania",
+        "oakPlanks": "Taulons de roure",
+        "machineHours": "Hores de màquina"
+      },
+      "inConflict": "en conflicte",
+      "cleared": "no és el problema",
+      "reaches": "{units} cadires",
+      "contractLine": "el contracte demana {demand}",
+      "verdict": "Els {resource} donen per a {reaches} cadires i el contracte en demana {demand}. Res més en té la culpa: JAOT exonera la resta de límits pel seu nom. Amb {missing} més el model es resol — aquest és el número que cal negociar."
+    },
+    "catalog": {
+      "headline": "{total} plantilles en {sectors} sectors",
+      "browse": "Explorar el marketplace"
+    },
+    "jmodel": {
+      "eyebrow": "Escriu el model, no les files",
+      "title": "Nou línies. Les dades decideixen la mida.",
+      "subtitle": "JModel descriu el teu problema amb conjunts i famílies indexades, i JAOT el representa com a matemàtiques abans de tocar cap número. El mateix codi de sota construeix un model de quatre variables o de quatre-centes — no reescrius res.",
+      "sourceHeading": "El que escrius",
+      "notationHeading": "El que significa",
+      "scaleSmall": "{products} productes × {resources} recursos",
+      "scaleLarge": "{products} productes × {resources} recursos",
+      "scaleResult": "{variables} variables · {constraints} restriccions",
+      "scaleNote": "Les mateixes {lines} línies en tots dos casos. Un full de càlcul o un model escrit a mà creixen amb les dades; un model indexat no."
+    },
     "hero": {
-      "badge": "Plataforma d'optimització amb IA",
-      "titleLine1": "Crea, usa o automatitza",
-      "titleLine2": "solucions d'optimització",
-      "titleLine3": "per a qualsevol repte",
-      "subtitle": "Tres camins cap a decisions òptimes: crea models amb IA, usa solucions provades del marketplace de la comunitat o connecta el teu agent d'IA via MCP.",
+      "badge": "Plataforma d'optimització de codi obert",
+      "titleLine1": "Les teves rutes, torns i pressupostos,",
+      "titleLine2": "resolts amb la millor resposta possible",
+      "titleLine3": "— i demostrada.",
+      "subtitle": "JAOT converteix el teu problema en un model matemàtic, el resol i demostra que no existeix cap resposta millor. Crea'l amb IA, parteix d'una plantilla de la comunitat o governa'l des del teu propi agent via MCP.",
       "tagline": "La plataforma d'optimització per a humans i agents d'IA.",
-      "visualBuilderLabel": "Constructor visual de models",
+      "visual": {
+        "windowLabel": "rutes · {stops} parades · {solver}",
+        "alt": "Una resolució real en marxa: una ruta de repartiment de {stops} parades que va millorant fins a assolir la seva longitud òptima demostrada de {optimum}, sobre {variables} variables de decisió.",
+        "proven": "Òptim demostrat",
+        "legendStart": "Primera solució {cost}",
+        "legendProven": "Òptim {cost}",
+        "metrics": {
+          "cost": "Longitud de ruta",
+          "gap": "Distància a l'òptim",
+          "nodes": "Nodes explorats",
+          "variables": "Variables"
+        }
+      },
       "getStartedFree": "Comença gratuïtament",
       "browseTemplates": "Explorar plantilles",
       "openSourceSolver": "Solver de codi obert",
       "templatesCount": "Més de 100 plantilles",
       "firstMarketplace": "Marketplace de models d'optimització",
       "mcpNative": "Natiu MCP",
-      "heroVisualAlt": "Constructor visual de models de JAOT mostrant un model d'optimització amb nodes de variables, restriccions i objectiu",
       "viewSource": "Veure a GitHub",
       "pillars": {
         "aiBuilder": {
@@ -672,6 +742,7 @@
       "ctaMcp": "Connectar un agent"
     },
     "platform": {
+      "samplePrompt": "«Planifica els repartiments de la setmana: 4 furgonetes, 60 parades, totes de tornada a les 18:00.»",
       "eyebrow": "La plataforma",
       "title": "Tres maneres d'optimitzar",
       "subtitle": "Crea models amb IA, usa solucions provades del marketplace de la comunitat o connecta el teu agent d'IA via MCP.",
@@ -746,10 +817,6 @@
       "eyebrow": "Anàlisi de la solució",
       "title": "Entén la teva solució",
       "subtitle": "No només resolguis: entén. Cada resultat ve amb el raonament al darrere.",
-      "exactAnalysis": {
-        "title": "Anàlisi exacta basada en la solució",
-        "description": "Restriccions actives, marges i utilització calculats de la teva solució real: exacte per a l'òptim enter, amb qualsevol solver."
-      },
       "whatIf": {
         "title": "Escenaris, mesurats",
         "description": "Pregunta què et donaria una unitat més: JAOT torna a resoldre el model pertorbat i mostra el canvi real, mesurat sobre el teu MIP i no estimat a partir d'una relaxació."
@@ -963,6 +1030,7 @@
     },
     "solverDisclaimer": "Els resultats depenen de la formulació del model. Els solvers retornen solucions de millor esforç — verifica les decisions crítiques de manera independent.",
     "mcp": {
+      "toolCount": "{count} eines, totes invocables per un agent",
       "title": "Els agents IA coneixen l'optimització",
       "subtitle": "JAOT és una plataforma d'optimització accessible de forma nativa per a agents IA. Connecta qualsevol agent compatible amb MCP per resoldre problemes d'optimització d'extrem a extrem.",
       "workflow": {

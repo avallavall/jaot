@@ -1,10 +1,12 @@
 /**
- * Marketing showcase screenshots for the home page: the P1 solution explainer and
- * the P2 infeasibility explainer, each captured in BOTH light and dark themes.
+ * QA evidence for the solution explainer (P1) and the infeasibility explainer
+ * (P2), each captured in BOTH light and dark themes, by driving the real app.
  *
- * Cropped to the explainer panel itself (not full-page) for a clean hero image.
- * Output lands in frontend/public/showcase/ so the home page can <Image> them, and
- * full-page P2 shots also land in docs/screenshots/infeasibility/.
+ * Cropped to the explainer panel itself (not full-page). Everything lands under
+ * docs/screenshots/. It used to write into frontend/public/showcase/ because the
+ * home page served these as <Image>; it no longer does — the home now renders
+ * both stories from real solver output (BottleneckShowcase, ConflictShowcase),
+ * so shipping stale captures in the public bundle had no consumer.
  *
  * The AI explanation requires a configured Anthropic key (platform or org BYOK). If
  * the stream never completes (no key / no budget), the AI shots are skipped, not
@@ -16,7 +18,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import path from "path";
 
-const SHOWCASE = path.resolve(__dirname, "../public/showcase");
+const SHOWCASE = path.resolve(__dirname, "../../docs/screenshots/explainers");
 const DOCS_SHOTS = path.resolve(__dirname, "../../docs/screenshots/infeasibility");
 const ADMIN_AUTH = path.join(__dirname, ".auth/admin.json");
 const API_BASE = process.env.BASE_URL || "http://localhost:3000";

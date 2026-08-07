@@ -637,21 +637,91 @@
       "signIn": "Sign In",
       "goToDashboard": "Dashboard"
     },
+    "exactAnalysis": {
+      "eyebrow": "After the solve",
+      "title": "The highest-margin product never makes the plan",
+      "subtitle": "A real solved instance. Desks earn the most per unit and the optimum builds none of them — because they draw hardest on the two resources that run out first. This is the part a spreadsheet gets wrong.",
+      "planHeading": "Production plan",
+      "bindingHeading": "What runs out",
+      "perUnit": "{margin} / unit",
+      "units": "{count} units",
+      "totalMargin": "Total margin",
+      "floorMet": "{actual} shipped, {required} required",
+      "binding": "at capacity",
+      "slack": "{slack} spare",
+      "verdict": "{product} earn {margin} a unit, but each one eats {planks} planks and {hours} craft hours — and those are {binding} of the {total} limits already at capacity. JAOT reports this from the solution itself, so the numbers hold for the integer plan you will actually run.",
+      "products": {
+        "chairs": "Chairs",
+        "tables": "Tables",
+        "desks": "Desks",
+        "shelves": "Shelves"
+      },
+      "resources": {
+        "machineHours": "Machine hours",
+        "craftHours": "Craft hours",
+        "oakPlanks": "Oak planks",
+        "chairContract": "Chair contract"
+      }
+    },
+    "conflict": {
+      "eyebrow": "When there is no answer",
+      "title": "It names the two rules that clash — and clears the other two",
+      "subtitle": "A solver says “infeasible” and leaves you auditing the whole model. JAOT removes each rule and re-solves until only the contradiction is left, so you know exactly where to look.",
+      "chartHeading": "How far each limit reaches",
+      "method": "{rules} rules · {size} in the conflict",
+      "rules": {
+        "chairContract": "Chair contract",
+        "craftHours": "Craft hours",
+        "oakPlanks": "Oak planks",
+        "machineHours": "Machine hours"
+      },
+      "inConflict": "in conflict",
+      "cleared": "not the problem",
+      "reaches": "{units} chairs",
+      "contractLine": "contract needs {demand}",
+      "verdict": "{resource} stretch to {reaches} chairs and the contract asks for {demand}. Nothing else is at fault: JAOT clears the other limits by name. Add {missing} more and the model solves — that is the number to negotiate."
+    },
+    "catalog": {
+      "headline": "{total} templates across {sectors} sectors",
+      "browse": "Browse the marketplace"
+    },
+    "jmodel": {
+      "eyebrow": "Write the model, not the rows",
+      "title": "Nine lines. The data decides the size.",
+      "subtitle": "JModel describes your problem with sets and indexed families, and JAOT renders it as mathematics before it touches a single number. The same source below builds a four-variable model or a four-hundred-variable one — you do not rewrite anything.",
+      "sourceHeading": "What you write",
+      "notationHeading": "What it means",
+      "scaleSmall": "{products} products × {resources} resources",
+      "scaleLarge": "{products} products × {resources} resources",
+      "scaleResult": "{variables} variables · {constraints} constraints",
+      "scaleNote": "Same {lines} lines, both times. Spreadsheets and hand-written models grow with the data; an indexed model does not."
+    },
     "hero": {
-      "badge": "AI-Powered Optimization Platform",
-      "titleLine1": "Build, Use, or Automate",
-      "titleLine2": "Optimization Solutions",
-      "titleLine3": "for any challenge",
-      "subtitle": "Three paths to optimal decisions: build models with AI, use proven solutions from the community marketplace, or connect your AI agent via MCP.",
+      "badge": "Open source optimization platform",
+      "titleLine1": "Your routes, shifts and budgets,",
+      "titleLine2": "solved to the best possible answer",
+      "titleLine3": "— and proven.",
+      "subtitle": "JAOT turns your problem into a mathematical model, solves it, and proves that no better answer exists. Build it with AI, start from a community template, or drive it from your own agent over MCP.",
       "tagline": "The optimization platform for humans and AI agents alike.",
-      "visualBuilderLabel": "Visual Model Builder",
+      "visual": {
+        "windowLabel": "routing · {stops} stops · {solver}",
+        "alt": "A live optimization run: a {stops}-stop delivery route being improved until it reaches its proven optimal length of {optimum}, across {variables} decision variables.",
+        "proven": "Proven optimal",
+        "legendStart": "First solution {cost}",
+        "legendProven": "Optimal {cost}",
+        "metrics": {
+          "cost": "Route length",
+          "gap": "Gap to optimal",
+          "nodes": "Search nodes",
+          "variables": "Variables"
+        }
+      },
       "getStartedFree": "Get Started Free",
       "browseTemplates": "Browse Templates",
       "openSourceSolver": "Open source solver",
       "templatesCount": "100+ templates",
       "firstMarketplace": "Optimization model marketplace",
       "mcpNative": "MCP-native",
-      "heroVisualAlt": "JAOT visual model builder showing an optimization model with variable, constraint, and objective nodes",
       "viewSource": "View on GitHub",
       "pillars": {
         "aiBuilder": {
@@ -672,6 +742,7 @@
       "ctaMcp": "Connect an Agent"
     },
     "platform": {
+      "samplePrompt": "“Plan next week's deliveries: 4 vans, 60 stops, every van back by 18:00.”",
       "eyebrow": "The platform",
       "title": "Three ways to optimize",
       "subtitle": "Build models with AI, use proven solutions from the community marketplace, or connect your AI agent via MCP.",
@@ -746,10 +817,6 @@
       "eyebrow": "Solution analysis",
       "title": "Understand your solution",
       "subtitle": "Don't just solve — understand. Every result comes with the reasoning behind it.",
-      "exactAnalysis": {
-        "title": "Exact, solution-based analysis",
-        "description": "Binding constraints, slack, and utilization computed from your actual solution — exact for the integer optimum, on every solver."
-      },
       "whatIf": {
         "title": "What-if, measured",
         "description": "Ask what one more unit would buy you: JAOT re-solves the perturbed model and reports the real change — measured on your MIP, not estimated from a relaxation."
@@ -781,6 +848,7 @@
       }
     },
     "mcp": {
+      "toolCount": "{count} tools, all callable by an agent",
       "title": "AI Agents Meet Optimization",
       "subtitle": "JAOT is an optimization platform natively accessible to AI agents. Connect any MCP-compatible agent to solve optimization problems end-to-end.",
       "workflow": {
