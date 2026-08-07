@@ -32,6 +32,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
+## [3.4.0] - 2026-08-08
+
 ### Added
 
 - **The home page now shows JModel.** Nine lines of model source sit beside the mathematics they compile to, and the same nine lines are shown building a four-variable model and a four-hundred-variable one — the notation comes from the real compiler, rendered before the data is applied.
@@ -589,6 +591,7 @@ Full rewrite of the platform. The plugin-based system was replaced by a universa
 - Only 3.0.0 onwards is tagged in this repository — it is the first release published
   here — so the comparison links below start there.
 
-[Unreleased]: https://github.com/avallavall/jaot/compare/v3.1.0...HEAD
+[Unreleased]: https://github.com/avallavall/jaot/compare/v3.4.0...HEAD
+[3.4.0]: https://github.com/avallavall/jaot/compare/v3.3.0...v3.4.0
 [3.1.0]: https://github.com/avallavall/jaot/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/avallavall/jaot/releases/tag/v3.0.0
