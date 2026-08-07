@@ -685,6 +685,17 @@
       "headline": "{total} modèles dans {sectors} secteurs",
       "browse": "Parcourir la marketplace"
     },
+    "jmodel": {
+      "eyebrow": "Écrivez le modèle, pas les lignes",
+      "title": "Neuf lignes. Les données décident de la taille.",
+      "subtitle": "JModel décrit votre problème avec des ensembles et des familles indexées, et JAOT le rend en mathématiques avant de toucher le moindre chiffre. Le même code ci-dessous construit un modèle de quatre variables ou de quatre cents — vous ne réécrivez rien.",
+      "sourceHeading": "Ce que vous écrivez",
+      "notationHeading": "Ce que cela signifie",
+      "scaleSmall": "{products} produits × {resources} ressources",
+      "scaleLarge": "{products} produits × {resources} ressources",
+      "scaleResult": "{variables} variables · {constraints} contraintes",
+      "scaleNote": "Les mêmes {lines} lignes dans les deux cas. Un tableur ou un modèle écrit à la main grandissent avec les données ; un modèle indexé non."
+    },
     "hero": {
       "badge": "Plateforme d'optimisation open source",
       "titleLine1": "Vos tournées, plannings et budgets,",

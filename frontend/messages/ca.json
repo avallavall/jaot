@@ -685,6 +685,17 @@
       "headline": "{total} plantilles en {sectors} sectors",
       "browse": "Explorar el marketplace"
     },
+    "jmodel": {
+      "eyebrow": "Escriu el model, no les files",
+      "title": "Nou línies. Les dades decideixen la mida.",
+      "subtitle": "JModel descriu el teu problema amb conjunts i famílies indexades, i JAOT el representa com a matemàtiques abans de tocar cap número. El mateix codi de sota construeix un model de quatre variables o de quatre-centes — no reescrius res.",
+      "sourceHeading": "El que escrius",
+      "notationHeading": "El que significa",
+      "scaleSmall": "{products} productes × {resources} recursos",
+      "scaleLarge": "{products} productes × {resources} recursos",
+      "scaleResult": "{variables} variables · {constraints} restriccions",
+      "scaleNote": "Les mateixes {lines} línies en tots dos casos. Un full de càlcul o un model escrit a mà creixen amb les dades; un model indexat no."
+    },
     "hero": {
       "badge": "Plataforma d'optimització de codi obert",
       "titleLine1": "Les teves rutes, torns i pressupostos,",

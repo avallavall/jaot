@@ -8,6 +8,8 @@ import { Reveal } from "@/components/motion/Reveal";
 import { BottleneckShowcase } from "@/components/landing/BottleneckShowcase";
 import { CatalogIndex } from "@/components/landing/CatalogIndex";
 import { ConflictShowcase } from "@/components/landing/ConflictShowcase";
+import { JModelShowcase } from "@/components/landing/JModelShowcase";
+import { ProductFrame } from "@/components/landing/ProductFrame";
 import { ProvenOptimalHero } from "@/components/landing/ProvenOptimalHero";
 import { SectionHeading } from "@/components/landing/SectionHeading";
 import { StatStrip } from "@/components/landing/StatStrip";
@@ -118,7 +120,6 @@ const USE_CASE_KEYS = [
 // real solve rather than describing it. These three are capabilities the panel
 // cannot show by itself.
 const SOLUTION_EXPLAINER_KEYS = [
-  { icon: TrendingUp, key: "whatIf" },
   { icon: Network, key: "structuredSolution" },
   { icon: Sparkles, key: "aiExplain" },
 ] as const;
@@ -312,6 +313,43 @@ export default async function HomePage() {
             </Reveal>
           ))}
         </div>
+
+        {/* The AI builder is the front door, and a line of sample prompt did not
+            carry it. This capture is a screen that genuinely exists, so it keeps
+            the window chrome — unlike the hero, which is the solver running. */}
+        <Reveal delay={200}>
+          <div className="mx-auto mt-14 max-w-4xl">
+            <ProductFrame
+              lightSrc="/home/ai-assistant-light.png"
+              darkSrc="/home/ai-assistant-dark.png"
+              alt={t("platform.aiVisualAlt")}
+              width={2880}
+              height={1800}
+              label={t("hero.pillars.aiBuilder.title")}
+            />
+          </div>
+        </Reveal>
+      </section>
+
+      {/* ── JModel ─────────────────────────────────────────────────────────
+          The biggest gap in the page: JModel is the product (the JAOT_DSL flag
+          was retired for that reason) and the home never mentioned it. Source and
+          real compiler notation, side by side, same renderer as the studio. */}
+      <section className="border-y border-border bg-muted/30 py-24">
+        <div className="mx-auto max-w-6xl px-6">
+          <Reveal>
+            <SectionHeading
+              eyebrow={t("jmodel.eyebrow")}
+              title={t("jmodel.title")}
+              subtitle={t("jmodel.subtitle")}
+            />
+          </Reveal>
+          <Reveal delay={120}>
+            <div className="mt-14">
+              <JModelShowcase />
+            </div>
+          </Reveal>
+        </div>
       </section>
 
       {/* ── Understand your solution ───────────────────────────────────────
@@ -333,7 +371,22 @@ export default async function HomePage() {
           </div>
         </Reveal>
 
-        <div className="mt-12 grid gap-8 sm:grid-cols-3">
+        {/* "What if" leads on its own: re-solving the perturbed MIP instead of
+            reading a number off a relaxation is the sharpest technical claim on
+            this page, and compressing it into a third of a row buried it. */}
+        <Reveal delay={160}>
+          <div className="mt-12 grid gap-8 border-t border-border pt-8 lg:grid-cols-[1fr_1.6fr] lg:gap-12">
+            <h3 className="flex items-start gap-3 font-serif text-2xl leading-snug">
+              <TrendingUp className="mt-1.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+              {t("solutionExplainer.whatIf.title")}
+            </h3>
+            <p className="text-base leading-relaxed text-muted-foreground">
+              {t("solutionExplainer.whatIf.description")}
+            </p>
+          </div>
+        </Reveal>
+
+        <div className="mt-10 grid gap-8 sm:grid-cols-2">
           {SOLUTION_EXPLAINER_KEYS.map((item, idx) => (
             <Reveal key={item.key} delay={(idx + 1) * 80}>
               <div className="border-t border-border pt-4">

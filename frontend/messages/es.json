@@ -685,6 +685,17 @@
       "headline": "{total} plantillas en {sectors} sectores",
       "browse": "Explorar el marketplace"
     },
+    "jmodel": {
+      "eyebrow": "Escribe el modelo, no las filas",
+      "title": "Nueve líneas. Los datos deciden el tamaño.",
+      "subtitle": "JModel describe tu problema con conjuntos y familias indexadas, y JAOT lo representa como matemáticas antes de tocar un solo número. El mismo código de abajo construye un modelo de cuatro variables o de cuatrocientas — no reescribes nada.",
+      "sourceHeading": "Lo que escribes",
+      "notationHeading": "Lo que significa",
+      "scaleSmall": "{products} productos × {resources} recursos",
+      "scaleLarge": "{products} productos × {resources} recursos",
+      "scaleResult": "{variables} variables · {constraints} restricciones",
+      "scaleNote": "Las mismas {lines} líneas en los dos casos. Una hoja de cálculo o un modelo escrito a mano crecen con los datos; un modelo indexado no."
+    },
     "hero": {
       "badge": "Plataforma de optimización de código abierto",
       "titleLine1": "Tus rutas, turnos y presupuestos,",

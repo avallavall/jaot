@@ -685,6 +685,17 @@
       "headline": "{total} Vorlagen in {sectors} Branchen",
       "browse": "Marktplatz durchsuchen"
     },
+    "jmodel": {
+      "eyebrow": "Schreib das Modell, nicht die Zeilen",
+      "title": "Neun Zeilen. Die Daten bestimmen die Größe.",
+      "subtitle": "JModel beschreibt dein Problem mit Mengen und indizierten Familien, und JAOT stellt es als Mathematik dar, bevor es eine einzige Zahl anfasst. Derselbe Code unten baut ein Modell mit vier Variablen oder mit vierhundert — du schreibst nichts um.",
+      "sourceHeading": "Was du schreibst",
+      "notationHeading": "Was es bedeutet",
+      "scaleSmall": "{products} Produkte × {resources} Ressourcen",
+      "scaleLarge": "{products} Produkte × {resources} Ressourcen",
+      "scaleResult": "{variables} Variablen · {constraints} Restriktionen",
+      "scaleNote": "Beide Male dieselben {lines} Zeilen. Eine Tabelle oder ein handgeschriebenes Modell wachsen mit den Daten; ein indiziertes Modell nicht."
+    },
     "hero": {
       "badge": "Open-Source-Optimierungsplattform",
       "titleLine1": "Deine Touren, Schichten und Budgets,",

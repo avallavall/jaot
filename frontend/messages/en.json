@@ -685,6 +685,17 @@
       "headline": "{total} templates across {sectors} sectors",
       "browse": "Browse the marketplace"
     },
+    "jmodel": {
+      "eyebrow": "Write the model, not the rows",
+      "title": "Nine lines. The data decides the size.",
+      "subtitle": "JModel describes your problem with sets and indexed families, and JAOT renders it as mathematics before it touches a single number. The same source below builds a four-variable model or a four-hundred-variable one — you do not rewrite anything.",
+      "sourceHeading": "What you write",
+      "notationHeading": "What it means",
+      "scaleSmall": "{products} products × {resources} resources",
+      "scaleLarge": "{products} products × {resources} resources",
+      "scaleResult": "{variables} variables · {constraints} constraints",
+      "scaleNote": "Same {lines} lines, both times. Spreadsheets and hand-written models grow with the data; an indexed model does not."
+    },
     "hero": {
       "badge": "Open source optimization platform",
       "titleLine1": "Your routes, shifts and budgets,",
