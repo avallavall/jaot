@@ -637,6 +637,32 @@
       "signIn": "Iniciar sesión",
       "goToDashboard": "Panel"
     },
+    "exactAnalysis": {
+      "eyebrow": "Después de resolver",
+      "title": "El producto con más margen no entra en el plan",
+      "subtitle": "Una instancia real resuelta. Los escritorios son los que más dejan por unidad y el óptimo no fabrica ninguno, porque son los que más consumen de los dos recursos que se agotan. Esto es justo lo que una hoja de cálculo falla.",
+      "planHeading": "Plan de producción",
+      "bindingHeading": "Qué se agota",
+      "perUnit": "{margin} / unidad",
+      "units": "{count} unidades",
+      "totalMargin": "Margen total",
+      "floorMet": "{actual} entregadas, {required} exigidas",
+      "binding": "al límite",
+      "slack": "{slack} de sobra",
+      "verdict": "Los {product} dejan {margin} por unidad, pero cada uno se come {planks} tablones y {hours} horas de artesanía, y esos son {binding} de los {total} límites que ya están al tope. JAOT lo calcula desde la propia solución, así que las cifras valen para el plan entero que vas a ejecutar de verdad.",
+      "products": {
+        "chairs": "Sillas",
+        "tables": "Mesas",
+        "desks": "Escritorios",
+        "shelves": "Estanterías"
+      },
+      "resources": {
+        "machineHours": "Horas de máquina",
+        "craftHours": "Horas de artesanía",
+        "oakPlanks": "Tablones de roble",
+        "chairContract": "Contrato de sillas"
+      }
+    },
     "hero": {
       "badge": "Plataforma de optimización de código abierto",
       "titleLine1": "Tus rutas, turnos y presupuestos,",
@@ -757,10 +783,6 @@
       "eyebrow": "Análisis de la solución",
       "title": "Entiende tu solución",
       "subtitle": "No solo resuelvas: entiende. Cada resultado viene con el razonamiento detrás.",
-      "exactAnalysis": {
-        "title": "Análisis exacto basado en la solución",
-        "description": "Restricciones activas, holguras y utilización calculadas de tu solución real: exacto para el óptimo entero, en cualquier solver."
-      },
       "whatIf": {
         "title": "Escenarios, medidos",
         "description": "Pregunta qué te daría una unidad más: JAOT resuelve de nuevo el modelo perturbado y muestra el cambio real, medido sobre tu MIP y no estimado a partir de una relajación."

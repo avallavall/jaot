@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Reveal } from "@/components/motion/Reveal";
+import { BottleneckShowcase } from "@/components/landing/BottleneckShowcase";
 import { ProductFrame } from "@/components/landing/ProductFrame";
 import { ProvenOptimalHero } from "@/components/landing/ProvenOptimalHero";
 import { SectionHeading } from "@/components/landing/SectionHeading";
@@ -107,8 +108,10 @@ const USE_CASE_KEYS = [
   { icon: Users, key: "resourceAssignment", source: "ai" as const },
 ] as const;
 
+// The exact-analysis card was dropped: BottleneckShowcase demonstrates it on a
+// real solve rather than describing it. These three are capabilities the panel
+// cannot show by itself.
 const SOLUTION_EXPLAINER_KEYS = [
-  { icon: PieChart, key: "exactAnalysis" },
   { icon: TrendingUp, key: "whatIf" },
   { icon: Network, key: "structuredSolution" },
   { icon: Sparkles, key: "aiExplain" },
@@ -325,53 +328,40 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Understand your solution ───────────────────────────────────── */}
+      {/* ── Understand your solution ───────────────────────────────────────
+          A solved instance whose answer contradicts the obvious one, instead of
+          four cards describing that analysis exists. The three capabilities that
+          the panel does not itself demonstrate stay below it as a compact strip. */}
       <section className="mx-auto max-w-6xl px-6 py-24">
         <Reveal>
           <SectionHeading
-            eyebrow={t("solutionExplainer.eyebrow")}
-            title={t("solutionExplainer.title")}
-            subtitle={t("solutionExplainer.subtitle")}
+            eyebrow={t("exactAnalysis.eyebrow")}
+            title={t("exactAnalysis.title")}
+            subtitle={t("exactAnalysis.subtitle")}
           />
         </Reveal>
-        <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+
+        <Reveal delay={120}>
+          <div className="mt-14">
+            <BottleneckShowcase />
+          </div>
+        </Reveal>
+
+        <div className="mt-12 grid gap-8 sm:grid-cols-3">
           {SOLUTION_EXPLAINER_KEYS.map((item, idx) => (
-            <Reveal key={item.key} delay={(idx % 3) * 80}>
-              <Card className="h-full overflow-hidden border-border shadow-warm-sm transition-shadow duration-300 hover:shadow-warm-md">
-                <CardContent className="flex h-full flex-col p-6">
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
-                    <item.icon className="h-5 w-5" />
-                  </div>
-                  <h3 className="mb-2 font-serif text-lg">
-                    {t(`solutionExplainer.${item.key}.title`)}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {t(`solutionExplainer.${item.key}.description`)}
-                  </p>
-                </CardContent>
-              </Card>
+            <Reveal key={item.key} delay={(idx + 1) * 80}>
+              <div className="border-t border-border pt-4">
+                <h3 className="mb-1.5 flex items-center gap-2 font-serif text-base">
+                  <item.icon className="h-4 w-4 text-primary" aria-hidden />
+                  {t(`solutionExplainer.${item.key}.title`)}
+                </h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {t(`solutionExplainer.${item.key}.description`)}
+                </p>
+              </div>
             </Reveal>
           ))}
         </div>
-
-        <Reveal delay={160}>
-          <div className="mx-auto mt-14 max-w-3xl overflow-hidden rounded-xl border border-border shadow-warm-md">
-            <Image
-              src="/showcase/v31-analysis-light.png"
-              alt={t("solutionExplainer.title")}
-              width={1870}
-              height={2284}
-              className="block h-auto w-full dark:hidden"
-            />
-            <Image
-              src="/showcase/v31-analysis-dark.png"
-              alt={t("solutionExplainer.title")}
-              width={1870}
-              height={2284}
-              className="hidden h-auto w-full dark:block"
-            />
-          </div>
-        </Reveal>
       </section>
 
       {/* ── Infeasibility explainer ────────────────────────────────────── */}

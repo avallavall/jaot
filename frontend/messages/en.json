@@ -637,6 +637,32 @@
       "signIn": "Sign In",
       "goToDashboard": "Dashboard"
     },
+    "exactAnalysis": {
+      "eyebrow": "After the solve",
+      "title": "The highest-margin product never makes the plan",
+      "subtitle": "A real solved instance. Desks earn the most per unit and the optimum builds none of them — because they draw hardest on the two resources that run out first. This is the part a spreadsheet gets wrong.",
+      "planHeading": "Production plan",
+      "bindingHeading": "What runs out",
+      "perUnit": "{margin} / unit",
+      "units": "{count} units",
+      "totalMargin": "Total margin",
+      "floorMet": "{actual} shipped, {required} required",
+      "binding": "at capacity",
+      "slack": "{slack} spare",
+      "verdict": "{product} earn {margin} a unit, but each one eats {planks} planks and {hours} craft hours — and those are {binding} of the {total} limits already at capacity. JAOT reports this from the solution itself, so the numbers hold for the integer plan you will actually run.",
+      "products": {
+        "chairs": "Chairs",
+        "tables": "Tables",
+        "desks": "Desks",
+        "shelves": "Shelves"
+      },
+      "resources": {
+        "machineHours": "Machine hours",
+        "craftHours": "Craft hours",
+        "oakPlanks": "Oak planks",
+        "chairContract": "Chair contract"
+      }
+    },
     "hero": {
       "badge": "Open source optimization platform",
       "titleLine1": "Your routes, shifts and budgets,",
@@ -757,10 +783,6 @@
       "eyebrow": "Solution analysis",
       "title": "Understand your solution",
       "subtitle": "Don't just solve — understand. Every result comes with the reasoning behind it.",
-      "exactAnalysis": {
-        "title": "Exact, solution-based analysis",
-        "description": "Binding constraints, slack, and utilization computed from your actual solution — exact for the integer optimum, on every solver."
-      },
       "whatIf": {
         "title": "What-if, measured",
         "description": "Ask what one more unit would buy you: JAOT re-solves the perturbed model and reports the real change — measured on your MIP, not estimated from a relaxation."

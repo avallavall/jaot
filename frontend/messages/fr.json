@@ -637,6 +637,32 @@
       "signIn": "Se Connecter",
       "goToDashboard": "Tableau de Bord"
     },
+    "exactAnalysis": {
+      "eyebrow": "Après la résolution",
+      "title": "Le produit à plus forte marge n'entre pas dans le plan",
+      "subtitle": "Une instance réelle résolue. Les bureaux rapportent le plus à l'unité et l'optimum n'en fabrique aucun, car ce sont eux qui puisent le plus dans les deux ressources qui s'épuisent. C'est exactement ce qu'un tableur rate.",
+      "planHeading": "Plan de production",
+      "bindingHeading": "Ce qui s'épuise",
+      "perUnit": "{margin} / unité",
+      "units": "{count} unités",
+      "totalMargin": "Marge totale",
+      "floorMet": "{actual} livrées, {required} exigées",
+      "binding": "saturé",
+      "slack": "{slack} de marge",
+      "verdict": "Les {product} rapportent {margin} l'unité, mais chacun consomme {planks} planches et {hours} heures d'atelier — et ce sont {binding} des {total} limites déjà saturées. JAOT le calcule depuis la solution elle-même, donc les chiffres tiennent pour le plan entier que vous exécuterez vraiment.",
+      "products": {
+        "chairs": "Chaises",
+        "tables": "Tables",
+        "desks": "Bureaux",
+        "shelves": "Étagères"
+      },
+      "resources": {
+        "machineHours": "Heures machine",
+        "craftHours": "Heures d'atelier",
+        "oakPlanks": "Planches de chêne",
+        "chairContract": "Contrat chaises"
+      }
+    },
     "hero": {
       "badge": "Plateforme d'optimisation open source",
       "titleLine1": "Vos tournées, plannings et budgets,",
@@ -757,10 +783,6 @@
       "eyebrow": "Analyse de la solution",
       "title": "Comprenez votre solution",
       "subtitle": "Ne vous contentez pas de résoudre : comprenez. Chaque résultat est accompagné de son raisonnement.",
-      "exactAnalysis": {
-        "title": "Analyse exacte fondée sur la solution",
-        "description": "Contraintes actives, marges et taux d'utilisation calculés à partir de votre solution réelle : exact pour l'optimum entier, sur tous les solveurs."
-      },
       "whatIf": {
         "title": "Scénarios, mesurés",
         "description": "Demandez ce qu'une unité de plus vous apporterait : JAOT résout à nouveau le modèle perturbé et indique le gain réel, mesuré sur votre MIP et non estimé à partir d'une relaxation."

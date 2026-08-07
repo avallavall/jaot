@@ -637,6 +637,32 @@
       "signIn": "Iniciar sessió",
       "goToDashboard": "Tauler"
     },
+    "exactAnalysis": {
+      "eyebrow": "Després de resoldre",
+      "title": "El producte amb més marge no entra al pla",
+      "subtitle": "Una instància real resolta. Els escriptoris són els que més deixen per unitat i l'òptim no en fabrica cap, perquè són els que més consumeixen dels dos recursos que s'exhaureixen. Això és justament el que un full de càlcul falla.",
+      "planHeading": "Pla de producció",
+      "bindingHeading": "Què s'exhaureix",
+      "perUnit": "{margin} / unitat",
+      "units": "{count} unitats",
+      "totalMargin": "Marge total",
+      "floorMet": "{actual} lliurades, {required} exigides",
+      "binding": "al límit",
+      "slack": "{slack} de sobra",
+      "verdict": "Els {product} deixen {margin} per unitat, però cadascun es menja {planks} taulons i {hours} hores d'artesania, i aquests són {binding} dels {total} límits que ja estan al màxim. JAOT ho calcula des de la mateixa solució, així que les xifres valen per al pla enter que executaràs de debò.",
+      "products": {
+        "chairs": "Cadires",
+        "tables": "Taules",
+        "desks": "Escriptoris",
+        "shelves": "Prestatgeries"
+      },
+      "resources": {
+        "machineHours": "Hores de màquina",
+        "craftHours": "Hores d'artesania",
+        "oakPlanks": "Taulons de roure",
+        "chairContract": "Contracte de cadires"
+      }
+    },
     "hero": {
       "badge": "Plataforma d'optimització de codi obert",
       "titleLine1": "Les teves rutes, torns i pressupostos,",
@@ -757,10 +783,6 @@
       "eyebrow": "Anàlisi de la solució",
       "title": "Entén la teva solució",
       "subtitle": "No només resolguis: entén. Cada resultat ve amb el raonament al darrere.",
-      "exactAnalysis": {
-        "title": "Anàlisi exacta basada en la solució",
-        "description": "Restriccions actives, marges i utilització calculats de la teva solució real: exacte per a l'òptim enter, amb qualsevol solver."
-      },
       "whatIf": {
         "title": "Escenaris, mesurats",
         "description": "Pregunta què et donaria una unitat més: JAOT torna a resoldre el model pertorbat i mostra el canvi real, mesurat sobre el teu MIP i no estimat a partir d'una relaxació."

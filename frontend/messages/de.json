@@ -637,6 +637,32 @@
       "signIn": "Anmelden",
       "goToDashboard": "Dashboard"
     },
+    "exactAnalysis": {
+      "eyebrow": "Nach dem Lösen",
+      "title": "Das Produkt mit der höchsten Marge kommt nicht in den Plan",
+      "subtitle": "Eine echte gelöste Instanz. Schreibtische bringen pro Stück am meisten, und das Optimum baut keinen einzigen — weil sie die beiden Ressourcen am stärksten beanspruchen, die zuerst ausgehen. Genau das übersieht eine Tabellenkalkulation.",
+      "planHeading": "Produktionsplan",
+      "bindingHeading": "Was ausgeht",
+      "perUnit": "{margin} / Stück",
+      "units": "{count} Stück",
+      "totalMargin": "Gesamtmarge",
+      "floorMet": "{actual} geliefert, {required} gefordert",
+      "binding": "ausgelastet",
+      "slack": "{slack} übrig",
+      "verdict": "{product} bringen {margin} pro Stück, aber jeder verbraucht {planks} Bretter und {hours} Werkstattstunden — und das sind {binding} der {total} Grenzen, die bereits ausgelastet sind. JAOT berechnet das aus der Lösung selbst, also gelten die Zahlen für den ganzzahligen Plan, den du wirklich fährst.",
+      "products": {
+        "chairs": "Stühle",
+        "tables": "Tische",
+        "desks": "Schreibtische",
+        "shelves": "Regale"
+      },
+      "resources": {
+        "machineHours": "Maschinenstunden",
+        "craftHours": "Werkstattstunden",
+        "oakPlanks": "Eichenbretter",
+        "chairContract": "Stuhl-Vertrag"
+      }
+    },
     "hero": {
       "badge": "Open-Source-Optimierungsplattform",
       "titleLine1": "Deine Touren, Schichten und Budgets,",
@@ -757,10 +783,6 @@
       "eyebrow": "Lösungsanalyse",
       "title": "Verstehe deine Lösung",
       "subtitle": "Nicht nur lösen — verstehen. Jedes Ergebnis kommt mit der Begründung dahinter.",
-      "exactAnalysis": {
-        "title": "Exakte, lösungsbasierte Analyse",
-        "description": "Bindende Nebenbedingungen, Spielräume und Auslastung — berechnet aus deiner tatsächlichen Lösung: exakt für das ganzzahlige Optimum, mit jedem Solver."
-      },
       "whatIf": {
         "title": "Was-wäre-wenn, gemessen",
         "description": "Fragen Sie, was eine weitere Einheit bringt: JAOT löst das veränderte Modell erneut und zeigt die tatsächliche Veränderung — an Ihrem MIP gemessen, nicht aus einer Relaxation geschätzt."
