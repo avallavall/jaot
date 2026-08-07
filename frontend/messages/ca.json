@@ -663,6 +663,24 @@
         "chairContract": "Contracte de cadires"
       }
     },
+    "conflict": {
+      "eyebrow": "Quan no hi ha solució",
+      "title": "Assenyala les dues regles que xoquen — i exonera les altres dues",
+      "subtitle": "Un solver diu «no factible» i et deixa auditant el model sencer. JAOT va traient regles i tornant a resoldre fins a deixar només la contradicció, així saps exactament on mirar.",
+      "chartHeading": "Fins on arriba cada límit",
+      "method": "{rules} regles · {size} en el conflicte",
+      "rules": {
+        "chairContract": "Contracte de cadires",
+        "craftHours": "Hores d'artesania",
+        "oakPlanks": "Taulons de roure",
+        "machineHours": "Hores de màquina"
+      },
+      "inConflict": "en conflicte",
+      "cleared": "no és el problema",
+      "reaches": "{units} cadires",
+      "contractLine": "el contracte demana {demand}",
+      "verdict": "Els {resource} donen per a {reaches} cadires i el contracte en demana {demand}. Res més en té la culpa: JAOT exonera la resta de límits pel seu nom. Amb {missing} més el model es resol — aquest és el número que cal negociar."
+    },
     "hero": {
       "badge": "Plataforma d'optimització de codi obert",
       "titleLine1": "Les teves rutes, torns i pressupostos,",

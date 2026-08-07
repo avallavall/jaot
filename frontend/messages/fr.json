@@ -663,6 +663,24 @@
         "chairContract": "Contrat chaises"
       }
     },
+    "conflict": {
+      "eyebrow": "Quand il n'y a pas de solution",
+      "title": "Il désigne les deux règles qui s'opposent — et disculpe les deux autres",
+      "subtitle": "Un solveur dit « infaisable » et vous laisse auditer tout le modèle. JAOT retire chaque règle et résout à nouveau jusqu'à ne garder que la contradiction, pour que vous sachiez exactement où regarder.",
+      "chartHeading": "Jusqu'où va chaque limite",
+      "method": "{rules} règles · {size} dans le conflit",
+      "rules": {
+        "chairContract": "Contrat chaises",
+        "craftHours": "Heures d'atelier",
+        "oakPlanks": "Planches de chêne",
+        "machineHours": "Heures machine"
+      },
+      "inConflict": "en conflit",
+      "cleared": "hors de cause",
+      "reaches": "{units} chaises",
+      "contractLine": "le contrat exige {demand}",
+      "verdict": "Les {resource} permettent {reaches} chaises et le contrat en demande {demand}. Rien d'autre n'est en cause : JAOT disculpe les autres limites nommément. Avec {missing} de plus, le modèle se résout — c'est le chiffre à négocier."
+    },
     "hero": {
       "badge": "Plateforme d'optimisation open source",
       "titleLine1": "Vos tournées, plannings et budgets,",

@@ -663,6 +663,24 @@
         "chairContract": "Stuhl-Vertrag"
       }
     },
+    "conflict": {
+      "eyebrow": "Wenn es keine Lösung gibt",
+      "title": "Es benennt die zwei Regeln, die sich widersprechen — und entlastet die anderen zwei",
+      "subtitle": "Ein Solver sagt „unlösbar“ und lässt dich das ganze Modell prüfen. JAOT entfernt jede Regel und löst erneut, bis nur der Widerspruch übrig bleibt — so weißt du genau, wo du hinschauen musst.",
+      "chartHeading": "Wie weit jede Grenze reicht",
+      "method": "{rules} Regeln · {size} im Konflikt",
+      "rules": {
+        "chairContract": "Stuhl-Vertrag",
+        "craftHours": "Werkstattstunden",
+        "oakPlanks": "Eichenbretter",
+        "machineHours": "Maschinenstunden"
+      },
+      "inConflict": "im Konflikt",
+      "cleared": "nicht das Problem",
+      "reaches": "{units} Stühle",
+      "contractLine": "Vertrag fordert {demand}",
+      "verdict": "Die {resource} reichen für {reaches} Stühle, der Vertrag fordert {demand}. Sonst ist nichts schuld: JAOT entlastet die übrigen Grenzen namentlich. Mit {missing} mehr löst sich das Modell — das ist die Zahl, über die verhandelt wird."
+    },
     "hero": {
       "badge": "Open-Source-Optimierungsplattform",
       "titleLine1": "Deine Touren, Schichten und Budgets,",

@@ -663,6 +663,24 @@
         "chairContract": "Contrato de sillas"
       }
     },
+    "conflict": {
+      "eyebrow": "Cuando no hay solución",
+      "title": "Señala las dos reglas que chocan — y exonera a las otras dos",
+      "subtitle": "Un solver dice «no factible» y te deja auditando el modelo entero. JAOT va quitando reglas y volviendo a resolver hasta dejar sólo la contradicción, así sabes exactamente dónde mirar.",
+      "chartHeading": "Hasta dónde llega cada límite",
+      "method": "{rules} reglas · {size} en el conflicto",
+      "rules": {
+        "chairContract": "Contrato de sillas",
+        "craftHours": "Horas de artesanía",
+        "oakPlanks": "Tablones de roble",
+        "machineHours": "Horas de máquina"
+      },
+      "inConflict": "en conflicto",
+      "cleared": "no es el problema",
+      "reaches": "{units} sillas",
+      "contractLine": "el contrato pide {demand}",
+      "verdict": "Los {resource} dan para {reaches} sillas y el contrato pide {demand}. Nada más tiene la culpa: JAOT exonera al resto de límites por su nombre. Con {missing} más el modelo se resuelve — ése es el número que hay que negociar."
+    },
     "hero": {
       "badge": "Plataforma de optimización de código abierto",
       "titleLine1": "Tus rutas, turnos y presupuestos,",

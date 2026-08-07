@@ -663,6 +663,24 @@
         "chairContract": "Chair contract"
       }
     },
+    "conflict": {
+      "eyebrow": "When there is no answer",
+      "title": "It names the two rules that clash — and clears the other two",
+      "subtitle": "A solver says “infeasible” and leaves you auditing the whole model. JAOT removes each rule and re-solves until only the contradiction is left, so you know exactly where to look.",
+      "chartHeading": "How far each limit reaches",
+      "method": "{rules} rules · {size} in the conflict",
+      "rules": {
+        "chairContract": "Chair contract",
+        "craftHours": "Craft hours",
+        "oakPlanks": "Oak planks",
+        "machineHours": "Machine hours"
+      },
+      "inConflict": "in conflict",
+      "cleared": "not the problem",
+      "reaches": "{units} chairs",
+      "contractLine": "contract needs {demand}",
+      "verdict": "{resource} stretch to {reaches} chairs and the contract asks for {demand}. Nothing else is at fault: JAOT clears the other limits by name. Add {missing} more and the model solves — that is the number to negotiate."
+    },
     "hero": {
       "badge": "Open source optimization platform",
       "titleLine1": "Your routes, shifts and budgets,",

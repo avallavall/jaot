@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Reveal } from "@/components/motion/Reveal";
 import { BottleneckShowcase } from "@/components/landing/BottleneckShowcase";
+import { ConflictShowcase } from "@/components/landing/ConflictShowcase";
 import { ProductFrame } from "@/components/landing/ProductFrame";
 import { ProvenOptimalHero } from "@/components/landing/ProvenOptimalHero";
 import { SectionHeading } from "@/components/landing/SectionHeading";
@@ -368,49 +368,33 @@ export default async function HomePage() {
       <section className="mx-auto max-w-6xl px-6 py-24">
         <Reveal>
           <SectionHeading
-            eyebrow={t("infeasibilityHighlight.eyebrow")}
-            title={t("infeasibilityHighlight.title")}
-            subtitle={t("infeasibilityHighlight.subtitle")}
+            eyebrow={t("conflict.eyebrow")}
+            title={t("conflict.title")}
+            subtitle={t("conflict.subtitle")}
           />
         </Reveal>
-        <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-3">
+
+        <Reveal delay={120}>
+          <div className="mt-14">
+            <ConflictShowcase />
+          </div>
+        </Reveal>
+
+        <div className="mt-12 grid gap-8 sm:grid-cols-3">
           {INFEASIBILITY_KEYS.map((item, idx) => (
-            <Reveal key={item.key} delay={(idx % 3) * 80}>
-              <Card className="h-full overflow-hidden border-border shadow-warm-sm transition-shadow duration-300 hover:shadow-warm-md">
-                <CardContent className="flex h-full flex-col p-6">
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
-                    <item.icon className="h-5 w-5" />
-                  </div>
-                  <h3 className="mb-2 font-serif text-lg">
-                    {t(`infeasibilityHighlight.${item.key}.title`)}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {t(`infeasibilityHighlight.${item.key}.description`)}
-                  </p>
-                </CardContent>
-              </Card>
+            <Reveal key={item.key} delay={(idx + 1) * 80}>
+              <div className="border-t border-border pt-4">
+                <h3 className="mb-1.5 flex items-center gap-2 font-serif text-base">
+                  <item.icon className="h-4 w-4 text-primary" aria-hidden />
+                  {t(`infeasibilityHighlight.${item.key}.title`)}
+                </h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {t(`infeasibilityHighlight.${item.key}.description`)}
+                </p>
+              </div>
             </Reveal>
           ))}
         </div>
-
-        <Reveal delay={160}>
-          <div className="mx-auto mt-14 max-w-3xl overflow-hidden rounded-xl border border-border shadow-warm-md">
-            <Image
-              src="/showcase/p2-infeasibility-light.png"
-              alt={t("infeasibilityHighlight.title")}
-              width={943}
-              height={1018}
-              className="block h-auto w-full dark:hidden"
-            />
-            <Image
-              src="/showcase/p2-infeasibility-dark.png"
-              alt={t("infeasibilityHighlight.title")}
-              width={943}
-              height={945}
-              className="hidden h-auto w-full dark:block"
-            />
-          </div>
-        </Reveal>
       </section>
 
       {/* ── MCP showcase ───────────────────────────────────────────────── */}
