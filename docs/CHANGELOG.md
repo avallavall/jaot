@@ -32,6 +32,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Added
+
+- **The home page now shows JModel.** Nine lines of model source sit beside the mathematics they compile to, and the same nine lines are shown building a four-variable model and a four-hundred-variable one — the notation comes from the real compiler, rendered before the data is applied.
+
 ### Changed
 
 - **The home page opens with a real optimization instead of a screenshot.** The hero replays an actual solver run: a 24-stop route that improves 68.5% from its first answer to the proven optimum, with the gap closing to 0.00%. Every figure on it comes from the solver, and it still reads with JavaScript off or motion reduced.
