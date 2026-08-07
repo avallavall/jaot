@@ -681,6 +681,10 @@
       "contractLine": "Vertrag fordert {demand}",
       "verdict": "Die {resource} reichen für {reaches} Stühle, der Vertrag fordert {demand}. Sonst ist nichts schuld: JAOT entlastet die übrigen Grenzen namentlich. Mit {missing} mehr löst sich das Modell — das ist die Zahl, über die verhandelt wird."
     },
+    "catalog": {
+      "headline": "{total} Vorlagen in {sectors} Branchen",
+      "browse": "Marktplatz durchsuchen"
+    },
     "hero": {
       "badge": "Open-Source-Optimierungsplattform",
       "titleLine1": "Deine Touren, Schichten und Budgets,",
@@ -727,6 +731,7 @@
       "ctaMcp": "Agent verbinden"
     },
     "platform": {
+      "samplePrompt": "„Plane die Lieferungen der Woche: 4 Transporter, 60 Stopps, alle zurück bis 18:00.“",
       "eyebrow": "Die Plattform",
       "title": "Drei Wege zur Optimierung",
       "subtitle": "Erstelle Modelle mit KI, nutze bewährte Lösungen aus dem Community-Marktplatz oder verbinde deinen KI-Agenten über MCP.",
@@ -1014,6 +1019,7 @@
     },
     "solverDisclaimer": "Die Ergebnisse hängen von der Modellformulierung ab. Solver liefern Best-Effort-Lösungen — überprüfen Sie kritische Entscheidungen unabhängig.",
     "mcp": {
+      "toolCount": "{count} Tools, alle von einem Agenten aufrufbar",
       "title": "KI-Agenten treffen auf Optimierung",
       "subtitle": "JAOT ist eine Optimierungsplattform, die KI-Agenten nativ zugänglich ist. Verbinde jeden MCP-kompatiblen Agenten, um Optimierungsprobleme durchgängig zu lösen.",
       "workflow": {

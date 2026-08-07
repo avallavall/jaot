@@ -681,6 +681,10 @@
       "contractLine": "contract needs {demand}",
       "verdict": "{resource} stretch to {reaches} chairs and the contract asks for {demand}. Nothing else is at fault: JAOT clears the other limits by name. Add {missing} more and the model solves — that is the number to negotiate."
     },
+    "catalog": {
+      "headline": "{total} templates across {sectors} sectors",
+      "browse": "Browse the marketplace"
+    },
     "hero": {
       "badge": "Open source optimization platform",
       "titleLine1": "Your routes, shifts and budgets,",
@@ -727,6 +731,7 @@
       "ctaMcp": "Connect an Agent"
     },
     "platform": {
+      "samplePrompt": "“Plan next week's deliveries: 4 vans, 60 stops, every van back by 18:00.”",
       "eyebrow": "The platform",
       "title": "Three ways to optimize",
       "subtitle": "Build models with AI, use proven solutions from the community marketplace, or connect your AI agent via MCP.",
@@ -832,6 +837,7 @@
       }
     },
     "mcp": {
+      "toolCount": "{count} tools, all callable by an agent",
       "title": "AI Agents Meet Optimization",
       "subtitle": "JAOT is an optimization platform natively accessible to AI agents. Connect any MCP-compatible agent to solve optimization problems end-to-end.",
       "workflow": {

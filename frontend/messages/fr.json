@@ -681,6 +681,10 @@
       "contractLine": "le contrat exige {demand}",
       "verdict": "Les {resource} permettent {reaches} chaises et le contrat en demande {demand}. Rien d'autre n'est en cause : JAOT disculpe les autres limites nommément. Avec {missing} de plus, le modèle se résout — c'est le chiffre à négocier."
     },
+    "catalog": {
+      "headline": "{total} modèles dans {sectors} secteurs",
+      "browse": "Parcourir la marketplace"
+    },
     "hero": {
       "badge": "Plateforme d'optimisation open source",
       "titleLine1": "Vos tournées, plannings et budgets,",
@@ -727,6 +731,7 @@
       "ctaMcp": "Connecter un Agent"
     },
     "platform": {
+      "samplePrompt": "« Planifie les livraisons de la semaine : 4 camionnettes, 60 arrêts, toutes rentrées à 18h00. »",
       "eyebrow": "La plateforme",
       "title": "Trois façons d'optimiser",
       "subtitle": "Créez des modèles avec l'IA, utilisez des solutions éprouvées du marketplace communautaire ou connectez votre agent IA via MCP.",
@@ -1014,6 +1019,7 @@
     },
     "solverDisclaimer": "Les résultats dépendent de la formulation du modèle. Les solveurs renvoient des solutions au mieux — vérifiez les décisions critiques de manière indépendante.",
     "mcp": {
+      "toolCount": "{count} outils, tous appelables par un agent",
       "title": "Les Agents IA Rencontrent l'Optimisation",
       "subtitle": "JAOT est une plateforme d'optimisation nativement accessible aux agents IA. Connecte n'importe quel agent compatible MCP pour résoudre des problèmes d'optimisation de bout en bout.",
       "workflow": {

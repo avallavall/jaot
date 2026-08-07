@@ -681,6 +681,10 @@
       "contractLine": "el contracte demana {demand}",
       "verdict": "Els {resource} donen per a {reaches} cadires i el contracte en demana {demand}. Res més en té la culpa: JAOT exonera la resta de límits pel seu nom. Amb {missing} més el model es resol — aquest és el número que cal negociar."
     },
+    "catalog": {
+      "headline": "{total} plantilles en {sectors} sectors",
+      "browse": "Explorar el marketplace"
+    },
     "hero": {
       "badge": "Plataforma d'optimització de codi obert",
       "titleLine1": "Les teves rutes, torns i pressupostos,",
@@ -727,6 +731,7 @@
       "ctaMcp": "Connectar un agent"
     },
     "platform": {
+      "samplePrompt": "«Planifica els repartiments de la setmana: 4 furgonetes, 60 parades, totes de tornada a les 18:00.»",
       "eyebrow": "La plataforma",
       "title": "Tres maneres d'optimitzar",
       "subtitle": "Crea models amb IA, usa solucions provades del marketplace de la comunitat o connecta el teu agent d'IA via MCP.",
@@ -1014,6 +1019,7 @@
     },
     "solverDisclaimer": "Els resultats depenen de la formulació del model. Els solvers retornen solucions de millor esforç — verifica les decisions crítiques de manera independent.",
     "mcp": {
+      "toolCount": "{count} eines, totes invocables per un agent",
       "title": "Els agents IA coneixen l'optimització",
       "subtitle": "JAOT és una plataforma d'optimització accessible de forma nativa per a agents IA. Connecta qualsevol agent compatible amb MCP per resoldre problemes d'optimització d'extrem a extrem.",
       "workflow": {

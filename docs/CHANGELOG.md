@@ -37,6 +37,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **The home page opens with a real optimization instead of a screenshot.** The hero replays an actual solver run: a 24-stop route that improves 68.5% from its first answer to the proven optimum, with the gap closing to 0.00%. Every figure on it comes from the solver, and it still reads with JavaScript off or motion reduced.
 - **The analysis section shows a solved plan rather than describing one.** It walks through a real production instance where the highest-margin product is built zero times, because it draws hardest on the two resources that run out — the utilisation and contribution figures are the same ones JAOT reports after any solve.
 - **The infeasibility section works through a model that genuinely has no answer.** Four rules go in, and the same deletion filtering the product uses reduces them to the two that contradict each other, clears the other two by name, and states how much more of the scarce resource would make it solvable.
+- **The home page lists the real catalogue instead of six chosen examples**: 102 templates across 34 sectors, counted from the templates themselves, so it stays right as the catalogue grows.
+- **The rest of the home page was rebuilt to stop repeating one layout.** The three ways in now show what each one actually looks like — a sentence you type, a template you pick, a tool an agent calls — and the MCP surface reads as an index of its thirty tools.
 
 ### Fixed
 

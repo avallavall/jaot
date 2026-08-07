@@ -158,7 +158,8 @@ export function ProvenOptimalHero({ className }: { className?: string }) {
         className,
       )}
     >
-      {/* Window chrome, matching ProductFrame so the hero reads as the product. */}
+      {/* Window chrome: squared, with the vintage traffic lights, so the visual
+          reads as the product rather than as a chart dropped on the page. */}
       <div className="flex items-center gap-2 border-b border-border bg-muted/50 px-4 py-2.5">
         <span className="h-2.5 w-2.5 rounded-full bg-[#E8A088]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#8AA499]" />
