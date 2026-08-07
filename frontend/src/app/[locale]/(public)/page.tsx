@@ -8,7 +8,7 @@ import { Reveal } from "@/components/motion/Reveal";
 import { BottleneckShowcase } from "@/components/landing/BottleneckShowcase";
 import { CatalogIndex } from "@/components/landing/CatalogIndex";
 import { ConflictShowcase } from "@/components/landing/ConflictShowcase";
-import { ScrollDrivenHero } from "@/components/landing/ScrollDrivenHero";
+import { ProvenOptimalHero } from "@/components/landing/ProvenOptimalHero";
 import { SectionHeading } from "@/components/landing/SectionHeading";
 import { StatStrip } from "@/components/landing/StatStrip";
 import { cn } from "@/lib/utils";
@@ -185,11 +185,67 @@ export default async function HomePage() {
       <JsonLd data={ORGANIZATION_SCHEMA} />
       <JsonLd data={WEBSITE_SCHEMA} />
 
-      {/* ── Hero ───────────────────────────────────────────────────────────
-          Scroll drives the solve: see ScrollDrivenHero. It owns its own headline
-          and calls to action because the type's variable axes are bound to the
-          same scroll progress as the run. */}
-      <ScrollDrivenHero />
+      {/* ── Hero ───────────────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden border-b border-border">
+        <div className="hero-glow pointer-events-none absolute inset-0" aria-hidden />
+        <div
+          className="bg-grain pointer-events-none absolute inset-0 opacity-[0.05] mix-blend-multiply dark:opacity-[0.08] dark:mix-blend-screen"
+          aria-hidden
+        />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 md:py-24 lg:grid-cols-2 lg:gap-10">
+          <div className="text-center lg:text-left">
+            <Badge
+              variant="outline"
+              className="mb-6 gap-2 bg-background/60 px-4 py-1 text-sm font-normal backdrop-blur"
+            >
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+              </span>
+              {t("hero.badge")}
+            </Badge>
+            {/* Each line is its own block so the three-beat rhythm survives, and
+                text-balance evens the wrap inside a line. No hyphens-auto here:
+                it broke English mid-word ("bud-gets"). German compounds are the
+                reason break-words stays — "Optimierungslösungen" has nowhere to
+                wrap — but the type scale is now small enough not to need it. */}
+            <h1 className="mb-6 font-serif text-4xl leading-[1.08] text-balance text-foreground md:text-5xl xl:text-6xl">
+              <span className="block break-words">{t("hero.titleLine1")}</span>
+              <span className="block break-words">{t("hero.titleLine2")}</span>
+              <span className="block break-words text-primary">{t("hero.titleLine3")}</span>
+            </h1>
+            <p className="mx-auto mb-3 max-w-xl text-lg text-muted-foreground lg:mx-0">
+              {t("hero.subtitle")}
+            </p>
+            <p className="mb-8 text-sm italic text-muted-foreground">
+              {t("hero.tagline")}
+            </p>
+            <div className="flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
+              <Link href="/signup">
+                <Button size="lg" className="w-full gap-2 px-8 shadow-warm-sm sm:w-auto">
+                  {t("hero.getStartedFree")}
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/marketplace">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full gap-2 px-8 sm:w-auto"
+                >
+                  {t("hero.browseTemplates")}
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          {/* The hero visual is a real solve, replayed from a trace SCIP produced
+              (scripts/gen_hero_trace.py) — not a screenshot that goes stale. It
+              replaced a capture of the retired visual builder, which the front
+              page was still selling as a way in. */}
+          <ProvenOptimalHero />
+        </div>
+      </section>
 
       {/* ── Credibility strip ──────────────────────────────────────────── */}
       <StatStrip

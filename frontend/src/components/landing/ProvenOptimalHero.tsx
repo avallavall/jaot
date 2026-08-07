@@ -158,13 +158,12 @@ export function ProvenOptimalHero({ className }: { className?: string }) {
         className,
       )}
     >
-      {/* Window chrome: squared, with the vintage traffic lights, so the visual
-          reads as the product rather than as a chart dropped on the page. */}
-      <div className="flex items-center gap-2 border-b border-border bg-muted/50 px-4 py-2.5">
-        <span className="h-2.5 w-2.5 rounded-full bg-[#E8A088]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#8AA499]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#9B8E88]" />
-        <span className="ml-3 truncate font-mono text-xs text-muted-foreground">
+      {/* Caption, not window chrome. The traffic-light titlebar that used to sit
+          here made this read as a JAOT screen, and there is no such screen: the
+          product renders solutions as tables, bars, a pie and a Pareto plot, and
+          a route map was built and withdrawn. This is the solver working. */}
+      <div className="border-b border-border bg-muted/40 px-4 py-2.5">
+        <span className="truncate font-mono text-xs text-muted-foreground">
           {t("windowLabel", { stops: meta.stops, solver: meta.solver })}
         </span>
       </div>
