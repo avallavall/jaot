@@ -311,8 +311,3 @@ frontend/CLAUDE.md
 # Reviewed locally; the live demo at jaot.io is the shared reference, so they are not
 # carried in the repo (they were 18 MB that no document ever linked).
 docs/screenshots/
-
-# Marketing screenshots the feature-showcase E2E regenerates on every run.
-# The two the home page <Image>s are committed on purpose; the rest are build
-# output that would otherwise land in whatever commit follows an E2E run.
-frontend/public/showcase/p1-explainer-*.png
