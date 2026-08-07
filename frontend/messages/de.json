@@ -638,20 +638,31 @@
       "goToDashboard": "Dashboard"
     },
     "hero": {
-      "badge": "KI-gestützte Optimierungsplattform",
-      "titleLine1": "Erstellen, nutzen oder automatisieren",
-      "titleLine2": "Optimierungslösungen",
-      "titleLine3": "für jede Herausforderung",
-      "subtitle": "Drei Wege zu optimalen Entscheidungen: Modelle mit KI erstellen, bewährte Lösungen aus dem Community-Marktplatz nutzen oder deinen KI-Agenten über MCP verbinden.",
+      "badge": "Open-Source-Optimierungsplattform",
+      "titleLine1": "Deine Touren, Schichten und Budgets,",
+      "titleLine2": "gelöst mit der bestmöglichen Antwort",
+      "titleLine3": "— und bewiesen.",
+      "subtitle": "JAOT übersetzt dein Problem in ein mathematisches Modell, löst es und beweist, dass es keine bessere Antwort gibt. Baue es mit KI, starte von einer Community-Vorlage oder steuere es über MCP aus deinem eigenen Agenten.",
       "tagline": "Die Optimierungsplattform für Menschen und KI-Agenten.",
-      "visualBuilderLabel": "Visueller Modell-Builder",
+      "visual": {
+        "windowLabel": "Touren · {stops} Stopps · {solver}",
+        "alt": "Ein echter Optimierungslauf: eine Liefertour mit {stops} Stopps, die verbessert wird, bis sie ihre bewiesene optimale Länge von {optimum} erreicht — über {variables} Entscheidungsvariablen.",
+        "proven": "Optimalität bewiesen",
+        "legendStart": "Erste Lösung {cost}",
+        "legendProven": "Optimum {cost}",
+        "metrics": {
+          "cost": "Tourlänge",
+          "gap": "Abstand zum Optimum",
+          "nodes": "Suchknoten",
+          "variables": "Variablen"
+        }
+      },
       "getStartedFree": "Kostenlos starten",
       "browseTemplates": "Vorlagen durchsuchen",
       "openSourceSolver": "Open-Source-Solver",
       "templatesCount": "100+ Vorlagen",
       "firstMarketplace": "Marktplatz für Optimierungsmodelle",
       "mcpNative": "MCP-nativ",
-      "heroVisualAlt": "Visueller Modell-Builder von JAOT mit einem Optimierungsmodell aus Variablen-, Bedingungs- und Zielknoten",
       "viewSource": "Auf GitHub ansehen",
       "pillars": {
         "aiBuilder": {

@@ -32,6 +32,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Changed
+
+- **The home page opens with a real optimization instead of a screenshot.** The hero replays an actual solver run: a 24-stop route that improves 68.5% from its first answer to the proven optimum, with the gap closing to 0.00%. Every figure on it comes from the solver, and it still reads with JavaScript off or motion reduced.
+
+### Fixed
+
+- **The front page no longer advertises the retired visual builder.** Its hero image and caption still offered the builder as a way into the product, months after it was retired everywhere else.
+
 ## [3.3.0] - 2026-08-04
 
 ### Changed

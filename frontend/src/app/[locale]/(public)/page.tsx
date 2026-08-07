@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Reveal } from "@/components/motion/Reveal";
 import { ProductFrame } from "@/components/landing/ProductFrame";
+import { ProvenOptimalHero } from "@/components/landing/ProvenOptimalHero";
 import { SectionHeading } from "@/components/landing/SectionHeading";
 import { StatStrip } from "@/components/landing/StatStrip";
 import { GITHUB_REPO_URL } from "@/lib/community";
@@ -194,14 +195,15 @@ export default async function HomePage() {
               </span>
               {t("hero.badge")}
             </Badge>
-            {/* hyphens/break-words: German compounds one word long ("Optimierungslösungen")
-                have no space to wrap at and used to overflow into the screenshot beside it. */}
-            <h1 className="mb-6 hyphens-auto break-words font-serif text-5xl leading-[1.05] text-foreground md:text-6xl xl:text-7xl">
-              {t("hero.titleLine1")}
-              <br />
-              {t("hero.titleLine2")}
-              <br />
-              <span className="text-primary">{t("hero.titleLine3")}</span>
+            {/* Each line is its own block so the three-beat rhythm survives, and
+                text-balance evens the wrap inside a line. No hyphens-auto here:
+                it broke English mid-word ("bud-gets"). German compounds are the
+                reason break-words stays — "Optimierungslösungen" has nowhere to
+                wrap — but the type scale is now small enough not to need it. */}
+            <h1 className="mb-6 font-serif text-4xl leading-[1.08] text-balance text-foreground md:text-5xl xl:text-6xl">
+              <span className="block break-words">{t("hero.titleLine1")}</span>
+              <span className="block break-words">{t("hero.titleLine2")}</span>
+              <span className="block break-words text-primary">{t("hero.titleLine3")}</span>
             </h1>
             <p className="mx-auto mb-3 max-w-xl text-lg text-muted-foreground lg:mx-0">
               {t("hero.subtitle")}
@@ -228,17 +230,11 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <Reveal delay={120}>
-            <ProductFrame
-              lightSrc="/home/builder-light.png"
-              darkSrc="/home/builder-dark.png"
-              alt={t("hero.heroVisualAlt")}
-              width={2504}
-              height={1724}
-              label={t("hero.visualBuilderLabel")}
-              priority
-            />
-          </Reveal>
+          {/* The hero visual is a real solve, replayed from a trace SCIP produced
+              (scripts/gen_hero_trace.py) — not a screenshot that goes stale. It
+              replaced a capture of the retired visual builder, which the front
+              page was still selling as a way in. */}
+          <ProvenOptimalHero />
         </div>
       </section>
 

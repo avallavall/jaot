@@ -638,20 +638,31 @@
       "goToDashboard": "Panel"
     },
     "hero": {
-      "badge": "Plataforma de optimización con IA",
-      "titleLine1": "Crea, usa o automatiza",
-      "titleLine2": "soluciones de optimización",
-      "titleLine3": "para cualquier reto",
-      "subtitle": "Tres caminos hacia decisiones óptimas: crea modelos con IA, usa soluciones probadas del marketplace de la comunidad o conecta tu agente de IA vía MCP.",
+      "badge": "Plataforma de optimización de código abierto",
+      "titleLine1": "Tus rutas, turnos y presupuestos,",
+      "titleLine2": "resueltos con la mejor respuesta posible",
+      "titleLine3": "— y demostrada.",
+      "subtitle": "JAOT convierte tu problema en un modelo matemático, lo resuelve y demuestra que no existe una respuesta mejor. Créalo con IA, parte de una plantilla de la comunidad o gobiérnalo desde tu propio agente vía MCP.",
       "tagline": "La plataforma de optimización para humanos y agentes de IA.",
-      "visualBuilderLabel": "Constructor visual de modelos",
+      "visual": {
+        "windowLabel": "rutas · {stops} paradas · {solver}",
+        "alt": "Una resolución real en marcha: una ruta de reparto de {stops} paradas que va mejorando hasta alcanzar su longitud óptima demostrada de {optimum}, sobre {variables} variables de decisión.",
+        "proven": "Óptimo demostrado",
+        "legendStart": "Primera solución {cost}",
+        "legendProven": "Óptimo {cost}",
+        "metrics": {
+          "cost": "Longitud de ruta",
+          "gap": "Distancia al óptimo",
+          "nodes": "Nodos explorados",
+          "variables": "Variables"
+        }
+      },
       "getStartedFree": "Empieza gratis",
       "browseTemplates": "Explorar plantillas",
       "openSourceSolver": "Solver de código abierto",
       "templatesCount": "Más de 100 plantillas",
       "firstMarketplace": "Marketplace de modelos de optimización",
       "mcpNative": "Nativo MCP",
-      "heroVisualAlt": "Constructor visual de modelos de JAOT mostrando un modelo de optimización con nodos de variables, restricciones y objetivo",
       "viewSource": "Ver en GitHub",
       "pillars": {
         "aiBuilder": {

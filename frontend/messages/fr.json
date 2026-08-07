@@ -638,20 +638,31 @@
       "goToDashboard": "Tableau de Bord"
     },
     "hero": {
-      "badge": "Plateforme d'Optimisation propulsée par l'IA",
-      "titleLine1": "Construis, Utilise ou Automatise",
-      "titleLine2": "des Solutions d'Optimisation",
-      "titleLine3": "pour tout défi",
-      "subtitle": "Trois chemins vers des décisions optimales : construis des modèles avec l'IA, utilise des solutions éprouvées du marketplace communautaire, ou connecte ton agent IA via MCP.",
+      "badge": "Plateforme d'optimisation open source",
+      "titleLine1": "Vos tournées, plannings et budgets,",
+      "titleLine2": "résolus par la meilleure réponse possible",
+      "titleLine3": "— et démontrée.",
+      "subtitle": "JAOT transforme votre problème en modèle mathématique, le résout et démontre qu'aucune meilleure réponse n'existe. Construisez-le avec l'IA, partez d'un modèle de la communauté ou pilotez-le depuis votre propre agent via MCP.",
       "tagline": "La plateforme d'optimisation pour les humains et les agents IA.",
-      "visualBuilderLabel": "Constructeur Visuel de Modèles",
+      "visual": {
+        "windowLabel": "tournées · {stops} arrêts · {solver}",
+        "alt": "Une résolution réelle en cours : une tournée de livraison de {stops} arrêts améliorée jusqu'à atteindre sa longueur optimale démontrée de {optimum}, sur {variables} variables de décision.",
+        "proven": "Optimalité démontrée",
+        "legendStart": "Première solution {cost}",
+        "legendProven": "Optimum {cost}",
+        "metrics": {
+          "cost": "Longueur de tournée",
+          "gap": "Écart à l'optimum",
+          "nodes": "Nœuds explorés",
+          "variables": "Variables"
+        }
+      },
       "getStartedFree": "Commencer Gratuitement",
       "browseTemplates": "Parcourir les Modèles",
       "openSourceSolver": "Solveur open source",
       "templatesCount": "100+ modèles",
       "firstMarketplace": "Marketplace de modèles d'optimisation",
       "mcpNative": "Natif MCP",
-      "heroVisualAlt": "Constructeur visuel de modèles JAOT montrant un modèle d'optimisation avec des nœuds de variables, contraintes et objectif",
       "viewSource": "Voir sur GitHub",
       "pillars": {
         "aiBuilder": {

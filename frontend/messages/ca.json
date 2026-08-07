@@ -638,20 +638,31 @@
       "goToDashboard": "Tauler"
     },
     "hero": {
-      "badge": "Plataforma d'optimització amb IA",
-      "titleLine1": "Crea, usa o automatitza",
-      "titleLine2": "solucions d'optimització",
-      "titleLine3": "per a qualsevol repte",
-      "subtitle": "Tres camins cap a decisions òptimes: crea models amb IA, usa solucions provades del marketplace de la comunitat o connecta el teu agent d'IA via MCP.",
+      "badge": "Plataforma d'optimització de codi obert",
+      "titleLine1": "Les teves rutes, torns i pressupostos,",
+      "titleLine2": "resolts amb la millor resposta possible",
+      "titleLine3": "— i demostrada.",
+      "subtitle": "JAOT converteix el teu problema en un model matemàtic, el resol i demostra que no existeix cap resposta millor. Crea'l amb IA, parteix d'una plantilla de la comunitat o governa'l des del teu propi agent via MCP.",
       "tagline": "La plataforma d'optimització per a humans i agents d'IA.",
-      "visualBuilderLabel": "Constructor visual de models",
+      "visual": {
+        "windowLabel": "rutes · {stops} parades · {solver}",
+        "alt": "Una resolució real en marxa: una ruta de repartiment de {stops} parades que va millorant fins a assolir la seva longitud òptima demostrada de {optimum}, sobre {variables} variables de decisió.",
+        "proven": "Òptim demostrat",
+        "legendStart": "Primera solució {cost}",
+        "legendProven": "Òptim {cost}",
+        "metrics": {
+          "cost": "Longitud de ruta",
+          "gap": "Distància a l'òptim",
+          "nodes": "Nodes explorats",
+          "variables": "Variables"
+        }
+      },
       "getStartedFree": "Comença gratuïtament",
       "browseTemplates": "Explorar plantilles",
       "openSourceSolver": "Solver de codi obert",
       "templatesCount": "Més de 100 plantilles",
       "firstMarketplace": "Marketplace de models d'optimització",
       "mcpNative": "Natiu MCP",
-      "heroVisualAlt": "Constructor visual de models de JAOT mostrant un model d'optimització amb nodes de variables, restriccions i objectiu",
       "viewSource": "Veure a GitHub",
       "pillars": {
         "aiBuilder": {

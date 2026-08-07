@@ -638,20 +638,31 @@
       "goToDashboard": "Dashboard"
     },
     "hero": {
-      "badge": "AI-Powered Optimization Platform",
-      "titleLine1": "Build, Use, or Automate",
-      "titleLine2": "Optimization Solutions",
-      "titleLine3": "for any challenge",
-      "subtitle": "Three paths to optimal decisions: build models with AI, use proven solutions from the community marketplace, or connect your AI agent via MCP.",
+      "badge": "Open source optimization platform",
+      "titleLine1": "Your routes, shifts and budgets,",
+      "titleLine2": "solved to the best possible answer",
+      "titleLine3": "— and proven.",
+      "subtitle": "JAOT turns your problem into a mathematical model, solves it, and proves that no better answer exists. Build it with AI, start from a community template, or drive it from your own agent over MCP.",
       "tagline": "The optimization platform for humans and AI agents alike.",
-      "visualBuilderLabel": "Visual Model Builder",
+      "visual": {
+        "windowLabel": "routing · {stops} stops · {solver}",
+        "alt": "A live optimization run: a {stops}-stop delivery route being improved until it reaches its proven optimal length of {optimum}, across {variables} decision variables.",
+        "proven": "Proven optimal",
+        "legendStart": "First solution {cost}",
+        "legendProven": "Optimal {cost}",
+        "metrics": {
+          "cost": "Route length",
+          "gap": "Gap to optimal",
+          "nodes": "Search nodes",
+          "variables": "Variables"
+        }
+      },
       "getStartedFree": "Get Started Free",
       "browseTemplates": "Browse Templates",
       "openSourceSolver": "Open source solver",
       "templatesCount": "100+ templates",
       "firstMarketplace": "Optimization model marketplace",
       "mcpNative": "MCP-native",
-      "heroVisualAlt": "JAOT visual model builder showing an optimization model with variable, constraint, and objective nodes",
       "viewSource": "View on GitHub",
       "pillars": {
         "aiBuilder": {
