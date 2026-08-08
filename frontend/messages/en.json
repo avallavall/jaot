@@ -639,47 +639,73 @@
     },
     "exactAnalysis": {
       "eyebrow": "After the solve",
-      "title": "The highest-margin product never makes the plan",
-      "subtitle": "A real solved instance. Desks earn the most per unit and the optimum builds none of them — because they draw hardest on the two resources that run out first. This is the part a spreadsheet gets wrong.",
-      "planHeading": "Production plan",
+      "title": "The three highest-margin products never make the plan",
+      "subtitle": "One quarter of a power-electronics plant, solved and proven optimal. The three richest families are exactly the ones the optimum refuses to build — and the component everyone blames for the bottleneck ends the quarter almost half untouched. This is the part a spreadsheet gets wrong.",
+      "planHeading": "Quarterly build plan",
+      "planMeta": "{units} units · {solver}, proven optimal",
       "bindingHeading": "What runs out",
       "perUnit": "{margin} / unit",
       "units": "{count} units",
-      "totalMargin": "Total margin",
+      "totalMargin": "Contribution margin",
       "floorMet": "{actual} shipped, {required} required",
       "binding": "at capacity",
       "slack": "{slack} spare",
-      "verdict": "{product} earn {margin} a unit, but each one eats {planks} planks and {hours} craft hours — and those are {binding} of the {total} limits already at capacity. JAOT reports this from the solution itself, so the numbers hold for the integer plan you will actually run.",
+      "verdict": "{product}: {margin} a unit — and the plan builds none. It is the heaviest draw on every one of the {binding} limits that ran out, while {spare} {spareResource} go untouched, so buying more would change nothing. Both facts come from the integer solution you will actually run, not from a relaxation.",
       "products": {
-        "chairs": "Chairs",
-        "tables": "Tables",
-        "desks": "Desks",
-        "shelves": "Shelves"
+        "tractionInverter": "800 V traction inverter",
+        "batteryMonitor": "Battery management unit",
+        "chargeModule": "DC fast-charge module",
+        "gridInverter": "Grid-tie solar inverter",
+        "motorDrive": "Industrial motor drive",
+        "telemetryUnit": "Fleet telemetry unit",
+        "sensorHub": "Machine sensor hub"
       },
       "resources": {
-        "machineHours": "Machine hours",
-        "craftHours": "Craft hours",
-        "oakPlanks": "Oak planks",
-        "chairContract": "Chair contract"
+        "smtHours": "SMT line hours",
+        "burnInHours": "Burn-in chamber hours",
+        "mcuChips": "Automotive-grade MCUs",
+        "sicModules": "SiC power modules",
+        "testHours": "Final-test hours",
+        "coatingHours": "Conformal-coating hours",
+        "telemetryContract": "Fleet telemetry contract"
+      },
+      "resourcesInline": {
+        "smtHours": "SMT line hours",
+        "burnInHours": "burn-in chamber hours",
+        "mcuChips": "automotive-grade microcontrollers",
+        "sicModules": "SiC power modules",
+        "testHours": "final-test hours",
+        "coatingHours": "conformal-coating hours"
       }
     },
     "conflict": {
       "eyebrow": "When there is no answer",
-      "title": "It names the two rules that clash — and clears the other two",
-      "subtitle": "A solver says “infeasible” and leaves you auditing the whole model. JAOT removes each rule and re-solves until only the contradiction is left, so you know exactly where to look.",
+      "title": "It names the two rules that clash — and clears the other five",
+      "subtitle": "A customer wants a quarter's worth of traction inverters the line cannot carry. A solver says “infeasible” and leaves you auditing the whole model. JAOT removes each rule and re-solves until only the contradiction is left, so you know exactly where to look.",
       "chartHeading": "How far each limit reaches",
       "method": "{rules} rules · {size} in the conflict",
       "rules": {
-        "chairContract": "Chair contract",
-        "craftHours": "Craft hours",
-        "oakPlanks": "Oak planks",
-        "machineHours": "Machine hours"
+        "inverterContract": "Customer contract",
+        "smtHours": "SMT line hours",
+        "burnInHours": "Burn-in chamber hours",
+        "mcuChips": "Automotive-grade MCUs",
+        "sicModules": "SiC power modules",
+        "testHours": "Final-test hours",
+        "coatingHours": "Conformal-coating hours"
+      },
+      "rulesInline": {
+        "smtHours": "SMT line hours",
+        "burnInHours": "burn-in chamber hours",
+        "mcuChips": "automotive-grade microcontrollers",
+        "sicModules": "SiC power modules",
+        "testHours": "final-test hours",
+        "coatingHours": "conformal-coating hours"
       },
       "inConflict": "in conflict",
       "cleared": "not the problem",
-      "reaches": "{units} chairs",
+      "reaches": "{units} inverters",
       "contractLine": "contract needs {demand}",
-      "verdict": "{resource} stretch to {reaches} chairs and the contract asks for {demand}. Nothing else is at fault: JAOT clears the other limits by name. Add {missing} more and the model solves — that is the number to negotiate."
+      "verdict": "There are only enough {resource} for {reaches} inverters, and the contract asks for {demand}. Nothing else is at fault: JAOT clears the other {cleared} limits by name. Find {missing} more — a second chamber for the quarter — and the model solves. That is the number to take into the negotiation."
     },
     "catalog": {
       "headline": "{total} templates across {sectors} sectors",
@@ -687,12 +713,12 @@
     },
     "jmodel": {
       "eyebrow": "Write the model, not the rows",
-      "title": "Nine lines. The data decides the size.",
-      "subtitle": "JModel describes your problem with sets and indexed families, and JAOT renders it as mathematics before it touches a single number. The same source below builds a four-variable model or a four-hundred-variable one — you do not rewrite anything.",
+      "title": "Fourteen lines. The data decides the size.",
+      "subtitle": "JModel describes your problem with sets and indexed families, and JAOT renders it as mathematics before it touches a single number. The same source below covers one plant for a quarter or four hundred products for a year — you do not rewrite a line.",
       "sourceHeading": "What you write",
       "notationHeading": "What it means",
-      "scaleSmall": "{products} products × {resources} resources",
-      "scaleLarge": "{products} products × {resources} resources",
+      "scaleSmall": "{products} products × {resources} resources × {weeks} weeks",
+      "scaleLarge": "{products} products × {resources} resources × {weeks} weeks",
       "scaleResult": "{variables} variables · {constraints} constraints",
       "scaleNote": "Same {lines} lines, both times. Spreadsheets and hand-written models grow with the data; an indexed model does not."
     },

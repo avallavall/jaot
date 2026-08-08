@@ -21,12 +21,22 @@ from pathlib import Path
 
 from pyscipopt import SCIP_EVENTTYPE, Eventhdlr, Model, quicksum
 
-# 24 stops is the sweet spot: enough crossings for the "untangling" to read at a
-# glance, small enough that SCIP proves optimality in a handful of nodes.
-STOPS = 24
+# 48 stops: a full delivery round rather than a demonstration. It is also where
+# the two demands meet — the tangle has to read at a glance in a 100×100 SVG,
+# and SCIP has to *prove* optimality on a Miller-Tucker-Zemlin model, which gets
+# expensive fast (24 stops: 102 nodes; 48: ~850; 60: ~4,350 and over a minute).
+STOPS = 48
 SEED = 7
 VIEWBOX = 100.0
 MARGIN = 6.0
+# The hero replays one improving tour per beat, so a long trace turns the visual
+# into a wait. Incumbents that barely move the picture are dropped and, if the
+# trace is still long, what remains is subsampled evenly. The first incumbent and
+# the proven optimum always survive — every tour drawn is still one SCIP found.
+MAX_FRAMES = 6
+# SCIP improves the last incumbent by fractions of a percent while it closes the
+# tree. Those steps cost a beat each and are invisible at hero size.
+MIN_IMPROVEMENT = 0.02
 
 OUTPUT = (
     Path(__file__).resolve().parent.parent
@@ -97,6 +107,25 @@ class TraceRecorder(Eventhdlr):
         )
 
 
+def thin(frames: list[dict]) -> list[dict]:
+    """Reduce the trace to the incumbents worth animating.
+
+    The first and the last are always kept: the hero's whole argument is the
+    distance between the first answer and the proven one.
+    """
+    kept = [frames[0]]
+    for frame in frames[1:-1]:
+        if (kept[-1]["cost"] - frame["cost"]) / kept[-1]["cost"] >= MIN_IMPROVEMENT:
+            kept.append(frame)
+    kept.append(frames[-1])
+
+    if len(kept) <= MAX_FRAMES:
+        return kept
+    step = (len(kept) - 1) / (MAX_FRAMES - 1)
+    picked = sorted({round(k * step) for k in range(MAX_FRAMES)} | {0, len(kept) - 1})
+    return [kept[k] for k in picked]
+
+
 def solve() -> dict:
     points = build_points(STOPS, SEED)
     model = Model("hero-tour")
@@ -142,7 +171,7 @@ def solve() -> dict:
 
     return {
         "points": [[round(x, 2), round(y, 2)] for x, y in points],
-        "frames": recorder.frames,
+        "frames": thin(recorder.frames),
         "curve": curve,
         "meta": {
             "stops": STOPS,

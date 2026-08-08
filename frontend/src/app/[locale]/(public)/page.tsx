@@ -316,15 +316,17 @@ export default async function HomePage() {
 
         {/* The AI builder is the front door, and a line of sample prompt did not
             carry it. This capture is a screen that genuinely exists, so it keeps
-            the window chrome — unlike the hero, which is the solver running. */}
+            the window chrome — unlike the hero, which is the solver running. The
+            problem in it is the same plant the sections below solve, given to the
+            assistant with its real numbers, so nothing on this page is a toy. */}
         <Reveal delay={200}>
           <div className="mx-auto mt-14 max-w-4xl">
             <ProductFrame
-              lightSrc="/home/ai-assistant-light.png"
-              darkSrc="/home/ai-assistant-dark.png"
+              lightSrc="/home/ai-assistant-plant-light.png"
+              darkSrc="/home/ai-assistant-plant-dark.png"
               alt={t("platform.aiVisualAlt")}
-              width={2880}
-              height={1800}
+              width={3360}
+              height={2000}
               label={t("hero.pillars.aiBuilder.title")}
             />
           </div>

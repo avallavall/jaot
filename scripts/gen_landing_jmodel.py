@@ -3,7 +3,7 @@
 JModel is not an optional extra — it is the product (the JAOT_DSL flag was
 retired for exactly that reason), and the home page did not show it at all.
 
-This runs the real compiler twice on the SAME eight lines of source:
+This runs the real compiler twice on the SAME source:
 - `latexify` renders the model symbolically, BEFORE grounding, which is why the
   sums and the ∀ survive instead of flattening into thousands of scalar rows;
 - `compile_jmodel` then grounds it against two datasets of very different sizes.
@@ -32,36 +32,51 @@ from app.domains.dsl.compiler import JModelData, compile_jmodel, latexify  # noq
 
 OUTPUT = ROOT / "frontend" / "src" / "components" / "landing" / "data" / "jmodelShowcase.ts"
 
-# The same workshop the analysis section solves, written the way JModel is meant
-# to be written: indexed families over sets, no scalar repetition.
+# The plant the rest of the page solves, written the way JModel is meant to be
+# written — and extended over a planning horizon, which is where hand-written
+# models fall apart. A week is just another index; the source does not notice.
 SOURCE = """set PRODUCTS;
 set RESOURCES;
+set WEEKS;
 
 param margin{PRODUCTS};
 param usage{RESOURCES, PRODUCTS};
-param capacity{RESOURCES};
+param capacity{RESOURCES, WEEKS};
+param ceiling{PRODUCTS, WEEKS};
 
-var make{PRODUCTS} integer >= 0;
+var build{PRODUCTS, WEEKS} integer >= 0;
 
-maximize profit: sum{p in PRODUCTS} margin[p] * make[p];
+maximize contribution:
+  sum{p in PRODUCTS, w in WEEKS} margin[p] * build[p, w];
 
-subject to cap{r in RESOURCES}:
-  sum{p in PRODUCTS} usage[r, p] * make[p] <= capacity[r];
+subject to plant{r in RESOURCES, w in WEEKS}:
+  sum{p in PRODUCTS} usage[r, p] * build[p, w] <= capacity[r, w];
+
+subject to market{p in PRODUCTS, w in WEEKS}:
+  build[p, w] <= ceiling[p, w];
 """
 
+# The plant on this page, week by week — and then a group of them for a year.
+SMALL = (7, 6, 13)
+LARGE = (400, 40, 52)
 
-def dataset(products: int, resources: int) -> JModelData:
+
+def dataset(products: int, resources: int, weeks: int) -> JModelData:
     """A synthetic instance of the given shape. Only the SIZE matters here."""
     prods = [f"p{i}" for i in range(products)]
     res = [f"r{j}" for j in range(resources)]
+    horizon = [f"w{k}" for k in range(weeks)]
     return JModelData.from_json(
         {
-            "sets": {"PRODUCTS": prods, "RESOURCES": res},
+            "sets": {"PRODUCTS": prods, "RESOURCES": res, "WEEKS": horizon},
             "params": {
-                "margin": {p: 40 + (i % 90) for i, p in enumerate(prods)},
-                "capacity": {r: 300 + 25 * j for j, r in enumerate(res)},
+                "margin": {p: 260 + (i % 2200) for i, p in enumerate(prods)},
+                "capacity": {
+                    f"{r},{w}": 30000 + 700 * j for j, r in enumerate(res) for w in horizon
+                },
+                "ceiling": {f"{p},{w}": 900 for p in prods for w in horizon},
                 "usage": {
-                    f"{r},{p}": 2 + ((i + j) % 11)
+                    f"{r},{p}": 1 + ((i + j) % 12)
                     for j, r in enumerate(res)
                     for i, p in enumerate(prods)
                 },
@@ -70,11 +85,12 @@ def dataset(products: int, resources: int) -> JModelData:
     )
 
 
-def measure(products: int, resources: int) -> dict:
-    problem = compile_jmodel(SOURCE, data=dataset(products, resources))
+def measure(products: int, resources: int, weeks: int) -> dict:
+    problem = compile_jmodel(SOURCE, data=dataset(products, resources, weeks))
     return {
         "products": products,
         "resources": resources,
+        "weeks": weeks,
         "variables": len(problem.variables),
         "constraints": len(problem.constraints),
     }
@@ -95,7 +111,7 @@ def build() -> dict:
         "constraints": [{"latex": c.latex, "label": c.label} for c in rendered.constraints],
         "variables": [{"latex": v.latex, "label": v.label} for v in rendered.variables],
         # Same source, two orders of magnitude apart.
-        "scales": [measure(4, 3), measure(400, 30)],
+        "scales": [measure(*SMALL), measure(*LARGE)],
     }
 
 
@@ -117,6 +133,7 @@ export interface JModelLine {
 export interface JModelScale {
   readonly products: number;
   readonly resources: number;
+  readonly weeks: number;
   readonly variables: number;
   readonly constraints: number;
 }
@@ -145,7 +162,8 @@ def main() -> None:
     for scale in data["scales"]:
         print(
             f"  {scale['products']:4d} products x {scale['resources']:3d} resources "
-            f"-> {scale['variables']:6d} variables, {scale['constraints']:5d} constraints"
+            f"x {scale['weeks']:3d} weeks -> {scale['variables']:6d} variables, "
+            f"{scale['constraints']:6d} constraints"
         )
 
 

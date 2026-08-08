@@ -33,63 +33,141 @@ OUTPUT = (
     / "analysisShowcase.ts"
 )
 
-# A small furniture workshop: four products competing for three shared resources
-# plus a contract floor. Chosen so the answer is not "make only the richest
-# product" — two resources end up binding and one keeps slack, which is the
-# whole point of showing utilisation rather than a single headline number.
+# A power-electronics plant planning one quarter: seven product families
+# competing for the same six plant resources, plus a framework contract.
+#
+# The instance is tuned (scripts are deterministic; this was searched offline for
+# the pattern, then written out) so the answer contradicts the obvious one. The
+# margin ranking and the plan disagree completely: the three richest families are
+# the heaviest draw on the resources that run out, so the optimum builds none of
+# them — while the component everyone assumes is scarce, the microcontrollers,
+# finishes the quarter with nearly half its supply untouched.
 PRODUCTS = [
-    {"key": "chairs", "margin": 45},
-    {"key": "tables", "margin": 80},
-    {"key": "desks", "margin": 120},
-    {"key": "shelves", "margin": 60},
+    {
+        "key": "tractionInverter",
+        "margin": 2450,
+        "usage": {
+            "smtHours": 5,
+            "burnInHours": 10,
+            "mcuChips": 12,
+            "sicModules": 24,
+            "testHours": 4,
+            "coatingHours": 3,
+        },
+    },
+    {
+        "key": "batteryMonitor",
+        "margin": 1780,
+        "usage": {
+            "smtHours": 4,
+            "burnInHours": 8,
+            "mcuChips": 11,
+            "sicModules": 15,
+            "testHours": 3,
+            "coatingHours": 2,
+        },
+    },
+    {
+        "key": "chargeModule",
+        "margin": 1320,
+        "usage": {
+            "smtHours": 4,
+            "burnInHours": 5,
+            "mcuChips": 9,
+            "sicModules": 11,
+            "testHours": 3,
+            "coatingHours": 2,
+        },
+    },
+    {
+        "key": "gridInverter",
+        "margin": 960,
+        "usage": {
+            "smtHours": 3,
+            "burnInHours": 3,
+            "mcuChips": 8,
+            "sicModules": 7,
+            "testHours": 2,
+            "coatingHours": 2,
+        },
+    },
+    {
+        "key": "motorDrive",
+        "margin": 740,
+        "usage": {
+            "smtHours": 3,
+            "burnInHours": 2,
+            "mcuChips": 7,
+            "sicModules": 4,
+            "testHours": 2,
+            "coatingHours": 1,
+        },
+    },
+    {
+        "key": "telemetryUnit",
+        "margin": 410,
+        "usage": {
+            "smtHours": 2,
+            "burnInHours": 1,
+            "mcuChips": 5,
+            "sicModules": 1,
+            "testHours": 1,
+            "coatingHours": 1,
+        },
+    },
+    {
+        "key": "sensorHub",
+        "margin": 260,
+        "usage": {
+            "smtHours": 2,
+            "burnInHours": 1,
+            "mcuChips": 4,
+            "sicModules": 0,
+            "testHours": 1,
+            "coatingHours": 1,
+        },
+    },
 ]
 
+# Quarterly capacity of the plant, in the unit each resource is bought in.
 RESOURCES = [
-    {
-        "key": "machineHours",
-        "capacity": 400,
-        "usage": {"chairs": 2, "tables": 4, "desks": 6, "shelves": 3},
-    },
-    {
-        "key": "craftHours",
-        "capacity": 300,
-        "usage": {"chairs": 3, "tables": 5, "desks": 7, "shelves": 2},
-    },
-    {
-        "key": "oakPlanks",
-        "capacity": 520,
-        "usage": {"chairs": 4, "tables": 9, "desks": 12, "shelves": 6},
-    },
+    {"key": "smtHours", "capacity": 58570},
+    {"key": "burnInHours", "capacity": 43620},
+    {"key": "mcuChips", "capacity": 259580},
+    {"key": "sicModules", "capacity": 86040},
+    {"key": "testHours", "capacity": 44090},
+    {"key": "coatingHours", "capacity": 33160},
 ]
 
-# A signed contract: at least this many chairs ship, whatever the margin says.
-CONTRACT = {"key": "chairContract", "product": "chairs", "minimum": 12}
+# A signed framework contract: this many telemetry units ship whatever the
+# margin ranking says.
+CONTRACT = {"key": "telemetryContract", "product": "telemetryUnit", "minimum": 3500}
 
 
 def solve() -> dict:
-    model = Model("workshop")
+    model = Model("plant-quarter")
     model.hideOutput()
 
     units = {p["key"]: model.addVar(vtype="I", lb=0, name=p["key"]) for p in PRODUCTS}
 
-    rows = []
     for resource in RESOURCES:
-        expr = quicksum(resource["usage"][k] * units[k] for k in units)
+        expr = quicksum(p["usage"][resource["key"]] * units[p["key"]] for p in PRODUCTS)
         model.addCons(expr <= resource["capacity"])
-        rows.append(resource)
 
     model.addCons(units[CONTRACT["product"]] >= CONTRACT["minimum"])
 
     model.setObjective(quicksum(p["margin"] * units[p["key"]] for p in PRODUCTS), "maximize")
     model.optimize()
 
+    assert model.getStatus() == "optimal", model.getStatus()
+
     solution = {k: round(model.getVal(v)) for k, v in units.items()}
     objective = round(model.getObjVal(), 2)
 
     # Utilisation, computed the way exact_analysis does: from x* and the data.
     constraints = []
-    for resource in rows:
-        activity = sum(resource["usage"][k] * solution[k] for k in solution)
+    for resource in RESOURCES:
+        activity = sum(p["usage"][resource["key"]] * solution[p["key"]] for p in PRODUCTS)
         capacity = resource["capacity"]
         constraints.append(
             {
@@ -118,9 +196,24 @@ def solve() -> dict:
         }
     )
 
-    # Per-unit draw on each binding resource, so the page can explain WHY the
-    # richest product loses with the same numbers the solver used.
+    # The section's argument only works if the richest families lose, so assert
+    # it rather than trusting that nobody edited the numbers above.
+    ranked = sorted(PRODUCTS, key=lambda p: p["margin"], reverse=True)
+    # The headline says "the three highest-margin products never make the plan".
+    assert all(solution[p["key"]] == 0 for p in ranked[:3]), (
+        "the three richest families must not make the plan"
+    )
     binding_keys = [c["key"] for c in constraints if c["binding"]]
+    assert len(binding_keys) >= 2, "at least two limits must run out"
+    # The section says the richest family is the heaviest draw on every limit
+    # that ran out. Keep that claim true or fail the regeneration.
+    for key in binding_keys:
+        assert ranked[0]["usage"][key] == max(p["usage"][key] for p in PRODUCTS), (
+            f"the richest family must be the heaviest draw on {key}"
+        )
+
+    # Per-unit draw on each binding resource, so the page can explain WHY the
+    # richest family loses with the same numbers the solver used.
     contributions = [
         {
             "key": p["key"],
@@ -128,24 +221,30 @@ def solve() -> dict:
             "margin": p["margin"],
             "contribution": p["margin"] * solution[p["key"]],
             "share": round(p["margin"] * solution[p["key"]] / objective * 100, 1),
-            "usage": {
-                r["key"]: r["usage"][p["key"]] for r in RESOURCES if r["key"] in binding_keys
-            },
+            "usage": {r: p["usage"][r] for r in binding_keys if r in p["usage"]},
         }
-        for p in PRODUCTS
+        for p in ranked
     ]
-    # Richest per unit first: the point is that this order is NOT the plan order.
-    contributions.sort(key=lambda c: c["margin"], reverse=True)
+
+    # The loosest limit, named: the point that buying more of it changes nothing
+    # is as useful as knowing what binds, and it is the counterintuitive half.
+    loosest = min(
+        (c for c in constraints if c["operator"] == "<=" and not c["binding"]),
+        key=lambda c: c["utilization"],
+    )
 
     return {
         "objective": objective,
-        "status": model.getStatus(),
+        "status": "optimal",
         "constraints": constraints,
         "contributions": contributions,
+        "loosest": {"key": loosest["key"], "slack": loosest["slack"]},
         "meta": {
             "products": len(PRODUCTS),
-            "bindingCount": sum(1 for c in constraints if c["binding"]),
+            "unitsBuilt": sum(solution.values()),
+            "bindingCount": len(binding_keys),
             "totalConstraints": len(constraints),
+            "nodes": model.getNNodes(),
             "solver": "SCIP",
         },
     }
@@ -154,9 +253,10 @@ def solve() -> dict:
 def emit(data: dict) -> str:
     header = """// AUTO-GENERATED by scripts/gen_landing_analysis.py — do not edit by hand.
 //
-// A real solve of a small production-planning instance, with the exact analysis
-// JAOT computes afterwards: binding constraints, slack, and objective
-// contributions derived from x* and the problem data — not shadow prices.
+// A real solve of a quarterly production plan for a power-electronics plant,
+// with the exact analysis JAOT computes afterwards: binding constraints, slack,
+// and objective contributions derived from x* and the problem data — not shadow
+// prices.
 //
 // Regenerate with: python scripts/gen_landing_analysis.py
 
@@ -188,10 +288,17 @@ export interface AnalysisShowcase {
   readonly status: string;
   readonly constraints: readonly AnalysisConstraint[];
   readonly contributions: readonly AnalysisContribution[];
+  /** The capacity limit furthest from running out, and by how much. */
+  readonly loosest: {
+    readonly key: string;
+    readonly slack: number;
+  };
   readonly meta: {
     readonly products: number;
+    readonly unitsBuilt: number;
     readonly bindingCount: number;
     readonly totalConstraints: number;
+    readonly nodes: number;
     readonly solver: string;
   };
 }
@@ -206,18 +313,21 @@ def main() -> None:
     OUTPUT.write_text(emit(data), encoding="utf-8")
 
     print(f"Wrote {OUTPUT.relative_to(Path(__file__).resolve().parent.parent)}")
-    print(f"  status={data['status']} objective={data['objective']}")
+    print(
+        f"  status={data['status']} objective={data['objective']:,.0f} nodes={data['meta']['nodes']}"
+    )
     for c in data["constraints"]:
-        flag = "BINDING" if c["binding"] else f"slack {c['slack']}"
+        flag = "BINDING" if c["binding"] else f"slack {c['slack']:,}"
         print(
-            f"  {c['key']:16s} {c['activity']:6.0f} {c['operator']} {c['capacity']:6.0f} "
+            f"  {c['key']:18s} {c['activity']:9,d} {c['operator']} {c['capacity']:9,d} "
             f"({c['utilization']:5.1f}%)  {flag}"
         )
     for t in data["contributions"]:
         print(
-            f"  {t['key']:16s} {t['units']:4d} units x {t['margin']:3d} = "
-            f"{t['contribution']:7d}  ({t['share']:4.1f}%)"
+            f"  {t['key']:18s} {t['units']:8,d} units x {t['margin']:5d} = "
+            f"{t['contribution']:12,d}  ({t['share']:4.1f}%)"
         )
+    print(f"  loosest: {data['loosest']['key']} with {data['loosest']['slack']:,} spare")
 
 
 if __name__ == "__main__":

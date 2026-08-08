@@ -639,47 +639,73 @@
     },
     "exactAnalysis": {
       "eyebrow": "Après la résolution",
-      "title": "Le produit à plus forte marge n'entre pas dans le plan",
-      "subtitle": "Une instance réelle résolue. Les bureaux rapportent le plus à l'unité et l'optimum n'en fabrique aucun, car ce sont eux qui puisent le plus dans les deux ressources qui s'épuisent. C'est exactement ce qu'un tableur rate.",
-      "planHeading": "Plan de production",
+      "title": "Les trois produits à plus forte marge ne figurent pas au plan",
+      "subtitle": "Un trimestre d'une usine d'électronique de puissance, résolu et prouvé optimal. Les trois familles les plus rentables sont précisément celles que l'optimum refuse de produire — et le composant que tout le monde accuse d'être le goulet termine le trimestre à moitié inutilisé. C'est exactement ce qu'un tableur rate.",
+      "planHeading": "Plan de production du trimestre",
+      "planMeta": "{units} unités · {solver}, optimalité prouvée",
       "bindingHeading": "Ce qui s'épuise",
       "perUnit": "{margin} / unité",
       "units": "{count} unités",
-      "totalMargin": "Marge totale",
+      "totalMargin": "Marge de contribution",
       "floorMet": "{actual} livrées, {required} exigées",
       "binding": "saturé",
-      "slack": "{slack} de marge",
-      "verdict": "Les {product} rapportent {margin} l'unité, mais chacun consomme {planks} planches et {hours} heures d'atelier — et ce sont {binding} des {total} limites déjà saturées. JAOT le calcule depuis la solution elle-même, donc les chiffres tiennent pour le plan entier que vous exécuterez vraiment.",
+      "slack": "{slack} disponibles",
+      "verdict": "{product} : {margin} l'unité, et le plan n'en produit aucun. C'est lui qui pèse le plus sur chacune des {binding} limites arrivées à saturation, alors que {spare} {spareResource} restent inutilisés : en acheter davantage ne changerait rien. Les deux faits viennent de la solution entière que vous allez exécuter, pas d'une relaxation.",
       "products": {
-        "chairs": "Chaises",
-        "tables": "Tables",
-        "desks": "Bureaux",
-        "shelves": "Étagères"
+        "tractionInverter": "Onduleur de traction 800 V",
+        "batteryMonitor": "Unité de gestion de batterie",
+        "chargeModule": "Module de charge rapide CC",
+        "gridInverter": "Onduleur solaire raccordé au réseau",
+        "motorDrive": "Variateur industriel",
+        "telemetryUnit": "Boîtier télématique de flotte",
+        "sensorHub": "Concentrateur de capteurs"
       },
       "resources": {
-        "machineHours": "Heures machine",
-        "craftHours": "Heures d'atelier",
-        "oakPlanks": "Planches de chêne",
-        "chairContract": "Contrat chaises"
+        "smtHours": "Heures de ligne CMS",
+        "burnInHours": "Heures d'étuve de déverminage",
+        "mcuChips": "Microcontrôleurs automobiles",
+        "sicModules": "Modules de puissance SiC",
+        "testHours": "Heures de test final",
+        "coatingHours": "Heures de vernissage",
+        "telemetryContract": "Contrat de télématique"
+      },
+      "resourcesInline": {
+        "smtHours": "heures de ligne CMS",
+        "burnInHours": "heures d'étuve de déverminage",
+        "mcuChips": "microcontrôleurs automobiles",
+        "sicModules": "modules de puissance SiC",
+        "testHours": "heures de test final",
+        "coatingHours": "heures de vernissage"
       }
     },
     "conflict": {
-      "eyebrow": "Quand il n'y a pas de solution",
-      "title": "Il désigne les deux règles qui s'opposent — et disculpe les deux autres",
-      "subtitle": "Un solveur dit « infaisable » et vous laisse auditer tout le modèle. JAOT retire chaque règle et résout à nouveau jusqu'à ne garder que la contradiction, pour que vous sachiez exactement où regarder.",
+      "eyebrow": "Quand il n'y a pas de réponse",
+      "title": "Il nomme les deux règles qui s'opposent — et innocente les cinq autres",
+      "subtitle": "Un client demande un trimestre d'onduleurs de traction que la ligne ne peut pas produire. Un solveur dit « irréalisable » et vous laisse auditer le modèle entier. JAOT retire chaque règle et relance la résolution jusqu'à ne garder que la contradiction, pour que vous sachiez exactement où regarder.",
       "chartHeading": "Jusqu'où va chaque limite",
       "method": "{rules} règles · {size} dans le conflit",
       "rules": {
-        "chairContract": "Contrat chaises",
-        "craftHours": "Heures d'atelier",
-        "oakPlanks": "Planches de chêne",
-        "machineHours": "Heures machine"
+        "inverterContract": "Contrat client",
+        "smtHours": "Heures de ligne CMS",
+        "burnInHours": "Heures d'étuve de déverminage",
+        "mcuChips": "Microcontrôleurs automobiles",
+        "sicModules": "Modules de puissance SiC",
+        "testHours": "Heures de test final",
+        "coatingHours": "Heures de vernissage"
+      },
+      "rulesInline": {
+        "smtHours": "heures de ligne CMS",
+        "burnInHours": "heures d'étuve de déverminage",
+        "mcuChips": "microcontrôleurs automobiles",
+        "sicModules": "modules de puissance SiC",
+        "testHours": "heures de test final",
+        "coatingHours": "heures de vernissage"
       },
       "inConflict": "en conflit",
       "cleared": "hors de cause",
-      "reaches": "{units} chaises",
-      "contractLine": "le contrat exige {demand}",
-      "verdict": "Les {resource} permettent {reaches} chaises et le contrat en demande {demand}. Rien d'autre n'est en cause : JAOT disculpe les autres limites nommément. Avec {missing} de plus, le modèle se résout — c'est le chiffre à négocier."
+      "reaches": "{units} onduleurs",
+      "contractLine": "le contrat en demande {demand}",
+      "verdict": "Il n'y a que {resource} pour {reaches} onduleurs, et le contrat en demande {demand}. Rien d'autre n'est en cause : JAOT innocente nommément les {cleared} autres limites. Trouvez-en {missing} de plus — une seconde étuve pour le trimestre — et le modèle se résout. C'est le chiffre à emporter en négociation."
     },
     "catalog": {
       "headline": "{total} modèles dans {sectors} secteurs",
@@ -687,14 +713,14 @@
     },
     "jmodel": {
       "eyebrow": "Écrivez le modèle, pas les lignes",
-      "title": "Neuf lignes. Les données décident de la taille.",
-      "subtitle": "JModel décrit votre problème avec des ensembles et des familles indexées, et JAOT le rend en mathématiques avant de toucher le moindre chiffre. Le même code ci-dessous construit un modèle de quatre variables ou de quatre cents — vous ne réécrivez rien.",
+      "title": "Quatorze lignes. C'est la donnée qui décide de la taille.",
+      "subtitle": "JModel décrit votre problème avec des ensembles et des familles indexées, et JAOT le rend en mathématiques avant de toucher le moindre chiffre. Le même source ci-dessous couvre une usine sur un trimestre ou quatre cents produits sur un an — vous ne réécrivez pas une ligne.",
       "sourceHeading": "Ce que vous écrivez",
       "notationHeading": "Ce que cela signifie",
-      "scaleSmall": "{products} produits × {resources} ressources",
-      "scaleLarge": "{products} produits × {resources} ressources",
+      "scaleSmall": "{products} produits × {resources} ressources × {weeks} semaines",
+      "scaleLarge": "{products} produits × {resources} ressources × {weeks} semaines",
       "scaleResult": "{variables} variables · {constraints} contraintes",
-      "scaleNote": "Les mêmes {lines} lignes dans les deux cas. Un tableur ou un modèle écrit à la main grandissent avec les données ; un modèle indexé non."
+      "scaleNote": "Les mêmes {lines} lignes dans les deux cas. Les tableurs et les modèles écrits à la main grossissent avec les données ; un modèle indexé, non."
     },
     "hero": {
       "badge": "Plateforme d'optimisation open source",

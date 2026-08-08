@@ -29,59 +29,85 @@ export interface InfeasibleShowcase {
   readonly meta: {
     readonly totalRules: number;
     readonly conflictSize: number;
+    readonly clearedCount: number;
     readonly method: string;
     readonly solver: string;
   };
 }
 
 export const INFEASIBLE_SHOWCASE: InfeasibleShowcase = {
-  "demand": 100,
+  "demand": 6000,
   "rules": [
     {
-      "key": "chairContract",
+      "key": "inverterContract",
       "operator": ">=",
-      "rhs": 100,
+      "rhs": 6000,
       "coefficient": 1,
-      "allows": 100,
+      "allows": 6000,
       "inConflict": true
     },
     {
-      "key": "craftHours",
+      "key": "smtHours",
       "operator": "<=",
-      "rhs": 300,
-      "coefficient": 3,
-      "allows": 100,
+      "rhs": 38500,
+      "coefficient": 5,
+      "allows": 7700,
       "inConflict": false
     },
     {
-      "key": "oakPlanks",
+      "key": "burnInHours",
       "operator": "<=",
-      "rhs": 348,
-      "coefficient": 4,
-      "allows": 87,
+      "rhs": 52400,
+      "coefficient": 10,
+      "allows": 5240,
       "inConflict": true
     },
     {
-      "key": "machineHours",
+      "key": "mcuChips",
       "operator": "<=",
-      "rhs": 400,
-      "coefficient": 2,
-      "allows": 200,
+      "rhs": 94800,
+      "coefficient": 12,
+      "allows": 7900,
+      "inConflict": false
+    },
+    {
+      "key": "sicModules",
+      "operator": "<=",
+      "rhs": 158400,
+      "coefficient": 24,
+      "allows": 6600,
+      "inConflict": false
+    },
+    {
+      "key": "testHours",
+      "operator": "<=",
+      "rhs": 27600,
+      "coefficient": 4,
+      "allows": 6900,
+      "inConflict": false
+    },
+    {
+      "key": "coatingHours",
+      "operator": "<=",
+      "rhs": 19800,
+      "coefficient": 3,
+      "allows": 6600,
       "inConflict": false
     }
   ],
   "conflict": [
-    "chairContract",
-    "oakPlanks"
+    "inverterContract",
+    "burnInHours"
   ],
   "shortfall": {
-    "resource": "oakPlanks",
-    "missing": 52,
-    "reaches": 87
+    "resource": "burnInHours",
+    "missing": 7600,
+    "reaches": 5240
   },
   "meta": {
-    "totalRules": 4,
+    "totalRules": 7,
     "conflictSize": 2,
+    "clearedCount": 5,
     "method": "deletion filtering",
     "solver": "SCIP"
   }

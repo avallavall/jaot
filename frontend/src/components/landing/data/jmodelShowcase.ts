@@ -15,6 +15,7 @@ export interface JModelLine {
 export interface JModelScale {
   readonly products: number;
   readonly resources: number;
+  readonly weeks: number;
   readonly variables: number;
   readonly constraints: number;
 }
@@ -33,47 +34,59 @@ export const JMODEL_SHOWCASE: JModelShowcase = {
   "source": [
     "set PRODUCTS;",
     "set RESOURCES;",
+    "set WEEKS;",
     "",
     "param margin{PRODUCTS};",
     "param usage{RESOURCES, PRODUCTS};",
-    "param capacity{RESOURCES};",
+    "param capacity{RESOURCES, WEEKS};",
+    "param ceiling{PRODUCTS, WEEKS};",
     "",
-    "var make{PRODUCTS} integer >= 0;",
+    "var build{PRODUCTS, WEEKS} integer >= 0;",
     "",
-    "maximize profit: sum{p in PRODUCTS} margin[p] * make[p];",
+    "maximize contribution:",
+    "  sum{p in PRODUCTS, w in WEEKS} margin[p] * build[p, w];",
     "",
-    "subject to cap{r in RESOURCES}:",
-    "  sum{p in PRODUCTS} usage[r, p] * make[p] <= capacity[r];"
+    "subject to plant{r in RESOURCES, w in WEEKS}:",
+    "  sum{p in PRODUCTS} usage[r, p] * build[p, w] <= capacity[r, w];",
+    "",
+    "subject to market{p in PRODUCTS, w in WEEKS}:",
+    "  build[p, w] <= ceiling[p, w];"
   ],
-  "sourceLines": 9,
+  "sourceLines": 14,
   "objective": {
-    "latex": "\\max \\quad \\sum_{p \\in \\mathrm{PRODUCTS}} \\mathrm{margin}_{p} \\, \\mathrm{make}_{p}",
-    "label": "profit"
+    "latex": "\\max \\quad \\sum_{p \\in \\mathrm{PRODUCTS},\\; w \\in \\mathrm{WEEKS}} \\mathrm{margin}_{p} \\, \\mathrm{build}_{p,w}",
+    "label": "contribution"
   },
   "constraints": [
     {
-      "latex": "\\sum_{p \\in \\mathrm{PRODUCTS}} \\mathrm{usage}_{r,p} \\, \\mathrm{make}_{p} \\le \\mathrm{capacity}_{r} \\quad \\forall\\, r \\in \\mathrm{RESOURCES}",
-      "label": "cap"
+      "latex": "\\sum_{p \\in \\mathrm{PRODUCTS}} \\mathrm{usage}_{r,p} \\, \\mathrm{build}_{p,w} \\le \\mathrm{capacity}_{r,w} \\quad \\forall\\, r \\in \\mathrm{RESOURCES},\\; w \\in \\mathrm{WEEKS}",
+      "label": "plant"
+    },
+    {
+      "latex": "\\mathrm{build}_{p,w} \\le \\mathrm{ceiling}_{p,w} \\quad \\forall\\, p \\in \\mathrm{PRODUCTS},\\; w \\in \\mathrm{WEEKS}",
+      "label": "market"
     }
   ],
   "variables": [
     {
-      "latex": "\\mathrm{make}_{p} \\in \\mathbb{Z},\\; \\mathrm{make}_{p} \\ge 0 \\quad \\forall\\, p \\in \\mathrm{PRODUCTS}",
-      "label": "make"
+      "latex": "\\mathrm{build}_{p,w} \\in \\mathbb{Z},\\; \\mathrm{build}_{p,w} \\ge 0 \\quad \\forall\\, p \\in \\mathrm{PRODUCTS},\\; w \\in \\mathrm{WEEKS}",
+      "label": "build"
     }
   ],
   "scales": [
     {
-      "products": 4,
-      "resources": 3,
-      "variables": 4,
-      "constraints": 3
+      "products": 7,
+      "resources": 6,
+      "weeks": 13,
+      "variables": 91,
+      "constraints": 169
     },
     {
       "products": 400,
-      "resources": 30,
-      "variables": 400,
-      "constraints": 30
+      "resources": 40,
+      "weeks": 52,
+      "variables": 20800,
+      "constraints": 22880
     }
   ]
 } as const;

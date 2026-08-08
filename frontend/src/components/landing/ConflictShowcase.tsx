@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { getFormatter, getTranslations } from "next-intl/server";
 import { cn } from "@/lib/utils";
 import { INFEASIBLE_SHOWCASE } from "./data/infeasibleShowcase";
 
@@ -9,7 +9,8 @@ import { INFEASIBLE_SHOWCASE } from "./data/infeasibleShowcase";
  * model. JAOT reduces it to an irreducible infeasible set by deletion filtering
  * — one feasibility re-solve per rule — so it can name the rules that clash AND
  * clear the ones that do not. The instance here (scripts/gen_landing_infeasible.py)
- * has four rules and exactly two of them are the problem.
+ * is a quarter's worth of traction inverters the plant cannot carry: seven rules,
+ * and exactly two of them are the problem.
  *
  * Ceilings are drawn as bars in units of the product; the contract is the line
  * they have to reach, because a ">=" demand is not a ceiling and drawing it as
@@ -19,11 +20,17 @@ import { INFEASIBLE_SHOWCASE } from "./data/infeasibleShowcase";
  */
 export async function ConflictShowcase() {
   const t = await getTranslations("public.conflict");
+  const format = await getFormatter();
   const { demand, rules, shortfall, meta } = INFEASIBLE_SHOWCASE;
+  const num = (value: number) => format.number(value);
 
   const ceilings = rules.filter((r) => r.operator === "<=");
   const scale = Math.max(...ceilings.map((r) => r.allows), demand) * 1.08;
   const demandAt = (demand / scale) * 100;
+  // The caption hangs off the contract line. Past the middle of the track it has
+  // to hang the other way, or on a narrow viewport it runs out of the card and
+  // takes the whole page into horizontal scroll with it.
+  const captionTrails = demandAt > 55;
 
   return (
     <div className="border border-border bg-card p-6 sm:p-8">
@@ -59,7 +66,7 @@ export async function ConflictShowcase() {
                   >
                     {t(`rules.${rule.key}`)}{" "}
                     <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                      {t("reaches", { units: rule.allows })}
+                      {t("reaches", { units: num(rule.allows) })}
                     </span>
                   </span>
                   <span
@@ -93,20 +100,26 @@ export async function ConflictShowcase() {
 
         <div className="relative mt-3 h-4">
           <span
-            className="absolute whitespace-nowrap pl-2 font-mono text-[0.6875rem] text-primary"
-            style={{ left: `${demandAt}%` }}
+            className={cn(
+              "absolute whitespace-nowrap font-mono text-[0.6875rem] text-primary",
+              captionTrails ? "pr-2 text-right" : "pl-2",
+            )}
+            style={
+              captionTrails ? { right: `${100 - demandAt}%` } : { left: `${demandAt}%` }
+            }
           >
-            {t("contractLine", { demand })}
+            {t("contractLine", { demand: num(demand) })}
           </span>
         </div>
       </div>
 
       <p className="mt-8 border-t border-border pt-5 text-sm leading-relaxed text-muted-foreground">
         {t("verdict", {
-          resource: t(`rules.${shortfall.resource}`),
-          reaches: shortfall.reaches,
-          demand,
-          missing: shortfall.missing,
+          resource: t(`rulesInline.${shortfall.resource}`),
+          reaches: num(shortfall.reaches),
+          demand: num(demand),
+          missing: num(shortfall.missing),
+          cleared: meta.clearedCount,
         })}
       </p>
     </div>

@@ -63,7 +63,10 @@ export function JModelShowcase() {
         <div
           className={cn(
             "jmodel-notation flex min-w-0 flex-1 flex-col justify-center gap-4",
-            "text-[0.9rem] text-foreground sm:text-[0.95rem]",
+            // Sized so the longest line — the capacity constraint with its two
+            // quantifiers — fits the column outright. .katex-display scrolls
+            // rather than clips, but a formula you have to drag reads as broken.
+            "text-[0.82rem] text-foreground sm:text-[0.88rem]",
           )}
         >
           {objective ? <BlockMath math={objective.latex} /> : null}
@@ -84,14 +87,22 @@ export function JModelShowcase() {
       <div className="bg-card px-6 py-5 sm:px-8 lg:col-span-2">
         <div className="flex flex-wrap items-baseline gap-x-10 gap-y-3">
           <Scale
-            label={t("scaleSmall", { products: small.products, resources: small.resources })}
+            label={t("scaleSmall", {
+              products: small.products,
+              resources: small.resources,
+              weeks: small.weeks,
+            })}
             value={t("scaleResult", {
               variables: small.variables,
               constraints: small.constraints,
             })}
           />
           <Scale
-            label={t("scaleLarge", { products: large.products, resources: large.resources })}
+            label={t("scaleLarge", {
+              products: large.products,
+              resources: large.resources,
+              weeks: large.weeks,
+            })}
             value={t("scaleResult", {
               variables: large.variables,
               constraints: large.constraints,

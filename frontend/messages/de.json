@@ -639,62 +639,88 @@
     },
     "exactAnalysis": {
       "eyebrow": "Nach dem Lösen",
-      "title": "Das Produkt mit der höchsten Marge kommt nicht in den Plan",
-      "subtitle": "Eine echte gelöste Instanz. Schreibtische bringen pro Stück am meisten, und das Optimum baut keinen einzigen — weil sie die beiden Ressourcen am stärksten beanspruchen, die zuerst ausgehen. Genau das übersieht eine Tabellenkalkulation.",
-      "planHeading": "Produktionsplan",
+      "title": "Die drei margenstärksten Produkte kommen nie in den Plan",
+      "subtitle": "Ein Quartal eines Leistungselektronik-Werks, gelöst und als optimal bewiesen. Ausgerechnet die drei margenstärksten Familien baut das Optimum nicht — und das Bauteil, dem alle den Engpass anlasten, bleibt zum Quartalsende fast zur Hälfte unberührt. Genau hier rechnet sich eine Tabellenkalkulation arm.",
+      "planHeading": "Bauplan des Quartals",
+      "planMeta": "{units} Stück · {solver}, beweisbar optimal",
       "bindingHeading": "Was ausgeht",
       "perUnit": "{margin} / Stück",
       "units": "{count} Stück",
-      "totalMargin": "Gesamtmarge",
+      "totalMargin": "Deckungsbeitrag",
       "floorMet": "{actual} geliefert, {required} gefordert",
       "binding": "ausgelastet",
-      "slack": "{slack} übrig",
-      "verdict": "{product} bringen {margin} pro Stück, aber jeder verbraucht {planks} Bretter und {hours} Werkstattstunden — und das sind {binding} der {total} Grenzen, die bereits ausgelastet sind. JAOT berechnet das aus der Lösung selbst, also gelten die Zahlen für den ganzzahligen Plan, den du wirklich fährst.",
+      "slack": "{slack} frei",
+      "verdict": "{product}: {margin} pro Stück — und der Plan baut keines davon. Er beansprucht jede der {binding} erschöpften Grenzen am stärksten, während {spare} {spareResource} unberührt bleiben: mehr davon zu kaufen würde nichts ändern. Beides steht in der ganzzahligen Lösung, die Sie tatsächlich fahren, nicht in einer Relaxation.",
       "products": {
-        "chairs": "Stühle",
-        "tables": "Tische",
-        "desks": "Schreibtische",
-        "shelves": "Regale"
+        "tractionInverter": "800-V-Traktionsumrichter",
+        "batteryMonitor": "Batteriemanagement-Einheit",
+        "chargeModule": "DC-Schnelllademodul",
+        "gridInverter": "Netzgekoppelter Solarwechselrichter",
+        "motorDrive": "Industrieller Frequenzumrichter",
+        "telemetryUnit": "Flotten-Telematikeinheit",
+        "sensorHub": "Maschinen-Sensorhub"
       },
       "resources": {
-        "machineHours": "Maschinenstunden",
-        "craftHours": "Werkstattstunden",
-        "oakPlanks": "Eichenbretter",
-        "chairContract": "Stuhl-Vertrag"
+        "smtHours": "SMT-Linienstunden",
+        "burnInHours": "Burn-in-Kammerstunden",
+        "mcuChips": "Automotive-Mikrocontroller",
+        "sicModules": "SiC-Leistungsmodule",
+        "testHours": "Endtest-Stunden",
+        "coatingHours": "Schutzlack-Stunden",
+        "telemetryContract": "Telematik-Rahmenvertrag"
+      },
+      "resourcesInline": {
+        "smtHours": "SMT-Linienstunden",
+        "burnInHours": "Burn-in-Kammerstunden",
+        "mcuChips": "Automotive-Mikrocontroller",
+        "sicModules": "SiC-Leistungsmodule",
+        "testHours": "Endtest-Stunden",
+        "coatingHours": "Schutzlack-Stunden"
       }
     },
     "conflict": {
-      "eyebrow": "Wenn es keine Lösung gibt",
-      "title": "Es benennt die zwei Regeln, die sich widersprechen — und entlastet die anderen zwei",
-      "subtitle": "Ein Solver sagt „unlösbar“ und lässt dich das ganze Modell prüfen. JAOT entfernt jede Regel und löst erneut, bis nur der Widerspruch übrig bleibt — so weißt du genau, wo du hinschauen musst.",
+      "eyebrow": "Wenn es keine Antwort gibt",
+      "title": "Es benennt die zwei Regeln, die sich widersprechen — und entlastet die anderen fünf",
+      "subtitle": "Ein Kunde will ein Quartal voller Traktionsumrichter, das die Linie nicht schafft. Ein Solver sagt „unzulässig“ und lässt Sie das ganze Modell prüfen. JAOT entfernt jede Regel und löst erneut, bis nur der Widerspruch übrig bleibt — Sie wissen genau, wo Sie hinschauen müssen.",
       "chartHeading": "Wie weit jede Grenze reicht",
       "method": "{rules} Regeln · {size} im Konflikt",
       "rules": {
-        "chairContract": "Stuhl-Vertrag",
-        "craftHours": "Werkstattstunden",
-        "oakPlanks": "Eichenbretter",
-        "machineHours": "Maschinenstunden"
+        "inverterContract": "Kundenvertrag",
+        "smtHours": "SMT-Linienstunden",
+        "burnInHours": "Burn-in-Kammerstunden",
+        "mcuChips": "Automotive-Mikrocontroller",
+        "sicModules": "SiC-Leistungsmodule",
+        "testHours": "Endtest-Stunden",
+        "coatingHours": "Schutzlack-Stunden"
+      },
+      "rulesInline": {
+        "smtHours": "SMT-Linienstunden",
+        "burnInHours": "Burn-in-Kammerstunden",
+        "mcuChips": "Automotive-Mikrocontroller",
+        "sicModules": "SiC-Leistungsmodule",
+        "testHours": "Endtest-Stunden",
+        "coatingHours": "Schutzlack-Stunden"
       },
       "inConflict": "im Konflikt",
       "cleared": "nicht das Problem",
-      "reaches": "{units} Stühle",
-      "contractLine": "Vertrag fordert {demand}",
-      "verdict": "Die {resource} reichen für {reaches} Stühle, der Vertrag fordert {demand}. Sonst ist nichts schuld: JAOT entlastet die übrigen Grenzen namentlich. Mit {missing} mehr löst sich das Modell — das ist die Zahl, über die verhandelt wird."
+      "reaches": "{units} Umrichter",
+      "contractLine": "Vertrag verlangt {demand}",
+      "verdict": "Es gibt nur {resource} für {reaches} Umrichter, und der Vertrag verlangt {demand}. Sonst ist nichts schuld: JAOT entlastet die anderen {cleared} Grenzen namentlich. Beschaffen Sie {missing} mehr — eine zweite Kammer für das Quartal — und das Modell löst sich. Das ist die Zahl für die Verhandlung."
     },
     "catalog": {
       "headline": "{total} Vorlagen in {sectors} Branchen",
       "browse": "Marktplatz durchsuchen"
     },
     "jmodel": {
-      "eyebrow": "Schreib das Modell, nicht die Zeilen",
-      "title": "Neun Zeilen. Die Daten bestimmen die Größe.",
-      "subtitle": "JModel beschreibt dein Problem mit Mengen und indizierten Familien, und JAOT stellt es als Mathematik dar, bevor es eine einzige Zahl anfasst. Derselbe Code unten baut ein Modell mit vier Variablen oder mit vierhundert — du schreibst nichts um.",
-      "sourceHeading": "Was du schreibst",
+      "eyebrow": "Schreiben Sie das Modell, nicht die Zeilen",
+      "title": "Vierzehn Zeilen. Die Größe bestimmen die Daten.",
+      "subtitle": "JModel beschreibt Ihr Problem mit Mengen und indizierten Familien, und JAOT stellt es als Mathematik dar, bevor es eine einzige Zahl anfasst. Derselbe Quelltext unten deckt ein Werk über ein Quartal ab oder vierhundert Produkte über ein Jahr — Sie schreiben keine Zeile neu.",
+      "sourceHeading": "Was Sie schreiben",
       "notationHeading": "Was es bedeutet",
-      "scaleSmall": "{products} Produkte × {resources} Ressourcen",
-      "scaleLarge": "{products} Produkte × {resources} Ressourcen",
+      "scaleSmall": "{products} Produkte × {resources} Ressourcen × {weeks} Wochen",
+      "scaleLarge": "{products} Produkte × {resources} Ressourcen × {weeks} Wochen",
       "scaleResult": "{variables} Variablen · {constraints} Restriktionen",
-      "scaleNote": "Beide Male dieselben {lines} Zeilen. Eine Tabelle oder ein handgeschriebenes Modell wachsen mit den Daten; ein indiziertes Modell nicht."
+      "scaleNote": "Beide Male dieselben {lines} Zeilen. Tabellenkalkulationen und handgeschriebene Modelle wachsen mit den Daten; ein indiziertes Modell nicht."
     },
     "hero": {
       "badge": "Open-Source-Optimierungsplattform",
