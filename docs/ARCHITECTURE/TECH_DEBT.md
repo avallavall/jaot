@@ -11,6 +11,7 @@ Ordered by benefit ÷ effort.
 |---|------|--------|--------|
 | D-28 | `fastapi<0.137.0` is pinned around a fragility of ours, not around FastAPI | Silent: the app would boot "healthy" with 228 routes missing | A bounded investigation |
 | D-27 | PgBouncer in transaction mode, once there are real users or more workers | Low today, rising with load | Needs an infra window |
+| D-29 | The TTL-cache-plus-single-flight pattern is written three times, and the three disagree | Low: each one works; the next copy is where it stops working | An afternoon, once a fourth caller needs it |
 
 ---
 
@@ -61,6 +62,30 @@ reproduce on 0.141 and bisect which `include_router` loses its routes.
 
 ⏸️ **Deliberately asleep** (owner, 2026-07-31): *"if it works like this, leave it"*. The numbers
 are here for whoever picks it up. Do not reopen unprompted.
+
+---
+
+## D-29 · The same TTL cache is written three times, and the three disagree
+
+Three places cache an expensive probe in process memory behind a TTL and a lock, each one
+written from scratch:
+
+| Where | TTL | What a caller does when the cache is cold |
+|---|---|---|
+| `api/v2/health.py` (`MAINTENANCE_MODE`) | 10 s | Non-blocking `acquire`; a loser serves the stale value. Only the very first probe waits, because there is no stale value to serve yet |
+| `domains/solver/services/worker_health.py` (Hexaly queue) | 15 s | Double-checked locking: a loser blocks, then finds the cache filled |
+| `services/llm/cost_tracking.py` (monthly LLM spend) | 60 s | **No single flight at all.** The lock only guards reading and writing the tuple, so N callers that arrive on an expired cache all run the month-cost query |
+
+Each one is defensible where it sits, and the reasoning is in the comments: health must never
+block on a saturated pool, the Hexaly probe broadcasts to the whole fleet, the spend query is
+cheap enough that a stampede of a few is harmless.
+
+What makes this debt is that the differences are invisible from the outside. The fourth caller
+that needs this will copy whichever file it opens first, and there is no shared helper that
+makes the choice explicit. Worth extracting when that fourth caller shows up, not before.
+
+Recorded 2026-08-13. It had been sitting in an internal QA note since 2026-08-01, which is
+the wrong place for open debt.
 
 ---
 
