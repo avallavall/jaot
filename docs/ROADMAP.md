@@ -39,6 +39,14 @@ runs shows as the plain ratio instead of a one-decimal percentage, a distributio
 single status reads as a sentence instead of a donut of one colour, and one or two days
 of activity say so instead of posing as a trend.
 
+The front page was rebuilt on the same principle: show the product working instead of
+describing it. It opens on a real solver run rather than a screenshot, and the sections
+below it follow one industrial instance the whole way down — where the money in a
+quarterly plan actually goes, why an over-committed version of it has no answer at all,
+and the model source that compiles to both. The figures are generated from the solver
+and from the template catalogue itself, so the page cannot drift away from what JAOT
+reports after a solve.
+
 ## Next
 
 Nothing queued right now — the last item here (the solve analytics screen reading
@@ -47,18 +55,18 @@ well before the data arrives) shipped; see Now.
 ## Later / Exploring
 
 - **A solver of our own** — we are researching what an in-house solver could look like. It
-  will be built as its own open-source project in a separate repository, published alongside
-  JAOT rather than inside it: a solver has no business depending on the platform that happens
-  to use it, and keeping it standalone means anyone can use it without JAOT at all. The
-  platform will then adopt it the way it adopts any other solver — through the adapter
-  contract, same as SCIP and HiGHS. Early exploration; no design commitments yet.
+  lives in its own open-source repository, [jaos](https://github.com/avallavall/jaos),
+  published alongside JAOT rather than inside it: a solver has no business depending on the
+  platform that happens to use it, and keeping it standalone means anyone can use it without
+  JAOT at all. The platform will then adopt it the way it adopts any other solver — through
+  the adapter contract, same as SCIP and HiGHS. Early exploration; no design commitments yet.
 
-- **Optimization for Odoo** — an idea we want to explore: a module that brings real
-  optimization to Odoo, where the decisions worth optimizing already live (purchasing,
-  inventory, production, delivery routes, workforce planning are the obvious candidates).
-  Like the solver, it would be its own open-source repository published alongside JAOT rather
-  than part of it. Nothing is designed yet — including the first question, which is whether
-  it talks to a JAOT instance over the public API or stands on its own.
+- **Optimization for Odoo** — a module that brings real optimization to Odoo, where the
+  decisions worth optimizing already live (purchasing, inventory, production, delivery
+  routes, workforce planning are the obvious candidates). Like the solver, it has its own
+  open-source repository, [jaom](https://github.com/avallavall/jaom), rather than being part
+  of this one. Nothing is designed yet — including the first question, which is whether it
+  talks to a JAOT instance over the public API or stands on its own.
 
 ## Not planned (for now)
 
