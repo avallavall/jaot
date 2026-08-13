@@ -19,7 +19,6 @@ target-version = "py312"
 exclude = [
     "venv",
     "tests/__pycache__",
-    "scripts",  # Scripts need sys.path manipulation before imports
 ]
 
 [tool.ruff.lint]
