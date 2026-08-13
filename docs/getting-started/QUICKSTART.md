@@ -294,8 +294,8 @@ See [Deployment Guide](../operations/DEPLOYMENT.md) and [Disaster Recovery](../.
 | `pytest` | Run backend tests against real PostgreSQL (`jaot_test` DB). `addopts` auto-excludes `slow` and `load` markers |
 | `pytest -m unit` | Only pure-unit tests (no I/O) |
 | `pytest -m integration` | Only integration tests (external services) |
-| `ruff check app/` | Lint with ruff (line length 100, project-level ignores in `pyproject.toml`) |
-| `ruff format app/` | Format Python files with ruff (replaces black + isort) |
+| `ruff check app/ infra/ scripts/ deploy/ tests/` | Lint with ruff (line length 100, project-level ignores in `pyproject.toml`). These are the directories CI gates |
+| `ruff format app/ infra/ scripts/ deploy/ tests/` | Format Python files with ruff (replaces black + isort) |
 | `lint-imports` | Validate import-linter contracts (6 contracts — domain boundaries + pyscipopt isolation) |
 | `alembic -c infra/alembic.ini upgrade head` | Apply DB migrations |
 | `alembic -c infra/alembic.ini revision --autogenerate -m "desc"` | Create a new migration from model changes |

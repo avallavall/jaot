@@ -4,7 +4,7 @@
 
 ## Checklist
 
-- [ ] `ruff check app/ infra/` and `ruff format --check app/ infra/` pass
+- [ ] `ruff check` and `ruff format --check` pass over `app/ infra/ scripts/ deploy/ tests/`
 - [ ] `pytest` passes (tests run against real PostgreSQL — no DB mocks)
 - [ ] `cd frontend && npm run lint && npm run test` pass (if frontend touched)
 - [ ] OpenAPI types regenerated if backend schemas changed (`scripts/export_openapi.py` + `npm run generate-types`)

@@ -87,7 +87,7 @@ Two pipelines, by design:
 pip install -r requirements.txt -r requirements-dev.txt
 pytest tests/                          # full suite against real PostgreSQL
 pytest tests/ --cov=app --cov-report=term-missing   # with coverage
-ruff check app/ infra/ && ruff format --check app/ infra/
+ruff check app/ infra/ scripts/ deploy/ tests/ && ruff format --check app/ infra/ scripts/ deploy/ tests/
 lint-imports                           # import-linter boundary contracts
 
 # Frontend (in frontend/)

@@ -15,8 +15,8 @@ auto-created on the same container) — no DB mocking, ever:
 
 ```bash
 pytest                        # backend tests
-ruff check app/ infra/        # backend lint (migrations included)
-ruff format --check app/ infra/   # backend formatting
+ruff check app/ infra/ scripts/ deploy/ tests/          # backend lint
+ruff format --check app/ infra/ scripts/ deploy/ tests/ # backend formatting
 cd frontend && npm run lint   # frontend lint
 cd frontend && npm run test   # frontend unit tests (vitest)
 ```
@@ -91,8 +91,10 @@ backend schema. Never hand-edit generated files.
 ## Pull requests
 
 1. Fork, branch from `main`, keep the diff focused.
-2. Make sure `ruff check app/ infra/`, `ruff format --check app/ infra/`, `pytest`,
-   and the frontend `lint` + `test` scripts all pass locally.
+2. Make sure `ruff check`, `ruff format --check` (both over `app/ infra/ scripts/
+   deploy/ tests/`), `pytest`, and the frontend `lint` + `test` scripts all pass
+   locally. CI pins ruff to the version in `.pre-commit-config.yaml`, so install
+   that one to get the same result.
 3. Describe **what** changed and **why** — link the issue if one exists.
 4. CI (GitHub Actions) must be green: backend lint + tests vs real PostgreSQL,
    frontend lint + unit tests.

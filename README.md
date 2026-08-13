@@ -202,7 +202,7 @@ import-linter contracts. Adding a solver means writing one adapter — see
 
 ```bash
 pytest                            # backend tests — real PostgreSQL, no mocked DB
-ruff check app/                   # backend lint (100-char lines)
+ruff check app/ infra/ scripts/ deploy/ tests/   # backend lint (100-char lines)
 lint-imports                      # domain boundary contracts
 
 cd frontend

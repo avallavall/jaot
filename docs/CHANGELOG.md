@@ -32,6 +32,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Changed
+
+- **The lint gate covers every directory the pre-commit hook checks.** CI looked at the application and the migrations only, so warnings could pile up unseen in `scripts/`, `deploy/` and `tests/`. All five are now checked in CI as well.
+- **The ruff version is pinned instead of floating.** CI installed whatever release was current, so a new ruff could turn the build red without anyone touching the code. It happened once; now CI and the pre-commit hooks use the same pinned version.
+
 ## [3.4.1] - 2026-08-13
 
 ### Changed
