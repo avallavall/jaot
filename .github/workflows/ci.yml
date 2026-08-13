@@ -23,7 +23,10 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - run: pip install "ruff>=0.14.0"
+      # Pinned, not ">=": a floating version means a ruff release can turn the
+      # gate red without anyone touching the code. 0.16.3 did exactly that on
+      # 2026-08-14. Bump this together with .pre-commit-config.yaml.
+      - run: pip install "ruff==0.16.3"
       # The gate covers the same directories as the pre-commit hook. infra/ joined
       # on 2026-08-13 with 87 warnings. scripts/, deploy/ and tests/ were checked
       # by pre-commit only, and a hook can be skipped.

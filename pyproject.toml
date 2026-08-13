@@ -19,6 +19,11 @@ target-version = "py312"
 exclude = [
     "venv",
     "tests/__pycache__",
+    # ruff 0.16 formats Python blocks inside Markdown. Our .md files document
+    # anti-patterns whose layout is the point: tests/test_quality_proof.md has a
+    # "do NOT do this" snippet with comments aligned in a column. This gate checks
+    # Python code, so it leaves prose alone.
+    "*.md",
 ]
 
 [tool.ruff.lint]
