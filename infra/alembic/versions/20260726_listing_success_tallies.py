@@ -37,9 +37,7 @@ _TABLE = "model_project_listings"
 def upgrade() -> None:
     op.add_column(
         _TABLE,
-        sa.Column(
-            "successful_executions", sa.Integer(), nullable=False, server_default="0"
-        ),
+        sa.Column("successful_executions", sa.Integer(), nullable=False, server_default="0"),
     )
     op.add_column(
         _TABLE,
@@ -47,9 +45,7 @@ def upgrade() -> None:
     )
     op.add_column(
         _TABLE,
-        sa.Column(
-            "total_execution_time_ms", sa.Float(), nullable=False, server_default="0"
-        ),
+        sa.Column("total_execution_time_ms", sa.Float(), nullable=False, server_default="0"),
     )
 
     # Every run the old counter recorded was a success, so it IS the success tally.

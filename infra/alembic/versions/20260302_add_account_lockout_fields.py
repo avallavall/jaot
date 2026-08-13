@@ -8,8 +8,8 @@ Phase 39: Security audit — failed_login_attempts and locked_until columns
 for brute-force protection via account lockout after 5 failed attempts.
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "p1q2r3s4t5u6"

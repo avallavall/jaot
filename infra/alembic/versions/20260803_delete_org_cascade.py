@@ -68,7 +68,13 @@ _FKS = [
         "organizations",
         "CASCADE",
     ),
-    ("withdrawals", "withdrawals_organization_id_fkey", "organization_id", "organizations", "CASCADE"),
+    (
+        "withdrawals",
+        "withdrawals_organization_id_fkey",
+        "organization_id",
+        "organizations",
+        "CASCADE",
+    ),
     (
         "withdrawal_schedules",
         "withdrawal_schedules_organization_id_fkey",

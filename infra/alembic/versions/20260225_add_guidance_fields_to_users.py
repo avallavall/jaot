@@ -7,16 +7,16 @@ Create Date: 2026-02-25 14:20:00.000000+00:00
 GUIDE-02, GUIDE-03: Skill level and wizard state persistence for guidance system.
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "j7k8l9m0n1o2"
-down_revision: Union[str, None] = "i6j7k8l9m0n1"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "i6j7k8l9m0n1"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

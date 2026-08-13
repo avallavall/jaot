@@ -90,23 +90,29 @@ infra/alembic/versions/
 
 ## Conventions + Rules
 
-### Additive-Only
+### Reversible by default
+
+The additive-only rule was retired on 2026-08-02. A DROP or a RENAME is allowed when it
+is the right change. What does not change is why the rule existed: **a rollback restores
+the container image, not the schema.**
 
 ```python
-# ✓ ALLOWED:
+# ✓ Reversible: downgrade() puts the schema back
 def upgrade():
+    op.drop_column('model_executions', 'solver_name')
+
+def downgrade():
     op.add_column('model_executions', sa.Column('solver_name', sa.String()))
-    op.create_index('ix_solver_name', 'model_executions', ['solver_name'])
 
-# ✗ FORBIDDEN (in the same release):
+# ⚠ Irreversible: downgrade() restores the column but not the rows in it.
+#   Take a database backup before deploying, and say so in the deploy plan.
 def upgrade():
-    op.drop_column('model_executions', 'solver_name')  # Breaks rollback → schema mismatch
-
-# ✓ ALLOWED (with dual-write alias):
-def upgrade():
-    op.add_column('model_executions', sa.Column('solver_name_v2', sa.String()))
-    # App writes to both during the transition
+    op.drop_column('model_executions', 'solver_log')  # data is gone
 ```
+
+Where a rename would break running code mid-deploy, the dual-write alias still works:
+add the new column, have the app write both during the transition, drop the old one in a
+later migration.
 
 ### ID Generation
 

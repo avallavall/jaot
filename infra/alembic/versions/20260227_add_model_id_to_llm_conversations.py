@@ -7,16 +7,16 @@ Create Date: 2026-02-27 10:00:00.000000+00:00
 Phase 33: Wire model_id for conversation scoping per builder document.
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "k8l9m0n1o2p3"
-down_revision: Union[str, None] = "j7k8l9m0n1o2"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "j7k8l9m0n1o2"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

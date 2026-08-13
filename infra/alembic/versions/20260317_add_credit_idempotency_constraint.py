@@ -9,8 +9,8 @@ Revises: j1k2l3m4n5o6
 Create Date: 2026-03-17
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "k2l3m4n5o6p7"
@@ -34,11 +34,15 @@ def upgrade() -> None:
     # Add low_credits_notified flag to organizations
     op.add_column(
         "organizations",
-        sa.Column("low_credits_notified", sa.Boolean(), nullable=True, server_default=sa.text("false")),
+        sa.Column(
+            "low_credits_notified", sa.Boolean(), nullable=True, server_default=sa.text("false")
+        ),
     )
 
     # Backfill existing rows
-    op.execute("UPDATE organizations SET low_credits_notified = false WHERE low_credits_notified IS NULL")
+    op.execute(
+        "UPDATE organizations SET low_credits_notified = false WHERE low_credits_notified IS NULL"
+    )
 
     # Make non-nullable after backfill
     op.alter_column("organizations", "low_credits_notified", nullable=False)

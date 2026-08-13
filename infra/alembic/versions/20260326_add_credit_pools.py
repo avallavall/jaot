@@ -10,7 +10,6 @@ Revises: 20260324_rename_enterprise
 Create Date: 2026-03-26
 """
 
-import sqlalchemy as sa
 from alembic import op
 
 revision = "20260326_credit_pools"

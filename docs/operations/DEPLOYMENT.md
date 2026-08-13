@@ -225,7 +225,7 @@ docker compose -f deploy/docker-compose.prod.yml --profile migrate run --rm migr
 docker compose -f deploy/docker-compose.prod.yml exec api alembic -c infra/alembic.ini current
 ```
 
-Migrations are additive-only. Never DROP or RENAME columns in the same release. Rollback restores images, not schema.
+A migration may DROP or RENAME when that is the right change, but a rollback only restores the container image — never the schema. So any migration that cannot be undone by its own `downgrade()` needs a database backup taken before the deploy, and a line saying so in the deploy plan.
 
 ---
 

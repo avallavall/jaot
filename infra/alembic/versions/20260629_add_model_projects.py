@@ -65,9 +65,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.Column("archived_at", sa.DateTime(), nullable=True),
     )
-    op.create_index(
-        "ix_model_projects_organization_id", "model_projects", ["organization_id"]
-    )
+    op.create_index("ix_model_projects_organization_id", "model_projects", ["organization_id"])
     op.create_index("ix_model_projects_org_status", "model_projects", ["organization_id", "status"])
     op.create_index(
         "ix_model_projects_org_updated", "model_projects", ["organization_id", "updated_at"]
@@ -156,9 +154,7 @@ def downgrade() -> None:
     op.drop_column("organization_models", "source_model_project_id")
     op.drop_index("ix_llm_conversations_model_project_id", table_name="llm_conversations")
     op.drop_column("llm_conversations", "model_project_id")
-    op.drop_index(
-        "ix_model_executions_model_project_version_id", table_name="model_executions"
-    )
+    op.drop_index("ix_model_executions_model_project_version_id", table_name="model_executions")
     op.drop_index("ix_model_executions_model_project_id", table_name="model_executions")
     op.drop_column("model_executions", "model_project_version_id")
     op.drop_column("model_executions", "model_project_id")

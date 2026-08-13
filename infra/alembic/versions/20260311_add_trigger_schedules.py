@@ -5,8 +5,8 @@ Revises: c3d4e5f6g7h8
 Create Date: 2026-03-11
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "d5e6f7g8h9i0"
@@ -39,18 +39,14 @@ def upgrade() -> None:
         sa.Column("cron_expression", sa.String(100), nullable=False),
         sa.Column("timezone", sa.String(64), nullable=False, server_default="UTC"),
         sa.Column("is_enabled", sa.Boolean(), nullable=False, server_default=sa.true()),
-        sa.Column(
-            "consecutive_failures", sa.Integer(), nullable=False, server_default="0"
-        ),
+        sa.Column("consecutive_failures", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("last_run_at", sa.DateTime(), nullable=True),
         sa.Column("next_run_at", sa.DateTime(), nullable=True),
         sa.Column("beat_task_id", sa.Integer(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
     )
-    op.create_index(
-        "ix_trigger_schedules_trigger_id", "trigger_schedules", ["trigger_id"]
-    )
+    op.create_index("ix_trigger_schedules_trigger_id", "trigger_schedules", ["trigger_id"])
     op.create_index(
         "ix_trigger_schedules_organization_id",
         "trigger_schedules",

@@ -15,8 +15,8 @@ auto-created on the same container) — no DB mocking, ever:
 
 ```bash
 pytest                        # backend tests
-ruff check app/               # backend lint
-ruff format --check app/      # backend formatting
+ruff check app/ infra/        # backend lint (migrations included)
+ruff format --check app/ infra/   # backend formatting
 cd frontend && npm run lint   # frontend lint
 cd frontend && npm run test   # frontend unit tests (vitest)
 ```
@@ -52,8 +52,10 @@ These are enforced by CI (ruff, import-linter, pytest) and by review:
   Celery, JWT). Business configuration lives in the `platform_settings` table,
   managed through the admin panel (`PlatformSettingsService`). Don't add
   business fields to `app/config.py`.
-- **Migrations are additive-only.** Never DROP or RENAME in the same release —
-  rollback restores container images, not schema.
+- **Migrations:** a DROP or a RENAME is fine when it is the right change. Write a
+  `downgrade()` that works. If the change cannot be reversed, say so in the PR and
+  name the backup to take before deploying — a rollback restores the container
+  image, not the schema.
 - **Line length:** 100 chars in the backend (ruff-enforced).
 - **Frontend:** Next.js App Router under `src/app/[locale]/`, all user-facing
   strings through next-intl (5 locales), no `React.FC`, no `any`, no inline
@@ -89,8 +91,8 @@ backend schema. Never hand-edit generated files.
 ## Pull requests
 
 1. Fork, branch from `main`, keep the diff focused.
-2. Make sure `ruff check app/`, `ruff format --check app/`, `pytest`, and the
-   frontend `lint` + `test` scripts all pass locally.
+2. Make sure `ruff check app/ infra/`, `ruff format --check app/ infra/`, `pytest`,
+   and the frontend `lint` + `test` scripts all pass locally.
 3. Describe **what** changed and **why** — link the issue if one exists.
 4. CI (GitHub Actions) must be green: backend lint + tests vs real PostgreSQL,
    frontend lint + unit tests.

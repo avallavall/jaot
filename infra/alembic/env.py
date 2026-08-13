@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 # override=False preserves env vars already set (e.g. by conftest.py).
 try:
     from dotenv import load_dotenv
+
     load_dotenv(override=False)
 except ImportError:
     pass
@@ -26,7 +27,9 @@ except ImportError:
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://jaot:jaot@localhost:5432/jaot_dev")
 
 # Base no longer eagerly imports session.py, so this is safe with the DB down.
-from app.models import (  # noqa: F401
+# E402 is deliberate here and below: both imports must run after the sys.path
+# insert above, which is what puts the project root on the path at all.
+from app.models import (  # noqa: E402, F401
     APIKey,
     AuditLog,
     LLMConversation,
@@ -46,7 +49,7 @@ from app.models import (  # noqa: F401
     WorkspaceInvite,
     WorkspaceMember,
 )
-from app.shared.db.base import Base
+from app.shared.db.base import Base  # noqa: E402
 
 config = context.config
 

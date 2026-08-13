@@ -13,8 +13,8 @@ Changes:
 - New sequence: invoice_number_seq
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "b4c5d6e7f8g9"
@@ -43,15 +43,11 @@ def upgrade() -> None:
     )
     op.add_column(
         "organizations",
-        sa.Column(
-            "is_frozen", sa.Boolean(), nullable=False, server_default=sa.text("false")
-        ),
+        sa.Column("is_frozen", sa.Boolean(), nullable=False, server_default=sa.text("false")),
     )
     op.add_column(
         "organizations",
-        sa.Column(
-            "chargeback_count", sa.Integer(), nullable=False, server_default=sa.text("0")
-        ),
+        sa.Column("chargeback_count", sa.Integer(), nullable=False, server_default=sa.text("0")),
     )
     op.create_index(
         "ix_organizations_stripe_connect_account_id",

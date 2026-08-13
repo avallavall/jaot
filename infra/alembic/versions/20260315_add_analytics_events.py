@@ -5,8 +5,8 @@ Revises: h9i0j1k2l3m4
 Create Date: 2026-03-15
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "i0j1k2l3m4n5"
@@ -28,12 +28,8 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     # Composite indexes for efficient time-range queries
-    op.create_index(
-        "ix_ae_event_type_created", "analytics_events", ["event_type", "created_at"]
-    )
-    op.create_index(
-        "ix_ae_user_created", "analytics_events", ["user_id", "created_at"]
-    )
+    op.create_index("ix_ae_event_type_created", "analytics_events", ["event_type", "created_at"])
+    op.create_index("ix_ae_user_created", "analytics_events", ["user_id", "created_at"])
     op.create_index("ix_ae_user_id", "analytics_events", ["user_id"])
     op.create_index("ix_ae_created_at", "analytics_events", ["created_at"])
 

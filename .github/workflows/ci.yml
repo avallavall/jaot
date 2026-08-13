@@ -24,8 +24,10 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install "ruff>=0.14.0"
-      - run: ruff check app/
-      - run: ruff format --check app/
+      # infra/ joined the gate on 2026-08-13: the migrations had drifted to 87
+      # warnings because nothing ever linted them.
+      - run: ruff check app/ infra/
+      - run: ruff format --check app/ infra/
 
   # Supply-chain + static security gates. These existed in the Woodpecker pipeline
   # and were lost in the migration to GitHub Actions — nobody deleted them on

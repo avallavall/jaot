@@ -68,8 +68,7 @@ def upgrade() -> None:
     with op.get_context().autocommit_block():
         for table, column in FK_INDEXES:
             op.execute(
-                f"CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_{table}_{column} "
-                f"ON {table} ({column})"
+                f"CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_{table}_{column} ON {table} ({column})"
             )
 
 

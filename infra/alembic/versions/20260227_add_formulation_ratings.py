@@ -7,18 +7,17 @@ Create Date: 2026-02-27 22:00:00.000000+00:00
 Phase 31: Feedback collection — formulation rating model.
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
-
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "m9n0o1p2q3r4"
-down_revision: Union[str, None] = "k8l9m0n1o2p3"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "k8l9m0n1o2p3"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

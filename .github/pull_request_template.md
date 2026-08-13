@@ -4,8 +4,8 @@
 
 ## Checklist
 
-- [ ] `ruff check app/` and `ruff format --check app/` pass
+- [ ] `ruff check app/ infra/` and `ruff format --check app/ infra/` pass
 - [ ] `pytest` passes (tests run against real PostgreSQL — no DB mocks)
 - [ ] `cd frontend && npm run lint && npm run test` pass (if frontend touched)
 - [ ] OpenAPI types regenerated if backend schemas changed (`scripts/export_openapi.py` + `npm run generate-types`)
-- [ ] Migration is additive-only (no DROP/RENAME in the same release)
+- [ ] Migration has a working `downgrade()`; if it cannot be reversed, the PR says so and names the backup to take before deploying (a rollback restores the image, not the schema)
