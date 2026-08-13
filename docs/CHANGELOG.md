@@ -32,11 +32,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
+## [3.4.1] - 2026-08-13
+
 ### Changed
 
 - **The home page's worked example is an industrial one now.** The solve, the infeasible model and the JModel source all run on one power-electronics plant planning a quarter — seven product families competing for SMT line hours, burn-in chambers, microcontrollers and SiC modules — instead of a workshop making chairs and tables. Still real solver output; now at a scale a planner would recognise.
 - **The AI assistant on the home page formulates that same plant**, and the JModel section spans a planning horizon: fourteen lines of source shown grounding into ninety-one variables and into twenty thousand.
 - **The hero replays a 48-stop route** rather than a 24-stop one, and skips the improvement steps too small to see — the search now finishes in about half the time and reads like a delivery round.
+- **The contribution rules state the migration policy that is actually in force.** The pull-request checklist and three documents still required migrations to be additive-only, a rule that was dropped in early August. What applies now: write a `downgrade()` that works, and if a change cannot be undone, take a database backup before deploying, because a rollback restores the container image and not the schema.
+- **Database migrations are linted like the rest of the backend.** Nothing had ever checked them, so `ruff check infra/` now runs in CI and in the pre-commit hooks.
 
 ## [3.4.0] - 2026-08-08
 
