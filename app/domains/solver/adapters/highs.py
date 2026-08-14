@@ -359,12 +359,16 @@ class HiGHSAdapter:
                 )
                 solution_dict[var.name] = float(val)
 
+        counters = self._extract_counters(h, problem)
         result = OptimizationResult(
             status=status,
             objective_value=float(obj_value),
             solve_time_seconds=solve_time,
             variables=variable_solutions,
             solution=solution_dict,
+            iterations=counters.get("iterations"),
+            nodes=counters.get("nodes"),
+            gap=counters.get("gap"),
         )
 
         # Sensitivity: HiGHS exposes exact LP duals (row_dual) + reduced costs
@@ -377,6 +381,46 @@ class HiGHSAdapter:
             logger.warning("HiGHS sensitivity extraction failed: %s", exc)
 
         return result
+
+    def _extract_counters(self, h: object, problem: OptimizationProblem) -> dict[str, float | int]:
+        """How much work HiGHS did: iterations, branch-and-bound nodes, final gap.
+
+        Until this landed the adapter returned none of them, so every HiGHS run
+        showed blanks where SCIP showed numbers — most visibly in the solver
+        comparison, whose whole point is that seconds vary with the machine while
+        this count does not.
+
+        ``mip_node_count`` is reported only for a model that actually has
+        integrality. HiGHS returns 0 for a pure LP, and 0 would read as "explored
+        no nodes" when the truth is that an LP has no branch-and-bound tree at
+        all. Best-effort throughout: a missing counter must never fail a solve
+        that produced an answer.
+        """
+        counters: dict[str, float | int] = {}
+        try:
+            info = h.getInfo()  # type: ignore[attr-defined]
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("HiGHS info unavailable: %s", exc)
+            return counters
+
+        iterations = getattr(info, "simplex_iteration_count", None)
+        if isinstance(iterations, int) and iterations > 0:
+            counters["iterations"] = iterations
+
+        has_integrality = any(
+            v.type in (VariableType.INTEGER, VariableType.BINARY) for v in problem.variables
+        )
+        if has_integrality:
+            nodes = getattr(info, "mip_node_count", None)
+            if isinstance(nodes, int) and nodes >= 0:
+                counters["nodes"] = nodes
+            gap = getattr(info, "mip_gap", None)
+            # HiGHS reports an infinite gap when it has no bound to compare
+            # against; that is "unknown", not "infinitely far off".
+            if isinstance(gap, (int, float)) and 0 <= gap < _HIGHS_INF:
+                counters["gap"] = float(gap)
+
+        return counters
 
     def _extract_sensitivity(
         self,
