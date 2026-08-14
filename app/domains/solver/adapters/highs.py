@@ -12,6 +12,7 @@ highspy is not installed.
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from collections.abc import Callable
 from typing import TYPE_CHECKING
@@ -40,6 +41,41 @@ logger = logging.getLogger(__name__)
 
 # Sentinel for unbounded bounds — highspy uses 1e30 (kHighsInf)
 _HIGHS_INF = 1e30
+
+# The thread count this PROCESS has already solved with, or None before the
+# first solve. 0 means "auto" — HiGHS was left to choose.
+#
+# HiGHS starts one task scheduler per process, sized on the first solve. Asking
+# a later ``Highs()`` for a different thread count does not resize it: the call
+# returns kOk and then the solve produces model status "Not Set", which maps to
+# ERROR. No exception, no message, just a run that silently did nothing.
+#
+# Measured in the runtime image: a solve with no thread setting followed by a
+# solve with ``threads=1`` yields Optimal then "Not Set", and every solve after
+# it keeps failing. Same value every time works; never setting it works.
+#
+# So the first solve wins for the life of the process and a later request for a
+# different count is refused with a warning rather than honoured into silence.
+# A worker that must change it has to be restarted.
+_process_threads: int | None = None
+_process_threads_lock = threading.Lock()
+
+
+def _pin_process_threads(requested: int) -> int:
+    """Return the thread count actually in force, pinning it on first use."""
+    global _process_threads
+    with _process_threads_lock:
+        if _process_threads is None:
+            _process_threads = requested
+        elif requested != _process_threads:
+            logger.warning(
+                "HiGHS thread count is fixed at %d for this process; ignoring the "
+                "request for %d. HiGHS sizes its scheduler on the first solve and "
+                "a later change makes the solve fail silently.",
+                _process_threads,
+                requested,
+            )
+        return _process_threads
 
 
 # Map HiGHS modelStatusToString() output → SolverStatus.
@@ -155,12 +191,16 @@ class HiGHSAdapter:
         h.setOptionValue("time_limit", float(opts.time_limit_seconds))  # type: ignore[attr-defined]
         h.setOptionValue("mip_rel_gap", float(opts.gap_tolerance))  # type: ignore[attr-defined]
         # Default threads=1 on Windows (thread-safety issue in highspy 1.12-1.13);
-        # use 0 (auto) on Linux (production deploy). os.name check avoids a hard import.
-        if opts.threads > 0:
-            h.setOptionValue("threads", opts.threads)  # type: ignore[attr-defined]
-        elif os.name == "nt":
-            h.setOptionValue("threads", 1)  # type: ignore[attr-defined]
-        # else: Linux — let HiGHS choose automatically
+        # 0 (auto) on Linux (production deploy). os.name check avoids a hard import.
+        requested = opts.threads
+        if requested <= 0 and os.name == "nt":
+            requested = 1
+        # First solve in this process wins — see _pin_process_threads for why a
+        # later change cannot be honoured.
+        effective = _pin_process_threads(requested)
+        if effective > 0:
+            h.setOptionValue("threads", effective)  # type: ignore[attr-defined]
+        # else: auto — HiGHS chooses, and every later solve must leave it alone
 
     def _create_variables(
         self,

@@ -37,6 +37,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **The lint gate covers every directory the pre-commit hook checks.** CI looked at the application and the migrations only, so warnings could pile up unseen in `scripts/`, `deploy/` and `tests/`. All five are now checked in CI as well.
 - **The ruff version is pinned instead of floating.** CI installed whatever release was current, so a new ruff could turn the build red without anyone touching the code. It happened once; now CI and the pre-commit hooks use the same pinned version.
 
+### Fixed
+
+- **Changing the thread count no longer breaks every later HiGHS solve.** HiGHS decides how many threads it will use the first time it runs and keeps that decision for as long as the server process lives. A later solve asking for a different number was accepted and then produced nothing at all — an empty result reported as a solver error, with no explanation. The thread count is now held at whatever the first solve used, and a request to change it is refused with a warning in the log instead of quietly failing the solve.
+
 ## [3.4.1] - 2026-08-13
 
 ### Changed
