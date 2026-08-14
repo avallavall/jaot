@@ -404,7 +404,10 @@ class HiGHSAdapter:
             return counters
 
         iterations = getattr(info, "simplex_iteration_count", None)
-        if isinstance(iterations, int) and iterations > 0:
+        # Zero is reported, not hidden: a model that presolve settled on its own
+        # took no simplex iterations, and that is a fact about the solve rather
+        # than a missing measurement.
+        if isinstance(iterations, int) and iterations >= 0:
             counters["iterations"] = iterations
 
         has_integrality = any(

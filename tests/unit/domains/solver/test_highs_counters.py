@@ -66,6 +66,25 @@ def test_an_lp_reports_its_iterations() -> None:
     assert result.iterations > 0
 
 
+# CONTRACT-TEST: zero iterations is a reading, not a blank. A model that
+# presolve settles took no simplex step, and the table must say so rather than
+# leave the cell looking unmeasured.
+def test_zero_iterations_is_reported_rather_than_hidden() -> None:
+    trivial = OptimizationProblem(
+        name="presolved-away",
+        variables=[Variable(name="x", type=VariableType.CONTINUOUS, lower_bound=0.0)],
+        constraints=[Constraint(expression="x <= 4")],
+        objective=Objective(expression="x", sense="maximize"),
+        options=SolverOptions(time_limit_seconds=30.0, verbose=False),
+    )
+
+    result = HiGHSAdapter().solve(trivial)
+
+    assert result.status == SolverStatus.OPTIMAL, result.error_message
+    assert result.iterations is not None
+    assert result.iterations >= 0
+
+
 # CONTRACT-TEST: an LP has no branch-and-bound tree, so its node count stays
 # absent. HiGHS returns 0, and 0 would read as "explored no nodes" when the
 # truth is that there was nothing to explore.

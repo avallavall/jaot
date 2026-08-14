@@ -250,6 +250,9 @@ function formatGapTolerance(value: number): string {
 
 function formatMs(value: number | null): string {
   if (value === null || value === undefined) return "—";
+  // "0 ms" reads as "took no time", which is not what a sub-millisecond solve
+  // means and makes the rest of the row look unmeasured.
+  if (value < 1) return "<1 ms";
   if (value < 1000) return `${value} ms`;
   return `${(value / 1000).toLocaleString(undefined, { maximumFractionDigits: 2 })} s`;
 }

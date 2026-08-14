@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { ComparisonTable } from "@/components/solve/compare/ComparisonTable";
+import { canStop, shouldKeepPolling } from "@/components/solve/compare/polling";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -33,8 +34,6 @@ import type { ComparisonDetail, ProjectListItem } from "@/lib/types";
 /** How often the table refreshes while the comparison is still running. The
  * solves are sequential, so nothing changes faster than one solver at a time. */
 const POLL_INTERVAL_MS = 2000;
-
-const RUNNING_STATUSES = new Set(["pending", "running"]);
 
 export default function SolverComparePage() {
   const t = useTranslations("solverCompare");
@@ -76,20 +75,22 @@ export default function SolverComparePage() {
     }
   }, []);
 
-  // Poll only while there is something left to happen. The interval is torn
-  // down on the terminal state so a finished comparison stops hitting the API.
+  // Poll only while there is something left to happen — which outlasts the
+  // comparison's own status: stopping one leaves the solve already inside a
+  // solver to finish and write its verdict. See shouldKeepPolling.
   const comparisonId = comparison?.id;
-  const isRunning = comparison ? RUNNING_STATUSES.has(comparison.status) : false;
+  const polling = shouldKeepPolling(comparison);
+  const stoppable = canStop(comparison);
   const refreshRef = useRef(refresh);
   refreshRef.current = refresh;
 
   useEffect(() => {
-    if (!comparisonId || !isRunning) return;
+    if (!comparisonId || !polling) return;
     const timer = setInterval(() => {
       void refreshRef.current(comparisonId);
     }, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [comparisonId, isRunning]);
+  }, [comparisonId, polling]);
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
@@ -284,7 +285,7 @@ export default function SolverComparePage() {
               <CardTitle>{comparison.problem_name ?? t("results.title")}</CardTitle>
               <CardDescription>{t(`comparisonStatus.${comparison.status}`)}</CardDescription>
             </div>
-            {isRunning ? (
+            {stoppable ? (
               <Button variant="outline" onClick={() => void cancel()}>
                 <X className="mr-2 h-4 w-4" />
                 {t("results.cancel")}
