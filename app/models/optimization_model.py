@@ -180,6 +180,19 @@ class ModelExecution(Base):
     dataset_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     dataset_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
+    # Solver comparison (Phase 1 of the comparer): the parent run this execution
+    # is one column of. NULL for every ordinary solve, which is nearly all of
+    # them. A real FK, unlike source_kind/source_id above, because the parent is
+    # one known table and a comparison must never keep a dangling child: the
+    # cascade deletes the columns with the comparison, which is also how an
+    # uploaded throwaway problem gets cleaned up.
+    comparison_id: Mapped[str | None] = mapped_column(
+        String(64),
+        ForeignKey("solver_comparisons.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+
     # Async execution tracking
     celery_task_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     progress_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)

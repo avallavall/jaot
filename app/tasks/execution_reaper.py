@@ -22,6 +22,14 @@ Every beat run (~15 min):
      ``EXECUTION_REAPER_RUNNING_MAX_SECONDS`` (hung worker).
    - PENDING / unknown               -> task lost or backend expired; reap
      past the threshold for the row's DB status.
+
+A column of a solver comparison is the exception. Those rows have no Celery task
+of their own: one task solves them all in turn on a single-slot worker, so a
+column can sit 'pending' for as long as the columns ahead of it take, plus
+however long other comparisons are queued in front. Judged by its own age it
+looks exactly like the lost task this reaper exists to clean up. It is judged by
+its PARENT's age and its parent's own time budget instead — see
+``_comparison_still_alive``.
 """
 
 from __future__ import annotations
@@ -33,7 +41,8 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.domains.solver import execution_writer
-from app.models import ExecutionStatus, ModelExecution
+from app.models import ExecutionStatus, ModelExecution, SolverComparison
+from app.models.solver_comparison import ComparisonStatus
 from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.shared.core.celery_app import celery_app
 from app.shared.db.session import SessionLocal
@@ -128,6 +137,44 @@ def _mark_completed(db: Session, execution: ModelExecution, result: Any) -> None
     )
 
 
+def _comparison_still_alive(
+    db: Session,
+    execution: ModelExecution,
+    now: datetime,
+    running_max: int,
+) -> bool:
+    """Whether this row is a column of a comparison that is still legitimately running.
+
+    Returns False for every ordinary solve, so the sweep is unchanged for them.
+
+    For a comparison column, the row's own age says nothing: the comparison task
+    solves its solvers one at a time on a worker that runs one comparison at a
+    time, so a column can be 'pending' for the whole run ahead of it and for
+    every comparison queued in front. The parent's budget is the honest bound —
+    every solver it plans to run, each capped at the shared time limit, plus
+    ``running_max`` of slack for queueing and startup. Past that the parent is
+    genuinely stuck and its columns are reaped like anything else.
+    """
+    if not execution.comparison_id:
+        return False
+
+    comparison = (
+        db.query(SolverComparison).filter(SolverComparison.id == execution.comparison_id).first()
+    )
+    if comparison is None:
+        return False
+    if comparison.status not in (
+        ComparisonStatus.PENDING.value,
+        ComparisonStatus.RUNNING.value,
+    ):
+        return False
+
+    planned = max(1, len(comparison.solver_names or []))
+    budget = planned * float(comparison.time_limit_seconds) + running_max
+    parent_age = (now - (comparison.started_at or comparison.created_at)).total_seconds()
+    return parent_age <= budget
+
+
 def _reap_one(
     db: Session,
     execution: ModelExecution,
@@ -141,6 +188,9 @@ def _reap_one(
     """
     age_base = execution.started_at or execution.created_at
     age_seconds = (now - age_base).total_seconds()
+
+    if _comparison_still_alive(db, execution, now, running_max):
+        return "skipped"
 
     state: str | None = None
     result: Any = None

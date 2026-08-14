@@ -30,6 +30,7 @@ from app.models.organization import Organization, Plan
 from app.models.platform_setting import PlatformSetting
 from app.models.platform_setting_audit import PlatformSettingAudit
 from app.models.refresh_token import RefreshToken
+from app.models.solver_comparison import ComparisonStatus, SolverComparison
 from app.models.trigger import SolveTrigger, TriggerRun, TriggerSchedule
 from app.models.user import User
 from app.models.verification_request import VerificationRequest, VerificationStatus
@@ -53,6 +54,9 @@ __all__ = [
     "ModelCategory",
     "ModelStatus",
     "ExecutionStatus",
+    # Solver comparison (one problem, several solvers, identical settings)
+    "SolverComparison",
+    "ComparisonStatus",
     # Favorites & Recents
     "UserFavorite",
     "RecentModel",

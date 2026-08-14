@@ -21,6 +21,7 @@ from app.api.v2 import (
     projects,
     schedules,
     solve,
+    solver_comparison,
     solvers,
     triggers,
 )
@@ -43,6 +44,11 @@ api_v2_router.include_router(solve.router, tags=["solve"])
 
 # Solvers — list available solver adapters (Phase 5 / HIGH-05)
 api_v2_router.include_router(solvers.router, tags=["solvers"])
+
+# Solver comparison — one problem against several solvers under identical terms.
+# Registered before nothing in particular: its paths sit under /solvers/compare
+# and cannot collide with the single /solvers/available route above.
+api_v2_router.include_router(solver_comparison.router, tags=["solvers"])
 
 # Solve sub-router - Template endpoints (metadata, templates list/detail/solve)
 api_v2_router.include_router(solve_templates_api_router, prefix="/solve", tags=["solve"])

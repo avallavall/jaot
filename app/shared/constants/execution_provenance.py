@@ -27,6 +27,11 @@ ORIGIN_MARKETPLACE = "marketplace"
 ORIGIN_TRIGGER = "triggered"
 ORIGIN_API = "api"
 ORIGIN_MCP = "mcp"
+# One column of a solver comparison. Its own origin because a comparison writes
+# one execution per solver: four rows land in the org's history for a single
+# thing the user did, and without a label there is no way to tell them apart from
+# four separate solves the user ran on purpose.
+ORIGIN_COMPARISON = "comparison"
 
 VALID_ORIGINS = frozenset(
     {
@@ -39,6 +44,7 @@ VALID_ORIGINS = frozenset(
         ORIGIN_TRIGGER,
         ORIGIN_API,
         ORIGIN_MCP,
+        ORIGIN_COMPARISON,
     }
 )
 

@@ -50,16 +50,18 @@ def register_default_adapters() -> None:
     worker-health probe when the adapter could not register locally, so
     the frontend dropdown still shows the multiplier badge.
 
-    Also declares the specialized solver queues to the shared celery audit
-    so workers running ``-Q solve_*`` are recognized as specialized and the
+    Also declares the specialized queues to the shared celery audit so workers
+    running ``-Q solve_*`` are recognized as specialized and the
     producer-coverage check is skipped on their boot (the default worker
-    keeps that responsibility). The reverse import — audit reaching into
-    solver domain — would violate the app/shared boundary.
+    keeps that responsibility). That set is ``SPECIALIZED_QUEUES``: the
+    per-solver queues plus ``solve_compare``, which belongs to the comparison
+    worker and is not keyed by any solver name. The reverse import — audit
+    reaching into solver domain — would violate the app/shared boundary.
     """
-    from app.domains.solver.queue_routing import SOLVER_QUEUE_MAP  # noqa: PLC0415
+    from app.domains.solver.queue_routing import SPECIALIZED_QUEUES  # noqa: PLC0415
     from app.shared.core.celery_queue_audit import register_specialized_queues  # noqa: PLC0415
 
-    register_specialized_queues(SOLVER_QUEUE_MAP.values())
+    register_specialized_queues(SPECIALIZED_QUEUES)
 
     registry.register("scip", SCIPAdapter())
     registry.register("highs", HiGHSAdapter())

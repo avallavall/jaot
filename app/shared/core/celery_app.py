@@ -34,6 +34,7 @@ celery_app = Celery(
         "app.tasks.solver_ports",
         "app.domains.solver.tasks.solve_tasks",
         "app.domains.solver.tasks.scenario_tasks",  # Sensitivity L2 — on-demand what-if batch
+        "app.domains.solver.tasks.comparison_tasks",  # solver comparison — one problem, N solvers
         "app.tasks.email_tasks",
         "app.tasks.webhook_tasks",
         "app.tasks.trigger_tasks",

@@ -196,6 +196,46 @@ services:
       retries: 3
       start_period: 15s
 
+  # Solver-comparison worker. Its own service even in local dev, and NOT folded
+  # into the monolithic worker above, because that one runs at --concurrency=2:
+  # two comparisons solving at once would share a CPU and every second in the
+  # results table would be noise. Deliberately mirrors the prod service.
+  # No SOLVER_QUEUE — see the comment on the prod service for why.
+  celery_worker_compare:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.worker
+    container_name: jaot_celery_compare
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-jaot}:${POSTGRES_PASSWORD:-jaot}@postgres:5432/${POSTGRES_DB:-jaot}
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-jaot}:${RABBITMQ_PASS:-jaot}@rabbitmq:5672//
+      - REDIS_URL=redis://redis:6379/0
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    command: ["celery", "-A", "app.shared.core.celery_app", "worker", "--loglevel=info", "--concurrency=1", "-Q", "solve_compare"]
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app.shared.core.celery_app", "inspect", "ping", "--timeout", "5"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
   celery_beat:
     build:
       context: .

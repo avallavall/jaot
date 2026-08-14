@@ -7,6 +7,7 @@
 #   celery_worker_scip    -> solve_scip   (3G   / 2.0 CPU)
 #   celery_worker_highs   -> solve_highs  (1G   / 1.0 CPU)
 #   celery_worker_hexaly  -> solve_hexaly (2G   / 1.0 CPU) — platform license, see hexaly block
+#   celery_worker_compare -> solve_compare (3G  / 2.0 CPU) — concurrency 1, see compare block
 
 x-logging: &default-logging
   driver: json-file
@@ -355,6 +356,67 @@ services:
         limits:
           # Headroom for LP imports + multi-obj, bumped on the 26 GB / 16-core VM.
           memory: 1536M
+          cpus: '2.0'
+          pids: 128
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app.shared.core.celery_app", "inspect", "ping", "--timeout", "5"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging: *default-logging
+
+  # Solver-comparison worker — runs one problem against several solvers in turn.
+  #
+  # concurrency=1 is the feature, not a resource choice. The comparison table puts
+  # each solver's seconds next to the others', so only one comparison may be
+  # solving at any moment; two at once would be timing two processes sharing a
+  # CPU and the numbers would mean nothing.
+  #
+  # No SOLVER_QUEUE here, unlike every worker above. That env var makes
+  # _assert_queue_match reject a task whose solver does not match the worker's
+  # queue. This worker runs SCIP and HiGHS in the same task on purpose, and no
+  # solver maps to solve_compare, so setting it would reject every comparison.
+  # solve_compare is declared in SPECIALIZED_QUEUES instead, which is what keeps
+  # the boot-time queue audit from restart-looping this container.
+  #
+  # Base image, so it carries the solvers that ship with it (SCIP, HiGHS). Hexaly
+  # is NOT comparable here: its SDK and license live only in the hexaly image.
+  celery_worker_compare:
+    image: ghcr.io/${GHCR_OWNER:-avallavall}/jaot-worker:latest
+    container_name: jaot_prod_celery_compare
+    command: ["celery", "-A", "app.shared.core.celery_app", "worker", "--loglevel=info", "--concurrency=1", "-Q", "solve_compare"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672//
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - DB_POOL_SIZE=5
+      - DB_MAX_OVERFLOW=5
+    env_file:
+      - ../.env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    deploy:
+      resources:
+        limits:
+          # Same headroom as the SCIP worker: a comparison runs whatever the
+          # heaviest selected solver needs, one at a time.
+          memory: 3G
           cpus: '2.0'
           pids: 128
     healthcheck:
