@@ -1047,6 +1047,10 @@
       "fieldUsedFor": "Utilisé pour :",
       "usedForScip": "Moteur de résolution principal de programmation en nombres entiers mixtes pour les modèles d'optimisation",
       "usedForPyscipopt": "Interface Python pour le solveur SCIP",
+      "usedForCbc": "Solveur LP/MIP open source, exécuté comme programme distinct",
+      "usedForGlpk": "Solveur LP/MIP open source, exécuté comme programme distinct",
+      "separateProcessNote": "CBC est distribué tel quel, comme le programme en ligne de commande de Debian. JAOT écrit le modèle dans un fichier, exécute le programme et lit sa sortie. Aucun code de CBC n'est lié à JAOT.",
+      "glpkNote": "GLPK est sous licence GPL et JAOT sous licence Apache. JAOT ne lie jamais la bibliothèque GLPK : il distribue le programme glpsol de Debian, écrit le modèle dans un fichier, exécute le programme et lit sa sortie. Deux programmes distincts dans la même image forment un agrégat, donc le code de JAOT reste sous licence Apache et GLPK conserve ses propres conditions.",
       "usedForRequests": "Client HTTP pour la communication avec des API externes",
       "apacheNote": "Texte complet de la licence Apache 2.0 : voir la section SCIP ci-dessus pour le texte complet."
     },
@@ -4468,6 +4472,12 @@
     },
     "highs": {
       "description": "LP/MIP open source rapide"
+    },
+    "cbc": {
+      "description": "Branch and cut COIN-OR pour LP/MIP"
+    },
+    "glpk": {
+      "description": "Solveur LP/MIP GNU, mono-thread"
     },
     "unavailable": "Le solveur '{name}' n'est pas disponible sur ce serveur.",
     "noProgressNotice": "{solver} ne rend pas compte de sa progression pendant la recherche : le résultat apparaît à la fin de la résolution.",

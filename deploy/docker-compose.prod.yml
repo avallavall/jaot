@@ -6,6 +6,8 @@
 #   celery_worker_default -> jaot_default (256M / 0.25 CPU)
 #   celery_worker_scip    -> solve_scip   (3G   / 2.0 CPU)
 #   celery_worker_highs   -> solve_highs  (1G   / 1.0 CPU)
+#   celery_worker_cbc     -> solve_cbc    (1.5G / 2.0 CPU) — launches the `cbc` binary
+#   celery_worker_glpk    -> solve_glpk   (1.5G / 1.0 CPU) — launches `glpsol`, single-threaded
 #   celery_worker_hexaly  -> solve_hexaly (2G   / 1.0 CPU) — platform license, see hexaly block
 #   celery_worker_compare -> solve_compare (3G  / 2.0 CPU) — concurrency 1, see compare block
 
@@ -357,6 +359,105 @@ services:
           # Headroom for LP imports + multi-obj, bumped on the 26 GB / 16-core VM.
           memory: 1536M
           cpus: '2.0'
+          pids: 128
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app.shared.core.celery_app", "inspect", "ping", "--timeout", "5"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging: *default-logging
+
+  # CBC solver worker. CBC is a command-line program, so this worker's real job
+  # is to launch `cbc` and wait for it. It gets its own queue instead of sharing
+  # solve_scip (owner, 2026-08-15): a child process holds its worker slot for the
+  # whole run, and a long CBC solve must not queue up the SCIP solves behind it.
+  #
+  # `pids` has to leave room for that child — a solve here is always two
+  # processes, not one.
+  celery_worker_cbc:
+    image: ghcr.io/${GHCR_OWNER:-avallavall}/jaot-worker:latest
+    container_name: jaot_prod_celery_cbc
+    command: ["celery", "-A", "app.shared.core.celery_app", "worker", "--loglevel=info", "--concurrency=1", "-Q", "solve_cbc"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672//
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - DB_POOL_SIZE=5
+      - DB_MAX_OVERFLOW=5
+      - SOLVER_QUEUE=solve_cbc
+    env_file:
+      - ../.env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    # The model is handed to CBC as a file. A model with tens of thousands of
+    # variables writes several MB of LP here, so this cannot be a small tmpfs.
+    tmpfs:
+      - /tmp:size=256m
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+          cpus: '2.0'
+          pids: 128
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app.shared.core.celery_app", "inspect", "ping", "--timeout", "5"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging: *default-logging
+
+  # GLPK solver worker. Same shape as the CBC worker above, and single-threaded
+  # because GLPK is: `glpsol` has no thread option at all.
+  celery_worker_glpk:
+    image: ghcr.io/${GHCR_OWNER:-avallavall}/jaot-worker:latest
+    container_name: jaot_prod_celery_glpk
+    command: ["celery", "-A", "app.shared.core.celery_app", "worker", "--loglevel=info", "--concurrency=1", "-Q", "solve_glpk"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672//
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - DB_POOL_SIZE=5
+      - DB_MAX_OVERFLOW=5
+      - SOLVER_QUEUE=solve_glpk
+    env_file:
+      - ../.env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+          cpus: '1.0'
           pids: 128
     healthcheck:
       test: ["CMD", "celery", "-A", "app.shared.core.celery_app", "inspect", "ping", "--timeout", "5"]

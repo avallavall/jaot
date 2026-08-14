@@ -39,9 +39,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **The comparison says whether the solvers agree.** When two of them reach the same objective with different variable values, the page says outright that both are right and the model has more than one optimal solution, instead of leaving a reader to conclude that one solver is broken.
 - **The comparison says what the problem is and how much work each solver did.** The table carries the best bound each solver proved beside its objective, the search time beside the total so the model-building share is visible, and how many times slower each solver was than the quickest. Above it: the problem's class and its size.
 - **Compare a model from the studio or a file you upload.** MPS, LP, CIP and JSON are accepted. An uploaded problem lives only inside its comparison and is deleted with it; it is not saved as a model.
+- **Two more solvers: CBC and GLPK.** Both are free and open source, both solve linear and mixed-integer models, and both can be picked for an ordinary solve or added to a comparison. Each reports its own iterations, nodes, gap and best bound, so no column of the comparison table is blank because of them. GLPK is single-threaded and the picker says so, since that is usually why it comes last on time.
+- **CBC and GLPK run as separate programs, never linked into JAOT.** GLPK is under the GPL and JAOT is under the Apache License; keeping them apart is what lets the two ship together. The licences page and `THIRD_PARTY_LICENSES` state it, with the source of both.
 
 ### Changed
 
+- **The solver picker describes each solver in your language.** The translations were already there in all five languages and nothing was reading them, so every user saw the English line the API sends.
 - **The lint gate covers every directory the pre-commit hook checks.** CI looked at the application and the migrations only, so warnings could pile up unseen in `scripts/`, `deploy/` and `tests/`. All five are now checked in CI as well.
 - **The ruff version is pinned instead of floating.** CI installed whatever release was current, so a new ruff could turn the build red without anyone touching the code. It happened once; now CI and the pre-commit hooks use the same pinned version.
 

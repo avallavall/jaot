@@ -1047,6 +1047,10 @@
       "fieldUsedFor": "Utilitzat per a:",
       "usedForScip": "Motor solver principal de programació entera mixta per a models d'optimització",
       "usedForPyscipopt": "Interfície de Python per al solver SCIP",
+      "usedForCbc": "Solver LP/MIP de codi obert, executat com a programa a part",
+      "usedForGlpk": "Solver LP/MIP de codi obert, executat com a programa a part",
+      "separateProcessNote": "CBC es distribueix com el programa de línia d'ordres de Debian, sense modificar. JAOT escriu el model en un fitxer, executa el programa i llegeix la seva sortida. No hi ha codi de CBC enllaçat dins de JAOT.",
+      "glpkNote": "GLPK està sota la GPL i JAOT sota la llicència Apache. JAOT mai no enllaça la biblioteca de GLPK: distribueix el programa glpsol de Debian, escriu el model en un fitxer, executa el programa i llegeix la seva sortida. Dos programes separats dins de la mateixa imatge són una agregació, de manera que el codi de JAOT continua sota la llicència Apache i GLPK conserva les seves condicions.",
       "usedForRequests": "Client HTTP per a la comunicació amb APIs externes",
       "apacheNote": "Text complet de la Llicència Apache 2.0: consulta la secció de SCIP més amunt per al text complet."
     },
@@ -4468,6 +4472,12 @@
     },
     "highs": {
       "description": "LP/MIP de codi obert ràpid"
+    },
+    "cbc": {
+      "description": "Ramificació i tall de COIN-OR per a LP/MIP"
+    },
+    "glpk": {
+      "description": "Solver LP/MIP de GNU, d'un sol fil"
     },
     "unavailable": "El solver '{name}' no està disponible en aquest servidor.",
     "noProgressNotice": "{solver} no informa del progrés mentre cerca: veuràs el resultat quan acabi de resoldre.",

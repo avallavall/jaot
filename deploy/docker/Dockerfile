@@ -25,6 +25,17 @@ FROM python:3.12-slim@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dc
 
 WORKDIR /app
 
+# Command-line solvers. CBC is EPL-2.0 and GLPK is GPLv3; both run as separate
+# processes and are never linked into the Python process — for GLPK that is what
+# keeps JAOT's own source under Apache-2.0. See
+# app/domains/solver/adapters/_cli_solver.py.
+# They are installed in the API image and not only in the worker: the API calls
+# `is_available()` to build GET /solvers/available, so without the binaries here
+# neither solver would ever appear in the picker.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends coinor-cbc glpk-utils \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /install /usr/local
 
 # Non-root user created before COPY so --chown sets ownership at copy time.

@@ -2,9 +2,16 @@ THIRD-PARTY LICENSE ATTRIBUTIONS
 =================================
 
 This file documents the license terms for third-party software components used
-by JAOT. It covers the solver engines (SCIP, HiGHS), their Python interfaces
-(PySCIPOpt, highspy), PDF extraction (pypdf), and Apache 2.0 licensed direct
-dependencies (requests).
+by JAOT. It covers the solver engines (SCIP, HiGHS, CBC, GLPK), their Python
+interfaces (PySCIPOpt, highspy), PDF extraction (pypdf), and Apache 2.0 licensed
+direct dependencies (requests).
+
+CBC and GLPK are used differently from the others and it matters. They are
+stock command-line programs installed from Debian into the container images.
+JAOT writes a model file, runs the program, and reads its output. No GLPK or
+CBC code is linked into, compiled into, or otherwise combined with JAOT's own
+program. That separation is what keeps JAOT under Apache 2.0 while shipping
+alongside GLPK, which is GPLv3.
 
 Remaining dependencies used by JAOT are licensed under MIT or BSD terms.
 See requirements.txt and frontend/package.json for complete dependency lists.
@@ -22,6 +29,8 @@ SUMMARY
   SoPlex       8.0.2     Apache 2.0    Zuse Institute Berlin (ZIB)
   PySCIPOpt    6.2.1     MIT           Zuse Institute Berlin (ZIB)
   HiGHS        1.12+     MIT           HiGHS developers (Univ. of Edinburgh)
+  CBC          2.10.12   EPL-2.0       COIN-OR Foundation
+  GLPK         5.0       GPL-3.0       Free Software Foundation, Inc.
   pypdf        5.1+      BSD-3-Clause  Mathieu Fenniak and contributors
   requests     2.32.5    Apache 2.0    Kenneth Reitz
 
@@ -265,6 +274,59 @@ Used for:   Open-source LP/MIP solver backend (highspy Python bindings)
 
 MIT license terms: identical in form to the PySCIPOpt section above;
 full text at https://github.com/ERGO-Code/HiGHS/blob/master/LICENSE.txt
+
+
+========================================================================
+CBC 2.10.12  (COIN-OR branch and cut)
+========================================================================
+
+License:    Eclipse Public License, Version 2.0 (EPL-2.0)
+Copyright:  Copyright (c) COIN-OR Foundation and contributors
+URL:        https://github.com/coin-or/Cbc
+Used for:   Open-source LP/MIP solver, one of the engines a user can pick
+Delivery:   The stock, unmodified `cbc` program from Debian's `coinor-cbc`
+            package, installed into the API and worker images. JAOT runs it as
+            a separate process and exchanges data through files; no CBC code is
+            linked into JAOT.
+
+Full license text: https://www.eclipse.org/legal/epl-2.0/
+Source code:       https://github.com/coin-or/Cbc, and from Debian with
+                   `apt-get source coinor-cbc`.
+
+
+========================================================================
+GLPK 5.0  (GNU Linear Programming Kit)
+========================================================================
+
+License:    GNU General Public License, Version 3 or later (GPL-3.0-or-later)
+Copyright:  Copyright (c) 2000-2020 Free Software Foundation, Inc.
+            Author: Andrew Makhorin <mao@gnu.org>
+URL:        https://www.gnu.org/software/glpk/
+Used for:   Open-source LP/MIP solver, one of the engines a user can pick
+
+Delivery and why JAOT stays Apache 2.0:
+
+            GLPK is GPLv3. Linking its library into JAOT's own process would
+            make JAOT's source a combined work and put it under the GPL as
+            well. JAOT therefore never links GLPK. What ships is the stock,
+            unmodified `glpsol` program from Debian's `glpk-utils` package,
+            installed into the API and worker images. JAOT writes a model to a
+            file, runs `glpsol` as a separate program, and reads the files it
+            writes back — the same thing a person does at a shell prompt.
+
+            Two independent programs that merely travel in the same container
+            image are an aggregate under GPLv3 §5, not one work. JAOT's own
+            source stays under Apache 2.0; GLPK stays under the GPL, with its
+            terms unchanged and its source available.
+
+            The adapter is at app/domains/solver/adapters/glpk.py and says the
+            same thing at the top, so nobody adds a Python binding by accident.
+            Any binding — swiglpk, PuLP's GLPK backend, cvxpy's — links the
+            library and would break this.
+
+Full license text: https://www.gnu.org/licenses/gpl-3.0.txt
+Source code:       https://ftp.gnu.org/gnu/glpk/, and from Debian with
+                   `apt-get source glpk-utils`.
 
 
 ========================================================================

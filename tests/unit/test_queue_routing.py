@@ -10,16 +10,20 @@ import pytest
 
 
 @pytest.mark.unit
-def test_solver_queue_map_contains_scip_highs_and_hexaly() -> None:
-    """D-02 + D-17: map must contain scip, highs, and (Phase 7) hexaly.
+def test_solver_queue_map_contains_every_shipped_solver() -> None:
+    """D-02 + D-17: every solver JAOT ships has a queue of its own.
 
-    Phase 7 landed ``"hexaly": "solve_hexaly"``; future commercial
-    solvers (gurobi, cplex) remain explicit extension points.
+    Phase 7 landed ``"hexaly": "solve_hexaly"``; CBC and GLPK landed with their
+    own workers rather than sharing SCIP's, because they launch a child process
+    that holds its worker slot for the whole run. Future commercial solvers
+    (gurobi, cplex) remain explicit extension points.
     """
     from app.domains.solver.queue_routing import SOLVER_QUEUE_MAP
 
     assert SOLVER_QUEUE_MAP["scip"] == "solve_scip"
     assert SOLVER_QUEUE_MAP["highs"] == "solve_highs"
+    assert SOLVER_QUEUE_MAP["cbc"] == "solve_cbc"
+    assert SOLVER_QUEUE_MAP["glpk"] == "solve_glpk"
     assert SOLVER_QUEUE_MAP["hexaly"] == "solve_hexaly"
     # Future extension points must not be pre-reserved.
     assert "gurobi" not in SOLVER_QUEUE_MAP
@@ -27,12 +31,14 @@ def test_solver_queue_map_contains_scip_highs_and_hexaly() -> None:
 
 
 @pytest.mark.unit
-def test_resolve_queue_maps_scip_highs_and_hexaly() -> None:
+def test_resolve_queue_maps_every_shipped_solver() -> None:
     """D-02 + D-17: explicit solver_name maps to the correct queue."""
     from app.domains.solver.queue_routing import resolve_queue
 
     assert resolve_queue("scip") == "solve_scip"
     assert resolve_queue("highs") == "solve_highs"
+    assert resolve_queue("cbc") == "solve_cbc"
+    assert resolve_queue("glpk") == "solve_glpk"
     assert resolve_queue("hexaly") == "solve_hexaly"
 
 

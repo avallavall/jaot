@@ -47,6 +47,11 @@ router = APIRouter(prefix="/solvers", tags=["solvers"])
 _SOLVER_DESCRIPTIONS: dict[str, str] = {
     "scip": "Academic MIP solver",
     "highs": "Fast open-source LP/MIP",
+    "cbc": "COIN-OR branch and cut for LP/MIP",
+    # Said out loud because it is the reason GLPK will usually come last in a
+    # comparison, and a user who does not know it will read the seconds as a
+    # verdict on the model rather than on the solver.
+    "glpk": "GNU LP/MIP solver, single-threaded",
     "hexaly": "Commercial solver for quadratic / non-convex problems",
 }
 

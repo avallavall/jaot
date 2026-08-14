@@ -263,10 +263,11 @@ Issues and focused PRs welcome; see [CONTRIBUTING.md](CONTRIBUTING.md) and
 
 ## Citing the solvers
 
-JAOT is powered by **SCIP 10** (via PySCIPOpt) and **HiGHS**. As the SCIP team
-[requests](https://www.scipopt.org/index.php#cite), any work that uses SCIP
-should acknowledge and cite it. If JAOT helps your research or product, please
-cite the underlying solvers:
+JAOT is powered by **SCIP 10** (via PySCIPOpt) and **HiGHS**, and also ships
+**CBC** (EPL-2.0) and **GLPK** (GPL-3.0-or-later) as separate command-line
+programs. As the SCIP team [requests](https://www.scipopt.org/index.php#cite),
+any work that uses SCIP should acknowledge and cite it. If JAOT helps your
+research or product, please cite the underlying solvers:
 
 ```bibtex
 @misc{scip10,

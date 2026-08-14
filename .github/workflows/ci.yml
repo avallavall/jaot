@@ -88,6 +88,11 @@ jobs:
           cache-dependency-path: |
             requirements.txt
             requirements-dev.txt
+      - name: Install the command-line solvers
+        # CBC and GLPK are programs, not Python packages, so pip cannot bring
+        # them in. Their contract tests run the real binaries — without this
+        # step they would skip, and a skipped solver test proves nothing.
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends coinor-cbc glpk-utils
       - run: pip install uv
       - run: uv pip install --system -r requirements.txt -r requirements-dev.txt
       - name: Run tests

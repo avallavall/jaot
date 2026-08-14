@@ -21,7 +21,10 @@ Production runs **24 containers** (plus 1 one-shot `migrate`) across four Docker
 | `api` | jaot_prod_api | 8001 (internal) | FastAPI backend, 4 Uvicorn workers |
 | `celery_worker_default` | jaot_prod_celery_default | -- | Default queue (`jaot_default`): email, webhooks, cron (256 MB) |
 | `celery_worker_scip` | jaot_prod_celery_scip | -- | SCIP solver queue (`solve_scip`) — 3 GB |
-| `celery_worker_highs` | jaot_prod_celery_highs | -- | HiGHS solver queue (`solve_highs`) — 1 GB |
+| `celery_worker_highs` | jaot_prod_celery_highs | -- | HiGHS solver queue (`solve_highs`) — 1.5 GB |
+| `celery_worker_cbc` | jaot_prod_celery_cbc | -- | CBC solver queue (`solve_cbc`) — 1.5 GB; launches the `cbc` binary |
+| `celery_worker_glpk` | jaot_prod_celery_glpk | -- | GLPK solver queue (`solve_glpk`) — 1.5 GB; launches `glpsol` |
+| `celery_worker_compare` | jaot_prod_celery_compare | -- | Solver-comparison queue (`solve_compare`) — 3 GB; concurrency 1 |
 | `celery_worker_hexaly` | jaot_prod_celery_hexaly | -- | Hexaly solver queue (`solve_hexaly`) — 2 GB; profile: hexaly |
 | `celery_beat` | jaot_prod_beat | -- | Cron scheduler (DB-backed via sqlalchemy_celery_beat) |
 | `frontend` | jaot_prod_frontend | 3000 (internal) | Next.js 16 (production build) |

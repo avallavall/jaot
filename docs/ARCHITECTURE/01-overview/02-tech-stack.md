@@ -14,6 +14,8 @@
 | | Celery | — | async tasks |
 | | PySCIPOpt | — | SCIP solver |
 | | HiGHS (highspy) | — | HiGHS solver |
+| | CBC (`coinor-cbc`) | 2.10.12 | CBC solver, run as a separate program |
+| | GLPK (`glpk-utils`) | 5.0 | GLPK solver, run as a separate program (GPLv3 — never linked) |
 | | sentence-transformers | `BAAI/bge-small-en-v1.5` | embeddings for RAG (local CPU, 384 dims) |
 | **Runtime infra** | PostgreSQL | 18 | database |
 | | Redis | 7 | rate limiting + result backend + pub/sub |
@@ -69,7 +71,7 @@ flowchart TB
 
     subgraph Backend["Backend"]
         FastAPI["FastAPI<br/>Python 3.12"]
-        Celery["Celery workers<br/>(default / scip / highs)"]
+        Celery["Celery workers<br/>(default / scip / highs / cbc / glpk / compare)"]
     end
 
     subgraph Data["Data"]

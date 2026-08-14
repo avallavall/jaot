@@ -19,7 +19,10 @@ graph TB
 
             CeleryDefault["celery_worker_default<br/>-Q jaot_default<br/>256M / 0.25 CPU<br/>concurrency=2"]
             CeleryScip["celery_worker_scip<br/>-Q solve_scip<br/>3G / 2.0 CPU<br/>concurrency=2"]
-            CeleryHighs["celery_worker_highs<br/>-Q solve_highs<br/>1G / 1.0 CPU<br/>concurrency=1"]
+            CeleryHighs["celery_worker_highs<br/>-Q solve_highs<br/>1.5G / 2.0 CPU<br/>concurrency=1"]
+            CeleryCbc["celery_worker_cbc<br/>-Q solve_cbc<br/>1.5G / 2.0 CPU<br/>concurrency=1"]
+            CeleryGlpk["celery_worker_glpk<br/>-Q solve_glpk<br/>1.5G / 1.0 CPU<br/>concurrency=1"]
+            CeleryCompare["celery_worker_compare<br/>-Q solve_compare<br/>3G / 2.0 CPU<br/>concurrency=1"]
             CeleryHexaly["celery_worker_hexaly<br/>-Q solve_hexaly<br/>2G / 1.0 CPU<br/>profile: hexaly"]
             CeleryBeat["celery_beat<br/>DatabaseScheduler<br/>128M / 0.5 CPU"]
 
@@ -63,17 +66,26 @@ graph TB
     CeleryDefault -->|consume jaot_default| RabbitMQ
     CeleryScip -->|consume solve_scip| RabbitMQ
     CeleryHighs -->|consume solve_highs| RabbitMQ
+    CeleryCbc -->|consume solve_cbc| RabbitMQ
+    CeleryGlpk -->|consume solve_glpk| RabbitMQ
+    CeleryCompare -->|consume solve_compare| RabbitMQ
     CeleryHexaly -->|consume solve_hexaly| RabbitMQ
     CeleryBeat -->|schedule| RabbitMQ
 
     CeleryDefault --> PostgreSQL
     CeleryScip --> PostgreSQL
     CeleryHighs --> PostgreSQL
+    CeleryCbc --> PostgreSQL
+    CeleryGlpk --> PostgreSQL
+    CeleryCompare --> PostgreSQL
     CeleryHexaly --> PostgreSQL
 
     CeleryDefault --> Redis
     CeleryScip --> Redis
     CeleryHighs --> Redis
+    CeleryCbc --> Redis
+    CeleryGlpk --> Redis
+    CeleryCompare --> Redis
     CeleryHexaly --> Redis
 
     Plausible --> PlausibleDB
@@ -95,7 +107,8 @@ graph TB
 
 - **4 isolated Docker networks**: `frontend` (Caddy, Frontend, Plausible app, Blackbox), `backend` (API, workers, infra), `monitoring` (Prometheus, Grafana, exporters), `plausible_backend` (internal — Plausible postgres + ClickHouse, unreachable from outside).
 - **Plausible CE analytics (Phase 8):** 3 containers — `plausible_db` (postgres:16), `plausible_events_db` (clickhouse:24.12), `plausible` (CE v3.2.0). Dashboard access via SSH tunnel to `127.0.0.1:8800`. Only `/js/script.js` and `/api/event` are publicly proxied through Caddy.
-- **Total memory commitment:** SCIP 3G + HiGHS 1G + default 256M + Hexaly 2G = 6.25G (Hexaly is profile-gated).
+- **Total memory commitment (workers):** SCIP 3G + compare 3G + HiGHS 1.5G + CBC 1.5G + GLPK 1.5G + default 256M = 10.75G, plus Hexaly 2G when its profile is on. These are limits, not reservations: the solver workers sit near zero until a solve arrives, and only one comparison ever runs at a time.
 - **Critical volumes:** `postgres_data` (daily backup), `wal_archive` (continuous PITR), `redis_data`, `rabbitmq_data`, `caddy_data` (TLS certs).
 - **Security posture:** `cap_drop: ALL`, `read_only: true`, `tmpfs /tmp`, `security_opt: no-new-privileges:true` for all workers.
+- **CBC and GLPK workers:** both launch a command-line program as a child process, so a solve there is two processes and the `pids` limit has to allow for it. Their `/tmp` tmpfs is where the model file is written — a model with tens of thousands of variables needs several MB of it.
 - **Hexaly worker:** `celery_worker_hexaly` is profile-gated (`profiles: ["hexaly"]`, 2G memory limit); activated with `--profile hexaly` and a platform license mount at `/etc/jaot/hexaly.lic`.

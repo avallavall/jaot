@@ -9,6 +9,13 @@ from app.domains.solver.adapters.base import DEFAULT_SOLVER_NAME, SolverNotFound
 SOLVER_QUEUE_MAP: dict[str, str] = {
     "scip": "solve_scip",
     "highs": "solve_highs",
+    # CBC and GLPK run as separate processes launched by the worker, so a long
+    # solve holds a worker slot for its whole run without releasing the GIL back
+    # to anything useful. They get their own workers (owner's decision,
+    # 2026-08-15) rather than sharing solve_scip, so a slow GLPK run cannot
+    # queue up behind it the solves everyone else is waiting for.
+    "cbc": "solve_cbc",
+    "glpk": "solve_glpk",
     # Phase 7 — D-17. WR-03 guard at resolve_queue below preserved:
     # the generic "Unknown solver" message never enumerates installed
     # commercial solvers, so landing "hexaly" here does NOT leak which

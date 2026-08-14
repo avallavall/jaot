@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { capabilitiesOf, type SolverInfo } from "@/hooks/useSolvers";
-import { solverDisplayName } from "@/lib/solver-display";
+import { solverDescription, solverDisplayName } from "@/lib/solver-display";
 
 interface SolverSelectProps {
   id?: string;
@@ -109,9 +109,9 @@ export function SolverSelect({
               disabled={solver.available === false}
             >
               <span>{solverDisplayName(solver.name)}</span>
-              {solver.description && (
+              {solverDescription(solver.name, solver.description, tSolvers) && (
                 <span className="text-muted-foreground text-xs ml-2">
-                  {solver.description}
+                  {solverDescription(solver.name, solver.description, tSolvers)}
                 </span>
               )}
             </SelectItem>

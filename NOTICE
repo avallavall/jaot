@@ -5,5 +5,12 @@ Licensed under the Apache License, Version 2.0.
 
 This product uses the SCIP Optimization Suite developed at
 Zuse Institute Berlin (https://www.scipopt.org/) and the HiGHS
-optimization solver (https://highs.dev/). Third-party license
-attributions are documented in THIRD_PARTY_LICENSES.
+optimization solver (https://highs.dev/).
+
+It also ships two command-line solvers as separate programs: CBC
+(https://github.com/coin-or/Cbc, EPL-2.0) and GLPK
+(https://www.gnu.org/software/glpk/, GPL-3.0-or-later). Neither is
+linked into JAOT; both are run as their own processes and exchange
+data through files.
+
+Third-party license attributions are documented in THIRD_PARTY_LICENSES.

@@ -24,6 +24,8 @@ from app.domains.solver.adapters.base import (
     SolverNotFoundError,
     SolverUnavailableError,
 )
+from app.domains.solver.adapters.cbc import CBCAdapter
+from app.domains.solver.adapters.glpk import GLPKAdapter
 from app.domains.solver.adapters.highs import HiGHSAdapter
 from app.domains.solver.adapters.registry import SolverRegistry, registry
 from app.domains.solver.adapters.scip import SCIPAdapter
@@ -38,7 +40,9 @@ def register_default_adapters() -> None:
     route registration. Idempotent — calling twice re-registers (last write
     wins) but does not raise.
 
-    SCIP and HiGHS always register (their solvers ship in the base image).
+    SCIP and HiGHS always register (their solvers ship in the base image), and
+    so do CBC and GLPK — those two are command-line programs and report their
+    own absence through ``is_available()`` instead of failing to construct.
     Hexaly is an optional proprietary extra: its SDK is NOT in
     requirements.txt (see requirements-hexaly.txt) and only the dedicated
     worker image installs it, so registration is gated on the SDK being
@@ -65,6 +69,13 @@ def register_default_adapters() -> None:
 
     registry.register("scip", SCIPAdapter())
     registry.register("highs", HiGHSAdapter())
+    # CBC and GLPK are command-line programs, not Python packages. They register
+    # unconditionally and `is_available()` reports whether the binary is on PATH,
+    # which is the contract the registry documents (D-10/D-11). An image built
+    # without `coinor-cbc` / `glpk-utils` therefore starts normally and simply
+    # does not list them.
+    registry.register("cbc", CBCAdapter())
+    registry.register("glpk", GLPKAdapter())
 
     from app.domains.solver.adapters.hexaly_availability import (  # noqa: PLC0415
         hexaly_available,
@@ -87,6 +98,8 @@ def register_default_adapters() -> None:
 
 __all__ = [
     "DEFAULT_SOLVER_NAME",
+    "CBCAdapter",
+    "GLPKAdapter",
     "HiGHSAdapter",
     "MultiObjectiveSolverAdapter",
     "SCIPAdapter",

@@ -234,6 +234,22 @@ const dependencies = [
     usedFor: "Open-source LP/MIP solver backend",
   },
   {
+    name: "CBC",
+    version: "2.10.12",
+    license: "EPL-2.0",
+    copyright: "Copyright (c) COIN-OR Foundation and contributors",
+    url: "https://github.com/coin-or/Cbc",
+    usedFor: "Open-source LP/MIP solver, run as a separate program",
+  },
+  {
+    name: "GLPK",
+    version: "5.0",
+    license: "GPL-3.0-or-later",
+    copyright: "Copyright (c) 2000-2020 Free Software Foundation, Inc.",
+    url: "https://www.gnu.org/software/glpk/",
+    usedFor: "Open-source LP/MIP solver, run as a separate program",
+  },
+  {
     name: "pypdf",
     version: "5.1+",
     license: "BSD-3-Clause",
@@ -320,6 +336,40 @@ export default async function LicensesPage() {
           <div className="border border-border rounded-lg bg-muted/30 p-4 overflow-x-auto">
             <pre className="text-xs whitespace-pre-wrap">{MIT_LICENSE}</pre>
           </div>
+        </section>
+
+        {/* CBC */}
+        <section>
+          <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">CBC 2.10.12</h2>
+          <div className="text-sm space-y-1 mb-4">
+            <p><span className="font-medium text-foreground">{t("licenses.fieldLicense")}</span> Eclipse Public License, Version 2.0</p>
+            <p><span className="font-medium text-foreground">{t("licenses.fieldCopyright")}</span> Copyright (c) COIN-OR Foundation and contributors</p>
+            <p>
+              <span className="font-medium text-foreground">{t("licenses.fieldUrl")}</span>{" "}
+              <a href="https://github.com/coin-or/Cbc" className="underline hover:text-foreground transition-colors" target="_blank" rel="noopener noreferrer">
+                https://github.com/coin-or/Cbc
+              </a>
+            </p>
+            <p><span className="font-medium text-foreground">{t("licenses.fieldUsedFor")}</span> {t("licenses.usedForCbc")}</p>
+          </div>
+          <p className="text-sm italic">{t("licenses.separateProcessNote")}</p>
+        </section>
+
+        {/* GLPK */}
+        <section>
+          <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">GLPK 5.0</h2>
+          <div className="text-sm space-y-1 mb-4">
+            <p><span className="font-medium text-foreground">{t("licenses.fieldLicense")}</span> GNU General Public License, Version 3 or later</p>
+            <p><span className="font-medium text-foreground">{t("licenses.fieldCopyright")}</span> Copyright (c) 2000-2020 Free Software Foundation, Inc.</p>
+            <p>
+              <span className="font-medium text-foreground">{t("licenses.fieldUrl")}</span>{" "}
+              <a href="https://www.gnu.org/software/glpk/" className="underline hover:text-foreground transition-colors" target="_blank" rel="noopener noreferrer">
+                https://www.gnu.org/software/glpk/
+              </a>
+            </p>
+            <p><span className="font-medium text-foreground">{t("licenses.fieldUsedFor")}</span> {t("licenses.usedForGlpk")}</p>
+          </div>
+          <p className="text-sm italic">{t("licenses.glpkNote")}</p>
         </section>
 
         {/* requests */}
