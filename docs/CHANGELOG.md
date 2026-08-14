@@ -32,6 +32,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Added
+
+- **Solver Comparer.** A new page runs one problem on several solvers and puts what each of them did side by side: result, objective, gap, time, branch-and-bound nodes and iterations. Every solver receives the same time limit, the same gap tolerance and the same thread count, and they run one after another on one machine, so the times mean something. The conditions and the machine are stated above the table, and the times are only claimed to be comparable inside that one comparison.
+- **A solver that cannot run your model says so, in its own row.** Integer variables it does not support, quadratic terms it cannot express, a solver that is not installed — each gets a named reason instead of an empty cell.
+- **The comparison says whether the solvers agree.** When two of them reach the same objective with different variable values, the page says outright that both are right and the model has more than one optimal solution, instead of leaving a reader to conclude that one solver is broken.
+- **Compare a model from the studio or a file you upload.** MPS, LP, CIP and JSON are accepted. An uploaded problem lives only inside its comparison and is deleted with it; it is not saved as a model.
+
 ### Changed
 
 - **The lint gate covers every directory the pre-commit hook checks.** CI looked at the application and the migrations only, so warnings could pile up unseen in `scripts/`, `deploy/` and `tests/`. All five are now checked in CI as well.
@@ -39,6 +46,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ### Fixed
 
+- **HiGHS now reports how much work it did.** Iterations, branch-and-bound nodes and the final gap came back empty on every HiGHS run, so those columns were blank wherever SCIP filled them in. A node count is still left out for a plain linear problem, where there is no search tree to count.
 - **Changing the thread count no longer breaks every later HiGHS solve.** HiGHS decides how many threads it will use the first time it runs and keeps that decision for as long as the server process lives. A later solve asking for a different number was accepted and then produced nothing at all — an empty result reported as a solver error, with no explanation. The thread count is now held at whatever the first solve used, and a request to change it is refused with a warning in the log instead of quietly failing the solve.
 
 ## [3.4.1] - 2026-08-13

@@ -435,6 +435,7 @@
       "reviews": "Ressenyes",
       "settings": "Configuració",
       "customSolve": "Resoldre JSON",
+      "solverCompare": "Comparador de solvers",
       "marketplaceAdmin": "Marketplace",
       "verification": "Verificació",
       "marketplaceAnalytics": "Analítiques",
@@ -3179,7 +3180,8 @@
       "import": "Importació",
       "marketplace": "Marketplace",
       "api": "API",
-      "mcp": "MCP"
+      "mcp": "MCP",
+      "comparison": "Comparació de solvers"
     },
     "sensitivity": {
       "noData": "No hi ha dades de sensibilitat disponibles per a aquesta execució.",
@@ -4677,6 +4679,80 @@
     "modelChoice": {
       "advanced": "Model avançat",
       "hint": "Respondre amb el model avançat: raona millor, és més lent i costa diverses vegades més per crida. Desactivat per defecte."
+    }
+  },
+  "solverCompare": {
+    "title": "Comparador de solvers",
+    "subtitle": "Resol un mateix problema amb diversos solvers en igualtat de condicions i compara què va fer cadascun.",
+    "setup": {
+      "title": "Preparar la comparació",
+      "description": "Tria un problema, marca els solvers i fixa els límits que reben tots.",
+      "sourceLabel": "Problema",
+      "sourceModel": "Un dels meus models",
+      "sourceFile": "Pujar un fitxer",
+      "modelPlaceholder": "Tria un model",
+      "filePlaceholder": "Tria un fitxer MPS, LP, CIP o JSON",
+      "fileThrowaway": "El problema pujat viu només dins d'aquesta comparació i s'esborra amb ella. No es desa com a model.",
+      "fileRejected": "Aquest tipus de fitxer no serveix. S'accepten: {extensions}.",
+      "fileFailed": "No s'ha pogut llegir el fitxer.",
+      "solversLabel": "Solvers",
+      "timeLimitLabel": "Límit de temps (segons)",
+      "gapLabel": "Tolerància de gap",
+      "estimate": "Els solvers s'executen l'un darrere l'altre, així que l'espera és de fins a {seconds} segons en total.",
+      "start": "Comparar"
+    },
+    "results": {
+      "title": "Comparació",
+      "cancel": "Aturar",
+      "startFailed": "No s'ha pogut començar la comparació.",
+      "cancelFailed": "No s'ha pogut aturar la comparació."
+    },
+    "comparisonStatus": {
+      "pending": "A la cua",
+      "running": "En marxa",
+      "completed": "Acabada",
+      "failed": "Fallida",
+      "cancelled": "Aturada"
+    },
+    "conditions": {
+      "terms": "Tots els solvers van rebre les mateixes condicions: {seconds} segons, una tolerància de gap de {gap} i {threads} fil(s).",
+      "machineLabel": "Mesurat a:",
+      "scope": "Els temps només són comparables dins d'aquesta comparació. No els comparis amb una altra execució.",
+      "counters": "Els nodes i les iteracions no depenen de com d'ocupada estigui la màquina, al contrari que els temps. Cada solver compta la seva feina a la seva manera, així que llegeix cada columna contra si mateixa."
+    },
+    "table": {
+      "solver": "Solver",
+      "status": "Resultat",
+      "objective": "Objectiu",
+      "gap": "Gap",
+      "time": "Temps",
+      "nodes": "Nodes",
+      "iterations": "Iteracions",
+      "fastest": "El més ràpid"
+    },
+    "status": {
+      "optimal": "Òptim",
+      "feasible": "Factible",
+      "infeasible": "Infactible",
+      "unbounded": "No fitat",
+      "time_limit": "S'ha acabat el temps",
+      "error": "Error",
+      "failed": "Errada",
+      "unsupported": "No admès",
+      "pending": "A la cua",
+      "running": "En marxa",
+      "cancelled": "Aturat"
+    },
+    "unsupportedReason": {
+      "integer_variables": "Aquest solver no admet variables enteres ni binàries.",
+      "quadratic_terms": "Aquest solver no admet termes quadràtics.",
+      "not_registered": "Aquest solver no està instal·lat en aquest servidor.",
+      "not_available": "Aquest solver no pot participar en una comparació en aquest servidor."
+    },
+    "agreement": {
+      "identical": "Els {count} solvers van trobar la mateixa solució.",
+      "alternativeOptima": "Els solvers van arribar al mateix valor de l'objectiu amb valors diferents a les variables. Tots dos encerten: aquest problema té més d'una solució òptima.",
+      "objectivesDiffer": "Els solvers no van arribar al mateix valor de l'objectiu. La diferència més gran és {delta}."
     }
   }
 }

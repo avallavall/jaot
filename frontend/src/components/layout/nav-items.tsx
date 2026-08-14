@@ -25,6 +25,7 @@ import {
   Flag,
   ShieldCheck,
   TrendingUp,
+  GitCompare,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
@@ -57,6 +58,7 @@ export function useNavItems() {
     // them rather than delete them).
     { label: t("nav.multiObjective"), href: "/solve/multi-objective", icon: <Scale className="w-4 h-4" /> },
     { label: t("nav.customSolve"), href: "/solve/custom", icon: <Wrench className="w-4 h-4" /> },
+    { label: t("nav.solverCompare"), href: "/solve/compare", icon: <GitCompare className="w-4 h-4" /> },
 
     { label: t("nav.discover"), href: "#", icon: null },
     { label: t("nav.marketplace"), href: "/marketplace", icon: <ShoppingBag className="w-4 h-4" /> },

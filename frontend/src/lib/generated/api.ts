@@ -3762,6 +3762,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/solvers/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Comparisons
+         * @description This organization's comparisons, newest first.
+         */
+        get: operations["list_comparisons_api_v2_solvers_compare_get"];
+        put?: never;
+        /**
+         * Create Comparison
+         * @description Queue a comparison and return its table, every row still pending.
+         *
+         *     Everything that can be decided without solving is decided here: which solvers
+         *     can express the model, what settings they all get, and whether the quota
+         *     covers the run. A solver that cannot express the model gets its row written
+         *     straight to its verdict and never reaches the worker, so it costs no quota
+         *     and no worker time.
+         */
+        post: operations["create_comparison_api_v2_solvers_compare_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/solvers/compare/{comparison_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Comparison
+         * @description One comparison and its table, whatever state it is in.
+         */
+        get: operations["get_comparison_api_v2_solvers_compare__comparison_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/solvers/compare/{comparison_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Comparison
+         * @description Stop a comparison before its next solver starts.
+         *
+         *     A solve already inside a solver cannot be interrupted from here, so the run
+         *     in flight finishes and the worker stops before the next one. Columns that
+         *     never got their turn are marked cancelled.
+         */
+        post: operations["cancel_comparison_api_v2_solvers_compare__comparison_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/triggers/": {
         parameters: {
             query?: never;
@@ -5297,6 +5371,174 @@ export interface components {
             executions: components["schemas"]["ComparedExecutionResponse"][];
         };
         /**
+         * ComparisonAgreement
+         * @description Whether the solvers that finished actually agree.
+         *
+         *     Two solvers can both be right and disagree on the variables: a problem with
+         *     several optimal solutions has no single answer to return. Saying so is the
+         *     point of this block — without it a reader sees two different solutions and
+         *     concludes one solver is broken.
+         */
+        ComparisonAgreement: {
+            /**
+             * Alternative Optima
+             * @default false
+             */
+            alternative_optima: boolean;
+            /** Compared Solvers */
+            compared_solvers: string[];
+            /** Max Objective Delta */
+            max_objective_delta?: number | null;
+            /** Objectives Agree */
+            objectives_agree?: boolean | null;
+            /** Solutions Identical */
+            solutions_identical?: boolean | null;
+        };
+        /**
+         * ComparisonDetail
+         * @description A comparison and its table.
+         */
+        ComparisonDetail: {
+            agreement?: components["schemas"]["ComparisonAgreement"] | null;
+            /** Completed At */
+            completed_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Dataset Id */
+            dataset_id?: string | null;
+            /** Dataset Name */
+            dataset_name?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Id */
+            id: string;
+            /** Machine Note */
+            machine_note?: string | null;
+            /** Model Project Id */
+            model_project_id?: string | null;
+            /** Model Project Version Id */
+            model_project_version_id?: string | null;
+            /** Problem Name */
+            problem_name?: string | null;
+            /** Results */
+            results: components["schemas"]["ComparisonSolverResult"][];
+            settings: components["schemas"]["ComparisonTerms"];
+            /** Source Id */
+            source_id?: string | null;
+            /** Source Kind */
+            source_kind?: string | null;
+            /** Started At */
+            started_at?: string | null;
+            /** Status */
+            status: string;
+            /** Uploaded Filename */
+            uploaded_filename?: string | null;
+        };
+        /**
+         * ComparisonListResponse
+         * @description This organization's comparisons, newest first.
+         */
+        ComparisonListResponse: {
+            /** Comparisons */
+            comparisons: components["schemas"]["ComparisonSummary"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * ComparisonSettings
+         * @description What the caller may choose. Applied identically to every solver.
+         *
+         *     Thread count is deliberately absent. HiGHS sizes one task scheduler per
+         *     worker process on its first solve, and a later request for a different count
+         *     makes the solve fail silently, so the count cannot be a per-request choice —
+         *     it is fixed at ``DEFAULT_COMPARISON_THREADS``. The value used is reported
+         *     back in :class:`ComparisonTerms`.
+         */
+        ComparisonSettings: {
+            /**
+             * Gap Tolerance
+             * @description MIP gap tolerance, the same for all solvers.
+             * @default 0.0001
+             */
+            gap_tolerance: number;
+            /**
+             * Time Limit Seconds
+             * @description Seconds each solver is given. The same value for all of them.
+             * @default 60
+             */
+            time_limit_seconds: number;
+        };
+        /**
+         * ComparisonSolverResult
+         * @description One row of the table: what this solver did with the shared problem.
+         */
+        ComparisonSolverResult: {
+            /** Error Message */
+            error_message?: string | null;
+            /** Execution Id */
+            execution_id?: string | null;
+            /** Gap */
+            gap?: number | null;
+            /** Iterations */
+            iterations?: number | null;
+            /** Nodes */
+            nodes?: number | null;
+            /** Objective Value */
+            objective_value?: number | null;
+            /** Solver Name */
+            solver_name: string;
+            /** Solver Status */
+            solver_status?: string | null;
+            /** Solver Time Seconds */
+            solver_time_seconds?: number | null;
+            /** Status */
+            status: string;
+            /** Unsupported Reason */
+            unsupported_reason?: string | null;
+            /** Wall Time Ms */
+            wall_time_ms?: number | null;
+        };
+        /**
+         * ComparisonSummary
+         * @description One entry of the comparison history list.
+         */
+        ComparisonSummary: {
+            /** Completed At */
+            completed_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Problem Name */
+            problem_name?: string | null;
+            /** Solver Names */
+            solver_names: string[];
+            /** Status */
+            status: string;
+        };
+        /**
+         * ComparisonTerms
+         * @description The terms every solver in the run actually received.
+         *
+         *     Reported rather than requested: the instance can clamp the time limit, and
+         *     the thread count is fixed by the platform. The table shows these, because
+         *     what the solvers got is what the numbers mean.
+         */
+        ComparisonTerms: {
+            /** Gap Tolerance */
+            gap_tolerance: number;
+            /** Threads */
+            threads: number;
+            /** Time Limit Seconds */
+            time_limit_seconds: number;
+        };
+        /**
          * ComponentStatus
          * @description Status of a single component.
          */
@@ -5538,6 +5780,46 @@ export interface components {
             canvas_json: {
                 [key: string]: unknown;
             };
+        };
+        /**
+         * CreateComparisonRequest
+         * @description Ask for one problem to be run against several solvers.
+         *
+         *     The problem arrives one of two ways and exactly one must be given:
+         *
+         *     - ``problem`` — an optimization problem inline. This is also the path for an
+         *       uploaded MPS/LP/CIP/JSON file: the client parses it first with
+         *       ``POST /api/v2/import/preview`` and sends the parsed problem here. Nothing
+         *       of that file is stored beyond the snapshot on the comparison, which is
+         *       deleted with it.
+         *     - ``project_id`` — a studio model, optionally pinned to ``version_id``. The
+         *       server reads the model itself, so the client cannot substitute a different
+         *       problem for a project it names.
+         */
+        CreateComparisonRequest: {
+            /** @description The problem to compare, inline. */
+            problem?: components["schemas"]["OptimizationProblem-Input"] | null;
+            /**
+             * Project Id
+             * @description Studio model to compare.
+             */
+            project_id?: string | null;
+            settings?: components["schemas"]["ComparisonSettings"];
+            /**
+             * Solver Names
+             * @description Solvers to compare, in the order they should run.
+             */
+            solver_names: string[];
+            /**
+             * Uploaded Filename
+             * @description Name of the file the problem came from, for the header only.
+             */
+            uploaded_filename?: string | null;
+            /**
+             * Version Id
+             * @description Committed version of project_id. Draft when omitted.
+             */
+            version_id?: string | null;
         };
         /**
          * CreateConversationRequest
@@ -10882,6 +11164,13 @@ export type CommitRequest = components['schemas']['CommitRequest'];
 export type CommunityStatusResponse = components['schemas']['CommunityStatusResponse'];
 export type ComparedExecutionResponse = components['schemas']['ComparedExecutionResponse'];
 export type CompareResponse = components['schemas']['CompareResponse'];
+export type ComparisonAgreement = components['schemas']['ComparisonAgreement'];
+export type ComparisonDetail = components['schemas']['ComparisonDetail'];
+export type ComparisonListResponse = components['schemas']['ComparisonListResponse'];
+export type ComparisonSettings = components['schemas']['ComparisonSettings'];
+export type ComparisonSolverResult = components['schemas']['ComparisonSolverResult'];
+export type ComparisonSummary = components['schemas']['ComparisonSummary'];
+export type ComparisonTerms = components['schemas']['ComparisonTerms'];
 export type ComponentStatus = components['schemas']['ComponentStatus'];
 export type Constraint = components['schemas']['Constraint'];
 export type ConstraintFamilyStats = components['schemas']['ConstraintFamilyStats'];
@@ -10893,6 +11182,7 @@ export type ConversationResponse = components['schemas']['ConversationResponse']
 export type ConversionFunnelStep = components['schemas']['ConversionFunnelStep'];
 export type CountryDistributionEntry = components['schemas']['CountryDistributionEntry'];
 export type CreateCheckpointRequest = components['schemas']['CreateCheckpointRequest'];
+export type CreateComparisonRequest = components['schemas']['CreateComparisonRequest'];
 export type CreateConversationRequest = components['schemas']['CreateConversationRequest'];
 export type CreateKeyRequest = components['schemas']['CreateKeyRequest'];
 export type CreateKeyResponse = components['schemas']['CreateKeyResponse'];
@@ -17287,6 +17577,133 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AvailableSolversResponse"];
+                };
+            };
+        };
+    };
+    list_comparisons_api_v2_solvers_compare_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_comparison_api_v2_solvers_compare_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateComparisonRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_comparison_api_v2_solvers_compare__comparison_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                comparison_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_comparison_api_v2_solvers_compare__comparison_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                comparison_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

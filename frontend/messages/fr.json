@@ -435,6 +435,7 @@
       "reviews": "Avis",
       "settings": "Paramètres",
       "customSolve": "Résoudre JSON",
+      "solverCompare": "Comparateur de solveurs",
       "marketplaceAdmin": "Marketplace",
       "verification": "Vérification",
       "marketplaceAnalytics": "Analytiques",
@@ -3179,7 +3180,8 @@
       "import": "Import",
       "marketplace": "Marketplace",
       "api": "API",
-      "mcp": "MCP"
+      "mcp": "MCP",
+      "comparison": "Comparaison de solveurs"
     },
     "sensitivity": {
       "noData": "Aucune donnée de sensibilité disponible pour cette exécution.",
@@ -4677,6 +4679,80 @@
     "modelChoice": {
       "advanced": "Modèle avancé",
       "hint": "Répondre avec le modèle avancé : raisonnement plus poussé, plus lent et plusieurs fois plus coûteux par appel. Désactivé par défaut."
+    }
+  },
+  "solverCompare": {
+    "title": "Comparateur de solveurs",
+    "subtitle": "Résolvez un même problème avec plusieurs solveurs dans des conditions identiques et comparez ce que chacun a fait.",
+    "setup": {
+      "title": "Préparer la comparaison",
+      "description": "Choisissez un problème, sélectionnez les solveurs et fixez les limites qu'ils reçoivent tous.",
+      "sourceLabel": "Problème",
+      "sourceModel": "Un de mes modèles",
+      "sourceFile": "Téléverser un fichier",
+      "modelPlaceholder": "Choisissez un modèle",
+      "filePlaceholder": "Choisissez un fichier MPS, LP, CIP ou JSON",
+      "fileThrowaway": "Le problème téléversé n'existe que dans cette comparaison et disparaît avec elle. Il n'est pas enregistré comme modèle.",
+      "fileRejected": "Ce type de fichier n'est pas accepté. Acceptés : {extensions}.",
+      "fileFailed": "Le fichier n'a pas pu être lu.",
+      "solversLabel": "Solveurs",
+      "timeLimitLabel": "Limite de temps (secondes)",
+      "gapLabel": "Tolérance de gap",
+      "estimate": "Les solveurs s'exécutent l'un après l'autre : l'attente peut aller jusqu'à {seconds} secondes au total.",
+      "start": "Comparer"
+    },
+    "results": {
+      "title": "Comparaison",
+      "cancel": "Arrêter",
+      "startFailed": "La comparaison n'a pas pu démarrer.",
+      "cancelFailed": "La comparaison n'a pas pu être arrêtée."
+    },
+    "comparisonStatus": {
+      "pending": "En file d'attente",
+      "running": "En cours",
+      "completed": "Terminée",
+      "failed": "Échouée",
+      "cancelled": "Arrêtée"
+    },
+    "conditions": {
+      "terms": "Tous les solveurs ont reçu les mêmes conditions : {seconds} secondes, une tolérance de gap de {gap} et {threads} fil(s).",
+      "machineLabel": "Mesuré sur :",
+      "scope": "Les temps ne sont comparables qu'à l'intérieur de cette comparaison. Ne les comparez pas avec une autre exécution.",
+      "counters": "Les nœuds et les itérations ne dépendent pas de la charge de la machine, contrairement aux temps. Chaque solveur compte son travail à sa façon : lisez chaque colonne par rapport à elle-même."
+    },
+    "table": {
+      "solver": "Solveur",
+      "status": "Résultat",
+      "objective": "Objectif",
+      "gap": "Gap",
+      "time": "Temps",
+      "nodes": "Nœuds",
+      "iterations": "Itérations",
+      "fastest": "Le plus rapide"
+    },
+    "status": {
+      "optimal": "Optimal",
+      "feasible": "Réalisable",
+      "infeasible": "Irréalisable",
+      "unbounded": "Non borné",
+      "time_limit": "Temps écoulé",
+      "error": "Erreur",
+      "failed": "Échec",
+      "unsupported": "Non pris en charge",
+      "pending": "En file d'attente",
+      "running": "En cours",
+      "cancelled": "Arrêté"
+    },
+    "unsupportedReason": {
+      "integer_variables": "Ce solveur ne gère pas les variables entières ou binaires.",
+      "quadratic_terms": "Ce solveur ne gère pas les termes quadratiques.",
+      "not_registered": "Ce solveur n'est pas installé sur ce serveur.",
+      "not_available": "Ce solveur ne peut pas participer à une comparaison sur ce serveur."
+    },
+    "agreement": {
+      "identical": "Les {count} solveurs ont trouvé la même solution.",
+      "alternativeOptima": "Les solveurs ont atteint la même valeur d'objectif avec des valeurs de variables différentes. Les deux ont raison : ce problème a plus d'une solution optimale.",
+      "objectivesDiffer": "Les solveurs n'ont pas atteint la même valeur d'objectif. Le plus grand écart est de {delta}."
     }
   }
 }

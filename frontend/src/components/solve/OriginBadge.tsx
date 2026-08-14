@@ -40,6 +40,8 @@ const ORIGIN_STYLES = {
     "bg-sky-100 text-sky-800 border-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-700",
   api: "bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800/40 dark:text-slate-300 dark:border-slate-700",
   mcp: "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-700",
+  comparison:
+    "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-700",
 } satisfies Record<OriginKey, string>;
 
 export function OriginBadge({ origin, sourceKind, triggerName }: OriginBadgeProps) {

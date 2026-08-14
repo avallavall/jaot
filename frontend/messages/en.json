@@ -435,6 +435,7 @@
       "reviews": "Reviews",
       "settings": "Settings",
       "customSolve": "Custom Solve",
+      "solverCompare": "Solver Comparer",
       "marketplaceAdmin": "Marketplace",
       "verification": "Verification",
       "marketplaceAnalytics": "Analytics",
@@ -3216,7 +3217,8 @@
       "import": "Import",
       "marketplace": "Marketplace",
       "api": "API",
-      "mcp": "MCP"
+      "mcp": "MCP",
+      "comparison": "Solver comparison"
     },
     "sensitivity": {
       "noData": "No sensitivity data available for this execution.",
@@ -4677,6 +4679,80 @@
     "modelChoice": {
       "advanced": "Advanced model",
       "hint": "Answer with the advanced model: stronger reasoning, slower and several times more expensive per call. Off by default."
+    }
+  },
+  "solverCompare": {
+    "title": "Solver Comparer",
+    "subtitle": "Run one problem on several solvers under identical conditions and compare what each one did.",
+    "setup": {
+      "title": "Set up the comparison",
+      "description": "Pick a problem, choose the solvers, and set the limits they all receive.",
+      "sourceLabel": "Problem",
+      "sourceModel": "One of my models",
+      "sourceFile": "Upload a file",
+      "modelPlaceholder": "Choose a model",
+      "filePlaceholder": "Choose an MPS, LP, CIP or JSON file",
+      "fileThrowaway": "The uploaded problem lives only inside this comparison and is deleted with it. It is not saved as a model.",
+      "fileRejected": "That file type is not supported. Accepted: {extensions}.",
+      "fileFailed": "The file could not be read.",
+      "solversLabel": "Solvers",
+      "timeLimitLabel": "Time limit (seconds)",
+      "gapLabel": "Gap tolerance",
+      "estimate": "The solvers run one after another, so the wait is up to {seconds} seconds in total.",
+      "start": "Compare"
+    },
+    "results": {
+      "title": "Comparison",
+      "cancel": "Stop",
+      "startFailed": "The comparison could not be started.",
+      "cancelFailed": "The comparison could not be stopped."
+    },
+    "comparisonStatus": {
+      "pending": "Queued",
+      "running": "Running",
+      "completed": "Finished",
+      "failed": "Failed",
+      "cancelled": "Stopped"
+    },
+    "conditions": {
+      "terms": "Every solver received the same conditions: {seconds} seconds, a gap tolerance of {gap} and {threads} thread(s).",
+      "machineLabel": "Measured on:",
+      "scope": "The times are comparable inside this comparison only. Do not compare them with another run.",
+      "counters": "Nodes and iterations do not depend on how busy the machine is, unlike the times. Each solver counts its own work in its own way, so read a column against itself."
+    },
+    "table": {
+      "solver": "Solver",
+      "status": "Result",
+      "objective": "Objective",
+      "gap": "Gap",
+      "time": "Time",
+      "nodes": "Nodes",
+      "iterations": "Iterations",
+      "fastest": "Fastest"
+    },
+    "status": {
+      "optimal": "Optimal",
+      "feasible": "Feasible",
+      "infeasible": "Infeasible",
+      "unbounded": "Unbounded",
+      "time_limit": "Out of time",
+      "error": "Error",
+      "failed": "Failed",
+      "unsupported": "Not supported",
+      "pending": "Queued",
+      "running": "Running",
+      "cancelled": "Stopped"
+    },
+    "unsupportedReason": {
+      "integer_variables": "This solver cannot handle integer or binary variables.",
+      "quadratic_terms": "This solver cannot handle quadratic terms.",
+      "not_registered": "This solver is not installed on this server.",
+      "not_available": "This solver cannot take part in a comparison on this server."
+    },
+    "agreement": {
+      "identical": "All {count} solvers found the same solution.",
+      "alternativeOptima": "The solvers reached the same objective value with different variable values. Both are correct: this problem has more than one optimal solution.",
+      "objectivesDiffer": "The solvers did not reach the same objective value. The largest difference is {delta}."
     }
   }
 }

@@ -1182,3 +1182,109 @@ export interface SolverInfo {
   /** Absent when the backend could not read the adapter's declaration. */
   capabilities?: SolverCapabilities;
 }
+
+// ──────────────────────────────────────────────────────────────
+// Solver comparison — one problem, several solvers, identical terms
+// ──────────────────────────────────────────────────────────────
+
+/** What the caller may choose. Applied identically to every solver.
+ *
+ * Thread count is absent on purpose: HiGHS sizes one task scheduler per worker
+ * process on its first solve, so the count cannot be a per-request choice. The
+ * value actually used comes back in `ComparisonTerms`.
+ */
+export interface ComparisonSettings {
+  time_limit_seconds: number;
+  gap_tolerance: number;
+}
+
+/** The terms every solver actually received — reported, not requested. */
+export interface ComparisonTerms {
+  time_limit_seconds: number;
+  gap_tolerance: number;
+  threads: number;
+}
+
+/** Why a solver sat the comparison out. The sentence is translated in the UI;
+ * only this code is stored. */
+export type UnsupportedReason =
+  | "integer_variables"
+  | "quadratic_terms"
+  | "not_registered"
+  | "not_available";
+
+/** One row of the table: what this solver did with the shared problem. */
+export interface ComparisonSolverResult {
+  solver_name: string;
+  execution_id: string | null;
+  /** pending | running | completed | failed | cancelled */
+  status: string;
+  /** optimal | feasible | infeasible | unbounded | time_limit | error | unsupported */
+  solver_status: string | null;
+  unsupported_reason: UnsupportedReason | null;
+  objective_value: number | null;
+  gap: number | null;
+  iterations: number | null;
+  nodes: number | null;
+  /** Wall time around the whole call, building the solver's model included. */
+  wall_time_ms: number | null;
+  /** The adapter's own measure of the search alone. */
+  solver_time_seconds: number | null;
+  error_message: string | null;
+}
+
+/** Whether the solvers that finished actually agree. */
+export interface ComparisonAgreement {
+  compared_solvers: string[];
+  objectives_agree: boolean | null;
+  solutions_identical: boolean | null;
+  max_objective_delta: number | null;
+  /** Objectives match, solutions do not: both solvers are right and the problem
+   * has more than one optimal solution. */
+  alternative_optima: boolean;
+}
+
+export interface ComparisonDetail {
+  id: string;
+  status: string;
+  problem_name: string | null;
+  source_kind: string | null;
+  source_id: string | null;
+  uploaded_filename: string | null;
+  model_project_id: string | null;
+  model_project_version_id: string | null;
+  dataset_id: string | null;
+  dataset_name: string | null;
+  settings: ComparisonTerms;
+  /** Which machine produced these seconds. */
+  machine_note: string | null;
+  results: ComparisonSolverResult[];
+  agreement: ComparisonAgreement | null;
+  error_message: string | null;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+}
+
+export interface ComparisonSummary {
+  id: string;
+  status: string;
+  problem_name: string | null;
+  solver_names: string[];
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface ComparisonListResponse {
+  comparisons: ComparisonSummary[];
+  total: number;
+}
+
+export interface CreateComparisonRequest {
+  solver_names: string[];
+  settings?: ComparisonSettings;
+  problem?: unknown;
+  project_id?: string;
+  version_id?: string;
+  uploaded_filename?: string;
+}

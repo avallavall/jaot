@@ -435,6 +435,7 @@
       "reviews": "Bewertungen",
       "settings": "Einstellungen",
       "customSolve": "JSON lösen",
+      "solverCompare": "Solver-Vergleich",
       "marketplaceAdmin": "Marketplace",
       "verification": "Verifizierung",
       "marketplaceAnalytics": "Analytik",
@@ -3179,7 +3180,8 @@
       "import": "Import",
       "marketplace": "Marktplatz",
       "api": "API",
-      "mcp": "MCP"
+      "mcp": "MCP",
+      "comparison": "Solver-Vergleich"
     },
     "sensitivity": {
       "noData": "Keine Sensitivitätsdaten für diese Ausführung verfügbar.",
@@ -4677,6 +4679,80 @@
     "modelChoice": {
       "advanced": "Erweitertes Modell",
       "hint": "Mit dem erweiterten Modell antworten: stärkeres Reasoning, langsamer und mehrfach teurer pro Aufruf. Standardmäßig aus."
+    }
+  },
+  "solverCompare": {
+    "title": "Solver-Vergleich",
+    "subtitle": "Lösen Sie dasselbe Problem mit mehreren Solvern unter gleichen Bedingungen und vergleichen Sie, was jeder getan hat.",
+    "setup": {
+      "title": "Vergleich vorbereiten",
+      "description": "Wählen Sie ein Problem, markieren Sie die Solver und legen Sie die Grenzen fest, die alle erhalten.",
+      "sourceLabel": "Problem",
+      "sourceModel": "Eines meiner Modelle",
+      "sourceFile": "Datei hochladen",
+      "modelPlaceholder": "Modell wählen",
+      "filePlaceholder": "MPS-, LP-, CIP- oder JSON-Datei wählen",
+      "fileThrowaway": "Das hochgeladene Problem existiert nur in diesem Vergleich und wird mit ihm gelöscht. Es wird nicht als Modell gespeichert.",
+      "fileRejected": "Dieser Dateityp wird nicht unterstützt. Erlaubt: {extensions}.",
+      "fileFailed": "Die Datei konnte nicht gelesen werden.",
+      "solversLabel": "Solver",
+      "timeLimitLabel": "Zeitlimit (Sekunden)",
+      "gapLabel": "Gap-Toleranz",
+      "estimate": "Die Solver laufen nacheinander, die Wartezeit beträgt daher bis zu {seconds} Sekunden insgesamt.",
+      "start": "Vergleichen"
+    },
+    "results": {
+      "title": "Vergleich",
+      "cancel": "Stoppen",
+      "startFailed": "Der Vergleich konnte nicht gestartet werden.",
+      "cancelFailed": "Der Vergleich konnte nicht gestoppt werden."
+    },
+    "comparisonStatus": {
+      "pending": "In der Warteschlange",
+      "running": "Läuft",
+      "completed": "Fertig",
+      "failed": "Fehlgeschlagen",
+      "cancelled": "Gestoppt"
+    },
+    "conditions": {
+      "terms": "Alle Solver erhielten dieselben Bedingungen: {seconds} Sekunden, eine Gap-Toleranz von {gap} und {threads} Thread(s).",
+      "machineLabel": "Gemessen auf:",
+      "scope": "Die Zeiten sind nur innerhalb dieses Vergleichs vergleichbar. Vergleichen Sie sie nicht mit einem anderen Lauf.",
+      "counters": "Knoten und Iterationen hängen nicht von der Auslastung der Maschine ab, anders als die Zeiten. Jeder Solver zählt seine Arbeit auf eigene Weise, lesen Sie eine Spalte daher für sich."
+    },
+    "table": {
+      "solver": "Solver",
+      "status": "Ergebnis",
+      "objective": "Zielwert",
+      "gap": "Gap",
+      "time": "Zeit",
+      "nodes": "Knoten",
+      "iterations": "Iterationen",
+      "fastest": "Am schnellsten"
+    },
+    "status": {
+      "optimal": "Optimal",
+      "feasible": "Zulässig",
+      "infeasible": "Unzulässig",
+      "unbounded": "Unbeschränkt",
+      "time_limit": "Zeit abgelaufen",
+      "error": "Fehler",
+      "failed": "Fehlgeschlagen",
+      "unsupported": "Nicht unterstützt",
+      "pending": "In der Warteschlange",
+      "running": "Läuft",
+      "cancelled": "Gestoppt"
+    },
+    "unsupportedReason": {
+      "integer_variables": "Dieser Solver kann keine ganzzahligen oder binären Variablen verarbeiten.",
+      "quadratic_terms": "Dieser Solver kann keine quadratischen Terme verarbeiten.",
+      "not_registered": "Dieser Solver ist auf diesem Server nicht installiert.",
+      "not_available": "Dieser Solver kann auf diesem Server nicht an einem Vergleich teilnehmen."
+    },
+    "agreement": {
+      "identical": "Alle {count} Solver fanden dieselbe Lösung.",
+      "alternativeOptima": "Die Solver erreichten denselben Zielwert mit unterschiedlichen Variablenwerten. Beide haben recht: Dieses Problem hat mehr als eine optimale Lösung.",
+      "objectivesDiffer": "Die Solver erreichten nicht denselben Zielwert. Der größte Unterschied beträgt {delta}."
     }
   }
 }

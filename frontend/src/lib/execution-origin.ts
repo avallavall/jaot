@@ -45,6 +45,10 @@ export const ORIGIN_KEYS = [
   "api",
   "mcp",
   "model_project",
+  // One column of a solver comparison. Its own slug because a comparison writes
+  // one execution per solver: four rows land in history for a single thing the
+  // user did, and without a label they read as four separate solves.
+  "comparison",
 ] as const;
 
 export type OriginKey = (typeof ORIGIN_KEYS)[number];
@@ -89,6 +93,7 @@ export const ORIGIN_CHART_COLORS: Record<OriginKey, string> = {
   api: "#475569",
   mcp: "#6366f1",
   model_project: "#0ea5e9",
+  comparison: "#f43f5e",
 };
 
 /** Reserved for slugs `ORIGIN_KEYS` does not cover — paler than every real one. */

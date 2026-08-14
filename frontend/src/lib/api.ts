@@ -84,6 +84,9 @@ import type {
   ProjectDatasetSummary,
   DatasetImportPreview,
   SolverInfo,
+  ComparisonDetail,
+  ComparisonListResponse,
+  CreateComparisonRequest,
 } from "./types";
 import { localeHeader } from "@/lib/locale-header";
 
@@ -848,6 +851,44 @@ export const api = {
 
   getSolvers(): Promise<{ solvers: SolverInfo[] }> {
     return request("/api/v2/solvers/available");
+  },
+
+  /**
+   * Solver comparison — the same problem run against several solvers under
+   * identical terms, one after another on one machine.
+   *
+   * An uploaded file goes through `fileImport.preview` first; what is sent here
+   * is the parsed problem, and it lives only inside the comparison.
+   */
+  solverComparison: {
+    /** Queue a comparison. Comes back with every row already present, pending. */
+    create(payload: CreateComparisonRequest): Promise<ComparisonDetail> {
+      return request("/api/v2/solvers/compare", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    },
+
+    /** One comparison and its table, whatever state it is in. */
+    get(comparisonId: string): Promise<ComparisonDetail> {
+      return request(`/api/v2/solvers/compare/${comparisonId}`);
+    },
+
+    /** This organization's comparisons, newest first. */
+    list(params?: {
+      limit?: number;
+      offset?: number;
+    }): Promise<ComparisonListResponse> {
+      return request("/api/v2/solvers/compare", { params });
+    },
+
+    /** Stop a comparison before its next solver starts. The solve already
+     * running finishes; the columns that never got their turn are cancelled. */
+    cancel(comparisonId: string): Promise<ComparisonDetail> {
+      return request(`/api/v2/solvers/compare/${comparisonId}/cancel`, {
+        method: "POST",
+      });
+    },
   },
 
   getExecutionInsights(
