@@ -19,6 +19,7 @@ function row(overrides: Partial<ComparisonSolverResult>): ComparisonSolverResult
     solver_status: "optimal",
     unsupported_reason: null,
     objective_value: 24,
+    dual_bound: 24,
     gap: 0,
     iterations: 12,
     nodes: 1,
@@ -42,6 +43,9 @@ function comparison(overrides: Partial<ComparisonDetail> = {}): ComparisonDetail
     dataset_id: null,
     dataset_name: null,
     settings: { time_limit_seconds: 60, gap_tolerance: 0.0001, threads: 1 },
+    problem_class: "LP",
+    variable_count: 2,
+    constraint_count: 2,
     machine_note: "worker-7 (queue solve_compare, concurrency 1)",
     results: [row({}), row({ solver_name: "highs", wall_time_ms: 120 })],
     agreement: {
@@ -176,6 +180,42 @@ describe("ComparisonTable", () => {
     // highs at 120 ms against scip at 340 ms.
     expect(rows[1]).toContain("solverCompare.table.fastest");
     expect(rows[0]).not.toContain("solverCompare.table.fastest");
+  });
+
+  // "13 s" next to "0,1 s" is two numbers; "130×" is the answer the reader was
+  // going to work out anyway.
+  it("says how much slower each solver was than the quickest", async () => {
+    const { rows } = await renderTable(
+      comparison({
+        results: [
+          row({ wall_time_ms: 1000 }),
+          row({ solver_name: "highs", wall_time_ms: 100 }),
+        ],
+      }),
+    );
+    expect(rows[0]).toContain("10×");
+    // The quickest is not labelled "1×" — it is the baseline.
+    expect(rows[1]).not.toContain("×");
+  });
+
+  it("names the problem and its size above the numbers", async () => {
+    const { text } = await renderTable(comparison());
+    expect(text).toContain("solverCompare.conditions.problem");
+  });
+
+  it("shows the best bound next to the objective", async () => {
+    const { rows } = await renderTable(
+      comparison({
+        results: [
+          row({ objective_value: 100, dual_bound: 120, gap: 0.2 }),
+          row({ solver_name: "highs", objective_value: 100, dual_bound: null, gap: null }),
+        ],
+        agreement: null,
+      }),
+    );
+    expect(rows[0]).toContain("120");
+    // A solver that proved no bound shows nothing, not a zero.
+    expect(rows[1]).toContain("—");
   });
 
   it("does not crown a fastest when only one solver answered", async () => {

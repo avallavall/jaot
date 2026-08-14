@@ -153,15 +153,18 @@ def _capability_reason(caps: SolverCapabilities, problem_class: ProblemClass) ->
 def plan_comparison(
     problem: OptimizationProblem,
     solver_names: list[str],
+    problem_class: ProblemClass | None = None,
 ) -> list[SolverPlanEntry]:
     """Decide, per solver, whether it runs this problem and why not if it does not.
 
     ``solver_names`` must already be normalized. The problem is classified once
     for the whole plan — classification parses every constraint, so doing it per
     solver would multiply that cost by the number of columns for an answer that
-    cannot change between them.
+    cannot change between them. A caller that already knows the class (the
+    endpoint stores it on the comparison) passes it in so it is not parsed twice.
     """
-    problem_class = classify(problem)
+    if problem_class is None:
+        problem_class = classify(problem)
     plan: list[SolverPlanEntry] = []
     for name in solver_names:
         plan.append(SolverPlanEntry(name, _solver_reason(name, problem_class)))

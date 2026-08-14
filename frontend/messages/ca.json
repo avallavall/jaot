@@ -4717,6 +4717,7 @@
     "conditions": {
       "terms": "Tots els solvers van rebre les mateixes condicions: {seconds} segons, una tolerància de gap de {gap} i {threads} fil(s).",
       "machineLabel": "Mesurat a:",
+      "problem": "El problema: {problemClass}, {variables} variables i {constraints} restriccions. 'Cerca' és el temps del solver; la diferència amb el total és el que va trigar a construir el seu model.",
       "scope": "Els temps només són comparables dins d'aquesta comparació. No els comparis amb una altra execució.",
       "counters": "Els nodes i les iteracions no depenen de com d'ocupada estigui la màquina, al contrari que els temps. Cada solver compta la seva feina a la seva manera, així que llegeix cada columna contra si mateixa."
     },
@@ -4724,8 +4725,10 @@
       "solver": "Solver",
       "status": "Resultat",
       "objective": "Objectiu",
+      "bound": "Millor cota",
       "gap": "Gap",
       "time": "Temps",
+      "searchTime": "Cerca",
       "nodes": "Nodes",
       "iterations": "Iteracions",
       "fastest": "El més ràpid"

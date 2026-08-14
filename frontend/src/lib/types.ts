@@ -1223,6 +1223,9 @@ export interface ComparisonSolverResult {
   solver_status: string | null;
   unsupported_reason: UnsupportedReason | null;
   objective_value: number | null;
+  /** The best objective value the solver proved could still exist. With the
+   * objective it says how much room was left. */
+  dual_bound: number | null;
   gap: number | null;
   iterations: number | null;
   nodes: number | null;
@@ -1256,6 +1259,10 @@ export interface ComparisonDetail {
   dataset_id: string | null;
   dataset_name: string | null;
   settings: ComparisonTerms;
+  /** LP | MILP | IP | BIP | QP | MIQP | QCP | MIQCP. */
+  problem_class: string | null;
+  variable_count: number | null;
+  constraint_count: number | null;
   /** Which machine produced these seconds. */
   machine_note: string | null;
   results: ComparisonSolverResult[];

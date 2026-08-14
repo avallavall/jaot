@@ -4717,6 +4717,7 @@
     "conditions": {
       "terms": "Todos los solvers recibieron las mismas condiciones: {seconds} segundos, una tolerancia de gap de {gap} y {threads} hilo(s).",
       "machineLabel": "Medido en:",
+      "problem": "El problema: {problemClass}, {variables} variables y {constraints} restricciones. 'Búsqueda' es el tiempo del solver; la diferencia con el total es lo que tardó en construir su modelo.",
       "scope": "Los tiempos solo son comparables dentro de esta comparación. No los compares con otra ejecución.",
       "counters": "Los nodos y las iteraciones no dependen de lo ocupada que esté la máquina, al revés que los tiempos. Cada solver cuenta su trabajo a su manera, así que lee cada columna contra sí misma."
     },
@@ -4724,8 +4725,10 @@
       "solver": "Solver",
       "status": "Resultado",
       "objective": "Objetivo",
+      "bound": "Mejor cota",
       "gap": "Gap",
       "time": "Tiempo",
+      "searchTime": "Búsqueda",
       "nodes": "Nodos",
       "iterations": "Iteraciones",
       "fastest": "El más rápido"

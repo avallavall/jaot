@@ -4717,6 +4717,7 @@
     "conditions": {
       "terms": "Tous les solveurs ont reçu les mêmes conditions : {seconds} secondes, une tolérance de gap de {gap} et {threads} fil(s).",
       "machineLabel": "Mesuré sur :",
+      "problem": "Le problème : {problemClass}, {variables} variables et {constraints} contraintes. « Recherche » est le temps du solveur ; l'écart avec le total est le temps de construction de son modèle.",
       "scope": "Les temps ne sont comparables qu'à l'intérieur de cette comparaison. Ne les comparez pas avec une autre exécution.",
       "counters": "Les nœuds et les itérations ne dépendent pas de la charge de la machine, contrairement aux temps. Chaque solveur compte son travail à sa façon : lisez chaque colonne par rapport à elle-même."
     },
@@ -4724,8 +4725,10 @@
       "solver": "Solveur",
       "status": "Résultat",
       "objective": "Objectif",
+      "bound": "Meilleure borne",
       "gap": "Gap",
       "time": "Temps",
+      "searchTime": "Recherche",
       "nodes": "Nœuds",
       "iterations": "Itérations",
       "fastest": "Le plus rapide"

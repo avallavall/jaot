@@ -84,7 +84,18 @@ class SolverComparison(Base):
     # The snapshot every child solves. See the module docstring for why it is
     # held here as well as on each child.
     problem_data: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    #: The name to SHOW for this comparison: the studio model's name, or the
+    #: uploaded file's, falling back to the name inside the problem. That last
+    #: one is often an exporter's leftover — real models in the wild carry "obj".
     problem_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    # What the compared problem is. Twelve seconds means one thing on an LP and
+    # another on a mixed-integer model with twenty thousand rows, so the table
+    # says which it was. Written once at creation and never derived on read: the
+    # class needs every constraint parsed, and the page polls while it runs.
+    problem_class: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    variable_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    constraint_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Provenance. Generic (not an FK) for the same reason ModelExecution's
     # source_kind/source_id are: an uploaded file has no table to point at.

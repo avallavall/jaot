@@ -145,7 +145,12 @@ class Constraint(BaseModel):
             if re.search(r"(?<![<>!])=(?!=)", v):
                 v = re.sub(r"(?<![<>!])=(?!=)", "==", v)
             else:
-                raise ValueError(f"Constraint must contain comparison operator: {v}")
+                # Show the start of the expression, not all of it. A grounded
+                # constraint runs to thousands of characters, and echoing the
+                # whole thing turns one validation error into a wall of text in
+                # every surface that reports it.
+                shown = v if len(v) <= 80 else f"{v[:80]}…"
+                raise ValueError(f"Constraint must contain comparison operator: {shown}")
         return v
 
 
@@ -676,6 +681,14 @@ class OptimizationResult(BaseModel):
     gap: float | None = Field(default=None, description="MIP gap (if applicable)")
     iterations: int | None = Field(default=None, description="Solver iterations")
     nodes: int | None = Field(default=None, description="Branch-and-bound nodes")
+    dual_bound: float | None = Field(
+        default=None,
+        description=(
+            "Best bound the solver proved: the best objective value that could still "
+            "exist. With the objective value it says how much room is left, which is "
+            "what a run stopped by its time limit is really reporting."
+        ),
+    )
 
     # Error info
     error_message: str | None = Field(default=None, description="Error details if failed")
@@ -743,6 +756,7 @@ class OptimizationResult(BaseModel):
             # limit — instead of a flat, useless "live" convergence chart (A2).
             "nodes": self.nodes,
             "iterations": self.iterations,
+            "dual_bound": self.dual_bound,
             "variables": [v.model_dump() for v in self.variables] if self.variables else [],
             "sensitivity": self.sensitivity.model_dump() if self.sensitivity else None,
             "infeasibility_analysis": (

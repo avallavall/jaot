@@ -4717,6 +4717,7 @@
     "conditions": {
       "terms": "Alle Solver erhielten dieselben Bedingungen: {seconds} Sekunden, eine Gap-Toleranz von {gap} und {threads} Thread(s).",
       "machineLabel": "Gemessen auf:",
+      "problem": "Das Problem: {problemClass}, {variables} Variablen und {constraints} Nebenbedingungen. „Suche“ ist die Zeit des Solvers; die Differenz zur Gesamtzeit ist der Modellaufbau.",
       "scope": "Die Zeiten sind nur innerhalb dieses Vergleichs vergleichbar. Vergleichen Sie sie nicht mit einem anderen Lauf.",
       "counters": "Knoten und Iterationen hängen nicht von der Auslastung der Maschine ab, anders als die Zeiten. Jeder Solver zählt seine Arbeit auf eigene Weise, lesen Sie eine Spalte daher für sich."
     },
@@ -4724,8 +4725,10 @@
       "solver": "Solver",
       "status": "Ergebnis",
       "objective": "Zielwert",
+      "bound": "Beste Schranke",
       "gap": "Gap",
       "time": "Zeit",
+      "searchTime": "Suche",
       "nodes": "Knoten",
       "iterations": "Iterationen",
       "fastest": "Am schnellsten"

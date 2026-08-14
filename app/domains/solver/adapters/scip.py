@@ -11,6 +11,7 @@ calls remain outside this file and app/domains/solver/adapters/_scip_*.py helper
 from __future__ import annotations
 
 import logging
+import math
 import time
 from collections.abc import Callable
 from typing import Any
@@ -849,6 +850,7 @@ class SCIPAdapter:
                 model, scip_vars, problem
             )
             result.gap = self._compute_mip_gap(model)
+            result.dual_bound = self._compute_dual_bound(model)
 
             logger.info("Solution found: obj=%.4f", result.objective_value)
 
@@ -896,6 +898,26 @@ class SCIPAdapter:
         except Exception:
             logger.debug("MIP gap extraction failed", exc_info=True)
             return None
+
+    @staticmethod
+    def _compute_dual_bound(model: Model) -> float | None:
+        """The best objective value SCIP proved could still exist.
+
+        Read together with the objective it says how much room a run had left.
+        A solve stopped by its time limit is reporting exactly this, and without
+        it the answer looks like a plain number with no idea how good it is.
+
+        An infinite bound means SCIP proved nothing yet; that is unknown, not a
+        very large number, so it comes back as None.
+        """
+        try:
+            bound = model.getDualbound()
+        except Exception:
+            logger.debug("Dual bound extraction failed", exc_info=True)
+            return None
+        if bound is None or not math.isfinite(bound):
+            return None
+        return float(bound)
 
     def _is_quadratic_problem(self, problem: OptimizationProblem) -> bool:
         """True when the objective or any constraint carries a degree-2 term."""

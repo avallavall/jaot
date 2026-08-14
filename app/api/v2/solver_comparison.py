@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import CurrentOrg, CurrentUser, DBSession, enforce_org_rate_limit
 from app.domains.solver import execution_writer
 from app.domains.solver.queue_routing import COMPARISON_QUEUE
+from app.domains.solver.services.classify import classify
 from app.domains.solver.services.comparison_service import (
     UNSUPPORTED_SOLVER_STATUS,
     SolvedColumn,
@@ -125,7 +126,10 @@ def create_comparison(
     # the model; no solver is going to disagree about them.
     validate_problem(problem)
 
-    plan = plan_comparison(problem, solver_names)
+    # Classified once here: the plan needs it to decide who can run, and the
+    # comparison stores it so the page never re-parses the model on a poll.
+    problem_class = classify(problem)
+    plan = plan_comparison(problem, solver_names, problem_class)
     runnable = [entry for entry in plan if entry.will_run]
     if not runnable:
         raise HTTPException(
@@ -147,7 +151,10 @@ def create_comparison(
         organization_id=org.id,
         created_by_user_id=user.id,
         problem_data=problem.model_dump(mode="json"),
-        problem_name=problem.name,
+        problem_name=provenance.get("display_name") or problem.name,
+        problem_class=problem_class.value,
+        variable_count=len(problem.variables),
+        constraint_count=len(problem.constraints),
         source_kind=provenance.get("source_kind"),
         source_id=provenance.get("source_id"),
         uploaded_filename=payload.uploaded_filename,
@@ -296,6 +303,10 @@ def _resolve_problem(
             "source_id": None,
             "model_project_id": None,
             "model_project_version_id": None,
+            # An uploaded file is known by its file name. Falling through to the
+            # problem's own name shows whatever the exporter wrote in there,
+            # which is often something like "obj".
+            "display_name": payload.uploaded_filename or payload.problem.name,
         }
 
     project = (
@@ -331,7 +342,7 @@ def _resolve_problem(
     except ValidationError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Stored model is not a valid optimization problem: {exc.errors()[:3]}",
+            detail=_validation_detail(project.name, exc),
         ) from exc
 
     return problem, {
@@ -339,6 +350,41 @@ def _resolve_problem(
         "source_id": project.id,
         "model_project_id": project.id,
         "model_project_version_id": version_id,
+        # The name the user picked in the dropdown, not the name buried in the
+        # stored problem — several real models carry "obj" in there.
+        "display_name": project.name,
+    }
+
+
+#: How many of a validation failure's problems to name, and how long each may be.
+#: A stored model can fail on hundreds of rows at once, and every Pydantic entry
+#: carries the offending input with it — a grounded constraint runs to thousands
+#: of characters. Dumping ``exc.errors()`` put that whole wall on the user's
+#: screen and told them nothing they could act on.
+_MAX_REPORTED_ERRORS = 3
+_MAX_ERROR_LENGTH = 160
+
+
+def _validation_detail(model_name: str, exc: ValidationError) -> dict[str, Any]:
+    """Turn a Pydantic failure into something a person can read and act on."""
+    errors = exc.errors(include_url=False, include_input=False, include_context=False)
+    problems: list[str] = []
+    for error in errors[:_MAX_REPORTED_ERRORS]:
+        where = ".".join(str(part) for part in error.get("loc", ())) or "model"
+        message = str(error.get("msg", "")).removeprefix("Value error, ")
+        if len(message) > _MAX_ERROR_LENGTH:
+            message = f"{message[:_MAX_ERROR_LENGTH]}…"
+        problems.append(f"{where}: {message}")
+
+    remaining = max(0, len(errors) - _MAX_REPORTED_ERRORS)
+    return {
+        "error": "model_cannot_be_compared",
+        "message": (
+            f"'{model_name}' is not stored as a problem this platform can solve, so it "
+            f"cannot be compared. The same model would fail an ordinary solve too."
+        ),
+        "problems": problems,
+        "further_problems": remaining,
     }
 
 
@@ -536,6 +582,9 @@ def _detail(db: Session, comparison: SolverComparison) -> ComparisonDetail:
             gap_tolerance=comparison.gap_tolerance,
             threads=comparison.threads,
         ),
+        problem_class=comparison.problem_class,
+        variable_count=comparison.variable_count,
+        constraint_count=comparison.constraint_count,
         machine_note=comparison.machine_note,
         results=results,
         agreement=(
@@ -570,6 +619,7 @@ def _row(solver_name: str, execution: ModelExecution | None) -> ComparisonSolver
         unsupported_reason=result_data.get("unsupported_reason"),
         objective_value=execution.objective_value,
         gap=result_data.get("gap"),
+        dual_bound=result_data.get("dual_bound"),
         iterations=result_data.get("iterations"),
         nodes=result_data.get("nodes"),
         wall_time_ms=execution.execution_time_ms,

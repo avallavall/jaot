@@ -37,15 +37,22 @@ export function ComparisonTable({ comparison }: { comparison: ComparisonDetail }
               <TableHead>{t("table.solver")}</TableHead>
               <TableHead>{t("table.status")}</TableHead>
               <TableHead className="text-right">{t("table.objective")}</TableHead>
+              <TableHead className="text-right">{t("table.bound")}</TableHead>
               <TableHead className="text-right">{t("table.gap")}</TableHead>
               <TableHead className="text-right">{t("table.time")}</TableHead>
+              <TableHead className="text-right">{t("table.searchTime")}</TableHead>
               <TableHead className="text-right">{t("table.nodes")}</TableHead>
               <TableHead className="text-right">{t("table.iterations")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {comparison.results.map((row) => (
-              <ResultRow key={row.solver_name} row={row} fastest={fastest} />
+              <ResultRow
+                key={row.solver_name}
+                row={row}
+                fastest={fastest}
+                ratio={ratioOf(row, comparison)}
+              />
             ))}
           </TableBody>
         </Table>
@@ -84,6 +91,15 @@ function ConditionsNotice({ comparison }: { comparison: ComparisonDetail }) {
           {t("conditions.machineLabel")} <span className="font-mono">{machine_note}</span>
         </p>
       ) : null}
+      {comparison.problem_class ? (
+        <p>
+          {t("conditions.problem", {
+            problemClass: comparison.problem_class,
+            variables: comparison.variable_count ?? 0,
+            constraints: comparison.constraint_count ?? 0,
+          })}
+        </p>
+      ) : null}
       <p className="mt-1">{t("conditions.scope")}</p>
       {/* Nodes and iterations are each solver's own count of its own work. They
           survive a busy machine, which is why they are here at all, but they are
@@ -96,9 +112,13 @@ function ConditionsNotice({ comparison }: { comparison: ComparisonDetail }) {
 function ResultRow({
   row,
   fastest,
+  ratio,
 }: {
   row: ComparisonSolverResult;
   fastest: string | null;
+  /** This row's total time divided by the quickest one's, or null when there is
+   * nothing to compare it against. */
+  ratio: number | null;
 }) {
   const t = useTranslations("solverCompare");
   const unsupported = row.solver_status === "unsupported";
@@ -119,8 +139,21 @@ function ResultRow({
       <TableCell className="text-right tabular-nums">
         {formatNumber(row.objective_value)}
       </TableCell>
+      <TableCell className="text-right tabular-nums">{formatNumber(row.dual_bound)}</TableCell>
       <TableCell className="text-right tabular-nums">{formatGap(row.gap)}</TableCell>
-      <TableCell className="text-right tabular-nums">{formatMs(row.wall_time_ms)}</TableCell>
+      <TableCell className="text-right tabular-nums">
+        {formatMs(row.wall_time_ms)}
+        {/* How much slower than the quickest that answered. A ratio is what a
+            reader actually wants from two timings side by side. */}
+        {ratio !== null && ratio > 1.05 ? (
+          <span className="ml-1 text-muted-foreground">
+            ({ratio.toLocaleString(undefined, { maximumFractionDigits: 1 })}×)
+          </span>
+        ) : null}
+      </TableCell>
+      <TableCell className="text-right tabular-nums">
+        {formatSeconds(row.solver_time_seconds)}
+      </TableCell>
       <TableCell className="text-right tabular-nums">{formatCount(row.nodes)}</TableCell>
       <TableCell className="text-right tabular-nums">{formatCount(row.iterations)}</TableCell>
     </TableRow>
@@ -227,6 +260,30 @@ export function fastestOf(comparison: ComparisonDetail): string | null {
   return solved.reduce((best, r) =>
     (r.wall_time_ms ?? Infinity) < (best.wall_time_ms ?? Infinity) ? r : best,
   ).solver_name;
+}
+
+/** How many times slower this row was than the quickest that answered. */
+export function ratioOf(row: ComparisonSolverResult, comparison: ComparisonDetail): number | null {
+  const best = bestTimeOf(comparison);
+  if (best === null || best <= 0 || row.wall_time_ms === null) return null;
+  if (row.solver_status === null || !SOLVED_STATUSES.has(row.solver_status)) return null;
+  return row.wall_time_ms / best;
+}
+
+function bestTimeOf(comparison: ComparisonDetail): number | null {
+  const times = comparison.results
+    .filter((r) => r.solver_status !== null && SOLVED_STATUSES.has(r.solver_status))
+    .map((r) => r.wall_time_ms)
+    .filter((t): t is number => t !== null);
+  if (times.length < 2) return null;
+  return Math.min(...times);
+}
+
+function formatSeconds(value: number | null): string {
+  if (value === null || value === undefined) return "—";
+  if (value < 0.001) return "<1 ms";
+  if (value < 1) return `${Math.round(value * 1000)} ms`;
+  return `${value.toLocaleString(undefined, { maximumFractionDigits: 2 })} s`;
 }
 
 function formatNumber(value: number | null): string {

@@ -114,6 +114,10 @@ class ComparisonSolverResult(BaseModel):
     unsupported_reason: str | None = None
 
     objective_value: float | None = None
+    #: The best objective value the solver proved could still exist. With the
+    #: objective it says how much room was left — which is the whole content of
+    #: a run stopped by its time limit.
+    dual_bound: float | None = None
     gap: float | None = None
     iterations: int | None = None
     nodes: int | None = None
@@ -165,6 +169,12 @@ class ComparisonDetail(BaseModel):
     dataset_name: str | None = None
 
     settings: ComparisonTerms
+    #: What the compared problem is: LP, MILP, IP, BIP, QP, MIQP, QCP or MIQCP,
+    #: with its size. Twelve seconds means one thing on an LP and another on a
+    #: mixed-integer model with twenty thousand rows.
+    problem_class: str | None = None
+    variable_count: int | None = None
+    constraint_count: int | None = None
     #: Which machine produced these seconds. Times are comparable within one
     #: comparison and nowhere else, so the machine is shown next to them.
     machine_note: str | None = None

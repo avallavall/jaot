@@ -369,6 +369,7 @@ class HiGHSAdapter:
             iterations=counters.get("iterations"),
             nodes=counters.get("nodes"),
             gap=counters.get("gap"),
+            dual_bound=counters.get("dual_bound"),
         )
 
         # Sensitivity: HiGHS exposes exact LP duals (row_dual) + reduced costs
@@ -422,6 +423,12 @@ class HiGHSAdapter:
             # against; that is "unknown", not "infinitely far off".
             if isinstance(gap, (int, float)) and 0 <= gap < _HIGHS_INF:
                 counters["gap"] = float(gap)
+            # The best objective value HiGHS proved could still exist. Read with
+            # the objective it says how much room a run had left, which is the
+            # whole content of a solve stopped by its time limit.
+            bound = getattr(info, "mip_dual_bound", None)
+            if isinstance(bound, (int, float)) and abs(bound) < _HIGHS_INF:
+                counters["dual_bound"] = float(bound)
 
         return counters
 
