@@ -5402,6 +5402,8 @@ export interface components {
             agreement?: components["schemas"]["ComparisonAgreement"] | null;
             /** Completed At */
             completed_at?: string | null;
+            /** Constraint Count */
+            constraint_count?: number | null;
             /**
              * Created At
              * Format: date-time
@@ -5421,6 +5423,8 @@ export interface components {
             model_project_id?: string | null;
             /** Model Project Version Id */
             model_project_version_id?: string | null;
+            /** Problem Class */
+            problem_class?: string | null;
             /** Problem Name */
             problem_name?: string | null;
             /** Results */
@@ -5436,6 +5440,8 @@ export interface components {
             status: string;
             /** Uploaded Filename */
             uploaded_filename?: string | null;
+            /** Variable Count */
+            variable_count?: number | null;
         };
         /**
          * ComparisonListResponse
@@ -5476,6 +5482,8 @@ export interface components {
          * @description One row of the table: what this solver did with the shared problem.
          */
         ComparisonSolverResult: {
+            /** Dual Bound */
+            dual_bound?: number | null;
             /** Error Message */
             error_message?: string | null;
             /** Execution Id */
@@ -8156,6 +8164,11 @@ export interface components {
              * @description Machine-readable auto-routing reason code. Populated only when solver_name was 'auto'. Values: lp_routed_to_highs | quadratic_routed_to_hexaly | hexaly_unavailable_fallback | milp_routed_to_scip.
              */
             auto_route_reason?: string | null;
+            /**
+             * Dual Bound
+             * @description Best bound the solver proved: the best objective value that could still exist. With the objective value it says how much room is left, which is what a run stopped by its time limit is really reporting.
+             */
+            dual_bound?: number | null;
             /**
              * Error Message
              * @description Error details if failed
