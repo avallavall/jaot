@@ -13,7 +13,7 @@ Ordered by benefit ÷ effort.
 | D-27 | PgBouncer in transaction mode, once there are real users or more workers | Low today, rising with load | Needs an infra window |
 | D-29 | The TTL-cache-plus-single-flight pattern is written three times, and the three disagree | Low: each one works; the next copy is where it stops working | An afternoon, once a fourth caller needs it |
 | D-30 | `check_rate_limit` takes no cost, so a solver comparison refused on quota has already spent the slots of the solvers before it | Low: a user near their daily cap loses a few slots | Small, but it changes a limiter every endpoint shares |
-| D-31 | The comparison solver picker offers solvers that can never take part | Low: picking only Hexaly returns a 422 that explains itself | Small: one flag on `/solvers/available` |
+| D-31 | The comparison solver picker offers solvers that can never take part | Low: picking only Hexaly returns a 422 that explains itself | Small: one flag on `/solvers/available` — its trigger (CBC and GLPK landing) is now met |
 
 ---
 
@@ -170,6 +170,9 @@ list on the server instead of copying the exclusions into the frontend where the
 It changes an existing response shape, which is why it was not done inside the feature that
 found it. Do it when CBC and GLPK land and the picker has more than two entries.
 
-Recorded 2026-08-14.
+**That condition is met.** CBC and GLPK landed on 2026-08-15 and the picker now lists four
+solvers, so the wasted click is one in four rather than one in two.
+
+Recorded 2026-08-14. Trigger reached 2026-08-15.
 
 ---
