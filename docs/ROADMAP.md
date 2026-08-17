@@ -47,6 +47,18 @@ and the model source that compiles to both. The figures are generated from the s
 and from the template catalogue itself, so the page cannot drift away from what JAOT
 reports after a solve.
 
+Two more solvers ship with JAOT now, CBC and GLPK, both free and open source, each
+running as a separate program rather than linked in. And there is a way to see what
+picking one costs you: run the same model on several of them under identical terms — same
+time limit, same gap tolerance, one machine, one solve at a time — and read what each one
+actually did. A solver that cannot express your model says so in its own row instead of
+leaving a blank, and the page states the terms and the machine above the table, because
+seconds only mean something inside one comparison.
+
+Inside a model's workspace that becomes a grid: your datasets down the side, the solvers
+across the top, one measure at a time. The solver that wins on January's data routinely
+loses on March's, and one dataset cannot tell you that.
+
 ## Next
 
 Nothing queued right now — the last item here (the solve analytics screen reading

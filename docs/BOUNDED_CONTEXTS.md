@@ -10,6 +10,7 @@
 | BC | Role | Coupling | Where it lives today | Extracted? |
 |---|---|---|---|---|
 | **BC1: Solver** | Core | 2/5 | `app/domains/solver/` | ✅ Phase 3 (2026-04-13) |
+| **BC1b: JModel compiler** | Core | 1/5 | `app/domains/dsl/` | ✅ Extracted — pure: its import-linter contract lets it import `app.schemas` and nothing else |
 | **BC2: Marketplace** | Core sub | 3/5 | `app/services/` (author_analytics, verification, storage, template_scorecard), `app/api/v2/routes/models/` (listings), `app/api/v2/author.py` | ❌ Planned §6 |
 | **BC3: Billing** | — | — | **Removed (ADR-008)** — the money layer and the credit system were deleted; fair use = rate limits + quotas | n/a |
 | **BC4: Identity** | Generic | 2/5 | `app/services/auth/`, `app/services/gdpr_service.py`, User/Organization/APIKey/RefreshToken models | ❌ Planned §6 |

@@ -122,6 +122,26 @@ Its `concurrency=1` is a feature, not a resource choice. The comparison table
 puts each solver's seconds next to the others', so only one comparison may be
 solving at a time; two at once would be timing two processes sharing a CPU.
 
+## Two kinds of task on `solve_compare`
+
+A solver matrix crosses N datasets with M solvers, and each dataset compiles to
+its own problem. `prepare_comparison_row` (in `app/tasks/`, outside the solver
+domain because it needs the JModel compiler) does that compiling for one row and
+then queues `run_solver_comparison` for it. The launch endpoint writes the rows
+and enqueues only the prepares, so nothing waits on a compile inside the request.
+
+Because both land on the same single-slot queue, every row is prepared before
+the first one starts solving: the prepares are all enqueued up front, and each
+solve joins the queue behind them.
+
+## Pool sizes
+
+The four workers that run one task at a time (`highs`, `cbc`, `glpk`,
+`compare`) carry `DB_POOL_SIZE=2` / `DB_MAX_OVERFLOW=2`, not the 5/5 the API and
+the two concurrency-2 workers use. Six always-on Celery containers at ten
+connections apiece would put the default profile at about 110 against
+`max_connections = 100`. See D-27 for the whole budget.
+
 ## Notes
 
 - **Defense in depth:** routing-level (`-Q`) + runtime guard (`SOLVER_QUEUE` env). Two independent layers.

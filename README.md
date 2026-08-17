@@ -10,7 +10,7 @@ is the one holding you back.
 [![Release](https://img.shields.io/github/v/release/avallavall/jaot?label=release)](https://github.com/avallavall/jaot/releases)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.12-blue.svg)](pyproject.toml)
-[![Solvers](https://img.shields.io/badge/solvers-SCIP%20%C2%B7%20HiGHS-orange.svg)](#built-with)
+[![Solvers](https://img.shields.io/badge/solvers-SCIP%20%C2%B7%20HiGHS%20%C2%B7%20CBC%20%C2%B7%20GLPK-orange.svg)](#built-with)
 
 [Quickstart](#quickstart) · [Architecture](#architecture) ·
 [Development](#development) · [Documentation](#documentation) ·
@@ -32,8 +32,8 @@ as exact.
 
 It is **a platform, not a library and not a hosted service** — you run it yourself
 with `docker compose up`. It comes with a web interface, a REST API, and an MCP
-server so AI agents can use it too. Two solvers ship with it (SCIP and HiGHS) and
-adding another means writing one adapter.
+server so AI agents can use it too. Four solvers ship with it (SCIP, HiGHS, CBC
+and GLPK) and adding another means writing one adapter.
 
 **Free, with no paid tier.** No billing, no credits, no upsell — the marketplace is
 people sharing models, not selling them. Fair use is a set of request limits and
@@ -49,8 +49,16 @@ a private one need not.
 ### Solve
 
 - **Solver-agnostic core** — an `OptimizationProblem` schema that stays
-  independent of the solver. Ships SCIP (via PySCIPOpt) and HiGHS (via highspy);
-  an optional Hexaly adapter is bring-your-own-license.
+  independent of the solver. Ships SCIP (via PySCIPOpt), HiGHS (via highspy),
+  and CBC and GLPK as separate command-line programs; an optional Hexaly adapter
+  is bring-your-own-license.
+- **Compare solvers on the same problem** — run one model on several solvers
+  under identical terms (same time limit, same gap tolerance, one machine, one
+  at a time) and read what each of them actually did: result, objective, best
+  bound, gap, time, nodes and iterations. A solver that cannot express the model
+  says so in its own row instead of leaving a blank. Inside a model's workspace
+  the same thing crosses several datasets with several solvers as a matrix, so
+  the answer is not decided by one month's data.
 - **The interface adapts to your solver** — each adapter declares what it
   supports, so the UI tells you up front what your chosen solver will not give
   you (a metaheuristic computes no shadow prices) instead of offering a panel
@@ -187,6 +195,8 @@ Full setup guide (Claude Code, Claude Desktop, opencode, OpenAI Responses API) �
 └─────┘ │ workers │ └─────┘ └───────────┘ └────────────┘
         │ SCIP /  │
         │ HiGHS / │
+        │ CBC /   │
+        │ GLPK /  │
         │ Hexaly  │
         └─────────┘
 ```

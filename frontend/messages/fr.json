@@ -121,7 +121,7 @@
     "liveCancelled": "Annulé",
     "liveWaiting": "En attente de la première solution…",
     "liveNoProgressStream": "{solver} ne diffuse pas sa progression pendant la recherche : le résultat apparaîtra à la fin de la résolution.",
-    "liveStreamNote": "Certains solveurs diffusent la progression en direct ; d'autres (p. ex. HiGHS, Hexaly) ne renvoient que le résultat final.",
+    "liveStreamNote": "SCIP diffuse la progression en direct. Les autres solveurs ne rapportent que le résultat final.",
     "solveStatusLabel": "Statut",
     "solveSolverLabel": "Solveur",
     "liveConvergence": "Convergence",
@@ -1030,7 +1030,7 @@
       },
       "section2": {
         "title": "2. Description du service",
-        "body": "JAOT est une plateforme open source permettant de créer, partager et résoudre des modèles d’optimisation mathématique. Elle comprend une place de marché gratuite et collaborative de modèles d’optimisation, un constructeur visuel de modèles par glisser-déposer, un assistant de formulation par IA optionnel, un point d’accès Model Context Protocol (MCP) pour l’accès programmatique et des espaces de travail partagés par organisation. Les modèles sont résolus localement à l’aide de solveurs open source, actuellement SCIP et HiGHS. L’instance jaot.io est le déploiement de référence exploité par l’équipe JAOT ; toute personne peut auto-héberger le même logiciel sous la Licence Apache 2.0."
+        "body": "JAOT est une plateforme open source permettant de créer, partager et résoudre des modèles d’optimisation mathématique. Elle comprend une place de marché gratuite et collaborative de modèles d’optimisation, un constructeur visuel de modèles par glisser-déposer, un assistant de formulation par IA optionnel, un point d’accès Model Context Protocol (MCP) pour l’accès programmatique et des espaces de travail partagés par organisation. Les modèles sont résolus localement à l’aide de solveurs open source, actuellement SCIP, HiGHS, CBC et GLPK. L’instance jaot.io est le déploiement de référence exploité par l’équipe JAOT ; toute personne peut auto-héberger le même logiciel sous la Licence Apache 2.0."
       },
       "section3": {
         "title": "3. Utilisation acceptable",
@@ -1053,7 +1053,7 @@
       },
       "section6": {
         "title": "6. Avertissement sur le solveur",
-        "body1": "Les solveurs d’optimisation sont fournis « en l’état ». JAOT exécute vos modèles avec des solveurs open source (SCIP et HiGHS) au mieux de ses possibilités, mais ne garantit pas qu’une solution soit globalement optimale, réalisable pour votre scénario réel ou adaptée à une prise de décision critique sans vérification indépendante.",
+        "body1": "Les solveurs d’optimisation sont fournis « en l’état ». JAOT exécute vos modèles avec des solveurs open source (SCIP, HiGHS, CBC et GLPK) au mieux de ses possibilités, mais ne garantit pas qu’une solution soit globalement optimale, réalisable pour votre scénario réel ou adaptée à une prise de décision critique sans vérification indépendante.",
         "body2": "Les résultats dépendent entièrement de la manière dont un modèle est formulé. Il vous incombe de veiller à ce que vos données représentent fidèlement votre problème et de valider de manière indépendante tout résultat avant d’agir en conséquence."
       },
       "section7": {
@@ -4583,7 +4583,7 @@
   "metadata": {
     "home": {
       "title": "JAOT - Plateforme d'optimisation IA et marketplace de modèles | Créez, utilisez ou automatisez",
-      "description": "Plateforme d'optimisation IA avec une marketplace de modèles gratuite et collaborative. Créez des modèles versionnés avec l'IA, dupliquez des solutions de la communauté ou connectez des agents IA via MCP. Propulsée par SCIP et HiGHS."
+      "description": "Plateforme d'optimisation IA avec une marketplace de modèles gratuite et collaborative. Créez des modèles versionnés avec l'IA, dupliquez des solutions de la communauté ou connectez des agents IA via MCP. Propulsée par SCIP, HiGHS, CBC et GLPK."
     },
     "terms": {
       "title": "Conditions d'Utilisation - JAOT",

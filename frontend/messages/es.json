@@ -121,7 +121,7 @@
     "liveCancelled": "Cancelado",
     "liveWaiting": "Esperando la primera solución…",
     "liveNoProgressStream": "{solver} no emite progreso mientras busca: el resultado aparecerá cuando termine de resolver.",
-    "liveStreamNote": "Algunos solvers transmiten el progreso en vivo; otros (p. ej. HiGHS, Hexaly) solo informan del resultado final.",
+    "liveStreamNote": "SCIP transmite el progreso en directo. Los demás solvers solo informan del resultado final.",
     "solveStatusLabel": "Estado",
     "solveSolverLabel": "Solver",
     "liveConvergence": "Convergencia",
@@ -1030,7 +1030,7 @@
       },
       "section2": {
         "title": "2. Descripción del servicio",
-        "body": "JAOT es una plataforma de código abierto para crear, compartir y resolver modelos de optimización matemática. Incluye un marketplace gratuito y colaborativo de plantillas de optimización, un constructor visual de modelos de arrastrar y soltar, un asistente de formulación con IA opcional, un endpoint de Model Context Protocol (MCP) para acceso programático y espacios de trabajo compartidos por organización. Los modelos se resuelven localmente con solvers de código abierto, actualmente SCIP y HiGHS. La instancia de jaot.io es el despliegue de referencia operado por el equipo de JAOT; cualquiera puede autoalojar el mismo software bajo la Licencia Apache 2.0."
+        "body": "JAOT es una plataforma de código abierto para crear, compartir y resolver modelos de optimización matemática. Incluye un marketplace gratuito y colaborativo de plantillas de optimización, un constructor visual de modelos de arrastrar y soltar, un asistente de formulación con IA opcional, un endpoint de Model Context Protocol (MCP) para acceso programático y espacios de trabajo compartidos por organización. Los modelos se resuelven localmente con solvers de código abierto, actualmente SCIP, HiGHS, CBC y GLPK. La instancia de jaot.io es el despliegue de referencia operado por el equipo de JAOT; cualquiera puede autoalojar el mismo software bajo la Licencia Apache 2.0."
       },
       "section3": {
         "title": "3. Uso aceptable",
@@ -1053,7 +1053,7 @@
       },
       "section6": {
         "title": "6. Aviso sobre el solver",
-        "body1": "Los solvers de optimización se ofrecen “tal cual”. JAOT ejecuta tus modelos con solvers de código abierto (SCIP y HiGHS) con el mejor esfuerzo, pero no garantiza que una solución sea globalmente óptima, factible para tu escenario real o adecuada para decisiones críticas sin verificación independiente.",
+        "body1": "Los solvers de optimización se ofrecen “tal cual”. JAOT ejecuta tus modelos con solvers de código abierto (SCIP, HiGHS, CBC y GLPK) con el mejor esfuerzo, pero no garantiza que una solución sea globalmente óptima, factible para tu escenario real o adecuada para decisiones críticas sin verificación independiente.",
         "body2": "Los resultados dependen por completo de cómo se formule el modelo. Eres responsable de asegurar que tus datos representan con exactitud tu problema y de validar de forma independiente cualquier resultado antes de actuar en consecuencia."
       },
       "section7": {
@@ -4583,7 +4583,7 @@
   "metadata": {
     "home": {
       "title": "JAOT - Plataforma de optimización con IA y marketplace de modelos | Crea, usa o automatiza",
-      "description": "Plataforma de optimización con IA y un marketplace de modelos gratuito y colaborativo. Crea modelos versionados con IA, bifurca soluciones de la comunidad o conecta agentes de IA vía MCP. Impulsada por SCIP y HiGHS."
+      "description": "Plataforma de optimización con IA y un marketplace de modelos gratuito y colaborativo. Crea modelos versionados con IA, bifurca soluciones de la comunidad o conecta agentes de IA vía MCP. Impulsada por SCIP, HiGHS, CBC y GLPK."
     },
     "terms": {
       "title": "Términos de servicio - JAOT",
