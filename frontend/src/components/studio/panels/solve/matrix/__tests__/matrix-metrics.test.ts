@@ -215,6 +215,27 @@ describe("polling", () => {
     expect(canStopMatrix(batch)).toBe(false);
   });
 
+  // A row whose dataset never compiled has no cells of its own, so every column
+  // of it reads as pending for ever. Polling on that never stops.
+  it("stops polling for the cells of a row that already ended", () => {
+    const failed = {
+      ...row("January", [result({ status: "pending", wall_time_ms: null })]),
+      status: "failed",
+    };
+    const batch = { status: "completed", rows: [failed] };
+    expect(shouldKeepPollingMatrix(batch)).toBe(false);
+    expect(cellOf(failed.results[0], "time", failed.status).kind).toBe("skipped");
+  });
+
+  it("keeps polling a pending cell while its row is still going", () => {
+    const live = {
+      ...row("January", [result({ status: "pending", wall_time_ms: null })]),
+      status: "running",
+    };
+    expect(shouldKeepPollingMatrix({ status: "running", rows: [live] })).toBe(true);
+    expect(cellOf(live.results[0], "time", live.status).kind).toBe("waiting");
+  });
+
   it("stops polling once every cell has a verdict", () => {
     const batch = { status: "completed", rows: [row("January", [result()])] };
     expect(shouldKeepPollingMatrix(batch)).toBe(false);

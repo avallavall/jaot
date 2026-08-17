@@ -377,7 +377,8 @@
       "machineLabel": "Mesurat a:",
       "launchFailed": "No s'ha pogut llançar la matriu.",
       "cancelFailed": "No s'ha pogut aturar la matriu.",
-      "rowFailed": "No s'ha pogut obrir aquesta fila."
+      "rowFailed": "No s'ha pogut obrir aquesta fila.",
+      "cellSkipped": "Aquesta fila va acabar abans que aquest solver s'executés."
     }
   },
   "common": {

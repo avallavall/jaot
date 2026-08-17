@@ -33,7 +33,17 @@ export function hasDirection(metric: MatrixMetric): boolean {
 }
 
 /** Why a cell holds no number. Never blank: a blank cell is read as zero. */
-export type CellKind = "value" | "waiting" | "unsupported" | "failed" | "cancelled" | "none";
+export type CellKind =
+  | "value"
+  | "waiting"
+  | "unsupported"
+  | "failed"
+  | "cancelled"
+  | "skipped"
+  | "none";
+
+/** Row states a row never leaves. */
+const TERMINAL_ROW_STATUSES = new Set(["completed", "failed", "cancelled"]);
 
 export interface MatrixCell {
   kind: CellKind;
@@ -47,10 +57,24 @@ export interface MatrixCell {
 
 const WAITING_STATUSES = new Set(["pending", "running"]);
 
-/** Turn one solver's result into the cell for the chosen metric. */
-export function cellOf(result: ComparisonSolverResult, metric: MatrixMetric): MatrixCell {
+/**
+ * Turn one solver's result into the cell for the chosen metric.
+ *
+ * ``rowStatus`` matters for a cell that has not started. A row can end before
+ * its cells ever ran — its dataset did not compile, or it never reached the
+ * queue — and a cell waiting inside a finished row is waiting for nothing.
+ * Left as "waiting" it spins for ever and keeps the page polling.
+ */
+export function cellOf(
+  result: ComparisonSolverResult,
+  metric: MatrixMetric,
+  rowStatus?: string,
+): MatrixCell {
   if (result.solver_status === "unsupported") {
     return { kind: "unsupported", value: null, reason: result.unsupported_reason, error: null };
+  }
+  if (result.status === "pending" && rowStatus !== undefined && isRowOver(rowStatus)) {
+    return { kind: "skipped", value: null, reason: null, error: null };
   }
   if (WAITING_STATUSES.has(result.status)) {
     return { kind: "waiting", value: null, reason: null, error: null };
@@ -191,20 +215,34 @@ export function hardestRow(rows: ComparisonMatrixRow[]): ComparisonMatrixRow | n
 /** Lifecycle states with something still to happen. */
 const LIVE_STATUSES = new Set(["pending", "running"]);
 
+/** Whether this row has reached a state it will not leave. */
+export function isRowOver(status: string): boolean {
+  return TERMINAL_ROW_STATUSES.has(status);
+}
+
 /**
  * Whether the page should keep asking for a fresher grid.
  *
  * Not simply "is the matrix running". Stopping it marks every unstarted row
  * cancelled at once, but the solve already inside a solver cannot be
  * interrupted: the worker finishes it and writes its verdict a few seconds
- * later. A cell without a verdict keeps the polling alive on its own.
+ * later. So a cell that is RUNNING keeps the polling alive whatever its row
+ * says.
+ *
+ * A cell that is merely PENDING does not, once its row is over: a row whose
+ * dataset never compiled has no cells of its own, and every column of it reads
+ * as pending for ever. Polling on that never stops.
  */
 export function shouldKeepPollingMatrix(
   batch: { status: string; rows: ComparisonMatrixRow[] } | null,
 ): boolean {
   if (!batch) return false;
   if (LIVE_STATUSES.has(batch.status)) return true;
-  return batch.rows.some((row) => row.results.some((cell) => LIVE_STATUSES.has(cell.status)));
+  return batch.rows.some((row) =>
+    row.results.some(
+      (cell) => cell.status === "running" || (cell.status === "pending" && !isRowOver(row.status)),
+    ),
+  );
 }
 
 /** Whether there is still something to stop. */

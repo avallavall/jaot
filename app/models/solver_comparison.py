@@ -83,7 +83,14 @@ class SolverComparison(Base):
     # ── What is being compared ────────────────────────────────────────────
     # The snapshot every child solves. See the module docstring for why it is
     # held here as well as on each child.
-    problem_data: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    #
+    # Empty until the worker has compiled it, and only ever for a matrix row. A
+    # matrix compiles one problem per dataset, and doing that inside the launch
+    # request put the whole cost of the model in front of the user — 28 seconds
+    # and 57 MB for three datasets of 22,500 variables. The row is created first
+    # and its worker fills this in. A single comparison arrives with its snapshot
+    # already in hand and never passes through the empty state.
+    problem_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     #: The name to SHOW for this comparison: the studio model's name, or the
     #: uploaded file's, falling back to the name inside the problem. That last
     #: one is often an exporter's leftover — real models in the wild carry "obj".

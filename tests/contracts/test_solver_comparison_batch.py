@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 import app.api.v2.solver_comparison as comparison_api
 import app.domains.solver.tasks.comparison_tasks as comparison_tasks_mod
+import app.tasks.comparison_prepare as prepare_mod
 from app.models import ModelExecution, ModelProject, Organization, SolverComparison
 from app.models.optimization_model import ExecutionStatus
 from app.models.solver_comparison import ComparisonStatus
@@ -42,7 +43,11 @@ _BROKEN = {"sets": {"I": ["a", "b"]}, "params": {}}
 
 @pytest.fixture
 def captured_dispatch(monkeypatch):
-    """Capture the enqueue instead of dialling a broker."""
+    """Capture both enqueues instead of dialling a broker.
+
+    A matrix now queues a PREPARE task per row, and that task queues the solve.
+    Both are captured so a test can tell which of them was asked for.
+    """
     calls: list[dict] = []
 
     class _Result:
@@ -52,10 +57,50 @@ def captured_dispatch(monkeypatch):
         calls.append(kwargs)
         return _Result()
 
+    monkeypatch.setattr(prepare_mod.prepare_comparison_row, "apply_async", _fake_apply_async)
     monkeypatch.setattr(
         comparison_tasks_mod.run_solver_comparison, "apply_async", _fake_apply_async
     )
     return calls
+
+
+@pytest.fixture
+def prepare_runs_on_the_test_session(db_session: Session, monkeypatch):
+    """Let the prepare task use the session the test can see.
+
+    The task opens a session of its own, which under the SAVEPOINT harness would
+    see none of the rows this test created.
+    """
+
+    class _NoClose:
+        def __init__(self, session):
+            self._session = session
+
+        def __getattr__(self, name):
+            return getattr(self._session, name)
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(prepare_mod, "_own_session", lambda: _NoClose(db_session))
+
+
+def _prepare_rows(db_session: Session, batch_id: str) -> list[dict]:
+    """Run the prepare task for every row, in order, as the worker would."""
+    rows = (
+        db_session.query(SolverComparison)
+        .filter(SolverComparison.batch_id == batch_id)
+        .order_by(SolverComparison.batch_position)
+        .all()
+    )
+    outcomes = [
+        prepare_mod.prepare_comparison_row.apply(
+            kwargs={"comparison_id": row.id, "organization_id": row.organization_id}
+        ).get()
+        for row in rows
+    ]
+    db_session.expire_all()
+    return outcomes
 
 
 def _seed_project(client: TestClient, db_session: Session, *, source: str | None = _SOURCE) -> str:
@@ -148,6 +193,7 @@ def test_every_row_of_the_matrix_gets_the_same_terms(
     authenticated_client: TestClient,
     db_session: Session,
     captured_dispatch: list[dict],
+    prepare_runs_on_the_test_session,
 ) -> None:
     _project_id, _dataset_ids, detail = _seed_matrix(
         authenticated_client,
@@ -161,15 +207,26 @@ def test_every_row_of_the_matrix_gets_the_same_terms(
         assert row.time_limit_seconds == 12
         assert row.gap_tolerance == 0.05
         assert row.threads == detail["settings"]["threads"]
+
+    # And the terms the row was given are the ones stamped onto the problem its
+    # worker compiles, which is what every solver actually receives.
+    _prepare_rows(db_session, detail["batch_id"])
+    for row in db_session.query(SolverComparison).all():
         assert row.problem_data["options"]["time_limit_seconds"] == 12
+        assert row.problem_data["options"]["gap_tolerance"] == 0.05
 
 
 def test_each_row_names_its_dataset_and_its_compiled_size(
     authenticated_client: TestClient,
     db_session: Session,
     captured_dispatch: list[dict],
+    prepare_runs_on_the_test_session,
 ) -> None:
-    _project_id, _dataset_ids, detail = _seed_matrix(authenticated_client, db_session)
+    _project_id, _dataset_ids, launched = _seed_matrix(authenticated_client, db_session)
+    # The launch names the datasets; the sizes arrive when each row is compiled.
+    assert all(row["variable_count"] is None for row in launched["rows"])
+    _prepare_rows(db_session, launched["batch_id"])
+    detail = _get(authenticated_client, launched["batch_id"])
 
     by_name = {row["dataset_name"]: row for row in detail["rows"]}
     assert set(by_name) == {"January", "February"}
@@ -187,8 +244,10 @@ def test_every_cell_records_the_dataset_it_solved(
     authenticated_client: TestClient,
     db_session: Session,
     captured_dispatch: list[dict],
+    prepare_runs_on_the_test_session,
 ) -> None:
-    _project_id, dataset_ids, _detail = _seed_matrix(authenticated_client, db_session)
+    _project_id, dataset_ids, launched = _seed_matrix(authenticated_client, db_session)
+    _prepare_rows(db_session, launched["batch_id"])
 
     executions = db_session.query(ModelExecution).all()
     assert len(executions) == 4
@@ -235,22 +294,22 @@ def test_the_same_dataset_twice_is_one_row(
 # ──────────────────────────────────────────────────────────────
 
 
-# CONTRACT-TEST: one dataset that does not compile stops the WHOLE launch and
-# names it. Running the rest would drop a row silently, and the dataset the model
-# cannot express is the one a reader most needs to see.
-def test_a_dataset_that_does_not_compile_rejects_the_whole_matrix(
+# CONTRACT-TEST: a model that cannot be compiled at all stops the launch. The
+# first dataset is the one the launch compiles, and a source that does not
+# compile would fail identically on every row — there is nothing to queue.
+def test_a_model_that_does_not_compile_at_all_is_refused(
     authenticated_client: TestClient,
     db_session: Session,
 ) -> None:
     project_id = _seed_project(authenticated_client, db_session)
-    good = _seed_dataset(authenticated_client, project_id, "January", _JANUARY)
     broken = _seed_dataset(authenticated_client, project_id, "Incomplete", _BROKEN)
+    good = _seed_dataset(authenticated_client, project_id, "January", _JANUARY)
 
     response = authenticated_client.post(
         _URL,
         json={
             "project_id": project_id,
-            "dataset_ids": [good, broken],
+            "dataset_ids": [broken, good],
             "solver_names": ["scip"],
         },
     )
@@ -262,6 +321,38 @@ def test_a_dataset_that_does_not_compile_rejects_the_whole_matrix(
     # Nothing was written: no half-built matrix left behind.
     assert db_session.query(SolverComparison).count() == 0
     assert db_session.query(ModelExecution).count() == 0
+
+
+# CONTRACT-TEST: a dataset that does not fill the model fails its OWN row and
+# leaves the rest of the matrix running. It is not a missing row — it is a row
+# in the grid saying what is wrong with that dataset, which is the thing the
+# reader needs. Stopping eleven good rows for it would say less, not more.
+def test_a_dataset_that_does_not_fill_the_model_fails_only_its_row(
+    authenticated_client: TestClient,
+    db_session: Session,
+    captured_dispatch: list[dict],
+    prepare_runs_on_the_test_session,
+) -> None:
+    project_id = _seed_project(authenticated_client, db_session)
+    good = _seed_dataset(authenticated_client, project_id, "January", _JANUARY)
+    broken = _seed_dataset(authenticated_client, project_id, "Incomplete", _BROKEN)
+
+    launched = authenticated_client.post(
+        _URL,
+        json={
+            "project_id": project_id,
+            "dataset_ids": [good, broken],
+            "solver_names": ["scip"],
+        },
+    )
+    assert launched.status_code == 202, launched.text
+    batch_id = launched.json()["batch_id"]
+    _prepare_rows(db_session, batch_id)
+
+    rows = _get(authenticated_client, batch_id)["rows"]
+    assert rows[0]["status"] == ComparisonStatus.PENDING.value
+    assert rows[1]["status"] == ComparisonStatus.FAILED.value
+    assert "does not fill the model" in rows[1]["error_message"]
 
 
 def test_a_model_without_a_jmodel_source_cannot_be_a_matrix(
@@ -351,10 +442,11 @@ def test_a_matrix_the_quota_cannot_cover_is_refused_whole(
     assert db_session.query(SolverComparison).count() == 0
 
 
-# CONTRACT-TEST: a row that never reached the queue closes its own cells. Left
-# pending they would spin forever, and the page polls for as long as one cell has
-# no verdict — waiting on a worker nobody ever told to start.
-def test_a_row_that_could_not_be_queued_closes_its_cells(
+# CONTRACT-TEST: a row that never reached the queue says so, and the rest of the
+# matrix still runs. Its cells never existed, so the grid reads them off the row
+# instead — see isRowOver in the frontend, which is what stops the page polling
+# for a worker nobody ever told to start.
+def test_a_row_that_could_not_be_queued_fails_alone(
     authenticated_client: TestClient,
     db_session: Session,
     monkeypatch,
@@ -377,7 +469,7 @@ def test_a_row_that_could_not_be_queued_closes_its_cells(
 
         return _Result()
 
-    monkeypatch.setattr(comparison_tasks_mod.run_solver_comparison, "apply_async", _broker_is_down)
+    monkeypatch.setattr(prepare_mod.prepare_comparison_row, "apply_async", _broker_is_down)
 
     response = authenticated_client.post(
         _URL,
@@ -393,10 +485,74 @@ def test_a_row_that_could_not_be_queued_closes_its_cells(
     # The first row was queued; the second says it failed, and its cell says so
     # too rather than waiting for a run that will never happen.
     assert rows[0]["status"] == ComparisonStatus.PENDING.value
-    assert rows[0]["results"][0]["status"] == ExecutionStatus.PENDING.value
     assert rows[1]["status"] == ComparisonStatus.FAILED.value
     assert rows[1]["error_message"]
-    assert rows[1]["results"][0]["status"] == ExecutionStatus.CANCELLED.value
+
+
+# ──────────────────────────────────────────────────────────────
+# Preparing a row on the worker
+# ──────────────────────────────────────────────────────────────
+
+
+# CONTRACT-TEST: the launch writes no problem and no cells. Compiling every
+# dataset inside the request cost 28 seconds and 57 MB for three datasets of
+# 22,500 variables — past a proxy's ceiling at twelve, which would report a
+# failure for a matrix that was running.
+def test_the_launch_writes_no_snapshot_and_no_cells(
+    authenticated_client: TestClient,
+    db_session: Session,
+    captured_dispatch: list[dict],
+) -> None:
+    _project_id, _dataset_ids, launched = _seed_matrix(authenticated_client, db_session)
+
+    rows = db_session.query(SolverComparison).all()
+    assert [row.problem_data for row in rows] == [None, None]
+    assert db_session.query(ModelExecution).count() == 0
+    # The grid still has its shape from the first render: every solver asked for
+    # is a column, and every cell reads as pending.
+    for row in launched["rows"]:
+        assert [cell["solver_name"] for cell in row["results"]] == ["scip", "highs"]
+
+
+def test_preparing_a_row_compiles_it_and_queues_the_solving(
+    authenticated_client: TestClient,
+    db_session: Session,
+    captured_dispatch: list[dict],
+    prepare_runs_on_the_test_session,
+) -> None:
+    _project_id, _dataset_ids, launched = _seed_matrix(authenticated_client, db_session)
+    del captured_dispatch[:]
+
+    outcomes = _prepare_rows(db_session, launched["batch_id"])
+
+    assert [outcome["status"] for outcome in outcomes] == ["success", "success"]
+    rows = db_session.query(SolverComparison).order_by(SolverComparison.batch_position).all()
+    assert all(row.problem_data is not None for row in rows)
+    assert db_session.query(ModelExecution).count() == 4
+    # Each prepared row is queued for solving on the single-slot queue, behind
+    # every row still waiting to be prepared.
+    assert len(captured_dispatch) == 2
+    assert {call["queue"] for call in captured_dispatch} == {"solve_compare"}
+
+
+# CONTRACT-TEST: a row cancelled before its turn is never compiled. The rows run
+# in sequence, so the last of twelve can be cancelled long before it starts, and
+# compiling it anyway would spend the worker on work nobody wants.
+def test_a_cancelled_row_is_not_compiled(
+    authenticated_client: TestClient,
+    db_session: Session,
+    captured_dispatch: list[dict],
+    prepare_runs_on_the_test_session,
+) -> None:
+    _project_id, _dataset_ids, launched = _seed_matrix(authenticated_client, db_session)
+    authenticated_client.post(f"{_URL}/{launched['batch_id']}/cancel")
+    del captured_dispatch[:]
+
+    outcomes = _prepare_rows(db_session, launched["batch_id"])
+
+    assert [outcome["status"] for outcome in outcomes] == ["cancelled", "cancelled"]
+    assert db_session.query(ModelExecution).count() == 0
+    assert captured_dispatch == []
 
 
 # ──────────────────────────────────────────────────────────────

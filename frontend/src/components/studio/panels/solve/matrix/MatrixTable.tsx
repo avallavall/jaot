@@ -88,7 +88,7 @@ function MatrixRow({
   const byName = new Map(row.results.map((result) => [result.solver_name, result]));
   const cells = solvers.map((solver) => {
     const result = byName.get(solver);
-    return result ? cellOf(result, metric) : null;
+    return result ? cellOf(result, metric, row.status) : null;
   });
   const best = bestInRow(cells.filter((cell): cell is MatrixCell => cell !== null), metric);
 
@@ -119,7 +119,13 @@ function MatrixRow({
         ) : null}
       </th>
       {cells.map((cell, index) => (
-        <Cell key={solvers[index]} cell={cell} best={best} metric={metric} />
+        <Cell
+          key={solvers[index]}
+          cell={cell}
+          best={best}
+          metric={metric}
+          rowError={row.error_message}
+        />
       ))}
     </tr>
   );
@@ -129,10 +135,13 @@ function Cell({
   cell,
   best,
   metric,
+  rowError,
 }: {
   cell: MatrixCell | null;
   best: number | null;
   metric: MatrixMetric;
+  /** Why the whole row ended, for a cell that never got to run. */
+  rowError?: string | null;
 }) {
   const t = useTranslations("studio");
   // The four "why this solver sat it out" sentences are the comparer's, and one
@@ -187,6 +196,18 @@ function Cell({
       return (
         <td className={cn(className, "text-muted-foreground")} data-testid="studio-matrix-cell">
           {t("matrix.cellCancelled")}
+        </td>
+      );
+    case "skipped":
+      // The row ended before this cell ever ran. The row's own reason is the
+      // only thing worth saying here.
+      return (
+        <td
+          className={cn(className, "text-muted-foreground")}
+          title={rowError ?? t("matrix.cellSkipped")}
+          data-testid="studio-matrix-cell"
+        >
+          —
         </td>
       );
     case "none":

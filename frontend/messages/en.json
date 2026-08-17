@@ -377,7 +377,8 @@
       "machineLabel": "Measured on:",
       "launchFailed": "The matrix could not be started.",
       "cancelFailed": "The matrix could not be stopped.",
-      "rowFailed": "That row could not be opened."
+      "rowFailed": "That row could not be opened.",
+      "cellSkipped": "This row ended before this solver ran."
     }
   },
   "common": {

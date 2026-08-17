@@ -377,7 +377,8 @@
       "machineLabel": "Mesuré sur :",
       "launchFailed": "La matrice n'a pas pu être lancée.",
       "cancelFailed": "La matrice n'a pas pu être arrêtée.",
-      "rowFailed": "Cette ligne n'a pas pu être ouverte."
+      "rowFailed": "Cette ligne n'a pas pu être ouverte.",
+      "cellSkipped": "Cette ligne s'est terminée avant que ce solveur ne soit lancé."
     }
   },
   "common": {

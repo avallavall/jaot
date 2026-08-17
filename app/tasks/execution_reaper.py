@@ -147,6 +147,9 @@ def _comparison_still_alive(
 
     Returns False for every ordinary solve, so the sweep is unchanged for them.
 
+    A row of a MATRIX waits longer still: its siblings were launched with it and
+    run before it on the same worker, so its bound is the whole matrix.
+
     For a comparison column, the row's own age says nothing: the comparison task
     solves its solvers one at a time on a worker that runs one comparison at a
     time, so a column can be 'pending' for the whole run ahead of it and for
@@ -171,6 +174,19 @@ def _comparison_still_alive(
 
     planned = max(1, len(comparison.solver_names or []))
     budget = planned * float(comparison.time_limit_seconds) + running_max
+
+    if comparison.batch_id:
+        # A row of a matrix waits for every row before it: they were launched
+        # together and they run one after another on the same single-slot worker.
+        # Judged by its own row's budget, the last row of a twelve-row matrix
+        # looks abandoned for most of the run and would be reaped mid-queue.
+        rows = (
+            db.query(SolverComparison)
+            .filter(SolverComparison.batch_id == comparison.batch_id)
+            .count()
+        )
+        budget = max(1, rows) * planned * float(comparison.time_limit_seconds) + running_max
+
     parent_age = (now - (comparison.started_at or comparison.created_at)).total_seconds()
     return parent_age <= budget
 

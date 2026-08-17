@@ -39,6 +39,8 @@ def _seed(
     parent_status: str = ComparisonStatus.RUNNING.value,
     time_limit_seconds: float = 60.0,
     solver_names: list[str] | None = None,
+    batch_id: str | None = None,
+    batch_rows: int = 1,
 ) -> tuple[SolverComparison, ModelExecution]:
     """A comparison plus one column of it, still pending."""
     names = solver_names or ["scip", "highs"]
@@ -55,8 +57,28 @@ def _seed(
         status=parent_status,
         created_at=created,
         started_at=created,
+        batch_id=batch_id,
+        batch_position=0,
     )
     db_session.add(comparison)
+    # The siblings this row waits behind. Only their existence matters to the
+    # reaper: they are what makes the row's honest bound the whole matrix.
+    for position in range(1, batch_rows):
+        db_session.add(
+            SolverComparison(
+                id=generate_id("cmp_"),
+                organization_id=org.id,
+                problem_data=None,
+                time_limit_seconds=time_limit_seconds,
+                gap_tolerance=0.0001,
+                threads=1,
+                solver_names=names,
+                status=ComparisonStatus.PENDING.value,
+                created_at=created,
+                batch_id=batch_id,
+                batch_position=position,
+            )
+        )
     db_session.flush()
 
     execution = ModelExecution(
@@ -146,3 +168,45 @@ def test_an_ordinary_solve_is_still_reaped(db_session, comparison_org) -> None:
 
     db_session.refresh(execution)
     assert execution.status == ExecutionStatus.FAILED.value
+
+
+# CONTRACT-TEST: a row of a MATRIX waits for every row before it, so its bound is
+# the whole matrix and not its own four solves. Judged by its own budget, the
+# last row of a twelve-row matrix looks abandoned for most of the run and the
+# reaper would mark it failed while it sat legitimately in the queue.
+def test_a_column_of_a_matrix_waits_for_the_whole_matrix(db_session, comparison_org) -> None:
+    # Well past ONE row's budget (2 solvers x 60 s + slack) and well inside the
+    # matrix's (12 rows x that).
+    _comparison, execution = _seed(
+        db_session,
+        comparison_org,
+        parent_age_seconds=PENDING_MAX + 600,
+        time_limit_seconds=60.0,
+        batch_id="cmb_reaper",
+        batch_rows=12,
+    )
+
+    reap_stale_executions(db_session)
+
+    db_session.refresh(execution)
+    assert execution.status == ExecutionStatus.PENDING.value
+    assert execution.error_message is None
+
+
+# CONTRACT-TEST: the wider bound is still a bound. A matrix past even its own
+# total budget is genuinely stuck and its columns must not stay pending forever.
+def test_a_column_of_a_matrix_past_the_whole_budget_is_reaped(db_session, comparison_org) -> None:
+    _comparison, execution = _seed(
+        db_session,
+        comparison_org,
+        parent_age_seconds=400_000,
+        time_limit_seconds=60.0,
+        batch_id="cmb_reaper_dead",
+        batch_rows=12,
+    )
+
+    reap_stale_executions(db_session)
+
+    db_session.refresh(execution)
+    assert execution.status == ExecutionStatus.FAILED.value
+    assert execution.error_message

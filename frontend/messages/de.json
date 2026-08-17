@@ -377,7 +377,8 @@
       "machineLabel": "Gemessen auf:",
       "launchFailed": "Die Matrix konnte nicht gestartet werden.",
       "cancelFailed": "Die Matrix konnte nicht gestoppt werden.",
-      "rowFailed": "Diese Zeile konnte nicht geöffnet werden."
+      "rowFailed": "Diese Zeile konnte nicht geöffnet werden.",
+      "cellSkipped": "Diese Zeile endete, bevor dieser Solver lief."
     }
   },
   "common": {

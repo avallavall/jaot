@@ -377,7 +377,8 @@
       "machineLabel": "Medido en:",
       "launchFailed": "No se ha podido lanzar la matriz.",
       "cancelFailed": "No se ha podido parar la matriz.",
-      "rowFailed": "No se ha podido abrir esa fila."
+      "rowFailed": "No se ha podido abrir esa fila.",
+      "cellSkipped": "Esta fila terminó antes de que este solver llegara a ejecutarse."
     }
   },
   "common": {

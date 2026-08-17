@@ -30,6 +30,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime
+from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func
@@ -40,12 +41,11 @@ from app.api.v2.solver_comparison import (
     cancel_comparison_rows,
     consume_daily_quota,
     enforce_instance_caps,
-    enqueue_comparison,
-    insert_comparison_child,
     solver_row,
 )
 from app.domains.dsl import JModelData, JModelError, compile_jmodel
 from app.domains.solver import execution_writer
+from app.domains.solver.queue_routing import COMPARISON_QUEUE
 from app.domains.solver.services.classify import classify
 from app.domains.solver.services.comparison_service import (
     SolverPlanEntry,
@@ -61,7 +61,6 @@ from app.models.solver_comparison import (
     ComparisonStatus,
     SolverComparison as Comparison,
 )
-from app.schemas.optimization import OptimizationProblem
 from app.schemas.solver_comparison import (
     ComparisonBatchDetail,
     ComparisonBatchListResponse,
@@ -72,6 +71,7 @@ from app.schemas.solver_comparison import (
 )
 from app.services import model_project_service as project_svc
 from app.services.audit_service import log_action
+from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.services.solve_orchestrator import validate_problem
 from app.shared.utils.id_generator import generate_id
 
@@ -85,12 +85,16 @@ router = APIRouter(prefix="/solvers/compare/batches", tags=["solvers"])
 
 
 @dataclass(frozen=True)
-class _PreparedRow:
-    """One dataset, compiled and planned, before anything is written down."""
+class _ModelCheck:
+    """What one compile of the model tells us about every row of the matrix.
 
-    dataset: ModelProjectDataset
-    problem: OptimizationProblem
-    problem_class: str
+    Which solvers can express the model, and therefore how many solves the matrix
+    is going to cost, are properties of the SOURCE: the variable types and the
+    shape of every expression are declared there, and the data only fills in
+    numbers. So one dataset answers both questions for all of them, and the rest
+    are compiled on the worker.
+    """
+
     plan: list[SolverPlanEntry]
 
     @property
@@ -112,10 +116,16 @@ def create_batch(
 ) -> ComparisonBatchDetail:
     """Queue a matrix and return it with every cell still pending.
 
-    Every dataset is compiled and planned BEFORE a single row is written. A
-    dataset that does not compile, or a model too large for this instance, stops
-    the whole launch and names the dataset it failed on — half a matrix with the
-    hard scenario missing is exactly the half that would change the conclusion.
+    The launch writes the rows and nothing else. Compiling every dataset here
+    would put the whole cost of the model in front of the user before the page
+    could even show a grid — measured at 28 seconds and 57 MB for three datasets
+    of 22,500 variables, and past a proxy's ceiling at twelve. Each row is
+    compiled by its own worker instead.
+
+    What still happens here is one compile of the FIRST dataset. It is what says
+    the model can be solved at all, which solvers can express it, and therefore
+    what the matrix costs against the daily quota — all three are properties of
+    the source rather than of the data, so one dataset answers for every row.
     """
     enforce_org_rate_limit(db, org)
 
@@ -129,9 +139,8 @@ def create_batch(
     source, version_id = _source_of(db, project, org, payload.version_id)
     datasets = _datasets_or_404(db, project, org, payload.dataset_ids)
 
-    prepared = [_prepare(db, source, dataset, payload, solver_names) for dataset in datasets]
-    total_runs = sum(row.runnable for row in prepared)
-    if total_runs == 0:
+    check = _check_model(db, source, datasets[0], payload, solver_names)
+    if check.runnable == 0:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={
@@ -140,20 +149,18 @@ def create_batch(
                     "None of the selected solvers can run this model. "
                     "Pick a solver that supports the model's variable types."
                 ),
-                "reasons": {
-                    entry.solver_name: entry.unsupported_reason for entry in prepared[0].plan
-                },
+                "reasons": {entry.solver_name: entry.unsupported_reason for entry in check.plan},
             },
         )
 
     # Charged once for the whole grid, before anything is written: a matrix that
     # cannot afford its last row is rejected while it is still free to reject.
-    consume_daily_quota(db, org, total_runs)
+    consume_daily_quota(db, org, check.runnable * len(datasets))
 
     batch_id = generate_id("cmb_")
     comparisons = [
-        _write_row(db, batch_id, position, row, project, version_id, user)
-        for position, row in enumerate(prepared)
+        _write_row(db, batch_id, position, dataset, check, project, version_id, payload, user)
+        for position, dataset in enumerate(datasets)
     ]
 
     log_action(
@@ -166,15 +173,15 @@ def create_batch(
         target_name=project.name,
         metadata={
             "solvers": solver_names,
-            "datasets": [row.dataset.name for row in prepared],
-            "runs": total_runs,
+            "datasets": [dataset.name for dataset in datasets],
+            "runs": check.runnable * len(datasets),
         },
     )
     db.commit()
 
     for comparison in comparisons:
         try:
-            enqueue_comparison(db, comparison)
+            enqueue_preparation(db, comparison)
         except HTTPException:
             # The row is already marked failed with the broker error. The rest of
             # the matrix still runs, and the failed row says why it did not.
@@ -182,6 +189,43 @@ def create_batch(
             _abandon_row(db, comparison)
 
     return _batch_detail(db, batch_id, org)
+
+
+def enqueue_preparation(db: Session, comparison: Comparison) -> None:
+    """Hand one row to the worker that will compile it.
+
+    Same shape as ``enqueue_comparison`` and the same failure handling: the rows
+    are already committed, so a broker failure leaves a row the user can see
+    rather than a silent nothing.
+    """
+    from app.tasks.comparison_prepare import prepare_comparison_row  # noqa: PLC0415
+
+    task_id = str(uuid4())
+    comparison.celery_task_id = task_id
+    try:
+        prepare_comparison_row.apply_async(
+            kwargs={
+                "comparison_id": comparison.id,
+                "organization_id": comparison.organization_id,
+            },
+            task_id=task_id,
+            queue=COMPARISON_QUEUE,
+        )
+        db.commit()
+    except Exception as exc:
+        logger.error("apply_async failed for row %s: %s", comparison.id, exc)
+        db.rollback()
+        comparison = db.merge(comparison)
+        comparison.status = ComparisonStatus.FAILED.value
+        comparison.error_message = f"Failed to enqueue this row: {exc}"
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "error": "enqueue_failed",
+                "message": "Failed to enqueue the matrix. Please retry shortly.",
+            },
+        ) from exc
 
 
 def _abandon_row(db: Session, comparison: Comparison) -> None:
@@ -353,14 +397,25 @@ def _datasets_or_404(
     return datasets
 
 
-def _prepare(
+def _check_model(
     db: Session,
     source: str,
     dataset: ModelProjectDataset,
     payload: CreateComparisonBatchRequest,
     solver_names: list[str],
-) -> _PreparedRow:
-    """Compile one dataset and decide which solvers can run it."""
+) -> _ModelCheck:
+    """Compile one dataset to learn what the whole matrix will cost.
+
+    The one compile the launch still does. It fails the request when the model
+    cannot be solved at all — a source that does not compile, a model past the
+    instance's variable cap, an undefined variable reference — because those are
+    the failures worth stopping for, and every row would hit them identically.
+
+    A dataset that does not FILL the model is a different matter and is not
+    stopped here: with a dozen datasets in the request, one of them being
+    incomplete says nothing about the other eleven, so that row fails on its own
+    worker and stays in the grid saying so.
+    """
     try:
         problem = compile_jmodel(source, data=JModelData.from_json(dataset.data_json))
     except JModelError as exc:
@@ -380,25 +435,17 @@ def _prepare(
         gap_tolerance=payload.settings.gap_tolerance,
         threads=DEFAULT_COMPARISON_THREADS,
     )
-    # Every failure from here down is about THIS dataset, and with a dozen rows
-    # in the request "variable limit exceeded" on its own names nothing.
     try:
         problem = enforce_instance_caps(db, problem)
         validate_problem(problem)
     except HTTPException as exc:
         raise _blame_dataset(exc, dataset.name) from exc
 
-    problem_class = classify(problem)
-    return _PreparedRow(
-        dataset=dataset,
-        problem=problem,
-        problem_class=problem_class.value,
-        plan=plan_comparison(problem, solver_names, problem_class),
-    )
+    return _ModelCheck(plan=plan_comparison(problem, solver_names, classify(problem)))
 
 
 def _blame_dataset(exc: HTTPException, dataset_name: str) -> HTTPException:
-    """The same failure, saying which row of the matrix produced it."""
+    """The same failure, saying which dataset produced it."""
     detail = exc.detail
     blamed = (
         {**detail, "dataset_name": dataset_name}
@@ -412,52 +459,52 @@ def _write_row(
     db: Session,
     batch_id: str,
     position: int,
-    prepared: _PreparedRow,
+    dataset: ModelProjectDataset,
+    check: _ModelCheck,
     project: ModelProject,
     version_id: str | None,
+    payload: CreateComparisonBatchRequest,
     user: User,
 ) -> Comparison:
-    """Write one row: its comparison and one child execution per solver."""
-    problem = prepared.problem
+    """Write one row of the grid. No problem and no cells yet — its worker compiles
+    the dataset and writes both.
+
+    The terms are stored now rather than read back off a compiled problem,
+    because there is no compiled problem here. They are what the worker will
+    stamp onto it, so what the page shows above the grid is what every solver
+    will receive.
+    """
+    limits = PSS.get_instance_limits(db)
+    ceiling = limits["max_solve_time_seconds"]
+    time_limit = payload.settings.time_limit_seconds
+    if ceiling > 0 and time_limit > ceiling:
+        time_limit = ceiling
+
     comparison = Comparison(
         id=generate_id("cmp_"),
         organization_id=project.organization_id,
         created_by_user_id=user.id,
-        problem_data=problem.model_dump(mode="json"),
+        problem_data=None,
         # The project name, not the dataset's: the row header shows the dataset
         # and a cell opened on its own shows both.
         problem_name=project.name,
-        problem_class=prepared.problem_class,
-        variable_count=len(problem.variables),
-        constraint_count=len(problem.constraints),
         source_kind="model_project",
         source_id=project.id,
         model_project_id=project.id,
         model_project_version_id=version_id,
-        dataset_id=prepared.dataset.id,
-        dataset_name=prepared.dataset.name,
-        time_limit_seconds=problem.options.time_limit_seconds,
-        gap_tolerance=problem.options.gap_tolerance,
-        threads=problem.options.threads,
-        solver_names=[entry.solver_name for entry in prepared.plan],
+        dataset_id=dataset.id,
+        dataset_name=dataset.name,
+        time_limit_seconds=time_limit,
+        gap_tolerance=payload.settings.gap_tolerance,
+        threads=DEFAULT_COMPARISON_THREADS,
+        # Every solver asked for, so the grid has its columns from the first
+        # render. Which of them can actually run is decided per row by its worker.
+        solver_names=[entry.solver_name for entry in check.plan],
         status=ComparisonStatus.PENDING.value,
         batch_id=batch_id,
         batch_position=position,
     )
     db.add(comparison)
-    # The children carry ``comparison_id`` as a plain string, so SQLAlchemy cannot
-    # see that they depend on the parent and would insert them first, straight
-    # into a foreign-key violation.
-    db.flush()
-
-    provenance = {
-        "source_kind": "model_project",
-        "source_id": project.id,
-        "model_project_id": project.id,
-        "model_project_version_id": version_id,
-    }
-    for entry in prepared.plan:
-        insert_comparison_child(db, comparison, entry, problem, provenance, user)
     return comparison
 
 
