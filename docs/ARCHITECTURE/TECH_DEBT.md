@@ -150,6 +150,12 @@ that never ran. It is recorded rather than hidden because the fix is not local â
 parameter on the shared limiter, which every endpoint in the API calls. Worth doing the next
 time that module is opened for another reason.
 
+**The matrix raised the price** (2026-08-17). A matrix charges one slot per cell, so twelve
+datasets by four solvers asks for forty-eight in one call. A user whose remaining quota is
+forty-seven now loses all forty-seven to a launch that never happened, where before the most a
+single request could drain was the number of solvers. The reasoning is unchanged and so is the
+fix; what changed is how much a single rejection can cost.
+
 Recorded 2026-08-14, when the comparer landed.
 
 ---

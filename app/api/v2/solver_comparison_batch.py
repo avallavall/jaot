@@ -45,6 +45,7 @@ from app.api.v2.solver_comparison import (
     solver_row,
 )
 from app.domains.dsl import JModelData, JModelError, compile_jmodel
+from app.domains.solver import execution_writer
 from app.domains.solver.services.classify import classify
 from app.domains.solver.services.comparison_service import (
     SolverPlanEntry,
@@ -54,6 +55,7 @@ from app.domains.solver.services.comparison_service import (
 )
 from app.models import ModelExecution, ModelProject, ModelProjectDataset, Organization, User
 from app.models.audit_log import AuditAction
+from app.models.optimization_model import ExecutionStatus
 from app.models.solver_comparison import (
     DEFAULT_COMPARISON_THREADS,
     ComparisonStatus,
@@ -177,8 +179,28 @@ def create_batch(
             # The row is already marked failed with the broker error. The rest of
             # the matrix still runs, and the failed row says why it did not.
             logger.warning("Matrix %s: row %s could not be queued", batch_id, comparison.id)
+            _abandon_row(db, comparison)
 
     return _batch_detail(db, batch_id, org)
+
+
+def _abandon_row(db: Session, comparison: Comparison) -> None:
+    """Close the cells of a row that never reached the queue.
+
+    Without this the row reads "failed" while its cells stay pending forever,
+    and the page keeps polling for a worker that was never told to start.
+    """
+    pending = (
+        db.query(ModelExecution)
+        .filter(
+            ModelExecution.comparison_id == comparison.id,
+            ModelExecution.status == ExecutionStatus.PENDING.value,
+        )
+        .all()
+    )
+    for execution in pending:
+        execution_writer.apply_cancelled(execution, message="Row was never queued")
+    db.commit()
 
 
 # ──────────────────────────────────────────────────────────────

@@ -41,6 +41,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Compare a model from the studio or a file you upload.** MPS, LP, CIP and JSON are accepted. An uploaded problem lives only inside its comparison and is deleted with it; it is not saved as a model.
 - **Two more solvers: CBC and GLPK.** Both are free and open source, both solve linear and mixed-integer models, and both can be picked for an ordinary solve or added to a comparison. Each reports its own iterations, nodes, gap and best bound, so no column of the comparison table is blank because of them. GLPK is single-threaded and the picker says so, since that is usually why it comes last on time.
 - **CBC and GLPK run as separate programs, never linked into JAOT.** GLPK is under the GPL and JAOT is under the Apache License; keeping them apart is what lets the two ship together. The licences page and `THIRD_PARTY_LICENSES` state it, with the source of both.
+- **Compare several datasets at once, from the model's Solve tab.** A matrix crosses the model's datasets with the solvers you pick: datasets down the side, solvers across the top, one measure at a time — time, objective, gap, nodes or iterations. Each cell is shaded against the best of its own row, and clicking a row opens the full comparison for that dataset. Below the grid: which solver came first most often and which dataset cost the most.
+- **The matrix says what it will cost before it runs it.** The number of solves is the datasets times the solvers, not their sum, so the launch shows the total and the worst-case wait and asks for confirmation. Every solve counts against the daily quota, and a matrix the quota cannot cover is refused whole rather than run halfway.
 
 ### Changed
 

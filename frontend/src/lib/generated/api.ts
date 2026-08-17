@@ -3836,6 +3836,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/solvers/compare/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Batches
+         * @description This organization's matrices, newest first.
+         */
+        get: operations["list_batches_api_v2_solvers_compare_batches_get"];
+        put?: never;
+        /**
+         * Create Batch
+         * @description Queue a matrix and return it with every cell still pending.
+         *
+         *     Every dataset is compiled and planned BEFORE a single row is written. A
+         *     dataset that does not compile, or a model too large for this instance, stops
+         *     the whole launch and names the dataset it failed on — half a matrix with the
+         *     hard scenario missing is exactly the half that would change the conclusion.
+         */
+        post: operations["create_batch_api_v2_solvers_compare_batches_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/solvers/compare/batches/{batch_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Batch
+         * @description One matrix, whatever state it is in. This is what the page polls.
+         */
+        get: operations["get_batch_api_v2_solvers_compare_batches__batch_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/solvers/compare/batches/{batch_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Batch
+         * @description Stop every row that has not finished.
+         *
+         *     A solve already inside a solver cannot be interrupted, so the run in flight
+         *     finishes and nothing after it starts.
+         */
+        post: operations["cancel_batch_api_v2_solvers_compare_batches__batch_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/triggers/": {
         parameters: {
             query?: never;
@@ -5395,11 +5467,78 @@ export interface components {
             solutions_identical?: boolean | null;
         };
         /**
+         * ComparisonBatchDetail
+         * @description A matrix: the datasets down the side, the solvers across the top.
+         */
+        ComparisonBatchDetail: {
+            /** Batch Id */
+            batch_id: string;
+            /** Completed At */
+            completed_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Machine Note */
+            machine_note?: string | null;
+            /** Model Project Version Id */
+            model_project_version_id?: string | null;
+            /** Project Id */
+            project_id?: string | null;
+            /** Project Name */
+            project_name?: string | null;
+            /** Rows */
+            rows: components["schemas"]["ComparisonMatrixRow"][];
+            settings: components["schemas"]["ComparisonTerms"];
+            /** Solver Names */
+            solver_names: string[];
+            /** Status */
+            status: string;
+        };
+        /**
+         * ComparisonBatchListResponse
+         * @description This organization's matrices, newest first.
+         */
+        ComparisonBatchListResponse: {
+            /** Batches */
+            batches: components["schemas"]["ComparisonBatchSummary"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * ComparisonBatchSummary
+         * @description One entry of the matrix history list.
+         */
+        ComparisonBatchSummary: {
+            /** Batch Id */
+            batch_id: string;
+            /** Completed At */
+            completed_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Dataset Count */
+            dataset_count: number;
+            /** Project Id */
+            project_id?: string | null;
+            /** Project Name */
+            project_name?: string | null;
+            /** Solver Names */
+            solver_names: string[];
+            /** Status */
+            status: string;
+        };
+        /**
          * ComparisonDetail
          * @description A comparison and its table.
          */
         ComparisonDetail: {
             agreement?: components["schemas"]["ComparisonAgreement"] | null;
+            /** Batch Id */
+            batch_id?: string | null;
             /** Completed At */
             completed_at?: string | null;
             /** Constraint Count */
@@ -5452,6 +5591,34 @@ export interface components {
             comparisons: components["schemas"]["ComparisonSummary"][];
             /** Total */
             total: number;
+        };
+        /**
+         * ComparisonMatrixRow
+         * @description One row of the matrix: one dataset, run against every solver.
+         *
+         *     Carries its own ``comparison_id`` because the row IS a comparison — clicking
+         *     a cell opens it, with the agreement block and everything else a single
+         *     comparison shows.
+         */
+        ComparisonMatrixRow: {
+            /** Comparison Id */
+            comparison_id: string;
+            /** Constraint Count */
+            constraint_count?: number | null;
+            /** Dataset Id */
+            dataset_id?: string | null;
+            /** Dataset Name */
+            dataset_name?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Problem Class */
+            problem_class?: string | null;
+            /** Results */
+            results: components["schemas"]["ComparisonSolverResult"][];
+            /** Status */
+            status: string;
+            /** Variable Count */
+            variable_count?: number | null;
         };
         /**
          * ComparisonSettings
@@ -5788,6 +5955,38 @@ export interface components {
             canvas_json: {
                 [key: string]: unknown;
             };
+        };
+        /**
+         * CreateComparisonBatchRequest
+         * @description Cross several of a project's datasets with several solvers.
+         *
+         *     The model comes from the project's JModel source and is compiled once per
+         *     dataset, on the server. There is no ``problem`` field on purpose: a matrix
+         *     only means something when every row is the same model fed different data,
+         *     and that is exactly what a JModel source plus N datasets is.
+         */
+        CreateComparisonBatchRequest: {
+            /**
+             * Dataset Ids
+             * @description Datasets to compile the source against, one row each.
+             */
+            dataset_ids: string[];
+            /**
+             * Project Id
+             * @description Studio model whose JModel source is compiled.
+             */
+            project_id: string;
+            settings?: components["schemas"]["ComparisonSettings"];
+            /**
+             * Solver Names
+             * @description Solvers to compare, one column each.
+             */
+            solver_names: string[];
+            /**
+             * Version Id
+             * @description Committed version of project_id. Draft when omitted.
+             */
+            version_id?: string | null;
         };
         /**
          * CreateComparisonRequest
@@ -11178,8 +11377,12 @@ export type CommunityStatusResponse = components['schemas']['CommunityStatusResp
 export type ComparedExecutionResponse = components['schemas']['ComparedExecutionResponse'];
 export type CompareResponse = components['schemas']['CompareResponse'];
 export type ComparisonAgreement = components['schemas']['ComparisonAgreement'];
+export type ComparisonBatchDetail = components['schemas']['ComparisonBatchDetail'];
+export type ComparisonBatchListResponse = components['schemas']['ComparisonBatchListResponse'];
+export type ComparisonBatchSummary = components['schemas']['ComparisonBatchSummary'];
 export type ComparisonDetail = components['schemas']['ComparisonDetail'];
 export type ComparisonListResponse = components['schemas']['ComparisonListResponse'];
+export type ComparisonMatrixRow = components['schemas']['ComparisonMatrixRow'];
 export type ComparisonSettings = components['schemas']['ComparisonSettings'];
 export type ComparisonSolverResult = components['schemas']['ComparisonSolverResult'];
 export type ComparisonSummary = components['schemas']['ComparisonSummary'];
@@ -11195,6 +11398,7 @@ export type ConversationResponse = components['schemas']['ConversationResponse']
 export type ConversionFunnelStep = components['schemas']['ConversionFunnelStep'];
 export type CountryDistributionEntry = components['schemas']['CountryDistributionEntry'];
 export type CreateCheckpointRequest = components['schemas']['CreateCheckpointRequest'];
+export type CreateComparisonBatchRequest = components['schemas']['CreateComparisonBatchRequest'];
 export type CreateComparisonRequest = components['schemas']['CreateComparisonRequest'];
 export type CreateConversationRequest = components['schemas']['CreateConversationRequest'];
 export type CreateKeyRequest = components['schemas']['CreateKeyRequest'];
@@ -17708,6 +17912,135 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ComparisonDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_batches_api_v2_solvers_compare_batches_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                /** @description Only this project's matrices. */
+                project_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonBatchListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_batch_api_v2_solvers_compare_batches_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateComparisonBatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonBatchDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_batch_api_v2_solvers_compare_batches__batch_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonBatchDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_batch_api_v2_solvers_compare_batches__batch_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonBatchDetail"];
                 };
             };
             /** @description Validation Error */

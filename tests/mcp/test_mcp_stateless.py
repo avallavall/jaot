@@ -90,9 +90,14 @@ def test_stale_session_header_is_ignored(mcp_client):
 def test_session_manager_runs_stateless(mcp_client, mcp_app):
     """The SDK manager itself carries stateless=True once started, so dispatch
     never consults the per-process session dict."""
-    # The manager starts lazily on the first request; the tests above have
-    # already driven one. Reach the transport through the mounted route's
-    # closure — fastapi-mcp keeps no public handle to it.
+    # The manager starts lazily on the first request, so this test drives one of
+    # its own. It used to rely on the tests above having gone first, and the
+    # suite runs in a random order: on the seeds that put this test first, the
+    # manager was still None and the run failed with "never started".
+    mcp_client.post("/mcp", json=TOOLS_LIST, headers=MCP_HEADERS)
+
+    # Reach the transport through the mounted route's closure — fastapi-mcp
+    # keeps no public handle to it.
     routes = [r for r in mcp_app.routes if getattr(r, "path", "") == "/mcp"]
     assert routes, "MCP route not mounted"
     transport = next(

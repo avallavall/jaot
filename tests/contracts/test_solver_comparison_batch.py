@@ -335,6 +335,54 @@ def test_a_matrix_the_quota_cannot_cover_is_refused_whole(
     assert db_session.query(SolverComparison).count() == 0
 
 
+# CONTRACT-TEST: a row that never reached the queue closes its own cells. Left
+# pending they would spin forever, and the page polls for as long as one cell has
+# no verdict — waiting on a worker nobody ever told to start.
+def test_a_row_that_could_not_be_queued_closes_its_cells(
+    authenticated_client: TestClient,
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    project_id = _seed_project(authenticated_client, db_session)
+    dataset_ids = [
+        _seed_dataset(authenticated_client, project_id, "January", _JANUARY),
+        _seed_dataset(authenticated_client, project_id, "February", _FEBRUARY),
+    ]
+
+    calls: list[dict] = []
+
+    def _broker_is_down(*_args, **kwargs):
+        calls.append(kwargs)
+        if len(calls) == 2:
+            raise RuntimeError("broker unreachable")
+
+        class _Result:
+            id = "task_matrix_ok"
+
+        return _Result()
+
+    monkeypatch.setattr(comparison_tasks_mod.run_solver_comparison, "apply_async", _broker_is_down)
+
+    response = authenticated_client.post(
+        _URL,
+        json={
+            "project_id": project_id,
+            "dataset_ids": dataset_ids,
+            "solver_names": ["scip"],
+        },
+    )
+
+    assert response.status_code == 202, response.text
+    rows = response.json()["rows"]
+    # The first row was queued; the second says it failed, and its cell says so
+    # too rather than waiting for a run that will never happen.
+    assert rows[0]["status"] == ComparisonStatus.PENDING.value
+    assert rows[0]["results"][0]["status"] == ExecutionStatus.PENDING.value
+    assert rows[1]["status"] == ComparisonStatus.FAILED.value
+    assert rows[1]["error_message"]
+    assert rows[1]["results"][0]["status"] == ExecutionStatus.CANCELLED.value
+
+
 # ──────────────────────────────────────────────────────────────
 # Reading it back
 # ──────────────────────────────────────────────────────────────

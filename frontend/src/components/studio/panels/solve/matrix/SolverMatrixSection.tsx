@@ -86,15 +86,21 @@ export function SolverMatrixSection() {
 
   // Pre-select every dataset and every solver that can run: the common case is
   // "cross everything", and the server decides who can actually take part.
+  const datasetsPreselected = useRef(false);
   useEffect(() => {
+    if (datasetsPreselected.current || datasets.length === 0) return;
+    datasetsPreselected.current = true;
     setSelectedDatasets(datasets.slice(0, MAX_DATASETS).map((dataset) => dataset.id));
   }, [datasets]);
 
+  // Once, when the solver list arrives. Keyed on a ref rather than on "nothing is
+  // selected", which would refill the boxes the moment the last one was unticked.
+  const solversPreselected = useRef(false);
   useEffect(() => {
-    if (selectedSolvers.length === 0 && availableSolvers.length > 0) {
-      setSelectedSolvers(availableSolvers.filter((s) => s.available).map((s) => s.name));
-    }
-  }, [availableSolvers, selectedSolvers.length]);
+    if (solversPreselected.current || availableSolvers.length === 0) return;
+    solversPreselected.current = true;
+    setSelectedSolvers(availableSolvers.filter((s) => s.available).map((s) => s.name));
+  }, [availableSolvers]);
 
   // The last matrix for this model, restored on mount. A grid of fifty runs takes
   // minutes; without this, leaving the tab lost it.
@@ -415,7 +421,7 @@ export function SolverMatrixSection() {
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("matrix.confirmTitle")}</AlertDialogTitle>
+            <AlertDialogTitle>{t("matrix.confirmTitle", { runs })}</AlertDialogTitle>
             <AlertDialogDescription>
               {t("matrix.confirmBody", {
                 runs,
