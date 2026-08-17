@@ -84,8 +84,11 @@ import type {
   ProjectDatasetSummary,
   DatasetImportPreview,
   SolverInfo,
+  ComparisonBatchDetail,
+  ComparisonBatchListResponse,
   ComparisonDetail,
   ComparisonListResponse,
+  CreateComparisonBatchRequest,
   CreateComparisonRequest,
 } from "./types";
 import { localeHeader } from "@/lib/locale-header";
@@ -888,6 +891,39 @@ export const api = {
       return request(`/api/v2/solvers/compare/${comparisonId}/cancel`, {
         method: "POST",
       });
+    },
+
+    /** The matrix: several of a model's datasets crossed with several solvers.
+     * Each row is a comparison of its own; the batch ties them together. */
+    batches: {
+      /** Queue a matrix. Comes back with every cell already present, pending. */
+      create(payload: CreateComparisonBatchRequest): Promise<ComparisonBatchDetail> {
+        return request("/api/v2/solvers/compare/batches", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+      },
+
+      /** One matrix, whatever state it is in. This is what the page polls. */
+      get(batchId: string): Promise<ComparisonBatchDetail> {
+        return request(`/api/v2/solvers/compare/batches/${batchId}`);
+      },
+
+      /** This organization's matrices, newest first. */
+      list(params?: {
+        project_id?: string;
+        limit?: number;
+        offset?: number;
+      }): Promise<ComparisonBatchListResponse> {
+        return request("/api/v2/solvers/compare/batches", { params });
+      },
+
+      /** Stop every row that has not finished. */
+      cancel(batchId: string): Promise<ComparisonBatchDetail> {
+        return request(`/api/v2/solvers/compare/batches/${batchId}/cancel`, {
+          method: "POST",
+        });
+      },
     },
   },
 

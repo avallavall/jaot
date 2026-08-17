@@ -1251,6 +1251,8 @@ export interface ComparisonDetail {
   id: string;
   status: string;
   problem_name: string | null;
+  /** Set when this comparison is one row of a matrix. */
+  batch_id: string | null;
   source_kind: string | null;
   source_id: string | null;
   uploaded_filename: string | null;
@@ -1294,4 +1296,67 @@ export interface CreateComparisonRequest {
   project_id?: string;
   version_id?: string;
   uploaded_filename?: string;
+}
+
+// ──────────────────────────────────────────────────────────────
+// The matrix — several datasets crossed with several solvers
+// ──────────────────────────────────────────────────────────────
+
+/** One row of the matrix: one dataset, run against every solver.
+ *
+ * The row IS a comparison — `comparison_id` opens it with everything a single
+ * comparison shows, the agreement block included.
+ */
+export interface ComparisonMatrixRow {
+  comparison_id: string;
+  dataset_id: string | null;
+  dataset_name: string | null;
+  status: string;
+  /** The compiled size of THIS row: two datasets of one model routinely ground
+   * to very different sizes. */
+  problem_class: string | null;
+  variable_count: number | null;
+  constraint_count: number | null;
+  error_message: string | null;
+  results: ComparisonSolverResult[];
+}
+
+export interface ComparisonBatchDetail {
+  batch_id: string;
+  /** Derived from the rows: pending, running, completed, failed or cancelled. */
+  status: string;
+  project_id: string | null;
+  project_name: string | null;
+  model_project_version_id: string | null;
+  settings: ComparisonTerms;
+  /** The columns, in the order they run. The same for every row. */
+  solver_names: string[];
+  machine_note: string | null;
+  rows: ComparisonMatrixRow[];
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface ComparisonBatchSummary {
+  batch_id: string;
+  status: string;
+  project_id: string | null;
+  project_name: string | null;
+  dataset_count: number;
+  solver_names: string[];
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface ComparisonBatchListResponse {
+  batches: ComparisonBatchSummary[];
+  total: number;
+}
+
+export interface CreateComparisonBatchRequest {
+  project_id: string;
+  version_id?: string;
+  dataset_ids: string[];
+  solver_names: string[];
+  settings?: ComparisonSettings;
 }

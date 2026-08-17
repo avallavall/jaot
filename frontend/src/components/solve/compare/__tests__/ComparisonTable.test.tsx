@@ -35,6 +35,7 @@ function comparison(overrides: Partial<ComparisonDetail> = {}): ComparisonDetail
     id: "cmp_1",
     status: "completed",
     problem_name: "compare-me",
+    batch_id: null,
     source_kind: null,
     source_id: null,
     uploaded_filename: null,

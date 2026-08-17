@@ -35,6 +35,7 @@ function comparison(status: string, results: ComparisonSolverResult[]): Comparis
     id: "cmp_1",
     status,
     problem_name: "p",
+    batch_id: null,
     source_kind: null,
     source_id: null,
     uploaded_filename: null,

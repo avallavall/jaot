@@ -24,6 +24,7 @@ import { useModelProjectStore } from "../store/useModelProjectStore";
 import { solveBlockedReason } from "./solve-precondition";
 import { ProjectRunsCard } from "./solve/ProjectRunsCard";
 import { ScenariosSection } from "./solve/ScenariosSection";
+import { SolverMatrixSection } from "./solve/matrix/SolverMatrixSection";
 import { LiveSolvePanel } from "./solve/LiveSolvePanel";
 
 /**
@@ -231,6 +232,11 @@ export function SolvePanel() {
 
       {/* S3: run the JModel against N datasets and compare outcomes side by side. */}
       <ScenariosSection solverName={solverName} />
+
+      {/* Phase 3: the same datasets crossed with several SOLVERS. Scenarios asks
+          what the answer looks like per dataset; this asks which solver to run
+          the model with, which one dataset cannot answer. */}
+      <SolverMatrixSection />
 
       {/* This model's own run history (the global one lives under Solve → Executions). */}
       <ProjectRunsCard />
