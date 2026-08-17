@@ -1,3 +1,4 @@
+import { LIVE_STATUSES } from "@/components/solve/compare/polling";
 import type { ComparisonMatrixRow, ComparisonSolverResult } from "@/lib/types";
 
 /** What a cell of the matrix shows. The grid never changes shape; only this. */
@@ -55,8 +56,6 @@ export interface MatrixCell {
   error: string | null;
 }
 
-const WAITING_STATUSES = new Set(["pending", "running"]);
-
 /**
  * Turn one solver's result into the cell for the chosen metric.
  *
@@ -76,7 +75,7 @@ export function cellOf(
   if (result.status === "pending" && rowStatus !== undefined && isRowOver(rowStatus)) {
     return { kind: "skipped", value: null, reason: null, error: null };
   }
-  if (WAITING_STATUSES.has(result.status)) {
+  if (LIVE_STATUSES.has(result.status)) {
     return { kind: "waiting", value: null, reason: null, error: null };
   }
   if (result.status === "cancelled") {
@@ -116,11 +115,16 @@ function valueOf(result: ComparisonSolverResult, metric: MatrixMetric): number |
 }
 
 /** The best number in one row, or null when the row has nothing to compare. */
-export function bestInRow(cells: MatrixCell[], metric: MatrixMetric): number | null {
-  if (!hasDirection(metric)) return null;
-  const values = cells
+/** The numbers among these cells. The rest hold a reason instead of a value. */
+function valuesOf(cells: MatrixCell[]): number[] {
+  return cells
     .filter((cell) => cell.kind === "value" && cell.value !== null)
     .map((cell) => cell.value as number);
+}
+
+export function bestInRow(cells: MatrixCell[], metric: MatrixMetric): number | null {
+  if (!hasDirection(metric)) return null;
+  const values = valuesOf(cells);
   return values.length === 0 ? null : Math.min(...values);
 }
 
@@ -203,10 +207,7 @@ export function hardestRow(rows: ComparisonMatrixRow[]): ComparisonMatrixRow | n
   let worst = -1;
 
   for (const row of rows) {
-    const times = row.results
-      .map((result) => cellOf(result, "time"))
-      .filter((cell) => cell.kind === "value" && cell.value !== null)
-      .map((cell) => cell.value as number);
+    const times = valuesOf(row.results.map((result) => cellOf(result, "time")));
     if (times.length === 0) continue;
     const slowest = Math.max(...times);
     if (slowest > worst) {
@@ -216,9 +217,6 @@ export function hardestRow(rows: ComparisonMatrixRow[]): ComparisonMatrixRow | n
   }
   return hardest;
 }
-
-/** Lifecycle states with something still to happen. */
-const LIVE_STATUSES = new Set(["pending", "running"]);
 
 /** Whether this row has reached a state it will not leave. */
 export function isRowOver(status: string): boolean {

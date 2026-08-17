@@ -21,7 +21,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import ValidationError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 
 from app.api.deps import CurrentOrg, CurrentUser, DBSession, enforce_org_rate_limit
 from app.domains.solver.queue_routing import COMPARISON_QUEUE
@@ -415,7 +415,15 @@ def _comparison_or_404(db: Session, comparison_id: str, org: Organization) -> So
 
 def _detail(db: Session, comparison: SolverComparison) -> ComparisonDetail:
     """Shape one comparison into the table the UI renders."""
-    children = db.query(ModelExecution).filter(ModelExecution.comparison_id == comparison.id).all()
+    # ``input_data`` is this comparison's problem copied onto every column —
+    # 3.8 MB apiece on a real model — and the table never shows it. The page
+    # polls this every two seconds while the run is live.
+    children = (
+        db.query(ModelExecution)
+        .options(defer(ModelExecution.input_data))
+        .filter(ModelExecution.comparison_id == comparison.id)
+        .all()
+    )
     by_solver = {child.solver_name: child for child in children}
 
     results = [

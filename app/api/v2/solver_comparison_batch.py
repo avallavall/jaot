@@ -33,7 +33,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 
 from app.api.deps import CurrentOrg, CurrentUser, DBSession, enforce_org_rate_limit
 from app.domains.dsl import JModelData, JModelError, compile_jmodel
@@ -491,7 +491,12 @@ def _write_row(
 
 def _members_or_404(db: Session, batch_id: str, org: Organization) -> list[Comparison]:
     members = (
+        # The snapshot is the biggest column in the table — 3.8 MB on a model of
+        # 22,500 variables — and nothing on this path reads it. The grid polls
+        # this endpoint every two seconds while a matrix runs, so loading it
+        # would pull ~45 MB out of Postgres per tick for a twelve-row matrix.
         db.query(Comparison)
+        .options(defer(Comparison.problem_data))
         .filter(Comparison.batch_id == batch_id, Comparison.organization_id == org.id)
         .order_by(Comparison.batch_position, Comparison.created_at)
         .all()
@@ -505,6 +510,7 @@ def _rows_of(db: Session, batch_ids: list[str], org: Organization) -> dict[str, 
     """Every member of several batches at once, grouped, in row order."""
     members = (
         db.query(Comparison)
+        .options(defer(Comparison.problem_data))
         .filter(Comparison.batch_id.in_(batch_ids), Comparison.organization_id == org.id)
         .order_by(Comparison.batch_position, Comparison.created_at)
         .all()
@@ -523,7 +529,11 @@ def _batch_detail(db: Session, batch_id: str, org: Organization) -> ComparisonBa
     """
     members = _members_or_404(db, batch_id, org)
     executions = (
+        # Same reason as above: every child carries its own copy of the problem
+        # in ``input_data`` and the grid never shows it. Twelve rows of four
+        # solvers is another ~180 MB a tick.
         db.query(ModelExecution)
+        .options(defer(ModelExecution.input_data))
         .filter(ModelExecution.comparison_id.in_([m.id for m in members]))
         .all()
     )

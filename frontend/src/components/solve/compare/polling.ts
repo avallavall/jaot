@@ -1,7 +1,8 @@
 import type { ComparisonDetail } from "@/lib/types";
 
-/** Lifecycle states with something still to happen. */
-const LIVE_STATUSES = new Set(["pending", "running"]);
+/** Execution states with something still to happen. The matrix reads this too:
+ * one definition of "still going" for both comparison surfaces. */
+export const LIVE_STATUSES = new Set(["pending", "running"]);
 
 /**
  * Whether the page should keep asking the server for a fresher table.
