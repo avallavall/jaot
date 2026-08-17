@@ -478,7 +478,10 @@ def insert_comparison_child(
     entry: SolverPlanEntry,
     problem: OptimizationProblem,
     provenance: dict[str, str | None],
-    user: User,
+    #: None when a matrix row is written by its worker and the account that
+    #: launched it has since been deleted. The row still runs; it just records
+    #: nobody, exactly as ``executed_by_user_id`` being nullable already allows.
+    user: User | None,
 ) -> ModelExecution:
     """Write one column's execution row: pending if it runs, terminal if it cannot."""
     execution = execution_writer.insert_pending(
@@ -488,7 +491,7 @@ def insert_comparison_child(
         celery_task_id="",
         input_data=problem.model_dump(mode="json"),
         solver_name=entry.solver_name,
-        executed_by_user_id=user.id,
+        executed_by_user_id=user.id if user is not None else None,
         origin=ORIGIN_COMPARISON,
         source_kind=provenance.get("source_kind"),
         source_id=provenance.get("source_id"),

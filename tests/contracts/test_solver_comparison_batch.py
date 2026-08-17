@@ -354,6 +354,11 @@ def test_a_dataset_that_does_not_fill_the_model_fails_only_its_row(
     assert rows[1]["status"] == ComparisonStatus.FAILED.value
     assert "does not fill the model" in rows[1]["error_message"]
 
+    # And the broken row is never queued for solving: it has no problem to solve,
+    # and the solver task would replace the sentence above with a validation
+    # error the reader can do nothing with.
+    assert len(captured_dispatch) == 3  # two launches to prepare, one to solve
+
 
 def test_a_model_without_a_jmodel_source_cannot_be_a_matrix(
     authenticated_client: TestClient,

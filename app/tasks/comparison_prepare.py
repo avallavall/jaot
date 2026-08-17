@@ -109,7 +109,13 @@ def prepare_comparison_row(
             _fail(db, comparison, "The model or the dataset was deleted before this row ran.")
             return {"status": "error", "comparison_id": comparison_id, "error": "source_gone"}
 
-        _compile_and_write(db, comparison, source, dataset)
+        if not _compile_and_write(db, comparison, source, dataset):
+            # The row already carries the reason it cannot run. Queueing it for
+            # solving anyway would spend a slot on a row with no problem to
+            # solve, and the solver task would overwrite that reason with a
+            # validation error nobody can act on.
+            return {"status": "error", "comparison_id": comparison_id, "error": "did_not_compile"}
+
         _queue_solving(db, comparison)
         return {"status": "success", "comparison_id": comparison_id}
 
@@ -149,12 +155,14 @@ def _source_of(db: Any, project: Any, comparison: Any) -> str | None:
     return version.dsl_source if version is not None else None
 
 
-def _compile_and_write(db: Any, comparison: Any, source: str, dataset: Any) -> None:
+def _compile_and_write(db: Any, comparison: Any, source: str, dataset: Any) -> bool:
     """Compile the dataset against the source and write the row's cells.
 
     Everything the launch used to do per dataset happens here instead, for one
     dataset: compile, apply the instance caps, reject a malformed model once, and
     decide which solvers can express it.
+
+    Returns whether the row is ready to be solved.
     """
     from app.api.v2.solver_comparison import (  # noqa: PLC0415
         enforce_instance_caps,
@@ -174,7 +182,7 @@ def _compile_and_write(db: Any, comparison: Any, source: str, dataset: Any) -> N
     except JModelError as exc:
         position = f" ({exc.position})" if exc.position else ""
         _fail(db, comparison, f"This dataset does not fill the model: {exc.message}{position}")
-        return
+        return False
 
     problem = build_comparison_problem(
         problem,
@@ -197,6 +205,9 @@ def _compile_and_write(db: Any, comparison: Any, source: str, dataset: Any) -> N
     comparison.solver_names = [entry.solver_name for entry in plan]
     db.flush()
 
+    # The user who launched the matrix, so every cell records who ran it. Gone if
+    # the account was deleted between the launch and this row's turn, which the
+    # child writer has to tolerate rather than crash on.
     user = (
         db.query(User).filter(User.id == comparison.created_by_user_id).first()
         if comparison.created_by_user_id
@@ -211,6 +222,7 @@ def _compile_and_write(db: Any, comparison: Any, source: str, dataset: Any) -> N
     for entry in plan:
         insert_comparison_child(db, comparison, entry, problem, provenance, user)
     db.commit()
+    return True
 
 
 def _queue_solving(db: Any, comparison: Any) -> None:
