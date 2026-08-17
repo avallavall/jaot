@@ -56,6 +56,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ### Fixed
 
+- **Warm start works.** Re-solving from a previous run's solution had been loading nothing at all: the solution is stored under one name and the loader asked for another, so every warm start ran cold. The only sign was a line in the log and a "warm start used: no" that read as the solver's own choice. A stored run now also records whether it started from a previous solution, so its history says so too.
 - **CBC no longer claims it proved an answer it did not.** When CBC printed no bound, the answer was taken as its own bound, so a run cut off by the time limit came back with a gap of 0% and read as proven optimal. It now reports no bound unless it actually finished, which is what GLPK already did.
 - **A model that cannot be compared says so in a sentence.** A model stored in a shape the platform does not accept produced a screenful of raw validation output. It now names the model, says the same model would fail an ordinary solve too, and lists up to three problems.
 - **A comparison is titled with the model's name.** It used to show the name stored inside the problem, which in real models is often an exporter's leftover like "obj".

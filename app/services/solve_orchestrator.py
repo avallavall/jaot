@@ -13,14 +13,13 @@ module made them depend upward on the platform (D-16).
 import logging
 
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
 
 from app.domains.solver.services.problem_validation import (
     InvalidProblemError,
     extract_variable_names,
     validate_problem as domain_validate_problem,
 )
-from app.models import ModelExecution
+from app.domains.solver.warm_start import load_warm_start_solution
 from app.schemas.optimization import (
     OptimizationProblem,
 )
@@ -68,44 +67,6 @@ def validate_problem(problem: OptimizationProblem) -> None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=exc.detail) from exc
 
 
-def load_warm_start_solution(
-    db: Session,
-    execution_id: str,
-    org_id: str,
-) -> dict[str, float] | None:
-    """Load a warm start solution from a previous execution.
-
-    Returns the solution dict if valid, else None. Never raises.
-    """
-    try:
-        execution = db.query(ModelExecution).filter(ModelExecution.id == execution_id).first()
-        if not execution:
-            logger.warning("Warm start execution not found: %s", execution_id)
-            return None
-        if execution.organization_id != org_id:
-            logger.warning("Warm start execution %s belongs to different org", execution_id)
-            return None
-        if execution.status not in ("completed",):
-            logger.warning(
-                "Warm start execution %s not completed (status=%s)",
-                execution_id,
-                execution.status,
-            )
-            return None
-        if execution.solver_status not in ("optimal", "feasible"):
-            logger.warning(
-                "Warm start execution %s has no valid solution (solver_status=%s)",
-                execution_id,
-                execution.solver_status,
-            )
-            return None
-        result_data = execution.result_data or {}
-        solution = result_data.get("solution")
-        if not solution or not isinstance(solution, dict):
-            logger.warning("Warm start execution %s has no solution dict", execution_id)
-            return None
-        logger.info("Loaded warm start solution from execution %s", execution_id)
-        return {k: float(v) for k, v in solution.items()}
-    except Exception as e:
-        logger.warning("Failed to load warm start solution: %s", e)
-        return None
+# Re-exported, not reimplemented. This module used to carry a second copy of the
+# loader, and the copy the solve task actually calls carried a third; both read
+# the wrong key. One implementation lives in the solver domain now.

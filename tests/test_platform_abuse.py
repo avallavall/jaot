@@ -11,7 +11,12 @@ from unittest.mock import patch
 
 import pytest
 
-from app.schemas.optimization import Constraint, Objective
+from app.schemas.optimization import (
+    Constraint,
+    Objective,
+    OptimizationResult,
+    SolverStatus,
+)
 from app.services.llm.moderation import moderate_message
 from app.services.llm.prompt_templates import FORMULATION_SYSTEM_PROMPT
 from app.services.solve_orchestrator import load_warm_start_solution
@@ -453,7 +458,15 @@ class TestIDOR:
             input_data={"name": "test"},
             status="completed",
             solver_status="optimal",
-            result_data={"solution": {"x": 1.0, "y": 2.0}},
+            # The shape the product actually writes. This row used to be built
+            # with a "solution" key, which no solve has ever produced, and the
+            # loader read that same wrong key — so the test passed against a
+            # feature that never worked. See test_warm_start_reads_stored_shape.
+            result_data=OptimizationResult(
+                status=SolverStatus.OPTIMAL,
+                solution={"x": 1.0, "y": 2.0},
+                solve_time_seconds=0.1,
+            ).to_result_data(),
         )
         db_session.add(execution)
         db_session.commit()
@@ -467,6 +480,42 @@ class TestIDOR:
         assert result is not None, "Same-org warm_start must return solution"
         assert result["x"] == 1.0
         assert result["y"] == 2.0
+
+    # CONTRACT-TEST: the warm-start loader reads the key the writer writes.
+    # These two lived apart for a long time — ``to_result_data()`` stores the
+    # assignment under "model" and the loader asked for "solution" — so every
+    # warm start silently loaded nothing and every solve ran cold. The only
+    # symptom was a log line and ``warm_start_used: false``, which reads as the
+    # solver's own decision. Assert against the writer, never a literal.
+    def test_warm_start_reads_the_key_the_writer_writes(self, db_session):
+        from app.models import ModelExecution, Organization
+        from app.shared.utils.id_generator import generate_id
+
+        db_session.add(Organization(id="org_warm_key", name="Warm", is_active=True))
+        db_session.flush()
+
+        written = OptimizationResult(
+            status=SolverStatus.OPTIMAL,
+            solution={"chairs": 12.0, "tables": 4.0},
+            solve_time_seconds=0.2,
+        ).to_result_data()
+        assert "model" in written, "to_result_data no longer stores the assignment under 'model'"
+
+        execution_id = generate_id("exe_")
+        db_session.add(
+            ModelExecution(
+                id=execution_id,
+                organization_id="org_warm_key",
+                input_data={"name": "warm"},
+                status="completed",
+                solver_status="optimal",
+                result_data=written,
+            )
+        )
+        db_session.commit()
+
+        loaded = load_warm_start_solution(db_session, execution_id, "org_warm_key")
+        assert loaded == {"chairs": 12.0, "tables": 4.0}
 
     def test_cancel_async_cross_org(self, authenticated_client, db_session):
         """Cross-org cancel must return 403."""

@@ -757,6 +757,11 @@ class OptimizationResult(BaseModel):
             "nodes": self.nodes,
             "iterations": self.iterations,
             "dual_bound": self.dual_bound,
+            # Persisted so a stored run still says whether it started from a
+            # previous solution. Without it the flag lived only in the response
+            # of the request that produced the run, and the history could never
+            # tell a warm solve from a cold one.
+            "warm_start_used": self.warm_start_used,
             "variables": [v.model_dump() for v in self.variables] if self.variables else [],
             "sensitivity": self.sensitivity.model_dump() if self.sensitivity else None,
             "infeasibility_analysis": (

@@ -18,7 +18,8 @@ from app.domains.solver.adapters.base import (
 )
 from app.domains.solver.queue_routing import resolve_queue
 from app.domains.solver.services import get_solver_service
-from app.models import ExecutionStatus, ModelExecution
+from app.domains.solver.warm_start import load_warm_start_solution
+from app.models import ModelExecution
 from app.models.model_project import ModelProject
 from app.schemas.optimization import (
     MultiObjectiveConfig,
@@ -221,7 +222,7 @@ def solve_async(
         if warm_start_execution_id:
             db = SessionLocal()
             try:
-                warm_start_solution = _load_warm_start_from_db(
+                warm_start_solution = load_warm_start_solution(
                     db, warm_start_execution_id, organization_id
                 )
             finally:
@@ -499,53 +500,6 @@ def solve_multi_objective_async(
             "task_id": task_id,
             "error": error_detail,
         }
-
-
-def _load_warm_start_from_db(
-    db: Any,
-    execution_id: str,
-    organization_id: str,
-) -> dict[str, float] | None:
-    """
-    Load warm start solution from DB in Celery task context.
-
-    Returns solution dict or None (non-fatal — logs warning on failure).
-    """
-    try:
-        execution = db.query(ModelExecution).filter(ModelExecution.id == execution_id).first()
-
-        if not execution:
-            logger.warning(f"Warm start execution not found: {execution_id}")
-            return None
-
-        if execution.organization_id != organization_id:
-            logger.warning(f"Warm start execution {execution_id} org mismatch")
-            return None
-
-        if execution.status != ExecutionStatus.COMPLETED.value:
-            logger.warning(
-                f"Warm start execution {execution_id} not completed (status={execution.status})"
-            )
-            return None
-
-        if execution.solver_status not in ("optimal", "feasible"):
-            logger.warning(
-                f"Warm start execution {execution_id} solver_status={execution.solver_status}"
-            )
-            return None
-
-        result_data = execution.result_data or {}
-        solution = result_data.get("solution")
-        if not solution or not isinstance(solution, dict):
-            logger.warning(f"Warm start execution {execution_id} has no solution dict")
-            return None
-
-        logger.info(f"Loaded warm start from execution {execution_id}")
-        return {k: float(v) for k, v in solution.items()}
-
-    except Exception as e:
-        logger.warning(f"Failed to load warm start from DB: {e}")
-        return None
 
 
 @celery_app.task(bind=True, name="solve_model_async")  # type: ignore[misc]
