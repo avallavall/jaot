@@ -4813,6 +4813,19 @@
       "identical": "All {count} solvers found the same solution.",
       "alternativeOptima": "The solvers reached the same objective value with different variable values. Both are correct: this problem has more than one optimal solution.",
       "objectivesDiffer": "The solvers did not reach the same objective value. The largest difference is {delta}."
+    },
+    "charts": {
+      "boundTitle": "How much each solver had left to close",
+      "boundLegend": "From the best bound to the best answer found. A short bar means the solver had almost proved its answer; a dot means it did.",
+      "boundTooltip": "Answer {objective}, bound {bound}, {distance} apart",
+      "timeTitle": "Total time",
+      "timeLegend": "The scale is logarithmic: each step is ten times the one before, so bar length is not proportional to the number.",
+      "timeTooltip": "{seconds} — {ratio}× the fastest",
+      "splitTitle": "Searching against building the model",
+      "splitLegend": "The dark part is the solver's own search. The rest is translating the problem into that solver's model, which is JAOT's cost, not the solver's.",
+      "splitSearch": "Search",
+      "splitBuild": "Building",
+      "boundOmitted": "{solvers}: not shown, no answer reported."
     }
   }
 }

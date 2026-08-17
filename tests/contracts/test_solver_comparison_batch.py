@@ -180,6 +180,22 @@ def test_each_row_names_its_dataset_and_its_compiled_size(
     assert by_name["January"]["problem_class"] == "BIP"
 
 
+# CONTRACT-TEST: every cell carries the dataset it was compiled against. The run
+# history has a dataset column, and a matrix run that leaves it empty reads as a
+# run of the model with no data behind it.
+def test_every_cell_records_the_dataset_it_solved(
+    authenticated_client: TestClient,
+    db_session: Session,
+    captured_dispatch: list[dict],
+) -> None:
+    _project_id, dataset_ids, _detail = _seed_matrix(authenticated_client, db_session)
+
+    executions = db_session.query(ModelExecution).all()
+    assert len(executions) == 4
+    assert {execution.dataset_id for execution in executions} == set(dataset_ids)
+    assert {execution.dataset_name for execution in executions} == {"January", "February"}
+
+
 def test_the_columns_are_the_solvers_asked_for(
     authenticated_client: TestClient,
     db_session: Session,

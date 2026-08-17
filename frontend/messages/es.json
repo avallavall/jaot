@@ -4813,6 +4813,19 @@
       "identical": "Los {count} solvers encontraron la misma solución.",
       "alternativeOptima": "Los solvers llegaron al mismo valor del objetivo con valores distintos en las variables. Los dos aciertan: este problema tiene más de una solución óptima.",
       "objectivesDiffer": "Los solvers no llegaron al mismo valor del objetivo. La diferencia mayor es {delta}."
+    },
+    "charts": {
+      "boundTitle": "Cuánto le quedaba por cerrar a cada solver",
+      "boundLegend": "De la cota al mejor valor encontrado. Una barra corta significa que el solver casi había demostrado su respuesta; un punto, que la demostró.",
+      "boundTooltip": "Respuesta {objective}, cota {bound}, a {distance} de distancia",
+      "timeTitle": "Tiempo total",
+      "timeLegend": "La escala es logarítmica: cada paso es diez veces el anterior, así que el largo de la barra no es proporcional al número.",
+      "timeTooltip": "{seconds} — {ratio}× el más rápido",
+      "splitTitle": "Buscar frente a construir el modelo",
+      "splitLegend": "La parte oscura es la búsqueda del propio solver. El resto es traducir el problema al modelo de ese solver, que es coste de JAOT y no del solver.",
+      "splitSearch": "Búsqueda",
+      "splitBuild": "Construcción",
+      "boundOmitted": "{solvers}: no aparece, no dio ninguna respuesta."
     }
   }
 }

@@ -4813,6 +4813,19 @@
       "identical": "Les {count} solveurs ont trouvé la même solution.",
       "alternativeOptima": "Les solveurs ont atteint la même valeur d'objectif avec des valeurs de variables différentes. Les deux ont raison : ce problème a plus d'une solution optimale.",
       "objectivesDiffer": "Les solveurs n'ont pas atteint la même valeur d'objectif. Le plus grand écart est de {delta}."
+    },
+    "charts": {
+      "boundTitle": "Ce qu'il restait à démontrer à chaque solveur",
+      "boundLegend": "De la borne à la meilleure valeur trouvée. Une barre courte veut dire que le solveur avait presque démontré sa réponse ; un point, qu'il l'a démontrée.",
+      "boundTooltip": "Réponse {objective}, borne {bound}, {distance} d'écart",
+      "timeTitle": "Temps total",
+      "timeLegend": "L'échelle est logarithmique : chaque pas vaut dix fois le précédent, donc la longueur de la barre n'est pas proportionnelle au nombre.",
+      "timeTooltip": "{seconds} — {ratio}× le plus rapide",
+      "splitTitle": "Recherche contre construction du modèle",
+      "splitLegend": "La partie sombre est la recherche du solveur. Le reste est la traduction du problème dans le modèle de ce solveur, qui est un coût de JAOT et non du solveur.",
+      "splitSearch": "Recherche",
+      "splitBuild": "Construction",
+      "boundOmitted": "{solvers} : absent, aucune réponse rapportée."
     }
   }
 }

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { ComparisonDetail, ComparisonSolverResult } from "@/lib/types";
+import { ComparisonCharts } from "./ComparisonCharts";
 
 /** Solver verdicts that mean a real answer came back. */
 const SOLVED_STATUSES = new Set(["optimal", "feasible"]);
@@ -59,6 +60,11 @@ export function ComparisonTable({ comparison }: { comparison: ComparisonDetail }
       </div>
 
       <AgreementNotice comparison={comparison} />
+
+      {/* The three things the numbers above state and cannot show: how far each
+          solver was from proving its answer, how the times compare across two
+          orders of magnitude, and how much of the wait was ours. */}
+      <ComparisonCharts comparison={comparison} />
     </div>
   );
 }

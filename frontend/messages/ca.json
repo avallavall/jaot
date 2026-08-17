@@ -4813,6 +4813,19 @@
       "identical": "Els {count} solvers van trobar la mateixa solució.",
       "alternativeOptima": "Els solvers van arribar al mateix valor de l'objectiu amb valors diferents a les variables. Tots dos encerten: aquest problema té més d'una solució òptima.",
       "objectivesDiffer": "Els solvers no van arribar al mateix valor de l'objectiu. La diferència més gran és {delta}."
+    },
+    "charts": {
+      "boundTitle": "Quant li quedava per tancar a cada solver",
+      "boundLegend": "De la cota al millor valor trobat. Una barra curta vol dir que el solver gairebé havia demostrat la seva resposta; un punt, que la va demostrar.",
+      "boundTooltip": "Resposta {objective}, cota {bound}, a {distance} de distància",
+      "timeTitle": "Temps total",
+      "timeLegend": "L'escala és logarítmica: cada pas és deu vegades l'anterior, així que la llargada de la barra no és proporcional al número.",
+      "timeTooltip": "{seconds} — {ratio}× el més ràpid",
+      "splitTitle": "Cercar contra construir el model",
+      "splitLegend": "La part fosca és la cerca del solver. La resta és traduir el problema al model d'aquell solver, que és cost de JAOT i no del solver.",
+      "splitSearch": "Cerca",
+      "splitBuild": "Construcció",
+      "boundOmitted": "{solvers}: no hi surt, no va donar cap resposta."
     }
   }
 }

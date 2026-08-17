@@ -4813,6 +4813,19 @@
       "identical": "Alle {count} Solver fanden dieselbe Lösung.",
       "alternativeOptima": "Die Solver erreichten denselben Zielwert mit unterschiedlichen Variablenwerten. Beide haben recht: Dieses Problem hat mehr als eine optimale Lösung.",
       "objectivesDiffer": "Die Solver erreichten nicht denselben Zielwert. Der größte Unterschied beträgt {delta}."
+    },
+    "charts": {
+      "boundTitle": "Wie viel jedem Solver noch zu schließen blieb",
+      "boundLegend": "Von der Schranke bis zum besten gefundenen Wert. Ein kurzer Balken heißt, der Solver hatte seine Antwort fast bewiesen; ein Punkt heißt, er hat sie bewiesen.",
+      "boundTooltip": "Antwort {objective}, Schranke {bound}, {distance} Abstand",
+      "timeTitle": "Gesamtzeit",
+      "timeLegend": "Die Skala ist logarithmisch: jeder Schritt ist das Zehnfache des vorigen, die Balkenlänge ist also nicht proportional zur Zahl.",
+      "timeTooltip": "{seconds} — {ratio}× der schnellste",
+      "splitTitle": "Suchen gegen Modell aufbauen",
+      "splitLegend": "Der dunkle Teil ist die Suche des Solvers. Der Rest ist die Übersetzung des Problems in das Modell dieses Solvers, und das sind Kosten von JAOT, nicht vom Solver.",
+      "splitSearch": "Suche",
+      "splitBuild": "Aufbau",
+      "boundOmitted": "{solvers}: nicht dargestellt, keine Antwort gemeldet."
     }
   }
 }

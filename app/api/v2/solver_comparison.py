@@ -494,6 +494,11 @@ def insert_comparison_child(
         source_id=provenance.get("source_id"),
         model_project_id=provenance.get("model_project_id"),
         model_project_version_id=provenance.get("model_project_version_id"),
+        # A matrix row was compiled against one dataset, and the run history has a
+        # column for it. Read off the comparison rather than the provenance dict:
+        # the parent is where the dataset was resolved and snapshotted.
+        dataset_id=comparison.dataset_id,
+        dataset_name=comparison.dataset_name,
     )
     execution.comparison_id = comparison.id
     # No Celery task of its own: the comparison task solves every column, so the
