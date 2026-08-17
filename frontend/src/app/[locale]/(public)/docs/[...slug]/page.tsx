@@ -41,6 +41,7 @@ const contentMap: Record<string, () => Promise<{ default: React.ComponentType; f
   "mcp/overview": () => import("@content/docs/mcp/overview.mdx"),
   "api/solve": () => import("@content/docs/api/solve.mdx"),
   "api/models": () => import("@content/docs/api/models.mdx"),
+  "api/solver-comparison": () => import("@content/docs/api/solver-comparison.mdx"),
   "api/executions": () => import("@content/docs/api/executions.mdx"),
   "api/api-keys": () => import("@content/docs/api/api-keys.mdx"),
   "api/notifications": () => import("@content/docs/api/notifications.mdx"),

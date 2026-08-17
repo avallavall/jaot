@@ -3773,7 +3773,7 @@ export interface paths {
          * List Comparisons
          * @description This organization's comparisons, newest first.
          */
-        get: operations["list_comparisons_api_v2_solvers_compare_get"];
+        get: operations["list_solver_comparisons"];
         put?: never;
         /**
          * Create Comparison
@@ -3785,7 +3785,7 @@ export interface paths {
          *     straight to its verdict and never reaches the worker, so it costs no quota
          *     and no worker time.
          */
-        post: operations["create_comparison_api_v2_solvers_compare_post"];
+        post: operations["compare_solvers"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3803,7 +3803,7 @@ export interface paths {
          * Get Comparison
          * @description One comparison and its table, whatever state it is in.
          */
-        get: operations["get_comparison_api_v2_solvers_compare__comparison_id__get"];
+        get: operations["get_solver_comparison"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3829,7 +3829,7 @@ export interface paths {
          *     in flight finishes and the worker stops before the next one. Columns that
          *     never got their turn are marked cancelled.
          */
-        post: operations["cancel_comparison_api_v2_solvers_compare__comparison_id__cancel_post"];
+        post: operations["cancel_solver_comparison"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3847,7 +3847,7 @@ export interface paths {
          * List Batches
          * @description This organization's matrices, newest first.
          */
-        get: operations["list_batches_api_v2_solvers_compare_batches_get"];
+        get: operations["list_solver_comparison_matrices"];
         put?: never;
         /**
          * Create Batch
@@ -3864,7 +3864,7 @@ export interface paths {
          *     what the matrix costs against the daily quota — all three are properties of
          *     the source rather than of the data, so one dataset answers for every row.
          */
-        post: operations["create_batch_api_v2_solvers_compare_batches_post"];
+        post: operations["compare_solvers_on_datasets"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3882,7 +3882,7 @@ export interface paths {
          * Get Batch
          * @description One matrix, whatever state it is in. This is what the page polls.
          */
-        get: operations["get_batch_api_v2_solvers_compare_batches__batch_id__get"];
+        get: operations["get_solver_comparison_matrix"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3907,7 +3907,7 @@ export interface paths {
          *     A solve already inside a solver cannot be interrupted, so the run in flight
          *     finishes and nothing after it starts.
          */
-        post: operations["cancel_batch_api_v2_solvers_compare_batches__batch_id__cancel_post"];
+        post: operations["cancel_solver_comparison_matrix"];
         delete?: never;
         options?: never;
         head?: never;
@@ -17804,7 +17804,7 @@ export interface operations {
             };
         };
     };
-    list_comparisons_api_v2_solvers_compare_get: {
+    list_solver_comparisons: {
         parameters: {
             query?: {
                 limit?: number;
@@ -17836,7 +17836,7 @@ export interface operations {
             };
         };
     };
-    create_comparison_api_v2_solvers_compare_post: {
+    compare_solvers: {
         parameters: {
             query?: never;
             header?: never;
@@ -17869,7 +17869,7 @@ export interface operations {
             };
         };
     };
-    get_comparison_api_v2_solvers_compare__comparison_id__get: {
+    get_solver_comparison: {
         parameters: {
             query?: never;
             header?: never;
@@ -17900,7 +17900,7 @@ export interface operations {
             };
         };
     };
-    cancel_comparison_api_v2_solvers_compare__comparison_id__cancel_post: {
+    cancel_solver_comparison: {
         parameters: {
             query?: never;
             header?: never;
@@ -17931,7 +17931,7 @@ export interface operations {
             };
         };
     };
-    list_batches_api_v2_solvers_compare_batches_get: {
+    list_solver_comparison_matrices: {
         parameters: {
             query?: {
                 limit?: number;
@@ -17965,7 +17965,7 @@ export interface operations {
             };
         };
     };
-    create_batch_api_v2_solvers_compare_batches_post: {
+    compare_solvers_on_datasets: {
         parameters: {
             query?: never;
             header?: never;
@@ -17998,7 +17998,7 @@ export interface operations {
             };
         };
     };
-    get_batch_api_v2_solvers_compare_batches__batch_id__get: {
+    get_solver_comparison_matrix: {
         parameters: {
             query?: never;
             header?: never;
@@ -18029,7 +18029,7 @@ export interface operations {
             };
         };
     };
-    cancel_batch_api_v2_solvers_compare_batches__batch_id__cancel_post: {
+    cancel_solver_comparison_matrix: {
         parameters: {
             query?: never;
             header?: never;

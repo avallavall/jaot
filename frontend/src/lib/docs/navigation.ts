@@ -56,6 +56,7 @@ export const docsNavigation: DocsNavItem[] = [
     children: [
       { title: "Solve", slug: "api/solve" },
       { title: "Models", slug: "api/models" },
+      { title: "Solver Comparison", slug: "api/solver-comparison" },
       { title: "Executions", slug: "api/executions" },
       { title: "API Keys", slug: "api/api-keys" },
       { title: "Notifications", slug: "api/notifications" },

@@ -87,7 +87,12 @@ router = APIRouter(prefix="/solvers/compare/batches", tags=["solvers"])
 # ──────────────────────────────────────────────────────────────
 
 
-@router.post("", status_code=status.HTTP_202_ACCEPTED, response_model=ComparisonBatchDetail)
+@router.post(
+    "",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=ComparisonBatchDetail,
+    operation_id="compare_solvers_on_datasets",
+)
 def create_batch(
     payload: CreateComparisonBatchRequest,
     db: DBSession,
@@ -228,7 +233,11 @@ def _abandon_row(db: Session, comparison: Comparison) -> None:
 # ──────────────────────────────────────────────────────────────
 
 
-@router.get("", response_model=ComparisonBatchListResponse)
+@router.get(
+    "",
+    response_model=ComparisonBatchListResponse,
+    operation_id="list_solver_comparison_matrices",
+)
 def list_batches(
     db: DBSession,
     org: CurrentOrg,
@@ -274,7 +283,11 @@ def list_batches(
     return ComparisonBatchListResponse(batches=summaries, total=total)
 
 
-@router.get("/{batch_id}", response_model=ComparisonBatchDetail)
+@router.get(
+    "/{batch_id}",
+    response_model=ComparisonBatchDetail,
+    operation_id="get_solver_comparison_matrix",
+)
 def get_batch(
     batch_id: str,
     db: DBSession,
@@ -290,7 +303,11 @@ def get_batch(
 # ──────────────────────────────────────────────────────────────
 
 
-@router.post("/{batch_id}/cancel", response_model=ComparisonBatchDetail)
+@router.post(
+    "/{batch_id}/cancel",
+    response_model=ComparisonBatchDetail,
+    operation_id="cancel_solver_comparison_matrix",
+)
 def cancel_batch(
     batch_id: str,
     db: DBSession,

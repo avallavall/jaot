@@ -71,7 +71,12 @@ _COMPARABLE_STATUSES = frozenset({"optimal", "feasible"})
 # ──────────────────────────────────────────────────────────────
 
 
-@router.post("", status_code=status.HTTP_202_ACCEPTED, response_model=ComparisonDetail)
+@router.post(
+    "",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=ComparisonDetail,
+    operation_id="compare_solvers",
+)
 def create_comparison(
     payload: CreateComparisonRequest,
     db: DBSession,
@@ -191,7 +196,7 @@ def create_comparison(
 # ──────────────────────────────────────────────────────────────
 
 
-@router.get("", response_model=ComparisonListResponse)
+@router.get("", response_model=ComparisonListResponse, operation_id="list_solver_comparisons")
 def list_comparisons(
     db: DBSession,
     org: CurrentOrg,
@@ -219,7 +224,9 @@ def list_comparisons(
     )
 
 
-@router.get("/{comparison_id}", response_model=ComparisonDetail)
+@router.get(
+    "/{comparison_id}", response_model=ComparisonDetail, operation_id="get_solver_comparison"
+)
 def get_comparison(
     comparison_id: str,
     db: DBSession,
@@ -235,7 +242,11 @@ def get_comparison(
 # ──────────────────────────────────────────────────────────────
 
 
-@router.post("/{comparison_id}/cancel", response_model=ComparisonDetail)
+@router.post(
+    "/{comparison_id}/cancel",
+    response_model=ComparisonDetail,
+    operation_id="cancel_solver_comparison",
+)
 def cancel_comparison(
     comparison_id: str,
     db: DBSession,

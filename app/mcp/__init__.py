@@ -1,12 +1,12 @@
 """MCP server integration for JAOT Optimization Platform.
 
-Exposes 30 curated optimization tools via the Model Context Protocol (MCP),
+Exposes 34 curated optimization tools via the Model Context Protocol (MCP),
 enabling AI agents (Claude, GPT, etc.) to discover and use JAOT's
 optimization capabilities: multi-solver solving, multi-objective (Pareto),
 templates, standard-format import/export (MPS/LP/CIP/JSON), the model
-marketplace, execution insights, and first-class **model projects**
-(create, author the draft, version with commit messages, analyze
-stats/health, and solve).
+marketplace, execution insights, solver comparison, and first-class
+**model projects** (create, author the draft, version with commit messages,
+analyze stats/health, and solve).
 
 P1.5 fusion: the legacy ``activate_catalog_model`` tool is retired — using a
 marketplace model means seeding a fork ModelProject
@@ -45,7 +45,8 @@ def setup_mcp(app: FastAPI) -> FastApiMCP:
             "constraints, slack, objective contributions), diagnose an infeasible "
             "one (minimal conflicting set), and measure what-if scenarios by real "
             "re-solves (what one more unit of a limit is worth, what overruling a "
-            "decision costs). "
+            "decision costs). Compare solvers on the same problem under identical "
+            "terms, or across several datasets at once, and read back the table. "
             "Authenticate with a Bearer API key."
         ),
         include_operations=[
@@ -83,6 +84,16 @@ def setup_mcp(app: FastAPI) -> FastApiMCP:
             # instead of buying a second one.
             "start_execution_scenario_analysis",
             "get_execution_scenario_analysis",
+            # Solver comparison — the same problem run by several solvers on one
+            # machine, one after another, so their seconds are comparable. Launch
+            # and read, in both shapes: one problem, and a matrix of datasets
+            # crossed with solvers. The list and cancel endpoints stay out: a
+            # caller that launched a comparison already holds its id, and
+            # cancelling refunds no quota, so neither earns a tool.
+            "compare_solvers",
+            "get_solver_comparison",
+            "compare_solvers_on_datasets",
+            "get_solver_comparison_matrix",
             # Model projects — create, author, version, analyze & solve a first-class model
             "create_model_project",
             "create_model_project_from_marketplace",
@@ -186,7 +197,7 @@ def _install_tool_call_analytics(mcp: FastApiMCP) -> None:
     async-only rewrite, pinning the MCP usage dashboard at zero.
 
     We wrap the private dispatch method (``_execute_api_tool``, the single choke
-    point every tool call rides) rather than each endpoint, so all 30 tools are
+    point every tool call rides) rather than each endpoint, so all 34 tools are
     covered in one place. Best-effort and off the request's critical path: a
     failure here never affects the tool's result. Guarded on the method's
     presence so a fastapi-mcp upgrade degrades to "no MCP analytics", never a

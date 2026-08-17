@@ -1,0 +1,440 @@
+---
+title: Solver Comparison
+description: Run one problem through several solvers under identical terms, or a whole matrix of datasets against solvers
+order: 3
+---
+
+# Solver Comparison
+
+These endpoints answer a different question from the rest of the API. `POST /api/v2/solve` asks "what is the answer". A comparison asks **"which solver should I use for this model"**.
+
+The same problem goes to every solver you name, with the same time limit, the same gap tolerance and the same thread count. The runs happen on one machine, one after another, never at the same time. Two solvers sharing a machine fight for cores, and the seconds stop meaning anything.
+
+Two shapes exist:
+
+| Shape | What it runs | Endpoint |
+|-------|--------------|----------|
+| Comparison | One problem × several solvers | `/api/v2/solvers/compare` |
+| Matrix | A model project's JModel source compiled against several datasets × several solvers | `/api/v2/solvers/compare/batches` |
+
+**Both are asynchronous.** The launch returns `202` with the table already shaped and every row `pending`. You poll until the status leaves `pending` and `running`.
+
+## Quota
+
+Each solver counts as one execution against the instance's daily solve limit. A comparison of 4 solvers costs 4. A matrix of 3 datasets and 4 solvers costs 12. A request that cannot afford all of its runs is rejected whole — half a table invites a conclusion the missing half might have contradicted.
+
+## Which solvers can compare
+
+Pass the names from `GET /api/v2/solvers/available`. The comparable ones are `scip`, `highs`, `cbc` and `glpk`. Hexaly cannot take part: it needs its own container image and licence, and the comparison worker runs from the base image.
+
+A solver that cannot express the model still gets a row. The row carries `solver_status: "unsupported"` and an `unsupported_reason` code (`integer_variables`, `quadratic_terms`, `not_registered`, `not_available`). It never reaches the worker, so it costs no quota. There is no such thing as a blank cell here, because a blank cell reads as zero.
+
+---
+
+## POST /api/v2/solvers/compare
+
+Queue one problem against several solvers.
+
+**Authentication:** Requires API key or JWT token.
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `solver_names` | array | Yes | Solvers to compare, in the order they run. 1–8 names. |
+| `problem` | object | One of | The problem inline, in the same shape `POST /api/v2/solve` takes |
+| `project_id` | string | One of | A studio model project. The server reads the model itself. |
+| `version_id` | string | No | A committed version of `project_id`. The draft is used when omitted. |
+| `uploaded_filename` | string | No | The file the problem came from. Shown in the header, nothing else. |
+| `settings.time_limit_seconds` | number | No | Seconds each solver gets (default 60). Clamped by the instance ceiling. |
+| `settings.gap_tolerance` | number | No | MIP gap tolerance for all of them (default 0.0001) |
+
+Give exactly one of `problem` and `project_id`. Thread count is not a request field: HiGHS fixes its thread count on the first solve of a worker process, so the platform sets one value for every comparison and reports it back in `settings.threads`.
+
+To compare a file you have on disk, parse it first with `POST /api/v2/import/preview` and send the parsed problem as `problem`. The file itself is never stored.
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+launch = httpx.post(
+    f"{API_URL}/solvers/compare",
+    headers=headers,
+    json={
+        "project_id": "prj_a1b2c3d4",
+        "solver_names": ["scip", "highs", "cbc", "glpk"],
+        "settings": {"time_limit_seconds": 120},
+    },
+)
+comparison_id = launch.json()["id"]
+
+while True:
+    detail = httpx.get(f"{API_URL}/solvers/compare/{comparison_id}", headers=headers).json()
+    if detail["status"] not in ("pending", "running"):
+        break
+
+for row in detail["results"]:
+    print(row["solver_name"], row["solver_status"], row["wall_time_ms"])
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/solvers/compare \
+  -H "Authorization: Bearer ok_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_id": "prj_a1b2c3d4",
+    "solver_names": ["scip", "highs", "cbc", "glpk"],
+    "settings": {"time_limit_seconds": 120}
+  }'
+```
+
+```javascript
+const launch = await fetch("https://jaot.io/api/v2/solvers/compare", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer ok_live_your_key_here",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    project_id: "prj_a1b2c3d4",
+    solver_names: ["scip", "highs", "cbc", "glpk"],
+    settings: { time_limit_seconds: 120 },
+  }),
+});
+
+const { id } = await launch.json();
+```
+</CodeTabs>
+
+### Response — 202 Accepted
+
+```json
+{
+  "id": "cmp_9f2a7c31",
+  "status": "pending",
+  "problem_name": "Line balancing",
+  "batch_id": null,
+  "source_kind": "model_project",
+  "model_project_id": "prj_a1b2c3d4",
+  "model_project_version_id": null,
+  "settings": {
+    "time_limit_seconds": 120,
+    "gap_tolerance": 0.0001,
+    "threads": 4
+  },
+  "problem_class": "MILP",
+  "variable_count": 22500,
+  "constraint_count": 450,
+  "machine_note": null,
+  "results": [
+    {"solver_name": "scip", "status": "pending", "solver_status": null},
+    {"solver_name": "highs", "status": "pending", "solver_status": null},
+    {"solver_name": "cbc", "status": "pending", "solver_status": null},
+    {"solver_name": "glpk", "status": "pending", "solver_status": null}
+  ],
+  "agreement": null,
+  "created_at": "2026-08-17T09:12:00Z",
+  "started_at": null,
+  "completed_at": null
+}
+```
+
+### Row fields
+
+Every entry of `results` is one solver's row.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `solver_name` | string | The solver this row is about |
+| `execution_id` | string | The execution it produced, for `GET /api/v2/models/executions/{id}` |
+| `status` | string | Lifecycle: `pending`, `running`, `completed`, `failed`, `cancelled` |
+| `solver_status` | string | The solver's verdict: `optimal`, `feasible`, `infeasible`, `unbounded`, `time_limit`, `error`, `unsupported` |
+| `unsupported_reason` | string | Set only when `solver_status` is `unsupported` |
+| `objective_value` | number | The best objective it found |
+| `dual_bound` | number | The best objective it proved could still exist. With the objective, this is the whole content of a run stopped by its time limit. |
+| `gap` | number | Optimality gap (0.0 = proven optimal) |
+| `nodes` | number | Branch-and-bound nodes explored |
+| `iterations` | number | Simplex iterations |
+| `wall_time_ms` | number | Wall time around the whole call, building the solver's model included. This is the wait. |
+| `solver_time_seconds` | number | The adapter's own measure of the search alone |
+| `error_message` | string | Why this row has no numbers |
+
+**Nodes and iterations do not compare across solvers.** Each solver counts its own way — a SCIP node and a CBC node are not the same unit of work. Use them to explain one solver's own behaviour, never to rank two.
+
+**Do not compare `wall_time_ms` between two comparisons.** The seconds mean something inside one comparison, on one machine, run in sequence. `machine_note` records which machine, so a stored table still says where its numbers came from.
+
+### The agreement block
+
+When two or more solvers finish with `optimal` or `feasible`, the response carries `agreement`:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `compared_solvers` | array | The solvers included in this check |
+| `objectives_agree` | boolean | Every compared objective matches within tolerance |
+| `solutions_identical` | boolean | Every compared solution assigns the same value to every variable |
+| `max_objective_delta` | number | Largest absolute objective difference among them |
+| `alternative_optima` | boolean | Objectives agree but the solutions do not |
+
+`alternative_optima: true` is a normal result, not a fault. A problem with several optimal solutions has no single answer to return, so two correct solvers can hand back different variable assignments and the same objective.
+
+---
+
+## GET /api/v2/solvers/compare
+
+List this organization's comparisons, newest first.
+
+**Authentication:** Requires API key or JWT token.
+
+### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | number | 20 | 1–100 |
+| `offset` | number | 0 | Rows to skip |
+
+### Response
+
+```json
+{
+  "comparisons": [
+    {
+      "id": "cmp_9f2a7c31",
+      "status": "completed",
+      "problem_name": "Line balancing",
+      "solver_names": ["scip", "highs", "cbc", "glpk"],
+      "created_at": "2026-08-17T09:12:00Z",
+      "completed_at": "2026-08-17T09:14:31Z"
+    }
+  ],
+  "total": 7
+}
+```
+
+---
+
+## GET /api/v2/solvers/compare/\{comparison_id\}
+
+One comparison and its table, whatever state it is in. This is the endpoint to poll.
+
+**Authentication:** Requires API key or JWT token. Returns 404 for a comparison belonging to another organization.
+
+The response is the same `ComparisonDetail` shape the launch returned, with the rows filled in as solvers finish.
+
+---
+
+## POST /api/v2/solvers/compare/\{comparison_id\}/cancel
+
+Stop a comparison before its next solver starts.
+
+**Authentication:** Requires API key or JWT token.
+
+A solve already inside a solver cannot be interrupted from outside, so the run in flight finishes and the worker stops before the next one. Rows that never got their turn are marked `cancelled`. Cancelling refunds no quota — the slots were charged at launch.
+
+Cancelling a comparison that is already `completed`, `failed` or `cancelled` does nothing and still returns the table.
+
+---
+
+## POST /api/v2/solvers/compare/batches
+
+Queue a matrix: one model project's JModel source, compiled against several datasets, each row run by every solver.
+
+**Authentication:** Requires API key or JWT token.
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `project_id` | string | Yes | The model project whose JModel source is compiled |
+| `version_id` | string | No | A committed version. The draft is used when omitted. |
+| `dataset_ids` | array | Yes | Datasets to compile the source against, one row each. 1–12. |
+| `solver_names` | array | Yes | Solvers to compare, one column each. 1–8. |
+| `settings` | object | No | Same `time_limit_seconds` and `gap_tolerance` as a single comparison |
+
+There is no `problem` field on purpose. A matrix only means something when every row is the same model fed different data, and that is what a JModel source plus N datasets is. A flat or imported model has no data left to swap, so it cannot be used here.
+
+**The launch does one compile, not N.** It compiles the first dataset to learn whether the model can be solved at all, which solvers can express it, and therefore what the grid costs against the quota — all three are properties of the source, so one dataset answers for every row. The remaining rows are compiled by their own workers. Compiling all of them inside the request took 28 seconds for three datasets of 22,500 variables and would pass a proxy's ceiling at twelve.
+
+A dataset that compiles but does not **fill** the model fails its own row and leaves the rest of the grid running. That row stays in the grid saying what happened.
+
+### Examples
+
+<CodeTabs>
+```python
+import httpx
+
+API_URL = "https://jaot.io/api/v2"
+headers = {"Authorization": "Bearer ok_live_your_key_here"}
+
+launch = httpx.post(
+    f"{API_URL}/solvers/compare/batches",
+    headers=headers,
+    json={
+        "project_id": "prj_a1b2c3d4",
+        "dataset_ids": ["dst_january", "dst_february", "dst_march"],
+        "solver_names": ["scip", "highs", "cbc", "glpk"],
+        "settings": {"time_limit_seconds": 120},
+    },
+)
+batch_id = launch.json()["batch_id"]
+
+grid = httpx.get(f"{API_URL}/solvers/compare/batches/{batch_id}", headers=headers).json()
+for row in grid["rows"]:
+    fastest = min(
+        (r for r in row["results"] if r["wall_time_ms"] is not None),
+        key=lambda r: r["wall_time_ms"],
+        default=None,
+    )
+    print(row["dataset_name"], fastest["solver_name"] if fastest else "no result")
+```
+
+```bash
+curl -X POST https://jaot.io/api/v2/solvers/compare/batches \
+  -H "Authorization: Bearer ok_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_id": "prj_a1b2c3d4",
+    "dataset_ids": ["dst_january", "dst_february", "dst_march"],
+    "solver_names": ["scip", "highs", "cbc", "glpk"]
+  }'
+```
+
+```javascript
+const launch = await fetch("https://jaot.io/api/v2/solvers/compare/batches", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer ok_live_your_key_here",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    project_id: "prj_a1b2c3d4",
+    dataset_ids: ["dst_january", "dst_february", "dst_march"],
+    solver_names: ["scip", "highs", "cbc", "glpk"],
+  }),
+});
+
+const { batch_id } = await launch.json();
+```
+</CodeTabs>
+
+### Response — 202 Accepted
+
+```json
+{
+  "batch_id": "cmb_44e1b0a9",
+  "status": "pending",
+  "project_id": "prj_a1b2c3d4",
+  "project_name": "Line balancing",
+  "model_project_version_id": null,
+  "settings": {"time_limit_seconds": 120, "gap_tolerance": 0.0001, "threads": 4},
+  "solver_names": ["scip", "highs", "cbc", "glpk"],
+  "machine_note": null,
+  "rows": [
+    {
+      "comparison_id": "cmp_11aa22bb",
+      "dataset_id": "dst_january",
+      "dataset_name": "January",
+      "status": "pending",
+      "problem_class": null,
+      "variable_count": null,
+      "constraint_count": null,
+      "error_message": null,
+      "results": [
+        {"solver_name": "scip", "status": "pending", "solver_status": null},
+        {"solver_name": "highs", "status": "pending", "solver_status": null},
+        {"solver_name": "cbc", "status": "pending", "solver_status": null},
+        {"solver_name": "glpk", "status": "pending", "solver_status": null}
+      ]
+    }
+  ],
+  "created_at": "2026-08-17T09:20:00Z",
+  "completed_at": null
+}
+```
+
+Each row carries its own `comparison_id`, because the row **is** a comparison: `GET /api/v2/solvers/compare/{comparison_id}` opens it with its agreement block and everything else a single comparison shows.
+
+`problem_class`, `variable_count` and `constraint_count` are `null` until that row's worker has compiled it. They are per row on purpose: two datasets of the same source routinely ground to very different sizes, which is often the answer to why one row took ten times longer than the one above it.
+
+The matrix has no stored status of its own. `status` is derived from its rows: `pending` until one starts, `running` while any is still going, then `completed`, `failed` or `cancelled`.
+
+---
+
+## GET /api/v2/solvers/compare/batches
+
+List this organization's matrices, newest first.
+
+**Authentication:** Requires API key or JWT token.
+
+### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `project_id` | string | — | Only this project's matrices |
+| `limit` | number | 20 | 1–100 |
+| `offset` | number | 0 | Rows to skip |
+
+### Response
+
+```json
+{
+  "batches": [
+    {
+      "batch_id": "cmb_44e1b0a9",
+      "status": "completed",
+      "project_id": "prj_a1b2c3d4",
+      "project_name": "Line balancing",
+      "dataset_count": 3,
+      "solver_names": ["scip", "highs", "cbc", "glpk"],
+      "created_at": "2026-08-17T09:20:00Z",
+      "completed_at": "2026-08-17T09:31:12Z"
+    }
+  ],
+  "total": 2
+}
+```
+
+---
+
+## GET /api/v2/solvers/compare/batches/\{batch_id\}
+
+One matrix, whatever state it is in. This is the endpoint to poll.
+
+**Authentication:** Requires API key or JWT token. Returns 404 for a matrix belonging to another organization.
+
+---
+
+## POST /api/v2/solvers/compare/batches/\{batch_id\}/cancel
+
+Stop every row that has not finished.
+
+**Authentication:** Requires API key or JWT token.
+
+Same rule as a single comparison: the run in flight finishes, nothing after it starts, and no quota is refunded.
+
+---
+
+## Errors
+
+| HTTP Code | Error | Description |
+|-----------|-------|-------------|
+| 401 | `unauthorized` | Missing or invalid API key |
+| 403 | `variable_limit_exceeded` | The compiled model is past this instance's variable cap |
+| 403 | `daily_solve_quota_exceeded` | The comparison needs more solves than the daily limit leaves |
+| 404 | `not_found` | Comparison, matrix, project, version or dataset not found in your organization |
+| 422 | `no_solver_can_run_this_model` | None of the named solvers can express the model. `reasons` names each one's reason. |
+| 422 | `model_cannot_be_compared` | The stored project model is not a problem this platform can solve. `problems` lists up to three reasons. |
+| 422 | `project_has_no_jmodel_source` | A matrix was asked for on a model with no JModel source |
+| 422 | `dataset_did_not_compile` | The first dataset failed to compile. `position` points at the offending line. |
+| 429 | `rate_limit_exceeded` | Organization request rate limit |
+| 503 | `enqueue_failed` | The broker refused the job. The comparison exists and says so; retry shortly. |
+
+A `403` on the quota is charged before it is raised: `check_rate_limit` spends one slot per call and takes no cost argument, so a comparison rejected on its last solver has already spent the slots of the ones before it. This is written down as debt D-30 rather than hidden.
+
+## MCP
+
+Four of these endpoints are also MCP tools — `compare_solvers`, `get_solver_comparison`, `compare_solvers_on_datasets` and `get_solver_comparison_matrix`. See [MCP Overview](/docs/mcp/overview).

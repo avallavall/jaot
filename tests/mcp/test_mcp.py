@@ -52,6 +52,12 @@ EXPECTED_OPERATIONS = [
     "analyze_infeasibility",
     "start_execution_scenario_analysis",
     "get_execution_scenario_analysis",
+    # Solver comparison — launch and read, for one problem and for a matrix of
+    # datasets crossed with solvers. List and cancel stay out on purpose.
+    "compare_solvers",
+    "get_solver_comparison",
+    "compare_solvers_on_datasets",
+    "get_solver_comparison_matrix",
     # Model projects — create, author, version, analyze & solve a first-class model
     "create_model_project",
     "create_model_project_from_marketplace",

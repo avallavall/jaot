@@ -97,6 +97,14 @@
   },
   {
     "id": 12,
+    "title": "Solver Comparison",
+    "description": "Run one problem through several solvers under identical terms, or a whole matrix of datasets against solvers",
+    "slug": "api/solver-comparison",
+    "content": "Solver Comparison\n\nThese endpoints answer a different question from the rest of the API. POST /api/v2/solve asks \"what is the answer\". A comparison asks \"which solver should I use for this model\".\n\nThe same problem goes to every solver you name, with the same time limit, the same gap tolerance and the same thread count. The runs happen on one machine, one after another, never at the same time. Two solvers sharing a machine fight for cores, and the seconds stop meaning anything.\n\nTwo shapes exist:\n\n| Shape | What it runs | Endpoint |\n|-------|--------------|----------|\n| Comparison | One problem × several solvers | /api/v2/solvers/compare |\n| Matrix | A model project's JModel source compiled against several datasets × several solvers | /api/v2/solvers/compare/batches |\n\nBoth are asynchronous. The launch returns 202 with the table already shaped and every row pending. You poll until the status leaves pending and running.\n\n Quota\n\nEach solver counts as one execution against the instance's daily solve limit. A comparison of 4 solvers costs 4. A matrix of 3 datasets and 4 solvers costs 12. A request that cannot afford all of its runs is rejected whole — half a table invites a conclusion the missing half might have contradicted.\n\n Which solvers can compare\n\nPass the names from GET /api/v2/solvers/available. The comparable ones are scip, highs, cbc and glpk. Hexaly cannot take part: it needs its own container image and licence, and the comparison worker runs from the base image.\n\nA solver that cannot express the model still gets a row. The row carries solverstatus: \"unsupported\" and an unsupportedreason code (integervariables, quadraticterms, notregistered, notavailable). It never reaches the worker, so it costs no quota. There is no such thing as a blank cell here, because a blank cell reads as zero.\n\n---\n\n POST /api/v2/solvers/compare\n\nQueue one problem against several solvers.\n\nAuthentication: Requires API key or JWT token.\n\n Request Body\n\n| Field | Type | Required | Description |\n|-------|------|----------|-------------|\n| solvernames | array | Yes | Solvers to compare, in the order they run. 1–8 names. |\n| problem | object | One of | The problem inline, in the same shape POST /api/v2/solve takes |\n| projectid | string | One of | A studio model project. The server reads the model itself. |\n| versionid | string | No | A committed version of projectid. The draft is used when omitted. |\n| uploadedfilename | string | No | The file the problem came from. Shown in the header, nothing else. |\n| settings.timelimitseconds | number | No | Seconds each solver gets (default 60). Clamped by the instance ceiling. |\n| settings.gaptolerance | number | No | MIP gap tolerance for all of them (default 0.0001) |\n\nGive exactly one of problem and projectid. Thread count is not a request field: HiGHS fixes its thread count on the first solve of a worker process, so the platform sets one value for every comparison and reports it back in settings.threads.\n\nTo compare a file you have on disk, parse it first with POST /api/v2/import/preview and send the parsed problem as problem. The file itself is never stored.\n\n Examples\n\n Response — 202 Accepted\n\n Row fields\n\nEvery entry of results is one solver's row.\n\n| Field | Type | Description |\n|-------|------|-------------|\n| solvername | string | The solver this row is about |\n| executionid | string | The execution it produced, for GET /api/v2/models/executions/{id} |\n| status | string | Lifecycle: pending, running, completed, failed, cancelled |\n| solverstatus | string | The solver's verdict: optimal, feasible, infeasible, unbounded, timelimit, error, unsupported |\n| unsupportedreason | string | Set only when solverstatus is unsupported |\n| objectivevalue | number | The best objective it found |\n| dualbound | number | The best objective it proved could still exist. With the objective, this is the whole content of a run stopped by its time limit. |\n| gap | number | Optimality gap (0.0 = proven optimal) |\n| nodes | number | Branch-and-bound nodes explored |\n| iterations | number | Simplex iterations |\n| walltimems | number | Wall time around the whole call, building the solver's model included. This is the wait. |\n| solvertimeseconds | number | The adapter's own measure of the search alone |\n| errormessage | string | Why this row has no numbers |\n\nNodes and iterations do not compare across solvers. Each solver counts its own way — a SCIP node and a CBC node are not the same unit of work. Use them to explain one solver's own behaviour, never to rank two.\n\nDo not compare walltimems between two comparisons. The seconds mean something inside one comparison, on one machine, run in sequence. machinenote records which machine, so a stored table still says where its numbers came from.\n\n The agreement block\n\nWhen two or more solvers finish with optimal or feasible, the response carries agreement:\n\n| Field | Type | Description |\n|-------|------|-------------|\n| comparedsolvers | array | The solvers included in this check |\n| objectivesagree | boolean | Every compared objective matches within tolerance |\n| solutionsidentical | boolean | Every compared solution assigns the same value to every variable |\n| maxobjectivedelta | number | Largest absolute objective difference among them |\n| alternativeoptima | boolean | Objectives agree but the solutions do not |\n\nalternativeoptima: true is a normal result, not a fault. A problem with several optimal solutions has no single answer to return, so two correct solvers can hand back different variable assignments and the same objective.\n\n---\n\n GET /api/v2/solvers/compare\n\nList this organization's comparisons, newest first.\n\nAuthentication: Requires API key or JWT token.\n\n Query Parameters\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| limit | number | 20 | 1–100 |\n| offset | number | 0 | Rows to skip |\n\n Response\n\n---\n\n GET /api/v2/solvers/compare/\\{comparisonid\\}\n\nOne comparison and its table, whatever state it is in. This is the endpoint to poll.\n\nAuthentication: Requires API key or JWT token. Returns 404 for a comparison belonging to another organization.\n\nThe response is the same ComparisonDetail shape the launch returned, with the rows filled in as solvers finish.\n\n---\n\n POST /api/v2/solvers/compare/\\{comparisonid\\}/cancel\n\nStop a comparison before its next solver starts.\n\nAuthentication: Requires API key or JWT token.\n\nA solve already inside a solver cannot be interrupted from outside, so the run in flight finishes and the worker stops before the next one. Rows that never got their turn are marked cancelled. Cancelling refunds no quota — the slots were charged at launch.\n\nCancelling a comparison that is already completed, failed or cancelled does nothing and still returns the table.\n\n---\n\n POST /api/v2/solvers/compare/batches\n\nQueue a matrix: one model project's JModel source, compiled against several datasets, each row run by every solver.\n\nAuthentication: Requires API key or JWT token.\n\n Request Body\n\n| Field | Type | Required | Description |\n|-------|------|----------|-------------|\n| projectid | string | Yes | The model project whose JModel source is compiled |\n| versionid | string | No | A committed version. The draft is used when omitted. |\n| datasetids | array | Yes | Datasets to compile the source against, one row each. 1–12. |\n| solvernames | array | Yes | Solvers to compare, one column each. 1–8. |\n| settings | object | No | Same timelimitseconds and gaptolerance as a single comparison |\n\nThere is no problem field on purpose. A matrix only means something when every row is the same model fed different data, and that is what a JModel source plus N datasets is. A flat or imported model has no data left to swap, so it cannot be used here.\n\nThe launch does one compile, not N. It compiles the first dataset to learn whether the model can be solved at all, which solvers can express it, and therefore what the grid costs against the quota — all three are properties of the source, so one dataset answers for every row. The remaining rows are compiled by their own workers. Compiling all of them inside the request took 28 seconds for three datasets of 22,500 variables and would pass a proxy's ceiling at twelve.\n\nA dataset that compiles but does not fill the model fails its own row and leaves the rest of the grid running. That row stays in the grid saying what happened.\n\n Examples\n\n Response — 202 Accepted\n\nEach row carries its own comparisonid, because the row is a comparison: GET /api/v2/solvers/compare/{comparisonid} opens it with its agreement block and everything else a single comparison shows.\n\nproblemclass, variablecount and constraintcount are null until that row's worker has compiled it. They are per row on purpose: two datasets of the same source routinely ground to very different sizes, which is often the answer to why one row took ten times longer than the one above it.\n\nThe matrix has no stored status of its own. status is derived from its rows: pending until one starts, running while any is still going, then completed, failed or cancelled.\n\n---\n\n GET /api/v2/solvers/compare/batches\n\nList this organization's matrices, newest first.\n\nAuthentication: Requires API key or JWT token.\n\n Query Parameters\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| projectid | string | — | Only this project's matrices |\n| limit | number | 20 | 1–100 |\n| offset | number | 0 | Rows to skip |\n\n Response\n\n---\n\n GET /api/v2/solvers/compare/batches/\\{batchid\\}\n\nOne matrix, whatever state it is in. This is the endpoint to poll.\n\nAuthentication: Requires API key or JWT token. Returns 404 for a matrix belonging to another organization.\n\n---\n\n POST /api/v2/solvers/compare/batches/\\{batchid\\}/cancel\n\nStop every row that has not finished.\n\nAuthentication: Requires API key or JWT token.\n\nSame rule as a single comparison: the run in flight finishes, nothing after it starts, and no quota is refunded.\n\n---\n\n Errors\n\n| HTTP Code | Error | Description |\n|-----------|-------|-------------|\n| 401 | unauthorized | Missing or invalid API key |\n| 403 | variablelimitexceeded | The compiled model is past this instance's variable cap |\n| 403 | dailysolvequotaexceeded | The comparison needs more solves than the daily limit leaves |\n| 404 | notfound | Comparison, matrix, project, version or dataset not found in your organization |\n| 422 | nosolvercanrunthismodel | None of the named solvers can express the model. reasons names each one's reason. |\n| 422 | modelcannotbecompared | The stored project model is not a problem this platform can solve. problems lists up to three reasons. |\n| 422 | projecthasnojmodelsource | A matrix was asked for on a model with no JModel source |\n| 422 | datasetdidnotcompile | The first dataset failed to compile. position points at the offending line. |\n| 429 | ratelimitexceeded | Organization request rate limit |\n| 503 | enqueuefailed | The broker refused the job. The comparison exists and says so; retry shortly. |\n\nA 403 on the quota is charged before it is raised: checkratelimit spends one slot per call and takes no cost argument, so a comparison rejected on its last solver has already spent the slots of the ones before it. This is written down as debt D-30 rather than hidden.\n\n MCP\n\nFour of these endpoints are also MCP tools — comparesolvers, getsolvercomparison, comparesolversondatasets and getsolvercomparisonmatrix. See MCP Overview(/docs/mcp/overview).",
+    "section": "api"
+  },
+  {
+    "id": 13,
     "title": "Triggers",
     "description": "HTTP event triggers for automated re-solve workflows",
     "slug": "api/triggers",
@@ -104,7 +112,7 @@
     "section": "api"
   },
   {
-    "id": 13,
+    "id": 14,
     "title": "Versions",
     "description": "Commit-grade model project versions, diffs, restore — and legacy builder checkpoints",
     "slug": "api/versions",
@@ -112,7 +120,7 @@
     "section": "api"
   },
   {
-    "id": 14,
+    "id": 15,
     "title": "Webhooks",
     "description": "Receive real-time notifications for execution events via HTTP callbacks",
     "slug": "api/webhooks",
@@ -120,7 +128,7 @@
     "section": "api"
   },
   {
-    "id": 15,
+    "id": 16,
     "title": "WebSocket Protocol",
     "description": "Real-time execution monitoring via WebSocket",
     "slug": "api/websocket",
@@ -128,7 +136,7 @@
     "section": "api"
   },
   {
-    "id": 16,
+    "id": 17,
     "title": "Authentication",
     "description": "API key and JWT authentication for the JAOT API",
     "slug": "getting-started/authentication",
@@ -136,7 +144,7 @@
     "section": "getting-started"
   },
   {
-    "id": 17,
+    "id": 18,
     "title": "Introduction",
     "description": "Get started with JAOT, the self-hosted optimization platform",
     "slug": "getting-started/introduction",
@@ -144,7 +152,7 @@
     "section": "getting-started"
   },
   {
-    "id": 18,
+    "id": 19,
     "title": "Quick Start",
     "description": "Go from zero to your first optimization solve in 5 minutes",
     "slug": "getting-started/quick-start",
@@ -152,7 +160,7 @@
     "section": "getting-started"
   },
   {
-    "id": 19,
+    "id": 20,
     "title": "Advertising & Media Planning",
     "description": "Allocate ad budgets across channels to maximize reach and conversions",
     "slug": "guides/advertising-media",
@@ -160,7 +168,7 @@
     "section": "guides"
   },
   {
-    "id": 20,
+    "id": 21,
     "title": "Aerospace Mission Planning",
     "description": "Optimize flight paths, payload distribution, and mission scheduling",
     "slug": "guides/aerospace-mission",
@@ -168,7 +176,7 @@
     "section": "guides"
   },
   {
-    "id": 21,
+    "id": 22,
     "title": "Agricultural Planning",
     "description": "Optimize crop rotation, planting schedules, and resource allocation",
     "slug": "guides/agricultural-planning",
@@ -176,7 +184,7 @@
     "section": "guides"
   },
   {
-    "id": 22,
+    "id": 23,
     "title": "Chemical Process Optimization",
     "description": "Balance reactor yields, blending ratios, and process constraints",
     "slug": "guides/chemical-process",
@@ -184,7 +192,7 @@
     "section": "guides"
   },
   {
-    "id": 23,
+    "id": 24,
     "title": "Construction Project Planning",
     "description": "Schedule tasks, allocate crews, and manage resources across job sites",
     "slug": "guides/construction-planning",
@@ -192,7 +200,7 @@
     "section": "guides"
   },
   {
-    "id": 24,
+    "id": 25,
     "title": "Cutting & Packing",
     "description": "Minimize material waste with optimal cutting patterns and bin packing",
     "slug": "guides/cutting-and-packing",
@@ -200,7 +208,7 @@
     "section": "guides"
   },
   {
-    "id": 25,
+    "id": 26,
     "title": "Education Timetabling",
     "description": "Schedule classes, rooms, and instructors to avoid conflicts",
     "slug": "guides/education-timetabling",
@@ -208,7 +216,7 @@
     "section": "guides"
   },
   {
-    "id": 26,
+    "id": 27,
     "title": "Energy Grid Optimization",
     "description": "Balance power generation, storage, and distribution for efficiency",
     "slug": "guides/energy-grid",
@@ -216,7 +224,7 @@
     "section": "guides"
   },
   {
-    "id": 27,
+    "id": 28,
     "title": "Environmental Resource Management",
     "description": "Optimize emissions reduction, waste processing, and sustainability targets",
     "slug": "guides/environmental-management",
@@ -224,7 +232,7 @@
     "section": "guides"
   },
   {
-    "id": 28,
+    "id": 29,
     "title": "Facility Location",
     "description": "Choose optimal locations for warehouses, plants, and service centers",
     "slug": "guides/facility-location",
@@ -232,7 +240,7 @@
     "section": "guides"
   },
   {
-    "id": 29,
+    "id": 30,
     "title": "Food & Beverage Production",
     "description": "Plan recipes, batches, and production runs for food manufacturing",
     "slug": "guides/food-and-beverage",
@@ -240,7 +248,7 @@
     "section": "guides"
   },
   {
-    "id": 30,
+    "id": 31,
     "title": "Forestry Management",
     "description": "Schedule harvesting, replanting, and sustainable yield planning",
     "slug": "guides/forestry-management",
@@ -248,7 +256,7 @@
     "section": "guides"
   },
   {
-    "id": 31,
+    "id": 32,
     "title": "Getting Started with Optimization",
     "description": "Learn the fundamentals of mathematical optimization with simple examples",
     "slug": "guides/getting-started-optimization",
@@ -256,7 +264,7 @@
     "section": "guides"
   },
   {
-    "id": 32,
+    "id": 33,
     "title": "Government Resource Allocation",
     "description": "Distribute public budgets and resources across departments and regions",
     "slug": "guides/government-resources",
@@ -264,7 +272,7 @@
     "section": "guides"
   },
   {
-    "id": 33,
+    "id": 34,
     "title": "Healthcare Resource Allocation",
     "description": "Schedule staff, beds, and equipment to improve patient outcomes",
     "slug": "guides/healthcare-resources",
@@ -272,7 +280,7 @@
     "section": "guides"
   },
   {
-    "id": 34,
+    "id": 35,
     "title": "Use Case Guides",
     "description": "Step-by-step walkthroughs for all 34 optimization categories",
     "slug": "guides/index",
@@ -280,7 +288,7 @@
     "section": "guides"
   },
   {
-    "id": 35,
+    "id": 36,
     "title": "Insurance Risk Modeling",
     "description": "Optimize policy pricing and claims reserve allocation",
     "slug": "guides/insurance-risk",
@@ -288,7 +296,7 @@
     "section": "guides"
   },
   {
-    "id": 36,
+    "id": 37,
     "title": "Maritime Shipping",
     "description": "Optimize vessel routing, port scheduling, and cargo allocation",
     "slug": "guides/maritime-shipping",
@@ -296,7 +304,7 @@
     "section": "guides"
   },
   {
-    "id": 37,
+    "id": 38,
     "title": "Mining Operations",
     "description": "Plan extraction sequences, equipment deployment, and processing flows",
     "slug": "guides/mining-operations",
@@ -304,7 +312,7 @@
     "section": "guides"
   },
   {
-    "id": 38,
+    "id": 39,
     "title": "Network & Graph Optimization",
     "description": "Solve shortest path, flow, and connectivity problems on graphs",
     "slug": "guides/network-graph",
@@ -312,7 +320,7 @@
     "section": "guides"
   },
   {
-    "id": 39,
+    "id": 40,
     "title": "Pharmaceutical Production",
     "description": "Plan drug manufacturing, batch scheduling, and quality compliance",
     "slug": "guides/pharmaceutical-production",
@@ -320,7 +328,7 @@
     "section": "guides"
   },
   {
-    "id": 40,
+    "id": 41,
     "title": "Portfolio Optimization",
     "description": "Allocate investments to maximize returns under risk constraints",
     "slug": "guides/portfolio-optimization",
@@ -328,7 +336,7 @@
     "section": "guides"
   },
   {
-    "id": 41,
+    "id": 42,
     "title": "Production Planning",
     "description": "Optimize manufacturing schedules to maximize throughput and minimize costs",
     "slug": "guides/production-planning",
@@ -336,7 +344,7 @@
     "section": "guides"
   },
   {
-    "id": 42,
+    "id": 43,
     "title": "Railway Operations",
     "description": "Schedule trains, allocate rolling stock, and manage track capacity",
     "slug": "guides/railway-operations",
@@ -344,7 +352,7 @@
     "section": "guides"
   },
   {
-    "id": 43,
+    "id": 44,
     "title": "Real Estate Investment",
     "description": "Evaluate property portfolios and optimize acquisition strategies",
     "slug": "guides/real-estate-investment",
@@ -352,7 +360,7 @@
     "section": "guides"
   },
   {
-    "id": 44,
+    "id": 45,
     "title": "Retail Assortment & Pricing",
     "description": "Optimize product mix, shelf placement, and pricing strategies",
     "slug": "guides/retail-assortment",
@@ -360,7 +368,7 @@
     "section": "guides"
   },
   {
-    "id": 45,
+    "id": 46,
     "title": "Route & Fleet Optimization",
     "description": "Plan delivery routes and fleet assignments to reduce costs and time",
     "slug": "guides/route-and-fleet",
@@ -368,7 +376,7 @@
     "section": "guides"
   },
   {
-    "id": 46,
+    "id": 47,
     "title": "Sports League Scheduling",
     "description": "Create balanced fixture lists with venue, travel, and broadcast constraints",
     "slug": "guides/sports-scheduling",
@@ -376,7 +384,7 @@
     "section": "guides"
   },
   {
-    "id": 47,
+    "id": 48,
     "title": "Supply Chain Planning",
     "description": "Coordinate procurement, production, and distribution across the value chain",
     "slug": "guides/supply-chain-planning",
@@ -384,7 +392,7 @@
     "section": "guides"
   },
   {
-    "id": 48,
+    "id": 49,
     "title": "Telecom Network Planning",
     "description": "Optimize tower placement, bandwidth allocation, and coverage areas",
     "slug": "guides/telecom-network",
@@ -392,7 +400,7 @@
     "section": "guides"
   },
   {
-    "id": 49,
+    "id": 50,
     "title": "Textile Manufacturing",
     "description": "Optimize fabric cutting, dyeing schedules, and production lines",
     "slug": "guides/textile-manufacturing",
@@ -400,7 +408,7 @@
     "section": "guides"
   },
   {
-    "id": 50,
+    "id": 51,
     "title": "Transportation Network Design",
     "description": "Design freight networks balancing speed, cost, and capacity",
     "slug": "guides/transportation-network",
@@ -408,7 +416,7 @@
     "section": "guides"
   },
   {
-    "id": 51,
+    "id": 52,
     "title": "Warehouse Layout & Operations",
     "description": "Optimize storage layouts, picking routes, and inventory placement",
     "slug": "guides/warehouse-operations",
@@ -416,7 +424,7 @@
     "section": "guides"
   },
   {
-    "id": 52,
+    "id": 53,
     "title": "Water Distribution Networks",
     "description": "Design and manage water supply, treatment, and distribution systems",
     "slug": "guides/water-distribution",
@@ -424,7 +432,7 @@
     "section": "guides"
   },
   {
-    "id": 53,
+    "id": 54,
     "title": "Workforce Scheduling",
     "description": "Build shift schedules that balance coverage, fairness, and labor costs",
     "slug": "guides/workforce-scheduling",
@@ -432,7 +440,7 @@
     "section": "guides"
   },
   {
-    "id": 54,
+    "id": 55,
     "title": "Authors",
     "description": "Public author profiles, verification, and the collaborative publishing model",
     "slug": "marketplace/authors",
@@ -440,7 +448,7 @@
     "section": "marketplace"
   },
   {
-    "id": 55,
+    "id": 56,
     "title": "Browsing Models",
     "description": "Discover community optimization models and open them in your studio",
     "slug": "marketplace/browsing-models",
@@ -448,7 +456,7 @@
     "section": "marketplace"
   },
   {
-    "id": 56,
+    "id": 57,
     "title": "Favorites & Reviews",
     "description": "Save models you care about and share honest feedback with the community",
     "slug": "marketplace/favorites-and-reviews",
@@ -456,7 +464,7 @@
     "section": "marketplace"
   },
   {
-    "id": 57,
+    "id": 58,
     "title": "Publishing Models",
     "description": "Publish a model from your studio to the JAOT marketplace and share it with the community",
     "slug": "marketplace/publishing-models",
@@ -464,15 +472,15 @@
     "section": "marketplace"
   },
   {
-    "id": 58,
+    "id": 59,
     "title": "MCP Overview",
     "description": "Connect AI agents to JAOT's optimization tools using the Model Context Protocol",
     "slug": "mcp/overview",
-    "content": "MCP Integration\r\n\r\nJAOT exposes its optimization capabilities through the Model Context Protocol (MCP)(https://modelcontextprotocol.io/), allowing AI agents and LLM-powered applications to discover and use optimization tools without custom integration code.\r\n\r\n What is MCP?\r\n\r\nThe Model Context Protocol is an open standard that lets AI applications discover and call external tools. Instead of writing bespoke API integrations, an MCP client (such as Claude Desktop, Cursor, or any compatible agent) connects to an MCP server and automatically discovers the tools it provides.\r\n\r\nFor JAOT, this means any MCP-compatible AI assistant can:\r\n\r\n- Solve optimization problems by describing them in conversation\r\n- Browse the template library and marketplace\r\n- Author, version, and solve first-class model projects\r\n- Fork marketplace models and execute them with user data\r\n- Check execution results\r\n\r\n Connecting to JAOT via MCP\r\n\r\nJAOT runs an MCP server at the /mcp endpoint using HTTP (Streamable HTTP) transport.\r\n\r\nEndpoint:\r\n\r\n\r\n\r\nThe MCP endpoint is publicly accessible — no authentication is needed to connect and discover tools. Individual tools that modify data require a Bearer API key, which is passed as a header on tool invocations.\r\n\r\n> Self-hosters: replace https://jaot.io/mcp with http://localhost:8001/mcp or your own domain.\r\n\r\n Client setup\r\n\r\n Claude Code (CLI)\r\n\r\nUse claude mcp add with the --transport http flag:\r\n\r\n\r\n\r\nTo browse templates and the marketplace without authenticating, omit the --header flag — those tools work without a key.\r\n\r\n Claude Desktop\r\n\r\nClaude Desktop does not support remote HTTP servers via claudedesktopconfig.json directly. Add JAOT through the Settings → Connectors UI at claude.ai/settings/connectors(https://claude.ai/settings/connectors):\r\n\r\n1. Click Add custom connector\r\n2. Enter https://jaot.io/mcp\r\n3. Complete any authentication prompts\r\n\r\nIf you prefer to use the config file with the mcp-remote bridge (requires Node.js):\r\n\r\n\r\n\r\nAfter saving, restart Claude Desktop.\r\n\r\n opencode\r\n\r\nAdd JAOT to your opencode.json (or opencode.jsonc) config file:\r\n\r\n\r\n\r\n OpenAI (Responses API)\r\n\r\nPass JAOT as an MCP tool in the tools array of a Responses API request:\r\n\r\n\r\n\r\nOmit headers (or the Authorization entry) to use only the public catalog and marketplace browse tools.\r\n\r\n Cursor\r\n\r\nCreate or edit .cursor/mcp.json in your project (or /.cursor/mcp.json for global):\r\n\r\n\r\n\r\n VS Code (GitHub Copilot)\r\n\r\nCreate or edit .vscode/mcp.json in your workspace. VS Code uses a \"servers\" root key (not \"mcpServers\") and requires \"type\": \"http\" for remote servers:\r\n\r\n\r\n\r\n Available Tools\r\n\r\nJAOT exposes 30 MCP tools organized into seven categories:\r\n\r\n Solve Tools\r\n\r\n| Tool | Auth | Description |\r\n|------|------|-------------|\r\n| solveproblem | Yes | Solve an optimization problem defined as variables, constraints, and an objective. Optionally choose a solver (scip, highs, hexaly) or auto routing |\r\n| validateproblem | Yes | Validate a problem definition without solving |\r\n| solvemultiobjective | Yes | Solve a multi-objective problem and return a Pareto front |\r\n| listavailablesolvers | Yes | List the solvers available to your organization |\r\n\r\n Catalog Tools\r\n\r\n| Tool | Auth | Description |\r\n|------|------|-------------|\r\n| listtemplates | No | List available problem templates with names, categories, and descriptions |\r\n| gettemplate | No | Get a specific template's details, input schema, and example input |\r\n| solvewithtemplate | Yes | Solve a problem using a template and user-provided input data. Optionally choose a solver or auto routing |\r\n\r\n File I/O Tools\r\n\r\n| Tool | Auth | Description |\r\n|------|------|-------------|\r\n| importpreview | Yes | Preview how a CSV/MPS/LP/CIP file is parsed into an optimization problem before solving |\r\n| importandsolve | Yes | Import data from a CSV/MPS/LP/CIP file and solve it in one step |\r\n| exportmodel | Yes | Export a model (no solve required) to a standard format (MPS, LP, CIP, or flat JSON) |\r\n| exportexecution | Yes | Export a finished execution's model or solution (MPS/LP/CIP/SOL/CSV/JSON) |\r\n\r\n Marketplace Tools\r\n\r\n| Tool | Auth | Description |\r\n|------|------|-------------|\r\n| listcatalogmodels | No | Browse published models in the marketplace |\r\n| getcatalogmodel | No | Get a specific marketplace model's details |\r\n| getcatalogmodelschema | No | Get the input schema for a marketplace model |\r\n\r\nUsing a marketplace model is fork-first: createmodelprojectfrommarketplace (below) forks it into a model project of your organization.\r\n\r\n Execution Tools\r\n\r\n| Tool | Auth | Description |\r\n|------|------|-------------|\r\n| executemodel | Yes | Execute one of your models (a model project) with input data |\r\n| getexecution | Yes | Retrieve execution results and status |\r\n| getexecutioninsights | Yes | Get auto-generated insights (gap, solve time, quality flags) for a completed execution |\r\n\r\n Analysis Tools\r\n\r\nEverything the analysis page computes is available to an agent — as facts, not prose. There is no \"explain it in words\" tool on purpose: an MCP client is already a language model, so it reads the numbers and writes its own explanation.\r\n\r\n| Tool | Auth | Description |\r\n|------|------|-------------|\r\n| getexecutionexactanalysis | Yes | Exact, solution-based analysis of a finished run: binding constraints, per-row slack and utilization, objective contributions, and the per-family aggregates |\r\n| analyzeinfeasibility | Yes | Diagnose an infeasible model: a minimal conflicting set of constraints/bounds (drop any one and it becomes solvable) |\r\n| startexecutionscenarioanalysis | Yes | Queue the what-if batch: RHS ranging on the binding constraints and regret on key decisions, measured by real re-solves under a time budget |\r\n| getexecutionscenarioanalysis | Yes | Poll or read that batch — status, the measured scenarios, and the budget accounting |\r\n\r\nThe what-if batch is asynchronous because each scenario is a full re-solve: start it, then poll until the status leaves running. Starting it twice is safe — a request that arrives while a batch is in flight joins it instead of queueing a second one, and a finished batch is served from the cache.\r\n\r\n\r\n Model Project Tools\r\n\r\nCreate, version, analyze, and solve a first-class model — the same \"Model, Analyze &\r\nSolve\" workspace an agent can drive over MCP.\r\n\r\n| Tool | Auth | Description |\r\n|------|------|-------------|\r\n| createmodelproject | Yes | Create a versioned model project from an optimization problem |\r\n| createmodelprojectfrommarketplace | Yes | Fork a marketplace model into your studio (optional custom input for generator-backed models) |\r\n| getmodelproject | Yes | Retrieve a model project's current draft and metadata |\r\n| listmodelprojects | Yes | List your organization's model projects |\r\n| updatemodelprojectdraft | Yes | Write the project's draft model (agent authoring; optimistic lock via If-Match) |\r\n| commitmodelversion | Yes | Commit the draft as an immutable version with a \"what changed\" message |\r\n| listprojectversions | Yes | List a model project's committed versions |\r\n| getmodelstats | Yes | Get structure stats, problem class, and health for a model project |\r\n| solvemodelproject | Yes | Solve a model project's draft or a specific committed version (solutionfilter=\"nonzero\" for a compact solution) |\r\n\r\n Example Workflows\r\n\r\n Solving a Problem from Scratch\r\n\r\nAn AI agent using JAOT's MCP tools might follow this flow:\r\n\r\n1. User: \"I need to optimize my delivery routes for 5 warehouses and 20 customers.\"\r\n2. Agent calls solveproblem with a vehicle routing formulation:\r\n\r\n\r\n\r\n3. The solver returns the optimal routes with the minimum total distance.\r\n\r\n Using a Template\r\n\r\nA simpler path for well-known problem types:\r\n\r\n1. Agent calls listtemplates to see what is available\r\n2. Agent calls gettemplate(\"knapsack\") to get the input schema\r\n3. User provides item data\r\n4. Agent calls solvewithtemplate(\"knapsack\", {\"capacity\": 50, \"items\": ...}) to get the solution\r\n\r\n Marketplace Path\r\n\r\nFor pre-built domain-specific models — fork first, then run your copy:\r\n\r\n1. Agent calls listcatalogmodels to browse the marketplace\r\n2. Agent calls getcatalogmodel(\"catabc123\") to check model details\r\n3. Agent calls getcatalogmodelschema(\"catabc123\") to see the customizable inputs\r\n4. Agent calls createmodelprojectfrommarketplace(\"catabc123\", {\"userinput\": {...}}) to fork it into the organization's studio\r\n5. Agent calls executemodel(\"mpxyz789\", {\"inputdata\": {...}}) to run the fork\r\n6. Agent calls getexecution to retrieve results\r\n\r\n Agent Authoring Path\r\n\r\nAn agent can drive the whole \"Model, Analyze & Solve\" workspace over MCP — building a versioned model instead of a one-off solve:\r\n\r\n1. Agent calls createmodelproject({\"name\": \"Line scheduling\"}) for a fresh versioned project\r\n2. Agent calls updatemodelprojectdraft(\"mpabc\", {\"modeljson\": {...}}) to write the model\r\n3. Agent calls commitmodelversion(\"mpabc\", {\"summary\": \"v1 — initial model\"}) to record it\r\n4. Agent calls solvemodelproject(\"mpabc\", solutionfilter=\"nonzero\") — the compact solution omits near-zero variables (variablesomitted reports how many)\r\n5. Agent calls getexecutioninsights for quality/gap/time insights on the run\r\n\r\n Authentication for MCP Tools\r\n\r\nTools marked \"Auth: Yes\" require a valid API key. Pass your key in the MCP connection headers as shown in the configuration section above. If a tool requiring auth is called without credentials, it returns an error message explaining how to authenticate.\r\n\r\nTools marked \"Auth: No\" are publicly accessible and can be used without any API key. This allows agents to browse templates and the marketplace catalog before the user decides to authenticate.\r\n\r\n AI Discovery: llms.txt\r\n\r\nJAOT also provides standardized discovery documents for AI agents at well-known URLs:\r\n\r\n| URL | Content |\r\n|-----|---------|\r\n| /.well-known/llms.txt | Concise discovery document with endpoint list and MCP tool names |\r\n| /.well-known/llms-full.txt | Comprehensive documentation including authentication guide, full API reference, problem JSON schema, and optimization concepts |\r\n\r\nThese documents follow the llms.txt specification(https://llmstxt.org/) and allow AI agents to understand JAOT's capabilities without parsing HTML documentation.",
+    "content": "MCP Integration\r\n\r\nJAOT exposes its optimization capabilities through the Model Context Protocol (MCP)(https://modelcontextprotocol.io/), allowing AI agents and LLM-powered applications to discover and use optimization tools without custom integration code.\r\n\r\n What is MCP?\r\n\r\nThe Model Context Protocol is an open standard that lets AI applications discover and call external tools. Instead of writing bespoke API integrations, an MCP client (such as Claude Desktop, Cursor, or any compatible agent) connects to an MCP server and automatically discovers the tools it provides.\r\n\r\nFor JAOT, this means any MCP-compatible AI assistant can:\r\n\r\n- Solve optimization problems by describing them in conversation\r\n- Browse the template library and marketplace\r\n- Author, version, and solve first-class model projects\r\n- Fork marketplace models and execute them with user data\r\n- Check execution results\r\n\r\n Connecting to JAOT via MCP\r\n\r\nJAOT runs an MCP server at the /mcp endpoint using HTTP (Streamable HTTP) transport.\r\n\r\nEndpoint:\r\n\r\n\r\n\r\nThe MCP endpoint is publicly accessible — no authentication is needed to connect and discover tools. Individual tools that modify data require a Bearer API key, which is passed as a header on tool invocations.\r\n\r\n> Self-hosters: replace https://jaot.io/mcp with http://localhost:8001/mcp or your own domain.\r\n\r\n Client setup\r\n\r\n Claude Code (CLI)\r\n\r\nUse claude mcp add with the --transport http flag:\r\n\r\n\r\n\r\nTo browse templates and the marketplace without authenticating, omit the --header flag — those tools work without a key.\r\n\r\n Claude Desktop\r\n\r\nClaude Desktop does not support remote HTTP servers via claudedesktopconfig.json directly. Add JAOT through the Settings → Connectors UI at claude.ai/settings/connectors(https://claude.ai/settings/connectors):\r\n\r\n1. Click Add custom connector\r\n2. Enter https://jaot.io/mcp\r\n3. Complete any authentication prompts\r\n\r\nIf you prefer to use the config file with the mcp-remote bridge (requires Node.js):\r\n\r\n\r\n\r\nAfter saving, restart Claude Desktop.\r\n\r\n opencode\r\n\r\nAdd JAOT to your opencode.json (or opencode.jsonc) config file:\r\n\r\n\r\n\r\n OpenAI (Responses API)\r\n\r\nPass JAOT as an MCP tool in the tools array of a Responses API request:\r\n\r\n\r\n\r\nOmit headers (or the Authorization entry) to use only the public catalog and marketplace browse tools.\r\n\r\n Cursor\r\n\r\nCreate or edit .cursor/mcp.json in your project (or /.cursor/mcp.json for global):\r\n\r\n\r\n\r\n VS Code (GitHub Copilot)\r\n\r\nCreate or edit .vscode/mcp.json in your workspace. VS Code uses a \"servers\" root key (not \"mcpServers\") and requires \"type\": \"http\" for remote servers:\r\n\r\n\r\n\r\n Available Tools\r\n\r\nJAOT exposes 34 MCP tools organized into eight categories:\r\n\r\n Solve Tools\r\n\r\n| Tool | Auth | Description |\r\n|------|------|-------------|\r\n| solveproblem | Yes | Solve an optimization problem defined as variables, constraints, and an objective. Optionally choose a solver (scip, highs, cbc, glpk) or auto routing |\r\n| validateproblem | Yes | Validate a problem definition without solving |\r\n| solvemultiobjective | Yes | Solve a multi-objective problem and return a Pareto front |\r\n| listavailablesolvers | Yes | List the solvers available to your organization |\r\n\r\n Catalog Tools\r\n\r\n| Tool | Auth | Description |\r\n|------|------|-------------|\r\n| listtemplates | No | List available problem templates with names, categories, and descriptions |\r\n| gettemplate | No | Get a specific template's details, input schema, and example input |\r\n| solvewithtemplate | Yes | Solve a problem using a template and user-provided input data. Optionally choose a solver or auto routing |\r\n\r\n File I/O Tools\r\n\r\n| Tool | Auth | Description |\r\n|------|------|-------------|\r\n| importpreview | Yes | Preview how a CSV/MPS/LP/CIP file is parsed into an optimization problem before solving |\r\n| importandsolve | Yes | Import data from a CSV/MPS/LP/CIP file and solve it in one step |\r\n| exportmodel | Yes | Export a model (no solve required) to a standard format (MPS, LP, CIP, or flat JSON) |\r\n| exportexecution | Yes | Export a finished execution's model or solution (MPS/LP/CIP/SOL/CSV/JSON) |\r\n\r\n Marketplace Tools\r\n\r\n| Tool | Auth | Description |\r\n|------|------|-------------|\r\n| listcatalogmodels | No | Browse published models in the marketplace |\r\n| getcatalogmodel | No | Get a specific marketplace model's details |\r\n| getcatalogmodelschema | No | Get the input schema for a marketplace model |\r\n\r\nUsing a marketplace model is fork-first: createmodelprojectfrommarketplace (below) forks it into a model project of your organization.\r\n\r\n Execution Tools\r\n\r\n| Tool | Auth | Description |\r\n|------|------|-------------|\r\n| executemodel | Yes | Execute one of your models (a model project) with input data |\r\n| getexecution | Yes | Retrieve execution results and status |\r\n| getexecutioninsights | Yes | Get auto-generated insights (gap, solve time, quality flags) for a completed execution |\r\n\r\n Analysis Tools\r\n\r\nEverything the analysis page computes is available to an agent — as facts, not prose. There is no \"explain it in words\" tool on purpose: an MCP client is already a language model, so it reads the numbers and writes its own explanation.\r\n\r\n| Tool | Auth | Description |\r\n|------|------|-------------|\r\n| getexecutionexactanalysis | Yes | Exact, solution-based analysis of a finished run: binding constraints, per-row slack and utilization, objective contributions, and the per-family aggregates |\r\n| analyzeinfeasibility | Yes | Diagnose an infeasible model: a minimal conflicting set of constraints/bounds (drop any one and it becomes solvable) |\r\n| startexecutionscenarioanalysis | Yes | Queue the what-if batch: RHS ranging on the binding constraints and regret on key decisions, measured by real re-solves under a time budget |\r\n| getexecutionscenarioanalysis | Yes | Poll or read that batch — status, the measured scenarios, and the budget accounting |\r\n\r\nThe what-if batch is asynchronous because each scenario is a full re-solve: start it, then poll until the status leaves running. Starting it twice is safe — a request that arrives while a batch is in flight joins it instead of queueing a second one, and a finished batch is served from the cache.\r\n\r\n Solver Comparison Tools\r\n\r\nThese answer \"which solver should I use for this model\", not \"what is the answer\". The same problem goes to every solver you name, with the same time limit, the same gap tolerance and the same thread count, on one machine, one run after another. Seconds measured any other way are not comparable.\r\n\r\n| Tool | Auth | Description |\r\n|------|------|-------------|\r\n| comparesolvers | Yes | Queue one problem against several solvers and get the table back, every row pending |\r\n| getsolvercomparison | Yes | Poll or read that table: per solver, status, objective, bound, gap, total time, search time, nodes and iterations |\r\n| comparesolversondatasets | Yes | Queue a matrix: a model project's JModel source compiled against several datasets, each row run by every solver |\r\n| getsolvercomparisonmatrix | Yes | Poll or read the grid, one row per dataset and one column per solver |\r\n\r\nBoth shapes are asynchronous: the launch returns 202 with a table of pending rows, and you poll until the status leaves pending and running. Each solver counts as one execution against the daily quota, so a matrix of 3 datasets and 4 solvers costs 12. A comparison that cannot afford all of its runs is rejected whole.\r\n\r\nA solver that cannot express the model gets a row saying so with its reason — never an empty cell, and never a missing row. Read the machinenote field before quoting any timing: it records the machine the runs happened on, and times from two different comparisons cannot be put side by side.\r\n\r\n Model Project Tools\r\n\r\nCreate, version, analyze, and solve a first-class model — the same \"Model, Analyze &\r\nSolve\" workspace an agent can drive over MCP.\r\n\r\n| Tool | Auth | Description |\r\n|------|------|-------------|\r\n| createmodelproject | Yes | Create a versioned model project from an optimization problem |\r\n| createmodelprojectfrommarketplace | Yes | Fork a marketplace model into your studio (optional custom input for generator-backed models) |\r\n| getmodelproject | Yes | Retrieve a model project's current draft and metadata |\r\n| listmodelprojects | Yes | List your organization's model projects |\r\n| updatemodelprojectdraft | Yes | Write the project's draft model (agent authoring; optimistic lock via If-Match) |\r\n| commitmodelversion | Yes | Commit the draft as an immutable version with a \"what changed\" message |\r\n| listprojectversions | Yes | List a model project's committed versions |\r\n| getmodelstats | Yes | Get structure stats, problem class, and health for a model project |\r\n| solvemodelproject | Yes | Solve a model project's draft or a specific committed version (solutionfilter=\"nonzero\" for a compact solution) |\r\n\r\n Example Workflows\r\n\r\n Solving a Problem from Scratch\r\n\r\nAn AI agent using JAOT's MCP tools might follow this flow:\r\n\r\n1. User: \"I need to optimize my delivery routes for 5 warehouses and 20 customers.\"\r\n2. Agent calls solveproblem with a vehicle routing formulation:\r\n\r\n\r\n\r\n3. The solver returns the optimal routes with the minimum total distance.\r\n\r\n Using a Template\r\n\r\nA simpler path for well-known problem types:\r\n\r\n1. Agent calls listtemplates to see what is available\r\n2. Agent calls gettemplate(\"knapsack\") to get the input schema\r\n3. User provides item data\r\n4. Agent calls solvewithtemplate(\"knapsack\", {\"capacity\": 50, \"items\": ...}) to get the solution\r\n\r\n Marketplace Path\r\n\r\nFor pre-built domain-specific models — fork first, then run your copy:\r\n\r\n1. Agent calls listcatalogmodels to browse the marketplace\r\n2. Agent calls getcatalogmodel(\"catabc123\") to check model details\r\n3. Agent calls getcatalogmodelschema(\"catabc123\") to see the customizable inputs\r\n4. Agent calls createmodelprojectfrommarketplace(\"catabc123\", {\"userinput\": {...}}) to fork it into the organization's studio\r\n5. Agent calls executemodel(\"mpxyz789\", {\"inputdata\": {...}}) to run the fork\r\n6. Agent calls getexecution to retrieve results\r\n\r\n Agent Authoring Path\r\n\r\nAn agent can drive the whole \"Model, Analyze & Solve\" workspace over MCP — building a versioned model instead of a one-off solve:\r\n\r\n1. Agent calls createmodelproject({\"name\": \"Line scheduling\"}) for a fresh versioned project\r\n2. Agent calls updatemodelprojectdraft(\"mpabc\", {\"modeljson\": {...}}) to write the model\r\n3. Agent calls commitmodelversion(\"mpabc\", {\"summary\": \"v1 — initial model\"}) to record it\r\n4. Agent calls solvemodelproject(\"mpabc\", solutionfilter=\"nonzero\") — the compact solution omits near-zero variables (variablesomitted reports how many)\r\n5. Agent calls getexecutioninsights for quality/gap/time insights on the run\r\n\r\n Authentication for MCP Tools\r\n\r\nTools marked \"Auth: Yes\" require a valid API key. Pass your key in the MCP connection headers as shown in the configuration section above. If a tool requiring auth is called without credentials, it returns an error message explaining how to authenticate.\r\n\r\nTools marked \"Auth: No\" are publicly accessible and can be used without any API key. This allows agents to browse templates and the marketplace catalog before the user decides to authenticate.\r\n\r\n AI Discovery: llms.txt\r\n\r\nJAOT also provides standardized discovery documents for AI agents at well-known URLs:\r\n\r\n| URL | Content |\r\n|-----|---------|\r\n| /.well-known/llms.txt | Concise discovery document with endpoint list and MCP tool names |\r\n| /.well-known/llms-full.txt | Comprehensive documentation including authentication guide, full API reference, problem JSON schema, and optimization concepts |\r\n\r\nThese documents follow the llms.txt specification(https://llmstxt.org/) and allow AI agents to understand JAOT's capabilities without parsing HTML documentation.",
     "section": "mcp"
   },
   {
-    "id": 59,
+    "id": 60,
     "title": "Error Reference",
     "description": "HTTP error codes, error schema, and troubleshooting",
     "slug": "reference/errors",
@@ -480,7 +488,7 @@
     "section": "reference"
   },
   {
-    "id": 60,
+    "id": 61,
     "title": "Usage Limits",
     "description": "API rate limiting, solve quotas, and resource caps",
     "slug": "reference/usage-limits",
@@ -488,7 +496,7 @@
     "section": "reference"
   },
   {
-    "id": 61,
+    "id": 62,
     "title": "Analyzing Results",
     "description": "Read a solved model's execution page — the grouped structured solution, the honest solve summary, and the exact solution-based analysis",
     "slug": "studio/analyzing-results",
@@ -496,7 +504,7 @@
     "section": "studio"
   },
   {
-    "id": 62,
+    "id": 63,
     "title": "Datasets & Scenarios",
     "description": "One model, many data bundles — run and compare scenarios without touching the formulation",
     "slug": "studio/datasets-scenarios",
@@ -504,7 +512,7 @@
     "section": "studio"
   },
   {
-    "id": 63,
+    "id": 64,
     "title": "Importing & Exporting Model Files",
     "description": "Bring MPS, LP, CIP, or JSON models into the workspace, and export models and results",
     "slug": "studio/importing-files",
@@ -512,7 +520,7 @@
     "section": "studio"
   },
   {
-    "id": 64,
+    "id": 65,
     "title": "JModel DSL",
     "description": "Write indexed optimization models over sets and params — model and data separated",
     "slug": "studio/jmodel-dsl",
@@ -520,7 +528,7 @@
     "section": "studio"
   },
   {
-    "id": 65,
+    "id": 66,
     "title": "JSON Editor",
     "description": "Edit the canonical optimization problem as JSON text, with live validation",
     "slug": "studio/json-editor",
@@ -528,7 +536,7 @@
     "section": "studio"
   },
   {
-    "id": 66,
+    "id": 67,
     "title": "The Model Workspace",
     "description": "Build, analyze, version, and solve an optimization model in one place — the Model, Analyze & Solve studio.",
     "slug": "studio/model-workspace",
@@ -536,7 +544,7 @@
     "section": "studio"
   },
   {
-    "id": 67,
+    "id": 68,
     "title": "Versioning",
     "description": "Git-style commits for optimization models — history, diffs, restore, and AI-explained changes",
     "slug": "studio/versioning",
@@ -544,7 +552,7 @@
     "section": "studio"
   },
   {
-    "id": 68,
+    "id": 69,
     "title": "Visual Canvas",
     "description": "Build a model as a visual graph of variables, constraints, and the objective",
     "slug": "studio/visual-canvas",

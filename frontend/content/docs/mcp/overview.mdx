@@ -156,13 +156,13 @@ Create or edit `.vscode/mcp.json` in your workspace. VS Code uses a `"servers"` 
 
 ## Available Tools
 
-JAOT exposes **30 MCP tools** organized into seven categories:
+JAOT exposes **34 MCP tools** organized into eight categories:
 
 ### Solve Tools
 
 | Tool | Auth | Description |
 |------|------|-------------|
-| `solve_problem` | Yes | Solve an optimization problem defined as variables, constraints, and an objective. Optionally choose a solver (`scip`, `highs`, `hexaly`) or `auto` routing |
+| `solve_problem` | Yes | Solve an optimization problem defined as variables, constraints, and an objective. Optionally choose a solver (`scip`, `highs`, `cbc`, `glpk`) or `auto` routing |
 | `validate_problem` | Yes | Validate a problem definition without solving |
 | `solve_multi_objective` | Yes | Solve a multi-objective problem and return a Pareto front |
 | `list_available_solvers` | Yes | List the solvers available to your organization |
@@ -215,6 +215,20 @@ Everything the analysis page computes is available to an agent — as facts, not
 
 The what-if batch is asynchronous because each scenario is a full re-solve: start it, then poll until the status leaves `running`. Starting it twice is safe — a request that arrives while a batch is in flight joins it instead of queueing a second one, and a finished batch is served from the cache.
 
+### Solver Comparison Tools
+
+These answer "which solver should I use for this model", not "what is the answer". The same problem goes to every solver you name, with the same time limit, the same gap tolerance and the same thread count, on one machine, one run after another. Seconds measured any other way are not comparable.
+
+| Tool | Auth | Description |
+|------|------|-------------|
+| `compare_solvers` | Yes | Queue one problem against several solvers and get the table back, every row pending |
+| `get_solver_comparison` | Yes | Poll or read that table: per solver, status, objective, bound, gap, total time, search time, nodes and iterations |
+| `compare_solvers_on_datasets` | Yes | Queue a matrix: a model project's JModel source compiled against several datasets, each row run by every solver |
+| `get_solver_comparison_matrix` | Yes | Poll or read the grid, one row per dataset and one column per solver |
+
+Both shapes are asynchronous: the launch returns `202` with a table of pending rows, and you poll until the status leaves `pending` and `running`. Each solver counts as one execution against the daily quota, so a matrix of 3 datasets and 4 solvers costs 12. A comparison that cannot afford all of its runs is rejected whole.
+
+A solver that cannot express the model gets a row saying so with its reason — never an empty cell, and never a missing row. Read the `machine_note` field before quoting any timing: it records the machine the runs happened on, and times from two different comparisons cannot be put side by side.
 
 ### Model Project Tools
 

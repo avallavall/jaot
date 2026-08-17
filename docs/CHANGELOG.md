@@ -46,6 +46,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Launching a matrix is instant, whatever the model's size.** The compiling happens on the worker, one row at a time, instead of inside the request. On a model of 22,500 variables, launching three datasets against four solvers went from 28 seconds to a little over 2 — and a launch can no longer be cut off by a proxy while the work carries on behind it.
 - **A dataset that does not fill the model fails its own row.** The rest of the matrix runs, and the row stays in the grid saying what is wrong with that dataset. A model that does not compile at all is still refused outright, because every row would fail the same way.
 - **The matrix says what it will cost before it runs it.** The number of solves is the datasets times the solvers, not their sum, so the launch shows the total and the worst-case wait and asks for confirmation. Every solve counts against the daily quota, and a matrix the quota cannot cover is refused whole rather than run halfway.
+- **The comparer is in the API and in MCP.** Eight endpoints cover both shapes — one problem against several solvers, and the matrix — with a documentation page that spells out the request, the response and every error. Four of them are also MCP tools, so an agent can launch a comparison and read the table back. That takes the tool count from 30 to 34.
 
 ### Changed
 
