@@ -30,6 +30,8 @@ Find it in the sidebar under **Solve → Solver Comparer**, or at `/solve/compar
 
 The wait is stated before you start, because the solvers run one after another: four solvers with a 60-second limit is up to four minutes, not one.
 
+When the comparison finishes, **Run again** repeats it with the same problem, the same solvers and the same limits. That is the normal thing to do after changing the model or upgrading a solver.
+
 ### Reading the table
 
 | Column | What it means |
@@ -99,6 +101,8 @@ It needs a [JModel source](/docs/studio/jmodel-dsl) and [datasets](/docs/studio/
 **A dataset that compiles but does not fill the model fails its own row.** The rest of the grid keeps running and that row stays in place saying what is wrong with it. A source that does not compile at all is refused outright, because every row would fail the same way.
 
 **Row sizes differ, and that is usually the answer.** Each row shows its own problem class and variable count. Two datasets of the same model routinely ground to very different sizes, which is often why one row took ten times longer than the one above it.
+
+**Every matrix this model has run stays reachable.** The newest one opens when you come back to the tab, and the picker beside the status switches to any of the last twenty. A matrix run before a model change is the only thing that says what the change cost.
 
 ## Taking the table with you
 

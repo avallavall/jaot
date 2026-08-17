@@ -379,7 +379,10 @@
       "cancelFailed": "The matrix could not be stopped.",
       "rowFailed": "That row could not be opened.",
       "cellSkipped": "This row ended before this solver ran.",
-      "notComparable": "cannot compare on this server"
+      "notComparable": "cannot compare on this server",
+      "historyLabel": "Previous matrices",
+      "historyEntry": "{when} · {datasets, plural, one {# dataset} other {# datasets}} × {solvers, plural, one {# solver} other {# solvers}}",
+      "historyFailed": "That matrix could not be opened."
     }
   },
   "common": {
@@ -4796,7 +4799,8 @@
       "title": "Comparison",
       "cancel": "Stop",
       "startFailed": "The comparison could not be started.",
-      "cancelFailed": "The comparison could not be stopped."
+      "cancelFailed": "The comparison could not be stopped.",
+      "runAgain": "Run again"
     },
     "comparisonStatus": {
       "pending": "Queued",

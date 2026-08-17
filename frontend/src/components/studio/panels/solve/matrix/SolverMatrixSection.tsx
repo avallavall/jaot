@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Grid3x3, Loader2, Play, X } from "lucide-react";
 
@@ -32,7 +32,11 @@ import { ComparisonTable } from "@/components/solve/compare/ComparisonTable";
 import { isComparable, useSolvers } from "@/hooks/useSolvers";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import type { ComparisonBatchDetail, ComparisonDetail } from "@/lib/types";
+import type {
+  ComparisonBatchDetail,
+  ComparisonBatchSummary,
+  ComparisonDetail,
+} from "@/lib/types";
 import { useModelProjectStore } from "../../../store/useModelProjectStore";
 import { useProjectDatasets } from "../../../datasets/useProjectDatasets";
 import { ExportButtons } from "@/components/solve/compare/ExportButtons";
@@ -50,6 +54,28 @@ import {
 /** How often the grid refreshes while any cell is still being solved. The runs
  * are sequential, so nothing changes faster than one solver at a time. */
 const POLL_INTERVAL_MS = 2000;
+
+/** How many past matrices the picker offers. Enough to reach back through a
+ *  few rounds of model changes without turning the list into an archive. */
+const MATRIX_HISTORY_LIMIT = 20;
+
+/** The picker's view of a matrix, built from the one just launched.
+ *
+ * Refetching the list to get one row the client already holds would put a
+ * second request behind every launch, and the picker only shows what a summary
+ * carries anyway. */
+function summaryOf(detail: ComparisonBatchDetail): ComparisonBatchSummary {
+  return {
+    batch_id: detail.batch_id,
+    status: detail.status,
+    project_id: detail.project_id,
+    project_name: detail.project_name,
+    dataset_count: detail.rows.length,
+    solver_names: detail.solver_names,
+    created_at: detail.created_at,
+    completed_at: detail.completed_at,
+  };
+}
 
 /** Mirrors MAX_DATASETS_PER_BATCH on the server. Checked here too so the user
  * is told before the request, not by a 422 after it. */
@@ -69,6 +95,7 @@ const MAX_DATASETS = 12;
  */
 export function SolverMatrixSection() {
   const t = useTranslations("studio");
+  const format = useFormatter();
   const modelId = useModelProjectStore((s) => s.modelId);
   const draftDslSource = useModelProjectStore((s) => s.draftDslSource);
   const isPersisted = !!modelId && modelId !== "new";
@@ -81,6 +108,7 @@ export function SolverMatrixSection() {
   const [gapTolerance, setGapTolerance] = useState(0.0001);
 
   const [batch, setBatch] = useState<ComparisonBatchDetail | null>(null);
+  const [history, setHistory] = useState<ComparisonBatchSummary[]>([]);
   const [starting, setStarting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [metric, setMetric] = useState<MatrixMetric>("time");
@@ -106,16 +134,21 @@ export function SolverMatrixSection() {
     );
   }, [availableSolvers]);
 
-  // The last matrix for this model, restored on mount. A grid of fifty runs takes
-  // minutes; without this, leaving the tab lost it.
+  // This model's matrices, newest first, with the newest opened. A grid of fifty
+  // runs takes minutes, so losing it by leaving the tab was the first thing to
+  // fix; the rest of the list is here because the endpoint always returned it
+  // and nothing offered a way in. A matrix run before a model change is the
+  // only thing that says what the change cost.
   useEffect(() => {
     if (!isPersisted) return;
     let cancelled = false;
     api.solverComparison.batches
-      .list({ project_id: modelId, limit: 1 })
+      .list({ project_id: modelId, limit: MATRIX_HISTORY_LIMIT })
       .then((page) => {
+        if (cancelled) return;
+        setHistory(page.batches);
         const latest = page.batches[0];
-        if (!latest || cancelled) return;
+        if (!latest) return;
         return api.solverComparison.batches.get(latest.batch_id).then((detail) => {
           if (!cancelled) setBatch(detail);
         });
@@ -127,6 +160,16 @@ export function SolverMatrixSection() {
       cancelled = true;
     };
   }, [modelId, isPersisted]);
+
+  async function openBatch(id: string) {
+    if (id === batch?.batch_id) return;
+    setOpenRow(null);
+    try {
+      setBatch(await api.solverComparison.batches.get(id));
+    } catch (error) {
+      toast.error(getErrorMessage(error, t("matrix.historyFailed")));
+    }
+  }
 
   const refresh = useCallback(async (batchId: string) => {
     try {
@@ -163,14 +206,16 @@ export function SolverMatrixSection() {
     setStarting(true);
     setOpenRow(null);
     try {
-      setBatch(
-        await api.solverComparison.batches.create({
-          project_id: modelId,
-          dataset_ids: selectedDatasets,
-          solver_names: selectedSolvers,
-          settings: { time_limit_seconds: timeLimit, gap_tolerance: gapTolerance },
-        }),
-      );
+      const created = await api.solverComparison.batches.create({
+        project_id: modelId,
+        dataset_ids: selectedDatasets,
+        solver_names: selectedSolvers,
+        settings: { time_limit_seconds: timeLimit, gap_tolerance: gapTolerance },
+      });
+      setBatch(created);
+      // Into the picker straight away, so the run that is happening right now
+      // is the one the picker says is selected.
+      setHistory((current) => [summaryOf(created), ...current].slice(0, MATRIX_HISTORY_LIMIT));
     } catch (error) {
       toast.error(getErrorMessage(error, t("matrix.launchFailed")));
     } finally {
@@ -372,9 +417,44 @@ export function SolverMatrixSection() {
       {batch && (
         <div className="mt-6 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-muted-foreground" data-testid="studio-matrix-status">
-              {t(`matrix.status.${batch.status}`)}
-            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-xs text-muted-foreground" data-testid="studio-matrix-status">
+                {t(`matrix.status.${batch.status}`)}
+              </p>
+              {/* Every matrix this model has run, not only the last one. The
+                  endpoint always listed them and nothing offered a way in, so a
+                  matrix from before a model change — the only thing that says
+                  what the change cost — was unreachable. */}
+              {history.length > 1 && (
+                <Select value={batch.batch_id} onValueChange={(id) => void openBatch(id)}>
+                  <SelectTrigger
+                    className="h-8 w-64 text-xs"
+                    aria-label={t("matrix.historyLabel")}
+                    data-testid="studio-matrix-history"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {history.map((entry) => (
+                      <SelectItem key={entry.batch_id} value={entry.batch_id}>
+                        {t("matrix.historyEntry", {
+                          // Seconds, not minutes: two matrices launched a
+                          // minute apart while tuning a model are the normal
+                          // case, and two entries reading the same are two the
+                          // user cannot tell apart.
+                          when: format.dateTime(new Date(entry.created_at), {
+                            dateStyle: "short",
+                            timeStyle: "medium",
+                          }),
+                          datasets: entry.dataset_count,
+                          solvers: entry.solver_names.length,
+                        })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               {/* One row per dataset AND solver in the CSV, not the shape on
                   screen: a grid is a view of one metric at a time, and a file

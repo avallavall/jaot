@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Play, Upload, X } from "lucide-react";
+import { Loader2, Play, RotateCw, Upload, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
@@ -327,7 +327,16 @@ export default function SolverComparePage() {
                 <X className="mr-2 h-4 w-4" />
                 {t("results.cancel")}
               </Button>
-            ) : null}
+            ) : (
+              // Repeating a comparison is the normal thing to do after changing
+              // the model or upgrading a solver, and it used to mean filling the
+              // form in again. The form still holds every choice, so the same
+              // request goes back out unchanged.
+              <Button variant="outline" disabled={!canStart} onClick={() => void start()}>
+                <RotateCw className="mr-2 h-4 w-4" />
+                {t("results.runAgain")}
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             <ComparisonTable comparison={comparison} />

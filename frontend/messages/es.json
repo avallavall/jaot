@@ -379,7 +379,10 @@
       "cancelFailed": "No se ha podido parar la matriz.",
       "rowFailed": "No se ha podido abrir esa fila.",
       "cellSkipped": "Esta fila terminó antes de que este solver llegara a ejecutarse.",
-      "notComparable": "no puede comparar en este servidor"
+      "notComparable": "no puede comparar en este servidor",
+      "historyLabel": "Matrices anteriores",
+      "historyEntry": "{when} · {datasets, plural, one {# conjunto} other {# conjuntos}} × {solvers, plural, one {# solver} other {# solvers}}",
+      "historyFailed": "No se pudo abrir esa matriz."
     }
   },
   "common": {
@@ -4796,7 +4799,8 @@
       "title": "Comparación",
       "cancel": "Parar",
       "startFailed": "No se pudo empezar la comparación.",
-      "cancelFailed": "No se pudo parar la comparación."
+      "cancelFailed": "No se pudo parar la comparación.",
+      "runAgain": "Volver a lanzar"
     },
     "comparisonStatus": {
       "pending": "En cola",

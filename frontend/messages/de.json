@@ -379,7 +379,10 @@
       "cancelFailed": "Die Matrix konnte nicht gestoppt werden.",
       "rowFailed": "Diese Zeile konnte nicht geöffnet werden.",
       "cellSkipped": "Diese Zeile endete, bevor dieser Solver lief.",
-      "notComparable": "kann auf diesem Server nicht vergleichen"
+      "notComparable": "kann auf diesem Server nicht vergleichen",
+      "historyLabel": "Frühere Matrizen",
+      "historyEntry": "{when} · {datasets, plural, one {# Datensatz} other {# Datensätze}} × {solvers, plural, one {# Solver} other {# Solver}}",
+      "historyFailed": "Diese Matrix konnte nicht geöffnet werden."
     }
   },
   "common": {
@@ -4796,7 +4799,8 @@
       "title": "Vergleich",
       "cancel": "Stoppen",
       "startFailed": "Der Vergleich konnte nicht gestartet werden.",
-      "cancelFailed": "Der Vergleich konnte nicht gestoppt werden."
+      "cancelFailed": "Der Vergleich konnte nicht gestoppt werden.",
+      "runAgain": "Erneut ausführen"
     },
     "comparisonStatus": {
       "pending": "In der Warteschlange",

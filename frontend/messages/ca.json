@@ -379,7 +379,10 @@
       "cancelFailed": "No s'ha pogut aturar la matriu.",
       "rowFailed": "No s'ha pogut obrir aquesta fila.",
       "cellSkipped": "Aquesta fila va acabar abans que aquest solver s'executés.",
-      "notComparable": "no pot comparar en aquest servidor"
+      "notComparable": "no pot comparar en aquest servidor",
+      "historyLabel": "Matrius anteriors",
+      "historyEntry": "{when} · {datasets, plural, one {# conjunt} other {# conjunts}} × {solvers, plural, one {# solver} other {# solvers}}",
+      "historyFailed": "No s'ha pogut obrir aquesta matriu."
     }
   },
   "common": {
@@ -4796,7 +4799,8 @@
       "title": "Comparació",
       "cancel": "Aturar",
       "startFailed": "No s'ha pogut començar la comparació.",
-      "cancelFailed": "No s'ha pogut aturar la comparació."
+      "cancelFailed": "No s'ha pogut aturar la comparació.",
+      "runAgain": "Torna a llançar"
     },
     "comparisonStatus": {
       "pending": "A la cua",
