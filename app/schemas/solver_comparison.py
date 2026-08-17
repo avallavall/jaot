@@ -108,6 +108,11 @@ class ComparisonSolverResult(BaseModel):
 
     solver_name: str
     execution_id: str | None = None
+    #: Which version of this solver produced the row, e.g. "2.10.12". None when
+    #: the solver would not say, or when the row predates this being recorded.
+    #: Seconds only mean something against a named version once the images that
+    #: produced them have been rebuilt.
+    solver_version: str | None = None
 
     #: Execution lifecycle: pending | running | completed | failed | cancelled.
     status: str

@@ -1223,6 +1223,9 @@ export type UnsupportedReason =
 export interface ComparisonSolverResult {
   solver_name: string;
   execution_id: string | null;
+  /** Which version of the solver produced this row, e.g. "2.10.12". Null when
+   * the solver would not say, or on a row recorded before this was kept. */
+  solver_version?: string | null;
   /** pending | running | completed | failed | cancelled */
   status: string;
   /** optimal | feasible | infeasible | unbounded | time_limit | error | unsupported */

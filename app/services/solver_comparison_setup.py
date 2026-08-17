@@ -215,6 +215,7 @@ def solver_row(solver_name: str, execution: ModelExecution | None) -> Comparison
     return ComparisonSolverResult(
         solver_name=solver_name,
         execution_id=execution.id,
+        solver_version=result_data.get("solver_version"),
         status=execution.status,
         solver_status=execution.solver_status,
         unsupported_reason=result_data.get("unsupported_reason"),

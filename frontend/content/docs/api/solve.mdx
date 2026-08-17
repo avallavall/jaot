@@ -355,6 +355,7 @@ value for `solver_name` — and to know what to expect back from that choice.
       "name": "scip",
       "available": true,
       "description": "Academic MIP solver",
+      "version": "10.0",
       "comparable": true,
       "capabilities": {
         "sensitivity": true,
@@ -396,6 +397,8 @@ Notes:
   used it can still be interpreted.
 - `capabilities` may be **absent** on an entry. That means "not known", not "supports
   nothing" — treat it as no information rather than as a denial.
+- `version` is the solver's own version string. Absent when the solver will not say. Record it
+  next to any timing you keep: seconds measured against CBC 2.10.12 explain nothing about 2.11.
 - `comparable` says whether the solver can take part in a [solver comparison](/docs/api/solver-comparison)
   on this server. It is a property of the server, not of any one model: Hexaly needs its
   own image and licence, and the comparison worker runs the base image so that one machine

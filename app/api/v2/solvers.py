@@ -28,6 +28,7 @@ user. Per-solver credit multipliers died with the credit system (ADR-008).
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 
 from fastapi import APIRouter
 
@@ -91,6 +92,25 @@ def _capabilities_payload(caps: SolverCapabilities) -> SolverCapabilityFlags:
         quadratic=caps.supports_quadratic,
         progress=caps.supports_progress,
     )
+
+
+def _versions_of(names: Iterable[str]) -> dict[str, str | None]:
+    """Each solver's own version, best-effort, one lookup per name.
+
+    Every adapter caches its answer for the life of the process, so this is a
+    dictionary read after the first call — including for CBC and GLPK, whose
+    first read starts a child process. A solver that is listed but has no
+    registered adapter (the synthesised Hexaly entry on the API process) simply
+    has no version to report, and a listing must never fail because of that.
+    """
+    versions: dict[str, str | None] = {}
+    for name in names:
+        try:
+            versions[name] = registry.get(name).version()
+        except Exception as exc:
+            logger.debug("No version for solver %r: %s", name, exc)
+            versions[name] = None
+    return versions
 
 
 def _hexaly_capabilities() -> SolverCapabilities | None:
@@ -166,6 +186,8 @@ def list_available_solvers(user: CurrentUser, db: DBSession) -> AvailableSolvers
     if HEXALY_SOLVER_NAME not in registered_names and (hexaly_worker_healthy or hexaly_available()):
         listed.append((HEXALY_SOLVER_NAME, _hexaly_capabilities()))
 
+    versions = _versions_of(name for name, _caps in listed)
+
     solvers: list[AvailableSolver] = []
     for name, caps in listed:
         excluded_reason = PERMANENTLY_EXCLUDED.get(name)
@@ -173,6 +195,7 @@ def list_available_solvers(user: CurrentUser, db: DBSession) -> AvailableSolvers
             name=name,
             available=True,
             description=_SOLVER_DESCRIPTIONS.get(name, name),
+            version=versions.get(name),
             capabilities=_capabilities_payload(caps) if caps is not None else None,
             comparable=excluded_reason is None,
             not_comparable_reason=excluded_reason,

@@ -29,13 +29,18 @@ from app.domains.solver.adapters._cli_solver import (
     find_binary,
     hard_timeout_seconds,
     parse_float,
+    read_version,
     relative_gap,
     run_binary,
     tail,
     workspace,
     write_problem_lp,
 )
-from app.domains.solver.adapters.base import SolverCapabilities, SolverError
+from app.domains.solver.adapters.base import (
+    UNREAD_VERSION,
+    SolverCapabilities,
+    SolverError,
+)
 from app.schemas.optimization import (
     OptimizationProblem,
     OptimizationResult,
@@ -67,6 +72,9 @@ _SUMMARY_RE = re.compile(r"^(?P<label>[A-Za-z][A-Za-z ()]*?):\s+(?P<value>[-+]?[
 #: a pure LP: "Optimal objective 12 - 2 iterations time 0.002, Presolve 0.00".
 _LP_ITERATIONS_RE = re.compile(r"-\s+(?P<iterations>\d+)\s+iterations")
 
+#: CBC's banner: "Welcome to the CBC MILP Solver \n Version: 2.10.12 \n Build Date: ..."
+_VERSION_RE = re.compile(r"Version:\s*(?P<version>[\w.]+)")
+
 
 class CBCAdapter:
     """CBC solver adapter implementing the SolverAdapter Protocol."""
@@ -91,6 +99,9 @@ class CBCAdapter:
     def __init__(self) -> None:
         self._binary: str | None = None
         self._looked_up = False
+        # Sentinel, not None: reading this starts a child process, so a failed
+        # read must be remembered rather than retried on every call.
+        self._version: str | None | object = UNREAD_VERSION
 
     def binary_path(self) -> str | None:
         """Where ``cbc`` lives, looked up once per adapter instance."""
@@ -103,6 +114,17 @@ class CBCAdapter:
 
     def is_available(self) -> bool:
         return self.binary_path() is not None
+
+    def version(self) -> str | None:
+        """CBC's own version, e.g. "2.10.12". Cached for the life of the process.
+
+        ``cbc -exit`` prints the banner and quits without reading a model, which
+        is the shortest way to make it say so.
+        """
+        if self._version is UNREAD_VERSION:
+            binary = self.binary_path()
+            self._version = None if binary is None else read_version([binary, "-exit"], _VERSION_RE)
+        return self._version  # type: ignore[return-value]
 
     def solve(
         self,

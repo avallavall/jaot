@@ -17,7 +17,11 @@ import time
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from app.domains.solver.adapters.base import STRICT_EPSILON, SolverCapabilities
+from app.domains.solver.adapters.base import (
+    STRICT_EPSILON,
+    UNREAD_VERSION,
+    SolverCapabilities,
+)
 from app.domains.solver.constraint_activity import is_binding_within_bounds
 from app.domains.solver.sensitivity_values import publishable_value
 from app.domains.solver.services.expression_parser import ExpressionParser
@@ -128,6 +132,9 @@ class HiGHSAdapter:
     def __init__(self) -> None:
         self._available: bool | None = None
         self._parser = ExpressionParser()
+        # Sentinel, not None: None is a legitimate answer and caching it must
+        # not make every later call try again.
+        self._version: str | None | object = UNREAD_VERSION
 
     def is_available(self) -> bool:
         """Cached import check — same pattern as SCIPAdapter.is_available()."""
@@ -139,6 +146,29 @@ class HiGHSAdapter:
             except ImportError:
                 self._available = False
         return self._available  # type: ignore[return-value]
+
+    def version(self) -> str | None:
+        """HiGHS's own version, e.g. "1.15.1". Cached for the life of the process."""
+        if self._version is UNREAD_VERSION:
+            self._version = self._read_version()
+        return self._version  # type: ignore[return-value]
+
+    @staticmethod
+    def _read_version() -> str | None:
+        """Ask highspy, or None when it will not say.
+
+        Constructing a ``Highs`` here rather than reusing a solve's instance:
+        this runs once per process and a fresh one carries no options that a
+        later solve could inherit. Never raises — a version is a label on a
+        table, and failing to read one must not stop a solve.
+        """
+        try:
+            import highspy  # noqa: PLC0415
+
+            return str(highspy.Highs().version())
+        except Exception as exc:
+            logger.debug("Could not read the HiGHS version: %s", exc)
+            return None
 
     # Phase 7.4 / D-10: validate_license removed — no per-request gate for HiGHS.
 

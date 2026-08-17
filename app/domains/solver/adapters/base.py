@@ -25,7 +25,7 @@ Design notes:
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 from app.schemas.optimization import (
     MultiObjectiveConfig,
@@ -80,6 +80,11 @@ class SolverQueueMismatchError(SolverError):
     """Worker's ``SOLVER_QUEUE`` did not match the solver requested by the task."""
 
 
+#: "The version has not been read yet." Not None, because None is a legitimate
+#: answer — the solver is there and would not say — and caching it must stop the
+#: adapter from asking again on every call.
+UNREAD_VERSION: Any = object()
+
 # Shared across adapters for strict inequality (< / >) conversion
 STRICT_EPSILON = 1e-6
 
@@ -101,6 +106,20 @@ class SolverAdapter(Protocol):
 
     def is_available(self) -> bool:
         """Return True if the solver can actually run on this machine."""
+        ...
+
+    def version(self) -> str | None:
+        """The solver's own version string, or None when it cannot be read.
+
+        Recorded alongside a solver comparison so a stored table can still be
+        explained after the images have been rebuilt. Seconds measured against
+        CBC 2.10.12 say nothing about CBC 2.11, and a table with no version on
+        it cannot tell you which one it timed.
+
+        Cheap to call repeatedly: every adapter caches the answer for the life
+        of the process. A version does not change under a running process, and
+        two of these adapters have to start a child process to find out.
+        """
         ...
 
     def solve(

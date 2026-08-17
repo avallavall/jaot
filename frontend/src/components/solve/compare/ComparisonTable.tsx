@@ -133,6 +133,15 @@ function ResultRow({
     <TableRow className={cn(unsupported && "text-muted-foreground")}>
       <TableCell className="font-medium">
         <span className="uppercase">{row.solver_name}</span>
+        {/* The version the row was measured against. Without it a table stored
+            today cannot be explained once the images have been rebuilt: seconds
+            from CBC 2.10.12 say nothing about 2.11. Absent on a row recorded
+            before this was kept, which reads as "not recorded", not as zero. */}
+        {row.solver_version ? (
+          <span className="ml-1.5 font-normal text-xs text-muted-foreground tabular-nums">
+            {row.solver_version}
+          </span>
+        ) : null}
         {row.solver_name === fastest ? (
           <Badge variant="secondary" className="ml-2">
             {t("table.fastest")}

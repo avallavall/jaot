@@ -262,6 +262,16 @@ def test_the_task_solves_every_runnable_column(
     # The machine the seconds came from travels with them.
     assert detail["machine_note"]
 
+    # CONTRACT: so does the version of each solver that produced them. A table
+    # stored today cannot be reproduced or explained once the images have been
+    # rebuilt, and seconds measured against one version say nothing about
+    # another. A solver that ran must therefore name its own build.
+    for name in ("scip", "highs"):
+        assert rows[name]["solver_version"], f"{name} recorded no version"
+    # A solver that never ran has no version to record, and inventing one would
+    # claim a build took part in a comparison it sat out.
+    assert rows["hexaly"]["solver_version"] is None
+
 
 # CONTRACT-TEST: two solvers that both reach the optimum must be reported as
 # agreeing. Silence here would leave a reader comparing numbers by eye.

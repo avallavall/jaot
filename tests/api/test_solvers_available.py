@@ -148,3 +148,34 @@ class TestComparableFlag:
         by_name = {s["name"]: s for s in response.json()["solvers"]}
         for name in ("scip", "highs"):
             assert by_name[name]["comparable"] is True, f"{name} must be comparable"
+
+
+class TestVersionReporting:
+    """Each solver's own version, so a stored comparison stays explainable.
+
+    A comparison records the machine it ran on. Six months and a rebuilt image
+    later, that is not enough: seconds measured against CBC 2.10.12 say nothing
+    about 2.11, and a table with no version on it cannot say which one it timed.
+    """
+
+    def test_the_in_image_solvers_report_a_version(self, authenticated_client) -> None:
+        response = authenticated_client.get("/api/v2/solvers/available")
+        by_name = {s["name"]: s for s in response.json()["solvers"]}
+        for name in ("scip", "highs"):
+            assert by_name[name].get("version"), f"{name} reported no version"
+
+    # A version that cannot be read is absent, never invented and never an
+    # error: the listing exists to let a client pick a solver, and it must not
+    # start failing because a binary declined to introduce itself.
+    def test_an_unreadable_version_is_absent_not_fatal(
+        self, authenticated_client, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.domains.solver.adapters import registry
+
+        scip = registry.get("scip")
+        monkeypatch.setattr(type(scip), "version", lambda _self: None)
+
+        response = authenticated_client.get("/api/v2/solvers/available")
+        assert response.status_code == 200
+        by_name = {s["name"]: s for s in response.json()["solvers"]}
+        assert "version" not in by_name["scip"]

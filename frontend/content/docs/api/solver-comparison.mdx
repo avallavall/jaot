@@ -151,6 +151,7 @@ Every entry of `results` is one solver's row.
 | Field | Type | Description |
 |-------|------|-------------|
 | `solver_name` | string | The solver this row is about |
+| `solver_version` | string | Which build produced these numbers, e.g. `2.10.12`. Null on a solver that never ran, and on a row recorded before this was kept. |
 | `execution_id` | string | The execution it produced, for `GET /api/v2/models/executions/{id}` |
 | `status` | string | Lifecycle: `pending`, `running`, `completed`, `failed`, `cancelled` |
 | `solver_status` | string | The solver's verdict: `optimal`, `feasible`, `infeasible`, `unbounded`, `time_limit`, `error`, `unsupported` |
@@ -166,7 +167,7 @@ Every entry of `results` is one solver's row.
 
 **Nodes and iterations do not compare across solvers.** Each solver counts its own way — a SCIP node and a CBC node are not the same unit of work. Use them to explain one solver's own behaviour, never to rank two.
 
-**Do not compare `wall_time_ms` between two comparisons.** The seconds mean something inside one comparison, on one machine, run in sequence. `machine_note` records which machine, so a stored table still says where its numbers came from.
+**Do not compare `wall_time_ms` between two comparisons.** The seconds mean something inside one comparison, on one machine, run in sequence. `machine_note` records which machine and `solver_version` records which build of each solver, so a stored table still says where its numbers came from after the images have been rebuilt.
 
 ### The agreement block
 

@@ -204,6 +204,23 @@ class HexalyAdapter:
 
         return hexaly_available()
 
+    def version(self) -> str | None:
+        """The Hexaly SDK's version, read off the installed package.
+
+        Read from package metadata rather than from the optimizer object: the
+        SDK exposes no version attribute that survives a pin change, and the
+        distribution's own version is what a licence and an image are built
+        against. None whenever it cannot be read, which is the normal answer on
+        any process that is not the Hexaly worker.
+        """
+        try:
+            from importlib.metadata import version as package_version  # noqa: PLC0415
+
+            return package_version("hexaly")
+        except Exception as exc:
+            logger.debug("Could not read the Hexaly SDK version: %s", exc)
+            return None
+
     # Phase 7.4 / D-10: validate_license removed — license loaded in __init__ (Plan 02).
 
     def solve(

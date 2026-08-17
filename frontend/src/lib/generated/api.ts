@@ -5108,6 +5108,8 @@ export interface components {
             reason?: string | null;
             /** Retry After */
             retry_after?: number | null;
+            /** Version */
+            version?: string | null;
         };
         /**
          * AvailableSolversResponse
@@ -5682,6 +5684,8 @@ export interface components {
             solver_status?: string | null;
             /** Solver Time Seconds */
             solver_time_seconds?: number | null;
+            /** Solver Version */
+            solver_version?: string | null;
             /** Status */
             status: string;
             /** Unsupported Reason */

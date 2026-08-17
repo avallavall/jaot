@@ -29,6 +29,10 @@ class AvailableSolver(BaseModel):
     name: str
     available: bool
     description: str
+    #: The solver's own version, e.g. "2.10.12". Absent when it will not say.
+    #: Seconds measured against one version explain nothing about another, so a
+    #: table that outlives its images needs this written next to it.
+    version: str | None = None
     capabilities: SolverCapabilityFlags | None = None
     reason: str | None = None
     retry_after: int | None = None

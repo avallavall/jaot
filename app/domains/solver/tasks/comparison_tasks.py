@@ -30,6 +30,7 @@ from typing import Any
 from celery.exceptions import SoftTimeLimitExceeded
 
 from app.domains.solver import execution_writer
+from app.domains.solver.adapters import registry
 from app.domains.solver.services import get_solver_service
 from app.models import ModelExecution, SolverComparison
 from app.models.optimization_model import ExecutionStatus
@@ -157,7 +158,35 @@ def _run_one(
     # table would show a column that says "error" and nothing about why.
     if getattr(result, "error_message", None):
         execution.error_message = str(result.error_message)[:2000]
+    _stamp_version(execution, solver_name)
     db.commit()
+
+
+def _stamp_version(execution: ModelExecution, solver_name: str) -> None:
+    """Record which version of the solver produced these numbers.
+
+    The comparison already records the machine. Six months and a rebuilt image
+    later, a stored table with no version on it cannot be reproduced or
+    explained: seconds measured against CBC 2.10.12 say nothing about 2.11.
+
+    Written onto the child's ``result_data`` because that is where every other
+    per-column fact already lives, and because the version belongs to the run
+    rather than to the comparison — a matrix row solved an hour after the first
+    one could, in principle, be a different build.
+
+    Best-effort: a version that cannot be read leaves the key absent, which the
+    table reads as "not recorded". It never fails a solve that worked.
+    """
+    try:
+        version = registry.get(solver_name).version()
+    except Exception as exc:
+        logger.debug("No version recorded for %s: %s", solver_name, exc)
+        return
+    if not version:
+        return
+    # Reassign rather than mutate: result_data is a JSONB column and SQLAlchemy
+    # does not track in-place changes to it.
+    execution.result_data = {**(execution.result_data or {}), "solver_version": version}
 
 
 def _load(db: Any, comparison_id: str, organization_id: str) -> SolverComparison | None:

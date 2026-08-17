@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import math
+import re
 import shutil
 import subprocess  # noqa: S404 — the whole point of this module is running a binary
 import tempfile
@@ -94,6 +95,37 @@ def run_binary(argv: list[str], *, timeout: float) -> CliRun:
         returncode=completed.returncode,
         killed=False,
     )
+
+
+#: How long to wait for a binary asked only to print its version. Generous
+#: enough for a cold start on a loaded machine, short enough that a hung binary
+#: cannot hold up whatever asked.
+_VERSION_TIMEOUT_SECONDS = 10.0
+
+
+def read_version(argv: list[str], pattern: re.Pattern[str]) -> str | None:
+    """Run ``argv`` and pull the version out of what it prints.
+
+    Returns None whenever anything at all goes wrong: the binary is missing, it
+    times out, or it prints something this pattern does not recognise. A version
+    is a label on a stored table, so failing to read one must never stop a solve
+    or fail a request.
+
+    ``pattern`` must carry a group named ``version``.
+    """
+    try:
+        run = run_binary(argv, timeout=_VERSION_TIMEOUT_SECONDS)
+    except Exception as exc:  # pragma: no cover - run_binary already swallows its own
+        logger.debug("Could not run %s to read its version: %s", argv[0], exc)
+        return None
+    if run.killed:
+        logger.debug("%s did not answer within the version timeout", argv[0])
+        return None
+    match = pattern.search(run.stdout)
+    if match is None:
+        logger.debug("Could not find a version in what %s printed", argv[0])
+        return None
+    return match.group("version").strip()
 
 
 def _as_text(raw: str | bytes | None) -> str:

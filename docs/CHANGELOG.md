@@ -50,6 +50,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ### Changed
 
+- **A comparison records which version of each solver produced its numbers.** It already recorded the machine. Six months and a rebuilt image later that was not enough: seconds measured against CBC 2.10.12 say nothing about 2.11, and a stored table with no version on it could not be reproduced or explained. Every row now carries the build that ran it, and the solver list reports each version too.
 - **The comparison picker no longer offers a solver that can never take part.** Hexaly needs its own container image and licence, and the comparison runs every solver on one machine from the base image, so Hexaly could be ticked and then came back as a row saying "not supported". It is now shown greyed out with the reason written next to it, in both the standalone comparer and the matrix. Shown rather than hidden: a solver that the ordinary solve picker offers and this one silently omits reads as a fault.
 - **The solver picker describes each solver in your language.** The translations were already there in all five languages and nothing was reading them, so every user saw the English line the API sends.
 - **The lint gate covers every directory the pre-commit hook checks.** CI looked at the application and the migrations only, so warnings could pile up unseen in `scripts/`, `deploy/` and `tests/`. All five are now checked in CI as well.
