@@ -28,7 +28,6 @@ would breach the ``domains-independent`` import contract.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
 from datetime import datetime
 from uuid import uuid4
 
@@ -37,14 +36,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentOrg, CurrentUser, DBSession, enforce_org_rate_limit
-from app.api.v2.solver_comparison import (
-    cancel_comparison_rows,
-    consume_daily_quota,
-    enforce_instance_caps,
-    solver_row,
-)
 from app.domains.dsl import JModelData, JModelError, compile_jmodel
-from app.domains.solver import execution_writer
 from app.domains.solver.queue_routing import COMPARISON_QUEUE
 from app.domains.solver.services.classify import classify
 from app.domains.solver.services.comparison_service import (
@@ -55,7 +47,6 @@ from app.domains.solver.services.comparison_service import (
 )
 from app.models import ModelExecution, ModelProject, ModelProjectDataset, Organization, User
 from app.models.audit_log import AuditAction
-from app.models.optimization_model import ExecutionStatus
 from app.models.solver_comparison import (
     DEFAULT_COMPARISON_THREADS,
     ComparisonStatus,
@@ -73,6 +64,13 @@ from app.services import model_project_service as project_svc
 from app.services.audit_service import log_action
 from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.services.solve_orchestrator import validate_problem
+from app.services.solver_comparison_setup import (
+    cancel_comparison_rows,
+    close_pending_columns,
+    consume_daily_quota,
+    enforce_instance_caps,
+    solver_row,
+)
 from app.shared.utils.id_generator import generate_id
 
 logger = logging.getLogger(__name__)
@@ -82,24 +80,6 @@ logger = logging.getLogger(__name__)
 #: the other way round, every path here would be swallowed by it and answered
 #: "Comparison not found". A contract test guards the order.
 router = APIRouter(prefix="/solvers/compare/batches", tags=["solvers"])
-
-
-@dataclass(frozen=True)
-class _ModelCheck:
-    """What one compile of the model tells us about every row of the matrix.
-
-    Which solvers can express the model, and therefore how many solves the matrix
-    is going to cost, are properties of the SOURCE: the variable types and the
-    shape of every expression are declared there, and the data only fills in
-    numbers. So one dataset answers both questions for all of them, and the rest
-    are compiled on the worker.
-    """
-
-    plan: list[SolverPlanEntry]
-
-    @property
-    def runnable(self) -> int:
-        return sum(1 for entry in self.plan if entry.will_run)
 
 
 # ──────────────────────────────────────────────────────────────
@@ -139,8 +119,12 @@ def create_batch(
     source, version_id = _source_of(db, project, org, payload.version_id)
     datasets = _datasets_or_404(db, project, org, payload.dataset_ids)
 
-    check = _check_model(db, source, datasets[0], payload, solver_names)
-    if check.runnable == 0:
+    # One compile answers for every row: which solvers can express the model is
+    # a property of the SOURCE — the variable types and the shape of every
+    # expression are declared there, and the data only fills in numbers.
+    plan = _check_model(db, source, datasets[0], payload, solver_names)
+    runs_per_row = sum(1 for entry in plan if entry.will_run)
+    if runs_per_row == 0:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={
@@ -149,17 +133,17 @@ def create_batch(
                     "None of the selected solvers can run this model. "
                     "Pick a solver that supports the model's variable types."
                 ),
-                "reasons": {entry.solver_name: entry.unsupported_reason for entry in check.plan},
+                "reasons": {entry.solver_name: entry.unsupported_reason for entry in plan},
             },
         )
 
     # Charged once for the whole grid, before anything is written: a matrix that
     # cannot afford its last row is rejected while it is still free to reject.
-    consume_daily_quota(db, org, check.runnable * len(datasets))
+    consume_daily_quota(db, org, runs_per_row * len(datasets))
 
     batch_id = generate_id("cmb_")
     comparisons = [
-        _write_row(db, batch_id, position, dataset, check, project, version_id, payload, user)
+        _write_row(db, batch_id, position, dataset, plan, project, version_id, payload, user)
         for position, dataset in enumerate(datasets)
     ]
 
@@ -174,7 +158,7 @@ def create_batch(
         metadata={
             "solvers": solver_names,
             "datasets": [dataset.name for dataset in datasets],
-            "runs": check.runnable * len(datasets),
+            "runs": runs_per_row * len(datasets),
         },
     )
     db.commit()
@@ -232,18 +216,10 @@ def _abandon_row(db: Session, comparison: Comparison) -> None:
     """Close the cells of a row that never reached the queue.
 
     Without this the row reads "failed" while its cells stay pending forever,
-    and the page keeps polling for a worker that was never told to start.
+    and the page keeps polling for a worker that was never told to start. A row
+    that has not been prepared yet has no cells at all, and this is then a no-op.
     """
-    pending = (
-        db.query(ModelExecution)
-        .filter(
-            ModelExecution.comparison_id == comparison.id,
-            ModelExecution.status == ExecutionStatus.PENDING.value,
-        )
-        .all()
-    )
-    for execution in pending:
-        execution_writer.apply_cancelled(execution, message="Row was never queued")
+    close_pending_columns(db, comparison, message="Row was never queued")
     db.commit()
 
 
@@ -377,7 +353,7 @@ def _source_of(
                 ),
             },
         )
-    return source, (version_id if version_id else None)
+    return source, (version_id or None)
 
 
 def _datasets_or_404(
@@ -403,7 +379,7 @@ def _check_model(
     dataset: ModelProjectDataset,
     payload: CreateComparisonBatchRequest,
     solver_names: list[str],
-) -> _ModelCheck:
+) -> list[SolverPlanEntry]:
     """Compile one dataset to learn what the whole matrix will cost.
 
     The one compile the launch still does. It fails the request when the model
@@ -441,7 +417,7 @@ def _check_model(
     except HTTPException as exc:
         raise _blame_dataset(exc, dataset.name) from exc
 
-    return _ModelCheck(plan=plan_comparison(problem, solver_names, classify(problem)))
+    return plan_comparison(problem, solver_names, classify(problem))
 
 
 def _blame_dataset(exc: HTTPException, dataset_name: str) -> HTTPException:
@@ -460,7 +436,7 @@ def _write_row(
     batch_id: str,
     position: int,
     dataset: ModelProjectDataset,
-    check: _ModelCheck,
+    plan: list[SolverPlanEntry],
     project: ModelProject,
     version_id: str | None,
     payload: CreateComparisonBatchRequest,
@@ -499,7 +475,7 @@ def _write_row(
         threads=DEFAULT_COMPARISON_THREADS,
         # Every solver asked for, so the grid has its columns from the first
         # render. Which of them can actually run is decided per row by its worker.
-        solver_names=[entry.solver_name for entry in check.plan],
+        solver_names=[entry.solver_name for entry in plan],
         status=ComparisonStatus.PENDING.value,
         batch_id=batch_id,
         batch_position=position,

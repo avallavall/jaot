@@ -12,8 +12,8 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-import app.api.v2.solver_comparison as comparison_api
 import app.domains.solver.tasks.comparison_tasks as comparison_tasks_mod
+import app.services.solver_comparison_setup as comparison_setup
 from app.models import ModelExecution, Organization, SolverComparison
 from app.models.optimization_model import ExecutionStatus
 from app.models.solver_comparison import DEFAULT_COMPARISON_THREADS, ComparisonStatus
@@ -364,9 +364,9 @@ def test_a_comparison_the_quota_cannot_cover_is_refused_whole(
     real_rate_limiter,
     monkeypatch,
 ) -> None:
-    limits = dict(comparison_api.PSS.get_instance_limits(db_session))
+    limits = dict(comparison_setup.PSS.get_instance_limits(db_session))
     limits["max_daily_solves"] = 1
-    monkeypatch.setattr(comparison_api.PSS, "get_instance_limits", lambda _db: limits)
+    monkeypatch.setattr(comparison_setup.PSS, "get_instance_limits", lambda _db: limits)
 
     response = authenticated_client.post(
         _URL, json={"problem": _PROBLEM, "solver_names": ["scip", "highs"]}

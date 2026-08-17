@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Grid3x3, Loader2, Play, X } from "lucide-react";
@@ -143,6 +143,12 @@ export function SolverMatrixSection() {
     return () => clearInterval(timer);
   }, [batchId, polling]);
 
+  // Recomputed only when the grid or the metric changes, not on every render:
+  // the page re-renders every two seconds while the matrix runs, and both walk
+  // every cell of it.
+  const winner = useMemo(() => (batch ? winnerCount(batch.rows, metric) : null), [batch, metric]);
+  const hardest = useMemo(() => (batch ? hardestRow(batch.rows) : null), [batch]);
+
   const hasSource = draftDslSource.trim().length > 0;
   const runs = selectedDatasets.length * selectedSolvers.length;
   const canLaunch =
@@ -190,9 +196,6 @@ export function SolverMatrixSection() {
   }
 
   if (!isPersisted || datasets.length === 0) return null;
-
-  const winner = batch ? winnerCount(batch.rows, metric) : null;
-  const hardest = batch ? hardestRow(batch.rows) : null;
 
   return (
     <section

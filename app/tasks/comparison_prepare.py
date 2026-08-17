@@ -164,10 +164,6 @@ def _compile_and_write(db: Any, comparison: Any, source: str, dataset: Any) -> b
 
     Returns whether the row is ready to be solved.
     """
-    from app.api.v2.solver_comparison import (  # noqa: PLC0415
-        enforce_instance_caps,
-        insert_comparison_child,
-    )
     from app.domains.dsl import JModelData, JModelError, compile_jmodel  # noqa: PLC0415
     from app.domains.solver.services.classify import classify  # noqa: PLC0415
     from app.domains.solver.services.comparison_service import (  # noqa: PLC0415
@@ -176,6 +172,10 @@ def _compile_and_write(db: Any, comparison: Any, source: str, dataset: Any) -> b
     )
     from app.models import User  # noqa: PLC0415
     from app.services.solve_orchestrator import validate_problem  # noqa: PLC0415
+    from app.services.solver_comparison_setup import (  # noqa: PLC0415
+        enforce_instance_caps,
+        insert_comparison_child,
+    )
 
     try:
         problem = compile_jmodel(source, data=JModelData.from_json(dataset.data_json))

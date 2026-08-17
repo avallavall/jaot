@@ -14,8 +14,8 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-import app.api.v2.solver_comparison as comparison_api
 import app.domains.solver.tasks.comparison_tasks as comparison_tasks_mod
+import app.services.solver_comparison_setup as comparison_setup
 import app.tasks.comparison_prepare as prepare_mod
 from app.models import ModelExecution, ModelProject, Organization, SolverComparison
 from app.models.optimization_model import ExecutionStatus
@@ -429,9 +429,9 @@ def test_a_matrix_the_quota_cannot_cover_is_refused_whole(
         _seed_dataset(authenticated_client, project_id, "January", _JANUARY),
         _seed_dataset(authenticated_client, project_id, "February", _FEBRUARY),
     ]
-    limits = dict(comparison_api.PSS.get_instance_limits(db_session))
+    limits = dict(comparison_setup.PSS.get_instance_limits(db_session))
     limits["max_daily_solves"] = 3  # two datasets by two solvers needs four
-    monkeypatch.setattr(comparison_api.PSS, "get_instance_limits", lambda _db: limits)
+    monkeypatch.setattr(comparison_setup.PSS, "get_instance_limits", lambda _db: limits)
 
     response = authenticated_client.post(
         _URL,
