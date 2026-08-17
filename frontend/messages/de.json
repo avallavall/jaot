@@ -378,7 +378,8 @@
       "launchFailed": "Die Matrix konnte nicht gestartet werden.",
       "cancelFailed": "Die Matrix konnte nicht gestoppt werden.",
       "rowFailed": "Diese Zeile konnte nicht geöffnet werden.",
-      "cellSkipped": "Diese Zeile endete, bevor dieser Solver lief."
+      "cellSkipped": "Diese Zeile endete, bevor dieser Solver lief.",
+      "notComparable": "kann auf diesem Server nicht vergleichen"
     }
   },
   "common": {
@@ -4787,7 +4788,8 @@
       "timeLimitLabel": "Zeitlimit (Sekunden)",
       "gapLabel": "Gap-Toleranz",
       "estimate": "Die Solver laufen nacheinander, die Wartezeit beträgt daher bis zu {seconds} Sekunden insgesamt.",
-      "start": "Vergleichen"
+      "start": "Vergleichen",
+      "notComparable": "kann auf diesem Server nicht vergleichen"
     },
     "results": {
       "title": "Vergleich",

@@ -355,6 +355,7 @@ value for `solver_name` — and to know what to expect back from that choice.
       "name": "scip",
       "available": true,
       "description": "Academic MIP solver",
+      "comparable": true,
       "capabilities": {
         "sensitivity": true,
         "warm_start": true,
@@ -368,6 +369,8 @@ value for `solver_name` — and to know what to expect back from that choice.
       "reason": "maintenance",
       "retry_after": null,
       "description": "Commercial solver for quadratic / non-convex problems",
+      "comparable": false,
+      "not_comparable_reason": "not_available",
       "capabilities": {
         "sensitivity": false,
         "warm_start": true,
@@ -393,6 +396,11 @@ Notes:
   used it can still be interpreted.
 - `capabilities` may be **absent** on an entry. That means "not known", not "supports
   nothing" — treat it as no information rather than as a denial.
+- `comparable` says whether the solver can take part in a [solver comparison](/docs/api/solver-comparison)
+  on this server. It is a property of the server, not of any one model: Hexaly needs its
+  own image and licence, and the comparison worker runs the base image so that one machine
+  times every column. `not_comparable_reason` rides only on a `false`. Whether a solver can
+  express a **particular** model is decided per comparison, against that problem's class.
 - Multi-objective is not listed: it is available for every solver. Solvers without
   native support get it through scalarization, so a per-solver flag would be misleading.
 - `solver_name: "auto"` is always accepted and is not listed here; the server picks the

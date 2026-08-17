@@ -98,3 +98,53 @@ class TestSolversAvailableOptionalSdk:
         # The open-source default (SCIP + HiGHS) is always present
         assert "scip" in by_name
         assert "highs" in by_name
+
+
+class TestComparableFlag:
+    """D-31: the listing says which solvers can take part in a comparison.
+
+    The picker used to offer every available solver, Hexaly included, and Hexaly
+    can never compete on this server: it needs its own image and licence, and
+    the comparison worker runs the base image so one machine times every column.
+    The user found out after spending the launch.
+    """
+
+    # CONTRACT-TEST: the flag is derived from the server's own exclusion list,
+    # never from a copy. A second list in the API layer would drift the first
+    # time a solver moved in or out of PERMANENTLY_EXCLUDED.
+    def test_flag_follows_the_servers_exclusion_list(
+        self, authenticated_client, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.domains.solver.adapters import hexaly_availability
+        from app.domains.solver.services import worker_health
+        from app.domains.solver.services.comparison_service import PERMANENTLY_EXCLUDED
+
+        monkeypatch.setattr(worker_health, "_probe_hexaly_worker", lambda: (True, "ok"))
+        monkeypatch.setattr(hexaly_availability, "hexaly_available", lambda: False)
+
+        response = authenticated_client.get("/api/v2/solvers/available")
+        assert response.status_code == 200
+
+        for entry in response.json()["solvers"]:
+            excluded = PERMANENTLY_EXCLUDED.get(entry["name"])
+            assert entry["comparable"] is (excluded is None), (
+                f"{entry['name']} disagrees with PERMANENTLY_EXCLUDED"
+            )
+            if excluded is None:
+                assert "not_comparable_reason" not in entry
+            else:
+                assert entry["not_comparable_reason"] == excluded
+
+    def test_the_solvers_that_can_compare_say_so(self, authenticated_client) -> None:
+        """The in-image solvers are always listed and always comparable.
+
+        Only SCIP and HiGHS are asserted by name. CBC and GLPK are command-line
+        programs that report their own absence through ``is_available()``, so an
+        image built without the binaries lists neither — which is right, and
+        which is why naming them here would make this test a statement about the
+        image rather than about the flag.
+        """
+        response = authenticated_client.get("/api/v2/solvers/available")
+        by_name = {s["name"]: s for s in response.json()["solvers"]}
+        for name in ("scip", "highs"):
+            assert by_name[name]["comparable"] is True, f"{name} must be comparable"

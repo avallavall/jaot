@@ -28,6 +28,22 @@ export function capabilitiesOf(
 }
 
 /**
+ * Can this solver take part in a comparison at all on this server?
+ *
+ * `comparable` is absent on a backend older than D-31, and the honest reading
+ * of "the server did not say" is "yes" — that is the behaviour the picker had
+ * before the flag existed, and hiding a solver on a missing field would be a
+ * silent regression rather than a fix.
+ *
+ * This says nothing about a particular model. Whether a solver can express the
+ * problem in front of you is decided per comparison, against the problem's
+ * class, and the listing has no problem to look at.
+ */
+export function isComparable(solver: SolverInfo): boolean {
+  return solver.comparable !== false;
+}
+
+/**
  * Fetches available solvers on mount and manages selected solver state.
  * Silent fallback: dropdown still renders with "auto" when /solvers/available fails.
  */

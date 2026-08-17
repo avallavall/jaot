@@ -1181,6 +1181,12 @@ export interface SolverInfo {
   retry_after?: number | null;
   /** Absent when the backend could not read the adapter's declaration. */
   capabilities?: SolverCapabilities;
+  /** Whether this solver can take part in a comparison on this server. A
+   *  property of the server, not of any one model. Defaults to true when an
+   *  older backend does not send it. */
+  comparable?: boolean;
+  /** Why not, when `comparable` is false: `not_available` | `not_registered`. */
+  not_comparable_reason?: string | null;
 }
 
 // ──────────────────────────────────────────────────────────────

@@ -378,7 +378,8 @@
       "launchFailed": "No se ha podido lanzar la matriz.",
       "cancelFailed": "No se ha podido parar la matriz.",
       "rowFailed": "No se ha podido abrir esa fila.",
-      "cellSkipped": "Esta fila terminó antes de que este solver llegara a ejecutarse."
+      "cellSkipped": "Esta fila terminó antes de que este solver llegara a ejecutarse.",
+      "notComparable": "no puede comparar en este servidor"
     }
   },
   "common": {
@@ -4787,7 +4788,8 @@
       "timeLimitLabel": "Límite de tiempo (segundos)",
       "gapLabel": "Tolerancia de gap",
       "estimate": "Los solvers se ejecutan uno detrás de otro, así que la espera es de hasta {seconds} segundos en total.",
-      "start": "Comparar"
+      "start": "Comparar",
+      "notComparable": "no puede comparar en este servidor"
     },
     "results": {
       "title": "Comparación",

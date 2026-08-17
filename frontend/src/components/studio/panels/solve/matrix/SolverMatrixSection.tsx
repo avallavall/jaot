@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ComparisonTable } from "@/components/solve/compare/ComparisonTable";
-import { useSolvers } from "@/hooks/useSolvers";
+import { isComparable, useSolvers } from "@/hooks/useSolvers";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import type { ComparisonBatchDetail, ComparisonDetail } from "@/lib/types";
@@ -99,7 +99,9 @@ export function SolverMatrixSection() {
   useEffect(() => {
     if (solversPreselected.current || availableSolvers.length === 0) return;
     solversPreselected.current = true;
-    setSelectedSolvers(availableSolvers.filter((s) => s.available).map((s) => s.name));
+    setSelectedSolvers(
+      availableSolvers.filter((s) => s.available && isComparable(s)).map((s) => s.name),
+    );
   }, [availableSolvers]);
 
   // The last matrix for this model, restored on mount. A grid of fifty runs takes
@@ -294,22 +296,36 @@ export function SolverMatrixSection() {
             <div className="space-y-1.5">
               {availableSolvers
                 .filter((solver) => solver.available)
-                .map((solver) => (
-                  <label key={solver.name} className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={selectedSolvers.includes(solver.name)}
-                      onCheckedChange={(next) =>
-                        setSelectedSolvers((current) =>
-                          next
-                            ? [...current, solver.name]
-                            : current.filter((name) => name !== solver.name),
-                        )
-                      }
-                      data-testid="studio-matrix-solver"
-                    />
-                    <span className="uppercase">{solver.name}</span>
-                  </label>
-                ))}
+                .map((solver) => {
+                  // Same rule as the standalone comparer: shown and disabled,
+                  // never hidden, so the absence is explained rather than felt.
+                  const comparable = isComparable(solver);
+                  return (
+                    <label
+                      key={solver.name}
+                      className={`flex items-center gap-2 text-sm ${comparable ? "" : "opacity-50"}`}
+                    >
+                      <Checkbox
+                        disabled={!comparable}
+                        checked={comparable && selectedSolvers.includes(solver.name)}
+                        onCheckedChange={(next) =>
+                          setSelectedSolvers((current) =>
+                            next
+                              ? [...current, solver.name]
+                              : current.filter((name) => name !== solver.name),
+                          )
+                        }
+                        data-testid="studio-matrix-solver"
+                      />
+                      <span className="uppercase">{solver.name}</span>
+                      {!comparable && (
+                        <span className="text-xs normal-case text-muted-foreground">
+                          {t("matrix.notComparable")}
+                        </span>
+                      )}
+                    </label>
+                  );
+                })}
             </div>
           )}
         </fieldset>

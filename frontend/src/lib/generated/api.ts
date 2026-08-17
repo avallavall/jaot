@@ -5093,10 +5093,17 @@ export interface components {
             /** Available */
             available: boolean;
             capabilities?: components["schemas"]["SolverCapabilityFlags"] | null;
+            /**
+             * Comparable
+             * @default true
+             */
+            comparable: boolean;
             /** Description */
             description: string;
             /** Name */
             name: string;
+            /** Not Comparable Reason */
+            not_comparable_reason?: string | null;
             /** Reason */
             reason?: string | null;
             /** Retry After */

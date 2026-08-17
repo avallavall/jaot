@@ -32,6 +32,17 @@ class AvailableSolver(BaseModel):
     capabilities: SolverCapabilityFlags | None = None
     reason: str | None = None
     retry_after: int | None = None
+    #: Whether this solver can take part in a solver comparison on this server.
+    #: A property of the server, not of any one model: Hexaly needs its own image
+    #: and licence, and the comparison worker runs the base image so that one
+    #: machine times every column. Whether a solver can express a PARTICULAR
+    #: model is a different question, decided per comparison against the
+    #: problem's class, and this endpoint has no problem to look at.
+    comparable: bool = True
+    #: Why not, when ``comparable`` is False. Machine-readable, the same codes a
+    #: comparison row carries (``not_available``, ``not_registered``); the
+    #: sentence the user reads is translated in the frontend.
+    not_comparable_reason: str | None = None
 
 
 class AvailableSolversResponse(BaseModel):

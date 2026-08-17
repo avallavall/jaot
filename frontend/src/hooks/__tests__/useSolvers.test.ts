@@ -8,7 +8,7 @@
  */
 import { describe, it, expect } from "vitest";
 
-import { capabilitiesOf } from "../useSolvers";
+import { capabilitiesOf, isComparable } from "../useSolvers";
 import type { SolverInfo } from "@/lib/types";
 
 const SCIP_CAPS = { sensitivity: true, warm_start: true, quadratic: true, progress: true };
@@ -56,5 +56,34 @@ describe("capabilitiesOf", () => {
     expect(capabilitiesOf(SOLVERS, undefined)).toBeUndefined();
     expect(capabilitiesOf(SOLVERS, "")).toBeUndefined();
     expect(capabilitiesOf([], "scip")).toBeUndefined();
+  });
+});
+
+/**
+ * isComparable — which solvers the comparison pickers may offer (D-31).
+ *
+ * The dangerous answer here is the opposite of capabilitiesOf's: hiding a
+ * solver the user could legitimately pick. A backend that does not send the
+ * flag has not said "no", so the picker must keep offering it.
+ */
+describe("isComparable", () => {
+  it("takes the server at its word", () => {
+    expect(isComparable({ name: "scip", available: true, comparable: true })).toBe(true);
+    expect(
+      isComparable({
+        name: "hexaly",
+        available: true,
+        comparable: false,
+        not_comparable_reason: "not_available",
+      }),
+    ).toBe(false);
+  });
+
+  // A backend older than D-31 sends no flag at all. Reading that as "cannot
+  // compare" would empty the picker on an older server — a silent regression
+  // dressed as a fix.
+  it("reads a missing flag as comparable", () => {
+    expect(isComparable({ name: "scip", available: true })).toBe(true);
+    expect(isComparable({ name: "cbc", available: true, comparable: undefined })).toBe(true);
   });
 });

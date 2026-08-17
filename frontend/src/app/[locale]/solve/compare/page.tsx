@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSolvers } from "@/hooks/useSolvers";
+import { isComparable, useSolvers } from "@/hooks/useSolvers";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { ACCEPTED_EXTENSIONS, isAcceptedFile } from "@/lib/file-import";
@@ -69,7 +69,9 @@ export default function SolverComparePage() {
   useEffect(() => {
     if (solversPreselected.current || availableSolvers.length === 0) return;
     solversPreselected.current = true;
-    setSelected(availableSolvers.filter((s) => s.available).map((s) => s.name));
+    setSelected(
+      availableSolvers.filter((s) => s.available && isComparable(s)).map((s) => s.name),
+    );
   }, [availableSolvers]);
 
   const refresh = useCallback(async (id: string) => {
@@ -220,21 +222,37 @@ export default function SolverComparePage() {
               <div className="flex flex-wrap gap-4">
                 {availableSolvers
                   .filter((solver) => solver.available)
-                  .map((solver) => (
-                    <label key={solver.name} className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={selected.includes(solver.name)}
-                        onCheckedChange={(checked) =>
-                          setSelected((current) =>
-                            checked
-                              ? [...current, solver.name]
-                              : current.filter((n) => n !== solver.name),
-                          )
-                        }
-                      />
-                      <span className="uppercase">{solver.name}</span>
-                    </label>
-                  ))}
+                  .map((solver) => {
+                    // Shown, not hidden. A solver the main solve picker offers
+                    // and this one silently omits reads as a bug; disabled with
+                    // the reason underneath says what is actually true.
+                    const comparable = isComparable(solver);
+                    return (
+                      <label
+                        key={solver.name}
+                        className={`flex items-center gap-2 text-sm ${comparable ? "" : "opacity-50"}`}
+                        title={comparable ? undefined : t("setup.notComparable")}
+                      >
+                        <Checkbox
+                          disabled={!comparable}
+                          checked={comparable && selected.includes(solver.name)}
+                          onCheckedChange={(checked) =>
+                            setSelected((current) =>
+                              checked
+                                ? [...current, solver.name]
+                                : current.filter((n) => n !== solver.name),
+                            )
+                          }
+                        />
+                        <span className="uppercase">{solver.name}</span>
+                        {!comparable && (
+                          <span className="text-xs normal-case text-muted-foreground">
+                            {t("setup.notComparable")}
+                          </span>
+                        )}
+                      </label>
+                    );
+                  })}
               </div>
             )}
           </div>

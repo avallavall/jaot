@@ -4,8 +4,10 @@ import { getFlatPages, getPrevNext, getDocsPages } from "../navigation";
 describe("getFlatPages", () => {
   it("returns all leaf pages with guides included", () => {
     const pages = getFlatPages();
-    // 3 getting-started + 5 ai-builder + 4 marketplace + 1 mcp + 11 api + 2 reference + 8 studio + 35 guides = 69 (v3.1: +studio/analyzing-results)
-    expect(pages.length).toBe(69);
+    // 3 getting-started + 5 ai-builder + 4 marketplace + 1 mcp + 12 api + 2 reference
+    // + 9 studio + 35 guides = 71 (the solver comparer added api/solver-comparison
+    // and studio/comparing-solvers)
+    expect(pages.length).toBe(71);
     expect(pages[0].slug).toBe("getting-started/introduction");
   });
 

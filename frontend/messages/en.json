@@ -378,7 +378,8 @@
       "launchFailed": "The matrix could not be started.",
       "cancelFailed": "The matrix could not be stopped.",
       "rowFailed": "That row could not be opened.",
-      "cellSkipped": "This row ended before this solver ran."
+      "cellSkipped": "This row ended before this solver ran.",
+      "notComparable": "cannot compare on this server"
     }
   },
   "common": {
@@ -4787,7 +4788,8 @@
       "timeLimitLabel": "Time limit (seconds)",
       "gapLabel": "Gap tolerance",
       "estimate": "The solvers run one after another, so the wait is up to {seconds} seconds in total.",
-      "start": "Compare"
+      "start": "Compare",
+      "notComparable": "cannot compare on this server"
     },
     "results": {
       "title": "Comparison",

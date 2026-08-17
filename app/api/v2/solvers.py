@@ -14,6 +14,12 @@ remains. The response shape includes:
   Hexaly run advertised shadow prices Hexaly does not compute and a Live Solve
   that never streams. See :func:`_capabilities_payload` for what is exposed
   and — just as deliberately — what is not.
+- ``comparable`` + ``not_comparable_reason``: whether the solver can take part
+  in a solver comparison on this server (D-31). The comparer's picker used to
+  offer every listed solver, Hexaly included, and Hexaly can never compete: it
+  needs its own image and licence, and the comparison worker runs the base
+  image. The user only learned that after spending the launch and reading a row
+  that said "not supported".
 
 The ``requires_license`` field is gone (D-10) — Hexaly is available to every
 user. Per-solver credit multipliers died with the credit system (ADR-008).
@@ -32,6 +38,7 @@ from app.api.deps import (  # OrgOwnerUser intentionally omitted (W7 fix — Bra
 from app.domains.solver.adapters import registry
 from app.domains.solver.adapters.base import HEXALY_SOLVER_NAME, SolverCapabilities
 from app.domains.solver.services import worker_health as _worker_health
+from app.domains.solver.services.comparison_service import PERMANENTLY_EXCLUDED
 from app.schemas.solver import (
     AvailableSolver,
     AvailableSolversResponse,
@@ -161,11 +168,14 @@ def list_available_solvers(user: CurrentUser, db: DBSession) -> AvailableSolvers
 
     solvers: list[AvailableSolver] = []
     for name, caps in listed:
+        excluded_reason = PERMANENTLY_EXCLUDED.get(name)
         entry = AvailableSolver(
             name=name,
             available=True,
             description=_SOLVER_DESCRIPTIONS.get(name, name),
             capabilities=_capabilities_payload(caps) if caps is not None else None,
+            comparable=excluded_reason is None,
+            not_comparable_reason=excluded_reason,
         )
         if name == HEXALY_SOLVER_NAME and not hexaly_worker_healthy:
             entry.available = False

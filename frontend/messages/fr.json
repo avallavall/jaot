@@ -378,7 +378,8 @@
       "launchFailed": "La matrice n'a pas pu être lancée.",
       "cancelFailed": "La matrice n'a pas pu être arrêtée.",
       "rowFailed": "Cette ligne n'a pas pu être ouverte.",
-      "cellSkipped": "Cette ligne s'est terminée avant que ce solveur ne soit lancé."
+      "cellSkipped": "Cette ligne s'est terminée avant que ce solveur ne soit lancé.",
+      "notComparable": "ne peut pas comparer sur ce serveur"
     }
   },
   "common": {
@@ -4787,7 +4788,8 @@
       "timeLimitLabel": "Limite de temps (secondes)",
       "gapLabel": "Tolérance de gap",
       "estimate": "Les solveurs s'exécutent l'un après l'autre : l'attente peut aller jusqu'à {seconds} secondes au total.",
-      "start": "Comparer"
+      "start": "Comparer",
+      "notComparable": "ne peut pas comparer sur ce serveur"
     },
     "results": {
       "title": "Comparaison",

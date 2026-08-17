@@ -13,7 +13,6 @@ Ordered by benefit ÷ effort.
 | D-27 | PgBouncer in transaction mode, once there are real users or more workers | Low today, rising with load | Needs an infra window |
 | D-29 | The TTL-cache-plus-single-flight pattern is written three times, and the three disagree | Low: each one works; the next copy is where it stops working | An afternoon, once a fourth caller needs it |
 | D-30 | `check_rate_limit` takes no cost, so a solver comparison refused on quota has already spent the slots of the solvers before it | Low: a user near their daily cap loses a few slots | Small, but it changes a limiter every endpoint shares |
-| D-31 | The comparison solver picker offers solvers that can never take part | Low: picking only Hexaly returns a 422 that explains itself | Small: one flag on `/solvers/available` — its trigger (CBC and GLPK landing) is now met |
 | D-32 | A comparison stores its compiled problem once per cell | Measured: 3.8 MB per copy on a 22,500-variable model, so one matrix row of four solvers writes 19 MB | Medium: it is what every consumer reads the problem off |
 
 ---
@@ -121,29 +120,6 @@ single request could drain was the number of solvers. The reasoning is unchanged
 fix; what changed is how much a single rejection can cost.
 
 Recorded 2026-08-14, when the comparer landed.
-
----
-
-## D-31 · The comparison picker offers solvers that cannot compare
-
-`/solvers/available` reports which solvers this server can run. The comparison worker is a
-narrower question: it runs the base image so one machine times every solver, and Hexaly's SDK
-and licence exist only on the Hexaly image. `PERMANENTLY_EXCLUDED` in `comparison_service.py`
-holds that list on the server.
-
-The picker shows every available solver, so Hexaly can be ticked. It then gets a row saying
-"not supported" with the reason, and a comparison of Hexaly alone returns a 422 that names it —
-so nothing is silent, it is just a wasted click.
-
-The clean fix is a `comparable` flag on the `/solvers/available` entries, which keeps the one
-list on the server instead of copying the exclusions into the frontend where they would drift.
-It changes an existing response shape, which is why it was not done inside the feature that
-found it. Do it when CBC and GLPK land and the picker has more than two entries.
-
-**That condition is met.** CBC and GLPK landed on 2026-08-15 and the picker now lists four
-solvers, so the wasted click is one in four rather than one in two.
-
-Recorded 2026-08-14. Trigger reached 2026-08-15.
 
 ---
 
