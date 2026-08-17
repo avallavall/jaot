@@ -14,6 +14,8 @@ import {
 import { cn } from "@/lib/utils";
 import type { ComparisonDetail, ComparisonSolverResult } from "@/lib/types";
 import { ComparisonCharts } from "./ComparisonCharts";
+import { ExportButtons } from "./ExportButtons";
+import { comparisonToCsv, toJson } from "./export";
 
 /** Solver verdicts that mean a real answer came back. */
 const SOLVED_STATUSES = new Set(["optimal", "feasible"]);
@@ -30,6 +32,14 @@ export function ComparisonTable({ comparison }: { comparison: ComparisonDetail }
   return (
     <div className="space-y-4">
       <ConditionsNotice comparison={comparison} />
+
+      <ExportButtons
+        // The problem's name, not the comparison id: the file lands in a
+        // downloads folder next to a hundred others and has to say what it is.
+        base={comparison.problem_name ?? "comparison"}
+        csv={() => comparisonToCsv(comparison)}
+        json={() => toJson(comparison)}
+      />
 
       <div className="overflow-x-auto rounded-lg border">
         <Table>

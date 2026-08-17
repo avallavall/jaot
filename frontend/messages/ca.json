@@ -4789,7 +4789,8 @@
       "gapLabel": "Tolerància de gap",
       "estimate": "Els solvers s'executen l'un darrere l'altre, així que l'espera és de fins a {seconds} segons en total.",
       "start": "Comparar",
-      "notComparable": "no pot comparar en aquest servidor"
+      "notComparable": "no pot comparar en aquest servidor",
+      "noModels": "Encara no hi ha models. Crea'n un a Els meus models, o puja un fitxer."
     },
     "results": {
       "title": "Comparació",
@@ -4859,6 +4860,10 @@
       "splitSearch": "Cerca",
       "splitBuild": "Construcció",
       "boundOmitted": "{solvers}: no hi surt, no va donar cap resposta."
+    },
+    "export": {
+      "csv": "Baixa CSV",
+      "json": "Baixa JSON"
     }
   }
 }

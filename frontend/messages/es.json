@@ -4789,7 +4789,8 @@
       "gapLabel": "Tolerancia de gap",
       "estimate": "Los solvers se ejecutan uno detrás de otro, así que la espera es de hasta {seconds} segundos en total.",
       "start": "Comparar",
-      "notComparable": "no puede comparar en este servidor"
+      "notComparable": "no puede comparar en este servidor",
+      "noModels": "Todavía no hay modelos. Crea uno en Mis modelos, o sube un fichero."
     },
     "results": {
       "title": "Comparación",
@@ -4859,6 +4860,10 @@
       "splitSearch": "Búsqueda",
       "splitBuild": "Construcción",
       "boundOmitted": "{solvers}: no aparece, no dio ninguna respuesta."
+    },
+    "export": {
+      "csv": "Descargar CSV",
+      "json": "Descargar JSON"
     }
   }
 }

@@ -100,6 +100,15 @@ It needs a [JModel source](/docs/studio/jmodel-dsl) and [datasets](/docs/studio/
 
 **Row sizes differ, and that is usually the answer.** Each row shows its own problem class and variable count. Two datasets of the same model routinely ground to very different sizes, which is often why one row took ten times longer than the one above it.
 
+## Taking the table with you
+
+Both surfaces have **Download CSV** and **Download JSON** above the table.
+
+- **CSV** is one line per solver, or one line per dataset and solver for a matrix. Long rather than wide, because the grid on screen shows one metric at a time and a file shaped like the grid would drop the other four.
+- **JSON** is exactly what the API returns, so a script reads the same shape the [API reference](/docs/api/solver-comparison) documents.
+
+Numbers in the file are written raw, with a dot for the decimal point, whatever your browser's language is. The table on screen follows your language; a file that did the same would put a column break inside a number.
+
 ## What it costs
 
 Each solver counts as one execution against the daily solve limit.

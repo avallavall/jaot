@@ -4789,7 +4789,8 @@
       "gapLabel": "Gap-Toleranz",
       "estimate": "Die Solver laufen nacheinander, die Wartezeit beträgt daher bis zu {seconds} Sekunden insgesamt.",
       "start": "Vergleichen",
-      "notComparable": "kann auf diesem Server nicht vergleichen"
+      "notComparable": "kann auf diesem Server nicht vergleichen",
+      "noModels": "Noch keine Modelle. Legen Sie eines unter Meine Modelle an, oder laden Sie eine Datei hoch."
     },
     "results": {
       "title": "Vergleich",
@@ -4859,6 +4860,10 @@
       "splitSearch": "Suche",
       "splitBuild": "Aufbau",
       "boundOmitted": "{solvers}: nicht dargestellt, keine Antwort gemeldet."
+    },
+    "export": {
+      "csv": "CSV herunterladen",
+      "json": "JSON herunterladen"
     }
   }
 }

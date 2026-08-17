@@ -52,9 +52,15 @@ export default function SolverComparePage() {
   const [comparison, setComparison] = useState<ComparisonDetail | null>(null);
   const [starting, setStarting] = useState(false);
 
+  // The organization's models, not only this user's. JAOT is collaborative and
+  // every other picker (the import panel, the trigger form) lists the org's
+  // active models; asking for `mine=true` here meant a user whose teammate
+  // created the models opened this page to an empty dropdown with nothing
+  // saying why. Measured against a real account: 15 models in the org, 0 of
+  // them "mine", and the comparer could not be used at all.
   useEffect(() => {
     api
-      .listProjects({ mine: true, limit: 100 })
+      .listProjects({ status: "active", limit: 100 })
       .then(setProjects)
       .catch(() => setProjects([]));
   }, []);
@@ -184,11 +190,19 @@ export default function SolverComparePage() {
                   <SelectValue placeholder={t("setup.modelPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
+                  {/* An empty dropdown that opens onto nothing reads as broken.
+                      Say there are no models and point at the way to make one. */}
+                  {projects.length === 0 ? (
+                    <p className="px-2 py-3 text-sm text-muted-foreground">
+                      {t("setup.noModels")}
+                    </p>
+                  ) : (
+                    projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             ) : (
