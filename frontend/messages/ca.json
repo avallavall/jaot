@@ -922,6 +922,35 @@
         "description": "Quan un model és massa gran per a un conjunt exacte, JAOT ho diu i marca l'explicació com a heurística, mai una suposició amb falsa seguretat."
       }
     },
+    "solverRace": {
+      "eyebrow": "Triar solver",
+      "title": "Quin solver és més ràpid depèn del model",
+      "subtitle": "JAOT porta SCIP, HiGHS, CBC i GLPK. Cap no és el millor. L'ordre canvia amb el model, així que JAOT executa el teu problema en tots ells en les mateixes condicions i ensenya què va fer cadascun. A sota, un trimestre de càrrega de cambres d'envelliment a la planta.",
+      "chartHeading": "Temps total, escala logarítmica",
+      "instance": "{variables} variables, {constraints} restriccions",
+      "outOfTime": "Sense temps",
+      "proved": "Va demostrar {objective} cambres",
+      "seconds": "{seconds} s",
+      "rowWork": "{nodes} nodes, {iterations} iteracions símplex",
+      "rowCutOff": "Va demostrar que res no baixa de {bound} cambres, després de {nodes} nodes, i no va trobar cap pla",
+      "scaleNote": "L'escala és logarítmica: cada pas són deu vegades l'anterior, així que la llargada de la barra no és proporcional al número que té al costat.",
+      "verdict": "{winner} va acabar primer. {slowest} va arribar a la mateixa resposta {ratio} vegades més lent. Amb un altre model l'ordre canvia, i per això això ho contesta una mesura i no una recomanació.",
+      "cutOffNote": "{solvers} va esgotar els {limit} segons i no va trobar cap pla, encara que sí va demostrar que res no baixa de {bound} cambres. Per això hi ha la cota.",
+      "terms": "Tots els solvers van rebre el mateix límit de {limit} segons i els mateixos {threads} fils, l'un darrere l'altre en un servidor de {cores} nuclis. Els segons són comparables dins d'aquesta execució i enlloc més.",
+      "sameTerms": {
+        "title": "Les mateixes condicions",
+        "description": "El mateix límit de temps, la mateixa tolerància de gap, el mateix nombre de fils, una màquina i una execució cada cop. Dos solvers que comparteixen màquina es barallen pels nuclis, i llavors els segons deixen de significar res."
+      },
+      "matrix": {
+        "title": "Una matriu sencera",
+        "description": "Creua els conjunts de dades del teu model amb els solvers: les dades a les files, els solvers a les columnes. Un model amb dades que canvien cada mes no té un solver més ràpid, i els números d'un sol mes trien el que no toca."
+      },
+      "honestTimes": {
+        "title": "La cota, no només la resposta",
+        "description": "Cada fila porta la millor cota que va demostrar el solver al costat de la resposta que va trobar. Una execució aturada pel límit de temps informa de la distància entre totes dues, i la resposta sola no ho diu."
+      },
+      "cta": "Com funciona la comparació"
+    },
     "howItWorks": {
       "title": "A punt en minuts",
       "step1": {
@@ -1138,7 +1167,8 @@
         "marketplace": "Marketplace",
         "execution": "Execució",
         "modelProjects": "Projectes de model",
-        "analysis": "Anàlisi"
+        "analysis": "Anàlisi",
+        "solverComparison": "Comparació de solvers"
       },
       "agentBadge": "Compatible amb Claude, GPT i qualsevol agent compatible amb MCP",
       "cta": "Explorar la integració MCP"

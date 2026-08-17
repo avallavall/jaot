@@ -14,6 +14,7 @@
 - [The Model Workspace](/docs/studio/model-workspace): Build, analyze, version, and solve a model in one place
 - [JModel DSL](/docs/studio/jmodel-dsl): Indexed modeling language — mathematical notation view, draft derivation from flat models, and compile-verified AI generation
 - [Analyzing Results](/docs/studio/analyzing-results): Structured (grouped) solutions, an honest solve summary, and exact solution-based analysis
+- [Comparing Solvers](/docs/studio/comparing-solvers): Run one problem on several solvers under identical conditions, or cross a model's datasets with solvers in a matrix
 
 ## API Reference
 

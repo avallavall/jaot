@@ -922,6 +922,35 @@
         "description": "Quand un modèle est trop grand pour un ensemble exact, JAOT le dit et signale clairement l'explication comme heuristique, jamais une supposition assurée."
       }
     },
+    "solverRace": {
+      "eyebrow": "Choisir un solveur",
+      "title": "Le solveur le plus rapide dépend du modèle",
+      "subtitle": "JAOT embarque SCIP, HiGHS, CBC et GLPK. Aucun n'est le meilleur. Le classement change avec le modèle, donc JAOT exécute votre problème sur tous dans les mêmes conditions et montre ce que chacun a fait. Ci-dessous, un trimestre de chargement des étuves de déverminage de l'usine.",
+      "chartHeading": "Temps total, échelle logarithmique",
+      "instance": "{variables} variables, {constraints} contraintes",
+      "outOfTime": "Temps écoulé",
+      "proved": "A prouvé {objective} étuves",
+      "seconds": "{seconds} s",
+      "rowWork": "{nodes} nœuds, {iterations} itérations du simplexe",
+      "rowCutOff": "A prouvé que rien ne descend sous {bound} étuves, après {nodes} nœuds, sans trouver de plan",
+      "scaleNote": "L'échelle est logarithmique : chaque pas vaut dix fois le précédent, donc la longueur de la barre n'est pas proportionnelle au nombre affiché à côté.",
+      "verdict": "{winner} a terminé en premier. {slowest} a atteint la même réponse {ratio} fois plus lentement. Sur un autre modèle l'ordre change, et c'est pourquoi une mesure répond à cette question là où une recommandation ne le peut pas.",
+      "cutOffNote": "{solvers} a consommé les {limit} secondes sans trouver de plan, tout en prouvant que rien ne descend sous {bound} étuves. C'est à cela que sert la borne.",
+      "terms": "Chaque solveur a reçu la même limite de {limit} secondes et les mêmes {threads} threads, l'un après l'autre sur un serveur de {cores} cœurs. Les secondes sont comparables à l'intérieur de cette exécution et nulle part ailleurs.",
+      "sameTerms": {
+        "title": "Des conditions identiques",
+        "description": "Même limite de temps, même tolérance de gap, même nombre de threads, une machine, une exécution à la fois. Deux solveurs qui partagent une machine se disputent les cœurs, et les secondes ne veulent plus rien dire."
+      },
+      "matrix": {
+        "title": "Une matrice entière",
+        "description": "Croisez les jeux de données de votre modèle avec les solveurs : les données en lignes, les solveurs en colonnes. Un modèle dont les données changent chaque mois n'a pas de solveur le plus rapide, et les chiffres d'un seul mois désignent le mauvais."
+      },
+      "honestTimes": {
+        "title": "La borne, pas seulement la réponse",
+        "description": "Chaque ligne porte la meilleure borne prouvée par le solveur à côté de la réponse trouvée. Une exécution arrêtée par sa limite de temps rapporte l'écart entre les deux, et la réponse seule ne le dit pas."
+      },
+      "cta": "Comment fonctionne la comparaison"
+    },
     "howItWorks": {
       "title": "Opérationnel en quelques minutes",
       "step1": {
@@ -1138,7 +1167,8 @@
         "marketplace": "Marketplace",
         "execution": "Exécution",
         "modelProjects": "Projets de modèle",
-        "analysis": "Analyse"
+        "analysis": "Analyse",
+        "solverComparison": "Comparaison de solveurs"
       },
       "agentBadge": "Fonctionne avec Claude, GPT et tout agent compatible MCP",
       "cta": "Explorer l'Intégration MCP"

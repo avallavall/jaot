@@ -922,6 +922,35 @@
         "description": "Cuando un modelo es demasiado grande para un conjunto exacto, JAOT lo dice y marca la explicación como heurística, nunca una suposición con falsa seguridad."
       }
     },
+    "solverRace": {
+      "eyebrow": "Elegir solver",
+      "title": "Qué solver es más rápido depende del modelo",
+      "subtitle": "JAOT trae SCIP, HiGHS, CBC y GLPK. Ninguno es el mejor. El orden cambia con el modelo, así que JAOT ejecuta tu problema en todos ellos en las mismas condiciones y enseña qué hizo cada uno. Abajo, un trimestre de carga de cámaras de envejecimiento en la planta.",
+      "chartHeading": "Tiempo total, escala logarítmica",
+      "instance": "{variables} variables, {constraints} restricciones",
+      "outOfTime": "Sin tiempo",
+      "proved": "Demostró {objective} cámaras",
+      "seconds": "{seconds} s",
+      "rowWork": "{nodes} nodos, {iterations} iteraciones símplex",
+      "rowCutOff": "Demostró que nada baja de {bound} cámaras, tras {nodes} nodos, y no encontró ningún plan",
+      "scaleNote": "La escala es logarítmica: cada paso son diez veces el anterior, así que la longitud de la barra no es proporcional al número que tiene al lado.",
+      "verdict": "{winner} acabó primero. {slowest} llegó a la misma respuesta {ratio} veces más lento. Con otro modelo el orden cambia, y por eso esto lo contesta una medición y no una recomendación.",
+      "cutOffNote": "{solvers} agotó los {limit} segundos y no encontró ningún plan, aunque sí demostró que nada baja de {bound} cámaras. Para eso está la cota.",
+      "terms": "Todos los solvers recibieron el mismo límite de {limit} segundos y los mismos {threads} hilos, uno detrás de otro en un servidor de {cores} núcleos. Los segundos son comparables dentro de esta ejecución y en ningún otro sitio.",
+      "sameTerms": {
+        "title": "Las mismas condiciones",
+        "description": "El mismo límite de tiempo, la misma tolerancia de gap, el mismo número de hilos, una máquina y una ejecución cada vez. Dos solvers que comparten máquina se pelean por los núcleos, y entonces los segundos dejan de significar nada."
+      },
+      "matrix": {
+        "title": "Una matriz entera",
+        "description": "Cruza los conjuntos de datos de tu modelo con los solvers: los datos en las filas, los solvers en las columnas. Un modelo cuyos datos cambian cada mes no tiene un solver más rápido, y los números de un solo mes eligen el equivocado."
+      },
+      "honestTimes": {
+        "title": "La cota, no solo la respuesta",
+        "description": "Cada fila lleva la mejor cota que demostró el solver junto a la respuesta que encontró. Una ejecución que se para por el límite de tiempo informa de la distancia entre las dos, y la respuesta sola no lo dice."
+      },
+      "cta": "Cómo funciona la comparación"
+    },
     "howItWorks": {
       "title": "Listo en minutos",
       "step1": {
@@ -1138,7 +1167,8 @@
         "marketplace": "Marketplace",
         "execution": "Ejecución",
         "modelProjects": "Proyectos de modelo",
-        "analysis": "Análisis"
+        "analysis": "Análisis",
+        "solverComparison": "Comparación de solvers"
       },
       "agentBadge": "Compatible con Claude, GPT y cualquier agente compatible con MCP",
       "cta": "Explorar la integración MCP"

@@ -9,6 +9,7 @@ import { BottleneckShowcase } from "@/components/landing/BottleneckShowcase";
 import { CatalogIndex } from "@/components/landing/CatalogIndex";
 import { ConflictShowcase } from "@/components/landing/ConflictShowcase";
 import { JModelShowcase } from "@/components/landing/JModelShowcase";
+import { SolverRaceShowcase } from "@/components/landing/SolverRaceShowcase";
 import { ProductFrame } from "@/components/landing/ProductFrame";
 import { ProvenOptimalHero } from "@/components/landing/ProvenOptimalHero";
 import { SectionHeading } from "@/components/landing/SectionHeading";
@@ -29,7 +30,9 @@ import {
   Cpu,
   Factory,
   Gauge,
+  GitCompare,
   GraduationCap,
+  Grid3x3,
   LayoutTemplate,
   Network,
   PieChart,
@@ -130,11 +133,17 @@ const INFEASIBILITY_KEYS = [
   { icon: Gauge, key: "honest" },
 ] as const;
 
+const SOLVER_RACE_KEYS = [
+  { icon: GitCompare, key: "sameTerms" },
+  { icon: Grid3x3, key: "matrix" },
+  { icon: Gauge, key: "honestTimes" },
+] as const;
+
 const HOW_IT_WORKS_KEYS = ["step1", "step2", "step3"] as const;
 
-// Mirrors the real MCP surface (app/mcp include_operations, 30 tools) — keep in
-// sync when tools are added/retired; llms.txt and docs/mcp/overview are the
-// other two copies.
+// Mirrors the real MCP surface (app/mcp include_operations, 34 tools) — keep in
+// sync when tools are added/retired; llms.txt, app/api/v2/llms.py and
+// docs/mcp/overview are the other three copies.
 const MCP_TOOL_GROUPS = [
   {
     key: "problemSolving",
@@ -174,6 +183,15 @@ const MCP_TOOL_GROUPS = [
       "analyze_infeasibility",
       "start_execution_scenario_analysis",
       "get_execution_scenario_analysis",
+    ],
+  },
+  {
+    key: "solverComparison",
+    tools: [
+      "compare_solvers",
+      "get_solver_comparison",
+      "compare_solvers_on_datasets",
+      "get_solver_comparison_matrix",
     ],
   },
 ] as const;
@@ -435,6 +453,55 @@ export default async function HomePage() {
               </div>
             </Reveal>
           ))}
+        </div>
+      </section>
+
+      {/* ── Which solver ───────────────────────────────────────────────────
+          Every section above shows what JAOT does with a model. This one shows
+          the choice underneath: four solvers on the same plan, same terms, and
+          an order nobody would have guessed. Real numbers from the comparer's
+          own adapters (scripts/gen_landing_comparison.py). */}
+      <section className="border-y border-border bg-muted/30 py-24">
+        <div className="mx-auto max-w-6xl px-6">
+          <Reveal>
+            <SectionHeading
+              eyebrow={t("solverRace.eyebrow")}
+              title={t("solverRace.title")}
+              subtitle={t("solverRace.subtitle")}
+            />
+          </Reveal>
+
+          <Reveal delay={120}>
+            <div className="mt-14">
+              <SolverRaceShowcase />
+            </div>
+          </Reveal>
+
+          <div className="mt-12 grid gap-8 sm:grid-cols-3">
+            {SOLVER_RACE_KEYS.map((item, idx) => (
+              <Reveal key={item.key} delay={(idx + 1) * 80}>
+                <div className="border-t border-border pt-4">
+                  <h3 className="mb-1.5 flex items-center gap-2 font-serif text-base">
+                    <item.icon className="h-4 w-4 text-primary" aria-hidden />
+                    {t(`solverRace.${item.key}.title`)}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {t(`solverRace.${item.key}.description`)}
+                  </p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+
+          <div className="mt-12 text-center">
+            <Link href="/docs/studio/comparing-solvers">
+              <Button variant="outline" size="lg" className="gap-2">
+                <GitCompare className="h-4 w-4" />
+                {t("solverRace.cta")}
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 

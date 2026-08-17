@@ -922,6 +922,35 @@
         "description": "Wenn ein Modell zu groß für eine exakte Konfliktmenge ist, sagt JAOT das und kennzeichnet die Erklärung klar als heuristisch — nie eine selbstsichere Vermutung."
       }
     },
+    "solverRace": {
+      "eyebrow": "Solver wählen",
+      "title": "Welcher Solver am schnellsten ist, hängt vom Modell ab",
+      "subtitle": "JAOT liefert SCIP, HiGHS, CBC und GLPK mit. Keiner davon ist der beste. Die Reihenfolge ändert sich mit dem Modell, deshalb lässt JAOT Ihr Problem von allen unter gleichen Bedingungen rechnen und zeigt, was jeder getan hat. Unten steht ein Quartal Beladung der Einbrennkammern im Werk.",
+      "chartHeading": "Gesamtzeit, logarithmische Skala",
+      "instance": "{variables} Variablen, {constraints} Nebenbedingungen",
+      "outOfTime": "Zeit abgelaufen",
+      "proved": "Bewies {objective} Kammern",
+      "seconds": "{seconds} s",
+      "rowWork": "{nodes} Knoten, {iterations} Simplex-Iterationen",
+      "rowCutOff": "Bewies, dass nichts unter {bound} Kammern geht, nach {nodes} Knoten, und fand keinen Plan",
+      "scaleNote": "Die Skala ist logarithmisch: jeder Schritt ist das Zehnfache des vorigen, die Balkenlänge ist also nicht proportional zur Zahl daneben.",
+      "verdict": "{winner} war zuerst fertig. {slowest} erreichte dieselbe Antwort {ratio} mal langsamer. Bei einem anderen Modell ändert sich die Reihenfolge, und deshalb beantwortet eine Messung diese Frage und eine Empfehlung nicht.",
+      "cutOffNote": "{solvers} lief die vollen {limit} Sekunden und fand keinen Plan, bewies aber, dass nichts unter {bound} Kammern geht. Dafür ist die Schranke da.",
+      "terms": "Jeder Solver bekam dasselbe Limit von {limit} Sekunden und dieselben {threads} Threads, einer nach dem anderen auf einem Server mit {cores} Kernen. Die Sekunden sind innerhalb dieses Laufs vergleichbar und sonst nirgends.",
+      "sameTerms": {
+        "title": "Gleiche Bedingungen",
+        "description": "Gleiches Zeitlimit, gleiche Gap-Toleranz, gleiche Thread-Zahl, eine Maschine, ein Lauf nach dem anderen. Zwei Solver auf einer Maschine streiten um die Kerne, und dann sagen die Sekunden nichts mehr aus."
+      },
+      "matrix": {
+        "title": "Eine ganze Matrix",
+        "description": "Kreuzen Sie die Datensätze Ihres Modells mit den Solvern: Datensätze in den Zeilen, Solver in den Spalten. Ein Modell, dessen Daten sich jeden Monat ändern, hat keinen schnellsten Solver, und die Zahlen eines Monats wählen den falschen."
+      },
+      "honestTimes": {
+        "title": "Die Schranke, nicht nur die Antwort",
+        "description": "Jede Zeile führt die beste Schranke, die der Solver bewiesen hat, neben der gefundenen Antwort. Ein Lauf, den das Zeitlimit gestoppt hat, meldet den Abstand zwischen beiden, und die Antwort allein sagt ihn nicht."
+      },
+      "cta": "Wie der Vergleich funktioniert"
+    },
     "howItWorks": {
       "title": "In Minuten einsatzbereit",
       "step1": {
@@ -1138,7 +1167,8 @@
         "marketplace": "Marktplatz",
         "execution": "Ausführung",
         "modelProjects": "Modellprojekte",
-        "analysis": "Analyse"
+        "analysis": "Analyse",
+        "solverComparison": "Solver-Vergleich"
       },
       "agentBadge": "Funktioniert mit Claude, GPT und jedem MCP-kompatiblen Agenten",
       "cta": "MCP-Integration entdecken"

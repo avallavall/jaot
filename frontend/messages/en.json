@@ -922,6 +922,35 @@
         "description": "When a model is too large for an exact conflict set, JAOT says so and clearly flags the explanation as heuristic — never a confident guess."
       }
     },
+    "solverRace": {
+      "eyebrow": "Choosing a solver",
+      "title": "Which solver is quickest depends on the model",
+      "subtitle": "JAOT ships SCIP, HiGHS, CBC and GLPK. None of them is best. The ranking changes with the model, so JAOT runs your problem on all of them under identical terms and shows what each one did. Below is one quarter of burn-in chamber loading at the plant.",
+      "chartHeading": "Total time, logarithmic scale",
+      "instance": "{variables} variables, {constraints} constraints",
+      "outOfTime": "Out of time",
+      "proved": "Proved {objective} chambers",
+      "seconds": "{seconds} s",
+      "rowWork": "{nodes} nodes, {iterations} simplex iterations",
+      "rowCutOff": "Proved nothing beats {bound} chambers, after {nodes} nodes, and never found a plan",
+      "scaleNote": "The scale is logarithmic: each step is ten times the one before, so bar length is not proportional to the number beside it.",
+      "verdict": "{winner} finished first. {slowest} reached the same answer {ratio} times slower. On another model the order changes, which is why a measurement answers this and a recommendation cannot.",
+      "cutOffNote": "{solvers} ran the full {limit} seconds and never found a plan, although it did prove that nothing beats {bound} chambers. That is what the bound is for.",
+      "terms": "Every solver received the same {limit}-second limit and the same {threads} threads, one run after another on one {cores}-core server. The seconds are comparable inside this run and nowhere else.",
+      "sameTerms": {
+        "title": "Identical terms",
+        "description": "The same time limit, the same gap tolerance, the same thread count, one machine, one run at a time. Two solvers sharing a machine fight for cores, and then the seconds stop meaning anything."
+      },
+      "matrix": {
+        "title": "A whole matrix",
+        "description": "Cross your model's datasets with the solvers: datasets down the side, solvers across the top. A model whose data changes every month has no single fastest solver, and one month's numbers pick the wrong one."
+      },
+      "honestTimes": {
+        "title": "The bound, not only the answer",
+        "description": "Each row carries the best bound the solver proved beside the answer it found. A run stopped by its time limit is reporting the distance between the two, and the answer on its own does not say it."
+      },
+      "cta": "How comparing works"
+    },
     "mcp": {
       "toolCount": "{count} tools, all callable by an agent",
       "title": "AI Agents Meet Optimization",
@@ -952,7 +981,8 @@
         "marketplace": "Marketplace",
         "execution": "Execution",
         "modelProjects": "Model Projects",
-        "analysis": "Analysis"
+        "analysis": "Analysis",
+        "solverComparison": "Solver Comparison"
       },
       "agentBadge": "Works with Claude, GPT, and any MCP-compatible agent",
       "cta": "Explore MCP Integration"
