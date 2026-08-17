@@ -14,6 +14,7 @@ Ordered by benefit ÷ effort.
 | D-29 | The TTL-cache-plus-single-flight pattern is written three times, and the three disagree | Low: each one works; the next copy is where it stops working | An afternoon, once a fourth caller needs it |
 | D-30 | `check_rate_limit` takes no cost, so a solver comparison refused on quota has already spent the slots of the solvers before it | Low: a user near their daily cap loses a few slots | Small, but it changes a limiter every endpoint shares |
 | D-31 | The comparison solver picker offers solvers that can never take part | Low: picking only Hexaly returns a 422 that explains itself | Small: one flag on `/solvers/available` — its trigger (CBC and GLPK landing) is now met |
+| D-32 | A matrix launch writes the compiled problem once per cell and does it inside the request | Measured: 28 s and 57 MB for 3 datasets of 22,500 variables; twelve of them would pass Cloudflare's 100 s ceiling | Medium: it is the comparison snapshot design, not the matrix's |
 
 ---
 
@@ -91,50 +92,6 @@ the wrong place for open debt.
 
 ---
 
-## Closed
-
-Full reasoning in the commit that closed each one, and in the CHANGELOG.
-
-| # | Debt | Closed |
-|---|------|--------|
-| D-01 | 79 compatibility shims in `app/core/` | ✅ `9357e9dd` |
-| D-02 | `import-linter` contracts consolidated 6→5 | ✅ |
-| D-03 | Double refund on cancel (later moot — ADR-008 removed credits) | ✅ `20260317_add_credit_idempotency_constraint` |
-| D-04 | IDOR in `GET /models/async/{task_id}` | ✅ |
-| D-05 | Solver refusals worked as a licence oracle | ✅ 2026-07-26 |
-| D-06 | `celery_beat` booting through the shim | ✅ (by D-01) |
-| D-07 | `CeleryWorkerDown` alert on the pre-rotate container name | ✅ |
-| D-08 | Flaky rate-limiter fixture | ✅ `9357e9dd` |
-| D-09 | Server 180 commits behind, CI red 7 days | ✅ |
-| D-10 | `/health` blocked the loop 100 ms per call (`psutil`) | ✅ `7a7623c` |
-| D-11 | CI had no security gate at all | ✅ `pip-audit` + `bandit` + `npm audit` |
-| D-12 | 113 `async def` endpoints issuing sync DB calls on the loop | ✅ `27c1ae8` (ADR-009) |
-| D-13 | 7 handlers doing genuinely heavy work on the loop | ✅ `2b81868` |
-| D-14 | 23 foreign keys with no index (18 fixed, 5 deliberately skipped) | ✅ `20260726_index_fks` |
-| D-15 | No contract on the vertical import direction | ✅ contract 7 |
-| D-16 | Upward imports from `domains` — 6 were never debt, 7 moved, 3 became ports | ✅ 2026-07-29 |
-| D-17 | 44 endpoints (not 55) with no `response_model`; found 2 bugs | ✅ 2026-07-30 |
-| D-19 | Route-level queries: audited all 58 unfiltered, **all correct**; 2 helpers consolidated | ✅ 2026-07-29 |
-| D-20 | Prod compose justified API limits with a rationale ADR-007 retired | ✅ `f4dd487` |
-| D-21 | Capacity limits inherited from the paid tiers (0 = unlimited now) | ✅ 2026-07-26 |
-| D-22 | 98 orphaned `platform_settings` rows (+3 Featurebase in prod) | ✅ `20260728_prune_orphan_settings`, `20260731_prune_featurebase` |
-| D-23 | Rate limits read from a mirror on `organizations` | ✅ 2026-07-31 — never needed the schema change |
-| D-24 | Three surfaces wrote nothing: `recent_models`, view events, detached principal | ✅ 2026-07-28 |
-| D-18 | 118 `Depends(get_db)` migrated to the `DBSession` alias; the alias moved to break a cycle | ✅ 2026-08-01 |
-| D-25 | Admission bounded to the pool, `pool_timeout` 30s→5s, health off the queue, pool gauges + alerts | ✅ 2026-08-01 (step 4 → D-27) |
-| D-26 | Contract-release: legacy tables + 6 FK columns + 6 credit columns dropped, `access_count` → integer; found reviews had lost their uniqueness guarantee | ✅ `20260801_contract_release` |
-
-**The 2026-04-18 comparative audit** (58% essential / 42% accidental complexity, the LOC
-tables) and the **2026-07-26 backend audit** that produced D-10…D-19 are in
-[`02-backend/07-audit-2026-07-26.md`](02-backend/07-audit-2026-07-26.md) and
-[ADR-009](08-decisions/ADR-009-sync-endpoints-with-a-sync-session.md).
-
-**Rejected, with reasons:** microservices (owner, 2026-07-25), a dynamic `auto_router` (its
-reason slugs are public API contract), and an async-SQLAlchemy migration (ADR-009 buys the
-same for a fraction of the cost).
-
----
-
 ## D-30 · A comparison refused on quota has already spent part of it
 
 Each runnable solver in a comparison costs one daily solve slot (owner, 2026-08-14), and a
@@ -182,3 +139,79 @@ solvers, so the wasted click is one in four rather than one in two.
 Recorded 2026-08-14. Trigger reached 2026-08-15.
 
 ---
+
+## D-32 · A matrix launch is as big as the model, times the number of cells
+
+A comparison stores its compiled problem twice: once on the parent, which is what the worker
+solves, and once on each child execution, because every existing consumer (exact analysis,
+exports, what-if re-solves) reads the problem off `ModelExecution.input_data`. With one
+comparison that is one extra copy per solver. A matrix multiplies it by the number of datasets.
+
+Measured on 2026-08-17, against an assignment model of the size the owner actually runs
+(150×150, 22,500 binary variables, 300 constraints):
+
+| | |
+|---|---|
+| Compiled problem, as JSON | 3.8 MB |
+| Compile + validate + classify, per dataset | ~1.0 s |
+| `POST /solvers/compare/batches`, 3 datasets × 4 solvers | **28 s**, ~57 MB written |
+| The same for 12 datasets (the cap) | ~112 s, ~228 MB |
+
+Two consequences, and neither is the compile:
+
+1. **The launch can outlive the request.** Cloudflare cuts an origin request at 100 seconds
+   (524). At twelve datasets of this size the browser would get an error for a matrix that was
+   in fact created and is running. Reopening the Solve tab finds it, because the section
+   restores the model's latest matrix — but the user was told it failed.
+2. **The rows are large.** `model_executions` is already 131 MB on the development database.
+
+The fix is not the matrix's to make: it is whether a child execution needs its own copy of a
+snapshot its parent already holds. Doing it means changing what those consumers read, which is
+a change with its own commit and its own tests. Until then the cap of twelve datasets
+(`MAX_DATASETS_PER_BATCH`) is what keeps the worst case bounded.
+
+Recorded 2026-08-17, measured rather than estimated.
+
+---
+
+## Closed
+
+Full reasoning in the commit that closed each one, and in the CHANGELOG.
+
+| # | Debt | Closed |
+|---|------|--------|
+| D-01 | 79 compatibility shims in `app/core/` | ✅ `9357e9dd` |
+| D-02 | `import-linter` contracts consolidated 6→5 | ✅ |
+| D-03 | Double refund on cancel (later moot — ADR-008 removed credits) | ✅ `20260317_add_credit_idempotency_constraint` |
+| D-04 | IDOR in `GET /models/async/{task_id}` | ✅ |
+| D-05 | Solver refusals worked as a licence oracle | ✅ 2026-07-26 |
+| D-06 | `celery_beat` booting through the shim | ✅ (by D-01) |
+| D-07 | `CeleryWorkerDown` alert on the pre-rotate container name | ✅ |
+| D-08 | Flaky rate-limiter fixture | ✅ `9357e9dd` |
+| D-09 | Server 180 commits behind, CI red 7 days | ✅ |
+| D-10 | `/health` blocked the loop 100 ms per call (`psutil`) | ✅ `7a7623c` |
+| D-11 | CI had no security gate at all | ✅ `pip-audit` + `bandit` + `npm audit` |
+| D-12 | 113 `async def` endpoints issuing sync DB calls on the loop | ✅ `27c1ae8` (ADR-009) |
+| D-13 | 7 handlers doing genuinely heavy work on the loop | ✅ `2b81868` |
+| D-14 | 23 foreign keys with no index (18 fixed, 5 deliberately skipped) | ✅ `20260726_index_fks` |
+| D-15 | No contract on the vertical import direction | ✅ contract 7 |
+| D-16 | Upward imports from `domains` — 6 were never debt, 7 moved, 3 became ports | ✅ 2026-07-29 |
+| D-17 | 44 endpoints (not 55) with no `response_model`; found 2 bugs | ✅ 2026-07-30 |
+| D-19 | Route-level queries: audited all 58 unfiltered, **all correct**; 2 helpers consolidated | ✅ 2026-07-29 |
+| D-20 | Prod compose justified API limits with a rationale ADR-007 retired | ✅ `f4dd487` |
+| D-21 | Capacity limits inherited from the paid tiers (0 = unlimited now) | ✅ 2026-07-26 |
+| D-22 | 98 orphaned `platform_settings` rows (+3 Featurebase in prod) | ✅ `20260728_prune_orphan_settings`, `20260731_prune_featurebase` |
+| D-23 | Rate limits read from a mirror on `organizations` | ✅ 2026-07-31 — never needed the schema change |
+| D-24 | Three surfaces wrote nothing: `recent_models`, view events, detached principal | ✅ 2026-07-28 |
+| D-18 | 118 `Depends(get_db)` migrated to the `DBSession` alias; the alias moved to break a cycle | ✅ 2026-08-01 |
+| D-25 | Admission bounded to the pool, `pool_timeout` 30s→5s, health off the queue, pool gauges + alerts | ✅ 2026-08-01 (step 4 → D-27) |
+| D-26 | Contract-release: legacy tables + 6 FK columns + 6 credit columns dropped, `access_count` → integer; found reviews had lost their uniqueness guarantee | ✅ `20260801_contract_release` |
+
+**The 2026-04-18 comparative audit** (58% essential / 42% accidental complexity, the LOC
+tables) and the **2026-07-26 backend audit** that produced D-10…D-19 are in
+[`02-backend/07-audit-2026-07-26.md`](02-backend/07-audit-2026-07-26.md) and
+[ADR-009](08-decisions/ADR-009-sync-endpoints-with-a-sync-session.md).
+
+**Rejected, with reasons:** microservices (owner, 2026-07-25), a dynamic `auto_router` (its
+reason slugs are public API contract), and an async-SQLAlchemy migration (ADR-009 buys the
+same for a fraction of the cost).
