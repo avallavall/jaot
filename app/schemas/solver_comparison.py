@@ -19,6 +19,12 @@ from app.schemas.optimization import OptimizationProblem
 #: hours. Well above the number of solvers that exist.
 MAX_SOLVERS_PER_COMPARISON = 8
 
+#: Ceiling on how many datasets one matrix may cross. The number of runs is the
+#: product, not the sum: 12 datasets by 8 solvers is 96 solves in a row on a
+#: single-slot queue. The daily quota is the real limit, but this stops one
+#: request from parking the comparison worker for a day before the quota can.
+MAX_DATASETS_PER_BATCH = 12
+
 
 class ComparisonSettings(BaseModel):
     """What the caller may choose. Applied identically to every solver.
@@ -159,6 +165,9 @@ class ComparisonDetail(BaseModel):
     id: str
     status: str
     problem_name: str | None = None
+    #: Set when this comparison is one row of a matrix, so a page opened on the
+    #: row can offer the way back to the matrix it came from.
+    batch_id: str | None = None
 
     source_kind: str | None = None
     source_id: str | None = None
@@ -203,4 +212,101 @@ class ComparisonListResponse(BaseModel):
     """This organization's comparisons, newest first."""
 
     comparisons: list[ComparisonSummary]
+    total: int
+
+
+# ──────────────────────────────────────────────────────────────
+# The matrix: several datasets crossed with several solvers
+# ──────────────────────────────────────────────────────────────
+
+
+class CreateComparisonBatchRequest(BaseModel):
+    """Cross several of a project's datasets with several solvers.
+
+    The model comes from the project's JModel source and is compiled once per
+    dataset, on the server. There is no ``problem`` field on purpose: a matrix
+    only means something when every row is the same model fed different data,
+    and that is exactly what a JModel source plus N datasets is.
+    """
+
+    project_id: str = Field(description="Studio model whose JModel source is compiled.")
+    version_id: str | None = Field(
+        default=None, description="Committed version of project_id. Draft when omitted."
+    )
+    dataset_ids: list[str] = Field(
+        min_length=1,
+        max_length=MAX_DATASETS_PER_BATCH,
+        description="Datasets to compile the source against, one row each.",
+    )
+    solver_names: list[str] = Field(
+        min_length=1,
+        max_length=MAX_SOLVERS_PER_COMPARISON,
+        description="Solvers to compare, one column each.",
+    )
+    settings: ComparisonSettings = Field(default_factory=ComparisonSettings)
+
+
+class ComparisonMatrixRow(BaseModel):
+    """One row of the matrix: one dataset, run against every solver.
+
+    Carries its own ``comparison_id`` because the row IS a comparison — clicking
+    a cell opens it, with the agreement block and everything else a single
+    comparison shows.
+    """
+
+    comparison_id: str
+    dataset_id: str | None = None
+    dataset_name: str | None = None
+
+    status: str
+    #: The compiled size of THIS row. Two datasets of the same model routinely
+    #: ground to very different sizes, which is often the answer to why one row
+    #: took ten times longer than the one above it.
+    problem_class: str | None = None
+    variable_count: int | None = None
+    constraint_count: int | None = None
+    error_message: str | None = None
+
+    results: list[ComparisonSolverResult]
+
+
+class ComparisonBatchDetail(BaseModel):
+    """A matrix: the datasets down the side, the solvers across the top."""
+
+    batch_id: str
+    #: Derived from the rows: pending until one starts, running while any row is
+    #: still going, then completed / failed / cancelled.
+    status: str
+    project_id: str | None = None
+    project_name: str | None = None
+    model_project_version_id: str | None = None
+
+    settings: ComparisonTerms
+    #: The columns, in the order they run. The same for every row.
+    solver_names: list[str]
+    machine_note: str | None = None
+
+    rows: list[ComparisonMatrixRow]
+
+    created_at: datetime
+    completed_at: datetime | None = None
+
+
+class ComparisonBatchSummary(BaseModel):
+    """One entry of the matrix history list."""
+
+    batch_id: str
+    status: str
+    project_id: str | None = None
+    project_name: str | None = None
+    dataset_count: int
+    solver_names: list[str]
+    created_at: datetime
+    completed_at: datetime | None = None
+
+
+class ComparisonBatchListResponse(BaseModel):
+    """This organization's matrices, newest first."""
+
+    batches: list[ComparisonBatchSummary]
     total: int

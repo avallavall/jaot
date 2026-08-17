@@ -113,6 +113,15 @@ class SolverComparison(Base):
     dataset_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     dataset_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
+    # ── Batch membership ──────────────────────────────────────────────────
+    # A matrix run is N comparisons that share this id, one per dataset. There is
+    # no batch table on purpose: a batch holds no state its members do not
+    # already carry, and a parent row would need its status kept in step with
+    # theirs on every write. ``batch_position`` keeps the rows in the order the
+    # user picked them, which is also the order they run in.
+    batch_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    batch_position: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
     # ── The settings every solver received ────────────────────────────────
     # These are the whole point of the parent row. Without them a reader cannot
     # know the table is a fair comparison, and a table nobody can trust is worse

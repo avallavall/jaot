@@ -112,7 +112,7 @@ def create_comparison(
         gap_tolerance=settings.gap_tolerance,
         threads=DEFAULT_COMPARISON_THREADS,
     )
-    problem = _enforce_instance_caps(db, problem)
+    problem = enforce_instance_caps(db, problem)
     # Whatever the caps did to the time limit is what every solver receives, so
     # the recorded terms are read back off the problem, not off the request.
     terms = ComparisonTerms(
@@ -144,7 +144,7 @@ def create_comparison(
             },
         )
 
-    _consume_daily_quota(db, org, len(runnable))
+    consume_daily_quota(db, org, len(runnable))
 
     comparison = SolverComparison(
         id=generate_id("cmp_"),
@@ -175,7 +175,7 @@ def create_comparison(
     db.flush()
 
     for entry in plan:
-        _insert_child(db, comparison, entry, problem, provenance, user)
+        insert_comparison_child(db, comparison, entry, problem, provenance, user)
 
     log_action(
         db,
@@ -189,7 +189,7 @@ def create_comparison(
     )
     db.commit()
 
-    _enqueue(db, comparison)
+    enqueue_comparison(db, comparison)
     db.refresh(comparison)
     return _detail(db, comparison)
 
@@ -257,12 +257,30 @@ def cancel_comparison(
     never got their turn are marked cancelled.
     """
     comparison = _comparison_or_404(db, comparison_id, org)
-    if comparison.status in (
+    cancel_comparison_rows(db, comparison)
+    db.commit()
+    db.refresh(comparison)
+    return _detail(db, comparison)
+
+
+#: Statuses a comparison never leaves. Cancelling one of these is a no-op.
+TERMINAL_COMPARISON_STATUSES = frozenset(
+    {
         ComparisonStatus.COMPLETED.value,
         ComparisonStatus.FAILED.value,
         ComparisonStatus.CANCELLED.value,
-    ):
-        return _detail(db, comparison)
+    }
+)
+
+
+def cancel_comparison_rows(db: Session, comparison: SolverComparison) -> bool:
+    """Mark a comparison cancelled and cancel the columns that never started.
+
+    Does not commit — the caller decides the transaction, which is what lets a
+    matrix cancel all of its rows in one. Returns whether anything changed.
+    """
+    if comparison.status in TERMINAL_COMPARISON_STATUSES:
+        return False
 
     comparison.status = ComparisonStatus.CANCELLED.value
     # Only the columns that have not started. A running one is left alone: the
@@ -277,9 +295,7 @@ def cancel_comparison(
     )
     for execution in pending:
         execution_writer.apply_cancelled(execution, message="Comparison cancelled")
-    db.commit()
-    db.refresh(comparison)
-    return _detail(db, comparison)
+    return True
 
 
 # ──────────────────────────────────────────────────────────────
@@ -388,7 +404,7 @@ def _validation_detail(model_name: str, exc: ValidationError) -> dict[str, Any]:
     }
 
 
-def _enforce_instance_caps(db: Session, problem: OptimizationProblem) -> OptimizationProblem:
+def enforce_instance_caps(db: Session, problem: OptimizationProblem) -> OptimizationProblem:
     """Apply the instance variable cap and time-limit ceiling.
 
     Mirrors what ``_enforce_tier_caps`` does for a single solve, minus the quota
@@ -424,7 +440,7 @@ def _enforce_instance_caps(db: Session, problem: OptimizationProblem) -> Optimiz
     return problem
 
 
-def _consume_daily_quota(db: Session, org: Organization, runs: int) -> None:
+def consume_daily_quota(db: Session, org: Organization, runs: int) -> None:
     """Charge ``runs`` daily solve slots, or reject the whole comparison.
 
     Known limitation: ``check_rate_limit`` consumes one slot per call and takes
@@ -456,7 +472,7 @@ def _consume_daily_quota(db: Session, org: Organization, runs: int) -> None:
         )
 
 
-def _insert_child(
+def insert_comparison_child(
     db: Session,
     comparison: SolverComparison,
     entry: SolverPlanEntry,
@@ -495,7 +511,7 @@ def _insert_child(
     return execution
 
 
-def _enqueue(db: Session, comparison: SolverComparison) -> None:
+def enqueue_comparison(db: Session, comparison: SolverComparison) -> None:
     """Hand the comparison to the single-slot comparison worker.
 
     The rows are already committed, so a broker failure leaves a comparison the
@@ -551,7 +567,7 @@ def _detail(db: Session, comparison: SolverComparison) -> ComparisonDetail:
     by_solver = {child.solver_name: child for child in children}
 
     results = [
-        _row(solver_name, by_solver.get(solver_name))
+        solver_row(solver_name, by_solver.get(solver_name))
         for solver_name in (comparison.solver_names or [])
     ]
 
@@ -570,6 +586,7 @@ def _detail(db: Session, comparison: SolverComparison) -> ComparisonDetail:
         id=comparison.id,
         status=comparison.status,
         problem_name=comparison.problem_name,
+        batch_id=comparison.batch_id,
         source_kind=comparison.source_kind,
         source_id=comparison.source_id,
         uploaded_filename=comparison.uploaded_filename,
@@ -605,7 +622,7 @@ def _detail(db: Session, comparison: SolverComparison) -> ComparisonDetail:
     )
 
 
-def _row(solver_name: str, execution: ModelExecution | None) -> ComparisonSolverResult:
+def solver_row(solver_name: str, execution: ModelExecution | None) -> ComparisonSolverResult:
     """One table row. A solver with no execution row is still shown, as pending."""
     if execution is None:
         return ComparisonSolverResult(solver_name=solver_name, status=ExecutionStatus.PENDING.value)

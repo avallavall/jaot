@@ -22,6 +22,7 @@ from app.api.v2 import (
     schedules,
     solve,
     solver_comparison,
+    solver_comparison_batch,
     solvers,
     triggers,
 )
@@ -48,6 +49,12 @@ api_v2_router.include_router(solvers.router, tags=["solvers"])
 # Solver comparison — one problem against several solvers under identical terms.
 # Registered before nothing in particular: its paths sit under /solvers/compare
 # and cannot collide with the single /solvers/available route above.
+#
+# ORDER MATTERS between these two. The batch router owns /solvers/compare/batches
+# and the other owns /solvers/compare/{comparison_id}. Routes are matched in the
+# order they are included, so with the batch router second every batch path would
+# be swallowed by {comparison_id} and answered "Comparison not found".
+api_v2_router.include_router(solver_comparison_batch.router, tags=["solvers"])
 api_v2_router.include_router(solver_comparison.router, tags=["solvers"])
 
 # Solve sub-router - Template endpoints (metadata, templates list/detail/solve)
