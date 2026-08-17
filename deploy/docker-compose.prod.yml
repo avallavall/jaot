@@ -331,8 +331,11 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - CELERY_BROKER_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672//
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
-      - DB_POOL_SIZE=5
-      - DB_MAX_OVERFLOW=5
+      # concurrency 1: one task at a time needs nowhere near ten
+      # connections, and six always-on workers at ten each pass
+      # max_connections. See D-27 for the whole budget.
+      - DB_POOL_SIZE=2
+      - DB_MAX_OVERFLOW=2
       - SOLVER_QUEUE=solve_highs
     env_file:
       - ../.env.production
@@ -383,8 +386,11 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - CELERY_BROKER_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672//
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
-      - DB_POOL_SIZE=5
-      - DB_MAX_OVERFLOW=5
+      # concurrency 1: one task at a time needs nowhere near ten
+      # connections, and six always-on workers at ten each pass
+      # max_connections. See D-27 for the whole budget.
+      - DB_POOL_SIZE=2
+      - DB_MAX_OVERFLOW=2
       - SOLVER_QUEUE=solve_cbc
     env_file:
       - ../.env.production
@@ -431,8 +437,11 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - CELERY_BROKER_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672//
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
-      - DB_POOL_SIZE=5
-      - DB_MAX_OVERFLOW=5
+      # concurrency 1: one task at a time needs nowhere near ten
+      # connections, and six always-on workers at ten each pass
+      # max_connections. See D-27 for the whole budget.
+      - DB_POOL_SIZE=2
+      - DB_MAX_OVERFLOW=2
       - SOLVER_QUEUE=solve_glpk
     env_file:
       - ../.env.production
@@ -491,8 +500,11 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - CELERY_BROKER_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672//
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
-      - DB_POOL_SIZE=5
-      - DB_MAX_OVERFLOW=5
+      # concurrency 1: one task at a time needs nowhere near ten
+      # connections, and six always-on workers at ten each pass
+      # max_connections. See D-27 for the whole budget.
+      - DB_POOL_SIZE=2
+      - DB_MAX_OVERFLOW=2
     env_file:
       - ../.env.production
     depends_on:

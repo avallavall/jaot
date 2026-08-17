@@ -23,9 +23,16 @@ Ordered by benefit ÷ effort.
 The last step of D-25, deliberately deferred: the first three closed the failure mode, this one
 raises the ceiling.
 
-**Connection budget today** (`max_connections = 100`): API 4×10 = 40, Celery 4 containers ×10
-= 40, beat 10 → **≈ 90 in the worst case**. It fits, and it was sized on purpose, but there is
-~10% headroom and every new worker or queue re-opens the arithmetic.
+**Connection budget today** (`max_connections = 100`): API 4×10 = 40, `celery_worker_default`
+and `celery_worker_scip` 10 each, the four single-concurrency workers (`highs`, `cbc`, `glpk`,
+`compare`) 4 each, beat 10 → **≈ 86 in the worst case**, and ≈ 96 with the Hexaly profile on.
+
+It fits, and it was sized on purpose, but every new worker or queue re-opens the arithmetic —
+and it has been re-opened twice already. CBC, GLPK and the comparison worker took the default
+profile from four Celery containers to six; at the old pool of 10 apiece that was ≈ 110, past
+the ceiling, and a matrix launched while a solve was running would have met
+`FATAL: sorry, too many clients already`. The four workers that run one task at a time were
+given a pool of 2+2 instead, which is what their concurrency can actually use.
 
 PgBouncer in transaction mode decouples app concurrency from the Postgres backend count, so
 pools can be generous without renegotiating `max_connections`. Two caveats to check before

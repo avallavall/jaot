@@ -61,11 +61,16 @@ export default function SolverComparePage() {
 
   // Pre-select every solver that can run, so the common case is one click. The
   // server decides which of them actually can; this is only a starting point.
+  //
+  // Once, keyed on a ref rather than on "nothing is selected": the second form
+  // refilled the boxes the moment the last one was unticked, so the last solver
+  // could not be removed.
+  const solversPreselected = useRef(false);
   useEffect(() => {
-    if (selected.length === 0 && availableSolvers.length > 0) {
-      setSelected(availableSolvers.filter((s) => s.available).map((s) => s.name));
-    }
-  }, [availableSolvers, selected.length]);
+    if (solversPreselected.current || availableSolvers.length === 0) return;
+    solversPreselected.current = true;
+    setSelected(availableSolvers.filter((s) => s.available).map((s) => s.name));
+  }, [availableSolvers]);
 
   const refresh = useCallback(async (id: string) => {
     try {

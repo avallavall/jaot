@@ -82,7 +82,12 @@ export function cellOf(
   if (result.status === "cancelled") {
     return { kind: "cancelled", value: null, reason: null, error: null };
   }
-  if (result.status === "failed") {
+  // "failed" is the execution's own state, and it is not the only way a solver
+  // fails: a solver that reports an error instead of raising one comes back
+  // COMPLETED with a solver_status of "error". Read only the first and the cell
+  // falls through to "no value" and renders a dot, which says nothing about a
+  // run that broke — and its message is right there on the row.
+  if (result.status === "failed" || result.solver_status === "error") {
     return { kind: "failed", value: null, reason: null, error: result.error_message };
   }
 

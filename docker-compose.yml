@@ -183,7 +183,10 @@ services:
       - ALL
     read_only: true
     tmpfs:
-      - /tmp:size=64m
+      # A model with tens of thousands of variables writes several MB of LP here
+      # before cbc or glpsol is launched, so this cannot be a small tmpfs. Same
+      # size the production compose gives these two workers.
+      - /tmp:size=256m
     # Explicit command — Dockerfile default CMD broke at cold-start after SHIM-01 cleanup (WR-06).
     # `-Q jaot_default` (Phase 10/CR-01) so the boot-time queue audit finds a consumer set.
     # LOCAL-DEV: also consume the per-solver queues so async solves work on this single
@@ -227,7 +230,10 @@ services:
       - ALL
     read_only: true
     tmpfs:
-      - /tmp:size=64m
+      # A model with tens of thousands of variables writes several MB of LP here
+      # before cbc or glpsol is launched, so this cannot be a small tmpfs. Same
+      # size the production compose gives these two workers.
+      - /tmp:size=256m
     command: ["celery", "-A", "app.shared.core.celery_app", "worker", "--loglevel=info", "--concurrency=1", "-Q", "solve_compare"]
     healthcheck:
       test: ["CMD", "celery", "-A", "app.shared.core.celery_app", "inspect", "ping", "--timeout", "5"]

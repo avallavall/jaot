@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 import app.api.v2.solver_comparison as comparison_api
 import app.domains.solver.tasks.comparison_tasks as comparison_tasks_mod
 from app.models import ModelExecution, Organization, SolverComparison
+from app.models.optimization_model import ExecutionStatus
 from app.models.solver_comparison import DEFAULT_COMPARISON_THREADS, ComparisonStatus
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
@@ -375,6 +376,32 @@ def test_a_comparison_the_quota_cannot_cover_is_refused_whole(
     assert response.json()["detail"]["error"] == "daily_solve_quota_exceeded"
     # Nothing was written: no half-built comparison left behind.
     assert db_session.query(SolverComparison).count() == 0
+
+
+# CONTRACT-TEST: a comparison that could not be queued closes its columns. They
+# are written before the enqueue, so without this they sit pending under a failed
+# parent until the reaper's next sweep, and the page polls for the whole quarter
+# of an hour.
+def test_a_comparison_that_cannot_be_queued_closes_its_columns(
+    authenticated_client: TestClient,
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    def _broker_is_down(*_args, **_kwargs):
+        raise RuntimeError("broker unreachable")
+
+    monkeypatch.setattr(comparison_tasks_mod.run_solver_comparison, "apply_async", _broker_is_down)
+
+    response = authenticated_client.post(
+        _URL, json={"problem": _PROBLEM, "solver_names": ["scip", "highs"]}
+    )
+
+    assert response.status_code == 503, response.text
+    db_session.expire_all()
+    comparison = db_session.query(SolverComparison).one()
+    assert comparison.status == ComparisonStatus.FAILED.value
+    for execution in db_session.query(ModelExecution).all():
+        assert execution.status == ExecutionStatus.CANCELLED.value
 
 
 # ──────────────────────────────────────────────────────────────

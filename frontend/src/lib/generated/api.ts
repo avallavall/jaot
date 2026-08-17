@@ -3853,10 +3853,16 @@ export interface paths {
          * Create Batch
          * @description Queue a matrix and return it with every cell still pending.
          *
-         *     Every dataset is compiled and planned BEFORE a single row is written. A
-         *     dataset that does not compile, or a model too large for this instance, stops
-         *     the whole launch and names the dataset it failed on — half a matrix with the
-         *     hard scenario missing is exactly the half that would change the conclusion.
+         *     The launch writes the rows and nothing else. Compiling every dataset here
+         *     would put the whole cost of the model in front of the user before the page
+         *     could even show a grid — measured at 28 seconds and 57 MB for three datasets
+         *     of 22,500 variables, and past a proxy's ceiling at twelve. Each row is
+         *     compiled by its own worker instead.
+         *
+         *     What still happens here is one compile of the FIRST dataset. It is what says
+         *     the model can be solved at all, which solvers can express it, and therefore
+         *     what the matrix costs against the daily quota — all three are properties of
+         *     the source rather than of the data, so one dataset answers for every row.
          */
         post: operations["create_batch_api_v2_solvers_compare_batches_post"];
         delete?: never;

@@ -63,6 +63,25 @@ describe("cellOf", () => {
     expect(cell.value).toBeNull();
   });
 
+  // A solver that REPORTS an error instead of raising one comes back with the
+  // execution completed and its own verdict set to "error". Read only the
+  // execution's state and the cell renders a dot that says nothing.
+  it("shows a solver that reported an error as failed, not as a blank", () => {
+    const cell = cellOf(
+      result({
+        status: "completed",
+        solver_status: "error",
+        objective_value: null,
+        wall_time_ms: null,
+        error_message: "cbc refused the model",
+      }),
+      "time",
+    );
+
+    expect(cell.kind).toBe("failed");
+    expect(cell.error).toBe("cbc refused the model");
+  });
+
   it("distinguishes waiting, failed and stopped from having no number", () => {
     expect(cellOf(result({ status: "running" }), "time").kind).toBe("waiting");
     expect(cellOf(result({ status: "cancelled" }), "time").kind).toBe("cancelled");

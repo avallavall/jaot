@@ -69,6 +69,20 @@ describe("timeBars", () => {
     expect(bars[1].ratio).toBe(4);
   });
 
+  // Zero on a logarithmic axis is not a short bar, it is no bar at all — and the
+  // solver it belongs to is the one that won.
+  it("floors a solve too fast to measure instead of plotting zero", () => {
+    const bars = timeBars(
+      comparison([
+        result({ solver_name: "scip", wall_time_ms: 0 }),
+        result({ solver_name: "highs", wall_time_ms: 2000 }),
+      ]),
+    );
+
+    expect(bars[0].seconds).toBeGreaterThan(0);
+    expect(Number.isFinite(Math.log10(bars[0].seconds))).toBe(true);
+  });
+
   // A solver that never ran has no bar, and a chart of one bar compares nothing.
   it("draws nothing when only one solver produced a time", () => {
     expect(

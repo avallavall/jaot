@@ -155,6 +155,67 @@ def test_cbc_time_limit_without_a_solution_reports_the_bound_and_no_answer() -> 
     assert result.iterations == 351289
 
 
+# CONTRACT-TEST: a run cut off by its time limit must never come back with a gap
+# of zero. Defaulting the bound to the answer said "proven optimal" about a
+# search that had not finished, and a comparison table is read as evidence.
+def test_cbc_with_an_answer_but_no_bound_does_not_claim_it_proved_it() -> None:
+    adapter = cbc_mod.CBCAdapter()
+    # A solution, a time limit, and no "Lower bound" line anywhere.
+    run = cbc_mod.CliRun(
+        stdout=(
+            "Result - Stopped on time limit\n"
+            "Enumerated nodes:               900\n"
+            "Total iterations:               4200\n"
+        ),
+        returncode=0,
+        killed=False,
+    )
+
+    result = adapter._build_result(
+        "Stopped on time - objective value 21.00000000\n      0 k0   1   0\n      1 k1   1   0\n",
+        run,
+        _binary_problem(2),
+        elapsed=5.0,
+    )
+
+    assert result.status is SolverStatus.TIME_LIMIT
+    assert result.objective_value == 21.0
+    assert result.dual_bound is None, "the answer was passed off as its own bound"
+    assert result.gap is None, "a gap of zero would read as a proof CBC never made"
+
+
+def test_cbc_at_optimality_takes_the_answer_as_its_own_bound() -> None:
+    """A closed search does not always print a bound, and there the two are equal."""
+    adapter = cbc_mod.CBCAdapter()
+    run = cbc_mod.CliRun(
+        stdout="Result - Optimal solution found\nEnumerated nodes:  3\n",
+        returncode=0,
+        killed=False,
+    )
+
+    result = adapter._build_result(
+        "Optimal - objective value 21.00000000\n      0 k0   1   0\n      1 k1   1   0\n",
+        run,
+        _binary_problem(2),
+        elapsed=1.0,
+    )
+
+    assert result.status is SolverStatus.OPTIMAL
+    assert result.dual_bound == 21.0
+    assert result.gap == 0.0
+
+
+def test_cbc_reads_a_bound_written_in_scientific_notation() -> None:
+    """A negative exponent is a number too. The value class used to stop at the
+    minus sign, drop the line, and leave the bound unknown."""
+    counters = cbc_mod._parse_counters(
+        "Lower bound:                    -1.5e-05\nEnumerated nodes:  7\n",
+        _binary_problem(1),
+    )
+
+    assert counters["dual_bound"] == -1.5e-05
+
+
 def test_cbc_reports_no_bound_for_an_infeasible_model() -> None:
     """The number on an "Infeasible" headline is wherever CBC stopped, not a bound."""
     adapter = cbc_mod.CBCAdapter()

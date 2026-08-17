@@ -273,6 +273,20 @@ TERMINAL_COMPARISON_STATUSES = frozenset(
 )
 
 
+def _close_pending_columns(db: Session, comparison: SolverComparison) -> None:
+    """Cancel the columns that had not started. Does not commit."""
+    pending = (
+        db.query(ModelExecution)
+        .filter(
+            ModelExecution.comparison_id == comparison.id,
+            ModelExecution.status == ExecutionStatus.PENDING.value,
+        )
+        .all()
+    )
+    for execution in pending:
+        execution_writer.apply_cancelled(execution, message="Comparison cancelled")
+
+
 def cancel_comparison_rows(db: Session, comparison: SolverComparison) -> bool:
     """Mark a comparison cancelled and cancel the columns that never started.
 
@@ -285,16 +299,7 @@ def cancel_comparison_rows(db: Session, comparison: SolverComparison) -> bool:
     comparison.status = ComparisonStatus.CANCELLED.value
     # Only the columns that have not started. A running one is left alone: the
     # worker owns it and will write its real verdict.
-    pending = (
-        db.query(ModelExecution)
-        .filter(
-            ModelExecution.comparison_id == comparison.id,
-            ModelExecution.status == ExecutionStatus.PENDING.value,
-        )
-        .all()
-    )
-    for execution in pending:
-        execution_writer.apply_cancelled(execution, message="Comparison cancelled")
+    _close_pending_columns(db, comparison)
     return True
 
 
@@ -545,6 +550,10 @@ def enqueue_comparison(db: Session, comparison: SolverComparison) -> None:
         comparison = db.merge(comparison)
         comparison.status = ComparisonStatus.FAILED.value
         comparison.error_message = f"Failed to enqueue comparison: {exc}"
+        # And close its columns. They were written before the enqueue, so without
+        # this they sit pending under a failed parent until the reaper's next
+        # sweep a quarter of an hour later, and the page polls the whole time.
+        _close_pending_columns(db, comparison)
         db.commit()
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

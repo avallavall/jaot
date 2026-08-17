@@ -58,7 +58,10 @@ _RECORD_RE = re.compile(
 )
 
 #: "Enumerated nodes:  1234" and friends from the end-of-run summary.
-_SUMMARY_RE = re.compile(r"^(?P<label>[A-Za-z][A-Za-z ()]*?):\s+(?P<value>-?[\d.eE+]+)\s*$")
+#: The value part accepts a sign in the exponent as well as at the front:
+#: "Lower bound: -1.5e-05" is a bound like any other, and a class that only
+#: allowed a leading minus skipped the line and left the bound unknown.
+_SUMMARY_RE = re.compile(r"^(?P<label>[A-Za-z][A-Za-z ()]*?):\s+(?P<value>[-+]?[\d.eE+-]+)\s*$")
 
 #: The one-line summary CBC prints instead of the block above when the model was
 #: a pure LP: "Optimal objective 12 - 2 iterations time 0.002, Presolve 0.00".
@@ -222,7 +225,16 @@ class CBCAdapter:
             return result
 
         result.objective_value = headline_objective
-        result.dual_bound = counters.get("dual_bound", headline_objective)
+        dual_bound = counters.get("dual_bound")
+        # At optimality the bound IS the answer, and CBC does not always print a
+        # "Lower bound" line for a search that closed. Anywhere else, defaulting
+        # the bound to the answer would report a gap of zero on a run that was
+        # cut off by its time limit — the comparison would show it as proven
+        # while it was still a long way from proving anything. Same guard the
+        # GLPK adapter has, for the same reason.
+        if dual_bound is None and status is SolverStatus.OPTIMAL:
+            dual_bound = headline_objective
+        result.dual_bound = dual_bound
         result.gap = relative_gap(result.objective_value, result.dual_bound)
 
         values = _parse_columns(lines[1:])

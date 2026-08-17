@@ -6,6 +6,10 @@ const RAN = new Set(["optimal", "feasible", "infeasible", "unbounded", "time_lim
 /** Verdicts that come with an objective worth putting on an axis. */
 const ANSWERED = new Set(["optimal", "feasible", "time_limit"]);
 
+/** The smallest time a logarithmic axis can show. A solve too fast to measure
+ * is floored to this rather than dropped: it did happen, and it was fastest. */
+export const LOG_FLOOR_SECONDS = 0.001;
+
 /** Below two bars there is nothing to compare, and a chart of one is a number
  * with decoration around it. */
 export const MIN_BARS = 2;
@@ -31,7 +35,13 @@ export interface TimeBar {
 export function timeBars(comparison: ComparisonDetail): TimeBar[] {
   const timed = ranRows(comparison)
     .filter((row) => row.wall_time_ms !== null)
-    .map((row) => ({ solver: row.solver_name, seconds: (row.wall_time_ms as number) / 1000 }))
+    .map((row) => ({
+      solver: row.solver_name,
+      // Floored here, not only on the axis. A solve under a millisecond rounds
+      // to zero, and zero has no place on a logarithmic scale: the bar comes out
+      // as NaN and the fastest solver disappears from its own chart.
+      seconds: Math.max((row.wall_time_ms as number) / 1000, LOG_FLOOR_SECONDS),
+    }))
     .sort((a, b) => a.seconds - b.seconds);
   if (timed.length < MIN_BARS) return [];
 
@@ -52,8 +62,6 @@ export function timeBars(comparison: ComparisonDetail): TimeBar[] {
  * Zero has no place on a log axis, so a solve too fast to measure is floored at
  * one millisecond rather than dropped: it did happen, and it was the fastest.
  */
-export const LOG_FLOOR_SECONDS = 0.001;
-
 export function logDomain(values: number[]): [number, number] {
   const positive = values.map((value) => Math.max(value, LOG_FLOOR_SECONDS));
   if (positive.length === 0) return [LOG_FLOOR_SECONDS, 1];
@@ -79,14 +87,7 @@ export interface BoundBar {
   proven: boolean;
 }
 
-/**
- * The distance between what each solver found and what it proved possible.
- *
- * This is the chart a comparison under a time limit is really about. The table
- * puts the objective in one column and the bound in another and leaves the
- * reader to imagine the distance between them; drawn on one shared axis, a
- * solver that stopped a long way short is obvious next to one that closed.
- */
+/** Whether this solver reported both the answer and the bound the chart needs. */
 function hasBothEnds(row: ComparisonSolverResult): boolean {
   return (
     row.solver_status !== null &&
@@ -96,6 +97,14 @@ function hasBothEnds(row: ComparisonSolverResult): boolean {
   );
 }
 
+/**
+ * The distance between what each solver found and what it proved possible.
+ *
+ * This is the chart a comparison under a time limit is really about. The table
+ * puts the objective in one column and the bound in another and leaves the
+ * reader to imagine the distance between them; drawn on one shared axis, a
+ * solver that stopped a long way short is obvious next to one that closed.
+ */
 export function boundBars(comparison: ComparisonDetail): BoundBar[] {
   const bars = ranRows(comparison)
     .filter(hasBothEnds)
