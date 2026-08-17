@@ -287,3 +287,5 @@ The request body carries the presentation: `display_name`, `description`, `short
 | Execution results | `GET /api/v2/models/executions/all`, `GET /api/v2/models/executions/{id}` | [Executions API](/docs/api/executions) |
 
 `POST /projects/{id}/solve` rides the same async pipeline as `POST /solve`: it waits briefly for the result and returns the classic `OptimizationResult`, or **202** with a task envelope (`poll_url`, `ws_url`) if the solve is still running. `solution_filter=nonzero` returns a compact solution that omits near-zero variables (`variables_omitted` reports the count); the stored execution always keeps the full solution.
+
+> **Its options go in the query string, not the body.** `POST /solve` takes `solver_name` inside the JSON problem; this endpoint takes it as a query parameter, because the model comes from the project and there is no request body at all. A body sent here is ignored without an error, so `{"solver_name": "glpk"}` silently gets you the default solver. Check `solver_used` in the response if you are not sure which one ran.
