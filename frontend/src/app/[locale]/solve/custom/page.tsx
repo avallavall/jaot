@@ -268,22 +268,25 @@ export default function CustomSolvePage() {
                 </div>
 
                 {(() => {
-                  const modelData = (result as unknown as Record<string, unknown>).model;
-                  if (!modelData || typeof modelData !== 'object') return null;
-                  const entries = Object.entries(modelData as Record<string, unknown>);
+                  // The values of the decision variables — the answer the user came
+                  // for. This read `result.model` for a long time; the API has no
+                  // such field, so the block returned null on every solve and the
+                  // panel showed only the objective. `as unknown as Record<...>` is
+                  // what kept TypeScript from saying so, and is gone with it.
+                  const entries: Array<[string, number]> = result.solution
+                    ? Object.entries(result.solution)
+                    : (result.variables ?? []).map((v) => [v.name, v.value]);
                   if (entries.length === 0) return null;
                   return (
                     <div>
-                      <Label className="text-sm text-muted-foreground">{t("modelLabel")}</Label>
+                      <Label className="text-sm text-muted-foreground">{t("solutionLabel")}</Label>
                       <div className="mt-2 p-4 bg-muted rounded-lg">
                         <div className="grid grid-cols-2 gap-2">
                           {entries.map(([name, value]) => (
                             <div key={name} className="flex justify-between">
                               <span className="font-mono text-sm">{name}</span>
                               <span className="font-semibold">
-                                {typeof value === "number"
-                                  ? value.toLocaleString(undefined, { maximumFractionDigits: 4 })
-                                  : String(value)}
+                                {value.toLocaleString(undefined, { maximumFractionDigits: 4 })}
                               </span>
                             </div>
                           ))}

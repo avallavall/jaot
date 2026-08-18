@@ -38,6 +38,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ### Security
 
+- **Custom Solve shows the answer.** The panel gave you a status, an objective and a time, and never the values of the decision variables — which is the thing you ran the solver for. It read a field the API does not send, so the block was empty on every solve since the page shipped.
 - **Two people editing the same model no longer overwrite each other in silence.** The second save used to win automatically while both screens still said Saved, so the first person's work disappeared with nothing to show for it. Autosave now stops when somebody else has changed the model, says so, and offers to overwrite only if you choose to.
 - **Restoring an old version asks before throwing away uncommitted work.** It used to discard it without a word, while a message claimed the work had been kept as a checkpoint. Nothing of the sort was ever saved. You are now shown what is about to be lost and can cancel; the message no longer promises a checkpoint that does not exist.
 - **A password reset link now works once.** It kept working for its whole hour, so anyone who saw the link afterwards — a forwarded mail, browser history, a mail server log — could keep changing the password. Using a link now spends it, and any other link issued earlier stops working at the same moment.
