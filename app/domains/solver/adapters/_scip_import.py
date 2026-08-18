@@ -14,6 +14,7 @@ Original path: app/domains/solver/services/file_import.py
 Canonical path: app/domains/solver/adapters/_scip_import.py
 """
 
+import errno
 import gzip
 import io
 import json
@@ -54,6 +55,27 @@ _SCIP_VTYPE_MAP: dict[str, VariableType] = {
 
 
 _sanitize_var_name = sanitize_var_name  # local alias for brevity
+
+
+def _write_all(fd: int, payload: bytes) -> None:
+    """Write every byte of *payload* to *fd*, or raise.
+
+    ``os.write`` returns how many bytes it actually wrote, and it does not raise
+    when the filesystem fills: it writes what fits and reports the short count.
+    Discarding that count truncated the upload in silence, and SCIP then read a
+    well-formed file that was not the one the user sent — a 39.8 MB LP with
+    1,500,000 constraints imported as 1,055,089 and solved as a different model.
+    ``/tmp`` in the API container is a 64 MB tmpfs (256 MB in production) while
+    the endpoint accepts up to ``MAX_IMPORT_SIZE`` (500 MB), so the gap is
+    reachable with an ordinary upload.
+    """
+    view = memoryview(payload)
+    written = 0
+    while written < len(view):
+        chunk = os.write(fd, view[written:])
+        if chunk <= 0:
+            raise OSError(errno.ENOSPC, "short write while storing the uploaded file")
+        written += chunk
 
 
 class FileImportError(Exception):
@@ -159,9 +181,18 @@ class FileImportService:
 
         fd, tmp_path = tempfile.mkstemp(suffix=inner_ext)
         try:
-            os.write(fd, file_bytes)
-        finally:
+            _write_all(fd, file_bytes)
+        except OSError as exc:
             os.close(fd)
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                logger.debug("Failed to clean up temp file: %s", tmp_path)
+            raise FileImportError(
+                f"Could not store the {len(file_bytes)}-byte upload for reading: {exc}. "
+                "The server ran out of temporary space."
+            ) from exc
+        os.close(fd)
 
         return tmp_path
 

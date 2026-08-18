@@ -969,3 +969,84 @@ class TestImportAndSolveEndpoint:
             files={"file": ("simple.lp", file_bytes, "application/octet-stream")},
         )
         assert resp.status_code == 401
+
+
+class TestUploadIsNeverTruncated:
+    """The temp file SCIP reads must hold every byte the user uploaded.
+
+    ``os.write`` reports how many bytes it actually wrote and does not raise
+    when the filesystem fills. Discarding that count silently truncated the
+    upload: a 39.8 MB LP with 1,500,000 constraints was imported as 1,055,089
+    and solved as a different model, with HTTP 200 and no warning. ``/tmp`` in
+    the API container is a 64 MB tmpfs (256 MB in production) while the
+    endpoint accepts up to 500 MB, so the gap is reachable with an ordinary
+    upload.
+    """
+
+    # CONTRACT-TEST: an upload that cannot be stored whole is refused, never truncated
+    def test_a_full_filesystem_raises_instead_of_truncating(self, monkeypatch):
+        service = FileImportService()
+        payload = _read_fixture("simple.lp")
+        assert len(payload) > 20, "fixture too small to write a partial copy"
+
+        real_write = os.write
+        first_call = {"pending": True}
+
+        def filling_write(fd, data):
+            # A filesystem that fills up stores what fits, reports that short
+            # count, and takes nothing afterwards.
+            if first_call["pending"]:
+                first_call["pending"] = False
+                return real_write(fd, bytes(data)[: len(data) // 2])
+            return 0
+
+        monkeypatch.setattr(os, "write", filling_write)
+
+        with pytest.raises(FileImportError) as exc:
+            service._save_upload_to_temp(payload, ".lp")
+
+        assert "temporary space" in str(exc.value)
+
+    def test_a_partial_write_is_completed_not_abandoned(self, monkeypatch):
+        """A short write with room left must be retried until every byte lands.
+
+        Short writes are legal even on a healthy filesystem, so refusing on the
+        first one would reject good uploads.
+        """
+        service = FileImportService()
+        payload = _read_fixture("simple.lp")
+
+        real_write = os.write
+
+        def chunked_write(fd, data):
+            return real_write(fd, bytes(data)[:64])
+
+        monkeypatch.setattr(os, "write", chunked_write)
+
+        tmp_path = service._save_upload_to_temp(payload, ".lp")
+        try:
+            with open(tmp_path, "rb") as fh:
+                assert fh.read() == payload
+        finally:
+            os.unlink(tmp_path)
+
+    def test_the_temp_file_is_removed_when_the_write_fails(self, monkeypatch):
+        service = FileImportService()
+        payload = _read_fixture("simple.lp")
+        created = []
+
+        real_mkstemp = tempfile.mkstemp
+
+        def tracking_mkstemp(*args, **kwargs):
+            fd, path = real_mkstemp(*args, **kwargs)
+            created.append(path)
+            return fd, path
+
+        monkeypatch.setattr(tempfile, "mkstemp", tracking_mkstemp)
+        monkeypatch.setattr(os, "write", lambda fd, data: 0)
+
+        with pytest.raises(FileImportError):
+            service._save_upload_to_temp(payload, ".lp")
+
+        assert created, "the test never reached mkstemp"
+        assert not os.path.exists(created[0]), "a truncated temp file was left behind"
