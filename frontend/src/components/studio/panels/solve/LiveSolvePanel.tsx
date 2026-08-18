@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { solverDisplayName } from "@/lib/solver-display";
 import type { SolverCapabilities } from "@/lib/types";
@@ -31,7 +31,16 @@ export function LiveSolvePanel({ session, onCancel, capabilities }: LiveSolvePan
     v === null ? "—" : v.toLocaleString(undefined, { maximumFractionDigits: digits });
 
   const running = status === "running";
-  const done = status === "done";
+  // The session status says whether the RUN finished, not whether the model was
+  // solved. An infeasible or unbounded model runs to completion and correctly
+  // reports that no answer exists, and this box announced that with a green tick
+  // and the word "Solved" — directly above the metric stating "infeasible".
+  // A missing verdict is treated as solved, so a solver that reports no status
+  // is not accused of failing.
+  const verdict = result?.status ?? null;
+  const solved = verdict === null || verdict === "optimal" || verdict === "feasible";
+  const done = status === "done" && solved;
+  const noAnswer = status === "done" && !solved;
   const hasPoints = points.length > 0;
 
   return (
@@ -39,6 +48,7 @@ export function LiveSolvePanel({ session, onCancel, capabilities }: LiveSolvePan
       <div className="flex items-center gap-2">
         {running && <Loader2 className="size-4 animate-spin text-primary" aria-hidden="true" />}
         {done && <CheckCircle2 className="size-4 text-green-600" aria-hidden="true" />}
+        {noAnswer && <AlertCircle className="size-4 text-amber-600" aria-hidden="true" />}
         {(status === "failed" || status === "cancelled") && (
           <XCircle className="size-4 text-destructive" aria-hidden="true" />
         )}
@@ -47,9 +57,11 @@ export function LiveSolvePanel({ session, onCancel, capabilities }: LiveSolvePan
             ? t("liveRunning")
             : done
               ? t("liveDone")
-              : status === "cancelled"
-                ? t("liveCancelled")
-                : t("liveFailed")}
+              : noAnswer
+                ? t("liveNoAnswer")
+                : status === "cancelled"
+                  ? t("liveCancelled")
+                  : t("liveFailed")}
         </span>
       </div>
 
@@ -87,7 +99,7 @@ export function LiveSolvePanel({ session, onCancel, capabilities }: LiveSolvePan
       )}
 
       {/* Solved, but the solver didn't stream per-incumbent (HiGHS/Hexaly): final summary. */}
-      {done && !hasPoints && result && (
+      {(done || noAnswer) && !hasPoints && result && (
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Metric

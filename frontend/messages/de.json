@@ -117,6 +117,7 @@
     "lastRun": "Letzter Lauf: {status, select, completed {gelöst} failed {fehlgeschlagen} cancelled {abgebrochen} timeout {keine Lösung (Zeitlimit)} other {beendet}}{hasObjective, select, yes { · Ziel {objective, number}} other {}} · {when}",
     "liveRunning": "Wird gelöst…",
     "liveDone": "Gelöst",
+    "liveNoAnswer": "Beendet ohne Lösung",
     "liveFailed": "Lösung fehlgeschlagen",
     "liveCancelled": "Abgebrochen",
     "liveWaiting": "Warten auf die erste Lösung…",

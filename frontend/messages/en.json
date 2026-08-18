@@ -117,6 +117,7 @@
     "lastRun": "Last run: {status, select, completed {solved} failed {failed} cancelled {cancelled} timeout {no solution (time limit)} other {finished}}{hasObjective, select, yes { · objective {objective, number}} other {}} · {when}",
     "liveRunning": "Solving…",
     "liveDone": "Solved",
+    "liveNoAnswer": "Finished without a solution",
     "liveFailed": "Solve failed",
     "liveCancelled": "Cancelled",
     "liveWaiting": "Waiting for the first incumbent…",
