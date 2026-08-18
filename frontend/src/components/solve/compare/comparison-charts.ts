@@ -65,7 +65,16 @@ export function timeBars(comparison: ComparisonDetail): TimeBar[] {
 export function logDomain(values: number[]): [number, number] {
   const positive = values.map((value) => Math.max(value, LOG_FLOOR_SECONDS));
   if (positive.length === 0) return [LOG_FLOOR_SECONDS, 1];
-  const low = Math.pow(10, Math.floor(Math.log10(Math.min(...positive))));
+  const smallest = Math.min(...positive);
+  let low = Math.pow(10, Math.floor(Math.log10(smallest)));
+  // A bar starts at the axis low and ends at its value, so a value sitting
+  // exactly ON the low has no length: it is drawn as nothing and its label has
+  // nowhere to go. That is what happened to any solve at or under a
+  // millisecond, since the floor is itself a power of ten — the solver badged
+  // "Fastest" was the one missing from the chart of who was fastest. Only drop
+  // a decade when they coincide, so a domain like [0.4, 37] still rounds out to
+  // [0.1, 100] rather than wasting a decade on every chart.
+  if (low === smallest) low /= 10;
   const high = Math.pow(10, Math.ceil(Math.log10(Math.max(...positive))));
   // A single decade would put every bar on the same tick.
   return [low, high > low ? high : low * 10];

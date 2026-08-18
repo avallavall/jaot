@@ -10,7 +10,9 @@ import {
   timeBars,
 } from "../comparison-charts";
 
-function result(overrides: Partial<ComparisonSolverResult> = {}): ComparisonSolverResult {
+function result(
+  overrides: Partial<ComparisonSolverResult> = {},
+): ComparisonSolverResult {
   return {
     solver_name: "scip",
     execution_id: "exe_1",
@@ -89,7 +91,11 @@ describe("timeBars", () => {
       timeBars(
         comparison([
           result({ solver_name: "scip", wall_time_ms: 1000 }),
-          result({ solver_name: "highs", solver_status: "unsupported", wall_time_ms: null }),
+          result({
+            solver_name: "highs",
+            solver_status: "unsupported",
+            wall_time_ms: null,
+          }),
         ]),
       ),
     ).toEqual([]);
@@ -124,7 +130,12 @@ describe("boundBars", () => {
       ]),
     );
 
-    expect(bars[0]).toMatchObject({ solver: "scip", low: 100, span: 20, proven: false });
+    expect(bars[0]).toMatchObject({
+      solver: "scip",
+      low: 100,
+      span: 20,
+      proven: false,
+    });
     expect(bars[1]).toMatchObject({ solver: "highs", span: 0, proven: true });
   });
 
@@ -144,7 +155,11 @@ describe("boundBars", () => {
       boundBars(
         comparison([
           result({ solver_name: "scip" }),
-          result({ solver_name: "highs", solver_status: "infeasible", objective_value: null }),
+          result({
+            solver_name: "highs",
+            solver_status: "infeasible",
+            objective_value: null,
+          }),
         ]),
       ),
     ).toEqual([]);
@@ -157,7 +172,11 @@ describe("boundOmissions", () => {
   it("names the solvers that ran but reported no answer", () => {
     const detail = comparison([
       result({ solver_name: "scip" }),
-      result({ solver_name: "highs", solver_status: "time_limit", objective_value: null }),
+      result({
+        solver_name: "highs",
+        solver_status: "time_limit",
+        objective_value: null,
+      }),
       result({ solver_name: "cbc" }),
     ]);
 
@@ -166,7 +185,10 @@ describe("boundOmissions", () => {
   });
 
   it("names nobody when every solver that ran is in the chart", () => {
-    const detail = comparison([result({ solver_name: "scip" }), result({ solver_name: "cbc" })]);
+    const detail = comparison([
+      result({ solver_name: "scip" }),
+      result({ solver_name: "cbc" }),
+    ]);
     expect(boundOmissions(detail)).toEqual([]);
   });
 
@@ -190,7 +212,14 @@ describe("boundOmissions", () => {
 describe("boundDomain", () => {
   it("covers every bar with room around it", () => {
     const [low, high] = boundDomain([
-      { solver: "a", low: 100, span: 20, objective: 120, bound: 100, proven: false },
+      {
+        solver: "a",
+        low: 100,
+        span: 20,
+        objective: 120,
+        bound: 100,
+        proven: false,
+      },
       { solver: "b", low: 90, span: 0, objective: 90, bound: 90, proven: true },
     ]);
     expect(low).toBeLessThan(90);
@@ -210,8 +239,16 @@ describe("splitBars", () => {
   it("splits the wait into the search and the model building", () => {
     const bars = splitBars(
       comparison([
-        result({ solver_name: "scip", wall_time_ms: 5000, solver_time_seconds: 2 }),
-        result({ solver_name: "highs", wall_time_ms: 1000, solver_time_seconds: 0.4 }),
+        result({
+          solver_name: "scip",
+          wall_time_ms: 5000,
+          solver_time_seconds: 2,
+        }),
+        result({
+          solver_name: "highs",
+          wall_time_ms: 1000,
+          solver_time_seconds: 0.4,
+        }),
       ]),
     );
 
@@ -225,12 +262,22 @@ describe("splitBars", () => {
   it("never produces a negative segment", () => {
     const bars = splitBars(
       comparison([
-        result({ solver_name: "scip", wall_time_ms: 1000, solver_time_seconds: 1.002 }),
-        result({ solver_name: "highs", wall_time_ms: 2000, solver_time_seconds: 1 }),
+        result({
+          solver_name: "scip",
+          wall_time_ms: 1000,
+          solver_time_seconds: 1.002,
+        }),
+        result({
+          solver_name: "highs",
+          wall_time_ms: 2000,
+          solver_time_seconds: 1,
+        }),
       ]),
     );
     expect(bars.every((bar) => bar.build >= 0)).toBe(true);
-    expect(bars.find((bar) => bar.solver === "scip")?.search).toBeLessThanOrEqual(1);
+    expect(
+      bars.find((bar) => bar.solver === "scip")?.search,
+    ).toBeLessThanOrEqual(1);
   });
 
   // With no building to show, this is the time chart again on a linear axis.
@@ -238,8 +285,16 @@ describe("splitBars", () => {
     expect(
       splitBars(
         comparison([
-          result({ solver_name: "scip", wall_time_ms: 5000, solver_time_seconds: 4.99 }),
-          result({ solver_name: "highs", wall_time_ms: 1000, solver_time_seconds: 0.999 }),
+          result({
+            solver_name: "scip",
+            wall_time_ms: 5000,
+            solver_time_seconds: 4.99,
+          }),
+          result({
+            solver_name: "highs",
+            wall_time_ms: 1000,
+            solver_time_seconds: 0.999,
+          }),
         ]),
       ),
     ).toEqual([]);
@@ -254,5 +309,37 @@ describe("splitBars", () => {
         ]),
       ),
     ).toEqual([]);
+  });
+});
+
+describe("the fastest solver keeps a bar", () => {
+  // CONTRACT-TEST: no value sits on the axis low, where a bar has no length
+  it("never puts the smallest value on the axis low", () => {
+    for (const values of [
+      [0.001, 0.002, 0.015],
+      [1, 5],
+      [0.1, 0.4],
+      [10, 250],
+    ]) {
+      const [low] = logDomain(values);
+      expect(low).toBeLessThan(Math.min(...values));
+    }
+  });
+
+  it("still rounds out to whole powers of ten when nothing sits on the edge", () => {
+    expect(logDomain([0.4, 37])).toEqual([0.1, 100]);
+  });
+
+  // The case from the report: four solvers ran, one finished under a
+  // millisecond, and the chart drew three bars and three labels.
+  it("gives a sub-millisecond solve room to be drawn", () => {
+    const seconds = [0.001, 0.002, 0.004, 0.015];
+    const [low, high] = logDomain(seconds);
+    expect(low).toBeLessThan(0.001);
+    expect(high).toBeGreaterThan(0.015);
+    // Every bar has a positive length on the log axis.
+    for (const value of seconds) {
+      expect(Math.log10(value) - Math.log10(low)).toBeGreaterThan(0);
+    }
   });
 });
