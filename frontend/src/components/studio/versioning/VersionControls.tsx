@@ -4,6 +4,16 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { Save } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,6 +57,9 @@ export function VersionControls() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [counter, setCounter] = useState(0);
   const [latest, setLatest] = useState<ProjectVersionSummary | null>(null);
+  // The version the user asked to restore while the draft held uncommitted work.
+  // Held here until they say whether to discard that work.
+  const [confirmDiscard, setConfirmDiscard] = useState<string | null>(null);
 
   const isPersisted = !!modelId && modelId !== "new";
 
@@ -88,12 +101,15 @@ export function VersionControls() {
   }, [storeApi]);
 
   const handleRestore = useCallback(
-    async (versionId: string) => {
+    async (versionId: string, discardDraft = false) => {
       try {
-        // Checks the version out into the draft (history untouched). discard_draft
-        // forces it past any uncommitted edits — restore is a deliberate action,
-        // and every committed version remains recoverable.
-        const project = await api.restoreProjectVersion(modelId, versionId, true, ws);
+        // Checks the version out into the draft (history untouched). The backend
+        // answers 409 when the draft holds uncommitted work, precisely so the
+        // caller can ask; this used to pass discard_draft=true always, so the
+        // question was answered for the user and their work went with no warning.
+        // Every COMMITTED version stays recoverable — an uncommitted draft is not
+        // one, and that is exactly what was being thrown away.
+        const project = await api.restoreProjectVersion(modelId, versionId, discardDraft, ws);
         const modelJson = (project.draft_model_json ?? null) as OptimizationProblem | null;
         // Same canvas-withheld gate as the provider's load: a version too large
         // for the canvas OR not exactly representable on it hydrates the
@@ -128,8 +144,13 @@ export function VersionControls() {
         storeApi.getState().setLockVersion(project.draft_lock_version);
         setCounter((c) => c + 1);
         setHistoryOpen(false);
+        setConfirmDiscard(null);
         toast.success(t("versionRestored"));
-      } catch {
+      } catch (err: unknown) {
+        if ((err as { status?: number })?.status === 409) {
+          setConfirmDiscard(versionId);
+          return;
+        }
         toast.error(t("versionRestoreFailed"));
       }
     },
@@ -188,6 +209,30 @@ export function VersionControls() {
         onClose={() => setHistoryOpen(false)}
         onRestore={handleRestore}
       />
+
+      <AlertDialog
+        open={confirmDiscard !== null}
+        onOpenChange={(open) => !open && setConfirmDiscard(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("versionRestoreDiscardTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("versionRestoreDiscardBody")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("versionRestoreDiscardCancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmDiscard && void handleRestore(confirmDiscard, true)}
+              data-testid="studio-version-restore-discard-confirm"
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              {t("versionRestoreDiscardConfirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
