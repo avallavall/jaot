@@ -178,6 +178,8 @@
     "versionRestoreDiscardBody": "Dieses Modell enthält Änderungen, die du in keiner Version committet hast. Beim Wiederherstellen werden sie ersetzt und sind nicht wiederherstellbar. Committe sie zuerst, wenn du sie behalten willst.",
     "versionRestoreDiscardCancel": "Abbrechen",
     "versionRestoreDiscardConfirm": "Verwerfen und wiederherstellen",
+    "autosaveConflict": "Jemand anderes hat dieses Modell geändert. Deine Änderungen sind nicht gespeichert.",
+    "autosaveConflictOverwrite": "Überschreiben",
     "versionRestoreFailed": "Version konnte nicht wiederhergestellt werden.",
     "versionHistoryTitle": "Versionsverlauf",
     "versionCompareHint": "Wähle zwei Versionen zum Vergleichen",

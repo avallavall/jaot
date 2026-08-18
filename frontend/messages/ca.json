@@ -178,6 +178,8 @@
     "versionRestoreDiscardBody": "Aquest model té canvis que no has desat en cap versió. Restaurar els substitueix i no es poden recuperar. Desa'ls en una versió abans si els vols conservar.",
     "versionRestoreDiscardCancel": "Cancel·la",
     "versionRestoreDiscardConfirm": "Descarta i restaura",
+    "autosaveConflict": "Una altra persona ha canviat aquest model. Els teus canvis no estan desats.",
+    "autosaveConflictOverwrite": "Sobreescriu",
     "versionRestoreFailed": "No s'ha pogut restaurar la versió.",
     "versionHistoryTitle": "Historial de versions",
     "versionCompareHint": "Tria dues versions per comparar",

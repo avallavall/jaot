@@ -178,6 +178,8 @@
     "versionRestoreDiscardBody": "Este modelo tiene cambios que no has guardado en ninguna versión. Restaurar los sustituye y no se pueden recuperar. Guárdalos en una versión antes si quieres conservarlos.",
     "versionRestoreDiscardCancel": "Cancelar",
     "versionRestoreDiscardConfirm": "Descartar y restaurar",
+    "autosaveConflict": "Otra persona ha cambiado este modelo. Tus cambios no están guardados.",
+    "autosaveConflictOverwrite": "Sobrescribir",
     "versionRestoreFailed": "No se pudo restaurar la versión.",
     "versionHistoryTitle": "Historial de versiones",
     "versionCompareHint": "Elige dos versiones para comparar",

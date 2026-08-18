@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { useBuilderStore } from "@/hooks/useBuilderStore";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,13 +18,32 @@ const RETRY_MS = 10_000;
  * Persists the canonical model to the `ModelProject` HEAD draft (`PUT
  * /projects/{id}/draft`) whenever it changes from a real edit. Idempotent no-ops
  * (e.g. the load-time projection) never set `headDirty`, so they do not trigger a
- * save. Optimistic concurrency via the `draft_lock_version` (`If-Match`): on a 409
- * (another writer advanced the draft) we refetch the lock and retry once with the
- * user's in-memory model, so an edit is never silently lost.
+ * save.
+ *
+ * Optimistic concurrency via the `draft_lock_version`. A 409 says someone
+ * advanced the draft, and WHO decides what to do:
+ *
+ * - **This client.** Two of our own saves overlapped and the newer one won
+ *   (slow request A, fast request B). Retrying with the current in-memory model
+ *   is right: the screen is the truth and no other person's work is at stake.
+ * - **Somebody else.** Another tab, or another member of the organisation, is
+ *   editing the same model. Retrying here overwrote their work while both
+ *   screens still read "Saved" — reproduced with two tabs, where the second one
+ *   silently won. We now stop, say so, and let the user choose to overwrite.
+ *
+ * The two are told apart by `ownVersions`: every lock version the server hands
+ * back to THIS client is recorded, so a conflict against a version we never
+ * produced came from someone else.
  */
 export function useAutosave(store: ModelProjectStore, modelId: string): void {
   const { activeWorkspaceId } = useAuth();
+  const t = useTranslations("studio");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Lock versions the server handed back to THIS client. A 409 against anything
+  // else means another writer, not one of our own overlapping saves.
+  const ownVersions = useRef<Set<number>>(new Set());
+  // One warning per conflict, not one per retry.
+  const conflictWarned = useRef(false);
 
   useEffect(() => {
     if (!modelId || modelId === "new") return;
@@ -41,29 +62,65 @@ export function useAutosave(store: ModelProjectStore, modelId: string): void {
       };
     };
 
+    const accept = (lockVersion: number) => {
+      ownVersions.current.add(lockVersion);
+      store.getState().setLockVersion(lockVersion);
+      store.getState().setSaveState("saved");
+      conflictWarned.current = false;
+    };
+
+    /** Write over whatever is on the server, at the user's explicit request. */
+    const overwrite = async () => {
+      try {
+        const latest = await api.getProject(modelId, ws);
+        const forced = await api.updateProjectDraft(
+          modelId,
+          buildBody(),
+          latest.draft_lock_version,
+          ws
+        );
+        accept(forced.draft_lock_version);
+      } catch {
+        store.getState().setSaveState("error");
+      }
+    };
+
     const persist = () => {
       store.getState().setSaveState("saving");
       api
         .updateProjectDraft(modelId, buildBody(), store.getState().lockVersion, ws)
-        .then((project) => {
-          store.getState().setLockVersion(project.draft_lock_version);
-          store.getState().setSaveState("saved");
-        })
+        .then((project) => accept(project.draft_lock_version))
         .catch(async (err: unknown) => {
           if ((err as { status?: number })?.status === 409) {
             try {
               const latest = await api.getProject(modelId, ws);
-              // Re-serialize from the CURRENT store: retrying with the body from
-              // the losing attempt would overwrite a newer autosave that won the
-              // race (slow request A retrying over fast newer request B).
-              const retry = await api.updateProjectDraft(
-                modelId,
-                buildBody(),
-                latest.draft_lock_version,
-                ws
-              );
-              store.getState().setLockVersion(retry.draft_lock_version);
-              store.getState().setSaveState("saved");
+              if (ownVersions.current.has(latest.draft_lock_version)) {
+                // Our own newer save won the race. Re-serialize from the CURRENT
+                // store: retrying with the body from the losing attempt would
+                // overwrite that newer save.
+                const retry = await api.updateProjectDraft(
+                  modelId,
+                  buildBody(),
+                  latest.draft_lock_version,
+                  ws
+                );
+                accept(retry.draft_lock_version);
+                return;
+              }
+
+              // Somebody else moved the draft. Do not touch it and do not keep
+              // retrying: every retry here is an overwrite of their work.
+              store.getState().setSaveState("error");
+              if (!conflictWarned.current) {
+                conflictWarned.current = true;
+                toast.error(t("autosaveConflict"), {
+                  duration: Infinity,
+                  action: {
+                    label: t("autosaveConflictOverwrite"),
+                    onClick: () => void overwrite(),
+                  },
+                });
+              }
               return;
             } catch {
               /* fall through to the error state below */
@@ -91,5 +148,5 @@ export function useAutosave(store: ModelProjectStore, modelId: string): void {
       if (timer.current) clearTimeout(timer.current);
       unsub();
     };
-  }, [store, modelId, activeWorkspaceId]);
+  }, [store, modelId, activeWorkspaceId, t]);
 }

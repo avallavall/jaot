@@ -178,6 +178,8 @@
     "versionRestoreDiscardBody": "This model has changes you have not committed to a version. Restoring replaces them and they cannot be recovered. Commit them first if you want to keep them.",
     "versionRestoreDiscardCancel": "Cancel",
     "versionRestoreDiscardConfirm": "Discard and restore",
+    "autosaveConflict": "Someone else changed this model. Your edits are not saved.",
+    "autosaveConflictOverwrite": "Overwrite",
     "versionRestoreFailed": "Could not restore the version.",
     "versionHistoryTitle": "Version history",
     "versionCompareHint": "Pick two versions to compare",
