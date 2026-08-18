@@ -13,6 +13,7 @@ Decision tree (post-Phase-7.4):
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from unittest.mock import patch
 
 import pytest
@@ -22,7 +23,9 @@ from app.domains.solver.services.auto_router import (
     AUTO_REASON_LP,
     AUTO_REASON_MIP,
     AUTO_REASON_QUADRATIC,
+    AUTO_REASON_SUBSTITUTED,
     select_solver,
+    warning_for,
 )
 from app.schemas.optimization import (
     Constraint,
@@ -246,3 +249,158 @@ def test_quadratic_preference_target_declares_quadratic_support():
     assert HexalyAdapter.capabilities.supports_quadratic is True, (
         f"auto_router prefers Hexaly for quadratic problems ({AUTO_REASON_QUADRATIC})."
     )
+
+
+# ── Substitution: CBC and GLPK as the bench, never as the first choice ────────
+#
+# The owner asked (2026-08-18) for auto to know about CBC and GLPK. It knows
+# them as substitutes for a solver this server does not have. On an ordinary
+# deployment nothing below fires and routing is what it always was.
+
+
+class _FakeAdapter:
+    """Just enough of a registered adapter for the router's capability check."""
+
+    def __init__(self, capabilities) -> None:
+        self.capabilities = capabilities
+
+
+#: Each adapter's declared capabilities, read off the class. No instantiation:
+#: `capabilities` is a class attribute on every adapter (the solver listing
+#: already relies on that for Hexaly), so this needs neither a binary on PATH
+#: nor a proprietary SDK.
+def _declared_capabilities() -> dict[str, object]:
+    from app.domains.solver.adapters.cbc import CBCAdapter
+    from app.domains.solver.adapters.glpk import GLPKAdapter
+    from app.domains.solver.adapters.hexaly import HexalyAdapter
+    from app.domains.solver.adapters.highs import HiGHSAdapter
+    from app.domains.solver.adapters.scip import SCIPAdapter
+
+    return {
+        "scip": SCIPAdapter.capabilities,
+        "highs": HiGHSAdapter.capabilities,
+        "cbc": CBCAdapter.capabilities,
+        "glpk": GLPKAdapter.capabilities,
+        "hexaly": HexalyAdapter.capabilities,
+    }
+
+
+@contextmanager
+def _installed(*names: str):
+    """A server that has exactly these solvers, whatever this image ships.
+
+    The installed set is stated rather than inherited: the test image has no
+    `cbc` or `glpsol` binary, so a helper built on the live registry would make
+    "auto falls back to CBC" a statement about the image instead of about the
+    routing rule, and it would fail here while passing in production.
+
+    ``patch`` with a dotted string cannot reach the registry either: the path
+    ``app.domains.solver.adapters.registry`` resolves to the MODULE, not to the
+    singleton the package re-exports under the same name. Patch the object.
+    """
+    from app.domains.solver.adapters import registry
+    from app.domains.solver.adapters.base import SolverNotFoundError
+
+    declared = _declared_capabilities()
+
+    def _get(name: str):
+        if name not in names:
+            raise SolverNotFoundError(f"Solver '{name}' is not registered.")
+        return _FakeAdapter(declared[name])
+
+    with patch.object(registry, "get", _get):
+        yield
+
+
+# CONTRACT-TEST: the substitution path must be unreachable on a normal install.
+# Every existing response carries one of the historic slugs, and a deployment
+# that has its solvers must keep getting the decision it has always got.
+@pytest.mark.parametrize(
+    ("problem", "expected_name", "expected_reason"),
+    [
+        (_lp_problem(), "highs", AUTO_REASON_LP),
+        (_mip_problem(), "scip", AUTO_REASON_MIP),
+        (_binary_problem(), "scip", AUTO_REASON_MIP),
+    ],
+)
+def test_a_complete_install_routes_exactly_as_before(problem, expected_name, expected_reason):
+    name, reason, fallback = select_solver(problem)
+    assert (name, reason, fallback) == (expected_name, expected_reason, False)
+    assert reason != AUTO_REASON_SUBSTITUTED
+
+
+def test_an_lp_without_highs_falls_to_scip_not_to_cbc():
+    """SCIP is next because it computes shadow prices; CBC and GLPK do not.
+
+    A caller who asked for "auto" chose no solver, so auto must not be the
+    reason their Sensitivity tab goes empty.
+    """
+    with _installed("scip", "cbc", "glpk"):
+        name, reason, fallback = select_solver(_lp_problem())
+    assert name == "scip"
+    assert reason == AUTO_REASON_SUBSTITUTED
+    assert fallback is False
+
+
+def test_an_lp_with_neither_highs_nor_scip_falls_to_cbc():
+    with _installed("cbc", "glpk"):
+        name, reason, _ = select_solver(_lp_problem())
+    assert name == "cbc"
+    assert reason == AUTO_REASON_SUBSTITUTED
+
+
+def test_glpk_is_the_last_resort():
+    """Single-threaded, and measured returning no answer at all on a hard model."""
+    with _installed("glpk"):
+        name, reason, _ = select_solver(_mip_problem())
+    assert name == "glpk"
+    assert reason == AUTO_REASON_SUBSTITUTED
+
+
+# CONTRACT-TEST: a substitute must be able to express the model. CBC and GLPK
+# declare supports_quadratic=False, so a quadratic must never reach them however
+# short the bench gets — that would be auto handing a model to a solver that
+# cannot read it.
+def test_a_quadratic_is_never_substituted_to_cbc_or_glpk():
+    with (
+        patch(_PROBE_TARGET, return_value=(False, "worker down")),
+        _installed("highs", "cbc", "glpk"),
+    ):
+        name, reason, fallback = select_solver(_quadratic_problem())
+    assert name not in ("cbc", "glpk")
+    # Nothing installed can express it, so the preferred name comes back and the
+    # caller raises its usual "solver unavailable" — the failure is reported
+    # where it always was, rather than moved somewhere new.
+    assert name == "scip"
+    assert reason == AUTO_REASON_FALLBACK
+    assert fallback is True
+
+
+def test_the_hexaly_fallback_keeps_its_own_slug_and_flag():
+    """It gates a 503 probe at the caller, so it must not be folded into the
+    substitution slug even when SCIP is the one standing in."""
+    with patch(_PROBE_TARGET, return_value=(False, "worker down")):
+        name, reason, fallback = select_solver(_quadratic_problem())
+    assert (name, reason, fallback) == ("scip", AUTO_REASON_FALLBACK, True)
+
+
+# ── The warning sentence ─────────────────────────────────────────────────────
+
+
+def test_the_warning_names_the_solver_that_actually_ran():
+    """It used to be a literal saying "solved with SCIP" at two call sites, which
+    was true of the only case that existed and would have lied about any other."""
+    assert "GLPK" in warning_for(AUTO_REASON_FALLBACK, "glpk")
+    assert "Hexaly temporarily unavailable" in warning_for(AUTO_REASON_FALLBACK, "glpk")
+
+    substituted = warning_for(AUTO_REASON_SUBSTITUTED, "cbc")
+    assert "CBC" in substituted
+    assert "not installed" in substituted
+
+
+def test_an_ordinary_routing_decision_carries_no_warning():
+    """A warning on every auto-routed solve would train the reader to ignore it."""
+    assert warning_for(AUTO_REASON_LP, "highs") is None
+    assert warning_for(AUTO_REASON_MIP, "scip") is None
+    assert warning_for(AUTO_REASON_QUADRATIC, "hexaly") is None
+    assert warning_for(None, "scip") is None

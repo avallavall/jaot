@@ -18,6 +18,7 @@ from app.domains.solver.adapters.base import (
 )
 from app.domains.solver.queue_routing import resolve_queue
 from app.domains.solver.services import get_solver_service
+from app.domains.solver.services.auto_router import warning_for as auto_router_warning
 from app.domains.solver.warm_start import load_warm_start_solution
 from app.models import ModelExecution
 from app.models.model_project import ModelProject
@@ -307,8 +308,10 @@ def solve_async(
         # (select_solver runs in solve.py before this task ever runs), so the
         # enqueue-side emission is the canonical surface; the worker only
         # re-reports the threaded reason via the result payload.
+        # ``_fallback_triggered`` is threaded through too but no longer read
+        # here: the warning comes from the reason slug, which says the same
+        # thing and says it for every routing outcome rather than one.
         _async_auto_reason: str | None = problem_data.get("_auto_route_reason")
-        _async_fallback: bool = bool(problem_data.get("_fallback_triggered", False))
         _async_solver_used: str = solver_name or DEFAULT_SOLVER_NAME
 
         result_payload: dict[str, Any] = {
@@ -320,10 +323,11 @@ def solve_async(
             "solver_used": _async_solver_used,
             "auto_route_reason": _async_auto_reason,
         }
-        if _async_fallback:
-            result_payload["warning"] = (
-                "Hexaly temporarily unavailable; solved with SCIP (quadratic quality may differ)"
-            )
+        # Written once in the router, next to the slug it belongs to, so a new
+        # routing outcome cannot inherit a sentence about a different one.
+        _async_warning = auto_router_warning(_async_auto_reason, _async_solver_used)
+        if _async_warning is not None:
+            result_payload["warning"] = _async_warning
 
         # W1 sibling: persist the successful solve onto its ModelExecution row so the
         # history table + detail page are truthful immediately, instead of staying a

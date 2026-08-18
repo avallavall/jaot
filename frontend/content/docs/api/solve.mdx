@@ -33,7 +33,7 @@ Solve an optimization problem synchronously. The request blocks until the solver
 | `options` | object | No | Solver options |
 | `options.time_limit_seconds` | number | No | Maximum solve time in seconds, 1–86400 (default: 300). Long solves should use the async endpoint. |
 | `options.gap_tolerance` | number | No | Optimality gap tolerance (default: 0.0001) |
-| `solver_name` | string | No | Solver override: `"scip"`, `"highs"`, `"hexaly"`, or `"auto"` (default: platform default) |
+| `solver_name` | string | No | Solver override: `"scip"`, `"highs"`, `"cbc"`, `"glpk"`, `"hexaly"`, or `"auto"` (default: platform default). See [what `auto` picks](#what-auto-picks). |
 | `warm_start` | object | No | Warm-start a solve from a previous execution (`{"execution_id": "exe_..."}`) |
 | `template` | string | No | Template name for template-based solving |
 | `input` | object | No | Input data for template-based solving |
@@ -407,4 +407,31 @@ Notes:
 - Multi-objective is not listed: it is available for every solver. Solvers without
   native support get it through scalarization, so a per-solver flag would be misleading.
 - `solver_name: "auto"` is always accepted and is not listed here; the server picks the
-  effective solver per problem and reports it back as `solver_used`.
+  effective solver per problem and reports it back as `solver_used`, with `auto_route_reason`
+  saying why.
+
+### What `auto` picks
+
+| The model is | `auto` runs | `auto_route_reason` |
+|--------------|-------------|---------------------|
+| Linear, all continuous (LP) | HiGHS | `lp_routed_to_highs` |
+| Anything with quadratic terms | Hexaly | `quadratic_routed_to_hexaly` |
+| Quadratic, Hexaly worker down | SCIP | `hexaly_unavailable_fallback` (plus a `warning`) |
+| Anything else (MIP, mixed) | SCIP | `milp_routed_to_scip` |
+
+**CBC and GLPK are substitutes, not candidates.** `auto` never picks them while the solver
+its rule prefers is installed. It reaches them only on a server built without that solver,
+and then it says so: `auto_route_reason` comes back `preferred_solver_not_installed` and the
+response carries a `warning` naming the solver that actually ran.
+
+They sit behind SCIP and HiGHS for two reasons that have nothing to do with speed. Neither
+computes shadow prices or reduced costs, so a caller who chose no solver would silently lose
+the sensitivity analysis. And GLPK is single-threaded: on a 60-lot burn-in plan (1,342
+binaries) HiGHS and CBC finished in 1.5 seconds, SCIP in 12, and GLPK ran a full 60-second
+limit without finding any feasible answer.
+
+A substitute is never given a model it cannot express, so a quadratic never reaches CBC or
+GLPK whatever else is missing.
+
+To pick CBC or GLPK, name one — and use the [solver comparer](/docs/api/solver-comparison)
+to find out which one is right for your model, with numbers, instead of guessing.

@@ -577,9 +577,14 @@ def shape_sync_result(
     result.solver_used = envelope.get("solver_used") or solver_used
     result.auto_route_reason = envelope.get("auto_route_reason") or auto_route_reason
     warning = envelope.get("warning")
-    if warning is None and fallback_triggered:
-        # Same message the sync route surfaces on a Hexaly→SCIP fallback.
-        warning = "Hexaly temporarily unavailable; solved with SCIP (quadratic quality may differ)"
+    if warning is None:
+        # Derived from the routing reason rather than written out here: the
+        # literal that used to live at this line named Hexaly and SCIP, which
+        # was true of the only case that existed and would have lied about the
+        # substitution path the moment it landed.
+        from app.domains.solver.services.auto_router import warning_for  # noqa: PLC0415
+
+        warning = warning_for(result.auto_route_reason, result.solver_used)
     if warning is not None:
         result.warning = warning
     return result.model_dump(mode="json")

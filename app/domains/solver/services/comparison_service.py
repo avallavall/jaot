@@ -128,8 +128,14 @@ def build_comparison_problem(
     )
 
 
-def _capability_reason(caps: SolverCapabilities, problem_class: ProblemClass) -> str | None:
-    """Why these capabilities cannot express this problem class, if they cannot."""
+def capability_gap(caps: SolverCapabilities, problem_class: ProblemClass) -> str | None:
+    """Why these capabilities cannot express this problem class, if they cannot.
+
+    Public because the auto-router asks the same question. Two copies of "can
+    this solver express this class" would be free to disagree, and the day they
+    did, auto would route a model to a solver the comparer had already ruled
+    out for it.
+    """
     if problem_class in QUADRATIC_CLASSES and not caps.supports_quadratic:
         return REASON_QUADRATIC_TERMS
     integer_classes = {
@@ -257,7 +263,7 @@ def _solver_reason(name: str, problem_class: ProblemClass) -> str | None:
         return REASON_NOT_REGISTERED
     except SolverUnavailableError:
         return REASON_NOT_AVAILABLE
-    return _capability_reason(adapter.capabilities, problem_class)
+    return capability_gap(adapter.capabilities, problem_class)
 
 
 __all__ = [
@@ -273,6 +279,7 @@ __all__ = [
     "SolvedColumn",
     "SolverPlanEntry",
     "build_comparison_problem",
+    "capability_gap",
     "compute_agreement",
     "normalize_solver_names",
     "plan_comparison",
