@@ -28,7 +28,7 @@ from app.domains.solver.adapters._scip_model_builder import (
 )
 from app.domains.solver.adapters.base import (
     STRICT_EPSILON,
-    UNREAD_VERSION,
+    CachedVersion,
     SolverCapabilities,
 )
 from app.domains.solver.constraint_activity import (
@@ -93,21 +93,6 @@ def _is_finite_bound(value: float) -> bool:
     return value == value and abs(value) <= _SCIP_INF  # NaN-safe
 
 
-def _read_scip_version() -> str | None:
-    """SCIP's version as a string, or None when it will not say.
-
-    ``Model.version()`` returns a float ("10.0"), so a plain str() of it is the
-    honest rendering. Constructing a Model is cheap and this runs once per
-    process. Never raises: a version is a label on a table, and failing to read
-    one must not stop a solve.
-    """
-    try:
-        return str(Model().version())
-    except Exception as exc:  # pragma: no cover - pyscipopt would have to break
-        logger.debug("Could not read the SCIP version: %s", exc)
-        return None
-
-
 class _ProgressEventHandler(Eventhdlr):
     """Capture primal/dual/gap snapshots while SCIP solves.
 
@@ -169,7 +154,7 @@ class _ProgressEventHandler(Eventhdlr):
             logger.debug("Progress event handler failed: %s", exc)
 
 
-class SCIPAdapter:
+class SCIPAdapter(CachedVersion):
     """SCIP implementation of the SolverAdapter Protocol.
 
     Full extraction — all 10 private SCIP methods live here plus _ProgressEventHandler.
@@ -192,9 +177,6 @@ class SCIPAdapter:
     def __init__(self) -> None:
         self._parser = ExpressionParser()
         self._available: bool | None = None
-        # Sentinel, not None: None is a legitimate answer ("could not read it"),
-        # and caching it must not make every later call try again.
-        self._version: str | None | object = UNREAD_VERSION
 
     def is_available(self) -> bool:
         """Cached import check per D-12. Safe to cache for SCIP because
@@ -213,11 +195,19 @@ class SCIPAdapter:
                 self._available = False
         return self._available
 
-    def version(self) -> str | None:
-        """SCIP's own version, e.g. "10.0". Cached for the life of the process."""
-        if self._version is UNREAD_VERSION:
-            self._version = _read_scip_version()
-        return self._version  # type: ignore[return-value]
+    @staticmethod
+    def _read_version() -> str | None:
+        """SCIP's own version, e.g. "10.0".
+
+        ``Model.version()`` returns a float, so a plain str() of it is the
+        honest rendering. Constructing a Model is cheap and this runs once per
+        process.
+        """
+        try:
+            return str(Model().version())
+        except Exception as exc:  # pragma: no cover - pyscipopt would have to break
+            logger.debug("Could not read the SCIP version: %s", exc)
+            return None
 
     # Phase 7.4 / D-10: validate_license removed — no per-request gate for SCIP.
 

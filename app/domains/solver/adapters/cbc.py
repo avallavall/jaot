@@ -37,7 +37,7 @@ from app.domains.solver.adapters._cli_solver import (
     write_problem_lp,
 )
 from app.domains.solver.adapters.base import (
-    UNREAD_VERSION,
+    CachedVersion,
     SolverCapabilities,
     SolverError,
 )
@@ -76,7 +76,7 @@ _LP_ITERATIONS_RE = re.compile(r"-\s+(?P<iterations>\d+)\s+iterations")
 _VERSION_RE = re.compile(r"Version:\s*(?P<version>[\w.]+)")
 
 
-class CBCAdapter:
+class CBCAdapter(CachedVersion):
     """CBC solver adapter implementing the SolverAdapter Protocol."""
 
     capabilities: SolverCapabilities = SolverCapabilities(
@@ -99,9 +99,6 @@ class CBCAdapter:
     def __init__(self) -> None:
         self._binary: str | None = None
         self._looked_up = False
-        # Sentinel, not None: reading this starts a child process, so a failed
-        # read must be remembered rather than retried on every call.
-        self._version: str | None | object = UNREAD_VERSION
 
     def binary_path(self) -> str | None:
         """Where ``cbc`` lives, looked up once per adapter instance."""
@@ -115,16 +112,15 @@ class CBCAdapter:
     def is_available(self) -> bool:
         return self.binary_path() is not None
 
-    def version(self) -> str | None:
-        """CBC's own version, e.g. "2.10.12". Cached for the life of the process.
+    def _read_version(self) -> str | None:
+        """CBC's own version, e.g. "2.10.12".
 
         ``cbc -exit`` prints the banner and quits without reading a model, which
-        is the shortest way to make it say so.
+        is the shortest way to make it say so. The mixin caches the answer, so
+        the child process starts at most once per worker process.
         """
-        if self._version is UNREAD_VERSION:
-            binary = self.binary_path()
-            self._version = None if binary is None else read_version([binary, "-exit"], _VERSION_RE)
-        return self._version  # type: ignore[return-value]
+        binary = self.binary_path()
+        return None if binary is None else read_version([binary, "-exit"], _VERSION_RE)
 
     def solve(
         self,

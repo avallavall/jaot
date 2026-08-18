@@ -52,7 +52,11 @@ from pathlib import Path
 from typing import Any
 
 from app.domains.solver.adapters._license_utils import extract_expires_at, fingerprint
-from app.domains.solver.adapters.base import SolverCapabilities, SolverError
+from app.domains.solver.adapters.base import (
+    CachedVersion,
+    SolverCapabilities,
+    SolverError,
+)
 from app.domains.solver.services.expression_parser import (
     ExpressionParser,
     ParsedExpression,
@@ -125,7 +129,7 @@ def hexaly_license_scope(plaintext: str) -> Iterator[None]:
             os.environ["HX_LICENSE_CONTENT"] = previous
 
 
-class HexalyAdapter:
+class HexalyAdapter(CachedVersion):
     """Hexaly Optimizer adapter (commercial; platform-license model).
 
     Implements the SolverAdapter Protocol structurally. The ``solve()`` method
@@ -204,14 +208,16 @@ class HexalyAdapter:
 
         return hexaly_available()
 
-    def version(self) -> str | None:
+    @staticmethod
+    def _read_version() -> str | None:
         """The Hexaly SDK's version, read off the installed package.
 
         Read from package metadata rather than from the optimizer object: the
         SDK exposes no version attribute that survives a pin change, and the
         distribution's own version is what a licence and an image are built
         against. None whenever it cannot be read, which is the normal answer on
-        any process that is not the Hexaly worker.
+        any process that is not the Hexaly worker — and the mixin remembers that
+        None, so the solver listing stops re-reading it on every request.
         """
         try:
             from importlib.metadata import version as package_version  # noqa: PLC0415

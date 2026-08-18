@@ -40,7 +40,7 @@ from app.domains.solver.adapters._cli_solver import (
     write_problem_lp,
 )
 from app.domains.solver.adapters.base import (
-    UNREAD_VERSION,
+    CachedVersion,
     SolverCapabilities,
     SolverError,
 )
@@ -103,7 +103,7 @@ _VERDICTS: tuple[tuple[str, SolverStatus], ...] = (
 _VERSION_RE = re.compile(r"GLPK LP/MIP Solver\s+(?P<version>[\w.]+)")
 
 
-class GLPKAdapter:
+class GLPKAdapter(CachedVersion):
     """GLPK solver adapter implementing the SolverAdapter Protocol."""
 
     capabilities: SolverCapabilities = SolverCapabilities(
@@ -126,9 +126,6 @@ class GLPKAdapter:
     def __init__(self) -> None:
         self._binary: str | None = None
         self._looked_up = False
-        # Sentinel, not None: reading this starts a child process, so a failed
-        # read must be remembered rather than retried on every call.
-        self._version: str | None | object = UNREAD_VERSION
 
     def binary_path(self) -> str | None:
         """Where ``glpsol`` lives, looked up once per adapter instance."""
@@ -142,14 +139,14 @@ class GLPKAdapter:
     def is_available(self) -> bool:
         return self.binary_path() is not None
 
-    def version(self) -> str | None:
-        """GLPK's own version, e.g. "5.0". Cached for the life of the process."""
-        if self._version is UNREAD_VERSION:
-            binary = self.binary_path()
-            self._version = (
-                None if binary is None else read_version([binary, "--version"], _VERSION_RE)
-            )
-        return self._version  # type: ignore[return-value]
+    def _read_version(self) -> str | None:
+        """GLPK's own version, e.g. "5.0".
+
+        The mixin caches it, so the child process starts at most once per
+        worker process.
+        """
+        binary = self.binary_path()
+        return None if binary is None else read_version([binary, "--version"], _VERSION_RE)
 
     def solve(
         self,

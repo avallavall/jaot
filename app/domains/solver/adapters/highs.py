@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 
 from app.domains.solver.adapters.base import (
     STRICT_EPSILON,
-    UNREAD_VERSION,
+    CachedVersion,
     SolverCapabilities,
 )
 from app.domains.solver.constraint_activity import is_binding_within_bounds
@@ -109,7 +109,7 @@ _HIGHS_STATUS_MAP: dict[str, SolverStatus] = {
 }
 
 
-class HiGHSAdapter:
+class HiGHSAdapter(CachedVersion):
     """HiGHS solver adapter implementing SolverAdapter Protocol.
 
     Uses highspy Python bindings (MIT license, ~15MB footprint).
@@ -132,9 +132,6 @@ class HiGHSAdapter:
     def __init__(self) -> None:
         self._available: bool | None = None
         self._parser = ExpressionParser()
-        # Sentinel, not None: None is a legitimate answer and caching it must
-        # not make every later call try again.
-        self._version: str | None | object = UNREAD_VERSION
 
     def is_available(self) -> bool:
         """Cached import check — same pattern as SCIPAdapter.is_available()."""
@@ -147,20 +144,13 @@ class HiGHSAdapter:
                 self._available = False
         return self._available  # type: ignore[return-value]
 
-    def version(self) -> str | None:
-        """HiGHS's own version, e.g. "1.15.1". Cached for the life of the process."""
-        if self._version is UNREAD_VERSION:
-            self._version = self._read_version()
-        return self._version  # type: ignore[return-value]
-
     @staticmethod
     def _read_version() -> str | None:
-        """Ask highspy, or None when it will not say.
+        """HiGHS's own version, e.g. "1.15.1".
 
         Constructing a ``Highs`` here rather than reusing a solve's instance:
         this runs once per process and a fresh one carries no options that a
-        later solve could inherit. Never raises — a version is a label on a
-        table, and failing to read one must not stop a solve.
+        later solve could inherit.
         """
         try:
             import highspy  # noqa: PLC0415

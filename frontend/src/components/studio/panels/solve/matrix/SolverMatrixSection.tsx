@@ -39,8 +39,8 @@ import type {
 } from "@/lib/types";
 import { useModelProjectStore } from "../../../store/useModelProjectStore";
 import { useProjectDatasets } from "../../../datasets/useProjectDatasets";
-import { ExportButtons } from "@/components/solve/compare/ExportButtons";
-import { matrixToCsv, toJson } from "@/components/solve/compare/export";
+import { ComparisonExportButtons } from "@/components/solve/compare/ComparisonExportButtons";
+import { matrixRows, toJson } from "@/components/solve/compare/export";
 import { MatrixTable } from "./MatrixTable";
 import {
   MATRIX_METRICS,
@@ -460,9 +460,9 @@ export function SolverMatrixSection() {
                   screen: a grid is a view of one metric at a time, and a file
                   that only carried the metric being looked at would lose the
                   other four. */}
-              <ExportButtons
+              <ComparisonExportButtons
                 base={batch.project_name ?? "solver-matrix"}
-                csv={() => matrixToCsv(batch)}
+                rows={() => matrixRows(batch)}
                 json={() => toJson(batch)}
               />
               <Label htmlFor="matrix-metric" className="text-xs">

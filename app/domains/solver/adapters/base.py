@@ -85,6 +85,36 @@ class SolverQueueMismatchError(SolverError):
 #: adapter from asking again on every call.
 UNREAD_VERSION: Any = object()
 
+
+class CachedVersion:
+    """Ask the solver its version once per process, however it is asked.
+
+    The five adapters read a version in genuinely different ways — two query a
+    Python binding, two start a child process, one reads package metadata — but
+    they all cache it identically, and writing that four times meant the fifth
+    (Hexaly) quietly did not, re-reading on every solver listing.
+
+    The default lives on the class, so an adapter opts in by inheriting and
+    implementing :meth:`_read_version`; nothing has to be remembered in
+    ``__init__``. Assignment in :meth:`version` creates an instance attribute,
+    so the shared default is read but never mutated.
+    """
+
+    _version: str | None | Any = UNREAD_VERSION
+
+    def version(self) -> str | None:
+        """The solver's version string, or None when it will not say."""
+        if self._version is UNREAD_VERSION:
+            self._version = self._read_version()
+        return self._version
+
+    def _read_version(self) -> str | None:
+        """Ask this particular solver. Must never raise: a version is a label on
+        a stored table, and failing to read one cannot be allowed to stop a
+        solve or fail a request."""
+        raise NotImplementedError
+
+
 # Shared across adapters for strict inequality (< / >) conversion
 STRICT_EPSILON = 1e-6
 
