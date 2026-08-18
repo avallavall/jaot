@@ -135,10 +135,18 @@ export default function ExecutionDetailPage() {
     );
   }
 
-  // Explain only completed optimal/feasible executions
+  // Explain any completed run that actually produced a solution.
+  //
+  // A run stopped by its time limit still holds one whenever the solver found an
+  // incumbent: the adapters leave objective_value unset when they did not (see
+  // cbc.py, which reports only dual_bound in that case). Requiring optimal or
+  // feasible withheld the explanation from a perfectly usable answer whose only
+  // shortcoming is that the solver ran out of time to prove it was the best.
   const canExplain =
     execution.status === "completed" &&
-    (execution.solver_status === "optimal" || execution.solver_status === "feasible");
+    (execution.solver_status === "optimal" ||
+      execution.solver_status === "feasible" ||
+      (execution.solver_status === "time_limit" && execution.objective_value != null));
 
   // P1.5 fusion: the run's model is a ModelProject; historic rows carry the
   // legacy org-model id, which the backfill preserved as the project id.

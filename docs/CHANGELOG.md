@@ -43,6 +43,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Restoring an old version asks before throwing away uncommitted work.** It used to discard it without a word, while a message claimed the work had been kept as a checkpoint. Nothing of the sort was ever saved. You are now shown what is about to be lost and can cancel; the message no longer promises a checkpoint that does not exist.
 - **Custom Solve shows the answer.** The panel gave you a status, an objective and a time, and never the values of the decision variables — which is the thing you ran the solver for. It read a field the API does not send, so the block was empty on every solve since the page shipped.
 - **The executions list loads in a fraction of the time.** Each row carried the whole compiled problem and the whole solution: 37 MB of JSON for one page of twenty rows, up to 90 MB, and 6.2 s to paint six columns. Rows now carry only what a table shows.
+- **A solve stopped by its time limit can be explained like any other.** When the solver ran out of time but had already found a workable answer, the explanation was withheld — the run was treated the same as one that found nothing at all.
 - **Resetting your password unlocks an account locked by failed attempts.** The reset is what the app offers as the way back in; it reported success and left you locked out until the lock aged out on its own.
 
 ### Security
