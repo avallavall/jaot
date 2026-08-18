@@ -8,7 +8,7 @@
 
 ## What is JAOT
 
-A platform to **build, use, and automate optimization models** (linear programming, mixed-integer, etc.). Users create models in a versioned studio (canvas, AI assistant, editor, DSL), solve them against solvers (SCIP, HiGHS; Hexaly / Gurobi / CPLEX on the roadmap), share them on a free community marketplace, or run them via schedule / webhook.
+A platform to **build, use, and automate optimization models** (linear programming, mixed-integer, etc.). Users create models in a versioned studio (canvas, AI assistant, editor, DSL), solve them against solvers (SCIP, HiGHS, CBC and GLPK ship; Hexaly is profile-gated), share them on a free community marketplace, or run them via schedule / webhook.
 
 ## Context diagram
 

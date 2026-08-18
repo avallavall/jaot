@@ -10,6 +10,7 @@ export const docsNavigation: DocsNavItem[] = [
     children: [
       { title: "Introduction", slug: "getting-started/introduction" },
       { title: "Quick Start", slug: "getting-started/quick-start" },
+      { title: "Concepts", slug: "getting-started/concepts" },
       { title: "Authentication", slug: "getting-started/authentication" },
     ],
   },

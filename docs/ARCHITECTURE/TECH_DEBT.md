@@ -192,6 +192,7 @@ tables) and the **2026-07-26 backend audit** that produced D-10…D-19 are in
 [`02-backend/07-audit-2026-07-26.md`](02-backend/07-audit-2026-07-26.md) and
 [ADR-009](08-decisions/ADR-009-sync-endpoints-with-a-sync-session.md).
 
-**Rejected, with reasons:** microservices (owner, 2026-07-25), a dynamic `auto_router` (its
-reason slugs are public API contract), and an async-SQLAlchemy migration (ADR-009 buys the
-same for a fraction of the cost).
+**Rejected, with reasons:** microservices (owner, 2026-07-25), a dynamic `auto_router` tree
+(its reason slugs are public API contract; it does consult capabilities when substituting for
+a solver this server does not have, under a slug that names none), and an async-SQLAlchemy
+migration (ADR-009 buys the same for a fraction of the cost).

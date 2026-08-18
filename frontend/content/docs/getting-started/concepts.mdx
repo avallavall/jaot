@@ -1,0 +1,104 @@
+---
+title: Concepts
+description: Model, template, generator, dataset, execution — what each word means and which one you need
+order: 2
+---
+
+# Concepts
+
+JAOT uses a handful of words that sound interchangeable and are not. This page says what each one is, and — more useful — **which of them you actually touch**.
+
+Most people only ever meet three: a **model**, a **dataset**, and an **execution**. The rest are how the platform builds those.
+
+## The short version
+
+| Word | In one line |
+|------|-------------|
+| **Model project** | Your workspace for one model. Versioned, owned by your organization. |
+| **Problem** | The flat maths a solver receives: variables, constraints, an objective. |
+| **JModel source** | The indexed language you write the model in. Compiles into a problem. |
+| **Dataset** | The numbers that fill a JModel source. One model, many datasets. |
+| **Template** | A ready-made model shape you fill in with your own input. |
+| **Generator** | The code behind a template that turns your input into a problem. |
+| **Solver** | The program that searches for the answer: SCIP, HiGHS, CBC, GLPK. |
+| **Execution** | One run of one problem by one solver. What produces an answer. |
+| **Comparison** | The same problem run by several solvers, to choose between them. |
+
+---
+
+## Model project
+
+**What you work in.** A model project holds a draft you keep editing and a history of **versions** you commit, the way source code does. It belongs to your organization, not to you personally, so a teammate can open it.
+
+The draft can hold three views of the same model at once — a visual canvas, a JSON problem, and a [JModel source](/docs/studio/jmodel-dsl) — and the studio keeps them in step.
+
+> "Model" on its own almost always means a model project. When the docs mean the flat maths, they say **problem**.
+
+## Problem
+
+**What a solver actually receives.** A problem is solver-agnostic JSON: a list of variables with their types and bounds, a list of constraints as expressions, one objective, and the options (time limit, gap tolerance). Nothing in it names a solver.
+
+This is the shape [`POST /api/v2/solve`](/docs/api/solve) takes. Everything else on this page eventually produces one.
+
+## JModel source
+
+**How you write a model that has structure.** Writing out ten thousand constraints by hand is not modelling. A [JModel source](/docs/studio/jmodel-dsl) declares sets, parameters and indexed families once, and the compiler grounds them into a problem — fourteen lines can become twenty thousand variables.
+
+A JModel source is not solvable on its own. It needs data.
+
+## Dataset
+
+**The numbers that fill a source.** A [dataset](/docs/studio/datasets-scenarios) supplies the members of every set and the values of every parameter the source declares. Keeping data out of the model is what lets one model answer "what about January" and "what about March" without being edited.
+
+The studio calls a dataset run a **scenario**. Same thing: one dataset, solved.
+
+> A flat or imported model has its numbers written into it already, so datasets do not apply to it. That is why the [solver matrix](/docs/studio/comparing-solvers) needs a JModel source.
+
+## Template and generator
+
+These two come as a pair and are easy to confuse.
+
+- A **template** is the part you see: a named problem with a description, an input schema and an example — "Item Selection (Knapsack)", "Vehicle Routing". There are 102 of them.
+- A **generator** is the code behind it: it takes your input and builds the problem. There are 33, and several templates share one, because a knapsack over cargo and a knapsack over projects are the same maths with different words.
+
+Each template declares which generator builds it. You pick a template; you never pick a generator.
+
+**A template is not a model project.** It is a starting point: solve one directly with `solve_with_template`, or create a model project from it and take it from there. Once it is a project, it is yours to change and the template stops being involved.
+
+## Marketplace model
+
+**Somebody else's committed version, published.** Browsing the [marketplace](/marketplace) shows models other people finished and shared. Using one **forks** it: you get your own model project seeded from theirs, and your changes are yours. There is no live link back — their later edits do not reach your fork, and yours never touch the original.
+
+## Solver
+
+**The program that does the searching.** JAOT ships four (SCIP, HiGHS, CBC and GLPK) and can be built with a fifth (Hexaly). They all take the same problem and return the same shape of answer, so switching one for another changes the time and sometimes the route, never the meaning.
+
+`solver_name: "auto"` lets the platform pick. Which one it picks, and why it will not pick CBC or GLPK for you, is in [what `auto` picks](/docs/api/solve#what-auto-picks).
+
+## Execution
+
+**One run.** An execution records one problem solved by one solver: the answer, the objective, the time, the gap, the work the solver did, and which model and dataset it came from. It is what the history lists, what the analysis pages read, and what an export writes.
+
+Solving four datasets makes four executions. So does comparing four solvers.
+
+## Comparison and matrix
+
+**Choosing a solver, with numbers instead of a guess.**
+
+- A **comparison** runs one problem through several solvers under identical terms and puts what each did side by side.
+- A **matrix** crosses several datasets with several solvers, because the solver that wins on January's data routinely loses on March's.
+
+Both are covered in [Comparing Solvers](/docs/studio/comparing-solvers). Note the name collision: "compare executions" elsewhere in the app diffs two **solutions**. A comparison here looks at the **solver**.
+
+---
+
+## Which do I need?
+
+| You want to | Start at |
+|-------------|----------|
+| Solve something standard, fast | A **template** |
+| Build your own model, keep versions | A **model project** |
+| Run the same model on changing numbers | A JModel source plus **datasets** |
+| Start from something the community built | A **marketplace model**, forked |
+| Send a problem from your own code | A **problem**, to `POST /api/v2/solve` |
+| Know which solver to use | A **comparison** |

@@ -17,6 +17,7 @@ const contentMap: Record<string, () => Promise<{ default: React.ComponentType; f
   "getting-started/introduction": () => import("@content/docs/getting-started/introduction.mdx"),
   "getting-started/quick-start": () => import("@content/docs/getting-started/quick-start.mdx"),
   "getting-started/authentication": () => import("@content/docs/getting-started/authentication.mdx"),
+  "getting-started/concepts": () => import("@content/docs/getting-started/concepts.mdx"),
   "studio/model-workspace": () => import("@content/docs/studio/model-workspace.mdx"),
   "studio/visual-canvas": () => import("@content/docs/studio/visual-canvas.mdx"),
   "studio/json-editor": () => import("@content/docs/studio/json-editor.mdx"),

@@ -25,7 +25,7 @@ FastAPI + SQLAlchemy + Celery. Layered architecture, Solver domain, and patterns
 - [`02-backend/02-bounded-contexts.md`](./02-backend/02-bounded-contexts.md) — current state vs target of the modular monolith
 - [`02-backend/03-domain-solver-uml.md`](./02-backend/03-domain-solver-uml.md) — UML of the `solver` domain
 - [`02-backend/04-patterns.md`](./02-backend/04-patterns.md) — Protocol Adapter, FastAPI DI, Two-Tier Config, Queue Routing, Shim
-- [`02-backend/05-import-linter.md`](./02-backend/05-import-linter.md) — the 6 contracts that protect boundaries
+- [`02-backend/05-import-linter.md`](./02-backend/05-import-linter.md) — the 7 contracts that protect boundaries
 - [`02-backend/06-celery-flow.md`](./02-backend/06-celery-flow.md) — full sequence of an async solve
 
 ### 03 · Frontend
