@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError
 from sqlalchemy import or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 
 from app.api.deps import DBSession
 from app.api.v2._access import execution_or_404
@@ -28,12 +28,14 @@ from app.domains.solver.services.solver_service import SolverService, get_solver
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
 from app.models import ExecutionStatus, ModelExecution, Organization, User
 from app.models.model_project import ModelProject, ModelProjectListing
+from app.models.trigger import SolveTrigger
 from app.schemas.model import (
     AsyncExecutionResponse,
     ExecuteModelRequest,
     ExecutionCancelResponse,
     ExecutionListResponse,
     ExecutionStatusResponse,
+    ExecutionSummaryResponse,
     ModelExecutionResponse,
 )
 from app.schemas.optimization import (
@@ -579,23 +581,67 @@ def list_model_executions(
     if origin:
         query = query.filter(ModelExecution.origin == origin)
 
-    query = query.order_by(ModelExecution.created_at.desc())
+    query = _without_payloads(query.order_by(ModelExecution.created_at.desc()))
 
     executions, total = paginate_query(query, page, page_size)
 
+    items = [ExecutionSummaryResponse.model_validate(e) for e in executions]
+    _attach_trigger_names(db, current_user.organization_id, executions, items)
     return ExecutionListResponse(
-        items=[ModelExecutionResponse.model_validate(e) for e in executions],
+        items=items,
         total=total,
         page=page,
         page_size=page_size,
     )
 
 
+def _without_payloads(query):
+    """Leave ``input_data`` and ``result_data`` in the database.
+
+    A list of runs shows status, model, objective, time and date. Loading the
+    whole compiled problem and the whole solution for every row cost 37 MB of
+    JSON for twenty rows, and up to 90 MB — enough to be one of the paths that
+    pushed the API towards its memory ceiling. Deferring them means the columns
+    are never read, not merely never serialised.
+    """
+    return query.options(defer(ModelExecution.input_data), defer(ModelExecution.result_data))
+
+
+def _attach_trigger_names(
+    db: Session,
+    organization_id: str,
+    executions: list[ModelExecution],
+    items: list[ExecutionSummaryResponse],
+) -> None:
+    """Batch-fill each row's ``trigger_name`` from its trigger.
+
+    The table used to read this out of ``input_data``, which is the only reason
+    a list needed that column at all. One query by id, scoped to the
+    organization so a foreign trigger id stays opaque.
+    """
+    trigger_ids = {e.trigger_id for e in executions if e.trigger_id}
+    if not trigger_ids:
+        return
+
+    names = {
+        row.id: row.name
+        for row in db.query(SolveTrigger)
+        .filter(
+            SolveTrigger.id.in_(trigger_ids),
+            SolveTrigger.organization_id == organization_id,
+        )
+        .all()
+    }
+    for execution, item in zip(executions, items, strict=True):
+        if execution.trigger_id:
+            item.trigger_name = names.get(execution.trigger_id)
+
+
 def _attach_model_names(
     db: Session,
     organization_id: str,
     executions: list[ModelExecution],
-    items: list[ModelExecutionResponse],
+    items: list[ExecutionSummaryResponse],
 ) -> None:
     """Batch-fill each row's ``model_name``/``model_author`` from its ModelProject.
 
@@ -658,12 +704,13 @@ def list_all_executions(
     if origin:
         query = query.filter(ModelExecution.origin == origin)
 
-    query = query.order_by(ModelExecution.created_at.desc())
+    query = _without_payloads(query.order_by(ModelExecution.created_at.desc()))
 
     executions, total = paginate_query(query, page, page_size)
 
-    items = [ModelExecutionResponse.model_validate(e) for e in executions]
+    items = [ExecutionSummaryResponse.model_validate(e) for e in executions]
     _attach_model_names(db, current_user.organization_id, executions, items)
+    _attach_trigger_names(db, current_user.organization_id, executions, items)
     return ExecutionListResponse(items=items, total=total, page=page, page_size=page_size)
 
 

@@ -304,15 +304,24 @@ export interface FileImportPreviewResponse {
 // Generated ModelExecutionResponse uses loose `string` for status/solver_status
 // and `Record<string, unknown>` for result_data instead of OptimizationResult.
 
-export interface ModelExecution {
+/**
+ * One row of an executions table. Deliberately WITHOUT `input_data` and
+ * `result_data`: the list endpoints do not send them, because the whole compiled
+ * problem and the whole solution for twenty rows measured 37 MB of JSON, and up
+ * to 90 MB, to paint six columns.
+ *
+ * The split is what makes the compiler useful here. Both fields used to be
+ * optional on one shared type, so reading `exec.result_data.objective_value` off
+ * a list row type-checked and simply returned nothing at runtime — the same
+ * shape as the Custom Solve defect. Now that code does not compile.
+ */
+export interface ExecutionSummary {
   id: string;
   // P1.5 fusion: the ModelProject this run executed. organization_model_id is
   // served for HISTORIC rows only (its value equals the backfilled project id).
   model_project_id?: string | null;
   organization_model_id: string | null;
   status: ExecutionStatus;
-  input_data?: Record<string, unknown>;
-  result_data?: _OptimizationResult;
   error_message?: string;
   execution_time_ms?: number;
   solver_status?: _SolverStatus;
@@ -321,6 +330,9 @@ export interface ModelExecution {
   completed_at?: string;
   origin?: ExecutionOrigin;
   trigger_id?: string;
+  // Filled by the list endpoints from the trigger itself. The table used to read
+  // this out of `input_data`, which was the only reason a row carried one.
+  trigger_name?: string | null;
   // Provenance: the object this execution traces back to.
   source_kind?: ExecutionSourceKind | null;
   source_id?: string | null;
@@ -334,6 +346,12 @@ export interface ModelExecution {
   // is a snapshot — it survives dataset deletion.
   dataset_id?: string | null;
   dataset_name?: string | null;
+}
+
+/** A single execution as the detail endpoint serves it, payloads included. */
+export interface ModelExecution extends ExecutionSummary {
+  input_data?: Record<string, unknown>;
+  result_data?: _OptimizationResult;
 }
 
 /**

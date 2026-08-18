@@ -99,8 +99,20 @@ class ExecuteModelRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class ModelExecutionResponse(BaseModel):
-    """Response for a model execution."""
+class ExecutionSummaryResponse(BaseModel):
+    """One row of an executions table: everything except the run's payloads.
+
+    ``input_data`` and ``result_data`` hold the whole compiled problem and the
+    whole solution. The detail view needs them; a table of twenty rows does not,
+    and was paying for them: 37,720,232 bytes measured for one page, 90,922,886
+    at one point, to paint six columns, with 6.2 s to first paint on localhost.
+    The list queries no longer even load those columns, so the cost is gone at
+    the database as well as on the wire.
+
+    The one value the table did read out of them, the trigger's name, is a field
+    of its own here, batch-filled the same way ``model_name`` is. The objective
+    it read from ``result_data`` was always available as ``objective_value``.
+    """
 
     id: str
     # The ModelProject this run executed (P1.5 fusion). The legacy
@@ -109,8 +121,6 @@ class ModelExecutionResponse(BaseModel):
     model_project_id: str | None = None
     organization_model_id: str | None = None
     status: str
-    input_data: dict[str, Any]
-    result_data: dict[str, Any] | None = None
     error_message: str | None = None
     execution_time_ms: int | None = None
     solver_status: str | None = None
@@ -120,6 +130,9 @@ class ModelExecutionResponse(BaseModel):
     objective_value: float | None = None
     origin: str | None = None
     trigger_id: str | None = None
+    # NOT on the ORM row: the list endpoints batch-fill it from the trigger, so a
+    # table can name the schedule a run came from without carrying its input.
+    trigger_name: str | None = None
     # Provenance: the object this execution traces back to (builder_document,
     # llm_conversation, template, organization_model, trigger, imported_file).
     source_kind: str | None = None
@@ -140,10 +153,20 @@ class ModelExecutionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ModelExecutionResponse(ExecutionSummaryResponse):
+    """A single execution, with the input it ran on and the result it produced.
+
+    Served by the detail endpoint, where the payloads are the point.
+    """
+
+    input_data: dict[str, Any]
+    result_data: dict[str, Any] | None = None
+
+
 class ExecutionListResponse(BaseModel):
     """Paginated list of executions."""
 
-    items: list[ModelExecutionResponse]
+    items: list[ExecutionSummaryResponse]
     total: int
     page: int
     page_size: int

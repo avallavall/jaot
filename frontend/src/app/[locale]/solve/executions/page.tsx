@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { api, ModelExecution } from "@/lib/api";
+import { api, ExecutionSummary } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { Database, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,7 @@ export default function ExecutionsPage() {
   const tOrigin = useTranslations("solve.origin");
   const { statusLabel } = useCommonLabels();
   const router = useRouter();
-  const [executions, setExecutions] = useState<ModelExecution[]>([]);
+  const [executions, setExecutions] = useState<ExecutionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -214,7 +214,7 @@ export default function ExecutionsPage() {
                     <OriginBadge
                       origin={exec.origin}
                       sourceKind={exec.source_kind ?? undefined}
-                      triggerName={exec.input_data?.trigger_name as string | undefined}
+                      triggerName={exec.trigger_name ?? undefined}
                     />
                   </td>
                   <td className="px-4 py-3">
@@ -257,10 +257,8 @@ export default function ExecutionsPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm">
-                    {exec.status === "completed" && exec.result_data?.objective_value != null ? (
-                      <span className="font-mono">
-                        {exec.result_data.objective_value.toFixed(2)}
-                      </span>
+                    {exec.status === "completed" && exec.objective_value != null ? (
+                      <span className="font-mono">{exec.objective_value.toFixed(2)}</span>
                     ) : exec.error_message ? (
                       <span className="text-destructive text-xs truncate max-w-[200px] block">
                         {exec.error_message}

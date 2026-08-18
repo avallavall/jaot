@@ -12,6 +12,7 @@ import type {
   ScenarioExplanationResponse,
   ModelCatalogItem,
   OrganizationModel,
+  ExecutionSummary,
   ModelExecution,
   AsyncTask,
   AsyncTaskStatus,
@@ -116,6 +117,7 @@ export type {
   ScenarioExplanationResponse,
   ModelCatalogItem,
   OrganizationModel,
+  ExecutionSummary,
   ModelExecution,
   AsyncTask,
   AsyncTaskStatus,
@@ -797,13 +799,13 @@ export const api = {
   getModelExecutions(
     modelId: string,
     params?: QueryParams,
-  ): Promise<PaginatedResponse<ModelExecution>> {
+  ): Promise<PaginatedResponse<ExecutionSummary>> {
     return request(`/api/v2/models/${modelId}/executions`, { params });
   },
 
   getAllExecutions(
     params?: QueryParams,
-  ): Promise<PaginatedResponse<ModelExecution>> {
+  ): Promise<PaginatedResponse<ExecutionSummary>> {
     return request("/api/v2/models/executions/all", { params });
   },
 

@@ -32,18 +32,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Changed
+
+- **The two executions list endpoints no longer return `input_data` and `result_data`.** `GET /api/v2/models/executions/all` and `GET /api/v2/models/{id}/executions` serve a row without the run's payloads; `GET /api/v2/models/executions/{id}` still serves both in full. If you read either field from a list, read it from the detail endpoint instead. Rows gain `trigger_name`, which is the one value the payload was being read for.
+
 ### Fixed
 
 - **A model file too big for the server to store is refused, instead of being quietly cut short.** An import above roughly 27 MB lost whatever did not fit, with no warning and an HTTP 200: the solver then read a valid-looking file that was not the one you sent, and returned a confident answer to a problem nobody had submitted. Such an upload now fails with a message saying the file could not be stored.
+- **Two people editing the same model no longer overwrite each other in silence.** The second save used to win automatically while both screens still said Saved, so the first person's work disappeared with nothing to show for it. Autosave now stops when somebody else has changed the model, says so, and offers to overwrite only if you choose to.
+- **Restoring an old version asks before throwing away uncommitted work.** It used to discard it without a word, while a message claimed the work had been kept as a checkpoint. Nothing of the sort was ever saved. You are now shown what is about to be lost and can cancel; the message no longer promises a checkpoint that does not exist.
+- **Custom Solve shows the answer.** The panel gave you a status, an objective and a time, and never the values of the decision variables — which is the thing you ran the solver for. It read a field the API does not send, so the block was empty on every solve since the page shipped.
+- **The executions list loads in a fraction of the time.** Each row carried the whole compiled problem and the whole solution: 37 MB of JSON for one page of twenty rows, up to 90 MB, and 6.2 s to paint six columns. Rows now carry only what a table shows.
+- **Resetting your password unlocks an account locked by failed attempts.** The reset is what the app offers as the way back in; it reported success and left you locked out until the lock aged out on its own.
 
 ### Security
 
-- **Custom Solve shows the answer.** The panel gave you a status, an objective and a time, and never the values of the decision variables — which is the thing you ran the solver for. It read a field the API does not send, so the block was empty on every solve since the page shipped.
-- **Two people editing the same model no longer overwrite each other in silence.** The second save used to win automatically while both screens still said Saved, so the first person's work disappeared with nothing to show for it. Autosave now stops when somebody else has changed the model, says so, and offers to overwrite only if you choose to.
-- **Restoring an old version asks before throwing away uncommitted work.** It used to discard it without a word, while a message claimed the work had been kept as a checkpoint. Nothing of the sort was ever saved. You are now shown what is about to be lost and can cancel; the message no longer promises a checkpoint that does not exist.
-- **A password reset link now works once.** It kept working for its whole hour, so anyone who saw the link afterwards — a forwarded mail, browser history, a mail server log — could keep changing the password. Using a link now spends it, and any other link issued earlier stops working at the same moment.
-- **Resetting your password unlocks an account locked by failed attempts.** The reset is what the app offers as the way back in; it reported success and left you locked out until the lock aged out on its own.
 - **An email address means one account, whatever case it is typed in.** Signing up with the capitalised form of an address already in use was accepted and created a second account in a second organisation, and signing in with capitals took you to it. Addresses are now trimmed and lowercased everywhere they identify a person, and the database refuses to store any other form. Installations with addresses that differ only in case must merge them before upgrading: the migration stops and names them rather than choosing for you.
+- **A password reset link now works once.** It kept working for its whole hour, so anyone who saw the link afterwards — a forwarded mail, browser history, a mail server log — could keep changing the password. Using a link now spends it, and any other link issued earlier stops working at the same moment.
 
 ---
 
