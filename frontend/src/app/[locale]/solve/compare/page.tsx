@@ -1,9 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Loader2, Play, RotateCw, Upload, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+
+import { usePathname, useRouter } from "@/i18n/navigation";
 
 import { ComparisonTable } from "@/components/solve/compare/ComparisonTable";
 import { canStop, shouldKeepPolling } from "@/components/solve/compare/polling";
@@ -52,6 +55,16 @@ export default function SolverComparePage() {
   const [comparison, setComparison] = useState<ComparisonDetail | null>(null);
   const [starting, setStarting] = useState(false);
 
+  // A comparison used to live in this state and nowhere else, so a reload threw
+  // it away and no link, list or button on the page could reach it again — even
+  // though the API stores every one and the client already had `get` and
+  // `list`. Its id belongs in the URL: reload, Back and a pasted link all work,
+  // and a comparison becomes something you can send to a colleague.
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const idFromUrl = searchParams.get("id");
+
   // The organization's models, not only this user's. JAOT is collaborative and
   // every other picker (the import panel, the trigger form) lists the org's
   // active models; asking for `mine=true` here meant a user whose teammate
@@ -87,6 +100,15 @@ export default function SolverComparePage() {
       // A dropped poll is not worth an error toast — the next tick retries.
     }
   }, []);
+
+  // Restore whatever the URL points at. Runs on mount, so a reload lands back on
+  // the comparison rather than an empty form.
+  const restoredRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!idFromUrl || restoredRef.current === idFromUrl) return;
+    restoredRef.current = idFromUrl;
+    void refresh(idFromUrl);
+  }, [idFromUrl, refresh]);
 
   // Poll only while there is something left to happen — which outlasts the
   // comparison's own status: stopping one leaves the solve already inside a
@@ -133,6 +155,8 @@ export default function SolverComparePage() {
           : { problem: uploaded?.problem, uploaded_filename: uploaded?.filename }),
       });
       setComparison(created);
+      restoredRef.current = created.id;
+      router.replace(`${pathname}?id=${created.id}`, { scroll: false });
     } catch (error) {
       toast.error(getErrorMessage(error, t("results.startFailed")));
     } finally {
