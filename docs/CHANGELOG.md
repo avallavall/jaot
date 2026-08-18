@@ -30,6 +30,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- **A model file too big for the server to store is refused, instead of being quietly cut short.** An import above roughly 27 MB lost whatever did not fit, with no warning and an HTTP 200: the solver then read a valid-looking file that was not the one you sent, and returned a confident answer to a problem nobody had submitted. Such an upload now fails with a message saying the file could not be stored.
+
+### Security
+
+- **An email address means one account, whatever case it is typed in.** Signing up with the capitalised form of an address already in use was accepted and created a second account in a second organisation, and signing in with capitals took you to it. Addresses are now trimmed and lowercased everywhere they identify a person, and the database refuses to store any other form. Installations with addresses that differ only in case must merge them before upgrading: the migration stops and names them rather than choosing for you.
+
+---
+
 ## [3.5.0] - 2026-08-18
 
 ### Added
