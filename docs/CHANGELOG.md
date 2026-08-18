@@ -38,6 +38,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ### Security
 
+- **A password reset link now works once.** It kept working for its whole hour, so anyone who saw the link afterwards — a forwarded mail, browser history, a mail server log — could keep changing the password. Using a link now spends it, and any other link issued earlier stops working at the same moment.
+- **Resetting your password unlocks an account locked by failed attempts.** The reset is what the app offers as the way back in; it reported success and left you locked out until the lock aged out on its own.
 - **An email address means one account, whatever case it is typed in.** Signing up with the capitalised form of an address already in use was accepted and created a second account in a second organisation, and signing in with capitals took you to it. Addresses are now trimmed and lowercased everywhere they identify a person, and the database refuses to store any other form. Installations with addresses that differ only in case must merge them before upgrading: the migration stops and names them rather than choosing for you.
 
 ---

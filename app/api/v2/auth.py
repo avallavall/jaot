@@ -557,7 +557,7 @@ def forgot_password(body: ForgotPasswordRequest, db: DBSession) -> SuccessRespon
     user = db.query(User).filter(User.email == body.email).first()
     if user and user.password_hash:
         try:
-            reset_token = JWTService.create_reset_token(user.id, db=db)
+            reset_token = JWTService.create_reset_token(user.id, user.password_hash, db=db)
             reset_url = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
             logger.debug("Reset email sent to %s", body.email)
 
@@ -623,7 +623,25 @@ def reset_password(body: ResetPasswordRequest, db: DBSession) -> SuccessResponse
             code="auth.reset_link_invalid",
         )
 
+    # A reset link is good once. The token carries a fingerprint of the password
+    # it was issued against; the reset below changes the password, so the second
+    # use of the same link no longer matches. Without this the link kept working
+    # for its whole hour, and anyone who saw it later — a forwarded mail, browser
+    # history, a mail gateway log — could keep changing the password.
+    if payload.get("pwf") != JWTService.password_fingerprint(user.password_hash):
+        raise CodedHTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset link has expired or is invalid",
+            code="auth.reset_link_invalid",
+        )
+
     user.password_hash = PasswordService.hash_password(body.password)
+
+    # Resetting the password is the way out of a lockout the app itself offers,
+    # so it has to clear one. Without this the user was told the reset worked and
+    # login still answered 423 until the lock aged out.
+    user.locked_until = None
+    user.failed_login_attempts = 0
 
     # Revoke all existing refresh tokens (force re-login everywhere)
     db.query(RefreshToken).filter(

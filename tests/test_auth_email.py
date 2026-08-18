@@ -117,7 +117,7 @@ class TestJWTService:
         assert abs((expected_exp - actual_exp).total_seconds()) < 5
 
     def test_reset_token_1h(self):
-        token = JWTService.create_reset_token("usr_123")
+        token = JWTService.create_reset_token("usr_123", "$argon2id$fake")
         payload = JWTService.decode_token(token)
         assert payload["type"] == "reset"
         expected_exp = datetime.now(timezone.utc) + timedelta(hours=1)
@@ -559,7 +559,7 @@ class TestResetPassword:
 
     def test_valid_token_changes_password(self, client, db_session):
         user = self._create_user_with_password(db_session)
-        token = JWTService.create_reset_token(user.id)
+        token = JWTService.create_reset_token(user.id, user.password_hash)
         response = client.post(
             "/api/v2/auth/reset-password",
             json={"token": token, "password": "newpassword123"},
@@ -603,7 +603,7 @@ class TestResetPassword:
         db_session.commit()
 
         # Reset password
-        token = JWTService.create_reset_token(user.id)
+        token = JWTService.create_reset_token(user.id, user.password_hash)
         client.post(
             "/api/v2/auth/reset-password",
             json={"token": token, "password": "newpassword123"},
@@ -1211,3 +1211,113 @@ class TestEmailIsCaseInsensitive:
             db_session.flush()
         assert "ck_users_email_lowercase" in str(exc.value)
         db_session.rollback()
+
+
+class TestResetLinkIsSpentOnce:
+    """A password reset link works once, and it lets a locked user back in.
+
+    The token was a plain JWT with nothing recording that it had been used, so
+    it kept working for its whole hour: anyone who saw the link later — a
+    forwarded mail, browser history, a mail gateway log — could keep changing
+    the password. Separately, the reset the app offers as the way out of a
+    lockout did not clear one, so the user was told it worked and login still
+    answered 423.
+    """
+
+    def _user_with_password(self, db_session, email="spent@example.com"):
+        from app.shared.utils.id_generator import generate_id
+
+        org = Organization(id=generate_id("org_"), name="Spent Org")
+        db_session.add(org)
+        db_session.flush()
+        user = User(
+            id=generate_id("usr_"),
+            email=email,
+            name="Spent",
+            organization_id=org.id,
+            password_hash=PasswordService.hash_password("originalpassword123"),
+        )
+        db_session.add(user)
+        db_session.commit()
+        return user
+
+    # CONTRACT-TEST: a reset link cannot be used a second time
+    def test_the_same_link_cannot_be_used_twice(self, client, db_session):
+        user = self._user_with_password(db_session, "twice@example.com")
+        token = JWTService.create_reset_token(user.id, user.password_hash)
+
+        first = client.post(
+            "/api/v2/auth/reset-password",
+            json={"token": token, "password": "firstnewpassword123"},
+        )
+        assert first.status_code == 200
+
+        second = client.post(
+            "/api/v2/auth/reset-password",
+            json={"token": token, "password": "secondnewpassword123"},
+        )
+        assert second.status_code == 400, "the link was accepted a second time"
+
+        # The second password must never have been set.
+        db_session.refresh(user)
+        assert PasswordService.verify_password("firstnewpassword123", user.password_hash)
+        assert not PasswordService.verify_password("secondnewpassword123", user.password_hash)
+
+    def test_a_link_issued_before_another_reset_is_dead(self, client, db_session):
+        """Two links in flight: using either one kills the other."""
+        user = self._user_with_password(db_session, "stale@example.com")
+        older = JWTService.create_reset_token(user.id, user.password_hash)
+
+        client.post(
+            "/api/v2/auth/reset-password",
+            json={"token": older, "password": "passwordnumberone123"},
+        )
+        db_session.refresh(user)
+        newer = JWTService.create_reset_token(user.id, user.password_hash)
+
+        assert (
+            client.post(
+                "/api/v2/auth/reset-password",
+                json={"token": newer, "password": "passwordnumbertwo123"},
+            ).status_code
+            == 200
+        )
+        assert (
+            client.post(
+                "/api/v2/auth/reset-password",
+                json={"token": older, "password": "passwordnumberthree123"},
+            ).status_code
+            == 400
+        )
+
+    # CONTRACT-TEST: resetting the password clears a lockout
+    def test_resetting_the_password_unlocks_the_account(self, client, db_session):
+        user = self._user_with_password(db_session, "locked@example.com")
+        user.locked_until = utcnow() + timedelta(minutes=15)
+        user.failed_login_attempts = 5
+        db_session.commit()
+
+        blocked = client.post(
+            "/api/v2/auth/login/email",
+            json={"email": "locked@example.com", "password": "originalpassword123"},
+        )
+        assert blocked.status_code == 423, "the account was not actually locked"
+
+        token = JWTService.create_reset_token(user.id, user.password_hash)
+        assert (
+            client.post(
+                "/api/v2/auth/reset-password",
+                json={"token": token, "password": "afterunlock123456"},
+            ).status_code
+            == 200
+        )
+
+        db_session.refresh(user)
+        assert user.locked_until is None
+        assert user.failed_login_attempts == 0
+
+        allowed = client.post(
+            "/api/v2/auth/login/email",
+            json={"email": "locked@example.com", "password": "afterunlock123456"},
+        )
+        assert allowed.status_code == 200, "still locked out after the reset the app offered"

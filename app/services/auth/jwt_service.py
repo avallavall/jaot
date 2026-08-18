@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -160,11 +161,32 @@ class JWTService:
         return jwt.encode(payload, JWTService._get_secret(db), algorithm=algo)
 
     @staticmethod
-    def create_reset_token(user_id: str, db: Session | None = None) -> str:
-        """Create a password reset token (1 hour).
+    def password_fingerprint(password_hash: str | None) -> str:
+        """A short, one-way marker of the password a reset token was issued for.
+
+        Not a secret and not reversible: it is a truncated SHA-256 of an argon2
+        hash that is itself salted. Its only job is to change when the password
+        changes.
+        """
+        return hashlib.sha256((password_hash or "").encode()).hexdigest()[:16]
+
+    @staticmethod
+    def create_reset_token(
+        user_id: str, password_hash: str | None, db: Session | None = None
+    ) -> str:
+        """Create a password reset token (1 hour), tied to the current password.
+
+        ``password_hash`` is required rather than optional so a new call site
+        cannot quietly mint a token that never expires on use. The token carries
+        a fingerprint of the password it was issued against; resetting changes
+        the password, so the fingerprint stops matching and the link is spent.
+        That is what makes it single-use, with no extra table to keep and no row
+        to clean up.
 
         Args:
             user_id: User ID.
+            password_hash: The user's password hash right now, or None if they
+                have never set one.
             db: Optional DB session for runtime settings.
 
         Returns:
@@ -174,6 +196,7 @@ class JWTService:
         payload = {
             "sub": user_id,
             "type": "reset",
+            "pwf": JWTService.password_fingerprint(password_hash),
             "exp": now + timedelta(hours=1),
             "iat": now,
         }
