@@ -96,12 +96,23 @@ class TestCORSConfiguration:
             "Production deployments must use explicit origin list."
         )
 
-    def test_cors_allowed_origins_has_localhost(self):
-        """Default ALLOWED_ORIGINS includes localhost:3000 for development."""
-        from app.config import settings
+    def test_cors_allowed_origins_has_localhost(self, monkeypatch):
+        """The DEFAULT ALLOWED_ORIGINS includes localhost:3000 for development.
 
-        assert "http://localhost:3000" in settings.ALLOWED_ORIGINS, (
-            f"ALLOWED_ORIGINS should include http://localhost:3000: {settings.ALLOWED_ORIGINS}"
+        This asserts the default, not the configuration that happens to be
+        loaded. A production deployment sets ALLOWED_ORIGINS to its own origin
+        and must NOT allow localhost, so asserting the live value would demand
+        the opposite of what production needs — and did fail here, against an
+        .env holding production origins. The sibling wildcard test is the one
+        that checks the live configuration, which is where it matters.
+        """
+        from app.config import Settings
+
+        monkeypatch.delenv("ALLOWED_ORIGINS", raising=False)
+        defaults = Settings(DEBUG=True, JWT_SECRET="").ALLOWED_ORIGINS
+
+        assert "http://localhost:3000" in defaults, (
+            f"default ALLOWED_ORIGINS should include http://localhost:3000: {defaults}"
         )
 
 

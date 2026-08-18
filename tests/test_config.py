@@ -23,10 +23,20 @@ def test_jwt_secret_accepted_in_production():
     assert s.JWT_SECRET == "my-production-secret-key"
 
 
-def test_infra_fields_exist():
-    """Settings exposes the infrastructure fields with the right type and defaults."""
-    # Use a fresh Settings() so we test the documented defaults, not whatever
-    # the running .env happens to set.
+def test_infra_fields_exist(monkeypatch):
+    """Settings exposes the infrastructure fields with the right type and defaults.
+
+    The environment has to be cleared first. ``app.config`` calls ``load_dotenv``
+    when it is imported, so the developer's ``.env`` is already sitting in
+    ``os.environ`` before any test runs, and a fresh ``Settings()`` reads it like
+    any other environment variable. Without this the test asserted whatever that
+    file happened to say: on a machine whose ``.env`` points at production it
+    failed on ``FRONTEND_URL``, which is the one thing a defaults test exists to
+    pin down.
+    """
+    for name in Settings.model_fields:
+        monkeypatch.delenv(name, raising=False)
+
     s = Settings(DEBUG=True, JWT_SECRET="")
 
     # Strings (DSN-shaped infra config)
