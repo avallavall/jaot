@@ -28,6 +28,10 @@
 - [MCP Overview](/docs/mcp/overview): Connect AI agents to the solver via MCP (34 tools)
 - Tools: solve_problem, validate_problem, solve_multi_objective, list_available_solvers, list_templates, get_template, solve_with_template, import_preview, import_and_solve, export_model, export_execution, list_catalog_models, get_catalog_model, get_catalog_model_schema, execute_model, get_execution, get_execution_insights, get_execution_exact_analysis, analyze_infeasibility, start_execution_scenario_analysis, get_execution_scenario_analysis, compare_solvers, get_solver_comparison, compare_solvers_on_datasets, get_solver_comparison_matrix, create_model_project, create_model_project_from_marketplace, get_model_project, list_model_projects, update_model_project_draft, commit_model_version, list_project_versions, get_model_stats, solve_model_project
 
+## For developers
+
+- [Architecture](/docs/reference/architecture): How JAOT is built, what you can extend, and what self-hosting involves
+
 ## Marketplace
 
 - [Browse Models](/marketplace): Ready-made optimization models across 10 problem categories — fork any of them into your studio with "Use in studio"

@@ -1,0 +1,116 @@
+---
+title: Architecture
+description: How JAOT is built, for developers evaluating it, self-hosting it, or extending it
+order: 3
+---
+
+# Architecture
+
+For developers. If you only want to *use* JAOT, [Concepts](/docs/getting-started/concepts)
+and the [Solve API](/docs/api/solve) are enough — this page is about how the thing is put
+together, what you can extend, and what running it yourself involves.
+
+JAOT is open source under Apache 2.0 and designed to be self-hosted. `jaot.io` is the
+reference deployment, not a privileged one: it runs the same images anyone else can build.
+
+## The shape
+
+A **modular monolith**, deliberately, not microservices. One FastAPI application, one
+PostgreSQL database, and Celery workers for anything that takes longer than a request.
+Domains are extracted one at a time when a boundary earns it, and the boundaries that exist
+are enforced in CI rather than by convention.
+
+```
+Next.js (App Router, 5 locales)
+        │  REST /api/v2  ·  WebSocket  ·  MCP
+        ▼
+FastAPI ──── PostgreSQL
+   │
+   └── Celery ──── RabbitMQ / Redis
+         │
+         └── solver workers (one queue per solver)
+```
+
+**Every solve is asynchronous underneath**, even the endpoint that looks synchronous: it
+enqueues, waits briefly, and returns either the result or a task envelope you poll. That is
+what keeps a twenty-minute solve from holding a web worker.
+
+## The solver layer
+
+This is the part most people want to extend.
+
+A solver is reached through one `SolverAdapter` — a `typing.Protocol` with three methods:
+`is_available()`, `version()`, and `solve()`. Four implementations ship (SCIP and HiGHS as
+Python bindings; CBC and GLPK driven as separate processes), plus a profile-gated Hexaly.
+
+**Adding a solver means writing one adapter.** Nothing else in the platform names a solver:
+`OptimizationProblem` and `OptimizationResult` are solver-agnostic by construction, and an
+import-linter contract fails the build if solver-specific code leaks out of the adapters
+directory.
+
+Two things worth knowing before you write one:
+
+- **A command-line solver runs as a child process, never linked.** GLPK is GPLv3 and JAOT is
+  Apache-2.0, so linking it would change JAOT's own licence. The exchange format is CPLEX LP.
+- **Capabilities are declarations the UI acts on.** If your adapter says it computes no
+  shadow prices, the Sensitivity tab says so by name instead of rendering an empty table.
+  Declaring something you do not deliver is worse than declaring nothing.
+
+Each solver gets its own Celery queue, so a slow solver cannot starve the others, and the
+[comparer](/docs/studio/comparing-solvers) has a single-slot queue of its own so the seconds
+it reports mean something.
+
+## The model layer
+
+Three representations of one model, kept in step:
+
+- a **visual canvas** (JSON graph),
+- a **flat problem** (`OptimizationProblem` — variables, constraints, objective),
+- a **[JModel source](/docs/studio/jmodel-dsl)** (indexed DSL) that *compiles* into the flat
+  problem.
+
+The compiler is its own domain and is deliberately pure: it may import the schemas and
+nothing else, enforced by contract. Fourteen lines of source routinely ground into twenty
+thousand variables, which is why compiling happens on the server and not in the browser.
+
+Templates are **YAML, not code** — 102 of them across 34 files — and each declares which of
+the 33 generators builds its problem from your input. Adding a template is a data change.
+
+## Extension points, shortest first
+
+| You want to | You write |
+|-------------|-----------|
+| Add a solver | One adapter class behind `SolverAdapter` |
+| Add a ready-made problem | A YAML template entry (+ a generator if the maths is new) |
+| Drive JAOT from your own code | Nothing — use the [REST API](/docs/api/solve) |
+| Drive JAOT from an AI agent | Nothing — point it at the [MCP endpoint](/docs/mcp/overview) (34 tools) |
+| Run it on your own hardware | A `docker compose up` and a `.env` |
+
+## Configuration, and where it lives
+
+Two tiers, and the split matters when you deploy:
+
+- **`.env`** carries infrastructure only — database, Redis, broker, JWT secret, CORS. It is
+  read before the database exists, so nothing business-shaped can live there.
+- **The `platform_settings` table** carries everything else: limits, feature flags, LLM
+  settings, rate limits. It is edited at runtime from the admin panel.
+
+The practical consequence: **a deploy does not change your settings**, and a feature flag is
+not something a release toggles. Verify flags against the database, not the release notes.
+
+## What is enforced, not just documented
+
+- **7 import-linter contracts** guard the domain boundaries in CI. The DSL compiler importing
+  the solver domain, or `app/shared` importing an API module, fails the build.
+- **Auth is always on.** There is no bypass flag, in any environment. Tests authenticate with
+  real API keys.
+- **Tests run against a real PostgreSQL.** The database is never mocked.
+
+## Going deeper
+
+The repository carries the engineering documentation this page summarises:
+[`docs/`](https://github.com/avallavall/jaot/tree/main/docs) has the architecture set, the
+ADRs and the tech-debt register, and
+[`docs/GLOSSARY.md`](https://github.com/avallavall/jaot/blob/main/docs/GLOSSARY.md) maps every
+word in [Concepts](/docs/getting-started/concepts) onto the class, table and module that
+implements it.

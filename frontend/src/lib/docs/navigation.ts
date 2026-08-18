@@ -75,6 +75,7 @@ export const docsNavigation: DocsNavItem[] = [
     children: [
       { title: "Error Reference", slug: "reference/errors" },
       { title: "Usage Limits", slug: "reference/usage-limits" },
+      { title: "Architecture", slug: "reference/architecture" },
     ],
   },
   {

@@ -55,6 +55,7 @@ const contentMap: Record<string, () => Promise<{ default: React.ComponentType; f
   "api/websocket": () => import("@content/docs/api/websocket.mdx"),
   "reference/errors": () => import("@content/docs/reference/errors.mdx"),
   "reference/usage-limits": () => import("@content/docs/reference/usage-limits.mdx"),
+  "reference/architecture": () => import("@content/docs/reference/architecture.mdx"),
   "guides/index": () => import("@content/docs/guides/index.mdx"),
   "guides/production-planning": () => import("@content/docs/guides/production-planning.mdx"),
   "guides/cutting-and-packing": () => import("@content/docs/guides/cutting-and-packing.mdx"),

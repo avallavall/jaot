@@ -148,7 +148,7 @@
     "title": "Concepts",
     "description": "Model, template, generator, dataset, execution — what each word means and which one you need",
     "slug": "getting-started/concepts",
-    "content": "Concepts\n\nJAOT uses a handful of words that sound interchangeable and are not. This page says what each one is, and — more useful — which of them you actually touch.\n\nMost people only ever meet three: a model, a dataset, and an execution. The rest are how the platform builds those.\n\n The short version\n\n| Word | In one line |\n|------|-------------|\n| Model project | Your workspace for one model. Versioned, owned by your organization. |\n| Problem | The flat maths a solver receives: variables, constraints, an objective. |\n| JModel source | The indexed language you write the model in. Compiles into a problem. |\n| Dataset | The numbers that fill a JModel source. One model, many datasets. |\n| Template | A ready-made model shape you fill in with your own input. |\n| Generator | The code behind a template that turns your input into a problem. |\n| Solver | The program that searches for the answer: SCIP, HiGHS, CBC, GLPK. |\n| Execution | One run of one problem by one solver. What produces an answer. |\n| Comparison | The same problem run by several solvers, to choose between them. |\n\n---\n\n Model project\n\nWhat you work in. A model project holds a draft you keep editing and a history of versions you commit, the way source code does. It belongs to your organization, not to you personally, so a teammate can open it.\n\nThe draft can hold three views of the same model at once — a visual canvas, a JSON problem, and a JModel source(/docs/studio/jmodel-dsl) — and the studio keeps them in step.\n\n> \"Model\" on its own almost always means a model project. When the docs mean the flat maths, they say problem.\n\n Problem\n\nWhat a solver actually receives. A problem is solver-agnostic JSON: a list of variables with their types and bounds, a list of constraints as expressions, one objective, and the options (time limit, gap tolerance). Nothing in it names a solver.\n\nThis is the shape POST /api/v2/solve(/docs/api/solve) takes. Everything else on this page eventually produces one.\n\n JModel source\n\nHow you write a model that has structure. Writing out ten thousand constraints by hand is not modelling. A JModel source(/docs/studio/jmodel-dsl) declares sets, parameters and indexed families once, and the compiler grounds them into a problem — fourteen lines can become twenty thousand variables.\n\nA JModel source is not solvable on its own. It needs data.\n\n Dataset\n\nThe numbers that fill a source. A dataset(/docs/studio/datasets-scenarios) supplies the members of every set and the values of every parameter the source declares. Keeping data out of the model is what lets one model answer \"what about January\" and \"what about March\" without being edited.\n\nThe studio calls a dataset run a scenario. Same thing: one dataset, solved.\n\n> A flat or imported model has its numbers written into it already, so datasets do not apply to it. That is why the solver matrix(/docs/studio/comparing-solvers) needs a JModel source.\n\n Template and generator\n\nThese two come as a pair and are easy to confuse.\n\n- A template is the part you see: a named problem with a description, an input schema and an example — \"Item Selection (Knapsack)\", \"Vehicle Routing\". There are 102 of them.\n- A generator is the code behind it: it takes your input and builds the problem. There are 33, and several templates share one, because a knapsack over cargo and a knapsack over projects are the same maths with different words.\n\nEach template declares which generator builds it. You pick a template; you never pick a generator.\n\nA template is not a model project. It is a starting point: solve one directly with solvewithtemplate, or create a model project from it and take it from there. Once it is a project, it is yours to change and the template stops being involved.\n\n Marketplace model\n\nSomebody else's committed version, published. Browsing the marketplace(/marketplace) shows models other people finished and shared. Using one forks it: you get your own model project seeded from theirs, and your changes are yours. There is no live link back — their later edits do not reach your fork, and yours never touch the original.\n\n Solver\n\nThe program that does the searching. JAOT ships four (SCIP, HiGHS, CBC and GLPK) and can be built with a fifth (Hexaly). They all take the same problem and return the same shape of answer, so switching one for another changes the time and sometimes the route, never the meaning.\n\nsolvername: \"auto\" lets the platform pick. Which one it picks, and why it will not pick CBC or GLPK for you, is in what auto picks(/docs/api/solvewhat-auto-picks).\n\n Execution\n\nOne run. An execution records one problem solved by one solver: the answer, the objective, the time, the gap, the work the solver did, and which model and dataset it came from. It is what the history lists, what the analysis pages read, and what an export writes.\n\nSolving four datasets makes four executions. So does comparing four solvers.\n\n Comparison and matrix\n\nChoosing a solver, with numbers instead of a guess.\n\n- A comparison runs one problem through several solvers under identical terms and puts what each did side by side.\n- A matrix crosses several datasets with several solvers, because the solver that wins on January's data routinely loses on March's.\n\nBoth are covered in Comparing Solvers(/docs/studio/comparing-solvers). Note the name collision: \"compare executions\" elsewhere in the app diffs two solutions. A comparison here looks at the solver.\n\n---\n\n Which do I need?\n\n| You want to | Start at |\n|-------------|----------|\n| Solve something standard, fast | A template |\n| Build your own model, keep versions | A model project |\n| Run the same model on changing numbers | A JModel source plus datasets |\n| Start from something the community built | A marketplace model, forked |\n| Send a problem from your own code | A problem, to POST /api/v2/solve |\n| Know which solver to use | A comparison |",
+    "content": "Concepts\n\nJAOT uses a handful of words that sound interchangeable and are not. This page says what each one is, and — more useful — which of them you actually touch.\n\nMost people only ever meet three: a model, a dataset, and an execution. The rest are how the platform builds those.\n\n The short version\n\n| Word | In one line |\n|------|-------------|\n| Model project | Your workspace for one model. Versioned, owned by your organization. |\n| Problem | The flat maths a solver receives: variables, constraints, an objective. |\n| JModel source | The indexed language you write the model in. Compiles into a problem. |\n| Dataset | The numbers that fill a JModel source. One model, many datasets. |\n| Template | A ready-made model shape you fill in with your own input. |\n| Generator | The code behind a template that turns your input into a problem. |\n| Solver | The program that searches for the answer: SCIP, HiGHS, CBC, GLPK. |\n| Execution | One run of one problem by one solver. What produces an answer. |\n| Comparison | The same problem run by several solvers, to choose between them. |\n\n---\n\n Model project\n\nWhat you work in. A model project holds a draft you keep editing and a history of versions you commit, the way source code does. It belongs to your organization, not to you personally, so a teammate can open it.\n\nThe draft can hold three views of the same model at once — a visual canvas, a JSON problem, and a JModel source(/docs/studio/jmodel-dsl) — and the studio keeps them in step.\n\n> \"Model\" on its own almost always means a model project. When the docs mean the flat maths, they say problem.\n\n Problem\n\nWhat a solver actually receives. A problem is solver-agnostic JSON: a list of variables with their types and bounds, a list of constraints as expressions, one objective, and the options (time limit, gap tolerance). Nothing in it names a solver.\n\nThis is the shape POST /api/v2/solve(/docs/api/solve) takes. Everything else on this page eventually produces one.\n\n JModel source\n\nHow you write a model that has structure. Writing out ten thousand constraints by hand is not modelling. A JModel source(/docs/studio/jmodel-dsl) declares sets, parameters and indexed families once, and the compiler grounds them into a problem — fourteen lines can become twenty thousand variables.\n\nA JModel source is not solvable on its own. It needs data.\n\n Dataset\n\nThe numbers that fill a source. A dataset(/docs/studio/datasets-scenarios) supplies the members of every set and the values of every parameter the source declares. Keeping data out of the model is what lets one model answer \"what about January\" and \"what about March\" without being edited.\n\nThe studio calls a dataset run a scenario. Same thing: one dataset, solved.\n\n> A flat or imported model has its numbers written into it already, so datasets do not apply to it. That is why the solver matrix(/docs/studio/comparing-solvers) needs a JModel source.\n\n Template and generator\n\nThese two come as a pair and are easy to confuse.\n\n- A template is the part you see: a named problem with a description, an input schema and an example — \"Item Selection (Knapsack)\", \"Vehicle Routing\". There are 102 of them.\n- A generator is the code behind it: it takes your input and builds the problem. There are 33, and several templates share one, because a knapsack over cargo and a knapsack over projects are the same maths with different words.\n\nEach template declares which generator builds it. You pick a template; you never pick a generator.\n\nA template is not a model project. It is a starting point: solve one directly with solvewithtemplate, or create a model project from it and take it from there. Once it is a project, it is yours to change and the template stops being involved.\n\n Marketplace model\n\nSomebody else's committed version, published. Browsing the marketplace(/marketplace) shows models other people finished and shared. Using one forks it: you get your own model project seeded from theirs, and your changes are yours. There is no live link back — their later edits do not reach your fork, and yours never touch the original.\n\n Solver\n\nThe program that does the searching. JAOT ships four (SCIP, HiGHS, CBC and GLPK) and can be built with a fifth (Hexaly). They all take the same problem and return the same shape of answer, so switching one for another changes the time and sometimes the route, never the meaning.\n\nsolvername: \"auto\" lets the platform pick. Which one it picks, and why it will not pick CBC or GLPK for you, is in what auto picks(/docs/api/solvewhat-auto-picks).\n\n Execution\n\nOne run. An execution records one problem solved by one solver: the answer, the objective, the time, the gap, the work the solver did, and which model and dataset it came from. It is what the history lists, what the analysis pages read, and what an export writes.\n\nSolving four datasets makes four executions. So does comparing four solvers.\n\n Comparison and matrix\n\nChoosing a solver, with numbers instead of a guess.\n\n- A comparison runs one problem through several solvers under identical terms and puts what each did side by side.\n- A matrix crosses several datasets with several solvers, because the solver that wins on January's data routinely loses on March's.\n\nBoth are covered in Comparing Solvers(/docs/studio/comparing-solvers). Note the name collision: \"compare executions\" elsewhere in the app diffs two solutions. A comparison here looks at the solver.\n\n---\n\n Which do I need?\n\n> Building on JAOT rather than using it? The repo carries the other half of\n> this page: docs/GLOSSARY.md(https://github.com/avallavall/jaot/blob/main/docs/GLOSSARY.md)\n> maps every word below onto the class, table and module that implements it.\n\n| You want to | Start at |\n|-------------|----------|\n| Solve something standard, fast | A template |\n| Build your own model, keep versions | A model project |\n| Run the same model on changing numbers | A JModel source plus datasets |\n| Start from something the community built | A marketplace model, forked |\n| Send a problem from your own code | A problem, to POST /api/v2/solve |\n| Know which solver to use | A comparison |",
     "section": "getting-started"
   },
   {
@@ -489,6 +489,14 @@
   },
   {
     "id": 61,
+    "title": "Architecture",
+    "description": "How JAOT is built, for developers evaluating it, self-hosting it, or extending it",
+    "slug": "reference/architecture",
+    "content": "Architecture\n\nFor developers. If you only want to use JAOT, Concepts(/docs/getting-started/concepts)\nand the Solve API(/docs/api/solve) are enough — this page is about how the thing is put\ntogether, what you can extend, and what running it yourself involves.\n\nJAOT is open source under Apache 2.0 and designed to be self-hosted. jaot.io is the\nreference deployment, not a privileged one: it runs the same images anyone else can build.\n\n The shape\n\nA modular monolith, deliberately, not microservices. One FastAPI application, one\nPostgreSQL database, and Celery workers for anything that takes longer than a request.\nDomains are extracted one at a time when a boundary earns it, and the boundaries that exist\nare enforced in CI rather than by convention.\n\nEvery solve is asynchronous underneath, even the endpoint that looks synchronous: it\nenqueues, waits briefly, and returns either the result or a task envelope you poll. That is\nwhat keeps a twenty-minute solve from holding a web worker.\n\n The solver layer\n\nThis is the part most people want to extend.\n\nA solver is reached through one SolverAdapter — a typing.Protocol with three methods:\nisavailable(), version(), and solve(). Four implementations ship (SCIP and HiGHS as\nPython bindings; CBC and GLPK driven as separate processes), plus a profile-gated Hexaly.\n\nAdding a solver means writing one adapter. Nothing else in the platform names a solver:\nOptimizationProblem and OptimizationResult are solver-agnostic by construction, and an\nimport-linter contract fails the build if solver-specific code leaks out of the adapters\ndirectory.\n\nTwo things worth knowing before you write one:\n\n- A command-line solver runs as a child process, never linked. GLPK is GPLv3 and JAOT is\n  Apache-2.0, so linking it would change JAOT's own licence. The exchange format is CPLEX LP.\n- Capabilities are declarations the UI acts on. If your adapter says it computes no\n  shadow prices, the Sensitivity tab says so by name instead of rendering an empty table.\n  Declaring something you do not deliver is worse than declaring nothing.\n\nEach solver gets its own Celery queue, so a slow solver cannot starve the others, and the\ncomparer(/docs/studio/comparing-solvers) has a single-slot queue of its own so the seconds\nit reports mean something.\n\n The model layer\n\nThree representations of one model, kept in step:\n\n- a visual canvas (JSON graph),\n- a flat problem (OptimizationProblem — variables, constraints, objective),\n- a JModel source(/docs/studio/jmodel-dsl) (indexed DSL) that compiles into the flat\n  problem.\n\nThe compiler is its own domain and is deliberately pure: it may import the schemas and\nnothing else, enforced by contract. Fourteen lines of source routinely ground into twenty\nthousand variables, which is why compiling happens on the server and not in the browser.\n\nTemplates are YAML, not code — 102 of them across 34 files — and each declares which of\nthe 33 generators builds its problem from your input. Adding a template is a data change.\n\n Extension points, shortest first\n\n| You want to | You write |\n|-------------|-----------|\n| Add a solver | One adapter class behind SolverAdapter |\n| Add a ready-made problem | A YAML template entry (+ a generator if the maths is new) |\n| Drive JAOT from your own code | Nothing — use the REST API(/docs/api/solve) |\n| Drive JAOT from an AI agent | Nothing — point it at the MCP endpoint(/docs/mcp/overview) (34 tools) |\n| Run it on your own hardware | A docker compose up and a .env |\n\n Configuration, and where it lives\n\nTwo tiers, and the split matters when you deploy:\n\n- .env carries infrastructure only — database, Redis, broker, JWT secret, CORS. It is\n  read before the database exists, so nothing business-shaped can live there.\n- The platformsettings table carries everything else: limits, feature flags, LLM\n  settings, rate limits. It is edited at runtime from the admin panel.\n\nThe practical consequence: a deploy does not change your settings, and a feature flag is\nnot something a release toggles. Verify flags against the database, not the release notes.\n\n What is enforced, not just documented\n\n- 7 import-linter contracts guard the domain boundaries in CI. The DSL compiler importing\n  the solver domain, or app/shared importing an API module, fails the build.\n- Auth is always on. There is no bypass flag, in any environment. Tests authenticate with\n  real API keys.\n- Tests run against a real PostgreSQL. The database is never mocked.\n\n Going deeper\n\nThe repository carries the engineering documentation this page summarises:\ndocs/(https://github.com/avallavall/jaot/tree/main/docs) has the architecture set, the\nADRs and the tech-debt register, and\ndocs/GLOSSARY.md(https://github.com/avallavall/jaot/blob/main/docs/GLOSSARY.md) maps every\nword in Concepts(/docs/getting-started/concepts) onto the class, table and module that\nimplements it.",
+    "section": "reference"
+  },
+  {
+    "id": 62,
     "title": "Error Reference",
     "description": "HTTP error codes, error schema, and troubleshooting",
     "slug": "reference/errors",
@@ -496,7 +504,7 @@
     "section": "reference"
   },
   {
-    "id": 62,
+    "id": 63,
     "title": "Usage Limits",
     "description": "API rate limiting, solve quotas, and resource caps",
     "slug": "reference/usage-limits",
@@ -504,7 +512,7 @@
     "section": "reference"
   },
   {
-    "id": 63,
+    "id": 64,
     "title": "Analyzing Results",
     "description": "Read a solved model's execution page — the grouped structured solution, the honest solve summary, and the exact solution-based analysis",
     "slug": "studio/analyzing-results",
@@ -512,7 +520,7 @@
     "section": "studio"
   },
   {
-    "id": 64,
+    "id": 65,
     "title": "Comparing Solvers",
     "description": "Run the same problem on several solvers under identical conditions and see what each one did",
     "slug": "studio/comparing-solvers",
@@ -520,7 +528,7 @@
     "section": "studio"
   },
   {
-    "id": 65,
+    "id": 66,
     "title": "Datasets & Scenarios",
     "description": "One model, many data bundles — run and compare scenarios without touching the formulation",
     "slug": "studio/datasets-scenarios",
@@ -528,7 +536,7 @@
     "section": "studio"
   },
   {
-    "id": 66,
+    "id": 67,
     "title": "Importing & Exporting Model Files",
     "description": "Bring MPS, LP, CIP, or JSON models into the workspace, and export models and results",
     "slug": "studio/importing-files",
@@ -536,7 +544,7 @@
     "section": "studio"
   },
   {
-    "id": 67,
+    "id": 68,
     "title": "JModel DSL",
     "description": "Write indexed optimization models over sets and params — model and data separated",
     "slug": "studio/jmodel-dsl",
@@ -544,7 +552,7 @@
     "section": "studio"
   },
   {
-    "id": 68,
+    "id": 69,
     "title": "JSON Editor",
     "description": "Edit the canonical optimization problem as JSON text, with live validation",
     "slug": "studio/json-editor",
@@ -552,7 +560,7 @@
     "section": "studio"
   },
   {
-    "id": 69,
+    "id": 70,
     "title": "The Model Workspace",
     "description": "Build, analyze, version, and solve an optimization model in one place — the Model, Analyze & Solve studio.",
     "slug": "studio/model-workspace",
@@ -560,7 +568,7 @@
     "section": "studio"
   },
   {
-    "id": 70,
+    "id": 71,
     "title": "Versioning",
     "description": "Git-style commits for optimization models — history, diffs, restore, and AI-explained changes",
     "slug": "studio/versioning",
@@ -568,7 +576,7 @@
     "section": "studio"
   },
   {
-    "id": 71,
+    "id": 72,
     "title": "Visual Canvas",
     "description": "Build a model as a visual graph of variables, constraints, and the objective",
     "slug": "studio/visual-canvas",
