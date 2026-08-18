@@ -52,6 +52,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ### Security
 
+- **A failed solver no longer prints the server's file paths into the results table.** When a run failed, the message shown to whoever started the comparison carried the temporary path the solver had been handed, and a process failure brought its whole command line with it. The solver's own words are kept, because they say what went wrong; the paths are reduced to the file name.
 - **An email address means one account, whatever case it is typed in.** Signing up with the capitalised form of an address already in use was accepted and created a second account in a second organisation, and signing in with capitals took you to it. Addresses are now trimmed and lowercased everywhere they identify a person, and the database refuses to store any other form. Installations with addresses that differ only in case must merge them before upgrading: the migration stops and names them rather than choosing for you.
 - **A password reset link now works once.** It kept working for its whole hour, so anyone who saw the link afterwards — a forwarded mail, browser history, a mail server log — could keep changing the password. Using a link now spends it, and any other link issued earlier stops working at the same moment.
 

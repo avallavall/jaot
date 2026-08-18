@@ -206,14 +206,40 @@ def parse_float(token: str) -> float | None:
     return value if math.isfinite(value) else None
 
 
+#: Absolute paths, POSIX and Windows. The solvers echo the temp file they were
+#: given, so their own output names the server's filesystem.
+#: The lookbehind is what keeps this off ordinary prose: without it the slash
+#: in "ratio 3/4" starts a match and the sentence comes back as "ratio 4".
+_ABSOLUTE_PATH = re.compile(r"(?<![\w.\-~])(?:[A-Za-z]:)?[\\/](?:[\w.\-~]+[\\/])*[\w.\-~]+")
+
+
+def scrub_paths(text: str) -> str:
+    """Replace absolute paths with the file's own name.
+
+    The solvers are handed a temp file and print its full path back — in the
+    verdict line, in parse errors, in whatever they send to stderr. That text
+    ends up in ``error_message``, which the comparison table shows to whoever
+    ran the comparison, so the server's directory layout was on their screen.
+
+    The basename is kept because the message often needs it to make sense
+    ("cannot read model.lp"), and it gives nothing away.
+    """
+
+    def keep_the_name(match: "re.Match[str]") -> str:
+        return match.group(0).replace("\\", "/").rsplit("/", 1)[-1] or "file"
+
+    return _ABSOLUTE_PATH.sub(keep_the_name, text)
+
+
 def tail(text: str, *, lines: int = 12, max_chars: int = 1200) -> str:
     """The last few lines of solver output, for an error message.
 
     A failing solver can print hundreds of lines. The reason is always at the
     end, and the whole log on a user's screen is what the comparison page
-    already had to be fixed for once.
+    already had to be fixed for once. Paths are scrubbed: this text is shown to
+    a user, and the full output is in the log either way.
     """
     trimmed = "\n".join(text.strip().splitlines()[-lines:])
     if len(trimmed) > max_chars:
         trimmed = trimmed[-max_chars:]
-    return trimmed
+    return scrub_paths(trimmed)

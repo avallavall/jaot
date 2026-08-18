@@ -35,6 +35,7 @@ from app.domains.solver.adapters._cli_solver import (
     read_version,
     relative_gap,
     run_binary,
+    scrub_paths,
     tail,
     workspace,
     write_problem_lp,
@@ -208,7 +209,9 @@ class GLPKAdapter(CachedVersion):
             return OptimizationResult(
                 status=SolverStatus.ERROR,
                 solve_time_seconds=time.time() - start_time,
-                error_message=str(exc),
+                # Same reason as the CBC adapter: a stringified exception
+                # carries the argv and the temp paths with it.
+                error_message=scrub_paths(f"GLPK could not finish this run: {exc}"),
             )
 
     # ── running ──────────────────────────────────────────────────────────────

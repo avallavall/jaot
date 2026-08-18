@@ -32,6 +32,7 @@ from app.domains.solver.adapters._cli_solver import (
     read_version,
     relative_gap,
     run_binary,
+    scrub_paths,
     tail,
     workspace,
     write_problem_lp,
@@ -169,7 +170,12 @@ class CBCAdapter(CachedVersion):
             return OptimizationResult(
                 status=SolverStatus.ERROR,
                 solve_time_seconds=time.time() - start_time,
-                error_message=str(exc),
+                # `str(exc)` went straight to the comparison table. A
+                # subprocess failure stringifies to its whole argv, and any
+                # other exception to whatever paths it was holding, so the
+                # server's filesystem was on the user's screen. The full
+                # exception, traceback included, is on the line above.
+                error_message=scrub_paths(f"CBC could not finish this run: {exc}"),
             )
 
     # ── running ──────────────────────────────────────────────────────────────

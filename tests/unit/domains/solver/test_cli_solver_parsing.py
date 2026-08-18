@@ -14,7 +14,12 @@ from __future__ import annotations
 import pytest
 
 from app.domains.solver.adapters import cbc as cbc_mod, glpk as glpk_mod
-from app.domains.solver.adapters._cli_solver import parse_float, relative_gap, tail
+from app.domains.solver.adapters._cli_solver import (
+    parse_float,
+    relative_gap,
+    scrub_paths,
+    tail,
+)
 from app.domains.solver.adapters.base import SolverError
 from app.schemas.optimization import (
     Constraint,
@@ -437,3 +442,52 @@ def test_tail_keeps_the_end_because_that_is_where_the_reason_is() -> None:
     text = "\n".join(f"line {i}" for i in range(50))
 
     assert tail(text, lines=3) == "line 47\nline 48\nline 49"
+
+
+# ---------------------------------------------------------------------------
+# What a failed run is allowed to say
+#
+# `error_message` is shown to whoever ran the comparison. The CLI solvers are
+# handed a temp file and print its full path back — in the verdict line, in a
+# parse error, in whatever goes to stderr — and a stringified subprocess failure
+# carries the whole argv with it. All of that was reaching the results table.
+# ---------------------------------------------------------------------------
+
+
+def test_scrub_paths_keeps_the_filename_and_drops_the_directory() -> None:
+    scrubbed = scrub_paths("glpsol: cannot open file /tmp/tmpxyz123.lp")
+    assert "/tmp/" not in scrubbed
+    # The name is what makes the sentence mean anything, and gives nothing away.
+    assert "tmpxyz123.lp" in scrubbed
+
+
+# CONTRACT-TEST: a message shown to a user never carries a server path
+def test_scrub_paths_strips_an_argv_out_of_a_subprocess_error() -> None:
+    raw = "Command '['cbc', '/tmp/tmpab12.lp', '-solve']' returned non-zero exit status 1."
+    scrubbed = scrub_paths(raw)
+    assert "/tmp/tmpab12.lp" not in scrubbed
+    assert "tmpab12.lp" in scrubbed
+    assert "non-zero exit status 1" in scrubbed
+
+
+def test_scrub_paths_leaves_ordinary_words_alone() -> None:
+    for text in (
+        "GLPK: the objective has no variables",
+        "PROBLEM HAS NO PRIMAL FEASIBLE SOLUTION",
+        "ratio 3/4 is fine",
+    ):
+        assert scrub_paths(text) == text
+
+
+def test_scrub_paths_handles_a_windows_path() -> None:
+    scrubbed = scrub_paths(r"cannot read C:\Users\someone\AppData\Local\Temp\model.lp")
+    assert "AppData" not in scrubbed
+    assert "model.lp" in scrubbed
+
+
+def test_tail_scrubs_what_it_returns() -> None:
+    """`tail` is the one path solver output takes to a user's screen."""
+    output = "reading /tmp/tmpqq.lp\nsyntax error at line 4\nglpsol: /tmp/tmpqq.lp is unreadable"
+    trimmed = tail(output)
+    assert "/tmp/" not in trimmed
+    assert "syntax error at line 4" in trimmed
