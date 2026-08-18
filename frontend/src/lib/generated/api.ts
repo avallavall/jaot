@@ -6811,7 +6811,7 @@ export interface components {
          */
         ExecutionListResponse: {
             /** Items */
-            items: components["schemas"]["ModelExecutionResponse"][];
+            items: components["schemas"]["ExecutionSummaryResponse"][];
             /** Page */
             page: number;
             /** Page Size */
@@ -6878,6 +6878,66 @@ export interface components {
             task_id?: string | null;
             /** Timestamp */
             timestamp?: string | null;
+        };
+        /**
+         * ExecutionSummaryResponse
+         * @description One row of an executions table: everything except the run's payloads.
+         *
+         *     ``input_data`` and ``result_data`` hold the whole compiled problem and the
+         *     whole solution. The detail view needs them; a table of twenty rows does not,
+         *     and was paying for them: 37,720,232 bytes measured for one page, 90,922,886
+         *     at one point, to paint six columns, with 6.2 s to first paint on localhost.
+         *     The list queries no longer even load those columns, so the cost is gone at
+         *     the database as well as on the wire.
+         *
+         *     The one value the table did read out of them, the trigger's name, is a field
+         *     of its own here, batch-filled the same way ``model_name`` is. The objective
+         *     it read from ``result_data`` was always available as ``objective_value``.
+         */
+        ExecutionSummaryResponse: {
+            /** Completed At */
+            completed_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Dataset Id */
+            dataset_id?: string | null;
+            /** Dataset Name */
+            dataset_name?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Execution Time Ms */
+            execution_time_ms?: number | null;
+            /** Id */
+            id: string;
+            /** Model Author */
+            model_author?: string | null;
+            /** Model Name */
+            model_name?: string | null;
+            /** Model Project Id */
+            model_project_id?: string | null;
+            /** Objective Value */
+            objective_value?: number | null;
+            /** Organization Model Id */
+            organization_model_id?: string | null;
+            /** Origin */
+            origin?: string | null;
+            /** Solver Name */
+            solver_name?: string | null;
+            /** Solver Status */
+            solver_status?: string | null;
+            /** Source Id */
+            source_id?: string | null;
+            /** Source Kind */
+            source_kind?: string | null;
+            /** Status */
+            status: string;
+            /** Trigger Id */
+            trigger_id?: string | null;
+            /** Trigger Name */
+            trigger_name?: string | null;
         };
         /**
          * ExplainInfeasibilityRequest
@@ -7800,7 +7860,9 @@ export interface components {
         };
         /**
          * ModelExecutionResponse
-         * @description Response for a model execution.
+         * @description A single execution, with the input it ran on and the result it produced.
+         *
+         *     Served by the detail endpoint, where the payloads are the point.
          */
         ModelExecutionResponse: {
             /** Completed At */
@@ -7852,6 +7914,8 @@ export interface components {
             status: string;
             /** Trigger Id */
             trigger_id?: string | null;
+            /** Trigger Name */
+            trigger_name?: string | null;
         };
         /**
          * ModelHealth
@@ -11463,6 +11527,7 @@ export type ExecutionCancelResponse = components['schemas']['ExecutionCancelResp
 export type ExecutionListResponse = components['schemas']['ExecutionListResponse'];
 export type ExecutionStats = components['schemas']['ExecutionStats'];
 export type ExecutionStatusResponse = components['schemas']['ExecutionStatusResponse'];
+export type ExecutionSummaryResponse = components['schemas']['ExecutionSummaryResponse'];
 export type ExplainInfeasibilityRequest = components['schemas']['ExplainInfeasibilityRequest'];
 export type ExplainModelRequest = components['schemas']['ExplainModelRequest'];
 export type ExplainScenariosRequest = components['schemas']['ExplainScenariosRequest'];
