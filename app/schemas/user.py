@@ -2,13 +2,15 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.schemas.common import NormalizedEmail
 
 
 class UserBase(BaseModel):
     """Base user schema."""
 
-    email: EmailStr
+    email: NormalizedEmail
     name: str = Field(..., min_length=2, max_length=255)
 
 
@@ -23,7 +25,7 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     """Schema for updating a user."""
 
-    email: EmailStr | None = None
+    email: NormalizedEmail | None = None
     name: str | None = Field(None, min_length=2, max_length=255)
     password: str | None = Field(None, min_length=8)
     is_admin: bool | None = None

@@ -5,7 +5,9 @@ Contains both API-key-based and email/password-based auth schemas.
 
 from typing import Any
 
-from pydantic import BaseModel, EmailStr, Field, model_validator
+from pydantic import BaseModel, Field, model_validator
+
+from app.schemas.common import NormalizedEmail
 
 
 class LoginRequest(BaseModel):
@@ -26,7 +28,7 @@ class LoginResponse(BaseModel):
 class SignupRequest(BaseModel):
     """User signup request (API key flow)."""
 
-    email: EmailStr
+    email: NormalizedEmail
     name: str = Field(..., min_length=2)
     organization_name: str = Field(..., min_length=2)
 
@@ -83,7 +85,7 @@ class TokenPayload(BaseModel):
 class EmailLoginRequest(BaseModel):
     """Email login request."""
 
-    email: EmailStr
+    email: NormalizedEmail
     password: str
     remember_me: bool = False
 
@@ -91,7 +93,7 @@ class EmailLoginRequest(BaseModel):
 class EmailSignupRequest(BaseModel):
     """Email signup with password."""
 
-    email: EmailStr
+    email: NormalizedEmail
     name: str = Field(..., min_length=2)
     organization_name: str = Field(..., min_length=2)
     password: str = Field(..., min_length=12)
@@ -122,7 +124,7 @@ class EmailSignupResponse(BaseModel):
 class ForgotPasswordRequest(BaseModel):
     """Forgot password request."""
 
-    email: EmailStr
+    email: NormalizedEmail
 
 
 class ResetPasswordRequest(BaseModel):

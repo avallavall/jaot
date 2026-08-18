@@ -1,12 +1,38 @@
 """Common schemas used across multiple endpoints."""
 
 from datetime import datetime
-from typing import Generic, TypeVar
+from typing import Annotated, Generic, TypeVar
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, BeforeValidator, ConfigDict, EmailStr
 
 # Generic type for paginated responses
 T = TypeVar("T")
+
+
+def _normalize_email(value: object) -> object:
+    """Trim and lowercase an address before it is validated or stored.
+
+    An email address is this product's identity: it decides which account you
+    sign into, which organisation you land in, whether an invitation matches
+    and whether signup says the address is taken. Postgres compares strings
+    byte for byte, so without this a capitalised address is a different
+    account. It was: ``user@jaot.io`` and ``USER@jaot.io`` both existed, in
+    different organisations, because signup accepted the second one.
+
+    Non-strings pass through untouched so Pydantic reports the type error.
+    """
+    if isinstance(value, str):
+        return value.strip().lower()
+    return value
+
+
+NormalizedEmail = Annotated[EmailStr, BeforeValidator(_normalize_email)]
+"""An ``EmailStr`` that is trimmed and lowercased before validation.
+
+Use this instead of ``EmailStr`` anywhere an address identifies a person:
+signing in, signing up, resetting a password, inviting someone, naming an
+owner. Addresses that are only ever displayed or replied to may stay plain.
+"""
 
 
 class PaginatedResponse(BaseModel, Generic[T]):

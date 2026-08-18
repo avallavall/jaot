@@ -1092,3 +1092,122 @@ class TestSignupIdempotency:
         # Exactly one user row with that email
         users = db_session.query(User).filter(User.email == "idempot@example.com").all()
         assert len(users) == 1
+
+
+class TestEmailIsCaseInsensitive:
+    """One mailbox is one account, whatever case it is typed in.
+
+    Postgres compares strings byte for byte and nothing normalised the address,
+    so ``user@jaot.io`` and ``USER@jaot.io`` were two accounts in two
+    organisations: signup accepted the capitalised form of an address that
+    already existed. The address decides which account you sign into, which
+    organisation you land in, and whether "already in use" is true, so that is
+    enough to take over someone's identity.
+    """
+
+    # CONTRACT-TEST: an address already taken cannot be claimed by changing its case
+    def test_signup_refuses_a_taken_address_in_capitals(
+        self, client, db_session, enable_registration
+    ):
+        first = client.post(
+            "/api/v2/auth/signup/email",
+            json={
+                "email": "casetest@example.com",
+                "name": "Case Test",
+                "organization_name": "Case Org",
+                "password": "securepassword123",
+                "confirm_password": "securepassword123",
+                "tos_accepted": True,
+            },
+        )
+        assert first.status_code == 201
+
+        second = client.post(
+            "/api/v2/auth/signup/email",
+            json={
+                "email": "CaseTest@Example.COM",
+                "name": "Impostor",
+                "organization_name": "Impostor Org",
+                "password": "securepassword123",
+                "confirm_password": "securepassword123",
+                "tos_accepted": True,
+            },
+        )
+        assert second.status_code != 201, "the capitalised address was accepted as a new account"
+
+        rows = db_session.query(User).filter(User.email.ilike("casetest@example.com")).all()
+        assert len(rows) == 1, f"expected one account, found {[r.email for r in rows]}"
+
+    def test_login_accepts_any_capitalisation_of_the_same_address(
+        self, client, db_session, enable_registration
+    ):
+        client.post(
+            "/api/v2/auth/signup/email",
+            json={
+                "email": "mixedcase@example.com",
+                "name": "Mixed Case",
+                "organization_name": "Mixed Org",
+                "password": "securepassword123",
+                "confirm_password": "securepassword123",
+                "tos_accepted": True,
+            },
+        )
+        created = db_session.query(User).filter(User.email == "mixedcase@example.com").first()
+        assert created is not None
+
+        for typed in ("mixedcase@example.com", "MixedCase@Example.com", "MIXEDCASE@EXAMPLE.COM"):
+            resp = client.post(
+                "/api/v2/auth/login/email",
+                json={"email": typed, "password": "securepassword123"},
+            )
+            assert resp.status_code == 200, f"{typed} was refused"
+            me = resp.json()
+            assert me["user"]["id"] == created.id, f"{typed} reached a different account"
+
+    def test_an_address_is_stored_trimmed_and_lowercase(
+        self, client, db_session, enable_registration
+    ):
+        resp = client.post(
+            "/api/v2/auth/signup/email",
+            json={
+                "email": "  Padded@Example.com  ",
+                "name": "Padded",
+                "organization_name": "Padded Org",
+                "password": "securepassword123",
+                "confirm_password": "securepassword123",
+                "tos_accepted": True,
+            },
+        )
+        assert resp.status_code == 201
+        stored = db_session.query(User).filter(User.email == "padded@example.com").first()
+        assert stored is not None, "the address was not trimmed and lowercased before storage"
+
+    # CONTRACT-TEST: the database refuses a non-normalised address even if code forgets
+    def test_the_database_itself_refuses_a_capitalised_address(self, db_session):
+        """The last line of defence, for the day a new write path forgets.
+
+        Every field is filled in so the only thing that can reject this row is
+        the constraint under test. An earlier version left the primary key unset
+        and passed on the resulting NULL violation, which would have gone on
+        passing with the constraint removed.
+        """
+        from sqlalchemy.exc import IntegrityError
+
+        from app.shared.utils.id_generator import generate_id
+
+        org = Organization(id=generate_id("org_"), name="Constraint Org")
+        db_session.add(org)
+        db_session.flush()
+
+        db_session.add(
+            User(
+                id=generate_id("usr_"),
+                email="Direct@Example.com",
+                name="Direct",
+                organization_id=org.id,
+            )
+        )
+        with pytest.raises(IntegrityError) as exc:
+            db_session.flush()
+        assert "ck_users_email_lowercase" in str(exc.value)
+        db_session.rollback()

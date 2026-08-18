@@ -3,7 +3,9 @@
 from datetime import datetime
 from typing import Annotated, Any
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, field_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, field_validator
+
+from app.schemas.common import NormalizedEmail
 
 _VALID_ROLES = {"admin", "editor", "solver", "viewer"}
 
@@ -51,7 +53,7 @@ class MemberRoleUpdate(BaseModel):
 class EmailInviteCreate(BaseModel):
     """Request body for creating an email invite."""
 
-    email: EmailStr
+    email: NormalizedEmail
     role: Role
 
 

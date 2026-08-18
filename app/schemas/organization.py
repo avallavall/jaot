@@ -2,7 +2,9 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.schemas.common import NormalizedEmail
 
 
 class OrganizationBase(BaseModel):
@@ -17,7 +19,7 @@ class OrganizationBase(BaseModel):
 class OrganizationCreate(OrganizationBase):
     """Schema for creating an organization."""
 
-    owner_email: EmailStr
+    owner_email: NormalizedEmail
     owner_name: str
     owner_password: str = Field(..., min_length=8)
     plan: str = "free"
