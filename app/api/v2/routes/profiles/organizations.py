@@ -173,7 +173,12 @@ def get_organization_models(
             ModelProjectListing.author_organization_id == org_id,
             *MARKETPLACE_VISIBLE,
         )
-        .order_by(ModelProjectListing.total_executions.desc())
+        # Same tiebreaker the catalogue needs: execution counts tie constantly,
+        # and without a total order WHICH fifty come back changes between
+        # requests, so a model appears on an author page and is gone on reload.
+        .order_by(
+            ModelProjectListing.total_executions.desc(), ModelProjectListing.model_project_id.desc()
+        )
         .limit(50)
         .all()
     )

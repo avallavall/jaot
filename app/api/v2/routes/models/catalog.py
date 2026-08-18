@@ -161,13 +161,29 @@ def list_catalog_models(
     if min_rating is not None:
         query = query.filter(model_cls.avg_rating >= min_rating)
 
-    # Sorting
+    # Sorting.
+    #
+    # Every sort key here has ties — most models share an execution count, a
+    # rating, or no rating at all — and OFFSET/LIMIT gives Postgres no reason to
+    # order tied rows the same way twice. So a row could sit on page 3 for one
+    # request and page 4 for the next: walking the catalogue served some models
+    # twice and never showed others at all. Measured over all pages of the local
+    # catalogue: 109 slots served for 109 listings, but only 99 distinct under
+    # `popular` and 102 under `rating` — ten published models a visitor could not
+    # reach by browsing.
+    #
+    # The primary key (model_project_id) is the tiebreaker, which makes the order
+    # total and paging reproducible. `newest` gets one too: `created_at` merely
+    # happens to be unique here, and a bulk import writing rows in one transaction
+    # would break that assumption without warning.
     if sort_by == "popular":
-        query = query.order_by(model_cls.total_executions.desc())
+        query = query.order_by(model_cls.total_executions.desc(), model_cls.model_project_id.desc())
     elif sort_by == "newest":
-        query = query.order_by(model_cls.created_at.desc())
+        query = query.order_by(model_cls.created_at.desc(), model_cls.model_project_id.desc())
     elif sort_by == "rating":
-        query = query.order_by(model_cls.avg_rating.desc().nullslast())
+        query = query.order_by(
+            model_cls.avg_rating.desc().nullslast(), model_cls.model_project_id.desc()
+        )
 
     total = query.count()
     offset = (page - 1) * page_size

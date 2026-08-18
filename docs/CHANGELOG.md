@@ -38,6 +38,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ### Fixed
 
+- **Browsing the marketplace reaches every published model.** Paging through the catalogue served some models twice and never showed others at all: on a catalogue of 109, walking every page reached only 99 of them under the default sort. Any model published but never executed, or never rated, could sit in the part that was skipped.
 - **A model file too big for the server to store is refused, instead of being quietly cut short.** An import above roughly 27 MB lost whatever did not fit, with no warning and an HTTP 200: the solver then read a valid-looking file that was not the one you sent, and returned a confident answer to a problem nobody had submitted. Such an upload now fails with a message saying the file could not be stored.
 - **Two people editing the same model no longer overwrite each other in silence.** The second save used to win automatically while both screens still said Saved, so the first person's work disappeared with nothing to show for it. Autosave now stops when somebody else has changed the model, says so, and offers to overwrite only if you choose to.
 - **Restoring an old version asks before throwing away uncommitted work.** It used to discard it without a word, while a message claimed the work had been kept as a checkpoint. Nothing of the sort was ever saved. You are now shown what is about to be lost and can cancel; the message no longer promises a checkpoint that does not exist.
