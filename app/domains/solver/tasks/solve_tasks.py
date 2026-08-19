@@ -230,7 +230,7 @@ def solve_async(
                 db.close()
 
         # Solve the problem
-        start_time = time.time()
+        start_time = time.monotonic()
         update_task_progress(0.2, "solving", "Solving optimization problem...")
         _publish_ws_event(
             task_id,
@@ -260,7 +260,7 @@ def solve_async(
             )
         finally:
             ACTIVE_SOLVES.dec()
-        execution_time = time.time() - start_time
+        execution_time = time.monotonic() - start_time
         SOLVE_DURATION.observe(execution_time)
 
         # Record Prometheus metrics for the completed solve
@@ -417,13 +417,13 @@ def solve_multi_objective_async(
         config = MultiObjectiveConfig(**config_data)
         solver = get_solver_service()
 
-        start_time = time.time()
+        start_time = time.monotonic()
         ACTIVE_SOLVES.inc()
         try:
             pareto_points = solver.solve_multi_objective(problem, config)
         finally:
             ACTIVE_SOLVES.dec()
-        execution_time = time.time() - start_time
+        execution_time = time.monotonic() - start_time
         SOLVE_DURATION.observe(execution_time)
 
         labels = [obj.label or f"Objective {i + 1}" for i, obj in enumerate(config.objectives)]
@@ -606,7 +606,7 @@ def solve_model_async(
         solver = get_solver_service(solver_name=solver_name)
 
         # Solve
-        start_time = time.time()
+        start_time = time.monotonic()
         update_task_progress(0.2, "solving", "Solving optimization problem...")
         _publish_ws_event(
             execution_id,
@@ -625,8 +625,8 @@ def solve_model_async(
             result = solver.solve(problem)
         finally:
             ACTIVE_SOLVES.dec()
-        execution_time_seconds = time.time() - start_time
-        execution_time_ms = int(execution_time_seconds * 1000)
+        execution_time_seconds = time.monotonic() - start_time
+        execution_time_ms = execution_writer.to_ms(execution_time_seconds)
         SOLVE_DURATION.observe(execution_time_seconds)
 
         # ADR-007 S6: a solver-internal error comes back as status=ERROR WITHOUT

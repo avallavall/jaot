@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import type { ComparisonDetail, ComparisonSolverResult } from "@/lib/types";
 import { ComparisonCharts } from "./ComparisonCharts";
 import { ComparisonExportButtons } from "./ComparisonExportButtons";
+import { searchOverstatedBy, searchSecondsOf } from "./comparison-charts";
 import { comparisonRows, toJson } from "./export";
 
 /** Solver verdicts that mean a real answer came back. */
@@ -71,6 +72,8 @@ export function ComparisonTable({ comparison }: { comparison: ComparisonDetail }
       </div>
 
       <OverrunNotice comparison={comparison} />
+
+      <ClockDisagreementNotice comparison={comparison} />
 
       <AgreementNotice comparison={comparison} />
 
@@ -189,7 +192,7 @@ function ResultRow({
           overrun !== null && "text-amber-700 dark:text-amber-400",
         )}
       >
-        {formatSeconds(row.solver_time_seconds)}
+        {formatSeconds(searchSecondsOf(row))}
       </TableCell>
       <TableCell className="text-right tabular-nums">{formatCount(row.nodes)}</TableCell>
       <TableCell className="text-right tabular-nums">{formatCount(row.iterations)}</TableCell>
@@ -289,6 +292,40 @@ export function overrunOf(
   const allowance = Math.max(0.5, limit * 0.1);
   const overrun = row.solver_time_seconds - limit;
   return overrun > allowance ? overrun : null;
+}
+
+/**
+ * Names the rows whose two timings do not agree.
+ *
+ * The notice above the table says the difference between Time and Search is
+ * what the solver spent building its model. When the search comes back longer
+ * than the run that contains it, that difference is a negative number and the
+ * sentence is wrong for that row. The Search cell shows the wall time instead,
+ * so the arithmetic holds; this line says the cell was capped and by how much,
+ * because a corrected measurement that says nothing is worse than a wrong one.
+ */
+function ClockDisagreementNotice({ comparison }: { comparison: ComparisonDetail }) {
+  const t = useTranslations("solverCompare");
+  const affected = comparison.results
+    .map((row) => ({ row, excess: searchOverstatedBy(row) }))
+    .filter((o): o is { row: ComparisonSolverResult; excess: number } => o.excess !== null);
+  if (affected.length === 0) return null;
+
+  return (
+    <div
+      className="space-y-1 rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground"
+      data-testid="comparison-clock-disagreement"
+    >
+      {affected.map(({ row, excess }) => (
+        <p key={row.solver_name}>
+          {t("clockDisagreement.notice", {
+            solver: row.solver_name.toUpperCase(),
+            excess: formatSeconds(excess),
+          })}
+        </p>
+      ))}
+    </div>
+  );
 }
 
 /**

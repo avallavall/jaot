@@ -345,6 +345,47 @@ def test_cancelling_stops_the_run_and_marks_the_untouched_columns(
     assert {row["status"] for row in rows.values()} == {"cancelled"}
 
 
+# CONTRACT-TEST: a comparison the user stopped keeps saying stopped
+# The solve already inside a solver cannot be interrupted, so the worker finishes
+# it, finds every remaining column already cancelled and reaches the end of its
+# loop. It used to write COMPLETED there, over the cancel — a run the user
+# stopped ended up labelled "Finished" over a table three quarters of which said
+# "Stopped".
+def test_a_comparison_cancelled_mid_solve_is_not_relabelled_as_finished(
+    authenticated_client: TestClient,
+    test_organization: Organization,
+    captured_dispatch: list[dict],
+    task_runs_on_the_test_session,
+    monkeypatch,
+) -> None:
+    created = _create(authenticated_client, solver_names=["scip", "highs"])
+    real_run_one = comparison_tasks_mod._run_one
+
+    def cancel_while_the_first_column_is_in_flight(db, execution, problem, solver_name):
+        real_run_one(db, execution, problem, solver_name)
+        # What the user's click does: cancel the parent and close the columns
+        # that never started. The one just finished keeps its real verdict.
+        comparison = db.query(SolverComparison).filter(SolverComparison.id == created["id"]).one()
+        comparison_setup.cancel_comparison_rows(db, comparison)
+        db.commit()
+
+    monkeypatch.setattr(
+        comparison_tasks_mod, "_run_one", cancel_while_the_first_column_is_in_flight
+    )
+
+    comparison_tasks_mod.run_solver_comparison.apply(
+        kwargs={"comparison_id": created["id"], "organization_id": test_organization.id}
+    ).get()
+
+    detail = authenticated_client.get(f"{_URL}/{created['id']}").json()
+    assert detail["status"] == ComparisonStatus.CANCELLED.value
+    # The API's cancel does not stamp it, so the worker is the only one who can.
+    assert detail["completed_at"] is not None
+    rows = _rows_by_solver(detail)
+    assert rows["scip"]["status"] == ExecutionStatus.COMPLETED.value
+    assert rows["highs"]["status"] == ExecutionStatus.CANCELLED.value
+
+
 def test_cancelling_a_finished_comparison_changes_nothing(
     authenticated_client: TestClient,
     test_organization: Organization,

@@ -4935,11 +4935,17 @@
       "splitLegend": "La part fosca és la cerca del solver. La resta és traduir el problema al model d'aquell solver, que és cost de JAOT i no del solver.",
       "splitSearch": "Cerca",
       "splitBuild": "Construcció",
-      "boundOmitted": "{solvers}: no hi surt, no va donar cap resposta."
+      "boundOmitted": {
+        "noAnswer": "{solver}: no hi surt, no va donar cap resposta.",
+        "noBound": "{solver}: no hi surt, va donar una resposta però cap fita amb què mesurar-la."
+      }
     },
     "export": {
       "csv": "Baixa CSV",
       "json": "Baixa JSON"
+    },
+    "clockDisagreement": {
+      "notice": "{solver} va declarar una cerca {excess} més llarga que l'execució que la conté. Totes dues es mesuren amb rellotges diferents, així que la columna Cerca mostra el total."
     }
   }
 }

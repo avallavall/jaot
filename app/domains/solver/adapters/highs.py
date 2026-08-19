@@ -180,7 +180,7 @@ class HiGHSAdapter(CachedVersion):
         if warm_start is not None:
             logger.warning("HiGHS does not support warm start — warm_start argument ignored.")
 
-        start_time = time.time()
+        start_time = time.monotonic()
         try:
             h = highspy.Highs()
             self._configure_solver(h, problem)
@@ -191,14 +191,14 @@ class HiGHSAdapter(CachedVersion):
 
             h.run()
 
-            solve_time = time.time() - start_time
+            solve_time = time.monotonic() - start_time
             return self._extract_result(h, col_map, problem, solve_time)
 
         except Exception as exc:
             logger.error("HiGHS solver error: %s", exc, exc_info=True)
             return OptimizationResult(
                 status=SolverStatus.ERROR,
-                solve_time_seconds=time.time() - start_time,
+                solve_time_seconds=time.monotonic() - start_time,
                 error_message=str(exc),
             )
 
@@ -380,6 +380,21 @@ class HiGHSAdapter(CachedVersion):
                 solution_dict[var.name] = float(val)
 
         counters = self._extract_counters(h, problem)
+        dual_bound = counters.get("dual_bound")
+        gap = counters.get("gap")
+        # HiGHS only reports a bound for a model with integer variables, so an LP
+        # it proved optimal came back with no bound and no gap. The comparison
+        # table then showed a dash in both columns, and the chart of how much
+        # room each solver had left dropped the row and said HiGHS had reported
+        # no answer. At optimality the bound IS the answer, and the gap is zero.
+        # Same guard the CBC and GLPK adapters have, for the same reason: only at
+        # OPTIMAL, because filling it in on a run cut off by its time limit would
+        # report a proven answer that was never proved.
+        if status is SolverStatus.OPTIMAL:
+            if dual_bound is None:
+                dual_bound = float(obj_value)
+            if gap is None:
+                gap = 0.0
         result = OptimizationResult(
             status=status,
             objective_value=float(obj_value),
@@ -388,8 +403,8 @@ class HiGHSAdapter(CachedVersion):
             solution=solution_dict,
             iterations=counters.get("iterations"),
             nodes=counters.get("nodes"),
-            gap=counters.get("gap"),
-            dual_bound=counters.get("dual_bound"),
+            gap=gap,
+            dual_bound=dual_bound,
         )
 
         # Sensitivity: HiGHS exposes exact LP duals (row_dual) + reduced costs

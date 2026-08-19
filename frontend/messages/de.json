@@ -4935,11 +4935,17 @@
       "splitLegend": "Der dunkle Teil ist die Suche des Solvers. Der Rest ist die Übersetzung des Problems in das Modell dieses Solvers, und das sind Kosten von JAOT, nicht vom Solver.",
       "splitSearch": "Suche",
       "splitBuild": "Aufbau",
-      "boundOmitted": "{solvers}: nicht dargestellt, keine Antwort gemeldet."
+      "boundOmitted": {
+        "noAnswer": "{solver}: nicht dargestellt, es hat keine Antwort gemeldet.",
+        "noBound": "{solver}: nicht dargestellt, es hat eine Antwort gemeldet, aber keine Schranke, an der sie zu messen wäre."
+      }
     },
     "export": {
       "csv": "CSV herunterladen",
       "json": "JSON herunterladen"
+    },
+    "clockDisagreement": {
+      "notice": "{solver} hat eine Suche gemeldet, die {excess} länger ist als der Lauf, der sie enthält. Beide werden mit verschiedenen Uhren gemessen, daher zeigt die Spalte Suche die Gesamtzeit."
     }
   }
 }

@@ -67,6 +67,17 @@ def is_terminal(execution: ModelExecution) -> bool:
     return execution.status in _TERMINAL_STATES
 
 
+def to_ms(seconds: float) -> int:
+    """Seconds to whole milliseconds, rounded rather than cut.
+
+    The comparison table puts this number next to the solver's own measure of
+    the search, which the page rounds. Cutting one and rounding the other put a
+    4 ms search inside a 3 ms run, and the notice above the table then read the
+    difference as minus one millisecond of model building.
+    """
+    return int(round(seconds * 1000))
+
+
 def insert_pending(
     db: Any,
     *,
@@ -145,7 +156,7 @@ def apply_completed(
         execution.solver_status = getattr(result_status, "value", str(result_status))
     execution.objective_value = getattr(result, "objective_value", None)
     if execution_time_seconds is not None:
-        execution.execution_time_ms = int(execution_time_seconds * 1000)
+        execution.execution_time_ms = to_ms(execution_time_seconds)
     if solver_name:
         execution.solver_name = solver_name
     execution.completed_at = utcnow()
@@ -173,7 +184,7 @@ def apply_multi_objective_completed(
     execution.solver_status = str(result_data.get("solver_status") or "optimal")[:32]
     execution.objective_value = result_data.get("objective_value")
     if execution_time_seconds is not None:
-        execution.execution_time_ms = int(execution_time_seconds * 1000)
+        execution.execution_time_ms = to_ms(execution_time_seconds)
     execution.completed_at = utcnow()
     return True
 
@@ -428,4 +439,5 @@ __all__ = [
     "mark_failed_by_task",
     "mark_multi_objective_completed_by_task",
     "refresh_locked",
+    "to_ms",
 ]

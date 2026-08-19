@@ -105,6 +105,26 @@ class TestCrossSolverConsistency:
             _relative_diff(scip_result.objective_value, highs_result.objective_value) < _TOLERANCE
         )
 
+    # CONTRACT-TEST: a solver that proves an LP optimal reports the bound too
+    # HiGHS reads its bound off the MIP counters, so a pure LP came back with a
+    # bound of None. The comparison table showed a dash where SCIP showed a
+    # number, and the chart of how much room each solver had left dropped the
+    # HiGHS row and said underneath that HiGHS had reported no answer — one line
+    # below the row showing its answer.
+    def test_lp_bound_crosscheck(self) -> None:
+        """At optimality the bound is the answer, from both solvers."""
+        from app.domains.solver.adapters.highs import HiGHSAdapter  # noqa: PLC0415
+        from app.domains.solver.adapters.scip import SCIPAdapter  # noqa: PLC0415
+
+        problem = _lp_problem()
+        for result in (SCIPAdapter().solve(problem), HiGHSAdapter().solve(problem)):
+            assert result.status == SolverStatus.OPTIMAL
+            assert result.objective_value is not None
+            assert result.dual_bound is not None
+            assert _relative_diff(result.dual_bound, result.objective_value) < _TOLERANCE
+            assert result.gap is not None
+            assert abs(result.gap) < _TOLERANCE
+
     def test_status_crosscheck(self) -> None:
         """Infeasible problems return INFEASIBLE status from both solvers."""
         from app.domains.solver.adapters.highs import HiGHSAdapter  # noqa: PLC0415

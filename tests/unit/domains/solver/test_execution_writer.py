@@ -102,6 +102,18 @@ class TestCompleted:
         assert row.completed_at is not None
         assert isinstance(row.result_data, dict)
 
+    # The comparison table puts this number next to the solver's own measure of
+    # the search, which the page rounds to whole milliseconds. Cutting one and
+    # rounding the other showed a 4 ms search inside a 3 ms run, and the notice
+    # above the table then read the difference as minus one millisecond of
+    # model building.
+    def test_rounds_the_duration_to_whole_milliseconds(self) -> None:
+        row = _row()
+        execution_writer.apply_completed(
+            row, result=_optimal_result(), execution_time_seconds=0.0037436485
+        )
+        assert row.execution_time_ms == 4
+
     def test_running_stamps_started_at_once(self) -> None:
         row = _row()
         assert execution_writer.apply_running(row) is True

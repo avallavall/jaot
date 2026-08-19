@@ -4935,11 +4935,17 @@
       "splitLegend": "La partie sombre est la recherche du solveur. Le reste est la traduction du problème dans le modèle de ce solveur, qui est un coût de JAOT et non du solveur.",
       "splitSearch": "Recherche",
       "splitBuild": "Construction",
-      "boundOmitted": "{solvers} : absent, aucune réponse rapportée."
+      "boundOmitted": {
+        "noAnswer": "{solver} : absent, il n'a rapporté aucune réponse.",
+        "noBound": "{solver} : absent, il a rapporté une réponse mais aucune borne pour la mesurer."
+      }
     },
     "export": {
       "csv": "Télécharger le CSV",
       "json": "Télécharger le JSON"
+    },
+    "clockDisagreement": {
+      "notice": "{solver} a rapporté une recherche plus longue de {excess} que l'exécution qui la contient. Les deux sont mesurées par des horloges différentes, donc la colonne Recherche affiche le total."
     }
   }
 }

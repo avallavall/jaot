@@ -290,7 +290,7 @@ class HexalyAdapter(CachedVersion):
         # Lazy imports — NEVER at module top level.
         import hexaly.optimizer as hxopt  # noqa: PLC0415
 
-        start_time = time.time()
+        start_time = time.monotonic()
 
         known_variables = {v.name for v in problem.variables}
 
@@ -337,7 +337,7 @@ class HexalyAdapter(CachedVersion):
             logger.error("Hexaly solver error: %s", exc, exc_info=True)
             return OptimizationResult(
                 status=SolverStatus.ERROR,
-                solve_time_seconds=time.time() - start_time,
+                solve_time_seconds=time.monotonic() - start_time,
                 error_message="hexaly_internal_error",
             )
 
@@ -447,7 +447,7 @@ class HexalyAdapter(CachedVersion):
     ) -> OptimizationResult:
         """Build an ``OptimizationResult`` from the solved Hexaly model."""
         status = self._map_hexaly_status(optimizer.solution.status)
-        solve_time = time.time() - start_time
+        solve_time = time.monotonic() - start_time
 
         if status not in (SolverStatus.OPTIMAL, SolverStatus.FEASIBLE):
             return OptimizationResult(

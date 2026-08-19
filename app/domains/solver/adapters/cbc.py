@@ -138,12 +138,12 @@ class CBCAdapter(CachedVersion):
         if warm_start is not None:
             logger.warning("CBC adapter does not support warm start — argument ignored.")
 
-        start_time = time.time()
+        start_time = time.monotonic()
         binary = self.binary_path()
         if binary is None:
             return OptimizationResult(
                 status=SolverStatus.ERROR,
-                solve_time_seconds=time.time() - start_time,
+                solve_time_seconds=time.monotonic() - start_time,
                 error_message=f"CBC is not installed on this server ({CBC_BINARY} not on PATH).",
             )
 
@@ -157,7 +157,7 @@ class CBCAdapter(CachedVersion):
                     self._argv(binary, lp_path, sol_path, problem),
                     timeout=hard_timeout_seconds(problem.options.time_limit_seconds),
                 )
-                elapsed = time.time() - start_time
+                elapsed = time.monotonic() - start_time
                 if run.killed:
                     return self._killed_result(elapsed)
                 if not sol_path.exists():
@@ -171,7 +171,7 @@ class CBCAdapter(CachedVersion):
             logger.error("CBC solver error: %s", exc, exc_info=True)
             return OptimizationResult(
                 status=SolverStatus.ERROR,
-                solve_time_seconds=time.time() - start_time,
+                solve_time_seconds=time.monotonic() - start_time,
                 # `str(exc)` went straight to the comparison table. A
                 # subprocess failure stringifies to its whole argv, and any
                 # other exception to whatever paths it was holding, so the

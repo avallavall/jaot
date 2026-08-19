@@ -304,6 +304,45 @@ describe("ComparisonTable", () => {
     expect(mentions).toBe(1);
   });
 
+  // CONTRACT-TEST: the Search cell never exceeds the Time cell beside it
+  // The notice above the table says the difference between the two is what the
+  // solver spent building its model, so a Search larger than Time makes that
+  // sentence read as a negative number of seconds. The real row: GLPK with
+  // 3393 ms of wall time around a search it measured at 5.255 s.
+  it("caps a search that came back longer than the run that contains it", async () => {
+    const { rows, text } = await renderTable(
+      comparison({
+        results: [
+          row({ solver_name: "scip", wall_time_ms: 11092, solver_time_seconds: 6.838 }),
+          row({ solver_name: "glpk", wall_time_ms: 3393, solver_time_seconds: 5.25532341 }),
+        ],
+        agreement: null,
+      }),
+    );
+
+    // The decimal separator follows whatever locale the test environment picks,
+    // so match on the digits rather than on one spelling of the number.
+    const glpk = rows.find((line) => line.includes("glpk")) ?? "";
+    expect(glpk).toMatch(/3[.,]39 s/);
+    expect(glpk).not.toMatch(/5[.,]26 s/);
+    // Capped, and said so: a corrected measurement that says nothing is worse
+    // than a wrong one.
+    expect(text).toContain("solverCompare.clockDisagreement.notice");
+  });
+
+  it("says nothing about the clocks when the search fits inside the run", async () => {
+    const { text } = await renderTable(
+      comparison({
+        results: [
+          row({ wall_time_ms: 1000, solver_time_seconds: 0.8 }),
+          row({ solver_name: "highs", wall_time_ms: 500, solver_time_seconds: 0.4 }),
+        ],
+        agreement: null,
+      }),
+    );
+    expect(text).not.toContain("solverCompare.clockDisagreement.");
+  });
+
   it("says nothing about overruns when every solver kept the limit", async () => {
     const { text } = await renderTable(
       comparison({

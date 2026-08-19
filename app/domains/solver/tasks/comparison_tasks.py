@@ -41,6 +41,16 @@ from app.shared.utils.datetime_helpers import utcnow
 
 logger = logging.getLogger(__name__)
 
+#: A comparison in one of these has a verdict a user can already read. The
+#: worker never writes over one.
+_TERMINAL_STATUSES = frozenset(
+    {
+        ComparisonStatus.COMPLETED.value,
+        ComparisonStatus.FAILED.value,
+        ComparisonStatus.CANCELLED.value,
+    }
+)
+
 
 def _own_session() -> Any:
     """A session of this module's own, resolved at call time.
@@ -142,7 +152,7 @@ def _run_one(
         db.rollback()
         execution = db.merge(execution)
         execution_writer.apply_failed(execution, error=str(exc))
-        execution.execution_time_ms = int(elapsed * 1000)
+        execution.execution_time_ms = execution_writer.to_ms(elapsed)
         db.commit()
         return
 
@@ -241,6 +251,26 @@ def _cancel_remaining(db: Any, comparison_id: str) -> None:
 
 
 def _finish(db: Any, comparison: SolverComparison, status: ComparisonStatus) -> None:
+    """Write the comparison's verdict, without overwriting one it already has.
+
+    Stopping a comparison writes CANCELLED from the API while the worker is
+    inside a solve. That solve cannot be interrupted, so the worker finishes it,
+    finds every remaining column already cancelled, and reaches the end of its
+    loop — where it used to stamp COMPLETED over the cancel. A run the user
+    stopped ended up labelled "Finished", over a table three quarters of which
+    said "Stopped".
+
+    ``expire`` first: the cancel was written by another process, so the copy in
+    this session's identity map still says RUNNING.
+    """
+    db.expire(comparison)
+    if comparison.status in _TERMINAL_STATUSES and comparison.status != status.value:
+        # It already has a verdict, and this one is not it. Only fill in the
+        # timestamp the API's cancel does not write.
+        if comparison.completed_at is None:
+            comparison.completed_at = utcnow()
+            db.commit()
+        return
     comparison.status = status.value
     comparison.completed_at = utcnow()
     db.commit()

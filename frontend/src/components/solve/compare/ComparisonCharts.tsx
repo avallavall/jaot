@@ -16,6 +16,7 @@ import {
 import type { ComparisonDetail } from "@/lib/types";
 import {
   type BoundBar,
+  type BoundOmission,
   type SplitBar,
   type TimeBar,
   boundBars,
@@ -78,7 +79,7 @@ export function ComparisonCharts({ comparison }: { comparison: ComparisonDetail 
  * floating bar on a linear axis. A solver that proved its answer has nothing to
  * draw, so it gets a marker of a few pixels rather than disappearing.
  */
-function BoundChart({ bars, omitted }: { bars: BoundBar[]; omitted: string[] }) {
+function BoundChart({ bars, omitted }: { bars: BoundBar[]; omitted: BoundOmission[] }) {
   const t = useTranslations("solverCompare");
   const [low, high] = boundDomain(bars);
 
@@ -147,11 +148,19 @@ function BoundChart({ bars, omitted }: { bars: BoundBar[]; omitted: string[] }) 
         </ResponsiveContainer>
       </div>
       <p className="mt-1 text-xs text-muted-foreground">{t("charts.boundLegend")}</p>
-      {/* A solver missing from a chart reads as a solver that was never asked. */}
+      {/* A solver missing from a chart reads as a solver that was never asked.
+          The reason is per solver: one that answered and reported no bound is
+          not the same as one that answered nothing. */}
       {omitted.length > 0 ? (
-        <p className="text-xs text-muted-foreground" data-testid="comparison-chart-bound-omitted">
-          {t("charts.boundOmitted", { solvers: omitted.join(", ").toUpperCase() })}
-        </p>
+        <div className="text-xs text-muted-foreground" data-testid="comparison-chart-bound-omitted">
+          {omitted.map((omission) => (
+            <p key={omission.solver}>
+              {t(`charts.boundOmitted.${omission.reason}`, {
+                solver: omission.solver.toUpperCase(),
+              })}
+            </p>
+          ))}
+        </div>
       ) : null}
     </figure>
   );

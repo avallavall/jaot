@@ -164,12 +164,12 @@ class GLPKAdapter(CachedVersion):
         if warm_start is not None:
             logger.warning("GLPK adapter does not support warm start — argument ignored.")
 
-        start_time = time.time()
+        start_time = time.monotonic()
         binary = self.binary_path()
         if binary is None:
             return OptimizationResult(
                 status=SolverStatus.ERROR,
-                solve_time_seconds=time.time() - start_time,
+                solve_time_seconds=time.monotonic() - start_time,
                 error_message=f"GLPK is not installed on this server ({GLPK_BINARY} not on PATH).",
             )
 
@@ -184,7 +184,7 @@ class GLPKAdapter(CachedVersion):
                     self._argv(binary, lp_path, raw_path, report_path, problem),
                     timeout=hard_timeout_seconds(problem.options.time_limit_seconds),
                 )
-                elapsed = time.time() - start_time
+                elapsed = time.monotonic() - start_time
                 if run.killed:
                     return OptimizationResult(
                         status=SolverStatus.TIME_LIMIT,
@@ -209,7 +209,7 @@ class GLPKAdapter(CachedVersion):
             logger.error("GLPK solver error: %s", exc, exc_info=True)
             return OptimizationResult(
                 status=SolverStatus.ERROR,
-                solve_time_seconds=time.time() - start_time,
+                solve_time_seconds=time.monotonic() - start_time,
                 # Same reason as the CBC adapter: a stringified exception
                 # carries the argv and the temp paths with it.
                 error_message=scrub_paths(f"GLPK could not finish this run: {exc}"),

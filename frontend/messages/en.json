@@ -4935,11 +4935,17 @@
       "splitLegend": "The dark part is the solver's own search. The rest is translating the problem into that solver's model, which is JAOT's cost, not the solver's.",
       "splitSearch": "Search",
       "splitBuild": "Building",
-      "boundOmitted": "{solvers}: not shown, no answer reported."
+      "boundOmitted": {
+        "noAnswer": "{solver}: not shown, it reported no answer.",
+        "noBound": "{solver}: not shown, it reported an answer but no bound to measure it against."
+      }
     },
     "export": {
       "csv": "Download CSV",
       "json": "Download JSON"
+    },
+    "clockDisagreement": {
+      "notice": "{solver} reported a search {excess} longer than the run that contains it. The two are measured by different clocks, so the Search column shows the total instead."
     }
   }
 }

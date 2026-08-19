@@ -6,6 +6,8 @@ import {
   boundDomain,
   boundOmissions,
   logDomain,
+  searchOverstatedBy,
+  searchSecondsOf,
   splitBars,
   timeBars,
 } from "../comparison-charts";
@@ -181,7 +183,29 @@ describe("boundOmissions", () => {
     ]);
 
     expect(boundBars(detail).map((bar) => bar.solver)).toEqual(["scip", "cbc"]);
-    expect(boundOmissions(detail)).toEqual(["highs"]);
+    expect(boundOmissions(detail)).toEqual([
+      { solver: "highs", reason: "noAnswer" },
+    ]);
+  });
+
+  // The line under the chart said "no answer reported" one row under the answer
+  // itself. HiGHS proves an LP optimal and reports no bound, which is a
+  // different sentence.
+  it("separates a solver that reported no bound from one that reported no answer", () => {
+    const detail = comparison([
+      result({ solver_name: "scip" }),
+      result({ solver_name: "cbc" }),
+      result({
+        solver_name: "highs",
+        objective_value: 2610,
+        dual_bound: null,
+        gap: null,
+      }),
+    ]);
+
+    expect(boundOmissions(detail)).toEqual([
+      { solver: "highs", reason: "noBound" },
+    ]);
   });
 
   it("names nobody when every solver that ran is in the chart", () => {
@@ -206,6 +230,65 @@ describe("boundOmissions", () => {
       }),
     ]);
     expect(boundOmissions(detail)).toEqual([]);
+  });
+});
+
+describe("searchSecondsOf", () => {
+  it("gives the solver's own measure when it fits inside the wall time", () => {
+    expect(
+      searchSecondsOf(result({ wall_time_ms: 1000, solver_time_seconds: 0.8 })),
+    ).toBe(0.8);
+  });
+
+  // CONTRACT-TEST: the table and the chart read the same search time
+  // The row GLPK produced in cmp_9e716a2926592fa2: 3393 ms of wall time around a
+  // search it measured at 5.255 s. The table printed the 5.255 and the chart
+  // drew the 3.393, and nothing said they differed.
+  it("never reports a search longer than the run that contains it", () => {
+    expect(
+      searchSecondsOf(
+        result({ wall_time_ms: 3393, solver_time_seconds: 5.25532341 }),
+      ),
+    ).toBeCloseTo(3.393);
+  });
+
+  it("reports nothing when the solver reported no search time", () => {
+    expect(searchSecondsOf(result({ solver_time_seconds: null }))).toBeNull();
+  });
+
+  // A row still running has no wall time yet. The solver's own number is all
+  // there is, and it is not wrong — it is just not comparable yet.
+  it("keeps the raw measure when there is no wall time to cap it with", () => {
+    expect(
+      searchSecondsOf(result({ wall_time_ms: null, solver_time_seconds: 2 })),
+    ).toBe(2);
+  });
+});
+
+describe("searchOverstatedBy", () => {
+  it("says how far past the wall time the raw search landed", () => {
+    expect(
+      searchOverstatedBy(
+        result({ wall_time_ms: 3393, solver_time_seconds: 5.25532341 }),
+      ),
+    ).toBeCloseTo(1.8623);
+  });
+
+  // Both numbers are rounded to whole milliseconds, so one either way is noise.
+  it("says nothing about a difference the size of the rounding", () => {
+    expect(
+      searchOverstatedBy(
+        result({ wall_time_ms: 1000, solver_time_seconds: 1.001 }),
+      ),
+    ).toBeNull();
+  });
+
+  it("says nothing when the search fits inside the wall time", () => {
+    expect(
+      searchOverstatedBy(
+        result({ wall_time_ms: 1000, solver_time_seconds: 0.4 }),
+      ),
+    ).toBeNull();
   });
 });
 

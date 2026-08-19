@@ -52,7 +52,7 @@ def trigger_solve_task(
         Dict with run status and summary.
     """
     db = SessionLocal()
-    start_time = time.time()
+    start_time = time.monotonic()
     from app.shared.utils.datetime_helpers import utcnow as _utcnow  # noqa: PLC0415
 
     start_datetime = _utcnow()
@@ -112,11 +112,11 @@ def trigger_solve_task(
         )
 
         solver = SolverService()
-        _solve_start = time.time()
+        _solve_start = time.monotonic()
         ACTIVE_SOLVES.inc()
         try:
             result = solver.solve(problem)
-            _solve_elapsed = time.time() - _solve_start
+            _solve_elapsed = time.monotonic() - _solve_start
             SOLVE_DURATION.observe(_solve_elapsed)
             # Always use model_dump() — result is OptimizationResult (Pydantic model), not a dict
             result_data = result.model_dump()
@@ -161,7 +161,7 @@ def trigger_solve_task(
         from app.models.optimization_model import ModelExecution  # noqa: PLC0415
         from app.shared.utils.datetime_helpers import utcnow  # noqa: PLC0415
 
-        elapsed_ms = int((time.time() - start_time) * 1000)
+        elapsed_ms = int((time.monotonic() - start_time) * 1000)
         now = utcnow()
 
         execution_id = "exe_" + secrets.token_hex(16)

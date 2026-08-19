@@ -135,6 +135,14 @@ export function boundBars(comparison: ComparisonDetail): BoundBar[] {
   return bars.length < MIN_BARS ? [] : bars;
 }
 
+/** Why a solver that ran is missing from the bound chart. */
+export interface BoundOmission {
+  solver: string;
+  /** "noAnswer" when it reported no objective, "noBound" when it reported the
+   * objective but nothing about how good it is. */
+  reason: "noAnswer" | "noBound";
+}
+
 /**
  * Solvers that ran but are not in the bound chart, because they never reported
  * both ends.
@@ -142,11 +150,21 @@ export function boundBars(comparison: ComparisonDetail): BoundBar[] {
  * A solver that vanishes from a chart is read as a solver that was not asked,
  * which is the one thing a comparison must never suggest. The chart names them
  * underneath instead.
+ *
+ * The two reasons are kept apart because the line said "no answer reported"
+ * under a table row that showed the answer. A solver that found the optimum and
+ * reported no bound is doing neither of the things that sentence describes.
  */
-export function boundOmissions(comparison: ComparisonDetail): string[] {
+export function boundOmissions(comparison: ComparisonDetail): BoundOmission[] {
   return ranRows(comparison)
     .filter((row) => !hasBothEnds(row))
-    .map((row) => row.solver_name);
+    .map((row) => ({
+      solver: row.solver_name,
+      reason:
+        row.objective_value === null || row.objective_value === undefined
+          ? ("noAnswer" as const)
+          : ("noBound" as const),
+    }));
 }
 
 /** A linear axis covering every bar, with a tenth of the span as breathing room. */
@@ -175,6 +193,42 @@ export interface SplitBar {
 /** How much of the wait must be model building before the split is worth a chart. */
 export const MIN_BUILD_SHARE = 0.05;
 
+/** How far past the wall time a search may land before it stops being rounding.
+ * Both numbers are rounded to whole milliseconds, so one millisecond either way
+ * says nothing. */
+export const CLOCK_ALLOWANCE_SECONDS = 0.002;
+
+/**
+ * The search time this row can be shown with: the solver's own measure, never
+ * longer than the wall time that contains it.
+ *
+ * The two come from different clocks, so the search can land past the wall.
+ * The chart clamped and the table did not, so the same row read 5.26 s in one
+ * place and 3.39 s in the other with nothing saying they differed. Both read
+ * this now.
+ */
+export function searchSecondsOf(row: ComparisonSolverResult): number | null {
+  const search = row.solver_time_seconds;
+  if (search === null || search === undefined) return null;
+  if (row.wall_time_ms === null || row.wall_time_ms === undefined) return search;
+  return Math.min(search, row.wall_time_ms / 1000);
+}
+
+/**
+ * Seconds the raw search overran the wall time by, or null when it did not.
+ *
+ * A clamped number on its own would quietly rewrite what was measured. Rows
+ * recorded before the adapters moved to a monotonic clock still carry the
+ * disagreement, and it is worth a line rather than a silent correction.
+ */
+export function searchOverstatedBy(row: ComparisonSolverResult): number | null {
+  const search = row.solver_time_seconds;
+  if (search === null || search === undefined) return null;
+  if (row.wall_time_ms === null || row.wall_time_ms === undefined) return null;
+  const excess = search - row.wall_time_ms / 1000;
+  return excess > CLOCK_ALLOWANCE_SECONDS ? excess : null;
+}
+
 /**
  * Search time against the rest, per solver.
  *
@@ -192,9 +246,7 @@ export function splitBars(comparison: ComparisonDetail): SplitBar[] {
     .filter((row) => row.wall_time_ms !== null && row.solver_time_seconds !== null)
     .map((row) => {
       const wall = (row.wall_time_ms as number) / 1000;
-      // The two are measured by different clocks, so rounding can put the search
-      // a millisecond past the wall. Never draw a negative segment.
-      const search = Math.min(row.solver_time_seconds as number, wall);
+      const search = searchSecondsOf(row) as number;
       return { solver: row.solver_name, search, build: Math.max(0, wall - search) };
     })
     .sort((a, b) => a.search + a.build - (b.search + b.build));

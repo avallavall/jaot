@@ -111,7 +111,7 @@ class _ProgressEventHandler(Eventhdlr):
         super().__init__()
         self.history: list[ProgressPoint] = []
         self._on_progress = on_progress
-        self._t0 = time.time()
+        self._t0 = time.monotonic()
         self._iter = 0
 
     def eventinit(self) -> None:  # type: ignore[override]
@@ -142,7 +142,7 @@ class _ProgressEventHandler(Eventhdlr):
                 primal_bound=primal,
                 dual_bound=dual if _is_finite_bound(dual) else None,
                 gap=gap,
-                elapsed_seconds=round(time.time() - self._t0, 3),
+                elapsed_seconds=round(time.monotonic() - self._t0, 3),
             )
             self.history.append(point)
             # Live Solve: stream this incumbent out (best-effort). The point is
@@ -245,7 +245,7 @@ class SCIPAdapter(CachedVersion):
         on_progress: Callable[[ProgressPoint], None] | None = None,
     ) -> OptimizationResult:
         """Solve an optimization problem with SCIP. See module docstring."""
-        start_time = time.time()
+        start_time = time.monotonic()
 
         try:
             model, scip_vars, constraint_refs, progress_handler = self._build_model(
@@ -255,7 +255,7 @@ class SCIPAdapter(CachedVersion):
             logger.info("Solving problem: %s", problem.name or "unnamed")
             model.optimize()
 
-            solve_time = time.time() - start_time
+            solve_time = time.monotonic() - start_time
             result = self._extract_result(
                 model, scip_vars, problem, solve_time, constraint_refs=constraint_refs
             )
@@ -274,7 +274,7 @@ class SCIPAdapter(CachedVersion):
             logger.error("Solver error: %s", e)
             return OptimizationResult(
                 status=SolverStatus.ERROR,
-                solve_time_seconds=time.time() - start_time,
+                solve_time_seconds=time.monotonic() - start_time,
                 error_message=str(e),
             )
 

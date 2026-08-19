@@ -92,7 +92,21 @@ def test_an_lp_reports_no_node_count() -> None:
     result = HiGHSAdapter().solve(_lp())
 
     assert result.nodes is None
-    assert result.gap is None
+
+
+# CONTRACT-TEST: a solver that proved the answer reports the bound and a gap of
+# zero. This assertion used to read `gap is None`, because HiGHS reads both off
+# its MIP counters and an LP has none. A dash there is not the same reading as a
+# zero: the comparison table showed a dash where SCIP showed 0%, and the chart
+# of how much room each solver had left dropped the HiGHS row entirely and said
+# underneath that HiGHS had reported no answer — one line under its answer.
+def test_an_lp_proved_optimal_reports_the_bound_and_a_zero_gap() -> None:
+    result = HiGHSAdapter().solve(_lp())
+
+    assert result.status == SolverStatus.OPTIMAL, result.error_message
+    assert result.objective_value is not None
+    assert result.dual_bound == pytest.approx(result.objective_value)
+    assert result.gap == pytest.approx(0.0)
 
 
 def test_a_mip_reports_nodes_and_a_finite_gap() -> None:
