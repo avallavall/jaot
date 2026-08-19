@@ -138,6 +138,55 @@ flowchart LR
 
 ---
 
+## 6. A Refusal Names Itself
+
+**Problem:** the API answers in English — that is the contract, and it is what a
+log and a non-browser client read. A page in one of the other four languages
+that prints `detail` shows English inside translated text, and the reader
+cannot act on the one sentence that matters.
+
+**Pattern:** the message stays as it is, and the refusal carries a **code** and
+its **params** alongside. The screen renders the code's translation; when there
+is no code, or no text for it in that language, it falls back to the English
+message rather than to nothing.
+
+```python
+# app/shared/core/http_errors.py
+raise CodedHTTPException(
+    status_code=404,
+    detail="Execution not found",      # unchanged, English, the contract
+    code="execution.not_found",        # what a translated page renders
+    params={},                         # values its sentence needs
+)
+```
+
+```tsx
+// the screen
+const tError = useTranslations("errors.codes");
+setError(translateApiError(err, tError, t("failedToLoad")));
+```
+
+**Where it already applies**
+
+| Source | Carrier |
+|---|---|
+| HTTP refusals | `CodedHTTPException` (`code`, `params`) |
+| JModel compile errors | `JModelError.code` → `DSLCompileError.code` |
+| FastAPI's 422 body | read by `frontend/src/lib/validation-error.ts`, which names the field |
+| File import | `FileImportError.code` → `_import_refused` |
+| Upload refused for lack of room | `upload_capacity.upload_refusal` writes the whole body |
+
+**Rules of the road**
+
+- Never change `detail` to translate something. Add a code.
+- The code namespace mirrors the message file: `errors.codes.<group>.<name>`.
+- A code without its five translations is worse than no code, because the
+  fallback then shows the key. `npm run check-i18n` catches a missing locale.
+- Structured data goes in `params`, never inside the sentence: an operator
+  reads `setting_key`, a person reads the sentence.
+
+---
+
 ## Summary Table
 
 | Pattern | File | Purpose |
@@ -147,3 +196,4 @@ flowchart LR
 | Two-Tier Config | `app/config.py` + `settings_registry.py` | Immutable infra + mutable business config |
 | Celery Queue Routing | `queue_routing.py` + `solve_tasks.py` | Dynamic queue per solver |
 | Shim Architecture | *(removed — `app/core/` gone)* | Backward compat during refactor (resolved) |
+| Coded refusal | `app/shared/core/http_errors.py` + `errors.codes` messages | English on the wire, the reader's language on screen |

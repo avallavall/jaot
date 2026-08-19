@@ -313,7 +313,15 @@ All production containers run with:
 - `no-new-privileges: true`
 - `cap_drop: ALL` (minimal capabilities added back per service)
 - `read_only: true` filesystem where possible (API, Celery, frontend, migrate)
-- Dedicated `tmpfs` mounts for `/tmp` (64 MB)
+- Dedicated `tmpfs` mounts for `/tmp` — 256 MB on the API and the Celery
+  workers, 64 MB on the smaller services
+
+  **The API's 256 MB is what decides the largest model file a reader can
+  import.** An upload is written there twice: once as it arrives (Starlette
+  spools any multipart part over 1 MB) and once when the importer hands the
+  file to SCIP. `app/shared/core/upload_capacity.py` checks Content-Length
+  against the free space before reading the body and answers 413 with what the
+  server can take, so raising the ceiling means raising this `tmpfs`.
 - Memory limits enforced per container (32 MB to 4 GB)
 - Monitoring ports bound to `127.0.0.1` only
 - Docker socket mounted read-only (cAdvisor only)
