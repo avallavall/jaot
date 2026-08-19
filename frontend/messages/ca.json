@@ -1260,6 +1260,8 @@
       "emailPlaceholder": "tu@exemple.com",
       "submit": "Enviar enllaç de restabliment",
       "sending": "Enviant...",
+      "tooManyRequests": "Massa peticions d'enllaç. Espera una estona abans de tornar-ho a demanar.",
+      "requestFailed": "No s'ha pogut demanar l'enllaç. Torna-ho a provar d'aquí a una estona.",
       "successMessage": "Si aquest correu està registrat, rebràs un enllaç per restablir la teva contrasenya. Revisa la teva safata d'entrada.",
       "backToLogin": "Tornar a l'inici de sessió",
       "rememberPassword": "Recordes la teva contrasenya? <link>Inicia sessió</link>"

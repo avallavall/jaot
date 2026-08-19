@@ -1260,6 +1260,8 @@
       "emailPlaceholder": "sie@beispiel.de",
       "submit": "Link zum Zurücksetzen senden",
       "sending": "Wird gesendet...",
+      "tooManyRequests": "Zu viele Anfragen nach einem Link. Warten Sie eine Weile, bevor Sie erneut fragen.",
+      "requestFailed": "Der Link konnte nicht angefordert werden. Versuchen Sie es gleich noch einmal.",
       "successMessage": "Wenn diese E-Mail-Adresse registriert ist, erhalten Sie in Kürze einen Link zum Zurücksetzen des Passworts. Bitte überprüfen Sie Ihren Posteingang.",
       "backToLogin": "Zurück zur Anmeldung",
       "rememberPassword": "Passwort doch noch im Kopf? <link>Anmelden</link>"

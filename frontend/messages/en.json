@@ -1260,6 +1260,8 @@
       "emailPlaceholder": "you@example.com",
       "submit": "Send Reset Link",
       "sending": "Sending...",
+      "tooManyRequests": "Too many requests for a link. Wait a while before asking again.",
+      "requestFailed": "The link could not be requested. Try again in a moment.",
       "successMessage": "If this email is registered, you will receive a password reset link shortly. Please check your inbox.",
       "backToLogin": "Back to login",
       "rememberPassword": "Remember your password? <link>Log in</link>"

@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/lib/api";
+import { getErrorStatus } from "@/lib/errors";
 
 export default function ForgotPasswordPage() {
   const t = useTranslations("auth");
@@ -30,9 +31,20 @@ export default function ForgotPasswordPage() {
     try {
       await api.forgotPassword(email);
       setSubmitted(true);
-    } catch {
-      // Always show success message regardless of response to prevent email enumeration
-      setSubmitted(true);
+    } catch (err) {
+      // Whether the address is registered must never leak, so anything that
+      // could answer that question still ends in the same neutral message.
+      // A refusal that says nothing about the address is different: the page
+      // used to show "you will receive a link shortly" over a 429, and no mail
+      // was coming.
+      const status = getErrorStatus(err);
+      if (status === 429) {
+        setError(t("forgotPassword.tooManyRequests"));
+      } else if (status !== undefined && status >= 500) {
+        setError(t("forgotPassword.requestFailed"));
+      } else {
+        setSubmitted(true);
+      }
     } finally {
       setLoading(false);
     }

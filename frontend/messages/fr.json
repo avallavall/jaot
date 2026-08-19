@@ -1260,6 +1260,8 @@
       "emailPlaceholder": "vous@exemple.com",
       "submit": "Envoyer le Lien de Réinitialisation",
       "sending": "Envoi en cours...",
+      "tooManyRequests": "Trop de demandes de lien. Attendez un moment avant de redemander.",
+      "requestFailed": "Le lien n'a pas pu être demandé. Réessayez dans un instant.",
       "successMessage": "Si cet e-mail est enregistré, vous recevrez un lien de réinitialisation du mot de passe sous peu. Veuillez vérifier votre boîte de réception.",
       "backToLogin": "Retour à la connexion",
       "rememberPassword": "Vous vous souvenez de votre mot de passe ? <link>Se connecter</link>"

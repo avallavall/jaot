@@ -1260,6 +1260,8 @@
       "emailPlaceholder": "tu@ejemplo.com",
       "submit": "Enviar enlace de restablecimiento",
       "sending": "Enviando...",
+      "tooManyRequests": "Demasiadas peticiones de enlace. Espera un rato antes de volver a pedirlo.",
+      "requestFailed": "No se ha podido pedir el enlace. Inténtalo dentro de un momento.",
       "successMessage": "Si este correo está registrado, recibirás un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada.",
       "backToLogin": "Volver al inicio de sesión",
       "rememberPassword": "¿Recuerdas tu contraseña? <link>Inicia sesión</link>"
