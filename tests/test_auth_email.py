@@ -750,6 +750,34 @@ class TestLogout:
         assert rt.revoked is True
 
 
+class TestSignupStatus:
+    """The signup page asks before drawing the form.
+
+    It used to find out by submitting: five fields filled in, the button
+    pressed, and the API answering 503 — everything typed replaced by
+    "Registration is currently closed".
+    """
+
+    # CONTRACT-TEST: whether an instance takes accounts is readable without an account
+    def test_says_whether_this_instance_takes_new_accounts(self, client, db_session):
+        PSS.set(db_session, "REGISTRATION_ENABLED", "true")
+        db_session.commit()
+
+        response = client.get("/api/v2/auth/signup/status")
+
+        assert response.status_code == 200
+        assert response.json() == {"enabled": True}
+
+    def test_says_so_when_registration_is_closed(self, client, db_session):
+        PSS.set(db_session, "REGISTRATION_ENABLED", "false")
+        db_session.commit()
+
+        response = client.get("/api/v2/auth/signup/status")
+
+        assert response.status_code == 200
+        assert response.json() == {"enabled": False}
+
+
 class TestRateLimiting:
     """Tests for login and password reset rate limiting."""
 

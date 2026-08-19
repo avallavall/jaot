@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { api } from "@/lib/api";
 import { translateApiError } from "@/lib/errors";
+import { loginPathReturningTo } from "@/lib/return-path";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
@@ -30,10 +31,15 @@ export default function JoinPage({ params }: JoinPageProps) {
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) {
-      // Store the token so we can accept after login
-      sessionStorage.setItem("jaot_pending_invite", token);
+      // Come back HERE after signing in. The invite used to be stashed in
+      // sessionStorage and accepted inside AuthContext, whose catch swallowed
+      // the failure — so an invite that had been revoked landed the person on
+      // /studio with nothing said, while the same link opened while already
+      // signed in showed a proper "Invite not valid" page. What they learned
+      // depended on whether they happened to be logged in. This page accepts
+      // the invite and reports what happened, whichever way they arrived.
       toast.info(t("join.signInToAccept"));
-      router.push("/login");
+      router.push(loginPathReturningTo(`/join/${token}`));
     }
   }, [isAuthenticated, isLoading, token, router, t]);
 
@@ -44,7 +50,6 @@ export default function JoinPage({ params }: JoinPageProps) {
     const accept = async () => {
       try {
         await api.acceptInvite(token);
-        sessionStorage.removeItem("jaot_pending_invite");
         setJoinState("success");
       } catch (err) {
         // The API's `detail` is English by contract; render the error's code
@@ -101,14 +106,13 @@ export default function JoinPage({ params }: JoinPageProps) {
       <div className="text-center max-w-md mx-4">
         <XCircle className="w-16 h-16 mx-auto mb-4 text-destructive" />
         <h1 className="text-2xl font-bold mb-2">{t("join.errorTitle")}</h1>
-        <p className="text-muted-foreground mb-2">
-          {t("join.errorMessage")}
+        {/* One sentence. The generic "may have expired, been revoked, or
+            already been used" was printed above the server's own reason, so
+            the page said the same thing twice in both languages. The generic
+            one is the fallback for a refusal that named nothing. */}
+        <p className="text-muted-foreground mb-4" data-testid="join-error-message">
+          {errorMessage || t("join.errorMessage")}
         </p>
-        {errorMessage && (
-          <p className="text-sm text-destructive mb-4 bg-destructive/10 rounded p-2">
-            {errorMessage}
-          </p>
-        )}
         <div className="flex gap-3 justify-center">
           <Button asChild>
             <Link href="/workspace">{t("join.goToDashboard")}</Link>

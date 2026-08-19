@@ -55,6 +55,15 @@ export default function LoginPage() {
     setSessionExpired(new URLSearchParams(window.location.search).get("expired") === "1");
   }, []);
 
+  // Somebody invited who has no account yet arrives here with ?next=/join/…
+  // and leaves for signup. Without carrying it they sign up and land on the
+  // studio, and the invite is never accepted.
+  const [signupHref, setSignupHref] = useState("/signup");
+  useEffect(() => {
+    const next = new URLSearchParams(window.location.search).get(RETURN_PARAM);
+    setSignupHref(next ? `/signup?${RETURN_PARAM}=${encodeURIComponent(next)}` : "/signup");
+  }, []);
+
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setEmailError("");
@@ -156,7 +165,7 @@ export default function LoginPage() {
             <p>
               {t.rich("login.noAccount", {
                 link: (chunks) => (
-                  <Link href="/signup" className="text-primary underline">
+                  <Link href={signupHref} className="text-primary underline">
                     {chunks}
                   </Link>
                 ),

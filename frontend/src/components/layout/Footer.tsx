@@ -38,6 +38,22 @@ const FOOTER_COLUMNS = [
   },
 ] as const;
 
+/**
+ * The solvers this platform ships, and where each one lives.
+ *
+ * Mirrors the adapters in `app/domains/solver/adapters/`. Hexaly is not here:
+ * it is profile-gated and not part of what a public instance runs. These are
+ * licence-visible dependencies and the footer is where a stranger looks to see
+ * what the site is built on — it used to name two of the four, while the SEO
+ * description on the same pages already said all four.
+ */
+export const SOLVER_CREDITS = [
+  { name: "SCIP", href: "https://www.scipopt.org/" },
+  { name: "HiGHS", href: "https://highs.dev/" },
+  { name: "CBC", href: "https://github.com/coin-or/Cbc" },
+  { name: "GLPK", href: "https://www.gnu.org/software/glpk/" },
+] as const;
+
 export default async function Footer() {
   const t = await getTranslations("public.footer");
 
@@ -65,25 +81,21 @@ export default async function Footer() {
 
         <div className="mt-8 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
           <span className="text-lg font-serif text-primary">JAOT</span>
-          <span>
+          <span data-testid="footer-solvers">
             {t("poweredBy")}{" "}
-            <a
-              href="https://www.scipopt.org/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-foreground transition-colors"
-            >
-              SCIP
-            </a>
-            {" & "}
-            <a
-              href="https://highs.dev/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-foreground transition-colors"
-            >
-              HiGHS
-            </a>
+            {SOLVER_CREDITS.map(({ name, href }, index) => (
+              <span key={name}>
+                {index > 0 && (index === SOLVER_CREDITS.length - 1 ? " & " : ", ")}
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-foreground transition-colors"
+                >
+                  {name}
+                </a>
+              </span>
+            ))}
           </span>
           <span>&copy; {new Date().getFullYear()} {t("copyright")}</span>
         </div>

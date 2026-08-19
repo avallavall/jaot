@@ -919,6 +919,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/auth/signup/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Signup Status
+         * @description Whether this instance is taking new accounts.
+         *
+         *     Public — the prefix ``/api/v2/auth/signup`` already is. The signup page asks
+         *     this before drawing the form: it used to find out by submitting, so a
+         *     visitor filled in five fields, pressed the button, and had everything they
+         *     typed replaced by "Registration is currently closed".
+         */
+        get: operations["signup_status_api_v2_auth_signup_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/auth/verify-email": {
         parameters: {
             query?: never;
@@ -10335,6 +10360,18 @@ export interface components {
             user_id: string;
         };
         /**
+         * SignupStatusResponse
+         * @description Whether this instance is taking new accounts.
+         *
+         *     Public: the signup page asks before drawing the form. It used to find out by
+         *     submitting — the POST answered 503 and everything typed was replaced by
+         *     "Registration is currently closed".
+         */
+        SignupStatusResponse: {
+            /** Enabled */
+            enabled: boolean;
+        };
+        /**
          * SkillLevel
          * @enum {string}
          */
@@ -11800,6 +11837,7 @@ export type SettingsValuesResponse = components['schemas']['SettingsValuesRespon
 export type SettingValueResponse = components['schemas']['SettingValueResponse'];
 export type SignupRequest = components['schemas']['SignupRequest'];
 export type SignupResponse = components['schemas']['SignupResponse'];
+export type SignupStatusResponse = components['schemas']['SignupStatusResponse'];
 export type SkillLevel = components['schemas']['SkillLevel'];
 export type SolveMetadataResponse = components['schemas']['SolveMetadataResponse'];
 export type SolverCapabilityFlags = components['schemas']['SolverCapabilityFlags'];
@@ -13459,6 +13497,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    signup_status_api_v2_auth_signup_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupStatusResponse"];
                 };
             };
         };

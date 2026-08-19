@@ -61,6 +61,17 @@ class SignupResponse(BaseModel):
     message: str
 
 
+class SignupStatusResponse(BaseModel):
+    """Whether this instance is taking new accounts.
+
+    Public: the signup page asks before drawing the form. It used to find out by
+    submitting — the POST answered 503 and everything typed was replaced by
+    "Registration is currently closed".
+    """
+
+    enabled: bool
+
+
 class PlanLimitsResponse(BaseModel):
     """Plan tier limits exposed to the frontend."""
 

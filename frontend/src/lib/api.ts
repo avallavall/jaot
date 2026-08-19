@@ -332,6 +332,24 @@ interface RetryConfig {
 
 const DEFAULT_RETRY: RetryConfig = { maxAttempts: 3, baseDelayMs: 1000 };
 
+/**
+ * Methods a retry cannot duplicate.
+ *
+ * The retry used to apply to every request whatever the method, so one click on
+ * Create Account sent three POSTs to /auth/signup/email. Nothing came of it
+ * there because the 503 was the "registration is closed" refusal and no row was
+ * written — but a signup that timed out AFTER writing the row is retried and
+ * comes back "Email already registered", telling the visitor their own address
+ * is taken. Same shape for a solve: a second execution nobody asked for.
+ *
+ * A GET repeated is the same GET. A POST repeated is a second thing created.
+ * PUT and DELETE are idempotent by HTTP semantics, but this client's writes are
+ * not automatically safe to replay either — the draft PUT carries an `If-Match`
+ * lock version whose retry would 409 — so only the read methods retry unless a
+ * caller asks for it by passing its own `retry` config.
+ */
+const RETRYABLE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
 function isRetryableStatus(status: number): boolean {
   return status >= 500;
 }
@@ -420,8 +438,15 @@ async function request<T>(
     delete headers["Content-Type"];
   }
 
+  const method = String(fetchOptions.method ?? "GET").toUpperCase();
   const retryConfig: RetryConfig | null =
-    retry === false ? null : typeof retry === "object" ? retry : DEFAULT_RETRY;
+    retry === false
+      ? null
+      : typeof retry === "object"
+        ? retry
+        : RETRYABLE_METHODS.has(method)
+          ? DEFAULT_RETRY
+          : null;
 
   const maxAttempts = retryConfig?.maxAttempts ?? 1;
   const baseDelay = retryConfig?.baseDelayMs ?? 1000;
@@ -682,6 +707,13 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ email, password, remember_me: rememberMe }),
     });
+  },
+
+  /** Whether this instance is taking new accounts. Public; asked before the
+   * signup form is drawn, so a closed instance says so instead of letting five
+   * fields be filled in for a 503. */
+  signupStatus(): Promise<{ enabled: boolean }> {
+    return request("/api/v2/auth/signup/status");
   },
 
   async signupWithEmail(data: {

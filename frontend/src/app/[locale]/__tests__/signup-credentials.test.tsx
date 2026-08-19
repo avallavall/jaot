@@ -40,7 +40,11 @@ vi.mock("@/contexts/AuthContext", () => ({
 }));
 
 vi.mock("@/lib/api", () => ({
-  api: { signupWithEmail: (...args: unknown[]) => signupWithEmail(...args) },
+  api: {
+    signupWithEmail: (...args: unknown[]) => signupWithEmail(...args),
+    // The page asks whether this instance takes accounts before drawing the form.
+    signupStatus: () => Promise.resolve({ enabled: true }),
+  },
   ApiError: class ApiError extends Error {
     status = 0;
   },

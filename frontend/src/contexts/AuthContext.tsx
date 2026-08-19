@@ -144,14 +144,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           _expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
         }),
       );
-
-      const pendingInviteToken = sessionStorage.getItem("jaot_pending_invite");
-      if (pendingInviteToken) {
-        sessionStorage.removeItem("jaot_pending_invite");
-        try {
-          await api.acceptInvite(pendingInviteToken);
-        } catch { /* invite may have expired or been revoked */ }
-      }
     }
   }, []);
 
@@ -181,16 +173,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             _expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
           }),
         );
-
-        const pendingInviteToken = sessionStorage.getItem(
-          "jaot_pending_invite",
-        );
-        if (pendingInviteToken) {
-          sessionStorage.removeItem("jaot_pending_invite");
-          try {
-            await api.acceptInvite(pendingInviteToken);
-          } catch { /* invite may have expired or been revoked */ }
-        }
       }
     },
     [],

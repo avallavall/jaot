@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
@@ -19,10 +19,11 @@ import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/contexts/AuthContext";
 import { getPasswordStrength, isPasswordTooSimple } from "@/lib/password-strength";
+import { RETURN_PARAM, defaultLandingPath, safeReturnPath } from "@/lib/return-path";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { loginWithEmail } = useAuth();
+  const { loginWithEmail, isAuthenticated, isLoading, user } = useAuth();
   const t = useTranslations("auth");
   const locale = useLocale();
 
@@ -37,6 +38,34 @@ export default function SignupPage() {
   const [tosAccepted, setTosAccepted] = useState(false);
 
   const strength = password ? getPasswordStrength(password) : null;
+
+  // /login sends a signed-in visitor on; /signup used to render the form under
+  // the welcome wizard, and going through with it would create a second
+  // account and organisation and swap the session for it.
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      const next = new URLSearchParams(window.location.search).get(RETURN_PARAM);
+      router.push(safeReturnPath(next, defaultLandingPath(user?.is_admin)));
+    }
+  }, [isLoading, isAuthenticated, user, router]);
+
+  // Ask before drawing the form. A closed instance used to answer only on
+  // submit: the visitor filled in five fields, pressed the button, and had
+  // everything they typed replaced by "Registration is currently closed".
+  // A failure here leaves the form up — refusing to draw it because one read
+  // did not answer would be worse than the 503 it is guarding against.
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .signupStatus()
+      .then((status) => {
+        if (!cancelled && !status.enabled) setRegistrationDisabled(true);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,8 +122,10 @@ export default function SignupPage() {
       // AuthContext state (this will use the cookies already set)
       await loginWithEmail(email, password);
 
-      // Redirect to main app (the studio - "My Models")
-      router.push("/studio");
+      // Back to where they were heading — an invite link, usually. Landing on
+      // the studio instead left the invite unaccepted and nothing said.
+      const next = new URLSearchParams(window.location.search).get(RETURN_PARAM);
+      router.push(safeReturnPath(next, "/studio"));
     } catch (err) {
       if (err instanceof ApiError && err.status === 503) {
         setRegistrationDisabled(true);
@@ -106,6 +137,12 @@ export default function SignupPage() {
       setLoading(false);
     }
   };
+
+  // Same guard /login carries: do not paint a form that is about to be replaced
+  // by a redirect.
+  if (!isLoading && isAuthenticated) {
+    return null;
+  }
 
   if (registrationDisabled) {
     return (

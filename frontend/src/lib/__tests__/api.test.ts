@@ -359,3 +359,81 @@ describe("a request whose session has ended", () => {
     window.removeEventListener("jaot:session-expired", expired);
   });
 });
+
+/**
+ * The retry applied to every request whatever the method, so one click on
+ * Create Account sent three POSTs to /auth/signup/email. Nothing came of it
+ * there — the 503 was the "registration is closed" refusal and no row was
+ * written — but a signup that timed out AFTER writing the row is retried and
+ * comes back "Email already registered", telling a visitor their own address
+ * is taken.
+ */
+describe("which requests are safe to send again", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    api.clearApiKey();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function serverError() {
+    return {
+      ok: false,
+      status: 503,
+      json: async () => ({ detail: "Registration is currently closed." }),
+      clone() {
+        return this;
+      },
+    } as unknown as Response;
+  }
+
+  // CONTRACT-TEST: a write is never sent twice on the client's own initiative
+  it("sends a failing POST once", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(serverError());
+
+    await expect(
+      api.request("/api/v2/auth/signup/email", {
+        method: "POST",
+        body: JSON.stringify({ email: "a@b.c" }),
+      })
+    ).rejects.toThrow();
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends a failing PUT once", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(serverError());
+
+    await expect(
+      api.request("/api/v2/projects/mp_1/draft", { method: "PUT", body: "{}" })
+    ).rejects.toThrow();
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  // A GET repeated is the same GET, and a server that blinked is exactly what
+  // the retry is for.
+  it("still retries a failing GET", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(serverError());
+
+    await expect(api.request("/api/v2/models/catalog", { retry: { maxAttempts: 3, baseDelayMs: 0 } }))
+      .rejects.toThrow();
+
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it("lets a caller opt a write back in when it knows the write is safe", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(serverError());
+
+    await expect(
+      api.request("/api/v2/something", {
+        method: "POST",
+        retry: { maxAttempts: 2, baseDelayMs: 0 },
+      })
+    ).rejects.toThrow();
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+});

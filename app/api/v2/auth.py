@@ -26,6 +26,7 @@ from app.schemas.auth import (
     ResetPasswordRequest,
     SignupRequest,
     SignupResponse,
+    SignupStatusResponse,
     VerifyEmailRequest,
 )
 from app.schemas.common import SuccessResponse
@@ -349,6 +350,18 @@ def login_email(
     _set_auth_cookies(response, access_token, refresh_token_str, body.remember_me, db=db)
 
     return response
+
+
+@router.get("/signup/status", response_model=SignupStatusResponse)
+def signup_status(db: DBSession) -> SignupStatusResponse:
+    """Whether this instance is taking new accounts.
+
+    Public — the prefix ``/api/v2/auth/signup`` already is. The signup page asks
+    this before drawing the form: it used to find out by submitting, so a
+    visitor filled in five fields, pressed the button, and had everything they
+    typed replaced by "Registration is currently closed".
+    """
+    return SignupStatusResponse(enabled=PSS.get_bool(db, "REGISTRATION_ENABLED"))
 
 
 @router.post("/signup/email")
