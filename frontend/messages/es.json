@@ -1792,7 +1792,8 @@
       "timeYesterday": "Ayer",
       "timeDaysAgo": "hace {count}d",
       "adminRequired": "Necesitas rol de admin para ver el registro de auditoría",
-      "loadError": "Error al cargar el registro de auditoría"
+      "loadError": "Error al cargar el registro de auditoría",
+      "noWorkspaceForMember": "Todavía no estás en ningún espacio de trabajo, y sólo el propietario de la organización puede crear uno. Pídele que te invite."
     },
     "myProfile": {
       "title": "Mi perfil",
@@ -1872,7 +1873,8 @@
         "roleSolver": "Solucionador -- Puede ejecutar resoluciones y crear modelos (incluye permisos de Visualizador).",
         "roleAdmin": "Admin -- Acceso completo, incluidas invitaciones y gestión de la configuración."
       },
-      "createWorkspace": "Crear espacio de trabajo"
+      "createWorkspace": "Crear espacio de trabajo",
+      "noWorkspaceForMember": "Todavía no estás en ningún espacio de trabajo, y sólo el propietario de la organización puede crear uno. Pídele que te invite."
     },
     "workspaces": {
       "title": "Espacios de trabajo",

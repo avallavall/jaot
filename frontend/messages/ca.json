@@ -1792,7 +1792,8 @@
       "timeDaysAgo": "Fa {count}d",
       "adminRequired": "Necessiteu rol d'administrador per veure el registre d'auditoria",
       "loadError": "Error en carregar el registre d'auditoria",
-      "createWorkspace": "Crear Espai de Treball"
+      "createWorkspace": "Crear Espai de Treball",
+      "noWorkspaceForMember": "Encara no ets a cap espai de treball, i només el propietari de l'organització en pot crear un. Demana-li que t'hi convidi."
     },
     "myProfile": {
       "title": "El Meu Perfil",
@@ -1872,7 +1873,8 @@
         "roleSolver": "Solucionador -- Pot executar resolucions i crear models (inclou permisos de Visualitzador).",
         "roleAdmin": "Admin -- Accés complet, incloses invitacions i gestió de la configuració."
       },
-      "createWorkspace": "Crear Espai de Treball"
+      "createWorkspace": "Crear Espai de Treball",
+      "noWorkspaceForMember": "Encara no ets a cap espai de treball, i només el propietari de l'organització en pot crear un. Demana-li que t'hi convidi."
     },
     "workspaces": {
       "title": "Espais de Treball",

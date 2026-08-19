@@ -1792,7 +1792,8 @@
       "timeDaysAgo": "Il y a {count} j",
       "adminRequired": "Vous devez avoir le rôle d'administrateur pour consulter le journal d'audit",
       "loadError": "Échec du chargement du journal d'audit",
-      "createWorkspace": "Créer un espace de travail"
+      "createWorkspace": "Créer un espace de travail",
+      "noWorkspaceForMember": "Vous n'êtes encore dans aucun espace de travail, et seul le propriétaire de l'organisation peut en créer un. Demandez-lui de vous inviter."
     },
     "myProfile": {
       "title": "Mon profil",
@@ -1872,7 +1873,8 @@
         "roleSolver": "Solveur -- Peut exécuter des résolutions et créer des modèles (inclut les permissions de Lecteur).",
         "roleAdmin": "Admin -- Accès complet, y compris les invitations et la gestion des paramètres."
       },
-      "createWorkspace": "Créer un espace de travail"
+      "createWorkspace": "Créer un espace de travail",
+      "noWorkspaceForMember": "Vous n'êtes encore dans aucun espace de travail, et seul le propriétaire de l'organisation peut en créer un. Demandez-lui de vous inviter."
     },
     "workspaces": {
       "title": "Espaces de travail",

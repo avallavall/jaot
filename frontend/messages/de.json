@@ -1792,7 +1792,8 @@
       "timeDaysAgo": "vor {count} Tagen",
       "adminRequired": "Sie benötigen die Admin-Rolle, um das Audit-Protokoll einzusehen",
       "loadError": "Audit-Protokoll konnte nicht geladen werden",
-      "createWorkspace": "Arbeitsbereich erstellen"
+      "createWorkspace": "Arbeitsbereich erstellen",
+      "noWorkspaceForMember": "Sie sind noch in keinem Arbeitsbereich, und nur der Eigentümer der Organisation kann einen anlegen. Bitten Sie ihn um eine Einladung."
     },
     "myProfile": {
       "title": "Mein Profil",
@@ -1872,7 +1873,8 @@
         "roleSolver": "Solver -- Kann Lösungen ausführen und Modelle erstellen (beinhaltet Betrachter-Berechtigungen).",
         "roleAdmin": "Admin -- Voller Zugriff, einschließlich Einladungen und Verwaltung der Einstellungen."
       },
-      "createWorkspace": "Arbeitsbereich erstellen"
+      "createWorkspace": "Arbeitsbereich erstellen",
+      "noWorkspaceForMember": "Sie sind noch in keinem Arbeitsbereich, und nur der Eigentümer der Organisation kann einen anlegen. Bitten Sie ihn um eine Einladung."
     },
     "workspaces": {
       "title": "Arbeitsbereiche",

@@ -57,7 +57,11 @@ export default function TeamPage() {
           <Building2 className="w-12 h-12 mx-auto text-muted-foreground/40 mb-4" />
           <h2 className="text-xl font-semibold mb-2">{t("noWorkspace")}</h2>
           <p className="text-muted-foreground mb-6">
-            {t("noWorkspaceDescription")}
+            {/* "Select a workspace first" implies there is one to select. A
+                member who belongs to none, and who cannot create one — the
+                server answers 403, only the organisation owner may — learned
+                that only after a second click. Say it here. */}
+            {isOwner ? t("noWorkspaceDescription") : t("noWorkspaceForMember")}
           </p>
           <div className="flex items-center justify-center gap-3">
             {isOwner && (

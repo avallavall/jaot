@@ -1792,7 +1792,8 @@
       "timeYesterday": "Yesterday",
       "timeDaysAgo": "{count}d ago",
       "adminRequired": "Your role ({role}) does not allow viewing the audit log. Contact your workspace admin to get the Admin role.",
-      "loadError": "Failed to load audit log"
+      "loadError": "Failed to load audit log",
+      "noWorkspaceForMember": "You are not in a workspace yet, and only the organisation owner can create one. Ask them to invite you."
     },
     "myProfile": {
       "title": "My Profile",
@@ -1872,7 +1873,8 @@
         "roleEditor": "Editor -- Can create, edit, and delete models and triggers.",
         "roleSolver": "Solver -- Can run solves and create models (includes Viewer permissions).",
         "roleAdmin": "Admin -- Full access including inviting members and managing settings."
-      }
+      },
+      "noWorkspaceForMember": "You are not in a workspace yet, and only the organisation owner can create one. Ask them to invite you."
     },
     "workspaces": {
       "title": "Workspaces",

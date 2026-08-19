@@ -166,7 +166,13 @@ export default function AuditLogPage() {
         <div className="text-center py-16 bg-card border-2 border-dashed rounded-xl">
           <Building2 className="w-12 h-12 mx-auto text-muted-foreground/40 mb-4" />
           <h2 className="text-xl font-semibold mb-2">{t("noWorkspace")}</h2>
-          <p className="text-muted-foreground mb-6">{t("noWorkspaceDescription")}</p>
+          {/* "Select a workspace" implies there is one to select. A member who
+              belongs to none, and who cannot create one — the server answers
+              403, only the organisation owner may — learned that only after a
+              second click. Say it here. */}
+          <p className="text-muted-foreground mb-6">
+            {isOwner ? t("noWorkspaceDescription") : t("noWorkspaceForMember")}
+          </p>
           <div className="flex items-center justify-center gap-3">
             {isOwner && (
               <Button asChild>

@@ -39,6 +39,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **A password of one repeated letter is refused.** Signup showed a strength meter that scored twelve identical lowercase letters as "Weak" and then created the account anyway: the only rule anywhere was a length of twelve. Length is not variety, so a password now needs a capital, a digit or a symbol somewhere in it — checked on the server, where it counts, and in the form, so it is said before the round trip. Resetting a password follows the same rule.
 
 ### Fixed
+- **The Team and Audit pages say why a member cannot use them.** They read "Select a workspace first", which implies there is one to select. Someone who belongs to no workspace, and who cannot create one because only the organisation owner may, found that out only after clicking through to the workspace list.
 - **A rename the server rejects says why it was rejected.** The 422 carries the rule that was broken — how long a name may be — and the toast said only "Could not rename the model", so retrying the same length failed the same way.
 - **The objective node writes a coefficient as a coefficient.** It read "1000google_ads + 800facebook_instagram + 500000tv_prime_time", with nothing between the number and the name, so each term looked like a single identifier.
 - **Publishing to the marketplace is confirmed with a button that says "Publish".** It said "Accept" — the same word that closed the error dialog for a too-short description, so one word meant both "make this publicly visible" and "I have read that".
