@@ -88,6 +88,7 @@ export function ModelProjectStoreProvider({
       const seeded = serializeToOptimizationProblem(builder.nodes, builder.edges);
       store.getState().setCanvasDisabled(exceedsCanvasScale(seeded));
       store.getState().hydrate(seeded, builder.documentName);
+      store.getState().setProjectLoaded(true);
       return;
     }
 
@@ -110,6 +111,7 @@ export function ModelProjectStoreProvider({
         if (!firstLoadDone.current && (pre.headDirty || pre.dslDirty)) {
           firstLoadDone.current = true;
           pre.setLockVersion(project.draft_lock_version);
+          store.getState().setProjectLoaded(true);
           return;
         }
         firstLoadDone.current = true;
@@ -135,6 +137,7 @@ export function ModelProjectStoreProvider({
           st.hydrate(modelJson, project.name);
           st.setDraftDslSource(project.draft_dsl_source ?? "");
           st.setLockVersion(project.draft_lock_version);
+          st.setProjectLoaded(true);
           return;
         }
 
@@ -166,6 +169,7 @@ export function ModelProjectStoreProvider({
         );
         st.setDraftDslSource(project.draft_dsl_source ?? "");
         st.setLockVersion(project.draft_lock_version);
+        st.setProjectLoaded(true);
       })
       .catch((err: unknown) => {
         if (cancelled) return;

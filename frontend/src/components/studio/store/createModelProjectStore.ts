@@ -120,6 +120,18 @@ export interface ModelProjectState {
   archived: boolean;
   setArchived: (archived: boolean) => void;
 
+  /** True once the project has been read from the server, or immediately for a
+   * model that has never been saved and has nothing to read.
+   *
+   * Every field below starts at its empty value, so a panel that asks "does
+   * this model have a JModel source?" gets "no" for the two seconds the GET is
+   * in flight. The Solve tab spent those two seconds telling the reader their
+   * model has no formulation, with a link inviting them to go and write one,
+   * and then took it back. Anything that reads an empty field as a fact about
+   * the model waits for this. */
+  projectLoaded: boolean;
+  setProjectLoaded: (projectLoaded: boolean) => void;
+
   /**
    * Which lenses currently hold un-parseable text (Editor JSON, JModel source).
    * A broken lens never applies its text to the canonical model, but records itself
@@ -300,6 +312,9 @@ export function createModelProjectStore(init: ModelProjectInit) {
 
         archived: false,
         setArchived: (archived) => set({ archived }),
+
+        projectLoaded: false,
+        setProjectLoaded: (projectLoaded) => set({ projectLoaded }),
 
         parseErrors: {},
         setParseError: (rep, hasError) =>

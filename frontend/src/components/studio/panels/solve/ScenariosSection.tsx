@@ -69,6 +69,7 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
   const t = useTranslations("studio");
   const modelId = useModelProjectStore((s) => s.modelId);
   const draftDslSource = useModelProjectStore((s) => s.draftDslSource);
+  const projectLoaded = useModelProjectStore((s) => s.projectLoaded);
   const { activeWorkspaceId } = useAuth();
   const isPersisted = !!modelId && modelId !== "new";
   const { datasets } = useProjectDatasets(isPersisted ? modelId : null);
@@ -246,11 +247,16 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
   // then selection.
   const runAllDisabledReason = launching
     ? t("scenariosLaunchingHint")
-    : !hasSource
-      ? t("scenariosNeedsJModel")
-      : selected.size === 0
-        ? t("scenariosSelectHint")
-        : undefined;
+    : // Before the project has been read the source is empty because nothing
+      // has filled it in, not because the model has none. Saying so would be
+      // stating a fact nobody knows yet.
+      !projectLoaded
+      ? undefined
+      : !hasSource
+        ? t("scenariosNeedsJModel")
+        : selected.size === 0
+          ? t("scenariosSelectHint")
+          : undefined;
 
   const fmt = (v: number | null | undefined) =>
     v == null ? "—" : Number.isInteger(v) ? String(v) : v.toFixed(4);
@@ -294,7 +300,7 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
       {/* A flat/imported model is already grounded — scenarios recompile a JModel
           SOURCE with each dataset. Without one the run-all button would sit mutely
           disabled (live-testing 2026-07-04), so say WHY and point at the lens. */}
-      {!hasSource && (
+      {projectLoaded && !hasSource && (
         <p
           className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
           data-testid="studio-scenarios-needs-jmodel"

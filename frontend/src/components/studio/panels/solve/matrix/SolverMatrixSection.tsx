@@ -98,6 +98,7 @@ export function SolverMatrixSection() {
   const format = useFormatter();
   const modelId = useModelProjectStore((s) => s.modelId);
   const draftDslSource = useModelProjectStore((s) => s.draftDslSource);
+  const projectLoaded = useModelProjectStore((s) => s.projectLoaded);
   const isPersisted = !!modelId && modelId !== "new";
   const { datasets } = useProjectDatasets(isPersisted ? modelId : null);
   const { availableSolvers, solversLoading } = useSolvers();
@@ -283,7 +284,10 @@ export function SolverMatrixSection() {
         )}
       </div>
 
-      {!hasSource && (
+      {/* Only once the project has been read. Until then the source is empty
+          because nothing has filled it in yet, and this panel told the reader
+          their model has no formulation for the two seconds the GET took. */}
+      {projectLoaded && !hasSource && (
         <p
           className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
           data-testid="studio-matrix-needs-jmodel"
