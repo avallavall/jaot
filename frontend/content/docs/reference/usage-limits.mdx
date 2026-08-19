@@ -52,6 +52,18 @@ A solve that exceeds its time limit is stopped by the solver first, then by the
 worker's kill switch; abandoned runs are reconciled by a background sweep, so
 history never shows phantom "running" entries.
 
+## API Keys per User
+
+| Cap | Default | Setting |
+|-----|---------|---------|
+| Live API keys per user | 25 | `AUTH_MAX_ACTIVE_API_KEYS_PER_USER` |
+
+The ceiling is on keys that are **live**, not on keys ever created: revoking one
+frees a slot immediately, and an expired key occupies none. Past the limit,
+`POST /api/v2/keys` answers **409** and names the number. The cap is per user, so
+a colleague filling their own quota never stops you creating a key. Set the
+setting to `0` to remove the ceiling.
+
 ## AI Assistant Budget
 
 The AI assistant is governed by a monthly EUR budget

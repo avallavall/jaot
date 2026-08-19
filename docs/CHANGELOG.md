@@ -32,13 +32,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
-### Security
-
-- **A user can no longer mint unlimited API keys.** There was no cap: 20 creations in a row all succeeded. Past the limit the endpoint now answers 409 and names the number, revoking a key frees a slot immediately, and an expired key occupies none. The ceiling is a platform setting (`AUTH_MAX_ACTIVE_API_KEYS_PER_USER`, 25 by default) an admin can raise or switch off.
-- **Signing up no longer leaves an API key in the browser's local storage.** The signup response carries an account API key, and the page stored it. That left a live, non-expiring credential on the machine of everyone who ever signed up, and the app then sent it as a Bearer token on every request — while every other session in the product runs on cookies. The key was never shown to the user either; keys for programmatic use are still minted, and revealed once, under Workspace → API keys.
+### Added
+- **A comparison now names any solver that still searched past the shared limit.** The row's Search time turns amber and a notice under the table says which solver and by how much, so extra time is never read as a fair loss.
 
 ### Fixed
-
 - **The daily-limit refusal is written for whoever hit it.** It used to name the internal setting key and tell a plain member to go and change it in Settings — something they cannot see. The key still travels in the structured `setting_key` field for operators and API clients. It also said "needs 1 solves".
 - **A rejected file no longer shows Pydantic's own error dump.** Uploading a JSON that is not an optimization problem produced the library's raw text: type codes, a link to errors.pydantic.dev, and a slice of the uploaded file quoted back at whoever uploaded it. It now names which fields are missing and nothing else. The same wording reaches three other places that were pasting raw validation output.
 - **Dates follow the language of the page, not of the browser.** Every date in the product went through `toLocaleDateString()` with no locale, which reads the browser's setting. Someone using the app in Spanish on an English system saw `8/18/2026`, and that is not merely the wrong language: `5/8` reads as 5 August to them and means 8 May. Thirty-one places across twenty-eight screens now format through the page's locale. The trigger list and the run history also had their relative times ("Just now", "Yesterday") hardcoded in English; those are translated too.
@@ -53,9 +50,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Opening an archived model in the studio now says so.** A banner across the top of the workbench names the state and carries a Restore button, the model name becomes read-only, Solve is disabled, and nothing is autosaved. Before, the workbench opened as if the model were live.
 - **CBC now keeps the time limit a solver comparison promised every solver.** It was measuring that limit in CPU seconds while the table reported the clock, so on a hard model given 10 seconds it searched for 14.5 and came last partly because it had been allowed to run longer. Comparisons involving CBC are worth re-running.
 
-### Added
-
-- **A comparison now names any solver that still searched past the shared limit.** The row's Search time turns amber and a notice under the table says which solver and by how much, so extra time is never read as a fair loss.
+### Security
+- **A user can no longer mint unlimited API keys.** There was no cap: 20 creations in a row all succeeded. Past the limit the endpoint now answers 409 and names the number, revoking a key frees a slot immediately, and an expired key occupies none. The ceiling is a platform setting (`AUTH_MAX_ACTIVE_API_KEYS_PER_USER`, 25 by default) an admin can raise or switch off.
+- **Signing up no longer leaves an API key in the browser's local storage.** The signup response carries an account API key, and the page stored it. That left a live, non-expiring credential on the machine of everyone who ever signed up, and the app then sent it as a Bearer token on every request — while every other session in the product runs on cookies. The key was never shown to the user either; keys for programmatic use are still minted, and revealed once, under Workspace → API keys.
 
 ## [3.6.0] - 2026-08-19
 
