@@ -23,7 +23,6 @@ import {
 import { Activity, Clock, ExternalLink } from "lucide-react";
 import { api } from "@/lib/api";
 import { useTranslations } from "next-intl";
-import type { PaginatedResponse } from "@/lib/types";
 
 interface AdminExecution {
   id: string;
@@ -31,12 +30,26 @@ interface AdminExecution {
   // row can arrive without a model_id (guarded below so it never builds a broken
   // `/marketplace/undefined` link). Full studio-name resolution lands with P1.5.
   model_id?: string;
-  model_name?: string;
-  organization_id: string;
-  organization_name?: string;
+  model_name?: string | null;
+  organization_id: string | null;
+  organization_name?: string | null;
   status: string;
   execution_time_ms: number | null;
   created_at: string;
+}
+
+interface AdminExecutionStats {
+  total: number;
+  avg_execution_time_ms: number | null;
+}
+
+interface AdminExecutionsResponse {
+  items: AdminExecution[];
+  total: number;
+  page: number;
+  page_size: number;
+  pages: number;
+  stats: AdminExecutionStats;
 }
 
 export default function AdminExecutionsPage() {
@@ -47,6 +60,11 @@ export default function AdminExecutionsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  // Computed by the server over every execution the filters select. Averaging
+  // the twenty rows on screen and printing the result beside the heading is
+  // what made this page report 6.15 s for a platform whose real average was
+  // 763 ms — the newest rows happened to include a few 20-second solves.
+  const [stats, setStats] = useState<AdminExecutionStats | null>(null);
 
   useEffect(() => {
     loadExecutions();
@@ -68,9 +86,16 @@ export default function AdminExecutionsPage() {
         Object.entries(params).map(([k, v]) => [k, String(v)])
       ).toString();
 
-      const data = await api.request(`/api/v2/models/executions/all?${queryString}`) as PaginatedResponse<AdminExecution>;
+      // The platform view, not `/models/executions/all` — that one filters by
+      // the caller's own organization, so this page showed one organization's
+      // runs under a heading promising the whole platform, and its Organization
+      // column had nothing to render.
+      const data = (await api.request(
+        `/api/v2/admin/executions?${queryString}`
+      )) as AdminExecutionsResponse;
       setExecutions(data.items || []);
-      setTotalPages(data.total_pages ?? 1);
+      setTotalPages(data.pages ?? 1);
+      setStats(data.stats ?? null);
     } catch (err) {
       console.warn('Failed to load executions:', err);
     } finally {
@@ -103,11 +128,6 @@ export default function AdminExecutionsPage() {
     }
   };
 
-  // Calculate stats
-  const avgTime = executions.length > 0
-    ? executions.reduce((sum, e) => sum + (e.execution_time_ms || 0), 0) / executions.length
-    : 0;
-
   return (
     <div className="space-y-6">
       <div>
@@ -123,8 +143,10 @@ export default function AdminExecutionsPage() {
             <div className="flex items-center gap-3">
               <Activity className="w-8 h-8 text-primary" />
               <div>
-                <p className="text-sm text-muted-foreground">{t("totalShown")}</p>
-                <p className="text-2xl font-bold">{executions.length}</p>
+                <p className="text-sm text-muted-foreground">{t("totalExecutions")}</p>
+                <p className="text-2xl font-bold">
+                  {stats ? stats.total.toLocaleString() : "—"}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -137,7 +159,11 @@ export default function AdminExecutionsPage() {
               <Clock className="w-8 h-8 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">{t("avgTime")}</p>
-                <p className="text-2xl font-bold">{formatDuration(avgTime)}</p>
+                <p className="text-2xl font-bold">
+                  {stats && stats.avg_execution_time_ms !== null
+                    ? formatDuration(Math.round(stats.avg_execution_time_ms))
+                    : "—"}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -205,12 +231,18 @@ export default function AdminExecutionsPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Link
-                        href={`/marketplace/authors/${exec.organization_id}`}
-                        className="hover:text-primary"
-                      >
-                        {exec.organization_name || exec.organization_id}
-                      </Link>
+                      {exec.organization_id ? (
+                        <Link
+                          href={`/marketplace/authors/${exec.organization_id}`}
+                          className="hover:text-primary"
+                        >
+                          {exec.organization_name || exec.organization_id}
+                        </Link>
+                      ) : (
+                        // Guarded the same way the Model cell is: an id-less row
+                        // must not build `/marketplace/authors/undefined`.
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell>{getStatusBadge(exec.status)}</TableCell>
                     <TableCell>{formatDuration(exec.execution_time_ms)}</TableCell>

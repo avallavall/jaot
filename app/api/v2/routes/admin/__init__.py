@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v2.routes.admin.analytics import router as platform_analytics_router
 from app.api.v2.routes.admin.api_keys import router as api_keys_router
+from app.api.v2.routes.admin.executions import router as executions_router
 from app.api.v2.routes.admin.feedback import router as feedback_router
 from app.api.v2.routes.admin.marketplace import router as marketplace_router
 from app.api.v2.routes.admin.models import router as models_router
@@ -46,6 +47,7 @@ router = APIRouter(tags=["admin"], dependencies=[Depends(get_admin_user)])
 router.include_router(organizations_router)
 router.include_router(users_router)
 router.include_router(api_keys_router)
+router.include_router(executions_router)
 router.include_router(feedback_router)
 router.include_router(marketplace_router)
 router.include_router(models_router)

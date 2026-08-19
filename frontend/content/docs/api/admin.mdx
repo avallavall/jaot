@@ -234,6 +234,65 @@ items.forEach((user) => {
 
 ---
 
+## List executions across the platform
+
+```
+GET /api/v2/admin/executions
+```
+
+Every model execution on the platform, newest first, with the organization each one belongs to. This is the admin view: `GET /api/v2/models/executions/all` returns only the caller's own organization.
+
+**Authentication:** API key (admin required)
+
+### Query parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | int | 1 | Page number |
+| `page_size` | int | 20 | Items per page (max 100) |
+| `status` | string | -- | `completed`, `failed`, `running`, `pending` |
+| `origin` | string | -- | How the run was created |
+| `organization_id` | string | -- | Narrow to one organization |
+
+The response carries a `stats` block alongside the page: `total` and `avg_execution_time_ms` are computed in the database over **everything the filters select**, not over the rows served, so they do not change when you turn the page.
+
+The payloads are not included. Read `input_data` and `result_data` from `GET /api/v2/models/executions/{id}`.
+
+<CodeTabs>
+```python
+response = requests.get(
+    "https://jaot.io/api/v2/admin/executions",
+    headers={"Authorization": "Bearer ok_live_admin_key..."},
+    params={"status": "failed"}
+)
+
+data = response.json()
+print(f"{data['stats']['total']} failed runs, {data['stats']['avg_execution_time_ms']:.0f} ms on average")
+for run in data["items"]:
+    print(f"{run['id']} - {run['organization_name']} - {run['model_name']}")
+```
+
+```bash
+curl "https://jaot.io/api/v2/admin/executions?status=failed" \
+  -H "Authorization: Bearer ok_live_admin_key..."
+```
+
+```javascript
+const response = await fetch(
+  "https://jaot.io/api/v2/admin/executions?status=failed",
+  { headers: { "Authorization": "Bearer ok_live_admin_key..." } }
+);
+
+const { items, stats } = await response.json();
+console.log(`${stats.total} failed runs`);
+items.forEach((run) => {
+  console.log(`${run.id} - ${run.organization_name} - ${run.model_name}`);
+});
+```
+</CodeTabs>
+
+---
+
 
 
 ## Errors

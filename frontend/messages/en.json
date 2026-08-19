@@ -2061,8 +2061,8 @@
     "executions": {
       "title": "Executions",
       "subtitle": "Monitor all model executions across the platform",
-      "totalShown": "Total Shown",
-      "avgTime": "Avg Time",
+      "totalExecutions": "Total executions",
+      "avgTime": "Average time",
       "allStatus": "All Status",
       "completed": "Completed",
       "failed": "Failed",

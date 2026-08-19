@@ -2061,8 +2061,8 @@
     "executions": {
       "title": "Execucions",
       "subtitle": "Monitoritzeu totes les execucions de models a la plataforma",
-      "totalShown": "Total Mostrat",
-      "avgTime": "Temps Mitjà",
+      "totalExecutions": "Execucions totals",
+      "avgTime": "Temps mitjà",
       "allStatus": "Tots els Estats",
       "completed": "Completada",
       "failed": "Fallida",

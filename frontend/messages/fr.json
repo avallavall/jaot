@@ -2061,7 +2061,7 @@
     "executions": {
       "title": "Exécutions",
       "subtitle": "Surveillez toutes les exécutions de modèles sur la plateforme",
-      "totalShown": "Total affiché",
+      "totalExecutions": "Exécutions au total",
       "avgTime": "Temps moyen",
       "allStatus": "Tous les statuts",
       "completed": "Terminée",

@@ -2061,8 +2061,8 @@
     "executions": {
       "title": "Ausführungen",
       "subtitle": "Alle Modellausführungen plattformweit überwachen",
-      "totalShown": "Angezeigt gesamt",
-      "avgTime": "Durchschn. Zeit",
+      "totalExecutions": "Ausführungen insgesamt",
+      "avgTime": "Durchschnittliche Zeit",
       "allStatus": "Alle Status",
       "completed": "Abgeschlossen",
       "failed": "Fehlgeschlagen",

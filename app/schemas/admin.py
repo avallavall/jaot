@@ -132,6 +132,54 @@ class AdminPaginatedResponse(BaseModel):
     pages: int
 
 
+class AdminExecutionStats(BaseModel):
+    """Platform figures for the executions an admin's filters select.
+
+    Both are computed in the database over the whole filtered set. The panel
+    used to average the twenty rows on screen and print the result beside the
+    heading with nothing marking it as a sample: 6.15 s where the real average
+    across 1,234 runs was 763 ms.
+    """
+
+    #: How many executions match the filters, across every organization.
+    total: int
+    #: Mean wall-clock milliseconds, or None when no matching run recorded one.
+    avg_execution_time_ms: float | None = None
+
+
+class AdminExecutionRow(BaseModel):
+    """One row of the platform-wide executions table."""
+
+    id: str
+    #: Whose run this is. The org-scoped list never sent this, so the panel's
+    #: Organization column was empty on every row of a page that exists to say
+    #: which organization the work belongs to.
+    organization_id: str | None = None
+    organization_name: str | None = None
+    model_project_id: str | None = None
+    model_name: str | None = None
+    model_author: str | None = None
+    status: str
+    solver_name: str | None = None
+    solver_status: str | None = None
+    objective_value: float | None = None
+    execution_time_ms: int | None = None
+    origin: str | None = None
+    created_at: datetime
+    completed_at: datetime | None = None
+
+
+class AdminExecutionsResponse(BaseModel):
+    """A page of platform-wide executions, plus the figures for the whole set."""
+
+    items: list[AdminExecutionRow]
+    total: int
+    page: int
+    page_size: int
+    pages: int
+    stats: AdminExecutionStats
+
+
 class UpdateModelBadgesRequest(BaseModel):
     """Request to update model badges."""
 
