@@ -30,7 +30,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ---
 
-## [Unreleased]
+## [3.6.0] - 2026-08-19
 
 ### Changed
 
