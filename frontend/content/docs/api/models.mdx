@@ -267,6 +267,8 @@ const response = await fetch("https://jaot.io/api/v2/projects/mp_abc123/draft", 
 
 Archive the project (soft delete, reversible from the trash view). With `?permanent=true` the project and its versions are **hard-deleted** — only allowed once the project is already archived (409 otherwise), so a permanent delete is always a deliberate two-step action.
 
+**An archived project is read-only.** Every write to it answers **409** — the draft, commits, version restores, datasets, publish, rename and solve alike. Reads keep working, so the trash view can show what is in it. The one write that passes is the restore itself, `PATCH {"status": "active"}`; do that first and the rest opens up again.
+
 ---
 
 ## POST /api/v2/projects/\{project_id\}/publish

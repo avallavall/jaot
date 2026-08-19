@@ -48,6 +48,7 @@ interface FakeState {
   headDirty: boolean;
   lockVersion: number;
   saveState: string;
+  archived: boolean;
   setSaveState: (s: string) => void;
   setLockVersion: (v: number) => void;
 }
@@ -62,6 +63,7 @@ function makeStore() {
     headDirty: false,
     lockVersion: 1,
     saveState: "idle",
+    archived: false,
     setSaveState: (s) => {
       state = { ...state, saveState: s };
     },
@@ -79,6 +81,9 @@ function makeStore() {
       const prev = state;
       state = { ...state, problem, headDirty: true };
       listeners.forEach((l) => l(state, prev));
+    },
+    archive: () => {
+      state = { ...state, archived: true };
     },
   };
 }
@@ -152,6 +157,29 @@ describe("autosave on a conflicting draft", () => {
     expect(updateDraft).toHaveBeenCalledTimes(2);
     expect(store.getState().saveState).toBe("error");
     expect(toast.error).toHaveBeenCalledTimes(1);
+  });
+
+  // CONTRACT-TEST: an archived model is never autosaved
+  it("does not save an archived model, and does not mistake its 409 for a rival writer", async () => {
+    /**
+     * The server refuses every write to an archived model with a 409, which is
+     * the same status this hook reads as "somebody else advanced the draft". Let
+     * the save start and the user is told a colleague is editing, and offered a
+     * button to overwrite work that does not exist — and that overwrite would
+     * 409 too. The save must never begin.
+     */
+    const store = makeStore();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    renderHook(() => useAutosave(store as any, "mp_1"));
+
+    store.archive();
+    await editAndFlush(store, { variables: ["typed", "into", "an", "archived", "model"] });
+
+    expect(updateDraft).not.toHaveBeenCalled();
+    expect(getProject).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+    // And no "Saving…"/"Error" flicker: the indicator never left idle.
+    expect(store.getState().saveState).toBe("idle");
   });
 
   it("warns once, not on every retry", async () => {

@@ -113,6 +113,13 @@ export interface ModelProjectState {
   canvasDisabled: boolean;
   setCanvasDisabled: (canvasDisabled: boolean) => void;
 
+  /** True when this model is archived (the platform's soft delete). The server
+   * refuses every write to it with a 409, so the workbench says so and stops
+   * autosaving instead of letting someone type into a model that cannot be
+   * saved. Restoring is the way out, and it is offered in the header. */
+  archived: boolean;
+  setArchived: (archived: boolean) => void;
+
   /**
    * Which lenses currently hold un-parseable text (Editor JSON, JModel source).
    * A broken lens never applies its text to the canonical model, but records itself
@@ -290,6 +297,9 @@ export function createModelProjectStore(init: ModelProjectInit) {
 
         canvasDisabled: false,
         setCanvasDisabled: (canvasDisabled) => set({ canvasDisabled }),
+
+        archived: false,
+        setArchived: (archived) => set({ archived }),
 
         parseErrors: {},
         setParseError: (rep, hasError) =>

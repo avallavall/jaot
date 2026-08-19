@@ -95,6 +95,12 @@ export function ModelProjectStoreProvider({
         // in-memory draft is NEWER than the server's. Keep it and take only the
         // lock version, so the pending autosave can persist those edits. Scoped to
         // the first load — a deliberate workspace switch still re-hydrates.
+        // Archived is this platform's soft delete and the server refuses every
+        // write to an archived model. Read it on every load path, including the
+        // early return below: without it the workbench opens as if the model
+        // were live, and the first autosave comes back 409.
+        store.getState().setArchived(project.status === "archived");
+
         const pre = store.getState();
         if (!firstLoadDone.current && (pre.headDirty || pre.dslDirty)) {
           firstLoadDone.current = true;

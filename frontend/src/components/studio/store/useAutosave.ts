@@ -135,6 +135,11 @@ export function useAutosave(store: ModelProjectStore, modelId: string): void {
     };
 
     const unsub = store.subscribe((state, prev) => {
+      // An archived model refuses every write with a 409, and that 409 means
+      // something else entirely here: the handler above would read it as another
+      // writer having moved the draft and offer to overwrite their work, which
+      // would 409 as well. Never start the save.
+      if (state.archived) return;
       // Save on a real model change OR a JModel-source edit (which may not change the
       // compiled model — e.g. broken text — but must still be persisted so it survives
       // navigation). Load-time projections never set headDirty, so they don't save.

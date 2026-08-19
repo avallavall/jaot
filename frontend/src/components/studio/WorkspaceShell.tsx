@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useFormatter, useNow, useTranslations } from "next-intl";
-import { ChevronLeft, Sparkles, Play, Check, Loader2, AlertCircle } from "lucide-react";
+import { Archive, ChevronLeft, Sparkles, Play, Check, Loader2, AlertCircle } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -31,8 +31,9 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const scratchParseError = useModelProjectStore((s) => s.parseErrors.scratch ?? false);
   const dslParseError = useModelProjectStore((s) => s.parseErrors.dsl ?? false);
   const setName = useModelProjectStore((s) => s.setName);
+  const archived = useModelProjectStore((s) => s.archived);
   const storeApi = useModelProjectStoreApi();
-  const blockSolve = scratchParseError || dslParseError;
+  const blockSolve = scratchParseError || dslParseError || archived;
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState(name);
@@ -103,9 +104,10 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
             }}
             placeholder={t("namePlaceholder")}
             aria-label={t("namePlaceholder")}
-            className="min-w-0 max-w-[18rem] truncate rounded border border-transparent bg-transparent px-1 -mx-1 text-sm font-medium hover:border-input focus:border-input focus:outline-none focus:ring-1 focus:ring-ring"
+            readOnly={archived}
+            className="min-w-0 max-w-[18rem] truncate rounded border border-transparent bg-transparent px-1 -mx-1 text-sm font-medium hover:border-input focus:border-input focus:outline-none focus:ring-1 focus:ring-ring read-only:hover:border-transparent read-only:text-muted-foreground"
           />
-          <SaveIndicator state={saveState} />
+          {archived ? null : <SaveIndicator state={saveState} />}
         </div>
         <div className="flex items-center gap-2">
           <SolveStatusIndicator onGoToSolve={goToSolve} />
@@ -125,11 +127,13 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
             onClick={goToSolve}
             disabled={blockSolve}
             title={
-              blockSolve
-                ? scratchParseError
-                  ? t("editorBlockSolve")
-                  : t("jmodelBlockSolve")
-                : undefined
+              archived
+                ? t("archivedBanner")
+                : blockSolve
+                  ? scratchParseError
+                    ? t("editorBlockSolve")
+                    : t("jmodelBlockSolve")
+                  : undefined
             }
           >
             <Play className="h-4 w-4 mr-1" />
@@ -138,12 +142,59 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
+      {archived ? <ArchivedBanner modelId={modelId} /> : null}
+
       <StudioTabBar modelId={modelId} />
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <div className="flex flex-1 min-w-0 flex-col overflow-hidden">{children}</div>
         <LiveStatsPanel />
       </div>
+    </div>
+  );
+}
+
+/**
+ * Says the model is archived, and offers the one action that ends that.
+ *
+ * An archived model used to open here as a live workbench: nothing on the page
+ * mentioned archiving, the editors accepted typing, and the edits were saved.
+ * The server refuses those writes now, so without this banner the first thing a
+ * user would learn is a failed save.
+ */
+function ArchivedBanner({ modelId }: { modelId: string }) {
+  const t = useTranslations("studio");
+  const router = useRouter();
+  const setArchived = useModelProjectStore((s) => s.setArchived);
+  const [restoring, setRestoring] = useState(false);
+
+  const restore = async () => {
+    setRestoring(true);
+    try {
+      await api.updateProject(modelId, { status: "active" });
+      setArchived(false);
+      toast.success(t("archivedRestored"));
+      router.refresh();
+    } catch {
+      toast.error(t("archivedRestoreError"));
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  return (
+    <div
+      data-testid="studio-archived-banner"
+      className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200"
+    >
+      <span className="inline-flex items-center gap-2">
+        <Archive className="h-4 w-4 shrink-0" />
+        {t("archivedBanner")}
+      </span>
+      <Button size="sm" variant="outline" onClick={restore} disabled={restoring}>
+        {restoring ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+        {t("archivedRestore")}
+      </Button>
     </div>
   );
 }
