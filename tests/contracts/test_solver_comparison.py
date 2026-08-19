@@ -383,7 +383,20 @@ def test_a_comparison_the_quota_cannot_cover_is_refused_whole(
     )
 
     assert response.status_code == 403
-    assert response.json()["detail"]["error"] == "daily_solve_quota_exceeded"
+    detail = response.json()["detail"]
+    assert detail["error"] == "daily_solve_quota_exceeded"
+    # CONTRACT-TEST: the refusal is written for whoever hit the limit.
+    #
+    # It used to read "…ask an administrator to raise the limit in Settings
+    # (instance_max_daily_solves; 0 means unlimited)" — a plain member being
+    # sent to edit a setting they cannot see, and told it in English on a page
+    # in their own language. The key still travels, in `setting_key`, where an
+    # operator or an API client reads it.
+    assert "instance_max_daily_solves" not in detail["message"]
+    assert "Settings" not in detail["message"]
+    assert detail["setting_key"] == "instance_max_daily_solves"
+    # "This comparison needs 1 solves" was the other half of it.
+    assert "1 solves" not in detail["message"]
     # Nothing was written: no half-built comparison left behind.
     assert db_session.query(SolverComparison).count() == 0
 

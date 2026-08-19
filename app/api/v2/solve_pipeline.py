@@ -168,11 +168,12 @@ def _enforce_tier_caps(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=tier_cap_detail(
                 error="daily_solve_quota_exceeded",
+                # The setting key belongs in `setting_key`, not in a sentence a
+                # member reads: it names something they have no access to.
                 message=(
-                    f"You've reached this instance's daily limit of "
-                    f"{limits['max_daily_solves']:,} solves, which resets daily. "
-                    f"An administrator can raise or remove it in Settings "
-                    f"(instance_max_daily_solves; 0 means unlimited)."
+                    f"Today's limit of {limits['max_daily_solves']:,} solves has "
+                    f"been reached. It resets tomorrow, and an administrator can "
+                    f"raise or remove it."
                 ),
                 limit=limits["max_daily_solves"],
                 setting_key="instance_max_daily_solves",

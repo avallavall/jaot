@@ -147,11 +147,16 @@ def consume_daily_quota(db: Session, org: Organization, runs: int) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail=tier_cap_detail(
                 error="daily_solve_quota_exceeded",
+                # Written for whoever hit the limit, not for whoever can raise
+                # it. The setting key stays in `setting_key` below, where an
+                # operator or an API client can read it; naming it in the
+                # sentence told a plain member to go and edit something they
+                # cannot see. "needs 1 solves" was the other half of it.
                 message=(
-                    f"This comparison needs {runs:,} solves and you have reached "
-                    f"this instance's daily limit of {daily:,}, which resets daily. "
-                    f"Compare fewer solvers, or ask an administrator to raise the "
-                    f"limit in Settings (instance_max_daily_solves; 0 means unlimited)."
+                    f"This comparison needs {runs:,} "
+                    f"{'solve' if runs == 1 else 'solves'} and today's limit of "
+                    f"{daily:,} has already been reached. It resets tomorrow. "
+                    f"Compare fewer solvers, or ask an administrator to raise the limit."
                 ),
                 limit=daily,
                 setting_key="instance_max_daily_solves",
