@@ -4563,6 +4563,16 @@
         "verification_link_invalid": "Dieser Bestätigungslink ist nicht gültig.",
         "reset_link_invalid": "Dieser Link zum Zurücksetzen ist abgelaufen oder nicht gültig."
       },
+      "execution": {
+        "not_found": "Diesen Lauf gibt es nicht, oder er gehört zu einer anderen Organisation."
+      },
+      "validation": {
+        "missing_fields": "{count, plural, one {Ein Pflichtfeld fehlt} other {Pflichtfelder fehlen}}: {fields}.",
+        "invalid_fields": "{count, plural, one {Dieses Feld ist ungültig} other {Diese Felder sind ungültig}}: {fields}."
+      },
+      "import": {
+        "unreadable_file": "Diese Datei konnte nicht als {format} gelesen werden. Prüfen Sie, ob sie vollständig ist und ihr Inhalt wirklich {format} ist."
+      },
       "invite": {
         "not_found": "Dieser Einladungslink ist nicht gültig.",
         "revoked": "Diese Einladung wurde widerrufen.",

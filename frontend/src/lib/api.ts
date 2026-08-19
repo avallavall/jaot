@@ -94,6 +94,7 @@ import type {
   CreateComparisonRequest,
 } from "./types";
 import { localeHeader } from "@/lib/locale-header";
+import { readValidationProblems } from "@/lib/validation-error";
 
 import type {
   AnthropicKeyStatus,
@@ -512,11 +513,14 @@ async function request<T>(
       let params: Record<string, unknown> | undefined;
       try {
         const body = await res.json();
-        // Pydantic validation errors come as body.detail = [{msg, ...}, ...].
+        // Pydantic validation errors come as body.detail = [{msg, loc, type}, ...].
+        // Naming the field is the whole point: this used to render as the two
+        // bare words "Field required".
         if (Array.isArray(body.detail)) {
-          message = body.detail
-            .map((e: { msg?: string }) => e.msg || String(e))
-            .join("; ");
+          const read = readValidationProblems(body.detail);
+          message = read.message;
+          code = read.code;
+          params = read.params;
         } else if (typeof body.detail === "object" && body.detail !== null) {
           // Rate limit or structured error — extract nested message.
           message =
@@ -528,12 +532,15 @@ async function request<T>(
         }
         detail = typeof body.detail === "string" ? body.detail : undefined;
         // Additive on the wire: `detail` is unchanged, `code`+`params` are what a
-        // localized screen renders instead of the English text.
-        code = typeof body.code === "string" ? body.code : undefined;
-        params =
-          body.params && typeof body.params === "object" && !Array.isArray(body.params)
-            ? (body.params as Record<string, unknown>)
-            : undefined;
+        // localized screen renders instead of the English text. A code the server
+        // sent wins over the one read out of a validation list above.
+        if (typeof body.code === "string") {
+          code = body.code;
+          params =
+            body.params && typeof body.params === "object" && !Array.isArray(body.params)
+              ? (body.params as Record<string, unknown>)
+              : undefined;
+        }
       } catch {
         // ignore parse errors
       }

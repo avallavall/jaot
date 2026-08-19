@@ -24,6 +24,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models import ModelBuilderDocument, ModelExecution
+from app.shared.core.http_errors import CodedHTTPException
 
 
 def execution_or_404(db: Session, execution_id: str, org_id: str) -> ModelExecution:
@@ -41,7 +42,14 @@ def execution_or_404(db: Session, execution_id: str, org_id: str) -> ModelExecut
         .first()
     )
     if not execution:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Execution not found")
+        # `detail` stays English — it is the API contract, and what a non-browser
+        # client reads. The code is what a page in another language renders:
+        # "Execution not found" was sitting in English inside a Spanish page.
+        raise CodedHTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Execution not found",
+            code="execution.not_found",
+        )
     return execution
 
 

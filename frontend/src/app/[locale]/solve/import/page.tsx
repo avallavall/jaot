@@ -12,7 +12,7 @@ import {
   isAcceptedFile,
   formatFileSize,
 } from "@/lib/file-import";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorMessage, translateApiError } from "@/lib/errors";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { SolverSelect } from "@/components/solve/SolverSelect";
@@ -33,6 +33,7 @@ type PageStep = "upload" | "preview" | "importing";
 
 export default function FileImportPage() {
   const t = useTranslations("solve.import");
+  const tError = useTranslations("errors.codes");
 
   const router = useRouter();
 
@@ -93,11 +94,13 @@ export default function FileImportPage() {
       setPreview(result);
       setStep("preview");
     } catch (err) {
-      setError(getErrorMessage(err, t("previewFailed")));
+      // The server names why it refused the file; render that in the reader's
+      // language. Without this the panel showed SCIP's own words.
+      setError(translateApiError(err, tError, getErrorMessage(err, t("previewFailed"))));
     } finally {
       setLoading(false);
     }
-  }, [file, t]);
+  }, [file, t, tError]);
 
   const handleSolve = useCallback(async () => {
     if (!file) return;
@@ -114,12 +117,12 @@ export default function FileImportPage() {
         router.push("/solve/executions");
       }
     } catch (err) {
-      setError(getErrorMessage(err, t("importFailed")));
+      setError(translateApiError(err, tError, getErrorMessage(err, t("importFailed"))));
       setStep("preview");
     } finally {
       setLoading(false);
     }
-  }, [file, t, router, solverName]);
+  }, [file, t, tError, router, solverName]);
 
   return (
     <div className="container mx-auto px-4 py-8">

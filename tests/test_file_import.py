@@ -615,12 +615,23 @@ class TestImportErrors:
     # --- Corrupt files ---
 
     def test_reject_corrupt_mps(self):
-        with pytest.raises(FileImportError, match="SCIP failed"):
+        """The refusal is about the reader's file, not about SCIP.
+
+        It used to read "SCIP failed to read file: SCIP: read error!" — a
+        solver the reader never chose, saying nothing they can act on.
+        """
+        with pytest.raises(FileImportError) as caught:
             self.service.import_from_file(b"not a valid mps file", "bad.mps")
 
+        assert "SCIP" not in str(caught.value)
+        assert caught.value.code == "import.unreadable_file"
+        assert caught.value.params == {"format": "MPS"}
+
     def test_reject_corrupt_lp(self):
-        with pytest.raises(FileImportError, match="(SCIP failed|No variables found)"):
+        with pytest.raises(FileImportError) as caught:
             self.service.import_from_file(b"garbage content here", "bad.lp")
+
+        assert "SCIP" not in str(caught.value)
 
     def test_reject_corrupt_gzip(self):
         with pytest.raises(FileImportError, match="decompress"):
@@ -641,8 +652,8 @@ class TestImportErrors:
             self.service.import_from_file(b"content", "")
 
     def test_whitespace_only_mps(self):
-        """MPS file with only whitespace should fail SCIP parsing."""
-        with pytest.raises(FileImportError, match="SCIP failed"):
+        """MPS file with only whitespace should fail parsing."""
+        with pytest.raises(FileImportError, match="could not be read as MPS"):
             self.service.import_from_file(b"   \n\t\n  ", "whitespace.mps")
 
     def test_whitespace_only_json(self):

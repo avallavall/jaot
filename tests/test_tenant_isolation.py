@@ -180,6 +180,35 @@ class TestCrossTenantExecutionStatus:
         response = client.get(f"/api/v2/models/executions/{execution.id}")
         assert response.status_code == 404
 
+    def test_the_execution_404_names_itself_and_says_nothing_more(
+        self,
+        app,
+        client,
+        db_session,
+        mock_auth,
+        test_user,
+        test_user_2,
+        test_organization,
+    ):
+        """The 404 carries a code the UI translates, and the same one either way.
+
+        "Execution not found" was rendered as-is, in English, inside a page in
+        another language. The code is what a translated page shows. It must not
+        become an oracle: a run in another organization and a run that never
+        existed answer with the same body.
+        """
+        mock_auth(test_user)
+        execution = _create_execution(db_session, test_organization, test_user)
+        db_session.commit()
+
+        mock_auth(test_user_2)
+        foreign = client.get(f"/api/v2/models/executions/{execution.id}")
+        invented = client.get("/api/v2/models/executions/exe_0000000000000000")
+
+        assert foreign.status_code == invented.status_code == 404
+        assert foreign.json()["code"] == "execution.not_found"
+        assert foreign.json() == invented.json()
+
 
 class TestCrossTenantAsyncExecution:
     """CR-02: GET /api/v2/models/async/{task_id} must not leak cross-tenant data.

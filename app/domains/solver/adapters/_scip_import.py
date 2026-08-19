@@ -21,6 +21,7 @@ import json
 import logging
 import os
 import tempfile
+from typing import Any
 
 from pydantic import ValidationError
 from pyscipopt import Model
@@ -81,7 +82,23 @@ def _write_all(fd: int, payload: bytes) -> None:
 
 
 class FileImportError(Exception):
-    """Raised when file import fails."""
+    """Raised when file import fails.
+
+    ``code`` names the failure for a client that renders it in another
+    language; the message itself stays English, as the API contract says. Most
+    raises here carry no code yet and the route falls back to the message.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.params = params or {}
 
 
 def validate_extension(filename: str) -> str:
@@ -247,7 +264,18 @@ class FileImportService:
             )
             return model
         except Exception as exc:
-            raise FileImportError(f"SCIP failed to read file: {exc}") from exc
+            # SCIP's own words were reaching whoever uploaded the file:
+            # "SCIP failed to read file: SCIP: read error!" says nothing about
+            # what to do and names a solver the reader never chose. The
+            # library's text stays in the log, where it is worth having.
+            logger.warning("SCIP could not read a %s file: %s", extension, exc)
+            fmt = extension.lstrip(".").upper()
+            raise FileImportError(
+                f"This file could not be read as {fmt}. Check that it is complete "
+                f"and that its contents really are {fmt}.",
+                code="import.unreadable_file",
+                params={"format": fmt},
+            ) from exc
 
     def _extract_problem(
         self,

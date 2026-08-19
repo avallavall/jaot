@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { getErrorMessage, translateApiError } from "@/lib/errors";
 import type { SolveResult, AsyncTask } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +47,7 @@ const EXAMPLE_PROBLEM = {
 
 export default function CustomSolvePage() {
   const t = useTranslations("solve.custom");
+  const tError = useTranslations("errors.codes");
   const router = useRouter();
   const { solverName, setSolverName, availableSolvers, solversLoading } = useSolvers();
   const [solving, setSolving] = useState(false);
@@ -69,10 +71,8 @@ export default function CustomSolvePage() {
     } catch (err: unknown) {
       if (err instanceof SyntaxError) {
         setError(t("invalidJsonFormat"));
-      } else if (err instanceof Error) {
-        setError(err.message);
       } else {
-        setError(t("validationFailed"));
+        setError(translateApiError(err, tError, getErrorMessage(err, t("validationFailed"))));
       }
     }
   };
@@ -91,10 +91,11 @@ export default function CustomSolvePage() {
     } catch (err: unknown) {
       if (err instanceof SyntaxError) {
         setError(t("invalidJsonFormat"));
-      } else if (err instanceof Error) {
-        setError(err.message);
       } else {
-        setError(t("failedToSolve"));
+        // A refused body arrives as Pydantic's list; the client turns it into a
+        // code naming the fields. Without this the panel read "Field required"
+        // — no field named, and English inside a translated page.
+        setError(translateApiError(err, tError, getErrorMessage(err, t("failedToSolve"))));
       }
     } finally {
       setSolving(false);

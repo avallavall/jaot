@@ -43,6 +43,7 @@ from app.schemas.optimization import (
 )
 from app.services.template_resolver import listing_to_template_dict
 from app.shared.constants.execution_provenance import ORIGIN_MARKETPLACE
+from app.shared.core.http_errors import CodedHTTPException
 from app.shared.core.validation_message import validation_summary
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
@@ -507,7 +508,11 @@ def cancel_model_execution(
     )
 
     if not execution:
-        raise HTTPException(status_code=404, detail="Execution not found or not authorized")
+        raise CodedHTTPException(
+            status_code=404,
+            detail="Execution not found or not authorized",
+            code="execution.not_found",
+        )
 
     result = AsyncResult(task_id, app=celery_app)
 

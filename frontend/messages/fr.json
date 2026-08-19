@@ -4563,6 +4563,16 @@
         "verification_link_invalid": "Ce lien de vérification n’est pas valide.",
         "reset_link_invalid": "Ce lien de réinitialisation a expiré ou n’est pas valide."
       },
+      "execution": {
+        "not_found": "Cette exécution n’existe pas, ou appartient à une autre organisation."
+      },
+      "validation": {
+        "missing_fields": "{count, plural, one {Un champ obligatoire manque} other {Des champs obligatoires manquent}} : {fields}.",
+        "invalid_fields": "{count, plural, one {Ce champ n’est pas valide} other {Ces champs ne sont pas valides}} : {fields}."
+      },
+      "import": {
+        "unreadable_file": "Ce fichier n’a pas pu être lu comme {format}. Vérifiez qu’il est complet et que son contenu est bien du {format}."
+      },
       "invite": {
         "not_found": "Ce lien d’invitation n’est pas valide.",
         "revoked": "Cette invitation a été révoquée.",

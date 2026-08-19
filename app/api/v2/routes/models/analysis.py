@@ -37,6 +37,7 @@ from app.schemas.optimization import (
     ScenarioAnalysisJob,
     ScenarioProgress,
 )
+from app.shared.core.http_errors import CodedHTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +124,9 @@ def start_execution_scenario_analysis(
     )
     db.commit()
     if execution is None:
-        raise HTTPException(status_code=404, detail="Execution not found")
+        raise CodedHTTPException(
+            status_code=404, detail="Execution not found", code="execution.not_found"
+        )
     if not claimed:
         # Joining the batch in flight (or reading the cached answer) — either way
         # the caller gets the same envelope the GET would give it.

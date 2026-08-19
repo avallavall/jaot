@@ -4563,6 +4563,16 @@
         "verification_link_invalid": "This verification link is not valid.",
         "reset_link_invalid": "This reset link has expired or is not valid."
       },
+      "execution": {
+        "not_found": "That run does not exist, or it belongs to another organization."
+      },
+      "validation": {
+        "missing_fields": "{count, plural, one {A required field is missing} other {Required fields are missing}}: {fields}.",
+        "invalid_fields": "{count, plural, one {This field is not valid} other {These fields are not valid}}: {fields}."
+      },
+      "import": {
+        "unreadable_file": "This file could not be read as {format}. Check that it is complete and that its contents really are {format}."
+      },
       "invite": {
         "not_found": "This invitation link is not valid.",
         "revoked": "This invitation has been revoked.",

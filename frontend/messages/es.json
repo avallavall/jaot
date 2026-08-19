@@ -4563,6 +4563,16 @@
         "verification_link_invalid": "Este enlace de verificación no es válido.",
         "reset_link_invalid": "Este enlace de restablecimiento ha caducado o no es válido."
       },
+      "execution": {
+        "not_found": "Esa ejecución no existe, o es de otra organización."
+      },
+      "validation": {
+        "missing_fields": "{count, plural, one {Falta un campo obligatorio} other {Faltan campos obligatorios}}: {fields}.",
+        "invalid_fields": "{count, plural, one {Este campo no es válido} other {Estos campos no son válidos}}: {fields}."
+      },
+      "import": {
+        "unreadable_file": "No se ha podido leer este fichero como {format}. Comprueba que está completo y que su contenido es de verdad {format}."
+      },
       "invite": {
         "not_found": "Este enlace de invitación no es válido.",
         "revoked": "Esta invitación se ha revocado.",

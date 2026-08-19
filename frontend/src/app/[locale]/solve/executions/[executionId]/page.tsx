@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, ModelExecution } from "@/lib/api";
-import { getErrorMessage } from "@/lib/errors";
+import { translateApiError } from "@/lib/errors";
 import { OptimizationResult } from "@/lib/types";
 import type { InfeasibilityAnalysis } from "@/lib/llm-types";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ const EXECUTION_POLL_MS = 3000;
 
 export default function ExecutionDetailPage() {
   const t = useTranslations("solve.execution");
+  const tError = useTranslations("errors.codes");
   const { dayTime } = useDateFormat();
   const { statusLabel } = useCommonLabels();
   const params = useParams();
@@ -84,7 +85,10 @@ export default function ExecutionDetailPage() {
       const data = await api.getExecution(executionId);
       setExecution(data);
     } catch (err) {
-      if (!silent) setError(getErrorMessage(err, t("failedToLoad")));
+      // The server's `detail` is English by contract ("Execution not found",
+      // which is what this page used to print inside a Spanish page). Render
+      // the code it names, and the translated fallback when there is none.
+      if (!silent) setError(translateApiError(err, tError, t("failedToLoad")));
     } finally {
       if (!silent) setLoading(false);
     }

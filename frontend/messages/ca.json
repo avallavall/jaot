@@ -4563,6 +4563,16 @@
         "verification_link_invalid": "Aquest enllaç de verificació no és vàlid.",
         "reset_link_invalid": "Aquest enllaç de restabliment ha caducat o no és vàlid."
       },
+      "execution": {
+        "not_found": "Aquesta execució no existeix, o és d'una altra organització."
+      },
+      "validation": {
+        "missing_fields": "{count, plural, one {Falta un camp obligatori} other {Falten camps obligatoris}}: {fields}.",
+        "invalid_fields": "{count, plural, one {Aquest camp no és vàlid} other {Aquests camps no són vàlids}}: {fields}."
+      },
+      "import": {
+        "unreadable_file": "No s'ha pogut llegir aquest fitxer com a {format}. Comprova que està complet i que el seu contingut és realment {format}."
+      },
       "invite": {
         "not_found": "Aquest enllaç d’invitació no és vàlid.",
         "revoked": "Aquesta invitació s’ha revocat.",

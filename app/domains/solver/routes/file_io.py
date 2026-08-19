@@ -30,6 +30,7 @@ from app.schemas.optimization import (
     VariableType,
 )
 from app.shared.constants.execution_provenance import ORIGIN_IMPORT
+from app.shared.core.http_errors import CodedHTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +94,22 @@ def _build_metadata(
     )
 
 
+def _import_refused(exc: FileImportError) -> HTTPException:
+    """400 for a file that could not be imported, named when the raiser named it.
+
+    A coded refusal is what a page in another language renders; the English
+    message stays on the wire either way.
+    """
+    if exc.code:
+        return CodedHTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+            code=exc.code,
+            params=exc.params,
+        )
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
 @router.post(
     "/preview",
     response_model=FileImportPreviewResponse,
@@ -122,10 +139,7 @@ def import_preview(  # sync ON PURPOSE -> threadpool (ADR-009): parses the whole
         extension = validate_extension(filename)
         problem = importer.import_from_file(file_bytes, filename, objective_sense)
     except FileImportError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+        raise _import_refused(exc) from exc
 
     metadata = _build_metadata(problem, file_bytes, filename, extension)
 
@@ -166,10 +180,7 @@ def import_and_solve(  # def: blocks on the queued result in the threadpool (ADR
     try:
         problem = importer.import_from_file(file_bytes, filename, objective_sense)
     except FileImportError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+        raise _import_refused(exc) from exc
 
     # Apply user-specified solver options (immutable copy)
     problem = problem.model_copy(

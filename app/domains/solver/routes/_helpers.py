@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models import ModelExecution
 from app.schemas.optimization import OptimizationProblem
+from app.shared.core.http_errors import CodedHTTPException
 
 
 def load_execution(db: Session, execution_id: str, org_id: str) -> ModelExecution:
@@ -22,9 +23,12 @@ def load_execution(db: Session, execution_id: str, org_id: str) -> ModelExecutio
         .first()
     )
     if not execution:
-        raise HTTPException(
+        # English `detail` is the API contract; the code is what a page in
+        # another language renders instead of it.
+        raise CodedHTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Execution not found.",
+            code="execution.not_found",
         )
     return execution
 
