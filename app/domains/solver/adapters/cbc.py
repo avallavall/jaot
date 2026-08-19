@@ -151,7 +151,7 @@ class CBCAdapter(CachedVersion):
             with workspace("jaot-cbc-") as tmp:
                 lp_path = tmp / "problem.lp"
                 sol_path = tmp / "solution.txt"
-                write_problem_lp(problem, lp_path, solver_label=CBC_LABEL)
+                objective_offset = write_problem_lp(problem, lp_path, solver_label=CBC_LABEL)
 
                 run = run_binary(
                     self._argv(binary, lp_path, sol_path, problem),
@@ -164,7 +164,9 @@ class CBCAdapter(CachedVersion):
                     raise SolverError(
                         f"CBC produced no solution file. Its last words:\n{tail(run.stdout)}"
                     )
-                return self._build_result(sol_path.read_text(), run, problem, elapsed)
+                return self._build_result(
+                    sol_path.read_text(), run, problem, elapsed, objective_offset
+                )
         except Exception as exc:
             logger.error("CBC solver error: %s", exc, exc_info=True)
             return OptimizationResult(
@@ -234,6 +236,7 @@ class CBCAdapter(CachedVersion):
         run: CliRun,
         problem: OptimizationProblem,
         elapsed: float,
+        objective_offset: float = 0.0,
     ) -> OptimizationResult:
         lines = solution_text.splitlines()
         headline = lines[0].strip() if lines else ""
@@ -251,6 +254,15 @@ class CBCAdapter(CachedVersion):
             return result
 
         headline_objective = _headline_objective(headline)
+        # CBC reads an LP objective carrying a constant and drops it without a
+        # word, so the constant never goes into the file (see write_problem_lp)
+        # and is added back here — to the answer and to the bound alike, before
+        # the gap is computed off them.
+        if objective_offset:
+            if headline_objective is not None:
+                headline_objective += objective_offset
+            if counters.get("dual_bound") is not None:
+                counters["dual_bound"] += objective_offset
         if not has_solution:
             if status is SolverStatus.TIME_LIMIT:
                 # Here the headline number is the relaxation's value, which is

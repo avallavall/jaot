@@ -278,3 +278,83 @@ def test_reports_missing_binary_instead_of_pretending_to_solve(monkeypatch) -> N
     result = instance.solve(_lp())
     assert result.status is SolverStatus.ERROR
     assert "not installed" in (result.error_message or "")
+
+
+# --------------------------------------------------------------------------- #
+# A constant in the objective                                                  #
+# --------------------------------------------------------------------------- #
+
+
+def _feasibility() -> OptimizationProblem:
+    """A model that asks only whether a point exists: the objective is a constant.
+
+    A normal thing to ask — scheduling feasibility, market split, constraint
+    satisfaction — and SCIP writes its objective row as ``Obj: +0``, with no
+    variable in it.
+    """
+    return OptimizationProblem(
+        name="feasibility",
+        variables=[Variable(name=f"p{i}", type=VariableType.BINARY) for i in range(3)],
+        objective=Objective(sense=ObjectiveSense.MINIMIZE, expression="0"),
+        constraints=[Constraint(name="pick_two", expression="p0 + p1 + p2 == 2")],
+    )
+
+
+def _constant_plus_terms(sense: ObjectiveSense) -> OptimizationProblem:
+    return OptimizationProblem(
+        name="offset",
+        variables=[Variable(name="x0", type=VariableType.BINARY), Variable(name="x1")],
+        objective=Objective(sense=sense, expression="5 + 2*x0"),
+        constraints=[
+            Constraint(name="c1", expression="x0 + x1 >= 1"),
+            Constraint(name="c2", expression="x1 <= 3"),
+        ],
+    )
+
+
+# CONTRACT-TEST: a feasibility model runs on both command-line solvers.
+# glpsol refused the file JAOT wrote for it — "missing variable name" — so every
+# model whose objective is a constant failed in milliseconds on GLPK while the
+# other solvers answered it, and a comparison lost a whole column to the writer.
+def test_solves_a_model_whose_objective_is_a_constant(adapter) -> None:
+    result = adapter.solve(_feasibility())
+
+    assert result.status is SolverStatus.OPTIMAL, result.error_message
+    assert result.objective_value == 0.0
+    assert result.variables is not None
+    chosen = {variable.name: variable.value for variable in result.variables}
+    assert sum(chosen[name] for name in ("p0", "p1", "p2")) == 2
+
+
+# CONTRACT-TEST: the constant in an objective survives the round trip.
+# CBC reads an LP objective carrying a constant, drops it without a word and
+# answers short by exactly that amount — a wrong number with no error, which is
+# the failure this module exists to prevent.
+@pytest.mark.parametrize(
+    ("sense", "expected"),
+    [(ObjectiveSense.MINIMIZE, 5.0), (ObjectiveSense.MAXIMIZE, 7.0)],
+)
+def test_keeps_the_constant_term_of_an_objective(adapter, sense, expected) -> None:
+    problem = _constant_plus_terms(sense)
+
+    result = adapter.solve(problem)
+    reference = SCIPAdapter().solve(problem)
+
+    assert result.status is SolverStatus.OPTIMAL, result.error_message
+    assert result.objective_value == pytest.approx(expected)
+    assert result.objective_value == pytest.approx(reference.objective_value)
+    assert result.dual_bound == pytest.approx(expected)
+
+
+def test_a_negative_constant_objective_comes_back_negative(adapter) -> None:
+    problem = OptimizationProblem(
+        name="negative_offset",
+        variables=[Variable(name="x0", type=VariableType.BINARY)],
+        objective=Objective(sense=ObjectiveSense.MINIMIZE, expression="-3"),
+        constraints=[Constraint(name="c1", expression="x0 >= 0")],
+    )
+
+    result = adapter.solve(problem)
+
+    assert result.status is SolverStatus.OPTIMAL, result.error_message
+    assert result.objective_value == pytest.approx(-3.0)

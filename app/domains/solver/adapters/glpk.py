@@ -178,7 +178,7 @@ class GLPKAdapter(CachedVersion):
                 lp_path = tmp / "problem.lp"
                 raw_path = tmp / "solution.raw"
                 report_path = tmp / "solution.txt"
-                write_problem_lp(problem, lp_path, solver_label=GLPK_LABEL)
+                objective_offset = write_problem_lp(problem, lp_path, solver_label=GLPK_LABEL)
 
                 run = run_binary(
                     self._argv(binary, lp_path, raw_path, report_path, problem),
@@ -203,6 +203,7 @@ class GLPKAdapter(CachedVersion):
                     run,
                     problem,
                     elapsed,
+                    objective_offset,
                 )
         except Exception as exc:
             logger.error("GLPK solver error: %s", exc, exc_info=True)
@@ -256,12 +257,21 @@ class GLPKAdapter(CachedVersion):
         run: CliRun,
         problem: OptimizationProblem,
         elapsed: float,
+        objective_offset: float = 0.0,
     ) -> OptimizationResult:
         solution = _parse_raw_solution(raw_text)
         status = _verdict(run.stdout)
         if status is None:
             status = SolverStatus.OPTIMAL if solution.has_solution else SolverStatus.ERROR
         counters = _parse_counters(run.stdout, problem)
+        # The objective constant is not in the LP file glpsol read — it refuses
+        # a file that carries one (see write_problem_lp) — so it goes back onto
+        # both numbers here, before the gap is computed off them.
+        if objective_offset:
+            if solution.objective_value is not None:
+                solution.objective_value += objective_offset
+            if counters.get("dual_bound") is not None:
+                counters["dual_bound"] += objective_offset
 
         result = OptimizationResult(
             status=status,

@@ -38,6 +38,12 @@ logger = logging.getLogger(__name__)
 #: cannot read — see :func:`write_problem_lp`.
 _LINEAR_CONSHDLR = "linear"
 
+#: The two words SCIP writes above the objective row of an LP file.
+_OBJECTIVE_SENSE_LINES = frozenset({"Minimize", "Maximize"})
+
+#: A name in an LP file: a letter or underscore, then letters, digits or underscores.
+_LP_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
 
 def find_binary(name: str) -> str | None:
     """Absolute path of ``name`` on PATH, or None when it is not installed."""
@@ -151,8 +157,8 @@ def workspace(prefix: str) -> Iterator[Path]:
         shutil.rmtree(path, ignore_errors=True)
 
 
-def write_problem_lp(problem: OptimizationProblem, path: Path, *, solver_label: str) -> None:
-    """Write ``problem`` to ``path`` as a CPLEX LP file.
+def write_problem_lp(problem: OptimizationProblem, path: Path, *, solver_label: str) -> float:
+    """Write ``problem`` to ``path`` as a CPLEX LP file; return the objective constant.
 
     Raises ``SolverError`` when the model is not linear. That check is not
     politeness: CBC reads an LP file whose only constraint is quadratic, drops
@@ -163,6 +169,10 @@ def write_problem_lp(problem: OptimizationProblem, path: Path, *, solver_label: 
     write the file, and SCIP files a quadratic row under its ``nonlinear``
     constraint handler while every linear row lands under ``linear`` — so the
     model already knows the answer and nothing has to be parsed a second time.
+
+    The returned number is the constant term taken out of the objective row.
+    **The caller must add it back to every objective value it reports**, because
+    the file no longer carries it — see :func:`_lift_constant_out_of_objective`.
     """
     model, _, _ = build_scip_model(problem)
     handlers = {cons.getConshdlrName() for cons in model.getConss()}
@@ -173,6 +183,120 @@ def write_problem_lp(problem: OptimizationProblem, path: Path, *, solver_label: 
             "quadratic terms. Use SCIP (or automatic selection) for quadratic models."
         )
     model.writeProblem(str(path), verbose=False)
+    first_variable = model.getVars()[0].name if model.getVars() else None
+    return _lift_constant_out_of_objective(path, first_variable)
+
+
+def _lp_number(token: str) -> float | None:
+    """The number a bare LP token holds, or None when the token is not one."""
+    try:
+        return float(token)
+    except ValueError:
+        return None
+
+
+def _rewrite_objective_terms(terms: str) -> tuple[str, float, bool]:
+    """Split one objective line into (terms without constants, constant, has a variable).
+
+    An LP objective is a run of ``<coefficient> <name>`` pairs with, sometimes,
+    a bare number among them. SCIP writes the objective offset as exactly such a
+    bare number.
+    """
+    tokens = terms.split()
+    kept: list[str] = []
+    constant = 0.0
+    has_variable = False
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        following = tokens[index + 1] if index + 1 < len(tokens) else None
+        if following is not None and _LP_NAME.fullmatch(following):
+            kept.extend((token, following))
+            has_variable = True
+            index += 2
+            continue
+        if _LP_NAME.fullmatch(token):
+            kept.append(token)
+            has_variable = True
+            index += 1
+            continue
+        value = _lp_number(token)
+        if value is None:
+            # Not a number and not a name: leave it exactly where it was rather
+            # than guess. The file stays valid and the offset stays truthful.
+            kept.append(token)
+            index += 1
+            continue
+        constant += value
+        index += 1
+    return " ".join(kept), constant, has_variable
+
+
+def _lift_constant_out_of_objective(path: Path, first_variable: str | None) -> float:
+    """Take the constant out of the objective row, and return it.
+
+    Neither command-line solver reads an LP objective that carries a bare
+    number, and they disagree about how to fail:
+
+    * glpsol refuses the whole file — "missing variable name", "CPLEX LP file
+      processing error". A feasibility model (objective ``0``) is a normal
+      thing to ask, and every one of them failed in 7 ms while the other
+      solvers ran it, so a comparison lost a column to this writer rather than
+      to anything about the model.
+    * CBC reads the file, drops the constant without a word, and reports an
+      objective short by exactly that amount. A wrong number with no error is
+      the one failure this module exists to prevent.
+
+    So the constant leaves the file and comes back in the caller's answer. An
+    objective left with no variable at all gets ``+0 <name>``, which is the same
+    objective and which both readers accept.
+    """
+    lines = path.read_text(encoding="utf-8").splitlines()
+    start = next(
+        (i for i, line in enumerate(lines) if line.strip() in _OBJECTIVE_SENSE_LINES),
+        None,
+    )
+    if start is None or start + 1 >= len(lines):
+        return 0.0
+
+    constant = 0.0
+    has_variable = False
+    changed = False
+    index = start + 1
+    while index < len(lines):
+        line = lines[index]
+        stripped = line.strip()
+        if not stripped or _is_section_line(stripped):
+            break
+        head, separator, tail_terms = line.partition(":")
+        # Only the first line of the objective carries the "Obj:" label; the
+        # continuations SCIP wraps onto later lines are terms all the way.
+        terms = tail_terms if separator and index == start + 1 else line
+        prefix = f"{head}{separator}" if separator and index == start + 1 else ""
+        rewritten, line_constant, line_has_variable = _rewrite_objective_terms(terms)
+        constant += line_constant
+        has_variable = has_variable or line_has_variable
+        if rewritten != terms.strip():
+            indent = line[: len(line) - len(line.lstrip())]
+            lines[index] = f"{prefix} {rewritten}".rstrip() if prefix else f"{indent}{rewritten}"
+            changed = True
+        index += 1
+
+    if not has_variable and first_variable is not None:
+        lines[start + 1] = f"{lines[start + 1].rstrip()} +0 {first_variable}"
+        changed = True
+    if changed:
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return constant
+
+
+def _is_section_line(stripped: str) -> bool:
+    """True for the words that end the objective and open the next LP section."""
+    lowered = stripped.lower()
+    return any(
+        lowered == word or lowered.startswith(f"{word} ")
+        for word in ("subject", "such", "st", "s.t.", "bounds", "binaries", "generals", "end")
+    )
 
 
 def relative_gap(objective_value: float | None, dual_bound: float | None) -> float | None:
