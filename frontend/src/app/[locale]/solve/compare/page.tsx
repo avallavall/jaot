@@ -177,7 +177,10 @@ export default function SolverComparePage() {
   }
 
   const hasProblem = source === "model" ? Boolean(projectId) : Boolean(uploaded);
-  const canStart = hasProblem && selected.length > 0 && !starting;
+  // An empty field reads as Number("") === 0, which used to sail through as a
+  // zero-second limit: the estimate said "0 seconds" and Compare still ran.
+  const timeLimitValid = Number.isFinite(timeLimit) && timeLimit >= 1;
+  const canStart = hasProblem && selected.length > 0 && timeLimitValid && !starting;
 
   return (
     <div className="space-y-6">
@@ -306,9 +309,13 @@ export default function SolverComparePage() {
                 type="number"
                 min={1}
                 className="w-40"
+                aria-invalid={!timeLimitValid}
                 value={timeLimit}
                 onChange={(e) => setTimeLimit(Number(e.target.value))}
               />
+              {!timeLimitValid && (
+                <p className="text-xs text-destructive">{t("setup.timeLimitInvalid")}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="gap">{t("setup.gapLabel")}</Label>
@@ -327,9 +334,13 @@ export default function SolverComparePage() {
 
           {/* The wait is the sum, not the maximum: the solvers run one after
               another so their seconds stay comparable. */}
-          <p className="text-sm text-muted-foreground">
-            {t("setup.estimate", { seconds: timeLimit * Math.max(selected.length, 1) })}
-          </p>
+          {/* No solvers ticked means no wait to promise: this used to read
+              "up to 60 seconds" over an empty selection. */}
+          {selected.length > 0 && timeLimitValid && (
+            <p className="text-sm text-muted-foreground">
+              {t("setup.estimate", { seconds: timeLimit * selected.length })}
+            </p>
+          )}
 
           <Button onClick={() => void start()} disabled={!canStart}>
             {starting ? (

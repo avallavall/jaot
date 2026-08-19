@@ -4856,6 +4856,7 @@
       "fileRejected": "Dieser Dateityp wird nicht unterstützt. Erlaubt: {extensions}.",
       "fileFailed": "Die Datei konnte nicht gelesen werden.",
       "solversLabel": "Solver",
+      "timeLimitInvalid": "Geben Sie jedem Solver mindestens eine Sekunde.",
       "timeLimitLabel": "Zeitlimit (Sekunden)",
       "gapLabel": "Gap-Toleranz",
       "estimate": "Die Solver laufen nacheinander, die Wartezeit beträgt daher bis zu {seconds} Sekunden insgesamt.",

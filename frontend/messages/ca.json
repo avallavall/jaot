@@ -4856,6 +4856,7 @@
       "fileRejected": "Aquest tipus de fitxer no serveix. S'accepten: {extensions}.",
       "fileFailed": "No s'ha pogut llegir el fitxer.",
       "solversLabel": "Solvers",
+      "timeLimitInvalid": "Dona a cada solver almenys un segon.",
       "timeLimitLabel": "Límit de temps (segons)",
       "gapLabel": "Tolerància de gap",
       "estimate": "Els solvers s'executen l'un darrere l'altre, així que l'espera és de fins a {seconds} segons en total.",
