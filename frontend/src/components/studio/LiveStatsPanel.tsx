@@ -12,7 +12,17 @@ import { selectModelStats } from "./store/stats";
 export function LiveStatsPanel() {
   const t = useTranslations("studio");
   const problem = useModelProjectStore((s) => s.problem);
+  const projectLoaded = useModelProjectStore((s) => s.projectLoaded);
+  const hasDslSource = useModelProjectStore((s) => s.draftDslSource.trim().length > 0);
+  const activeDataset = useModelProjectStore((s) => s.activeDataset);
   const stats = useMemo(() => selectModelStats(problem), [problem]);
+
+  // A JModel source that only declares `set I; param w{I}; var x{I}` has no
+  // variables until a dataset says what I is. The zero is true, and read next to
+  // two scenarios that just solved this model it says "broken" instead. Only
+  // once the project has loaded: before that every field is empty for a reason
+  // that has nothing to do with the model.
+  const ungrounded = projectLoaded && hasDslSource && !activeDataset && stats.varTotal === 0;
 
   const hasMatrix = stats.varTotal > 0 && stats.constraintTotal > 0;
   const rows: Array<{ label: string; value: string }> = [
@@ -42,6 +52,14 @@ export function LiveStatsPanel() {
           </div>
         ))}
       </dl>
+      {ungrounded && (
+        <p
+          className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
+          data-testid="stats-ungrounded"
+        >
+          {t("statsUngrounded")}
+        </p>
+      )}
     </aside>
   );
 }

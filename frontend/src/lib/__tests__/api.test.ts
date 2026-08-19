@@ -290,3 +290,72 @@ describe("ApiClient", () => {
     });
   });
 });
+
+/**
+ * A session that ended is a fact for the whole app, not for whichever request
+ * happened to notice. Autosave in the studio was the request that noticed: a
+ * logout in another tab left the workbench up showing four variables and the
+ * word "Save failed", which reads as a passing network problem, while every
+ * request 401'd and the retry ran every 10 seconds against a dead session.
+ */
+describe("a request whose session has ended", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    api.clearApiKey();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function reply(status: number) {
+    return {
+      ok: status >= 200 && status < 300,
+      status,
+      json: async () => ({ detail: "Not authenticated" }),
+      clone() {
+        return this;
+      },
+    } as unknown as Response;
+  }
+
+  // CONTRACT-TEST: a 401 that survives the refresh says the session is over, once
+  it("says the session is over when the refresh cannot save it", async () => {
+    const expired = vi.fn();
+    window.addEventListener("jaot:session-expired", expired);
+
+    // The draft PUT, then the refresh, then the retried PUT — all 401.
+    vi.spyOn(global, "fetch").mockResolvedValue(reply(401));
+
+    await expect(
+      api.updateProjectDraft("mp_1", { model_json: {}, canvas_json: {} }, 3)
+    ).rejects.toThrow();
+
+    expect(expired).toHaveBeenCalledTimes(1);
+    window.removeEventListener("jaot:session-expired", expired);
+  });
+
+  it("says nothing when the refresh works and the retry goes through", async () => {
+    const expired = vi.fn();
+    window.addEventListener("jaot:session-expired", expired);
+
+    vi.spyOn(global, "fetch")
+      .mockResolvedValueOnce(reply(401)) // the PUT
+      .mockResolvedValueOnce(reply(200)) // the refresh
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ draft_lock_version: 4 }),
+        clone() {
+          return this;
+        },
+      } as unknown as Response);
+
+    await expect(
+      api.updateProjectDraft("mp_1", { model_json: {}, canvas_json: {} }, 3)
+    ).resolves.toMatchObject({ draft_lock_version: 4 });
+
+    expect(expired).not.toHaveBeenCalled();
+    window.removeEventListener("jaot:session-expired", expired);
+  });
+});

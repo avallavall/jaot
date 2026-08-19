@@ -365,7 +365,11 @@ export function JModelEditorPanel() {
             <Sigma className="h-3.5 w-3.5" />
             {t("jmodelMathToggle")}
           </Button>
-          <JModelStatus result={result} compiling={compiling} />
+          <JModelStatus
+            result={result}
+            compiling={compiling}
+            emptyOverModel={text.trim().length === 0 && hasModel}
+          />
         </div>
       </div>
 
@@ -531,9 +535,15 @@ export function JModelEditorPanel() {
 function JModelStatus({
   result,
   compiling,
+  emptyOverModel,
 }: {
   result: DslCompileResult | null;
   compiling: boolean;
+  /** The editor is empty and a model is still active. Deleting the source does
+   * not delete the model it produced, and nothing said so: the editor read
+   * empty, "Model at a glance" went on reporting 3 variables, Solve stayed
+   * enabled, and the two disagreed with no explanation. */
+  emptyOverModel: boolean;
 }) {
   const t = useTranslations("studio");
   if (compiling) {
@@ -557,6 +567,17 @@ function JModelStatus({
       <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
         <CheckCircle2 className="h-3.5 w-3.5" />
         {t("jmodelValid")}
+      </span>
+    );
+  }
+  if (emptyOverModel) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400"
+        data-testid="jmodel-empty-over-model"
+      >
+        <AlertCircle className="h-3.5 w-3.5" />
+        {t("jmodelEmptyKeepsModel")}
       </span>
     );
   }

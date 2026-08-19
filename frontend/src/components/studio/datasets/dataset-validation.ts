@@ -98,6 +98,12 @@ export function checkDatasetAgainstDeclarations(
     }
   }
 
+  // Names, arity and shape — never the values themselves. A capacity of -999
+  // passes here and makes the model infeasible, and the tick used to read
+  // "Fills the model", which a reader takes for "this dataset will solve". A
+  // negative parameter is legitimate in plenty of models, so this check cannot
+  // refuse one; what it can do is say only what it actually verified. Whether
+  // the numbers can be satisfied is the infeasibility analysis' question.
   if (messages.length === 0) return [{ level: "ok", key: "datasetCheckOk" }];
   return messages;
 }

@@ -313,7 +313,7 @@
     "scenariosDiffVariable": "Variable",
     "scenariosDiffMore": "{count} variables más difieren (no mostradas).",
     "scenariosDiffFailed": "No se pudieron cargar las dos soluciones",
-    "datasetCheckOk": "Rellena el modelo",
+    "datasetCheckOk": "Cada declaración tiene un valor",
     "datasetCheckMissingSet": "Falta el set {name}",
     "datasetCheckMissingParam": "Falta el param {name}",
     "datasetCheckUnknownSet": "El modelo no declara un set {name}",
@@ -401,7 +401,9 @@
       "historyLabel": "Matrices anteriores",
       "historyEntry": "{when} · {datasets, plural, one {# conjunto} other {# conjuntos}} × {solvers, plural, one {# solver} other {# solvers}}",
       "historyFailed": "No se pudo abrir esa matriz."
-    }
+    },
+    "statsUngrounded": "El código JModel declara la forma y un conjunto de datos pone los números. Enlaza uno en la pestaña Datos y estas cuentas se rellenan.",
+    "jmodelEmptyKeepsModel": "Editor vacío: el modelo de antes sigue siendo el activo"
   },
   "common": {
     "loading": "Cargando...",

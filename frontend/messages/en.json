@@ -313,7 +313,7 @@
     "scenariosDiffVariable": "Variable",
     "scenariosDiffMore": "{count} more variables differ (not shown).",
     "scenariosDiffFailed": "Could not load the two solutions",
-    "datasetCheckOk": "Fills the model",
+    "datasetCheckOk": "Every declaration has a value",
     "datasetCheckMissingSet": "Missing set {name}",
     "datasetCheckMissingParam": "Missing param {name}",
     "datasetCheckUnknownSet": "The model does not declare a set {name}",
@@ -401,7 +401,9 @@
       "historyLabel": "Previous matrices",
       "historyEntry": "{when} · {datasets, plural, one {# dataset} other {# datasets}} × {solvers, plural, one {# solver} other {# solvers}}",
       "historyFailed": "That matrix could not be opened."
-    }
+    },
+    "statsUngrounded": "The JModel source declares the shape and a dataset supplies the numbers. Bind one on the Data tab and these counts fill in.",
+    "jmodelEmptyKeepsModel": "Editor empty — the model from before is still the active one"
   },
   "common": {
     "loading": "Loading...",

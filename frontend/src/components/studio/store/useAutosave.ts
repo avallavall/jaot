@@ -66,6 +66,8 @@ export function useAutosave(store: ModelProjectStore, modelId: string): void {
       ownVersions.current.add(lockVersion);
       store.getState().setLockVersion(lockVersion);
       store.getState().setSaveState("saved");
+      // The server now has this edit, so leaving the page costs nothing.
+      store.getState().setUnsavedDraft(false);
       conflictWarned.current = false;
     };
 
@@ -145,6 +147,9 @@ export function useAutosave(store: ModelProjectStore, modelId: string): void {
       // navigation). Load-time projections never set headDirty, so they don't save.
       if (state.problem === prev.problem && state.draftDslSource === prev.draftDslSource) return;
       if (!state.headDirty) return;
+      // Raised here rather than in persist(): the debounce below is exactly the
+      // window in which a reload took the edit with nothing said.
+      store.getState().setUnsavedDraft(true);
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => persist(), DEBOUNCE_MS);
     });

@@ -49,8 +49,10 @@ interface FakeState {
   lockVersion: number;
   saveState: string;
   archived: boolean;
+  unsavedDraft: boolean;
   setSaveState: (s: string) => void;
   setLockVersion: (v: number) => void;
+  setUnsavedDraft: (v: boolean) => void;
 }
 
 /** The slice of the model-project store the hook actually touches. */
@@ -64,11 +66,15 @@ function makeStore() {
     lockVersion: 1,
     saveState: "idle",
     archived: false,
+    unsavedDraft: false,
     setSaveState: (s) => {
       state = { ...state, saveState: s };
     },
     setLockVersion: (v) => {
       state = { ...state, lockVersion: v };
+    },
+    setUnsavedDraft: (v) => {
+      state = { ...state, unsavedDraft: v };
     },
   };
   return {
@@ -197,5 +203,58 @@ describe("autosave on a conflicting draft", () => {
     }
 
     expect(toast.error).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * The other half of the reload story. `useUnsavedGuard` warns while
+ * `unsavedDraft` is set, and this is what sets it — the 800 ms debounce is
+ * exactly the window a reload used to take the edit in.
+ */
+describe("autosave flags a draft the server does not have", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // CONTRACT-TEST: an edit is flagged unsaved from the keystroke, not from the PUT
+  it("flags the draft the moment the edit lands, before the debounce fires", async () => {
+    const store = makeStore();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    renderHook(() => useAutosave(store as any, "mp_1"));
+
+    await act(async () => {
+      store.edit({ variables: ["a"] });
+    });
+
+    expect(store.getState().unsavedDraft).toBe(true);
+    expect(updateDraft).not.toHaveBeenCalled();
+  });
+
+  it("clears the flag once the save lands", async () => {
+    const store = makeStore();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    renderHook(() => useAutosave(store as any, "mp_1"));
+
+    updateDraft.mockResolvedValueOnce({ draft_lock_version: 5 });
+    await editAndFlush(store, { variables: ["a"] });
+
+    expect(store.getState().unsavedDraft).toBe(false);
+  });
+
+  it("keeps the flag up while the save is failing", async () => {
+    const store = makeStore();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    renderHook(() => useAutosave(store as any, "mp_1"));
+
+    updateDraft.mockRejectedValueOnce(new Error("network is down"));
+    await editAndFlush(store, { variables: ["a"] });
+
+    expect(store.getState().saveState).toBe("error");
+    expect(store.getState().unsavedDraft).toBe(true);
   });
 });

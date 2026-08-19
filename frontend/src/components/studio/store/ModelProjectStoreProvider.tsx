@@ -18,6 +18,7 @@ import { ModelProjectStoreContext } from "./useModelProjectStore";
 import { canvasCanRepresentModel, exceedsCanvasScale } from "./model-scale";
 import { useCanvasBridge } from "./useCanvasBridge";
 import { useAutosave } from "./useAutosave";
+import { useUnsavedGuard } from "./useUnsavedGuard";
 import { useSolveSession } from "./useSolveSession";
 import { useActiveDatasetCompile } from "./useActiveDatasetCompile";
 import { StudioAssistantProvider } from "../assistant/StudioAssistantProvider";
@@ -196,6 +197,7 @@ export function ModelProjectStoreProvider({
 
   useCanvasBridge(store);
   useAutosave(store, modelId);
+  useUnsavedGuard(store);
   // Drives the async solve from the store so it survives tab switches, and
   // reconciles a running/finished solve from the server on open (survives
   // reload / new tab / new device / power loss).

@@ -132,6 +132,18 @@ export interface ModelProjectState {
   projectLoaded: boolean;
   setProjectLoaded: (projectLoaded: boolean) => void;
 
+  /** True while this tab holds an edit the server has not been given yet.
+   *
+   * Autosave raises it the moment it schedules a write and drops it when one
+   * lands. Nothing else in the store answers this question: `saveState` is
+   * still "idle" through the 800 ms debounce, `headDirty` means "different
+   * from the last commit" and survives a save, and `dslDirty` means "the user
+   * has touched the source this session" and is never cleared. Reloading
+   * inside the debounce lost the edit with no word said, which is what this
+   * exists to warn about. */
+  unsavedDraft: boolean;
+  setUnsavedDraft: (unsavedDraft: boolean) => void;
+
   /**
    * Which lenses currently hold un-parseable text (Editor JSON, JModel source).
    * A broken lens never applies its text to the canonical model, but records itself
@@ -315,6 +327,9 @@ export function createModelProjectStore(init: ModelProjectInit) {
 
         projectLoaded: false,
         setProjectLoaded: (projectLoaded) => set({ projectLoaded }),
+
+        unsavedDraft: false,
+        setUnsavedDraft: (unsavedDraft) => set({ unsavedDraft }),
 
         parseErrors: {},
         setParseError: (rep, hasError) =>

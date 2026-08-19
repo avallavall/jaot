@@ -313,7 +313,7 @@
     "scenariosDiffVariable": "Variable",
     "scenariosDiffMore": "{count} variables de plus diffèrent (non affichées).",
     "scenariosDiffFailed": "Impossible de charger les deux solutions",
-    "datasetCheckOk": "Remplit le modèle",
+    "datasetCheckOk": "Chaque déclaration a une valeur",
     "datasetCheckMissingSet": "Ensemble {name} manquant",
     "datasetCheckMissingParam": "Paramètre {name} manquant",
     "datasetCheckUnknownSet": "Le modèle ne déclare pas d'ensemble {name}",
@@ -401,7 +401,9 @@
       "historyLabel": "Matrices précédentes",
       "historyEntry": "{when} · {datasets, plural, one {# jeu} other {# jeux}} × {solvers, plural, one {# solveur} other {# solveurs}}",
       "historyFailed": "Cette matrice n'a pas pu être ouverte."
-    }
+    },
+    "statsUngrounded": "Le code JModel déclare la forme et un jeu de données fournit les nombres. Reliez-en un dans l'onglet Données et ces comptes se remplissent.",
+    "jmodelEmptyKeepsModel": "Éditeur vide : le modèle précédent reste le modèle actif"
   },
   "common": {
     "loading": "Chargement...",
