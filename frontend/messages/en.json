@@ -2732,7 +2732,8 @@
       "signInToUse": "Sign in to use this model",
       "addToFavorites": "Add to favourites",
       "removeFromFavorites": "Remove from favourites",
-      "failedToUpdateFavorite": "Could not update your favourites."
+      "failedToUpdateFavorite": "Could not update your favourites.",
+      "signInToReview": "Sign in to review"
     },
     "catalog": {
       "title": "Model Catalog",
@@ -2778,7 +2779,10 @@
       "noRating": "No ratings yet",
       "backToMarketplace": "Back to Marketplace",
       "failedToLoad": "Failed to load author profile",
-      "authorNotFound": "Author not found"
+      "authorNotFound": "Author not found",
+      "avgRatingFrom": "from {count, plural, one {# review} other {# reviews}}",
+      "loadMore": "Show {remaining, plural, one {# more model} other {# more models}}",
+      "loadingMore": "Loading…"
     }
   },
   "solve": {

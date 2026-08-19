@@ -2703,7 +2703,8 @@
       "signInToUse": "Connectez-vous pour utiliser ce modèle",
       "addToFavorites": "Ajouter aux favoris",
       "removeFromFavorites": "Retirer des favoris",
-      "failedToUpdateFavorite": "Impossible de mettre à jour vos favoris."
+      "failedToUpdateFavorite": "Impossible de mettre à jour vos favoris.",
+      "signInToReview": "Connectez-vous pour donner un avis"
     },
     "catalog": {
       "title": "Catalogue de modèles",
@@ -2778,7 +2779,10 @@
       "noRating": "Aucune note pour le moment",
       "backToMarketplace": "Retour au Marketplace",
       "failedToLoad": "Échec du chargement du profil du auteur",
-      "authorNotFound": "Auteur introuvable"
+      "authorNotFound": "Auteur introuvable",
+      "avgRatingFrom": "sur {count, plural, one {# avis} other {# avis}}",
+      "loadMore": "Voir {remaining, plural, one {# modèle de plus} other {# modèles de plus}}",
+      "loadingMore": "Chargement…"
     }
   },
   "solve": {

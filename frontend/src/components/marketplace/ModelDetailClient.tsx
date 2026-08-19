@@ -36,6 +36,47 @@ interface ReviewsResponse {
   rating_distribution?: Record<number, number>;
 }
 
+/**
+ * The heading over the review list, and the one control beside it.
+ *
+ * A logged-out visitor used to be handed the whole form — five star controls
+ * and two text fields — and it accepted everything they typed. Submit made no
+ * request at all and pushed straight to /login, so the rating, the title and
+ * the review were gone with nothing offering to bring them back. The main
+ * action higher up the same page already says "Sign in to use this model", so
+ * the page knows before the typing starts. Say it here too.
+ */
+export function ReviewsHeader({
+  total,
+  isAuthenticated,
+  onWrite,
+  onSignIn,
+}: {
+  /** How many reviews there are, or null while they are still loading. */
+  total: number | null;
+  isAuthenticated: boolean;
+  onWrite: () => void;
+  onSignIn: () => void;
+}) {
+  const t = useTranslations("marketplace.detail");
+
+  return (
+    <div className="flex items-center justify-between mb-6">
+      <h2 className="text-lg font-semibold">
+        {t("reviews")} {total !== null && t("reviewCount", { count: total })}
+      </h2>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={isAuthenticated ? onWrite : onSignIn}
+        data-testid="marketplace-write-review"
+      >
+        {isAuthenticated ? t("writeReview") : t("signInToReview")}
+      </Button>
+    </div>
+  );
+}
+
 export function ModelDetailClient({ modelId }: { modelId: string }) {
   const t = useTranslations("marketplace.detail");
   const { day } = useDateFormat();
@@ -404,18 +445,12 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
       )}
 
       <div className="bg-card border rounded-lg p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold">
-            {t("reviews")} {reviews && t("reviewCount", { count: reviews.total })}
-          </h2>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowReviewForm(!showReviewForm)}
-          >
-            {t("writeReview")}
-          </Button>
-        </div>
+        <ReviewsHeader
+          total={reviews?.total ?? null}
+          isAuthenticated={isAuthenticated}
+          onWrite={() => setShowReviewForm(!showReviewForm)}
+          onSignIn={() => router.push(loginPathReturningTo(`/marketplace/${modelId}`))}
+        />
 
         {reviews && reviews.total > 0 && (
           <div className="mb-6 p-4 bg-muted/50 rounded-lg">

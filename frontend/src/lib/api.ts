@@ -1279,8 +1279,12 @@ export const api = {
     return request(`/api/v2/organizations/${orgId}/public`);
   },
 
-  getOrgModels(orgId: string): Promise<ModelCatalogItem[]> {
-    return request(`/api/v2/organizations/${orgId}/models`);
+  /** One page of an author's published models. Fifty at a time; the author
+   * profile's `total_models_published` says how many there are in all. */
+  getOrgModels(orgId: string, page = 1, pageSize = 50): Promise<ModelCatalogItem[]> {
+    return request(`/api/v2/organizations/${orgId}/models`, {
+      params: { page, page_size: pageSize },
+    });
   },
 
   updateOrgProfile(data: Record<string, unknown>): Promise<OrgProfile> {

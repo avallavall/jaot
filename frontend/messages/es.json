@@ -2703,7 +2703,8 @@
       "signInToUse": "Inicia sesión para usar este modelo",
       "addToFavorites": "Añadir a favoritos",
       "removeFromFavorites": "Quitar de favoritos",
-      "failedToUpdateFavorite": "No se han podido actualizar tus favoritos."
+      "failedToUpdateFavorite": "No se han podido actualizar tus favoritos.",
+      "signInToReview": "Inicia sesión para reseñar"
     },
     "catalog": {
       "title": "Catálogo de modelos",
@@ -2778,7 +2779,10 @@
       "noRating": "Sin valoraciones aun",
       "backToMarketplace": "Volver al Marketplace",
       "failedToLoad": "Error al cargar el perfil del autor",
-      "authorNotFound": "Autor no encontrado"
+      "authorNotFound": "Autor no encontrado",
+      "avgRatingFrom": "de {count, plural, one {# reseña} other {# reseñas}}",
+      "loadMore": "Ver {remaining, plural, one {# modelo más} other {# modelos más}}",
+      "loadingMore": "Cargando…"
     }
   },
   "solve": {

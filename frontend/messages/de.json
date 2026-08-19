@@ -2703,7 +2703,8 @@
       "signInToUse": "Melden Sie sich an, um dieses Modell zu verwenden",
       "addToFavorites": "Zu Favoriten hinzufügen",
       "removeFromFavorites": "Aus Favoriten entfernen",
-      "failedToUpdateFavorite": "Ihre Favoriten konnten nicht aktualisiert werden."
+      "failedToUpdateFavorite": "Ihre Favoriten konnten nicht aktualisiert werden.",
+      "signInToReview": "Zum Bewerten anmelden"
     },
     "catalog": {
       "title": "Modellkatalog",
@@ -2778,7 +2779,10 @@
       "noRating": "Noch keine Bewertungen",
       "backToMarketplace": "Zurück zum Marktplatz",
       "failedToLoad": "Fehler beim Laden des Autorprofils",
-      "authorNotFound": "Autor nicht gefunden"
+      "authorNotFound": "Autor nicht gefunden",
+      "avgRatingFrom": "aus {count, plural, one {# Bewertung} other {# Bewertungen}}",
+      "loadMore": "{remaining, plural, one {# weiteres Modell} other {# weitere Modelle}} anzeigen",
+      "loadingMore": "Wird geladen…"
     }
   },
   "solve": {

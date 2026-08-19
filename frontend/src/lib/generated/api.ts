@@ -2638,7 +2638,14 @@ export interface paths {
         };
         /**
          * Get Organization Models
-         * @description Get public models published by an organization.
+         * @description Get public models published by an organization, fifty at a time.
+         *
+         *     Paging is what makes the rest of them reachable. This used to take a fixed
+         *     fifty and return them as the whole list, while the profile above reported
+         *     the real total: the biggest author on the site published 102 models and 52
+         *     of them could not be opened from their own page. The page count comes from
+         *     ``total_models_published`` on the profile, which counts the same listings
+         *     under the same filter.
          */
         get: operations["get_organization_models_api_v2_organizations__org_id__models_get"];
         put?: never;
@@ -16208,7 +16215,10 @@ export interface operations {
     };
     get_organization_models_api_v2_organizations__org_id__models_get: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
             header?: never;
             path: {
                 org_id: string;

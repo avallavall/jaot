@@ -1,6 +1,6 @@
 """Organization public profile endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 
 from app.api.deps import DBSession
@@ -153,8 +153,18 @@ def update_organization_profile(
 def get_organization_models(
     org_id: str,
     db: DBSession,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
 ) -> list[ModelCatalogResponse]:
-    """Get public models published by an organization."""
+    """Get public models published by an organization, fifty at a time.
+
+    Paging is what makes the rest of them reachable. This used to take a fixed
+    fifty and return them as the whole list, while the profile above reported
+    the real total: the biggest author on the site published 102 models and 52
+    of them could not be opened from their own page. The page count comes from
+    ``total_models_published`` on the profile, which counts the same listings
+    under the same filter.
+    """
     org = (
         db.query(Organization)
         .filter(
@@ -176,10 +186,13 @@ def get_organization_models(
         # Same tiebreaker the catalogue needs: execution counts tie constantly,
         # and without a total order WHICH fifty come back changes between
         # requests, so a model appears on an author page and is gone on reload.
+        # With paging it matters twice over: an unstable order repeats a model
+        # on page 2 and drops another one entirely.
         .order_by(
             ModelProjectListing.total_executions.desc(), ModelProjectListing.model_project_id.desc()
         )
-        .limit(50)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
         .all()
     )
 

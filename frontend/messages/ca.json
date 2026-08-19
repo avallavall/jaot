@@ -2703,7 +2703,8 @@
       "signInToUse": "Inicia la sessió per usar aquest model",
       "addToFavorites": "Afegeix a preferits",
       "removeFromFavorites": "Treu de preferits",
-      "failedToUpdateFavorite": "No s’ha pogut actualitzar els teus preferits."
+      "failedToUpdateFavorite": "No s’ha pogut actualitzar els teus preferits.",
+      "signInToReview": "Inicia la sessió per ressenyar"
     },
     "catalog": {
       "title": "Catàleg de models",
@@ -2778,7 +2779,10 @@
       "noRating": "Sense valoracions encara",
       "backToMarketplace": "Tornar al Marketplace",
       "failedToLoad": "Error en carregar el perfil del autor",
-      "authorNotFound": "Autor no trobat"
+      "authorNotFound": "Autor no trobat",
+      "avgRatingFrom": "de {count, plural, one {# ressenya} other {# ressenyes}}",
+      "loadMore": "Veure {remaining, plural, one {# model més} other {# models més}}",
+      "loadingMore": "Carregant…"
     }
   },
   "solve": {
