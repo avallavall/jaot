@@ -111,10 +111,39 @@ class FromMarketplaceRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+#: Refusal shown when a write lands on an archived project. One sentence for
+#: every route, because a caller that hits two of them must not have to work
+#: out whether two different messages mean the same thing.
+_ARCHIVED_DETAIL = "This model is archived. Restore it before making changes."
+
+
 def _project_or_404(db: DBSession, project_id: str, org_id: str):
     project = svc.get_project_or_404(db, project_id, org_id)
     if project is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    return project
+
+
+def _writable_project_or_404(db: DBSession, project_id: str, org_id: str):
+    """Load a project that may be changed, or refuse because it is archived.
+
+    Archiving is this platform's soft delete, and nothing used to enforce it.
+    ``get_project_or_404`` returns a project of any status by design, every
+    write loaded through it, and so an archived project could still be renamed,
+    edited, committed, solved and **published to the public marketplace**. The
+    only thing keeping anyone out was the model list rendering an archived row
+    without a link; the URL underneath still worked.
+
+    Restoring does not come through here. It is ``PATCH {"status": "active"}``,
+    which ``update_model_project`` lets past on its own — otherwise archiving
+    would be a door that locks from both sides.
+
+    Reads are untouched. An archived project must stay fully readable, or the
+    trash view could not show what is in it.
+    """
+    project = _project_or_404(db, project_id, org_id)
+    if project.status == "archived":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=_ARCHIVED_DETAIL)
     return project
 
 
@@ -394,7 +423,7 @@ def publish_model_project(
     copying the model into a separate catalog row. Requires a committed version (the
     listing pins HEAD, never the dirty draft).
     """
-    project = _project_or_404(db, project_id, org.id)
+    project = _writable_project_or_404(db, project_id, org.id)
     try:
         listing = svc.publish_listing(db, project, author_org_id=org.id, req=body)
     except ProjectNotPublishableError as exc:
@@ -472,7 +501,7 @@ def _set_publication(
     published: bool,
 ) -> ModelCatalogResponse:
     """Shared body of un/republish: both differ only in the target status."""
-    project = _project_or_404(db, project_id, org.id)
+    project = _writable_project_or_404(db, project_id, org.id)
     try:
         listing = svc.set_listing_published(db, project, published=published)
     except svc.ListingNotFoundError as exc:
@@ -614,8 +643,16 @@ def update_model_project(
     org: CurrentOrg,
     _ws: OptionalRequireEditor,
 ) -> ModelProject:
-    """Patch project metadata (name / description / status)."""
+    """Patch project metadata (name / description / status).
+
+    This route is both the rename and the restore, so it cannot use
+    ``_writable_project_or_404``: on an archived project only the restore may
+    pass. Everything else — a rename, a new description, a re-archive — is
+    refused with the same message as every other write.
+    """
     project = _project_or_404(db, project_id, org.id)
+    if project.status == "archived" and body.status != "active":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=_ARCHIVED_DETAIL)
     svc.update_meta(db, project, name=body.name, description=body.description, status=body.status)
     db.commit()
     db.refresh(project)
@@ -687,7 +724,7 @@ def update_model_project_draft(
     if_match: str | None = Header(default=None, alias="If-Match"),
 ) -> ModelProject:
     """Replace the mutable HEAD draft (optimistic concurrency via ``If-Match``)."""
-    project = _project_or_404(db, project_id, org.id)
+    project = _writable_project_or_404(db, project_id, org.id)
     expected_lock: int | None = None
     if if_match is not None:
         try:
@@ -743,7 +780,7 @@ def create_project_dataset(
     _ws: OptionalRequireEditor,
 ) -> ModelProjectDataset:
     """Create a named dataset ("scenario") for the project."""
-    project = _project_or_404(db, project_id, org.id)
+    project = _writable_project_or_404(db, project_id, org.id)
     try:
         dataset = svc.create_dataset(
             db,
@@ -856,6 +893,7 @@ def update_project_dataset(
     _ws: OptionalRequireEditor,
 ) -> ModelProjectDataset:
     """Update a dataset's name/description/values (only the provided fields)."""
+    _writable_project_or_404(db, project_id, org.id)
     dataset = svc.get_dataset_or_404(db, dataset_id, org.id, project_id=project_id)
     if dataset is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
@@ -901,6 +939,7 @@ def delete_project_dataset(
     _ws: OptionalRequireEditor,
 ) -> None:
     """Delete a dataset (working data — no archive tier)."""
+    _writable_project_or_404(db, project_id, org.id)
     dataset = svc.get_dataset_or_404(db, dataset_id, org.id, project_id=project_id)
     if dataset is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
@@ -935,7 +974,7 @@ def commit_model_version(
     _ws: OptionalRequireEditor,
 ) -> ModelProjectVersion:
     """Commit the current draft as an immutable, message-bearing version."""
-    project = _project_or_404(db, project_id, org.id)
+    project = _writable_project_or_404(db, project_id, org.id)
     version = svc.commit_version(db, project, user_id=user.id, summary=body.summary, body=body.body)
     db.commit()
     db.refresh(version)
@@ -1006,7 +1045,7 @@ def restore_project_version(
     discard_draft: bool = Query(False),
 ) -> ModelProject:
     """Check a committed version out into the draft (history untouched)."""
-    project = _project_or_404(db, project_id, org.id)
+    project = _writable_project_or_404(db, project_id, org.id)
     version = svc.get_version_or_404(db, project_id, version_id, org.id)
     if version is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version not found")
@@ -1066,7 +1105,7 @@ def solve_model_project(  # def: blocks on the queued result in the threadpool (
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required."
         )
 
-    project = _project_or_404(db, project_id, org.id)
+    project = _writable_project_or_404(db, project_id, org.id)
 
     mpv_id: str | None = None
     if version_id:
@@ -1169,7 +1208,7 @@ def solve_project_dataset(  # def: the CPU-bound compile belongs in the threadpo
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required."
         )
 
-    project = _project_or_404(db, project_id, org.id)
+    project = _writable_project_or_404(db, project_id, org.id)
     source = project.draft_dsl_source
     if not source or not source.strip():
         raise HTTPException(

@@ -34,6 +34,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ### Fixed
 
+- **An archived model can no longer be changed.** Archiving is the platform's soft delete, and nothing enforced it: an archived model could still be renamed, edited, committed, re-solved and even published to the public marketplace. The model list simply stopped linking to it, and the URL underneath still worked. Every write now answers 409 with "This model is archived. Restore it before making changes." Reading an archived model, restoring it and deleting it for good are unchanged.
 - **CBC now keeps the time limit a solver comparison promised every solver.** It was measuring that limit in CPU seconds while the table reported the clock, so on a hard model given 10 seconds it searched for 14.5 and came last partly because it had been allowed to run longer. Comparisons involving CBC are worth re-running.
 
 ### Added

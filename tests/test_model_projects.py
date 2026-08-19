@@ -534,6 +534,141 @@ class TestArchiveAndPermanentDelete:
         assert resp.status_code == 404
 
 
+class TestArchivedProjectIsReadOnly:
+    """# CONTRACT-TEST: an archived project accepts no writes until it is restored.
+
+    Archiving is this platform's soft delete, and it used to be enforced by
+    nothing but the model list rendering an archived row without a link. The URL
+    underneath still worked, and so did every write behind it: driving the local
+    API against an archived project, a rename, a draft edit, a commit, a version
+    restore, a solve and a **publish to the public marketplace** all succeeded.
+
+    Reads stay open on purpose — the trash view has to show what is in it.
+    """
+
+    @staticmethod
+    def _archived(client: TestClient) -> str:
+        pid = _create_project(client)["id"]
+        client.put(f"/api/v2/projects/{pid}/draft", json={"model_json": _VALID_PROBLEM})
+        client.post(f"/api/v2/projects/{pid}/commit", json={"summary": "v1"})
+        assert client.delete(f"/api/v2/projects/{pid}").status_code == 204
+        return pid
+
+    def test_rename_is_refused(self, authenticated_client: TestClient):
+        pid = self._archived(authenticated_client)
+        before = authenticated_client.get(f"/api/v2/projects/{pid}").json()["name"]
+
+        resp = authenticated_client.patch(f"/api/v2/projects/{pid}", json={"name": "RENAMED"})
+
+        assert resp.status_code == 409
+        assert "archived" in resp.json()["detail"].lower()
+        # The refusal has to leave the row alone, or a 409 would be cosmetic.
+        assert authenticated_client.get(f"/api/v2/projects/{pid}").json()["name"] == before
+
+    def test_draft_edit_is_refused_and_the_draft_is_unchanged(
+        self, authenticated_client: TestClient
+    ):
+        pid = self._archived(authenticated_client)
+        before = authenticated_client.get(f"/api/v2/projects/{pid}").json()["draft_model_json"]
+
+        resp = authenticated_client.put(
+            f"/api/v2/projects/{pid}/draft",
+            json={"model_json": {**_VALID_PROBLEM, "name": "edited-while-archived"}},
+        )
+
+        assert resp.status_code == 409
+        assert (
+            authenticated_client.get(f"/api/v2/projects/{pid}").json()["draft_model_json"] == before
+        )
+
+    def test_commit_is_refused_and_no_version_is_written(self, authenticated_client: TestClient):
+        pid = self._archived(authenticated_client)
+        before = len(authenticated_client.get(f"/api/v2/projects/{pid}/versions").json())
+
+        resp = authenticated_client.post(
+            f"/api/v2/projects/{pid}/commit", json={"summary": "while archived"}
+        )
+
+        assert resp.status_code == 409
+        assert len(authenticated_client.get(f"/api/v2/projects/{pid}/versions").json()) == before
+
+    def test_version_restore_is_refused(self, authenticated_client: TestClient):
+        pid = self._archived(authenticated_client)
+        vid = authenticated_client.get(f"/api/v2/projects/{pid}/versions").json()[0]["id"]
+
+        resp = authenticated_client.post(f"/api/v2/projects/{pid}/versions/{vid}/restore")
+
+        assert resp.status_code == 409
+
+    def test_dataset_create_is_refused(self, authenticated_client: TestClient):
+        pid = self._archived(authenticated_client)
+
+        resp = authenticated_client.post(
+            f"/api/v2/projects/{pid}/datasets",
+            json={"name": "while-archived", "data_json": {"sets": {}, "params": {}}},
+        )
+
+        assert resp.status_code == 409
+
+    def test_publish_to_the_marketplace_is_refused(self, authenticated_client: TestClient):
+        """The worst of them: a soft-deleted model must not reach the public catalogue."""
+        pid = self._archived(authenticated_client)
+
+        resp = authenticated_client.post(
+            f"/api/v2/projects/{pid}/publish",
+            json={"display_name": "PUBLISHED-WHILE-ARCHIVED", "description": "a" * 60},
+        )
+
+        assert resp.status_code == 409
+
+    def test_solve_is_refused(self, authenticated_client: TestClient):
+        """A solve writes an execution row and spends the org's quota."""
+        pid = self._archived(authenticated_client)
+
+        resp = authenticated_client.post(f"/api/v2/projects/{pid}/solve")
+
+        assert resp.status_code == 409
+
+    def test_reads_still_work(self, authenticated_client: TestClient):
+        """The trash view lists archived projects, so reading one must not 409."""
+        pid = self._archived(authenticated_client)
+
+        assert authenticated_client.get(f"/api/v2/projects/{pid}").status_code == 200
+        assert authenticated_client.get(f"/api/v2/projects/{pid}/versions").status_code == 200
+        assert authenticated_client.get(f"/api/v2/projects/{pid}/datasets").status_code == 200
+
+    def test_restore_is_the_one_patch_that_passes(self, authenticated_client: TestClient):
+        """PATCH is both the rename and the restore. Only the restore may pass.
+
+        Without this the guard would lock the door from both sides: an archived
+        project could never be brought back.
+        """
+        pid = self._archived(authenticated_client)
+
+        restore = authenticated_client.patch(f"/api/v2/projects/{pid}", json={"status": "active"})
+
+        assert restore.status_code == 200
+        assert restore.json()["status"] == "active"
+        # And the writes are open again afterwards.
+        assert (
+            authenticated_client.patch(
+                f"/api/v2/projects/{pid}", json={"name": "RENAMED-AFTER-RESTORE"}
+            ).status_code
+            == 200
+        )
+
+    def test_archive_and_permanent_delete_still_work(self, authenticated_client: TestClient):
+        """The guard must not block the two steps that dispose of the project."""
+        pid = self._archived(authenticated_client)
+
+        # Archiving an already-archived project goes through DELETE, not PATCH.
+        assert authenticated_client.delete(f"/api/v2/projects/{pid}").status_code == 204
+        assert (
+            authenticated_client.delete(f"/api/v2/projects/{pid}?permanent=true").status_code == 204
+        )
+        assert authenticated_client.get(f"/api/v2/projects/{pid}").status_code == 404
+
+
 class TestMultiTenancyWrite:
     def test_commit_cross_tenant_404(
         self,
