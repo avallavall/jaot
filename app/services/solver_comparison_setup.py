@@ -130,19 +130,17 @@ def enforce_instance_caps(db: Session, problem: OptimizationProblem) -> Optimiza
 def consume_daily_quota(db: Session, org: Organization, runs: int) -> None:
     """Charge ``runs`` daily solve slots, or reject the whole comparison.
 
-    Known limitation: ``check_rate_limit`` consumes one slot per call and takes
-    no cost argument, so a comparison rejected on its last solver has already
-    spent the slots of the ones before it. Draining a few slots is the lesser
-    fault against showing half a table, but it is a real cost and it is written
-    down rather than hidden. The fix is a cost parameter on the rate limiter,
-    which is shared by every endpoint and is not this feature's to change.
+    All ``runs`` slots are taken in one call, so a comparison the quota cannot
+    cover costs nothing (D-30). This used to call the limiter once per solver:
+    a matrix of twelve datasets by four solvers asked for forty-eight slots
+    one at a time, and a user with forty-seven left lost all forty-seven to a
+    launch that was then refused.
     """
     limits = PSS.get_instance_limits(db)
     daily = limits["max_daily_solves"]
-    for _ in range(runs):
-        allowed, _info = check_rate_limit(f"solve_daily:{org.id}", daily, daily)
-        if allowed:
-            continue
+    allowed, info = check_rate_limit(f"solve_daily:{org.id}", daily, daily, cost=runs)
+    if not allowed:
+        left = int((info or {}).get("remaining", 0))
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=tier_cap_detail(
@@ -154,8 +152,9 @@ def consume_daily_quota(db: Session, org: Organization, runs: int) -> None:
                 # cannot see. "needs 1 solves" was the other half of it.
                 message=(
                     f"This comparison needs {runs:,} "
-                    f"{'solve' if runs == 1 else 'solves'} and today's limit of "
-                    f"{daily:,} has already been reached. It resets tomorrow. "
+                    f"{'solve' if runs == 1 else 'solves'} and "
+                    f"{left:,} of today's {daily:,} "
+                    f"{'is' if left == 1 else 'are'} left. It resets tomorrow. "
                     f"Compare fewer solvers, or ask an administrator to raise the limit."
                 ),
                 limit=daily,

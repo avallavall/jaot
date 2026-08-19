@@ -61,6 +61,7 @@ def _check_memory(
     key: str,
     limit_per_minute: int,
     limit_per_day: int,
+    cost: int = 1,
 ) -> tuple[bool, dict[str, Any] | None]:
     """In-memory sliding window rate limit check."""
     now = time.time()
@@ -76,7 +77,7 @@ def _check_memory(
     day_count = len(requests)
 
     # Minute limit
-    if limit_per_minute > 0 and minute_count >= limit_per_minute:
+    if limit_per_minute > 0 and minute_count + cost > limit_per_minute:
         retry_after = max(
             1, int(60 - (now - min((ts for ts in requests if ts > minute_ago), default=now)))
         )
@@ -84,32 +85,36 @@ def _check_memory(
             "error": "rate_limit_exceeded",
             "message": f"You have exceeded your rate limit of {limit_per_minute} requests/minute",
             "limit": limit_per_minute,
-            "remaining": 0,
+            # What is left, not a flat zero: a caller asking for several slots
+            # at once can be refused with room still on the clock, and the
+            # message it writes needs the true figure.
+            "remaining": max(0, limit_per_minute - minute_count),
             "reset_at": int(now) + retry_after,
             "retry_after": retry_after,
         }
 
     # Day limit
-    if limit_per_day > 0 and day_count >= limit_per_day:
+    if limit_per_day > 0 and day_count + cost > limit_per_day:
         tomorrow_midnight = int((now // 86400 + 1) * 86400)
         retry_after = tomorrow_midnight - int(now)
         return False, {
             "error": "rate_limit_exceeded",
             "message": f"You have exceeded your daily rate limit of {limit_per_day} requests",
             "limit": limit_per_day,
-            "remaining": 0,
+            "remaining": max(0, limit_per_day - day_count),
             "reset_at": tomorrow_midnight,
             "retry_after": retry_after,
         }
 
-    # Record request
-    requests.append(now)
+    # Record the request, once per unit of cost, and only now that both windows
+    # have room for the whole of it.
+    requests.extend([now] * cost)
 
     return True, {
         "minute_limit": limit_per_minute,
-        "minute_remaining": limit_per_minute - minute_count - 1,
+        "minute_remaining": limit_per_minute - minute_count - cost,
         "day_limit": limit_per_day,
-        "day_remaining": limit_per_day - day_count - 1,
+        "day_remaining": limit_per_day - day_count - cost,
     }
 
 
@@ -117,6 +122,7 @@ def _check_redis(
     key: str,
     limit_per_minute: int,
     limit_per_day: int,
+    cost: int = 1,
 ) -> tuple[bool, dict[str, Any] | None]:
     """Redis sliding window rate limit check using sorted sets."""
     now = time.time()
@@ -143,52 +149,59 @@ def _check_redis(
         minute_count = results[2]
         day_count = results[3]
 
-        if limit_per_minute > 0 and minute_count >= limit_per_minute:
-            oldest = _redis_client.zrangebyscore(minute_key, minute_ago, "+inf", start=0, num=1)
+        if limit_per_minute > 0 and minute_count + cost > limit_per_minute:
+            oldest = _redis_client.zrangebyscore(
+                minute_key, minute_ago, "+inf", start=0, num=1, withscores=True
+            )
             if oldest:
-                retry_after = max(1, int(60 - (now - float(oldest[0]))))
+                retry_after = max(1, int(60 - (now - float(oldest[0][1]))))
             else:
                 retry_after = 60
             return False, {
                 "error": "rate_limit_exceeded",
                 "message": f"You have exceeded your rate limit of {limit_per_minute} requests/minute",
                 "limit": limit_per_minute,
-                "remaining": 0,
+                "remaining": max(0, limit_per_minute - minute_count),
                 "reset_at": int(now) + retry_after,
                 "retry_after": retry_after,
             }
 
-        if limit_per_day > 0 and day_count >= limit_per_day:
+        if limit_per_day > 0 and day_count + cost > limit_per_day:
             tomorrow_midnight = int((now // 86400 + 1) * 86400)
             retry_after = tomorrow_midnight - int(now)
             return False, {
                 "error": "rate_limit_exceeded",
                 "message": f"You have exceeded your daily rate limit of {limit_per_day} requests",
                 "limit": limit_per_day,
-                "remaining": 0,
+                "remaining": max(0, limit_per_day - day_count),
                 "reset_at": tomorrow_midnight,
                 "retry_after": retry_after,
             }
 
-        # Record request in both windows
+        # Record the request in both windows, once per unit of cost. The member
+        # carries the process id and a counter because a sorted set keeps one
+        # entry per member: `cost` entries written under the same timestamp
+        # would collapse into one, and so would two processes that read the
+        # clock in the same microsecond. Only the score is ever read back.
+        members = {f"{now_str}:{os.getpid()}:{i}": now for i in range(cost)}
         assert _redis_client is not None
         pipe2 = _redis_client.pipeline()
-        pipe2.zadd(minute_key, {now_str: now})
-        pipe2.zadd(day_key, {now_str: now})
+        pipe2.zadd(minute_key, members)
+        pipe2.zadd(day_key, members)
         pipe2.expire(minute_key, 120)  # TTL slightly > 1 minute
         pipe2.expire(day_key, 90000)  # TTL slightly > 1 day
         pipe2.execute()
 
         return True, {
             "minute_limit": limit_per_minute,
-            "minute_remaining": limit_per_minute - minute_count - 1,
+            "minute_remaining": limit_per_minute - minute_count - cost,
             "day_limit": limit_per_day,
-            "day_remaining": limit_per_day - day_count - 1,
+            "day_remaining": limit_per_day - day_count - cost,
         }
 
     except (RedisError, ConnectionError, OSError) as e:
         logger.warning(f"Redis rate limit check failed, falling back to memory: {e}")
-        return _check_memory(key, limit_per_minute, limit_per_day)
+        return _check_memory(key, limit_per_minute, limit_per_day, cost)
 
 
 # Test bypass — set by conftest.py autouse fixture. Checked at call time so
@@ -218,6 +231,7 @@ def check_rate_limit(
     organization_id: str,
     limit_per_minute: int,
     limit_per_day: int,
+    cost: int = 1,
 ) -> tuple[bool, dict[str, Any] | None]:
     """Check if request is within rate limits.
 
@@ -225,6 +239,12 @@ def check_rate_limit(
         organization_id: Organization ID (or any unique key like ``login:<email>``).
         limit_per_minute: Maximum requests allowed per minute.
         limit_per_day: Maximum requests allowed per day.
+        cost: How many slots this one request needs. All of them are taken
+            together or none is: a caller that needs four slots and finds room
+            for three is refused and charged nothing (D-30). A solver
+            comparison asks for one slot per solver, and a matrix for one per
+            cell, so a rejected launch used to leave the user's quota spent on
+            a table that never ran.
 
     Returns:
         ``(allowed, info)`` — if *allowed* is False, *info* contains error
@@ -232,9 +252,11 @@ def check_rate_limit(
     """
     if _is_bypassed():
         return True, None
+    if cost < 1:
+        raise ValueError(f"cost must be at least 1, got {cost}")
     if _redis_client and not _fallback_mode:
-        return _check_redis(organization_id, limit_per_minute, limit_per_day)
-    return _check_memory(organization_id, limit_per_minute, limit_per_day)
+        return _check_redis(organization_id, limit_per_minute, limit_per_day, cost)
+    return _check_memory(organization_id, limit_per_minute, limit_per_day, cost)
 
 
 def _check_memory_window(

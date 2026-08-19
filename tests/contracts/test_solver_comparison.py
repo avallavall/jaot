@@ -401,6 +401,32 @@ def test_a_comparison_the_quota_cannot_cover_is_refused_whole(
     assert db_session.query(SolverComparison).count() == 0
 
 
+# CONTRACT-TEST (D-30): a refused comparison costs nothing. The quota used to be
+# charged one solver at a time, so a two-solver comparison refused on its second
+# had already spent the first — and a matrix could drain a day's quota on a
+# table that never ran.
+def test_a_refused_comparison_leaves_the_quota_untouched(
+    authenticated_client: TestClient,
+    db_session: Session,
+    real_rate_limiter,
+    captured_dispatch,
+    monkeypatch,
+) -> None:
+    limits = dict(comparison_setup.PSS.get_instance_limits(db_session))
+    limits["max_daily_solves"] = 1
+    monkeypatch.setattr(comparison_setup.PSS, "get_instance_limits", lambda _db: limits)
+
+    refused = authenticated_client.post(
+        _URL, json={"problem": _PROBLEM, "solver_names": ["scip", "highs"]}
+    )
+    assert refused.status_code == 403
+    # The one slot the day had is still there for a comparison that fits.
+    assert refused.json()["detail"]["message"].startswith("This comparison needs 2 solves and 1 ")
+
+    accepted = authenticated_client.post(_URL, json={"problem": _PROBLEM, "solver_names": ["scip"]})
+    assert accepted.status_code in (200, 202), accepted.text
+
+
 # CONTRACT-TEST: a comparison that could not be queued closes its columns. They
 # are written before the enqueue, so without this they sit pending under a failed
 # parent until the reaper's next sweep, and the page polls for the whole quarter

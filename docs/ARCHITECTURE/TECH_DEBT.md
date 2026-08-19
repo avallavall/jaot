@@ -12,7 +12,6 @@ Ordered by benefit ÷ effort.
 | D-28 | `fastapi<0.137.0` is pinned around a fragility of ours, not around FastAPI | Silent: the app would boot "healthy" with 228 routes missing | A bounded investigation |
 | D-27 | PgBouncer in transaction mode, once there are real users or more workers | Low today, rising with load | Needs an infra window |
 | D-29 | The TTL-cache-plus-single-flight pattern is written three times, and the three disagree | Low: each one works; the next copy is where it stops working | An afternoon, once a fourth caller needs it |
-| D-30 | `check_rate_limit` takes no cost, so a solver comparison refused on quota has already spent the slots of the solvers before it | Low: a user near their daily cap loses a few slots | Small, but it changes a limiter every endpoint shares |
 | D-32 | A comparison stores its compiled problem once per cell | Measured: 3.8 MB per copy on a 22,500-variable model, so one matrix row of four solvers writes 19 MB | Medium: it is what every consumer reads the problem off |
 | D-33 | `ModelProjectListing.total_activations` is a stored counter nobody recomputes, and it disagrees with the query that now defines an adoption | Measured: 66 stored against 6 counted, and the stored one is what a marketplace card shows | Needs a backfill and a decision about who owns the number |
 
@@ -96,31 +95,6 @@ makes the choice explicit. Worth extracting when that fourth caller shows up, no
 
 Recorded 2026-08-13. It had been sitting in an internal QA note since 2026-08-01, which is
 the wrong place for open debt.
-
----
-
-## D-30 · A comparison refused on quota has already spent part of it
-
-Each runnable solver in a comparison costs one daily solve slot (owner, 2026-08-14), and a
-comparison the quota cannot cover is refused whole rather than run half — half a table invites
-a conclusion the missing half might have contradicted.
-
-`check_rate_limit(key, per_minute, per_day)` consumes exactly one slot per call and takes no
-cost argument, so `_consume_daily_quota` calls it once per solver. A comparison rejected on its
-last solver has already consumed the slots of the ones before it. Nothing is refunded.
-
-The user-visible cost is small: someone near their daily cap loses a few slots to a comparison
-that never ran. It is recorded rather than hidden because the fix is not local — a `cost`
-parameter on the shared limiter, which every endpoint in the API calls. Worth doing the next
-time that module is opened for another reason.
-
-**The matrix raised the price** (2026-08-17). A matrix charges one slot per cell, so twelve
-datasets by four solvers asks for forty-eight in one call. A user whose remaining quota is
-forty-seven now loses all forty-seven to a launch that never happened, where before the most a
-single request could drain was the number of solvers. The reasoning is unchanged and so is the
-fix; what changed is how much a single rejection can cost.
-
-Recorded 2026-08-14, when the comparer landed.
 
 ---
 
@@ -210,6 +184,7 @@ Full reasoning in the commit that closed each one, and in the CHANGELOG.
 | D-18 | 118 `Depends(get_db)` migrated to the `DBSession` alias; the alias moved to break a cycle | ✅ 2026-08-01 |
 | D-25 | Admission bounded to the pool, `pool_timeout` 30s→5s, health off the queue, pool gauges + alerts | ✅ 2026-08-01 (step 4 → D-27) |
 | D-26 | Contract-release: legacy tables + 6 FK columns + 6 credit columns dropped, `access_count` → integer; found reviews had lost their uniqueness guarantee | ✅ `20260801_contract_release` |
+| D-30 | The shared rate limiter takes a `cost`, so a comparison the quota cannot cover is refused without spending any of it | ✅ 2026-08-19 |
 
 **The 2026-04-18 comparative audit** (58% essential / 42% accidental complexity, the LOC
 tables) and the **2026-07-26 backend audit** that produced D-10…D-19 are in

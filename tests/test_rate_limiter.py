@@ -239,6 +239,43 @@ def test_rate_limiter_redis_backend_calls():
         rl_module._fallback_mode = True
 
 
+class TestCost:
+    """One request that needs several slots takes all of them or none (D-30)."""
+
+    def test_a_cost_takes_that_many_slots(self):
+        allowed, info = check_rate_limit("org_cost", 10, 100, cost=4)
+        assert allowed is True
+        assert info["minute_remaining"] == 6
+        assert info["day_remaining"] == 96
+
+    def test_a_request_that_does_not_fit_is_refused(self):
+        check_rate_limit("org_cost_full", limit_per_minute=10, limit_per_day=5, cost=3)
+
+        allowed, info = check_rate_limit("org_cost_full", 10, 5, cost=3)
+        assert allowed is False
+        assert info["error"] == "rate_limit_exceeded"
+        # What is left, not a flat zero: the caller writes it into the refusal.
+        assert info["remaining"] == 2
+
+    # CONTRACT-TEST: a refused request consumes nothing. The comparison endpoint
+    # charged one slot per solver in a loop, so a rejection left the earlier
+    # solvers' slots spent on a table that never ran.
+    def test_a_refused_request_consumes_nothing(self):
+        check_rate_limit("org_cost_intact", limit_per_minute=10, limit_per_day=5, cost=3)
+
+        refused, _ = check_rate_limit("org_cost_intact", 10, 5, cost=3)
+        assert refused is False
+
+        # The two slots the day still had are still there.
+        allowed, info = check_rate_limit("org_cost_intact", 10, 5, cost=2)
+        assert allowed is True
+        assert info["day_remaining"] == 0
+
+    def test_a_cost_below_one_is_a_programming_error(self):
+        with pytest.raises(ValueError):
+            check_rate_limit("org_cost_zero", 10, 100, cost=0)
+
+
 def test_rate_limiter_different_orgs_isolated():
     """Different organizations have independent rate limit counters."""
     # Exhaust org1's minute limit
