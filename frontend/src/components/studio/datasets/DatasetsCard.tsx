@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
+import { describeJsonError } from "@/lib/json-error";
 import type { DslInspectResult, ProjectDatasetSummary } from "@/lib/types";
 import { useModelProjectStore } from "../store/useModelProjectStore";
 import { useProjectDatasets } from "./useProjectDatasets";
@@ -166,7 +167,17 @@ export function DatasetsCard() {
     try {
       data = JSON.parse(editor.text) as Record<string, unknown>;
     } catch (err: unknown) {
-      toast.error(t("datasetInvalidJson", { error: getErrorMessage(err, "JSON") }));
+      // Never interpolate the engine's own message. Its one useful shape quotes
+      // the broken text back at whoever typed it, in English, inside whatever
+      // language the page is in. The position is the part a reader can act on.
+      const parseError = describeJsonError(err);
+      toast.error(
+        parseError.kind === "positioned"
+          ? t("datasetInvalidJsonAt", { line: parseError.line!, column: parseError.column! })
+          : parseError.kind === "truncated"
+            ? t("datasetInvalidJsonTruncated")
+            : t("datasetInvalidJson"),
+      );
       return;
     }
     setSaving(true);
