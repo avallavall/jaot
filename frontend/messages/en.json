@@ -2084,6 +2084,9 @@
     "models": {
       "title": "Models",
       "subtitle": "Manage all models in the catalog",
+      "searchPlaceholder": "Search models...",
+      "badgeOn": "{badge} is on. Click to turn it off.",
+      "badgeOff": "{badge} is off. Click to turn it on.",
       "allCategories": "All Categories",
       "allTypes": "All Types",
       "public": "Public",

@@ -2084,6 +2084,9 @@
     "models": {
       "title": "Models",
       "subtitle": "Gestioneu tots els models del catàleg",
+      "searchPlaceholder": "Cercar models...",
+      "badgeOn": "{badge} està actiu. Fes clic per desactivar-lo.",
+      "badgeOff": "{badge} està inactiu. Fes clic per activar-lo.",
       "allCategories": "Totes les Categories",
       "allTypes": "Tots els Tipus",
       "public": "Públic",

@@ -2084,6 +2084,9 @@
     "models": {
       "title": "Modèles",
       "subtitle": "Gérez tous les modèles du catalogue",
+      "searchPlaceholder": "Rechercher des modèles...",
+      "badgeOn": "{badge} est activé. Cliquez pour le désactiver.",
+      "badgeOff": "{badge} est désactivé. Cliquez pour l’activer.",
       "allCategories": "Toutes les catégories",
       "allTypes": "Tous les types",
       "public": "Public",

@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { api } from "@/lib/api";
 import { useTranslations } from "next-intl";
-import type { PaginatedResponse } from "@/lib/types";
+import type { AdminListResponse } from "@/lib/types";
 import { useDateFormat } from "@/hooks/useDateFormat";
 
 interface AdminOrganizationSummary { id: string; name: string; }
@@ -84,9 +84,9 @@ export default function APIKeysPage() {
       const data = await api.admin.getApiKeys({
         page,
         organization_id: orgFilter || undefined
-      }) as PaginatedResponse<AdminAPIKey>;
+      }) as AdminListResponse<AdminAPIKey>;
       setApiKeys(data.items);
-      setTotalPages(data.total_pages ?? 1);
+      setTotalPages(data.pages ?? 1);
     } catch (err) {
       console.warn('Failed to load API keys:', err);
     } finally {
@@ -234,7 +234,7 @@ export default function APIKeysPage() {
         <CardContent className="pt-4">
           <select
             value={orgFilter}
-            onChange={(e) => setOrgFilter(e.target.value)}
+            onChange={(e) => { setOrgFilter(e.target.value); setPage(1); }}
             className="p-2 border border-input bg-background text-sm"
           >
             <option value="">{t("allOrganizations")}</option>

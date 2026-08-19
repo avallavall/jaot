@@ -68,6 +68,26 @@ export interface paths {
         patch: operations["toggle_api_key_api_v2_admin_api_keys__key_id__toggle_patch"];
         trace?: never;
     };
+    "/api/v2/admin/executions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Platform Executions
+         * @description Every execution on the platform, newest first, with its organization.
+         */
+        get: operations["list_platform_executions_api_v2_admin_executions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/admin/feedback": {
         parameters: {
             query?: never;
@@ -1694,6 +1714,15 @@ export interface paths {
         /**
          * Create Api Key
          * @description Create a new API key for the authenticated user.
+         *
+         *     Capped by ``AUTH_MAX_ACTIVE_API_KEYS_PER_USER``. There was no cap at all:
+         *     driving the app, a plain member minted 20 keys in a row and every one
+         *     returned 200. Each is a standing credential that outlives a password change,
+         *     so an account could accumulate doors nobody was counting — and nothing on
+         *     the page hinted there was a number to stay under.
+         *
+         *     Only LIVE keys count. Revoking one frees a slot, which is what makes the
+         *     limit a ceiling on exposure rather than on the total ever created.
          */
         post: operations["create_api_key_api_v2_keys__post"];
         delete?: never;
@@ -2737,6 +2766,11 @@ export interface paths {
         /**
          * Update Model Project
          * @description Patch project metadata (name / description / status).
+         *
+         *     This route is both the rename and the restore, so it cannot use
+         *     ``_writable_project_or_404``: on an archived project only the restore may
+         *     pass. Everything else — a rename, a new description, a re-archive — is
+         *     refused with the same message as every other write.
          */
         patch: operations["update_model_project"];
         trace?: never;
@@ -4544,6 +4578,75 @@ export interface components {
         AdminCountPair: {
             /** Active */
             active: number;
+            /** Total */
+            total: number;
+        };
+        /**
+         * AdminExecutionRow
+         * @description One row of the platform-wide executions table.
+         */
+        AdminExecutionRow: {
+            /** Completed At */
+            completed_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Execution Time Ms */
+            execution_time_ms?: number | null;
+            /** Id */
+            id: string;
+            /** Model Author */
+            model_author?: string | null;
+            /** Model Name */
+            model_name?: string | null;
+            /** Model Project Id */
+            model_project_id?: string | null;
+            /** Objective Value */
+            objective_value?: number | null;
+            /** Organization Id */
+            organization_id?: string | null;
+            /** Organization Name */
+            organization_name?: string | null;
+            /** Origin */
+            origin?: string | null;
+            /** Solver Name */
+            solver_name?: string | null;
+            /** Solver Status */
+            solver_status?: string | null;
+            /** Status */
+            status: string;
+        };
+        /**
+         * AdminExecutionsResponse
+         * @description A page of platform-wide executions, plus the figures for the whole set.
+         */
+        AdminExecutionsResponse: {
+            /** Items */
+            items: components["schemas"]["AdminExecutionRow"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Pages */
+            pages: number;
+            stats: components["schemas"]["AdminExecutionStats"];
+            /** Total */
+            total: number;
+        };
+        /**
+         * AdminExecutionStats
+         * @description Platform figures for the executions an admin's filters select.
+         *
+         *     Both are computed in the database over the whole filtered set. The panel
+         *     used to average the twenty rows on screen and print the result beside the
+         *     heading with nothing marking it as a sample: 6.15 s where the real average
+         *     across 1,234 runs was 763 ms.
+         */
+        AdminExecutionStats: {
+            /** Avg Execution Time Ms */
+            avg_execution_time_ms?: number | null;
             /** Total */
             total: number;
         };
@@ -11408,6 +11511,9 @@ export interface components {
 export type AccountDeleteRequest = components['schemas']['AccountDeleteRequest'];
 export type AdminAnalyticsResponse = components['schemas']['AdminAnalyticsResponse'];
 export type AdminCountPair = components['schemas']['AdminCountPair'];
+export type AdminExecutionRow = components['schemas']['AdminExecutionRow'];
+export type AdminExecutionsResponse = components['schemas']['AdminExecutionsResponse'];
+export type AdminExecutionStats = components['schemas']['AdminExecutionStats'];
 export type AdminModelCounts = components['schemas']['AdminModelCounts'];
 export type AdminPaginatedResponse = components['schemas']['AdminPaginatedResponse'];
 export type AdminStatsResponse = components['schemas']['AdminStatsResponse'];
@@ -11857,6 +11963,41 @@ export interface operations {
             };
         };
     };
+    list_platform_executions_api_v2_admin_executions_get: {
+        parameters: {
+            query?: {
+                organization_id?: string | null;
+                origin?: string | null;
+                page?: number;
+                page_size?: number;
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminExecutionsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_feedback_api_v2_admin_feedback_get: {
         parameters: {
             query?: {
@@ -12121,6 +12262,7 @@ export interface operations {
                 is_public?: boolean | null;
                 page?: number;
                 page_size?: number;
+                search?: string | null;
             };
             header?: never;
             path?: never;

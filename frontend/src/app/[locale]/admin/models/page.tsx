@@ -12,10 +12,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Check } from "lucide-react";
 import { api } from "@/lib/api";
 import { useTranslations } from "next-intl";
 import { useCommonLabels } from "@/hooks/useCommonLabels";
-import type { PaginatedResponse } from "@/lib/types";
+import type { AdminListResponse } from "@/lib/types";
 
 interface AdminModel {
   id: string;
@@ -36,6 +38,7 @@ export default function ModelsPage() {
   const { categoryLabel } = useCommonLabels();
   const [models, setModels] = useState<AdminModel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [publicFilter, setPublicFilter] = useState<string>("");
   const [page, setPage] = useState(1);
@@ -50,19 +53,20 @@ export default function ModelsPage() {
   useEffect(() => {
     loadModels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, categoryFilter, publicFilter]);
+  }, [page, search, categoryFilter, publicFilter]);
 
   const loadModels = async () => {
     setLoading(true);
     try {
       const params: Record<string, string> = { page: String(page) };
+      if (search) params.search = search;
       if (categoryFilter) params.category = categoryFilter;
       if (publicFilter) params.is_public = publicFilter;
 
       const query = new URLSearchParams(params).toString();
-      const data = await api.request<PaginatedResponse<AdminModel>>(`/api/v2/admin/models?${query}`);
+      const data = await api.request<AdminListResponse<AdminModel>>(`/api/v2/admin/models?${query}`);
       setModels(data.items);
-      setTotalPages(data.total_pages ?? 1);
+      setTotalPages(data.pages ?? 1);
 
       // Extract unique categories
       const cats = [...new Set(data.items.map((s: AdminModel) => s.category).filter(Boolean))] as string[];
@@ -109,9 +113,15 @@ export default function ModelsPage() {
       <Card className="border-border">
         <CardContent className="pt-4">
           <div className="flex gap-4">
+            <Input
+              placeholder={t("searchPlaceholder")}
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="max-w-xs"
+            />
             <select
               value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
+              onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
               className="p-2 border border-input bg-background text-sm"
             >
               <option value="">{t("allCategories")}</option>
@@ -121,7 +131,7 @@ export default function ModelsPage() {
             </select>
             <select
               value={publicFilter}
-              onChange={(e) => setPublicFilter(e.target.value)}
+              onChange={(e) => { setPublicFilter(e.target.value); setPage(1); }}
               className="p-2 border border-input bg-background text-sm"
             >
               <option value="">{t("allTypes")}</option>
@@ -185,25 +195,37 @@ export default function ModelsPage() {
                       )}
                     </TableCell>
                     <TableCell>
+                      {/* A tick and a solid border carry the on state as well
+                          as the colour does: colour alone left a red-green
+                          reader, and a screen reader, with no way to tell an
+                          Official model from an ordinary one. */}
                       <div className="flex flex-wrap gap-1">
                         <button
+                          type="button"
+                          aria-pressed={model.is_official}
+                          title={model.is_official ? t("badgeOn", { badge: t("official") }) : t("badgeOff", { badge: t("official") })}
                           onClick={() => handleToggleBadge(model.id, 'is_official', model.is_official)}
-                          className={`px-2 py-0.5 text-xs rounded cursor-pointer transition-colors ${
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded border cursor-pointer transition-colors ${
                             model.is_official
-                              ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                              : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                              ? 'border-blue-300 bg-blue-100 text-blue-800 hover:bg-blue-200'
+                              : 'border-dashed border-gray-300 bg-gray-100 text-gray-500 hover:bg-gray-200'
                           }`}
                         >
+                          {model.is_official && <Check className="w-3 h-3" aria-hidden="true" />}
                           {t("official")}
                         </button>
                         <button
+                          type="button"
+                          aria-pressed={model.is_featured}
+                          title={model.is_featured ? t("badgeOn", { badge: t("featured") }) : t("badgeOff", { badge: t("featured") })}
                           onClick={() => handleToggleBadge(model.id, 'is_featured', model.is_featured)}
-                          className={`px-2 py-0.5 text-xs rounded cursor-pointer transition-colors ${
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded border cursor-pointer transition-colors ${
                             model.is_featured
-                              ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                              : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                              ? 'border-yellow-300 bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                              : 'border-dashed border-gray-300 bg-gray-100 text-gray-500 hover:bg-gray-200'
                           }`}
                         >
+                          {model.is_featured && <Check className="w-3 h-3" aria-hidden="true" />}
                           {t("featured")}
                         </button>
                       </div>

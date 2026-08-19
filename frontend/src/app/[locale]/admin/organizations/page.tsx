@@ -27,7 +27,7 @@ import { useDialog } from "@/components/ui/dialog-custom";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { toast } from "sonner";
-import type { PaginatedResponse } from "@/lib/types";
+import type { AdminListResponse } from "@/lib/types";
 
 interface AdminOrganization {
   id: string;
@@ -61,9 +61,9 @@ export default function OrganizationsPage() {
     setLoading(true);
     setLoadError(null);
     try {
-      const data = await api.admin.getOrganizations({ page, search }) as PaginatedResponse<AdminOrganization>;
+      const data = await api.admin.getOrganizations({ page, search }) as AdminListResponse<AdminOrganization>;
       setOrganizations(data.items);
-      setTotalPages(data.total_pages ?? 1);
+      setTotalPages(data.pages ?? 1);
     } catch (err) {
       // Surface the failure instead of silently rendering an empty table —
       // an empty list and a failed request must not look the same.
@@ -167,7 +167,7 @@ export default function OrganizationsPage() {
           <Input
             placeholder={t("searchPlaceholder")}
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="max-w-sm"
           />
         </CardContent>

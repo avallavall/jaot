@@ -123,6 +123,21 @@ export interface PaginatedResponse<T> {
   total_pages: number;
 }
 
+/**
+ * The admin list endpoints answer with `pages`, not `total_pages`
+ * (`AdminPaginatedResponse` in app/schemas/admin.py). Four admin pages read
+ * `total_pages`, got `undefined`, fell back to 1 and hid their own Previous /
+ * Next buttons — so an admin never left page 1 of the users, organizations,
+ * models and API key lists.
+ */
+export interface AdminListResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+  pages: number;
+}
+
 // LoginResult and UserInfo have different structure from generated LoginResponse/MeResponse
 // (generated types use loose `string` for enum fields and `Record<string, unknown>` for nested objects).
 

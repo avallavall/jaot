@@ -26,7 +26,7 @@ import { getErrorMessage } from "@/lib/errors";
 import { useDialog } from "@/components/ui/dialog-custom";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import type { PaginatedResponse } from "@/lib/types";
+import type { AdminListResponse } from "@/lib/types";
 
 interface AdminOrganizationSummary { id: string; name: string; }
 interface AdminUser { id: string; name: string; email: string; organization_id: string; role: string; is_admin?: boolean; can_build_plugins?: boolean; is_active: boolean; created_at: string; last_login_at: string | null; updated_at: string; }
@@ -72,9 +72,9 @@ export default function UsersPage() {
         page,
         search: search || undefined,
         organization_id: orgFilter || undefined
-      }) as unknown as PaginatedResponse<AdminUser>;
+      }) as unknown as AdminListResponse<AdminUser>;
       setUsers(data.items);
-      setTotalPages(data.total_pages ?? 1);
+      setTotalPages(data.pages ?? 1);
     } catch (err) {
       // Surface the failure instead of silently rendering "no users" — a failed
       // request and a genuinely empty list must not look identical.
@@ -207,12 +207,12 @@ export default function UsersPage() {
             <Input
               placeholder={t("searchPlaceholder")}
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               className="max-w-xs"
             />
             <select
               value={orgFilter}
-              onChange={(e) => setOrgFilter(e.target.value)}
+              onChange={(e) => { setOrgFilter(e.target.value); setPage(1); }}
               className="p-2 border border-input bg-background text-sm"
             >
               <option value="">{t("allOrganizations")}</option>

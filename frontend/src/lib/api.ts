@@ -28,6 +28,7 @@ import type {
   ReviewList,
   AdminStats,
   PaginatedResponse,
+  AdminListResponse,
   InputField,
   TemplateSummary,
   BuilderDocument,
@@ -133,6 +134,7 @@ export type {
   ReviewList,
   AdminStats,
   PaginatedResponse,
+  AdminListResponse,
   InputField,
   TemplateSummary,
   BuilderDocument,
@@ -2248,9 +2250,12 @@ export const api = {
       return request("/api/v2/admin/stats");
     },
 
+    // Admin lists answer with `pages`, not `total_pages` — see
+    // AdminListResponse. Typing them as PaginatedResponse made four pages read
+    // a field the server never sends.
     getOrganizations(
       params?: QueryParams,
-    ): Promise<PaginatedResponse<Organization>> {
+    ): Promise<AdminListResponse<Organization>> {
       return request("/api/v2/admin/organizations", { params });
     },
 
@@ -2291,7 +2296,7 @@ export const api = {
       return request(`/api/v2/admin/organizations/${id}/overview`);
     },
 
-    getUsers(params?: QueryParams): Promise<PaginatedResponse<User>> {
+    getUsers(params?: QueryParams): Promise<AdminListResponse<User>> {
       return request("/api/v2/admin/users", { params });
     },
 
@@ -2313,7 +2318,7 @@ export const api = {
       return request(`/api/v2/admin/users/${id}`, { method: "DELETE" });
     },
 
-    getApiKeys(params?: QueryParams): Promise<PaginatedResponse<APIKey>> {
+    getApiKeys(params?: QueryParams): Promise<AdminListResponse<APIKey>> {
       return request("/api/v2/admin/api-keys", { params });
     },
 
@@ -2336,7 +2341,7 @@ export const api = {
 
     getModels(
       params?: QueryParams,
-    ): Promise<PaginatedResponse<ModelCatalogItem>> {
+    ): Promise<AdminListResponse<ModelCatalogItem>> {
       return request("/api/v2/admin/models", { params });
     },
 
@@ -2358,7 +2363,7 @@ export const api = {
 
     getExecutions(
       params?: QueryParams,
-    ): Promise<PaginatedResponse<ModelExecution>> {
+    ): Promise<AdminListResponse<ModelExecution>> {
       return request("/api/v2/admin/executions", { params });
     },
 

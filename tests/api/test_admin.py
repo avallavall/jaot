@@ -632,6 +632,47 @@ class TestAdminModels:
         assert data["total"] >= 1
         assert "admin_test_model" in [m["id"] for m in data["items"]]
 
+    def test_list_models_search_matches_the_term(self, admin_client, db_session, test_organization):
+        """A search term narrows the list to the listings that carry it."""
+        self._make_listing(db_session, test_organization, "admin_search_hit")
+        self._make_listing(db_session, test_organization, "admin_search_other")
+
+        response = admin_client.get("/api/v2/admin/models?search=search_hit")
+        assert response.status_code == 200
+        data = response.json()
+
+        ids = [m["id"] for m in data["items"]]
+        assert "admin_search_hit" in ids
+        assert "admin_search_other" not in ids
+
+    # CONTRACT-TEST: a search that matches nothing returns nothing, never the
+    # unfiltered list. The endpoint accepted `search` and dropped it, so an
+    # admin reading the answer saw every listing and called them all matches.
+    def test_list_models_search_with_no_match_returns_nothing(
+        self, admin_client, db_session, test_organization
+    ):
+        """A term that matches no listing returns an empty page, not every row."""
+        self._make_listing(db_session, test_organization, "admin_search_present")
+
+        response = admin_client.get("/api/v2/admin/models?search=zzz_no_such_listing_zzz")
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["items"] == []
+        assert data["total"] == 0
+
+    def test_list_models_search_matches_display_name(
+        self, admin_client, db_session, test_organization
+    ):
+        """The display name an admin reads on screen is searchable too."""
+        self._make_listing(db_session, test_organization, "admin_display_search")
+
+        response = admin_client.get("/api/v2/admin/models?search=Admin Listing admin_display")
+        assert response.status_code == 200
+
+        ids = [m["id"] for m in response.json()["items"]]
+        assert "admin_display_search" in ids
+
     def test_update_model_badges(self, admin_client, db_session, test_organization):
         """Test updating listing badges (official, featured)."""
         listing = self._make_listing(db_session, test_organization, "admin_badge_model")

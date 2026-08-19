@@ -64,6 +64,7 @@ def list_all_models(
     page_size: int = Query(20, ge=1, le=100),
     category: str | None = None,
     is_public: bool | None = None,
+    search: str | None = None,
 ) -> AdminPaginatedResponse:
     """List all marketplace listings (admin view)."""
     query = db.query(ModelProjectListing)
@@ -72,6 +73,15 @@ def list_all_models(
         query = query.filter(ModelProjectListing.category == category)
     if is_public is not None:
         query = query.filter(ModelProjectListing.is_public == is_public)
+    # `search` used to be dropped on the floor: FastAPI ignores a query
+    # parameter no handler declares, so a caller who searched for a term that
+    # matches nothing got the whole catalogue back and read it as 102 matches.
+    # The admin users and organizations lists have always filtered on it.
+    if search:
+        term = f"%{search}%"
+        query = query.filter(
+            ModelProjectListing.name.ilike(term) | ModelProjectListing.display_name.ilike(term)
+        )
 
     query = query.order_by(ModelProjectListing.created_at.desc())
     items, total = paginate_query(query, page, page_size)
