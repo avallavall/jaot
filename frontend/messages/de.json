@@ -2886,7 +2886,10 @@
       "constraints": "Nebenbedingungen",
       "variableTypes": "Variablentypen: continuous, integer, binary. Operatoren: <=, >=, ==.",
       "asyncTaskQueued": "Lösung asynchron gesendet",
-      "asyncTaskId": "Aufgaben-ID: {id}"
+      "asyncTaskId": "Aufgaben-ID: {id}",
+      "solverUsed": "Solver",
+      "autoRouted": "automatisch gewählt",
+      "sensitivityLabel": "Sensitivität"
     },
     "executions": {
       "title": "Ausführungsverlauf",
@@ -3024,13 +3027,14 @@
     "compare": {
       "title": "Ausführungsvergleich",
       "comparing": "Vergleiche {idA} mit {idB}",
-      "twoIdsRequired": "Zwei Ausführungs-IDs sind erforderlich. Fügen Sie ?a='{id}'&b='{id}' zur URL hinzu.",
       "failedToLoad": "Eine oder beide Ausführungen konnten nicht geladen werden.",
       "cannotCompare": "Vergleich nicht möglich: Eine oder beide Ausführungen haben keine Ergebnisdaten.",
       "executionNotFound": "Ausführung nicht gefunden.",
       "goBack": "Zurück",
       "back": "Zurück",
-      "comparingPair": "Vergleich von <id>{a}</id> mit <id>{b}</id>"
+      "comparingPair": "Vergleich von <id>{a}</id> mit <id>{b}</id>",
+      "pickTwoRuns": "Wählen Sie zwei Läufe zum Vergleichen. Öffnen Sie den Verlauf und haken Sie die beiden an.",
+      "goToRunHistory": "Zum Verlauf"
     },
     "favorites": {
       "title": "Meine Modelle",
@@ -3374,9 +3378,6 @@
       "upperBound": "Obere Schranke",
       "bindingStatus": "Bindend",
       "slack": "Schlupf",
-      "naBinding": "N/V",
-      "naBindingTooltip": "Bindungsstatus nicht verfügbar für MIP-Probleme. Siehe Sensitivitäts-Tab für LP-Relaxations-Schattenpreise.",
-      "naSlackTooltip": "Schlupf nicht verfügbar für MIP-Probleme. Siehe Sensitivitäts-Tab für Nebenbedingungsanalyse.",
       "nonZeroOnly": "Nur ungleich null",
       "zerosHiddenNote": "{count, plural, one {# Null-Variable ausgeblendet} other {# Null-Variablen ausgeblendet}}",
       "viewLabel": "Lösungsansicht",
@@ -3384,7 +3385,9 @@
       "viewTable": "Vollständige Tabelle",
       "otherVariables": "Weitere Variablen",
       "countLabel": "{count, plural, one {# Variable} other {# Variablen}}",
-      "groupedListLabel": "Gruppierte Lösung"
+      "groupedListLabel": "Gruppierte Lösung",
+      "atLowerBound": "An der Untergrenze",
+      "atUpperBound": "An der Obergrenze"
     },
     "helpTooltips": {
       "multiObjective": "Mehrzieloptimierung findet Kompromisse zwischen konkurrierenden Zielen und erzeugt eine Pareto-Front optimaler Lösungen.",

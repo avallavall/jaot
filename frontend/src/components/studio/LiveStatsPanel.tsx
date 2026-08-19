@@ -25,13 +25,20 @@ export function LiveStatsPanel() {
   const ungrounded = projectLoaded && hasDslSource && !activeDataset && stats.varTotal === 0;
 
   const hasMatrix = stats.varTotal > 0 && stats.constraintTotal > 0;
+  // Every count comes from the canonical model, which starts empty and is
+  // filled once the project has been read and laid out. Until then this card
+  // painted "Class —, Variables 0, Constraints 0": measured at 4 seconds on a
+  // 15-variable model, 6 on a 48,556-variable one and 40 on a 22,650-variable
+  // one, all of it stating a number that was wrong. A dash says "not known
+  // yet", which is the truth for that window.
+  const known = (value: string) => (projectLoaded ? value : "—");
   const rows: Array<{ label: string; value: string }> = [
-    { label: t("statClass"), value: stats.problemClass },
-    { label: t("statVariables"), value: String(stats.varTotal) },
-    { label: t("statConstraints"), value: String(stats.constraintTotal) },
+    { label: t("statClass"), value: known(stats.problemClass) },
+    { label: t("statVariables"), value: known(String(stats.varTotal)) },
+    { label: t("statConstraints"), value: known(String(stats.constraintTotal)) },
     {
       label: t("statDensity"),
-      value: hasMatrix ? `${(stats.density * 100).toFixed(1)}%` : "—",
+      value: hasMatrix && projectLoaded ? `${(stats.density * 100).toFixed(1)}%` : "—",
     },
     { label: t("statHealth"), value: "—" },
   ];

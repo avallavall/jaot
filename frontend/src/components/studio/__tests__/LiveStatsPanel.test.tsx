@@ -88,3 +88,43 @@ describe("Model at a glance, on a model that has no numbers yet", () => {
     expect(screen.queryByTestId(UNGROUNDED_NOTE)).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Every count on this card comes from the canonical model, which starts empty.
+ * It painted "Class —, Variables 0, Constraints 0" while the project loaded:
+ * measured at 4 s on a 15-variable model, 6 s on a 48,556-variable one and 40 s
+ * on a 22,650-variable one, all of it a number that was wrong.
+ */
+describe("Model at a glance, before the project has been read", () => {
+  function valueFor(label: string): string {
+    const row = screen.getByText(label).closest("div") as HTMLElement;
+    return row.querySelector("dd")?.textContent?.trim() ?? "";
+  }
+
+  // CONTRACT-TEST: the card says "not known yet" rather than a wrong number
+  it("shows a dash, not a zero, until the model has arrived", () => {
+    renderPanel(() => {});
+
+    expect(valueFor("studio.statVariables")).toBe("—");
+    expect(valueFor("studio.statConstraints")).toBe("—");
+    expect(valueFor("studio.statClass")).toBe("—");
+  });
+
+  it("shows the real counts once it has", () => {
+    renderPanel((store) => {
+      store.getState().setProjectLoaded(true);
+      store.getState().setProblem(GROUNDED, { source: "dsl" });
+    });
+
+    expect(valueFor("studio.statVariables")).toBe("1");
+    expect(valueFor("studio.statConstraints")).toBe("1");
+  });
+
+  // A model that genuinely has none still reads zero — the dash is about not
+  // knowing, not about being empty.
+  it("shows a zero for a model that really is empty", () => {
+    renderPanel((store) => store.getState().setProjectLoaded(true));
+
+    expect(valueFor("studio.statVariables")).toBe("0");
+  });
+});

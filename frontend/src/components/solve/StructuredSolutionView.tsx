@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { VariableSolution } from "@/lib/types";
+import type { VariableBounds } from "@/lib/variable-bounds";
 import { SolutionExplorerTable } from "./SolutionExplorerTable";
 import {
   buildSolutionGroups,
@@ -30,6 +31,10 @@ const INITIAL_RECT = { width: 900, height: 640 };
 
 interface StructuredSolutionViewProps {
   variables: VariableSolution[];
+  /** Passed straight to the flat table, which is the view with the bound
+   * columns. The grouped view answers "what did the model decide?" and has no
+   * room for them. */
+  bounds?: Record<string, VariableBounds>;
 }
 
 /**
@@ -44,7 +49,7 @@ interface StructuredSolutionViewProps {
  * are mounted, so a 20k-variable solution scrolls at full fidelity instead of
  * showing a bounded prefix behind a "show all" that then froze the page.
  */
-export function StructuredSolutionView({ variables }: StructuredSolutionViewProps) {
+export function StructuredSolutionView({ variables, bounds }: StructuredSolutionViewProps) {
   const t = useTranslations("solve.explorer");
   const [nonZeroOnly, setNonZeroOnly] = useState(true);
   const [view, setView] = useState<"grouped" | "table">("grouped");
@@ -60,7 +65,7 @@ export function StructuredSolutionView({ variables }: StructuredSolutionViewProp
   // No structure recovered → the grouping adds nothing. Fall back to the flat
   // table exactly as before (the graceful degradation the analysis layer relies on).
   if (!hasStructure) {
-    return <SolutionExplorerTable variables={variables} />;
+    return <SolutionExplorerTable variables={variables} bounds={bounds} />;
   }
 
   return (
@@ -117,7 +122,7 @@ export function StructuredSolutionView({ variables }: StructuredSolutionViewProp
       </div>
 
       {view === "table" ? (
-        <SolutionExplorerTable variables={variables} />
+        <SolutionExplorerTable variables={variables} bounds={bounds} />
       ) : shown.length === 0 ? (
         <div className="bg-card border border-border rounded-lg px-4 py-10 text-center">
           <p className="text-sm text-muted-foreground">{t("noMatch")}</p>

@@ -17,11 +17,14 @@ import {
   XCircle,
   Clock,
   Code,
+  Cpu,
   FileJson,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { SolverSelect } from "@/components/solve/SolverSelect";
-import { useSolvers } from "@/hooks/useSolvers";
+import { SensitivityTab } from "@/components/solve/SensitivityTab";
+import { useSolverCapabilities, useSolvers } from "@/hooks/useSolvers";
+import { solverDisplayName } from "@/lib/solver-display";
 
 const EXAMPLE_PROBLEM = {
   name: "production_planning",
@@ -59,6 +62,11 @@ export default function CustomSolvePage() {
     valid: boolean;
     errors?: string[];
   } | null>(null);
+
+  // What the solver that ACTUALLY ran can deliver, not what was asked for:
+  // under "Auto" those are different names, and the sensitivity panel explains
+  // an empty tab by the solver's capabilities.
+  const solverCapabilities = useSolverCapabilities(result?.solver_used ?? null);
 
   const handleValidate = async () => {
     setError(null);
@@ -266,6 +274,26 @@ export default function CustomSolvePage() {
                       {(result.solve_time_seconds * 1000).toFixed(2)} ms
                     </p>
                   </div>
+                  {/* Which solver actually ran. Under "Auto" the answer is the
+                      only thing that says where the routing landed, and the
+                      response has carried it all along — the panel just never
+                      showed it, so the seconds beside it named nothing. */}
+                  {result.solver_used && (
+                    <div className="p-3 bg-muted rounded-lg" data-testid="custom-solver-used">
+                      <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                        <Cpu className="h-4 w-4" />
+                        {t("solverUsed")}
+                      </div>
+                      <p className="font-semibold mt-1">
+                        {solverDisplayName(result.solver_used)}
+                        {result.auto_route_reason && (
+                          <span className="ml-1.5 font-normal text-xs text-muted-foreground">
+                            {t("autoRouted")}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {(() => {
@@ -296,6 +324,24 @@ export default function CustomSolvePage() {
                     </div>
                   );
                 })()}
+
+                {/* Shadow prices and reduced costs: the response carries a
+                    full sensitivity block and none of it reached the screen.
+                    The same panel the execution page uses, so an empty one
+                    explains itself the same way. */}
+                {result.sensitivity && (
+                  <div data-testid="custom-sensitivity">
+                    <Label className="text-sm text-muted-foreground">{t("sensitivityLabel")}</Label>
+                    <div className="mt-2">
+                      <SensitivityTab
+                        sensitivity={result.sensitivity}
+                        solverName={result.solver_used ?? null}
+                        capabilities={solverCapabilities}
+                        solverStatus={result.status}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {result.error_message && (
                   <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">

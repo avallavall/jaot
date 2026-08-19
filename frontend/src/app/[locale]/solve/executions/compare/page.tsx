@@ -24,10 +24,14 @@ function ComparePageInner() {
   const [execB, setExecB] = useState<ModelExecution | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Arriving with nothing picked is not a failure — it is what happens when
+  // somebody opens this page from anywhere but the run history. It used to
+  // answer with a red box saying "Add ?a={id}&b={id} to the URL": instructions
+  // for a developer, on a page an analyst reaches by accident.
+  const nothingPicked = !idA || !idB;
 
   useEffect(() => {
-    if (!idA || !idB) {
-      setError(t("twoIdsRequired"));
+    if (nothingPicked) {
       setLoading(false);
       return;
     }
@@ -47,7 +51,7 @@ function ComparePageInner() {
     };
 
     load();
-  }, [idA, idB, t]);
+  }, [idA, idB, nothingPicked, t]);
 
   // ── Loading skeleton ──
   if (loading) {
@@ -61,6 +65,23 @@ function ComparePageInner() {
             <div className="h-48 bg-muted rounded" />
           </div>
           <div className="h-64 bg-muted rounded" />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Nothing picked yet ──
+  if (nothingPicked) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div
+          className="bg-muted border border-border rounded-lg p-6 text-center"
+          data-testid="compare-nothing-picked"
+        >
+          <p className="text-muted-foreground mb-4">{t("pickTwoRuns")}</p>
+          <Button onClick={() => router.push("/solve/executions")}>
+            {t("goToRunHistory")}
+          </Button>
         </div>
       </div>
     );

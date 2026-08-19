@@ -43,7 +43,14 @@ export function LanguageSwitcher({ onLocaleChange }: LanguageSwitcherProps) {
   const { isAuthenticated } = useAuth();
 
   const handleLocaleChange = (newLocale: string) => {
-    router.replace(pathname, { locale: newLocale });
+    // `usePathname` gives the path and nothing else, so switching language on
+    // /solve/executions/compare?a=…&b=… landed on the same page with no query
+    // string and a line telling the reader to add ?a={id}&b={id} to the URL —
+    // the comparison they were reading was simply gone. The search and the
+    // hash come off the address bar, which is where they still are.
+    const search = typeof window === "undefined" ? "" : window.location.search;
+    const hash = typeof window === "undefined" ? "" : window.location.hash;
+    router.replace(`${pathname}${search}${hash}`, { locale: newLocale });
     onLocaleChange?.(newLocale);
 
     // Fire-and-forget backend sync for authenticated users

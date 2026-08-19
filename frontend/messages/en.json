@@ -2911,7 +2911,10 @@
       "constraints": "Constraints",
       "variableTypes": "Variable types: continuous, integer, binary. Operators: <=, >=, ==.",
       "asyncTaskQueued": "Solve dispatched asynchronously",
-      "asyncTaskId": "Task ID: {id}"
+      "asyncTaskId": "Task ID: {id}",
+      "solverUsed": "Solver",
+      "autoRouted": "auto-routed",
+      "sensitivityLabel": "Sensitivity"
     },
     "executions": {
       "title": "Execution History",
@@ -3049,13 +3052,14 @@
     "compare": {
       "title": "Execution Comparison",
       "comparing": "Comparing {idA} vs {idB}",
-      "twoIdsRequired": "Two execution IDs are required. Add ?a='{id}'&b='{id}' to the URL.",
       "failedToLoad": "Failed to load one or both executions.",
       "cannotCompare": "Cannot compare: one or both executions have no result data.",
       "executionNotFound": "Execution not found.",
       "goBack": "Go Back",
       "back": "Back",
-      "comparingPair": "Comparing <id>{a}</id> vs <id>{b}</id>"
+      "comparingPair": "Comparing <id>{a}</id> vs <id>{b}</id>",
+      "pickTwoRuns": "Pick two runs to compare. Open the run history and tick the two you want.",
+      "goToRunHistory": "Go to run history"
     },
     "favorites": {
       "title": "My Models",
@@ -3411,9 +3415,6 @@
       "upperBound": "Upper Bound",
       "bindingStatus": "Binding",
       "slack": "Slack",
-      "naBinding": "N/A",
-      "naBindingTooltip": "Binding status not available for MIP problems. See Sensitivity tab for LP-relaxation shadow prices.",
-      "naSlackTooltip": "Slack not available for MIP problems. See Sensitivity tab for constraint analysis.",
       "nonZeroOnly": "Non-zero only",
       "zerosHiddenNote": "{count, plural, one {# zero-valued variable hidden} other {# zero-valued variables hidden}}",
       "viewLabel": "Solution view",
@@ -3421,7 +3422,9 @@
       "viewTable": "Full table",
       "otherVariables": "Other variables",
       "countLabel": "{count, plural, one {# variable} other {# variables}}",
-      "groupedListLabel": "Grouped solution"
+      "groupedListLabel": "Grouped solution",
+      "atLowerBound": "At lower",
+      "atUpperBound": "At upper"
     },
     "helpTooltips": {
       "multiObjective": "Multi-objective optimization finds trade-offs between competing goals, generating a Pareto frontier of optimal solutions.",

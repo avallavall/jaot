@@ -3,9 +3,14 @@
 import { useState, useMemo } from "react";
 import { VariableSolution, VariableType } from "@/lib/types";
 import { useTranslations } from "next-intl";
+import { boundStatus, type VariableBounds } from "@/lib/variable-bounds";
 
 interface SolutionExplorerTableProps {
   variables: VariableSolution[];
+  /** The range each variable was declared with, read off the run's own stored
+   * problem. Absent for a run whose payload is not on the page; the four
+   * columns that need it then say so instead of guessing. */
+  bounds?: Record<string, VariableBounds>;
 }
 
 type TypeFilter = "all" | VariableType;
@@ -14,7 +19,7 @@ type TypeFilter = "all" | VariableType;
  * threshold the MCP solution_filter and the printable report use. */
 const NEAR_ZERO = 1e-9;
 
-export function SolutionExplorerTable({ variables }: SolutionExplorerTableProps) {
+export function SolutionExplorerTable({ variables, bounds }: SolutionExplorerTableProps) {
   const t = useTranslations("solve.explorer");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
@@ -115,28 +120,7 @@ export function SolutionExplorerTable({ variables }: SolutionExplorerTableProps)
                     <td className="px-3 py-1.5 text-right font-mono text-xs tabular-nums">
                       {v.value.toLocaleString(undefined, { maximumFractionDigits: 6 })}
                     </td>
-                    <td className="px-3 py-1.5 text-right text-muted-foreground text-xs">
-                      &mdash;
-                    </td>
-                    <td className="px-3 py-1.5 text-right text-muted-foreground text-xs">
-                      &mdash;
-                    </td>
-                    <td className="px-3 py-1.5 text-right">
-                      <span
-                        className="text-xs text-muted-foreground cursor-help"
-                        title={t("naBindingTooltip")}
-                      >
-                        {t("naBinding")}
-                      </span>
-                    </td>
-                    <td className="px-3 py-1.5 text-right">
-                      <span
-                        className="text-xs text-muted-foreground cursor-help"
-                        title={t("naSlackTooltip")}
-                      >
-                        {t("naBinding")}
-                      </span>
-                    </td>
+                    <BoundCells value={v.value} bounds={bounds?.[v.name]} />
                   </tr>
                 ))}
               </tbody>
@@ -146,6 +130,48 @@ export function SolutionExplorerTable({ variables }: SolutionExplorerTableProps)
       </div>
 
     </div>
+  );
+}
+
+/** How a number reads in these four columns. */
+function num(value: number): string {
+  return value.toLocaleString(undefined, { maximumFractionDigits: 6 });
+}
+
+/**
+ * Lower Bound, Upper Bound, Binding and Slack for one variable.
+ *
+ * All four used to be placeholders: two em-dashes and two cells reading "N/A"
+ * under a tooltip that blamed MIP problems, shown on a pure LP with two
+ * continuous variables. What they say now comes from the range the variable
+ * was declared with and the value the solver returned.
+ */
+function BoundCells({ value, bounds }: { value: number; bounds?: VariableBounds }) {
+  const t = useTranslations("solve.explorer");
+  const status = boundStatus(value, bounds);
+  const unknown = <span className="text-muted-foreground">&mdash;</span>;
+
+  return (
+    <>
+      <td className="px-3 py-1.5 text-right font-mono text-xs tabular-nums text-muted-foreground">
+        {bounds?.lower != null ? num(bounds.lower) : unknown}
+      </td>
+      <td className="px-3 py-1.5 text-right font-mono text-xs tabular-nums text-muted-foreground">
+        {bounds?.upper != null ? num(bounds.upper) : unknown}
+      </td>
+      <td className="px-3 py-1.5 text-right text-xs">
+        {status.at === null ? (
+          unknown
+        ) : (
+          <span className="font-medium text-amber-700 dark:text-amber-400">
+            {t(status.at === "lower" ? "atLowerBound" : "atUpperBound")}
+          </span>
+        )}
+      </td>
+      <td className="px-3 py-1.5 text-right font-mono text-xs tabular-nums text-muted-foreground">
+        {status.slack === null ? unknown : num(status.slack)}
+      </td>
+    </>
   );
 }
 

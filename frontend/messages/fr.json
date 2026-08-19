@@ -2886,7 +2886,10 @@
       "constraints": "Contraintes",
       "variableTypes": "Types de variables : continue, entière, binaire. Opérateurs : <=, >=, ==.",
       "asyncTaskQueued": "Résolution envoyée de façon asynchrone",
-      "asyncTaskId": "ID de tâche : {id}"
+      "asyncTaskId": "ID de tâche : {id}",
+      "solverUsed": "Solveur",
+      "autoRouted": "choisi automatiquement",
+      "sensitivityLabel": "Sensibilité"
     },
     "executions": {
       "title": "Historique des exécutions",
@@ -3024,13 +3027,14 @@
     "compare": {
       "title": "Comparaison d'exécutions",
       "comparing": "Comparaison de {idA} et {idB}",
-      "twoIdsRequired": "Deux ID d'exécution sont requis. Ajoutez ?a='{id}'&b='{id}' à l'URL.",
       "failedToLoad": "Échec du chargement d'une ou des deux exécutions.",
       "cannotCompare": "Impossible de comparer : une ou les deux exécutions n'ont pas de données de résultat.",
       "executionNotFound": "Exécution introuvable.",
       "goBack": "Retour",
       "back": "Retour",
-      "comparingPair": "Comparaison de <id>{a}</id> avec <id>{b}</id>"
+      "comparingPair": "Comparaison de <id>{a}</id> avec <id>{b}</id>",
+      "pickTwoRuns": "Choisissez deux exécutions à comparer. Ouvrez l'historique et cochez les deux que vous voulez.",
+      "goToRunHistory": "Aller à l'historique"
     },
     "favorites": {
       "title": "Mes modèles",
@@ -3374,9 +3378,6 @@
       "upperBound": "Borne supérieure",
       "bindingStatus": "Active",
       "slack": "Marge",
-      "naBinding": "N/D",
-      "naBindingTooltip": "Le statut de liaison n'est pas disponible pour les problèmes MIP. Consultez l'onglet Sensibilité pour les prix duaux de la relaxation LP.",
-      "naSlackTooltip": "La marge n'est pas disponible pour les problèmes MIP. Consultez l'onglet Sensibilité pour l'analyse des contraintes.",
       "nonZeroOnly": "Non nulles uniquement",
       "zerosHiddenNote": "{count, plural, one {# variable nulle masquée} other {# variables nulles masquées}}",
       "viewLabel": "Vue de la solution",
@@ -3384,7 +3385,9 @@
       "viewTable": "Tableau complet",
       "otherVariables": "Autres variables",
       "countLabel": "{count, plural, one {# variable} other {# variables}}",
-      "groupedListLabel": "Solution groupée"
+      "groupedListLabel": "Solution groupée",
+      "atLowerBound": "À la borne basse",
+      "atUpperBound": "À la borne haute"
     },
     "helpTooltips": {
       "multiObjective": "L'optimisation multi-objectif trouve des compromis entre des objectifs concurrents, générant une frontière de Pareto de solutions optimales.",

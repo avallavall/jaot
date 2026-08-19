@@ -76,3 +76,46 @@ describe("LanguageSwitcher", () => {
     expect(onLocaleChange).toHaveBeenCalledWith("de");
   });
 });
+
+/**
+ * `usePathname` gives the path and nothing else. Switching language on
+ * /solve/executions/compare?a=exe_…&b=exe_… landed on the same page in the new
+ * language with no query string, and the page said "Two execution IDs are
+ * required. Add ?a={id}&b={id} to the URL." The comparison being read was gone.
+ */
+describe("LanguageSwitcher, what it keeps", () => {
+  async function pickSpanish() {
+    const user = userEvent.setup();
+    render(<LanguageSwitcher />);
+    await user.click(screen.getByRole("button"));
+    await user.click(screen.getByText("Español"));
+  }
+
+  // CONTRACT-TEST: switching language keeps the page you were on, whole
+  it("carries the query string across", async () => {
+    mockReplace.mockClear();
+    window.history.replaceState({}, "", "/marketplace?a=exe_1&b=exe_2");
+
+    await pickSpanish();
+
+    expect(mockReplace).toHaveBeenCalledWith("/marketplace?a=exe_1&b=exe_2", { locale: "es" });
+  });
+
+  it("carries the hash across too", async () => {
+    mockReplace.mockClear();
+    window.history.replaceState({}, "", "/marketplace?tab=data#results");
+
+    await pickSpanish();
+
+    expect(mockReplace).toHaveBeenCalledWith("/marketplace?tab=data#results", { locale: "es" });
+  });
+
+  it("passes the bare path when there is nothing else on the address", async () => {
+    mockReplace.mockClear();
+    window.history.replaceState({}, "", "/marketplace");
+
+    await pickSpanish();
+
+    expect(mockReplace).toHaveBeenCalledWith("/marketplace", { locale: "es" });
+  });
+});

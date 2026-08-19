@@ -2886,7 +2886,10 @@
       "constraints": "Restricciones",
       "variableTypes": "Tipos de variable: continuous, integer, binary. Operadores: <=, >=, ==.",
       "asyncTaskQueued": "Resolución enviada de forma asíncrona",
-      "asyncTaskId": "ID de tarea: {id}"
+      "asyncTaskId": "ID de tarea: {id}",
+      "solverUsed": "Solver",
+      "autoRouted": "elegido automáticamente",
+      "sensitivityLabel": "Sensibilidad"
     },
     "executions": {
       "title": "Historial de ejecuciones",
@@ -3024,13 +3027,14 @@
     "compare": {
       "title": "Comparación de ejecuciones",
       "comparing": "Comparando {idA} vs {idB}",
-      "twoIdsRequired": "Se requieren dos IDs de ejecución. Añade ?a='{id}'&b='{id}' a la URL.",
       "failedToLoad": "Error al cargar una o ambas ejecuciones.",
       "cannotCompare": "No se puede comparar: una o ambas ejecuciones no tienen datos de resultado.",
       "executionNotFound": "Ejecución no encontrada.",
       "goBack": "Volver",
       "back": "Volver",
-      "comparingPair": "Comparando <id>{a}</id> con <id>{b}</id>"
+      "comparingPair": "Comparando <id>{a}</id> con <id>{b}</id>",
+      "pickTwoRuns": "Elige dos ejecuciones para comparar. Abre el historial y marca las dos que quieras.",
+      "goToRunHistory": "Ir al historial"
     },
     "favorites": {
       "title": "Mis modelos",
@@ -3374,9 +3378,6 @@
       "upperBound": "Límite superior",
       "bindingStatus": "Binding",
       "slack": "Holgura",
-      "naBinding": "N/D",
-      "naBindingTooltip": "Estado de binding no disponible para problemas MIP. Consulta la pestaña Sensibilidad para shadow prices de LP relaxation.",
-      "naSlackTooltip": "Holgura no disponible para problemas MIP. Consulta la pestaña Sensibilidad para análisis de restricciones.",
       "nonZeroOnly": "Solo distintas de cero",
       "zerosHiddenNote": "{count, plural, one {# variable en cero oculta} other {# variables en cero ocultas}}",
       "viewLabel": "Vista de la solución",
@@ -3384,7 +3385,9 @@
       "viewTable": "Tabla completa",
       "otherVariables": "Otras variables",
       "countLabel": "{count, plural, one {# variable} other {# variables}}",
-      "groupedListLabel": "Solución agrupada"
+      "groupedListLabel": "Solución agrupada",
+      "atLowerBound": "En la inferior",
+      "atUpperBound": "En la superior"
     },
     "helpTooltips": {
       "multiObjective": "La optimización multiobjetivo encuentra equilibrios entre objetivos en competencia, generando una frontera de Pareto de soluciones óptimas.",

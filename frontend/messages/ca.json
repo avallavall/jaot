@@ -2886,7 +2886,10 @@
       "constraints": "Restriccions",
       "variableTypes": "Tipus de variables: continu, enter, binari. Operadors: <=, >=, ==.",
       "asyncTaskQueued": "Resolució enviada de forma asíncrona",
-      "asyncTaskId": "ID de tasca: {id}"
+      "asyncTaskId": "ID de tasca: {id}",
+      "solverUsed": "Solver",
+      "autoRouted": "triat automàticament",
+      "sensitivityLabel": "Sensibilitat"
     },
     "executions": {
       "title": "Historial d'Execucions",
@@ -3024,13 +3027,14 @@
     "compare": {
       "title": "Comparació d'Execucions",
       "comparing": "Comparant {idA} vs {idB}",
-      "twoIdsRequired": "Es necessiten dos IDs d'execució. Afegiu ?a='{id}'&b='{id}' a la URL.",
       "failedToLoad": "Error en carregar una o ambdues execucions.",
       "cannotCompare": "No es pot comparar: una o ambdues execucions no tenen dades de resultat.",
       "executionNotFound": "Execució no trobada.",
       "goBack": "Tornar Enrere",
       "back": "Tornar",
-      "comparingPair": "Comparant <id>{a}</id> amb <id>{b}</id>"
+      "comparingPair": "Comparant <id>{a}</id> amb <id>{b}</id>",
+      "pickTwoRuns": "Tria dues execucions per comparar. Obre l'historial i marca les dues que vulguis.",
+      "goToRunHistory": "Ves a l'historial"
     },
     "favorites": {
       "title": "Els Meus Models",
@@ -3374,9 +3378,6 @@
       "upperBound": "Límit Superior",
       "bindingStatus": "Vinculant",
       "slack": "Folgança",
-      "naBinding": "N/A",
-      "naBindingTooltip": "L'estat de vinculació no està disponible per a problemes MIP. Consulteu la pestanya Sensibilitat per als preus ombra de la relaxació LP.",
-      "naSlackTooltip": "La folgança no està disponible per a problemes MIP. Consulteu la pestanya Sensibilitat per a l'anàlisi de restriccions.",
       "nonZeroOnly": "Només diferents de zero",
       "zerosHiddenNote": "{count, plural, one {# variable a zero oculta} other {# variables a zero ocultes}}",
       "viewLabel": "Vista de la solució",
@@ -3384,7 +3385,9 @@
       "viewTable": "Taula completa",
       "otherVariables": "Altres variables",
       "countLabel": "{count, plural, one {# variable} other {# variables}}",
-      "groupedListLabel": "Solució agrupada"
+      "groupedListLabel": "Solució agrupada",
+      "atLowerBound": "A la inferior",
+      "atUpperBound": "A la superior"
     },
     "helpTooltips": {
       "multiObjective": "L'optimització multiobjectiu troba equilibris entre objectius en competència, generant una frontera de Pareto de solucions òptimes.",

@@ -19,6 +19,7 @@ import { SolutionExplainer } from "@/components/solve/SolutionExplainer";
 import { InfeasibilityPanel } from "@/components/solve/InfeasibilityPanel";
 import { OriginBadge } from "@/components/solve/OriginBadge";
 import { noModelMessageKey } from "@/lib/execution-origin";
+import { readVariableBounds } from "@/lib/variable-bounds";
 import { SolveFactCard } from "@/components/solve/SolveFactCard";
 import { useSolverCapabilities } from "@/hooks/useSolvers";
 import { solverDisplayName } from "@/lib/solver-display";
@@ -46,6 +47,10 @@ export default function ExecutionDetailPage() {
 
   const resultData = execution?.result_data as OptimizationResult | undefined;
   const variables = resultData?.variables ?? [];
+  // The range each variable was declared with. It is in the problem the run
+  // stored, which this page already holds — four columns of the Solution
+  // Explorer were placeholders for want of passing it down.
+  const variableBounds = readVariableBounds(execution?.input_data);
   const isInfeasible = execution?.solver_status === "infeasible";
   // infeasibility_analysis is an additive result_data field (P2); read it loosely so
   // a revisit shows the cached conflict immediately without depending on regen drift.
@@ -283,7 +288,7 @@ export default function ExecutionDetailPage() {
             {variables.length > 0 && (
               <div className="mb-8">
                 <h2 className="text-lg font-semibold text-foreground mb-3">{t("solutionExplorer")}</h2>
-                <StructuredSolutionView variables={variables} />
+                <StructuredSolutionView variables={variables} bounds={variableBounds} />
               </div>
             )}
 
