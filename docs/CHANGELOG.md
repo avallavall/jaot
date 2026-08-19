@@ -35,6 +35,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 ### Added
 - **A comparison now names any solver that still searched past the shared limit.** The row's Search time turns amber and a notice under the table says which solver and by how much, so extra time is never read as a fair loss.
 
+### Security
+- **A password of one repeated letter is refused.** Signup showed a strength meter that scored twelve identical lowercase letters as "Weak" and then created the account anyway: the only rule anywhere was a length of twelve. Length is not variety, so a password now needs a capital, a digit or a symbol somewhere in it — checked on the server, where it counts, and in the form, so it is said before the round trip. Resetting a password follows the same rule.
+
 ### Fixed
 - **A session that has ended sends you to the login page.** Every screen used to answer for itself when a request came back unauthorized: the executions page said "No executions yet", which reads as "your work is gone" to somebody whose session had merely expired; the studio kept the whole logged-in shell up, with a Retry button that could only fail again. The app now notices once and says so on the login page.
 - **A finished solve is no longer shown as happening in the future.** The Solve panel's clock was frozen at the moment the panel opened, so a run that finished afterwards read "Last run: solved · objective 7 · in 3 seconds", and the number never moved. It ticks now, and no past event is ever measured against a stale clock — the same guard the run history and the workspace header use.

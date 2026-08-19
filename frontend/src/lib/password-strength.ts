@@ -11,6 +11,21 @@ export interface PasswordStrength {
   color: string;
 }
 
+/**
+ * Whether the server will refuse this password outright.
+ *
+ * The meter used to be decoration: twelve identical letters scored "weak" and
+ * the account was created anyway. Length is not variety, so a password made of
+ * one character class is refused — the same rule `app/schemas/auth.py` applies,
+ * kept here so the form says it before the round trip.
+ */
+export function isPasswordTooSimple(password: string): boolean {
+  const mixedCase = /[a-z]/.test(password) && /[A-Z]/.test(password);
+  const hasDigit = /\d/.test(password);
+  const hasSymbol = /[^a-zA-Z0-9]/.test(password);
+  return !(mixedCase || hasDigit || hasSymbol);
+}
+
 export function getPasswordStrength(password: string): PasswordStrength {
   let score = 0;
   if (password.length >= 8) score += 20;

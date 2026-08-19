@@ -838,14 +838,14 @@ class TestSchemaValidation:
             email="test@test.com",
             name="Test",
             organization_name="Org",
-            password="longpassword",
-            confirm_password="longpassword",
+            password="longpassword1",
+            confirm_password="longpassword1",
         )
         assert req.email == "test@test.com"
         assert req.name == "Test"
         assert req.organization_name == "Org"
-        assert req.password == "longpassword"
-        assert req.confirm_password == "longpassword"
+        assert req.password == "longpassword1"
+        assert req.confirm_password == "longpassword1"
 
 
 class TestMeEndpoint:
@@ -1321,3 +1321,54 @@ class TestResetLinkIsSpentOnce:
             json={"email": "locked@example.com", "password": "afterunlock123456"},
         )
         assert allowed.status_code == 200, "still locked out after the reset the app offered"
+
+
+class TestPasswordVariety:
+    """A password of one character class is refused, however long it is.
+
+    The signup form scores the password as it is typed and shows the verdict
+    under the field. Twelve identical letters scored "weak" and the account was
+    created anyway, so the meter stopped nothing. The rule that counts is this
+    one, on the server.
+    """
+
+    def test_signup_refuses_a_password_of_one_repeated_letter(self, client):
+        response = client.post(
+            "/api/v2/auth/signup/email",
+            json={
+                "email": "variety@jaot.io",
+                "name": "Variety Tester",
+                "organization_name": "Variety Org",
+                "password": "aaaaaaaaaaaa",
+                "confirm_password": "aaaaaaaaaaaa",
+                "tos_accepted": True,
+            },
+        )
+
+        assert response.status_code == 422, response.text
+        assert "capital" in response.text or "digit" in response.text
+
+    def test_signup_accepts_a_password_with_a_digit(self, client, db_session):
+        response = client.post(
+            "/api/v2/auth/signup/email",
+            json={
+                "email": "variety2@jaot.io",
+                "name": "Variety Tester",
+                "organization_name": "Variety Org Two",
+                "password": "aaaaaaaaaaa1",
+                "confirm_password": "aaaaaaaaaaa1",
+                "tos_accepted": True,
+            },
+        )
+
+        assert response.status_code != 422, response.text
+
+    def test_reset_refuses_the_same_password_shape(self):
+        from pydantic import ValidationError
+
+        from app.schemas.auth import ResetPasswordRequest
+
+        with pytest.raises(ValidationError):
+            ResetPasswordRequest(token="tok", password="bbbbbbbbbbbb")
+
+        assert ResetPasswordRequest(token="tok", password="bbbbbbbbbbb9").password

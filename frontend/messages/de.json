@@ -1240,6 +1240,7 @@
       "creating": "Konto wird erstellt...",
       "hasAccount": "Bereits ein Konto? <link>Anmelden</link>",
       "passwordsNoMatch": "Passwörter stimmen nicht überein",
+      "passwordTooSimple": "Dieses Passwort besteht nur aus Kleinbuchstaben. Fügen Sie einen Großbuchstaben, eine Ziffer oder ein Sonderzeichen hinzu.",
       "passwordMinLength": "Passwort muss mindestens 12 Zeichen lang sein",
       "tosRequired": "Sie müssen den Nutzungsbedingungen und der Datenschutzerklärung zustimmen",
       "signupFailed": "Registrierung fehlgeschlagen",

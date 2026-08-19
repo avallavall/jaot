@@ -1240,6 +1240,7 @@
       "creating": "Creando cuenta...",
       "hasAccount": "¿Ya tienes cuenta? <link>Inicia sesión</link>",
       "passwordsNoMatch": "Las contraseñas no coinciden",
+      "passwordTooSimple": "Esta contraseña sólo lleva letras minúsculas. Añade una mayúscula, un número o un símbolo.",
       "passwordMinLength": "La contraseña debe tener al menos 12 caracteres",
       "tosRequired": "Debes aceptar los Términos de servicio y la Política de privacidad",
       "signupFailed": "Error al registrarse",

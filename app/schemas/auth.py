@@ -5,9 +5,28 @@ Contains both API-key-based and email/password-based auth schemas.
 
 from typing import Any
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.schemas.common import NormalizedEmail
+
+
+#: The signup form scores a password as it is typed and shows the verdict under
+#: the field. Twelve identical letters scored "weak" and the account was created
+#: anyway — a meter that stops nothing. This is the same rule, on the server,
+#: where it is the one that counts: length is not variety, so a password needs
+#: something beyond one repeated character class.
+def _password_is_too_simple(password: str) -> bool:
+    classes = (
+        any(c.islower() for c in password) and any(c.isupper() for c in password),
+        any(c.isdigit() for c in password),
+        any(not c.isalnum() for c in password),
+    )
+    return not any(classes)
+
+
+_TOO_SIMPLE_MESSAGE = (
+    "This password is only lower-case letters. Add a capital, a digit or a symbol."
+)
 
 
 class LoginRequest(BaseModel):
@@ -98,6 +117,14 @@ class EmailSignupRequest(BaseModel):
     organization_name: str = Field(..., min_length=2)
     password: str = Field(..., min_length=12)
     confirm_password: str = Field(..., min_length=12)
+
+    @field_validator("password")
+    @classmethod
+    def _reject_a_password_of_one_kind(cls, value: str) -> str:
+        if _password_is_too_simple(value):
+            raise ValueError(_TOO_SIMPLE_MESSAGE)
+        return value
+
     tos_accepted: bool = Field(default=False)
     #: The language the person signed up in. Every email JAOT sends afterwards is
     #: keyed off User.locale, and nothing else writes it at account creation —
@@ -132,6 +159,13 @@ class ResetPasswordRequest(BaseModel):
 
     token: str
     password: str = Field(..., min_length=12)
+
+    @field_validator("password")
+    @classmethod
+    def _reject_a_password_of_one_kind(cls, value: str) -> str:
+        if _password_is_too_simple(value):
+            raise ValueError(_TOO_SIMPLE_MESSAGE)
+        return value
 
 
 class VerifyEmailRequest(BaseModel):

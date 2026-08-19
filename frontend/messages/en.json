@@ -1240,6 +1240,7 @@
       "creating": "Creating account...",
       "hasAccount": "Already have an account? <link>Log in</link>",
       "passwordsNoMatch": "Passwords do not match",
+      "passwordTooSimple": "This password is only lower-case letters. Add a capital, a digit or a symbol.",
       "passwordMinLength": "Password must be at least 12 characters",
       "tosRequired": "You must agree to the Terms of Service and Privacy Policy",
       "signupFailed": "Signup failed",

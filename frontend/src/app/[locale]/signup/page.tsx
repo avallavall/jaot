@@ -18,7 +18,7 @@ import {
 import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/contexts/AuthContext";
-import { getPasswordStrength } from "@/lib/password-strength";
+import { getPasswordStrength, isPasswordTooSimple } from "@/lib/password-strength";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -50,6 +50,13 @@ export default function SignupPage() {
     // Must match the backend rule (app/schemas/auth.py: min_length=12)
     if (password.length < 12) {
       setError(t("signup.passwordMinLength"));
+      return;
+    }
+
+    // Length is not variety: "aaaaaaaaaaaa" passed every check the form had and
+    // the meter under the field called it weak while the account was created.
+    if (isPasswordTooSimple(password)) {
+      setError(t("signup.passwordTooSimple"));
       return;
     }
 

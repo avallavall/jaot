@@ -1240,6 +1240,7 @@
       "creating": "Creant compte...",
       "hasAccount": "Ja tens compte? <link>Inicia sessió</link>",
       "passwordsNoMatch": "Les contrasenyes no coincideixen",
+      "passwordTooSimple": "Aquesta contrasenya només porta lletres minúscules. Afegeix una majúscula, un número o un símbol.",
       "passwordMinLength": "La contrasenya ha de tenir com a mínim 12 caràcters",
       "tosRequired": "Has d'acceptar els Termes de servei i la Política de privadesa",
       "signupFailed": "Error en registrar-se",

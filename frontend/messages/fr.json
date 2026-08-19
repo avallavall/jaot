@@ -1240,6 +1240,7 @@
       "creating": "Création du compte...",
       "hasAccount": "Vous avez déjà un compte ? <link>Se connecter</link>",
       "passwordsNoMatch": "Les mots de passe ne correspondent pas",
+      "passwordTooSimple": "Ce mot de passe ne contient que des minuscules. Ajoutez une majuscule, un chiffre ou un symbole.",
       "passwordMinLength": "Le mot de passe doit contenir au moins 12 caractères",
       "tosRequired": "Vous devez accepter les Conditions d'Utilisation et la Politique de Confidentialité",
       "signupFailed": "Échec de l'inscription",
