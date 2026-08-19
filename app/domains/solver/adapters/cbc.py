@@ -195,12 +195,24 @@ class CBCAdapter(CachedVersion):
         with a zero reduced cost, which would silently turn a 90-variable answer
         into a 40-variable one.
 
-        ``-seconds`` counts CPU time, so it is only equal to the wall clock the
-        comparison shows when CBC runs on one thread. The hard timeout in
-        ``run_binary`` is what actually bounds the run.
+        ``-timeMode elapsed`` is what makes ``-seconds`` mean the wall clock a
+        comparison measures. CBC's default is CPU seconds, and the two are not
+        the same number: on a hard feasibility MIP given 10 seconds, CBC spent
+        10.03 CPU seconds and 14.53 on the clock, then reported the 14.53 into
+        a table whose whole claim is that every solver got the same 10. With
+        ``elapsed`` the same run stops at 10.02. The hard timeout in
+        ``run_binary`` stays as the backstop, because CBC checks its clock
+        only between nodes either way.
         """
         opts = problem.options
-        argv = [binary, str(lp_path), "-seconds", str(float(opts.time_limit_seconds))]
+        argv = [
+            binary,
+            str(lp_path),
+            "-timeMode",
+            "elapsed",
+            "-seconds",
+            str(float(opts.time_limit_seconds)),
+        ]
         if opts.threads > 0:
             argv += ["-threads", str(opts.threads)]
         argv += ["-ratioGap", str(float(opts.gap_tolerance))]

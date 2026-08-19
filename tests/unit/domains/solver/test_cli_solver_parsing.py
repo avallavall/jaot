@@ -11,6 +11,8 @@ No binary runs here. The tests that do run one are in
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from app.domains.solver.adapters import cbc as cbc_mod, glpk as glpk_mod
@@ -259,6 +261,31 @@ def test_cbc_missing_variable_is_an_error_not_a_zero() -> None:
 
     with pytest.raises(SolverError, match="k6"):
         adapter._build_result(CBC_SOLUTION_WITH_ROWS, run, _binary_problem(8), elapsed=0.1)
+
+
+def test_cbc_asks_for_the_wall_clock_and_not_cpu_seconds() -> None:
+    """# CONTRACT-TEST: CBC's time limit must mean the clock a comparison shows.
+
+    CBC's own default for ``-seconds`` is CPU time, and the two numbers come
+    apart on a hard model. Measured on this project's market-split model with
+    ``-seconds 5``: the default stopped after 7.94 seconds on the clock, and
+    ``-timeMode elapsed`` after 5.01. A solver comparison states above the
+    table that every solver received the same limit, so the extra seconds were
+    reported as CBC being slow rather than as CBC being given more time.
+
+    ``elapsed`` must be set before ``-seconds``, which is the order it was
+    measured in.
+    """
+    adapter = cbc_mod.CBCAdapter()
+    problem = _binary_problem(3)
+    problem.options.time_limit_seconds = 5
+
+    argv = adapter._argv("/usr/bin/cbc", Path("/tmp/p.lp"), Path("/tmp/s.txt"), problem)
+
+    assert "-timeMode" in argv
+    assert argv[argv.index("-timeMode") + 1] == "elapsed"
+    assert argv.index("-timeMode") < argv.index("-seconds")
+    assert argv[argv.index("-seconds") + 1] == "5.0"
 
 
 # ── GLPK ─────────────────────────────────────────────────────────────────────
