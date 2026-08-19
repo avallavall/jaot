@@ -191,7 +191,10 @@ export default function StudioPublishPage() {
 
     const confirmed = await dialog.confirm(
       t("confirmPublishMessage"),
-      t("confirmPublishTitle")
+      t("confirmPublishTitle"),
+      // "Accept" also closed the error dialog for a too-short description, so
+      // one word meant both "publish this publicly" and "I have read that".
+      t("confirmPublishAction")
     );
     if (confirmed) {
       executePublish();

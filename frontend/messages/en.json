@@ -403,7 +403,8 @@
       "historyFailed": "That matrix could not be opened."
     },
     "statsUngrounded": "The JModel source declares the shape and a dataset supplies the numbers. Bind one on the Data tab and these counts fill in.",
-    "jmodelEmptyKeepsModel": "Editor empty — the model from before is still the active one"
+    "jmodelEmptyKeepsModel": "Editor empty — the model from before is still the active one",
+    "versionRestoreLabel": "Restore version {version}"
   },
   "common": {
     "loading": "Loading...",
@@ -2881,7 +2882,8 @@
       "updating": "Updating...",
       "listingUpdated": "Listing updated",
       "publishPinsVersion": "Publishing shares your latest committed version on the marketplace. Later commits are not published until you update the listing here.",
-      "descriptionTooShort": "The full description must be at least 10 characters."
+      "descriptionTooShort": "The full description must be at least 10 characters.",
+      "confirmPublishAction": "Publish"
     },
     "custom": {
       "backToTemplates": "Back to Templates",

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api, ExecutionSummary } from "@/lib/api";
-import { getErrorMessage } from "@/lib/errors";
+import { translateApiError } from "@/lib/errors";
 import { Database, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
@@ -33,6 +33,7 @@ const STATUS_FILTER_KEYS = [
 
 export default function ExecutionsPage() {
   const t = useTranslations("solve.executions");
+  const tError = useTranslations("errors.codes");
   const { dayTime } = useDateFormat();
   const tOrigin = useTranslations("solve.origin");
   const { statusLabel } = useCommonLabels();
@@ -76,7 +77,11 @@ export default function ExecutionsPage() {
       setExecutions(result.items);
       setTotal(result.total);
     } catch (err) {
-      setError(getErrorMessage(err, t("failedToLoad")));
+      // The API's own words are English and sometimes not a sentence: a 401
+      // printed the bare lower-case word "unauthorized" between the filter row
+      // and the table, on a page in any of the five languages. Render the code
+      // the refusal names, and the translated fallback when it names none.
+      setError(translateApiError(err, tError, t("failedToLoad")));
     } finally {
       setLoading(false);
     }

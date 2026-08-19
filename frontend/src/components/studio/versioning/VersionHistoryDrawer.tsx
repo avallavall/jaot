@@ -198,13 +198,20 @@ export function VersionHistoryDrawer({
                     {dayTime(v.created_at)}
                   </div>
                 </button>
+                {/* The label was a `title` and nothing else: no text, no
+                    aria-label, so a screen reader announced an unnamed button
+                    and every row looked the same. It names the version it
+                    restores, because there is one of these per row. */}
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => onRestore(v.id)}
                   title={t("versionRestore")}
+                  aria-label={t("versionRestoreLabel", { version: v.sequence })}
+                  data-testid={`studio-version-restore-${v.id}`}
                 >
-                  <RotateCcw className="h-3.5 w-3.5" />
+                  <RotateCcw className="mr-1 h-3.5 w-3.5" />
+                  <span className="text-xs">{t("versionRestore")}</span>
                 </Button>
               </div>
             );

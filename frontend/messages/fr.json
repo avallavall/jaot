@@ -403,7 +403,8 @@
       "historyFailed": "Cette matrice n'a pas pu être ouverte."
     },
     "statsUngrounded": "Le code JModel déclare la forme et un jeu de données fournit les nombres. Reliez-en un dans l'onglet Données et ces comptes se remplissent.",
-    "jmodelEmptyKeepsModel": "Éditeur vide : le modèle précédent reste le modèle actif"
+    "jmodelEmptyKeepsModel": "Éditeur vide : le modèle précédent reste le modèle actif",
+    "versionRestoreLabel": "Restaurer la version {version}"
   },
   "common": {
     "loading": "Chargement...",
@@ -2856,7 +2857,8 @@
       "updating": "Mise à jour...",
       "listingUpdated": "Publication mise à jour",
       "publishPinsVersion": "La publication partage votre dernière version committée sur le marketplace. Les commits ultérieurs ne sont pas publiés tant que vous ne mettez pas à jour la publication ici.",
-      "descriptionTooShort": "La description complète doit contenir au moins 10 caractères."
+      "descriptionTooShort": "La description complète doit contenir au moins 10 caractères.",
+      "confirmPublishAction": "Publier"
     },
     "custom": {
       "backToTemplates": "Retour aux modèles",

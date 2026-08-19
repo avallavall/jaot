@@ -7,6 +7,21 @@ import { useShallow } from "zustand/react/shallow";
 import type { ObjectiveNodeData } from "@/lib/builder/types";
 import { useTranslations } from "next-intl";
 
+/**
+ * One term of the objective, as a reader would write it.
+ *
+ * The coefficient used to be glued straight onto the name, so the node read
+ * "1000google_ads + 800facebook_instagram + 500000tv_prime_time" and every term
+ * looked like a single identifier. A coefficient of -1 came out as "+ -x" too;
+ * the join below turns "+ -" into "- ", which only worked when the minus was
+ * the whole coefficient string.
+ */
+export function objectiveTerm(coefficient: number, varName: string): string {
+  if (coefficient === 1) return varName;
+  if (coefficient === -1) return `-${varName}`;
+  return `${coefficient} · ${varName}`;
+}
+
 export function ObjectiveNode({ id, data, selected }: NodeProps<Node<ObjectiveNodeData>>) {
   const t = useTranslations("builder");
   const objectiveData = data as ObjectiveNodeData;
@@ -22,8 +37,7 @@ export function ObjectiveNode({ id, data, selected }: NodeProps<Node<ObjectiveNo
         sourceNode?.type === "variable"
           ? ((sourceNode.data as { name?: string }).name ?? sourceNode.id)
           : edge.source;
-      const coefStr = coefficient === 1 ? "" : coefficient === -1 ? "-" : `${coefficient}`;
-      return `${coefStr}${varName}`;
+      return objectiveTerm(coefficient, varName);
     })
     .join(" + ")
     .replace(/\+ -/g, "- ");

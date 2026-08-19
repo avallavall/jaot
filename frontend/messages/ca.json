@@ -403,7 +403,8 @@
       "historyFailed": "No s'ha pogut obrir aquesta matriu."
     },
     "statsUngrounded": "El codi JModel declara la forma i un conjunt de dades hi posa els nombres. Enllaça'n un a la pestanya Dades i aquests comptatges s'omplen.",
-    "jmodelEmptyKeepsModel": "Editor buit: el model d'abans continua sent l'actiu"
+    "jmodelEmptyKeepsModel": "Editor buit: el model d'abans continua sent l'actiu",
+    "versionRestoreLabel": "Restaura la versió {version}"
   },
   "common": {
     "loading": "Carregant...",
@@ -2856,7 +2857,8 @@
       "updating": "Actualitzant...",
       "listingUpdated": "Publicació actualitzada",
       "publishPinsVersion": "Publicar comparteix la teva última versió commitejada al marketplace. Els commits posteriors no es publiquen fins que actualitzis la publicació aquí.",
-      "descriptionTooShort": "La descripció completa ha de tenir almenys 10 caràcters."
+      "descriptionTooShort": "La descripció completa ha de tenir almenys 10 caràcters.",
+      "confirmPublishAction": "Publica"
     },
     "custom": {
       "backToTemplates": "Tornar a les Plantilles",

@@ -403,7 +403,8 @@
       "historyFailed": "No se pudo abrir esa matriz."
     },
     "statsUngrounded": "El código JModel declara la forma y un conjunto de datos pone los números. Enlaza uno en la pestaña Datos y estas cuentas se rellenan.",
-    "jmodelEmptyKeepsModel": "Editor vacío: el modelo de antes sigue siendo el activo"
+    "jmodelEmptyKeepsModel": "Editor vacío: el modelo de antes sigue siendo el activo",
+    "versionRestoreLabel": "Restaurar la versión {version}"
   },
   "common": {
     "loading": "Cargando...",
@@ -2856,7 +2857,8 @@
       "updating": "Actualizando...",
       "listingUpdated": "Publicación actualizada",
       "publishPinsVersion": "Publicar comparte tu última versión commiteada en el marketplace. Los commits posteriores no se publican hasta que actualices la publicación aquí.",
-      "descriptionTooShort": "La descripción completa debe tener al menos 10 caracteres."
+      "descriptionTooShort": "La descripción completa debe tener al menos 10 caracteres.",
+      "confirmPublishAction": "Publicar"
     },
     "custom": {
       "backToTemplates": "Volver a plantillas",

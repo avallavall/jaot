@@ -87,3 +87,28 @@ describe("commitRename", () => {
     expect(update).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * A rename the server rejects said only "Could not rename the model". The 422
+ * carries the reason — "the name can be at most N characters" — and
+ * `commitRename` dropped it, so retrying the same length failed the same way.
+ */
+describe("commitRename, what it tells the caller when the server refuses", () => {
+  // CONTRACT-TEST: the server's reason reaches whoever shows the message
+  it("hands the refusal on instead of dropping it", async () => {
+    const refusal = Object.assign(new Error("too long"), { status: 422 });
+    const onError = vi.fn();
+
+    await commitRename({
+      modelId: "mp_1",
+      next: "a new name",
+      current: "old",
+      setName: vi.fn(),
+      getName: () => "a new name",
+      update: () => Promise.reject(refusal),
+      onError,
+    });
+
+    expect(onError).toHaveBeenCalledWith(refusal);
+  });
+});

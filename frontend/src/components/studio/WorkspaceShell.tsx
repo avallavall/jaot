@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { translateApiError } from "@/lib/errors";
 import { useFormatter, useNow, useTranslations } from "next-intl";
 import { Archive, ChevronLeft, Sparkles, Play, Check, Loader2, AlertCircle } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
@@ -24,6 +25,7 @@ import { commitRename, resolveRenameBlur } from "./rename";
  */
 export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("studio");
+  const tError = useTranslations("errors.codes");
   const router = useRouter();
   const name = useModelProjectStore((s) => s.name);
   const modelId = useModelProjectStore((s) => s.modelId);
@@ -68,9 +70,11 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
       setName,
       getName: () => storeApi.getState().name,
       update: (id, body) => api.updateProject(id, body),
-      onError: () => {
+      onError: (err) => {
         setDraft(name);
-        toast.error(t("renameError"));
+        // The 422 names the rule that was broken; the generic sentence is the
+        // fallback for a refusal that named nothing.
+        toast.error(translateApiError(err, tError, t("renameError")));
       },
     });
   };

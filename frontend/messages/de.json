@@ -403,7 +403,8 @@
       "historyFailed": "Diese Matrix konnte nicht geöffnet werden."
     },
     "statsUngrounded": "Der JModel-Quelltext deklariert die Form, ein Datensatz liefert die Zahlen. Binden Sie im Reiter Daten einen ein, dann füllen sich diese Zählungen.",
-    "jmodelEmptyKeepsModel": "Editor leer — das vorherige Modell ist weiterhin das aktive"
+    "jmodelEmptyKeepsModel": "Editor leer — das vorherige Modell ist weiterhin das aktive",
+    "versionRestoreLabel": "Version {version} wiederherstellen"
   },
   "common": {
     "loading": "Wird geladen...",
@@ -2856,7 +2857,8 @@
       "updating": "Wird aktualisiert...",
       "listingUpdated": "Eintrag aktualisiert",
       "publishPinsVersion": "Beim Veröffentlichen wird Ihre letzte committete Version im Marketplace geteilt. Spätere Commits werden erst veröffentlicht, wenn Sie den Eintrag hier aktualisieren.",
-      "descriptionTooShort": "Die vollständige Beschreibung muss mindestens 10 Zeichen lang sein."
+      "descriptionTooShort": "Die vollständige Beschreibung muss mindestens 10 Zeichen lang sein.",
+      "confirmPublishAction": "Veröffentlichen"
     },
     "custom": {
       "backToTemplates": "Zurück zu Vorlagen",

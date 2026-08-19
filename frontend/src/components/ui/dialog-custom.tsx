@@ -101,6 +101,11 @@ interface DialogState {
   onConfirm?: () => void;
   onCancel?: () => void;
   showCancel?: boolean;
+  /** What the confirming button says. Defaults to the translated "Accept",
+   * which meant both "go ahead and publish this publicly" and "I have read the
+   * error" — a button that names its action is the only one a reader can weigh
+   * before pressing it. */
+  confirmLabel?: string;
 }
 
 export function useDialog() {
@@ -135,13 +140,14 @@ export function useDialog() {
   };
 
   // Promise-based confirm dialog
-  const confirm = (message: string, title?: string): Promise<boolean> => {
+  const confirm = (message: string, title?: string, confirmLabel?: string): Promise<boolean> => {
     return new Promise((resolve) => {
       showDialog({
         message,
         title,
         type: "warning",
         showCancel: true,
+        confirmLabel,
         onConfirm: () => resolve(true),
         onCancel: () => resolve(false),
       });
@@ -175,6 +181,7 @@ export function useDialog() {
         type={state.type}
         onConfirm={state.onConfirm}
         showCancel={state.showCancel}
+        confirmText={state.confirmLabel}
       />
     ),
   };

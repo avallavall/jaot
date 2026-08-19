@@ -6,7 +6,7 @@ interface RenameDeps {
   current: string;
   setName: (name: string) => void;
   update: (id: string, body: { name: string }) => Promise<ProjectRead>;
-  onError: () => void;
+  onError: (error: unknown) => void;
   /** Fresh store name, used so a failed PATCH only reverts its OWN optimistic
    * write — not a rename another path (e.g. the assistant) landed meanwhile. */
   getName?: () => string;
@@ -59,9 +59,12 @@ export async function commitRename({
   setName(trimmed); // optimistic
   try {
     await update(modelId, { name: trimmed });
-  } catch {
+  } catch (err) {
     // revert only our own optimistic write
     if (!getName || getName() === trimmed) setName(current);
-    onError();
+    // The server says WHY — "the name can be at most N characters" — and the
+    // caller used to be handed nothing, so the toast read "Could not rename
+    // the model" and retrying the same length failed the same way.
+    onError(err);
   }
 }
