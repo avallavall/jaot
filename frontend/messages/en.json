@@ -4573,6 +4573,24 @@
       "import": {
         "unreadable_file": "This file could not be read as {format}. Check that it is complete and that its contents really are {format}."
       },
+      "jmodel": {
+        "expected_token": "Expected {token} here, and there is {got}.",
+        "expected_keyword": "Expected the keyword {keyword} here, and there is {got}.",
+        "expected_identifier": "Expected a name here, and there is {got}.",
+        "expected_statement": "Expected a statement — set, param, var, minimize, maximize or subject to — and there is {got}.",
+        "expected_set_member": "Expected a set member here — a name or a number — and there is {got}.",
+        "expected_set_expression": "Expected a set here — a set name, a literal in braces, a range lo..hi, or an opening bracket — and there is {got}.",
+        "expected_var_type_or_bound": "Expected a variable type, a bound with >= or <=, or a semicolon, and there is {got}.",
+        "expected_expression": "Expected an expression here — a number, a variable, a param, sum, or an opening bracket — and there is {got}.",
+        "reserved_word": "{word} is a word of the language and cannot be used as a name.",
+        "no_objective": "The model has no objective. Add a minimize or maximize line.",
+        "unknown_symbol": "{name} is not declared. Declare it as a set, a param or a var, or check the spelling.",
+        "unknown_set": "The set {name} is not declared. A set must be declared before it is used.",
+        "empty_set": "The set {name} has no members. Write them inline with := or provide them in a dataset.",
+        "empty_param": "The param {name} has no values. Write them inline with := or provide them in a dataset.",
+        "duplicate_members": "The set {name} repeats a member. Every member must appear once.",
+        "unterminated_param": "The param {name} is not closed. It needs a semicolon at the end."
+      },
       "invite": {
         "not_found": "This invitation link is not valid.",
         "revoked": "This invitation has been revoked.",

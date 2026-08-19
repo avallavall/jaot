@@ -4573,6 +4573,24 @@
       "import": {
         "unreadable_file": "Ce fichier n’a pas pu être lu comme {format}. Vérifiez qu’il est complet et que son contenu est bien du {format}."
       },
+      "jmodel": {
+        "expected_token": "Ici, {token} était attendu, et il y a {got}.",
+        "expected_keyword": "Ici, le mot-clé {keyword} était attendu, et il y a {got}.",
+        "expected_identifier": "Ici, un nom était attendu, et il y a {got}.",
+        "expected_statement": "Ici, une instruction était attendue : set, param, var, minimize, maximize ou subject to. Il y a {got}.",
+        "expected_set_member": "Ici, un membre d'ensemble était attendu (un nom ou un nombre), et il y a {got}.",
+        "expected_set_expression": "Ici, un ensemble était attendu : un nom, un littéral entre accolades, une plage lo..hi ou une parenthèse. Il y a {got}.",
+        "expected_var_type_or_bound": "Ici, un type de variable, une borne avec >= ou <=, ou un point-virgule était attendu. Il y a {got}.",
+        "expected_expression": "Ici, une expression était attendue : un nombre, une variable, un param, sum ou une parenthèse. Il y a {got}.",
+        "reserved_word": "{word} est un mot du langage et ne peut pas servir de nom.",
+        "no_objective": "Le modèle n'a pas d'objectif. Ajoutez une ligne minimize ou maximize.",
+        "unknown_symbol": "{name} n'est pas déclaré. Déclarez-le comme set, param ou var, ou vérifiez l'orthographe.",
+        "unknown_set": "L'ensemble {name} n'est pas déclaré. Un ensemble se déclare avant d'être utilisé.",
+        "empty_set": "L'ensemble {name} n'a aucun membre. Écrivez-les avec := ou fournissez-les dans un dataset.",
+        "empty_param": "Le param {name} n'a aucune valeur. Écrivez-les avec := ou fournissez-les dans un dataset.",
+        "duplicate_members": "L'ensemble {name} répète un membre. Chaque membre n'apparaît qu'une fois.",
+        "unterminated_param": "Le param {name} n'est pas fermé. Il manque un point-virgule à la fin."
+      },
       "invite": {
         "not_found": "Ce lien d’invitation n’est pas valide.",
         "revoked": "Cette invitation a été révoquée.",

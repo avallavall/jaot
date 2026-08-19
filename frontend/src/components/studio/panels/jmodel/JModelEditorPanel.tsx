@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import type { DslCompileResult } from "@/lib/types";
+import { jmodelErrorText } from "@/lib/jmodel-error";
 import {
   useModelProjectStore,
   useModelProjectStoreApi,
@@ -54,6 +55,7 @@ subject to pick_two: sum{i in I} x[i] <= 2;`;
  */
 export function JModelEditorPanel() {
   const t = useTranslations("studio");
+  const tError = useTranslations("errors.codes");
   const lastSource = useModelProjectStore((s) => s.lastSource);
   const storeDslSource = useModelProjectStore((s) => s.draftDslSource);
   const modelId = useModelProjectStore((s) => s.modelId);
@@ -479,7 +481,7 @@ export function JModelEditorPanel() {
                     block was set by the provider-level recompile (no local `result`). */}
                 <code className="font-mono">
                   {result && !result.ok && result.error
-                    ? result.error.message
+                    ? jmodelErrorText(result.error, tError)
                     : t("jmodelBlockedGeneric")}
                 </code>
                 {result && !result.ok && typeof result.error?.position === "number" && (

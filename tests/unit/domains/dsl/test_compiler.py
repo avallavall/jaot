@@ -1726,3 +1726,78 @@ def test_if_model_solves_to_known_optimum():
     assert result.status.value == "optimal"
     assert result.objective_value is not None
     assert abs(result.objective_value - 1.0) < 1e-6
+
+
+# --------------------------------------------------------------------------- #
+# Naming the failure — the editor renders the code in the reader's language     #
+# --------------------------------------------------------------------------- #
+
+
+def _error_of(src: str) -> JModelError:
+    with pytest.raises(JModelError) as caught:
+        compile_jmodel(src)
+    return caught.value
+
+
+def test_a_syntax_error_names_itself_and_what_it_found():
+    """The box around the message was translated and the message was not.
+
+    The compile error a person hits by typing now carries a code and the
+    values its sentence needs, so a page can render it in any language. The
+    English `message` is unchanged: it is what a log and an API client read.
+    """
+    error = _error_of("set I := {a, b, ;;; var x binary;")
+
+    assert error.code == "jmodel.expected_set_member"
+    assert error.params["got"] == "';'"
+    assert error.position is not None
+    assert "expected" in error.message
+
+
+def test_an_unknown_name_says_which_name():
+    error = _error_of(
+        "set I := {a};\nvar x{I} binary;\nminimize o: sum{i in I} nosuch[i] * x[i];\n"
+        "subject to c: sum{i in I} x[i] >= 1;"
+    )
+
+    assert error.code == "jmodel.unknown_symbol"
+    assert error.params == {"name": "nosuch"}
+
+
+def test_a_reserved_word_used_as_a_name_says_which_word():
+    error = _error_of("set sum := {a};")
+
+    assert error.code == "jmodel.reserved_word"
+    assert error.params == {"word": "sum"}
+
+
+def test_a_model_without_an_objective_names_that():
+    error = _error_of("set I := {a};\nvar x{I} binary;")
+
+    assert error.code == "jmodel.no_objective"
+
+
+def test_a_set_with_no_members_names_the_set():
+    error = _error_of(
+        "set I;\nvar x{I} binary;\nminimize o: sum{i in I} x[i];\n"
+        "subject to c: sum{i in I} x[i] >= 1;"
+    )
+
+    assert error.code == "jmodel.empty_set"
+    assert error.params == {"name": "I"}
+
+
+def test_an_error_with_no_code_still_carries_its_message():
+    """Most of the compiler's hundred messages have no code yet.
+
+    They must keep working exactly as before: a message, no code, and the
+    editor falls back to printing it.
+    """
+    error = _error_of(
+        "set I := {a};\nvar x{I} binary;\nminimize o: sum{i in I} x[i] * x[i] * x[i];\n"
+        "subject to c: sum{i in I} x[i] >= 1;"
+    )
+
+    assert error.code is None
+    assert error.params == {}
+    assert error.message

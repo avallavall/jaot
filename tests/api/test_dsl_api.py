@@ -54,6 +54,30 @@ def test_compile_unknown_symbol_error(authenticated_client, test_organization, d
     body = resp.json()
     assert body["ok"] is False
     assert "unknown symbol" in body["error"]["message"]
+    # The name and the values its sentence needs travel too, so the editor can
+    # write the same failure in the reader's language.
+    assert body["error"]["code"] == "jmodel.unknown_symbol"
+    assert body["error"]["params"] == {"name": "y"}
+
+
+@pytest.mark.integration
+def test_compile_error_without_a_code_carries_none(
+    authenticated_client, test_organization, db_session
+):
+    """Most compiler messages have no code yet; those answer with code null.
+
+    The editor prints the English message for them, which is where every one of
+    them started.
+    """
+    resp = authenticated_client.post(
+        "/api/v2/dsl/compile",
+        json={"source": "var x >= 0; minimize obj: x * x * x; subject to c: x >= 1;"},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ok"] is False
+    assert body["error"]["code"] is None
+    assert body["error"]["message"]
 
 
 # CONTRACT-TEST: /dsl/compile requires authentication — the compiler is CPU-bound and

@@ -4573,6 +4573,24 @@
       "import": {
         "unreadable_file": "No se ha podido leer este fichero como {format}. Comprueba que está completo y que su contenido es de verdad {format}."
       },
+      "jmodel": {
+        "expected_token": "Aquí se esperaba {token}, y hay {got}.",
+        "expected_keyword": "Aquí se esperaba la palabra {keyword}, y hay {got}.",
+        "expected_identifier": "Aquí se esperaba un nombre, y hay {got}.",
+        "expected_statement": "Aquí se esperaba una sentencia: set, param, var, minimize, maximize o subject to. Hay {got}.",
+        "expected_set_member": "Aquí se esperaba un miembro del conjunto (un nombre o un número), y hay {got}.",
+        "expected_set_expression": "Aquí se esperaba un conjunto: un nombre de conjunto, un literal entre llaves, un rango lo..hi o un paréntesis. Hay {got}.",
+        "expected_var_type_or_bound": "Aquí se esperaba un tipo de variable, una cota con >= o <=, o un punto y coma. Hay {got}.",
+        "expected_expression": "Aquí se esperaba una expresión: un número, una variable, un param, sum o un paréntesis. Hay {got}.",
+        "reserved_word": "{word} es una palabra del lenguaje y no se puede usar como nombre.",
+        "no_objective": "El modelo no tiene objetivo. Añade una línea minimize o maximize.",
+        "unknown_symbol": "{name} no está declarado. Decláralo como set, param o var, o revisa cómo está escrito.",
+        "unknown_set": "El conjunto {name} no está declarado. Un conjunto se declara antes de usarlo.",
+        "empty_set": "El conjunto {name} no tiene miembros. Escríbelos con := o dalos en un dataset.",
+        "empty_param": "El param {name} no tiene valores. Escríbelos con := o dalos en un dataset.",
+        "duplicate_members": "El conjunto {name} repite un miembro. Cada miembro aparece una sola vez.",
+        "unterminated_param": "El param {name} no está cerrado. Le falta un punto y coma al final."
+      },
       "invite": {
         "not_found": "Este enlace de invitación no es válido.",
         "revoked": "Esta invitación se ha revocado.",

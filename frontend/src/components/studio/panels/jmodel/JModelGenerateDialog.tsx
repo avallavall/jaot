@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { jmodelErrorText } from "@/lib/jmodel-error";
 import { toast } from "sonner";
 import { FileText, ImageIcon, Loader2, Sparkles, X } from "lucide-react";
 import {
@@ -72,6 +73,7 @@ export function JModelGenerateDialog({
   onGenerated,
 }: JModelGenerateDialogProps) {
   const t = useTranslations("studio");
+  const tError = useTranslations("errors.codes");
   const [description, setDescription] = useState("");
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [generating, setGenerating] = useState(false);
@@ -165,7 +167,7 @@ export function JModelGenerateDialog({
       });
       if (!res.source) {
         setError(
-          t("jmodelGenerateFailed", { message: res.error?.message ?? "" }),
+          t("jmodelGenerateFailed", { message: jmodelErrorText(res.error, tError) }),
         );
         return;
       }

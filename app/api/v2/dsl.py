@@ -107,7 +107,12 @@ def dsl_compile(body: DSLCompileRequest, db: DBSession, org: CurrentOrg) -> DSLC
     except JModelError as exc:
         return DSLCompileResponse(
             ok=False,
-            error=DSLCompileError(message=exc.message, position=exc.position),
+            error=DSLCompileError(
+                message=exc.message,
+                position=exc.position,
+                code=exc.code,
+                params=exc.params or None,
+            ),
         )
     except Exception:
         # The compiler contract is "JModelError or a problem" — anything else is a
@@ -138,7 +143,12 @@ def dsl_inspect(body: DSLInspectRequest, db: DBSession, _user: CurrentUser) -> D
     except JModelError as exc:
         return DSLInspectResponse(
             ok=False,
-            error=DSLCompileError(message=exc.message, position=exc.position),
+            error=DSLCompileError(
+                message=exc.message,
+                position=exc.position,
+                code=exc.code,
+                params=exc.params or None,
+            ),
         )
     except Exception:
         logger.exception("JModel inspector crashed on user source")
@@ -179,7 +189,12 @@ def dsl_latex(body: DSLLatexRequest, db: DBSession, _user: CurrentUser) -> DSLLa
     except JModelError as exc:
         return DSLLatexResponse(
             ok=False,
-            error=DSLCompileError(message=exc.message, position=exc.position),
+            error=DSLCompileError(
+                message=exc.message,
+                position=exc.position,
+                code=exc.code,
+                params=exc.params or None,
+            ),
         )
     except Exception:
         logger.exception("JModel LaTeX renderer crashed on user source")

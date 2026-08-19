@@ -4573,6 +4573,24 @@
       "import": {
         "unreadable_file": "Diese Datei konnte nicht als {format} gelesen werden. Prüfen Sie, ob sie vollständig ist und ihr Inhalt wirklich {format} ist."
       },
+      "jmodel": {
+        "expected_token": "Hier wurde {token} erwartet, da steht aber {got}.",
+        "expected_keyword": "Hier wurde das Schlüsselwort {keyword} erwartet, da steht aber {got}.",
+        "expected_identifier": "Hier wurde ein Name erwartet, da steht aber {got}.",
+        "expected_statement": "Hier wurde eine Anweisung erwartet: set, param, var, minimize, maximize oder subject to. Da steht {got}.",
+        "expected_set_member": "Hier wurde ein Element der Menge erwartet (ein Name oder eine Zahl), da steht aber {got}.",
+        "expected_set_expression": "Hier wurde eine Menge erwartet: ein Name, ein Literal in geschweiften Klammern, ein Bereich lo..hi oder eine Klammer. Da steht {got}.",
+        "expected_var_type_or_bound": "Hier wurde ein Variablentyp, eine Schranke mit >= oder <= oder ein Semikolon erwartet. Da steht {got}.",
+        "expected_expression": "Hier wurde ein Ausdruck erwartet: eine Zahl, eine Variable, ein Param, sum oder eine Klammer. Da steht {got}.",
+        "reserved_word": "{word} ist ein Wort der Sprache und kann kein Name sein.",
+        "no_objective": "Das Modell hat kein Ziel. Fügen Sie eine minimize- oder maximize-Zeile hinzu.",
+        "unknown_symbol": "{name} ist nicht deklariert. Deklarieren Sie es als set, param oder var, oder prüfen Sie die Schreibweise.",
+        "unknown_set": "Die Menge {name} ist nicht deklariert. Eine Menge wird vor ihrer Verwendung deklariert.",
+        "empty_set": "Die Menge {name} hat keine Elemente. Schreiben Sie sie mit := oder liefern Sie sie in einem Dataset.",
+        "empty_param": "Der Param {name} hat keine Werte. Schreiben Sie sie mit := oder liefern Sie sie in einem Dataset.",
+        "duplicate_members": "Die Menge {name} wiederholt ein Element. Jedes Element darf nur einmal vorkommen.",
+        "unterminated_param": "Der Param {name} ist nicht abgeschlossen. Am Ende fehlt ein Semikolon."
+      },
       "invite": {
         "not_found": "Dieser Einladungslink ist nicht gültig.",
         "revoked": "Diese Einladung wurde widerrufen.",

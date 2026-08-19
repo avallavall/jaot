@@ -716,6 +716,10 @@ export interface ProjectListItem {
 export interface DslCompileError {
   message: string;
   position?: number | null;
+  /** Names the failure so the editor can write it in the reader's language. Null on
+   *  the compiler messages that do not name themselves yet — those show `message`. */
+  code?: string | null;
+  params?: Record<string, string | number> | null;
 }
 
 /** Result of compiling JModel source: ok=true → problem, ok=false → error. */

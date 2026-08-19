@@ -129,12 +129,30 @@ class JModelError(Exception):
     """A lex, parse, or grounding error in a JModel source.
 
     ``position`` is the 0-based character offset in the source when known, else ``None``.
+
+    ``code`` and ``params`` are the same additive contract the HTTP layer uses:
+    the ``message`` stays English, because it is what an API client and a log
+    read, and a screen renders the code's translation instead. The compiler
+    imports nothing to do it — a code is a string and params are data, so this
+    module stays the pure library its contract says it is.
+
+    Not every raise carries a code yet. One without a code renders as the
+    English message, which is where all of them started.
     """
 
-    def __init__(self, message: str, position: int | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        position: int | None = None,
+        *,
+        code: str | None = None,
+        params: dict[str, str | int | float] | None = None,
+    ) -> None:
         super().__init__(message)
         self.message = message
         self.position = position
+        self.code = code
+        self.params = params or {}
 
 
 @dataclass(frozen=True)
@@ -505,19 +523,33 @@ class _Parser:
         self._i += 1
         return tok
 
-    def _error(self, msg: str) -> JModelError:
+    def _error(
+        self, msg: str, *, code: str | None = None, **params: str | int | float
+    ) -> JModelError:
+        """A parse error at the token the parser is looking at.
+
+        Every parse error says the same two things — what was expected here and
+        what is actually written — so ``got`` is filled in for the caller and a
+        coded one needs only to name what it wanted.
+        """
         tok = self._peek()
+        got = "end of input" if tok.kind == "EOF" else repr(tok.value)
         detail = (
             f"{msg} (got {tok.kind} {tok.value!r})"
             if tok.kind != "EOF"
             else f"{msg} (got end of input)"
         )
-        return JModelError(detail, position=tok.pos)
+        return JModelError(
+            detail,
+            position=tok.pos,
+            code=code,
+            params={**params, "got": got} if code else None,
+        )
 
     def _expect_op(self, value: str) -> None:
         tok = self._advance()
         if tok.kind != "OP" or tok.value != value:
-            raise self._error(f"expected {value!r}")
+            raise self._error(f"expected {value!r}", code="jmodel.expected_token", token=value)
 
     def _accept_op(self, value: str) -> bool:
         tok = self._peek()
@@ -529,18 +561,30 @@ class _Parser:
     def _expect_ident(self) -> str:
         tok = self._advance()
         if tok.kind != "IDENT":
-            raise JModelError(f"expected identifier (got {tok.value!r})", position=tok.pos)
+            raise JModelError(
+                f"expected identifier (got {tok.value!r})",
+                position=tok.pos,
+                code="jmodel.expected_identifier",
+                params={"got": repr(tok.value)},
+            )
         return tok.value
 
     def _expect_name(self) -> Token:
         """An identifier being *declared or bound* — reserved words are rejected."""
         tok = self._advance()
         if tok.kind != "IDENT":
-            raise JModelError(f"expected identifier (got {tok.value!r})", position=tok.pos)
+            raise JModelError(
+                f"expected identifier (got {tok.value!r})",
+                position=tok.pos,
+                code="jmodel.expected_identifier",
+                params={"got": repr(tok.value)},
+            )
         if tok.value in _RESERVED_WORDS:
             raise JModelError(
                 f"{tok.value!r} is a reserved word and cannot be used as a name",
                 position=tok.pos,
+                code="jmodel.reserved_word",
+                params={"word": tok.value},
             )
         return tok
 
@@ -553,7 +597,9 @@ class _Parser:
 
     def _expect_kw(self, keyword: str) -> None:
         if not self._accept_kw(keyword):
-            raise self._error(f"expected keyword {keyword!r}")
+            raise self._error(
+                f"expected keyword {keyword!r}", code="jmodel.expected_keyword", keyword=keyword
+            )
 
     def _finite_number(self, tok: Token, text: str) -> float:
         value = float(text)
@@ -573,7 +619,10 @@ class _Parser:
         tok = self._advance()
         if tok.kind not in ("IDENT", "NUM"):
             raise JModelError(
-                f"expected a set member (identifier or number, got {tok.value!r})", position=tok.pos
+                f"expected a set member (identifier or number, got {tok.value!r})",
+                position=tok.pos,
+                code="jmodel.expected_set_member",
+                params={"got": repr(tok.value)},
             )
         return tok.value
 
@@ -594,10 +643,11 @@ class _Parser:
                 self._parse_constraint(model)
             else:
                 raise self._error(
-                    "expected a statement (set / param / var / minimize / maximize / subject to)"
+                    "expected a statement (set / param / var / minimize / maximize / subject to)",
+                    code="jmodel.expected_statement",
                 )
         if model.objective is None:
-            raise JModelError("model has no objective")
+            raise JModelError("model has no objective", code="jmodel.no_objective")
         return model
 
     def _parse_set(self, model: ModelAst) -> None:
@@ -645,7 +695,10 @@ class _Parser:
                 )
             if len(members) != len(set(members)):
                 raise JModelError(
-                    f"set {name_tok.value!r} has duplicate members", position=name_tok.pos
+                    f"set {name_tok.value!r} has duplicate members",
+                    position=name_tok.pos,
+                    code="jmodel.duplicate_members",
+                    params={"name": name_tok.value},
                 )
             model.sets[name_tok.value] = SetDef(dimen, members, name_tok.pos)
             return
@@ -707,9 +760,14 @@ class _Parser:
                     f"unknown set {name_tok.value!r} in the definition of {target!r} — "
                     "a set expression may only use sets declared earlier in the source",
                     position=name_tok.pos,
+                    code="jmodel.unknown_set",
+                    params={"name": name_tok.value},
                 )
             return SetRefNode(name_tok.value, name_tok.pos)
-        raise self._error("expected a set name, a literal '{...}', a range 'lo..hi', or '('")
+        raise self._error(
+            "expected a set name, a literal '{...}', a range 'lo..hi', or '('",
+            code="jmodel.expected_set_expression",
+        )
 
     def _set_expr_dimen(self, node: SetExpr, model: ModelAst, target: str) -> int:
         """Static member dimension of a set expression (operands are declared earlier,
@@ -867,7 +925,10 @@ class _Parser:
                 break
             if nxt.kind == "EOF":
                 raise JModelError(
-                    f"unterminated param {param_name!r} (missing ';')", position=nxt.pos
+                    f"unterminated param {param_name!r} (missing ';')",
+                    position=nxt.pos,
+                    code="jmodel.unterminated_param",
+                    params={"name": param_name},
                 )
         value_tok, value_negative = items[-1]
         if value_tok.kind != "NUM":
@@ -914,7 +975,10 @@ class _Parser:
                 self._advance()
                 ub = self._signed_number()
             else:
-                raise self._error("expected variable type, a bound (>= / <=), or ';'")
+                raise self._error(
+                    "expected variable type, a bound (>= / <=), or ';'",
+                    code="jmodel.expected_var_type_or_bound",
+                )
         self._expect_op(";")
         name = name_tok.value
         if vtype == "binary":
@@ -1103,7 +1167,9 @@ class _Parser:
                     idx.append(self._parse_idx_term())
                 self._expect_op("]")
             return Ref(name, idx, tok.pos)
-        raise self._error("expected a number, variable, param, sum, or '('")
+        raise self._error(
+            "expected a number, variable, param, sum, or '('", code="jmodel.expected_expression"
+        )
 
     def _parse_if_expr(self) -> IfExpr:
         """``if cond [and cond]* then term [else term]`` — the branches bind to the
@@ -1236,13 +1302,17 @@ def _apply_data(
     for name, set_def in model.sets.items():
         if set_def.members is None:
             raise JModelError(
-                f"set {name!r} has no members — define them inline (:=) or provide a dataset"
+                f"set {name!r} has no members — define them inline (:=) or provide a dataset",
+                code="jmodel.empty_set",
+                params={"name": name},
             )
     for decl in model.params.values():
         if decl.data is None:
             raise JModelError(
                 f"param {decl.name!r} has no values — define them inline (:=) or provide a dataset",
                 position=decl.pos,
+                code="jmodel.empty_param",
+                params={"name": decl.name},
             )
 
 
@@ -1639,7 +1709,12 @@ def _iter_env(quals: Qualifiers, base_env: dict[str, str], ctx: _Ctx) -> list[di
     for index_vars, set_name, set_pos in quals.bindings:
         set_def = ctx.model.sets.get(set_name)
         if set_def is None:
-            raise JModelError(f"unknown set {set_name!r} in qualifier", position=set_pos)
+            raise JModelError(
+                f"unknown set {set_name!r} in qualifier",
+                position=set_pos,
+                code="jmodel.unknown_set",
+                params={"name": set_name},
+            )
         if len(index_vars) != set_def.dimen:
             raise JModelError(
                 f"binding names {len(index_vars)} index(es) but set {set_name!r} has "
@@ -1785,7 +1860,12 @@ def _ground(node: Expr, env: dict[str, str], ctx: _Ctx) -> _LinForm:
                 f"param {node.name!r} has no value for index {key}", position=node.pos
             )
         return _LinForm.number(param_decl.data[key])
-    raise JModelError(f"unknown symbol {node.name!r}", position=node.pos)
+    raise JModelError(
+        f"unknown symbol {node.name!r}",
+        position=node.pos,
+        code="jmodel.unknown_symbol",
+        params={"name": node.name},
+    )
 
 
 def _fmt_num(x: float) -> str:
@@ -1861,7 +1941,10 @@ def _lower(model: ModelAst, max_grounded_elements: int) -> OptimizationProblem:
             set_def = model.sets.get(set_name)
             if set_def is None:
                 raise JModelError(
-                    f"unknown set {set_name!r} in variable family {name!r}", position=decl.pos
+                    f"unknown set {set_name!r} in variable family {name!r}",
+                    position=decl.pos,
+                    code="jmodel.unknown_set",
+                    params={"name": set_name},
                 )
             assert set_def.members is not None  # guaranteed by _apply_data
             member_lists.append(set_def.members)
@@ -1912,7 +1995,10 @@ def _lower(model: ModelAst, max_grounded_elements: int) -> OptimizationProblem:
             members_frozen = ctx.set_members.get(set_name)
             if members_frozen is None:
                 raise JModelError(
-                    f"unknown set {set_name!r} in param {param.name!r}", position=param.pos
+                    f"unknown set {set_name!r} in param {param.name!r}",
+                    position=param.pos,
+                    code="jmodel.unknown_set",
+                    params={"name": set_name},
                 )
             dimen = model.sets[set_name].dimen
             group_specs.append((set_name, members_frozen, dimen))

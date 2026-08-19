@@ -6438,10 +6438,22 @@ export interface components {
          */
         DSLCompileError: {
             /**
+             * Code
+             * @description Stable identifier for this failure, when the compiler names it
+             */
+            code?: string | null;
+            /**
              * Message
              * @description Human-readable error message
              */
             message: string;
+            /**
+             * Params
+             * @description Values the code's message needs (identifier names, tokens)
+             */
+            params?: {
+                [key: string]: string | number;
+            } | null;
             /**
              * Position
              * @description 0-based character offset in the source, when known

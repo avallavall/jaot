@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
+import { jmodelErrorText } from "@/lib/jmodel-error";
 import { Database, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,6 +65,7 @@ interface EditorState {
  */
 export function DatasetsCard() {
   const t = useTranslations("studio");
+  const tError = useTranslations("errors.codes");
   const modelId = useModelProjectStore((s) => s.modelId);
   const activeDataset = useModelProjectStore((s) => s.activeDataset);
   const setActiveDataset = useModelProjectStore((s) => s.setActiveDataset);
@@ -268,7 +270,7 @@ export function DatasetsCard() {
       const inspect = await api.inspectDsl(draftDslSource);
       if (!inspect.ok) {
         toast.error(
-          t("datasetSkeletonParseError", { error: inspect.error?.message ?? "" }),
+          t("datasetSkeletonParseError", { error: jmodelErrorText(inspect.error, tError) }),
         );
         return;
       }

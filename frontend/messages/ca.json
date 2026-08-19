@@ -4573,6 +4573,24 @@
       "import": {
         "unreadable_file": "No s'ha pogut llegir aquest fitxer com a {format}. Comprova que està complet i que el seu contingut és realment {format}."
       },
+      "jmodel": {
+        "expected_token": "Aquí s'esperava {token}, i hi ha {got}.",
+        "expected_keyword": "Aquí s'esperava la paraula {keyword}, i hi ha {got}.",
+        "expected_identifier": "Aquí s'esperava un nom, i hi ha {got}.",
+        "expected_statement": "Aquí s'esperava una sentència: set, param, var, minimize, maximize o subject to. Hi ha {got}.",
+        "expected_set_member": "Aquí s'esperava un membre del conjunt (un nom o un número), i hi ha {got}.",
+        "expected_set_expression": "Aquí s'esperava un conjunt: un nom de conjunt, un literal entre claus, un rang lo..hi o un parèntesi. Hi ha {got}.",
+        "expected_var_type_or_bound": "Aquí s'esperava un tipus de variable, una fita amb >= o <=, o un punt i coma. Hi ha {got}.",
+        "expected_expression": "Aquí s'esperava una expressió: un número, una variable, un param, sum o un parèntesi. Hi ha {got}.",
+        "reserved_word": "{word} és una paraula del llenguatge i no es pot fer servir com a nom.",
+        "no_objective": "El model no té objectiu. Afegeix una línia minimize o maximize.",
+        "unknown_symbol": "{name} no està declarat. Declara'l com a set, param o var, o revisa com està escrit.",
+        "unknown_set": "El conjunt {name} no està declarat. Un conjunt es declara abans de fer-lo servir.",
+        "empty_set": "El conjunt {name} no té membres. Escriu-los amb := o dona'ls en un dataset.",
+        "empty_param": "El param {name} no té valors. Escriu-los amb := o dona'ls en un dataset.",
+        "duplicate_members": "El conjunt {name} repeteix un membre. Cada membre apareix un sol cop.",
+        "unterminated_param": "El param {name} no està tancat. Li falta un punt i coma al final."
+      },
       "invite": {
         "not_found": "Aquest enllaç d’invitació no és vàlid.",
         "revoked": "Aquesta invitació s’ha revocat.",

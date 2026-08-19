@@ -35,6 +35,17 @@ class DSLCompileError(BaseModel):
     position: int | None = Field(
         default=None, description="0-based character offset in the source, when known"
     )
+    # Additive, and the same contract the HTTP errors use: `message` is English
+    # and unchanged, `code` is what a page in another language renders. The
+    # editor used to print the compiler's English sentence inside a translated
+    # box, so the one part a reader needed was the one part they could not read.
+    # Not every compiler error names itself yet; those arrive with code null.
+    code: str | None = Field(
+        default=None, description="Stable identifier for this failure, when the compiler names it"
+    )
+    params: dict[str, str | int | float] | None = Field(
+        default=None, description="Values the code's message needs (identifier names, tokens)"
+    )
 
 
 class DSLCompileResponse(BaseModel):
