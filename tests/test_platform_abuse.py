@@ -661,6 +661,78 @@ class TestRequestBodySize:
         assert resp.json()["received"] == 200_000
 
 
+class TestUploadThatDoesNotFitOnTheMachine:
+    """An import is refused at the door when the disk cannot hold it.
+
+    The import endpoint carries no body limit — capacity is the operator's to
+    set — but an uploaded file is written to /tmp twice: once by Starlette,
+    which spools any multipart part over 1 MB, and once by the importer, which
+    needs a real path for SCIP. The containers give /tmp a 256 MB tmpfs (64 MB
+    in development), so a file bigger than half of that fills it.
+
+    Before this guard the browser uploaded for two minutes and got back a
+    sentence about the server's disk; before the truncation fix ahead of it,
+    the file was silently cut short and SCIP solved a different model.
+    """
+
+    @staticmethod
+    def _client(free_bytes: int, monkeypatch):
+        from starlette.applications import Starlette
+        from starlette.responses import JSONResponse
+        from starlette.routing import Route
+        from starlette.testclient import TestClient
+
+        from app.shared.core import body_limit, upload_capacity
+
+        monkeypatch.setattr(upload_capacity, "temp_space_free", lambda: free_bytes)
+
+        async def upload(request):
+            return JSONResponse({"received": len(await request.body())})
+
+        app = Starlette(routes=[Route("/api/v2/solve/import/preview", upload, methods=["POST"])])
+        app.add_middleware(body_limit.BodyLimitMiddleware, max_bytes=0)
+        return TestClient(app, raise_server_exceptions=False)
+
+    # CONTRACT-TEST: the refusal arrives before the body does.
+    def test_refuses_an_upload_bigger_than_the_free_temporary_space(self, monkeypatch):
+        client = self._client(free_bytes=64 * 1024 * 1024, monkeypatch=monkeypatch)
+
+        resp = client.post("/api/v2/solve/import/preview", content=b"x" * (60 * 1024 * 1024))
+
+        assert resp.status_code == 413, resp.text
+        body = resp.json()
+        # Written for whoever chose the file: its size, what fits, what to do.
+        assert "60 MB" in body["detail"]
+        assert "gzip" in body["detail"]
+        assert "/tmp" not in body["detail"] and "tmpfs" not in body["detail"]
+        # And named, so a page in another language says the same thing.
+        assert body["code"] == "import.too_big_for_server"
+        assert body["params"]["size_mb"] == 60
+
+    def test_lets_through_an_upload_the_machine_can_hold(self, monkeypatch):
+        client = self._client(free_bytes=256 * 1024 * 1024, monkeypatch=monkeypatch)
+
+        resp = client.post("/api/v2/solve/import/preview", content=b"x" * (60 * 1024 * 1024))
+
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["received"] == 60 * 1024 * 1024
+
+    def test_counts_the_second_copy_the_importer_writes(self, monkeypatch):
+        """60 MB fits in 100 MB once and not twice, and it is written twice."""
+        client = self._client(free_bytes=100 * 1024 * 1024, monkeypatch=monkeypatch)
+
+        resp = client.post("/api/v2/solve/import/preview", content=b"x" * (60 * 1024 * 1024))
+
+        assert resp.status_code == 413, resp.text
+
+    def test_a_small_upload_is_never_in_the_way(self, monkeypatch):
+        client = self._client(free_bytes=64 * 1024 * 1024, monkeypatch=monkeypatch)
+
+        resp = client.post("/api/v2/solve/import/preview", content=b"x" * 4096)
+
+        assert resp.status_code == 200, resp.text
+
+
 class TestMaxLengthValidation:
     """Verify max_length enforcement on expression and name fields."""
 

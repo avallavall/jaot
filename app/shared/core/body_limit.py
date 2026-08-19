@@ -4,9 +4,12 @@ Returns 413 Payload Too Large if Content-Length exceeds the limit or if the
 streamed body grows past the limit.
 """
 
+import json
+
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.config import settings
+from app.shared.core.upload_capacity import upload_refusal
 
 # Self-hosted open source: the operator owns this, via MAX_REQUEST_BODY_MB in
 # .env, and the default is NO limit. Real models are big — a 400x400 assignment
@@ -34,13 +37,30 @@ class BodyLimitMiddleware:
         self.max_bytes = max_bytes
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http" or self.max_bytes <= 0:
+        if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
 
-        # Skip limit for exempt paths (they enforce their own limits)
         path = scope.get("path", "")
-        if any(path.startswith(prefix) for prefix in EXEMPT_PREFIXES) or any(
+        declared = _declared_length(scope)
+
+        # An import carries no body limit — capacity limits are the operator's
+        # to set (D-21) — but it still has to fit on the machine. Starlette
+        # spools the upload to /tmp and the importer writes it there a second
+        # time, so a file bigger than half the free tmpfs fills it. This runs
+        # whatever the operator set, including their default of no limit at
+        # all: it is not a policy, it is whether the disk has the room. Asked
+        # here it costs the user nothing; asked after the upload it cost two
+        # minutes and arrived as a sentence about the server's disk.
+        if any(path.startswith(prefix) for prefix in EXEMPT_PREFIXES):
+            refusal = None if declared is None else upload_refusal(declared)
+            if refusal is not None:
+                await self._send_json(send, 413, refusal)
+                return
+            await self.app(scope, receive, send)
+            return
+
+        if self.max_bytes <= 0 or any(
             path.startswith(prefix) and path.endswith(suffix)
             for prefix, suffix in EXEMPT_PREFIX_SUFFIX
         ):
@@ -48,15 +68,9 @@ class BodyLimitMiddleware:
             return
 
         # Fast-path: check Content-Length header if present
-        headers = dict(scope.get("headers", []))
-        content_length = headers.get(b"content-length")
-        if content_length is not None:
-            try:
-                if int(content_length) > self.max_bytes:
-                    await self._send_413(send)
-                    return
-            except ValueError:
-                pass
+        if declared is not None and declared > self.max_bytes:
+            await self._send_413(send)
+            return
 
         # Streaming guard: count bytes as they arrive
         bytes_received = 0
@@ -77,11 +91,14 @@ class BodyLimitMiddleware:
             await self._send_413(send)
 
     async def _send_413(self, send: Send) -> None:
-        body = b'{"detail":"Request body too large"}'
+        await self._send_json(send, 413, {"detail": "Request body too large"})
+
+    async def _send_json(self, send: Send, status: int, payload: dict[str, object]) -> None:
+        body = json.dumps(payload).encode()
         await send(
             {
                 "type": "http.response.start",
-                "status": 413,
+                "status": status,
                 "headers": [
                     (b"content-type", b"application/json"),
                     (b"content-length", str(len(body)).encode()),
@@ -94,6 +111,17 @@ class BodyLimitMiddleware:
                 "body": body,
             }
         )
+
+
+def _declared_length(scope: Scope) -> int | None:
+    """The request's Content-Length, or None when it is absent or malformed."""
+    for name, value in scope.get("headers", []):
+        if name == b"content-length":
+            try:
+                return int(value)
+            except ValueError:
+                return None
+    return None
 
 
 class _BodyTooLarge(Exception):

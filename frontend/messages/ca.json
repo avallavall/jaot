@@ -4571,7 +4571,9 @@
         "invalid_fields": "{count, plural, one {Aquest camp no és vàlid} other {Aquests camps no són vàlids}}: {fields}."
       },
       "import": {
-        "unreadable_file": "No s'ha pogut llegir aquest fitxer com a {format}. Comprova que està complet i que el seu contingut és realment {format}."
+        "unreadable_file": "No s'ha pogut llegir aquest fitxer com a {format}. Comprova que està complet i que el seu contingut és realment {format}.",
+        "no_room": "Aquest fitxer ocupa {size_mb} MB i ara mateix el servidor no té lloc. Torna-ho a provar d'aquí a una estona, o puja un model més petit.",
+        "too_big_for_server": "Aquest fitxer ocupa {size_mb} MB i ara mateix aquest servidor admet {capacity_mb} MB. Prova amb un model més petit, o comprimeix el fitxer en gzip i puja aquest."
       },
       "jmodel": {
         "expected_token": "Aquí s'esperava {token}, i hi ha {got}.",

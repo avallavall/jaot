@@ -1030,7 +1030,11 @@ class TestUploadIsNeverTruncated:
         with pytest.raises(FileImportError) as exc:
             service._save_upload_to_temp(payload, ".lp")
 
-        assert "temporary space" in str(exc.value)
+        # Written for whoever uploaded the file: the byte count and the errno
+        # went to the log when the door check (upload_capacity) started turning
+        # these away before the upload, leaving only the race here.
+        assert exc.value.code == "import.no_room"
+        assert "no room for it right now" in str(exc.value)
 
     def test_a_partial_write_is_completed_not_abandoned(self, monkeypatch):
         """A short write with room left must be retried until every byte lands.

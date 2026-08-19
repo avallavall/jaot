@@ -4571,7 +4571,9 @@
         "invalid_fields": "{count, plural, one {Este campo no es válido} other {Estos campos no son válidos}}: {fields}."
       },
       "import": {
-        "unreadable_file": "No se ha podido leer este fichero como {format}. Comprueba que está completo y que su contenido es de verdad {format}."
+        "unreadable_file": "No se ha podido leer este fichero como {format}. Comprueba que está completo y que su contenido es de verdad {format}.",
+        "no_room": "Este fichero ocupa {size_mb} MB y ahora mismo el servidor no tiene sitio. Inténtalo dentro de un momento, o sube un modelo más pequeño.",
+        "too_big_for_server": "Este fichero ocupa {size_mb} MB y ahora mismo este servidor admite {capacity_mb} MB. Prueba con un modelo más pequeño, o comprime el fichero en gzip y sube ese."
       },
       "jmodel": {
         "expected_token": "Aquí se esperaba {token}, y hay {got}.",

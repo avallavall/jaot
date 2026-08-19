@@ -12,7 +12,7 @@ import {
   isAcceptedFile,
   formatFileSize,
 } from "@/lib/file-import";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorMessage, translateApiError } from "@/lib/errors";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PreviewStat } from "@/components/solve/PreviewStat";
@@ -35,6 +35,7 @@ type DialogStep = "upload" | "preview" | "importing";
 
 export function FileImportDialog({ open, onOpenChange }: FileImportDialogProps) {
   const t = useTranslations("solve.import");
+  const tError = useTranslations("errors.codes");
   const router = useRouter();
 
   const [step, setStep] = useState<DialogStep>("upload");
@@ -111,11 +112,11 @@ export function FileImportDialog({ open, onOpenChange }: FileImportDialogProps) 
       setPreview(result);
       setStep("preview");
     } catch (err) {
-      setError(getErrorMessage(err, t("previewFailed")));
+      setError(translateApiError(err, tError, getErrorMessage(err, t("previewFailed"))));
     } finally {
       setLoading(false);
     }
-  }, [file, t]);
+  }, [file, t, tError]);
 
   const handleSolve = useCallback(async () => {
     if (!file) return;
@@ -133,12 +134,12 @@ export function FileImportDialog({ open, onOpenChange }: FileImportDialogProps) 
         router.push("/solve/executions");
       }
     } catch (err) {
-      setError(getErrorMessage(err, t("importFailed")));
+      setError(translateApiError(err, tError, getErrorMessage(err, t("importFailed"))));
       setStep("preview");
     } finally {
       setLoading(false);
     }
-  }, [file, t, handleClose, router]);
+  }, [file, t, tError, handleClose, router]);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>

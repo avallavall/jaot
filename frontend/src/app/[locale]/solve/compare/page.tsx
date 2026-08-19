@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/select";
 import { isComparable, useSolvers } from "@/hooks/useSolvers";
 import { api } from "@/lib/api";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorMessage, translateApiError } from "@/lib/errors";
 import { ACCEPTED_EXTENSIONS, isAcceptedFile } from "@/lib/file-import";
 import type { ComparisonDetail, ProjectListItem } from "@/lib/types";
 
@@ -40,6 +40,7 @@ const POLL_INTERVAL_MS = 2000;
 
 export default function SolverComparePage() {
   const t = useTranslations("solverCompare");
+  const tError = useTranslations("errors.codes");
   const { availableSolvers, solversLoading } = useSolvers();
 
   const [source, setSource] = useState<"model" | "file">("model");
@@ -138,7 +139,9 @@ export default function SolverComparePage() {
       const preview = await api.fileImport.preview(file);
       setUploaded({ problem: preview.problem, filename: file.name });
     } catch (error) {
-      toast.error(getErrorMessage(error, t("setup.fileFailed")));
+      // The server names why it refused the file — too big for the machine,
+      // unreadable — so the toast can say it in the reader's language.
+      toast.error(translateApiError(error, tError, getErrorMessage(error, t("setup.fileFailed"))));
     } finally {
       setUploading(false);
     }

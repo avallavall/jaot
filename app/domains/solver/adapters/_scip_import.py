@@ -207,9 +207,24 @@ class FileImportService:
                 os.unlink(tmp_path)
             except OSError:
                 logger.debug("Failed to clean up temp file: %s", tmp_path)
+            # The door check (app/shared/core/upload_capacity.py) turns almost
+            # every one of these away before the upload starts. What is left
+            # here is the race: room that was free when the request arrived and
+            # was taken by another import while this one was reading. The
+            # sentence says the same thing that one does, because the reader is
+            # the same person and the byte count and the errno were never for
+            # them. The details stay in the log.
+            logger.warning(
+                "Could not store a %d-byte upload in %s: %s",
+                len(file_bytes),
+                tempfile.gettempdir(),
+                exc,
+            )
             raise FileImportError(
-                f"Could not store the {len(file_bytes)}-byte upload for reading: {exc}. "
-                "The server ran out of temporary space."
+                f"This file is {len(file_bytes) // (1024 * 1024)} MB and the server has no "
+                "room for it right now. Try again in a moment, or upload a smaller model.",
+                code="import.no_room",
+                params={"size_mb": len(file_bytes) // (1024 * 1024)},
             ) from exc
         os.close(fd)
 

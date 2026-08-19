@@ -4571,7 +4571,9 @@
         "invalid_fields": "{count, plural, one {This field is not valid} other {These fields are not valid}}: {fields}."
       },
       "import": {
-        "unreadable_file": "This file could not be read as {format}. Check that it is complete and that its contents really are {format}."
+        "unreadable_file": "This file could not be read as {format}. Check that it is complete and that its contents really are {format}.",
+        "no_room": "This file is {size_mb} MB and the server has no room for it right now. Try again in a moment, or upload a smaller model.",
+        "too_big_for_server": "This file is {size_mb} MB and this server can take {capacity_mb} MB right now. Try a smaller model, or gzip the file and upload that."
       },
       "jmodel": {
         "expected_token": "Expected {token} here, and there is {got}.",
