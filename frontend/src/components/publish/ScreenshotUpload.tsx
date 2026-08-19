@@ -55,9 +55,12 @@ export function ScreenshotUpload({
       const formData = new FormData();
       formData.append("file", file);
 
+      // Only send the header when there is a key — see LogoUpload for why
+      // interpolating a null was sending the literal "Bearer null".
+      const key = api.getApiKey();
       const res = await fetch(`/api/v2/models/catalog/${modelId}/screenshots`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${api.getApiKey()}` },
+        headers: key ? { Authorization: `Bearer ${key}` } : {},
         body: formData,
         credentials: "include",
       });

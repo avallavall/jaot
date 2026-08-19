@@ -61,7 +61,7 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const result = await api.signupWithEmail({
+      await api.signupWithEmail({
         email,
         name,
         organization_name: organizationName,
@@ -73,10 +73,14 @@ export default function SignupPage() {
         locale,
       });
 
-      // Store the returned API key for SDK/programmatic use
-      if (result.api_key) {
-        localStorage.setItem("jaot_api_key", result.api_key);
-      }
+      // The signup response carries an account API key. It is deliberately NOT
+      // written to localStorage. Doing so left a live, non-expiring credential
+      // on the machine of everyone who ever signed up here, and the app sent it
+      // as a Bearer token on every request from then on — while every other
+      // session in the product runs on cookies, which is the decision recorded
+      // in AuthContext's email-login path. The user is never shown that key
+      // either; keys meant for programmatic use are minted, and revealed once,
+      // on /workspace/api-keys.
 
       // Signup endpoint already sets JWT cookies, so log in with email to set
       // AuthContext state (this will use the cookies already set)

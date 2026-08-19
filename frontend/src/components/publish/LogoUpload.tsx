@@ -49,9 +49,14 @@ export function LogoUpload({ modelId, logoUrl, onLogoChange, disabled }: LogoUpl
       const formData = new FormData();
       formData.append("file", file);
 
+      // Send the header only when there is a key. Interpolating a null produced
+      // the literal string "Bearer null" on every cookie session, which is what
+      // this request has been sending for most users; the server ignored it and
+      // authenticated from the cookie, so it worked while reading as a bug.
+      const key = api.getApiKey();
       const res = await fetch(`/api/v2/models/catalog/${modelId}/logo`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${api.getApiKey()}` },
+        headers: key ? { Authorization: `Bearer ${key}` } : {},
         body: formData,
         credentials: "include",
       });

@@ -32,6 +32,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Security
+
+- **Signing up no longer leaves an API key in the browser's local storage.** The signup response carries an account API key, and the page stored it. That left a live, non-expiring credential on the machine of everyone who ever signed up, and the app then sent it as a Bearer token on every request — while every other session in the product runs on cookies. The key was never shown to the user either; keys for programmatic use are still minted, and revealed once, under Workspace → API keys.
+
 ### Fixed
 
 - **The admin panel now counts an adoption the same way everywhere.** The dashboard tile and the author-analytics page each defined it for themselves and disagreed under the same word: on the development database the tile said 112 adopted and the page said 2. The tile was counting every project tagged as coming from the marketplace, including 105 that record no source at all; the page was dropping two thirds of the real ones because a nullable column was compared with `!=`, which is never true against NULL in SQL. Both now read 6.
