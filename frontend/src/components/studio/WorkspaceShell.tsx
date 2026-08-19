@@ -7,7 +7,7 @@ import { Archive, ChevronLeft, Sparkles, Play, Check, Loader2, AlertCircle } fro
 import { Link, useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
-import { apiDate } from "@/lib/dates";
+import { apiDate, relativeTimeBase } from "@/lib/dates";
 import { StudioTabBar } from "./StudioTabBar";
 import { LiveStatsPanel } from "./LiveStatsPanel";
 import { VersionControls } from "./versioning/VersionControls";
@@ -217,14 +217,13 @@ function SolveStatusIndicator({ onGoToSolve }: { onGoToSolve: () => void }) {
   const startedAt = useModelProjectStore((s) => s.solveSession.startedAt);
   if (status !== "running") return null;
 
-  // Clamp the start to `now` so a server clock slightly ahead of this
-  // 15s-frozen snapshot can never render a FUTURE label ("dentro de 2 s")
-  // — a solve in progress is always in the past.
-  const started = startedAt
-    ? new Date(Math.min(apiDate(startedAt).getTime(), now.getTime()))
-    : null;
+  // A solve in progress is always in the past, so it must never render as a
+  // FUTURE label ("dentro de 2 s") when the server clock is slightly ahead of
+  // this 15s-frozen snapshot. `relativeTimeBase` is the same guard the Solve
+  // panel and the runs table use.
+  const started = startedAt ? apiDate(startedAt) : null;
   const label = started
-    ? t("solvingSince", { when: format.relativeTime(started, now) })
+    ? t("solvingSince", { when: format.relativeTime(started, relativeTimeBase(now, started)) })
     : t("solveRunning");
   return (
     <button

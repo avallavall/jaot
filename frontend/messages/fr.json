@@ -1210,6 +1210,7 @@
       "emailPlaceholder": "vous@exemple.com",
       "passwordLabel": "Mot de passe",
       "passwordPlaceholder": "Entrez votre mot de passe",
+      "sessionExpired": "Votre session est terminée. Reconnectez-vous pour continuer.",
       "rememberMe": "Se souvenir de moi",
       "submit": "Se connecter",
       "loggingIn": "Connexion en cours...",

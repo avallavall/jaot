@@ -19,7 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { api } from "@/lib/api";
 import { getErrorMessage, getErrorStatus } from "@/lib/errors";
-import { apiDate } from "@/lib/dates";
+import { apiDate, relativeTimeBase } from "@/lib/dates";
 import { useModelProjectStore } from "../store/useModelProjectStore";
 import { solveBlockedReason } from "./solve-precondition";
 import { ProjectRunsCard } from "./solve/ProjectRunsCard";
@@ -37,7 +37,10 @@ import { LiveSolvePanel } from "./solve/LiveSolvePanel";
 export function SolvePanel() {
   const t = useTranslations("studio");
   const format = useFormatter();
-  const now = useNow();
+  // With no interval the clock freezes at mount, so the banner never moved and
+  // a solve that finished after the panel opened read as happening in the
+  // future. The shell's rail uses the same 15 seconds.
+  const now = useNow({ updateInterval: 15_000 });
   const problem = useModelProjectStore((s) => s.problem);
   const modelId = useModelProjectStore((s) => s.modelId);
   const scratchParseError = useModelProjectStore((s) => s.parseErrors.scratch ?? false);
@@ -80,8 +83,10 @@ export function SolvePanel() {
   // The reconciled "last run" banner — shown only when no live session owns the
   // panel, so a finished-while-away solve reads as "resuelta · objetivo X · hace Ys".
   const showLastRun = session.status === "idle" && lastRun !== null;
-  const lastRunWhen =
-    lastRun?.finishedAt != null ? format.relativeTime(apiDate(lastRun.finishedAt), now) : "";
+  const lastRunFinishedAt = lastRun?.finishedAt != null ? apiDate(lastRun.finishedAt) : null;
+  const lastRunWhen = lastRunFinishedAt
+    ? format.relativeTime(lastRunFinishedAt, relativeTimeBase(now, lastRunFinishedAt))
+    : "";
 
   // Toast once when a solve fails.
   const failedRef = useRef(false);

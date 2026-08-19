@@ -48,6 +48,13 @@ export default function LoginPage() {
     }
   }, [isLoading, isAuthenticated, user, router]);
 
+  // Say why they are here when a session ran out under them. Read off
+  // `window` for the same reason the redirect above does.
+  const [sessionExpired, setSessionExpired] = useState(false);
+  useEffect(() => {
+    setSessionExpired(new URLSearchParams(window.location.search).get("expired") === "1");
+  }, []);
+
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setEmailError("");
@@ -119,6 +126,11 @@ export default function LoginPage() {
                 {t("login.rememberMe")}
               </Label>
             </div>
+            {sessionExpired && !emailError && (
+              <div className="p-3 text-sm bg-muted border border-border rounded-md" role="status">
+                {t("login.sessionExpired")}
+              </div>
+            )}
             {emailError && (
               <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
                 {emailError}

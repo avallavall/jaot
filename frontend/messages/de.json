@@ -1210,6 +1210,7 @@
       "emailPlaceholder": "sie@beispiel.de",
       "passwordLabel": "Passwort",
       "passwordPlaceholder": "Geben Sie Ihr Passwort ein",
+      "sessionExpired": "Ihre Sitzung ist beendet. Melden Sie sich erneut an, um weiterzuarbeiten.",
       "rememberMe": "Angemeldet bleiben",
       "submit": "Anmelden",
       "loggingIn": "Anmeldung läuft...",

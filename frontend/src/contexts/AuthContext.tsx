@@ -6,9 +6,10 @@ import {
   useEffect,
   useState,
   useCallback,
+  useRef,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import type { PlanLimits, WorkspaceRole } from "@/lib/types";
 
@@ -107,6 +108,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("jaot_permissions");
     localStorage.removeItem("jaot_active_workspace");
   }, []);
+
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
 
   const logout = useCallback(async () => {
     try {
@@ -234,6 +239,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   // Validate existing session (API key or JWT cookie) and restore workspace on mount.
+  // A session that ran out is a fact the whole app has to act on once. The API
+  // client says so when a 401 survives its refresh, and this is what listens:
+  // clear what is left of the session and go to the login page. Before it, each
+  // screen answered on its own — the executions page said "No executions yet"
+  // to somebody whose session had simply expired.
+  useEffect(() => {
+    const onExpired = () => {
+      if (pathnameRef.current?.includes("/login")) return;
+      clearAuth();
+      router.push("/login?expired=1");
+    };
+    window.addEventListener("jaot:session-expired", onExpired);
+    return () => window.removeEventListener("jaot:session-expired", onExpired);
+  }, [clearAuth, router]);
+
   useEffect(() => {
     const restoreWorkspace = async (userId: string, isAdmin: boolean) => {
       const savedWorkspaceId = localStorage.getItem("jaot_active_workspace");

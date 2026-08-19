@@ -1210,6 +1210,7 @@
       "emailPlaceholder": "you@example.com",
       "passwordLabel": "Password",
       "passwordPlaceholder": "Enter your password",
+      "sessionExpired": "Your session ended. Sign in again to carry on.",
       "rememberMe": "Remember me",
       "submit": "Log in",
       "loggingIn": "Logging in...",

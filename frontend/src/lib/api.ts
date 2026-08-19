@@ -503,7 +503,14 @@ async function request<T>(
           await refreshAccessToken();
           return request<T>(path, { ...options, _retried: true });
         } catch {
-          // refresh failed
+          // The refresh failed too: this session is over. Say so once, here,
+          // instead of leaving every screen to invent its own answer — the
+          // executions page told a logged-out user "No executions yet", which
+          // reads as "your work is gone", and the studio kept the whole
+          // logged-in shell up with a Retry button that could only fail.
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("jaot:session-expired"));
+          }
         }
       }
 

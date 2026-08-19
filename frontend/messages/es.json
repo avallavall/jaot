@@ -1210,6 +1210,7 @@
       "emailPlaceholder": "tu@ejemplo.com",
       "passwordLabel": "Contraseña",
       "passwordPlaceholder": "Introduce tu contraseña",
+      "sessionExpired": "Tu sesión ha terminado. Vuelve a entrar para seguir.",
       "rememberMe": "Recuérdame",
       "submit": "Iniciar sesión",
       "loggingIn": "Iniciando sesión...",

@@ -1210,6 +1210,7 @@
       "emailPlaceholder": "tu@exemple.com",
       "passwordLabel": "Contrasenya",
       "passwordPlaceholder": "Introdueix la teva contrasenya",
+      "sessionExpired": "La teva sessió s'ha acabat. Torna a entrar per continuar.",
       "rememberMe": "Recorda'm",
       "submit": "Iniciar sessió",
       "loggingIn": "Iniciant sessió...",
