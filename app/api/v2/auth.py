@@ -4,6 +4,7 @@ Supports both API key auth (existing) and email/password auth (new).
 """
 
 import logging
+import math
 import secrets
 from datetime import timedelta
 from typing import Any, cast
@@ -49,6 +50,42 @@ def _rate_limit_or_raise(key: str, limit_per_minute: int, limit_per_day: int) ->
     allowed, rate_info = check_rate_limit(key, limit_per_minute, limit_per_day)
     if not allowed:
         raise HTTPException(status_code=429, detail=rate_info)
+
+
+def _sign_in_rate_limit_or_raise(key: str, limit_per_minute: int, limit_per_day: int) -> None:
+    """The same guard, refused in the words of what it actually counts.
+
+    The limiter writes its refusal for a caller who has spent their own quota:
+    "You have exceeded your daily rate limit of 300 requests." Signing in is
+    neither. The key is the client's IP, so the budget is shared by everyone
+    behind one office address, and the 300 is a number no page shows — the
+    organization row says 100,000 a day and the instance setting says 5,000, so
+    a reader who goes looking finds two figures and neither is this one.
+
+    ``detail`` is the limiter's object, unchanged, because clients read
+    ``retry_after`` off it. The code and params beside it are what the login
+    page renders in the reader's language (see 04-patterns.md §6).
+    """
+    allowed, rate_info = check_rate_limit(key, limit_per_minute, limit_per_day)
+    if allowed:
+        return
+
+    info: dict[str, Any] = dict(rate_info or {})
+    retry_after = int(info.get("retry_after") or 0)
+    if retry_after > 60:
+        # The daily window; it reopens at midnight UTC, so this is hours away.
+        hours = max(1, math.ceil(retry_after / 3600))
+        raise CodedHTTPException(
+            status_code=429,
+            detail=info,
+            code="auth.sign_in_rate_day",
+            params={"hours": hours},
+        )
+    raise CodedHTTPException(
+        status_code=429,
+        detail=info,
+        code="auth.sign_in_rate_minute",
+    )
 
 
 # Cookie security: derive from DEBUG setting (secure=True in production)
@@ -209,7 +246,7 @@ def login_email(
     """
     # Rate limit login by IP to prevent brute force (limits configurable in admin settings)
     client_ip = get_client_ip(request)
-    _rate_limit_or_raise(
+    _sign_in_rate_limit_or_raise(
         f"login_ip:{client_ip}",
         PSS.get_int(db, "AUTH_LOGIN_RATE_LIMIT_PER_MINUTE"),
         PSS.get_int(db, "AUTH_LOGIN_RATE_LIMIT_PER_DAY"),

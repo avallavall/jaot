@@ -13,6 +13,7 @@ import { getErrorMessage } from "@/lib/errors";
 import { buildOriginSlices } from "@/lib/execution-origin";
 import { useCommonLabels } from "@/hooks/useCommonLabels";
 import { Button } from "@/components/ui/button";
+import { AnalyticsStatusTiles } from "@/components/solve/AnalyticsStatusTiles";
 import { OriginBadge } from "@/components/solve/OriginBadge";
 import {
   DistributionPieCard,
@@ -271,18 +272,7 @@ export default function SolveAnalyticsPage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-card border border-border rounded-lg p-3 text-center">
-              <div className="text-xs text-muted-foreground">{t("completed")}</div>
-              <div className="text-lg font-semibold text-green-600">{summary.completed}</div>
-            </div>
-            <div className="bg-card border border-border rounded-lg p-3 text-center">
-              <div className="text-xs text-muted-foreground">{t("failed")}</div>
-              <div className="text-lg font-semibold text-red-600">{summary.failed}</div>
-            </div>
-            <div className="bg-card border border-border rounded-lg p-3 text-center">
-              <div className="text-xs text-muted-foreground">{t("timedOut")}</div>
-              <div className="text-lg font-semibold text-yellow-600">{summary.timed_out}</div>
-            </div>
+            <AnalyticsStatusTiles byStatus={summary.executions_by_status} />
             <div className="bg-card border border-border rounded-lg p-3 text-center">
               <div className="text-xs text-muted-foreground">{t("medianSolveTime")}</div>
               <div className="text-lg font-semibold">{formatMs(summary.median_solve_time_ms)}</div>

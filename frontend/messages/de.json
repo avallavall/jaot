@@ -3018,7 +3018,8 @@
       "visualization": "Visualisierung",
       "variableValues": "Variablenwerte",
       "insightsTitle": "Automatische Analyse",
-      "datasetBadge": "Für diesen Lauf verwendeter Datensatz"
+      "datasetBadge": "Für diesen Lauf verwendeter Datensatz",
+      "importedExecution": "Dieser Lauf kam aus einer Datei, die Sie importiert haben. Dahinter steht kein gespeichertes Modell, es gibt also nichts im Studio zu öffnen und keinen Verlauf — importieren Sie die Datei erneut, um sie auszuführen."
     },
     "compare": {
       "title": "Ausführungsvergleich",
@@ -3257,7 +3258,10 @@
       "comparing": "Wird verglichen…",
       "noMatch": "Keine Ausführungen für diese IDs gefunden. Stelle sicher, dass sie zu deiner Organisation gehören.",
       "notFound": "Nicht gefunden: {ids}",
-      "failedToLoad": "Fehler beim Laden der Analytik."
+      "failedToLoad": "Fehler beim Laden der Analytik.",
+      "cancelled": "Abgebrochen",
+      "running": "Läuft",
+      "pending": "Wartet"
     },
     "multiObjectiveConfig": {
       "solvingMode": "Lösungsmodus",
@@ -3338,7 +3342,8 @@
       "thinking": "Deine Lösung wird analysiert…",
       "grounded": "Erstellt aus deiner tatsächlichen Lösung und den Sensitivitätswerten.",
       "unavailable": "Erklärungen sind nur für gelöste (optimale oder zulässige) Ausführungen verfügbar.",
-      "ref": "Ref: {requestId}"
+      "ref": "Ref: {requestId}",
+      "groundedNoSensitivity": "Aus Ihrer tatsächlichen Lösung erzeugt. Dieser Lauf trägt keine Sensitivitätswerte, oben wird also keine Nebenbedingung bepreist."
     },
     "infeasibility": {
       "title": "Warum ist dies unzulässig?",
@@ -4571,7 +4576,9 @@
         "invalid_credentials": "Diese E-Mail-Adresse und dieses Passwort gehören zu keinem Konto.",
         "verification_link_expired": "Dieser Bestätigungslink ist abgelaufen. Fordern Sie einen neuen an.",
         "verification_link_invalid": "Dieser Bestätigungslink ist nicht gültig.",
-        "reset_link_invalid": "Dieser Link zum Zurücksetzen ist abgelaufen oder nicht gültig."
+        "reset_link_invalid": "Dieser Link zum Zurücksetzen ist abgelaufen oder nicht gültig.",
+        "sign_in_rate_minute": "Zu viele Anmeldeversuche gerade eben. Warten Sie eine Minute und versuchen Sie es erneut.",
+        "sign_in_rate_day": "Zu viele Anmeldeversuche von dieser Adresse heute. Das Limit zählt das Netzwerk, aus dem Sie kommen, nicht Ihr Konto, es kann also mit anderen hinter derselben Verbindung geteilt werden. Versuchen Sie es in {hours, plural, one {# Stunde} other {# Stunden}} erneut."
       },
       "execution": {
         "not_found": "Diesen Lauf gibt es nicht, oder er gehört zu einer anderen Organisation."

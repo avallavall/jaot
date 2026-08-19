@@ -770,6 +770,58 @@ class TestRateLimiting:
         )
         assert response.status_code == 429
 
+    # CONTRACT-TEST: the sign-in guard refuses in the words of what it counts
+    # It reads "You have exceeded your daily rate limit of 300 requests", which
+    # is the wording for a caller spending their own API quota. This one is
+    # keyed on the client IP, so the budget is shared by everyone behind one
+    # address, and the 300 is a number no page shows: the organization row says
+    # 100,000 and the instance setting says 5,000.
+    def test_a_refused_sign_in_names_itself_for_a_translating_client(
+        self, client, db_session, real_rate_limiter
+    ):
+        PSS.set(db_session, "AUTH_LOGIN_RATE_LIMIT_PER_MINUTE", "2")
+        db_session.commit()
+        for i in range(2):
+            client.post(
+                "/api/v2/auth/login/email",
+                json={"email": f"coded{i}@example.com", "password": "wrong"},
+            )
+
+        response = client.post(
+            "/api/v2/auth/login/email",
+            json={"email": "coded9@example.com", "password": "wrong"},
+        )
+
+        assert response.status_code == 429
+        body = response.json()
+        assert body["code"] == "auth.sign_in_rate_minute"
+        # Additive: clients still read retry_after off the limiter's own object.
+        assert body["detail"]["error"] == "rate_limit_exceeded"
+        assert body["detail"]["retry_after"] >= 1
+
+    def test_a_days_worth_of_sign_ins_says_how_long_the_wait_is(
+        self, client, db_session, real_rate_limiter
+    ):
+        """The daily window reopens at midnight UTC, so it is hours away."""
+        PSS.set(db_session, "AUTH_LOGIN_RATE_LIMIT_PER_MINUTE", "0")
+        PSS.set(db_session, "AUTH_LOGIN_RATE_LIMIT_PER_DAY", "2")
+        db_session.commit()
+        for i in range(2):
+            client.post(
+                "/api/v2/auth/login/email",
+                json={"email": f"daily{i}@example.com", "password": "wrong"},
+            )
+
+        response = client.post(
+            "/api/v2/auth/login/email",
+            json={"email": "daily9@example.com", "password": "wrong"},
+        )
+
+        assert response.status_code == 429
+        body = response.json()
+        assert body["code"] == "auth.sign_in_rate_day"
+        assert body["params"]["hours"] >= 1
+
     def test_reset_rate_limited_at_3_per_hour(self, client, db_session, real_rate_limiter):
         """Password reset should be rate-limited at 3/hour per email."""
         email = "ratelimit@example.com"

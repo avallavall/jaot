@@ -3018,7 +3018,8 @@
       "visualization": "Visualització",
       "variableValues": "Valors de variables",
       "insightsTitle": "Anàlisi automàtica",
-      "datasetBadge": "Dataset usat en aquesta execució"
+      "datasetBadge": "Dataset usat en aquesta execució",
+      "importedExecution": "Aquesta execució va venir d'un fitxer que vas importar. No hi ha cap model desat al darrere, així que no hi ha res per obrir al taller ni historial per recórrer: torna a importar el fitxer per executar-lo."
     },
     "compare": {
       "title": "Comparació d'Execucions",
@@ -3257,7 +3258,10 @@
       "comparing": "Comparant…",
       "noMatch": "No s'han trobat execucions per a aquests IDs. Assegura't que pertanyen a la teva organització.",
       "notFound": "No trobades: {ids}",
-      "failedToLoad": "Error en carregar les analítiques."
+      "failedToLoad": "Error en carregar les analítiques.",
+      "cancelled": "Cancel·lades",
+      "running": "En curs",
+      "pending": "En espera"
     },
     "multiObjectiveConfig": {
       "solvingMode": "Mode de Resolució",
@@ -3338,7 +3342,8 @@
       "thinking": "Analitzant la teva solució…",
       "grounded": "Generat a partir de la teva solució i valors de sensibilitat reals.",
       "unavailable": "Les explicacions només estan disponibles per a execucions resoltes (òptimes o factibles).",
-      "ref": "ref: {requestId}"
+      "ref": "ref: {requestId}",
+      "groundedNoSensitivity": "Generat a partir de la teva solució real. Aquesta execució no porta valors de sensibilitat, així que res del que hi ha a dalt no posa preu a cap restricció."
     },
     "infeasibility": {
       "title": "Per què no és factible?",
@@ -4571,7 +4576,9 @@
         "invalid_credentials": "Aquest correu i aquesta contrasenya no corresponen a cap compte.",
         "verification_link_expired": "Aquest enllaç de verificació ha caducat. Demana’n un de nou.",
         "verification_link_invalid": "Aquest enllaç de verificació no és vàlid.",
-        "reset_link_invalid": "Aquest enllaç de restabliment ha caducat o no és vàlid."
+        "reset_link_invalid": "Aquest enllaç de restabliment ha caducat o no és vàlid.",
+        "sign_in_rate_minute": "Massa intents d'accés ara mateix. Espera un minut i torna-ho a provar.",
+        "sign_in_rate_day": "Massa intents d'accés des d'aquesta adreça avui. El límit compta la xarxa des d'on entres, no el teu compte, així que es pot compartir amb altres persones de la mateixa connexió. Torna-ho a provar d'aquí a {hours, plural, one {# hora} other {# hores}}."
       },
       "execution": {
         "not_found": "Aquesta execució no existeix, o és d'una altra organització."

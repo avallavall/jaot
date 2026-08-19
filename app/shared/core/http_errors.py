@@ -32,7 +32,11 @@ class CodedHTTPException(HTTPException):
     def __init__(
         self,
         status_code: int,
-        detail: str,
+        # Usually the English sentence. A 429 carries the rate limiter's own
+        # object instead — `{"error", "message", "limit", "remaining",
+        # "reset_at", "retry_after"}` — which clients already read, so it is
+        # passed through untouched here rather than flattened to a string.
+        detail: Any,
         code: str,
         params: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,

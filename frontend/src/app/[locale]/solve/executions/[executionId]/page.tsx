@@ -18,6 +18,7 @@ import { ScenarioAnalysisSection } from "@/components/solve/ScenarioAnalysisSect
 import { SolutionExplainer } from "@/components/solve/SolutionExplainer";
 import { InfeasibilityPanel } from "@/components/solve/InfeasibilityPanel";
 import { OriginBadge } from "@/components/solve/OriginBadge";
+import { noModelMessageKey } from "@/lib/execution-origin";
 import { SolveFactCard } from "@/components/solve/SolveFactCard";
 import { useSolverCapabilities } from "@/hooks/useSolvers";
 import { solverDisplayName } from "@/lib/solver-display";
@@ -262,7 +263,11 @@ export default function ExecutionDetailPage() {
           <TabsContent value="results">
             {variables.length > 0 && (
               <div className="mb-6">
-                <SolutionExplainer executionId={executionId} canExplain={canExplain} />
+                <SolutionExplainer
+                  executionId={executionId}
+                  canExplain={canExplain}
+                  hasSensitivity={Boolean(resultData?.sensitivity)}
+                />
               </div>
             )}
 
@@ -389,8 +394,13 @@ export default function ExecutionDetailPage() {
             {t("openInStudio")}
           </Button>
         ) : (
-          <p className="text-sm text-muted-foreground py-1">
-            {t("externalExecution")}
+          // "Triggered externally" was said about a file imported through this
+          // app two seconds earlier — the record itself says origin="import",
+          // source_kind="imported_file". What is true of every one of these is
+          // that no saved model is behind it, so name that instead of inventing
+          // a story about where it came from.
+          <p className="text-sm text-muted-foreground py-1" data-testid="execution-no-model">
+            {t(noModelMessageKey(execution.source_kind))}
           </p>
         )}
         <ExportButtons execution={execution} chartRef={chartRef} />

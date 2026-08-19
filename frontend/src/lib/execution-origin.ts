@@ -194,3 +194,19 @@ export function executionOriginHref(
       return null;
   }
 }
+
+/**
+ * Which sentence to show where the "open in studio" button would be, on a run
+ * with no model behind it.
+ *
+ * There was one sentence for every such run: "This execution was triggered
+ * externally — there is no model behind it." It was said about a file imported
+ * through this app two seconds earlier, whose own record reads
+ * `origin="import"`, `source_kind="imported_file"`. What is true of all of them
+ * is that nothing was saved to open again; where the run came from is not.
+ */
+export function noModelMessageKey(
+  sourceKind: ExecutionSourceKind | null | undefined
+): "importedExecution" | "externalExecution" {
+  return sourceKind === "imported_file" ? "importedExecution" : "externalExecution";
+}

@@ -3018,7 +3018,8 @@
       "visualization": "Visualisation",
       "variableValues": "Valeurs des variables",
       "insightsTitle": "Analyse automatique",
-      "datasetBadge": "Jeu de données utilisé pour cette exécution"
+      "datasetBadge": "Jeu de données utilisé pour cette exécution",
+      "importedExecution": "Cette exécution vient d'un fichier que vous avez importé. Aucun modèle enregistré ne se trouve derrière, il n'y a donc rien à ouvrir dans l'atelier ni d'historique à parcourir : réimportez le fichier pour l'exécuter."
     },
     "compare": {
       "title": "Comparaison d'exécutions",
@@ -3257,7 +3258,10 @@
       "comparing": "Comparaison…",
       "noMatch": "Aucune exécution trouvée pour ces ID. Vérifie qu'ils appartiennent à ton organisation.",
       "notFound": "Introuvables : {ids}",
-      "failedToLoad": "Erreur lors du chargement des analytiques."
+      "failedToLoad": "Erreur lors du chargement des analytiques.",
+      "cancelled": "Annulées",
+      "running": "En cours",
+      "pending": "En attente"
     },
     "multiObjectiveConfig": {
       "solvingMode": "Mode de résolution",
@@ -3338,7 +3342,8 @@
       "thinking": "Analyse de votre solution…",
       "grounded": "Généré à partir de votre solution et de vos valeurs de sensibilité réelles.",
       "unavailable": "Les explications ne sont disponibles que pour les exécutions résolues (optimales ou réalisables).",
-      "ref": "réf : {requestId}"
+      "ref": "réf : {requestId}",
+      "groundedNoSensitivity": "Généré à partir de votre solution réelle. Cette exécution ne porte aucune valeur de sensibilité, rien de ce qui précède ne chiffre donc une contrainte."
     },
     "infeasibility": {
       "title": "Pourquoi est-ce infaisable ?",
@@ -4571,7 +4576,9 @@
         "invalid_credentials": "Cet e-mail et ce mot de passe ne correspondent à aucun compte.",
         "verification_link_expired": "Ce lien de vérification a expiré. Demandez-en un nouveau.",
         "verification_link_invalid": "Ce lien de vérification n’est pas valide.",
-        "reset_link_invalid": "Ce lien de réinitialisation a expiré ou n’est pas valide."
+        "reset_link_invalid": "Ce lien de réinitialisation a expiré ou n’est pas valide.",
+        "sign_in_rate_minute": "Trop de tentatives de connexion à l'instant. Attendez une minute et réessayez.",
+        "sign_in_rate_day": "Trop de tentatives de connexion depuis cette adresse aujourd'hui. La limite compte le réseau d'où vous vous connectez, pas votre compte, elle peut donc être partagée avec d'autres personnes sur la même connexion. Réessayez dans {hours, plural, one {# heure} other {# heures}}."
       },
       "execution": {
         "not_found": "Cette exécution n’existe pas, ou appartient à une autre organisation."

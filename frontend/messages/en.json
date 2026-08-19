@@ -3043,7 +3043,8 @@
       "externalExecution": "This execution was triggered externally — there is no model behind it, so it cannot be opened in the studio and has no history to walk.",
       "viewTriggerConfig": "View Trigger Config",
       "failedToLoad": "Failed to load execution",
-      "datasetBadge": "Dataset used for this run"
+      "datasetBadge": "Dataset used for this run",
+      "importedExecution": "This run came from a file you imported. There is no saved model behind it, so there is nothing to open in the studio and no history to walk — import the file again to run it."
     },
     "compare": {
       "title": "Execution Comparison",
@@ -3294,7 +3295,10 @@
       "comparing": "Comparing…",
       "noMatch": "No matching executions found for those IDs. Make sure they belong to your organization.",
       "notFound": "Not found: {ids}",
-      "failedToLoad": "Failed to load analytics data."
+      "failedToLoad": "Failed to load analytics data.",
+      "cancelled": "Cancelled",
+      "running": "Running",
+      "pending": "Pending"
     },
     "multiObjectiveConfig": {
       "solvingMode": "Solving Mode",
@@ -3375,7 +3379,8 @@
       "thinking": "Analyzing your solution…",
       "grounded": "Generated from your actual solution and sensitivity values.",
       "unavailable": "Explanations are available only for solved (optimal or feasible) executions.",
-      "ref": "ref: {requestId}"
+      "ref": "ref: {requestId}",
+      "groundedNoSensitivity": "Generated from your actual solution. This run carries no sensitivity values, so nothing above prices a constraint."
     },
     "infeasibility": {
       "title": "Why is this infeasible?",
@@ -4571,7 +4576,9 @@
         "invalid_credentials": "That email and password do not match an account.",
         "verification_link_expired": "This verification link has expired. Request a new one.",
         "verification_link_invalid": "This verification link is not valid.",
-        "reset_link_invalid": "This reset link has expired or is not valid."
+        "reset_link_invalid": "This reset link has expired or is not valid.",
+        "sign_in_rate_minute": "Too many sign-in attempts just now. Wait a minute and try again.",
+        "sign_in_rate_day": "Too many sign-in attempts from this address today. The limit counts the network you are on, not your account, so it can be shared with others behind the same connection. Try again in {hours, plural, one {# hour} other {# hours}}."
       },
       "execution": {
         "not_found": "That run does not exist, or it belongs to another organization."

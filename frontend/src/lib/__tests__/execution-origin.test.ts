@@ -8,6 +8,7 @@ import {
   buildOriginSlices,
   executionOriginHref,
   isOriginKey,
+  noModelMessageKey,
   originLabel,
   resolveOriginKey,
   type OriginKey,
@@ -199,5 +200,23 @@ describe("executionOriginHref", () => {
     expect(executionOriginHref("visual_builder", "mp_42", "model_project")).toBe(
       "/studio/mp_42/build",
     );
+  });
+});
+
+/**
+ * "This execution was triggered externally — there is no model behind it" was
+ * said about a file imported through this app two seconds earlier. The record
+ * says so itself: origin="import", source_kind="imported_file".
+ */
+describe("noModelMessageKey", () => {
+  // CONTRACT-TEST: a run says where it came from, not the opposite
+  it("names an import as an import", () => {
+    expect(noModelMessageKey("imported_file")).toBe("importedExecution");
+  });
+
+  it("keeps the external wording for a run that really came from outside", () => {
+    expect(noModelMessageKey("trigger")).toBe("externalExecution");
+    expect(noModelMessageKey(null)).toBe("externalExecution");
+    expect(noModelMessageKey(undefined)).toBe("externalExecution");
   });
 });

@@ -3018,7 +3018,8 @@
       "visualization": "Visualización",
       "variableValues": "Valores de variables",
       "insightsTitle": "Análisis automático",
-      "datasetBadge": "Dataset usado en esta ejecución"
+      "datasetBadge": "Dataset usado en esta ejecución",
+      "importedExecution": "Esta ejecución vino de un fichero que importaste. No hay ningún modelo guardado detrás, así que no hay nada que abrir en el taller ni historial que recorrer: vuelve a importar el fichero para ejecutarlo."
     },
     "compare": {
       "title": "Comparación de ejecuciones",
@@ -3257,7 +3258,10 @@
       "comparing": "Comparando…",
       "noMatch": "No se encontraron ejecuciones para esos IDs. Asegúrate de que pertenecen a tu organización.",
       "notFound": "No encontradas: {ids}",
-      "failedToLoad": "Error al cargar las analíticas."
+      "failedToLoad": "Error al cargar las analíticas.",
+      "cancelled": "Canceladas",
+      "running": "En curso",
+      "pending": "En espera"
     },
     "multiObjectiveConfig": {
       "solvingMode": "Modo de resolución",
@@ -3338,7 +3342,8 @@
       "thinking": "Analizando tu solución…",
       "grounded": "Generado a partir de tu solución y valores de sensibilidad reales.",
       "unavailable": "Las explicaciones solo están disponibles para ejecuciones resueltas (óptimas o factibles).",
-      "ref": "ref: {requestId}"
+      "ref": "ref: {requestId}",
+      "groundedNoSensitivity": "Generado a partir de tu solución real. Esta ejecución no lleva valores de sensibilidad, así que nada de lo anterior pone precio a una restricción."
     },
     "infeasibility": {
       "title": "¿Por qué es no factible?",
@@ -4571,7 +4576,9 @@
         "invalid_credentials": "Ese correo y esa contraseña no corresponden a ninguna cuenta.",
         "verification_link_expired": "Este enlace de verificación ha caducado. Pide uno nuevo.",
         "verification_link_invalid": "Este enlace de verificación no es válido.",
-        "reset_link_invalid": "Este enlace de restablecimiento ha caducado o no es válido."
+        "reset_link_invalid": "Este enlace de restablecimiento ha caducado o no es válido.",
+        "sign_in_rate_minute": "Demasiados intentos de acceso ahora mismo. Espera un minuto y vuelve a probar.",
+        "sign_in_rate_day": "Demasiados intentos de acceso desde esta dirección hoy. El límite cuenta la red desde la que entras, no tu cuenta, así que puede compartirse con otras personas de la misma conexión. Vuelve a probar dentro de {hours, plural, one {# hora} other {# horas}}."
       },
       "execution": {
         "not_found": "Esa ejecución no existe, o es de otra organización."

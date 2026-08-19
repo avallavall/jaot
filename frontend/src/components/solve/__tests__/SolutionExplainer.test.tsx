@@ -33,20 +33,20 @@ function makeStream(overrides: Partial<SolutionExplanationState> = {}): Solution
 describe("SolutionExplainer", () => {
   it("shows the unavailable message when the execution cannot be explained", () => {
     mockUseSolutionExplanation.mockReturnValue(makeStream());
-    render(<SolutionExplainer executionId="exe_1" canExplain={false} />);
+    render(<SolutionExplainer executionId="exe_1" canExplain={false} hasSensitivity />);
     expect(screen.getByText("solve.explainer.unavailable")).toBeInTheDocument();
   });
 
   it("renders the explain button when solved and idle", () => {
     mockUseSolutionExplanation.mockReturnValue(makeStream());
-    render(<SolutionExplainer executionId="exe_1" canExplain={true} />);
+    render(<SolutionExplainer executionId="exe_1" canExplain={true} hasSensitivity />);
     expect(screen.getByText("solve.explainer.button")).toBeInTheDocument();
     expect(screen.getByText("solve.explainer.title")).toBeInTheDocument();
   });
 
   it("shows the thinking indicator while streaming with no text yet", () => {
     mockUseSolutionExplanation.mockReturnValue(makeStream({ streaming: true, text: "" }));
-    render(<SolutionExplainer executionId="exe_1" canExplain={true} />);
+    render(<SolutionExplainer executionId="exe_1" canExplain={true} hasSensitivity />);
     expect(screen.getByText("solve.explainer.thinking")).toBeInTheDocument();
     // No button while streaming.
     expect(screen.queryByText("solve.explainer.button")).not.toBeInTheDocument();
@@ -56,7 +56,7 @@ describe("SolutionExplainer", () => {
     mockUseSolutionExplanation.mockReturnValue(
       makeStream({ text: "Set x=1 and y=3 for objective 9.", streaming: false })
     );
-    render(<SolutionExplainer executionId="exe_1" canExplain={true} />);
+    render(<SolutionExplainer executionId="exe_1" canExplain={true} hasSensitivity />);
     expect(screen.getByText("Set x=1 and y=3 for objective 9.")).toBeInTheDocument();
     expect(screen.getByText("solve.explainer.grounded")).toBeInTheDocument();
   });
@@ -65,9 +65,38 @@ describe("SolutionExplainer", () => {
     mockUseSolutionExplanation.mockReturnValue(
       makeStream({ errorCode: "service_unavailable", requestId: "req_123" })
     );
-    render(<SolutionExplainer executionId="exe_1" canExplain={true} />);
+    render(<SolutionExplainer executionId="exe_1" canExplain={true} hasSensitivity />);
     expect(screen.getByText("builder.llm.error.serviceUnavailable")).toBeInTheDocument();
     // The mock i18n echoes the key (no message template), so the ref renders as its key.
     expect(screen.getByText("solve.explainer.ref")).toBeInTheDocument();
+  });
+});
+
+/**
+ * The footer said "Generated from your actual solution and sensitivity values"
+ * under an explanation whose own words were "since no sensitivity analysis is
+ * available, we cannot say precisely how much relaxing c1 or c2 by one unit
+ * would improve the objective". The run was solved by CBC, which reports none.
+ */
+describe("SolutionExplainer, the line under the explanation", () => {
+  const DONE = { text: "Set x=1 and y=3 for objective 9.", streaming: false };
+
+  // CONTRACT-TEST: the footer never claims data the run does not carry
+  it("does not claim sensitivity values on a run that has none", () => {
+    mockUseSolutionExplanation.mockReturnValue(makeStream(DONE));
+    render(<SolutionExplainer executionId="exe_1" canExplain hasSensitivity={false} />);
+
+    expect(screen.getByText("solve.explainer.groundedNoSensitivity")).toBeInTheDocument();
+    expect(screen.queryByText("solve.explainer.grounded")).not.toBeInTheDocument();
+  });
+
+  it("claims them when the run does carry them", () => {
+    mockUseSolutionExplanation.mockReturnValue(makeStream(DONE));
+    render(<SolutionExplainer executionId="exe_1" canExplain hasSensitivity />);
+
+    expect(screen.getByText("solve.explainer.grounded")).toBeInTheDocument();
+    expect(
+      screen.queryByText("solve.explainer.groundedNoSensitivity")
+    ).not.toBeInTheDocument();
   });
 });

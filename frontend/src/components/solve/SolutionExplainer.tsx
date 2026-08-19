@@ -19,6 +19,14 @@ interface SolutionExplainerProps {
   executionId: string;
   /** Only solved (optimal/feasible) executions can be explained. */
   canExplain: boolean;
+  /** Whether this run carries sensitivity values.
+   *
+   * The footer said "Generated from your actual solution and sensitivity
+   * values" under an explanation whose own words were "since no sensitivity
+   * analysis is available, we cannot say precisely how much relaxing c1 would
+   * improve the objective". Only two of the four solvers report them, so the
+   * footer has to know. */
+  hasSensitivity: boolean;
 }
 
 /**
@@ -29,7 +37,11 @@ interface SolutionExplainerProps {
  * The backend loads the solution + sensitivity from the execution itself, so the
  * client only passes the execution id.
  */
-export function SolutionExplainer({ executionId, canExplain }: SolutionExplainerProps) {
+export function SolutionExplainer({
+  executionId,
+  canExplain,
+  hasSensitivity,
+}: SolutionExplainerProps) {
   const t = useTranslations("solve.explainer");
   const tBuilder = useTranslations("builder");
   const stream = useSolutionExplanation();
@@ -115,7 +127,9 @@ export function SolutionExplainer({ executionId, canExplain }: SolutionExplainer
       )}
 
       {stream.text && !stream.streaming && !showError && (
-        <p className="text-xs text-muted-foreground">{t("grounded")}</p>
+        <p className="text-xs text-muted-foreground" data-testid="explainer-grounded">
+          {t(hasSensitivity ? "grounded" : "groundedNoSensitivity")}
+        </p>
       )}
 
       {started && <ByokHint />}
