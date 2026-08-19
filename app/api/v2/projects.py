@@ -92,6 +92,7 @@ from app.services.template_resolver import (
 )
 from app.shared.constants.execution_provenance import ORIGIN_VISUAL_BUILDER
 from app.shared.core.http_errors import CodedHTTPException
+from app.shared.core.validation_message import validation_summary
 
 logger = logging.getLogger(__name__)
 
@@ -1130,7 +1131,9 @@ def solve_model_project(  # def: blocks on the queued result in the threadpool (
     except ValidationError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Stored model is not a valid optimization problem: {exc.errors()[:3]}",
+            detail=validation_summary(
+                exc, prefix="Stored model is not a valid optimization problem."
+            ),
         ) from exc
 
     # Tier caps, auto-routing, credit pre-pay, provenance, and the pending row all

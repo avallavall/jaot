@@ -22,6 +22,7 @@ import logging
 import os
 import tempfile
 
+from pydantic import ValidationError
 from pyscipopt import Model
 
 from app.domains.solver.services._naming import sanitize_var_name
@@ -42,6 +43,7 @@ from app.schemas.optimization import (
     Variable,
     VariableType,
 )
+from app.shared.core.validation_message import validation_summary
 
 logger = logging.getLogger(__name__)
 
@@ -493,8 +495,14 @@ class FileImportService:
 
         try:
             return OptimizationProblem(**data)
+        except ValidationError as exc:
+            # Never `str(exc)`: it carries Pydantic type codes, a link to
+            # errors.pydantic.dev, and a slice of the uploaded file echoed back.
+            raise FileImportError(
+                validation_summary(exc, prefix="This JSON is not an optimization problem.")
+            ) from exc
         except Exception as exc:
-            raise FileImportError(f"JSON does not match OptimizationProblem schema: {exc}") from exc
+            raise FileImportError(f"This JSON is not an optimization problem: {exc}") from exc
 
     @staticmethod
     def _check_json_depth(file_bytes: bytes, max_depth: int) -> None:

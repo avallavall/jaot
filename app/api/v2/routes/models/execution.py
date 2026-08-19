@@ -43,6 +43,7 @@ from app.schemas.optimization import (
 )
 from app.services.template_resolver import listing_to_template_dict
 from app.shared.constants.execution_provenance import ORIGIN_MARKETPLACE
+from app.shared.core.validation_message import validation_summary
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
 from app.shared.utils.pagination import paginate_query
@@ -187,7 +188,9 @@ def execute_model(
         except ValidationError as exc:
             raise HTTPException(
                 status_code=422,
-                detail=f"Stored model is not a valid optimization problem: {exc.errors()[:3]}",
+                detail=validation_summary(
+                    exc, prefix="Stored model is not a valid optimization problem."
+                ),
             ) from exc
         problem_data = problem.model_dump(mode="json")
 

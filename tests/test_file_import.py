@@ -571,9 +571,23 @@ class TestImportErrors:
     # --- JSON errors ---
 
     def test_json_invalid_schema(self):
+        """A JSON that is not a model says so, and says which field is missing.
+
+        It used to carry `str(ValidationError)` verbatim: Pydantic type codes, a
+        link to errors.pydantic.dev, and a slice of the uploaded file echoed
+        back at whoever uploaded it. Matching on the word "schema" would pass
+        for that message too, so this asserts what the reader needs instead.
+        """
         bad_json = json.dumps({"name": "bad", "variables": []}).encode()
-        with pytest.raises(FileImportError, match="schema"):
+        with pytest.raises(FileImportError) as caught:
             self.service.import_from_file(bad_json, "bad.json")
+
+        message = str(caught.value)
+        assert "not an optimization problem" in message
+        assert "objective" in message, "it must name the field that is missing"
+        assert "errors.pydantic.dev" not in message
+        assert "type=missing" not in message
+        assert "input_value" not in message
 
     def test_json_invalid_syntax(self):
         with pytest.raises(FileImportError, match="Invalid JSON"):

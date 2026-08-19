@@ -55,6 +55,7 @@ from app.services.solver_comparison_setup import (
     insert_comparison_child,
     solver_row,
 )
+from app.shared.core.validation_message import readable_validation_problems
 from app.shared.utils.id_generator import generate_id
 
 logger = logging.getLogger(__name__)
@@ -343,22 +344,11 @@ def _resolve_problem(
 #: carries the offending input with it — a grounded constraint runs to thousands
 #: of characters. Dumping ``exc.errors()`` put that whole wall on the user's
 #: screen and told them nothing they could act on.
-_MAX_REPORTED_ERRORS = 3
-_MAX_ERROR_LENGTH = 160
 
 
 def _validation_detail(model_name: str, exc: ValidationError) -> dict[str, Any]:
     """Turn a Pydantic failure into something a person can read and act on."""
-    errors = exc.errors(include_url=False, include_input=False, include_context=False)
-    problems: list[str] = []
-    for error in errors[:_MAX_REPORTED_ERRORS]:
-        where = ".".join(str(part) for part in error.get("loc", ())) or "model"
-        message = str(error.get("msg", "")).removeprefix("Value error, ")
-        if len(message) > _MAX_ERROR_LENGTH:
-            message = f"{message[:_MAX_ERROR_LENGTH]}…"
-        problems.append(f"{where}: {message}")
-
-    remaining = max(0, len(errors) - _MAX_REPORTED_ERRORS)
+    problems, remaining = readable_validation_problems(exc)
     return {
         "error": "model_cannot_be_compared",
         "message": (
