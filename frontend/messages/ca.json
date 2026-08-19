@@ -150,7 +150,12 @@
     "statOperators": "Operadors",
     "statAvgTerms": "Termes/restricció",
     "autoRouted": "encaminat automàticament",
-    "notFound": "Model no trobat.",
+    "missing": {
+      "title": "Aquest model ja no existeix",
+      "body": "S'ha esborrat. Les execucions que en van sortir continuen al teu historial.",
+      "backToModels": "Tornar als meus models",
+      "seeRuns": "Veure les execucions"
+    },
     "loadFailed": "No s'ha pogut carregar el model.",
     "saveSaving": "Desant…",
     "saveSaved": "Desat",

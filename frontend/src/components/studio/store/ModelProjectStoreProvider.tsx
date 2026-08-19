@@ -22,6 +22,7 @@ import { useSolveSession } from "./useSolveSession";
 import { useActiveDatasetCompile } from "./useActiveDatasetCompile";
 import { StudioAssistantProvider } from "../assistant/StudioAssistantProvider";
 import { ModelExplanationProvider } from "../explain/ModelExplanationProvider";
+import { MissingModel } from "../MissingModel";
 
 const EMPTY_PROBLEM: OptimizationProblem = {
   variables: [],
@@ -47,6 +48,10 @@ export function ModelProjectStoreProvider({
   const t = useTranslations("studio");
   const router = useRouter();
   const { activeWorkspaceId } = useAuth();
+
+  // Set when the server answers 404 for this model: it was deleted, or the id
+  // never existed. The workspace is not rendered at all in that case.
+  const [missing, setMissing] = useState(false);
 
   // Lazy one-time init (the provider is keyed by modelId, so a fresh model gets a
   // fresh store). useState — not useRef — so the store is not read during render.
@@ -165,7 +170,16 @@ export function ModelProjectStoreProvider({
       .catch((err: unknown) => {
         if (cancelled) return;
         const status = (err as { status?: number })?.status;
-        toast.error(status === 404 ? tRef.current("notFound") : tRef.current("loadFailed"));
+        // A model that is gone gets a page saying so. It used to get a toast
+        // and a push to the model list, which read as a click that had missed
+        // — and on the Solve tab the push lost a race with the workspace, so
+        // `/solve/<id>/history` painted tabs and a live Solve button over a
+        // model the server answers 404 for.
+        if (status === 404) {
+          setMissing(true);
+          return;
+        }
+        toast.error(tRef.current("loadFailed"));
         routerRef.current.push("/studio");
       });
 
@@ -185,6 +199,12 @@ export function ModelProjectStoreProvider({
   // Recompiles the JModel source when the active dataset changes, so picking a
   // dataset in Datos applies the model everywhere without visiting the lens.
   useActiveDatasetCompile(store);
+
+  // After the hooks, never before them: an early return above would change the
+  // hook order between the loading render and this one.
+  if (missing) {
+    return <MissingModel />;
+  }
 
   return (
     <ModelProjectStoreContext.Provider value={store}>

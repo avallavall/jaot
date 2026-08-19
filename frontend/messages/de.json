@@ -150,7 +150,12 @@
     "statOperators": "Operatoren",
     "statAvgTerms": "Terme/Restriktion",
     "autoRouted": "automatisch geroutet",
-    "notFound": "Modell nicht gefunden.",
+    "missing": {
+      "title": "Dieses Modell gibt es nicht mehr",
+      "body": "Es wurde gelöscht. Die daraus entstandenen Läufe stehen weiter in Ihrem Verlauf.",
+      "backToModels": "Zurück zu meinen Modellen",
+      "seeRuns": "Läufe ansehen"
+    },
     "loadFailed": "Modell konnte nicht geladen werden.",
     "saveSaving": "Speichern…",
     "saveSaved": "Gespeichert",

@@ -150,7 +150,12 @@
     "statOperators": "Opérateurs",
     "statAvgTerms": "Termes/contrainte",
     "autoRouted": "routage automatique",
-    "notFound": "Modèle introuvable.",
+    "missing": {
+      "title": "Ce modèle n’existe plus",
+      "body": "Il a été supprimé. Les exécutions qui en sont issues restent dans votre historique.",
+      "backToModels": "Retour à mes modèles",
+      "seeRuns": "Voir les exécutions"
+    },
     "loadFailed": "Impossible de charger le modèle.",
     "saveSaving": "Enregistrement…",
     "saveSaved": "Enregistré",
