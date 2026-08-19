@@ -2991,8 +2991,8 @@
       "gapConvergence": "Convergència del Gap",
       "inputDataRawJson": "Dades d'Entrada (JSON en brut)",
       "resultDataRawJson": "Dades del Resultat (JSON en brut)",
-      "runAgain": "Executar de Nou",
-      "externalExecution": "Aquesta execució es va disparar externament — sense model associat. \"Executar de Nou\" i la navegació per l'historial no estan disponibles.",
+      "openInStudio": "Obre-la al taller",
+      "externalExecution": "Aquesta execució es va llançar des de fora — no té model al darrere, així que no es pot obrir al taller ni té historial per recórrer.",
       "viewTriggerConfig": "Veure Configuració del Trigger",
       "failedToLoad": "Error en carregar l'execució",
       "visualization": "Visualització",
@@ -3100,6 +3100,9 @@
       "needsInputData": "Aquest model necessita dades d'entrada per previsualitzar. Usant exemple."
     },
     "comparison": {
+      "differentModels": "Aquestes dues execucions són de models diferents: {a} i {b}.",
+      "differentModelsDetail": "La diferència de l'objectiu resta l'objectiu d'un model al d'un altre, així que llegeix-los com dos números a part. Les files de variables només es corresponen on els dos models fan servir el mateix nom.",
+      "nothingInCommon": "Les dues execucions no comparteixen ni un nom de variable, així que totes les files de sota surten com afegides o tretes i el nombre de canvis és només el total. La diferència de l'objectiu resta l'objectiu d'un model al d'un altre.",
       "summary": "Resum de la Comparació",
       "originRunA": "Origen (Execució A)",
       "originRunB": "Origen (Execució B)",

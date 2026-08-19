@@ -2991,8 +2991,8 @@
       "gapConvergence": "Convergencia del gap",
       "inputDataRawJson": "Datos de entrada (JSON sin procesar)",
       "resultDataRawJson": "Datos del resultado (JSON sin procesar)",
-      "runAgain": "Ejecutar de nuevo",
-      "externalExecution": "Esta ejecución fue disparada externamente — sin modelo asociado. \"Ejecutar de nuevo\" y la navegación del historial no están disponibles.",
+      "openInStudio": "Abrir en el taller",
+      "externalExecution": "Esta ejecución se lanzó desde fuera — no tiene modelo detrás, así que no se puede abrir en el taller ni tiene historial que recorrer.",
       "viewTriggerConfig": "Ver configuración del trigger",
       "failedToLoad": "Error al cargar la ejecución",
       "visualization": "Visualización",
@@ -3100,6 +3100,9 @@
       "needsInputData": "Este modelo necesita datos de entrada para previsualizar. Usando ejemplo."
     },
     "comparison": {
+      "differentModels": "Estas dos ejecuciones son de modelos distintos: {a} y {b}.",
+      "differentModelsDetail": "La diferencia del objetivo resta el objetivo de un modelo al de otro, así que léelos como dos números aparte. Las filas de variables sólo se corresponden donde los dos modelos usan el mismo nombre.",
+      "nothingInCommon": "Las dos ejecuciones no comparten ni un nombre de variable, así que todas las filas de abajo salen como añadidas o quitadas y el número de cambios es sólo el total. La diferencia del objetivo resta el objetivo de un modelo al de otro.",
       "summary": "Resumen de comparación",
       "originRunA": "Origen (Ejecución A)",
       "originRunB": "Origen (Ejecución B)",

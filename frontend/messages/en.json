@@ -3019,8 +3019,8 @@
       "gapConvergence": "Gap Convergence",
       "inputDataRawJson": "Input Data (raw JSON)",
       "resultDataRawJson": "Result Data (raw JSON)",
-      "runAgain": "Run Again",
-      "externalExecution": "This execution was triggered externally — no associated model. \"Run Again\" and history navigation are unavailable.",
+      "openInStudio": "Open in the studio",
+      "externalExecution": "This execution was triggered externally — there is no model behind it, so it cannot be opened in the studio and has no history to walk.",
       "viewTriggerConfig": "View Trigger Config",
       "failedToLoad": "Failed to load execution",
       "datasetBadge": "Dataset used for this run"
@@ -3125,6 +3125,9 @@
       "needsInputData": "This model requires input data to preview. Using example input."
     },
     "comparison": {
+      "differentModels": "These two runs are of different models: {a} and {b}.",
+      "differentModelsDetail": "The objective delta subtracts one model's objective from another's, so read it as two separate numbers. The variable rows only line up where both models use the same name.",
+      "nothingInCommon": "The two runs share no variable name at all, so every row below is listed as added or removed and the change count is simply the total. The objective delta subtracts one model's objective from another's.",
       "summary": "Comparison Summary",
       "originRunA": "Origin (Run A)",
       "originRunB": "Origin (Run B)",

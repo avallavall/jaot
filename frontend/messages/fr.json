@@ -2991,8 +2991,8 @@
       "gapConvergence": "Convergence de l'écart",
       "inputDataRawJson": "Données d'entrée (JSON brut)",
       "resultDataRawJson": "Données de résultat (JSON brut)",
-      "runAgain": "Réexécuter",
-      "externalExecution": "Cette exécution a été déclenchée de l'extérieur — aucun modèle associé. « Réexécuter » et la navigation dans l'historique ne sont pas disponibles.",
+      "openInStudio": "Ouvrir dans le studio",
+      "externalExecution": "Cette exécution a été déclenchée de l'extérieur — aucun modèle derrière elle, elle ne peut donc pas être ouverte dans le studio et n'a pas d'historique à parcourir.",
       "viewTriggerConfig": "Voir la configuration du déclencheur",
       "failedToLoad": "Échec du chargement de l'exécution",
       "visualization": "Visualisation",
@@ -3100,6 +3100,9 @@
       "needsInputData": "Ce modèle nécessite des données d'entrée pour la prévisualisation. Utilisation de l'exemple."
     },
     "comparison": {
+      "differentModels": "Ces deux exécutions portent sur des modèles différents : {a} et {b}.",
+      "differentModelsDetail": "L'écart d'objectif soustrait l'objectif d'un modèle à celui d'un autre ; lisez-les comme deux nombres distincts. Les lignes de variables ne se correspondent que là où les deux modèles emploient le même nom.",
+      "nothingInCommon": "Les deux exécutions ne partagent aucun nom de variable : toutes les lignes ci-dessous sont donc marquées ajoutées ou supprimées, et le nombre de changements n'est que le total. L'écart d'objectif soustrait l'objectif d'un modèle à celui d'un autre.",
       "summary": "Résumé de la comparaison",
       "originRunA": "Origine (Exécution A)",
       "originRunB": "Origine (Exécution B)",

@@ -2991,8 +2991,8 @@
       "gapConvergence": "Gap-Konvergenz",
       "inputDataRawJson": "Eingabedaten (Roh-JSON)",
       "resultDataRawJson": "Ergebnisdaten (Roh-JSON)",
-      "runAgain": "Erneut ausführen",
-      "externalExecution": "Diese Ausführung wurde extern ausgelöst — kein zugeordnetes Modell. \"Erneut ausführen\" und Verlaufsnavigation sind nicht verfügbar.",
+      "openInStudio": "Im Studio öffnen",
+      "externalExecution": "Diese Ausführung wurde von außen ausgelöst — es steht kein Modell dahinter, sie kann also nicht im Studio geöffnet werden und hat keinen Verlauf.",
       "viewTriggerConfig": "Trigger-Konfiguration anzeigen",
       "failedToLoad": "Ausführung konnte nicht geladen werden",
       "visualization": "Visualisierung",
@@ -3100,6 +3100,9 @@
       "needsInputData": "Dieses Modell benötigt Eingabedaten zur Vorschau. Beispiel wird verwendet."
     },
     "comparison": {
+      "differentModels": "Diese beiden Läufe gehören zu verschiedenen Modellen: {a} und {b}.",
+      "differentModelsDetail": "Die Zieldifferenz zieht das Ziel eines Modells von dem eines anderen ab; lesen Sie sie als zwei getrennte Zahlen. Die Variablenzeilen passen nur dort zusammen, wo beide Modelle denselben Namen verwenden.",
+      "nothingInCommon": "Die beiden Läufe teilen keinen einzigen Variablennamen, deshalb steht jede Zeile unten als hinzugefügt oder entfernt und die Zahl der Änderungen ist nur die Gesamtzahl. Die Zieldifferenz zieht das Ziel eines Modells von dem eines anderen ab.",
       "summary": "Vergleichszusammenfassung",
       "originRunA": "Quelle (Lauf A)",
       "originRunB": "Quelle (Lauf B)",

@@ -108,6 +108,55 @@ function idPrefix(id: string): string {
   return id.slice(0, 8);
 }
 
+/**
+ * What model a run executed, or null when the row does not say.
+ *
+ * An uploaded problem carries no project, so two of those are indistinguishable
+ * here — which is why "cannot tell" is a third answer and not a synonym for
+ * "different". Warning on a pair we cannot identify would train people to
+ * ignore the warning.
+ */
+function modelKeyOf(e: ModelExecution): string | null {
+  if (e.model_project_id) return e.model_project_id;
+  if (e.organization_model_id) return e.organization_model_id;
+  if (e.source_kind && e.source_id) return `${e.source_kind}:${e.source_id}`;
+  return null;
+}
+
+function modelLabelOf(e: ModelExecution): string {
+  return e.model_name || modelKeyOf(e) || idPrefix(e.id);
+}
+
+/**
+ * Whether the two runs are demonstrably of different models.
+ *
+ * The page compares any two executions it is handed, and comparing runs of two
+ * DIFFERENT models produced numbers that read as findings: a shipping cost
+ * against an assignment objective came out as "Objective Delta +238", and all
+ * 22,650 variables of the larger model were listed as "added".
+ *
+ * This is a warning and not a refusal on purpose. Comparing a model against a
+ * fork of it is a real thing to want — the variable names still line up, so the
+ * diff is exactly what the reader is after — and those are two different models
+ * by every id on the row.
+ */
+export function comparisonMismatch(
+  a: ModelExecution,
+  b: ModelExecution,
+  sharedVariables: number,
+): { labelA: string; labelB: string; nothingInCommon: boolean } | null {
+  const keyA = modelKeyOf(a);
+  const keyB = modelKeyOf(b);
+  if (!keyA || !keyB || keyA === keyB) return null;
+  return {
+    labelA: modelLabelOf(a),
+    labelB: modelLabelOf(b),
+    // No variable name in common is the case where nothing below survives: not
+    // one row is a comparison, and the change count is just the total.
+    nothingInCommon: sharedVariables === 0,
+  };
+}
+
 // ──────────────────────────────────────────────────────────────
 // ──────────────────────────────────────────────────────────────
 
@@ -130,6 +179,10 @@ export function ExecutionComparisonView({ executionA, executionB }: ExecutionCom
 
   const allCompared = buildComparedVariables(executionA, executionB);
   const changedCount = allCompared.filter((v) => v.changeType !== "same").length;
+  const sharedVariables = allCompared.filter(
+    (v) => v.changeType === "same" || v.changeType === "changed",
+  ).length;
+  const mismatch = comparisonMismatch(executionA, executionB, sharedVariables);
   const compared = changesOnly
     ? allCompared.filter((v) => v.changeType !== "same")
     : allCompared;
@@ -144,6 +197,20 @@ export function ExecutionComparisonView({ executionA, executionB }: ExecutionCom
 
   return (
     <div className="space-y-6">
+      {mismatch ? (
+        <div
+          data-testid="comparison-model-mismatch"
+          className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200"
+        >
+          <p className="font-medium">
+            {t("differentModels", { a: mismatch.labelA, b: mismatch.labelB })}
+          </p>
+          <p className="mt-1">
+            {mismatch.nothingInCommon ? t("nothingInCommon") : t("differentModelsDetail")}
+          </p>
+        </div>
+      ) : null}
+
       {/* ── Summary Header ── */}
       <div className="bg-card border border-border rounded-lg p-5">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">

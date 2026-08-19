@@ -372,11 +372,17 @@ export default function ExecutionDetailPage() {
 
       <div className="flex flex-wrap gap-3">
         {projectId ? (
+          // This button opens the studio's Solve tab and nothing else. It was
+          // labelled "Run Again", which is what it looks like it should do and
+          // what a reader assumed it had done: pressing it left the execution
+          // count exactly where it was. Re-running belongs on the Solve tab,
+          // where the solver and the limits are chosen — so the button now says
+          // where it goes instead of promising work it does not do.
           <Button
             variant="outline"
             onClick={() => router.push(`/studio/${projectId}/solve`)}
           >
-            {t("runAgain")}
+            {t("openInStudio")}
           </Button>
         ) : (
           <p className="text-sm text-muted-foreground py-1">
